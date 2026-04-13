@@ -18,12 +18,14 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
-    <div class="w-full max-w-md">
+    <div class="w-full max-w-lg">
         <div class="bg-white rounded-2xl shadow-lg p-8 text-center">
             @php
                 $ext = strtolower(pathinfo($fileLink->original_name, PATHINFO_EXTENSION));
                 $isImage = in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']);
                 $isPdf = $ext === 'pdf';
+                $previewUrl = route('redirect.file.raw', ['alias' => $link->alias, 'mode' => 'preview']);
+                $downloadUrl = route('redirect.file.raw', $link->alias);
             @endphp
 
             <div class="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -46,11 +48,15 @@
 
             @if($isImage)
             <div class="mb-6 rounded-lg overflow-hidden border border-gray-200">
-                <img src="{{ route('redirect.file.raw', $link->alias) }}" alt="{{ $fileLink->original_name }}" class="w-full max-h-64 object-contain bg-gray-100">
+                <img src="{{ $previewUrl }}" alt="{{ $fileLink->original_name }}" class="w-full max-h-64 object-contain bg-gray-100">
+            </div>
+            @elseif($isPdf)
+            <div class="mb-6 rounded-lg overflow-hidden border border-gray-200" style="height: 400px;">
+                <iframe src="{{ $previewUrl }}" class="w-full h-full" title="PDF Preview"></iframe>
             </div>
             @endif
 
-            <a href="{{ route('redirect.file.raw', $link->alias) }}" class="inline-flex items-center justify-center gap-2 w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-medium transition-colors">
+            <a href="{{ $downloadUrl }}" class="inline-flex items-center justify-center gap-2 w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-medium transition-colors">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 Download File
             </a>

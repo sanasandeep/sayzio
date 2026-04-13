@@ -51,15 +51,16 @@ class RedirectController extends Controller
         }
 
         if ($link->is_password_protected) {
-            if (!$request->has('password')) {
+            if (session("link_unlocked_{$link->id}")) {
+            } elseif (!$request->has('password')) {
                 return view('common.link-password', compact('link'));
-            }
-
-            if (!Hash::check($request->input('password'), $link->password)) {
+            } elseif (!Hash::check($request->input('password'), $link->password)) {
                 return view('common.link-password', [
                     'link' => $link,
                     'error' => 'Incorrect password.',
                 ]);
+            } else {
+                session(["link_unlocked_{$link->id}" => true]);
             }
         }
 
@@ -83,23 +84,62 @@ class RedirectController extends Controller
         return view('common.file-download', compact('link', 'fileLink'));
     }
 
-    public function rawFileDownload(string $alias)
+    public function rawFileDownload(Request $request, string $alias)
     {
         $link = Link::where('alias', $alias)->where('type', 'file')->firstOrFail();
+
+        if (!$link->isAccessible()) {
+            abort(410, 'This link is no longer available.');
+        }
+
+        $settings = $link->settings ?? [];
+        if (!empty($settings['country_restrictions'])) {
+            $visitorCountry = app(\App\Modules\Common\Services\GeoIpService::class)->detectCountry($request->ip());
+            $allowedCountries = array_map('strtoupper', $settings['country_restrictions']);
+            if ($visitorCountry === null) {
+                abort(403, 'This link is restricted by region and your location could not be determined.');
+            }
+            if (!in_array(strtoupper($visitorCountry), $allowedCountries)) {
+                abort(403, 'This link is not available in your region.');
+            }
+        }
+
+        if (!empty($settings['device_targeting'])) {
+            $ua = $request->userAgent() ?? '';
+            $deviceType = 'desktop';
+            if (preg_match('/Mobile|Android.*Mobile|iPhone/i', $ua)) {
+                $deviceType = 'mobile';
+            } elseif (preg_match('/iPad|Android(?!.*Mobile)|Tablet/i', $ua)) {
+                $deviceType = 'tablet';
+            }
+            if (!in_array($deviceType, array_map('strtolower', $settings['device_targeting']))) {
+                abort(403, 'This link is not available on your device.');
+            }
+        }
+
+        if ($link->is_password_protected && !session("link_unlocked_{$link->id}")) {
+            abort(403, 'This link is password protected.');
+        }
+
         $fileLink = $link->fileLink;
         if (!$fileLink) abort(404);
 
-        $fileLink->increment('download_count');
-
+        $mode = $request->query('mode', 'download');
         $disk = $fileLink->disk ?? 'public';
-        if (Storage::disk($disk)->exists($fileLink->stored_path)) {
-            return Storage::disk($disk)->download(
-                $fileLink->stored_path,
-                $fileLink->original_name
-            );
+
+        if (!Storage::disk($disk)->exists($fileLink->stored_path)) {
+            abort(404, 'File not found.');
         }
 
-        abort(404, 'File not found.');
+        if ($mode === 'preview') {
+            $mimeType = $fileLink->mime_type ?: 'application/octet-stream';
+            return Storage::disk($disk)->response($fileLink->stored_path, $fileLink->original_name, [
+                'Content-Type' => $mimeType,
+            ]);
+        }
+
+        $fileLink->increment('download_count');
+        return Storage::disk($disk)->download($fileLink->stored_path, $fileLink->original_name);
     }
 
     protected function handleIcsDownload(Link $link)
