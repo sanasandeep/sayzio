@@ -93,4 +93,35 @@ class LinkManagementController extends Controller
         return redirect()->route('admin.links.index')
             ->with('success', 'Link deleted successfully.');
     }
+
+    public function bulkAction(Request $request)
+    {
+        $request->validate([
+            'action' => 'required|in:enable,disable,delete',
+            'link_ids' => 'required|array|min:1',
+            'link_ids.*' => 'integer|exists:links,id',
+        ]);
+
+        $ids = $request->input('link_ids');
+        $action = $request->input('action');
+
+        switch ($action) {
+            case 'enable':
+                Link::whereIn('id', $ids)->update(['is_active' => true]);
+                $message = count($ids) . ' link(s) enabled.';
+                break;
+            case 'disable':
+                Link::whereIn('id', $ids)->update(['is_active' => false]);
+                $message = count($ids) . ' link(s) disabled.';
+                break;
+            case 'delete':
+                Link::whereIn('id', $ids)->delete();
+                $message = count($ids) . ' link(s) deleted.';
+                break;
+            default:
+                $message = 'Unknown action.';
+        }
+
+        return back()->with('success', $message);
+    }
 }

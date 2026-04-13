@@ -113,6 +113,11 @@
                             <label class="block text-sm text-gray-700 mb-1">OG Image</label>
                             <input type="file" name="seo_image" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200">
                         </div>
+                        <div>
+                            <label class="block text-sm text-gray-700 mb-1">Favicon</label>
+                            <input type="file" name="favicon" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200">
+                            <p class="text-xs text-gray-400 mt-1">Small icon shown in browser tab (recommended: 32x32 or 64x64 px)</p>
+                        </div>
                     </div>
                 </div>
 

@@ -11,7 +11,7 @@ class Link extends Model
         'user_id', 'project_id', 'domain_id', 'type', 'alias', 'title',
         'long_url', 'is_active', 'expires_at',
         'password', 'is_password_protected',
-        'seo_title', 'seo_description', 'seo_image',
+        'seo_title', 'seo_description', 'seo_image', 'favicon',
         'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
         'settings', 'total_clicks', 'unique_clicks',
     ];

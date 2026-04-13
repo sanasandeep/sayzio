@@ -75,6 +75,7 @@ class LinkController extends Controller
             'pixel_ids' => 'nullable|array',
             'pixel_ids.*' => "exists:pixels,id,user_id,{$userId}",
             'seo_image' => 'nullable|image|max:2048',
+            'favicon' => 'nullable|image|max:1024',
             'country_restrictions' => 'nullable|string|max:500',
             'device_targeting' => 'nullable|array',
             'device_targeting.*' => 'in:desktop,mobile,tablet',
@@ -99,6 +100,16 @@ class LinkController extends Controller
             }
         }
         unset($validated['seo_image_file']);
+
+        if ($request->hasFile('favicon')) {
+            $disk = config('filesystems.default') === 's3' ? 's3' : 'public';
+            $validated['favicon'] = $request->file('favicon')->store('favicons', $disk);
+            if ($disk === 'public') {
+                $validated['favicon'] = Storage::disk('public')->url($validated['favicon']);
+            } else {
+                $validated['favicon'] = Storage::disk('s3')->url($validated['favicon']);
+            }
+        }
 
         $settings = [];
         if (!empty($validated['country_restrictions'])) {
@@ -218,6 +229,7 @@ class LinkController extends Controller
             'pixel_ids' => 'nullable|array',
             'pixel_ids.*' => "exists:pixels,id,user_id,{$userId}",
             'seo_image' => 'nullable|image|max:2048',
+            'favicon' => 'nullable|image|max:1024',
             'country_restrictions' => 'nullable|string|max:500',
             'device_targeting' => 'nullable|array',
             'device_targeting.*' => 'in:desktop,mobile,tablet',
@@ -244,6 +256,18 @@ class LinkController extends Controller
             }
         } else {
             unset($validated['seo_image']);
+        }
+
+        if ($request->hasFile('favicon')) {
+            $disk = config('filesystems.default') === 's3' ? 's3' : 'public';
+            $validated['favicon'] = $request->file('favicon')->store('favicons', $disk);
+            if ($disk === 'public') {
+                $validated['favicon'] = Storage::disk('public')->url($validated['favicon']);
+            } else {
+                $validated['favicon'] = Storage::disk('s3')->url($validated['favicon']);
+            }
+        } else {
+            unset($validated['favicon']);
         }
 
         $settings = $link->settings ?? [];
