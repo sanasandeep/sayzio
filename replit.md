@@ -26,6 +26,14 @@ pnpm workspace monorepo using TypeScript + PHP/Laravel. Each package manages its
 - **Auth**: `admin` guard for staff/admin (`Admin` model), `web` guard for users (`User` model)
 - **Module registration**: `ModuleServiceProvider` in `bootstrap/providers.php`
 
+### Homepage
+- Linktree-inspired colorful design: dark navy hero with animated blobs, chartreuse accent, bold solid-color sections
+- Hero mockup showcases biolink as a full website builder: text blocks, 2-column video/gallery layout, audio player with animated equalizer, file download + shop buttons, embed widget, social icons
+- Floating badges highlight "Multi-Column" layouts and "Unlimited" blocks
+- Marquee scrolling strip features content types: Multi-Column Layouts, Videos, Audio, Images, Embeds, Files, Bio Links, URL Shortener, QR Codes, Analytics
+- Use-cases section: Creators category has rich multi-block mockup; other categories have standard link mockups
+- Red section: "Not just links — build entire websites" with 3x3 block-type grid (Text, Images, Videos, Audio, Files, Embeds) + full-width Multi-Column Responsive Layouts card
+
 ### Current Features (Phases 1A-1C)
 - Admin panel: login, dashboard, staff CRUD, user management, role/permission CRUD, plan CRUD, impersonation, password reset
 - User panel: registration, login, dashboard with stats, profile management, password reset, email verification

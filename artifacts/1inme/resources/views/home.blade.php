@@ -110,7 +110,7 @@
                     </h1>
 
                     <p class="reveal reveal-delay-2 text-lg sm:text-xl text-gray-400 max-w-lg mx-auto lg:mx-0 mb-8 leading-relaxed">
-                        Connect your audience to all of your content with just one link. Bio pages, short URLs, file sharing, QR codes, analytics, and more.
+                        Build entire websites from a single link. Text, images, videos, audio, files, embeds, multi-column layouts — the design possibilities are unlimited.
                     </p>
 
                     <div class="reveal reveal-delay-3 flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
@@ -129,53 +129,104 @@
                 </div>
 
                 <div class="reveal reveal-delay-3 relative flex justify-center lg:justify-end">
-                    <div class="relative w-[280px] sm:w-[320px]">
+                    <div class="relative w-[310px] sm:w-[360px]">
                         <div class="hero-float">
                             <div class="bg-gradient-to-br from-[#d2f34c] via-[#06b6d4] to-[#7c3aed] rounded-[2rem] p-[3px] shadow-2xl shadow-[#7c3aed]/30">
-                                <div class="bg-[#1e2330] rounded-[1.85rem] p-5 space-y-3">
-                                    <div class="flex flex-col items-center mb-1">
-                                        <div class="w-18 h-18 rounded-full bg-gradient-to-br from-[#d2f34c] via-[#06b6d4] to-[#7c3aed] p-[2px] mb-3">
+                                <div class="bg-[#1e2330] rounded-[1.85rem] p-4 space-y-2.5">
+                                    <div class="flex items-center gap-3 mb-1">
+                                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-[#d2f34c] via-[#06b6d4] to-[#7c3aed] p-[2px] flex-shrink-0">
                                             <div class="w-full h-full rounded-full bg-[#1e2330] flex items-center justify-center">
-                                                <span class="text-[#d2f34c] text-xl font-bold w-16 h-16 flex items-center justify-center">JD</span>
+                                                <span class="text-[#d2f34c] text-sm font-bold">JD</span>
                                             </div>
                                         </div>
-                                        <h3 class="text-base font-bold text-white">Jane Doe</h3>
-                                        <p class="text-xs text-gray-500">Creator & Designer</p>
+                                        <div>
+                                            <h3 class="text-sm font-bold text-white leading-tight">Jane Doe Studio</h3>
+                                            <p class="text-[10px] text-gray-500">Creator & Designer</p>
+                                        </div>
                                     </div>
-                                    <a class="block w-full py-3 px-4 bg-[#d2f34c] text-[#1e2330] rounded-xl text-sm font-bold text-center">
-                                        <i class="fas fa-globe mr-2"></i>My Portfolio
-                                    </a>
-                                    <a class="block w-full py-3 px-4 bg-[#7c3aed] text-white rounded-xl text-sm font-medium text-center">
-                                        <i class="fab fa-youtube mr-2"></i>YouTube Channel
-                                    </a>
-                                    <a class="block w-full py-3 px-4 bg-[#06b6d4] text-white rounded-xl text-sm font-medium text-center">
-                                        <i class="fab fa-instagram mr-2"></i>Instagram
-                                    </a>
-                                    <a class="block w-full py-3 px-4 bg-[#f43f5e] text-white rounded-xl text-sm font-medium text-center">
-                                        <i class="fas fa-store mr-2"></i>Shop My Merch
-                                    </a>
-                                    <div class="flex justify-center gap-3 pt-1">
-                                        <span class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-gray-400 text-xs"><i class="fab fa-twitter"></i></span>
-                                        <span class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-gray-400 text-xs"><i class="fab fa-tiktok"></i></span>
-                                        <span class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-gray-400 text-xs"><i class="fab fa-linkedin"></i></span>
+
+                                    <div class="bg-white/5 rounded-xl p-3 border border-white/5">
+                                        <p class="text-[11px] text-gray-300 leading-relaxed">Welcome to my creative space! Explore my latest work, watch tutorials, and grab exclusive downloads.</p>
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <div class="bg-gradient-to-br from-[#7c3aed]/30 to-[#7c3aed]/10 rounded-xl p-2.5 border border-[#7c3aed]/20">
+                                            <div class="w-full aspect-video bg-[#7c3aed]/20 rounded-lg flex items-center justify-center mb-1.5">
+                                                <div class="w-7 h-7 rounded-full bg-[#7c3aed] flex items-center justify-center"><i class="fas fa-play text-white text-[8px] ml-0.5"></i></div>
+                                            </div>
+                                            <div class="text-[9px] text-gray-400 font-medium">LATEST VIDEO</div>
+                                            <div class="text-[10px] text-white font-bold truncate">Design Tips 2026</div>
+                                        </div>
+                                        <div class="bg-gradient-to-br from-[#06b6d4]/30 to-[#06b6d4]/10 rounded-xl p-2.5 border border-[#06b6d4]/20">
+                                            <div class="w-full aspect-video bg-[#06b6d4]/20 rounded-lg flex items-center justify-center mb-1.5 overflow-hidden">
+                                                <div class="grid grid-cols-2 gap-0.5 w-full h-full p-1">
+                                                    <div class="bg-[#06b6d4]/30 rounded"></div>
+                                                    <div class="bg-[#d2f34c]/30 rounded"></div>
+                                                    <div class="bg-[#f43f5e]/30 rounded"></div>
+                                                    <div class="bg-[#7c3aed]/30 rounded"></div>
+                                                </div>
+                                            </div>
+                                            <div class="text-[9px] text-gray-400 font-medium">GALLERY</div>
+                                            <div class="text-[10px] text-white font-bold truncate">Portfolio Work</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="bg-white/5 rounded-xl p-2.5 border border-white/5 flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-lg bg-[#f43f5e]/20 flex items-center justify-center flex-shrink-0"><i class="fas fa-headphones text-[#f43f5e] text-xs"></i></div>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="text-[9px] text-gray-400 font-medium">NOW PLAYING</div>
+                                            <div class="text-[10px] text-white font-bold truncate">Creative Flow Podcast</div>
+                                        </div>
+                                        <div class="flex items-end gap-[2px] h-4">
+                                            <div class="w-[3px] bg-[#d2f34c] rounded-full animate-pulse" style="height: 40%"></div>
+                                            <div class="w-[3px] bg-[#d2f34c] rounded-full animate-pulse" style="height: 80%; animation-delay: 0.15s"></div>
+                                            <div class="w-[3px] bg-[#d2f34c] rounded-full animate-pulse" style="height: 55%; animation-delay: 0.3s"></div>
+                                            <div class="w-[3px] bg-[#d2f34c] rounded-full animate-pulse" style="height: 90%; animation-delay: 0.1s"></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <a class="block py-2.5 px-3 bg-[#d2f34c] text-[#1e2330] rounded-xl text-[11px] font-bold text-center">
+                                            <i class="fas fa-download mr-1"></i>Free Templates
+                                        </a>
+                                        <a class="block py-2.5 px-3 bg-[#e11d48] text-white rounded-xl text-[11px] font-bold text-center">
+                                            <i class="fas fa-store mr-1"></i>Shop Merch
+                                        </a>
+                                    </div>
+
+                                    <div class="bg-white/5 rounded-xl p-2.5 border border-white/5">
+                                        <div class="flex items-center gap-2 mb-1.5">
+                                            <i class="fas fa-code text-[#06b6d4] text-[10px]"></i>
+                                            <div class="text-[9px] text-gray-400 font-medium">EMBEDDED WIDGET</div>
+                                        </div>
+                                        <div class="w-full h-8 bg-gradient-to-r from-[#06b6d4]/15 via-[#7c3aed]/15 to-[#d2f34c]/15 rounded-lg flex items-center justify-center">
+                                            <span class="text-[9px] text-gray-500">Spotify / YouTube / Map embed</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex justify-center gap-2.5 pt-0.5">
+                                        <span class="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-gray-400 text-[10px]"><i class="fab fa-twitter"></i></span>
+                                        <span class="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-gray-400 text-[10px]"><i class="fab fa-tiktok"></i></span>
+                                        <span class="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-gray-400 text-[10px]"><i class="fab fa-youtube"></i></span>
+                                        <span class="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-gray-400 text-[10px]"><i class="fab fa-linkedin"></i></span>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="hero-float-2 absolute -top-4 -right-8 bg-[#d2f34c] rounded-2xl shadow-xl shadow-[#d2f34c]/20 p-3 flex items-center gap-2.5">
-                            <div class="w-9 h-9 bg-[#1e2330] rounded-lg flex items-center justify-center"><i class="fas fa-chart-line text-[#d2f34c] text-sm"></i></div>
+                        <div class="hero-float-2 absolute -top-3 -right-6 bg-[#d2f34c] rounded-2xl shadow-xl shadow-[#d2f34c]/20 p-2.5 flex items-center gap-2">
+                            <div class="w-8 h-8 bg-[#1e2330] rounded-lg flex items-center justify-center"><i class="fas fa-columns text-[#d2f34c] text-xs"></i></div>
                             <div>
-                                <div class="text-[10px] text-[#1e2330]/60 font-medium">Total Clicks</div>
-                                <div class="text-sm font-bold text-[#1e2330]">24,891</div>
+                                <div class="text-[9px] text-[#1e2330]/60 font-medium">Layout</div>
+                                <div class="text-[11px] font-bold text-[#1e2330]">Multi-Column</div>
                             </div>
                         </div>
 
-                        <div class="hero-float absolute -bottom-6 -left-8 bg-[#7c3aed] rounded-2xl shadow-xl shadow-[#7c3aed]/30 p-3 flex items-center gap-2.5">
-                            <div class="w-9 h-9 bg-white/15 rounded-lg flex items-center justify-center"><i class="fas fa-qrcode text-white text-sm"></i></div>
+                        <div class="hero-float absolute -bottom-4 -left-6 bg-[#7c3aed] rounded-2xl shadow-xl shadow-[#7c3aed]/30 p-2.5 flex items-center gap-2">
+                            <div class="w-8 h-8 bg-white/15 rounded-lg flex items-center justify-center"><i class="fas fa-puzzle-piece text-white text-xs"></i></div>
                             <div>
-                                <div class="text-[10px] text-white/60 font-medium">QR Scans</div>
-                                <div class="text-sm font-bold text-white">3,204</div>
+                                <div class="text-[9px] text-white/60 font-medium">Blocks</div>
+                                <div class="text-[11px] font-bold text-white">Unlimited</div>
                             </div>
                         </div>
                     </div>
@@ -188,21 +239,25 @@
         <div class="flex whitespace-nowrap marquee">
             @for($i = 0; $i < 2; $i++)
             <span class="inline-flex items-center gap-8 mx-4 text-[#1e2330]">
-                <span class="text-sm font-bold uppercase tracking-wider flex items-center gap-2"><i class="fas fa-link"></i> URL Shortener</span>
+                <span class="text-sm font-bold uppercase tracking-wider flex items-center gap-2"><i class="fas fa-columns"></i> Multi-Column Layouts</span>
+                <span class="text-xl opacity-30">&bull;</span>
+                <span class="text-sm font-bold uppercase tracking-wider flex items-center gap-2"><i class="fas fa-video"></i> Videos</span>
+                <span class="text-xl opacity-30">&bull;</span>
+                <span class="text-sm font-bold uppercase tracking-wider flex items-center gap-2"><i class="fas fa-headphones"></i> Audio</span>
+                <span class="text-xl opacity-30">&bull;</span>
+                <span class="text-sm font-bold uppercase tracking-wider flex items-center gap-2"><i class="fas fa-image"></i> Images</span>
+                <span class="text-xl opacity-30">&bull;</span>
+                <span class="text-sm font-bold uppercase tracking-wider flex items-center gap-2"><i class="fas fa-code"></i> Embeds</span>
+                <span class="text-xl opacity-30">&bull;</span>
+                <span class="text-sm font-bold uppercase tracking-wider flex items-center gap-2"><i class="fas fa-file-alt"></i> Files</span>
                 <span class="text-xl opacity-30">&bull;</span>
                 <span class="text-sm font-bold uppercase tracking-wider flex items-center gap-2"><i class="fas fa-id-card"></i> Bio Links</span>
                 <span class="text-xl opacity-30">&bull;</span>
-                <span class="text-sm font-bold uppercase tracking-wider flex items-center gap-2"><i class="fas fa-file-arrow-down"></i> File Sharing</span>
+                <span class="text-sm font-bold uppercase tracking-wider flex items-center gap-2"><i class="fas fa-link"></i> URL Shortener</span>
                 <span class="text-xl opacity-30">&bull;</span>
                 <span class="text-sm font-bold uppercase tracking-wider flex items-center gap-2"><i class="fas fa-qrcode"></i> QR Codes</span>
                 <span class="text-xl opacity-30">&bull;</span>
                 <span class="text-sm font-bold uppercase tracking-wider flex items-center gap-2"><i class="fas fa-chart-bar"></i> Analytics</span>
-                <span class="text-xl opacity-30">&bull;</span>
-                <span class="text-sm font-bold uppercase tracking-wider flex items-center gap-2"><i class="fas fa-bullseye"></i> Tracking Pixels</span>
-                <span class="text-xl opacity-30">&bull;</span>
-                <span class="text-sm font-bold uppercase tracking-wider flex items-center gap-2"><i class="fas fa-calendar-check"></i> ICS Events</span>
-                <span class="text-xl opacity-30">&bull;</span>
-                <span class="text-sm font-bold uppercase tracking-wider flex items-center gap-2"><i class="fas fa-address-card"></i> VCF Cards</span>
                 <span class="text-xl opacity-30">&bull;</span>
             </span>
             @endfor
@@ -245,7 +300,7 @@
             <div class="relative min-h-[420px]">
                 @php
                 $catData = [
-                    ['badge' => 'CREATORS & INFLUENCERS', 'badgeBg' => '#7c3aed', 'title' => 'Your brand, your rules', 'desc' => 'Build a stunning bio link page that showcases everything you create. From YouTube videos to merch stores, social profiles to booking links.', 'checks' => ['Customizable bio link pages', 'Social media link integration', 'Click analytics & audience insights', 'Retargeting pixels for fan growth'], 'checkColor' => '#7c3aed', 'mockupBg' => 'from-[#7c3aed] to-[#a855f7]', 'mockupIcon' => 'fa-camera', 'mockupName' => '@CreatorStudio', 'mockupSub' => 'Content Creator', 'links' => [['bg' => '#1e2330', 'text' => 'white', 'icon' => 'fab fa-youtube', 'label' => 'Latest Video'], ['bg' => '#7c3aed', 'text' => 'white', 'icon' => 'fas fa-shopping-bag', 'label' => 'Merch Store'], ['bg' => '#d2f34c', 'text' => '#1e2330', 'icon' => 'fab fa-patreon', 'label' => 'Support Me']]],
+                    ['badge' => 'CREATORS & INFLUENCERS', 'badgeBg' => '#7c3aed', 'title' => 'A whole website in one link', 'desc' => 'Go way beyond simple links. Add text blocks, images, video players, audio, file downloads, embeds, and arrange everything in multi-column layouts. The design possibilities are truly unlimited.', 'checks' => ['Text, images, video, audio & file blocks', 'Multi-column responsive layouts', 'Embed Spotify, YouTube, Maps & more', 'Unlimited design customization'], 'checkColor' => '#7c3aed', 'mockupBg' => 'from-[#7c3aed] to-[#a855f7]', 'mockupIcon' => 'fa-camera', 'mockupName' => '@CreatorStudio', 'mockupSub' => 'Content Creator', 'richMockup' => true, 'links' => []],
                     ['badge' => 'SMALL BUSINESSES', 'badgeBg' => '#059669', 'title' => 'Grow offline & online', 'desc' => 'Print QR codes on menus, packaging, and signage. Share product catalogs as files. Create branded short URLs that build trust.', 'checks' => ['QR codes for menus & products', 'File sharing for catalogs', 'Branded short URLs', 'Location-based link routing'], 'checkColor' => '#059669', 'mockupBg' => 'from-[#059669] to-[#10b981]', 'mockupIcon' => 'fa-coffee', 'mockupName' => 'Cafe Bloom', 'mockupSub' => 'Local Coffee Shop', 'links' => [['bg' => '#1e2330', 'text' => 'white', 'icon' => 'fas fa-utensils', 'label' => 'View Our Menu'], ['bg' => '#059669', 'text' => 'white', 'icon' => 'fas fa-file-pdf', 'label' => 'Download Catalog'], ['bg' => '#d2f34c', 'text' => '#1e2330', 'icon' => 'fas fa-star', 'label' => 'Leave a Review']]],
                     ['badge' => 'FREELANCERS & AGENCIES', 'badgeBg' => '#2563eb', 'title' => 'Professional identity, simplified', 'desc' => 'Share your portfolio, generate VCF contact cards for networking, and create branded link pages that impress.', 'checks' => ['VCF digital business cards', 'Portfolio & case study links', 'Branded bio pages for clients', 'Password-protected links'], 'checkColor' => '#2563eb', 'mockupBg' => 'from-[#2563eb] to-[#3b82f6]', 'mockupIcon' => 'fa-pen-nib', 'mockupName' => 'Alex Rivera', 'mockupSub' => 'UX Designer', 'links' => [['bg' => '#1e2330', 'text' => 'white', 'icon' => 'fas fa-briefcase', 'label' => 'View Portfolio'], ['bg' => '#2563eb', 'text' => 'white', 'icon' => 'fas fa-address-card', 'label' => 'Save Contact'], ['bg' => '#d2f34c', 'text' => '#1e2330', 'icon' => 'fab fa-linkedin', 'label' => 'LinkedIn']]],
                     ['badge' => 'EVENT ORGANIZERS', 'badgeBg' => '#ea580c', 'title' => 'Events made effortless', 'desc' => 'Generate ICS calendar invites, create QR codes for check-in, and share event details through a single link.', 'checks' => ['ICS calendar file generation', 'QR codes for event check-in', 'Ticket & RSVP short links', 'Expiring links for time-sensitive content'], 'checkColor' => '#ea580c', 'mockupBg' => 'from-[#ea580c] to-[#f97316]', 'mockupIcon' => 'fa-music', 'mockupName' => 'SoundWave Fest', 'mockupSub' => 'Music Festival 2026', 'links' => [['bg' => '#1e2330', 'text' => 'white', 'icon' => 'fas fa-ticket-alt', 'label' => 'Get Tickets'], ['bg' => '#ea580c', 'text' => 'white', 'icon' => 'fas fa-calendar-plus', 'label' => 'Add to Calendar'], ['bg' => '#d2f34c', 'text' => '#1e2330', 'icon' => 'fas fa-map-marker-alt', 'label' => 'Venue & Directions']]],
@@ -270,6 +325,44 @@
                         </ul>
                     </div>
                     <div class="flex justify-center">
+                        @if(!empty($cat['richMockup']))
+                        <div class="w-72 sm:w-80 bg-gradient-to-br {{ $cat['mockupBg'] }} rounded-[2rem] p-[3px] shadow-2xl">
+                            <div class="bg-[#1e2330] rounded-[1.85rem] p-4 space-y-2">
+                                <div class="flex items-center gap-2.5 mb-1">
+                                    <div class="w-10 h-10 rounded-full bg-gradient-to-br {{ $cat['mockupBg'] }} flex items-center justify-center text-white text-sm"><i class="fas {{ $cat['mockupIcon'] }}"></i></div>
+                                    <div><div class="font-bold text-xs text-white">{{ $cat['mockupName'] }}</div><div class="text-[10px] text-gray-500">{{ $cat['mockupSub'] }}</div></div>
+                                </div>
+                                <div class="bg-white/5 rounded-lg p-2 border border-white/5">
+                                    <p class="text-[10px] text-gray-300 leading-relaxed">Hey! Welcome to my creative hub. Check out my latest projects, listen to my podcast, and grab free resources below.</p>
+                                </div>
+                                <div class="grid grid-cols-2 gap-1.5">
+                                    <div class="bg-[#7c3aed]/20 rounded-lg p-2 border border-[#7c3aed]/15">
+                                        <div class="w-full aspect-video bg-[#7c3aed]/25 rounded flex items-center justify-center mb-1"><div class="w-5 h-5 rounded-full bg-[#7c3aed] flex items-center justify-center"><i class="fas fa-play text-white text-[6px] ml-px"></i></div></div>
+                                        <div class="text-[8px] text-gray-400">VIDEO</div>
+                                        <div class="text-[9px] text-white font-bold truncate">Studio Tour</div>
+                                    </div>
+                                    <div class="bg-[#06b6d4]/20 rounded-lg p-2 border border-[#06b6d4]/15">
+                                        <div class="w-full aspect-video bg-[#06b6d4]/25 rounded overflow-hidden mb-1"><div class="grid grid-cols-2 gap-px w-full h-full p-0.5"><div class="bg-[#06b6d4]/30 rounded-sm"></div><div class="bg-[#d2f34c]/30 rounded-sm"></div><div class="bg-[#f43f5e]/30 rounded-sm"></div><div class="bg-[#7c3aed]/30 rounded-sm"></div></div></div>
+                                        <div class="text-[8px] text-gray-400">GALLERY</div>
+                                        <div class="text-[9px] text-white font-bold truncate">My Work</div>
+                                    </div>
+                                </div>
+                                <div class="bg-white/5 rounded-lg p-2 border border-white/5 flex items-center gap-2">
+                                    <div class="w-6 h-6 rounded bg-[#f43f5e]/20 flex items-center justify-center flex-shrink-0"><i class="fas fa-headphones text-[#f43f5e] text-[8px]"></i></div>
+                                    <div class="flex-1 min-w-0"><div class="text-[8px] text-gray-400">AUDIO</div><div class="text-[9px] text-white font-bold truncate">Creative Flow Ep. 42</div></div>
+                                    <div class="flex items-end gap-[1.5px] h-3"><div class="w-[2px] bg-[#d2f34c] rounded-full animate-pulse" style="height:35%"></div><div class="w-[2px] bg-[#d2f34c] rounded-full animate-pulse" style="height:75%;animation-delay:.15s"></div><div class="w-[2px] bg-[#d2f34c] rounded-full animate-pulse" style="height:50%;animation-delay:.3s"></div><div class="w-[2px] bg-[#d2f34c] rounded-full animate-pulse" style="height:85%;animation-delay:.1s"></div></div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-1.5">
+                                    <div class="py-2 rounded-lg text-[10px] font-bold text-center bg-[#d2f34c] text-[#1e2330]"><i class="fas fa-download mr-1"></i>Free Kit</div>
+                                    <div class="py-2 rounded-lg text-[10px] font-bold text-center bg-[#e11d48] text-white"><i class="fas fa-store mr-1"></i>Shop</div>
+                                </div>
+                                <div class="bg-white/5 rounded-lg p-1.5 border border-white/5">
+                                    <div class="flex items-center gap-1.5 mb-1"><i class="fas fa-code text-[#06b6d4] text-[8px]"></i><div class="text-[8px] text-gray-400">EMBED</div></div>
+                                    <div class="w-full h-6 bg-gradient-to-r from-[#06b6d4]/10 via-[#7c3aed]/10 to-[#d2f34c]/10 rounded flex items-center justify-center"><span class="text-[7px] text-gray-500">Spotify / YouTube embed</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        @else
                         <div class="w-64 sm:w-72 bg-gradient-to-br {{ $cat['mockupBg'] }} rounded-[2rem] p-[3px] shadow-2xl">
                             <div class="bg-[#1e2330] rounded-[1.85rem] p-5 space-y-3">
                                 <div class="flex flex-col items-center">
@@ -282,6 +375,7 @@
                                 @endforeach
                             </div>
                         </div>
+                        @endif
                     </div>
                 </div>
                 @endforeach
@@ -305,36 +399,44 @@
             <div class="grid lg:grid-cols-2 gap-12 items-center">
                 <div>
                     <h2 class="reveal text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
-                        Create and customize your 1INME in minutes
+                        Not just links — build entire websites
                     </h2>
                     <p class="reveal reveal-delay-1 text-lg text-white/70 mb-8 leading-relaxed">
-                        Connect all your content across social media, websites, stores and more in one link. Customize every detail to match your brand and drive more clicks.
+                        Add text, images, videos, audio, files, embeds, and more. Arrange blocks in multi-column layouts that adapt to any device. The design is completely in your hands.
                     </p>
                     <a href="{{ route('user.register') }}" class="reveal reveal-delay-2 inline-flex items-center gap-2 px-8 py-4 bg-[#d2f34c] text-[#1e2330] rounded-full text-base font-bold hover:bg-[#e4ff6e] transition-all hover:shadow-xl hover:-translate-y-0.5">
                         Get started for free
                     </a>
                 </div>
                 <div class="reveal reveal-delay-2 flex justify-center">
-                    <div class="grid grid-cols-2 gap-4 max-w-sm">
-                        <div class="card-hover bg-white/15 backdrop-blur-sm rounded-2xl p-5 text-center border border-white/10">
-                            <div class="text-3xl mb-2"><i class="fas fa-link text-[#d2f34c]"></i></div>
-                            <div class="text-white font-bold text-sm">Short URLs</div>
-                            <div class="text-white/50 text-xs mt-1">301 & 302 redirects</div>
+                    <div class="grid grid-cols-3 gap-3 max-w-md">
+                        <div class="card-hover bg-white/15 backdrop-blur-sm rounded-2xl p-4 text-center border border-white/10">
+                            <div class="text-2xl mb-1.5"><i class="fas fa-font text-[#d2f34c]"></i></div>
+                            <div class="text-white font-bold text-xs">Text</div>
                         </div>
-                        <div class="card-hover bg-white/15 backdrop-blur-sm rounded-2xl p-5 text-center border border-white/10 mt-8">
-                            <div class="text-3xl mb-2"><i class="fas fa-qrcode text-[#d2f34c]"></i></div>
-                            <div class="text-white font-bold text-sm">QR Codes</div>
-                            <div class="text-white/50 text-xs mt-1">Custom logos & colors</div>
+                        <div class="card-hover bg-white/15 backdrop-blur-sm rounded-2xl p-4 text-center border border-white/10 mt-4">
+                            <div class="text-2xl mb-1.5"><i class="fas fa-image text-[#06b6d4]"></i></div>
+                            <div class="text-white font-bold text-xs">Images</div>
                         </div>
-                        <div class="card-hover bg-white/15 backdrop-blur-sm rounded-2xl p-5 text-center border border-white/10">
-                            <div class="text-3xl mb-2"><i class="fas fa-file-arrow-down text-[#d2f34c]"></i></div>
-                            <div class="text-white font-bold text-sm">File Sharing</div>
-                            <div class="text-white/50 text-xs mt-1">PDF & image preview</div>
+                        <div class="card-hover bg-white/15 backdrop-blur-sm rounded-2xl p-4 text-center border border-white/10">
+                            <div class="text-2xl mb-1.5"><i class="fas fa-video text-[#7c3aed]"></i></div>
+                            <div class="text-white font-bold text-xs">Videos</div>
                         </div>
-                        <div class="card-hover bg-white/15 backdrop-blur-sm rounded-2xl p-5 text-center border border-white/10 mt-8">
-                            <div class="text-3xl mb-2"><i class="fas fa-chart-bar text-[#d2f34c]"></i></div>
-                            <div class="text-white font-bold text-sm">Analytics</div>
-                            <div class="text-white/50 text-xs mt-1">Real-time insights</div>
+                        <div class="card-hover bg-white/15 backdrop-blur-sm rounded-2xl p-4 text-center border border-white/10 mt-4">
+                            <div class="text-2xl mb-1.5"><i class="fas fa-headphones text-[#f43f5e]"></i></div>
+                            <div class="text-white font-bold text-xs">Audio</div>
+                        </div>
+                        <div class="card-hover bg-white/15 backdrop-blur-sm rounded-2xl p-4 text-center border border-white/10">
+                            <div class="text-2xl mb-1.5"><i class="fas fa-file-alt text-[#ea580c]"></i></div>
+                            <div class="text-white font-bold text-xs">Files</div>
+                        </div>
+                        <div class="card-hover bg-white/15 backdrop-blur-sm rounded-2xl p-4 text-center border border-white/10 mt-4">
+                            <div class="text-2xl mb-1.5"><i class="fas fa-code text-[#d2f34c]"></i></div>
+                            <div class="text-white font-bold text-xs">Embeds</div>
+                        </div>
+                        <div class="card-hover bg-white/15 backdrop-blur-sm rounded-2xl p-4 text-center border border-white/10 col-span-3">
+                            <div class="text-2xl mb-1.5"><i class="fas fa-columns text-[#d2f34c]"></i></div>
+                            <div class="text-white font-bold text-xs">Multi-Column Responsive Layouts</div>
                         </div>
                     </div>
                 </div>
