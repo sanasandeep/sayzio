@@ -8,7 +8,7 @@
         <h1 class="text-2xl font-bold text-gray-900">Edit Link</h1>
     </div>
 
-    <form method="POST" action="{{ route('user.links.update', $link) }}" x-data="{ passwordProtect: {{ $link->is_password_protected ? 'true' : 'false' }} }">
+    <form method="POST" action="{{ route('user.links.update', $link) }}" enctype="multipart/form-data" x-data="{ passwordProtect: {{ $link->is_password_protected ? 'true' : 'false' }} }">
         @csrf @method('PUT')
 
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
@@ -77,6 +77,43 @@
             <div class="space-y-3">
                 <input type="text" name="seo_title" value="{{ old('seo_title', $link->seo_title) }}" placeholder="SEO Title" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500">
                 <textarea name="seo_description" placeholder="SEO Description" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500">{{ old('seo_description', $link->seo_description) }}</textarea>
+                <div>
+                    <label class="block text-sm text-gray-700 mb-1">OG Image</label>
+                    @if($link->seo_image)
+                        <div class="mb-2"><img src="{{ $link->seo_image }}" alt="Current OG image" class="h-20 rounded border"></div>
+                    @endif
+                    <input type="file" name="seo_image" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200">
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Targeting</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Country Restrictions</label>
+                    <input type="text" name="country_restrictions" value="{{ old('country_restrictions', implode(',', $link->settings['country_restrictions'] ?? [])) }}" placeholder="e.g. US,GB,CA" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500">
+                    <p class="text-xs text-gray-400 mt-1">Comma-separated ISO country codes. Leave empty for no restriction.</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Device Targeting</label>
+                    @php $deviceTargeting = $link->settings['device_targeting'] ?? []; @endphp
+                    <div class="flex gap-4">
+                        <label class="flex items-center gap-2 text-sm text-gray-700">
+                            <input type="checkbox" name="device_targeting[]" value="desktop" class="rounded text-primary-600" {{ in_array('desktop', $deviceTargeting) ? 'checked' : '' }}>
+                            Desktop
+                        </label>
+                        <label class="flex items-center gap-2 text-sm text-gray-700">
+                            <input type="checkbox" name="device_targeting[]" value="mobile" class="rounded text-primary-600" {{ in_array('mobile', $deviceTargeting) ? 'checked' : '' }}>
+                            Mobile
+                        </label>
+                        <label class="flex items-center gap-2 text-sm text-gray-700">
+                            <input type="checkbox" name="device_targeting[]" value="tablet" class="rounded text-primary-600" {{ in_array('tablet', $deviceTargeting) ? 'checked' : '' }}>
+                            Tablet
+                        </label>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-1">Leave unchecked to allow all devices.</p>
+                </div>
             </div>
         </div>
 

@@ -23,6 +23,30 @@ class RedirectController extends Controller
             abort(410, 'This link is no longer available.');
         }
 
+        $settings = $link->settings ?? [];
+
+        if (!empty($settings['country_restrictions'])) {
+            $visitorCountry = null;
+            $countries = array_map('strtoupper', $settings['country_restrictions']);
+            if ($visitorCountry && !in_array(strtoupper($visitorCountry), $countries)) {
+                abort(403, 'This link is not available in your region.');
+            }
+        }
+
+        if (!empty($settings['device_targeting'])) {
+            $ua = $request->userAgent() ?? '';
+            $deviceType = 'desktop';
+            if (preg_match('/Mobile|Android.*Mobile|iPhone/i', $ua)) {
+                $deviceType = 'mobile';
+            } elseif (preg_match('/iPad|Android(?!.*Mobile)|Tablet/i', $ua)) {
+                $deviceType = 'tablet';
+            }
+            $allowedDevices = array_map('strtolower', $settings['device_targeting']);
+            if (!in_array($deviceType, $allowedDevices)) {
+                abort(403, 'This link is not available on your device.');
+            }
+        }
+
         if ($link->is_password_protected) {
             if (!$request->has('password')) {
                 return view('common.link-password', compact('link'));

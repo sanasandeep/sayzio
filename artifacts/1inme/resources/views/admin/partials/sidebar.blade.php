@@ -32,6 +32,12 @@
             <span>Roles & Permissions</span>
         </a>
 
+        <a href="{{ route('admin.links.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.links.*') ? 'active' : '' }}">
+            <i class="fas fa-link w-5"></i>
+            <span>All Links</span>
+        </a>
+
         <div class="pt-4 pb-2 px-4 text-xs font-semibold uppercase text-dark-500 tracking-wider">Settings</div>
 
         <a href="{{ route('admin.plans.index') }}"

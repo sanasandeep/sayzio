@@ -8,7 +8,7 @@
         <h1 class="text-2xl font-bold text-gray-900">Create Link</h1>
     </div>
 
-    <form method="POST" action="{{ route('user.links.store') }}" x-data="{ type: '{{ old('type', 'url') }}', showAdvanced: false, passwordProtect: {{ old('is_password_protected') ? 'true' : 'false' }} }">
+    <form method="POST" action="{{ route('user.links.store') }}" enctype="multipart/form-data" x-data="{ type: '{{ old('type', 'url') }}', showAdvanced: false, passwordProtect: {{ old('is_password_protected') ? 'true' : 'false' }} }">
         @csrf
 
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
@@ -109,7 +109,36 @@
                     <div class="space-y-3">
                         <input type="text" name="seo_title" value="{{ old('seo_title') }}" placeholder="SEO Title" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500">
                         <textarea name="seo_description" placeholder="SEO Description" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500">{{ old('seo_description') }}</textarea>
+                        <div>
+                            <label class="block text-sm text-gray-700 mb-1">OG Image</label>
+                            <input type="file" name="seo_image" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200">
+                        </div>
                     </div>
+                </div>
+
+                <div>
+                    <h3 class="text-sm font-medium text-gray-700 mb-3">Country Restrictions</h3>
+                    <input type="text" name="country_restrictions" value="{{ old('country_restrictions') }}" placeholder="e.g. US,GB,CA (comma-separated country codes, leave empty for no restriction)" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500">
+                    <p class="text-xs text-gray-400 mt-1">Only allow access from these countries (ISO 2-letter codes)</p>
+                </div>
+
+                <div>
+                    <h3 class="text-sm font-medium text-gray-700 mb-3">Device Targeting</h3>
+                    <div class="flex gap-4">
+                        <label class="flex items-center gap-2 text-sm text-gray-700">
+                            <input type="checkbox" name="device_targeting[]" value="desktop" class="rounded text-primary-600" {{ is_array(old('device_targeting')) && in_array('desktop', old('device_targeting')) ? 'checked' : '' }}>
+                            Desktop
+                        </label>
+                        <label class="flex items-center gap-2 text-sm text-gray-700">
+                            <input type="checkbox" name="device_targeting[]" value="mobile" class="rounded text-primary-600" {{ is_array(old('device_targeting')) && in_array('mobile', old('device_targeting')) ? 'checked' : '' }}>
+                            Mobile
+                        </label>
+                        <label class="flex items-center gap-2 text-sm text-gray-700">
+                            <input type="checkbox" name="device_targeting[]" value="tablet" class="rounded text-primary-600" {{ is_array(old('device_targeting')) && in_array('tablet', old('device_targeting')) ? 'checked' : '' }}>
+                            Tablet
+                        </label>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-1">Leave unchecked to allow all devices</p>
                 </div>
 
                 <div>

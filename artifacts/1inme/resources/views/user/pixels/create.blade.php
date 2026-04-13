@@ -28,6 +28,7 @@
                     <option value="pinterest" {{ old('type') === 'pinterest' ? 'selected' : '' }}>Pinterest Tag</option>
                     <option value="tiktok" {{ old('type') === 'tiktok' ? 'selected' : '' }}>TikTok Pixel</option>
                     <option value="snapchat" {{ old('type') === 'snapchat' ? 'selected' : '' }}>Snapchat Pixel</option>
+                    <option value="quora" {{ old('type') === 'quora' ? 'selected' : '' }}>Quora Pixel</option>
                     <option value="custom" {{ old('type') === 'custom' ? 'selected' : '' }}>Custom</option>
                 </select>
                 @error('type') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror

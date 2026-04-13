@@ -29,5 +29,6 @@
         </div>
         <p class="text-center text-xs text-gray-400 mt-4">Powered by 1INME</p>
     </div>
+    @include('common.partials.pixel-scripts', ['link' => $link])
 </body>
 </html>

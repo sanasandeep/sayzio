@@ -27,7 +27,7 @@ class PixelController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'type' => 'required|in:facebook,google_analytics,google_tag_manager,linkedin,twitter,pinterest,tiktok,snapchat,custom',
+            'type' => 'required|in:facebook,google_analytics,google_tag_manager,linkedin,twitter,pinterest,tiktok,snapchat,quora,custom',
             'pixel_id' => 'required|string|max:255',
         ]);
 
@@ -50,7 +50,7 @@ class PixelController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'type' => 'required|in:facebook,google_analytics,google_tag_manager,linkedin,twitter,pinterest,tiktok,snapchat,custom',
+            'type' => 'required|in:facebook,google_analytics,google_tag_manager,linkedin,twitter,pinterest,tiktok,snapchat,quora,custom',
             'pixel_id' => 'required|string|max:255',
         ]);
 

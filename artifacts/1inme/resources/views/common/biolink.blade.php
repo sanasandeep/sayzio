@@ -39,17 +39,6 @@
         <p class="text-white/40 text-xs mt-8">Powered by 1INME</p>
     </div>
 
-    @if($link->pixels->count())
-    @foreach($link->pixels as $pixel)
-        @if($pixel->type === 'facebook')
-        <script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','{{ $pixel->pixel_id }}');fbq('track','PageView');</script>
-        @elseif($pixel->type === 'google_analytics')
-        <script async src="https://www.googletagmanager.com/gtag/js?id={{ $pixel->pixel_id }}"></script>
-        <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','{{ $pixel->pixel_id }}');</script>
-        @elseif($pixel->type === 'google_tag_manager')
-        <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','{{ $pixel->pixel_id }}');</script>
-        @endif
-    @endforeach
-    @endif
+    @include('common.partials.pixel-scripts', ['link' => $link])
 </body>
 </html>

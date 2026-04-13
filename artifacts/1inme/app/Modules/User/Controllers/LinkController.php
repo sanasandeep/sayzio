@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\User\Models\Link;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 class LinkController extends Controller
 {
@@ -73,6 +74,10 @@ class LinkController extends Controller
             'utm_content' => 'nullable|string|max:255',
             'pixel_ids' => 'nullable|array',
             'pixel_ids.*' => "exists:pixels,id,user_id,{$userId}",
+            'seo_image' => 'nullable|image|max:2048',
+            'country_restrictions' => 'nullable|string|max:500',
+            'device_targeting' => 'nullable|array',
+            'device_targeting.*' => 'in:desktop,mobile,tablet',
         ]);
 
         if (empty($validated['alias'])) {
@@ -83,6 +88,27 @@ class LinkController extends Controller
             $validated['password'] = Hash::make($validated['password']);
             $validated['is_password_protected'] = true;
         }
+
+        if ($request->hasFile('seo_image')) {
+            $disk = config('filesystems.default') === 's3' ? 's3' : 'public';
+            $validated['seo_image'] = $request->file('seo_image')->store('seo-images', $disk);
+            if ($disk === 'public') {
+                $validated['seo_image'] = Storage::disk('public')->url($validated['seo_image']);
+            } else {
+                $validated['seo_image'] = Storage::disk('s3')->url($validated['seo_image']);
+            }
+        }
+        unset($validated['seo_image_file']);
+
+        $settings = [];
+        if (!empty($validated['country_restrictions'])) {
+            $settings['country_restrictions'] = array_map('trim', explode(',', $validated['country_restrictions']));
+        }
+        if (!empty($validated['device_targeting'])) {
+            $settings['device_targeting'] = $validated['device_targeting'];
+        }
+        $validated['settings'] = !empty($settings) ? $settings : null;
+        unset($validated['country_restrictions'], $validated['device_targeting']);
 
         $validated['user_id'] = $request->user()->id;
 
@@ -191,6 +217,10 @@ class LinkController extends Controller
             'utm_content' => 'nullable|string|max:255',
             'pixel_ids' => 'nullable|array',
             'pixel_ids.*' => "exists:pixels,id,user_id,{$userId}",
+            'seo_image' => 'nullable|image|max:2048',
+            'country_restrictions' => 'nullable|string|max:500',
+            'device_targeting' => 'nullable|array',
+            'device_targeting.*' => 'in:desktop,mobile,tablet',
         ]);
 
         if (!empty($validated['password'])) {
@@ -203,6 +233,32 @@ class LinkController extends Controller
                 $validated['is_password_protected'] = false;
             }
         }
+
+        if ($request->hasFile('seo_image')) {
+            $disk = config('filesystems.default') === 's3' ? 's3' : 'public';
+            $validated['seo_image'] = $request->file('seo_image')->store('seo-images', $disk);
+            if ($disk === 'public') {
+                $validated['seo_image'] = Storage::disk('public')->url($validated['seo_image']);
+            } else {
+                $validated['seo_image'] = Storage::disk('s3')->url($validated['seo_image']);
+            }
+        } else {
+            unset($validated['seo_image']);
+        }
+
+        $settings = $link->settings ?? [];
+        if (isset($validated['country_restrictions']) && $validated['country_restrictions']) {
+            $settings['country_restrictions'] = array_map('trim', explode(',', $validated['country_restrictions']));
+        } else {
+            unset($settings['country_restrictions']);
+        }
+        if (!empty($validated['device_targeting'])) {
+            $settings['device_targeting'] = $validated['device_targeting'];
+        } else {
+            unset($settings['device_targeting']);
+        }
+        $validated['settings'] = !empty($settings) ? $settings : null;
+        unset($validated['country_restrictions'], $validated['device_targeting']);
 
         $pixelIds = $validated['pixel_ids'] ?? [];
         unset($validated['pixel_ids']);

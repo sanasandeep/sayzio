@@ -27,14 +27,16 @@ pnpm workspace monorepo using TypeScript + PHP/Laravel. Each package manages its
 - **Module registration**: `ModuleServiceProvider` in `bootstrap/providers.php`
 
 ### Current Features (Phases 1A-1C)
-- Admin panel: login, dashboard, staff CRUD, user management, role/permission CRUD, plan CRUD, impersonation
-- User panel: registration, login, dashboard with stats, profile management
+- Admin panel: login, dashboard, staff CRUD, user management, role/permission CRUD, plan CRUD, impersonation, password reset
+- User panel: registration, login, dashboard with stats, profile management, password reset, email verification
 - **Link Engine**: URL shortener, file sharing, ICS calendar event generator, VCF contact card generator
 - **Projects**: organize links into color-coded projects
-- **Tracking Pixels**: Facebook, Google Analytics, GTM, LinkedIn, Twitter, Pinterest, TikTok, Snapchat, custom
-- **Link Features**: password protection, expiration dates, SEO settings, UTM parameters, click tracking
+- **Tracking Pixels**: Facebook, Google Analytics, GTM, LinkedIn, Twitter, Pinterest, TikTok, Snapchat, Quora, custom — rendered on biolink + password gate pages
+- **Link Features**: password protection, expiration dates, SEO settings (OG image upload), UTM parameter builder, click tracking
+- **Link Protection**: country restrictions (ISO codes), device targeting (desktop/mobile/tablet)
 - **Analytics**: per-link stats (clicks over time, browsers, OS, devices, referrers, countries)
-- **Redirect**: `/r/{alias}` routes for link resolution with tracking
+- **Redirect**: `/r/{alias}` routes for link resolution with tracking, device/country enforcement
+- **Admin link management**: browse all user links, filter by type/status/user, toggle active, delete
 
 ### Database Tables
 `roles`, `permissions`, `role_permissions`, `admins`, `plans`, `users`, `projects`, `domains`, `pixels`, `links`, `link_pixels`, `link_clicks`, `file_links`, `ics_data`, `vcf_data`, `sessions`, `cache`, `jobs`
