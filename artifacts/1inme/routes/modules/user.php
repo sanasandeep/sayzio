@@ -15,8 +15,8 @@ use App\Modules\User\Controllers\QrCodeController;
 use App\Modules\User\Middleware\CheckPlanLimit;
 
 Route::get('/', function () {
-    return redirect()->route('user.login');
-});
+    return view('home');
+})->name('home');
 
 Route::prefix('user')->name('user.')->group(function () {
     Route::get('register', [AuthController::class, 'showRegister'])->name('register');
