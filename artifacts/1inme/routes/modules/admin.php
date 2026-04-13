@@ -17,29 +17,43 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('logout', [AuthController::class, 'logout'])->name('logout');
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
-        Route::middleware([CheckPermission::class . ':staff.view'])->group(function () {
-            Route::resource('staff', StaffController::class)->parameters(['staff' => 'staff']);
+        Route::prefix('staff')->name('staff.')->group(function () {
+            Route::get('/', [StaffController::class, 'index'])->middleware(CheckPermission::class . ':staff.view')->name('index');
+            Route::get('create', [StaffController::class, 'create'])->middleware(CheckPermission::class . ':staff.create')->name('create');
+            Route::post('/', [StaffController::class, 'store'])->middleware(CheckPermission::class . ':staff.create')->name('store');
+            Route::get('{staff}', [StaffController::class, 'show'])->middleware(CheckPermission::class . ':staff.view')->name('show');
+            Route::get('{staff}/edit', [StaffController::class, 'edit'])->middleware(CheckPermission::class . ':staff.edit')->name('edit');
+            Route::put('{staff}', [StaffController::class, 'update'])->middleware(CheckPermission::class . ':staff.edit')->name('update');
+            Route::delete('{staff}', [StaffController::class, 'destroy'])->middleware(CheckPermission::class . ':staff.delete')->name('destroy');
         });
 
-        Route::middleware([CheckPermission::class . ':roles.view'])->group(function () {
-            Route::resource('roles', RoleController::class);
+        Route::prefix('roles')->name('roles.')->group(function () {
+            Route::get('/', [RoleController::class, 'index'])->middleware(CheckPermission::class . ':roles.view')->name('index');
+            Route::get('create', [RoleController::class, 'create'])->middleware(CheckPermission::class . ':roles.manage')->name('create');
+            Route::post('/', [RoleController::class, 'store'])->middleware(CheckPermission::class . ':roles.manage')->name('store');
+            Route::get('{role}', [RoleController::class, 'show'])->middleware(CheckPermission::class . ':roles.view')->name('show');
+            Route::get('{role}/edit', [RoleController::class, 'edit'])->middleware(CheckPermission::class . ':roles.manage')->name('edit');
+            Route::put('{role}', [RoleController::class, 'update'])->middleware(CheckPermission::class . ':roles.manage')->name('update');
+            Route::delete('{role}', [RoleController::class, 'destroy'])->middleware(CheckPermission::class . ':roles.manage')->name('destroy');
         });
 
-        Route::middleware([CheckPermission::class . ':plans.view'])->group(function () {
-            Route::resource('plans', PlanController::class);
+        Route::prefix('plans')->name('plans.')->group(function () {
+            Route::get('/', [PlanController::class, 'index'])->middleware(CheckPermission::class . ':plans.view')->name('index');
+            Route::get('create', [PlanController::class, 'create'])->middleware(CheckPermission::class . ':plans.manage')->name('create');
+            Route::post('/', [PlanController::class, 'store'])->middleware(CheckPermission::class . ':plans.manage')->name('store');
+            Route::get('{plan}', [PlanController::class, 'show'])->middleware(CheckPermission::class . ':plans.view')->name('show');
+            Route::get('{plan}/edit', [PlanController::class, 'edit'])->middleware(CheckPermission::class . ':plans.manage')->name('edit');
+            Route::put('{plan}', [PlanController::class, 'update'])->middleware(CheckPermission::class . ':plans.manage')->name('update');
+            Route::delete('{plan}', [PlanController::class, 'destroy'])->middleware(CheckPermission::class . ':plans.manage')->name('destroy');
         });
 
-        Route::middleware([CheckPermission::class . ':users.view'])->group(function () {
-            Route::prefix('users')->name('users.')->group(function () {
-                Route::get('/', [UserManagementController::class, 'index'])->name('index');
-                Route::get('{user}', [UserManagementController::class, 'show'])->name('show');
-                Route::put('{user}', [UserManagementController::class, 'update'])->name('update');
-                Route::delete('{user}', [UserManagementController::class, 'destroy'])->name('destroy');
-                Route::post('{user}/impersonate', [UserManagementController::class, 'impersonate'])
-                    ->middleware(CheckPermission::class . ':users.impersonate')
-                    ->name('impersonate');
-                Route::post('stop-impersonation', [UserManagementController::class, 'stopImpersonation'])->name('stop-impersonation');
-            });
+        Route::prefix('users')->name('users.')->group(function () {
+            Route::get('/', [UserManagementController::class, 'index'])->middleware(CheckPermission::class . ':users.view')->name('index');
+            Route::get('{user}', [UserManagementController::class, 'show'])->middleware(CheckPermission::class . ':users.view')->name('show');
+            Route::put('{user}', [UserManagementController::class, 'update'])->middleware(CheckPermission::class . ':users.edit')->name('update');
+            Route::delete('{user}', [UserManagementController::class, 'destroy'])->middleware(CheckPermission::class . ':users.delete')->name('destroy');
+            Route::post('{user}/impersonate', [UserManagementController::class, 'impersonate'])->middleware(CheckPermission::class . ':users.impersonate')->name('impersonate');
+            Route::post('stop-impersonation', [UserManagementController::class, 'stopImpersonation'])->name('stop-impersonation');
         });
     });
 });

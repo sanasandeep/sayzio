@@ -10,6 +10,7 @@ use App\Modules\User\Controllers\PixelController;
 use App\Modules\User\Controllers\FileLinkController;
 use App\Modules\User\Controllers\IcsLinkController;
 use App\Modules\User\Controllers\VcfLinkController;
+use App\Modules\User\Middleware\CheckPlanLimit;
 
 Route::get('/', function () {
     return redirect()->route('user.login');
@@ -31,17 +32,21 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::put('password', [ProfileController::class, 'updatePassword'])->name('password');
         });
 
-        Route::resource('projects', ProjectController::class);
-        Route::resource('links', LinkController::class);
+        Route::resource('projects', ProjectController::class)->except(['store']);
+        Route::post('projects', [ProjectController::class, 'store'])->middleware(CheckPlanLimit::class . ':projects')->name('projects.store');
+
+        Route::resource('links', LinkController::class)->except(['store']);
+        Route::post('links', [LinkController::class, 'store'])->middleware(CheckPlanLimit::class . ':links')->name('links.store');
         Route::post('links/{link}/toggle-active', [LinkController::class, 'toggleActive'])->name('links.toggle-active');
 
         Route::get('links-file/create', [FileLinkController::class, 'create'])->name('links.file.create');
-        Route::post('links-file', [FileLinkController::class, 'store'])->name('links.file.store');
+        Route::post('links-file', [FileLinkController::class, 'store'])->middleware(CheckPlanLimit::class . ':links')->name('links.file.store');
         Route::get('links-ics/create', [IcsLinkController::class, 'create'])->name('links.ics.create');
-        Route::post('links-ics', [IcsLinkController::class, 'store'])->name('links.ics.store');
+        Route::post('links-ics', [IcsLinkController::class, 'store'])->middleware(CheckPlanLimit::class . ':links')->name('links.ics.store');
         Route::get('links-vcf/create', [VcfLinkController::class, 'create'])->name('links.vcf.create');
-        Route::post('links-vcf', [VcfLinkController::class, 'store'])->name('links.vcf.store');
+        Route::post('links-vcf', [VcfLinkController::class, 'store'])->middleware(CheckPlanLimit::class . ':links')->name('links.vcf.store');
 
-        Route::resource('pixels', PixelController::class)->except(['show']);
+        Route::resource('pixels', PixelController::class)->except(['show', 'store']);
+        Route::post('pixels', [PixelController::class, 'store'])->middleware(CheckPlanLimit::class . ':pixels')->name('pixels.store');
     });
 });
