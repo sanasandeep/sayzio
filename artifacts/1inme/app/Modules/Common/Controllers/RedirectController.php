@@ -50,18 +50,19 @@ class RedirectController extends Controller
             }
         }
 
-        if ($link->is_password_protected) {
-            if (session("link_unlocked_{$link->id}")) {
-            } elseif (!$request->has('password')) {
+        if ($link->is_password_protected && !session("link_unlocked_{$link->id}")) {
+            if (!$request->has('password')) {
                 return view('common.link-password', compact('link'));
-            } elseif (!Hash::check($request->input('password'), $link->password)) {
+            }
+
+            if (!Hash::check($request->input('password'), $link->password)) {
                 return view('common.link-password', [
                     'link' => $link,
                     'error' => 'Incorrect password.',
                 ]);
-            } else {
-                session(["link_unlocked_{$link->id}" => true]);
             }
+
+            session(["link_unlocked_{$link->id}" => true]);
         }
 
         $this->trackingService->track($link, $request);
@@ -133,8 +134,16 @@ class RedirectController extends Controller
 
         if ($mode === 'preview') {
             $mimeType = $fileLink->mime_type ?: 'application/octet-stream';
+            $allowedPreviewMimes = [
+                'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
+                'application/pdf',
+            ];
+            if (!in_array($mimeType, $allowedPreviewMimes)) {
+                return Storage::disk($disk)->download($fileLink->stored_path, $fileLink->original_name);
+            }
             return Storage::disk($disk)->response($fileLink->stored_path, $fileLink->original_name, [
                 'Content-Type' => $mimeType,
+                'Content-Security-Policy' => "default-src 'none'; img-src 'self'; style-src 'none'; script-src 'none'",
             ]);
         }
 

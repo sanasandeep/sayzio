@@ -26,6 +26,7 @@ class QrCodeController extends Controller
             'fg_color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'bg_color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'error_correction' => 'nullable|in:L,M,Q,H',
+            'logo' => 'nullable|image|max:2048',
         ]);
 
         $size = (int) ($validated['size'] ?? 300);
@@ -45,6 +46,11 @@ class QrCodeController extends Controller
             ->backgroundColor($bgRgb[0], $bgRgb[1], $bgRgb[2])
             ->errorCorrection($errorCorrection)
             ->margin(1);
+
+        if ($request->hasFile('logo')) {
+            $logoPath = $request->file('logo')->getRealPath();
+            $qr->merge($logoPath, .25, true);
+        }
 
         $qrImage = $qr->generate($url);
 

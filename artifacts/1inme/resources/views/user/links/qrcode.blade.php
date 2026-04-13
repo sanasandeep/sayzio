@@ -62,6 +62,12 @@
                 </div>
 
                 <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Logo Overlay</label>
+                    <input type="file" name="logo" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200" form="downloadForm">
+                    <p class="text-xs text-gray-400 mt-1">Optional logo centered on the QR code (max 2MB)</p>
+                </div>
+
+                <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Download Format</label>
                     <select x-model="format" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500">
                         <option value="png">PNG (Raster)</option>
@@ -78,7 +84,7 @@
                 <img :src="previewUrl" alt="QR Code Preview" class="max-w-full" :style="'max-height: ' + Math.min(size, 400) + 'px'">
             </div>
 
-            <form method="POST" action="{{ route('user.links.qrcode.download', $link) }}">
+            <form id="downloadForm" method="POST" action="{{ route('user.links.qrcode.download', $link) }}" enctype="multipart/form-data">
                 @csrf
                 <input type="hidden" name="size" :value="size">
                 <input type="hidden" name="format" :value="format">
