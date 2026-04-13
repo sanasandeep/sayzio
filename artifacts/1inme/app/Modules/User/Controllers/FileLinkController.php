@@ -27,7 +27,8 @@ class FileLinkController extends Controller
         ]);
 
         $file = $request->file('file');
-        $storedPath = $file->store('file-links', 'public');
+        $disk = config('filesystems.default') === 's3' ? 's3' : 'public';
+        $storedPath = $file->store('file-links', $disk);
 
         $alias = $validated['alias'] ?: Link::generateAlias();
 
@@ -47,6 +48,7 @@ class FileLinkController extends Controller
             'stored_path' => $storedPath,
             'mime_type' => $file->getMimeType(),
             'file_size' => $file->getSize(),
+            'disk' => $disk,
         ]);
 
         return redirect()->route('user.links.show', $link)

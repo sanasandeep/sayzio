@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Modules\User\Controllers\AuthController;
+use App\Modules\User\Controllers\PasswordResetController;
 use App\Modules\User\Controllers\DashboardController;
 use App\Modules\User\Controllers\ProfileController;
 use App\Modules\User\Controllers\ProjectController;
@@ -21,6 +22,15 @@ Route::prefix('user')->name('user.')->group(function () {
     Route::post('register', [AuthController::class, 'register'])->name('register.submit');
     Route::get('login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('login', [AuthController::class, 'login'])->name('login.submit');
+
+    Route::get('forgot-password', [PasswordResetController::class, 'showForgotForm'])->name('password.request');
+    Route::post('forgot-password', [PasswordResetController::class, 'sendResetLink'])->name('password.email');
+    Route::get('reset-password/{token}', [PasswordResetController::class, 'showResetForm'])->name('password.reset');
+    Route::post('reset-password', [PasswordResetController::class, 'resetPassword'])->name('password.update');
+
+    Route::get('verify-email', [AuthController::class, 'showVerifyEmail'])->middleware('auth')->name('verification.notice');
+    Route::get('verify-email/{id}/{hash}', [AuthController::class, 'verifyEmail'])->middleware('auth')->name('verification.verify');
+    Route::post('verify-email/resend', [AuthController::class, 'resendVerification'])->middleware('auth')->name('verification.send');
 
     Route::middleware('auth')->group(function () {
         Route::post('logout', [AuthController::class, 'logout'])->name('logout');

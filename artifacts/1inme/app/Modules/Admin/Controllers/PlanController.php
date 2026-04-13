@@ -15,6 +15,12 @@ class PlanController extends Controller
         return view('admin.plans.index', compact('plans'));
     }
 
+    public function show(Plan $plan)
+    {
+        $plan->loadCount('users');
+        return view('admin.plans.show', compact('plan'));
+    }
+
     public function create()
     {
         return view('admin.plans.create');

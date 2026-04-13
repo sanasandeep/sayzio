@@ -61,6 +61,12 @@ class StaffController extends Controller
         return redirect()->route('admin.staff.index')->with('success', 'Staff member created successfully.');
     }
 
+    public function show(Admin $staff)
+    {
+        $staff->load('role');
+        return view('admin.staff.show', compact('staff'));
+    }
+
     public function edit(Admin $staff)
     {
         $roles = Role::all();

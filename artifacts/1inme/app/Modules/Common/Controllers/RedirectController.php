@@ -55,8 +55,9 @@ class RedirectController extends Controller
 
         $fileLink->increment('download_count');
 
-        if (Storage::disk('public')->exists($fileLink->stored_path)) {
-            return Storage::disk('public')->download(
+        $disk = $fileLink->disk ?? 'public';
+        if (Storage::disk($disk)->exists($fileLink->stored_path)) {
+            return Storage::disk($disk)->download(
                 $fileLink->stored_path,
                 $fileLink->original_name
             );

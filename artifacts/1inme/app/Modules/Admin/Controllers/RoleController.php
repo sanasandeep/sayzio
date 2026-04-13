@@ -15,6 +15,12 @@ class RoleController extends Controller
         return view('admin.roles.index', compact('roles'));
     }
 
+    public function show(Role $role)
+    {
+        $role->load('permissions');
+        return view('admin.roles.show', compact('role'));
+    }
+
     public function create()
     {
         $permissions = Permission::orderBy('group')->get()->groupBy('group');

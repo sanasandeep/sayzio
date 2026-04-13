@@ -8,7 +8,7 @@ class FileLink extends Model
 {
     protected $fillable = [
         'link_id', 'original_name', 'stored_path',
-        'mime_type', 'file_size', 'download_count',
+        'mime_type', 'file_size', 'download_count', 'disk',
     ];
 
     public function link()

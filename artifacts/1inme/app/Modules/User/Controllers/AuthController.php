@@ -8,6 +8,8 @@ use App\Modules\Admin\Models\Plan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\URL;
 
 class AuthController extends Controller
 {
@@ -37,6 +39,21 @@ class AuthController extends Controller
 
         Auth::login($user);
 
+        try {
+            $verificationUrl = URL::temporarySignedRoute(
+                'user.verification.verify',
+                now()->addHours(24),
+                ['id' => $user->id, 'hash' => sha1($user->email)]
+            );
+
+            Mail::send('emails.verify-email', ['verificationUrl' => $verificationUrl, 'user' => $user], function ($message) use ($user) {
+                $message->to($user->email);
+                $message->subject('Verify Your Email - 1INME');
+            });
+        } catch (\Exception $e) {
+            \Log::warning('Verification email failed: ' . $e->getMessage());
+        }
+
         return redirect()->route('user.dashboard');
     }
 
@@ -60,6 +77,55 @@ class AuthController extends Controller
         }
 
         return back()->withErrors(['email' => 'Invalid credentials.'])->onlyInput('email');
+    }
+
+    public function showVerifyEmail()
+    {
+        if (Auth::user()->email_verified_at) {
+            return redirect()->route('user.dashboard');
+        }
+        return view('user.auth.verify-email');
+    }
+
+    public function verifyEmail(Request $request, $id, $hash)
+    {
+        $user = User::findOrFail($id);
+
+        if (!hash_equals(sha1($user->email), $hash)) {
+            abort(403, 'Invalid verification link.');
+        }
+
+        if (!$user->email_verified_at) {
+            $user->update(['email_verified_at' => now()]);
+        }
+
+        return redirect()->route('user.dashboard')->with('success', 'Email verified successfully.');
+    }
+
+    public function resendVerification(Request $request)
+    {
+        $user = Auth::user();
+
+        if ($user->email_verified_at) {
+            return back()->with('status', 'Email already verified.');
+        }
+
+        try {
+            $verificationUrl = URL::temporarySignedRoute(
+                'user.verification.verify',
+                now()->addHours(24),
+                ['id' => $user->id, 'hash' => sha1($user->email)]
+            );
+
+            Mail::send('emails.verify-email', ['verificationUrl' => $verificationUrl, 'user' => $user], function ($message) use ($user) {
+                $message->to($user->email);
+                $message->subject('Verify Your Email - 1INME');
+            });
+        } catch (\Exception $e) {
+            \Log::warning('Verification email resend failed: ' . $e->getMessage());
+        }
+
+        return back()->with('status', 'Verification link sent.');
     }
 
     public function logout(Request $request)
