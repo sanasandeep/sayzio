@@ -99,8 +99,6 @@ class LinkController extends Controller
                 $validated['seo_image'] = Storage::disk('s3')->url($validated['seo_image']);
             }
         }
-        unset($validated['seo_image_file']);
-
         if ($request->hasFile('favicon')) {
             $disk = config('filesystems.default') === 's3' ? 's3' : 'public';
             $validated['favicon'] = $request->file('favicon')->store('favicons', $disk);

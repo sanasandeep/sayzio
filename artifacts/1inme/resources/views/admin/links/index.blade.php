@@ -113,14 +113,8 @@
                     <td class="px-4 py-3 text-right">
                         <div class="flex items-center justify-end gap-2">
                             <a href="{{ route('admin.links.show', $link) }}" class="text-primary-600 hover:text-primary-700 text-sm">View</a>
-                            <form method="POST" action="{{ route('admin.links.toggle', $link) }}" class="inline">
-                                @csrf
-                                <button type="submit" class="text-yellow-600 hover:text-yellow-700 text-sm">{{ $link->is_active ? 'Disable' : 'Enable' }}</button>
-                            </form>
-                            <form method="POST" action="{{ route('admin.links.destroy', $link) }}" class="inline" onsubmit="return confirm('Delete this link?')">
-                                @csrf @method('DELETE')
-                                <button type="submit" class="text-red-600 hover:text-red-700 text-sm">Delete</button>
-                            </form>
+                            <button type="button" class="text-yellow-600 hover:text-yellow-700 text-sm" onclick="document.getElementById('toggle-form-{{ $link->id }}').submit()">{{ $link->is_active ? 'Disable' : 'Enable' }}</button>
+                            <button type="button" class="text-red-600 hover:text-red-700 text-sm" onclick="if(confirm('Delete this link?')) document.getElementById('delete-form-{{ $link->id }}').submit()">Delete</button>
                         </div>
                     </td>
                 </tr>
@@ -131,6 +125,11 @@
         </table>
     </div>
 </form>
+
+@foreach($links as $link)
+<form id="toggle-form-{{ $link->id }}" method="POST" action="{{ route('admin.links.toggle', $link) }}" class="hidden">@csrf</form>
+<form id="delete-form-{{ $link->id }}" method="POST" action="{{ route('admin.links.destroy', $link) }}" class="hidden">@csrf @method('DELETE')</form>
+@endforeach
 
 <div class="mt-4">{{ $links->links() }}</div>
 
