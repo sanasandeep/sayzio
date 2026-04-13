@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    @if($link->seo_title)
+        <title>{{ $link->seo_title }}</title>
+        <meta property="og:title" content="{{ $link->seo_title }}">
+    @else
+        <title>{{ $link->title ?: '1INME Bio Link' }}</title>
+    @endif
+    @if($link->seo_description)
+        <meta name="description" content="{{ $link->seo_description }}">
+        <meta property="og:description" content="{{ $link->seo_description }}">
+    @endif
+    @if($link->seo_image)
+        <meta property="og:image" content="{{ $link->seo_image }}">
+    @endif
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-md text-center">
+        <div class="mb-8">
+            <div class="w-20 h-20 bg-white/20 backdrop-blur rounded-full flex items-center justify-center mx-auto mb-4">
+                <span class="text-3xl font-bold text-white">{{ strtoupper(substr($link->title ?: 'B', 0, 1)) }}</span>
+            </div>
+            <h1 class="text-2xl font-bold text-white">{{ $link->title ?: 'Bio Link' }}</h1>
+            @if($link->seo_description)
+                <p class="text-white/80 text-sm mt-2">{{ $link->seo_description }}</p>
+            @endif
+        </div>
+
+        <div class="space-y-3">
+            <div class="bg-white/10 backdrop-blur border border-white/20 rounded-xl p-6 text-white text-sm">
+                <p>This bio link page is being set up. Check back soon!</p>
+            </div>
+        </div>
+
+        <p class="text-white/40 text-xs mt-8">Powered by 1INME</p>
+    </div>
+
+    @if($link->pixels->count())
+    @foreach($link->pixels as $pixel)
+        @if($pixel->type === 'facebook')
+        <script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','{{ $pixel->pixel_id }}');fbq('track','PageView');</script>
+        @elseif($pixel->type === 'google_analytics')
+        <script async src="https://www.googletagmanager.com/gtag/js?id={{ $pixel->pixel_id }}"></script>
+        <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','{{ $pixel->pixel_id }}');</script>
+        @elseif($pixel->type === 'google_tag_manager')
+        <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','{{ $pixel->pixel_id }}');</script>
+        @endif
+    @endforeach
+    @endif
+</body>
+</html>

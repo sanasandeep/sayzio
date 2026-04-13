@@ -1,0 +1,55 @@
+<?php
+
+namespace App\Modules\User\Controllers;
+
+use App\Http\Controllers\Controller;
+use App\Modules\User\Models\Link;
+use App\Modules\User\Models\FileLink;
+use Illuminate\Http\Request;
+
+class FileLinkController extends Controller
+{
+    public function create(Request $request)
+    {
+        $projects = $request->user()->projects()->orderBy('name')->get();
+
+        return view('user.links.create-file', compact('projects'));
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'title' => 'nullable|string|max:255',
+            'alias' => 'nullable|string|max:50|unique:links,alias|alpha_dash',
+            'project_id' => 'nullable|exists:projects,id',
+            'file' => 'required|file|max:51200',
+            'expires_at' => 'nullable|date|after:now',
+        ]);
+
+        $file = $request->file('file');
+        $storedPath = $file->store('file-links', 'public');
+
+        $alias = $validated['alias'] ?: Link::generateAlias();
+
+        $link = Link::create([
+            'user_id' => $request->user()->id,
+            'type' => 'file',
+            'alias' => $alias,
+            'title' => $validated['title'] ?: $file->getClientOriginalName(),
+            'project_id' => $validated['project_id'] ?? null,
+            'expires_at' => $validated['expires_at'] ?? null,
+            'is_active' => true,
+        ]);
+
+        FileLink::create([
+            'link_id' => $link->id,
+            'original_name' => $file->getClientOriginalName(),
+            'stored_path' => $storedPath,
+            'mime_type' => $file->getMimeType(),
+            'file_size' => $file->getSize(),
+        ]);
+
+        return redirect()->route('user.links.show', $link)
+            ->with('success', 'File link created successfully.');
+    }
+}
