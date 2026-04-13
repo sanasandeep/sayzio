@@ -58,6 +58,7 @@ class LinkController extends Controller
         $validated = $request->validate([
             'type' => 'required|in:url,biolink,file,ics,vcf',
             'long_url' => 'required_if:type,url|nullable|url|max:2048',
+            'redirect_type' => 'nullable|in:301,302',
             'alias' => 'nullable|string|max:50|unique:links,alias|alpha_dash',
             'title' => 'nullable|string|max:255',
             'project_id' => "nullable|exists:projects,id,user_id,{$userId}",
@@ -210,6 +211,7 @@ class LinkController extends Controller
 
         $validated = $request->validate([
             'long_url' => 'nullable|url|max:2048',
+            'redirect_type' => 'nullable|in:301,302',
             'title' => 'nullable|string|max:255',
             'project_id' => "nullable|exists:projects,id,user_id,{$userId}",
             'domain_id' => "nullable|exists:domains,id,user_id,{$userId}",

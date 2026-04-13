@@ -9,7 +9,7 @@ class Link extends Model
 {
     protected $fillable = [
         'user_id', 'project_id', 'domain_id', 'type', 'alias', 'title',
-        'long_url', 'is_active', 'expires_at',
+        'long_url', 'redirect_type', 'is_active', 'expires_at',
         'password', 'is_password_protected',
         'seo_title', 'seo_description', 'seo_image', 'favicon',
         'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',

@@ -29,14 +29,16 @@ pnpm workspace monorepo using TypeScript + PHP/Laravel. Each package manages its
 ### Current Features (Phases 1A-1C)
 - Admin panel: login, dashboard, staff CRUD, user management, role/permission CRUD, plan CRUD, impersonation, password reset
 - User panel: registration, login, dashboard with stats, profile management, password reset, email verification
-- **Link Engine**: URL shortener, file sharing, ICS calendar event generator, VCF contact card generator
+- **Link Engine**: URL shortener (301/302 redirect types), file sharing (download page), ICS calendar event generator, VCF contact card generator
+- **QR Code Generator**: per-link QR codes with customizable colors, size (100-1000px), error correction (L/M/Q/H), download in PNG/SVG, live preview
 - **Projects**: organize links into color-coded projects
-- **Tracking Pixels**: Facebook, Google Analytics, GTM, LinkedIn, Twitter, Pinterest, TikTok, Snapchat, Quora, custom — rendered on biolink + password gate pages
-- **Link Features**: password protection, expiration dates, SEO settings (OG image upload), UTM parameter builder, click tracking
-- **Link Protection**: country restrictions (ISO codes), device targeting (desktop/mobile/tablet)
+- **Tracking Pixels**: Facebook, Google Analytics, GTM, LinkedIn, Twitter, Pinterest, TikTok, Snapchat, Quora, custom — rendered on biolink + password gate + file download pages
+- **Link Features**: password protection, expiration dates, SEO settings (OG image + favicon upload), UTM parameter builder, click tracking
+- **Link Protection**: country restrictions (ISO codes, fail-closed GeoIP), device targeting (desktop/mobile/tablet)
 - **Analytics**: per-link stats (clicks over time, browsers, OS, devices, referrers, countries)
 - **Redirect**: `/r/{alias}` routes for link resolution with tracking, device/country enforcement
-- **Admin link management**: browse all user links, filter by type/status/user, toggle active, delete
+- **File Download Page**: branded download page with file preview (images), file type icon, size display, download button
+- **Admin link management**: browse all user links, filter by type/status/user, toggle active, bulk enable/disable/delete
 
 ### Database Tables
 `roles`, `permissions`, `role_permissions`, `admins`, `plans`, `users`, `projects`, `domains`, `pixels`, `links`, `link_pixels`, `link_clicks`, `file_links`, `ics_data`, `vcf_data`, `sessions`, `cache`, `jobs`

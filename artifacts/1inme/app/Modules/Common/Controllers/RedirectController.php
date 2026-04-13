@@ -66,7 +66,7 @@ class RedirectController extends Controller
         $this->trackingService->track($link, $request);
 
         return match ($link->type) {
-            'url' => redirect()->away($link->getDestinationUrl(), 301),
+            'url' => redirect()->away($link->getDestinationUrl(), $link->redirect_type ?: 301),
             'biolink' => view('common.biolink', compact('link')),
             'file' => $this->handleFileDownload($link),
             'ics' => $this->handleIcsDownload($link),
@@ -77,6 +77,15 @@ class RedirectController extends Controller
 
     protected function handleFileDownload(Link $link)
     {
+        $fileLink = $link->fileLink;
+        if (!$fileLink) abort(404);
+
+        return view('common.file-download', compact('link', 'fileLink'));
+    }
+
+    public function rawFileDownload(string $alias)
+    {
+        $link = Link::where('alias', $alias)->where('type', 'file')->firstOrFail();
         $fileLink = $link->fileLink;
         if (!$fileLink) abort(404);
 

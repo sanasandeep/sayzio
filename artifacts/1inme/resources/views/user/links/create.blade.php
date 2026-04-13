@@ -53,6 +53,15 @@
                 @error('long_url') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
 
+            <div x-show="type === 'url'" class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Redirect Type</label>
+                <select name="redirect_type" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500">
+                    <option value="301" {{ old('redirect_type', '301') === '301' ? 'selected' : '' }}>301 - Permanent Redirect</option>
+                    <option value="302" {{ old('redirect_type') === '302' ? 'selected' : '' }}>302 - Temporary Redirect</option>
+                </select>
+                <p class="text-xs text-gray-400 mt-1">301 passes SEO value; 302 is for temporary redirects</p>
+            </div>
+
             <div class="mb-4">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
                 <input type="text" name="title" value="{{ old('title') }}" placeholder="My awesome link" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">

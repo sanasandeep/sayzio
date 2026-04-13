@@ -24,6 +24,9 @@
                 {{ $link->is_active ? 'Active' : 'Inactive' }}
             </button>
         </form>
+        <a href="{{ route('user.links.qrcode', $link) }}" class="px-3 py-2 text-sm rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50">
+            <i class="fas fa-qrcode mr-1"></i> QR Code
+        </a>
         <a href="{{ route('user.links.edit', $link) }}" class="px-3 py-2 text-sm rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50">
             <i class="fas fa-edit mr-1"></i> Edit
         </a>

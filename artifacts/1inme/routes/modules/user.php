@@ -11,6 +11,7 @@ use App\Modules\User\Controllers\PixelController;
 use App\Modules\User\Controllers\FileLinkController;
 use App\Modules\User\Controllers\IcsLinkController;
 use App\Modules\User\Controllers\VcfLinkController;
+use App\Modules\User\Controllers\QrCodeController;
 use App\Modules\User\Middleware\CheckPlanLimit;
 
 Route::get('/', function () {
@@ -55,6 +56,10 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('links-ics', [IcsLinkController::class, 'store'])->middleware(CheckPlanLimit::class . ':links')->name('links.ics.store');
         Route::get('links-vcf/create', [VcfLinkController::class, 'create'])->name('links.vcf.create');
         Route::post('links-vcf', [VcfLinkController::class, 'store'])->middleware(CheckPlanLimit::class . ':links')->name('links.vcf.store');
+
+        Route::get('links/{link}/qrcode', [QrCodeController::class, 'show'])->name('links.qrcode');
+        Route::post('links/{link}/qrcode', [QrCodeController::class, 'generate'])->name('links.qrcode.download');
+        Route::get('links/{link}/qrcode/preview', [QrCodeController::class, 'preview'])->name('links.qrcode.preview');
 
         Route::resource('pixels', PixelController::class)->except(['show', 'store']);
         Route::post('pixels', [PixelController::class, 'store'])->middleware(CheckPlanLimit::class . ':pixels')->name('pixels.store');
