@@ -22,7 +22,16 @@
     @elseif($pixel->type === 'quora')
     <script>!function(q,e,v,n,t,s){if(q.qp)return;n=q.qp=function(){n.qp?n.qp.apply(n,arguments):n.queue.push(arguments)};n.queue=[];t=document.createElement(e);t.async=!0;t.src=v;s=document.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,'script','https://a.quora.com/qevents.js');qp('init','{{ $pixel->pixel_id }}');qp('track','ViewContent');</script>
     @elseif($pixel->type === 'custom')
-    {!! $pixel->pixel_id !!}
+    <!-- Custom pixel: {{ e($pixel->name) }} -->
+    <script>
+    (function() {
+        var iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.sandbox = 'allow-scripts';
+        iframe.srcdoc = @json($pixel->pixel_id);
+        document.body.appendChild(iframe);
+    })();
+    </script>
     @endif
 @endforeach
 @endif

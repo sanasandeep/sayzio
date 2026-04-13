@@ -26,9 +26,9 @@ class RedirectController extends Controller
         $settings = $link->settings ?? [];
 
         if (!empty($settings['country_restrictions'])) {
-            $visitorCountry = null;
-            $countries = array_map('strtoupper', $settings['country_restrictions']);
-            if ($visitorCountry && !in_array(strtoupper($visitorCountry), $countries)) {
+            $visitorCountry = $this->detectCountry($request->ip());
+            $allowedCountries = array_map('strtoupper', $settings['country_restrictions']);
+            if ($visitorCountry && !in_array(strtoupper($visitorCountry), $allowedCountries)) {
                 abort(403, 'This link is not available in your region.');
             }
         }
@@ -117,5 +117,27 @@ class RedirectController extends Controller
             'Content-Type' => 'text/vcard; charset=utf-8',
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ]);
+    }
+
+    protected function detectCountry(string $ip): ?string
+    {
+        if (in_array($ip, ['127.0.0.1', '::1', '0.0.0.0']) || str_starts_with($ip, '10.') || str_starts_with($ip, '192.168.')) {
+            return null;
+        }
+
+        try {
+            $response = @file_get_contents("http://ip-api.com/json/{$ip}?fields=countryCode", false, stream_context_create([
+                'http' => ['timeout' => 2],
+            ]));
+
+            if ($response) {
+                $data = json_decode($response, true);
+                return $data['countryCode'] ?? null;
+            }
+        } catch (\Exception $e) {
+            \Log::debug('GeoIP lookup failed: ' . $e->getMessage());
+        }
+
+        return null;
     }
 }
