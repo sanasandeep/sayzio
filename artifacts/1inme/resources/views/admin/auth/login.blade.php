@@ -43,9 +43,12 @@
                         @enderror
                     </div>
 
-                    <div class="flex items-center">
-                        <input type="checkbox" name="remember" id="remember" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                        <label for="remember" class="ml-2 text-sm text-gray-600">Remember me</label>
+                    <div class="flex items-center justify-between">
+                        <label class="flex items-center gap-2">
+                            <input type="checkbox" name="remember" id="remember" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <span class="text-sm text-gray-600">Remember me</span>
+                        </label>
+                        <a href="{{ route('admin.password.request') }}" class="text-sm text-blue-600 hover:text-blue-700">Forgot password?</a>
                     </div>
 
                     <button type="submit" class="w-full bg-blue-600 text-white py-2.5 rounded-lg font-medium hover:bg-blue-700 transition">

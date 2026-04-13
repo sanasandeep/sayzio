@@ -91,6 +91,10 @@ class AuthController extends Controller
     {
         $user = User::findOrFail($id);
 
+        if ((int) $id !== (int) Auth::id()) {
+            abort(403, 'You can only verify your own email.');
+        }
+
         if (!hash_equals(sha1($user->email), $hash)) {
             abort(403, 'Invalid verification link.');
         }

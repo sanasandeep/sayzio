@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Modules\Admin\Controllers\AuthController;
+use App\Modules\Admin\Controllers\PasswordResetController;
 use App\Modules\Admin\Controllers\DashboardController;
 use App\Modules\Admin\Controllers\StaffController;
 use App\Modules\Admin\Controllers\UserManagementController;
@@ -12,6 +13,11 @@ use App\Modules\Admin\Middleware\CheckPermission;
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('login', [AuthController::class, 'login'])->name('login.submit');
+
+    Route::get('forgot-password', [PasswordResetController::class, 'showForgotForm'])->name('password.request');
+    Route::post('forgot-password', [PasswordResetController::class, 'sendResetLink'])->name('password.email');
+    Route::get('reset-password/{token}', [PasswordResetController::class, 'showResetForm'])->name('password.reset');
+    Route::post('reset-password', [PasswordResetController::class, 'resetPassword'])->name('password.update');
 
     Route::middleware([\App\Modules\Admin\Middleware\AdminAuth::class])->group(function () {
         Route::post('logout', [AuthController::class, 'logout'])->name('logout');

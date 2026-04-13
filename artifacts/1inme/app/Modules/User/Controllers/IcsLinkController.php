@@ -20,7 +20,11 @@ class IcsLinkController extends Controller
     {
         $validated = $request->validate([
             'alias' => 'nullable|string|max:50|unique:links,alias|alpha_dash',
-            'project_id' => 'nullable|exists:projects,id',
+            'project_id' => ['nullable', 'exists:projects,id', function ($attribute, $value, $fail) use ($request) {
+                if ($value && !\App\Modules\User\Models\Project::where('id', $value)->where('user_id', $request->user()->id)->exists()) {
+                    $fail('The selected project does not belong to you.');
+                }
+            }],
             'event_name' => 'required|string|max:255',
             'description' => 'nullable|string|max:2000',
             'location' => 'nullable|string|max:500',

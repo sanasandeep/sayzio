@@ -21,7 +21,11 @@ class FileLinkController extends Controller
         $validated = $request->validate([
             'title' => 'nullable|string|max:255',
             'alias' => 'nullable|string|max:50|unique:links,alias|alpha_dash',
-            'project_id' => 'nullable|exists:projects,id',
+            'project_id' => ['nullable', 'exists:projects,id', function ($attribute, $value, $fail) use ($request) {
+                if ($value && !\App\Modules\User\Models\Project::where('id', $value)->where('user_id', $request->user()->id)->exists()) {
+                    $fail('The selected project does not belong to you.');
+                }
+            }],
             'file' => 'required|file|max:51200',
             'expires_at' => 'nullable|date|after:now',
         ]);

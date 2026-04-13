@@ -29,8 +29,8 @@ Route::prefix('user')->name('user.')->group(function () {
     Route::post('reset-password', [PasswordResetController::class, 'resetPassword'])->name('password.update');
 
     Route::get('verify-email', [AuthController::class, 'showVerifyEmail'])->middleware('auth')->name('verification.notice');
-    Route::get('verify-email/{id}/{hash}', [AuthController::class, 'verifyEmail'])->middleware('auth')->name('verification.verify');
-    Route::post('verify-email/resend', [AuthController::class, 'resendVerification'])->middleware('auth')->name('verification.send');
+    Route::get('verify-email/{id}/{hash}', [AuthController::class, 'verifyEmail'])->middleware(['auth', 'signed'])->name('verification.verify');
+    Route::post('verify-email/resend', [AuthController::class, 'resendVerification'])->middleware(['auth', 'throttle:6,1'])->name('verification.send');
 
     Route::middleware('auth')->group(function () {
         Route::post('logout', [AuthController::class, 'logout'])->name('logout');
