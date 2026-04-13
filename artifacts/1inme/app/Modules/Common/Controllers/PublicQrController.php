@@ -13,6 +13,10 @@ class PublicQrController extends Controller
     {
         $link = Link::where('alias', $alias)->where('is_active', true)->firstOrFail();
 
+        if (!$link->isAccessible()) {
+            abort(404);
+        }
+
         $url = $link->getShortUrl();
 
         return $this->renderQr($request, $url);
