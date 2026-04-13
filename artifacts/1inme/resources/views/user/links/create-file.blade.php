@@ -17,7 +17,7 @@
                     <input type="file" name="file" @change="fileName = $event.target.files[0]?.name || ''" class="hidden" id="file-input" required>
                     <label for="file-input" class="cursor-pointer">
                         <i class="fas fa-cloud-upload-alt text-gray-400 text-3xl mb-3 block"></i>
-                        <p class="text-sm text-gray-600" x-show="!fileName">Click to upload a file (max 50MB)</p>
+                        <p class="text-sm text-gray-600" x-show="!fileName">Click to upload a file (max {{ $maxFileSizeMb }}MB)</p>
                         <p class="text-sm text-primary-600 font-medium" x-show="fileName" x-text="fileName" x-cloak></p>
                     </label>
                 </div>

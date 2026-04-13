@@ -12,12 +12,16 @@ class FileLinkController extends Controller
     public function create(Request $request)
     {
         $projects = $request->user()->projects()->orderBy('name')->get();
+        $maxFileSizeMb = (int) $request->user()->getPlanFeature('max_file_size_mb', 5);
 
-        return view('user.links.create-file', compact('projects'));
+        return view('user.links.create-file', compact('projects', 'maxFileSizeMb'));
     }
 
     public function store(Request $request)
     {
+        $maxFileSizeMb = (int) $request->user()->getPlanFeature('max_file_size_mb', 5);
+        $maxFileSizeKb = $maxFileSizeMb * 1024;
+
         $validated = $request->validate([
             'title' => 'nullable|string|max:255',
             'alias' => 'nullable|string|max:50|unique:links,alias|alpha_dash',
@@ -26,7 +30,7 @@ class FileLinkController extends Controller
                     $fail('The selected project does not belong to you.');
                 }
             }],
-            'file' => 'required|file|max:51200',
+            'file' => "required|file|max:{$maxFileSizeKb}",
             'expires_at' => 'nullable|date|after:now',
             'show_download_page' => 'nullable|boolean',
         ]);
