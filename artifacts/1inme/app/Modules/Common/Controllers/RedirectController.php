@@ -82,6 +82,15 @@ class RedirectController extends Controller
         $fileLink = $link->fileLink;
         if (!$fileLink) abort(404);
 
+        if (!$fileLink->show_download_page) {
+            $disk = $fileLink->disk ?: 'public';
+            if (!Storage::disk($disk)->exists($fileLink->stored_path)) {
+                abort(404, 'File not found.');
+            }
+            $fileLink->increment('download_count');
+            return Storage::disk($disk)->download($fileLink->stored_path, $fileLink->original_name);
+        }
+
         return view('common.file-download', compact('link', 'fileLink'));
     }
 

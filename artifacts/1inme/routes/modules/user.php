@@ -61,6 +61,10 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('links/{link}/qrcode', [QrCodeController::class, 'generate'])->name('links.qrcode.download');
         Route::get('links/{link}/qrcode/preview', [QrCodeController::class, 'preview'])->name('links.qrcode.preview');
 
+        Route::get('qrcode', [QrCodeController::class, 'standalone'])->name('qrcode');
+        Route::post('qrcode', [QrCodeController::class, 'generateStandalone'])->name('qrcode.download');
+        Route::get('qrcode/preview', [QrCodeController::class, 'previewStandalone'])->name('qrcode.preview');
+
         Route::resource('pixels', PixelController::class)->except(['show', 'store']);
         Route::post('pixels', [PixelController::class, 'store'])->middleware(CheckPlanLimit::class . ':pixels')->name('pixels.store');
     });

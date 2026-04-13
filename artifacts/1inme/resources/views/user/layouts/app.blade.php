@@ -40,6 +40,9 @@
                         <a href="{{ route('user.pixels.index') }}" class="px-3 py-2 text-sm rounded-lg {{ request()->routeIs('user.pixels.*') ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-600 hover:bg-gray-100' }}">
                             Pixels
                         </a>
+                        <a href="{{ route('user.qrcode') }}" class="px-3 py-2 text-sm rounded-lg {{ request()->routeIs('user.qrcode*') ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-600 hover:bg-gray-100' }}">
+                            QR Code
+                        </a>
                     </div>
                 </div>
 

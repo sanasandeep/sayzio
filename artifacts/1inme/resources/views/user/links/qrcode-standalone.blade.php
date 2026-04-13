@@ -1,20 +1,21 @@
 @extends('user.layouts.app')
-@section('title', 'QR Code - ' . ($link->title ?: $link->alias))
+@section('title', 'QR Code Generator')
 
 @section('content')
 <div class="max-w-3xl mx-auto" x-data="{
+    url: '',
     size: 300,
     fgColor: '#000000',
     bgColor: '#FFFFFF',
     errorCorrection: 'M',
     format: 'png',
     get previewUrl() {
-        return '{{ route('user.links.qrcode.preview', $link) }}?size=' + this.size + '&fg_color=' + encodeURIComponent(this.fgColor) + '&bg_color=' + encodeURIComponent(this.bgColor) + '&error_correction=' + this.errorCorrection;
+        return '{{ route('user.qrcode.preview') }}?url=' + encodeURIComponent(this.url || 'https://example.com') + '&size=' + this.size + '&fg_color=' + encodeURIComponent(this.fgColor) + '&bg_color=' + encodeURIComponent(this.bgColor) + '&error_correction=' + this.errorCorrection;
     }
 }">
     <div class="flex items-center gap-4 mb-6">
-        <a href="{{ route('user.links.show', $link) }}" class="text-gray-400 hover:text-gray-600"><i class="fas fa-arrow-left"></i></a>
-        <h1 class="text-2xl font-bold text-gray-900">QR Code</h1>
+        <a href="{{ route('user.links.index') }}" class="text-gray-400 hover:text-gray-600"><i class="fas fa-arrow-left"></i></a>
+        <h1 class="text-2xl font-bold text-gray-900">QR Code Generator</h1>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -23,8 +24,9 @@
 
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Link</label>
-                    <div class="text-sm text-primary-600 bg-primary-50 px-3 py-2 rounded-lg font-mono">{{ $link->getShortUrl() }}</div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">URL <span class="text-red-500">*</span></label>
+                    <input type="url" x-model="url" placeholder="https://example.com" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500">
+                    <p class="text-xs text-gray-400 mt-1">Enter any URL to generate a QR code</p>
                 </div>
 
                 <div>
@@ -84,15 +86,16 @@
                 <img :src="previewUrl" alt="QR Code Preview" class="max-w-full" :style="'max-height: ' + Math.min(size, 400) + 'px'">
             </div>
 
-            <form id="downloadForm" method="POST" action="{{ route('user.links.qrcode.download', $link) }}" enctype="multipart/form-data">
+            <form id="downloadForm" method="POST" action="{{ route('user.qrcode.download') }}" enctype="multipart/form-data">
                 @csrf
+                <input type="hidden" name="url" :value="url">
                 <input type="hidden" name="size" :value="size">
                 <input type="hidden" name="format" :value="format">
                 <input type="hidden" name="fg_color" :value="fgColor">
                 <input type="hidden" name="bg_color" :value="bgColor">
                 <input type="hidden" name="error_correction" :value="errorCorrection">
 
-                <button type="submit" class="w-full bg-primary-600 hover:bg-primary-700 text-white px-6 py-2.5 rounded-lg text-sm font-medium flex items-center justify-center gap-2">
+                <button type="submit" :disabled="!url" class="w-full bg-primary-600 hover:bg-primary-700 text-white px-6 py-2.5 rounded-lg text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                     <i class="fas fa-download"></i>
                     <span x-text="'Download ' + format.toUpperCase()"></span>
                 </button>

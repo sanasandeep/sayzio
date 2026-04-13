@@ -16,6 +16,86 @@ class QrCodeController extends Controller
         return view('user.links.qrcode', compact('link'));
     }
 
+    public function standalone()
+    {
+        return view('user.links.qrcode-standalone');
+    }
+
+    public function generateStandalone(Request $request)
+    {
+        $validated = $request->validate([
+            'url' => 'required|url|max:2048',
+            'size' => 'nullable|integer|min:100|max:1000',
+            'format' => 'nullable|in:png,svg',
+            'fg_color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'bg_color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'error_correction' => 'nullable|in:L,M,Q,H',
+            'logo' => 'nullable|image|max:2048',
+        ]);
+
+        $size = (int) ($validated['size'] ?? 300);
+        $format = $validated['format'] ?? 'png';
+        $fgColor = $validated['fg_color'] ?? '#000000';
+        $bgColor = $validated['bg_color'] ?? '#FFFFFF';
+        $errorCorrection = $validated['error_correction'] ?? 'M';
+
+        $fgRgb = $this->hexToRgb($fgColor);
+        $bgRgb = $this->hexToRgb($bgColor);
+
+        $qr = QrCode::format($format)
+            ->size($size)
+            ->color($fgRgb[0], $fgRgb[1], $fgRgb[2])
+            ->backgroundColor($bgRgb[0], $bgRgb[1], $bgRgb[2])
+            ->errorCorrection($errorCorrection)
+            ->margin(1);
+
+        if ($format === 'png' && $request->hasFile('logo')) {
+            $logoPath = $request->file('logo')->getRealPath();
+            $qr->merge($logoPath, .25, true);
+        }
+
+        $qrImage = $qr->generate($validated['url']);
+        $slug = preg_replace('/[^a-z0-9]+/i', '-', parse_url($validated['url'], PHP_URL_HOST) ?: 'custom');
+
+        if ($format === 'svg') {
+            return response($qrImage)
+                ->header('Content-Type', 'image/svg+xml')
+                ->header('Content-Disposition', "attachment; filename=\"qr-{$slug}.svg\"");
+        }
+
+        return response($qrImage)
+            ->header('Content-Type', 'image/png')
+            ->header('Content-Disposition', "attachment; filename=\"qr-{$slug}.png\"");
+    }
+
+    public function previewStandalone(Request $request)
+    {
+        $url = $request->get('url', 'https://example.com');
+        if (!filter_var($url, FILTER_VALIDATE_URL)) $url = 'https://example.com';
+
+        $size = max(100, min(1000, (int) $request->get('size', 300)));
+        $fgColor = $request->get('fg_color', '#000000');
+        $bgColor = $request->get('bg_color', '#FFFFFF');
+        $errorCorrection = $request->get('error_correction', 'M');
+
+        if (!preg_match('/^#[0-9A-Fa-f]{6}$/', $fgColor)) $fgColor = '#000000';
+        if (!preg_match('/^#[0-9A-Fa-f]{6}$/', $bgColor)) $bgColor = '#FFFFFF';
+        if (!in_array($errorCorrection, ['L', 'M', 'Q', 'H'])) $errorCorrection = 'M';
+
+        $fgRgb = $this->hexToRgb($fgColor);
+        $bgRgb = $this->hexToRgb($bgColor);
+
+        $qr = QrCode::format('svg')
+            ->size($size)
+            ->color($fgRgb[0], $fgRgb[1], $fgRgb[2])
+            ->backgroundColor($bgRgb[0], $bgRgb[1], $bgRgb[2])
+            ->errorCorrection($errorCorrection)
+            ->margin(1)
+            ->generate($url);
+
+        return response($qr)->header('Content-Type', 'image/svg+xml');
+    }
+
     public function generate(Request $request, Link $link)
     {
         abort_if($link->user_id !== $request->user()->id, 403);
@@ -47,7 +127,7 @@ class QrCodeController extends Controller
             ->errorCorrection($errorCorrection)
             ->margin(1);
 
-        if ($request->hasFile('logo')) {
+        if ($format === 'png' && $request->hasFile('logo')) {
             $logoPath = $request->file('logo')->getRealPath();
             $qr->merge($logoPath, .25, true);
         }

@@ -28,6 +28,7 @@ class FileLinkController extends Controller
             }],
             'file' => 'required|file|max:51200',
             'expires_at' => 'nullable|date|after:now',
+            'show_download_page' => 'nullable|boolean',
         ]);
 
         $file = $request->file('file');
@@ -53,6 +54,7 @@ class FileLinkController extends Controller
             'mime_type' => $file->getMimeType(),
             'file_size' => $file->getSize(),
             'disk' => $disk,
+            'show_download_page' => $request->boolean('show_download_page', true),
         ]);
 
         return redirect()->route('user.links.show', $link)

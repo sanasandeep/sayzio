@@ -9,6 +9,11 @@ class FileLink extends Model
     protected $fillable = [
         'link_id', 'original_name', 'stored_path',
         'mime_type', 'file_size', 'download_count', 'disk',
+        'show_download_page',
+    ];
+
+    protected $casts = [
+        'show_download_page' => 'boolean',
     ];
 
     public function link()
