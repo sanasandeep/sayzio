@@ -68,7 +68,6 @@
                 </div>
 
                 <button @click="mobileOpen = !mobileOpen" class="md:hidden p-2 text-gray-600">
-                    <i class="fas" :class="mobileOpen ? 'fa-times' : 'fa-bars'" x-text=""></i>
                     <svg x-show="!mobileOpen" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                     <svg x-show="mobileOpen" x-cloak class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
@@ -570,8 +569,13 @@
                 <div>
                     <h4 class="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-4">Account</h4>
                     <ul class="space-y-2.5">
-                        <li><a href="{{ route('user.login') }}" class="text-sm text-gray-400 hover:text-white transition-colors">Log in</a></li>
-                        <li><a href="{{ route('user.register') }}" class="text-sm text-gray-400 hover:text-white transition-colors">Sign up</a></li>
+                        @auth
+                            <li><a href="{{ route('user.dashboard') }}" class="text-sm text-gray-400 hover:text-white transition-colors">Dashboard</a></li>
+                            <li><a href="{{ route('user.profile.edit') }}" class="text-sm text-gray-400 hover:text-white transition-colors">Profile</a></li>
+                        @else
+                            <li><a href="{{ route('user.login') }}" class="text-sm text-gray-400 hover:text-white transition-colors">Log in</a></li>
+                            <li><a href="{{ route('user.register') }}" class="text-sm text-gray-400 hover:text-white transition-colors">Sign up</a></li>
+                        @endauth
                     </ul>
                 </div>
             </div>

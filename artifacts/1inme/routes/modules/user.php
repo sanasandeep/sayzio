@@ -14,9 +14,7 @@ use App\Modules\User\Controllers\VcfLinkController;
 use App\Modules\User\Controllers\QrCodeController;
 use App\Modules\User\Middleware\CheckPlanLimit;
 
-Route::get('/', function () {
-    return view('home');
-})->name('home');
+Route::get('/', [\App\Modules\Common\Controllers\HomeController::class, 'index'])->name('home');
 
 Route::prefix('user')->name('user.')->group(function () {
     Route::get('register', [AuthController::class, 'showRegister'])->name('register');
