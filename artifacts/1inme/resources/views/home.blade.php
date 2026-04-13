@@ -9,15 +9,12 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
-                    colors: {
-                        brand: { 50:'#f0f9ff',100:'#e0f2fe',200:'#bae6fd',300:'#7dd3fc',400:'#38bdf8',500:'#0ea5e9',600:'#0284c7',700:'#0369a1',800:'#075985',900:'#0c4a6e' },
-                    }
+                    fontFamily: { sans: ['Space Grotesk', 'sans-serif'] },
                 }
             }
         }
@@ -26,150 +23,159 @@
         [x-cloak] { display: none !important; }
         .reveal { opacity: 0; transform: translateY(40px); transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
         .reveal.visible { opacity: 1; transform: translateY(0); }
-        .reveal-delay-1 { transition-delay: 0.1s; }
-        .reveal-delay-2 { transition-delay: 0.2s; }
-        .reveal-delay-3 { transition-delay: 0.3s; }
-        .reveal-delay-4 { transition-delay: 0.4s; }
-        .reveal-delay-5 { transition-delay: 0.5s; }
-        .hero-float { animation: heroFloat 6s ease-in-out infinite; }
-        @keyframes heroFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
-        .hero-float-delay { animation: heroFloat 6s ease-in-out infinite; animation-delay: -3s; }
-        .gradient-text { background: linear-gradient(135deg, #0ea5e9, #8b5cf6, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-        .category-card { transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
-        .category-card:hover { transform: translateY(-6px); }
-        .pulse-ring { animation: pulseRing 2s ease-out infinite; }
-        @keyframes pulseRing { 0% { transform: scale(1); opacity: 0.4; } 100% { transform: scale(1.5); opacity: 0; } }
-        .bg-grid { background-image: radial-gradient(circle, #e5e7eb 1px, transparent 1px); background-size: 24px 24px; }
+        .reveal-delay-1 { transition-delay: 0.15s; }
+        .reveal-delay-2 { transition-delay: 0.3s; }
+        .reveal-delay-3 { transition-delay: 0.45s; }
+        .reveal-delay-4 { transition-delay: 0.6s; }
+        .hero-float { animation: heroFloat 5s ease-in-out infinite; }
+        @keyframes heroFloat { 0%,100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-16px) rotate(2deg); } }
+        .hero-float-2 { animation: heroFloat2 6s ease-in-out infinite; }
+        @keyframes heroFloat2 { 0%,100% { transform: translateY(0) rotate(1deg); } 50% { transform: translateY(-12px) rotate(-1deg); } }
+        .blob-spin { animation: blobSpin 25s linear infinite; }
+        @keyframes blobSpin { 0% { transform: rotate(0deg) scale(1); } 50% { transform: rotate(180deg) scale(1.15); } 100% { transform: rotate(360deg) scale(1); } }
+        .marquee { animation: marquee 30s linear infinite; }
+        @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        .card-hover { transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        .card-hover:hover { transform: translateY(-8px) scale(1.02); }
+        .bounce-subtle { animation: bounceSub 2s ease-in-out infinite; }
+        @keyframes bounceSub { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
     </style>
 </head>
-<body class="bg-white font-sans text-gray-900 overflow-x-hidden">
+<body class="font-sans overflow-x-hidden">
 
-    <nav class="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100" x-data="{ mobileOpen: false }">
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-[#1e2330]/90 backdrop-blur-xl border-b border-white/5" x-data="{ mobileOpen: false }">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
-                <a href="{{ route('home') }}" class="text-2xl font-extrabold tracking-tight">
-                    <span class="text-gray-900">1IN</span><span class="text-brand-500">ME</span>
+                <a href="{{ route('home') }}" class="text-2xl font-bold tracking-tight">
+                    <span class="text-white">1IN</span><span class="text-[#d2f34c]">ME</span>
                 </a>
 
-                <div class="hidden md:flex items-center gap-6">
-                    <a href="#categories" class="text-sm text-gray-600 hover:text-gray-900 transition-colors">Use Cases</a>
-                    <a href="#features" class="text-sm text-gray-600 hover:text-gray-900 transition-colors">Features</a>
-                    <a href="#how-it-works" class="text-sm text-gray-600 hover:text-gray-900 transition-colors">How It Works</a>
-                    <a href="#pricing" class="text-sm text-gray-600 hover:text-gray-900 transition-colors">Pricing</a>
+                <div class="hidden md:flex items-center gap-8">
+                    <a href="#use-cases" class="text-sm text-gray-300 hover:text-[#d2f34c] transition-colors">Use Cases</a>
+                    <a href="#features" class="text-sm text-gray-300 hover:text-[#d2f34c] transition-colors">Features</a>
+                    <a href="#how-it-works" class="text-sm text-gray-300 hover:text-[#d2f34c] transition-colors">How It Works</a>
+                    <a href="#pricing" class="text-sm text-gray-300 hover:text-[#d2f34c] transition-colors">Pricing</a>
                 </div>
 
                 <div class="hidden md:flex items-center gap-3">
                     @auth
-                        <a href="{{ route('user.dashboard') }}" class="px-5 py-2.5 bg-brand-500 text-white rounded-full text-sm font-semibold hover:bg-brand-600 transition-all hover:shadow-lg hover:shadow-brand-500/25">Dashboard</a>
+                        <a href="{{ route('user.dashboard') }}" class="px-6 py-2.5 bg-[#d2f34c] text-[#1e2330] rounded-full text-sm font-bold hover:bg-[#e4ff6e] transition-all">Dashboard</a>
                     @else
-                        <a href="{{ route('user.login') }}" class="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">Log in</a>
-                        <a href="{{ route('user.register') }}" class="px-5 py-2.5 bg-gray-900 text-white rounded-full text-sm font-semibold hover:bg-gray-800 transition-all hover:shadow-lg">Sign up free</a>
+                        <a href="{{ route('user.login') }}" class="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white transition-colors">Log in</a>
+                        <a href="{{ route('user.register') }}" class="px-6 py-2.5 bg-[#d2f34c] text-[#1e2330] rounded-full text-sm font-bold hover:bg-[#e4ff6e] transition-all">Sign up free</a>
                     @endauth
                 </div>
 
-                <button @click="mobileOpen = !mobileOpen" class="md:hidden p-2 text-gray-600">
+                <button @click="mobileOpen = !mobileOpen" class="md:hidden p-2 text-gray-300">
                     <svg x-show="!mobileOpen" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                     <svg x-show="mobileOpen" x-cloak class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
 
-            <div x-show="mobileOpen" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" class="md:hidden pb-4 border-t border-gray-100 mt-2 pt-4 space-y-2">
-                <a href="#categories" @click="mobileOpen = false" class="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg">Use Cases</a>
-                <a href="#features" @click="mobileOpen = false" class="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg">Features</a>
-                <a href="#how-it-works" @click="mobileOpen = false" class="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg">How It Works</a>
-                <a href="#pricing" @click="mobileOpen = false" class="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg">Pricing</a>
-                <div class="pt-2 border-t border-gray-100 space-y-2">
+            <div x-show="mobileOpen" x-cloak x-transition class="md:hidden pb-4 border-t border-white/10 mt-2 pt-4 space-y-2">
+                <a href="#use-cases" @click="mobileOpen = false" class="block px-4 py-2 text-sm text-gray-300 hover:text-[#d2f34c] rounded-lg">Use Cases</a>
+                <a href="#features" @click="mobileOpen = false" class="block px-4 py-2 text-sm text-gray-300 hover:text-[#d2f34c] rounded-lg">Features</a>
+                <a href="#how-it-works" @click="mobileOpen = false" class="block px-4 py-2 text-sm text-gray-300 hover:text-[#d2f34c] rounded-lg">How It Works</a>
+                <a href="#pricing" @click="mobileOpen = false" class="block px-4 py-2 text-sm text-gray-300 hover:text-[#d2f34c] rounded-lg">Pricing</a>
+                <div class="pt-2 border-t border-white/10 space-y-2">
                     @auth
-                        <a href="{{ route('user.dashboard') }}" class="block px-4 py-2.5 bg-brand-500 text-white rounded-lg text-sm font-semibold text-center">Dashboard</a>
+                        <a href="{{ route('user.dashboard') }}" class="block px-4 py-2.5 bg-[#d2f34c] text-[#1e2330] rounded-lg text-sm font-bold text-center">Dashboard</a>
                     @else
-                        <a href="{{ route('user.login') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg">Log in</a>
-                        <a href="{{ route('user.register') }}" class="block px-4 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-semibold text-center">Sign up free</a>
+                        <a href="{{ route('user.login') }}" class="block px-4 py-2 text-sm text-gray-300">Log in</a>
+                        <a href="{{ route('user.register') }}" class="block px-4 py-2.5 bg-[#d2f34c] text-[#1e2330] rounded-lg text-sm font-bold text-center">Sign up free</a>
                     @endauth
                 </div>
             </div>
         </div>
     </nav>
 
-    <section class="relative pt-32 pb-20 lg:pt-40 lg:pb-32 overflow-hidden">
-        <div class="absolute inset-0 bg-grid opacity-40"></div>
-        <div class="absolute top-20 left-10 w-72 h-72 bg-brand-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 hero-float"></div>
-        <div class="absolute top-40 right-10 w-72 h-72 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 hero-float-delay"></div>
-        <div class="absolute bottom-10 left-1/3 w-72 h-72 bg-pink-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 hero-float"></div>
+    <section class="relative min-h-screen bg-[#1e2330] pt-28 pb-20 lg:pt-36 lg:pb-28 overflow-hidden">
+        <div class="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-[#7c3aed] rounded-full mix-blend-screen filter blur-[120px] opacity-30 blob-spin"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-[#06b6d4] rounded-full mix-blend-screen filter blur-[100px] opacity-25 blob-spin" style="animation-delay: -12s;"></div>
+        <div class="absolute top-[30%] right-[20%] w-[400px] h-[400px] bg-[#f43f5e] rounded-full mix-blend-screen filter blur-[100px] opacity-20 blob-spin" style="animation-delay: -8s;"></div>
+        <div class="absolute bottom-[20%] left-[15%] w-[300px] h-[300px] bg-[#d2f34c] rounded-full mix-blend-screen filter blur-[80px] opacity-15 blob-spin" style="animation-delay: -18s;"></div>
 
         <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
                 <div class="text-center lg:text-left">
-                    <div class="reveal inline-flex items-center gap-2 px-4 py-1.5 bg-brand-50 border border-brand-100 rounded-full text-brand-700 text-sm font-medium mb-6">
-                        <span class="relative flex h-2 w-2"><span class="pulse-ring absolute inline-flex h-full w-full rounded-full bg-brand-400"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-brand-500"></span></span>
+                    <div class="reveal inline-flex items-center gap-2 px-4 py-1.5 bg-white/10 border border-white/10 rounded-full text-[#d2f34c] text-sm font-medium mb-6 backdrop-blur-sm">
+                        <span class="relative flex h-2 w-2"><span class="absolute inline-flex h-full w-full rounded-full bg-[#d2f34c] opacity-75 animate-ping"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-[#d2f34c]"></span></span>
                         The link management platform
                     </div>
 
-                    <h1 class="reveal reveal-delay-1 text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.1] tracking-tight mb-6">
-                        Everything you are.<br>
-                        <span class="gradient-text">In one simple link.</span>
+                    <h1 class="reveal reveal-delay-1 text-5xl sm:text-6xl lg:text-7xl font-bold leading-[1.05] tracking-tight text-white mb-6">
+                        Everything<br>you are. In<br>
+                        <span class="text-[#d2f34c]">one simple</span><br>
+                        <span class="text-[#d2f34c]">link.</span>
                     </h1>
 
-                    <p class="reveal reveal-delay-2 text-lg sm:text-xl text-gray-600 max-w-lg mx-auto lg:mx-0 mb-8 leading-relaxed">
+                    <p class="reveal reveal-delay-2 text-lg sm:text-xl text-gray-400 max-w-lg mx-auto lg:mx-0 mb-8 leading-relaxed">
                         Connect your audience to all of your content with just one link. Bio pages, short URLs, file sharing, QR codes, analytics, and more.
                     </p>
 
                     <div class="reveal reveal-delay-3 flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
-                        <a href="{{ route('user.register') }}" class="px-8 py-4 bg-gray-900 text-white rounded-full text-base font-semibold hover:bg-gray-800 transition-all hover:shadow-xl hover:shadow-gray-900/20 hover:-translate-y-0.5">
+                        <a href="{{ route('user.register') }}" class="px-8 py-4 bg-[#d2f34c] text-[#1e2330] rounded-full text-base font-bold hover:bg-[#e4ff6e] transition-all hover:shadow-xl hover:shadow-[#d2f34c]/20 hover:-translate-y-0.5">
                             Get started for free
                         </a>
-                        <a href="#categories" class="px-8 py-4 bg-white text-gray-700 rounded-full text-base font-semibold border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all">
+                        <a href="#use-cases" class="px-8 py-4 bg-white/10 text-white rounded-full text-base font-semibold border border-white/10 hover:bg-white/15 hover:border-white/20 transition-all backdrop-blur-sm">
                             See how it works
                         </a>
                     </div>
 
                     <div class="reveal reveal-delay-4 flex items-center gap-6 mt-8 justify-center lg:justify-start text-sm text-gray-500">
-                        <span class="flex items-center gap-1.5"><i class="fas fa-check text-green-500"></i> Free forever plan</span>
-                        <span class="flex items-center gap-1.5"><i class="fas fa-check text-green-500"></i> No credit card</span>
+                        <span class="flex items-center gap-1.5"><i class="fas fa-check text-[#d2f34c]"></i> Free forever plan</span>
+                        <span class="flex items-center gap-1.5"><i class="fas fa-check text-[#d2f34c]"></i> No credit card</span>
                     </div>
                 </div>
 
                 <div class="reveal reveal-delay-3 relative flex justify-center lg:justify-end">
-                    <div class="relative w-[300px] sm:w-[340px]">
-                        <div class="hero-float bg-gradient-to-br from-brand-500 via-purple-500 to-pink-500 rounded-[2rem] p-1 shadow-2xl shadow-brand-500/20">
-                            <div class="bg-white rounded-[1.75rem] p-6 space-y-4">
-                                <div class="flex flex-col items-center mb-2">
-                                    <div class="w-20 h-20 rounded-full bg-gradient-to-br from-brand-400 to-purple-500 flex items-center justify-center text-white text-2xl font-bold mb-3">JD</div>
-                                    <h3 class="text-lg font-bold text-gray-900">Jane Doe</h3>
-                                    <p class="text-sm text-gray-500">Creator & Designer</p>
-                                </div>
-                                <a class="block w-full py-3 px-4 bg-gray-900 text-white rounded-xl text-sm font-medium text-center hover:bg-gray-800 transition-colors">
-                                    <i class="fas fa-globe mr-2"></i>My Portfolio
-                                </a>
-                                <a class="block w-full py-3 px-4 bg-brand-50 text-brand-700 rounded-xl text-sm font-medium text-center border border-brand-100">
-                                    <i class="fab fa-youtube mr-2"></i>YouTube Channel
-                                </a>
-                                <a class="block w-full py-3 px-4 bg-purple-50 text-purple-700 rounded-xl text-sm font-medium text-center border border-purple-100">
-                                    <i class="fab fa-instagram mr-2"></i>Instagram
-                                </a>
-                                <a class="block w-full py-3 px-4 bg-pink-50 text-pink-700 rounded-xl text-sm font-medium text-center border border-pink-100">
-                                    <i class="fas fa-store mr-2"></i>Shop My Merch
-                                </a>
-                                <div class="flex justify-center gap-4 pt-2">
-                                    <span class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 text-xs"><i class="fab fa-twitter"></i></span>
-                                    <span class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 text-xs"><i class="fab fa-tiktok"></i></span>
-                                    <span class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 text-xs"><i class="fab fa-linkedin"></i></span>
+                    <div class="relative w-[280px] sm:w-[320px]">
+                        <div class="hero-float">
+                            <div class="bg-gradient-to-br from-[#d2f34c] via-[#06b6d4] to-[#7c3aed] rounded-[2rem] p-[3px] shadow-2xl shadow-[#7c3aed]/30">
+                                <div class="bg-[#1e2330] rounded-[1.85rem] p-5 space-y-3">
+                                    <div class="flex flex-col items-center mb-1">
+                                        <div class="w-18 h-18 rounded-full bg-gradient-to-br from-[#d2f34c] via-[#06b6d4] to-[#7c3aed] p-[2px] mb-3">
+                                            <div class="w-full h-full rounded-full bg-[#1e2330] flex items-center justify-center">
+                                                <span class="text-[#d2f34c] text-xl font-bold w-16 h-16 flex items-center justify-center">JD</span>
+                                            </div>
+                                        </div>
+                                        <h3 class="text-base font-bold text-white">Jane Doe</h3>
+                                        <p class="text-xs text-gray-500">Creator & Designer</p>
+                                    </div>
+                                    <a class="block w-full py-3 px-4 bg-[#d2f34c] text-[#1e2330] rounded-xl text-sm font-bold text-center">
+                                        <i class="fas fa-globe mr-2"></i>My Portfolio
+                                    </a>
+                                    <a class="block w-full py-3 px-4 bg-[#7c3aed] text-white rounded-xl text-sm font-medium text-center">
+                                        <i class="fab fa-youtube mr-2"></i>YouTube Channel
+                                    </a>
+                                    <a class="block w-full py-3 px-4 bg-[#06b6d4] text-white rounded-xl text-sm font-medium text-center">
+                                        <i class="fab fa-instagram mr-2"></i>Instagram
+                                    </a>
+                                    <a class="block w-full py-3 px-4 bg-[#f43f5e] text-white rounded-xl text-sm font-medium text-center">
+                                        <i class="fas fa-store mr-2"></i>Shop My Merch
+                                    </a>
+                                    <div class="flex justify-center gap-3 pt-1">
+                                        <span class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-gray-400 text-xs"><i class="fab fa-twitter"></i></span>
+                                        <span class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-gray-400 text-xs"><i class="fab fa-tiktok"></i></span>
+                                        <span class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-gray-400 text-xs"><i class="fab fa-linkedin"></i></span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="hero-float-delay absolute -top-4 -right-6 bg-white rounded-2xl shadow-xl border border-gray-100 p-3 flex items-center gap-2.5">
-                            <div class="w-9 h-9 bg-green-100 rounded-lg flex items-center justify-center"><i class="fas fa-chart-line text-green-600 text-sm"></i></div>
+                        <div class="hero-float-2 absolute -top-4 -right-8 bg-[#d2f34c] rounded-2xl shadow-xl shadow-[#d2f34c]/20 p-3 flex items-center gap-2.5">
+                            <div class="w-9 h-9 bg-[#1e2330] rounded-lg flex items-center justify-center"><i class="fas fa-chart-line text-[#d2f34c] text-sm"></i></div>
                             <div>
-                                <div class="text-xs text-gray-500">Total Clicks</div>
-                                <div class="text-sm font-bold text-gray-900">24,891</div>
+                                <div class="text-[10px] text-[#1e2330]/60 font-medium">Total Clicks</div>
+                                <div class="text-sm font-bold text-[#1e2330]">24,891</div>
                             </div>
                         </div>
 
-                        <div class="hero-float absolute -bottom-4 -left-6 bg-white rounded-2xl shadow-xl border border-gray-100 p-3 flex items-center gap-2.5">
-                            <div class="w-9 h-9 bg-purple-100 rounded-lg flex items-center justify-center"><i class="fas fa-qrcode text-purple-600 text-sm"></i></div>
+                        <div class="hero-float absolute -bottom-6 -left-8 bg-[#7c3aed] rounded-2xl shadow-xl shadow-[#7c3aed]/30 p-3 flex items-center gap-2.5">
+                            <div class="w-9 h-9 bg-white/15 rounded-lg flex items-center justify-center"><i class="fas fa-qrcode text-white text-sm"></i></div>
                             <div>
-                                <div class="text-xs text-gray-500">QR Scans</div>
-                                <div class="text-sm font-bold text-gray-900">3,204</div>
+                                <div class="text-[10px] text-white/60 font-medium">QR Scans</div>
+                                <div class="text-sm font-bold text-white">3,204</div>
                             </div>
                         </div>
                     </div>
@@ -178,409 +184,439 @@
         </div>
     </section>
 
-    <section class="py-16 bg-gray-50 border-y border-gray-100">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="reveal grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-                <div>
-                    <div class="text-3xl font-extrabold text-gray-900">6</div>
-                    <div class="text-sm text-gray-500 mt-1">Link Types</div>
-                </div>
-                <div>
-                    <div class="text-3xl font-extrabold text-gray-900">10+</div>
-                    <div class="text-sm text-gray-500 mt-1">Tracking Pixels</div>
-                </div>
-                <div>
-                    <div class="text-3xl font-extrabold text-gray-900">100%</div>
-                    <div class="text-sm text-gray-500 mt-1">Free to Start</div>
-                </div>
-                <div>
-                    <div class="text-3xl font-extrabold text-gray-900">&infin;</div>
-                    <div class="text-sm text-gray-500 mt-1">Possibilities</div>
-                </div>
-            </div>
+    <div class="bg-[#d2f34c] py-4 overflow-hidden">
+        <div class="flex whitespace-nowrap marquee">
+            @for($i = 0; $i < 2; $i++)
+            <span class="inline-flex items-center gap-8 mx-4 text-[#1e2330]">
+                <span class="text-sm font-bold uppercase tracking-wider flex items-center gap-2"><i class="fas fa-link"></i> URL Shortener</span>
+                <span class="text-xl opacity-30">&bull;</span>
+                <span class="text-sm font-bold uppercase tracking-wider flex items-center gap-2"><i class="fas fa-id-card"></i> Bio Links</span>
+                <span class="text-xl opacity-30">&bull;</span>
+                <span class="text-sm font-bold uppercase tracking-wider flex items-center gap-2"><i class="fas fa-file-arrow-down"></i> File Sharing</span>
+                <span class="text-xl opacity-30">&bull;</span>
+                <span class="text-sm font-bold uppercase tracking-wider flex items-center gap-2"><i class="fas fa-qrcode"></i> QR Codes</span>
+                <span class="text-xl opacity-30">&bull;</span>
+                <span class="text-sm font-bold uppercase tracking-wider flex items-center gap-2"><i class="fas fa-chart-bar"></i> Analytics</span>
+                <span class="text-xl opacity-30">&bull;</span>
+                <span class="text-sm font-bold uppercase tracking-wider flex items-center gap-2"><i class="fas fa-bullseye"></i> Tracking Pixels</span>
+                <span class="text-xl opacity-30">&bull;</span>
+                <span class="text-sm font-bold uppercase tracking-wider flex items-center gap-2"><i class="fas fa-calendar-check"></i> ICS Events</span>
+                <span class="text-xl opacity-30">&bull;</span>
+                <span class="text-sm font-bold uppercase tracking-wider flex items-center gap-2"><i class="fas fa-address-card"></i> VCF Cards</span>
+                <span class="text-xl opacity-30">&bull;</span>
+            </span>
+            @endfor
         </div>
-    </section>
+    </div>
 
-    <section id="categories" class="py-20 lg:py-28" x-data="{ active: 0, auto: true }" x-init="setInterval(() => { if(auto) active = (active + 1) % 6 }, 4000)">
+    <section id="use-cases" class="py-24 lg:py-32 bg-[#e8d5f5]" x-data="{ active: 0, auto: true }" x-init="setInterval(() => { if(auto) active = (active + 1) % 6 }, 4000)">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-16">
-                <h2 class="reveal text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-4">
-                    Built for <span class="gradient-text">every business</span>
+                <h2 class="reveal text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-[#1e2330] mb-4">
+                    Built for <span class="text-[#7c3aed]">every</span> business
                 </h2>
-                <p class="reveal reveal-delay-1 text-lg text-gray-600 max-w-2xl mx-auto">
-                    Whether you're a creator, entrepreneur, or enterprise — 1INME adapts to your needs with powerful link management tools.
+                <p class="reveal reveal-delay-1 text-lg text-[#1e2330]/60 max-w-2xl mx-auto">
+                    Whether you're a creator, entrepreneur, or enterprise — 1INME adapts to your needs.
                 </p>
             </div>
 
-            <div class="reveal reveal-delay-2 flex flex-wrap justify-center gap-2 mb-12">
+            <div class="reveal reveal-delay-2 flex flex-wrap justify-center gap-2 mb-14">
                 @php
                 $categories = [
-                    ['icon' => 'fa-palette', 'label' => 'Creators', 'color' => 'brand'],
-                    ['icon' => 'fa-store', 'label' => 'Small Business', 'color' => 'emerald'],
-                    ['icon' => 'fa-briefcase', 'label' => 'Freelancers', 'color' => 'violet'],
-                    ['icon' => 'fa-calendar-check', 'label' => 'Events', 'color' => 'orange'],
-                    ['icon' => 'fa-shopping-bag', 'label' => 'E-Commerce', 'color' => 'rose'],
-                    ['icon' => 'fa-graduation-cap', 'label' => 'Nonprofits', 'color' => 'teal'],
+                    ['icon' => 'fa-palette', 'label' => 'Creators', 'bg' => '#7c3aed', 'text' => '#fff'],
+                    ['icon' => 'fa-store', 'label' => 'Small Business', 'bg' => '#059669', 'text' => '#fff'],
+                    ['icon' => 'fa-briefcase', 'label' => 'Freelancers', 'bg' => '#2563eb', 'text' => '#fff'],
+                    ['icon' => 'fa-calendar-check', 'label' => 'Events', 'bg' => '#ea580c', 'text' => '#fff'],
+                    ['icon' => 'fa-shopping-bag', 'label' => 'E-Commerce', 'bg' => '#e11d48', 'text' => '#fff'],
+                    ['icon' => 'fa-graduation-cap', 'label' => 'Nonprofits', 'bg' => '#0891b2', 'text' => '#fff'],
                 ];
                 @endphp
                 @foreach($categories as $i => $cat)
                 <button @click="active = {{ $i }}; auto = false"
-                    :class="active === {{ $i }} ? 'bg-gray-900 text-white shadow-lg' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'"
-                    class="px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 flex items-center gap-2">
+                    :class="active === {{ $i }} ? 'text-white shadow-lg scale-105' : 'bg-white text-[#1e2330] hover:bg-white/80 border border-[#1e2330]/10'"
+                    :style="active === {{ $i }} ? 'background-color: {{ $cat['bg'] }}' : ''"
+                    class="px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-300 flex items-center gap-2">
                     <i class="fas {{ $cat['icon'] }}"></i>
                     {{ $cat['label'] }}
                 </button>
                 @endforeach
             </div>
 
-            <div class="relative">
-                <div x-show="active === 0" x-transition:enter="transition ease-out duration-500" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0" class="grid lg:grid-cols-2 gap-10 items-center">
-                    <div>
-                        <div class="inline-flex items-center gap-2 px-3 py-1 bg-sky-50 text-sky-700 rounded-full text-xs font-semibold mb-4">CREATORS & INFLUENCERS</div>
-                        <h3 class="text-2xl sm:text-3xl font-bold mb-4">Your brand, your rules</h3>
-                        <p class="text-gray-600 mb-6 leading-relaxed">Build a stunning bio link page that showcases everything you create. From YouTube videos to merch stores, social profiles to booking links — all in one customizable page.</p>
-                        <ul class="space-y-3">
-                            <li class="flex items-center gap-3 text-sm text-gray-700"><span class="w-6 h-6 bg-sky-100 rounded-full flex items-center justify-center flex-shrink-0"><i class="fas fa-check text-sky-600 text-xs"></i></span>Customizable bio link pages</li>
-                            <li class="flex items-center gap-3 text-sm text-gray-700"><span class="w-6 h-6 bg-sky-100 rounded-full flex items-center justify-center flex-shrink-0"><i class="fas fa-check text-sky-600 text-xs"></i></span>Social media link integration</li>
-                            <li class="flex items-center gap-3 text-sm text-gray-700"><span class="w-6 h-6 bg-sky-100 rounded-full flex items-center justify-center flex-shrink-0"><i class="fas fa-check text-sky-600 text-xs"></i></span>Click analytics & audience insights</li>
-                            <li class="flex items-center gap-3 text-sm text-gray-700"><span class="w-6 h-6 bg-sky-100 rounded-full flex items-center justify-center flex-shrink-0"><i class="fas fa-check text-sky-600 text-xs"></i></span>Retargeting pixels for fan growth</li>
-                        </ul>
-                    </div>
-                    <div class="flex justify-center">
-                        <div class="w-72 bg-gradient-to-br from-sky-400 to-blue-600 rounded-[2rem] p-1 shadow-2xl shadow-sky-500/20">
-                            <div class="bg-white rounded-[1.75rem] p-5 space-y-3">
-                                <div class="flex flex-col items-center"><div class="w-16 h-16 rounded-full bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center text-white text-xl font-bold mb-2"><i class="fas fa-camera"></i></div><div class="font-bold text-sm">@CreatorStudio</div><div class="text-xs text-gray-400">Content Creator</div></div>
-                                <div class="py-2.5 bg-gray-900 text-white rounded-xl text-xs font-medium text-center"><i class="fab fa-youtube mr-1"></i>Latest Video</div>
-                                <div class="py-2.5 bg-sky-50 text-sky-700 rounded-xl text-xs font-medium text-center border border-sky-100"><i class="fas fa-shopping-bag mr-1"></i>Merch Store</div>
-                                <div class="py-2.5 bg-purple-50 text-purple-700 rounded-xl text-xs font-medium text-center border border-purple-100"><i class="fab fa-patreon mr-1"></i>Support Me</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <div class="relative min-h-[420px]">
+                @php
+                $catData = [
+                    ['badge' => 'CREATORS & INFLUENCERS', 'badgeBg' => '#7c3aed', 'title' => 'Your brand, your rules', 'desc' => 'Build a stunning bio link page that showcases everything you create. From YouTube videos to merch stores, social profiles to booking links.', 'checks' => ['Customizable bio link pages', 'Social media link integration', 'Click analytics & audience insights', 'Retargeting pixels for fan growth'], 'checkColor' => '#7c3aed', 'mockupBg' => 'from-[#7c3aed] to-[#a855f7]', 'mockupIcon' => 'fa-camera', 'mockupName' => '@CreatorStudio', 'mockupSub' => 'Content Creator', 'links' => [['bg' => '#1e2330', 'text' => 'white', 'icon' => 'fab fa-youtube', 'label' => 'Latest Video'], ['bg' => '#7c3aed', 'text' => 'white', 'icon' => 'fas fa-shopping-bag', 'label' => 'Merch Store'], ['bg' => '#d2f34c', 'text' => '#1e2330', 'icon' => 'fab fa-patreon', 'label' => 'Support Me']]],
+                    ['badge' => 'SMALL BUSINESSES', 'badgeBg' => '#059669', 'title' => 'Grow offline & online', 'desc' => 'Print QR codes on menus, packaging, and signage. Share product catalogs as files. Create branded short URLs that build trust.', 'checks' => ['QR codes for menus & products', 'File sharing for catalogs', 'Branded short URLs', 'Location-based link routing'], 'checkColor' => '#059669', 'mockupBg' => 'from-[#059669] to-[#10b981]', 'mockupIcon' => 'fa-coffee', 'mockupName' => 'Cafe Bloom', 'mockupSub' => 'Local Coffee Shop', 'links' => [['bg' => '#1e2330', 'text' => 'white', 'icon' => 'fas fa-utensils', 'label' => 'View Our Menu'], ['bg' => '#059669', 'text' => 'white', 'icon' => 'fas fa-file-pdf', 'label' => 'Download Catalog'], ['bg' => '#d2f34c', 'text' => '#1e2330', 'icon' => 'fas fa-star', 'label' => 'Leave a Review']]],
+                    ['badge' => 'FREELANCERS & AGENCIES', 'badgeBg' => '#2563eb', 'title' => 'Professional identity, simplified', 'desc' => 'Share your portfolio, generate VCF contact cards for networking, and create branded link pages that impress.', 'checks' => ['VCF digital business cards', 'Portfolio & case study links', 'Branded bio pages for clients', 'Password-protected links'], 'checkColor' => '#2563eb', 'mockupBg' => 'from-[#2563eb] to-[#3b82f6]', 'mockupIcon' => 'fa-pen-nib', 'mockupName' => 'Alex Rivera', 'mockupSub' => 'UX Designer', 'links' => [['bg' => '#1e2330', 'text' => 'white', 'icon' => 'fas fa-briefcase', 'label' => 'View Portfolio'], ['bg' => '#2563eb', 'text' => 'white', 'icon' => 'fas fa-address-card', 'label' => 'Save Contact'], ['bg' => '#d2f34c', 'text' => '#1e2330', 'icon' => 'fab fa-linkedin', 'label' => 'LinkedIn']]],
+                    ['badge' => 'EVENT ORGANIZERS', 'badgeBg' => '#ea580c', 'title' => 'Events made effortless', 'desc' => 'Generate ICS calendar invites, create QR codes for check-in, and share event details through a single link.', 'checks' => ['ICS calendar file generation', 'QR codes for event check-in', 'Ticket & RSVP short links', 'Expiring links for time-sensitive content'], 'checkColor' => '#ea580c', 'mockupBg' => 'from-[#ea580c] to-[#f97316]', 'mockupIcon' => 'fa-music', 'mockupName' => 'SoundWave Fest', 'mockupSub' => 'Music Festival 2026', 'links' => [['bg' => '#1e2330', 'text' => 'white', 'icon' => 'fas fa-ticket-alt', 'label' => 'Get Tickets'], ['bg' => '#ea580c', 'text' => 'white', 'icon' => 'fas fa-calendar-plus', 'label' => 'Add to Calendar'], ['bg' => '#d2f34c', 'text' => '#1e2330', 'icon' => 'fas fa-map-marker-alt', 'label' => 'Venue & Directions']]],
+                    ['badge' => 'E-COMMERCE & RETAIL', 'badgeBg' => '#e11d48', 'title' => 'Drive sales from everywhere', 'desc' => 'Shorten product links for social ads, embed tracking pixels for retargeting, and measure every click.', 'checks' => ['Product link shortening', 'Facebook & Google tracking pixels', 'UTM parameter builder', 'Conversion tracking & analytics'], 'checkColor' => '#e11d48', 'mockupBg' => 'from-[#e11d48] to-[#f43f5e]', 'mockupIcon' => 'fa-gem', 'mockupName' => 'Luxe Boutique', 'mockupSub' => 'Fashion & Accessories', 'links' => [['bg' => '#1e2330', 'text' => 'white', 'icon' => 'fas fa-fire', 'label' => 'New Arrivals'], ['bg' => '#e11d48', 'text' => 'white', 'icon' => 'fas fa-tag', 'label' => 'Sale - 40% Off'], ['bg' => '#d2f34c', 'text' => '#1e2330', 'icon' => 'fas fa-gift', 'label' => 'Gift Cards']]],
+                    ['badge' => 'NONPROFITS & EDUCATION', 'badgeBg' => '#0891b2', 'title' => 'Share knowledge, inspire action', 'desc' => 'Distribute learning materials, create donation links, and organize resources in a single page.', 'checks' => ['File sharing for resources', 'Donation & fundraising links', 'Bio page for program info', 'QR codes for classrooms'], 'checkColor' => '#0891b2', 'mockupBg' => 'from-[#0891b2] to-[#06b6d4]', 'mockupIcon' => 'fa-heart', 'mockupName' => 'GreenFuture Org', 'mockupSub' => 'Environmental Nonprofit', 'links' => [['bg' => '#1e2330', 'text' => 'white', 'icon' => 'fas fa-hand-holding-heart', 'label' => 'Donate Now'], ['bg' => '#0891b2', 'text' => 'white', 'icon' => 'fas fa-file-download', 'label' => 'Annual Report'], ['bg' => '#d2f34c', 'text' => '#1e2330', 'icon' => 'fas fa-users', 'label' => 'Volunteer Sign Up']]],
+                ];
+                @endphp
 
-                <div x-show="active === 1" x-transition:enter="transition ease-out duration-500" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0" x-cloak class="grid lg:grid-cols-2 gap-10 items-center">
+                @foreach($catData as $i => $cat)
+                <div x-show="active === {{ $i }}" x-transition:enter="transition ease-out duration-500" x-transition:enter-start="opacity-0 translate-y-6" x-transition:enter-end="opacity-100 translate-y-0" @if($i > 0) x-cloak @endif class="grid lg:grid-cols-2 gap-12 items-center">
                     <div>
-                        <div class="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-semibold mb-4">SMALL BUSINESSES</div>
-                        <h3 class="text-2xl sm:text-3xl font-bold mb-4">Grow your business offline & online</h3>
-                        <p class="text-gray-600 mb-6 leading-relaxed">Print QR codes on menus, packaging, and signage. Share product catalogs as files. Create branded short URLs that build trust and drive traffic.</p>
+                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold mb-4 text-white" style="background-color: {{ $cat['badgeBg'] }}">{{ $cat['badge'] }}</div>
+                        <h3 class="text-3xl sm:text-4xl font-bold text-[#1e2330] mb-4">{{ $cat['title'] }}</h3>
+                        <p class="text-[#1e2330]/60 mb-6 leading-relaxed text-lg">{{ $cat['desc'] }}</p>
                         <ul class="space-y-3">
-                            <li class="flex items-center gap-3 text-sm text-gray-700"><span class="w-6 h-6 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0"><i class="fas fa-check text-emerald-600 text-xs"></i></span>QR codes for menus & products</li>
-                            <li class="flex items-center gap-3 text-sm text-gray-700"><span class="w-6 h-6 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0"><i class="fas fa-check text-emerald-600 text-xs"></i></span>File sharing for catalogs & brochures</li>
-                            <li class="flex items-center gap-3 text-sm text-gray-700"><span class="w-6 h-6 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0"><i class="fas fa-check text-emerald-600 text-xs"></i></span>Branded short URLs</li>
-                            <li class="flex items-center gap-3 text-sm text-gray-700"><span class="w-6 h-6 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0"><i class="fas fa-check text-emerald-600 text-xs"></i></span>Location-based link routing</li>
+                            @foreach($cat['checks'] as $check)
+                            <li class="flex items-center gap-3 text-[#1e2330]">
+                                <span class="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0" style="background-color: {{ $cat['checkColor'] }}20"><i class="fas fa-check text-xs" style="color: {{ $cat['checkColor'] }}"></i></span>
+                                <span class="text-sm font-medium">{{ $check }}</span>
+                            </li>
+                            @endforeach
                         </ul>
                     </div>
                     <div class="flex justify-center">
-                        <div class="w-72 bg-gradient-to-br from-emerald-400 to-green-600 rounded-[2rem] p-1 shadow-2xl shadow-emerald-500/20">
-                            <div class="bg-white rounded-[1.75rem] p-5 space-y-3">
-                                <div class="flex flex-col items-center"><div class="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center text-white text-xl font-bold mb-2"><i class="fas fa-coffee"></i></div><div class="font-bold text-sm">Cafe Bloom</div><div class="text-xs text-gray-400">Local Coffee Shop</div></div>
-                                <div class="py-2.5 bg-gray-900 text-white rounded-xl text-xs font-medium text-center"><i class="fas fa-utensils mr-1"></i>View Our Menu</div>
-                                <div class="py-2.5 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-medium text-center border border-emerald-100"><i class="fas fa-file-pdf mr-1"></i>Download Catalog</div>
-                                <div class="py-2.5 bg-amber-50 text-amber-700 rounded-xl text-xs font-medium text-center border border-amber-100"><i class="fas fa-star mr-1"></i>Leave a Review</div>
+                        <div class="w-64 sm:w-72 bg-gradient-to-br {{ $cat['mockupBg'] }} rounded-[2rem] p-[3px] shadow-2xl">
+                            <div class="bg-[#1e2330] rounded-[1.85rem] p-5 space-y-3">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-14 h-14 rounded-full bg-gradient-to-br {{ $cat['mockupBg'] }} flex items-center justify-center text-white text-lg font-bold mb-2"><i class="fas {{ $cat['mockupIcon'] }}"></i></div>
+                                    <div class="font-bold text-sm text-white">{{ $cat['mockupName'] }}</div>
+                                    <div class="text-xs text-gray-500">{{ $cat['mockupSub'] }}</div>
+                                </div>
+                                @foreach($cat['links'] as $link)
+                                <div class="py-2.5 rounded-xl text-xs font-bold text-center" style="background-color: {{ $link['bg'] }}; color: {{ $link['text'] }}"><i class="{{ $link['icon'] }} mr-1"></i>{{ $link['label'] }}</div>
+                                @endforeach
                             </div>
                         </div>
                     </div>
                 </div>
-
-                <div x-show="active === 2" x-transition:enter="transition ease-out duration-500" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0" x-cloak class="grid lg:grid-cols-2 gap-10 items-center">
-                    <div>
-                        <div class="inline-flex items-center gap-2 px-3 py-1 bg-violet-50 text-violet-700 rounded-full text-xs font-semibold mb-4">FREELANCERS & AGENCIES</div>
-                        <h3 class="text-2xl sm:text-3xl font-bold mb-4">Your professional identity, simplified</h3>
-                        <p class="text-gray-600 mb-6 leading-relaxed">Share your portfolio, generate VCF contact cards for networking events, and create branded link pages that make lasting first impressions.</p>
-                        <ul class="space-y-3">
-                            <li class="flex items-center gap-3 text-sm text-gray-700"><span class="w-6 h-6 bg-violet-100 rounded-full flex items-center justify-center flex-shrink-0"><i class="fas fa-check text-violet-600 text-xs"></i></span>VCF digital business cards</li>
-                            <li class="flex items-center gap-3 text-sm text-gray-700"><span class="w-6 h-6 bg-violet-100 rounded-full flex items-center justify-center flex-shrink-0"><i class="fas fa-check text-violet-600 text-xs"></i></span>Portfolio & case study links</li>
-                            <li class="flex items-center gap-3 text-sm text-gray-700"><span class="w-6 h-6 bg-violet-100 rounded-full flex items-center justify-center flex-shrink-0"><i class="fas fa-check text-violet-600 text-xs"></i></span>Branded bio pages for clients</li>
-                            <li class="flex items-center gap-3 text-sm text-gray-700"><span class="w-6 h-6 bg-violet-100 rounded-full flex items-center justify-center flex-shrink-0"><i class="fas fa-check text-violet-600 text-xs"></i></span>Password-protected links</li>
-                        </ul>
-                    </div>
-                    <div class="flex justify-center">
-                        <div class="w-72 bg-gradient-to-br from-violet-400 to-purple-600 rounded-[2rem] p-1 shadow-2xl shadow-violet-500/20">
-                            <div class="bg-white rounded-[1.75rem] p-5 space-y-3">
-                                <div class="flex flex-col items-center"><div class="w-16 h-16 rounded-full bg-gradient-to-br from-violet-400 to-purple-500 flex items-center justify-center text-white text-xl font-bold mb-2"><i class="fas fa-pen-nib"></i></div><div class="font-bold text-sm">Alex Rivera</div><div class="text-xs text-gray-400">UX Designer</div></div>
-                                <div class="py-2.5 bg-gray-900 text-white rounded-xl text-xs font-medium text-center"><i class="fas fa-briefcase mr-1"></i>View Portfolio</div>
-                                <div class="py-2.5 bg-violet-50 text-violet-700 rounded-xl text-xs font-medium text-center border border-violet-100"><i class="fas fa-address-card mr-1"></i>Save Contact (VCF)</div>
-                                <div class="py-2.5 bg-blue-50 text-blue-700 rounded-xl text-xs font-medium text-center border border-blue-100"><i class="fab fa-linkedin mr-1"></i>LinkedIn</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div x-show="active === 3" x-transition:enter="transition ease-out duration-500" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0" x-cloak class="grid lg:grid-cols-2 gap-10 items-center">
-                    <div>
-                        <div class="inline-flex items-center gap-2 px-3 py-1 bg-orange-50 text-orange-700 rounded-full text-xs font-semibold mb-4">EVENT ORGANIZERS</div>
-                        <h3 class="text-2xl sm:text-3xl font-bold mb-4">Events made effortless</h3>
-                        <p class="text-gray-600 mb-6 leading-relaxed">Generate ICS calendar invites that attendees can add with one tap. Create QR codes for check-in, and share event details through a single link.</p>
-                        <ul class="space-y-3">
-                            <li class="flex items-center gap-3 text-sm text-gray-700"><span class="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0"><i class="fas fa-check text-orange-600 text-xs"></i></span>ICS calendar file generation</li>
-                            <li class="flex items-center gap-3 text-sm text-gray-700"><span class="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0"><i class="fas fa-check text-orange-600 text-xs"></i></span>QR codes for event check-in</li>
-                            <li class="flex items-center gap-3 text-sm text-gray-700"><span class="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0"><i class="fas fa-check text-orange-600 text-xs"></i></span>Ticket & RSVP short links</li>
-                            <li class="flex items-center gap-3 text-sm text-gray-700"><span class="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0"><i class="fas fa-check text-orange-600 text-xs"></i></span>Expiring links for time-sensitive content</li>
-                        </ul>
-                    </div>
-                    <div class="flex justify-center">
-                        <div class="w-72 bg-gradient-to-br from-orange-400 to-red-500 rounded-[2rem] p-1 shadow-2xl shadow-orange-500/20">
-                            <div class="bg-white rounded-[1.75rem] p-5 space-y-3">
-                                <div class="flex flex-col items-center"><div class="w-16 h-16 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center text-white text-xl font-bold mb-2"><i class="fas fa-music"></i></div><div class="font-bold text-sm">SoundWave Fest</div><div class="text-xs text-gray-400">Music Festival 2026</div></div>
-                                <div class="py-2.5 bg-gray-900 text-white rounded-xl text-xs font-medium text-center"><i class="fas fa-ticket-alt mr-1"></i>Get Tickets</div>
-                                <div class="py-2.5 bg-orange-50 text-orange-700 rounded-xl text-xs font-medium text-center border border-orange-100"><i class="fas fa-calendar-plus mr-1"></i>Add to Calendar</div>
-                                <div class="py-2.5 bg-red-50 text-red-700 rounded-xl text-xs font-medium text-center border border-red-100"><i class="fas fa-map-marker-alt mr-1"></i>Venue & Directions</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div x-show="active === 4" x-transition:enter="transition ease-out duration-500" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0" x-cloak class="grid lg:grid-cols-2 gap-10 items-center">
-                    <div>
-                        <div class="inline-flex items-center gap-2 px-3 py-1 bg-rose-50 text-rose-700 rounded-full text-xs font-semibold mb-4">E-COMMERCE & RETAIL</div>
-                        <h3 class="text-2xl sm:text-3xl font-bold mb-4">Drive sales from everywhere</h3>
-                        <p class="text-gray-600 mb-6 leading-relaxed">Shorten product links for social ads, embed tracking pixels for retargeting, and measure every click to optimize your marketing ROI.</p>
-                        <ul class="space-y-3">
-                            <li class="flex items-center gap-3 text-sm text-gray-700"><span class="w-6 h-6 bg-rose-100 rounded-full flex items-center justify-center flex-shrink-0"><i class="fas fa-check text-rose-600 text-xs"></i></span>Product link shortening</li>
-                            <li class="flex items-center gap-3 text-sm text-gray-700"><span class="w-6 h-6 bg-rose-100 rounded-full flex items-center justify-center flex-shrink-0"><i class="fas fa-check text-rose-600 text-xs"></i></span>Facebook & Google tracking pixels</li>
-                            <li class="flex items-center gap-3 text-sm text-gray-700"><span class="w-6 h-6 bg-rose-100 rounded-full flex items-center justify-center flex-shrink-0"><i class="fas fa-check text-rose-600 text-xs"></i></span>UTM parameter builder</li>
-                            <li class="flex items-center gap-3 text-sm text-gray-700"><span class="w-6 h-6 bg-rose-100 rounded-full flex items-center justify-center flex-shrink-0"><i class="fas fa-check text-rose-600 text-xs"></i></span>Conversion tracking & analytics</li>
-                        </ul>
-                    </div>
-                    <div class="flex justify-center">
-                        <div class="w-72 bg-gradient-to-br from-rose-400 to-pink-600 rounded-[2rem] p-1 shadow-2xl shadow-rose-500/20">
-                            <div class="bg-white rounded-[1.75rem] p-5 space-y-3">
-                                <div class="flex flex-col items-center"><div class="w-16 h-16 rounded-full bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center text-white text-xl font-bold mb-2"><i class="fas fa-gem"></i></div><div class="font-bold text-sm">Luxe Boutique</div><div class="text-xs text-gray-400">Fashion & Accessories</div></div>
-                                <div class="py-2.5 bg-gray-900 text-white rounded-xl text-xs font-medium text-center"><i class="fas fa-fire mr-1"></i>New Arrivals</div>
-                                <div class="py-2.5 bg-rose-50 text-rose-700 rounded-xl text-xs font-medium text-center border border-rose-100"><i class="fas fa-tag mr-1"></i>Sale - 40% Off</div>
-                                <div class="py-2.5 bg-pink-50 text-pink-700 rounded-xl text-xs font-medium text-center border border-pink-100"><i class="fas fa-gift mr-1"></i>Gift Cards</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div x-show="active === 5" x-transition:enter="transition ease-out duration-500" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0" x-cloak class="grid lg:grid-cols-2 gap-10 items-center">
-                    <div>
-                        <div class="inline-flex items-center gap-2 px-3 py-1 bg-teal-50 text-teal-700 rounded-full text-xs font-semibold mb-4">NONPROFITS & EDUCATION</div>
-                        <h3 class="text-2xl sm:text-3xl font-bold mb-4">Share knowledge, inspire action</h3>
-                        <p class="text-gray-600 mb-6 leading-relaxed">Distribute learning materials as downloadable files, create donation links, and organize resources in a single accessible page for your community.</p>
-                        <ul class="space-y-3">
-                            <li class="flex items-center gap-3 text-sm text-gray-700"><span class="w-6 h-6 bg-teal-100 rounded-full flex items-center justify-center flex-shrink-0"><i class="fas fa-check text-teal-600 text-xs"></i></span>File sharing for resources & materials</li>
-                            <li class="flex items-center gap-3 text-sm text-gray-700"><span class="w-6 h-6 bg-teal-100 rounded-full flex items-center justify-center flex-shrink-0"><i class="fas fa-check text-teal-600 text-xs"></i></span>Donation & fundraising links</li>
-                            <li class="flex items-center gap-3 text-sm text-gray-700"><span class="w-6 h-6 bg-teal-100 rounded-full flex items-center justify-center flex-shrink-0"><i class="fas fa-check text-teal-600 text-xs"></i></span>Bio page for program information</li>
-                            <li class="flex items-center gap-3 text-sm text-gray-700"><span class="w-6 h-6 bg-teal-100 rounded-full flex items-center justify-center flex-shrink-0"><i class="fas fa-check text-teal-600 text-xs"></i></span>QR codes for classroom materials</li>
-                        </ul>
-                    </div>
-                    <div class="flex justify-center">
-                        <div class="w-72 bg-gradient-to-br from-teal-400 to-cyan-600 rounded-[2rem] p-1 shadow-2xl shadow-teal-500/20">
-                            <div class="bg-white rounded-[1.75rem] p-5 space-y-3">
-                                <div class="flex flex-col items-center"><div class="w-16 h-16 rounded-full bg-gradient-to-br from-teal-400 to-cyan-500 flex items-center justify-center text-white text-xl font-bold mb-2"><i class="fas fa-heart"></i></div><div class="font-bold text-sm">GreenFuture Org</div><div class="text-xs text-gray-400">Environmental Nonprofit</div></div>
-                                <div class="py-2.5 bg-gray-900 text-white rounded-xl text-xs font-medium text-center"><i class="fas fa-hand-holding-heart mr-1"></i>Donate Now</div>
-                                <div class="py-2.5 bg-teal-50 text-teal-700 rounded-xl text-xs font-medium text-center border border-teal-100"><i class="fas fa-file-download mr-1"></i>Annual Report (PDF)</div>
-                                <div class="py-2.5 bg-cyan-50 text-cyan-700 rounded-xl text-xs font-medium text-center border border-cyan-100"><i class="fas fa-users mr-1"></i>Volunteer Sign Up</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                @endforeach
             </div>
 
-            <div class="flex justify-center gap-2 mt-10">
+            <div class="flex justify-center gap-2 mt-12">
                 @for($i = 0; $i < 6; $i++)
-                <button @click="active = {{ $i }}; auto = false" :class="active === {{ $i }} ? 'bg-gray-900 w-8' : 'bg-gray-300 w-2'" class="h-2 rounded-full transition-all duration-500"></button>
+                <button @click="active = {{ $i }}; auto = false" :class="active === {{ $i }} ? 'w-10' : 'w-2.5'" class="h-2.5 rounded-full transition-all duration-500" :style="active === {{ $i }} ? 'background-color: #7c3aed' : 'background-color: #1e233040'"></button>
                 @endfor
             </div>
         </div>
     </section>
 
-    <section id="features" class="py-20 lg:py-28 bg-gray-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-16">
-                <h2 class="reveal text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-4">
-                    Powerful tools, <span class="gradient-text">simple to use</span>
-                </h2>
-                <p class="reveal reveal-delay-1 text-lg text-gray-600 max-w-2xl mx-auto">
-                    Everything you need to manage, share, and track your links — all from one dashboard.
-                </p>
-            </div>
-
-            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                @php
-                $features = [
-                    ['icon' => 'fa-link', 'title' => 'URL Shortener', 'desc' => 'Create clean, branded short links with custom aliases. Choose 301 or 302 redirects, add UTM parameters, and track every click.', 'color' => 'blue', 'bg' => 'from-blue-500 to-cyan-500'],
-                    ['icon' => 'fa-id-card', 'title' => 'Bio Link Pages', 'desc' => 'Build beautiful link-in-bio pages that showcase your brand. Customizable design with social links and unlimited buttons.', 'color' => 'purple', 'bg' => 'from-purple-500 to-pink-500'],
-                    ['icon' => 'fa-file-arrow-down', 'title' => 'File Sharing', 'desc' => 'Share files with branded download pages or direct links. Preview images and PDFs inline. Control access with passwords.', 'color' => 'emerald', 'bg' => 'from-emerald-500 to-green-500'],
-                    ['icon' => 'fa-qrcode', 'title' => 'QR Code Generator', 'desc' => 'Generate customizable QR codes with your brand colors and logo overlay. Download as PNG or SVG, or embed anywhere.', 'color' => 'orange', 'bg' => 'from-orange-500 to-red-500'],
-                    ['icon' => 'fa-chart-bar', 'title' => 'Analytics', 'desc' => 'Track clicks, geographic data, devices, and referrers in real time. Understand your audience and optimize performance.', 'color' => 'indigo', 'bg' => 'from-indigo-500 to-violet-500'],
-                    ['icon' => 'fa-bullseye', 'title' => 'Tracking Pixels', 'desc' => 'Add Facebook, Google, TikTok, and 7+ other retargeting pixels to your links. Grow your audience with every click.', 'color' => 'rose', 'bg' => 'from-rose-500 to-pink-500'],
-                ];
-                @endphp
-
-                @foreach($features as $idx => $feature)
-                <div class="reveal reveal-delay-{{ ($idx % 3) + 1 }} category-card group bg-white rounded-2xl p-6 border border-gray-100 hover:border-gray-200 hover:shadow-xl transition-all duration-300">
-                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br {{ $feature['bg'] }} flex items-center justify-center text-white mb-5 group-hover:scale-110 transition-transform duration-300">
-                        <i class="fas {{ $feature['icon'] }} text-lg"></i>
-                    </div>
-                    <h3 class="text-lg font-bold text-gray-900 mb-2">{{ $feature['title'] }}</h3>
-                    <p class="text-sm text-gray-600 leading-relaxed">{{ $feature['desc'] }}</p>
+    <section class="py-24 lg:py-32 bg-[#e11d48] relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-full opacity-10">
+            <div class="absolute top-10 left-10 w-40 h-40 border-4 border-white rounded-full"></div>
+            <div class="absolute bottom-10 right-20 w-60 h-60 border-4 border-white rounded-full"></div>
+            <div class="absolute top-1/2 left-1/3 w-20 h-20 border-4 border-white rounded-full"></div>
+        </div>
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid lg:grid-cols-2 gap-12 items-center">
+                <div>
+                    <h2 class="reveal text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
+                        Create and customize your 1INME in minutes
+                    </h2>
+                    <p class="reveal reveal-delay-1 text-lg text-white/70 mb-8 leading-relaxed">
+                        Connect all your content across social media, websites, stores and more in one link. Customize every detail to match your brand and drive more clicks.
+                    </p>
+                    <a href="{{ route('user.register') }}" class="reveal reveal-delay-2 inline-flex items-center gap-2 px-8 py-4 bg-[#d2f34c] text-[#1e2330] rounded-full text-base font-bold hover:bg-[#e4ff6e] transition-all hover:shadow-xl hover:-translate-y-0.5">
+                        Get started for free
+                    </a>
                 </div>
-                @endforeach
+                <div class="reveal reveal-delay-2 flex justify-center">
+                    <div class="grid grid-cols-2 gap-4 max-w-sm">
+                        <div class="card-hover bg-white/15 backdrop-blur-sm rounded-2xl p-5 text-center border border-white/10">
+                            <div class="text-3xl mb-2"><i class="fas fa-link text-[#d2f34c]"></i></div>
+                            <div class="text-white font-bold text-sm">Short URLs</div>
+                            <div class="text-white/50 text-xs mt-1">301 & 302 redirects</div>
+                        </div>
+                        <div class="card-hover bg-white/15 backdrop-blur-sm rounded-2xl p-5 text-center border border-white/10 mt-8">
+                            <div class="text-3xl mb-2"><i class="fas fa-qrcode text-[#d2f34c]"></i></div>
+                            <div class="text-white font-bold text-sm">QR Codes</div>
+                            <div class="text-white/50 text-xs mt-1">Custom logos & colors</div>
+                        </div>
+                        <div class="card-hover bg-white/15 backdrop-blur-sm rounded-2xl p-5 text-center border border-white/10">
+                            <div class="text-3xl mb-2"><i class="fas fa-file-arrow-down text-[#d2f34c]"></i></div>
+                            <div class="text-white font-bold text-sm">File Sharing</div>
+                            <div class="text-white/50 text-xs mt-1">PDF & image preview</div>
+                        </div>
+                        <div class="card-hover bg-white/15 backdrop-blur-sm rounded-2xl p-5 text-center border border-white/10 mt-8">
+                            <div class="text-3xl mb-2"><i class="fas fa-chart-bar text-[#d2f34c]"></i></div>
+                            <div class="text-white font-bold text-sm">Analytics</div>
+                            <div class="text-white/50 text-xs mt-1">Real-time insights</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
 
-    <section id="how-it-works" class="py-20 lg:py-28">
+    <section id="features" class="py-24 lg:py-32 bg-[#06b6d4]">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid lg:grid-cols-2 gap-12 items-center">
+                <div class="reveal flex justify-center order-2 lg:order-1">
+                    <div class="w-72 sm:w-80">
+                        <div class="bg-white/15 backdrop-blur-sm rounded-3xl p-6 border border-white/10">
+                            <div class="flex items-center gap-3 mb-6">
+                                <div class="w-10 h-10 rounded-full bg-[#d2f34c] flex items-center justify-center"><i class="fas fa-qrcode text-[#1e2330]"></i></div>
+                                <div>
+                                    <div class="text-white font-bold text-sm">QR Code Generator</div>
+                                    <div class="text-white/50 text-xs">PNG & SVG export</div>
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-2xl p-6 flex items-center justify-center mb-4">
+                                <div class="w-36 h-36 bg-[#1e2330] rounded-xl flex items-center justify-center">
+                                    <i class="fas fa-qrcode text-6xl text-[#d2f34c]"></i>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <div class="flex-1 py-2 bg-[#d2f34c] text-[#1e2330] rounded-lg text-xs font-bold text-center">Download PNG</div>
+                                <div class="flex-1 py-2 bg-white/15 text-white rounded-lg text-xs font-bold text-center border border-white/10">Download SVG</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="order-1 lg:order-2">
+                    <h2 class="reveal text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
+                        Share your 1INME anywhere you like!
+                    </h2>
+                    <p class="reveal reveal-delay-1 text-lg text-white/70 mb-8 leading-relaxed">
+                        Add your unique 1INME URL to all the platforms and places you find your audience. Then use your QR code to drive your offline traffic back to your link.
+                    </p>
+                    <a href="{{ route('user.register') }}" class="reveal reveal-delay-2 inline-flex items-center gap-2 px-8 py-4 bg-[#d2f34c] text-[#1e2330] rounded-full text-base font-bold hover:bg-[#e4ff6e] transition-all hover:shadow-xl hover:-translate-y-0.5">
+                        Get started for free
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-24 lg:py-32 bg-[#d2f34c]">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid lg:grid-cols-2 gap-12 items-center">
+                <div>
+                    <h2 class="reveal text-4xl sm:text-5xl lg:text-6xl font-bold text-[#1e2330] mb-6 leading-tight">
+                        Analyze your audience and keep them engaged
+                    </h2>
+                    <p class="reveal reveal-delay-1 text-lg text-[#1e2330]/60 mb-8 leading-relaxed">
+                        Track your engagement over time, monitor clicks and learn what's converting your audience. Make informed updates on the fly to keep them coming back.
+                    </p>
+                    <a href="{{ route('user.register') }}" class="reveal reveal-delay-2 inline-flex items-center gap-2 px-8 py-4 bg-[#1e2330] text-[#d2f34c] rounded-full text-base font-bold hover:bg-[#2a3040] transition-all hover:shadow-xl hover:-translate-y-0.5">
+                        Get started for free
+                    </a>
+                </div>
+                <div class="reveal reveal-delay-2 flex justify-center">
+                    <div class="bg-[#1e2330] rounded-3xl p-6 w-full max-w-sm shadow-2xl shadow-[#1e2330]/20">
+                        <div class="flex items-center justify-between mb-6">
+                            <div class="text-white font-bold">Analytics</div>
+                            <div class="text-xs text-[#d2f34c] font-medium bg-[#d2f34c]/10 px-2 py-1 rounded-full">Live</div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3 mb-5">
+                            <div class="bg-white/5 rounded-xl p-3 border border-white/5">
+                                <div class="text-xs text-gray-500 mb-1">Total Clicks</div>
+                                <div class="text-xl font-bold text-white">24.8K</div>
+                                <div class="text-xs text-green-400 mt-1"><i class="fas fa-arrow-up mr-1"></i>12%</div>
+                            </div>
+                            <div class="bg-white/5 rounded-xl p-3 border border-white/5">
+                                <div class="text-xs text-gray-500 mb-1">Unique Visitors</div>
+                                <div class="text-xl font-bold text-white">18.2K</div>
+                                <div class="text-xs text-green-400 mt-1"><i class="fas fa-arrow-up mr-1"></i>8%</div>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-3">
+                                <div class="text-xs text-gray-500 w-16">Portfolio</div>
+                                <div class="flex-1 bg-white/5 rounded-full h-3 overflow-hidden"><div class="h-full rounded-full bg-[#7c3aed]" style="width: 78%"></div></div>
+                                <div class="text-xs text-white font-medium w-10 text-right">78%</div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div class="text-xs text-gray-500 w-16">YouTube</div>
+                                <div class="flex-1 bg-white/5 rounded-full h-3 overflow-hidden"><div class="h-full rounded-full bg-[#e11d48]" style="width: 62%"></div></div>
+                                <div class="text-xs text-white font-medium w-10 text-right">62%</div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div class="text-xs text-gray-500 w-16">Shop</div>
+                                <div class="flex-1 bg-white/5 rounded-full h-3 overflow-hidden"><div class="h-full rounded-full bg-[#06b6d4]" style="width: 45%"></div></div>
+                                <div class="text-xs text-white font-medium w-10 text-right">45%</div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div class="text-xs text-gray-500 w-16">Contact</div>
+                                <div class="flex-1 bg-white/5 rounded-full h-3 overflow-hidden"><div class="h-full rounded-full bg-[#d2f34c]" style="width: 31%"></div></div>
+                                <div class="text-xs text-white font-medium w-10 text-right">31%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-20 bg-[#faf5ff] overflow-hidden">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-4">
+                <h2 class="reveal text-4xl sm:text-5xl font-bold text-[#1e2330]">The only link-in-bio trusted by</h2>
+            </div>
+            <div class="overflow-hidden py-4">
+                <div class="flex whitespace-nowrap marquee" style="animation-duration: 20s;">
+                    @for($i = 0; $i < 2; $i++)
+                    <span class="inline-flex items-center gap-6 mx-6">
+                        <span class="text-4xl sm:text-5xl font-bold text-[#7c3aed]">creators</span>
+                        <span class="text-4xl sm:text-5xl font-bold text-[#06b6d4]">businesses</span>
+                        <span class="text-4xl sm:text-5xl font-bold text-[#e11d48]">influencers</span>
+                        <span class="text-4xl sm:text-5xl font-bold text-[#ea580c]">freelancers</span>
+                        <span class="text-4xl sm:text-5xl font-bold text-[#059669]">nonprofits</span>
+                        <span class="text-4xl sm:text-5xl font-bold text-[#2563eb]">educators</span>
+                    </span>
+                    @endfor
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="how-it-works" class="py-24 lg:py-32 bg-[#2563eb]">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-16">
-                <h2 class="reveal text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-4">
-                    Up and running in <span class="gradient-text">3 minutes</span>
+                <h2 class="reveal text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-4">
+                    Up and running in <span class="text-[#d2f34c]">3 minutes</span>
                 </h2>
-                <p class="reveal reveal-delay-1 text-lg text-gray-600 max-w-2xl mx-auto">
+                <p class="reveal reveal-delay-1 text-lg text-white/60 max-w-2xl mx-auto">
                     No technical skills needed. Create your first link in seconds.
                 </p>
             </div>
 
             <div class="grid md:grid-cols-3 gap-8 lg:gap-12 relative">
-                <div class="hidden md:block absolute top-16 left-[16.6%] right-[16.6%] h-0.5 bg-gradient-to-r from-brand-200 via-purple-200 to-pink-200"></div>
+                <div class="hidden md:block absolute top-20 left-[20%] right-[20%] h-1 bg-white/10 rounded-full"></div>
 
                 <div class="reveal reveal-delay-1 text-center relative">
-                    <div class="w-16 h-16 mx-auto bg-gradient-to-br from-brand-500 to-cyan-500 rounded-2xl flex items-center justify-center text-white text-2xl font-extrabold mb-6 shadow-lg shadow-brand-500/20 relative z-10">1</div>
-                    <h3 class="text-xl font-bold text-gray-900 mb-3">Sign up free</h3>
-                    <p class="text-gray-600 text-sm leading-relaxed">Create your account in seconds. No credit card required. Choose from Free, Pro, or Business plans.</p>
+                    <div class="w-20 h-20 mx-auto bg-[#d2f34c] rounded-2xl flex items-center justify-center text-[#1e2330] text-3xl font-bold mb-6 shadow-lg shadow-[#d2f34c]/20 relative z-10 rotate-3 hover:rotate-0 transition-transform">1</div>
+                    <h3 class="text-xl font-bold text-white mb-3">Sign up free</h3>
+                    <p class="text-white/60 text-sm leading-relaxed">Create your account in seconds. No credit card required. Choose from Free, Pro, or Business plans.</p>
                 </div>
 
                 <div class="reveal reveal-delay-2 text-center relative">
-                    <div class="w-16 h-16 mx-auto bg-gradient-to-br from-purple-500 to-violet-500 rounded-2xl flex items-center justify-center text-white text-2xl font-extrabold mb-6 shadow-lg shadow-purple-500/20 relative z-10">2</div>
-                    <h3 class="text-xl font-bold text-gray-900 mb-3">Create your links</h3>
-                    <p class="text-gray-600 text-sm leading-relaxed">Build bio pages, shorten URLs, upload files, generate QR codes, or create contact cards — all from one dashboard.</p>
+                    <div class="w-20 h-20 mx-auto bg-[#7c3aed] rounded-2xl flex items-center justify-center text-white text-3xl font-bold mb-6 shadow-lg shadow-[#7c3aed]/30 relative z-10 -rotate-2 hover:rotate-0 transition-transform">2</div>
+                    <h3 class="text-xl font-bold text-white mb-3">Create your links</h3>
+                    <p class="text-white/60 text-sm leading-relaxed">Build bio pages, shorten URLs, upload files, generate QR codes, or create contact cards — all from one dashboard.</p>
                 </div>
 
                 <div class="reveal reveal-delay-3 text-center relative">
-                    <div class="w-16 h-16 mx-auto bg-gradient-to-br from-pink-500 to-rose-500 rounded-2xl flex items-center justify-center text-white text-2xl font-extrabold mb-6 shadow-lg shadow-pink-500/20 relative z-10">3</div>
-                    <h3 class="text-xl font-bold text-gray-900 mb-3">Share everywhere</h3>
-                    <p class="text-gray-600 text-sm leading-relaxed">Add your link to social bios, print QR codes, or embed them anywhere. Track performance with real-time analytics.</p>
+                    <div class="w-20 h-20 mx-auto bg-[#e11d48] rounded-2xl flex items-center justify-center text-white text-3xl font-bold mb-6 shadow-lg shadow-[#e11d48]/30 relative z-10 rotate-2 hover:rotate-0 transition-transform">3</div>
+                    <h3 class="text-xl font-bold text-white mb-3">Share everywhere</h3>
+                    <p class="text-white/60 text-sm leading-relaxed">Add your link to social bios, print QR codes, or embed them anywhere. Track performance with real-time analytics.</p>
                 </div>
             </div>
 
-            <div class="reveal reveal-delay-4 text-center mt-12">
-                <a href="{{ route('user.register') }}" class="inline-flex items-center gap-2 px-8 py-4 bg-gray-900 text-white rounded-full text-base font-semibold hover:bg-gray-800 transition-all hover:shadow-xl hover:shadow-gray-900/20 hover:-translate-y-0.5">
+            <div class="reveal reveal-delay-4 text-center mt-14">
+                <a href="{{ route('user.register') }}" class="inline-flex items-center gap-2 px-8 py-4 bg-[#d2f34c] text-[#1e2330] rounded-full text-base font-bold hover:bg-[#e4ff6e] transition-all hover:shadow-xl hover:-translate-y-0.5">
                     Start building now <i class="fas fa-arrow-right"></i>
                 </a>
             </div>
         </div>
     </section>
 
-    <section id="pricing" class="py-20 lg:py-28 bg-gray-50">
+    <section id="pricing" class="py-24 lg:py-32 bg-[#1e2330]">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-16">
-                <h2 class="reveal text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-4">
-                    Simple, <span class="gradient-text">transparent pricing</span>
+                <h2 class="reveal text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-4">
+                    Simple, <span class="text-[#d2f34c]">transparent</span> pricing
                 </h2>
-                <p class="reveal reveal-delay-1 text-lg text-gray-600 max-w-2xl mx-auto">
+                <p class="reveal reveal-delay-1 text-lg text-gray-400 max-w-2xl mx-auto">
                     Start free, upgrade when you need more. No hidden fees, ever.
                 </p>
             </div>
 
             <div class="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-                <div class="reveal reveal-delay-1 category-card bg-white rounded-2xl p-8 border border-gray-200">
-                    <div class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Free</div>
-                    <div class="text-4xl font-extrabold text-gray-900 mb-1">$0</div>
+                <div class="reveal reveal-delay-1 card-hover bg-white/5 rounded-3xl p-8 border border-white/10 backdrop-blur-sm">
+                    <div class="text-sm font-bold text-gray-400 uppercase tracking-wide mb-2">Free</div>
+                    <div class="text-5xl font-bold text-white mb-1">$0</div>
                     <div class="text-sm text-gray-500 mb-6">Forever free</div>
                     <ul class="space-y-3 mb-8">
-                        <li class="flex items-center gap-2 text-sm text-gray-700"><i class="fas fa-check text-green-500 text-xs"></i>Up to 10 links</li>
-                        <li class="flex items-center gap-2 text-sm text-gray-700"><i class="fas fa-check text-green-500 text-xs"></i>Basic analytics</li>
-                        <li class="flex items-center gap-2 text-sm text-gray-700"><i class="fas fa-check text-green-500 text-xs"></i>QR code generation</li>
-                        <li class="flex items-center gap-2 text-sm text-gray-700"><i class="fas fa-check text-green-500 text-xs"></i>5MB file uploads</li>
+                        <li class="flex items-center gap-2 text-sm text-gray-300"><i class="fas fa-check text-[#d2f34c] text-xs"></i>Up to 10 links</li>
+                        <li class="flex items-center gap-2 text-sm text-gray-300"><i class="fas fa-check text-[#d2f34c] text-xs"></i>Basic analytics</li>
+                        <li class="flex items-center gap-2 text-sm text-gray-300"><i class="fas fa-check text-[#d2f34c] text-xs"></i>QR code generation</li>
+                        <li class="flex items-center gap-2 text-sm text-gray-300"><i class="fas fa-check text-[#d2f34c] text-xs"></i>5MB file uploads</li>
                     </ul>
-                    <a href="{{ route('user.register') }}" class="block w-full py-3 text-center bg-white text-gray-900 rounded-xl text-sm font-semibold border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all">Get started</a>
+                    <a href="{{ route('user.register') }}" class="block w-full py-3.5 text-center text-white rounded-full text-sm font-bold border-2 border-white/20 hover:border-white/40 hover:bg-white/5 transition-all">Get started</a>
                 </div>
 
-                <div class="reveal reveal-delay-2 category-card bg-gray-900 rounded-2xl p-8 text-white relative overflow-hidden">
-                    <div class="absolute top-4 right-4 px-2.5 py-0.5 bg-brand-500 text-white text-xs font-bold rounded-full">POPULAR</div>
-                    <div class="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-2">Pro</div>
-                    <div class="text-4xl font-extrabold mb-1">$9<span class="text-lg font-medium text-gray-400">/mo</span></div>
-                    <div class="text-sm text-gray-400 mb-6">For creators & professionals</div>
+                <div class="reveal reveal-delay-2 card-hover bg-gradient-to-br from-[#7c3aed] to-[#a855f7] rounded-3xl p-8 relative overflow-hidden shadow-2xl shadow-[#7c3aed]/30 scale-105">
+                    <div class="absolute top-4 right-4 px-3 py-1 bg-[#d2f34c] text-[#1e2330] text-xs font-bold rounded-full">POPULAR</div>
+                    <div class="text-sm font-bold text-white/70 uppercase tracking-wide mb-2">Pro</div>
+                    <div class="text-5xl font-bold text-white mb-1">$9<span class="text-lg font-medium text-white/50">/mo</span></div>
+                    <div class="text-sm text-white/50 mb-6">For creators & pros</div>
                     <ul class="space-y-3 mb-8">
-                        <li class="flex items-center gap-2 text-sm"><i class="fas fa-check text-brand-400 text-xs"></i>Unlimited links</li>
-                        <li class="flex items-center gap-2 text-sm"><i class="fas fa-check text-brand-400 text-xs"></i>Advanced analytics</li>
-                        <li class="flex items-center gap-2 text-sm"><i class="fas fa-check text-brand-400 text-xs"></i>Custom domains</li>
-                        <li class="flex items-center gap-2 text-sm"><i class="fas fa-check text-brand-400 text-xs"></i>50MB file uploads</li>
-                        <li class="flex items-center gap-2 text-sm"><i class="fas fa-check text-brand-400 text-xs"></i>Tracking pixels</li>
+                        <li class="flex items-center gap-2 text-sm text-white"><i class="fas fa-check text-[#d2f34c] text-xs"></i>Unlimited links</li>
+                        <li class="flex items-center gap-2 text-sm text-white"><i class="fas fa-check text-[#d2f34c] text-xs"></i>Advanced analytics</li>
+                        <li class="flex items-center gap-2 text-sm text-white"><i class="fas fa-check text-[#d2f34c] text-xs"></i>Custom domains</li>
+                        <li class="flex items-center gap-2 text-sm text-white"><i class="fas fa-check text-[#d2f34c] text-xs"></i>50MB file uploads</li>
+                        <li class="flex items-center gap-2 text-sm text-white"><i class="fas fa-check text-[#d2f34c] text-xs"></i>Tracking pixels</li>
                     </ul>
-                    <a href="{{ route('user.register') }}" class="block w-full py-3 text-center bg-brand-500 text-white rounded-xl text-sm font-semibold hover:bg-brand-600 transition-all">Start free trial</a>
+                    <a href="{{ route('user.register') }}" class="block w-full py-3.5 text-center bg-[#d2f34c] text-[#1e2330] rounded-full text-sm font-bold hover:bg-[#e4ff6e] transition-all">Start free trial</a>
                 </div>
 
-                <div class="reveal reveal-delay-3 category-card bg-white rounded-2xl p-8 border border-gray-200">
-                    <div class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Business</div>
-                    <div class="text-4xl font-extrabold text-gray-900 mb-1">$29<span class="text-lg font-medium text-gray-400">/mo</span></div>
-                    <div class="text-sm text-gray-500 mb-6">For teams & organizations</div>
+                <div class="reveal reveal-delay-3 card-hover bg-white/5 rounded-3xl p-8 border border-white/10 backdrop-blur-sm">
+                    <div class="text-sm font-bold text-gray-400 uppercase tracking-wide mb-2">Business</div>
+                    <div class="text-5xl font-bold text-white mb-1">$29<span class="text-lg font-medium text-gray-500">/mo</span></div>
+                    <div class="text-sm text-gray-500 mb-6">For teams & orgs</div>
                     <ul class="space-y-3 mb-8">
-                        <li class="flex items-center gap-2 text-sm text-gray-700"><i class="fas fa-check text-green-500 text-xs"></i>Everything in Pro</li>
-                        <li class="flex items-center gap-2 text-sm text-gray-700"><i class="fas fa-check text-green-500 text-xs"></i>Team collaboration</li>
-                        <li class="flex items-center gap-2 text-sm text-gray-700"><i class="fas fa-check text-green-500 text-xs"></i>200MB file uploads</li>
-                        <li class="flex items-center gap-2 text-sm text-gray-700"><i class="fas fa-check text-green-500 text-xs"></i>API access</li>
-                        <li class="flex items-center gap-2 text-sm text-gray-700"><i class="fas fa-check text-green-500 text-xs"></i>Priority support</li>
+                        <li class="flex items-center gap-2 text-sm text-gray-300"><i class="fas fa-check text-[#d2f34c] text-xs"></i>Everything in Pro</li>
+                        <li class="flex items-center gap-2 text-sm text-gray-300"><i class="fas fa-check text-[#d2f34c] text-xs"></i>Team collaboration</li>
+                        <li class="flex items-center gap-2 text-sm text-gray-300"><i class="fas fa-check text-[#d2f34c] text-xs"></i>200MB file uploads</li>
+                        <li class="flex items-center gap-2 text-sm text-gray-300"><i class="fas fa-check text-[#d2f34c] text-xs"></i>API access</li>
+                        <li class="flex items-center gap-2 text-sm text-gray-300"><i class="fas fa-check text-[#d2f34c] text-xs"></i>Priority support</li>
                     </ul>
-                    <a href="{{ route('user.register') }}" class="block w-full py-3 text-center bg-white text-gray-900 rounded-xl text-sm font-semibold border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all">Get started</a>
+                    <a href="{{ route('user.register') }}" class="block w-full py-3.5 text-center text-white rounded-full text-sm font-bold border-2 border-white/20 hover:border-white/40 hover:bg-white/5 transition-all">Get started</a>
                 </div>
             </div>
         </div>
     </section>
 
-    <section class="py-20 lg:py-28">
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <div class="reveal bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-3xl p-12 lg:p-16 relative overflow-hidden">
-                <div class="absolute inset-0 bg-grid opacity-5"></div>
-                <div class="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-brand-500 rounded-full mix-blend-soft-light filter blur-3xl opacity-20"></div>
-                <div class="relative">
-                    <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white mb-4 tracking-tight">
-                        Ready to simplify<br>your online presence?
-                    </h2>
-                    <p class="text-lg text-gray-400 mb-8 max-w-xl mx-auto">
-                        Join thousands of creators and businesses who trust 1INME to manage their links.
-                    </p>
-                    <a href="{{ route('user.register') }}" class="inline-flex items-center gap-2 px-8 py-4 bg-white text-gray-900 rounded-full text-base font-semibold hover:bg-gray-100 transition-all hover:shadow-xl hover:-translate-y-0.5">
-                        Create your free account <i class="fas fa-arrow-right"></i>
-                    </a>
-                </div>
-            </div>
+    <section class="py-24 lg:py-32 bg-[#059669] relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-96 h-96 bg-[#d2f34c] rounded-full mix-blend-soft-light filter blur-[100px] opacity-30"></div>
+        <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="reveal text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
+                Ready to simplify your online presence?
+            </h2>
+            <p class="reveal reveal-delay-1 text-lg text-white/70 mb-10 max-w-xl mx-auto">
+                Join thousands of creators and businesses who trust 1INME to manage their links.
+            </p>
+            <a href="{{ route('user.register') }}" class="reveal reveal-delay-2 inline-flex items-center gap-2 px-10 py-5 bg-[#d2f34c] text-[#1e2330] rounded-full text-lg font-bold hover:bg-[#e4ff6e] transition-all hover:shadow-xl hover:-translate-y-1">
+                Create your free account <i class="fas fa-arrow-right"></i>
+            </a>
         </div>
     </section>
 
-    <footer class="bg-gray-900 text-white pt-16 pb-8">
+    <footer class="bg-[#1e2330] text-white pt-16 pb-8 border-t border-white/5">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="grid md:grid-cols-4 gap-8 mb-12">
                 <div>
-                    <a href="{{ route('home') }}" class="text-2xl font-extrabold tracking-tight">
-                        <span class="text-white">1IN</span><span class="text-brand-400">ME</span>
+                    <a href="{{ route('home') }}" class="text-2xl font-bold tracking-tight">
+                        <span class="text-white">1IN</span><span class="text-[#d2f34c]">ME</span>
                     </a>
-                    <p class="text-sm text-gray-400 mt-3 leading-relaxed">Everything you are. In one simple link. The all-in-one link management platform.</p>
+                    <p class="text-sm text-gray-500 mt-3 leading-relaxed">Everything you are. In one simple link. The all-in-one link management platform.</p>
                 </div>
                 <div>
-                    <h4 class="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-4">Product</h4>
+                    <h4 class="text-sm font-bold text-gray-400 uppercase tracking-wide mb-4">Product</h4>
                     <ul class="space-y-2.5">
-                        <li><a href="#features" class="text-sm text-gray-400 hover:text-white transition-colors">Features</a></li>
-                        <li><a href="#pricing" class="text-sm text-gray-400 hover:text-white transition-colors">Pricing</a></li>
-                        <li><a href="#categories" class="text-sm text-gray-400 hover:text-white transition-colors">Use Cases</a></li>
+                        <li><a href="#features" class="text-sm text-gray-500 hover:text-[#d2f34c] transition-colors">Features</a></li>
+                        <li><a href="#pricing" class="text-sm text-gray-500 hover:text-[#d2f34c] transition-colors">Pricing</a></li>
+                        <li><a href="#use-cases" class="text-sm text-gray-500 hover:text-[#d2f34c] transition-colors">Use Cases</a></li>
                     </ul>
                 </div>
                 <div>
-                    <h4 class="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-4">Tools</h4>
+                    <h4 class="text-sm font-bold text-gray-400 uppercase tracking-wide mb-4">Tools</h4>
                     <ul class="space-y-2.5">
-                        <li><a href="{{ route('user.register') }}" class="text-sm text-gray-400 hover:text-white transition-colors">URL Shortener</a></li>
-                        <li><a href="{{ route('user.register') }}" class="text-sm text-gray-400 hover:text-white transition-colors">Bio Link Builder</a></li>
-                        <li><a href="{{ route('user.register') }}" class="text-sm text-gray-400 hover:text-white transition-colors">QR Generator</a></li>
+                        <li><a href="{{ route('user.register') }}" class="text-sm text-gray-500 hover:text-[#d2f34c] transition-colors">URL Shortener</a></li>
+                        <li><a href="{{ route('user.register') }}" class="text-sm text-gray-500 hover:text-[#d2f34c] transition-colors">Bio Link Builder</a></li>
+                        <li><a href="{{ route('user.register') }}" class="text-sm text-gray-500 hover:text-[#d2f34c] transition-colors">QR Generator</a></li>
                     </ul>
                 </div>
                 <div>
-                    <h4 class="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-4">Account</h4>
+                    <h4 class="text-sm font-bold text-gray-400 uppercase tracking-wide mb-4">Account</h4>
                     <ul class="space-y-2.5">
                         @auth
-                            <li><a href="{{ route('user.dashboard') }}" class="text-sm text-gray-400 hover:text-white transition-colors">Dashboard</a></li>
-                            <li><a href="{{ route('user.profile.edit') }}" class="text-sm text-gray-400 hover:text-white transition-colors">Profile</a></li>
+                            <li><a href="{{ route('user.dashboard') }}" class="text-sm text-gray-500 hover:text-[#d2f34c] transition-colors">Dashboard</a></li>
+                            <li><a href="{{ route('user.profile.edit') }}" class="text-sm text-gray-500 hover:text-[#d2f34c] transition-colors">Profile</a></li>
                         @else
-                            <li><a href="{{ route('user.login') }}" class="text-sm text-gray-400 hover:text-white transition-colors">Log in</a></li>
-                            <li><a href="{{ route('user.register') }}" class="text-sm text-gray-400 hover:text-white transition-colors">Sign up</a></li>
+                            <li><a href="{{ route('user.login') }}" class="text-sm text-gray-500 hover:text-[#d2f34c] transition-colors">Log in</a></li>
+                            <li><a href="{{ route('user.register') }}" class="text-sm text-gray-500 hover:text-[#d2f34c] transition-colors">Sign up</a></li>
                         @endauth
                     </ul>
                 </div>
             </div>
-            <div class="border-t border-gray-800 pt-8 text-center">
-                <p class="text-sm text-gray-500">&copy; {{ date('Y') }} 1INME. All rights reserved.</p>
+            <div class="border-t border-white/5 pt-8 text-center">
+                <p class="text-sm text-gray-600">&copy; {{ date('Y') }} 1INME. All rights reserved.</p>
             </div>
         </div>
     </footer>
