@@ -97,38 +97,6 @@
     .theme-input:focus { background: var(--bg-glass-input-focus); border-color: var(--sidebar-active-border); }
     .theme-input::placeholder { color: var(--text-dimmed); }
 
-    html.light-mode .text-white { color: var(--text-primary) !important; }
-    html.light-mode .text-white\/80 { color: var(--text-secondary) !important; }
-    html.light-mode .text-white\/70 { color: var(--text-secondary) !important; }
-    html.light-mode .text-white\/60 { color: var(--text-muted) !important; }
-    html.light-mode .text-white\/50 { color: var(--text-muted) !important; }
-    html.light-mode .text-white\/40 { color: var(--text-dimmed) !important; }
-    html.light-mode .text-white\/30 { color: var(--text-dimmed) !important; }
-    html.light-mode .text-white\/20 { color: var(--text-faint) !important; }
-    html.light-mode .text-gray-300 { color: var(--text-muted) !important; }
-    html.light-mode .text-gray-400 { color: var(--text-muted) !important; }
-    html.light-mode .text-gray-500 { color: var(--text-dimmed) !important; }
-    html.light-mode .placeholder-gray-500::placeholder { color: var(--text-dimmed) !important; }
-    html.light-mode .placeholder-gray-600::placeholder { color: var(--text-dimmed) !important; }
-    html.light-mode .placeholder-white\/20::placeholder { color: var(--text-dimmed) !important; }
-
-    html.light-mode .border-white\/5 { border-color: var(--border-subtle) !important; }
-    html.light-mode .border-white\/10 { border-color: var(--border-glass) !important; }
-    html.light-mode .border-white\/8 { border-color: var(--border-glass) !important; }
-
-    html.light-mode .bg-white\/5 { background-color: var(--bg-glass-input) !important; }
-    html.light-mode .bg-white\/\[0\.02\] { background-color: rgba(0,0,0,0.01) !important; }
-    html.light-mode .bg-white\/\[0\.04\] { background-color: var(--bg-glass-input) !important; }
-    html.light-mode .bg-white\/\[0\.06\] { background-color: var(--bg-glass-hover) !important; }
-    html.light-mode .bg-white\/10 { background-color: var(--bg-glass-input-focus) !important; }
-    html.light-mode .hover\:bg-white\/5:hover { background-color: var(--bg-glass-input) !important; }
-    html.light-mode .hover\:bg-white\/\[0\.06\]:hover { background-color: var(--bg-glass-hover) !important; }
-    html.light-mode .hover\:bg-white\/10:hover { background-color: var(--bg-glass-input-focus) !important; }
-    html.light-mode .hover\:bg-white\/8:hover { background-color: var(--bg-glass-input) !important; }
-
-    html.light-mode .bg-\[\#1a1025\] { background-color: var(--bg-body) !important; }
-    html.light-mode .bg-\[\#0f0a1a\] { background-color: var(--bg-body) !important; }
-
     html.light-mode select option { background-color: #f0eef5 !important; color: #1a1025 !important; }
 
     .theme-toggle-btn {
@@ -163,3 +131,102 @@
         box-shadow: 0 2px 8px rgba(245,158,11,0.4);
     }
 </style>
+<script>
+(function(){
+    var css = `
+        html.light-mode [class*="text-white"]:not([class*="bg-purple-"]):not([class*="bg-emerald-"]):not([class*="bg-red-"]):not([class*="bg-gradient"]):not(.toggle-knob):not([class*="bg-amber-"]):not([class*="bg-blue-"]):not([class*="bg-green-"]):not([class*="bg-pink-"]):not([class*="bg-yellow-"]):not([class*="bg-cyan-"]) {
+            color: var(--text-primary) !important;
+        }
+        html.light-mode [class*="text-white/"]:not([class*="bg-purple-"]):not([class*="bg-emerald-"]):not([class*="bg-gradient"]):not(.toggle-knob) {
+            color: var(--text-muted) !important;
+        }
+        html.light-mode [class*="text-white/8"],
+        html.light-mode [class*="text-white/7"] {
+            color: var(--text-secondary) !important;
+        }
+        html.light-mode [class*="text-white/6"],
+        html.light-mode [class*="text-white/5"] {
+            color: var(--text-muted) !important;
+        }
+        html.light-mode [class*="text-white/4"],
+        html.light-mode [class*="text-white/3"] {
+            color: var(--text-dimmed) !important;
+        }
+        html.light-mode [class*="text-white/2"],
+        html.light-mode [class*="text-white/1"] {
+            color: var(--text-faint) !important;
+        }
+        html.light-mode [class*="text-gray-3"],
+        html.light-mode [class*="text-gray-4"] {
+            color: var(--text-muted) !important;
+        }
+        html.light-mode [class*="text-gray-5"],
+        html.light-mode [class*="text-gray-6"] {
+            color: var(--text-dimmed) !important;
+        }
+
+        html.light-mode [class*="border-white/"] {
+            border-color: var(--border-glass) !important;
+        }
+        html.light-mode [class*="border-white/5"] {
+            border-color: var(--border-subtle) !important;
+        }
+
+        html.light-mode [class*="bg-white/5"],
+        html.light-mode [class*="bg-white/[0.0"] {
+            background-color: var(--bg-glass-input) !important;
+        }
+        html.light-mode [class*="bg-white/10"],
+        html.light-mode [class*="bg-white/1"] {
+            background-color: var(--bg-glass-input-focus) !important;
+        }
+
+        html.light-mode [class*="placeholder-white"]::placeholder,
+        html.light-mode [class*="placeholder-gray"]::placeholder {
+            color: var(--text-dimmed) !important;
+        }
+
+        html.light-mode [class*="bg-[#1a1025]"],
+        html.light-mode [class*="bg-[#0f0a1a]"] {
+            background-color: var(--bg-body) !important;
+        }
+
+        html.light-mode [class*="border-gray-6"],
+        html.light-mode [class*="border-gray-7"] {
+            border-color: var(--border-glass) !important;
+        }
+
+        html.light-mode [class*="hover:bg-white"]:hover {
+            background-color: var(--bg-glass-hover) !important;
+        }
+        html.light-mode [class*="hover:text-white"]:hover {
+            color: var(--text-primary) !important;
+        }
+
+        html.light-mode input:not([type="color"]):not([type="checkbox"]):not([type="radio"]),
+        html.light-mode textarea,
+        html.light-mode select {
+            color: var(--text-primary) !important;
+        }
+        html.light-mode input::placeholder,
+        html.light-mode textarea::placeholder {
+            color: var(--text-dimmed) !important;
+        }
+
+        html.light-mode .glass {
+            background: var(--bg-glass) !important;
+            border-color: var(--border-glass) !important;
+        }
+    `;
+    var style = document.createElement('style');
+    style.setAttribute('id', 'light-mode-overrides');
+    style.textContent = css;
+    if (document.head) {
+        document.head.appendChild(style);
+    } else {
+        document.addEventListener('DOMContentLoaded', function() {
+            document.head.appendChild(style);
+        });
+    }
+})();
+</script>
