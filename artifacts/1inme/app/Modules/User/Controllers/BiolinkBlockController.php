@@ -30,10 +30,12 @@ class BiolinkBlockController extends Controller
         ]);
 
         $maxSort = $link->biolinkBlocks()->max('sort_order') ?? -1;
+        $settings = $validated['settings'] ?? $this->getDefaultSettings($validated['type']);
+        $settings = $this->sanitizeSettings($validated['type'], $settings);
 
         $block = $link->biolinkBlocks()->create([
             'type' => $validated['type'],
-            'settings' => $validated['settings'] ?? $this->getDefaultSettings($validated['type']),
+            'settings' => $settings,
             'sort_order' => $maxSort + 1,
             'is_active' => $validated['is_active'] ?? true,
         ]);
@@ -76,7 +78,6 @@ class BiolinkBlockController extends Controller
     public function destroy(Link $link, BiolinkBlock $block)
     {
         abort_if($link->user_id !== auth()->id() || $block->link_id !== $link->id, 403);
-
         $block->delete();
 
         if (request()->ajax()) {
@@ -107,7 +108,6 @@ class BiolinkBlockController extends Controller
     public function toggleActive(Link $link, BiolinkBlock $block)
     {
         abort_if($link->user_id !== auth()->id() || $block->link_id !== $link->id, 403);
-
         $block->update(['is_active' => !$block->is_active]);
 
         if (request()->ajax()) {
@@ -150,31 +150,82 @@ class BiolinkBlockController extends Controller
         return redirect()->route('user.links.blocks.editor', $link)->with('success', 'Page settings updated.');
     }
 
+    private function sanitizeUrl(?string $url): string
+    {
+        if (empty($url)) return '';
+        return preg_match('/^https?:\/\//i', $url) ? $url : '';
+    }
+
+    private function sanitizeHtml(string $html): string
+    {
+        $html = strip_tags(
+            $html,
+            '<p><br><a><strong><em><u><ul><ol><li><h1><h2><h3><h4><h5><h6><span><div><img><table><tr><td><th><thead><tbody><hr><blockquote><pre><code>'
+        );
+        $html = preg_replace('/\s+on\w+\s*=/i', ' data-removed=', $html);
+        $html = preg_replace('/javascript\s*:/i', '', $html);
+        return $html;
+    }
+
     private function sanitizeSettings(string $type, array $settings): array
     {
-        $urlFields = ['url', 'link', 'thumbnail'];
+        $urlFields = ['url', 'link', 'thumbnail', 'image', 'image_url', 'video_url',
+                       'audio_url', 'file_url', 'embed_url', 'logo_url', 'cover',
+                       'website', 'avatar'];
         foreach ($urlFields as $field) {
             if (isset($settings[$field]) && $settings[$field] !== '') {
-                $url = $settings[$field];
-                if (!preg_match('/^https?:\/\//i', $url)) {
-                    $settings[$field] = '';
-                }
+                $settings[$field] = $this->sanitizeUrl($settings[$field]);
             }
         }
 
         if (isset($settings['platforms']) && is_array($settings['platforms'])) {
             foreach ($settings['platforms'] as &$platform) {
-                if (isset($platform['url']) && !preg_match('/^https?:\/\//i', $platform['url'])) {
-                    $platform['url'] = '';
+                if (isset($platform['url'])) {
+                    $platform['url'] = $this->sanitizeUrl($platform['url']);
                 }
             }
         }
 
-        if ($type === 'custom_html' && isset($settings['html'])) {
-            $settings['html'] = strip_tags(
-                $settings['html'],
-                '<p><br><a><strong><em><u><ul><ol><li><h1><h2><h3><h4><h5><h6><span><div><img><iframe><table><tr><td><th><thead><tbody><hr><blockquote><pre><code>'
-            );
+        if (isset($settings['images']) && is_array($settings['images'])) {
+            $settings['images'] = array_values(array_filter($settings['images'], function ($img) {
+                $url = is_array($img) ? ($img['url'] ?? '') : $img;
+                return empty($url) || preg_match('/^https?:\/\//i', $url);
+            }));
+        }
+
+        if (isset($settings['items']) && is_array($settings['items'])) {
+            foreach ($settings['items'] as &$item) {
+                if (isset($item['url'])) $item['url'] = $this->sanitizeUrl($item['url']);
+                if (isset($item['image'])) $item['image'] = $this->sanitizeUrl($item['image']);
+                if (isset($item['avatar'])) $item['avatar'] = $this->sanitizeUrl($item['avatar']);
+            }
+        }
+
+        if (isset($settings['cards']) && is_array($settings['cards'])) {
+            foreach ($settings['cards'] as &$card) {
+                if (isset($card['url'])) $card['url'] = $this->sanitizeUrl($card['url']);
+                if (isset($card['image'])) $card['image'] = $this->sanitizeUrl($card['image']);
+            }
+        }
+
+        if (isset($settings['groups']) && is_array($settings['groups'])) {
+            foreach ($settings['groups'] as &$group) {
+                if (isset($group['platforms']) && is_array($group['platforms'])) {
+                    foreach ($group['platforms'] as &$platform) {
+                        if (isset($platform['url'])) $platform['url'] = $this->sanitizeUrl($platform['url']);
+                    }
+                }
+            }
+        }
+
+        if (isset($settings['socials']) && is_array($settings['socials'])) {
+            foreach ($settings['socials'] as &$social) {
+                if (isset($social['url'])) $social['url'] = $this->sanitizeUrl($social['url']);
+            }
+        }
+
+        if (in_array($type, ['custom_html', 'paragraph_rich']) && isset($settings['html'])) {
+            $settings['html'] = $this->sanitizeHtml($settings['html']);
         }
 
         return $settings;
@@ -184,23 +235,122 @@ class BiolinkBlockController extends Controller
     {
         return match ($type) {
             'link' => ['url' => '', 'text' => 'My Link', 'icon' => '', 'thumbnail' => ''],
+            'link_big' => ['url' => '', 'text' => 'My Link', 'description' => '', 'icon' => '', 'thumbnail' => '', 'bg_color' => '#7c3aed'],
             'heading' => ['text' => 'Heading', 'size' => 'h2', 'align' => 'center'],
+            'heading_gradient' => ['text' => 'Gradient Heading', 'size' => 'h2', 'align' => 'center', 'from_color' => '#7c3aed', 'to_color' => '#ec4899'],
+            'heading_logo' => ['text' => 'Brand Name', 'logo_url' => '', 'size' => 'h2', 'align' => 'center'],
+            'heading_morph' => ['text' => 'Morph Text', 'size' => 'h1', 'align' => 'center'],
             'paragraph' => ['text' => 'Your text here...', 'align' => 'center'],
-            'image' => ['url' => '', 'alt' => '', 'link' => '', 'full_width' => false],
+            'paragraph_rich' => ['html' => '<p>Your rich text content here...</p>'],
+            'divider' => ['style' => 'solid', 'color' => 'rgba(255,255,255,0.1)'],
+            'list' => ['items' => ['Item 1', 'Item 2', 'Item 3'], 'icon' => 'fa-check'],
+            'list_numbered' => ['items' => ['First item', 'Second item', 'Third item']],
+            'list_pricing' => ['items' => [['name' => 'Feature', 'price' => '$10', 'included' => true]]],
+            'alert' => ['text' => 'Important notice!', 'type' => 'info', 'icon' => 'fa-info-circle'],
+            'badge' => ['text' => 'New', 'color' => '#7c3aed', 'text_color' => '#ffffff'],
+
+            'image' => ['url' => '', 'alt' => '', 'link' => ''],
+            'image_grid' => ['images' => [], 'columns' => 3, 'gap' => 4],
+            'image_slider' => ['images' => [], 'autoplay' => true, 'interval' => 3000],
+            'image_slider_v2' => ['images' => [], 'autoplay' => true, 'effect' => 'fade'],
+            'header_video' => ['url' => '', 'autoplay' => true, 'muted' => true, 'loop' => true],
             'video' => ['url' => '', 'autoplay' => false],
             'audio' => ['url' => '', 'title' => ''],
-            'divider' => ['style' => 'solid', 'color' => 'rgba(255,255,255,0.1)'],
-            'spacer' => ['height' => 20],
-            'avatar' => ['url' => '', 'size' => 96, 'rounded' => true],
+            'pdf_document' => ['url' => '', 'title' => 'Document'],
+            'powerpoint' => ['url' => '', 'title' => 'Presentation'],
+            'excel' => ['url' => '', 'title' => 'Spreadsheet'],
+
             'socials' => ['platforms' => []],
-            'faq' => ['items' => [['question' => 'Question?', 'answer' => 'Answer.']]],
-            'email_collector' => ['title' => 'Subscribe', 'placeholder' => 'Your email', 'button_text' => 'Subscribe'],
-            'map' => ['address' => '', 'zoom' => 14],
-            'custom_html' => ['html' => ''],
-            'youtube' => ['video_id' => '', 'autoplay' => false],
+            'socials_multi' => ['groups' => [['label' => 'Personal', 'platforms' => []]]],
+            'socials_custom' => ['platforms' => [], 'style' => 'rounded', 'size' => 'md'],
+            'instagram_media' => ['url' => ''],
+            'tiktok_video' => ['url' => ''],
+            'tiktok_profile' => ['username' => ''],
+            'twitter_profile' => ['username' => ''],
+            'twitter_tweet' => ['url' => ''],
+            'twitter_video' => ['url' => ''],
+            'pinterest_profile' => ['username' => ''],
+            'snapchat' => ['username' => ''],
+            'rss_feed' => ['url' => '', 'count' => 5],
+
             'spotify' => ['url' => '', 'type' => 'track'],
+            'apple_music' => ['url' => '', 'type' => 'album'],
+            'soundcloud' => ['url' => ''],
+            'tidal' => ['url' => ''],
+            'mixcloud' => ['url' => ''],
+            'anchor_fm' => ['url' => ''],
+
+            'youtube' => ['video_id' => '', 'autoplay' => false],
+            'youtube_feed' => ['channel_id' => '', 'count' => 3],
+            'vimeo' => ['video_id' => ''],
+            'twitch' => ['channel' => ''],
+            'kick' => ['channel' => ''],
+            'rumble_video' => ['url' => ''],
+            'vk_video' => ['url' => ''],
+
+            'email_collector' => ['title' => 'Subscribe', 'placeholder' => 'Your email', 'button_text' => 'Subscribe'],
+            'phone_collector' => ['title' => 'Call Us', 'placeholder' => 'Your phone', 'button_text' => 'Submit'],
+            'contact_form' => ['title' => 'Contact Us', 'fields' => ['name', 'email', 'message'], 'button_text' => 'Send'],
+            'whatsapp_widget' => ['phone' => '', 'message' => 'Hi!', 'button_text' => 'Chat on WhatsApp'],
+            'whatsapp_item' => ['phone' => '', 'name' => '', 'message' => '', 'avatar' => ''],
+
+            'faq' => ['items' => [['question' => 'Question?', 'answer' => 'Answer.']]],
+            'faq_v2' => ['items' => [['question' => 'Question?', 'answer' => 'Answer.', 'icon' => '']], 'style' => 'bordered'],
+            'poll' => ['question' => 'What do you prefer?', 'options' => ['Option A', 'Option B', 'Option C']],
+            'quiz' => ['title' => 'Quick Quiz', 'questions' => [['question' => 'Q?', 'options' => ['A', 'B'], 'correct' => 0]]],
+            'testimonials' => ['items' => [['name' => 'John', 'text' => 'Great!', 'avatar' => '', 'rating' => 5]]],
+            'review' => ['name' => '', 'text' => '', 'rating' => 5, 'avatar' => ''],
+            'timeline' => ['items' => [['title' => 'Event', 'description' => 'Description', 'date' => '']]],
+            'timeline_staged' => ['items' => [['title' => 'Stage 1', 'description' => '', 'status' => 'completed']]],
+
+            'product' => ['name' => 'Product', 'description' => '', 'price' => '', 'image' => '', 'url' => '', 'badge' => ''],
+            'service' => ['name' => 'Service', 'description' => '', 'price' => '', 'icon' => 'fa-star', 'url' => ''],
+            'catalog' => ['items' => [['name' => 'Item', 'price' => '', 'image' => '', 'url' => '']]],
+            'market' => ['items' => [['name' => 'Product', 'price' => '$0', 'image' => '', 'url' => '']]],
+            'price' => ['amount' => '$99', 'period' => '/month', 'title' => 'Pro Plan', 'features' => ['Feature 1'], 'url' => ''],
+            'donation' => ['title' => 'Support Us', 'description' => '', 'amounts' => [5, 10, 25, 50], 'currency' => 'USD', 'url' => ''],
+            'coupon' => ['code' => 'SAVE20', 'description' => '20% off!', 'expires' => ''],
+            'one_time_offer' => ['title' => 'Special Offer', 'description' => '', 'price' => '', 'original_price' => '', 'url' => '', 'countdown' => ''],
+            'paypal' => ['email' => '', 'amount' => '', 'currency' => 'USD', 'button_text' => 'Pay Now'],
+
             'countdown' => ['target_date' => '', 'title' => 'Coming Soon'],
+            'progress' => ['items' => [['label' => 'Progress', 'value' => 75, 'color' => '#7c3aed']]],
+            'chart_pie' => ['items' => [['label' => 'Segment', 'value' => 50, 'color' => '#7c3aed']]],
+            'qr_code' => ['url' => '', 'size' => 200],
+            'share' => ['text' => 'Share this page', 'platforms' => ['twitter', 'facebook', 'linkedin', 'whatsapp']],
             'cta_button' => ['text' => 'Click Here', 'url' => '', 'color' => '#7c3aed', 'text_color' => '#ffffff', 'size' => 'lg'],
+            'notification' => ['text' => 'New update!', 'type' => 'info', 'dismissible' => true],
+            'nav_menu' => ['items' => [['text' => 'Home', 'url' => '']]],
+            'ticker' => ['items' => ['Breaking news', 'Updates'], 'speed' => 'normal'],
+
+            'spacer' => ['height' => 20],
+
+            'card_slider' => ['cards' => [['title' => 'Card', 'description' => '', 'image' => '', 'url' => '']]],
+            'scroll_cards' => ['cards' => [['title' => 'Card', 'description' => '', 'image' => '']]],
+            'profile_card_v1' => ['name' => '', 'title' => '', 'avatar' => '', 'bio' => '', 'socials' => []],
+            'profile_card_v2' => ['name' => '', 'title' => '', 'avatar' => '', 'cover' => '', 'bio' => ''],
+            'profile_card_v3' => ['name' => '', 'title' => '', 'avatar' => '', 'stats' => [['label' => 'Followers', 'value' => '0']]],
+            'profile_card_v4' => ['name' => '', 'title' => '', 'avatar' => '', 'bio' => '', 'badges' => []],
+
+            'custom_html' => ['html' => ''],
+            'iframe_embed' => ['url' => '', 'height' => 400],
+            'typeform' => ['url' => ''],
+            'calendly' => ['url' => ''],
+            'discord_server' => ['server_id' => ''],
+            'facebook_post' => ['url' => ''],
+            'reddit_post' => ['url' => ''],
+            'telegram_post' => ['url' => ''],
+
+            'file' => ['url' => '', 'name' => 'Download File', 'size' => '', 'icon' => 'fa-file-download'],
+            'external_item' => ['url' => '', 'title' => '', 'description' => '', 'image' => ''],
+            'markdown' => ['content' => '# Hello\n\nYour markdown content here.'],
+
+            'map' => ['address' => '', 'zoom' => 14],
+            'yandex_maps' => ['address' => '', 'zoom' => 14],
+
+            'vcard' => ['name' => '', 'email' => '', 'phone' => '', 'company' => '', 'title' => '', 'website' => ''],
+            'avatar' => ['url' => '', 'size' => 96, 'rounded' => true],
+
             default => [],
         };
     }

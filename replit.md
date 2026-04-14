@@ -61,16 +61,17 @@ pnpm workspace monorepo using TypeScript + PHP/Laravel. Each package manages its
 - **File Download Page**: branded download page with file preview (images), file type icon, size display, download button
 - **Admin link management**: browse all user links, filter by type/status/user, toggle active, bulk enable/disable/delete
 
-### Biolink Blocks System
-- **Block Editor**: `/user/links/{id}/blocks` — full block editor with add/edit/delete/toggle/reorder
-- **Block Types (18)**: link, heading, paragraph, image, video, audio, divider, spacer, avatar, socials, faq, email_collector, map, custom_html, youtube, spotify, countdown, cta_button
-- **Block Categories**: Content, Layout, Social Media, Engagement, Advanced
-- **Public Rendering**: `/r/{alias}` renders blocks with full styling (glassmorphism, Font Awesome icons, Alpine.js for FAQ/countdown)
+### Biolink Blocks System (~99 block types, 14 categories — 66biolinks feature parity)
+- **Block Editor**: `/user/links/{id}/blocks` — 66biolinks-style tabbed editor (Settings/Blocks tabs), phone mockup preview, accordion page settings
+- **14 Block Categories**: Basic Content (14), Media (10), Social & Profiles (12), Music & Streaming (6), Video Platforms (7), Contact & Lead Gen (5), Interactive & Engagement (8), Business & Monetization (9), Utility & Functional (9), Layout & Design (7), Integrations & Embeds (8), Files & External (3), Maps & Location (2), Digital Identity (2)
+- **Key Block Types**: Link, Link (Big), Heading variants (Gradient/Logo/Morph), Paragraph (Rich Text), Lists (Bullet/Numbered/Pricing), Alert, Badge, Image Grid/Slider, Video/Audio/PDF/PPTX/Excel, Socials (Multi/Custom), social embeds (Instagram/TikTok/Twitter/Pinterest/Snapchat), Spotify/Apple Music/SoundCloud/Tidal/Mixcloud/Anchor FM, YouTube/Vimeo/Twitch/Kick, Email/Phone collectors, Contact Form, WhatsApp Widget/Item, FAQ/FAQ V2, Poll, Quiz, Testimonials, Review, Timeline/Timeline (Staged), Product, Service, Catalog, Market, Price, Donation, Coupon, One Time Offer, PayPal, Countdown, Progress bars, Pie Chart, QR Code, Share, CTA Button, Notification, Nav Menu, Ticker, Card Slider, Scroll Cards, Profile Cards (V1-V4), Custom HTML, Iframe Embed, Typeform, Calendly, Discord, Facebook/Reddit/Telegram posts, File download, External Item, Markdown, Google Maps, Yandex Maps, VCard, Avatar, Spacer
+- **Public Rendering**: `/{alias}` renders all block types with full styling (glassmorphism, Font Awesome, Alpine.js for interactivity)
 - **Page Settings**: Background (color/gradient/image), font family, font color, button color/style (rounded/pill/square/outline/shadow)
-- **Security**: Custom HTML sanitized with strip_tags allowlist on both save and render; URL fields validated to require `http(s)://` scheme; social platform URLs validated
+- **Security**: HTML sanitized (strip_tags + attribute/protocol stripping on both store and update); all URL fields validated to `http(s)://` scheme; nested URL sanitization (platforms, items, cards, groups); event handler attributes stripped
 - **Scheduling**: Blocks support start_date/end_date for visibility scheduling
 - **Model**: `BiolinkBlock` (link_id, type, settings JSON, sort_order, is_active, start_date, end_date)
 - **Controller**: `BiolinkBlockController` handles CRUD, reorder, toggle, page settings
+- **Form partials**: `block-settings-form.blade.php` (per-type edit forms), `socials-form.blade.php` (social platform picker)
 
 ### Database Tables
 `roles`, `permissions`, `role_permissions`, `admins`, `plans`, `users` (has `mobile` column), `projects`, `domains`, `pixels`, `links`, `link_pixels`, `link_clicks`, `file_links`, `ics_data`, `vcf_data`, `biolink_blocks`, `otps`, `sessions`, `cache`, `jobs`
