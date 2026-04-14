@@ -1,36 +1,38 @@
-<header class="h-16 bg-white border-b border-dark-200 flex items-center justify-between px-6 flex-shrink-0">
+<header class="h-16 flex items-center justify-between px-6 flex-shrink-0 border-b border-white/5"
+        style="background: rgba(15,10,26,0.6); backdrop-filter: blur(20px);">
     <div class="flex items-center gap-4">
-        <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden text-dark-500 hover:text-dark-700">
+        <button @click="mobileMenu = !mobileMenu" class="lg:hidden text-white/60 hover:text-white">
             <i class="fas fa-bars text-lg"></i>
         </button>
-        <h1 class="text-lg font-semibold text-dark-800">@yield('page-title', 'Dashboard')</h1>
+        <h1 class="text-base font-semibold text-white/80">@yield('page-title', 'Dashboard')</h1>
     </div>
 
     <div class="flex items-center gap-4">
         @if(session('impersonate_user_id'))
-            <div class="flex items-center gap-2 bg-yellow-50 border border-yellow-200 text-yellow-800 px-3 py-1.5 rounded-lg text-sm">
+            <div class="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 px-3 py-1.5 rounded-lg text-xs font-medium">
                 <i class="fas fa-user-secret"></i>
                 <span>Impersonating user</span>
                 <form action="{{ route('admin.users.stop-impersonation') }}" method="POST" class="inline">
                     @csrf
-                    <button type="submit" class="ml-2 text-yellow-600 hover:text-yellow-800 font-medium">Stop</button>
+                    <button type="submit" class="ml-2 text-yellow-300 hover:text-yellow-200 font-bold">Stop</button>
                 </form>
             </div>
         @endif
 
         <div x-data="{ open: false }" class="relative">
-            <button @click="open = !open" class="flex items-center gap-2 text-dark-600 hover:text-dark-800">
-                <div class="w-8 h-8 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-sm font-medium">
-                    {{ substr(auth()->guard('admin')->user()->name ?? 'A', 0, 1) }}
+            <button @click="open = !open" class="flex items-center gap-2 text-white/60 hover:text-white transition-colors">
+                <div class="w-8 h-8 rounded-xl bg-purple-500/20 border border-purple-500/30 text-purple-400 flex items-center justify-center text-sm font-bold">
+                    {{ strtoupper(substr(auth()->guard('admin')->user()->name ?? 'A', 0, 1)) }}
                 </div>
-                <i class="fas fa-chevron-down text-xs"></i>
+                <i class="fas fa-chevron-down text-xs text-white/30"></i>
             </button>
 
             <div x-show="open" @click.away="open = false" x-cloak
-                 class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-dark-200 py-1 z-50">
+                 class="absolute right-0 mt-2 w-48 rounded-xl py-1 z-50 shadow-2xl"
+                 style="background: rgba(15,10,26,0.95); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08);">
                 <form action="{{ route('admin.logout') }}" method="POST">
                     @csrf
-                    <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                    <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-white/5 transition-colors">
                         <i class="fas fa-sign-out-alt mr-2"></i> Logout
                     </button>
                 </form>

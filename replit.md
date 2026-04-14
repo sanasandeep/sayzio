@@ -28,10 +28,16 @@ pnpm workspace monorepo using TypeScript + PHP/Laravel. Each package manages its
 - **Demo Login**: `demo@1inme.com` user + `admin@1inme.com` admin; environment-gated (disabled in production); throttled OTP routes
 - **Module registration**: `ModuleServiceProvider` in `bootstrap/providers.php`
 
-### Branding
-- **Purple palette**: primary `#7c3aed`, accent `#a855f7`, hover `#6d28d9`, light bg `#f5f3ff`/`#ede9fe`
-- All UI uses purple accents (buttons, focus rings, links, badges) — no blue/sky/chartreuse
-- Auth pages: dark glassmorphism (`bg-[#0f0a1a]`) with purple gradient blobs, Space Grotesk font
+### Branding & UI Design
+- **Glassmorphism throughout**: Dark background `#0f0a1a`, glass cards (`bg-white/4, backdrop-filter: blur(20px), border: 1px solid rgba(255,255,255,0.08)`), purple radial glow effects
+- **Purple palette**: primary `#7c3aed`, accent `#a855f7`, hover `#6d28d9`
+- **Font**: Space Grotesk (Google Fonts CDN)
+- **Sidebar navigation**: Both user and admin panels use sidebar-based layouts with glass-style sidebar (`rgba(15,10,26,0.8)`)
+- **Active sidebar link**: `bg-purple-500/20, text-purple-400, border: rgba(124,58,237,0.3)`
+- **Form inputs**: `bg-white/5 border-white/10` with `text-white`, purple focus rings
+- **Status badges**: Use `bg-{color}-500/10 text-{color}-400` pattern for dark theme
+- All pages (auth, user dashboard, admin panel, common/public pages) use consistent dark glassmorphism
+- Mobile responsive: Both user and admin have slide-out mobile sidebar drawers
 
 ### Homepage
 - Linktree-inspired colorful design: dark navy hero with animated blobs, **purple accent**, bold solid-color sections

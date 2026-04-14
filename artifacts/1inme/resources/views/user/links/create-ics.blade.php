@@ -4,45 +4,45 @@
 @section('content')
 <div class="max-w-2xl mx-auto">
     <div class="flex items-center gap-4 mb-6">
-        <a href="{{ route('user.links.index') }}" class="text-gray-400 hover:text-gray-600"><i class="fas fa-arrow-left"></i></a>
-        <h1 class="text-2xl font-bold text-gray-900">Create Calendar Event Link</h1>
+        <a href="{{ route('user.links.index') }}" class="text-white/30 hover:text-white/50"><i class="fas fa-arrow-left"></i></a>
+        <h1 class="text-2xl font-bold text-white">Create Calendar Event Link</h1>
     </div>
 
     <form method="POST" action="{{ route('user.links.ics.store') }}">
         @csrf
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
+        <div class="glass rounded-2xl p-6 space-y-4">
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Event Name <span class="text-red-500">*</span></label>
-                <input type="text" name="event_name" value="{{ old('event_name') }}" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500" required>
+                <label class="block text-sm font-medium text-white/60 mb-1">Event Name <span class="text-red-500">*</span></label>
+                <input type="text" name="event_name" value="{{ old('event_name') }}" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/40" required>
                 @error('event_name') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                <textarea name="description" rows="3" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500">{{ old('description') }}</textarea>
+                <label class="block text-sm font-medium text-white/60 mb-1">Description</label>
+                <textarea name="description" rows="3" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/40">{{ old('description') }}</textarea>
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
-                <input type="text" name="location" value="{{ old('location') }}" placeholder="e.g. Conference Room A" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500">
+                <label class="block text-sm font-medium text-white/60 mb-1">Location</label>
+                <input type="text" name="location" value="{{ old('location') }}" placeholder="e.g. Conference Room A" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/40">
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Start Date & Time <span class="text-red-500">*</span></label>
-                    <input type="datetime-local" name="start_date" value="{{ old('start_date') }}" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500" required>
+                    <label class="block text-sm font-medium text-white/60 mb-1">Start Date & Time <span class="text-red-500">*</span></label>
+                    <input type="datetime-local" name="start_date" value="{{ old('start_date') }}" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/40" required>
                     @error('start_date') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">End Date & Time <span class="text-red-500">*</span></label>
-                    <input type="datetime-local" name="end_date" value="{{ old('end_date') }}" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500" required>
+                    <label class="block text-sm font-medium text-white/60 mb-1">End Date & Time <span class="text-red-500">*</span></label>
+                    <input type="datetime-local" name="end_date" value="{{ old('end_date') }}" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/40" required>
                     @error('end_date') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
                 </div>
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Timezone <span class="text-red-500">*</span></label>
-                <select name="timezone" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500" required>
+                <label class="block text-sm font-medium text-white/60 mb-1">Timezone <span class="text-red-500">*</span></label>
+                <select name="timezone" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/40" required>
                     @foreach(['UTC', 'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles', 'Europe/London', 'Europe/Paris', 'Europe/Berlin', 'Asia/Tokyo', 'Asia/Shanghai', 'Asia/Kolkata', 'Asia/Dubai', 'Australia/Sydney', 'Pacific/Auckland'] as $tz)
                         <option value="{{ $tz }}" {{ old('timezone', 'UTC') === $tz ? 'selected' : '' }}>{{ $tz }}</option>
                     @endforeach
@@ -51,31 +51,31 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Organizer Name</label>
-                    <input type="text" name="organizer" value="{{ old('organizer') }}" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500">
+                    <label class="block text-sm font-medium text-white/60 mb-1">Organizer Name</label>
+                    <input type="text" name="organizer" value="{{ old('organizer') }}" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/40">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Organizer Email</label>
-                    <input type="email" name="organizer_email" value="{{ old('organizer_email') }}" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500">
+                    <label class="block text-sm font-medium text-white/60 mb-1">Organizer Email</label>
+                    <input type="email" name="organizer_email" value="{{ old('organizer_email') }}" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/40">
                 </div>
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Event URL</label>
-                <input type="url" name="url" value="{{ old('url') }}" placeholder="https://..." class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500">
+                <label class="block text-sm font-medium text-white/60 mb-1">Event URL</label>
+                <input type="url" name="url" value="{{ old('url') }}" placeholder="https://..." class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/40">
             </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-4 space-y-4">
-            <h2 class="text-lg font-semibold text-gray-900">Link Settings</h2>
+        <div class="glass rounded-2xl p-6 mt-4 space-y-4">
+            <h2 class="text-lg font-semibold text-white">Link Settings</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Custom Alias</label>
-                    <input type="text" name="alias" value="{{ old('alias') }}" placeholder="auto-generated" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500">
+                    <label class="block text-sm font-medium text-white/60 mb-1">Custom Alias</label>
+                    <input type="text" name="alias" value="{{ old('alias') }}" placeholder="auto-generated" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/40">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Project</label>
-                    <select name="project_id" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500">
+                    <label class="block text-sm font-medium text-white/60 mb-1">Project</label>
+                    <select name="project_id" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/40">
                         <option value="">No project</option>
                         @foreach($projects as $project)
                             <option value="{{ $project->id }}">{{ $project->name }}</option>
@@ -86,8 +86,8 @@
         </div>
 
         <div class="flex items-center justify-end gap-3 mt-4">
-            <a href="{{ route('user.links.index') }}" class="px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 rounded-lg">Cancel</a>
-            <button type="submit" class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-2.5 rounded-lg text-sm font-medium">Create Event Link</button>
+            <a href="{{ route('user.links.index') }}" class="px-4 py-2.5 text-sm text-white/60 hover:bg-white/10 rounded-xl">Cancel</a>
+            <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium">Create Event Link</button>
         </div>
     </form>
 </div>

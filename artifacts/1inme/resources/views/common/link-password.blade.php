@@ -8,29 +8,37 @@
         <link rel="icon" type="image/png" href="{{ $link->favicon }}">
     @endif
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Space Grotesk', system-ui, sans-serif; background: #0f0a1a; }
+        .glass { background: rgba(255,255,255,0.04); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
+        .bg-glow { position: fixed; top: -200px; right: -200px; width: 500px; height: 500px; background: radial-gradient(circle, rgba(124,58,237,0.1) 0%, transparent 70%); pointer-events: none; }
+    </style>
 </head>
-<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
-    <div class="w-full max-w-sm">
-        <div class="bg-white rounded-2xl shadow-lg p-8 text-center">
-            <div class="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg class="w-8 h-8 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<body class="min-h-screen flex items-center justify-center p-4 text-white">
+    <div class="bg-glow"></div>
+    <div class="w-full max-w-sm relative z-10">
+        <div class="glass rounded-2xl p-8 text-center">
+            <div class="w-16 h-16 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                 </svg>
             </div>
-            <h1 class="text-xl font-bold text-gray-900 mb-2">Password Required</h1>
-            <p class="text-gray-500 text-sm mb-6">This link is password protected. Enter the password to continue.</p>
+            <h1 class="text-xl font-bold text-white mb-2">Password Required</h1>
+            <p class="text-white/40 text-sm mb-6">This link is password protected. Enter the password to continue.</p>
 
             @if(isset($error))
-                <div class="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-2 rounded-lg mb-4">{{ $error }}</div>
+                <div class="bg-red-500/10 border border-red-500/20 text-red-400 text-sm px-4 py-2 rounded-xl mb-4">{{ $error }}</div>
             @endif
 
             <form method="POST" action="{{ route('redirect.handle', $link->alias) }}">
                 @csrf
-                <input type="password" name="password" placeholder="Enter password" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm mb-4 focus:ring-2 focus:ring-purple-500 focus:border-purple-500" required autofocus>
-                <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2.5 rounded-lg text-sm font-medium">Continue</button>
+                <input type="password" name="password" placeholder="Enter password"
+                       class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 mb-4 focus:ring-2 focus:ring-purple-500/40 outline-none" required autofocus>
+                <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-purple-500/20">Continue</button>
             </form>
         </div>
-        <p class="text-center text-xs text-gray-400 mt-4">Powered by 1INME</p>
+        <p class="text-center text-xs text-white/20 mt-4">Powered by <span class="text-white/30">1IN</span><span class="text-purple-400/60">ME</span></p>
     </div>
     @include('common.partials.pixel-scripts', ['link' => $link])
 </body>
