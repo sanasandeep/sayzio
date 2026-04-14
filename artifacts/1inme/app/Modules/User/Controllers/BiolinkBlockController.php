@@ -56,10 +56,13 @@ class BiolinkBlockController extends Controller
             'is_active' => 'boolean',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
+            'visibility' => 'nullable|array',
         ]);
 
         $settings = $validated['settings'] ?? $block->settings;
         $settings = $this->sanitizeSettings($block->type, $settings);
+
+        $settings['_visibility'] = $this->sanitizeVisibility($validated['visibility'] ?? []);
 
         $block->update([
             'settings' => $settings,
@@ -353,5 +356,34 @@ class BiolinkBlockController extends Controller
 
             default => [],
         };
+    }
+
+    private function sanitizeVisibility(array $input): array
+    {
+        $allowed = [
+            'continents' => ['Africa', 'Antarctica', 'Asia', 'Europe', 'North America', 'South America', 'Oceania'],
+            'countries' => null,
+            'cities' => null,
+            'devices' => ['desktop', 'tablet', 'mobile'],
+            'os' => ['iOS', 'Android', 'Windows', 'OS X', 'Linux', 'Chrome OS'],
+            'browsers' => ['Chrome', 'Firefox', 'Safari', 'Edge', 'Opera', 'Brave', 'Vivaldi', 'Internet Explorer'],
+            'languages' => null,
+        ];
+
+        $result = [];
+        foreach ($allowed as $key => $validValues) {
+            if (!isset($input[$key]) || !is_array($input[$key])) {
+                $result[$key] = [];
+                continue;
+            }
+            $values = array_filter(array_map('trim', $input[$key]), fn($v) => $v !== '');
+            if ($validValues !== null) {
+                $values = array_values(array_intersect($values, $validValues));
+            } else {
+                $values = array_values(array_map(fn($v) => substr(strip_tags($v), 0, 100), $values));
+            }
+            $result[$key] = $values;
+        }
+        return $result;
     }
 }
