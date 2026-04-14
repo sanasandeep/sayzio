@@ -97,6 +97,40 @@
     .theme-input:focus { background: var(--bg-glass-input-focus); border-color: var(--sidebar-active-border); }
     .theme-input::placeholder { color: var(--text-dimmed); }
 
+    html.light-mode .text-white { color: var(--text-primary) !important; }
+    html.light-mode .text-white\/80 { color: var(--text-secondary) !important; }
+    html.light-mode .text-white\/70 { color: var(--text-secondary) !important; }
+    html.light-mode .text-white\/60 { color: var(--text-muted) !important; }
+    html.light-mode .text-white\/50 { color: var(--text-muted) !important; }
+    html.light-mode .text-white\/40 { color: var(--text-dimmed) !important; }
+    html.light-mode .text-white\/30 { color: var(--text-dimmed) !important; }
+    html.light-mode .text-white\/20 { color: var(--text-faint) !important; }
+    html.light-mode .text-gray-300 { color: var(--text-muted) !important; }
+    html.light-mode .text-gray-400 { color: var(--text-muted) !important; }
+    html.light-mode .text-gray-500 { color: var(--text-dimmed) !important; }
+    html.light-mode .placeholder-gray-500::placeholder { color: var(--text-dimmed) !important; }
+    html.light-mode .placeholder-gray-600::placeholder { color: var(--text-dimmed) !important; }
+    html.light-mode .placeholder-white\/20::placeholder { color: var(--text-dimmed) !important; }
+
+    html.light-mode .border-white\/5 { border-color: var(--border-subtle) !important; }
+    html.light-mode .border-white\/10 { border-color: var(--border-glass) !important; }
+    html.light-mode .border-white\/8 { border-color: var(--border-glass) !important; }
+
+    html.light-mode .bg-white\/5 { background-color: var(--bg-glass-input) !important; }
+    html.light-mode .bg-white\/\[0\.02\] { background-color: rgba(0,0,0,0.01) !important; }
+    html.light-mode .bg-white\/\[0\.04\] { background-color: var(--bg-glass-input) !important; }
+    html.light-mode .bg-white\/\[0\.06\] { background-color: var(--bg-glass-hover) !important; }
+    html.light-mode .bg-white\/10 { background-color: var(--bg-glass-input-focus) !important; }
+    html.light-mode .hover\:bg-white\/5:hover { background-color: var(--bg-glass-input) !important; }
+    html.light-mode .hover\:bg-white\/\[0\.06\]:hover { background-color: var(--bg-glass-hover) !important; }
+    html.light-mode .hover\:bg-white\/10:hover { background-color: var(--bg-glass-input-focus) !important; }
+    html.light-mode .hover\:bg-white\/8:hover { background-color: var(--bg-glass-input) !important; }
+
+    html.light-mode .bg-\[\#1a1025\] { background-color: var(--bg-body) !important; }
+    html.light-mode .bg-\[\#0f0a1a\] { background-color: var(--bg-body) !important; }
+
+    html.light-mode select option { background-color: #f0eef5 !important; color: #1a1025 !important; }
+
     .theme-toggle-btn {
         position: relative;
         width: 3.25rem;
