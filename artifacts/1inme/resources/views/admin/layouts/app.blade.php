@@ -21,31 +21,20 @@
         }
     </script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <style>
-        [x-cloak] { display: none !important; }
-        body { font-family: 'Space Grotesk', system-ui, sans-serif; background: #0f0a1a; }
-        .glass { background: rgba(255,255,255,0.04); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
-        .sidebar-link { display: flex; align-items: center; gap: 0.75rem; padding: 0.625rem 1rem; font-size: 0.875rem; border-radius: 0.75rem; transition: all 0.2s; color: rgba(255,255,255,0.5); }
-        .sidebar-link:hover { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.9); }
-        .sidebar-link.active { background: rgba(124,58,237,0.2); color: #a855f7; border: 1px solid rgba(124,58,237,0.3); }
-        .bg-glow { position: fixed; top: -200px; right: -200px; width: 500px; height: 500px; background: radial-gradient(circle, rgba(124,58,237,0.08) 0%, transparent 70%); pointer-events: none; z-index: 0; }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
-    </style>
+    @include('common.partials.theme-styles')
 </head>
-<body class="min-h-screen text-white">
+<body class="min-h-screen" style="color: var(--text-primary);">
     <div class="bg-glow"></div>
 
     <div class="flex min-h-screen relative z-10" x-data="{ sidebarOpen: true, mobileMenu: false }">
         @include('admin.partials.sidebar')
 
         <div x-show="mobileMenu" @click.away="mobileMenu = false" x-cloak
-             class="lg:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm">
-            <div class="w-72 h-full flex flex-col" style="background: rgba(15,10,26,0.95); backdrop-filter: blur(30px);">
-                <div class="h-16 flex items-center justify-between px-6 border-b border-white/5">
-                    <span class="text-xl font-bold"><span class="text-white">1IN</span><span class="text-purple-400">ME</span></span>
-                    <button @click="mobileMenu = false" class="text-white/50 hover:text-white"><i class="fas fa-times"></i></button>
+             class="lg:hidden fixed inset-0 z-50 backdrop-blur-sm" style="background: var(--overlay-bg);">
+            <div class="w-72 h-full flex flex-col" style="background: var(--bg-sidebar-mobile); backdrop-filter: blur(30px);">
+                <div class="h-16 flex items-center justify-between px-6" style="border-bottom: 1px solid var(--border-subtle);">
+                    <span class="text-xl font-bold"><span style="color: var(--text-primary);">1IN</span><span class="text-purple-400">ME</span></span>
+                    <button @click="mobileMenu = false" style="color: var(--text-muted);" class="hover:opacity-80"><i class="fas fa-times"></i></button>
                 </div>
                 <nav class="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
                     <a href="{{ route('admin.dashboard') }}" class="sidebar-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}"><i class="fas fa-chart-line w-5 text-center"></i> Dashboard</a>

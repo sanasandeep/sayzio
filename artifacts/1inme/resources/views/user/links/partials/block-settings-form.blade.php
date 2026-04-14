@@ -526,9 +526,4 @@ $labelClass = 'block text-xs text-white/40 mb-1';
 @endforeach
 @endif
 
-<div class="mt-3 pt-3 border-t border-white/5">
-    <div class="grid grid-cols-2 gap-3">
-        <div><label class="{{ $labelClass }}">Schedule Start</label><input type="datetime-local" name="start_date" value="{{ $block->start_date?->format('Y-m-d\TH:i') }}" class="{{ $inputClass }}"></div>
-        <div><label class="{{ $labelClass }}">Schedule End</label><input type="datetime-local" name="end_date" value="{{ $block->end_date?->format('Y-m-d\TH:i') }}" class="{{ $inputClass }}"></div>
-    </div>
-</div>
+@include('user.links.partials.block-display-settings', ['block' => $block, 'inputClass' => $inputClass, 'labelClass' => $labelClass])

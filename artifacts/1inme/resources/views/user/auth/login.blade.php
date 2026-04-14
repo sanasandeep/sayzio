@@ -10,8 +10,9 @@
     <script>tailwind.config = { theme: { extend: { fontFamily: { sans: ['Space Grotesk', 'sans-serif'] } } } }</script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>[x-cloak] { display: none !important; }</style>
+    @include('common.partials.theme-styles')
 </head>
-<body class="bg-[#0f0a1a] min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+<body class="bg-transparent min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
     <div class="absolute inset-0">
         <div class="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[120px]"></div>
         <div class="absolute bottom-[-10%] right-[-10%] w-[400px] h-[400px] bg-violet-500/15 rounded-full blur-[100px]"></div>
@@ -20,17 +21,17 @@
     <div class="w-full max-w-md relative z-10" x-data="{ mode: 'password' }">
         <div class="text-center mb-8">
             <a href="{{ route('home') }}" class="inline-block text-3xl font-bold tracking-tight">
-                <span class="text-white">1IN</span><span class="text-purple-400">ME</span>
+                <span style="color: var(--text-primary);">1IN</span><span class="text-purple-400">ME</span>
             </a>
             <p class="text-purple-300/60 mt-2">Your links, one place</p>
         </div>
 
-        <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8">
-            <h2 class="text-xl font-semibold text-white mb-6">Welcome back</h2>
+        <div class="backdrop-blur-xl glass rounded-2xl p-8">
+            <h2 class="text-xl font-semibold font-semibold mb-6" style="color: var(--text-primary);">Welcome back</h2>
 
             <div class="flex bg-white/5 rounded-lg p-1 mb-6">
-                <button @click="mode = 'password'" :class="mode === 'password' ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'" class="flex-1 py-2 text-sm font-medium rounded-md transition-all">Password</button>
-                <button @click="mode = 'otp'" :class="mode === 'otp' ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'" class="flex-1 py-2 text-sm font-medium rounded-md transition-all">OTP Login</button>
+                <button @click="mode = 'password'" :class="mode === 'password' ? 'bg-purple-600 text-white shadow-lg' : 'theme-text-muted hover:text-white'" class="flex-1 py-2 text-sm font-medium rounded-md transition-all">Password</button>
+                <button @click="mode = 'otp'" :class="mode === 'otp' ? 'bg-purple-600 text-white shadow-lg' : 'theme-text-muted hover:text-white'" class="flex-1 py-2 text-sm font-medium rounded-md transition-all">OTP Login</button>
             </div>
 
             <div x-show="mode === 'password'" x-cloak x-transition>
@@ -40,18 +41,18 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-300 mb-1">Email</label>
                             <input type="email" name="email" value="{{ old('email') }}" required autofocus
-                                   class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition">
+                                   class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg theme-text-primary placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition">
                             @error('email')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
                         </div>
 
                         <div>
                             <label class="block text-sm font-medium text-gray-300 mb-1">Password</label>
                             <input type="password" name="password" required
-                                   class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition">
+                                   class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg theme-text-primary placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition">
                         </div>
 
                         <div class="flex items-center justify-between">
-                            <label class="flex items-center gap-2 text-sm text-gray-400">
+                            <label class="flex items-center gap-2 text-sm theme-text-muted">
                                 <input type="checkbox" name="remember" class="rounded border-gray-600 bg-white/5 text-purple-600 focus:ring-purple-500">
                                 Remember me
                             </label>
@@ -70,10 +71,10 @@
                     @csrf
                     <div class="space-y-4">
                         <div class="flex gap-2">
-                            <button type="button" @click="otpType = 'email'" :class="otpType === 'email' ? 'bg-purple-600/20 border-purple-500 text-purple-300' : 'bg-white/5 border-white/10 text-gray-400'" class="flex-1 py-2 text-xs font-medium rounded-lg border transition">
+                            <button type="button" @click="otpType = 'email'" :class="otpType === 'email' ? 'bg-purple-600/20 border-purple-500 text-purple-300' : 'bg-white/5 border-white/10 theme-text-muted'" class="flex-1 py-2 text-xs font-medium rounded-lg border transition">
                                 <i class="fas fa-envelope mr-1"></i> Email
                             </button>
-                            <button type="button" @click="otpType = 'mobile'" :class="otpType === 'mobile' ? 'bg-purple-600/20 border-purple-500 text-purple-300' : 'bg-white/5 border-white/10 text-gray-400'" class="flex-1 py-2 text-xs font-medium rounded-lg border transition">
+                            <button type="button" @click="otpType = 'mobile'" :class="otpType === 'mobile' ? 'bg-purple-600/20 border-purple-500 text-purple-300' : 'bg-white/5 border-white/10 theme-text-muted'" class="flex-1 py-2 text-xs font-medium rounded-lg border transition">
                                 <i class="fas fa-mobile-alt mr-1"></i> Mobile
                             </button>
                         </div>
@@ -84,7 +85,7 @@
                             <label class="block text-sm font-medium text-gray-300 mb-1" x-text="otpType === 'email' ? 'Email Address' : 'Mobile Number'"></label>
                             <input type="text" name="identifier" required
                                    :placeholder="otpType === 'email' ? 'you@example.com' : '+1234567890'"
-                                   class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition">
+                                   class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg theme-text-primary placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition">
                             @error('identifier')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
                         </div>
 

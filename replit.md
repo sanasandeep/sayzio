@@ -29,15 +29,25 @@ pnpm workspace monorepo using TypeScript + PHP/Laravel. Each package manages its
 - **Module registration**: `ModuleServiceProvider` in `bootstrap/providers.php`
 
 ### Branding & UI Design
-- **Glassmorphism throughout**: Dark background `#0f0a1a`, glass cards (`bg-white/4, backdrop-filter: blur(20px), border: 1px solid rgba(255,255,255,0.08)`), purple radial glow effects
+- **Dark/Light Mode Toggle**: CSS custom properties on `:root` / `html.light-mode`, toggled via Alpine.js, persisted in `localStorage('1inme_theme')` as `'dark'`|`'light'`
+  - Shared theme partial: `common/partials/theme-styles.blade.php` (CSS vars for all colors)
+  - Toggle component: `common/partials/theme-toggle.blade.php` (pill switch with sun/moon icons)
+  - Default: dark mode; pre-render script prevents flash
+- **Glassmorphism throughout**: Dark bg `var(--bg-body)` = `#0f0a1a` (dark) / `#f0eef5` (light), glass cards use `var(--bg-glass)`, borders use `var(--border-glass)`
 - **Purple palette**: primary `#7c3aed`, accent `#a855f7`, hover `#6d28d9`
 - **Font**: Space Grotesk (Google Fonts CDN)
-- **Sidebar navigation**: Both user and admin panels use sidebar-based layouts with glass-style sidebar (`rgba(15,10,26,0.8)`)
-- **Active sidebar link**: `bg-purple-500/20, text-purple-400, border: rgba(124,58,237,0.3)`
-- **Form inputs**: `bg-white/5 border-white/10` with `text-white`, purple focus rings
-- **Status badges**: Use `bg-{color}-500/10 text-{color}-400` pattern for dark theme
-- All pages (auth, user dashboard, admin panel, common/public pages) use consistent dark glassmorphism
+- **Sidebar navigation**: Both user and admin panels use sidebar-based layouts with glass-style sidebar (`var(--bg-sidebar)`)
+- **Active sidebar link**: `var(--sidebar-active-bg)`, `var(--sidebar-active-text)`, `var(--sidebar-active-border)`
+- **Form inputs**: `var(--bg-glass-input)` with `var(--text-primary)`, purple focus rings
+- **Status badges**: Use `bg-{color}-500/10 text-{color}-400` pattern
+- All pages (auth, user dashboard, admin panel) include theme-styles partial for mode support
 - Mobile responsive: Both user and admin have slide-out mobile sidebar drawers
+
+### Block Display Settings
+- Per-block visibility controls in `user/links/partials/block-display-settings.blade.php`
+- Collapsible section with schedule (start/end dates), continents, countries, cities, devices, OS, browsers, and browser languages
+- Uses allowlist pattern: empty array = show to all; populated = only show to those values
+- Data stored in `settings['_visibility']` JSON on `BiolinkBlock` model
 
 ### Homepage
 - Linktree-inspired colorful design: dark navy hero with animated blobs, **purple accent**, bold solid-color sections
