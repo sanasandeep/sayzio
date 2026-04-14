@@ -9,9 +9,9 @@ $socialOptions = ['instagram','twitter','facebook','tiktok','youtube','linkedin'
         <div class="glass rounded-lg p-3 mb-2">
             <div class="grid grid-cols-2 gap-2 mb-2">
                 <select x-model="platforms[i].name" :name="'settings[platforms]['+i+'][name]'" class="{{ $inputClass }}">
-                    <option value="" class="bg-[#1a1025]">Select...</option>
+                    <option value="" class="bg-[#0d0818]">Select...</option>
                     @foreach($socialOptions as $opt)
-                    <option value="{{ $opt }}" class="bg-[#1a1025]">{{ ucfirst($opt) }}</option>
+                    <option value="{{ $opt }}" class="bg-[#0d0818]">{{ ucfirst($opt) }}</option>
                     @endforeach
                 </select>
                 <input type="url" x-model="platforms[i].url" :name="'settings[platforms]['+i+'][url]'" placeholder="https://..." class="{{ $inputClass }}">

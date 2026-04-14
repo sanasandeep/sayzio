@@ -18,13 +18,13 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Space Grotesk', system-ui, sans-serif; background: #0f0a1a; }
-        .glass { background: rgba(255,255,255,0.04); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
-        .bg-glow { position: fixed; top: -200px; right: -200px; width: 500px; height: 500px; background: radial-gradient(circle, rgba(124,58,237,0.1) 0%, transparent 70%); pointer-events: none; }
+        body { font-family: 'Space Grotesk', system-ui, sans-serif; background: #0a0612; }
+        .glass { background: rgba(255,255,255,0.03); backdrop-filter: blur(24px) saturate(1.2); border: 1px solid rgba(255,255,255,0.06); box-shadow: 0 4px 32px rgba(0,0,0,0.4); }
+        .bg-mesh { position: fixed; inset: 0; pointer-events: none; z-index: 0; background: radial-gradient(ellipse 600px 400px at 15% 20%, rgba(139,92,246,0.07), transparent), radial-gradient(ellipse 500px 350px at 85% 75%, rgba(168,85,247,0.05), transparent); }
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4 text-white">
-    <div class="bg-glow"></div>
+    <div class="bg-mesh"></div>
     <div class="w-full max-w-lg relative z-10">
         <div class="glass rounded-2xl p-8 text-center">
             @php
@@ -63,7 +63,7 @@
             </div>
             @endif
 
-            <a href="{{ $downloadUrl }}" class="inline-flex items-center justify-center gap-2 w-full bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-xl font-medium transition-all hover:shadow-lg hover:shadow-purple-500/20">
+            <a href="{{ $downloadUrl }}" class="inline-flex items-center justify-center gap-2 w-full text-white px-6 py-3 rounded-xl font-semibold transition-all" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); box-shadow: 0 4px 16px rgba(139,92,246,0.25);">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 Download File
             </a>

@@ -10,13 +10,13 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Space Grotesk', system-ui, sans-serif; background: #0f0a1a; }
-        .glass { background: rgba(255,255,255,0.04); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
-        .bg-glow { position: fixed; top: -200px; right: -200px; width: 500px; height: 500px; background: radial-gradient(circle, rgba(124,58,237,0.1) 0%, transparent 70%); pointer-events: none; }
+        body { font-family: 'Space Grotesk', system-ui, sans-serif; background: #0a0612; }
+        .glass { background: rgba(255,255,255,0.03); backdrop-filter: blur(24px) saturate(1.2); border: 1px solid rgba(255,255,255,0.06); box-shadow: 0 4px 32px rgba(0,0,0,0.4); }
+        .bg-mesh { position: fixed; inset: 0; pointer-events: none; z-index: 0; background: radial-gradient(ellipse 600px 400px at 15% 20%, rgba(139,92,246,0.07), transparent), radial-gradient(ellipse 500px 350px at 85% 75%, rgba(168,85,247,0.05), transparent); }
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4 text-white">
-    <div class="bg-glow"></div>
+    <div class="bg-mesh"></div>
     <div class="w-full max-w-sm relative z-10">
         <div class="glass rounded-2xl p-8 text-center">
             <div class="w-16 h-16 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -34,8 +34,8 @@
             <form method="POST" action="{{ route('redirect.handle', $link->alias) }}">
                 @csrf
                 <input type="password" name="password" placeholder="Enter password"
-                       class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 mb-4 focus:ring-2 focus:ring-purple-500/40 outline-none" required autofocus>
-                <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-purple-500/20">Continue</button>
+                       class="w-full rounded-[0.625rem] px-3.5 py-2.5 text-sm text-white placeholder-white/30 mb-4 outline-none transition-all" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.06);" required autofocus>
+                <button type="submit" class="w-full py-2.5 rounded-[0.625rem] text-sm font-semibold text-white transition-all" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); box-shadow: 0 4px 16px rgba(139,92,246,0.25);">Continue</button>
             </form>
         </div>
         <p class="text-center text-xs text-white/20 mt-4">Powered by <span class="text-white/30">1IN</span><span class="text-purple-400/60">ME</span></p>

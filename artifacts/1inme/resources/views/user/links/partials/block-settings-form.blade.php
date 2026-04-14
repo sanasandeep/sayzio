@@ -27,8 +27,8 @@ $labelClass = 'block text-xs text-white/40 mb-1';
 <div class="space-y-3">
     <div><label class="{{ $labelClass }}">Text</label><input type="text" name="settings[text]" value="{{ $s['text'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div class="grid grid-cols-2 gap-3">
-        <div><label class="{{ $labelClass }}">Size</label><select name="settings[size]" class="{{ $selectClass }}"><option value="h1" {{ ($s['size'] ?? '') === 'h1' ? 'selected' : '' }} class="bg-[#1a1025]">H1</option><option value="h2" {{ ($s['size'] ?? '') === 'h2' ? 'selected' : '' }} class="bg-[#1a1025]">H2</option><option value="h3" {{ ($s['size'] ?? '') === 'h3' ? 'selected' : '' }} class="bg-[#1a1025]">H3</option></select></div>
-        <div><label class="{{ $labelClass }}">Align</label><select name="settings[align]" class="{{ $selectClass }}"><option value="left" {{ ($s['align'] ?? '') === 'left' ? 'selected' : '' }} class="bg-[#1a1025]">Left</option><option value="center" {{ ($s['align'] ?? '') === 'center' ? 'selected' : '' }} class="bg-[#1a1025]">Center</option><option value="right" {{ ($s['align'] ?? '') === 'right' ? 'selected' : '' }} class="bg-[#1a1025]">Right</option></select></div>
+        <div><label class="{{ $labelClass }}">Size</label><select name="settings[size]" class="{{ $selectClass }}"><option value="h1" {{ ($s['size'] ?? '') === 'h1' ? 'selected' : '' }} class="bg-[#0d0818]">H1</option><option value="h2" {{ ($s['size'] ?? '') === 'h2' ? 'selected' : '' }} class="bg-[#0d0818]">H2</option><option value="h3" {{ ($s['size'] ?? '') === 'h3' ? 'selected' : '' }} class="bg-[#0d0818]">H3</option></select></div>
+        <div><label class="{{ $labelClass }}">Align</label><select name="settings[align]" class="{{ $selectClass }}"><option value="left" {{ ($s['align'] ?? '') === 'left' ? 'selected' : '' }} class="bg-[#0d0818]">Left</option><option value="center" {{ ($s['align'] ?? '') === 'center' ? 'selected' : '' }} class="bg-[#0d0818]">Center</option><option value="right" {{ ($s['align'] ?? '') === 'right' ? 'selected' : '' }} class="bg-[#0d0818]">Right</option></select></div>
     </div>
 </div>
 
@@ -40,8 +40,8 @@ $labelClass = 'block text-xs text-white/40 mb-1';
         <div><label class="{{ $labelClass }}">To Color</label><input type="color" name="settings[to_color]" value="{{ $s['to_color'] ?? '#ec4899' }}" class="w-full h-10 rounded-xl border border-white/10 bg-white/5"></div>
     </div>
     <div class="grid grid-cols-2 gap-3">
-        <div><label class="{{ $labelClass }}">Size</label><select name="settings[size]" class="{{ $selectClass }}"><option value="h1" {{ ($s['size'] ?? '') === 'h1' ? 'selected' : '' }} class="bg-[#1a1025]">H1</option><option value="h2" {{ ($s['size'] ?? '') === 'h2' ? 'selected' : '' }} class="bg-[#1a1025]">H2</option><option value="h3" {{ ($s['size'] ?? '') === 'h3' ? 'selected' : '' }} class="bg-[#1a1025]">H3</option></select></div>
-        <div><label class="{{ $labelClass }}">Align</label><select name="settings[align]" class="{{ $selectClass }}"><option value="left" {{ ($s['align'] ?? '') === 'left' ? 'selected' : '' }} class="bg-[#1a1025]">Left</option><option value="center" {{ ($s['align'] ?? '') === 'center' ? 'selected' : '' }} class="bg-[#1a1025]">Center</option><option value="right" {{ ($s['align'] ?? '') === 'right' ? 'selected' : '' }} class="bg-[#1a1025]">Right</option></select></div>
+        <div><label class="{{ $labelClass }}">Size</label><select name="settings[size]" class="{{ $selectClass }}"><option value="h1" {{ ($s['size'] ?? '') === 'h1' ? 'selected' : '' }} class="bg-[#0d0818]">H1</option><option value="h2" {{ ($s['size'] ?? '') === 'h2' ? 'selected' : '' }} class="bg-[#0d0818]">H2</option><option value="h3" {{ ($s['size'] ?? '') === 'h3' ? 'selected' : '' }} class="bg-[#0d0818]">H3</option></select></div>
+        <div><label class="{{ $labelClass }}">Align</label><select name="settings[align]" class="{{ $selectClass }}"><option value="left" {{ ($s['align'] ?? '') === 'left' ? 'selected' : '' }} class="bg-[#0d0818]">Left</option><option value="center" {{ ($s['align'] ?? '') === 'center' ? 'selected' : '' }} class="bg-[#0d0818]">Center</option><option value="right" {{ ($s['align'] ?? '') === 'right' ? 'selected' : '' }} class="bg-[#0d0818]">Right</option></select></div>
     </div>
 </div>
 
@@ -50,8 +50,8 @@ $labelClass = 'block text-xs text-white/40 mb-1';
     <div><label class="{{ $labelClass }}">Text</label><input type="text" name="settings[text]" value="{{ $s['text'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div><label class="{{ $labelClass }}">Logo URL</label><input type="url" name="settings[logo_url]" value="{{ $s['logo_url'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div class="grid grid-cols-2 gap-3">
-        <div><label class="{{ $labelClass }}">Size</label><select name="settings[size]" class="{{ $selectClass }}"><option value="h1" {{ ($s['size'] ?? '') === 'h1' ? 'selected' : '' }} class="bg-[#1a1025]">H1</option><option value="h2" {{ ($s['size'] ?? '') === 'h2' ? 'selected' : '' }} class="bg-[#1a1025]">H2</option><option value="h3" {{ ($s['size'] ?? '') === 'h3' ? 'selected' : '' }} class="bg-[#1a1025]">H3</option></select></div>
-        <div><label class="{{ $labelClass }}">Align</label><select name="settings[align]" class="{{ $selectClass }}"><option value="center" {{ ($s['align'] ?? '') === 'center' ? 'selected' : '' }} class="bg-[#1a1025]">Center</option><option value="left" {{ ($s['align'] ?? '') === 'left' ? 'selected' : '' }} class="bg-[#1a1025]">Left</option></select></div>
+        <div><label class="{{ $labelClass }}">Size</label><select name="settings[size]" class="{{ $selectClass }}"><option value="h1" {{ ($s['size'] ?? '') === 'h1' ? 'selected' : '' }} class="bg-[#0d0818]">H1</option><option value="h2" {{ ($s['size'] ?? '') === 'h2' ? 'selected' : '' }} class="bg-[#0d0818]">H2</option><option value="h3" {{ ($s['size'] ?? '') === 'h3' ? 'selected' : '' }} class="bg-[#0d0818]">H3</option></select></div>
+        <div><label class="{{ $labelClass }}">Align</label><select name="settings[align]" class="{{ $selectClass }}"><option value="center" {{ ($s['align'] ?? '') === 'center' ? 'selected' : '' }} class="bg-[#0d0818]">Center</option><option value="left" {{ ($s['align'] ?? '') === 'left' ? 'selected' : '' }} class="bg-[#0d0818]">Left</option></select></div>
     </div>
 </div>
 
@@ -59,15 +59,15 @@ $labelClass = 'block text-xs text-white/40 mb-1';
 <div class="space-y-3">
     <div><label class="{{ $labelClass }}">Text</label><input type="text" name="settings[text]" value="{{ $s['text'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div class="grid grid-cols-2 gap-3">
-        <div><label class="{{ $labelClass }}">Size</label><select name="settings[size]" class="{{ $selectClass }}"><option value="h1" {{ ($s['size'] ?? '') === 'h1' ? 'selected' : '' }} class="bg-[#1a1025]">H1</option><option value="h2" {{ ($s['size'] ?? '') === 'h2' ? 'selected' : '' }} class="bg-[#1a1025]">H2</option></select></div>
-        <div><label class="{{ $labelClass }}">Align</label><select name="settings[align]" class="{{ $selectClass }}"><option value="center" {{ ($s['align'] ?? '') === 'center' ? 'selected' : '' }} class="bg-[#1a1025]">Center</option><option value="left" {{ ($s['align'] ?? '') === 'left' ? 'selected' : '' }} class="bg-[#1a1025]">Left</option></select></div>
+        <div><label class="{{ $labelClass }}">Size</label><select name="settings[size]" class="{{ $selectClass }}"><option value="h1" {{ ($s['size'] ?? '') === 'h1' ? 'selected' : '' }} class="bg-[#0d0818]">H1</option><option value="h2" {{ ($s['size'] ?? '') === 'h2' ? 'selected' : '' }} class="bg-[#0d0818]">H2</option></select></div>
+        <div><label class="{{ $labelClass }}">Align</label><select name="settings[align]" class="{{ $selectClass }}"><option value="center" {{ ($s['align'] ?? '') === 'center' ? 'selected' : '' }} class="bg-[#0d0818]">Center</option><option value="left" {{ ($s['align'] ?? '') === 'left' ? 'selected' : '' }} class="bg-[#0d0818]">Left</option></select></div>
     </div>
 </div>
 
 @elseif($block->type === 'paragraph')
 <div class="space-y-3">
     <div><label class="{{ $labelClass }}">Text</label><textarea name="settings[text]" rows="3" class="{{ $inputClass }}">{{ $s['text'] ?? '' }}</textarea></div>
-    <div><label class="{{ $labelClass }}">Align</label><select name="settings[align]" class="{{ $selectClass }}"><option value="left" {{ ($s['align'] ?? '') === 'left' ? 'selected' : '' }} class="bg-[#1a1025]">Left</option><option value="center" {{ ($s['align'] ?? '') === 'center' ? 'selected' : '' }} class="bg-[#1a1025]">Center</option><option value="right" {{ ($s['align'] ?? '') === 'right' ? 'selected' : '' }} class="bg-[#1a1025]">Right</option></select></div>
+    <div><label class="{{ $labelClass }}">Align</label><select name="settings[align]" class="{{ $selectClass }}"><option value="left" {{ ($s['align'] ?? '') === 'left' ? 'selected' : '' }} class="bg-[#0d0818]">Left</option><option value="center" {{ ($s['align'] ?? '') === 'center' ? 'selected' : '' }} class="bg-[#0d0818]">Center</option><option value="right" {{ ($s['align'] ?? '') === 'right' ? 'selected' : '' }} class="bg-[#0d0818]">Right</option></select></div>
 </div>
 
 @elseif($block->type === 'paragraph_rich')
@@ -75,7 +75,7 @@ $labelClass = 'block text-xs text-white/40 mb-1';
 
 @elseif($block->type === 'divider')
 <div class="space-y-3">
-    <div><label class="{{ $labelClass }}">Style</label><select name="settings[style]" class="{{ $selectClass }}"><option value="solid" {{ ($s['style'] ?? '') === 'solid' ? 'selected' : '' }} class="bg-[#1a1025]">Solid</option><option value="dashed" {{ ($s['style'] ?? '') === 'dashed' ? 'selected' : '' }} class="bg-[#1a1025]">Dashed</option><option value="dotted" {{ ($s['style'] ?? '') === 'dotted' ? 'selected' : '' }} class="bg-[#1a1025]">Dotted</option></select></div>
+    <div><label class="{{ $labelClass }}">Style</label><select name="settings[style]" class="{{ $selectClass }}"><option value="solid" {{ ($s['style'] ?? '') === 'solid' ? 'selected' : '' }} class="bg-[#0d0818]">Solid</option><option value="dashed" {{ ($s['style'] ?? '') === 'dashed' ? 'selected' : '' }} class="bg-[#0d0818]">Dashed</option><option value="dotted" {{ ($s['style'] ?? '') === 'dotted' ? 'selected' : '' }} class="bg-[#0d0818]">Dotted</option></select></div>
     <div><label class="{{ $labelClass }}">Color</label><input type="text" name="settings[color]" value="{{ $s['color'] ?? 'rgba(255,255,255,0.1)' }}" class="{{ $inputClass }}"></div>
 </div>
 
@@ -111,7 +111,7 @@ $labelClass = 'block text-xs text-white/40 mb-1';
 @elseif($block->type === 'alert')
 <div class="space-y-3">
     <div><label class="{{ $labelClass }}">Text</label><input type="text" name="settings[text]" value="{{ $s['text'] ?? '' }}" class="{{ $inputClass }}"></div>
-    <div><label class="{{ $labelClass }}">Type</label><select name="settings[type]" class="{{ $selectClass }}"><option value="info" {{ ($s['type'] ?? '') === 'info' ? 'selected' : '' }} class="bg-[#1a1025]">Info</option><option value="success" {{ ($s['type'] ?? '') === 'success' ? 'selected' : '' }} class="bg-[#1a1025]">Success</option><option value="warning" {{ ($s['type'] ?? '') === 'warning' ? 'selected' : '' }} class="bg-[#1a1025]">Warning</option><option value="error" {{ ($s['type'] ?? '') === 'error' ? 'selected' : '' }} class="bg-[#1a1025]">Error</option></select></div>
+    <div><label class="{{ $labelClass }}">Type</label><select name="settings[type]" class="{{ $selectClass }}"><option value="info" {{ ($s['type'] ?? '') === 'info' ? 'selected' : '' }} class="bg-[#0d0818]">Info</option><option value="success" {{ ($s['type'] ?? '') === 'success' ? 'selected' : '' }} class="bg-[#0d0818]">Success</option><option value="warning" {{ ($s['type'] ?? '') === 'warning' ? 'selected' : '' }} class="bg-[#0d0818]">Warning</option><option value="error" {{ ($s['type'] ?? '') === 'error' ? 'selected' : '' }} class="bg-[#0d0818]">Error</option></select></div>
 </div>
 
 @elseif($block->type === 'badge')
@@ -137,7 +137,7 @@ $labelClass = 'block text-xs text-white/40 mb-1';
         <div class="flex gap-2 mb-2"><input type="url" x-model="images[i]" :name="'settings[images][' + i + ']'" placeholder="https://..." class="{{ $inputClass }}"><button type="button" @click="images.splice(i,1)" class="text-red-400/60 hover:text-red-400 px-2"><i class="fas fa-times text-xs"></i></button></div>
     </template>
     <button type="button" @click="images.push('')" class="text-xs text-purple-400 hover:text-purple-300"><i class="fas fa-plus mr-1"></i>Add Image</button>
-    @if($block->type === 'image_grid')<div class="mt-3"><label class="{{ $labelClass }}">Columns</label><select name="settings[columns]" class="{{ $selectClass }}"><option value="2" {{ ($s['columns'] ?? 3) == 2 ? 'selected' : '' }} class="bg-[#1a1025]">2</option><option value="3" {{ ($s['columns'] ?? 3) == 3 ? 'selected' : '' }} class="bg-[#1a1025]">3</option><option value="4" {{ ($s['columns'] ?? 3) == 4 ? 'selected' : '' }} class="bg-[#1a1025]">4</option></select></div>@endif
+    @if($block->type === 'image_grid')<div class="mt-3"><label class="{{ $labelClass }}">Columns</label><select name="settings[columns]" class="{{ $selectClass }}"><option value="2" {{ ($s['columns'] ?? 3) == 2 ? 'selected' : '' }} class="bg-[#0d0818]">2</option><option value="3" {{ ($s['columns'] ?? 3) == 3 ? 'selected' : '' }} class="bg-[#0d0818]">3</option><option value="4" {{ ($s['columns'] ?? 3) == 4 ? 'selected' : '' }} class="bg-[#0d0818]">4</option></select></div>@endif
 </div>
 
 @elseif(in_array($block->type, ['video', 'header_video']))
@@ -171,8 +171,8 @@ $labelClass = 'block text-xs text-white/40 mb-1';
 @include('user.links.partials.socials-form', ['s' => $s])
 @if($block->type === 'socials_custom')
 <div class="mt-3 grid grid-cols-2 gap-3">
-    <div><label class="{{ $labelClass }}">Style</label><select name="settings[style]" class="{{ $selectClass }}"><option value="rounded" {{ ($s['style'] ?? '') === 'rounded' ? 'selected' : '' }} class="bg-[#1a1025]">Rounded</option><option value="square" {{ ($s['style'] ?? '') === 'square' ? 'selected' : '' }} class="bg-[#1a1025]">Square</option><option value="circle" {{ ($s['style'] ?? '') === 'circle' ? 'selected' : '' }} class="bg-[#1a1025]">Circle</option></select></div>
-    <div><label class="{{ $labelClass }}">Size</label><select name="settings[size]" class="{{ $selectClass }}"><option value="sm" {{ ($s['size'] ?? '') === 'sm' ? 'selected' : '' }} class="bg-[#1a1025]">Small</option><option value="md" {{ ($s['size'] ?? '') === 'md' ? 'selected' : '' }} class="bg-[#1a1025]">Medium</option><option value="lg" {{ ($s['size'] ?? '') === 'lg' ? 'selected' : '' }} class="bg-[#1a1025]">Large</option></select></div>
+    <div><label class="{{ $labelClass }}">Style</label><select name="settings[style]" class="{{ $selectClass }}"><option value="rounded" {{ ($s['style'] ?? '') === 'rounded' ? 'selected' : '' }} class="bg-[#0d0818]">Rounded</option><option value="square" {{ ($s['style'] ?? '') === 'square' ? 'selected' : '' }} class="bg-[#0d0818]">Square</option><option value="circle" {{ ($s['style'] ?? '') === 'circle' ? 'selected' : '' }} class="bg-[#0d0818]">Circle</option></select></div>
+    <div><label class="{{ $labelClass }}">Size</label><select name="settings[size]" class="{{ $selectClass }}"><option value="sm" {{ ($s['size'] ?? '') === 'sm' ? 'selected' : '' }} class="bg-[#0d0818]">Small</option><option value="md" {{ ($s['size'] ?? '') === 'md' ? 'selected' : '' }} class="bg-[#0d0818]">Medium</option><option value="lg" {{ ($s['size'] ?? '') === 'lg' ? 'selected' : '' }} class="bg-[#0d0818]">Large</option></select></div>
 </div>
 @endif
 
@@ -191,7 +191,7 @@ $labelClass = 'block text-xs text-white/40 mb-1';
 @elseif($block->type === 'spotify')
 <div class="space-y-3">
     <div><label class="{{ $labelClass }}">Spotify URL</label><input type="url" name="settings[url]" value="{{ $s['url'] ?? '' }}" class="{{ $inputClass }}"></div>
-    <div><label class="{{ $labelClass }}">Type</label><select name="settings[type]" class="{{ $selectClass }}"><option value="track" {{ ($s['type'] ?? '') === 'track' ? 'selected' : '' }} class="bg-[#1a1025]">Track</option><option value="album" {{ ($s['type'] ?? '') === 'album' ? 'selected' : '' }} class="bg-[#1a1025]">Album</option><option value="playlist" {{ ($s['type'] ?? '') === 'playlist' ? 'selected' : '' }} class="bg-[#1a1025]">Playlist</option></select></div>
+    <div><label class="{{ $labelClass }}">Type</label><select name="settings[type]" class="{{ $selectClass }}"><option value="track" {{ ($s['type'] ?? '') === 'track' ? 'selected' : '' }} class="bg-[#0d0818]">Track</option><option value="album" {{ ($s['type'] ?? '') === 'album' ? 'selected' : '' }} class="bg-[#0d0818]">Album</option><option value="playlist" {{ ($s['type'] ?? '') === 'playlist' ? 'selected' : '' }} class="bg-[#0d0818]">Playlist</option></select></div>
 </div>
 
 @elseif($block->type === 'youtube')
@@ -292,7 +292,7 @@ $labelClass = 'block text-xs text-white/40 mb-1';
             <input type="text" x-model="items[i].title" :name="'settings[items]['+i+'][title]'" placeholder="Title" class="{{ $inputClass }}">
             <input type="text" x-model="items[i].description" :name="'settings[items]['+i+'][description]'" placeholder="Description" class="{{ $inputClass }}">
             @if($block->type === 'timeline')<input type="text" x-model="items[i].date" :name="'settings[items]['+i+'][date]'" placeholder="Date" class="{{ $inputClass }}">@endif
-            @if($block->type === 'timeline_staged')<select x-model="items[i].status" :name="'settings[items]['+i+'][status]'" class="{{ $selectClass }}"><option value="completed" class="bg-[#1a1025]">Completed</option><option value="active" class="bg-[#1a1025]">Active</option><option value="upcoming" class="bg-[#1a1025]">Upcoming</option></select>@endif
+            @if($block->type === 'timeline_staged')<select x-model="items[i].status" :name="'settings[items]['+i+'][status]'" class="{{ $selectClass }}"><option value="completed" class="bg-[#0d0818]">Completed</option><option value="active" class="bg-[#0d0818]">Active</option><option value="upcoming" class="bg-[#0d0818]">Upcoming</option></select>@endif
             <button type="button" @click="items.splice(i,1)" class="text-xs text-red-400/60 hover:text-red-400"><i class="fas fa-times mr-1"></i>Remove</button>
         </div>
     </template>
@@ -384,13 +384,13 @@ $labelClass = 'block text-xs text-white/40 mb-1';
         <div><label class="{{ $labelClass }}">Button Color</label><input type="color" name="settings[color]" value="{{ $s['color'] ?? '#7c3aed' }}" class="w-full h-10 rounded-xl border border-white/10 bg-white/5"></div>
         <div><label class="{{ $labelClass }}">Text Color</label><input type="color" name="settings[text_color]" value="{{ $s['text_color'] ?? '#ffffff' }}" class="w-full h-10 rounded-xl border border-white/10 bg-white/5"></div>
     </div>
-    <div><label class="{{ $labelClass }}">Size</label><select name="settings[size]" class="{{ $selectClass }}"><option value="sm" {{ ($s['size'] ?? '') === 'sm' ? 'selected' : '' }} class="bg-[#1a1025]">Small</option><option value="md" {{ ($s['size'] ?? '') === 'md' ? 'selected' : '' }} class="bg-[#1a1025]">Medium</option><option value="lg" {{ ($s['size'] ?? '') === 'lg' ? 'selected' : '' }} class="bg-[#1a1025]">Large</option></select></div>
+    <div><label class="{{ $labelClass }}">Size</label><select name="settings[size]" class="{{ $selectClass }}"><option value="sm" {{ ($s['size'] ?? '') === 'sm' ? 'selected' : '' }} class="bg-[#0d0818]">Small</option><option value="md" {{ ($s['size'] ?? '') === 'md' ? 'selected' : '' }} class="bg-[#0d0818]">Medium</option><option value="lg" {{ ($s['size'] ?? '') === 'lg' ? 'selected' : '' }} class="bg-[#0d0818]">Large</option></select></div>
 </div>
 
 @elseif($block->type === 'notification')
 <div class="space-y-3">
     <div><label class="{{ $labelClass }}">Text</label><input type="text" name="settings[text]" value="{{ $s['text'] ?? '' }}" class="{{ $inputClass }}"></div>
-    <div><label class="{{ $labelClass }}">Type</label><select name="settings[type]" class="{{ $selectClass }}"><option value="info" {{ ($s['type'] ?? '') === 'info' ? 'selected' : '' }} class="bg-[#1a1025]">Info</option><option value="success" {{ ($s['type'] ?? '') === 'success' ? 'selected' : '' }} class="bg-[#1a1025]">Success</option><option value="warning" {{ ($s['type'] ?? '') === 'warning' ? 'selected' : '' }} class="bg-[#1a1025]">Warning</option></select></div>
+    <div><label class="{{ $labelClass }}">Type</label><select name="settings[type]" class="{{ $selectClass }}"><option value="info" {{ ($s['type'] ?? '') === 'info' ? 'selected' : '' }} class="bg-[#0d0818]">Info</option><option value="success" {{ ($s['type'] ?? '') === 'success' ? 'selected' : '' }} class="bg-[#0d0818]">Success</option><option value="warning" {{ ($s['type'] ?? '') === 'warning' ? 'selected' : '' }} class="bg-[#0d0818]">Warning</option></select></div>
 </div>
 
 @elseif($block->type === 'ticker')

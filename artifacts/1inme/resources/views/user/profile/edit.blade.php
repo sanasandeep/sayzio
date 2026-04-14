@@ -35,14 +35,14 @@
                         <label class="block text-sm font-medium text-white/60 mb-1.5">Timezone</label>
                         <select name="timezone" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-purple-500/40 outline-none">
                             @foreach($timezones as $tz)
-                                <option value="{{ $tz }}" {{ $user->timezone == $tz ? 'selected' : '' }} class="bg-[#1a1025]">{{ $tz }}</option>
+                                <option value="{{ $tz }}" {{ $user->timezone == $tz ? 'selected' : '' }} class="bg-[#0d0818]">{{ $tz }}</option>
                             @endforeach
                         </select>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-white/60 mb-1.5">Language</label>
                         <select name="language" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-purple-500/40 outline-none">
-                            <option value="en" {{ $user->language == 'en' ? 'selected' : '' }} class="bg-[#1a1025]">English</option>
+                            <option value="en" {{ $user->language == 'en' ? 'selected' : '' }} class="bg-[#0d0818]">English</option>
                         </select>
                     </div>
                 </div>

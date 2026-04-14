@@ -26,8 +26,8 @@
         $fontFamily = $bs['font_family'] ?? 'Space Grotesk';
         $fontColor = $bs['font_color'] ?? '#ffffff';
         $bgType = $bs['background_type'] ?? 'gradient';
-        $bgColor = $bs['background_color'] ?? '#0f0a1a';
-        $bgGradient = $bs['background_gradient'] ?? 'linear-gradient(135deg, #0f0a1a 0%, #1a0533 50%, #0f0a1a 100%)';
+        $bgColor = $bs['background_color'] ?? '#0a0612';
+        $bgGradient = $bs['background_gradient'] ?? 'linear-gradient(135deg, #0a0612 0%, #1a0533 50%, #0a0612 100%)';
         $bgImage = $bs['background_image'] ?? '';
         $btnColor = $bs['button_color'] ?? '#7c3aed';
         $btnTextColor = $bs['button_text_color'] ?? '#ffffff';

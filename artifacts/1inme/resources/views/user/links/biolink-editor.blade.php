@@ -99,15 +99,15 @@
                                 <div>
                                     <label class="block text-xs text-white/40 mb-1.5">Background Type</label>
                                     <select name="background_type" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-purple-500/40 outline-none">
-                                        <option value="color" {{ ($bs['background_type'] ?? '') === 'color' ? 'selected' : '' }} class="bg-[#1a1025]">Solid Color</option>
-                                        <option value="gradient" {{ ($bs['background_type'] ?? '') === 'gradient' ? 'selected' : '' }} class="bg-[#1a1025]">Gradient</option>
-                                        <option value="image" {{ ($bs['background_type'] ?? '') === 'image' ? 'selected' : '' }} class="bg-[#1a1025]">Image</option>
+                                        <option value="color" {{ ($bs['background_type'] ?? '') === 'color' ? 'selected' : '' }} class="bg-[#0d0818]">Solid Color</option>
+                                        <option value="gradient" {{ ($bs['background_type'] ?? '') === 'gradient' ? 'selected' : '' }} class="bg-[#0d0818]">Gradient</option>
+                                        <option value="image" {{ ($bs['background_type'] ?? '') === 'image' ? 'selected' : '' }} class="bg-[#0d0818]">Image</option>
                                     </select>
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
                                         <label class="block text-xs text-white/40 mb-1.5">Background Color</label>
-                                        <input type="color" name="background_color" value="{{ $bs['background_color'] ?? '#0f0a1a' }}" class="w-full h-10 rounded-xl border border-white/10 bg-white/5 cursor-pointer">
+                                        <input type="color" name="background_color" value="{{ $bs['background_color'] ?? '#0a0612' }}" class="w-full h-10 rounded-xl border border-white/10 bg-white/5 cursor-pointer">
                                     </div>
                                     <div>
                                         <label class="block text-xs text-white/40 mb-1.5">Font Color</label>
@@ -116,7 +116,7 @@
                                 </div>
                                 <div>
                                     <label class="block text-xs text-white/40 mb-1.5">Gradient CSS</label>
-                                    <input type="text" name="background_gradient" value="{{ $bs['background_gradient'] ?? 'linear-gradient(135deg, #0f0a1a 0%, #1a0533 50%, #0f0a1a 100%)' }}" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-purple-500/40 outline-none">
+                                    <input type="text" name="background_gradient" value="{{ $bs['background_gradient'] ?? 'linear-gradient(135deg, #0a0612 0%, #1a0533 50%, #0a0612 100%)' }}" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-purple-500/40 outline-none">
                                 </div>
                                 <div>
                                     <label class="block text-xs text-white/40 mb-1.5">Background Image</label>
@@ -126,7 +126,7 @@
                                     <label class="block text-xs text-white/40 mb-1.5">Font Family</label>
                                     <select name="font_family" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-purple-500/40 outline-none">
                                         @foreach(['Space Grotesk', 'Inter', 'Poppins', 'Roboto', 'Playfair Display', 'Montserrat'] as $font)
-                                        <option value="{{ $font }}" {{ ($bs['font_family'] ?? '') === $font ? 'selected' : '' }} class="bg-[#1a1025]">{{ $font }}</option>
+                                        <option value="{{ $font }}" {{ ($bs['font_family'] ?? '') === $font ? 'selected' : '' }} class="bg-[#0d0818]">{{ $font }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -134,7 +134,7 @@
                                     <label class="block text-xs text-white/40 mb-1.5">Button Style</label>
                                     <select name="button_style" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-purple-500/40 outline-none">
                                         @foreach(['rounded' => 'Rounded', 'pill' => 'Pill', 'square' => 'Square', 'outline' => 'Outline', 'shadow' => 'Shadow'] as $val => $label)
-                                        <option value="{{ $val }}" {{ ($bs['button_style'] ?? '') === $val ? 'selected' : '' }} class="bg-[#1a1025]">{{ $label }}</option>
+                                        <option value="{{ $val }}" {{ ($bs['button_style'] ?? '') === $val ? 'selected' : '' }} class="bg-[#0d0818]">{{ $label }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -329,7 +329,7 @@
                             <div class="w-16 h-3.5 bg-white/5 rounded-full"></div>
                         </div>
 
-                        <div class="rounded-[2rem] overflow-hidden bg-[#0f0a1a]" style="height: 580px;">
+                        <div class="rounded-[2rem] overflow-hidden bg-[#0a0612]" style="height: 580px;">
                             <iframe id="previewFrame" src="{{ url('/' . $link->alias) }}" class="w-full h-full border-0 rounded-[2rem]" style="transform-origin: top left;"></iframe>
                         </div>
 
