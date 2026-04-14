@@ -28,20 +28,21 @@ pnpm workspace monorepo using TypeScript + PHP/Laravel. Each package manages its
 - **Demo Login**: `demo@1inme.com` user + `admin@1inme.com` admin; environment-gated (disabled in production); throttled OTP routes
 - **Module registration**: `ModuleServiceProvider` in `bootstrap/providers.php`
 
-### Branding & UI Design
+### Branding & UI Design (Premium Redesign)
 - **Dark/Light Mode Toggle**: CSS custom properties on `:root` / `html.light-mode`, toggled via Alpine.js, persisted in `localStorage('1inme_theme')` as `'dark'`|`'light'`
-  - Shared theme partial: `common/partials/theme-styles.blade.php` (CSS vars for all colors)
+  - Shared theme partial: `common/partials/theme-styles.blade.php` (CSS vars + light-mode JS overrides)
   - Toggle component: `common/partials/theme-toggle.blade.php` (pill switch with sun/moon icons)
   - Default: dark mode; pre-render script prevents flash
-- **Glassmorphism throughout**: Dark bg `var(--bg-body)` = `#0f0a1a` (dark) / `#f0eef5` (light), glass cards use `var(--bg-glass)`, borders use `var(--border-glass)`
-- **Purple palette**: primary `#7c3aed`, accent `#a855f7`, hover `#6d28d9`
-- **Font**: Space Grotesk (Google Fonts CDN)
-- **Sidebar navigation**: Both user and admin panels use sidebar-based layouts with glass-style sidebar (`var(--bg-sidebar)`)
-- **Active sidebar link**: `var(--sidebar-active-bg)`, `var(--sidebar-active-text)`, `var(--sidebar-active-border)`
-- **Form inputs**: `var(--bg-glass-input)` with `var(--text-primary)`, purple focus rings
-- **Status badges**: Use `bg-{color}-500/10 text-{color}-400` pattern
-- All pages (auth, user dashboard, admin panel) include theme-styles partial for mode support
-- Mobile responsive: Both user and admin have slide-out mobile sidebar drawers
+- **Premium Glassmorphism**: Dark bg `#0a0612` / light `#f4f2f8`, enhanced blur(24px) + saturate(1.2), noise texture overlay, mesh gradient backgrounds
+- **Purple palette**: primary `#8b5cf6`, accent `#a78bfa`, CTA gradient `from-purple-500 to-violet-600`
+- **Font**: Space Grotesk (Google Fonts CDN), antialiased rendering
+- **Component classes**: `.card-premium` (hover lift + shadow), `.stat-card` (gradient accent bar on hover), `.btn-primary` (gradient + shadow), `.btn-ghost`, `.badge` (pill style)
+- **Login page**: Split layout — left: branding + feature bullets + social proof; right: login form with Password/OTP tabs
+- **Sidebar**: Fixed position, 260px width, gradient logo icon, navigation with section headers, upgrade CTA card, user profile footer
+- **Dashboard**: Time-of-day greeting, 5 stat cards with colored accent bars, recent links with premium card style, quick actions with chevron arrows, plan progress bar
+- **Links page**: Colored type badges (purple/pink/green/amber/cyan), always-visible action buttons (40% opacity → 100% on hover), theme-input filter bar
+- **Form inputs**: `.theme-input` class with focus ring + box-shadow
+- All pages include theme-styles partial; mobile responsive with slide-out drawers
 
 ### Block Display Settings
 - Per-block visibility controls in `user/links/partials/block-display-settings.blade.php`

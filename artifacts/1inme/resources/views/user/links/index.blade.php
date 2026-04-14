@@ -4,110 +4,116 @@
 @section('content')
 <div class="flex items-center justify-between mb-6">
     <div>
-        <h1 class="text-2xl font-bold text-white">My Links</h1>
-        <p class="text-white/40 text-sm mt-1">Manage all your shortened links</p>
+        <h1 class="text-xl font-bold" style="color: var(--text-primary);">My Links</h1>
+        <p class="text-xs mt-0.5" style="color: var(--text-dimmed);">Manage and track all your shortened links</p>
     </div>
-    <a href="{{ route('user.links.create') }}" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 transition-all hover:shadow-lg hover:shadow-purple-500/20">
-        <i class="fas fa-plus text-xs"></i> Create Link
+    <a href="{{ route('user.links.create') }}" class="btn-primary text-xs py-2">
+        <i class="fas fa-plus text-[10px]"></i> Create Link
     </a>
 </div>
 
-<div class="glass rounded-2xl mb-6">
-    <form method="GET" class="p-4 flex flex-wrap items-end gap-4">
+<div class="card-premium mb-5">
+    <form method="GET" class="p-4 flex flex-wrap items-end gap-3">
         <div class="flex-1 min-w-[200px]">
-            <label class="block text-[11px] text-white/30 uppercase tracking-wider mb-1.5">Search</label>
+            <label class="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style="color: var(--text-faint);">Search</label>
             <input type="text" name="search" value="{{ request('search') }}" placeholder="Search links..."
-                   class="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500/40 outline-none transition-all">
+                   class="theme-input w-full">
         </div>
         <div>
-            <label class="block text-[11px] text-white/30 uppercase tracking-wider mb-1.5">Type</label>
-            <select name="type" class="bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white focus:ring-2 focus:ring-purple-500/40 outline-none appearance-none pr-8">
-                <option value="" class="bg-[#1a1025]">All Types</option>
-                <option value="url" {{ request('type') === 'url' ? 'selected' : '' }} class="bg-[#1a1025]">URL Shortener</option>
-                <option value="biolink" {{ request('type') === 'biolink' ? 'selected' : '' }} class="bg-[#1a1025]">Bio Link</option>
-                <option value="file" {{ request('type') === 'file' ? 'selected' : '' }} class="bg-[#1a1025]">File Link</option>
-                <option value="ics" {{ request('type') === 'ics' ? 'selected' : '' }} class="bg-[#1a1025]">ICS</option>
-                <option value="vcf" {{ request('type') === 'vcf' ? 'selected' : '' }} class="bg-[#1a1025]">VCF</option>
+            <label class="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style="color: var(--text-faint);">Type</label>
+            <select name="type" class="theme-input appearance-none pr-8">
+                <option value="" class="bg-[#0a0612]">All Types</option>
+                <option value="url" {{ request('type') === 'url' ? 'selected' : '' }} class="bg-[#0a0612]">URL Shortener</option>
+                <option value="biolink" {{ request('type') === 'biolink' ? 'selected' : '' }} class="bg-[#0a0612]">Bio Link</option>
+                <option value="file" {{ request('type') === 'file' ? 'selected' : '' }} class="bg-[#0a0612]">File Link</option>
+                <option value="ics" {{ request('type') === 'ics' ? 'selected' : '' }} class="bg-[#0a0612]">ICS</option>
+                <option value="vcf" {{ request('type') === 'vcf' ? 'selected' : '' }} class="bg-[#0a0612]">VCF</option>
             </select>
         </div>
         <div>
-            <label class="block text-[11px] text-white/30 uppercase tracking-wider mb-1.5">Project</label>
-            <select name="project_id" class="bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white focus:ring-2 focus:ring-purple-500/40 outline-none appearance-none pr-8">
-                <option value="" class="bg-[#1a1025]">All Projects</option>
+            <label class="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style="color: var(--text-faint);">Project</label>
+            <select name="project_id" class="theme-input appearance-none pr-8">
+                <option value="" class="bg-[#0a0612]">All Projects</option>
                 @foreach($projects as $project)
-                    <option value="{{ $project->id }}" {{ request('project_id') == $project->id ? 'selected' : '' }} class="bg-[#1a1025]">{{ $project->name }}</option>
+                    <option value="{{ $project->id }}" {{ request('project_id') == $project->id ? 'selected' : '' }} class="bg-[#0a0612]">{{ $project->name }}</option>
                 @endforeach
             </select>
         </div>
         <div>
-            <label class="block text-[11px] text-white/30 uppercase tracking-wider mb-1.5">Status</label>
-            <select name="status" class="bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white focus:ring-2 focus:ring-purple-500/40 outline-none appearance-none pr-8">
-                <option value="" class="bg-[#1a1025]">All</option>
-                <option value="active" {{ request('status') === 'active' ? 'selected' : '' }} class="bg-[#1a1025]">Active</option>
-                <option value="inactive" {{ request('status') === 'inactive' ? 'selected' : '' }} class="bg-[#1a1025]">Inactive</option>
+            <label class="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style="color: var(--text-faint);">Status</label>
+            <select name="status" class="theme-input appearance-none pr-8">
+                <option value="" class="bg-[#0a0612]">All</option>
+                <option value="active" {{ request('status') === 'active' ? 'selected' : '' }} class="bg-[#0a0612]">Active</option>
+                <option value="inactive" {{ request('status') === 'inactive' ? 'selected' : '' }} class="bg-[#0a0612]">Inactive</option>
             </select>
         </div>
-        <button type="submit" class="bg-white/10 hover:bg-white/15 text-white/70 px-5 py-2.5 rounded-xl text-sm font-medium transition-all border border-white/10">
-            <i class="fas fa-search text-xs mr-1.5"></i> Filter
+        <button type="submit" class="btn-ghost text-xs py-2">
+            <i class="fas fa-search text-[10px]"></i> Filter
         </button>
     </form>
 </div>
 
 @if($links->isEmpty())
-<div class="glass rounded-2xl p-14 text-center">
-    <div class="w-16 h-16 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mx-auto mb-5">
-        <i class="fas fa-link text-purple-400 text-2xl"></i>
+<div class="card-premium p-14 text-center">
+    <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style="background: rgba(139,92,246,0.08); border: 1px solid rgba(139,92,246,0.12);">
+        <i class="fas fa-link text-purple-400 text-xl"></i>
     </div>
-    <h3 class="text-lg font-semibold text-white mb-2">No links yet</h3>
-    <p class="text-white/40 mb-5 text-sm">Create your first link to start tracking clicks.</p>
-    <a href="{{ route('user.links.create') }}" class="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-purple-500/20">
-        <i class="fas fa-plus text-xs"></i> Create Link
+    <h3 class="text-base font-bold mb-1.5" style="color: var(--text-primary);">No links yet</h3>
+    <p class="text-xs mb-5" style="color: var(--text-dimmed);">Create your first link to start tracking clicks.</p>
+    <a href="{{ route('user.links.create') }}" class="btn-primary text-xs py-2.5">
+        <i class="fas fa-plus text-[10px]"></i> Create Link
     </a>
 </div>
 @else
-<div class="space-y-3">
+<div class="space-y-2.5">
     @foreach($links as $link)
-    <div class="glass rounded-2xl p-4 hover:bg-white/[0.06] transition-all group">
+    @php
+        $typeStyles = [
+            'url'     => ['icon' => 'fa-link',         'bg' => 'rgba(139,92,246,0.08)', 'border' => 'rgba(139,92,246,0.12)', 'color' => '#a78bfa', 'label' => 'URL'],
+            'biolink' => ['icon' => 'fa-id-card',      'bg' => 'rgba(236,72,153,0.08)', 'border' => 'rgba(236,72,153,0.12)', 'color' => '#f472b6', 'label' => 'Bio'],
+            'file'    => ['icon' => 'fa-file',         'bg' => 'rgba(16,185,129,0.08)', 'border' => 'rgba(16,185,129,0.12)', 'color' => '#34d399', 'label' => 'File'],
+            'ics'     => ['icon' => 'fa-calendar',     'bg' => 'rgba(245,158,11,0.08)', 'border' => 'rgba(245,158,11,0.12)', 'color' => '#fbbf24', 'label' => 'ICS'],
+            'vcf'     => ['icon' => 'fa-address-card', 'bg' => 'rgba(6,182,212,0.08)',  'border' => 'rgba(6,182,212,0.12)',  'color' => '#22d3ee', 'label' => 'VCF'],
+        ];
+        $ts = $typeStyles[$link->type] ?? $typeStyles['url'];
+    @endphp
+    <div class="card-premium p-4 group">
         <div class="flex items-start justify-between">
-            <div class="flex items-start gap-4 flex-1 min-w-0">
-                <div class="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-sm
-                    {{ $link->type === 'url' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' : '' }}
-                    {{ $link->type === 'biolink' ? 'bg-pink-500/10 text-pink-400 border border-pink-500/20' : '' }}
-                    {{ $link->type === 'file' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : '' }}
-                    {{ $link->type === 'ics' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : '' }}
-                    {{ $link->type === 'vcf' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : '' }}">
-                    <i class="fas {{ $link->type === 'url' ? 'fa-link' : ($link->type === 'biolink' ? 'fa-id-card' : ($link->type === 'file' ? 'fa-file' : ($link->type === 'ics' ? 'fa-calendar' : 'fa-address-card'))) }}"></i>
+            <div class="flex items-start gap-3.5 flex-1 min-w-0">
+                <div class="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center" style="background: {{ $ts['bg'] }}; border: 1px solid {{ $ts['border'] }};">
+                    <i class="fas {{ $ts['icon'] }} text-sm" style="color: {{ $ts['color'] }};"></i>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2 mb-1">
-                        <a href="{{ route('user.links.show', $link) }}" class="font-semibold text-white hover:text-purple-400 truncate transition-colors">
+                    <div class="flex items-center gap-2 mb-0.5">
+                        <a href="{{ route('user.links.show', $link) }}" class="text-sm font-semibold truncate transition-colors hover:text-purple-400" style="color: var(--text-primary);">
                             {{ $link->title ?: $link->alias }}
                         </a>
+                        <span class="badge" style="background: {{ $ts['bg'] }}; color: {{ $ts['color'] }}; border: 1px solid {{ $ts['border'] }};">{{ $ts['label'] }}</span>
                         @if(!$link->is_active)
-                            <span class="text-[10px] bg-red-500/10 text-red-400 px-2 py-0.5 rounded-md border border-red-500/20 font-medium">Inactive</span>
+                            <span class="badge" style="background: rgba(239,68,68,0.08); color: #f87171; border: 1px solid rgba(239,68,68,0.12);">Inactive</span>
                         @endif
                         @if($link->is_password_protected)
-                            <i class="fas fa-lock text-white/20 text-[10px]" title="Password protected"></i>
+                            <i class="fas fa-lock text-[9px]" style="color: var(--text-faint);" title="Password protected"></i>
                         @endif
                         @if($link->expires_at)
-                            <i class="fas fa-clock text-white/20 text-[10px]" title="Expires {{ $link->expires_at->format('M d, Y') }}"></i>
+                            <i class="fas fa-clock text-[9px]" style="color: var(--text-faint);" title="Expires {{ $link->expires_at->format('M d, Y') }}"></i>
                         @endif
                     </div>
-                    <div class="flex items-center gap-2 text-sm text-purple-400/70 mb-1" x-data="{ copied: false }">
+                    <div class="flex items-center gap-1.5 text-xs text-purple-400/60 mb-0.5" x-data="{ copied: false }">
                         <span class="truncate">{{ $link->getShortUrl() }}</span>
                         <button @click="navigator.clipboard.writeText('{{ $link->getShortUrl() }}'); copied = true; setTimeout(() => copied = false, 2000)"
-                                class="text-white/20 hover:text-purple-400 flex-shrink-0 transition-colors">
-                            <i x-show="!copied" class="fas fa-copy text-xs"></i>
-                            <i x-show="copied" x-cloak class="fas fa-check text-emerald-400 text-xs"></i>
+                                class="flex-shrink-0 transition-colors hover:text-purple-400" style="color: var(--text-faint);">
+                            <i x-show="!copied" class="fas fa-copy text-[10px]"></i>
+                            <i x-show="copied" x-cloak class="fas fa-check text-emerald-400 text-[10px]"></i>
                         </button>
                     </div>
                     @if($link->long_url)
-                    <p class="text-xs text-white/20 truncate">{{ $link->long_url }}</p>
+                    <p class="text-[11px] truncate" style="color: var(--text-faint);">{{ $link->long_url }}</p>
                     @endif
-                    <div class="flex items-center gap-3 mt-2 text-[11px] text-white/25">
+                    <div class="flex items-center gap-3 mt-1.5 text-[10px]" style="color: var(--text-faint);">
                         @if($link->project)
-                            <span class="flex items-center gap-1.5">
-                                <span class="w-2 h-2 rounded-full" style="background-color: {{ $link->project->color }}"></span>
+                            <span class="flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full" style="background-color: {{ $link->project->color }}"></span>
                                 {{ $link->project->name }}
                             </span>
                         @endif
@@ -118,25 +124,25 @@
 
             <div class="flex items-center gap-4 ml-4">
                 <div class="text-center">
-                    <div class="text-lg font-bold text-white">{{ number_format($link->total_clicks) }}</div>
-                    <div class="text-[11px] text-white/25">clicks</div>
+                    <div class="text-lg font-bold" style="color: var(--text-primary);">{{ number_format($link->total_clicks) }}</div>
+                    <div class="text-[10px]" style="color: var(--text-faint);">clicks</div>
                 </div>
-                <div class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <a href="{{ route('user.links.show', $link) }}" class="p-2 text-white/30 hover:text-purple-400 hover:bg-purple-500/10 rounded-lg transition-all" title="View">
-                        <i class="fas fa-chart-bar text-sm"></i>
+                <div class="flex items-center gap-0.5 opacity-40 group-hover:opacity-100 transition-opacity">
+                    <a href="{{ route('user.links.show', $link) }}" class="p-1.5 rounded-md transition-all hover:bg-purple-500/10" style="color: var(--text-faint);" title="View">
+                        <i class="fas fa-chart-bar text-xs hover:text-purple-400"></i>
                     </a>
                     @if($link->type === 'biolink')
-                    <a href="{{ route('user.links.blocks.editor', $link) }}" class="p-2 text-white/30 hover:text-pink-400 hover:bg-pink-500/10 rounded-lg transition-all" title="Edit Blocks">
-                        <i class="fas fa-th-large text-sm"></i>
+                    <a href="{{ route('user.links.blocks.editor', $link) }}" class="p-1.5 rounded-md transition-all hover:bg-pink-500/10" style="color: var(--text-faint);" title="Edit Blocks">
+                        <i class="fas fa-th-large text-xs hover:text-pink-400"></i>
                     </a>
                     @endif
-                    <a href="{{ route('user.links.edit', $link) }}" class="p-2 text-white/30 hover:text-purple-400 hover:bg-purple-500/10 rounded-lg transition-all" title="Edit">
-                        <i class="fas fa-edit text-sm"></i>
+                    <a href="{{ route('user.links.edit', $link) }}" class="p-1.5 rounded-md transition-all hover:bg-purple-500/10" style="color: var(--text-faint);" title="Edit">
+                        <i class="fas fa-edit text-xs hover:text-purple-400"></i>
                     </a>
                     <form action="{{ route('user.links.destroy', $link) }}" method="POST" onsubmit="return confirm('Delete this link?')">
                         @csrf @method('DELETE')
-                        <button class="p-2 text-white/30 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all" title="Delete">
-                            <i class="fas fa-trash text-sm"></i>
+                        <button class="p-1.5 rounded-md transition-all hover:bg-red-500/10" style="color: var(--text-faint);" title="Delete">
+                            <i class="fas fa-trash text-xs hover:text-red-400"></i>
                         </button>
                     </form>
                 </div>
@@ -146,6 +152,6 @@
     @endforeach
 </div>
 
-<div class="mt-6">{{ $links->links() }}</div>
+<div class="mt-5">{{ $links->links() }}</div>
 @endif
 @endsection

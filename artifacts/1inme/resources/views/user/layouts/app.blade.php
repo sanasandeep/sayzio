@@ -24,100 +24,113 @@
     @include('common.partials.theme-styles')
 </head>
 <body class="min-h-screen" style="color: var(--text-primary);">
-    <div class="bg-glow"></div>
-    <div class="bg-glow-2"></div>
+    <div class="bg-mesh"></div>
 
     <div class="flex min-h-screen relative z-10" x-data="{ sidebarOpen: true, mobileMenu: false }">
-        <aside class="w-64 flex-shrink-0 hidden lg:flex flex-col glass" style="border-right: 1px solid var(--border-subtle); background: var(--bg-sidebar); backdrop-filter: blur(30px);">
-            <div class="h-16 flex items-center px-6" style="border-bottom: 1px solid var(--border-subtle);">
-                <a href="{{ route('user.dashboard') }}" class="text-xl font-bold tracking-tight">
-                    <span style="color: var(--text-primary);">1IN</span><span class="text-purple-400">ME</span>
+        <aside class="w-[260px] flex-shrink-0 hidden lg:flex flex-col fixed inset-y-0 left-0 z-30" style="background: var(--bg-sidebar); backdrop-filter: blur(32px) saturate(1.2); -webkit-backdrop-filter: blur(32px) saturate(1.2); border-right: 1px solid var(--border-subtle);">
+            <div class="h-[60px] flex items-center px-5" style="border-bottom: 1px solid var(--border-subtle);">
+                <a href="{{ route('user.dashboard') }}" class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center shadow-lg" style="box-shadow: 0 4px 12px rgba(139,92,246,0.3);">
+                        <span class="text-white text-xs font-bold">1</span>
+                    </div>
+                    <span class="text-base font-bold tracking-tight">
+                        <span style="color: var(--text-primary);">1IN</span><span class="text-purple-400">ME</span>
+                    </span>
                 </a>
             </div>
 
-            <nav class="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
+            <nav class="flex-1 py-4 px-3 space-y-0.5 overflow-y-auto">
                 <a href="{{ route('user.dashboard') }}"
                    class="sidebar-link {{ request()->routeIs('user.dashboard') ? 'active' : '' }}">
-                    <i class="fas fa-grid-2 w-5 text-center"></i>
+                    <i class="fas fa-grid-2"></i>
                     <span>Dashboard</span>
                 </a>
 
-                <div class="pt-5 pb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Links</div>
+                <div class="pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.12em]" style="color: var(--text-faint);">Links</div>
 
                 <a href="{{ route('user.links.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.links.index') || request()->routeIs('user.links.show') ? 'active' : '' }}">
-                    <i class="fas fa-link w-5 text-center"></i>
+                    <i class="fas fa-link"></i>
                     <span>All Links</span>
                 </a>
                 <a href="{{ route('user.links.create') }}"
                    class="sidebar-link {{ request()->routeIs('user.links.create') ? 'active' : '' }}">
-                    <i class="fas fa-plus w-5 text-center"></i>
+                    <i class="fas fa-plus-circle"></i>
                     <span>Create Link</span>
                 </a>
                 <a href="{{ route('user.qrcode') }}"
                    class="sidebar-link {{ request()->routeIs('user.qrcode*') ? 'active' : '' }}">
-                    <i class="fas fa-qrcode w-5 text-center"></i>
+                    <i class="fas fa-qrcode"></i>
                     <span>QR Codes</span>
                 </a>
 
-                <div class="pt-5 pb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Manage</div>
+                <div class="pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.12em]" style="color: var(--text-faint);">Manage</div>
 
                 <a href="{{ route('user.projects.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.projects.*') ? 'active' : '' }}">
-                    <i class="fas fa-folder w-5 text-center"></i>
+                    <i class="fas fa-folder"></i>
                     <span>Projects</span>
                 </a>
                 <a href="{{ route('user.pixels.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.pixels.*') ? 'active' : '' }}">
-                    <i class="fas fa-bullseye w-5 text-center"></i>
+                    <i class="fas fa-bullseye"></i>
                     <span>Tracking Pixels</span>
                 </a>
 
-                <div class="pt-5 pb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Account</div>
+                <div class="pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.12em]" style="color: var(--text-faint);">Account</div>
 
                 <a href="{{ route('user.profile.edit') }}"
                    class="sidebar-link {{ request()->routeIs('user.profile.*') ? 'active' : '' }}">
-                    <i class="fas fa-user-circle w-5 text-center"></i>
+                    <i class="fas fa-user-circle"></i>
                     <span>Profile</span>
                 </a>
             </nav>
 
-            <div class="p-4" style="border-top: 1px solid var(--border-subtle);">
-                <div class="flex items-center gap-3 mb-3">
-                    @include('common.partials.theme-toggle')
-                    <span class="text-xs" style="color: var(--text-dimmed);">Theme</span>
+            <div class="mx-3 mb-3 p-3 rounded-xl" style="background: linear-gradient(135deg, rgba(139,92,246,0.08), rgba(168,85,247,0.04)); border: 1px solid rgba(139,92,246,0.12);">
+                <div class="flex items-center gap-2 mb-2">
+                    <i class="fas fa-gem text-purple-400 text-xs"></i>
+                    <span class="text-xs font-semibold" style="color: var(--text-primary);">{{ auth()->user()->plan->name ?? 'Free' }} Plan</span>
                 </div>
+                <p class="text-[10px] mb-2.5 leading-relaxed" style="color: var(--text-dimmed);">Unlock advanced analytics, custom domains & more.</p>
+                <a href="#" class="block text-center text-[10px] font-bold uppercase tracking-wider py-1.5 rounded-lg text-purple-400 transition-all hover:text-white hover:bg-purple-600" style="background: rgba(139,92,246,0.1);">
+                    Upgrade
+                </a>
+            </div>
+
+            <div class="p-3" style="border-top: 1px solid var(--border-subtle);">
                 <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center text-white text-sm font-bold shadow-lg shadow-purple-500/20">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center text-white text-xs font-bold shadow-md" style="box-shadow: 0 2px 8px rgba(139,92,246,0.25);">
                         {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
                     </div>
                     <div class="flex-1 min-w-0">
-                        <p class="text-sm font-medium truncate" style="color: var(--text-primary);">{{ auth()->user()->name }}</p>
-                        <p class="text-xs truncate" style="color: var(--text-dimmed);">{{ auth()->user()->plan->name ?? 'Free' }} Plan</p>
+                        <p class="text-xs font-semibold truncate" style="color: var(--text-primary);">{{ auth()->user()->name }}</p>
+                        <p class="text-[10px] truncate" style="color: var(--text-dimmed);">{{ auth()->user()->email }}</p>
                     </div>
                     <form action="{{ route('user.logout') }}" method="POST">
                         @csrf
-                        <button type="submit" class="hover:text-red-400 transition-colors" style="color: var(--text-dimmed);" title="Logout">
-                            <i class="fas fa-sign-out-alt text-sm"></i>
+                        <button type="submit" class="p-1.5 rounded-md hover:text-red-400 transition-colors" style="color: var(--text-dimmed);" title="Logout">
+                            <i class="fas fa-sign-out-alt text-xs"></i>
                         </button>
                     </form>
                 </div>
             </div>
         </aside>
 
-        <div class="flex-1 flex flex-col min-w-0">
-            <header class="h-16 flex items-center justify-between px-6"
-                    style="border-bottom: 1px solid var(--border-subtle); background: var(--bg-header); backdrop-filter: blur(20px);">
-                <div class="flex items-center gap-4">
-                    <button @click="mobileMenu = !mobileMenu" class="lg:hidden hover:opacity-80" style="color: var(--text-muted);">
-                        <i class="fas fa-bars text-lg"></i>
+        <div class="flex-1 flex flex-col min-w-0 lg:ml-[260px]">
+            <header class="h-[60px] flex items-center justify-between px-5 sticky top-0 z-20"
+                    style="border-bottom: 1px solid var(--border-subtle); background: var(--bg-header); backdrop-filter: blur(24px) saturate(1.2); -webkit-backdrop-filter: blur(24px) saturate(1.2);">
+                <div class="flex items-center gap-3">
+                    <button @click="mobileMenu = !mobileMenu" class="lg:hidden hover:opacity-80 p-1" style="color: var(--text-muted);">
+                        <i class="fas fa-bars"></i>
                     </button>
-                    <h1 class="text-base font-semibold" style="color: var(--text-secondary);">@yield('title', 'Dashboard')</h1>
+                    <div class="flex items-center gap-2 text-sm">
+                        <span class="font-semibold" style="color: var(--text-primary);">@yield('title', 'Dashboard')</span>
+                    </div>
                 </div>
 
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2">
                     @if(session('impersonate_user_id'))
-                    <div class="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 px-3 py-1.5 rounded-lg text-xs font-medium">
+                    <div class="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 px-2.5 py-1 rounded-lg text-[10px] font-semibold">
                         <i class="fas fa-user-secret"></i>
                         <span>Admin viewing</span>
                         <form action="{{ route('user.logout') }}" method="POST" class="inline">
@@ -132,20 +145,20 @@
                     </div>
 
                     <a href="{{ route('user.links.create') }}"
-                       class="hidden sm:inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-xl transition-all hover:shadow-lg hover:shadow-purple-500/20">
-                        <i class="fas fa-plus text-xs"></i> New Link
+                       class="btn-primary hidden sm:inline-flex text-xs py-2">
+                        <i class="fas fa-plus text-[10px]"></i> New Link
                     </a>
 
                     <div x-data="{ open: false }" class="relative lg:hidden">
-                        <button @click="open = !open" class="w-9 h-9 rounded-xl flex items-center justify-center hover:opacity-80" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);">
-                            <i class="fas fa-ellipsis-v"></i>
+                        <button @click="open = !open" class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);">
+                            <i class="fas fa-ellipsis-v text-xs"></i>
                         </button>
                         <div x-show="open" @click.away="open = false" x-cloak
-                             class="absolute right-0 mt-2 w-48 glass rounded-xl py-1 z-50" style="box-shadow: var(--card-shadow);">
-                            <a href="{{ route('user.profile.edit') }}" class="block px-4 py-2 text-sm hover:opacity-80" style="color: var(--text-muted);">Profile</a>
+                             class="absolute right-0 mt-2 w-44 glass rounded-xl py-1 z-50" style="box-shadow: var(--card-shadow);">
+                            <a href="{{ route('user.profile.edit') }}" class="block px-3 py-2 text-xs hover:opacity-80" style="color: var(--text-muted);">Profile</a>
                             <form action="{{ route('user.logout') }}" method="POST">
                                 @csrf
-                                <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-white/5">Logout</button>
+                                <button type="submit" class="w-full text-left px-3 py-2 text-xs text-red-400 hover:bg-white/5">Logout</button>
                             </form>
                         </div>
                     </div>
@@ -154,36 +167,47 @@
 
             <div x-show="mobileMenu" @click.away="mobileMenu = false" x-cloak
                  class="lg:hidden fixed inset-0 z-50 backdrop-blur-sm" style="background: var(--overlay-bg);">
-                <div class="w-72 h-full flex flex-col" style="background: var(--bg-sidebar-mobile); backdrop-filter: blur(30px);">
-                    <div class="h-16 flex items-center justify-between px-6" style="border-bottom: 1px solid var(--border-subtle);">
-                        <span class="text-xl font-bold"><span style="color: var(--text-primary);">1IN</span><span class="text-purple-400">ME</span></span>
-                        <button @click="mobileMenu = false" style="color: var(--text-muted);" class="hover:opacity-80"><i class="fas fa-times"></i></button>
+                <div class="w-[280px] h-full flex flex-col" style="background: var(--bg-sidebar-mobile); backdrop-filter: blur(32px);">
+                    <div class="h-[60px] flex items-center justify-between px-5" style="border-bottom: 1px solid var(--border-subtle);">
+                        <div class="flex items-center gap-2">
+                            <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center">
+                                <span class="text-white text-[10px] font-bold">1</span>
+                            </div>
+                            <span class="text-base font-bold"><span style="color: var(--text-primary);">1IN</span><span class="text-purple-400">ME</span></span>
+                        </div>
+                        <button @click="mobileMenu = false" style="color: var(--text-muted);"><i class="fas fa-times text-sm"></i></button>
                     </div>
-                    <nav class="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
-                        <a href="{{ route('user.dashboard') }}" class="sidebar-link {{ request()->routeIs('user.dashboard') ? 'active' : '' }}"><i class="fas fa-grid-2 w-5 text-center"></i> Dashboard</a>
-                        <a href="{{ route('user.links.index') }}" class="sidebar-link {{ request()->routeIs('user.links.*') ? 'active' : '' }}"><i class="fas fa-link w-5 text-center"></i> All Links</a>
-                        <a href="{{ route('user.links.create') }}" class="sidebar-link"><i class="fas fa-plus w-5 text-center"></i> Create Link</a>
-                        <a href="{{ route('user.qrcode') }}" class="sidebar-link {{ request()->routeIs('user.qrcode*') ? 'active' : '' }}"><i class="fas fa-qrcode w-5 text-center"></i> QR Codes</a>
-                        <a href="{{ route('user.projects.index') }}" class="sidebar-link {{ request()->routeIs('user.projects.*') ? 'active' : '' }}"><i class="fas fa-folder w-5 text-center"></i> Projects</a>
-                        <a href="{{ route('user.pixels.index') }}" class="sidebar-link {{ request()->routeIs('user.pixels.*') ? 'active' : '' }}"><i class="fas fa-bullseye w-5 text-center"></i> Pixels</a>
-                        <a href="{{ route('user.profile.edit') }}" class="sidebar-link {{ request()->routeIs('user.profile.*') ? 'active' : '' }}"><i class="fas fa-user-circle w-5 text-center"></i> Profile</a>
+                    <nav class="flex-1 py-4 px-3 space-y-0.5 overflow-y-auto">
+                        <a href="{{ route('user.dashboard') }}" class="sidebar-link {{ request()->routeIs('user.dashboard') ? 'active' : '' }}"><i class="fas fa-grid-2"></i> Dashboard</a>
+                        <a href="{{ route('user.links.index') }}" class="sidebar-link {{ request()->routeIs('user.links.*') ? 'active' : '' }}"><i class="fas fa-link"></i> All Links</a>
+                        <a href="{{ route('user.links.create') }}" class="sidebar-link"><i class="fas fa-plus-circle"></i> Create Link</a>
+                        <a href="{{ route('user.qrcode') }}" class="sidebar-link {{ request()->routeIs('user.qrcode*') ? 'active' : '' }}"><i class="fas fa-qrcode"></i> QR Codes</a>
+                        <a href="{{ route('user.projects.index') }}" class="sidebar-link {{ request()->routeIs('user.projects.*') ? 'active' : '' }}"><i class="fas fa-folder"></i> Projects</a>
+                        <a href="{{ route('user.pixels.index') }}" class="sidebar-link {{ request()->routeIs('user.pixels.*') ? 'active' : '' }}"><i class="fas fa-bullseye"></i> Pixels</a>
+                        <a href="{{ route('user.profile.edit') }}" class="sidebar-link {{ request()->routeIs('user.profile.*') ? 'active' : '' }}"><i class="fas fa-user-circle"></i> Profile</a>
                     </nav>
+                    <div class="p-3" style="border-top: 1px solid var(--border-subtle);">
+                        <div class="flex items-center gap-2 mb-2">
+                            @include('common.partials.theme-toggle')
+                            <span class="text-[10px]" style="color: var(--text-dimmed);">Theme</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <main class="flex-1 p-6 overflow-y-auto">
+            <main class="flex-1 p-5 lg:p-6 overflow-y-auto">
                 @if(session('success'))
-                    <div class="mb-4 p-4 glass rounded-xl border-green-500/20 text-green-400 text-sm flex items-center gap-3" style="border-color: rgba(34,197,94,0.2); background: rgba(34,197,94,0.06);">
+                    <div class="mb-4 p-3.5 rounded-xl text-emerald-400 text-xs font-medium flex items-center gap-2.5" style="border: 1px solid rgba(16,185,129,0.15); background: rgba(16,185,129,0.06);">
                         <i class="fas fa-check-circle"></i> {{ session('success') }}
                     </div>
                 @endif
                 @if(session('error'))
-                    <div class="mb-4 p-4 glass rounded-xl text-red-400 text-sm flex items-center gap-3" style="border-color: rgba(239,68,68,0.2); background: rgba(239,68,68,0.06);">
+                    <div class="mb-4 p-3.5 rounded-xl text-red-400 text-xs font-medium flex items-center gap-2.5" style="border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.06);">
                         <i class="fas fa-exclamation-circle"></i> {{ session('error') }}
                     </div>
                 @endif
                 @if(session('info'))
-                    <div class="mb-4 p-4 glass rounded-xl text-purple-400 text-sm flex items-center gap-3" style="border-color: rgba(168,85,247,0.2); background: rgba(168,85,247,0.06);">
+                    <div class="mb-4 p-3.5 rounded-xl text-purple-400 text-xs font-medium flex items-center gap-2.5" style="border: 1px solid rgba(139,92,246,0.15); background: rgba(139,92,246,0.06);">
                         <i class="fas fa-info-circle"></i> {{ session('info') }}
                     </div>
                 @endif
