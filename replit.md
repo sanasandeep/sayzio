@@ -61,8 +61,19 @@ pnpm workspace monorepo using TypeScript + PHP/Laravel. Each package manages its
 - **File Download Page**: branded download page with file preview (images), file type icon, size display, download button
 - **Admin link management**: browse all user links, filter by type/status/user, toggle active, bulk enable/disable/delete
 
+### Biolink Blocks System
+- **Block Editor**: `/user/links/{id}/blocks` — full block editor with add/edit/delete/toggle/reorder
+- **Block Types (18)**: link, heading, paragraph, image, video, audio, divider, spacer, avatar, socials, faq, email_collector, map, custom_html, youtube, spotify, countdown, cta_button
+- **Block Categories**: Content, Layout, Social Media, Engagement, Advanced
+- **Public Rendering**: `/r/{alias}` renders blocks with full styling (glassmorphism, Font Awesome icons, Alpine.js for FAQ/countdown)
+- **Page Settings**: Background (color/gradient/image), font family, font color, button color/style (rounded/pill/square/outline/shadow)
+- **Security**: Custom HTML sanitized with strip_tags allowlist on both save and render; URL fields validated to require `http(s)://` scheme; social platform URLs validated
+- **Scheduling**: Blocks support start_date/end_date for visibility scheduling
+- **Model**: `BiolinkBlock` (link_id, type, settings JSON, sort_order, is_active, start_date, end_date)
+- **Controller**: `BiolinkBlockController` handles CRUD, reorder, toggle, page settings
+
 ### Database Tables
-`roles`, `permissions`, `role_permissions`, `admins`, `plans`, `users` (has `mobile` column), `projects`, `domains`, `pixels`, `links`, `link_pixels`, `link_clicks`, `file_links`, `ics_data`, `vcf_data`, `otps`, `sessions`, `cache`, `jobs`
+`roles`, `permissions`, `role_permissions`, `admins`, `plans`, `users` (has `mobile` column), `projects`, `domains`, `pixels`, `links`, `link_pixels`, `link_clicks`, `file_links`, `ics_data`, `vcf_data`, `biolink_blocks`, `otps`, `sessions`, `cache`, `jobs`
 
 ### Default Admin Credentials
 - Email: `admin@1inme.com`

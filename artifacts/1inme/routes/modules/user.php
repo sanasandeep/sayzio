@@ -12,6 +12,7 @@ use App\Modules\User\Controllers\FileLinkController;
 use App\Modules\User\Controllers\IcsLinkController;
 use App\Modules\User\Controllers\VcfLinkController;
 use App\Modules\User\Controllers\QrCodeController;
+use App\Modules\User\Controllers\BiolinkBlockController;
 use App\Modules\User\Middleware\CheckPlanLimit;
 
 Route::get('/', [\App\Modules\Common\Controllers\HomeController::class, 'index'])->name('home');
@@ -58,6 +59,14 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('links-ics', [IcsLinkController::class, 'store'])->middleware(CheckPlanLimit::class . ':links')->name('links.ics.store');
         Route::get('links-vcf/create', [VcfLinkController::class, 'create'])->name('links.vcf.create');
         Route::post('links-vcf', [VcfLinkController::class, 'store'])->middleware(CheckPlanLimit::class . ':links')->name('links.vcf.store');
+
+        Route::get('links/{link}/blocks', [BiolinkBlockController::class, 'editor'])->name('links.blocks.editor');
+        Route::post('links/{link}/blocks', [BiolinkBlockController::class, 'store'])->name('links.blocks.store');
+        Route::put('links/{link}/blocks/{block}', [BiolinkBlockController::class, 'update'])->name('links.blocks.update');
+        Route::delete('links/{link}/blocks/{block}', [BiolinkBlockController::class, 'destroy'])->name('links.blocks.destroy');
+        Route::post('links/{link}/blocks/reorder', [BiolinkBlockController::class, 'reorder'])->name('links.blocks.reorder');
+        Route::post('links/{link}/blocks/{block}/toggle', [BiolinkBlockController::class, 'toggleActive'])->name('links.blocks.toggle');
+        Route::post('links/{link}/page-settings', [BiolinkBlockController::class, 'updatePageSettings'])->name('links.page-settings');
 
         Route::get('links/{link}/qrcode', [QrCodeController::class, 'show'])->name('links.qrcode');
         Route::post('links/{link}/qrcode', [QrCodeController::class, 'generate'])->name('links.qrcode.download');

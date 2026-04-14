@@ -27,6 +27,11 @@
         <a href="{{ route('user.links.qrcode', $link) }}" class="px-3 py-2 text-sm rounded-xl border border-white/10 text-white/60 hover:bg-white/5">
             <i class="fas fa-qrcode mr-1"></i> QR Code
         </a>
+        @if($link->type === 'biolink')
+        <a href="{{ route('user.links.blocks.editor', $link) }}" class="px-3 py-2 text-sm rounded-xl border border-pink-500/30 text-pink-400 hover:bg-pink-500/10 transition-all">
+            <i class="fas fa-th-large mr-1"></i> Edit Blocks
+        </a>
+        @endif
         <a href="{{ route('user.links.edit', $link) }}" class="px-3 py-2 text-sm rounded-xl border border-white/10 text-white/60 hover:bg-white/5">
             <i class="fas fa-edit mr-1"></i> Edit
         </a>
@@ -60,7 +65,7 @@
         @else
             <div class="space-y-2">
                 @php $maxClicks = $clicksOverTime->max('count') ?: 1; @endphp
-                @foreach($clicksOverTime->takeLast(14) as $day)
+                @foreach($clicksOverTime->slice(-14) as $day)
                 <div class="flex items-center gap-3 text-sm">
                     <span class="text-white/40 w-20 flex-shrink-0">{{ \Carbon\Carbon::parse($day->date)->format('M d') }}</span>
                     <div class="flex-1 bg-white/10 rounded-full h-5 overflow-hidden">

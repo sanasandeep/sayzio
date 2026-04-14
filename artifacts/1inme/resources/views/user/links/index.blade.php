@@ -125,6 +125,11 @@
                     <a href="{{ route('user.links.show', $link) }}" class="p-2 text-white/30 hover:text-purple-400 hover:bg-purple-500/10 rounded-lg transition-all" title="View">
                         <i class="fas fa-chart-bar text-sm"></i>
                     </a>
+                    @if($link->type === 'biolink')
+                    <a href="{{ route('user.links.blocks.editor', $link) }}" class="p-2 text-white/30 hover:text-pink-400 hover:bg-pink-500/10 rounded-lg transition-all" title="Edit Blocks">
+                        <i class="fas fa-th-large text-sm"></i>
+                    </a>
+                    @endif
                     <a href="{{ route('user.links.edit', $link) }}" class="p-2 text-white/30 hover:text-purple-400 hover:bg-purple-500/10 rounded-lg transition-all" title="Edit">
                         <i class="fas fa-edit text-sm"></i>
                     </a>

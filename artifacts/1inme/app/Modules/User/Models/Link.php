@@ -66,6 +66,18 @@ class Link extends Model
         return $this->hasOne(VcfData::class);
     }
 
+    public function biolinkBlocks()
+    {
+        return $this->hasMany(BiolinkBlock::class)->orderBy('sort_order');
+    }
+
+    public function activeBiolinkBlocks()
+    {
+        return $this->hasMany(BiolinkBlock::class)
+            ->where('is_active', true)
+            ->orderBy('sort_order');
+    }
+
     public function isExpired(): bool
     {
         return $this->expires_at && $this->expires_at->isPast();
