@@ -73,7 +73,7 @@
                 <div>
                     <label class="block text-sm font-medium text-white/60 mb-1.5">Custom Alias</label>
                     <div class="flex items-center bg-white/5 border border-white/10 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-purple-500/40">
-                        <span class="bg-white/5 px-3 py-2.5 text-sm text-white/30 border-r border-white/10">{{ request()->getHost() }}/r/</span>
+                        <span class="bg-white/5 px-3 py-2.5 text-sm text-white/30 border-r border-white/10">{{ request()->getHost() }}/</span>
                         <input type="text" name="alias" value="{{ old('alias') }}" placeholder="auto-generated"
                                class="flex-1 px-3 py-2.5 text-sm bg-transparent text-white placeholder-white/20 border-0 focus:ring-0 outline-none">
                     </div>

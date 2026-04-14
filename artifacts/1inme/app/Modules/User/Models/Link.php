@@ -93,7 +93,7 @@ class Link extends Model
         if ($this->domain) {
             return "https://{$this->domain->domain}/{$this->alias}";
         }
-        return url("/r/{$this->alias}");
+        return url("/{$this->alias}");
     }
 
     public function getDestinationUrl(): string

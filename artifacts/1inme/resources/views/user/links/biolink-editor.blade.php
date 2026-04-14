@@ -12,7 +12,7 @@
             </div>
         </div>
         <div class="flex items-center gap-3">
-            <a href="{{ url('/r/' . $link->alias) }}" target="_blank" class="px-4 py-2 text-sm text-white/50 hover:text-white border border-white/10 rounded-xl hover:bg-white/5 transition-all">
+            <a href="{{ url('/' . $link->alias) }}" target="_blank" class="px-4 py-2 text-sm text-white/50 hover:text-white border border-white/10 rounded-xl hover:bg-white/5 transition-all">
                 <i class="fas fa-external-link-alt text-xs mr-1.5"></i> Preview
             </a>
             <button @click="showSettings = true" class="px-4 py-2 text-sm text-white/50 hover:text-white border border-white/10 rounded-xl hover:bg-white/5 transition-all">
@@ -117,7 +117,7 @@
                         </div>
                         <span class="text-[10px] text-white/20 ml-2">{{ $link->getShortUrl() }}</span>
                     </div>
-                    <iframe src="{{ url('/r/' . $link->alias) }}" class="w-full" style="height: calc(100% - 36px); border: none;"></iframe>
+                    <iframe src="{{ url('/' . $link->alias) }}" class="w-full" style="height: calc(100% - 36px); border: none;"></iframe>
                 </div>
             </div>
         </div>
