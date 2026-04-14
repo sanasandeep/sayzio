@@ -5,19 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reset Password - Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>tailwind.config = { theme: { extend: { fontFamily: { sans: ['Space Grotesk', 'sans-serif'] } } } }</script>
 </head>
-<body class="bg-gradient-to-br from-gray-800 to-gray-900 min-h-screen flex items-center justify-center p-4">
-    <div class="w-full max-w-md">
+<body class="bg-[#0f0a1a] min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+    <div class="absolute inset-0">
+        <div class="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-800/20 rounded-full blur-[120px]"></div>
+        <div class="absolute bottom-[-10%] left-[-10%] w-[400px] h-[400px] bg-indigo-600/15 rounded-full blur-[100px]"></div>
+    </div>
+
+    <div class="w-full max-w-md relative z-10">
         <div class="text-center mb-8">
-            <h1 class="text-3xl font-bold text-white">1INME</h1>
-            <p class="text-gray-400 mt-2">Set New Admin Password</p>
+            <a href="{{ route('home') }}" class="inline-block text-3xl font-bold tracking-tight">
+                <span class="text-white">1IN</span><span class="text-purple-400">ME</span>
+            </a>
+            <p class="text-purple-300/60 mt-2">Set New Admin Password</p>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-lg p-8">
-            <h2 class="text-xl font-semibold text-gray-800 mb-6">Reset Password</h2>
+        <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8">
+            <h2 class="text-xl font-semibold text-white mb-6">Reset Password</h2>
 
             @if($errors->any())
-                <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                <div class="mb-4 p-3 bg-red-500/20 border border-red-500/30 rounded-lg text-red-300 text-sm">
                     @foreach($errors->all() as $error) <p>{{ $error }}</p> @endforeach
                 </div>
             @endif
@@ -27,15 +37,21 @@
                 <input type="hidden" name="token" value="{{ $token }}">
                 <input type="hidden" name="email" value="{{ $email }}">
 
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">New Password</label>
-                    <input type="password" name="password" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required autofocus>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">New Password</label>
+                        <input type="password" name="password" required autofocus
+                               class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Confirm Password</label>
+                        <input type="password" name="password_confirmation" required
+                               class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition">
+                    </div>
+                    <button type="submit" class="w-full bg-purple-600 text-white py-2.5 rounded-lg font-medium hover:bg-purple-700 transition shadow-lg shadow-purple-600/20">
+                        Reset Password
+                    </button>
                 </div>
-                <div class="mb-6">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
-                    <input type="password" name="password_confirmation" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
-                </div>
-                <button type="submit" class="w-full bg-gray-800 hover:bg-gray-900 text-white py-2.5 rounded-lg text-sm font-medium">Reset Password</button>
             </form>
         </div>
     </div>

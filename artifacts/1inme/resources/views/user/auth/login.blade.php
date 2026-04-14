@@ -5,52 +5,119 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - {{ config('app.name') }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>tailwind.config = { theme: { extend: { fontFamily: { sans: ['Space Grotesk', 'sans-serif'] } } } }</script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>[x-cloak] { display: none !important; }</style>
 </head>
-<body class="bg-gradient-to-br from-sky-50 to-blue-100 min-h-screen flex items-center justify-center p-4">
-    <div class="w-full max-w-md">
+<body class="bg-[#0f0a1a] min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+    <div class="absolute inset-0">
+        <div class="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[120px]"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[400px] h-[400px] bg-violet-500/15 rounded-full blur-[100px]"></div>
+    </div>
+
+    <div class="w-full max-w-md relative z-10" x-data="{ mode: 'password' }">
         <div class="text-center mb-8">
-            <h1 class="text-3xl font-bold text-gray-900">1INME</h1>
-            <p class="text-gray-500 mt-2">Your links, one place</p>
+            <a href="{{ route('home') }}" class="inline-block text-3xl font-bold tracking-tight">
+                <span class="text-white">1IN</span><span class="text-purple-400">ME</span>
+            </a>
+            <p class="text-purple-300/60 mt-2">Your links, one place</p>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-xl p-8">
-            <h2 class="text-xl font-semibold text-gray-800 mb-6">Welcome back</h2>
+        <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8">
+            <h2 class="text-xl font-semibold text-white mb-6">Welcome back</h2>
 
-            <form method="POST" action="{{ route('user.login.submit') }}">
-                @csrf
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                        <input type="email" name="email" value="{{ old('email') }}" required autofocus
-                               class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition">
-                        @error('email')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+            <div class="flex bg-white/5 rounded-lg p-1 mb-6">
+                <button @click="mode = 'password'" :class="mode === 'password' ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'" class="flex-1 py-2 text-sm font-medium rounded-md transition-all">Password</button>
+                <button @click="mode = 'otp'" :class="mode === 'otp' ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'" class="flex-1 py-2 text-sm font-medium rounded-md transition-all">OTP Login</button>
+            </div>
+
+            <div x-show="mode === 'password'" x-cloak x-transition>
+                <form method="POST" action="{{ route('user.login.submit') }}">
+                    @csrf
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">Email</label>
+                            <input type="email" name="email" value="{{ old('email') }}" required autofocus
+                                   class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition">
+                            @error('email')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">Password</label>
+                            <input type="password" name="password" required
+                                   class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition">
+                        </div>
+
+                        <div class="flex items-center justify-between">
+                            <label class="flex items-center gap-2 text-sm text-gray-400">
+                                <input type="checkbox" name="remember" class="rounded border-gray-600 bg-white/5 text-purple-600 focus:ring-purple-500">
+                                Remember me
+                            </label>
+                            <a href="{{ route('user.password.request') }}" class="text-sm text-purple-400 hover:text-purple-300">Forgot password?</a>
+                        </div>
+
+                        <button type="submit" class="w-full bg-purple-600 text-white py-2.5 rounded-lg font-medium hover:bg-purple-700 transition shadow-lg shadow-purple-600/20">
+                            Sign In
+                        </button>
                     </div>
+                </form>
+            </div>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                        <input type="password" name="password" required
-                               class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition">
+            <div x-show="mode === 'otp'" x-cloak x-transition>
+                <form method="POST" action="{{ route('user.otp.send') }}" x-data="{ otpType: 'email' }">
+                    @csrf
+                    <div class="space-y-4">
+                        <div class="flex gap-2">
+                            <button type="button" @click="otpType = 'email'" :class="otpType === 'email' ? 'bg-purple-600/20 border-purple-500 text-purple-300' : 'bg-white/5 border-white/10 text-gray-400'" class="flex-1 py-2 text-xs font-medium rounded-lg border transition">
+                                <i class="fas fa-envelope mr-1"></i> Email
+                            </button>
+                            <button type="button" @click="otpType = 'mobile'" :class="otpType === 'mobile' ? 'bg-purple-600/20 border-purple-500 text-purple-300' : 'bg-white/5 border-white/10 text-gray-400'" class="flex-1 py-2 text-xs font-medium rounded-lg border transition">
+                                <i class="fas fa-mobile-alt mr-1"></i> Mobile
+                            </button>
+                        </div>
+
+                        <input type="hidden" name="type" :value="otpType">
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-1" x-text="otpType === 'email' ? 'Email Address' : 'Mobile Number'"></label>
+                            <input type="text" name="identifier" required
+                                   :placeholder="otpType === 'email' ? 'you@example.com' : '+1234567890'"
+                                   class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition">
+                            @error('identifier')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
+                        </div>
+
+                        <button type="submit" class="w-full bg-purple-600 text-white py-2.5 rounded-lg font-medium hover:bg-purple-700 transition shadow-lg shadow-purple-600/20">
+                            <i class="fas fa-paper-plane mr-2"></i>Send OTP
+                        </button>
                     </div>
+                </form>
+            </div>
 
-                    <div class="flex items-center justify-between">
-                        <label class="flex items-center gap-2 text-sm text-gray-600">
-                            <input type="checkbox" name="remember" class="rounded border-gray-300 text-sky-600">
-                            Remember me
-                        </label>
-                        <a href="{{ route('user.password.request') }}" class="text-sm text-sky-600 hover:text-sky-700">Forgot password?</a>
-                    </div>
-
-                    <button type="submit" class="w-full bg-sky-600 text-white py-2.5 rounded-lg font-medium hover:bg-sky-700 transition">
-                        Sign In
-                    </button>
+            <div class="mt-6 pt-6 border-t border-white/10">
+                <p class="text-center text-xs text-gray-500 mb-3">Quick access</p>
+                <div class="grid grid-cols-2 gap-2">
+                    <form method="POST" action="{{ route('user.demo.login') }}">
+                        @csrf
+                        <button type="submit" class="w-full flex items-center justify-center gap-2 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-gray-300 hover:bg-purple-600/20 hover:border-purple-500/30 hover:text-purple-300 transition">
+                            <i class="fas fa-user"></i> Demo User
+                        </button>
+                    </form>
+                    <form method="POST" action="{{ route('admin.demo.login') }}">
+                        @csrf
+                        <button type="submit" class="w-full flex items-center justify-center gap-2 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-gray-300 hover:bg-purple-600/20 hover:border-purple-500/30 hover:text-purple-300 transition">
+                            <i class="fas fa-shield-alt"></i> Demo Admin
+                        </button>
+                    </form>
                 </div>
-            </form>
-
-            <p class="mt-6 text-center text-sm text-gray-500">
-                Don't have an account?
-                <a href="{{ route('user.register') }}" class="text-sky-600 hover:text-sky-700 font-medium">Sign up</a>
-            </p>
+            </div>
         </div>
+
+        <p class="mt-6 text-center text-sm text-gray-500">
+            Don't have an account?
+            <a href="{{ route('user.register') }}" class="text-purple-400 hover:text-purple-300 font-medium">Sign up</a>
+        </p>
     </div>
 </body>
 </html>

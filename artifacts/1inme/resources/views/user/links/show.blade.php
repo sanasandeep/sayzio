@@ -105,7 +105,7 @@
                         <span class="text-gray-500">{{ round(($stat->count / $totalBrowser) * 100) }}%</span>
                     </div>
                     <div class="bg-gray-100 rounded-full h-2">
-                        <div class="bg-blue-500 h-full rounded-full" style="width: {{ ($stat->count / $totalBrowser) * 100 }}%"></div>
+                        <div class="bg-purple-500 h-full rounded-full" style="width: {{ ($stat->count / $totalBrowser) * 100 }}%"></div>
                     </div>
                 </div>
                 @endforeach

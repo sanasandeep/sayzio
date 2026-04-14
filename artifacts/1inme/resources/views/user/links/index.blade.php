@@ -68,7 +68,7 @@
         <div class="flex items-start justify-between">
             <div class="flex items-start gap-4 flex-1 min-w-0">
                 <div class="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center
-                    {{ $link->type === 'url' ? 'bg-blue-50 text-blue-600' : '' }}
+                    {{ $link->type === 'url' ? 'bg-purple-50 text-purple-600' : '' }}
                     {{ $link->type === 'biolink' ? 'bg-purple-50 text-purple-600' : '' }}
                     {{ $link->type === 'file' ? 'bg-green-50 text-green-600' : '' }}
                     {{ $link->type === 'ics' ? 'bg-orange-50 text-orange-600' : '' }}

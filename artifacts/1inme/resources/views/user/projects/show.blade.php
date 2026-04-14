@@ -32,7 +32,7 @@
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
         <div class="flex items-center justify-between">
             <div class="flex items-center gap-3 min-w-0">
-                <div class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center bg-blue-50 text-blue-600">
+                <div class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center bg-purple-50 text-purple-600">
                     <i class="fas fa-link text-sm"></i>
                 </div>
                 <div class="min-w-0">

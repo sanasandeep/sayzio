@@ -17,7 +17,7 @@
                 <label class="relative cursor-pointer">
                     <input type="radio" name="type" value="url" x-model="type" class="peer sr-only">
                     <div class="peer-checked:border-primary-500 peer-checked:bg-primary-50 border-2 border-gray-200 rounded-xl p-4 text-center transition-all">
-                        <i class="fas fa-link text-blue-500 text-xl mb-2"></i>
+                        <i class="fas fa-link text-purple-500 text-xl mb-2"></i>
                         <div class="text-sm font-medium text-gray-900">URL Shortener</div>
                     </div>
                 </label>

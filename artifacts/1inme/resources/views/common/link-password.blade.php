@@ -26,8 +26,8 @@
 
             <form method="POST" action="{{ route('redirect.handle', $link->alias) }}">
                 @csrf
-                <input type="password" name="password" placeholder="Enter password" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm mb-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required autofocus>
-                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg text-sm font-medium">Continue</button>
+                <input type="password" name="password" placeholder="Enter password" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm mb-4 focus:ring-2 focus:ring-purple-500 focus:border-purple-500" required autofocus>
+                <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2.5 rounded-lg text-sm font-medium">Continue</button>
             </form>
         </div>
         <p class="text-center text-xs text-gray-400 mt-4">Powered by 1INME</p>

@@ -10,8 +10,8 @@
                 <p class="text-sm text-dark-500">Total Users</p>
                 <p class="text-2xl font-bold text-dark-800 mt-1">{{ number_format($stats['total_users']) }}</p>
             </div>
-            <div class="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
-                <i class="fas fa-users text-blue-600 text-lg"></i>
+            <div class="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center">
+                <i class="fas fa-users text-purple-600 text-lg"></i>
             </div>
         </div>
         <p class="text-xs text-green-600 mt-3"><i class="fas fa-arrow-up mr-1"></i>{{ $stats['users_today'] }} today</p>

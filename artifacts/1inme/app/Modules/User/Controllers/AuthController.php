@@ -5,6 +5,7 @@ namespace App\Modules\User\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\User;
 use App\Modules\Admin\Models\Plan;
+use App\Modules\Common\Services\OtpService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -24,6 +25,7 @@ class AuthController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
+            'mobile' => 'nullable|string|max:20',
             'password' => 'required|string|min:8|confirmed',
         ]);
 
@@ -32,6 +34,7 @@ class AuthController extends Controller
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
+            'mobile' => $validated['mobile'] ?? null,
             'password' => Hash::make($validated['password']),
             'plan_id' => $freePlan?->id,
             'status' => 'active',
@@ -77,6 +80,109 @@ class AuthController extends Controller
         }
 
         return back()->withErrors(['email' => 'Invalid credentials.'])->onlyInput('email');
+    }
+
+    public function sendOtp(Request $request)
+    {
+        $request->validate([
+            'identifier' => 'required|string',
+            'type' => 'required|in:email,mobile',
+        ]);
+
+        $identifier = $request->identifier;
+        $type = $request->type;
+
+        if ($type === 'email') {
+            $user = User::where('email', $identifier)->first();
+        } else {
+            $user = User::where('mobile', $identifier)->first();
+        }
+
+        if (!$user) {
+            session(['otp_identifier' => $identifier, 'otp_type' => $type]);
+            return redirect()->route('user.otp.verify.form')->with('status', 'If an account exists, an OTP has been sent to your ' . $type . '.');
+        }
+
+        $otpService = new OtpService();
+        $code = $otpService->generate($identifier, $type, 'login', 'web');
+
+        if ($type === 'email') {
+            $otpService->sendEmail($identifier, $code);
+        } else {
+            $otpService->sendSms($identifier, $code);
+        }
+
+        session(['otp_identifier' => $identifier, 'otp_type' => $type]);
+
+        return redirect()->route('user.otp.verify.form')->with('status', 'OTP sent to your ' . $type . '.');
+    }
+
+    public function showOtpVerify()
+    {
+        if (!session('otp_identifier')) {
+            return redirect()->route('user.login');
+        }
+        return view('user.auth.otp-verify');
+    }
+
+    public function verifyOtp(Request $request)
+    {
+        $request->validate(['code' => 'required|string|size:6']);
+
+        $identifier = session('otp_identifier');
+        $type = session('otp_type', 'email');
+
+        if (!$identifier) {
+            return redirect()->route('user.login')->withErrors(['code' => 'Session expired. Please try again.']);
+        }
+
+        $otpService = new OtpService();
+        if (!$otpService->verify($identifier, $request->code, $type, 'login', 'web')) {
+            return back()->withErrors(['code' => 'Invalid or expired OTP.']);
+        }
+
+        if ($type === 'email') {
+            $user = User::where('email', $identifier)->first();
+        } else {
+            $user = User::where('mobile', $identifier)->first();
+        }
+
+        if ($user) {
+            Auth::login($user, true);
+            $user->update(['last_login_at' => now()]);
+            session()->forget(['otp_identifier', 'otp_type']);
+            $request->session()->regenerate();
+            return redirect()->intended(route('user.dashboard'));
+        }
+
+        return redirect()->route('user.login')->withErrors(['code' => 'User not found.']);
+    }
+
+    public function demoLogin(Request $request)
+    {
+        if (app()->environment('production')) {
+            abort(404);
+        }
+
+        $user = User::where('email', 'demo@1inme.com')->first();
+
+        if (!$user) {
+            $freePlan = Plan::where('slug', 'free')->first();
+            $user = User::create([
+                'name' => 'Demo User',
+                'email' => 'demo@1inme.com',
+                'password' => Hash::make('password'),
+                'plan_id' => $freePlan?->id,
+                'status' => 'active',
+                'email_verified_at' => now(),
+            ]);
+        }
+
+        Auth::login($user);
+        $user->update(['last_login_at' => now()]);
+        $request->session()->regenerate();
+
+        return redirect()->route('user.dashboard');
     }
 
     public function showVerifyEmail()

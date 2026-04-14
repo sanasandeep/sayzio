@@ -16,7 +16,7 @@
         <div class="text-sm text-gray-500">Active</div>
     </div>
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-        <div class="text-2xl font-bold text-blue-600">{{ number_format($stats['total_clicks']) }}</div>
+        <div class="text-2xl font-bold text-purple-600">{{ number_format($stats['total_clicks']) }}</div>
         <div class="text-sm text-gray-500">Total Clicks</div>
     </div>
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
@@ -87,7 +87,7 @@
                         <div class="text-sm font-medium text-gray-900">{{ Str::limit($link->title ?: $link->alias, 35) }}</div>
                         <div class="text-xs text-gray-500 font-mono">{{ $link->getShortUrl() }}</div>
                         @if($link->long_url)
-                            <div class="text-xs text-blue-500 truncate max-w-xs">{{ Str::limit($link->long_url, 50) }}</div>
+                            <div class="text-xs text-purple-500 truncate max-w-xs">{{ Str::limit($link->long_url, 50) }}</div>
                         @endif
                     </td>
                     <td class="px-4 py-3">
@@ -96,7 +96,7 @@
                     </td>
                     <td class="px-4 py-3">
                         <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
-                            {{ $link->type === 'url' ? 'bg-blue-50 text-blue-700' : '' }}
+                            {{ $link->type === 'url' ? 'bg-purple-50 text-purple-700' : '' }}
                             {{ $link->type === 'biolink' ? 'bg-purple-50 text-purple-700' : '' }}
                             {{ $link->type === 'file' ? 'bg-green-50 text-green-700' : '' }}
                             {{ $link->type === 'ics' ? 'bg-orange-50 text-orange-700' : '' }}

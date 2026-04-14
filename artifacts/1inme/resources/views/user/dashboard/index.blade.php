@@ -14,8 +14,8 @@
                 <p class="text-xs text-gray-500 uppercase tracking-wide">Plan</p>
                 <p class="text-lg font-bold text-gray-900 mt-1">{{ $user->plan->name ?? 'Free' }}</p>
             </div>
-            <div class="w-9 h-9 bg-sky-50 rounded-lg flex items-center justify-center">
-                <i class="fas fa-crown text-sky-600 text-sm"></i>
+            <div class="w-9 h-9 bg-purple-50 rounded-lg flex items-center justify-center">
+                <i class="fas fa-crown text-purple-600 text-sm"></i>
             </div>
         </div>
     </div>
@@ -119,7 +119,7 @@
             <h2 class="font-semibold text-gray-900 mb-4">Quick Actions</h2>
             <div class="space-y-2">
                 <a href="{{ route('user.links.create') }}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors text-sm">
-                    <div class="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center"><i class="fas fa-link text-blue-600 text-xs"></i></div>
+                    <div class="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center"><i class="fas fa-link text-purple-600 text-xs"></i></div>
                     <span class="text-gray-700">Shorten a URL</span>
                 </a>
                 <a href="{{ route('user.projects.create') }}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors text-sm">

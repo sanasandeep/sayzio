@@ -3,6 +3,7 @@
 namespace App\Modules\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Admin\Models\Admin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -30,6 +31,25 @@ class AuthController extends Controller
         }
 
         return back()->withErrors(['email' => 'Invalid credentials.'])->onlyInput('email');
+    }
+
+    public function demoLogin(Request $request)
+    {
+        if (app()->environment('production')) {
+            abort(404);
+        }
+
+        $admin = Admin::where('email', 'admin@1inme.com')->first();
+
+        if (!$admin) {
+            return redirect()->route('admin.login')->with('error', 'Demo admin account not found.');
+        }
+
+        Auth::guard('admin')->login($admin);
+        $admin->update(['last_login_at' => now()]);
+        $request->session()->regenerate();
+
+        return redirect()->route('admin.dashboard');
     }
 
     public function logout(Request $request)

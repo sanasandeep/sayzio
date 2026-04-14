@@ -24,10 +24,17 @@ pnpm workspace monorepo using TypeScript + PHP/Laravel. Each package manages its
 - **HMVC Modules**: `app/Modules/{Admin,User,Common}/` with Controllers, Models, Middleware, Services, Providers
 - **Routes**: `routes/modules/admin.php` (prefix `/admin`), `routes/modules/user.php` (prefix `/user`), `routes/web.php` (catch-all redirect)
 - **Auth**: `admin` guard for staff/admin (`Admin` model), `web` guard for users (`User` model)
+- **OTP Login**: `otps` table + `OtpService` for email/SMS OTP verification; login page has Password/OTP tabs
+- **Demo Login**: `demo@1inme.com` user + `admin@1inme.com` admin; environment-gated (disabled in production); throttled OTP routes
 - **Module registration**: `ModuleServiceProvider` in `bootstrap/providers.php`
 
+### Branding
+- **Purple palette**: primary `#7c3aed`, accent `#a855f7`, hover `#6d28d9`, light bg `#f5f3ff`/`#ede9fe`
+- All UI uses purple accents (buttons, focus rings, links, badges) — no blue/sky/chartreuse
+- Auth pages: dark glassmorphism (`bg-[#0f0a1a]`) with purple gradient blobs, Space Grotesk font
+
 ### Homepage
-- Linktree-inspired colorful design: dark navy hero with animated blobs, chartreuse accent, bold solid-color sections
+- Linktree-inspired colorful design: dark navy hero with animated blobs, **purple accent**, bold solid-color sections
 - Hero mockup showcases biolink as a full website builder: text blocks, 2-column video/gallery layout, audio player with animated equalizer, file download + shop buttons, embed widget, social icons
 - Floating badges highlight "Multi-Column" layouts and "Unlimited" blocks
 - Marquee scrolling strip features content types: Multi-Column Layouts, Videos, Audio, Images, Embeds, Files, Bio Links, URL Shortener, QR Codes, Analytics
@@ -49,7 +56,7 @@ pnpm workspace monorepo using TypeScript + PHP/Laravel. Each package manages its
 - **Admin link management**: browse all user links, filter by type/status/user, toggle active, bulk enable/disable/delete
 
 ### Database Tables
-`roles`, `permissions`, `role_permissions`, `admins`, `plans`, `users`, `projects`, `domains`, `pixels`, `links`, `link_pixels`, `link_clicks`, `file_links`, `ics_data`, `vcf_data`, `sessions`, `cache`, `jobs`
+`roles`, `permissions`, `role_permissions`, `admins`, `plans`, `users` (has `mobile` column), `projects`, `domains`, `pixels`, `links`, `link_pixels`, `link_clicks`, `file_links`, `ics_data`, `vcf_data`, `otps`, `sessions`, `cache`, `jobs`
 
 ### Default Admin Credentials
 - Email: `admin@1inme.com`

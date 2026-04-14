@@ -21,6 +21,10 @@ Route::prefix('user')->name('user.')->group(function () {
     Route::post('register', [AuthController::class, 'register'])->name('register.submit');
     Route::get('login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('login', [AuthController::class, 'login'])->name('login.submit');
+    Route::post('demo-login', [AuthController::class, 'demoLogin'])->name('demo.login');
+    Route::post('send-otp', [AuthController::class, 'sendOtp'])->middleware('throttle:5,1')->name('otp.send');
+    Route::get('verify-otp', [AuthController::class, 'showOtpVerify'])->name('otp.verify.form');
+    Route::post('verify-otp', [AuthController::class, 'verifyOtp'])->middleware('throttle:10,1')->name('otp.verify');
 
     Route::get('forgot-password', [PasswordResetController::class, 'showForgotForm'])->name('password.request');
     Route::post('forgot-password', [PasswordResetController::class, 'sendResetLink'])->name('password.email');

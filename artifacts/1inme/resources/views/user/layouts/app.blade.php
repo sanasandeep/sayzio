@@ -12,7 +12,7 @@
             theme: {
                 extend: {
                     colors: {
-                        primary: { 50:'#f0f9ff',100:'#e0f2fe',200:'#bae6fd',300:'#7dd3fc',400:'#38bdf8',500:'#0ea5e9',600:'#0284c7',700:'#0369a1',800:'#075985',900:'#0c4a6e' },
+                        primary: { 50:'#f5f3ff',100:'#ede9fe',200:'#ddd6fe',300:'#c4b5fd',400:'#a78bfa',500:'#8b5cf6',600:'#7c3aed',700:'#6d28d9',800:'#5b21b6',900:'#4c1d95' },
                     }
                 }
             }
@@ -94,7 +94,7 @@
             <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">{{ session('error') }}</div>
         @endif
         @if(session('info'))
-            <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg text-blue-800 text-sm">{{ session('info') }}</div>
+            <div class="mb-4 p-4 bg-purple-50 border border-purple-200 rounded-lg text-purple-800 text-sm">{{ session('info') }}</div>
         @endif
 
         @yield('content')
