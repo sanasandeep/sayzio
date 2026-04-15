@@ -1202,12 +1202,28 @@ function _hideEditPreview() {
 }
 
 function openEditDrawer(blockId) {
-    var tmpl = document.getElementById('editForm_' + blockId);
-    if (!tmpl) return;
     _editingBlockId = blockId;
-
     var container = document.getElementById('editDrawerContent');
-    var html = tmpl.innerHTML;
+    container.innerHTML = '<div class="flex items-center justify-center py-16"><i class="fas fa-spinner fa-spin text-2xl" style="color: var(--text-faint);"></i></div>';
+    window.dispatchEvent(new CustomEvent('open-edit-drawer', { detail: { id: blockId } }));
+
+    var editFormUrl = '{{ route("user.links.blocks.editForm", [$link, "__ID__"]) }}'.replace('__ID__', blockId);
+    fetch(editFormUrl, {
+        headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': _csrfToken() }
+    }).then(function(r) { return r.json(); }).then(function(data) {
+        if (!data.html) { container.innerHTML = '<p class="text-center py-8" style="color:var(--text-muted);">Failed to load</p>'; return; }
+        _injectEditFormHtml(container, data.html, blockId);
+    }).catch(function() {
+        var tmpl = document.getElementById('editForm_' + blockId);
+        if (tmpl) {
+            _injectEditFormHtml(container, tmpl.innerHTML, blockId);
+        } else {
+            container.innerHTML = '<p class="text-center py-8" style="color:var(--text-muted);">Failed to load</p>';
+        }
+    });
+}
+
+function _injectEditFormHtml(container, html, blockId) {
     var scripts = [];
     var div = document.createElement('div');
     div.innerHTML = html;
@@ -1229,7 +1245,6 @@ function openEditDrawer(blockId) {
     });
 
     Alpine.initTree(container);
-    window.dispatchEvent(new CustomEvent('open-edit-drawer', { detail: { id: blockId } }));
 
     var previewUrl = '{{ url("/" . $link->alias) }}' + '?_editBlock=' + blockId + '&_t=' + Date.now();
     var pFrame = document.getElementById('editPreviewFrame');

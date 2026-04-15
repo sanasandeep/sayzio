@@ -82,6 +82,14 @@ class BiolinkBlockController extends Controller
         return redirect()->route('user.links.blocks.editor', $link)->with('success', 'Block updated.');
     }
 
+    public function editForm(Link $link, BiolinkBlock $block)
+    {
+        abort_if($link->user_id !== auth()->id() || $block->link_id !== $link->id, 403);
+        $blockTypes = BiolinkBlock::TYPES;
+        $html = view('user.links.partials.block-edit-form-ajax', compact('link', 'block', 'blockTypes'))->render();
+        return response()->json(['html' => $html]);
+    }
+
     public function destroy(Link $link, BiolinkBlock $block)
     {
         abort_if($link->user_id !== auth()->id() || $block->link_id !== $link->id, 403);

@@ -65,6 +65,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('links/{link}/blocks', [BiolinkBlockController::class, 'editor'])->name('links.blocks.editor');
         Route::post('links/{link}/blocks', [BiolinkBlockController::class, 'store'])->name('links.blocks.store');
         Route::put('links/{link}/blocks/{block}', [BiolinkBlockController::class, 'update'])->name('links.blocks.update');
+        Route::get('links/{link}/blocks/{block}/edit-form', [BiolinkBlockController::class, 'editForm'])->name('links.blocks.editForm');
         Route::delete('links/{link}/blocks/{block}', [BiolinkBlockController::class, 'destroy'])->name('links.blocks.destroy');
         Route::post('links/{link}/blocks/reorder', [BiolinkBlockController::class, 'reorder'])->name('links.blocks.reorder');
         Route::post('links/{link}/blocks/{block}/toggle', [BiolinkBlockController::class, 'toggleActive'])->name('links.blocks.toggle');
