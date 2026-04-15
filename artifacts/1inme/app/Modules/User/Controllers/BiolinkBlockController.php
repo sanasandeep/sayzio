@@ -7,6 +7,7 @@ use App\Modules\User\Models\Link;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class BiolinkBlockController extends Controller
 {
@@ -189,13 +190,55 @@ class BiolinkBlockController extends Controller
             'custom_js_head' => 'nullable|string|max:10000',
             'custom_js_body' => 'nullable|string|max:10000',
             'layout' => 'nullable|array',
+            'meta' => 'nullable|array',
+            'meta.seo_title' => 'nullable|string|max:70',
+            'meta.seo_description' => 'nullable|string|max:320',
+            'meta.keywords' => 'nullable|string|max:500',
+            'meta.author' => 'nullable|string|max:100',
+            'meta.language' => 'nullable|string|max:5',
+            'meta.canonical_url' => 'nullable|url|max:500',
+            'meta.robots' => ['nullable', 'string', Rule::in(['index,follow', 'index,nofollow', 'noindex,follow', 'noindex,nofollow'])],
+            'meta.rating' => 'nullable|string|in:general,mature,restricted',
+            'og' => 'nullable|array',
+            'og.title' => 'nullable|string|max:100',
+            'og.description' => 'nullable|string|max:300',
+            'og.type' => 'nullable|string|in:website,profile,article,product',
+            'og.site_name' => 'nullable|string|max:100',
+            'og.image_url' => 'nullable|url|max:500',
+            'og_image_upload' => 'nullable|image|max:2048',
+            'twitter' => 'nullable|array',
+            'twitter.card' => 'nullable|string|in:summary_large_image,summary,app,player',
+            'twitter.site' => 'nullable|string|max:50',
+            'twitter.title' => 'nullable|string|max:100',
+            'twitter.description' => 'nullable|string|max:200',
+            'favicons' => 'nullable|array',
+            'favicons.apple_touch_icon' => 'nullable|url|max:500',
+            'favicons.icon_512' => 'nullable|url|max:500',
+            'apple_touch_upload' => 'nullable|image|max:1024',
+            'icon_512_upload' => 'nullable|image|max:2048',
+            'manifest' => 'nullable|array',
+            'manifest.enabled' => 'boolean',
+            'manifest.name' => 'nullable|string|max:100',
+            'manifest.short_name' => 'nullable|string|max:25',
+            'manifest.description' => 'nullable|string|max:300',
+            'manifest.display' => 'nullable|string|in:standalone,fullscreen,minimal-ui,browser',
+            'manifest.orientation' => 'nullable|string|in:any,portrait,landscape',
+            'manifest.theme_color' => 'nullable|string|max:20',
+            'manifest.background_color' => 'nullable|string|max:20',
+            'manifest.start_url' => 'nullable|string|max:200',
+            'manifest.categories' => 'nullable|string|max:200',
         ]);
 
         $user = auth()->user();
         $settings = $link->settings ?? [];
         $blockTheme = $validated['block_theme'] ?? null;
         $layoutInput = $validated['layout'] ?? null;
-        unset($validated['block_theme'], $validated['layout']);
+        $metaInput = $validated['meta'] ?? null;
+        $ogInput = $validated['og'] ?? null;
+        $twitterInput = $validated['twitter'] ?? null;
+        $faviconsInput = $validated['favicons'] ?? null;
+        $manifestInput = $validated['manifest'] ?? null;
+        unset($validated['block_theme'], $validated['layout'], $validated['meta'], $validated['og'], $validated['twitter'], $validated['favicons'], $validated['manifest'], $validated['og_image_upload'], $validated['apple_touch_upload'], $validated['icon_512_upload']);
 
         if (!$user->getPlanFeature('custom_branding', false)) {
             unset($validated['custom_branding_text'], $validated['custom_branding_url'], $validated['custom_branding_logo']);
@@ -203,6 +246,9 @@ class BiolinkBlockController extends Controller
         if (!$user->getPlanFeature('custom_favicon', false)) {
             unset($validated['favicon_url']);
             $request->files->remove('favicon_upload');
+            $faviconsInput = null;
+            $request->files->remove('apple_touch_upload');
+            $request->files->remove('icon_512_upload');
         }
         if (!$user->getPlanFeature('custom_code', false)) {
             unset($validated['custom_css'], $validated['custom_js_head'], $validated['custom_js_body']);
@@ -220,6 +266,35 @@ class BiolinkBlockController extends Controller
             $settings['biolink']['layout'] = $this->sanitizeLayout($layoutInput);
         }
 
+        $nullifyEmpty = fn(array $arr) => array_map(fn($v) => is_string($v) && trim($v) === '' ? null : (is_string($v) ? trim($v) : $v), $arr);
+
+        if ($metaInput !== null) {
+            $settings['biolink']['meta'] = $nullifyEmpty($metaInput);
+        }
+
+        if ($ogInput !== null) {
+            $settings['biolink']['og'] = $nullifyEmpty($ogInput);
+        }
+
+        if ($twitterInput !== null) {
+            $settings['biolink']['twitter'] = $nullifyEmpty($twitterInput);
+        }
+
+        if ($manifestInput !== null) {
+            $settings['biolink']['manifest'] = $nullifyEmpty($manifestInput);
+            $settings['biolink']['manifest']['enabled'] = !empty($manifestInput['enabled']);
+        }
+
+        if ($faviconsInput !== null) {
+            $existingFavicons = $settings['biolink']['favicons'] ?? [];
+            foreach ($faviconsInput as $k => $v) {
+                if (!empty(trim($v))) {
+                    $existingFavicons[$k] = $this->sanitizeUrl(trim($v));
+                }
+            }
+            $settings['biolink']['favicons'] = $existingFavicons;
+        }
+
         if ($request->hasFile('background_image')) {
             $path = $request->file('background_image')->store('biolink-backgrounds', 'public');
             $settings['biolink']['background_image'] = Storage::disk('public')->url($path);
@@ -235,17 +310,49 @@ class BiolinkBlockController extends Controller
             $settings['biolink']['favicon_url'] = $faviconValue;
         }
 
-        if (!empty($settings['biolink']['custom_branding_url'])) {
-            $settings['biolink']['custom_branding_url'] = $this->sanitizeUrl($settings['biolink']['custom_branding_url']);
+        if ($request->hasFile('apple_touch_upload') && $user->getPlanFeature('custom_favicon', false)) {
+            $path = $request->file('apple_touch_upload')->store('biolink-favicons', 'public');
+            $settings['biolink']['favicons']['apple_touch_icon'] = Storage::disk('public')->url($path);
         }
-        if (!empty($settings['biolink']['custom_branding_logo'])) {
-            $settings['biolink']['custom_branding_logo'] = $this->sanitizeUrl($settings['biolink']['custom_branding_logo']);
+
+        if ($request->hasFile('icon_512_upload') && $user->getPlanFeature('custom_favicon', false)) {
+            $path = $request->file('icon_512_upload')->store('biolink-favicons', 'public');
+            $settings['biolink']['favicons']['icon_512'] = Storage::disk('public')->url($path);
+        }
+
+        if ($request->hasFile('og_image_upload')) {
+            $path = $request->file('og_image_upload')->store('seo-images', 'public');
+            $ogImageUrl = Storage::disk('public')->url($path);
+            $settings['biolink']['og']['image_url'] = $ogImageUrl;
         }
 
         $updateData = ['settings' => $settings];
         if ($faviconValue !== null) {
             $updateData['favicon'] = $faviconValue;
         }
+
+        if ($metaInput !== null) {
+            if (!empty($metaInput['seo_title'])) {
+                $updateData['seo_title'] = trim($metaInput['seo_title']);
+            }
+            if (!empty($metaInput['seo_description'])) {
+                $updateData['seo_description'] = trim($metaInput['seo_description']);
+            }
+        }
+
+        $ogImageFinal = $settings['biolink']['og']['image_url'] ?? null;
+        if ($ogImageFinal) {
+            $updateData['seo_image'] = $ogImageFinal;
+        }
+
+        if (!empty($settings['biolink']['custom_branding_url'])) {
+            $settings['biolink']['custom_branding_url'] = $this->sanitizeUrl($settings['biolink']['custom_branding_url']);
+        }
+        if (!empty($settings['biolink']['custom_branding_logo'])) {
+            $settings['biolink']['custom_branding_logo'] = $this->sanitizeUrl($settings['biolink']['custom_branding_logo']);
+        }
+        $updateData['settings'] = $settings;
+
         $link->update($updateData);
 
         $referer = $request->headers->get('referer', '');

@@ -53,7 +53,8 @@ The biolink editor is split into two separate pages:
   - `/user/links/{link}/settings/appearance` — Short URL, page design (title/font/description), colors & background, button style
   - `/user/links/{link}/settings/layout` — Max width per device, page padding, block spacing
   - `/user/links/{link}/settings/block-theme` — Global block theme with templates, text, fill, border, shadow, effects sub-tabs
-  - `/user/links/{link}/settings/advanced` — Badges, branding, favicon, custom CSS/JS, SEO & tracking
+  - `/user/links/{link}/settings/advanced` — SEO & meta tags (title, description, keywords, robots, canonical, author, language, rating), Open Graph (title, desc, type, site name, image upload), Twitter Cards (card type, @username, title, desc), Favicon & Touch Icons (favicon + Apple Touch 180px + 512px icon with uploads), Web App Manifest/PWA (name, short name, display, orientation, theme/bg colors, start URL, categories), Badges & Branding, Custom Branding, Custom CSS/JS
+  - Dynamic manifest.json: `/{alias}/manifest.json` — serves PWA manifest when enabled; checks `isAccessible()` and `manifest.enabled`
   - `/user/links/{link}/settings` redirects to `/settings/appearance`
   - Shared partials: `settings-header.blade.php` (nav tabs as `<a>` links), `settings-footer.blade.php` (sticky save)
 

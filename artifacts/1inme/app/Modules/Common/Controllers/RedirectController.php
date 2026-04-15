@@ -95,6 +95,54 @@ class RedirectController extends Controller
         return view('common.file-download', compact('link', 'fileLink'));
     }
 
+    public function manifest(Request $request, string $alias)
+    {
+        $link = Link::where('alias', $alias)->where('type', 'biolink')->firstOrFail();
+
+        if (!$link->isAccessible()) {
+            abort(404);
+        }
+
+        $bs = $link->settings['biolink'] ?? [];
+        if (empty($bs['manifest']['enabled'])) {
+            abort(404);
+        }
+        $m = $bs['manifest'] ?? [];
+        $favicons = $bs['favicons'] ?? [];
+
+        $icons = [];
+        if ($link->favicon) {
+            $icons[] = ['src' => $link->favicon, 'sizes' => '64x64', 'type' => 'image/png'];
+        }
+        if (!empty($favicons['apple_touch_icon'])) {
+            $icons[] = ['src' => $favicons['apple_touch_icon'], 'sizes' => '180x180', 'type' => 'image/png'];
+        }
+        if (!empty($favicons['icon_512'])) {
+            $icons[] = ['src' => $favicons['icon_512'], 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any maskable'];
+        }
+
+        $startUrl = !empty($m['start_url']) ? $m['start_url'] : url('/' . $link->alias);
+        $categories = !empty($m['categories']) ? array_map('trim', explode(',', $m['categories'])) : [];
+
+        $manifest = [
+            'name' => $m['name'] ?? $link->title ?? '1INME Bio',
+            'short_name' => $m['short_name'] ?? \Illuminate\Support\Str::limit($link->title ?? 'Bio', 12, ''),
+            'description' => $m['description'] ?? '',
+            'start_url' => $startUrl,
+            'display' => $m['display'] ?? 'standalone',
+            'orientation' => $m['orientation'] ?? 'any',
+            'theme_color' => $m['theme_color'] ?? '#7c3aed',
+            'background_color' => $m['background_color'] ?? '#0a0612',
+            'icons' => $icons,
+        ];
+
+        if (!empty($categories)) {
+            $manifest['categories'] = $categories;
+        }
+
+        return response()->json($manifest)->header('Content-Type', 'application/manifest+json');
+    }
+
     public function rawFileDownload(Request $request, string $alias)
     {
         $link = Link::where('alias', $alias)->where('type', 'file')->firstOrFail();

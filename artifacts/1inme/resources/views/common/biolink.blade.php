@@ -1,23 +1,89 @@
+@php
+    $metaSettings = $link->settings['biolink']['meta'] ?? [];
+    $ogSettings = $link->settings['biolink']['og'] ?? [];
+    $twSettings = $link->settings['biolink']['twitter'] ?? [];
+    $manifestSettings = $link->settings['biolink']['manifest'] ?? [];
+    $faviconSettings = $link->settings['biolink']['favicons'] ?? [];
+    $pageTitle = $metaSettings['seo_title'] ?? $link->seo_title ?? $link->title ?? '1INME Bio Link';
+    $pageDesc = $metaSettings['seo_description'] ?? $link->seo_description ?? '';
+    $pageImage = $ogSettings['image_url'] ?? $link->seo_image ?? '';
+    $ogTitle = $ogSettings['title'] ?? $pageTitle;
+    $ogDesc = $ogSettings['description'] ?? $pageDesc;
+    $ogType = $ogSettings['type'] ?? 'website';
+    $ogSiteName = $ogSettings['site_name'] ?? '1INME';
+    $twCard = $twSettings['card'] ?? 'summary_large_image';
+    $twSite = $twSettings['site'] ?? '';
+    $twTitle = $twSettings['title'] ?? $ogTitle;
+    $twDesc = $twSettings['description'] ?? $ogDesc;
+    $metaLang = $metaSettings['language'] ?? 'en';
+@endphp
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ $metaLang }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    @if($link->seo_title)
-        <title>{{ $link->seo_title }}</title>
-        <meta property="og:title" content="{{ $link->seo_title }}">
-    @else
-        <title>{{ $link->title ?: '1INME Bio Link' }}</title>
+    <title>{{ $pageTitle }}</title>
+    @if($pageDesc)
+        <meta name="description" content="{{ $pageDesc }}">
     @endif
-    @if($link->seo_description)
-        <meta name="description" content="{{ $link->seo_description }}">
-        <meta property="og:description" content="{{ $link->seo_description }}">
+    @if(!empty($metaSettings['keywords']))
+        <meta name="keywords" content="{{ $metaSettings['keywords'] }}">
     @endif
-    @if($link->seo_image)
-        <meta property="og:image" content="{{ $link->seo_image }}">
+    @if(!empty($metaSettings['author']))
+        <meta name="author" content="{{ $metaSettings['author'] }}">
     @endif
+    <meta name="robots" content="{{ $metaSettings['robots'] ?? 'index,follow' }}">
+    @if(!empty($metaSettings['rating']))
+        <meta name="rating" content="{{ $metaSettings['rating'] }}">
+    @endif
+    @if(!empty($metaSettings['canonical_url']))
+        <link rel="canonical" href="{{ $metaSettings['canonical_url'] }}">
+    @endif
+
+    <meta property="og:title" content="{{ $ogTitle }}">
+    @if($ogDesc)
+        <meta property="og:description" content="{{ $ogDesc }}">
+    @endif
+    <meta property="og:type" content="{{ $ogType }}">
+    <meta property="og:site_name" content="{{ $ogSiteName }}">
+    @if($pageImage)
+        <meta property="og:image" content="{{ $pageImage }}">
+        <meta property="og:image:width" content="1200">
+        <meta property="og:image:height" content="630">
+    @endif
+    <meta property="og:url" content="{{ request()->url() }}">
+
+    <meta name="twitter:card" content="{{ $twCard }}">
+    @if($twSite)
+        <meta name="twitter:site" content="{{ $twSite }}">
+    @endif
+    <meta name="twitter:title" content="{{ $twTitle }}">
+    @if($twDesc)
+        <meta name="twitter:description" content="{{ $twDesc }}">
+    @endif
+    @if($pageImage)
+        <meta name="twitter:image" content="{{ $pageImage }}">
+    @endif
+
     @if($link->favicon)
         <link rel="icon" type="image/png" href="{{ $link->favicon }}">
+    @endif
+    @if(!empty($faviconSettings['apple_touch_icon']))
+        <link rel="apple-touch-icon" sizes="180x180" href="{{ $faviconSettings['apple_touch_icon'] }}">
+    @endif
+    @if(!empty($faviconSettings['icon_512']))
+        <link rel="icon" type="image/png" sizes="512x512" href="{{ $faviconSettings['icon_512'] }}">
+    @endif
+
+    @if(!empty($manifestSettings['enabled']))
+        <link rel="manifest" href="{{ url('/' . $link->alias . '/manifest.json') }}">
+        <meta name="theme-color" content="{{ $manifestSettings['theme_color'] ?? '#7c3aed' }}">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+        @if(!empty($manifestSettings['short_name']))
+            <meta name="apple-mobile-web-app-title" content="{{ $manifestSettings['short_name'] }}">
+        @endif
     @endif
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
