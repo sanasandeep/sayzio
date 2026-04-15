@@ -17,13 +17,15 @@
     $favicons = $bs['favicons'] ?? [];
 @endphp
 
-<div class="max-w-4xl mx-auto">
+<div class="w-full">
     @include('user.links.partials.settings-header', ['link' => $link, 'activeSettingsTab' => $activeSettingsTab])
 
-    <form method="POST" action="{{ route('user.links.page-settings', $link) }}" enctype="multipart/form-data">
-        @csrf
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div class="lg:col-span-7">
+            <form method="POST" action="{{ route('user.links.page-settings', $link) }}" enctype="multipart/form-data">
+                @csrf
 
-        <div class="space-y-6">
+                <div class="space-y-6">
 
             <div class="card-premium p-6">
                 <div class="flex items-center gap-3 mb-1">
@@ -399,7 +401,15 @@
             </div>
         </div>
 
-        @include('user.links.partials.settings-footer', ['link' => $link])
-    </form>
+                @include('user.links.partials.settings-footer', ['link' => $link])
+            </form>
+        </div>
+
+        <div class="lg:col-span-5 hidden lg:block">
+            <div class="sticky top-6">
+                @include('user.links.partials.settings-device-preview', ['link' => $link])
+            </div>
+        </div>
+    </div>
 </div>
 @endsection
