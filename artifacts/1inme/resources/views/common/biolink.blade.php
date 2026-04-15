@@ -63,7 +63,15 @@
             'behance' => ['fab fa-behance', '#1769FF'],
         ];
     @endphp
-    <link href="https://fonts.googleapis.com/css2?family={{ urlencode($fontFamily) }}:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family={{ urlencode($fontFamily) }}:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    @php
+        $themeFont = $bs['block_theme']['font_family'] ?? '';
+        $extraFonts = [];
+        if ($themeFont && $themeFont !== $fontFamily) $extraFonts[] = $themeFont;
+    @endphp
+    @foreach($extraFonts as $ef)
+    <link href="https://fonts.googleapis.com/css2?family={{ urlencode($ef) }}:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    @endforeach
     <style>
         body {
             font-family: '{{ $fontFamily }}', sans-serif;
@@ -116,10 +124,19 @@
             $blocks = $link->activeBiolinkBlocks()->get()->filter(fn($b) => $b->isVisible());
             $pageTitle = $bs['biolink_title'] ?? $link->title ?: 'Bio Link';
             $pageDescription = $bs['biolink_description'] ?? $link->seo_description ?? '';
+            $globalTheme = $bs['block_theme'] ?? [];
         @endphp
 
         @forelse($blocks as $block)
-            @php $s = $block->settings ?? []; @endphp
+            @php
+                $s = $block->settings ?? [];
+                $blockStyle = \App\Modules\User\Models\BiolinkBlock::getBlockStyle($s, $globalTheme);
+                $blockInline = \App\Modules\User\Models\BiolinkBlock::buildInlineStyle($blockStyle);
+                $hasCustomStyle = !empty($s['_style']) || (!empty($globalTheme) && ($globalTheme['apply_to_all'] ?? false));
+                $skipWrap = in_array($block->type, ['avatar', 'divider', 'spacer', 'social_icons']);
+            @endphp
+
+            @if($hasCustomStyle && !$skipWrap)<div class="mb-3 block-styled" style="{{ $blockInline }}">@endif
 
             {{-- BASIC CONTENT --}}
             @if($block->type === 'avatar')
@@ -824,6 +841,8 @@
                     </script>
                 </div>
             @endif
+
+            @if($hasCustomStyle && !$skipWrap)</div>@endif
         @empty
             <div class="text-center py-12">
                 <div class="w-20 h-20 rounded-full bg-white/10 backdrop-blur flex items-center justify-center mx-auto mb-4 border border-white/10">

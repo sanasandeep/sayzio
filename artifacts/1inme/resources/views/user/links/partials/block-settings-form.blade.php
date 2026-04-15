@@ -528,5 +528,7 @@ $labelClass = 'block text-xs mb-1';
 @endforeach
 @endif
 
+@include('user.links.partials.block-style-settings', ['block' => $block, 'inputClass' => $inputClass, 'labelClass' => $labelClass])
+
 @include('user.links.partials.block-display-settings', ['block' => $block, 'inputClass' => $inputClass, 'labelClass' => $labelClass])
 </div>

@@ -157,6 +157,238 @@ class BiolinkBlock extends Model
         'avatar' => ['label' => 'Avatar', 'icon' => 'fa-user-circle', 'category' => 'identity'],
     ];
 
+    public const STYLE_DEFAULTS = [
+        'font_family' => '',
+        'font_size' => '',
+        'font_weight' => '',
+        'font_style' => 'normal',
+        'text_color' => '',
+        'bg_color' => '',
+        'bg_image' => '',
+        'bg_opacity' => 100,
+        'border_color' => '',
+        'border_radius' => '',
+        'border_width' => '',
+        'border_style' => 'none',
+        'shadow_type' => 'none',
+        'shadow_color' => '#00000040',
+        'shadow_x' => 0,
+        'shadow_y' => 4,
+        'shadow_blur' => 12,
+        'shadow_spread' => 0,
+        'display_mode' => 'card',
+        'effect' => 'none',
+        'glass_blur' => 20,
+        'glass_opacity' => 15,
+        'padding' => '',
+    ];
+
+    public const BLOCK_TEMPLATES = [
+        'minimal' => [
+            'label' => 'Minimal',
+            'icon' => 'fa-feather',
+            'preview_bg' => '#ffffff',
+            'preview_text' => '#111',
+            'style' => [
+                'bg_color' => 'transparent', 'border_style' => 'none', 'shadow_type' => 'none',
+                'display_mode' => 'content', 'effect' => 'none', 'border_radius' => '0',
+            ],
+        ],
+        'clean_card' => [
+            'label' => 'Clean Card',
+            'icon' => 'fa-square',
+            'preview_bg' => '#ffffff',
+            'preview_text' => '#333',
+            'style' => [
+                'bg_color' => '#ffffff0d', 'border_style' => 'solid', 'border_width' => '1',
+                'border_color' => '#ffffff15', 'border_radius' => '12', 'shadow_type' => 'soft',
+                'shadow_color' => '#00000020', 'shadow_y' => '4', 'shadow_blur' => '16',
+                'display_mode' => 'card', 'effect' => 'none', 'padding' => '16',
+            ],
+        ],
+        'glassmorphism' => [
+            'label' => 'Glassmorphism',
+            'icon' => 'fa-gem',
+            'preview_bg' => 'rgba(255,255,255,0.05)',
+            'preview_text' => '#fff',
+            'style' => [
+                'bg_color' => '#ffffff0a', 'border_style' => 'solid', 'border_width' => '1',
+                'border_color' => '#ffffff12', 'border_radius' => '16', 'shadow_type' => 'glow',
+                'shadow_color' => '#8b5cf620', 'display_mode' => 'card', 'effect' => 'glass',
+                'glass_blur' => '20', 'glass_opacity' => '10', 'padding' => '20',
+            ],
+        ],
+        'neon_glow' => [
+            'label' => 'Neon Glow',
+            'icon' => 'fa-bolt',
+            'preview_bg' => '#0a0a0a',
+            'preview_text' => '#8b5cf6',
+            'style' => [
+                'bg_color' => '#0a0a0a', 'border_style' => 'solid', 'border_width' => '1',
+                'border_color' => '#8b5cf6', 'border_radius' => '12', 'shadow_type' => 'neon',
+                'shadow_color' => '#8b5cf660', 'shadow_blur' => '20', 'display_mode' => 'card',
+                'effect' => 'none', 'text_color' => '#8b5cf6', 'padding' => '16',
+            ],
+        ],
+        'gradient_border' => [
+            'label' => 'Gradient Border',
+            'icon' => 'fa-palette',
+            'preview_bg' => '#111',
+            'preview_text' => '#fff',
+            'style' => [
+                'bg_color' => '#111111', 'border_style' => 'solid', 'border_width' => '2',
+                'border_color' => '#8b5cf6', 'border_radius' => '16', 'shadow_type' => 'soft',
+                'shadow_color' => '#8b5cf620', 'display_mode' => 'card', 'effect' => 'gradient_border',
+                'padding' => '18',
+            ],
+        ],
+        'bold_solid' => [
+            'label' => 'Bold Solid',
+            'icon' => 'fa-stop',
+            'preview_bg' => '#8b5cf6',
+            'preview_text' => '#fff',
+            'style' => [
+                'bg_color' => '#8b5cf6', 'border_style' => 'none', 'border_radius' => '16',
+                'shadow_type' => 'hard', 'shadow_color' => '#00000040', 'shadow_y' => '6',
+                'shadow_blur' => '24', 'display_mode' => 'card', 'effect' => 'none',
+                'text_color' => '#ffffff', 'padding' => '20',
+            ],
+        ],
+        'frosted' => [
+            'label' => 'Frosted',
+            'icon' => 'fa-snowflake',
+            'preview_bg' => 'rgba(255,255,255,0.08)',
+            'preview_text' => '#eee',
+            'style' => [
+                'bg_color' => '#ffffff14', 'border_style' => 'solid', 'border_width' => '1',
+                'border_color' => '#ffffff20', 'border_radius' => '20', 'shadow_type' => 'soft',
+                'display_mode' => 'card', 'effect' => 'glass', 'glass_blur' => '30',
+                'glass_opacity' => '8', 'padding' => '24',
+            ],
+        ],
+        'outlined' => [
+            'label' => 'Outlined',
+            'icon' => 'fa-border-all',
+            'preview_bg' => 'transparent',
+            'preview_text' => '#fff',
+            'style' => [
+                'bg_color' => 'transparent', 'border_style' => 'solid', 'border_width' => '2',
+                'border_color' => '#ffffff30', 'border_radius' => '12', 'shadow_type' => 'none',
+                'display_mode' => 'card', 'effect' => 'none', 'padding' => '16',
+            ],
+        ],
+        'neumorphic' => [
+            'label' => 'Neumorphic',
+            'icon' => 'fa-circle',
+            'preview_bg' => '#1a1a2e',
+            'preview_text' => '#ccc',
+            'style' => [
+                'bg_color' => '#1a1a2e', 'border_style' => 'none', 'border_radius' => '20',
+                'shadow_type' => 'neumorphic', 'display_mode' => 'card', 'effect' => 'none',
+                'padding' => '20',
+            ],
+        ],
+        'pill' => [
+            'label' => 'Pill',
+            'icon' => 'fa-capsules',
+            'preview_bg' => '#ffffff10',
+            'preview_text' => '#fff',
+            'style' => [
+                'bg_color' => '#ffffff10', 'border_style' => 'solid', 'border_width' => '1',
+                'border_color' => '#ffffff15', 'border_radius' => '999', 'shadow_type' => 'none',
+                'display_mode' => 'card', 'effect' => 'none', 'padding' => '12',
+            ],
+        ],
+    ];
+
+    public static function getBlockStyle(array $blockSettings, array $globalTheme = []): array
+    {
+        $style = self::STYLE_DEFAULTS;
+        if (!empty($globalTheme) && ($globalTheme['apply_to_all'] ?? false)) {
+            $style = array_merge($style, array_filter($globalTheme, fn($v) => $v !== '' && $v !== null));
+        }
+        $blockStyle = $blockSettings['_style'] ?? [];
+        if (!empty($blockStyle)) {
+            $style = array_merge($style, array_filter($blockStyle, fn($v) => $v !== '' && $v !== null));
+        }
+        unset($style['apply_to_all']);
+        return $style;
+    }
+
+    public static function buildInlineStyle(array $style): string
+    {
+        $css = [];
+        if (!empty($style['font_family'])) $css[] = "font-family:'{$style['font_family']}',sans-serif";
+        if (!empty($style['font_size'])) $css[] = "font-size:{$style['font_size']}px";
+        if (!empty($style['font_weight'])) $css[] = "font-weight:{$style['font_weight']}";
+        if (($style['font_style'] ?? 'normal') !== 'normal') $css[] = "font-style:{$style['font_style']}";
+        if (!empty($style['text_color'])) $css[] = "color:{$style['text_color']}";
+        if (!empty($style['padding'])) $css[] = "padding:{$style['padding']}px";
+
+        if (($style['display_mode'] ?? 'card') === 'card') {
+            $bgOpacity = ($style['bg_opacity'] ?? 100) / 100;
+            if (!empty($style['bg_color']) && $style['bg_color'] !== 'transparent') {
+                if ($bgOpacity < 1 && preg_match('/^#([0-9a-fA-F]{6})$/', $style['bg_color'], $m)) {
+                    $r = hexdec(substr($m[1], 0, 2));
+                    $g = hexdec(substr($m[1], 2, 2));
+                    $b = hexdec(substr($m[1], 4, 2));
+                    $css[] = "background-color:rgba({$r},{$g},{$b},{$bgOpacity})";
+                } else {
+                    $css[] = "background-color:{$style['bg_color']}";
+                }
+            } elseif (($style['bg_color'] ?? '') === 'transparent') {
+                $css[] = "background:transparent";
+            }
+            if (!empty($style['border_radius'])) $css[] = "border-radius:{$style['border_radius']}px";
+            if (($style['border_style'] ?? 'none') !== 'none' && !empty($style['border_width'])) {
+                $css[] = "border:{$style['border_width']}px {$style['border_style']} {$style['border_color']}";
+            }
+            if (($style['effect'] ?? 'none') === 'glass') {
+                $blur = $style['glass_blur'] ?? 20;
+                $glassOp = ($style['glass_opacity'] ?? 15) / 100;
+                $css[] = "backdrop-filter:blur({$blur}px) saturate(1.2)";
+                $css[] = "-webkit-backdrop-filter:blur({$blur}px) saturate(1.2)";
+                if (empty($style['bg_color']) || $style['bg_color'] === 'transparent') {
+                    $css[] = "background-color:rgba(255,255,255,{$glassOp})";
+                }
+            } elseif (($style['effect'] ?? 'none') === 'gradient_border') {
+                $css[] = "border-image:linear-gradient(135deg, #8b5cf6, #ec4899, #8b5cf6) 1";
+                $css[] = "border-style:solid";
+                if (empty($style['border_width'])) $css[] = "border-width:2px";
+            }
+            $shadow = self::buildShadow($style);
+            if ($shadow) $css[] = "box-shadow:{$shadow}";
+        }
+
+        if (!empty($style['bg_image']) && preg_match('/^https?:\/\//', $style['bg_image'])) {
+            $css[] = "background-image:url('" . str_replace("'", '', $style['bg_image']) . "')";
+            $css[] = "background-size:cover";
+            $css[] = "background-position:center";
+        }
+
+        return implode(';', $css);
+    }
+
+    public static function buildShadow(array $style): string
+    {
+        $type = $style['shadow_type'] ?? 'none';
+        if ($type === 'none') return '';
+        $color = $style['shadow_color'] ?? '#00000040';
+        $x = $style['shadow_x'] ?? 0;
+        $y = $style['shadow_y'] ?? 4;
+        $blur = $style['shadow_blur'] ?? 12;
+        $spread = $style['shadow_spread'] ?? 0;
+        return match($type) {
+            'soft' => "{$x}px {$y}px {$blur}px {$spread}px {$color}",
+            'hard' => "{$x}px {$y}px 0px {$spread}px {$color}",
+            'neon' => "0 0 {$blur}px {$color}, 0 0 " . ($blur * 2) . "px {$color}",
+            'glow' => "0 0 {$blur}px {$color}",
+            'neumorphic' => "8px 8px 16px #00000040, -8px -8px 16px #ffffff08",
+            'inset' => "inset {$x}px {$y}px {$blur}px {$color}",
+            default => '',
+        };
+    }
+
     public function link()
     {
         return $this->belongsTo(Link::class);

@@ -53,6 +53,7 @@ class BiolinkBlockController extends Controller
 
         $validated = $request->validate([
             'settings' => 'nullable|array',
+            'style' => 'nullable|array',
             'is_active' => 'boolean',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
@@ -63,6 +64,7 @@ class BiolinkBlockController extends Controller
         $settings = $this->sanitizeSettings($block->type, $settings);
 
         $settings['_visibility'] = $this->sanitizeVisibility($validated['visibility'] ?? []);
+        $settings['_style'] = $this->sanitizeBlockStyle($validated['style'] ?? ($block->settings['_style'] ?? []));
 
         $block->update([
             'settings' => $settings,
@@ -138,10 +140,18 @@ class BiolinkBlockController extends Controller
             'button_text_color' => 'nullable|string|max:20',
             'verified_badge' => 'boolean',
             'branding_hidden' => 'boolean',
+            'block_theme' => 'nullable|array',
         ]);
 
         $settings = $link->settings ?? [];
+        $blockTheme = $validated['block_theme'] ?? null;
+        unset($validated['block_theme']);
         $settings['biolink'] = array_merge($settings['biolink'] ?? [], $validated);
+
+        if ($blockTheme !== null) {
+            $settings['biolink']['block_theme'] = $this->sanitizeBlockStyle($blockTheme);
+            $settings['biolink']['block_theme']['apply_to_all'] = !empty($blockTheme['apply_to_all']);
+        }
 
         if ($request->hasFile('background_image')) {
             $path = $request->file('background_image')->store('biolink-backgrounds', 'public');
@@ -383,6 +393,65 @@ class BiolinkBlockController extends Controller
                 $values = array_values(array_map(fn($v) => substr(strip_tags($v), 0, 100), $values));
             }
             $result[$key] = $values;
+        }
+        return $result;
+    }
+
+    private function sanitizeBlockStyle(array $input): array
+    {
+        $enums = [
+            'font_style' => ['normal', 'italic'],
+            'border_style' => ['none', 'solid', 'dashed', 'dotted', 'double', 'groove', 'ridge'],
+            'shadow_type' => ['none', 'soft', 'hard', 'neon', 'glow', 'neumorphic', 'inset'],
+            'display_mode' => ['card', 'content'],
+            'effect' => ['none', 'glass', 'gradient_border'],
+        ];
+        $numericBounds = [
+            'font_size' => [8, 72],
+            'bg_opacity' => [0, 100],
+            'border_width' => [0, 10],
+            'border_radius' => [0, 999],
+            'shadow_x' => [-50, 50],
+            'shadow_y' => [-50, 50],
+            'shadow_blur' => [0, 100],
+            'shadow_spread' => [-20, 50],
+            'glass_blur' => [0, 100],
+            'glass_opacity' => [0, 100],
+            'padding' => [0, 60],
+        ];
+        $colorKeys = ['text_color', 'bg_color', 'border_color', 'shadow_color'];
+        $fontWeightKeys = ['font_weight'];
+        $fontFamilyKeys = ['font_family'];
+        $urlKeys = ['bg_image'];
+
+        $allowed = array_keys(BiolinkBlock::STYLE_DEFAULTS);
+        $result = [];
+        foreach ($allowed as $key) {
+            if (!isset($input[$key]) || $input[$key] === '') continue;
+            $val = is_string($input[$key]) ? trim($input[$key]) : $input[$key];
+
+            if (isset($enums[$key])) {
+                if (in_array($val, $enums[$key], true)) $result[$key] = $val;
+            } elseif (isset($numericBounds[$key])) {
+                if (is_numeric($val)) {
+                    $result[$key] = max($numericBounds[$key][0], min($numericBounds[$key][1], (float) $val));
+                }
+            } elseif (in_array($key, $colorKeys, true)) {
+                if (preg_match('/^(#[0-9a-fA-F]{3,8}|rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*[\d.]+\s*)?\)|transparent)$/', $val)) {
+                    $result[$key] = $val;
+                }
+            } elseif (in_array($key, $fontWeightKeys, true)) {
+                if (preg_match('/^(300|400|500|600|700|800|900)$/', (string) $val)) {
+                    $result[$key] = (string) $val;
+                }
+            } elseif (in_array($key, $fontFamilyKeys, true)) {
+                $safe = preg_replace('/[^a-zA-Z0-9 ]/', '', substr((string) $val, 0, 60));
+                if ($safe !== '') $result[$key] = $safe;
+            } elseif (in_array($key, $urlKeys, true)) {
+                if (filter_var($val, FILTER_VALIDATE_URL) && preg_match('/^https?:\/\//', $val)) {
+                    $result[$key] = substr($val, 0, 500);
+                }
+            }
         }
         return $result;
     }

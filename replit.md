@@ -47,6 +47,16 @@ pnpm workspace monorepo using TypeScript + PHP/Laravel. Each package manages its
 - **Form inputs**: `.theme-input` class with focus ring + box-shadow, all using CSS custom properties
 - All pages include theme-styles partial; mobile responsive with slide-out drawers; consistent CSS variable usage throughout
 
+### Block Styling System
+- **Per-block styling**: 11 customizable properties (font family/size/weight/style, text color, bg color/image/opacity, border style/width/color/radius, shadow type/color/blur/offsets, display mode card/content, effects glass/gradient-border, glass blur/opacity, padding)
+- **10 Block Templates**: Minimal, Clean Card, Glassmorphism, Neon Glow, Gradient Border, Bold Solid, Frosted, Outlined, Neumorphic, Pill — one-click apply presets
+- **Global Block Theme**: Page-level default styling in Settings > Global Block Theme, with "Apply to all blocks" checkbox; saved to `settings['biolink']['block_theme']`
+- **Style merging**: Global theme (if apply_to_all) → per-block `_style` overrides; computed via `BiolinkBlock::getBlockStyle()` → `buildInlineStyle()`
+- **UI**: 5-tab styling panel (Templates / Text / Fill / Border / FX) in both per-block edit drawer and page settings
+- **Security**: Strict per-property validation (enums, numeric bounds, color regex, URL protocol allowlist, font name sanitization) in `sanitizeBlockStyle()`
+- **Rendering**: `biolink.blade.php` wraps styled blocks in `<div class="block-styled" style="...">` with computed inline styles
+- **Data storage**: Per-block in `settings['_style']`, global in `settings['biolink']['block_theme']`
+
 ### Block Display Settings
 - Per-block visibility controls in `user/links/partials/block-display-settings.blade.php`
 - Collapsible section with schedule (start/end dates), continents, countries, cities, devices, OS, browsers, and browser languages
