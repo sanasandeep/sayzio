@@ -161,6 +161,40 @@
         border-color: rgba(139,92,246,0.3);
     }
 
+    .insert-block-divider {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2px 0;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    }
+    #blockList:hover .insert-block-divider {
+        opacity: 1;
+    }
+    .insert-block-divider:hover {
+        opacity: 1 !important;
+    }
+    .insert-block-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 24px;
+        border-radius: 8px;
+        border: 1.5px dashed rgba(16,185,129,0.3);
+        background: transparent;
+        color: rgba(16,185,129,0.5);
+        font-size: 10px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .insert-block-btn:hover {
+        border-color: rgba(16,185,129,0.6);
+        background: rgba(16,185,129,0.06);
+        color: #10b981;
+    }
+
     .card-container-block {
         border-color: rgba(139,92,246,0.2);
         background: linear-gradient(135deg, var(--bg-card), rgba(139,92,246,0.03));
@@ -462,7 +496,7 @@ $catColors = [
         <a href="{{ route('user.links.blocks.settings', $link) }}" class="btn-ghost px-5 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2">
             <i class="fas fa-cog text-xs"></i> Settings
         </a>
-        <button @click="showGallery = true" class="btn-primary px-5 py-2.5 text-sm ml-1" style="background: linear-gradient(135deg, #10b981, #059669);">
+        <button @click="_insertAfterId = null; _cardGalleryParentId = null; showGallery = true" class="btn-primary px-5 py-2.5 text-sm ml-1" style="background: linear-gradient(135deg, #10b981, #059669);">
             <i class="fas fa-plus text-xs"></i> Add block
         </button>
     </div>
@@ -625,6 +659,11 @@ $catColors = [
                             </div>
                         </div>
                     </div>
+                    <div class="insert-block-divider" style="grid-column: 1 / -1;">
+                        <button type="button" class="insert-block-btn" onclick="openInsertGallery({{ $block->id }})" title="Insert block here">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
                     @empty
                     <div class="py-16 text-center">
                         <div class="empty-state-icon">
@@ -777,6 +816,7 @@ $catColors = [
                         <div>
                             <h2 class="text-lg font-bold gradient-text">Block Gallery</h2>
                             <p class="text-[10px] mt-0.5" style="color: var(--text-faint);" x-show="_cardGalleryParentId" x-cloak><i class="fas fa-layer-group mr-1"></i>Adding to card container</p>
+                            <p class="text-[10px] mt-0.5" style="color: var(--text-faint);" x-show="_insertAfterId" x-cloak><i class="fas fa-arrow-down mr-1"></i>Inserting after selected block</p>
                         </div>
                         <button @click="showGallery = false" class="block-action-btn" style="color: var(--text-faint);"><i class="fas fa-times"></i></button>
                     </div>
@@ -875,7 +915,7 @@ function biolinkEditor() {
                 self.showGallery = true;
             });
             self.$watch('showGallery', function(val) {
-                if (!val) _cardGalleryParentId = null;
+                if (!val) { _cardGalleryParentId = null; _insertAfterId = null; }
             });
         },
         closeEditDrawer() {
@@ -1240,12 +1280,14 @@ function ajaxDeleteBlock(btn, url, blockId) {
 }
 
 var _cardGalleryParentId = null;
+var _insertAfterId = null;
 
 function ajaxAddBlock(type, url, parentId) {
     var fd = new FormData();
     fd.append('type', type);
     fd.append('_token', _csrfToken());
     if (parentId) fd.append('parent_id', parentId);
+    if (_insertAfterId) fd.append('insert_after', _insertAfterId);
     fetch(url, {
         method: 'POST',
         headers: { 'Accept': 'application/json' },
@@ -1262,6 +1304,18 @@ function ajaxAddBlock(type, url, parentId) {
 
 function openCardGallery(cardId) {
     _cardGalleryParentId = cardId;
+    _insertAfterId = null;
+    var el = document.querySelector('[x-data="biolinkEditor()"]');
+    if (el && el.__x) {
+        el.__x.$data.showGallery = true;
+    } else {
+        window.dispatchEvent(new CustomEvent('open-card-gallery'));
+    }
+}
+
+function openInsertGallery(afterBlockId) {
+    _insertAfterId = afterBlockId;
+    _cardGalleryParentId = null;
     var el = document.querySelector('[x-data="biolinkEditor()"]');
     if (el && el.__x) {
         el.__x.$data.showGallery = true;
@@ -1337,7 +1391,7 @@ document.addEventListener('DOMContentLoaded', function() {
             group: { name: 'blocks', pull: true, put: function(to, from, dragEl) {
                 return !dragEl.classList.contains('card-container-block');
             }},
-            filter: '.card-children-area, .card-child-list, .child-span-row, .grid-span-row',
+            filter: '.card-children-area, .card-child-list, .child-span-row, .grid-span-row, .insert-block-divider',
             onAdd: function(evt) {
                 var blockId = parseInt(evt.item.dataset.blockId);
                 doMoveBlock(blockId, null).then(function(data) {

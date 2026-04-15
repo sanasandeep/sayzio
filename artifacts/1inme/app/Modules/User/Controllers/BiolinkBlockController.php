@@ -60,14 +60,37 @@ class BiolinkBlockController extends Controller
             'settings' => 'nullable|array',
             'is_active' => 'boolean',
             'parent_id' => 'nullable|integer|exists:biolink_blocks,id',
+            'insert_after' => 'nullable|integer|exists:biolink_blocks,id',
         ]);
 
         $parentId = $validated['parent_id'] ?? null;
-        if ($parentId) {
-            $parentBlock = BiolinkBlock::where('id', $parentId)->where('link_id', $link->id)->where('type', 'card')->firstOrFail();
-            $maxSort = $parentBlock->children()->max('sort_order') ?? -1;
+        $insertAfterId = $validated['insert_after'] ?? null;
+
+        if ($insertAfterId) {
+            $afterBlock = BiolinkBlock::where('id', $insertAfterId)->where('link_id', $link->id)->firstOrFail();
+            $parentId = $afterBlock->parent_id;
+            $newSortOrder = $afterBlock->sort_order + 1;
+
+            if ($parentId) {
+                BiolinkBlock::where('parent_id', $parentId)
+                    ->where('link_id', $link->id)
+                    ->where('sort_order', '>=', $newSortOrder)
+                    ->increment('sort_order');
+            } else {
+                $link->biolinkBlocks()
+                    ->whereNull('parent_id')
+                    ->where('sort_order', '>=', $newSortOrder)
+                    ->increment('sort_order');
+            }
+            $sortOrder = $newSortOrder;
         } else {
-            $maxSort = $link->biolinkBlocks()->whereNull('parent_id')->max('sort_order') ?? -1;
+            if ($parentId) {
+                $parentBlock = BiolinkBlock::where('id', $parentId)->where('link_id', $link->id)->where('type', 'card')->firstOrFail();
+                $maxSort = $parentBlock->children()->max('sort_order') ?? -1;
+            } else {
+                $maxSort = $link->biolinkBlocks()->whereNull('parent_id')->max('sort_order') ?? -1;
+            }
+            $sortOrder = $maxSort + 1;
         }
 
         $settings = $validated['settings'] ?? $this->getDefaultSettings($validated['type']);
@@ -76,7 +99,7 @@ class BiolinkBlockController extends Controller
         $block = $link->biolinkBlocks()->create([
             'type' => $validated['type'],
             'settings' => $settings,
-            'sort_order' => $maxSort + 1,
+            'sort_order' => $sortOrder,
             'is_active' => $validated['is_active'] ?? true,
             'parent_id' => $parentId,
         ]);
