@@ -16,7 +16,8 @@
     $gtTemplates = \App\Modules\User\Models\BiolinkBlock::BLOCK_TEMPLATES;
 @endphp
 
-<div class="w-full">
+<div class="w-full max-w-7xl mx-auto">
+    @include('user.links.partials.editor-header', ['link' => $link, 'activeMainTab' => 'settings'])
     @include('user.links.partials.settings-header', ['link' => $link, 'activeSettingsTab' => $activeSettingsTab])
 
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -221,7 +222,7 @@
 
         <div class="lg:col-span-5 hidden lg:block">
             <div class="sticky top-6">
-                @include('user.links.partials.settings-device-preview', ['link' => $link])
+                @include('user.links.partials.device-preview', ['link' => $link])
             </div>
         </div>
     </div>
