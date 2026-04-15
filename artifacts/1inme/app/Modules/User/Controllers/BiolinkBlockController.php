@@ -63,8 +63,10 @@ class BiolinkBlockController extends Controller
         $settings = $validated['settings'] ?? $block->settings;
         $settings = $this->sanitizeSettings($block->type, $settings);
 
-        $settings['_visibility'] = $this->sanitizeVisibility($validated['visibility'] ?? []);
-        $settings['_style'] = $this->sanitizeBlockStyle($validated['style'] ?? ($block->settings['_style'] ?? []));
+        $settings['_visibility'] = $this->sanitizeVisibility($validated['visibility'] ?? ($block->settings['_visibility'] ?? []));
+        $existingStyle = $block->settings['_style'] ?? [];
+        $incomingStyle = $validated['style'] ?? [];
+        $settings['_style'] = $this->sanitizeBlockStyle(array_merge($existingStyle, $incomingStyle));
 
         $block->update([
             'settings' => $settings,
@@ -504,6 +506,7 @@ class BiolinkBlockController extends Controller
             'margin_bottom' => [-100, 200],
             'margin_left' => [-100, 200],
             'margin_right' => [-100, 200],
+            'grid_span' => [1, 12],
         ];
         $colorKeys = ['text_color', 'bg_color', 'border_color', 'shadow_color'];
         $fontWeightKeys = ['font_weight'];

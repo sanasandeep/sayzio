@@ -189,6 +189,7 @@ class BiolinkBlock extends Model
         'margin_bottom' => '',
         'margin_left' => '',
         'margin_right' => '',
+        'grid_span' => 12,
         '_template' => '',
     ];
 

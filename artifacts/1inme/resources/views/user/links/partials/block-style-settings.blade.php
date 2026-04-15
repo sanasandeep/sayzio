@@ -318,6 +318,23 @@
                     <p class="text-[10px] mt-2" style="color: var(--text-dimmed);"><i class="fas fa-info-circle mr-1"></i>Negative values pull the block closer to neighbors</p>
                 </div>
             </div>
+            <div>
+                <div class="flex items-center gap-2 mb-2">
+                    <div class="w-5 h-5 rounded flex items-center justify-center" style="background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.15);"><i class="fas fa-columns text-[8px]" style="color: #8b5cf6;"></i></div>
+                    <span class="text-[11px] font-semibold" style="color: var(--text-primary);">Grid Width</span>
+                </div>
+                <div class="relative p-3 rounded-xl" style="background: var(--bg-glass-input); border: 1px dashed var(--border-glass);">
+                    <div class="grid grid-cols-6 gap-1">
+                        @foreach([3 => '¼', 4 => '⅓', 6 => '½', 8 => '⅔', 9 => '¾', 12 => 'Full'] as $gv => $gl)
+                        <label class="flex flex-col items-center gap-1 cursor-pointer">
+                            <input type="radio" name="style[grid_span]" value="{{ $gv }}" {{ ($st['grid_span'] ?? 12) == $gv ? 'checked' : '' }} class="hidden peer">
+                            <span class="w-full text-center text-[10px] font-bold py-1.5 rounded-lg border transition-all peer-checked:bg-purple-500/15 peer-checked:border-purple-500/30 peer-checked:text-purple-400" style="background: var(--bg-glass); border-color: var(--border-glass); color: var(--text-faint);">{{ $gl }}</span>
+                        </label>
+                        @endforeach
+                    </div>
+                    <p class="text-[10px] mt-2" style="color: var(--text-dimmed);"><i class="fas fa-info-circle mr-1"></i>Place multiple blocks side-by-side in a row</p>
+                </div>
+            </div>
         </div>
 
     </div>

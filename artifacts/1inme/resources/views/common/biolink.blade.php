@@ -148,6 +148,10 @@
             max-width: {{ $maxPhone }}px;
             margin: 0 auto;
             padding: {{ $pagePadTop }}px {{ $pagePadX }}px {{ $pagePadBottom }}px;
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: {{ $blockGap }}px;
+            align-items: start;
         }
         @media (min-width: 768px) {
             .biolink-container { max-width: {{ $maxTablet }}px; }
@@ -156,7 +160,8 @@
             .biolink-container { max-width: {{ $maxDesktop }}px; }
         }
         .biolink-block-wrap {
-            margin-bottom: {{ $blockGap }}px;
+            grid-column: span 12;
+            min-width: 0;
         }
         @if($defaultBlockPadding)
         .biolink-block-wrap > :first-child {
@@ -186,7 +191,8 @@
                 $skipWrap = in_array($block->type, ['avatar', 'divider', 'spacer', 'social_icons']);
             @endphp
 
-            <div data-block-id="{{ $block->id }}" class="biolink-block-wrap">
+            @php $gridSpan = intval($blockStyle['grid_span'] ?? 12) ?: 12; @endphp
+            <div data-block-id="{{ $block->id }}" class="biolink-block-wrap" style="grid-column: span {{ $gridSpan }}">
             @if($hasCustomStyle && !$skipWrap)<div class="mb-3 block-styled" style="{{ $blockInline }}">@endif
 
             {{-- BASIC CONTENT --}}

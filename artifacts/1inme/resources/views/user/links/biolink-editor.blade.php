@@ -137,6 +137,30 @@
         border-color: rgba(139,92,246,0.15);
         background: var(--bg-card-hover);
     }
+    .grid-span-row {
+        border-top: 1px solid var(--border-subtle);
+        margin-top: 2px;
+        padding-top: 6px;
+    }
+    .span-btn {
+        background: var(--bg-glass-input);
+        color: var(--text-faint);
+        border: 1px solid transparent;
+        cursor: pointer;
+        min-width: 28px;
+        text-align: center;
+    }
+    .span-btn:hover {
+        background: var(--bg-glass-hover);
+        color: var(--text-muted);
+        border-color: var(--border-glass);
+    }
+    .span-btn.active {
+        background: rgba(139,92,246,0.15);
+        color: #a78bfa;
+        border-color: rgba(139,92,246,0.3);
+    }
+
     .block-card.sortable-ghost {
         opacity: 0.4;
         border: 2px dashed rgba(139,92,246,0.4);
@@ -831,14 +855,15 @@ $catColors = [
                 </div>
                 @endif
 
-                <div id="blockList" class="space-y-2">
+                <div id="blockList" class="grid gap-2" style="grid-template-columns: repeat(12, 1fr);">
                     @forelse($blocks as $block)
                     @php
                         $s = $block->settings ?? [];
                         $typeInfo = $blockTypes[$block->type] ?? ['label' => ucfirst($block->type), 'icon' => 'fa-cube'];
                         $catColor = $catColors[$typeInfo['category'] ?? 'basic'] ?? '#8b5cf6';
                     @endphp
-                    <div class="block-card" data-block-id="{{ $block->id }}">
+                    @php $curSpan = intval($s['_style']['grid_span'] ?? 12) ?: 12; @endphp
+                    <div class="block-card" data-block-id="{{ $block->id }}" data-grid-span="{{ $curSpan }}" style="grid-column: span {{ $curSpan }}">
                         <div class="flex items-center gap-2 p-3">
                             <div class="drag-handle handle">
                                 <div class="flex gap-[3px]"><span class="dot"></span><span class="dot"></span></div>
@@ -856,6 +881,7 @@ $catColors = [
                                     @if(!$block->is_active)
                                     <span class="text-[9px] px-1.5 py-0.5 rounded-full font-semibold" style="background: rgba(239,68,68,0.1); color: #f87171;">HIDDEN</span>
                                     @endif
+                                    <span class="grid-span-badge text-[9px] px-1.5 py-0.5 rounded font-bold" style="background: rgba(139,92,246,0.08); color: #a78bfa; {{ $curSpan >= 12 ? 'display:none;' : '' }}" data-span-badge="{{ $block->id }}">{{ $curSpan }}/12</span>
                                 </div>
                                 <div class="block-preview-content mt-0.5">
                                     @if(in_array($block->type, ['link', 'link_big']))
@@ -894,6 +920,18 @@ $catColors = [
                                 <button class="block-action-btn delete-btn" title="Delete" onclick="ajaxDeleteBlock(this, '{{ route('user.links.blocks.destroy', [$link, $block]) }}', {{ $block->id }})">
                                     <i class="fas fa-trash"></i>
                                 </button>
+                            </div>
+                        </div>
+                        <div class="grid-span-row px-3 pb-2" data-span-row="{{ $block->id }}">
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-[9px] font-semibold flex-shrink-0" style="color: var(--text-faint);"><i class="fas fa-columns mr-1"></i>Width</span>
+                                <div class="flex gap-[3px] flex-1">
+                                    @foreach([3 => '¼', 4 => '⅓', 6 => '½', 8 => '⅔', 9 => '¾', 12 => 'Full'] as $spanVal => $spanLabel)
+                                    <button type="button" class="span-btn text-[9px] font-bold px-1.5 py-0.5 rounded transition-all {{ $curSpan == $spanVal ? 'active' : '' }}"
+                                            onclick="setGridSpan({{ $block->id }}, {{ $spanVal }}, this)"
+                                            title="{{ $spanLabel }} width ({{ $spanVal }}/12 columns)">{{ $spanLabel }}</button>
+                                    @endforeach
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1355,6 +1393,38 @@ window.addEventListener('resize', function() {
     clearTimeout(window._resizeScaleTimer);
     window._resizeScaleTimer = setTimeout(_scaleDeviceIframes, 150);
 });
+
+function setGridSpan(blockId, span, btn) {
+    var card = btn.closest('.block-card');
+    var row = card.querySelector('.grid-span-row');
+    row.querySelectorAll('.span-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    card.dataset.gridSpan = span;
+    card.style.gridColumn = 'span ' + span;
+    var badge = document.querySelector('[data-span-badge="' + blockId + '"]');
+    if (badge) {
+        badge.textContent = span + '/12';
+        badge.style.display = span >= 12 ? 'none' : '';
+    }
+    var url = '{{ route("user.links.blocks.update", [$link, "__ID__"]) }}'.replace('__ID__', blockId);
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': _csrfToken(),
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'X-HTTP-Method-Override': 'PUT'
+        },
+        body: JSON.stringify({ style: { grid_span: span } })
+    }).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.success) {
+            showToast('Width updated', 'success');
+            refreshPreview();
+        }
+    }).catch(function() {
+        showToast('Failed to save width', 'error');
+    });
+}
 
 function ajaxToggleBlock(btn, url, blockId) {
     btn.disabled = true;
