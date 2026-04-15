@@ -11,7 +11,7 @@ $labelClass = 'block text-xs mb-1';
 <div class="space-y-3">
     <div><label class="{{ $labelClass }}">Link Text</label><input type="text" name="settings[text]" value="{{ $s['text'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div><label class="{{ $labelClass }}">URL</label><input type="url" name="settings[url]" value="{{ $s['url'] ?? '' }}" placeholder="https://" class="{{ $inputClass }}"></div>
-    <div><label class="{{ $labelClass }}">Icon (FA class)</label><input type="text" name="settings[icon]" value="{{ $s['icon'] ?? '' }}" placeholder="fas fa-globe" class="{{ $inputClass }}"></div>
+    @include('user.links.partials.icon-picker', ['fieldName' => 'settings[icon]', 'currentValue' => $s['icon'] ?? '', 'labelText' => 'Icon', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
     @include('user.links.partials.file-upload-field', ['fieldName' => 'settings[thumbnail]', 'currentValue' => $s['thumbnail'] ?? '', 'acceptTypes' => 'image', 'labelText' => 'Thumbnail', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
 </div>
 
@@ -20,7 +20,7 @@ $labelClass = 'block text-xs mb-1';
     <div><label class="{{ $labelClass }}">Link Text</label><input type="text" name="settings[text]" value="{{ $s['text'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div><label class="{{ $labelClass }}">Description</label><input type="text" name="settings[description]" value="{{ $s['description'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div><label class="{{ $labelClass }}">URL</label><input type="url" name="settings[url]" value="{{ $s['url'] ?? '' }}" placeholder="https://" class="{{ $inputClass }}"></div>
-    <div><label class="{{ $labelClass }}">Icon (FA class)</label><input type="text" name="settings[icon]" value="{{ $s['icon'] ?? '' }}" class="{{ $inputClass }}"></div>
+    @include('user.links.partials.icon-picker', ['fieldName' => 'settings[icon]', 'currentValue' => $s['icon'] ?? '', 'labelText' => 'Icon', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
     @include('user.links.partials.file-upload-field', ['fieldName' => 'settings[thumbnail]', 'currentValue' => $s['thumbnail'] ?? '', 'acceptTypes' => 'image', 'labelText' => 'Thumbnail', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
     <div><label class="{{ $labelClass }}">Background Color</label><input type="color" name="settings[bg_color]" value="{{ $s['bg_color'] ?? '#7c3aed' }}" class="w-full h-10 rounded-xl cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
 </div>
@@ -91,7 +91,7 @@ $labelClass = 'block text-xs mb-1';
         <div class="flex gap-2 mb-2"><input type="text" x-model="items[i]" :name="'settings[items][' + i + ']'" class="{{ $inputClass }}"><button type="button" @click="items.splice(i,1)" class="text-red-400/60 hover:text-red-400 px-2"><i class="fas fa-times text-xs"></i></button></div>
     </template>
     <button type="button" @click="items.push('')" class="text-xs text-purple-400 hover:text-purple-300"><i class="fas fa-plus mr-1"></i>Add Item</button>
-    @if($block->type === 'list')<div class="mt-3"><label class="{{ $labelClass }}">Icon</label><input type="text" name="settings[icon]" value="{{ $s['icon'] ?? 'fa-check' }}" class="{{ $inputClass }}"></div>@endif
+    @if($block->type === 'list')<div class="mt-3">@include('user.links.partials.icon-picker', ['fieldName' => 'settings[icon]', 'currentValue' => $s['icon'] ?? 'fa-check', 'labelText' => 'List Icon', 'inputClass' => $inputClass, 'labelClass' => $labelClass])</div>@endif
 </div>
 
 @elseif($block->type === 'list_pricing')
@@ -382,7 +382,7 @@ function imageListUploader_{{ $gridImgId }}() {
     <div><label class="{{ $labelClass }}">Description</label><textarea name="settings[description]" rows="2" class="{{ $inputClass }}">{{ $s['description'] ?? '' }}</textarea></div>
     <div class="grid grid-cols-2 gap-3">
         <div><label class="{{ $labelClass }}">Price</label><input type="text" name="settings[price]" value="{{ $s['price'] ?? '' }}" class="{{ $inputClass }}"></div>
-        <div><label class="{{ $labelClass }}">Icon</label><input type="text" name="settings[icon]" value="{{ $s['icon'] ?? '' }}" placeholder="fas fa-star" class="{{ $inputClass }}"></div>
+        <div>@include('user.links.partials.icon-picker', ['fieldName' => 'settings[icon]', 'currentValue' => $s['icon'] ?? '', 'labelText' => 'Icon', 'inputClass' => $inputClass, 'labelClass' => $labelClass])</div>
     </div>
     <div><label class="{{ $labelClass }}">URL</label><input type="url" name="settings[url]" value="{{ $s['url'] ?? '' }}" class="{{ $inputClass }}"></div>
 </div>

@@ -7,6 +7,29 @@
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
 
 <style>
+    .device-switcher-btn {
+        width: 36px; height: 36px;
+        border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 13px;
+        color: var(--text-faint);
+        background: var(--bg-glass);
+        border: 1px solid var(--border-glass);
+        cursor: pointer;
+        transition: all 0.25s ease;
+    }
+    .device-switcher-btn:hover {
+        background: var(--bg-glass-hover);
+        color: var(--text-muted);
+        border-color: rgba(139,92,246,0.15);
+    }
+    .device-switcher-btn.active {
+        background: rgba(139,92,246,0.15);
+        color: #a78bfa;
+        border-color: rgba(139,92,246,0.3);
+        box-shadow: 0 0 12px rgba(139,92,246,0.1);
+    }
+
     .block-card {
         position: relative;
         border-radius: 1rem;
@@ -597,20 +620,74 @@ $catColors = [
             </div>
         </div>
 
-        {{-- PHONE PREVIEW --}}
-        <div class="lg:col-span-5 xl:col-span-5">
-            <div class="sticky top-6 flex justify-center">
-                <div class="relative" style="width: 320px;">
-                    <div class="absolute -inset-2 rounded-[3.5rem] animate-pulse-glow" style="background: linear-gradient(135deg, rgba(139,92,246,0.1), rgba(168,85,247,0.05)); filter: blur(20px);"></div>
-                    <div class="absolute -inset-1 rounded-[3rem]" style="background: linear-gradient(180deg, rgba(139,92,246,0.15), rgba(255,255,255,0.05), rgba(139,92,246,0.1)); filter: blur(1px);"></div>
-                    <div class="relative bg-black rounded-[2.5rem] p-2 shadow-2xl" style="border: 3px solid rgba(255,255,255,0.08); box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 40px rgba(139,92,246,0.08);">
-                        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-28 h-6 bg-black rounded-b-2xl z-10 flex items-center justify-center">
-                            <div class="w-16 h-3.5 rounded-full" style="background: rgba(255,255,255,0.05);"></div>
+        {{-- DEVICE PREVIEW --}}
+        <div class="lg:col-span-5 xl:col-span-5" x-data="{ previewMode: 'phone' }">
+            <div class="sticky top-6">
+                <div class="flex items-center justify-center gap-1 mb-4">
+                    <button type="button" @click="previewMode = 'phone'; switchPreviewMode('phone')" class="device-switcher-btn" :class="previewMode === 'phone' ? 'active' : ''" title="Phone">
+                        <i class="fas fa-mobile-alt"></i>
+                    </button>
+                    <button type="button" @click="previewMode = 'tablet'; switchPreviewMode('tablet')" class="device-switcher-btn" :class="previewMode === 'tablet' ? 'active' : ''" title="Tablet Portrait">
+                        <i class="fas fa-tablet-alt"></i>
+                    </button>
+                    <button type="button" @click="previewMode = 'tablet-land'; switchPreviewMode('tablet-land')" class="device-switcher-btn" :class="previewMode === 'tablet-land' ? 'active' : ''" title="Tablet Landscape">
+                        <i class="fas fa-tablet-alt" style="transform: rotate(-90deg);"></i>
+                    </button>
+                    <button type="button" @click="previewMode = 'desktop'; switchPreviewMode('desktop')" class="device-switcher-btn" :class="previewMode === 'desktop' ? 'active' : ''" title="Desktop">
+                        <i class="fas fa-desktop"></i>
+                    </button>
+                </div>
+                <div class="flex justify-center transition-all duration-500 ease-in-out">
+                    {{-- Phone --}}
+                    <div x-show="previewMode === 'phone'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" class="relative" style="width: 320px;">
+                        <div class="absolute -inset-2 rounded-[3.5rem] animate-pulse-glow" style="background: linear-gradient(135deg, rgba(139,92,246,0.1), rgba(168,85,247,0.05)); filter: blur(20px);"></div>
+                        <div class="absolute -inset-1 rounded-[3rem]" style="background: linear-gradient(180deg, rgba(139,92,246,0.15), rgba(255,255,255,0.05), rgba(139,92,246,0.1)); filter: blur(1px);"></div>
+                        <div class="relative bg-black rounded-[2.5rem] p-2 shadow-2xl" style="border: 3px solid rgba(255,255,255,0.08); box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 40px rgba(139,92,246,0.08);">
+                            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-28 h-6 bg-black rounded-b-2xl z-10 flex items-center justify-center">
+                                <div class="w-16 h-3.5 rounded-full" style="background: rgba(255,255,255,0.05);"></div>
+                            </div>
+                            <div class="rounded-[2rem] overflow-hidden" style="height: 580px; background: var(--bg-body);">
+                                <iframe class="preview-iframe w-full h-full border-0 rounded-[2rem]" data-preview="phone" style="transform-origin: top left;"></iframe>
+                            </div>
+                            <div class="absolute bottom-2 left-1/2 -translate-x-1/2 w-28 h-1 rounded-full" style="background: rgba(255,255,255,0.08);"></div>
                         </div>
-                        <div class="rounded-[2rem] overflow-hidden" style="height: 580px; background: var(--bg-body);">
-                            <iframe id="previewFrame" src="{{ url('/' . $link->alias) }}" class="w-full h-full border-0 rounded-[2rem]" style="transform-origin: top left;"></iframe>
+                    </div>
+                    {{-- Tablet Portrait --}}
+                    <div x-show="previewMode === 'tablet'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-cloak class="relative" style="width: 100%; max-width: 520px;">
+                        <div class="relative rounded-[1.5rem] p-2 shadow-2xl" style="background: #1a1a2e; border: 3px solid rgba(255,255,255,0.06); box-shadow: 0 20px 60px rgba(0,0,0,0.5);">
+                            <div class="absolute top-2 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full" style="background: rgba(255,255,255,0.05);"></div>
+                            <div class="rounded-xl overflow-hidden mt-4" style="height: 600px; background: var(--bg-body);">
+                                <iframe class="preview-iframe w-full h-full border-0" data-preview="tablet"></iframe>
+                            </div>
+                            <div class="mt-2 flex justify-center"><div class="w-10 h-10 rounded-full" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);"></div></div>
                         </div>
-                        <div class="absolute bottom-2 left-1/2 -translate-x-1/2 w-28 h-1 rounded-full" style="background: rgba(255,255,255,0.08);"></div>
+                    </div>
+                    {{-- Tablet Landscape --}}
+                    <div x-show="previewMode === 'tablet-land'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-cloak class="relative w-full">
+                        <div class="relative rounded-[1.5rem] p-2 shadow-2xl" style="background: #1a1a2e; border: 3px solid rgba(255,255,255,0.06); box-shadow: 0 20px 60px rgba(0,0,0,0.5);">
+                            <div class="absolute top-1/2 -translate-y-1/2 left-2 w-3 h-3 rounded-full" style="background: rgba(255,255,255,0.05);"></div>
+                            <div class="rounded-xl overflow-hidden ml-4" style="height: 440px; background: var(--bg-body);">
+                                <iframe class="preview-iframe w-full h-full border-0" data-preview="tablet-land"></iframe>
+                            </div>
+                        </div>
+                    </div>
+                    {{-- Desktop --}}
+                    <div x-show="previewMode === 'desktop'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-cloak class="relative w-full">
+                        <div class="relative rounded-t-xl shadow-2xl" style="background: #1a1a2e; border: 3px solid rgba(255,255,255,0.06); box-shadow: 0 20px 60px rgba(0,0,0,0.5);">
+                            <div class="flex items-center gap-1.5 px-3 py-2" style="border-bottom: 1px solid rgba(255,255,255,0.06);">
+                                <div class="w-2.5 h-2.5 rounded-full" style="background: #ef4444;"></div>
+                                <div class="w-2.5 h-2.5 rounded-full" style="background: #f59e0b;"></div>
+                                <div class="w-2.5 h-2.5 rounded-full" style="background: #22c55e;"></div>
+                                <div class="flex-1 ml-3 rounded-md py-1 px-3 text-[10px] truncate" style="background: rgba(255,255,255,0.04); color: var(--text-faint);">
+                                    {{ url('/' . $link->alias) }}
+                                </div>
+                            </div>
+                            <div class="overflow-hidden" style="height: 480px; background: var(--bg-body);">
+                                <iframe class="preview-iframe w-full h-full border-0" data-preview="desktop"></iframe>
+                            </div>
+                        </div>
+                        <div class="mx-auto" style="width: 40%; height: 24px; background: linear-gradient(180deg, #1a1a2e, #111); border-radius: 0 0 4px 4px; border: 2px solid rgba(255,255,255,0.04); border-top: 0;"></div>
+                        <div class="mx-auto" style="width: 60%; height: 6px; background: #1a1a2e; border-radius: 0 0 8px 8px; border: 2px solid rgba(255,255,255,0.04); border-top: 0;"></div>
                     </div>
                 </div>
             </div>
@@ -914,10 +991,31 @@ function showToast(msg, type) {
     setTimeout(function() { toast.style.opacity = '0'; setTimeout(function() { toast.remove(); }, 300); }, 2500);
 }
 
+var _previewUrl = '{{ url("/" . $link->alias) }}';
+var _activePreviewMode = 'phone';
+
 function refreshPreview() {
-    var f = document.getElementById('previewFrame');
-    if (f) f.src = f.src;
+    var active = document.querySelector('.preview-iframe[data-preview="' + _activePreviewMode + '"]');
+    if (active) active.src = _previewUrl + '?_t=' + Date.now();
 }
+
+function switchPreviewMode(mode) {
+    _activePreviewMode = mode;
+    document.querySelectorAll('.preview-iframe').forEach(function(f) {
+        if (f.dataset.preview === mode) {
+            if (!f.src || f.src === 'about:blank' || f.src === '') {
+                f.src = _previewUrl;
+            }
+        } else {
+            f.src = 'about:blank';
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    var phoneFrame = document.querySelector('.preview-iframe[data-preview="phone"]');
+    if (phoneFrame) phoneFrame.src = _previewUrl;
+});
 
 function ajaxToggleBlock(btn, url, blockId) {
     btn.disabled = true;
