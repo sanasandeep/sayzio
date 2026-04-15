@@ -31,89 +31,87 @@
     }
 
     .device-frame-phone {
-        --frame-w: 290px;
-        --scale: 0.773;
-        --viewport-w: 375px;
-        --viewport-h: 812px;
-        width: var(--frame-w);
+        width: 280px;
+        margin: 0 auto;
     }
     .device-frame-phone .device-screen {
-        width: calc(var(--viewport-w) * var(--scale));
-        height: calc(var(--viewport-h) * var(--scale));
+        width: 100%;
         overflow: hidden;
         border-radius: 2rem;
+        position: relative;
+        aspect-ratio: 375 / 812;
     }
     .device-frame-phone .device-screen iframe {
-        width: var(--viewport-w);
-        height: var(--viewport-h);
-        transform: scale(var(--scale));
+        width: 375px;
+        height: 812px;
         transform-origin: top left;
         border: 0;
+        position: absolute;
+        top: 0;
+        left: 0;
     }
 
     .device-frame-tablet {
-        --scale: 0.52;
-        --viewport-w: 768px;
-        --viewport-h: 1024px;
-        width: calc(var(--viewport-w) * var(--scale) + 24px);
-        max-width: 100%;
-    }
-    .device-frame-tablet .device-screen {
-        width: calc(var(--viewport-w) * var(--scale));
-        height: calc(var(--viewport-h) * var(--scale));
-        overflow: hidden;
-        border-radius: 0.75rem;
+        width: 100%;
+        max-width: 420px;
         margin: 0 auto;
     }
+    .device-frame-tablet .device-screen {
+        width: 100%;
+        overflow: hidden;
+        border-radius: 0.75rem;
+        position: relative;
+        aspect-ratio: 3 / 4;
+    }
     .device-frame-tablet .device-screen iframe {
-        width: var(--viewport-w);
-        height: var(--viewport-h);
-        transform: scale(var(--scale));
+        width: 768px;
+        height: 1024px;
         transform-origin: top left;
         border: 0;
+        position: absolute;
+        top: 0;
+        left: 0;
     }
 
     .device-frame-tablet-land {
-        --scale: 0.44;
-        --viewport-w: 1024px;
-        --viewport-h: 768px;
-        width: calc(var(--viewport-w) * var(--scale) + 24px);
-        max-width: 100%;
-    }
-    .device-frame-tablet-land .device-screen {
-        width: calc(var(--viewport-w) * var(--scale));
-        height: calc(var(--viewport-h) * var(--scale));
-        overflow: hidden;
-        border-radius: 0.75rem;
+        width: 100%;
         margin: 0 auto;
     }
+    .device-frame-tablet-land .device-screen {
+        width: 100%;
+        overflow: hidden;
+        border-radius: 0.75rem;
+        position: relative;
+        aspect-ratio: 4 / 3;
+    }
     .device-frame-tablet-land .device-screen iframe {
-        width: var(--viewport-w);
-        height: var(--viewport-h);
-        transform: scale(var(--scale));
+        width: 1024px;
+        height: 768px;
         transform-origin: top left;
         border: 0;
+        position: absolute;
+        top: 0;
+        left: 0;
     }
 
     .device-frame-desktop {
-        --scale: 0.38;
-        --viewport-w: 1440px;
-        --viewport-h: 900px;
-        width: calc(var(--viewport-w) * var(--scale) + 6px);
-        max-width: 100%;
-    }
-    .device-frame-desktop .device-screen {
-        width: calc(var(--viewport-w) * var(--scale));
-        height: calc(var(--viewport-h) * var(--scale));
-        overflow: hidden;
+        width: 100%;
         margin: 0 auto;
     }
+    .device-frame-desktop .device-screen {
+        width: 100%;
+        overflow: hidden;
+        position: relative;
+        aspect-ratio: 16 / 10;
+    }
     .device-frame-desktop .device-screen iframe {
-        width: var(--viewport-w);
-        height: var(--viewport-h);
-        transform: scale(var(--scale));
+        width: 1440px;
+        height: 900px;
         transform-origin: top left;
         border: 0;
+        position: absolute;
+        top: 0;
+        left: 0;
     }
 
     .device-resolution-label {
@@ -1311,6 +1309,27 @@ function refreshPreview() {
     if (active) active.src = _previewUrl + '?_t=' + Date.now();
 }
 
+var _deviceViewports = {
+    phone:        { w: 375, h: 812 },
+    tablet:       { w: 768, h: 1024 },
+    'tablet-land': { w: 1024, h: 768 },
+    desktop:      { w: 1440, h: 900 }
+};
+
+function _scaleDeviceIframes() {
+    document.querySelectorAll('.preview-iframe').forEach(function(iframe) {
+        var mode = iframe.dataset.preview;
+        var vp = _deviceViewports[mode];
+        if (!vp) return;
+        var screen = iframe.closest('.device-screen');
+        if (!screen) return;
+        var containerW = screen.offsetWidth;
+        if (containerW <= 0) return;
+        var scale = containerW / vp.w;
+        iframe.style.transform = 'scale(' + scale + ')';
+    });
+}
+
 function switchPreviewMode(mode) {
     _activePreviewMode = mode;
     document.querySelectorAll('.preview-iframe').forEach(function(f) {
@@ -1322,11 +1341,18 @@ function switchPreviewMode(mode) {
             f.src = 'about:blank';
         }
     });
+    setTimeout(_scaleDeviceIframes, 50);
 }
 
 document.addEventListener('DOMContentLoaded', function() {
     var phoneFrame = document.querySelector('.preview-iframe[data-preview="phone"]');
     if (phoneFrame) phoneFrame.src = _previewUrl;
+    setTimeout(_scaleDeviceIframes, 100);
+});
+
+window.addEventListener('resize', function() {
+    clearTimeout(window._resizeScaleTimer);
+    window._resizeScaleTimer = setTimeout(_scaleDeviceIframes, 150);
 });
 
 function ajaxToggleBlock(btn, url, blockId) {
