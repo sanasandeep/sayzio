@@ -46,8 +46,12 @@ A reusable Blade partial (`file-upload-field.blade.php`) provides a drag-and-dro
 ### AJAX Block Editor
 All block operations (add, edit, save, toggle, delete, reorder) are AJAX-driven, providing a fluid user experience with toast notifications and smooth animations. The preview iframe auto-refreshes on changes.
 
-### Biolink Blocks System
-The platform supports approximately 99 block types across 14 categories, offering extensive content and integration options. A tabbed editor with a multi-device preview (phone/tablet/desktop) facilitates block management and page settings (background, fonts, button styles). All HTML content is sanitized for security, and URLs are validated. Blocks can be scheduled for visibility.
+### Biolink Editor (Split Pages)
+The biolink editor is split into two separate pages:
+- **Blocks page** (`/user/links/{link}/blocks`): Block management with drag-and-drop reorder, grid-span width controls, add/edit/toggle/delete blocks, device preview (phone/tablet/desktop). No settings content.
+- **Settings page** (`/user/links/{link}/settings`): 4-tab design (Appearance, Layout, Block Theme, Advanced). Appearance covers page design, colors, background, button styles. Layout covers max width, padding, block spacing. Block Theme has global templates, text, fill, border, shadow, effects sub-tabs. Advanced has badges, branding, favicon, custom CSS/JS, SEO info. Single sticky Save button redirects back to settings.
+
+The platform supports approximately 99 block types across 14 categories. All HTML content is sanitized for security, and URLs are validated. Blocks can be scheduled for visibility.
 
 #### Plan-Gated Biolink Features
 Three new plan-gated features have been added to biolink pages (controlled by `custom_branding`, `custom_favicon`, `custom_code` plan features):

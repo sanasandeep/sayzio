@@ -333,6 +333,10 @@ class LinkController extends Controller
 
         $link->update(['alias' => $validated['alias']]);
 
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'alias' => $validated['alias']]);
+        }
+
         return back()->with('success', 'URL alias updated successfully.');
     }
 }

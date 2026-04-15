@@ -19,6 +19,12 @@ class BiolinkBlockController extends Controller
         return view('user.links.biolink-editor', compact('link', 'blocks', 'blockTypes', 'blockCategories'));
     }
 
+    public function settings(Link $link)
+    {
+        abort_if($link->user_id !== auth()->id() || $link->type !== 'biolink', 403);
+        return view('user.links.biolink-settings', compact('link'));
+    }
+
     public function store(Request $request, Link $link)
     {
         abort_if($link->user_id !== auth()->id() || $link->type !== 'biolink', 403);
@@ -219,7 +225,7 @@ class BiolinkBlockController extends Controller
         }
         $link->update($updateData);
 
-        return redirect()->route('user.links.blocks.editor', $link)->with('success', 'Page settings updated.');
+        return redirect()->route('user.links.blocks.settings', $link)->with('success', 'Page settings updated.');
     }
 
     private function sanitizeLayout(array $input): array
