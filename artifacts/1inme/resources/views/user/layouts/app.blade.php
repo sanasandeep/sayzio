@@ -344,6 +344,12 @@
                     <span class="nav-label">Tracking Pixels</span>
                     <span class="sidebar-tooltip">Pixels</span>
                 </a>
+                <a href="{{ route('user.files.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.files.*') ? 'active' : '' }}">
+                    <div class="nav-icon-wrap"><i class="fas fa-cloud-upload-alt"></i></div>
+                    <span class="nav-label">My Files</span>
+                    <span class="sidebar-tooltip">Files</span>
+                </a>
 
                 <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Account</div>
 

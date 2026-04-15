@@ -22,14 +22,20 @@ class UserFileController extends Controller
 
         $files = $query->paginate(24);
 
-        return response()->json([
-            'success' => true,
-            'files' => $files->items(),
-            'pagination' => [
-                'current_page' => $files->currentPage(),
-                'last_page' => $files->lastPage(),
-                'total' => $files->total(),
-            ],
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'files' => $files->items(),
+                'pagination' => [
+                    'current_page' => $files->currentPage(),
+                    'last_page' => $files->lastPage(),
+                    'total' => $files->total(),
+                ],
+                'quota' => $this->getQuotaInfo($user),
+            ]);
+        }
+
+        return view('user.files.index', [
             'quota' => $this->getQuotaInfo($user),
         ]);
     }

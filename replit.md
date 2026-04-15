@@ -1,166 +1,67 @@
-# Workspace
+# Overview
 
-## Overview
+This project is a pnpm workspace monorepo integrating TypeScript and PHP/Laravel to build a comprehensive link management SaaS platform. The core offering, "1INME", aims to provide users with a powerful tool to manage, track, and brand their links, biolinks, and QR codes, effectively serving as a mini-website builder. The platform emphasizes a premium, visually engaging user experience with advanced customization options for biolinks, comprehensive analytics, and robust tracking features. The business vision is to offer a highly competitive and feature-rich solution in the link management market, catering to creators, businesses, and individuals seeking to optimize their online presence and engagement.
 
-pnpm workspace monorepo using TypeScript + PHP/Laravel. Each package manages its own dependencies.
+# User Preferences
 
-## Stack
+I prefer iterative development. I want to be asked before making major changes. I do not want changes to the folder `artifacts/1inme/resources/views/vendor/`.
 
-- **Monorepo tool**: pnpm workspaces
-- **Node.js version**: 24
-- **Package manager**: pnpm
-- **TypeScript version**: 5.9
-- **API framework**: Express 5
-- **Database**: PostgreSQL + Drizzle ORM (API server) + Laravel Eloquent (1INME)
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
-- **API codegen**: Orval (from OpenAPI spec)
-- **Build**: esbuild (CJS bundle)
+# System Architecture
+
+The project is structured as a pnpm workspace monorepo. The backend utilizes PHP 8.4 with Laravel for the 1INME application, and Node.js 24 with Express 5 for API services. PostgreSQL is used for data storage, with Drizzle ORM for the API server and Laravel Eloquent for 1INME. TypeScript 5.9 is used across the Node.js parts of the monorepo, with Zod for validation and Orval for API codegen from OpenAPI specifications. esbuild is used for CJS bundling.
 
 ## 1INME Laravel App (`artifacts/1inme/`)
 
-**Link management SaaS platform** built with PHP 8.4 / Laravel, PostgreSQL, Tailwind CSS + Alpine.js.
+### Core Architecture
+The Laravel application follows an HMVC (Hierarchical Model-View-Controller) pattern with modules (`Admin`, `User`, `Common`) for organizational clarity. Routes are module-specific, and authentication uses `admin` and `web` guards, supporting both password and OTP logins.
 
-### Architecture
-- **HMVC Modules**: `app/Modules/{Admin,User,Common}/` with Controllers, Models, Middleware, Services, Providers
-- **Routes**: `routes/modules/admin.php` (prefix `/admin`), `routes/modules/user.php` (prefix `/user`), `routes/web.php` (catch-all redirect)
-- **Auth**: `admin` guard for staff/admin (`Admin` model), `web` guard for users (`User` model)
-- **OTP Login**: `otps` table + `OtpService` for email/SMS OTP verification; login page has Password/OTP tabs
-- **Demo Login**: `demo@1inme.com` user + `admin@1inme.com` admin; environment-gated (disabled in production); throttled OTP routes
-- **Module registration**: `ModuleServiceProvider` in `bootstrap/providers.php`
+### UI/UX Design (Premium Redesign)
+The UI features a premium glassmorphism design with a dark/light mode toggle. A purple color palette is consistently used. Animated elements like an aurora mesh background, floating particles, shimmer sweeps, and pulse-glow effects are integrated, with accessibility considerations for reduced motion. The typography uses Space Grotesk. Components like `.card-premium`, `.stat-card`, and various button styles reinforce the premium aesthetic.
 
-### Branding & UI Design (Premium Redesign)
-- **Dark/Light Mode Toggle**: CSS custom properties on `:root` / `html.light-mode`, toggled via Alpine.js, persisted in `localStorage('1inme_theme')` as `'dark'`|`'light'`
-  - Shared theme partial: `common/partials/theme-styles.blade.php` (CSS vars + light-mode JS overrides)
-  - Toggle component: `common/partials/theme-toggle.blade.php` (pill switch with sun/moon icons)
-  - Default: dark mode; pre-render script prevents flash
-- **Premium Glassmorphism**: Dark bg `#06010f` / light `#f0edf6`, `backdrop-filter: blur(40px) saturate(1.4)`, animated aurora mesh background (`bg-mesh::before/::after` with CSS `aurora` keyframe 25s)
-- **Animated Effects**: Aurora mesh (25s), floating particles (JS-generated, 12-20 per layout), shimmer sweep (4s), pulse-glow (3s box-shadow), gradient-shift, float-slow (20s/28s); all gated by `@media (prefers-reduced-motion: reduce)`
-- **Purple palette**: primary `#8b5cf6`, accent `#a78bfa`, CTA gradient `135deg #8b5cf6 → #7c3aed → #6d28d9`
-- **Font**: Space Grotesk (Google Fonts CDN), antialiased rendering
-- **Component classes**: `.card-premium` (`::before` gradient mask border, translateY(-3px) hover), `.stat-card` (`::before` accent bar + `::after` glow overlay on hover, CSS vars `--stat-accent/--stat-glow`), `.btn-primary` (`::before` shimmer on hover), `.btn-ghost`, `.badge`, `.gradient-text`, `.glow-icon`, `.shimmer`, `.upgrade-card`
-- **Login page**: Split layout — left: animated floating orbs + gradient "built for growth" text + feature bullets with glow icons + social proof; right: glassmorphism login form
-- **Sidebar (3-mode collapsible)**: Full (260px), Icons-only (72px), Hidden (0px); 3 direct-switch buttons in sidebar header; state persisted in `localStorage('1inme_sidebar')`; smooth CSS transitions (0.35s cubic-bezier); tooltips on hover in icons-only mode; user avatar with gradient ring; upgrade card auto-hides in collapsed modes; responsive via `matchMedia` listener
-- **Header**: Glassmorphism with gradient glow line at bottom; breadcrumb navigation (supports `@section('breadcrumb_parent')`); live search box (expandable on focus, Enter to search); notification bell with badge dot; theme toggle; "New Link" CTA button; hamburger to restore hidden sidebar
-- **Dashboard**: Gradient-text greeting, shimmer stat cards with glow-icon accents, premium recent links + quick actions cards, animated progress bar
-- **Links page**: Colored type badges, theme-consistent filter bar, premium card styling, themed action buttons
-- **Biolink editor**: card-premium accordion sections with colored icon headers, themed customization form using `.theme-input`, premium phone preview with purple glow frame, glassmorphism add-block modal
-- **Form inputs**: `.theme-input` class with focus ring + box-shadow, all using CSS custom properties
-- All pages include theme-styles partial; mobile responsive with slide-out drawers; consistent CSS variable usage throughout
+The login page features a split layout with animated elements and social proof on one side, and a glassmorphism login form on the other. A 3-mode collapsible sidebar (Full, Icons-only, Hidden) with state persistence and smooth transitions enhances navigation. The header is glassmorphic with breadcrumb navigation, live search, notifications, and a theme toggle.
 
-### Block Styling System
-- **Per-block styling**: 11 customizable properties (font family/size/weight/style, text color, bg color/image/opacity, border style/width/color/radius, shadow type/color/blur/offsets, display mode card/content, effects glass/gradient-border, glass blur/opacity, padding)
-- **10 Block Templates**: Minimal, Clean Card, Glassmorphism, Neon Glow, Gradient Border, Bold Solid, Frosted, Outlined, Neumorphic, Pill — one-click apply presets
-- **Global Block Theme**: Page-level default styling in Settings > Global Block Theme, with "Apply to all blocks" checkbox; saved to `settings['biolink']['block_theme']`
-- **Style merging**: Global theme (if apply_to_all) → per-block `_style` overrides; computed via `BiolinkBlock::getBlockStyle()` → `buildInlineStyle()`
-- **UI**: 5-tab styling panel (Templates / Text / Fill / Border / FX) in both per-block edit drawer and page settings
-- **Security**: Strict per-property validation (enums, numeric bounds, color regex, URL protocol allowlist, font name sanitization) in `sanitizeBlockStyle()`
-- **Rendering**: `biolink.blade.php` wraps styled blocks in `<div class="block-styled" style="...">` with computed inline styles
-- **Data storage**: Per-block in `settings['_style']`, global in `settings['biolink']['block_theme']`
+### Biolink Customization Systems
 
-### Image Styling System
-- **Per-image styling**: Available for `image`, `image_grid`, `image_slider`, `image_slider_v2` blocks
-- **Mask/Crop shapes**: 10 options — None, Rounded, Circle, Square, Diamond, Hexagon, Octagon, Star, Blob, Arch (using CSS clip-path)
-- **Border**: style (solid/dashed/dotted/double), width, color, custom radius
-- **Shadow**: 6 types — Soft, Hard, Glow, Neon, Drop Shadow (CSS filter), None — with color/blur/offset/spread controls
-- **Object fit**: cover, contain, fill, none
-- **UI**: Collapsible "Image Styling" section in block editor via `image-style-settings.blade.php` partial
-- **Data storage**: `settings['_image_style']` JSON on block; sanitized via `sanitizeImageStyle()`
-- **Rendering**: `BiolinkBlock::buildImageInlineStyle()` generates inline CSS; `MASK_CLIP_PATHS` constant for shape definitions
+#### Block Styling System
+This system allows per-block styling with 11 customizable properties (font, color, background, border, shadow, display mode, effects, padding). Ten block templates provide one-click presets. A global block theme can be applied page-wide, with per-block overrides. Styling is rendered as inline CSS and stored in JSON `settings` fields. Strict validation is applied to all style properties.
 
-### Trackable Block Links
-- **Optional links**: Any image block can have a destination URL with full link attributes
-- **Attributes**: URL, target (_blank/_self), rel (noopener/nofollow/noreferrer/sponsored/ugc), title/tooltip
-- **UTM parameters**: utm_source, utm_medium, utm_campaign, utm_term, utm_content — appended to destination URL
-- **Click tracking**: Clicks route through `/{alias}/b/{blockId}` → `RedirectController::handleBlockClick()` → `LinkTrackingService::trackBlockClick()`
-- **Tracking data**: Same as page clicks (IP, browser, OS, device, referrer, country, city, UTM) + block_id, block_type, destination_url in `link_clicks` table
-- **UI**: Collapsible "Trackable Link" section in block editor via `block-link-settings.blade.php` partial
-- **Data storage**: `settings['_link']` JSON on block; sanitized via `sanitizeLinkSettings()`
+#### Image Styling System
+Available for image-based blocks, this system offers 10 mask/crop shapes using CSS `clip-path`, customizable borders, 6 shadow types, and object fit controls. Inline CSS is generated for rendering, and styles are stored in JSON.
 
-### Block Display Settings
-- Per-block visibility controls in `user/links/partials/block-display-settings.blade.php`
-- Collapsible section with schedule (start/end dates), continents, countries, cities, devices, OS, browsers, and browser languages
-- Uses allowlist pattern: empty array = show to all; populated = only show to those values
-- Data stored in `settings['_visibility']` JSON on `BiolinkBlock` model
+#### Trackable Block Links
+Image blocks can have optional trackable destination URLs with full link attributes (target, rel, title, UTM parameters). Clicks are tracked through a dedicated redirect controller and service, capturing comprehensive analytics data (IP, browser, OS, device, referrer, country, city, UTM).
 
-### User File Storage System
-- **Per-user file folders**: Files stored in `user-files/{user_id}/{type}s/` (images, videos, audios, documents)
-- **Model**: `UserFile` with `user_id`, `original_name`, `filename` (UUID), `mime_type`, `size_bytes`, `type`, `disk`, `path`
-- **Quota management**: `storage_limit_mb` (default 100MB) and `max_file_size_mb` (default 5MB) configurable per plan via admin
-- **API endpoints** (all AJAX/JSON):
-  - `GET /user/files` — list files with pagination + type filter
-  - `POST /user/files/upload` — upload with MIME/extension/size/quota validation
-  - `DELETE /user/files/{id}` — delete file and reclaim quota
-  - `GET /user/files/quota` — current storage usage info
-- **User model helpers**: `getStorageUsedBytes()`, `getStorageLimitBytes()`, `getStorageRemainingBytes()`
-- **Allowed types**: image (jpg/png/gif/webp/svg), video (mp4/webm/ogg/mov), audio (mp3/wav/ogg/aac/m4a), document (pdf/ppt/xls/doc)
-- **Storage disk**: Uses `public` locally, `s3` when configured
-- **Admin plan config**: `storage_limit_mb` field added to plan create/edit forms
+#### Block Display Settings
+Per-block visibility can be controlled by schedule (dates), geographical location (continents, countries, cities), device type, operating system, browser, and browser language. Visibility rules operate on an allowlist basis.
+
+### File Management System
+A per-user file storage system organizes files (images, videos, audio, documents) into `user-files/{user_id}/{type}s/` with UUID-based filenames. It includes quota management (`storage_limit_mb`, `max_file_size_mb`) configurable per plan. An AJAX API handles file listing, upload, deletion, and quota checks. Allowed file types are strictly defined.
 
 ### File Upload Dropzone Component
-- **Partial**: `user/links/partials/file-upload-field.blade.php` — reusable upload field with 3 modes: URL, Upload (drag-drop), My Files (browse)
-- **Features**: Drag-drop area, progress bar, XHR upload with progress tracking, file browser with thumbnail grid, search, pagination
-- **Used in**: image, image_grid, image_slider, video, header_video, audio, pdf_document, powerpoint, excel, link thumbnail, heading_logo blocks
-- **Image grid/slider**: Multi-file upload support with batch progress indicator
+A reusable Blade partial (`file-upload-field.blade.php`) provides a drag-and-drop upload interface with progress bars, XHR uploads, and a file browser. It supports multi-file uploads for image grids/sliders.
 
 ### AJAX Block Editor
-- All block operations are AJAX (no page reloads): add block, edit/save block, toggle visibility, delete block, reorder
-- Toast notifications for success/error feedback
-- Smooth animations for block removal
-- Preview iframe auto-refreshes after changes
+All block operations (add, edit, save, toggle, delete, reorder) are AJAX-driven, providing a fluid user experience with toast notifications and smooth animations. The preview iframe auto-refreshes on changes.
 
-### Homepage
-- Linktree-inspired colorful design: dark navy hero with animated blobs, **purple accent**, bold solid-color sections
-- Hero mockup showcases biolink as a full website builder: text blocks, 2-column video/gallery layout, audio player with animated equalizer, file download + shop buttons, embed widget, social icons
-- Floating badges highlight "Multi-Column" layouts and "Unlimited" blocks
-- Marquee scrolling strip features content types: Multi-Column Layouts, Videos, Audio, Images, Embeds, Files, Bio Links, URL Shortener, QR Codes, Analytics
-- Use-cases section: Creators category has rich multi-block mockup; other categories have standard link mockups
-- Red section: "Not just links — build entire websites" with 3x3 block-type grid (Text, Images, Videos, Audio, Files, Embeds) + full-width Multi-Column Responsive Layouts card
+### Biolink Blocks System
+The platform supports approximately 99 block types across 14 categories, offering extensive content and integration options. A tabbed editor with a phone mockup preview facilitates block management and page settings (background, fonts, button styles). All HTML content is sanitized for security, and URLs are validated. Blocks can be scheduled for visibility.
 
-### Current Features (Phases 1A-1C)
-- Admin panel: login, dashboard, staff CRUD, user management, role/permission CRUD, plan CRUD, impersonation, password reset
-- User panel: registration, login, dashboard with stats, profile management, password reset, email verification
-- **Link Engine**: URL shortener (301/302 redirect types), file sharing (download page), ICS calendar event generator, VCF contact card generator
-- **QR Code Generator**: per-link QR codes with customizable colors, size (100-1000px), error correction (L/M/Q/H), download in PNG/SVG, live preview
-- **Projects**: organize links into color-coded projects
-- **Tracking Pixels**: Facebook, Google Analytics, GTM, LinkedIn, Twitter, Pinterest, TikTok, Snapchat, Quora, custom — rendered on biolink + password gate + file download pages
-- **Link Features**: password protection, expiration dates, SEO settings (OG image + favicon upload), UTM parameter builder, click tracking
-- **Link Protection**: country restrictions (ISO codes, fail-closed GeoIP), device targeting (desktop/mobile/tablet)
-- **Analytics**: per-link stats (clicks over time, browsers, OS, devices, referrers, countries)
-- **Redirect**: `/r/{alias}` routes for link resolution with tracking, device/country enforcement
-- **File Download Page**: branded download page with file preview (images), file type icon, size display, download button
-- **Admin link management**: browse all user links, filter by type/status/user, toggle active, bulk enable/disable/delete
+# External Dependencies
 
-### Biolink Blocks System (~99 block types, 14 categories — 66biolinks feature parity)
-- **Block Editor**: `/user/links/{id}/blocks` — 66biolinks-style tabbed editor (Settings/Blocks tabs), phone mockup preview, accordion page settings
-- **14 Block Categories**: Basic Content (14), Media (10), Social & Profiles (12), Music & Streaming (6), Video Platforms (7), Contact & Lead Gen (5), Interactive & Engagement (8), Business & Monetization (9), Utility & Functional (9), Layout & Design (7), Integrations & Embeds (8), Files & External (3), Maps & Location (2), Digital Identity (2)
-- **Key Block Types**: Link, Link (Big), Heading variants (Gradient/Logo/Morph), Paragraph (Rich Text), Lists (Bullet/Numbered/Pricing), Alert, Badge, Image Grid/Slider, Video/Audio/PDF/PPTX/Excel, Socials (Multi/Custom), social embeds (Instagram/TikTok/Twitter/Pinterest/Snapchat), Spotify/Apple Music/SoundCloud/Tidal/Mixcloud/Anchor FM, YouTube/Vimeo/Twitch/Kick, Email/Phone collectors, Contact Form, WhatsApp Widget/Item, FAQ/FAQ V2, Poll, Quiz, Testimonials, Review, Timeline/Timeline (Staged), Product, Service, Catalog, Market, Price, Donation, Coupon, One Time Offer, PayPal, Countdown, Progress bars, Pie Chart, QR Code, Share, CTA Button, Notification, Nav Menu, Ticker, Card Slider, Scroll Cards, Profile Cards (V1-V4), Custom HTML, Iframe Embed, Typeform, Calendly, Discord, Facebook/Reddit/Telegram posts, File download, External Item, Markdown, Google Maps, Yandex Maps, VCard, Avatar, Spacer
-- **Public Rendering**: `/{alias}` renders all block types with full styling (glassmorphism, Font Awesome, Alpine.js for interactivity)
-- **Page Settings**: Background (color/gradient/image), font family, font color, button color/style (rounded/pill/square/outline/shadow)
-- **Security**: HTML sanitized (strip_tags + attribute/protocol stripping on both store and update); all URL fields validated to `http(s)://` scheme; nested URL sanitization (platforms, items, cards, groups); event handler attributes stripped
-- **Scheduling**: Blocks support start_date/end_date for visibility scheduling
-- **Model**: `BiolinkBlock` (link_id, type, settings JSON, sort_order, is_active, start_date, end_date)
-- **Controller**: `BiolinkBlockController` handles CRUD, reorder, toggle, page settings
-- **Form partials**: `block-settings-form.blade.php` (per-type edit forms), `socials-form.blade.php` (social platform picker)
-
-### Database Tables
-`roles`, `permissions`, `role_permissions`, `admins`, `plans`, `users` (has `mobile` column), `projects`, `domains`, `pixels`, `links`, `link_pixels`, `link_clicks`, `file_links`, `ics_data`, `vcf_data`, `biolink_blocks`, `otps`, `sessions`, `cache`, `jobs`
-
-### Default Admin Credentials
-- Email: `admin@1inme.com`
-- Password: `password`
-
-### Key Commands (from `artifacts/1inme/`)
-- `php artisan serve --host=0.0.0.0 --port=5000` — run dev server
-- `php artisan migrate` — run migrations
-- `php artisan db:seed` — seed database
-- `php artisan view:clear` — clear compiled views
-
-## Key Commands (Monorepo)
-
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- `pnpm --filter @workspace/api-server run dev` — run API server locally
-
-See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
+- **Monorepo tool**: pnpm
+- **API framework**: Express 5
+- **Database**: PostgreSQL
+- **ORM**: Drizzle ORM (API server), Laravel Eloquent (1INME)
+- **Validation**: Zod (`zod/v4`), `drizzle-zod`
+- **API codegen**: Orval (from OpenAPI spec)
+- **Build tool**: esbuild
+- **Frontend Frameworks**: Tailwind CSS, Alpine.js
+- **Fonts**: Google Fonts CDN (Space Grotesk)
+- **Tracking Pixels Integration**: Facebook, Google Analytics, GTM, LinkedIn, Twitter, Pinterest, TikTok, Snapchat, Quora
+- **Social Embeds**: Instagram, TikTok, Twitter, Pinterest, Snapchat
+- **Music/Streaming Embeds**: Spotify, Apple Music, SoundCloud, Tidal, Mixcloud, Anchor FM
+- **Video Platforms Embeds**: YouTube, Vimeo, Twitch, Kick
+- **Integration Widgets**: Typeform, Calendly, Discord
+- **Payment Gateways**: PayPal (for donation/product blocks)
+- **Mapping Services**: Google Maps, Yandex Maps
+- **Storage**: Local public disk, S3 (optional)

@@ -372,7 +372,7 @@ function imageListUploader_{{ $gridImgId }}() {
         <div><label class="{{ $labelClass }}">Price</label><input type="text" name="settings[price]" value="{{ $s['price'] ?? '' }}" class="{{ $inputClass }}"></div>
         <div><label class="{{ $labelClass }}">Badge</label><input type="text" name="settings[badge]" value="{{ $s['badge'] ?? '' }}" placeholder="Sale, New" class="{{ $inputClass }}"></div>
     </div>
-    <div><label class="{{ $labelClass }}">Image URL</label><input type="url" name="settings[image]" value="{{ $s['image'] ?? '' }}" class="{{ $inputClass }}"></div>
+    @include('user.links.partials.file-upload-field', ['fieldName' => 'settings[image]', 'currentValue' => $s['image'] ?? '', 'acceptTypes' => 'image', 'labelText' => 'Product Image', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
     <div><label class="{{ $labelClass }}">Buy URL</label><input type="url" name="settings[url]" value="{{ $s['url'] ?? '' }}" class="{{ $inputClass }}"></div>
 </div>
 
@@ -477,7 +477,7 @@ function imageListUploader_{{ $gridImgId }}() {
 
 @elseif($block->type === 'file')
 <div class="space-y-3">
-    <div><label class="{{ $labelClass }}">File URL</label><input type="url" name="settings[url]" value="{{ $s['url'] ?? '' }}" class="{{ $inputClass }}"></div>
+    @include('user.links.partials.file-upload-field', ['fieldName' => 'settings[url]', 'currentValue' => $s['url'] ?? '', 'acceptTypes' => 'all', 'labelText' => 'File', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
     <div><label class="{{ $labelClass }}">File Name</label><input type="text" name="settings[name]" value="{{ $s['name'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div><label class="{{ $labelClass }}">File Size</label><input type="text" name="settings[size]" value="{{ $s['size'] ?? '' }}" placeholder="e.g. 2.5 MB" class="{{ $inputClass }}"></div>
 </div>
@@ -487,7 +487,7 @@ function imageListUploader_{{ $gridImgId }}() {
     <div><label class="{{ $labelClass }}">URL</label><input type="url" name="settings[url]" value="{{ $s['url'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div><label class="{{ $labelClass }}">Title</label><input type="text" name="settings[title]" value="{{ $s['title'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div><label class="{{ $labelClass }}">Description</label><input type="text" name="settings[description]" value="{{ $s['description'] ?? '' }}" class="{{ $inputClass }}"></div>
-    <div><label class="{{ $labelClass }}">Image URL</label><input type="url" name="settings[image]" value="{{ $s['image'] ?? '' }}" class="{{ $inputClass }}"></div>
+    @include('user.links.partials.file-upload-field', ['fieldName' => 'settings[image]', 'currentValue' => $s['image'] ?? '', 'acceptTypes' => 'image', 'labelText' => 'Image', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
 </div>
 
 @elseif($block->type === 'markdown')
@@ -513,7 +513,7 @@ function imageListUploader_{{ $gridImgId }}() {
 
 @elseif($block->type === 'avatar')
 <div class="space-y-3">
-    <div><label class="{{ $labelClass }}">Image URL</label><input type="url" name="settings[url]" value="{{ $s['url'] ?? '' }}" class="{{ $inputClass }}"></div>
+    @include('user.links.partials.file-upload-field', ['fieldName' => 'settings[url]', 'currentValue' => $s['url'] ?? '', 'acceptTypes' => 'image', 'labelText' => 'Avatar Image', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
     <div class="grid grid-cols-2 gap-3">
         <div><label class="{{ $labelClass }}">Size (px)</label><input type="number" name="settings[size]" value="{{ $s['size'] ?? 96 }}" min="32" max="256" class="{{ $inputClass }}"></div>
         <div class="flex items-end pb-1"><label class="flex items-center gap-2 text-xs text-white/40"><input type="hidden" name="settings[rounded]" value="0"><input type="checkbox" name="settings[rounded]" value="1" {{ ($s['rounded'] ?? true) ? 'checked' : '' }} class="rounded text-purple-500" style="background: var(--bg-glass-input); border-color: var(--border-glass);">Rounded</label></div>
@@ -524,9 +524,11 @@ function imageListUploader_{{ $gridImgId }}() {
 <div class="space-y-3">
     <div><label class="{{ $labelClass }}">Name</label><input type="text" name="settings[name]" value="{{ $s['name'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div><label class="{{ $labelClass }}">Title</label><input type="text" name="settings[title]" value="{{ $s['title'] ?? '' }}" class="{{ $inputClass }}"></div>
-    <div><label class="{{ $labelClass }}">Avatar URL</label><input type="url" name="settings[avatar]" value="{{ $s['avatar'] ?? '' }}" class="{{ $inputClass }}"></div>
+    @include('user.links.partials.file-upload-field', ['fieldName' => 'settings[avatar]', 'currentValue' => $s['avatar'] ?? '', 'acceptTypes' => 'image', 'labelText' => 'Avatar', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
     <div><label class="{{ $labelClass }}">Bio</label><textarea name="settings[bio]" rows="2" class="{{ $inputClass }}">{{ $s['bio'] ?? '' }}</textarea></div>
-    @if($block->type === 'profile_card_v2')<div><label class="{{ $labelClass }}">Cover Image URL</label><input type="url" name="settings[cover]" value="{{ $s['cover'] ?? '' }}" class="{{ $inputClass }}"></div>@endif
+    @if($block->type === 'profile_card_v2')
+    @include('user.links.partials.file-upload-field', ['fieldName' => 'settings[cover]', 'currentValue' => $s['cover'] ?? '', 'acceptTypes' => 'image', 'labelText' => 'Cover Image', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
+    @endif
 </div>
 
 @elseif($block->type === 'qr_code')

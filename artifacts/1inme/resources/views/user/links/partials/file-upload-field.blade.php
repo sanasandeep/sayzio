@@ -122,7 +122,7 @@ $previewable = in_array($acceptTypes, ['image', 'video', 'audio']);
     <template x-if="value && !uploading">
         <div class="mt-2 rounded-xl overflow-hidden relative group" style="background: var(--bg-glass); border: 1px solid var(--border-glass);">
             @if($acceptTypes === 'image')
-            <img :src="value" class="w-full max-h-32 object-contain" alt="Preview" @error="$el.style.display='none'">
+            <img :src="value" class="w-full max-h-32 object-contain" alt="Preview" x-on:error="$el.style.display='none'">
             @elseif($acceptTypes === 'video')
             <video :src="value" class="w-full max-h-32" controls></video>
             @elseif($acceptTypes === 'audio')
