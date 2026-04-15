@@ -80,30 +80,50 @@
     .block-action-btn.toggle-btn:hover { color: #f59e0b; background: rgba(245,158,11,0.1); }
     .block-action-btn.delete-btn:hover { color: #ef4444; background: rgba(239,68,68,0.1); }
 
-    .edit-drawer {
-        position: fixed;
-        top: 0; right: 0; bottom: 0;
-        width: 420px;
-        max-width: 90vw;
-        z-index: 60;
-        transform: translateX(100%);
-        transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
+    .edit-modal-overlay {
+        position: fixed; inset: 0; z-index: 60;
+        background: rgba(0,0,0,0.6);
+        backdrop-filter: blur(8px);
+        opacity: 0; pointer-events: none;
+        transition: opacity 0.3s ease;
+        display: flex; align-items: center; justify-content: center;
+        padding: 16px;
+    }
+    .edit-modal-overlay.open { opacity: 1; pointer-events: auto; }
+    .edit-modal {
+        width: 100%; max-width: 1200px;
+        height: 92vh; max-height: 92vh;
         background: var(--bg-sidebar);
         backdrop-filter: blur(40px) saturate(1.4);
-        border-left: 1px solid var(--border-subtle);
+        border: 1px solid var(--border-subtle);
+        border-radius: 1.5rem;
         display: flex; flex-direction: column;
-        box-shadow: -20px 0 60px rgba(0,0,0,0.4);
+        box-shadow: 0 32px 100px rgba(0,0,0,0.5);
+        transform: scale(0.95) translateY(20px);
+        transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
+        overflow: hidden;
     }
-    .edit-drawer.open { transform: translateX(0); }
-    .edit-drawer-backdrop {
-        position: fixed; inset: 0; z-index: 55;
-        background: rgba(0,0,0,0.5);
-        backdrop-filter: blur(4px);
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.3s;
+    .edit-modal-overlay.open .edit-modal {
+        transform: scale(1) translateY(0);
     }
-    .edit-drawer-backdrop.open { opacity: 1; pointer-events: auto; }
+    .edit-modal-body {
+        flex: 1; display: flex; overflow: hidden;
+    }
+    .edit-modal-preview {
+        flex: 0 0 380px;
+        display: flex; align-items: center; justify-content: center;
+        position: relative;
+        overflow: hidden;
+        border-right: 1px solid var(--border-subtle);
+        background: rgba(0,0,0,0.15);
+    }
+    .edit-modal-form {
+        flex: 1; overflow-y: auto; padding: 24px;
+    }
+    @media (max-width: 768px) {
+        .edit-modal-preview { display: none; }
+        .edit-modal { max-width: 100%; height: 100vh; max-height: 100vh; border-radius: 0; }
+    }
 
     .gallery-modal {
         position: fixed; inset: 0; z-index: 60;
@@ -597,28 +617,39 @@ $catColors = [
         </div>
     </div>
 
-    {{-- EDIT DRAWER --}}
-    <div class="edit-drawer-backdrop" :class="editingBlockId ? 'open' : ''" @click="closeEditDrawer()"></div>
-    <div class="edit-drawer" :class="editingBlockId ? 'open' : ''" id="editDrawer">
-        <div class="h-[56px] flex items-center justify-between px-5 flex-shrink-0" style="border-bottom: 1px solid var(--border-subtle);">
-            <h3 class="text-sm font-bold gradient-text">Edit Block</h3>
-            <div class="flex items-center gap-1.5">
-                <span id="drawerAutoSaveStatus" class="text-[10px] font-medium hidden" style="color: var(--text-faint);"></span>
-                <button @click="closeEditDrawer()" class="block-action-btn" style="color: var(--text-faint);" title="Close"><i class="fas fa-times"></i></button>
+    {{-- EDIT MODAL (full-screen split) --}}
+    <div class="edit-modal-overlay" :class="editingBlockId ? 'open' : ''" @click.self="closeEditDrawer()" id="editModalOverlay">
+        <div class="edit-modal" @click.stop>
+            <div class="h-[52px] flex items-center justify-between px-5 flex-shrink-0" style="border-bottom: 1px solid var(--border-subtle);">
+                <div class="flex items-center gap-3">
+                    <h3 class="text-sm font-bold gradient-text">Edit Block</h3>
+                    <span id="drawerAutoSaveStatus" class="text-[10px] font-medium hidden" style="color: var(--text-faint);"></span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="manualSaveFromModal()" class="text-[10px] font-medium px-3 py-1.5 rounded-lg transition-all" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white;">
+                        <i class="fas fa-save mr-1"></i>Save & Close
+                    </button>
+                    <button @click="closeEditDrawer()" class="block-action-btn" style="color: var(--text-faint);" title="Close"><i class="fas fa-times"></i></button>
+                </div>
             </div>
-        </div>
-        <div class="drawer-preview-wrap flex-shrink-0" id="drawerPreviewWrap" style="display: none; border-bottom: 1px solid var(--border-subtle); background: rgba(0,0,0,0.2);">
-            <div class="flex items-center justify-between px-4 py-2">
-                <span class="text-[10px] font-bold uppercase tracking-wider" style="color: var(--text-faint);"><i class="fas fa-eye mr-1"></i>Live Preview</span>
-                <button type="button" onclick="toggleDrawerPreview()" class="text-[10px] font-medium px-2 py-0.5 rounded-md transition-all hover:bg-white/5" style="color: var(--text-faint); border: 1px solid var(--border-subtle);" id="drawerPreviewToggleBtn">
-                    <i class="fas fa-chevron-up" id="drawerPreviewToggleIcon"></i>
-                </button>
+            <div class="edit-modal-body">
+                <div class="edit-modal-preview" id="editModalPreview">
+                    <div class="relative" style="width: 300px;">
+                        <div class="absolute -inset-1 rounded-[2.8rem]" style="background: linear-gradient(180deg, rgba(139,92,246,0.12), rgba(255,255,255,0.03), rgba(139,92,246,0.08)); filter: blur(1px);"></div>
+                        <div class="relative bg-black rounded-[2.2rem] p-1.5 shadow-2xl" style="border: 2px solid rgba(255,255,255,0.06); box-shadow: 0 20px 60px rgba(0,0,0,0.5);">
+                            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-5 bg-black rounded-b-2xl z-10 flex items-center justify-center">
+                                <div class="w-14 h-3 rounded-full" style="background: rgba(255,255,255,0.04);"></div>
+                            </div>
+                            <div class="rounded-[1.8rem] overflow-hidden" style="height: calc(92vh - 120px); max-height: 700px; background: var(--bg-body);">
+                                <iframe id="editPreviewFrame" src="" class="w-full h-full border-0 rounded-[1.8rem]"></iframe>
+                            </div>
+                            <div class="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-24 h-1 rounded-full" style="background: rgba(255,255,255,0.06);"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="edit-modal-form" id="editDrawerContent">
+                </div>
             </div>
-            <div id="drawerPreviewContainer" style="height: 280px; overflow: hidden;">
-                <iframe id="drawerPreviewFrame" src="" class="w-full border-0" style="height: 600px; transform: scale(0.7); transform-origin: top center; pointer-events: none;"></iframe>
-            </div>
-        </div>
-        <div class="flex-1 overflow-y-auto p-5" id="editDrawerContent">
         </div>
     </div>
 
@@ -710,7 +741,7 @@ function biolinkEditor() {
                 var c = document.getElementById('editDrawerContent');
                 Alpine.destroyTree(c);
                 c.innerHTML = '';
-                _hideDrawerPreview();
+                _hideEditPreview();
             });
         },
         closeEditDrawer() {
@@ -718,7 +749,7 @@ function biolinkEditor() {
             var container = document.getElementById('editDrawerContent');
             Alpine.destroyTree(container);
             container.innerHTML = '';
-            _hideDrawerPreview();
+            _hideEditPreview();
         }
     }
 }
@@ -727,54 +758,75 @@ function closeEditDrawerGlobal() {
     window.dispatchEvent(new CustomEvent('close-edit-drawer'));
 }
 
-function _hideDrawerPreview() {
+var _editingBlockId = null;
+var _drawerAutoSaveTimer = null;
+var _autoSaveObserver = null;
+var _injectedScripts = [];
+
+function _hideEditPreview() {
     if (_drawerAutoSaveTimer) clearTimeout(_drawerAutoSaveTimer);
-    var wrap = document.getElementById('drawerPreviewWrap');
-    var pFrame = document.getElementById('drawerPreviewFrame');
-    if (wrap) wrap.style.display = 'none';
+    if (_autoSaveObserver) { _autoSaveObserver.disconnect(); _autoSaveObserver = null; }
+    _injectedScripts.forEach(function(s) { if (s.parentNode) s.parentNode.removeChild(s); });
+    _injectedScripts = [];
+    var pFrame = document.getElementById('editPreviewFrame');
     if (pFrame) pFrame.src = '';
     var status = document.getElementById('drawerAutoSaveStatus');
     if (status) status.classList.add('hidden');
+    _editingBlockId = null;
 }
-
-var _drawerAutoSaveTimer = null;
-var _drawerPreviewCollapsed = false;
 
 function openEditDrawer(blockId) {
     var tmpl = document.getElementById('editForm_' + blockId);
     if (!tmpl) return;
+    _editingBlockId = blockId;
+
     var container = document.getElementById('editDrawerContent');
-    container.innerHTML = tmpl.innerHTML;
+    var html = tmpl.innerHTML;
+    var scripts = [];
+    var div = document.createElement('div');
+    div.innerHTML = html;
+    div.querySelectorAll('script').forEach(function(s) {
+        scripts.push(s.textContent);
+        s.remove();
+    });
+    container.innerHTML = div.innerHTML;
+
+    _injectedScripts.forEach(function(s) { if (s.parentNode) s.parentNode.removeChild(s); });
+    _injectedScripts = [];
+    scripts.forEach(function(code) {
+        try {
+            var script = document.createElement('script');
+            script.textContent = code;
+            document.body.appendChild(script);
+            _injectedScripts.push(script);
+        } catch(e) { console.warn('Script exec error:', e); }
+    });
+
     Alpine.initTree(container);
     window.dispatchEvent(new CustomEvent('open-edit-drawer', { detail: { id: blockId } }));
 
-    var wrap = document.getElementById('drawerPreviewWrap');
-    var pFrame = document.getElementById('drawerPreviewFrame');
-    if (wrap && pFrame) {
-        pFrame.src = '{{ url("/" . $link->alias) }}';
-        wrap.style.display = '';
-        _drawerPreviewCollapsed = false;
-        var pc = document.getElementById('drawerPreviewContainer');
-        if (pc) pc.style.display = '';
-        var icon = document.getElementById('drawerPreviewToggleIcon');
-        if (icon) icon.className = 'fas fa-chevron-up';
-    }
+    var previewUrl = '{{ url("/" . $link->alias) }}' + '?_editBlock=' + blockId + '&_t=' + Date.now();
+    var pFrame = document.getElementById('editPreviewFrame');
+    if (pFrame) pFrame.src = previewUrl;
 
     _initDrawerAutoSave(container);
 }
 
-function toggleDrawerPreview() {
-    var pc = document.getElementById('drawerPreviewContainer');
-    var icon = document.getElementById('drawerPreviewToggleIcon');
-    if (!pc) return;
-    _drawerPreviewCollapsed = !_drawerPreviewCollapsed;
-    pc.style.display = _drawerPreviewCollapsed ? 'none' : '';
-    if (icon) icon.className = _drawerPreviewCollapsed ? 'fas fa-chevron-down' : 'fas fa-chevron-up';
+function manualSaveFromModal() {
+    var container = document.getElementById('editDrawerContent');
+    var form = container ? container.querySelector('form') : null;
+    if (form) {
+        var btn = form.querySelector('button[type="submit"]');
+        if (btn) btn.click();
+    }
 }
 
-function _refreshDrawerPreview() {
-    var pFrame = document.getElementById('drawerPreviewFrame');
-    if (pFrame && pFrame.src) pFrame.src = pFrame.src;
+function _refreshEditPreview() {
+    var pFrame = document.getElementById('editPreviewFrame');
+    if (pFrame && pFrame.src) {
+        var base = '{{ url("/" . $link->alias) }}';
+        pFrame.src = base + '?_editBlock=' + (_editingBlockId || '') + '&_t=' + Date.now();
+    }
     refreshPreview();
 }
 
@@ -799,7 +851,7 @@ function _drawerAutoSave(form) {
     }).then(function(r) { return r.json(); }).then(function(data) {
         if (data.success) {
             _showAutoSaveStatus('<i class="fas fa-check mr-1"></i>Saved', 'saved');
-            _refreshDrawerPreview();
+            _refreshEditPreview();
         } else {
             _showAutoSaveStatus('<i class="fas fa-exclamation-circle mr-1"></i>Error', 'error');
         }
@@ -810,6 +862,7 @@ function _drawerAutoSave(form) {
 
 function _initDrawerAutoSave(container) {
     if (_drawerAutoSaveTimer) clearTimeout(_drawerAutoSaveTimer);
+    if (_autoSaveObserver) { _autoSaveObserver.disconnect(); _autoSaveObserver = null; }
 
     function onFieldChange() {
         if (_drawerAutoSaveTimer) clearTimeout(_drawerAutoSaveTimer);
@@ -819,41 +872,32 @@ function _initDrawerAutoSave(container) {
         }, 800);
     }
 
-    setTimeout(function() {
-        container.querySelectorAll('input, select, textarea').forEach(function(el) {
-            if (el.type === 'file') {
-                el.addEventListener('change', function() {
-                    var form = container.querySelector('form');
-                    if (form) {
-                        if (_drawerAutoSaveTimer) clearTimeout(_drawerAutoSaveTimer);
-                        _drawerAutoSaveTimer = setTimeout(function() { _drawerAutoSave(form); }, 300);
-                    }
-                });
-                return;
-            }
+    function onFileChange() {
+        var form = container.querySelector('form');
+        if (form) {
+            if (_drawerAutoSaveTimer) clearTimeout(_drawerAutoSaveTimer);
+            _drawerAutoSaveTimer = setTimeout(function() { _drawerAutoSave(form); }, 300);
+        }
+    }
+
+    function bindElement(el) {
+        if (el._autoSaveBound) return;
+        el._autoSaveBound = true;
+        if (el.type === 'file') {
+            el.addEventListener('change', onFileChange);
+        } else {
             el.addEventListener('input', onFieldChange);
             el.addEventListener('change', onFieldChange);
-        });
+        }
+    }
 
-        var observer = new MutationObserver(function() {
-            container.querySelectorAll('input, select, textarea').forEach(function(el) {
-                if (el._autoSaveBound) return;
-                el._autoSaveBound = true;
-                if (el.type === 'file') {
-                    el.addEventListener('change', function() {
-                        var form = container.querySelector('form');
-                        if (form) {
-                            if (_drawerAutoSaveTimer) clearTimeout(_drawerAutoSaveTimer);
-                            _drawerAutoSaveTimer = setTimeout(function() { _drawerAutoSave(form); }, 300);
-                        }
-                    });
-                } else {
-                    el.addEventListener('input', onFieldChange);
-                    el.addEventListener('change', onFieldChange);
-                }
-            });
+    setTimeout(function() {
+        container.querySelectorAll('input, select, textarea').forEach(bindElement);
+
+        _autoSaveObserver = new MutationObserver(function() {
+            container.querySelectorAll('input, select, textarea').forEach(bindElement);
         });
-        observer.observe(container, { childList: true, subtree: true });
+        _autoSaveObserver.observe(container, { childList: true, subtree: true });
     }, 100);
 }
 
@@ -957,7 +1001,7 @@ function ajaxSaveBlock(e, form) {
         btn.innerHTML = origText;
         if (data.success) {
             showToast('Block saved', 'success');
-            _refreshDrawerPreview();
+            _refreshEditPreview();
             closeEditDrawerGlobal();
         } else {
             showToast(data.error || 'Failed to save', 'error');

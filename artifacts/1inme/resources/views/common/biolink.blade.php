@@ -136,6 +136,7 @@
                 $skipWrap = in_array($block->type, ['avatar', 'divider', 'spacer', 'social_icons']);
             @endphp
 
+            <div data-block-id="{{ $block->id }}" class="biolink-block-wrap">
             @if($hasCustomStyle && !$skipWrap)<div class="mb-3 block-styled" style="{{ $blockInline }}">@endif
 
             {{-- BASIC CONTENT --}}
@@ -875,6 +876,7 @@
             @endif
 
             @if($hasCustomStyle && !$skipWrap)</div>@endif
+            </div>
         @empty
             <div class="text-center py-12">
                 <div class="w-20 h-20 rounded-full bg-white/10 backdrop-blur flex items-center justify-center mx-auto mb-4 border border-white/10">
@@ -916,5 +918,27 @@
     </script>
 
     @include('common.partials.pixel-scripts', ['link' => $link])
+
+    <script>
+    (function() {
+        var params = new URLSearchParams(window.location.search);
+        var editBlockId = params.get('_editBlock');
+        if (editBlockId) {
+            setTimeout(function() {
+                var el = document.querySelector('[data-block-id="' + editBlockId + '"]');
+                if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    el.style.transition = 'outline 0.3s ease, outline-offset 0.3s ease';
+                    el.style.outline = '2px solid rgba(139,92,246,0.6)';
+                    el.style.outlineOffset = '4px';
+                    el.style.borderRadius = '12px';
+                    setTimeout(function() {
+                        el.style.outline = '2px solid rgba(139,92,246,0.25)';
+                    }, 1500);
+                }
+            }, 500);
+        }
+    })();
+    </script>
 </body>
 </html>
