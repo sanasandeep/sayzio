@@ -61,7 +61,7 @@
                 <div class="space-y-2">
                     @php $bs = $link->settings['biolink'] ?? []; @endphp
 
-                    <div class="card-premium overflow-hidden" x-data="{ open: true }">
+                    <div class="card-premium overflow-hidden" x-data="{ open: true, editing: false, alias: '{{ $link->alias }}' }">
                         <button @click="open = !open" class="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-white/[0.02] transition-colors">
                             <span class="flex items-center gap-3 text-sm font-semibold" style="color: var(--text-primary);">
                                 <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.15);"><i class="fas fa-link text-purple-400 text-[10px]"></i></div>
@@ -70,11 +70,32 @@
                             <i class="fas fa-chevron-down text-xs transition-transform duration-300" style="color: var(--text-faint);" :class="open ? 'rotate-180' : ''"></i>
                         </button>
                         <div x-show="open" x-cloak class="px-5 pb-5 pt-4" style="border-top: 1px solid var(--border-subtle);">
-                            <div class="flex items-center rounded-xl overflow-hidden" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
-                                <span class="px-3 py-2.5 text-sm" style="color: var(--text-faint); background: var(--bg-glass-input); border-right: 1px solid var(--border-glass);">{{ request()->getHost() }}/</span>
-                                <span class="flex-1 px-3 py-2.5 text-sm font-medium" style="color: var(--text-primary);">{{ $link->alias }}</span>
-                            </div>
-                            <p class="text-xs mt-2" style="color: var(--text-faint);">This is your unique biolink URL. Share it with your audience.</p>
+                            <form method="POST" action="{{ route('user.links.update-alias', $link) }}" x-ref="aliasForm">
+                                @csrf
+                                @method('PUT')
+                                <div class="flex items-center rounded-xl overflow-hidden" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                                    <span class="px-3 py-2.5 text-sm flex-shrink-0" style="color: var(--text-faint); background: var(--bg-glass-input); border-right: 1px solid var(--border-glass);">{{ request()->getHost() }}/</span>
+                                    <template x-if="!editing">
+                                        <span class="flex-1 px-3 py-2.5 text-sm font-medium cursor-pointer flex items-center justify-between gap-2 group" style="color: var(--text-primary);" @click="editing = true; $nextTick(() => $refs.aliasInput.focus())">
+                                            <span x-text="alias"></span>
+                                            <i class="fas fa-pen text-[10px] opacity-0 group-hover:opacity-60 transition-opacity" style="color: var(--text-faint);"></i>
+                                        </span>
+                                    </template>
+                                    <template x-if="editing">
+                                        <input x-ref="aliasInput" type="text" name="alias" x-model="alias" class="flex-1 px-3 py-2.5 text-sm font-medium bg-transparent outline-none" style="color: var(--text-primary);" @keydown.enter.prevent="$refs.aliasForm.submit()" @keydown.escape="editing = false">
+                                    </template>
+                                </div>
+                                <div class="flex items-center justify-between mt-2">
+                                    <p class="text-xs" style="color: var(--text-faint);">Click to edit your URL alias.</p>
+                                    <div x-show="editing" x-cloak class="flex items-center gap-2">
+                                        <button type="button" @click="editing = false; alias = '{{ $link->alias }}'" class="text-xs px-3 py-1 rounded-lg transition-colors" style="color: var(--text-faint);" onmouseover="this.style.background='var(--bg-glass-hover)'" onmouseout="this.style.background='transparent'">Cancel</button>
+                                        <button type="submit" class="text-xs px-3 py-1 rounded-lg bg-purple-600 text-white hover:bg-purple-500 transition-colors">Save</button>
+                                    </div>
+                                </div>
+                            </form>
+                            @error('alias')
+                                <p class="text-xs text-red-400 mt-1"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</p>
+                            @enderror
                         </div>
                     </div>
 

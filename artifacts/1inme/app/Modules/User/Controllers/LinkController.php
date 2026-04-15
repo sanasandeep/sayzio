@@ -312,4 +312,27 @@ class LinkController extends Controller
 
         return back()->with('success', 'Link status updated.');
     }
+
+    public function updateAlias(Request $request, Link $link)
+    {
+        abort_if($link->user_id !== $request->user()->id, 403);
+
+        $validated = $request->validate([
+            'alias' => [
+                'required',
+                'string',
+                'min:3',
+                'max:60',
+                'regex:/^[a-zA-Z0-9_-]+$/',
+                'unique:links,alias,' . $link->id,
+            ],
+        ], [
+            'alias.regex' => 'Only letters, numbers, hyphens and underscores are allowed.',
+            'alias.unique' => 'This alias is already taken. Please choose another.',
+        ]);
+
+        $link->update(['alias' => $validated['alias']]);
+
+        return back()->with('success', 'URL alias updated successfully.');
+    }
 }
