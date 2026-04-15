@@ -304,6 +304,42 @@ function imageListUploader_{{ $gridImgId }}() {
     @if($block->type === 'whatsapp_item')<div><label class="{{ $labelClass }}">Name</label><input type="text" name="settings[name]" value="{{ $s['name'] ?? '' }}" class="{{ $inputClass }}"></div>@endif
 </div>
 
+@elseif($block->type === 'email_subscribe')
+<div class="space-y-3">
+    <div><label class="{{ $labelClass }}">Title</label><input type="text" name="settings[title]" value="{{ $s['title'] ?? '' }}" class="{{ $inputClass }}"></div>
+    <div><label class="{{ $labelClass }}">Description</label><input type="text" name="settings[description]" value="{{ $s['description'] ?? '' }}" class="{{ $inputClass }}"></div>
+    <div><label class="{{ $labelClass }}">Placeholder</label><input type="text" name="settings[placeholder]" value="{{ $s['placeholder'] ?? '' }}" class="{{ $inputClass }}"></div>
+    <div><label class="{{ $labelClass }}">Button Text</label><input type="text" name="settings[button_text]" value="{{ $s['button_text'] ?? '' }}" class="{{ $inputClass }}"></div>
+    <div><label class="{{ $labelClass }}">Success Message</label><input type="text" name="settings[success_message]" value="{{ $s['success_message'] ?? '' }}" class="{{ $inputClass }}"></div>
+    <div class="flex items-center gap-2">
+        <input type="hidden" name="settings[name_field]" value="0">
+        <input type="checkbox" name="settings[name_field]" value="1" {{ ($s['name_field'] ?? false) ? 'checked' : '' }} class="rounded">
+        <label class="{{ $labelClass }}">Show Name Field</label>
+    </div>
+</div>
+
+@elseif($block->type === 'whatsapp_channel_subscribe')
+<div class="space-y-3">
+    <div><label class="{{ $labelClass }}">Title</label><input type="text" name="settings[title]" value="{{ $s['title'] ?? '' }}" class="{{ $inputClass }}"></div>
+    <div><label class="{{ $labelClass }}">Description</label><input type="text" name="settings[description]" value="{{ $s['description'] ?? '' }}" class="{{ $inputClass }}"></div>
+    <div><label class="{{ $labelClass }}">Channel URL</label><input type="url" name="settings[channel_url]" value="{{ $s['channel_url'] ?? '' }}" placeholder="https://whatsapp.com/channel/..." class="{{ $inputClass }}"></div>
+    <div><label class="{{ $labelClass }}">Button Text</label><input type="text" name="settings[button_text]" value="{{ $s['button_text'] ?? '' }}" class="{{ $inputClass }}"></div>
+</div>
+
+@elseif($block->type === 'whatsapp_number_subscribe')
+<div class="space-y-3">
+    <div><label class="{{ $labelClass }}">Title</label><input type="text" name="settings[title]" value="{{ $s['title'] ?? '' }}" class="{{ $inputClass }}"></div>
+    <div><label class="{{ $labelClass }}">Description</label><input type="text" name="settings[description]" value="{{ $s['description'] ?? '' }}" class="{{ $inputClass }}"></div>
+    <div><label class="{{ $labelClass }}">Your WhatsApp Number</label><input type="text" name="settings[phone]" value="{{ $s['phone'] ?? '' }}" placeholder="+1234567890" class="{{ $inputClass }}"></div>
+    <div><label class="{{ $labelClass }}">Default Subscription Message</label><input type="text" name="settings[default_message]" value="{{ $s['default_message'] ?? '' }}" class="{{ $inputClass }}"></div>
+    <div><label class="{{ $labelClass }}">Button Text</label><input type="text" name="settings[button_text]" value="{{ $s['button_text'] ?? '' }}" class="{{ $inputClass }}"></div>
+    <div class="flex items-center gap-2">
+        <input type="hidden" name="settings[collect_phone]" value="0">
+        <input type="checkbox" name="settings[collect_phone]" value="1" {{ ($s['collect_phone'] ?? false) ? 'checked' : '' }} class="rounded">
+        <label class="{{ $labelClass }}">Collect visitor's phone number</label>
+    </div>
+</div>
+
 @elseif(in_array($block->type, ['faq', 'faq_v2']))
 <div x-data="{ items: {{ json_encode($s['items'] ?? [['question' => '', 'answer' => '']]) }} }">
     <label class="{{ $labelClass }}">FAQ Items</label>

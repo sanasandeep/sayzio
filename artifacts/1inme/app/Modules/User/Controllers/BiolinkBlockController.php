@@ -751,6 +751,9 @@ class BiolinkBlockController extends Controller
             'contact_form' => ['title' => 'Contact Us', 'fields' => ['name', 'email', 'message'], 'button_text' => 'Send'],
             'whatsapp_widget' => ['phone' => '', 'message' => 'Hi!', 'button_text' => 'Chat on WhatsApp'],
             'whatsapp_item' => ['phone' => '', 'name' => '', 'message' => '', 'avatar' => ''],
+            'email_subscribe' => ['title' => 'Join our Newsletter', 'description' => 'Get the latest updates delivered to your inbox.', 'placeholder' => 'Enter your email', 'button_text' => 'Subscribe', 'success_message' => 'Thanks for subscribing!', 'name_field' => true],
+            'whatsapp_channel_subscribe' => ['title' => 'Follow our WhatsApp Channel', 'description' => 'Stay updated with our latest content.', 'channel_url' => '', 'button_text' => 'Follow Channel', 'icon_style' => 'branded'],
+            'whatsapp_number_subscribe' => ['title' => 'Subscribe via WhatsApp', 'description' => 'Get updates directly on WhatsApp.', 'phone' => '', 'default_message' => 'Hi! I want to subscribe to updates.', 'button_text' => 'Subscribe on WhatsApp', 'collect_phone' => true],
 
             'faq' => ['items' => [['question' => 'Question?', 'answer' => 'Answer.']]],
             'faq_v2' => ['items' => [['question' => 'Question?', 'answer' => 'Answer.', 'icon' => '']], 'style' => 'bordered'],

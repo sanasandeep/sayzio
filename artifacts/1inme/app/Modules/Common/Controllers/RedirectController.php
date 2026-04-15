@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Common\Services\LinkTrackingService;
 use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Link;
+use App\Modules\User\Models\Subscriber;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -271,4 +272,83 @@ class RedirectController extends Controller
         ]);
     }
 
+    public function subscribe(Request $request, string $alias)
+    {
+        $link = Link::where('alias', $alias)->firstOrFail();
+
+        $data = $request->validate([
+            'block_id' => 'required|integer',
+            'type' => 'required|in:email,whatsapp_channel,whatsapp_number',
+            'email' => 'nullable|email|max:200',
+            'name' => 'nullable|string|max:100',
+            'phone' => 'nullable|string|max:30',
+            'channel_url' => 'nullable|url|max:500',
+        ]);
+
+        $block = BiolinkBlock::where('id', $data['block_id'])->where('link_id', $link->id)->first();
+        if (!$block) {
+            return response()->json(['success' => false, 'message' => 'Invalid block.'], 400);
+        }
+
+        $typeMap = [
+            'email_subscribe' => 'email',
+            'whatsapp_channel_subscribe' => 'whatsapp_channel',
+            'whatsapp_number_subscribe' => 'whatsapp_number',
+        ];
+        if (($typeMap[$block->type] ?? null) !== $data['type']) {
+            return response()->json(['success' => false, 'message' => 'Invalid subscription type.'], 400);
+        }
+
+        if ($data['type'] === 'email') {
+            if (empty($data['email'])) {
+                return response()->json(['success' => false, 'message' => 'Email is required.'], 422);
+            }
+            $existing = Subscriber::where('user_id', $link->user_id)
+                ->where('type', 'email')
+                ->where('email', $data['email'])
+                ->first();
+        } elseif ($data['type'] === 'whatsapp_number') {
+            $phone = preg_replace('/[^0-9+]/', '', $data['phone'] ?? '');
+            if (empty($phone)) {
+                $phone = 'anon_' . substr(md5($request->ip() . $block->id), 0, 12);
+            }
+            $existing = Subscriber::where('user_id', $link->user_id)
+                ->where('type', 'whatsapp_number')
+                ->where('phone', $phone)
+                ->first();
+            $data['phone'] = $phone;
+        } else {
+            $fingerprint = substr(md5($request->ip() . $request->userAgent()), 0, 16);
+            $existing = Subscriber::where('user_id', $link->user_id)
+                ->where('type', 'whatsapp_channel')
+                ->where('block_id', $block->id)
+                ->where('source', $fingerprint)
+                ->first();
+            $data['_fingerprint'] = $fingerprint;
+        }
+
+        if ($existing) {
+            if ($existing->status === 'unsubscribed') {
+                $existing->update(['status' => 'active', 'unsubscribed_at' => null]);
+                return response()->json(['success' => true, 'message' => 'Re-subscribed successfully!']);
+            }
+            return response()->json(['success' => true, 'message' => 'Already subscribed.']);
+        }
+
+        Subscriber::create([
+            'user_id' => $link->user_id,
+            'link_id' => $link->id,
+            'block_id' => $block->id,
+            'type' => $data['type'],
+            'email' => $data['email'] ?? null,
+            'phone' => $data['phone'] ?? null,
+            'name' => $data['name'] ?? null,
+            'channel_url' => $data['channel_url'] ?? null,
+            'status' => 'active',
+            'source' => $data['type'] === 'whatsapp_channel' ? ($data['_fingerprint'] ?? $alias) : $alias,
+            'subscribed_at' => now(),
+        ]);
+
+        return response()->json(['success' => true, 'message' => 'Subscribed successfully!']);
+    }
 }

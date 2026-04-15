@@ -72,6 +72,33 @@ A "Card Container" block type allows grouping child blocks inside a styled card 
 - **Public render**: card wrapper with full design styles, children rendered via `@include('common.partials.biolink-block-render')` partial. Child `grid_span` (12-column) is proportionally mapped to card's column count: `round(span/12 * cols)`.
 - **Data**: `BiolinkBlock` model has `children()`, `activeChildren()`, `parent()` relationships; `activeBiolinkBlocks()` on Link model excludes children
 
+### Subscription System
+A full subscriber management system that collects and manages email and WhatsApp subscribers from biolink pages.
+
+#### Subscribe Block Types
+- **Email Subscribe** (`email_subscribe`): Newsletter signup form with name field (optional), email field, customizable title/description/placeholder/button text/success message. Submits via AJAX to `/alias/subscribe`.
+- **WhatsApp Channel Subscribe** (`whatsapp_channel_subscribe`): Button to follow a WhatsApp channel. Tracks click as subscription, opens channel URL.
+- **WhatsApp Number Subscribe** (`whatsapp_number_subscribe`): Collects visitor's phone number (optional), submits subscription, opens WhatsApp with pre-filled message.
+
+#### Database
+- `subscribers` table: user_id, link_id, block_id, type (email/whatsapp_channel/whatsapp_number), email, phone, name, channel_url, status, source, metadata (JSON), subscribed_at, unsubscribed_at. Unique constraint on (user_id, type, email).
+- `subscriber_messages` table: user_id, channel, subject, body, status, recipients_count, sent_count, failed_count, filters (JSON), sent_at.
+- `users.settings` JSON column stores subscription configuration (SMTP, WhatsApp API, welcome email).
+
+#### Routes
+- Public: `POST /{alias}/subscribe` — handles subscribe form submissions (JSON API, CSRF protected)
+- User: `GET user/subscribers` — subscriber list with filters (type, status, search, link)
+- User: `GET user/subscribers/settings` — configure SMTP, WhatsApp API, welcome email
+- User: `GET user/subscribers/compose` — compose and send messages to subscribers
+- User: `POST user/subscribers/send` — send email/WhatsApp messages
+- User: `GET user/subscribers/export` — CSV export of subscribers
+- User: `GET user/subscribers/messages` — message history
+
+#### Controllers
+- `SubscriberController` — full CRUD, export, settings, compose, send
+- `RedirectController@subscribe` — public subscribe endpoint
+- Models: `Subscriber`, `SubscriberMessage`
+
 #### Plan-Gated Biolink Features
 Three new plan-gated features have been added to biolink pages (controlled by `custom_branding`, `custom_favicon`, `custom_code` plan features):
 - **Custom Branding**: Replace the "Powered by 1INME" footer with custom brand name, URL, and logo. Stored in `settings.biolink.custom_branding_text/url/logo`.

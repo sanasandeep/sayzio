@@ -13,7 +13,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name', 'email', 'mobile', 'password', 'phone', 'avatar', 'status', 'role',
         'plan_id', 'billing_cycle', 'plan_expires_at', 'trial_ends_at',
-        'timezone', 'language', 'email_verified_at', 'last_login_at',
+        'timezone', 'language', 'settings', 'email_verified_at', 'last_login_at',
     ];
 
     protected $hidden = ['password', 'remember_token'];
@@ -26,6 +26,7 @@ class User extends Authenticatable
             'trial_ends_at' => 'datetime',
             'last_login_at' => 'datetime',
             'password' => 'hashed',
+            'settings' => 'array',
         ];
     }
 

@@ -98,6 +98,9 @@ class BiolinkBlock extends Model
         'contact_form' => ['label' => 'Contact Form', 'icon' => 'fa-paper-plane', 'category' => 'contact'],
         'whatsapp_widget' => ['label' => 'WhatsApp Widget', 'icon' => 'fa-comment-dots', 'category' => 'contact'],
         'whatsapp_item' => ['label' => 'WhatsApp Item', 'icon' => 'fa-comments', 'category' => 'contact'],
+        'email_subscribe' => ['label' => 'Email Subscribe', 'icon' => 'fa-envelope-open-text', 'category' => 'contact'],
+        'whatsapp_channel_subscribe' => ['label' => 'WhatsApp Channel', 'icon' => 'fa-bullhorn', 'category' => 'contact'],
+        'whatsapp_number_subscribe' => ['label' => 'WhatsApp Number', 'icon' => 'fa-phone-square', 'category' => 'contact'],
 
         'faq' => ['label' => 'FAQ', 'icon' => 'fa-question-circle', 'category' => 'interactive'],
         'faq_v2' => ['label' => 'FAQ V2', 'icon' => 'fa-question', 'category' => 'interactive'],

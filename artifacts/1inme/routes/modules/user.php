@@ -15,6 +15,7 @@ use App\Modules\User\Controllers\QrCodeController;
 use App\Modules\User\Controllers\BiolinkBlockController;
 use App\Modules\User\Controllers\UserFileController;
 use App\Modules\User\Controllers\PlanManagementController;
+use App\Modules\User\Controllers\SubscriberController;
 use App\Modules\User\Middleware\CheckPlanLimit;
 use App\Modules\User\Middleware\SuperAdmin;
 
@@ -95,6 +96,18 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post('upload', [UserFileController::class, 'upload'])->name('upload');
             Route::delete('{file}', [UserFileController::class, 'destroy'])->name('destroy');
             Route::get('quota', [UserFileController::class, 'quota'])->name('quota');
+        });
+
+        Route::prefix('subscribers')->name('subscribers.')->group(function () {
+            Route::get('/', [SubscriberController::class, 'index'])->name('index');
+            Route::get('settings', [SubscriberController::class, 'settings'])->name('settings');
+            Route::post('settings', [SubscriberController::class, 'updateSettings'])->name('settings.update');
+            Route::get('compose', [SubscriberController::class, 'compose'])->name('compose');
+            Route::post('send', [SubscriberController::class, 'send'])->name('send');
+            Route::get('export', [SubscriberController::class, 'export'])->name('export');
+            Route::get('messages', [SubscriberController::class, 'messageHistory'])->name('messages');
+            Route::post('{subscriber}/toggle', [SubscriberController::class, 'toggleStatus'])->name('toggle');
+            Route::delete('{subscriber}', [SubscriberController::class, 'destroy'])->name('destroy');
         });
 
         Route::middleware(SuperAdmin::class)->group(function () {

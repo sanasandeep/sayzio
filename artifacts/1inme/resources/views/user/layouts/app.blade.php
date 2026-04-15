@@ -340,6 +340,12 @@
                     <span class="nav-label">My Files</span>
                     <span class="sidebar-tooltip">Files</span>
                 </a>
+                <a href="{{ route('user.subscribers.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.subscribers.*') ? 'active' : '' }}">
+                    <div class="nav-icon-wrap"><i class="fas fa-users"></i></div>
+                    <span class="nav-label">Subscribers</span>
+                    <span class="sidebar-tooltip">Subscribers</span>
+                </a>
 
                 @if(auth()->user()->isSuperAdmin())
                 <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Super Admin</div>
@@ -504,6 +510,7 @@
                         <a href="{{ route('user.projects.index') }}" class="sidebar-link {{ request()->routeIs('user.projects.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-folder"></i></div> <span>Projects</span></a>
                         <a href="{{ route('user.pixels.index') }}" class="sidebar-link {{ request()->routeIs('user.pixels.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bullseye"></i></div> <span>Pixels</span></a>
                         <a href="{{ route('user.files.index') }}" class="sidebar-link {{ request()->routeIs('user.files.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-cloud-upload-alt"></i></div> <span>My Files</span></a>
+                        <a href="{{ route('user.subscribers.index') }}" class="sidebar-link {{ request()->routeIs('user.subscribers.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-users"></i></div> <span>Subscribers</span></a>
                         @if(auth()->user()->isSuperAdmin())
                         <div class="pt-3 mt-2" style="border-top: 1px solid var(--border-subtle);">
                             <p class="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Super Admin</p>
