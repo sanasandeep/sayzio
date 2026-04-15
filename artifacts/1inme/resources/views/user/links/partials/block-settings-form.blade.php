@@ -304,6 +304,45 @@ function imageListUploader_{{ $gridImgId }}() {
     @if($block->type === 'whatsapp_item')<div><label class="{{ $labelClass }}">Name</label><input type="text" name="settings[name]" value="{{ $s['name'] ?? '' }}" class="{{ $inputClass }}"></div>@endif
 </div>
 
+@elseif($block->type === 'verified_heading')
+<div class="space-y-3">
+    <div class="p-3 rounded-xl text-xs" style="background: rgba(29,155,240,0.1); color: #1d9bf0; border: 1px solid rgba(29,155,240,0.2);">
+        <i class="fas fa-check-circle mr-1"></i> Verified block — text is locked and cannot be changed.
+    </div>
+    <div><label class="{{ $labelClass }}">Verified Name</label><input type="text" value="{{ $s['text'] ?? '' }}" class="{{ $inputClass }} opacity-50" disabled></div>
+    <div><label class="{{ $labelClass }}">Font Size (px)</label><input type="number" name="settings[font_size]" value="{{ $s['font_size'] ?? '24' }}" min="12" max="72" class="{{ $inputClass }}"></div>
+    <div><label class="{{ $labelClass }}">Alignment</label>
+        <select name="settings[alignment]" class="{{ $inputClass }}">
+            <option value="left" {{ ($s['alignment'] ?? 'center') === 'left' ? 'selected' : '' }}>Left</option>
+            <option value="center" {{ ($s['alignment'] ?? 'center') === 'center' ? 'selected' : '' }}>Center</option>
+            <option value="right" {{ ($s['alignment'] ?? 'center') === 'right' ? 'selected' : '' }}>Right</option>
+        </select>
+    </div>
+    <input type="hidden" name="settings[text]" value="{{ $s['text'] ?? '' }}">
+    <input type="hidden" name="settings[verified]" value="1">
+    <input type="hidden" name="settings[locked_text]" value="1">
+</div>
+
+@elseif($block->type === 'verified_avatar')
+<div class="space-y-3">
+    <div class="p-3 rounded-xl text-xs" style="background: rgba(29,155,240,0.1); color: #1d9bf0; border: 1px solid rgba(29,155,240,0.2);">
+        <i class="fas fa-check-circle mr-1"></i> Verified block — image is locked and cannot be changed.
+    </div>
+    @if(!empty($s['image_url']))
+    <div class="flex justify-center"><img src="{{ $s['image_url'] }}" class="w-20 h-20 rounded-full object-cover" style="border: 2px solid rgba(29,155,240,0.3);"></div>
+    @endif
+    <div><label class="{{ $labelClass }}">Size (px)</label><input type="number" name="settings[size]" value="{{ $s['size'] ?? '100' }}" min="48" max="200" class="{{ $inputClass }}"></div>
+    <div><label class="{{ $labelClass }}">Shape</label>
+        <select name="settings[shape]" class="{{ $inputClass }}">
+            <option value="circle" {{ ($s['shape'] ?? 'circle') === 'circle' ? 'selected' : '' }}>Circle</option>
+            <option value="rounded" {{ ($s['shape'] ?? 'circle') === 'rounded' ? 'selected' : '' }}>Rounded Square</option>
+        </select>
+    </div>
+    <input type="hidden" name="settings[image_url]" value="{{ $s['image_url'] ?? '' }}">
+    <input type="hidden" name="settings[verified]" value="1">
+    <input type="hidden" name="settings[locked_image]" value="1">
+</div>
+
 @elseif($block->type === 'email_subscribe')
 <div class="space-y-3">
     <div><label class="{{ $labelClass }}">Title</label><input type="text" name="settings[title]" value="{{ $s['title'] ?? '' }}" class="{{ $inputClass }}"></div>

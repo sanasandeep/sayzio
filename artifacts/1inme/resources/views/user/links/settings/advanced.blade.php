@@ -539,9 +539,13 @@
                         <div class="space-y-2">
                             <template x-for="(item, idx) in items" :key="idx">
                                 <div class="flex items-center gap-2 p-2.5 rounded-lg" style="background: rgba(0,0,0,0.15); border: 1px solid var(--border-glass);">
-                                    <div class="flex-1 grid grid-cols-2 gap-2">
+                                    <div class="flex-1 grid grid-cols-3 gap-2">
                                         <input type="text" x-model="item.label" placeholder="Label" class="theme-input w-full text-xs" maxlength="30">
                                         <input type="text" x-model="item.url" placeholder="URL or /alias" class="theme-input w-full text-xs" maxlength="500">
+                                        <select x-model="item.target" class="theme-input w-full text-xs">
+                                            <option value="_self">Same Tab</option>
+                                            <option value="_blank">New Tab</option>
+                                        </select>
                                     </div>
                                     <label class="flex items-center gap-1 cursor-pointer shrink-0">
                                         <input type="checkbox" x-model="item.is_active" class="rounded text-blue-500 focus:ring-blue-500/40 w-3 h-3" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
@@ -605,10 +609,19 @@
                         </select>
                     </div>
 
-                    <div>
+                    <div x-data="langSelector()">
                         <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Available Languages</label>
-                        <input type="text" name="auto_translate[languages]" value="{{ $autoTranslate['languages'] ?? 'en,es,fr,de,pt,ja,ko,zh-CN,ar,hi,tr,ru' }}" placeholder="en,es,fr,de,pt,ja,ko,zh-CN,ar,hi" class="theme-input w-full text-xs">
-                        <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">Comma-separated language codes. Leave blank for all languages.</p>
+                        <input type="hidden" name="auto_translate[languages]" :value="selectedLangs.join(',')">
+                        <div class="p-3 rounded-xl max-h-48 overflow-y-auto space-y-1" style="background: var(--bg-glass); border: 1px solid var(--border-glass);">
+                            <template x-for="lang in allLangs" :key="lang.code">
+                                <label class="flex items-center gap-2 cursor-pointer px-2 py-1 rounded-lg transition-all hover:bg-white/[0.04]">
+                                    <input type="checkbox" :value="lang.code" :checked="selectedLangs.includes(lang.code)" @change="toggleLang(lang.code)" class="rounded text-cyan-500 focus:ring-cyan-500/40 w-3 h-3" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
+                                    <span class="text-xs" style="color: var(--text-primary);" x-text="lang.flag + ' ' + lang.name"></span>
+                                    <span class="text-[9px] font-mono ml-auto" style="color: var(--text-dimmed);" x-text="lang.code"></span>
+                                </label>
+                            </template>
+                        </div>
+                        <p class="text-[10px] mt-1" style="color: var(--text-dimmed);"><span x-text="selectedLangs.length"></span> languages selected</p>
                     </div>
 
                     <div class="grid grid-cols-2 gap-3">
@@ -722,10 +735,68 @@ function menuBarSettings() {
         enabled: {{ ($menuBar['enabled'] ?? false) ? 'true' : 'false' }},
         items: @json($menuBarItems ?: []),
         addItem() {
-            this.items.push({ label: '', url: '', is_active: true });
+            this.items.push({ label: '', url: '', target: '_self', is_active: true });
         },
         removeItem(idx) {
             this.items.splice(idx, 1);
+        }
+    };
+}
+
+function langSelector() {
+    const allLangs = [
+        { code: 'en', name: 'English', flag: '🇬🇧' },
+        { code: 'hi', name: 'Hindi', flag: '🇮🇳' },
+        { code: 'es', name: 'Spanish', flag: '🇪🇸' },
+        { code: 'fr', name: 'French', flag: '🇫🇷' },
+        { code: 'de', name: 'German', flag: '🇩🇪' },
+        { code: 'pt', name: 'Portuguese', flag: '🇧🇷' },
+        { code: 'it', name: 'Italian', flag: '🇮🇹' },
+        { code: 'nl', name: 'Dutch', flag: '🇳🇱' },
+        { code: 'ru', name: 'Russian', flag: '🇷🇺' },
+        { code: 'ja', name: 'Japanese', flag: '🇯🇵' },
+        { code: 'ko', name: 'Korean', flag: '🇰🇷' },
+        { code: 'zh-CN', name: 'Chinese (Simplified)', flag: '🇨🇳' },
+        { code: 'zh-TW', name: 'Chinese (Traditional)', flag: '🇹🇼' },
+        { code: 'ar', name: 'Arabic', flag: '🇸🇦' },
+        { code: 'tr', name: 'Turkish', flag: '🇹🇷' },
+        { code: 'th', name: 'Thai', flag: '🇹🇭' },
+        { code: 'vi', name: 'Vietnamese', flag: '🇻🇳' },
+        { code: 'id', name: 'Indonesian', flag: '🇮🇩' },
+        { code: 'ms', name: 'Malay', flag: '🇲🇾' },
+        { code: 'pl', name: 'Polish', flag: '🇵🇱' },
+        { code: 'sv', name: 'Swedish', flag: '🇸🇪' },
+        { code: 'da', name: 'Danish', flag: '🇩🇰' },
+        { code: 'no', name: 'Norwegian', flag: '🇳🇴' },
+        { code: 'fi', name: 'Finnish', flag: '🇫🇮' },
+        { code: 'el', name: 'Greek', flag: '🇬🇷' },
+        { code: 'cs', name: 'Czech', flag: '🇨🇿' },
+        { code: 'ro', name: 'Romanian', flag: '🇷🇴' },
+        { code: 'hu', name: 'Hungarian', flag: '🇭🇺' },
+        { code: 'uk', name: 'Ukrainian', flag: '🇺🇦' },
+        { code: 'he', name: 'Hebrew', flag: '🇮🇱' },
+        { code: 'bn', name: 'Bengali', flag: '🇧🇩' },
+        { code: 'ta', name: 'Tamil', flag: '🇮🇳' },
+        { code: 'te', name: 'Telugu', flag: '🇮🇳' },
+        { code: 'mr', name: 'Marathi', flag: '🇮🇳' },
+        { code: 'gu', name: 'Gujarati', flag: '🇮🇳' },
+        { code: 'kn', name: 'Kannada', flag: '🇮🇳' },
+        { code: 'ml', name: 'Malayalam', flag: '🇮🇳' },
+        { code: 'pa', name: 'Punjabi', flag: '🇮🇳' },
+        { code: 'ur', name: 'Urdu', flag: '🇵🇰' },
+    ];
+    const saved = '{{ $autoTranslate['languages'] ?? 'en,hi' }}';
+    const initial = saved ? saved.split(',').filter(c => c.trim()) : ['en', 'hi'];
+    return {
+        allLangs,
+        selectedLangs: initial,
+        toggleLang(code) {
+            const idx = this.selectedLangs.indexOf(code);
+            if (idx >= 0) {
+                this.selectedLangs.splice(idx, 1);
+            } else {
+                this.selectedLangs.push(code);
+            }
         }
     };
 }

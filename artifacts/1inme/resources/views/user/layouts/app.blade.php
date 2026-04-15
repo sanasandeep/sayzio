@@ -346,6 +346,12 @@
                     <span class="nav-label">Subscribers</span>
                     <span class="sidebar-tooltip">Subscribers</span>
                 </a>
+                <a href="{{ route('user.verification.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.verification.*') ? 'active' : '' }}">
+                    <div class="nav-icon-wrap"><i class="fas fa-check-circle"></i></div>
+                    <span class="nav-label">Verification</span>
+                    <span class="sidebar-tooltip">Verification</span>
+                </a>
 
                 @if(auth()->user()->isSuperAdmin())
                 <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Super Admin</div>
@@ -355,6 +361,12 @@
                     <div class="nav-icon-wrap"><i class="fas fa-layer-group"></i></div>
                     <span class="nav-label">Plans</span>
                     <span class="sidebar-tooltip">Plans</span>
+                </a>
+                <a href="{{ route('user.verification.admin') }}"
+                   class="sidebar-link {{ request()->routeIs('user.verification.admin*') ? 'active' : '' }}">
+                    <div class="nav-icon-wrap"><i class="fas fa-user-check"></i></div>
+                    <span class="nav-label">Verify Requests</span>
+                    <span class="sidebar-tooltip">Verify Requests</span>
                 </a>
                 @endif
 
@@ -511,10 +523,12 @@
                         <a href="{{ route('user.pixels.index') }}" class="sidebar-link {{ request()->routeIs('user.pixels.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bullseye"></i></div> <span>Pixels</span></a>
                         <a href="{{ route('user.files.index') }}" class="sidebar-link {{ request()->routeIs('user.files.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-cloud-upload-alt"></i></div> <span>My Files</span></a>
                         <a href="{{ route('user.subscribers.index') }}" class="sidebar-link {{ request()->routeIs('user.subscribers.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-users"></i></div> <span>Subscribers</span></a>
+                        <a href="{{ route('user.verification.index') }}" class="sidebar-link {{ request()->routeIs('user.verification.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-check-circle"></i></div> <span>Verification</span></a>
                         @if(auth()->user()->isSuperAdmin())
                         <div class="pt-3 mt-2" style="border-top: 1px solid var(--border-subtle);">
                             <p class="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Super Admin</p>
                             <a href="{{ route('user.plans.index') }}" class="sidebar-link {{ request()->routeIs('user.plans.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-layer-group"></i></div> <span>Plans</span></a>
+                            <a href="{{ route('user.verification.admin') }}" class="sidebar-link {{ request()->routeIs('user.verification.admin*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-check"></i></div> <span>Verify Requests</span></a>
                         </div>
                         @endif
                         <a href="{{ route('user.profile.edit') }}" class="sidebar-link {{ request()->routeIs('user.profile.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-circle"></i></div> <span>Profile</span></a>

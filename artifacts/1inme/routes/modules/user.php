@@ -16,6 +16,7 @@ use App\Modules\User\Controllers\BiolinkBlockController;
 use App\Modules\User\Controllers\UserFileController;
 use App\Modules\User\Controllers\PlanManagementController;
 use App\Modules\User\Controllers\SubscriberController;
+use App\Modules\User\Controllers\VerificationController;
 use App\Modules\User\Middleware\CheckPlanLimit;
 use App\Modules\User\Middleware\SuperAdmin;
 
@@ -110,8 +111,19 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::delete('{subscriber}', [SubscriberController::class, 'destroy'])->name('destroy');
         });
 
+        Route::prefix('verification')->name('verification.')->group(function () {
+            Route::get('/', [VerificationController::class, 'index'])->name('index');
+            Route::get('request', [VerificationController::class, 'create'])->name('request');
+            Route::post('request', [VerificationController::class, 'store'])->name('store');
+            Route::post('blocks/{block}/toggle', [VerificationController::class, 'toggleBlock'])->name('block.toggle');
+        });
+
         Route::middleware(SuperAdmin::class)->group(function () {
             Route::resource('plans', PlanManagementController::class)->except(['show']);
+            Route::get('verification-admin', [VerificationController::class, 'adminIndex'])->name('verification.admin');
+            Route::get('verification-admin/{verificationRequest}', [VerificationController::class, 'adminReview'])->name('verification.admin.review');
+            Route::post('verification-admin/{verificationRequest}/approve', [VerificationController::class, 'adminApprove'])->name('verification.admin.approve');
+            Route::post('verification-admin/{verificationRequest}/reject', [VerificationController::class, 'adminReject'])->name('verification.admin.reject');
         });
     });
 });

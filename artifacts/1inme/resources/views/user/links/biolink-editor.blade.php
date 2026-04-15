@@ -598,7 +598,7 @@ $catColors = [
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
                         @foreach($blockTypes as $typeKey => $typeInfo)
                         @php $catColor = $catColors[$typeInfo['category']] ?? '#8b5cf6'; @endphp
-                        <div x-show="(galleryCategory === 'all' || galleryCategory === '{{ $typeInfo['category'] }}') && (gallerySearch === '' || '{{ strtolower($typeInfo['label']) }}'.includes(gallerySearch.toLowerCase())) && !(_cardGalleryParentId && '{{ $typeKey }}' === 'card')"
+                        <div x-show="(galleryCategory === 'all' || galleryCategory === '{{ $typeInfo['category'] }}') && (gallerySearch === '' || '{{ strtolower($typeInfo['label']) }}'.includes(gallerySearch.toLowerCase())) && !(_cardGalleryParentId && '{{ $typeKey }}' === 'card') && '{{ $typeInfo['category'] }}' !== 'verified'"
                              x-cloak>
                             <button type="button" class="gallery-block-card" onclick="ajaxAddBlock('{{ $typeKey }}', '{{ route('user.links.blocks.store', $link) }}', _cardGalleryParentId)">
                                 <div class="flex items-center gap-3">

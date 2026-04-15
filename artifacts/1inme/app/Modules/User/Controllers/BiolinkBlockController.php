@@ -127,6 +127,20 @@ class BiolinkBlockController extends Controller
         $settings = $validated['settings'] ?? $block->settings;
         $settings = $this->sanitizeSettings($block->type, $settings);
 
+        if (in_array($block->type, ['verified_heading', 'verified_avatar'])) {
+            $existing = $block->settings;
+            if ($block->type === 'verified_heading') {
+                $settings['text'] = $existing['text'] ?? '';
+                $settings['verified'] = 1;
+                $settings['locked_text'] = 1;
+            }
+            if ($block->type === 'verified_avatar') {
+                $settings['image_url'] = $existing['image_url'] ?? '';
+                $settings['verified'] = 1;
+                $settings['locked_image'] = 1;
+            }
+        }
+
         $settings['_visibility'] = $this->sanitizeVisibility($validated['visibility'] ?? ($block->settings['_visibility'] ?? []));
         $existingStyle = $block->settings['_style'] ?? [];
         $incomingStyle = $validated['style'] ?? [];
@@ -157,6 +171,12 @@ class BiolinkBlockController extends Controller
     public function destroy(Link $link, BiolinkBlock $block)
     {
         abort_if($link->user_id !== auth()->id() || $block->link_id !== $link->id, 403);
+        if (in_array($block->type, ['verified_heading', 'verified_avatar'])) {
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Verified blocks cannot be deleted.'], 403);
+            }
+            return redirect()->back()->with('error', 'Verified blocks cannot be deleted.');
+        }
         $block->delete();
 
         if (request()->ajax() || request()->wantsJson()) {
@@ -380,6 +400,10 @@ class BiolinkBlockController extends Controller
         $fallbackImageFile = $request->file('bg_fallback_image');
         unset($validated['block_theme'], $validated['layout'], $validated['meta'], $validated['og'], $validated['twitter'], $validated['favicons'], $validated['manifest'], $validated['share_button'], $validated['menu_bar'], $validated['auto_translate'], $validated['og_image_upload'], $validated['apple_touch_upload'], $validated['icon_512_upload'], $validated['slideshow_images'], $validated['video_file'], $validated['bg_fallback_image']);
 
+        if ($link->is_verified) {
+            unset($validated['biolink_title']);
+        }
+
         if (!$user->getPlanFeature('custom_branding', false)) {
             unset($validated['custom_branding_text'], $validated['custom_branding_url'], $validated['custom_branding_logo']);
         }
@@ -444,9 +468,11 @@ class BiolinkBlockController extends Controller
                         $url = trim($item['url'] ?? '');
                         if (empty($label) || empty($url)) continue;
                         if (!preg_match('#^(https?://|/)#i', $url)) continue;
+                        $target = ($item['target'] ?? '_self') === '_blank' ? '_blank' : '_self';
                         $sanitizedItems[] = [
                             'label' => $label,
                             'url' => htmlspecialchars($url, ENT_QUOTES, 'UTF-8'),
+                            'target' => $target,
                             'is_active' => !empty($item['is_active']),
                         ];
                     }
@@ -754,6 +780,9 @@ class BiolinkBlockController extends Controller
             'email_subscribe' => ['title' => 'Join our Newsletter', 'description' => 'Get the latest updates delivered to your inbox.', 'placeholder' => 'Enter your email', 'button_text' => 'Subscribe', 'success_message' => 'Thanks for subscribing!', 'name_field' => true],
             'whatsapp_channel_subscribe' => ['title' => 'Follow our WhatsApp Channel', 'description' => 'Stay updated with our latest content.', 'channel_url' => '', 'button_text' => 'Follow Channel', 'icon_style' => 'branded'],
             'whatsapp_number_subscribe' => ['title' => 'Subscribe via WhatsApp', 'description' => 'Get updates directly on WhatsApp.', 'phone' => '', 'default_message' => 'Hi! I want to subscribe to updates.', 'button_text' => 'Subscribe on WhatsApp', 'collect_phone' => true],
+
+            'verified_heading' => ['text' => '', 'verified' => true, 'locked_text' => true, 'font_size' => '24', 'alignment' => 'center'],
+            'verified_avatar' => ['image_url' => '', 'verified' => true, 'locked_image' => true, 'size' => '100', 'shape' => 'circle'],
 
             'faq' => ['items' => [['question' => 'Question?', 'answer' => 'Answer.']]],
             'faq_v2' => ['items' => [['question' => 'Question?', 'answer' => 'Answer.', 'icon' => '']], 'style' => 'bordered'],

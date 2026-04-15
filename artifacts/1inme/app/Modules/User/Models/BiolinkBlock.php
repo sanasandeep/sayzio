@@ -159,6 +159,9 @@ class BiolinkBlock extends Model
 
         'vcard' => ['label' => 'VCard', 'icon' => 'fa-address-book', 'category' => 'identity'],
         'avatar' => ['label' => 'Avatar', 'icon' => 'fa-user-circle', 'category' => 'identity'],
+
+        'verified_heading' => ['label' => 'Verified Heading', 'icon' => 'fa-check-circle', 'category' => 'verified', 'system' => true],
+        'verified_avatar' => ['label' => 'Verified Avatar', 'icon' => 'fa-user-check', 'category' => 'verified', 'system' => true],
     ];
 
     public const STYLE_DEFAULTS = [
