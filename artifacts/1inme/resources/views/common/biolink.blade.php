@@ -1107,7 +1107,8 @@
                                 $childInline = \App\Modules\User\Models\BiolinkBlock::buildInlineStyle($childStyle);
                                 $childHasStyle = !empty($cs['_style']) || (!empty($globalTheme) && ($globalTheme['apply_to_all'] ?? false));
                                 $childSkipWrap = in_array($childBlock->type, ['avatar', 'divider', 'spacer', 'social_icons']);
-                                $childSpan = intval($childStyle['grid_span'] ?? 12) ?: 12;
+                                $childSpanRaw = intval($childStyle['grid_span'] ?? 12) ?: 12;
+                                $childSpan = max(1, (int)round($childSpanRaw / 12 * $cols));
                             @endphp
                             <div style="grid-column: span {{ min($childSpan, $cols) }};">
                             @if($childHasStyle && !$childSkipWrap)<div class="block-styled" style="{{ $childInline }}">@endif

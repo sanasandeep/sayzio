@@ -66,9 +66,10 @@ A "Card Container" block type allows grouping child blocks inside a styled card 
 - **Background**: glassmorphism (blur + opacity sliders), solid color, CSS gradient, background image, or transparent
 - **Border**: color and width controls
 - **Shadow**: none/sm/md/lg/xl with color
-- **Child blocks**: any block type except nested cards; rendered in CSS grid inside the container
-- **Editor UI**: expandable card section showing nested child blocks with drag reorder (SortableJS), edit/toggle/delete actions, and "Add block to card" button that opens the gallery filtered to exclude card type
-- **Public render**: card wrapper with full design styles, children rendered via `@include('common.partials.biolink-block-render')` partial
+- **Child blocks**: any block type except nested cards; rendered in CSS grid inside the container. Child blocks have their own width controls (¼, ⅓, ½, ⅔, ¾, Full) that map proportionally to the card's column count.
+- **Cross-container drag & drop**: Blocks can be dragged from the main block list into a card container, and from a card container back to the main list. Uses SortableJS `group` option with shared group name 'blocks'. Card containers cannot be dragged inside other cards. The `moveBlock` endpoint (`POST /user/links/{link}/blocks/{block}/move`) handles parent_id changes and re-normalizes sort_order in the source container.
+- **Editor UI**: expandable card section showing nested child blocks with drag reorder (SortableJS), per-child width controls, edit/toggle/delete actions, and "Add block to card" button that opens the gallery filtered to exclude card type
+- **Public render**: card wrapper with full design styles, children rendered via `@include('common.partials.biolink-block-render')` partial. Child `grid_span` (12-column) is proportionally mapped to card's column count: `round(span/12 * cols)`.
 - **Data**: `BiolinkBlock` model has `children()`, `activeChildren()`, `parent()` relationships; `activeBiolinkBlocks()` on Link model excludes children
 
 #### Plan-Gated Biolink Features

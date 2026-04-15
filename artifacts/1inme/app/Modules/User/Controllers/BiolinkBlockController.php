@@ -161,6 +161,58 @@ class BiolinkBlockController extends Controller
         return response()->json(['success' => true]);
     }
 
+    public function moveBlock(Request $request, Link $link, BiolinkBlock $block)
+    {
+        abort_if($link->user_id !== auth()->id() || $block->link_id !== $link->id, 403);
+
+        $validated = $request->validate([
+            'parent_id' => 'nullable|integer|exists:biolink_blocks,id',
+        ]);
+
+        $newParentId = $validated['parent_id'] ?? null;
+
+        if ($block->type === 'card' && $newParentId) {
+            return response()->json(['success' => false, 'error' => 'Cannot move a card container inside another card.'], 422);
+        }
+
+        $oldParentId = $block->parent_id;
+
+        if ($newParentId) {
+            $parent = BiolinkBlock::where('id', $newParentId)
+                ->where('link_id', $link->id)
+                ->where('type', 'card')
+                ->firstOrFail();
+            $maxSort = $parent->children()->max('sort_order') ?? -1;
+        } else {
+            $maxSort = $link->biolinkBlocks()->whereNull('parent_id')->max('sort_order') ?? -1;
+        }
+
+        $block->update([
+            'parent_id' => $newParentId,
+            'sort_order' => $maxSort + 1,
+        ]);
+
+        if ($oldParentId) {
+            $siblings = BiolinkBlock::where('parent_id', $oldParentId)
+                ->where('link_id', $link->id)
+                ->orderBy('sort_order')
+                ->get();
+            foreach ($siblings as $i => $sib) {
+                $sib->update(['sort_order' => $i]);
+            }
+        } else {
+            $siblings = $link->biolinkBlocks()
+                ->whereNull('parent_id')
+                ->orderBy('sort_order')
+                ->get();
+            foreach ($siblings as $i => $sib) {
+                $sib->update(['sort_order' => $i]);
+            }
+        }
+
+        return response()->json(['success' => true, 'block' => $block->fresh()]);
+    }
+
     public function toggleActive(Link $link, BiolinkBlock $block)
     {
         abort_if($link->user_id !== auth()->id() || $block->link_id !== $link->id, 403);

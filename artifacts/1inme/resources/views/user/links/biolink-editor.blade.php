@@ -168,13 +168,38 @@
     .card-container-block:hover {
         border-color: rgba(139,92,246,0.3);
     }
-    .child-block-card.sortable-ghost {
+    .child-span-btn {
+        background: var(--bg-glass-input);
+        color: var(--text-faint);
+        border: 1px solid transparent;
+        cursor: pointer;
+        min-width: 22px;
+        text-align: center;
+    }
+    .child-span-btn:hover {
+        background: var(--bg-glass-hover);
+        color: var(--text-muted);
+        border-color: var(--border-glass);
+    }
+    .child-span-btn.active {
+        background: rgba(139,92,246,0.15);
+        color: #a78bfa;
+        border-color: rgba(139,92,246,0.3);
+    }
+    .child-block-card.sortable-ghost,
+    .block-card.sortable-ghost {
         opacity: 0.4;
         border: 1px dashed rgba(139,92,246,0.4) !important;
     }
-    .child-block-card.sortable-chosen {
+    .child-block-card.sortable-chosen,
+    .block-card.sortable-chosen {
         box-shadow: 0 4px 16px rgba(0,0,0,0.3);
         z-index: 10;
+    }
+    .card-child-list.sortable-drag-over {
+        background: rgba(139,92,246,0.04);
+        border: 1px dashed rgba(139,92,246,0.3) !important;
+        border-radius: 8px;
     }
 
     .block-card.sortable-ghost {
@@ -531,7 +556,7 @@ $catColors = [
                                     <i class="fas fa-chevron-down transition-transform text-[8px]" :class="cardExpanded ? 'rotate-180' : ''"></i>
                                 </button>
                                 <div x-show="cardExpanded" x-collapse>
-                                    <div class="card-child-list p-2 space-y-1" data-card-id="{{ $block->id }}">
+                                    <div class="card-child-list p-2 space-y-1" data-card-id="{{ $block->id }}" style="min-height: 32px;">
                                         @forelse($block->children as $child)
                                         @php
                                             $cs = $child->settings ?? [];
@@ -539,27 +564,41 @@ $catColors = [
                                             $cCatColor = $catColors[$cTypeInfo['category'] ?? 'basic'] ?? '#8b5cf6';
                                             $childSpan = intval($cs['_style']['grid_span'] ?? 12) ?: 12;
                                         @endphp
-                                        <div class="flex items-center gap-2 p-2 rounded-lg transition-all hover:bg-white/[0.03] child-block-card" data-block-id="{{ $child->id }}" style="border: 1px solid var(--border-glass);">
-                                            <div class="child-handle cursor-grab" style="color: var(--text-faint);">
-                                                <i class="fas fa-grip-vertical text-[9px]"></i>
+                                        <div class="child-block-card rounded-lg transition-all hover:bg-white/[0.03]" data-block-id="{{ $child->id }}" style="border: 1px solid var(--border-glass);">
+                                            <div class="flex items-center gap-2 p-2">
+                                                <div class="child-handle cursor-grab" style="color: var(--text-faint);">
+                                                    <i class="fas fa-grip-vertical text-[9px]"></i>
+                                                </div>
+                                                <div class="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0" style="background: {{ $cCatColor }}10;">
+                                                    <i class="fas {{ $cTypeInfo['icon'] }} text-[9px]" style="color: {{ $cCatColor }};"></i>
+                                                </div>
+                                                <div class="flex-1 min-w-0">
+                                                    <span class="text-[11px] font-semibold" style="color: var(--text-primary);">{{ $cTypeInfo['label'] }}</span>
+                                                    @if(!$child->is_active)<span class="text-[8px] px-1 py-0.5 rounded-full font-semibold ml-1" style="background: rgba(239,68,68,0.1); color: #f87171;">HIDDEN</span>@endif
+                                                    <span class="text-[8px] px-1 py-0.5 rounded font-bold ml-1" style="background: rgba(139,92,246,0.08); color: #a78bfa; {{ $childSpan >= 12 ? 'display:none;' : '' }}" data-child-span-badge="{{ $child->id }}">{{ $childSpan }}/12</span>
+                                                </div>
+                                                <div class="flex items-center gap-0.5 flex-shrink-0">
+                                                    <button class="block-action-btn edit-btn" style="width:22px;height:22px;" title="Edit" onclick="openEditDrawer({{ $child->id }})"><i class="fas fa-pen" style="font-size:8px;"></i></button>
+                                                    <button class="block-action-btn toggle-btn" style="width:22px;height:22px;" title="{{ $child->is_active ? 'Hide' : 'Show' }}" onclick="ajaxToggleBlock(this, '{{ route('user.links.blocks.toggle', [$link, $child]) }}', {{ $child->id }})"><i class="fas {{ $child->is_active ? 'fa-eye' : 'fa-eye-slash' }}" style="font-size:8px;"></i></button>
+                                                    <button class="block-action-btn delete-btn" style="width:22px;height:22px;" title="Delete" onclick="ajaxDeleteBlock(this, '{{ route('user.links.blocks.destroy', [$link, $child]) }}', {{ $child->id }})"><i class="fas fa-trash" style="font-size:8px;"></i></button>
+                                                </div>
                                             </div>
-                                            <div class="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0" style="background: {{ $cCatColor }}10;">
-                                                <i class="fas {{ $cTypeInfo['icon'] }} text-[9px]" style="color: {{ $cCatColor }};"></i>
-                                            </div>
-                                            <div class="flex-1 min-w-0">
-                                                <span class="text-[11px] font-semibold" style="color: var(--text-primary);">{{ $cTypeInfo['label'] }}</span>
-                                                @if(!$child->is_active)<span class="text-[8px] px-1 py-0.5 rounded-full font-semibold ml-1" style="background: rgba(239,68,68,0.1); color: #f87171;">HIDDEN</span>@endif
-                                                @if($childSpan < 12)<span class="text-[8px] px-1 py-0.5 rounded font-bold ml-1" style="background: rgba(139,92,246,0.08); color: #a78bfa;">{{ $childSpan }}/12</span>@endif
-                                            </div>
-                                            <div class="flex items-center gap-0.5 flex-shrink-0">
-                                                <button class="block-action-btn edit-btn" style="width:22px;height:22px;" title="Edit" onclick="openEditDrawer({{ $child->id }})"><i class="fas fa-pen" style="font-size:8px;"></i></button>
-                                                <button class="block-action-btn toggle-btn" style="width:22px;height:22px;" title="{{ $child->is_active ? 'Hide' : 'Show' }}" onclick="ajaxToggleBlock(this, '{{ route('user.links.blocks.toggle', [$link, $child]) }}', {{ $child->id }})"><i class="fas {{ $child->is_active ? 'fa-eye' : 'fa-eye-slash' }}" style="font-size:8px;"></i></button>
-                                                <button class="block-action-btn delete-btn" style="width:22px;height:22px;" title="Delete" onclick="ajaxDeleteBlock(this, '{{ route('user.links.blocks.destroy', [$link, $child]) }}', {{ $child->id }})"><i class="fas fa-trash" style="font-size:8px;"></i></button>
+                                            <div class="child-span-row px-2 pb-1.5">
+                                                <div class="flex items-center gap-1">
+                                                    <span class="text-[8px] font-semibold flex-shrink-0" style="color: var(--text-faint);"><i class="fas fa-columns mr-0.5"></i>Width</span>
+                                                    <div class="flex gap-[2px] flex-1">
+                                                        @foreach([3 => '¼', 4 => '⅓', 6 => '½', 8 => '⅔', 9 => '¾', 12 => 'Full'] as $spanVal => $spanLabel)
+                                                        <button type="button" class="child-span-btn text-[8px] font-bold px-1 py-0.5 rounded transition-all {{ $childSpan == $spanVal ? 'active' : '' }}"
+                                                                onclick="setChildGridSpan({{ $child->id }}, {{ $spanVal }}, this)"
+                                                                title="{{ $spanLabel }} width">{{ $spanLabel }}</button>
+                                                        @endforeach
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                         @empty
-                                        <div class="text-center py-3">
-                                            <p class="text-[10px]" style="color: var(--text-dimmed);">No blocks inside this card yet</p>
+                                        <div class="card-empty-hint text-center py-3">
+                                            <p class="text-[10px]" style="color: var(--text-dimmed);">Drag blocks here or click + below</p>
                                         </div>
                                         @endforelse
                                     </div>
@@ -1110,6 +1149,49 @@ function setGridSpan(blockId, span, btn) {
     });
 }
 
+function setChildGridSpan(blockId, span, btn) {
+    var card = btn.closest('.child-block-card');
+    var row = card.querySelector('.child-span-row');
+    row.querySelectorAll('.child-span-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    var badge = document.querySelector('[data-child-span-badge="' + blockId + '"]');
+    if (badge) {
+        badge.textContent = span + '/12';
+        badge.style.display = span >= 12 ? 'none' : '';
+    }
+    var url = '{{ route("user.links.blocks.update", [$link, "__ID__"]) }}'.replace('__ID__', blockId);
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': _csrfToken(),
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'X-HTTP-Method-Override': 'PUT'
+        },
+        body: JSON.stringify({ style: { grid_span: span } })
+    }).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.success) {
+            showToast('Width updated', 'success');
+            refreshPreview();
+        }
+    }).catch(function() {
+        showToast('Failed to save width', 'error');
+    });
+}
+
+function moveBlockToParent(blockId, parentId) {
+    var url = '{{ route("user.links.blocks.move", [$link, "__ID__"]) }}'.replace('__ID__', blockId);
+    return fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': _csrfToken(),
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ parent_id: parentId })
+    }).then(function(r) { return r.json(); });
+}
+
 function ajaxToggleBlock(btn, url, blockId) {
     btn.disabled = true;
     fetch(url, {
@@ -1220,57 +1302,107 @@ function ajaxSaveBlock(e, form) {
 
 document.addEventListener('DOMContentLoaded', function() {
     var el = document.getElementById('blockList');
-    if (el && el.children.length > 0 && el.querySelector('.block-card')) {
+    var _moveUrl = '{{ route("user.links.blocks.move", [$link, "__ID__"]) }}';
+    var _reorderUrl = '{{ route("user.links.blocks.reorder", $link) }}';
+
+    function reorderList(container, selector) {
+        var ids = [];
+        container.querySelectorAll(selector).forEach(function(card) {
+            ids.push(parseInt(card.dataset.blockId));
+        });
+        if (ids.length === 0) return Promise.resolve();
+        return fetch(_reorderUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': _csrfToken(), 'Accept': 'application/json' },
+            body: JSON.stringify({ blocks: ids })
+        });
+    }
+
+    function doMoveBlock(blockId, parentId) {
+        return fetch(_moveUrl.replace('__ID__', blockId), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': _csrfToken(), 'Accept': 'application/json' },
+            body: JSON.stringify({ parent_id: parentId })
+        }).then(function(r) { return r.json(); });
+    }
+
+    if (el) {
         new Sortable(el, {
-            handle: '.handle',
+            handle: '.handle, .child-handle',
             animation: 250,
             ghostClass: 'sortable-ghost',
             chosenClass: 'sortable-chosen',
             dragClass: 'sortable-drag',
             easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
-            onEnd: function() {
-                var ids = [];
-                el.querySelectorAll(':scope > .block-card').forEach(function(card) {
-                    ids.push(parseInt(card.dataset.blockId));
-                });
-                fetch('{{ route("user.links.blocks.reorder", $link) }}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': _csrfToken(),
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({ blocks: ids })
-                }).then(function(r) {
-                    if (r.ok) {
-                        showToast('Order saved', 'success');
-                        refreshPreview();
+            group: { name: 'blocks', pull: true, put: function(to, from, dragEl) {
+                return !dragEl.classList.contains('card-container-block');
+            }},
+            filter: '.card-children-area, .card-child-list, .child-span-row, .grid-span-row',
+            onAdd: function(evt) {
+                var blockId = parseInt(evt.item.dataset.blockId);
+                doMoveBlock(blockId, null).then(function(data) {
+                    if (data.success) {
+                        showToast('Block moved out of card', 'success');
+                        reorderList(el, ':scope > .block-card, :scope > .child-block-card').then(function() {
+                            location.reload();
+                        });
+                    } else {
+                        showToast(data.error || 'Move failed', 'error');
+                        location.reload();
                     }
                 });
+            },
+            onEnd: function(evt) {
+                if (evt.from === evt.to) {
+                    reorderList(el, ':scope > .block-card').then(function(r) {
+                        if (r && r.ok) {
+                            showToast('Order saved', 'success');
+                            refreshPreview();
+                        }
+                    });
+                }
             }
         });
     }
 
-    document.querySelectorAll('.card-child-list').forEach(function(childList) {
-        if (childList.children.length > 0) {
-            new Sortable(childList, {
-                handle: '.child-handle',
-                animation: 200,
-                ghostClass: 'sortable-ghost',
-                chosenClass: 'sortable-chosen',
-                easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
-                onEnd: function() {
+    function initCardChildSortable(childList) {
+        var cardId = parseInt(childList.dataset.cardId);
+        new Sortable(childList, {
+            handle: '.child-handle, .handle',
+            animation: 200,
+            ghostClass: 'sortable-ghost',
+            chosenClass: 'sortable-chosen',
+            easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+            group: { name: 'blocks', pull: true, put: true },
+            draggable: '.child-block-card, .block-card',
+            onAdd: function(evt) {
+                var blockId = parseInt(evt.item.dataset.blockId);
+                if (evt.item.classList.contains('card-container-block')) {
+                    showToast('Cannot put a card inside another card', 'error');
+                    location.reload();
+                    return;
+                }
+                doMoveBlock(blockId, cardId).then(function(data) {
+                    if (data.success) {
+                        showToast('Block moved into card', 'success');
+                        reorderList(childList, '.child-block-card, .block-card').then(function() {
+                            location.reload();
+                        });
+                    } else {
+                        showToast(data.error || 'Move failed', 'error');
+                        location.reload();
+                    }
+                });
+            },
+            onEnd: function(evt) {
+                if (evt.from === evt.to) {
                     var ids = [];
                     childList.querySelectorAll('.child-block-card').forEach(function(card) {
                         ids.push(parseInt(card.dataset.blockId));
                     });
-                    fetch('{{ route("user.links.blocks.reorder", $link) }}', {
+                    fetch(_reorderUrl, {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': _csrfToken(),
-                            'Accept': 'application/json'
-                        },
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': _csrfToken(), 'Accept': 'application/json' },
                         body: JSON.stringify({ blocks: ids })
                     }).then(function(r) {
                         if (r.ok) {
@@ -1279,9 +1411,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     });
                 }
-            });
-        }
-    });
+            }
+        });
+    }
+
+    document.querySelectorAll('.card-child-list').forEach(initCardChildSortable);
 });
 </script>
 @endsection
