@@ -226,6 +226,7 @@
         letter-spacing: 0.01em;
         position: relative;
         margin-bottom: 2px;
+        text-decoration: none;
     }
     .sidebar-link:hover {
         background: var(--sidebar-link-hover-bg);
@@ -248,14 +249,46 @@
         background: linear-gradient(180deg, #8b5cf6, #a78bfa);
         border-radius: 0 4px 4px 0;
     }
-    .sidebar-link.active i { color: var(--sidebar-active-text); }
-    .sidebar-link i {
-        font-size: 0.8rem;
-        width: 1.25rem;
-        text-align: center;
+    .sidebar-link .nav-icon-wrap {
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: all 0.3s;
+        color: inherit;
+    }
+    .sidebar-link .nav-icon-wrap i {
+        font-size: 0.85rem;
+        color: inherit;
         transition: transform 0.2s;
     }
-    .sidebar-link:hover i { transform: scale(1.08); }
+    .sidebar-link:hover .nav-icon-wrap {
+        transform: scale(1.08);
+    }
+    .sidebar-link.active .nav-icon-wrap {
+        background: rgba(139,92,246,0.15);
+        box-shadow: 0 0 12px rgba(139,92,246,0.15);
+        color: var(--sidebar-active-text);
+    }
+    .sidebar-link .nav-label {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .sidebar-link > i {
+        font-size: 0.85rem;
+        width: 1.25rem;
+        text-align: center;
+        flex-shrink: 0;
+        transition: transform 0.2s;
+        color: inherit;
+    }
+    .sidebar-link.active > i { color: var(--sidebar-active-text); }
+    .sidebar-link:hover > i { transform: scale(1.08); }
 
     .bg-mesh {
         position: fixed;

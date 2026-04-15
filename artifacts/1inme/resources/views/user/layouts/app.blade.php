@@ -200,27 +200,10 @@
             color: var(--text-primary);
         }
 
-        .nav-icon-wrap {
-            width: 32px;
-            height: 32px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            transition: all 0.3s;
-        }
-        .sidebar-link:hover .nav-icon-wrap {
-            transform: scale(1.08);
-        }
-        .sidebar-link.active .nav-icon-wrap {
-            background: rgba(139,92,246,0.15);
-            box-shadow: 0 0 12px rgba(139,92,246,0.15);
-        }
-
         .sidebar-v2.collapsed .sidebar-link .nav-icon-wrap {
             width: 36px;
             height: 36px;
+            min-width: 36px;
         }
 
         .user-avatar-ring {
@@ -279,8 +262,8 @@
                :style="'width:' + sidebarWidth + 'px; transform: translateX(' + (sidebarMode === 'hidden' ? '-100%' : '0') + '); pointer-events:' + (sidebarMode === 'hidden' ? 'none' : 'auto')"
                style="background: var(--bg-sidebar); backdrop-filter: blur(40px) saturate(1.4); -webkit-backdrop-filter: blur(40px) saturate(1.4); border-right: 1px solid var(--border-subtle);">
 
-            <div class="flex items-center justify-between px-4" style="height: 64px; border-bottom: 1px solid var(--border-subtle);">
-                <a href="{{ route('user.dashboard') }}" class="flex items-center gap-2.5 group">
+            <div class="flex items-center px-4" :class="sidebarMode === 'icons' ? 'justify-center' : 'justify-between'" style="height: 64px; border-bottom: 1px solid var(--border-subtle);">
+                <a href="{{ route('user.dashboard') }}" class="flex items-center gap-2.5 group" :class="sidebarMode === 'icons' ? 'hidden' : ''">
                     <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 via-violet-500 to-purple-700 flex items-center justify-center shadow-lg group-hover:shadow-purple-500/40 transition-all duration-500 group-hover:scale-105" style="box-shadow: 0 4px 16px rgba(139,92,246,0.3);">
                         <span class="text-white text-sm font-bold">1</span>
                     </div>
@@ -288,17 +271,16 @@
                         <span style="color: var(--text-primary);">1IN</span><span class="text-purple-400">ME</span>
                     </span>
                 </a>
-                <div class="flex items-center gap-0.5">
-                    <button @click="setSidebar('full')" class="sidebar-toggle-btn" :class="sidebarMode === 'full' ? 'opacity-100' : 'opacity-40'" title="Full sidebar" style="width: 22px; height: 22px;">
-                        <i class="fas fa-bars" style="font-size: 9px;"></i>
-                    </button>
-                    <button @click="setSidebar('icons')" class="sidebar-toggle-btn" :class="sidebarMode === 'icons' ? 'opacity-100' : 'opacity-40'" title="Icons only" style="width: 22px; height: 22px;">
-                        <i class="fas fa-grip-lines-vertical" style="font-size: 9px;"></i>
-                    </button>
-                    <button @click="setSidebar('hidden')" class="sidebar-toggle-btn" :class="sidebarMode === 'hidden' ? 'opacity-100' : 'opacity-40'" title="Hide sidebar" style="width: 22px; height: 22px;">
-                        <i class="fas fa-eye-slash" style="font-size: 8px;"></i>
-                    </button>
-                </div>
+                <template x-if="sidebarMode === 'icons'">
+                    <a href="{{ route('user.dashboard') }}" class="group" title="1INME">
+                        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 via-violet-500 to-purple-700 flex items-center justify-center shadow-lg group-hover:shadow-purple-500/40 transition-all duration-500 group-hover:scale-105" style="box-shadow: 0 4px 16px rgba(139,92,246,0.3);">
+                            <span class="text-white text-sm font-bold">1</span>
+                        </div>
+                    </a>
+                </template>
+                <button @click="cycleSidebar()" class="sidebar-toggle-btn" :class="sidebarMode === 'icons' ? 'hidden' : ''" title="Toggle sidebar">
+                    <i class="fas fa-chevron-left" style="font-size: 10px;"></i>
+                </button>
             </div>
 
             <nav class="flex-1 py-4 overflow-y-auto" :class="sidebarMode === 'icons' ? 'px-2' : 'px-3'" style="scrollbar-width: none;">
@@ -379,7 +361,7 @@
             </div>
 
             <div class="px-3 py-3" style="border-top: 1px solid var(--border-subtle);">
-                <div class="flex items-center gap-3">
+                <div class="flex items-center" :class="sidebarMode === 'icons' ? 'justify-center' : 'gap-3'">
                     <div class="user-avatar-ring flex-shrink-0">
                         <div class="inner">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</div>
                     </div>
@@ -394,6 +376,12 @@
                         </button>
                     </form>
                 </div>
+                <button @click="setSidebar(sidebarMode === 'icons' ? 'full' : 'icons')"
+                        class="w-full mt-2 flex items-center justify-center gap-2 py-2 rounded-lg text-[11px] font-medium transition-all hover:bg-white/5"
+                        style="color: var(--text-faint); border: 1px solid var(--border-subtle);">
+                    <i class="fas" :class="sidebarMode === 'icons' ? 'fa-angles-right' : 'fa-angles-left'" style="font-size: 10px;"></i>
+                    <span class="nav-label" x-text="sidebarMode === 'icons' ? '' : 'Collapse'"></span>
+                </button>
             </div>
         </aside>
 
@@ -409,8 +397,9 @@
                         <i class="fas fa-bars"></i>
                     </button>
 
-                    <button @click="setSidebar('full')" class="hidden lg:flex sidebar-toggle-btn" x-show="sidebarMode === 'hidden'" x-cloak title="Show sidebar">
-                        <i class="fas fa-bars" style="font-size: 12px;"></i>
+                    <button @click="setSidebar('full')" class="hidden lg:flex sidebar-toggle-btn" x-show="sidebarMode === 'hidden'" x-cloak title="Expand sidebar"
+                            style="background: var(--bg-glass); border: 1px solid var(--border-glass); width: 32px; height: 32px; border-radius: 10px;">
+                        <i class="fas fa-angles-right" style="font-size: 11px; color: var(--text-muted);"></i>
                     </button>
 
                     <div class="header-breadcrumb hidden sm:flex">
@@ -488,6 +477,7 @@
                         <a href="{{ route('user.qrcode') }}" class="sidebar-link {{ request()->routeIs('user.qrcode*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-qrcode"></i></div> <span>QR Codes</span></a>
                         <a href="{{ route('user.projects.index') }}" class="sidebar-link {{ request()->routeIs('user.projects.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-folder"></i></div> <span>Projects</span></a>
                         <a href="{{ route('user.pixels.index') }}" class="sidebar-link {{ request()->routeIs('user.pixels.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bullseye"></i></div> <span>Pixels</span></a>
+                        <a href="{{ route('user.files.index') }}" class="sidebar-link {{ request()->routeIs('user.files.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-cloud-upload-alt"></i></div> <span>My Files</span></a>
                         <a href="{{ route('user.profile.edit') }}" class="sidebar-link {{ request()->routeIs('user.profile.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-circle"></i></div> <span>Profile</span></a>
                     </nav>
                     <div class="p-3" style="border-top: 1px solid var(--border-subtle);">
