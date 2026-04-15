@@ -600,9 +600,23 @@ $catColors = [
     {{-- EDIT DRAWER --}}
     <div class="edit-drawer-backdrop" :class="editingBlockId ? 'open' : ''" @click="closeEditDrawer()"></div>
     <div class="edit-drawer" :class="editingBlockId ? 'open' : ''" id="editDrawer">
-        <div class="h-[64px] flex items-center justify-between px-5 flex-shrink-0" style="border-bottom: 1px solid var(--border-subtle);">
+        <div class="h-[56px] flex items-center justify-between px-5 flex-shrink-0" style="border-bottom: 1px solid var(--border-subtle);">
             <h3 class="text-sm font-bold gradient-text">Edit Block</h3>
-            <button @click="closeEditDrawer()" class="block-action-btn" style="color: var(--text-faint);"><i class="fas fa-times"></i></button>
+            <div class="flex items-center gap-1.5">
+                <span id="drawerAutoSaveStatus" class="text-[10px] font-medium hidden" style="color: var(--text-faint);"></span>
+                <button @click="closeEditDrawer()" class="block-action-btn" style="color: var(--text-faint);" title="Close"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+        <div class="drawer-preview-wrap flex-shrink-0" id="drawerPreviewWrap" style="display: none; border-bottom: 1px solid var(--border-subtle); background: rgba(0,0,0,0.2);">
+            <div class="flex items-center justify-between px-4 py-2">
+                <span class="text-[10px] font-bold uppercase tracking-wider" style="color: var(--text-faint);"><i class="fas fa-eye mr-1"></i>Live Preview</span>
+                <button type="button" onclick="toggleDrawerPreview()" class="text-[10px] font-medium px-2 py-0.5 rounded-md transition-all hover:bg-white/5" style="color: var(--text-faint); border: 1px solid var(--border-subtle);" id="drawerPreviewToggleBtn">
+                    <i class="fas fa-chevron-up" id="drawerPreviewToggleIcon"></i>
+                </button>
+            </div>
+            <div id="drawerPreviewContainer" style="height: 280px; overflow: hidden;">
+                <iframe id="drawerPreviewFrame" src="" class="w-full border-0" style="height: 600px; transform: scale(0.7); transform-origin: top center; pointer-events: none;"></iframe>
+            </div>
         </div>
         <div class="flex-1 overflow-y-auto p-5" id="editDrawerContent">
         </div>
@@ -696,6 +710,7 @@ function biolinkEditor() {
                 var c = document.getElementById('editDrawerContent');
                 Alpine.destroyTree(c);
                 c.innerHTML = '';
+                _hideDrawerPreview();
             });
         },
         closeEditDrawer() {
@@ -703,6 +718,7 @@ function biolinkEditor() {
             var container = document.getElementById('editDrawerContent');
             Alpine.destroyTree(container);
             container.innerHTML = '';
+            _hideDrawerPreview();
         }
     }
 }
@@ -711,6 +727,19 @@ function closeEditDrawerGlobal() {
     window.dispatchEvent(new CustomEvent('close-edit-drawer'));
 }
 
+function _hideDrawerPreview() {
+    if (_drawerAutoSaveTimer) clearTimeout(_drawerAutoSaveTimer);
+    var wrap = document.getElementById('drawerPreviewWrap');
+    var pFrame = document.getElementById('drawerPreviewFrame');
+    if (wrap) wrap.style.display = 'none';
+    if (pFrame) pFrame.src = '';
+    var status = document.getElementById('drawerAutoSaveStatus');
+    if (status) status.classList.add('hidden');
+}
+
+var _drawerAutoSaveTimer = null;
+var _drawerPreviewCollapsed = false;
+
 function openEditDrawer(blockId) {
     var tmpl = document.getElementById('editForm_' + blockId);
     if (!tmpl) return;
@@ -718,6 +747,114 @@ function openEditDrawer(blockId) {
     container.innerHTML = tmpl.innerHTML;
     Alpine.initTree(container);
     window.dispatchEvent(new CustomEvent('open-edit-drawer', { detail: { id: blockId } }));
+
+    var wrap = document.getElementById('drawerPreviewWrap');
+    var pFrame = document.getElementById('drawerPreviewFrame');
+    if (wrap && pFrame) {
+        pFrame.src = '{{ url("/" . $link->alias) }}';
+        wrap.style.display = '';
+        _drawerPreviewCollapsed = false;
+        var pc = document.getElementById('drawerPreviewContainer');
+        if (pc) pc.style.display = '';
+        var icon = document.getElementById('drawerPreviewToggleIcon');
+        if (icon) icon.className = 'fas fa-chevron-up';
+    }
+
+    _initDrawerAutoSave(container);
+}
+
+function toggleDrawerPreview() {
+    var pc = document.getElementById('drawerPreviewContainer');
+    var icon = document.getElementById('drawerPreviewToggleIcon');
+    if (!pc) return;
+    _drawerPreviewCollapsed = !_drawerPreviewCollapsed;
+    pc.style.display = _drawerPreviewCollapsed ? 'none' : '';
+    if (icon) icon.className = _drawerPreviewCollapsed ? 'fas fa-chevron-down' : 'fas fa-chevron-up';
+}
+
+function _refreshDrawerPreview() {
+    var pFrame = document.getElementById('drawerPreviewFrame');
+    if (pFrame && pFrame.src) pFrame.src = pFrame.src;
+    refreshPreview();
+}
+
+function _showAutoSaveStatus(text, type) {
+    var el = document.getElementById('drawerAutoSaveStatus');
+    if (!el) return;
+    el.classList.remove('hidden');
+    el.style.color = type === 'saving' ? 'var(--text-faint)' : (type === 'saved' ? '#10b981' : '#ef4444');
+    el.innerHTML = text;
+    if (type === 'saved') {
+        setTimeout(function() { el.classList.add('hidden'); }, 2000);
+    }
+}
+
+function _drawerAutoSave(form) {
+    _showAutoSaveStatus('<i class="fas fa-spinner fa-spin mr-1"></i>Saving...', 'saving');
+    var fd = new FormData(form);
+    fetch(form.action, {
+        method: 'POST',
+        headers: { 'Accept': 'application/json' },
+        body: fd
+    }).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.success) {
+            _showAutoSaveStatus('<i class="fas fa-check mr-1"></i>Saved', 'saved');
+            _refreshDrawerPreview();
+        } else {
+            _showAutoSaveStatus('<i class="fas fa-exclamation-circle mr-1"></i>Error', 'error');
+        }
+    }).catch(function() {
+        _showAutoSaveStatus('<i class="fas fa-exclamation-circle mr-1"></i>Error', 'error');
+    });
+}
+
+function _initDrawerAutoSave(container) {
+    if (_drawerAutoSaveTimer) clearTimeout(_drawerAutoSaveTimer);
+
+    function onFieldChange() {
+        if (_drawerAutoSaveTimer) clearTimeout(_drawerAutoSaveTimer);
+        _drawerAutoSaveTimer = setTimeout(function() {
+            var form = container.querySelector('form');
+            if (form) _drawerAutoSave(form);
+        }, 800);
+    }
+
+    setTimeout(function() {
+        container.querySelectorAll('input, select, textarea').forEach(function(el) {
+            if (el.type === 'file') {
+                el.addEventListener('change', function() {
+                    var form = container.querySelector('form');
+                    if (form) {
+                        if (_drawerAutoSaveTimer) clearTimeout(_drawerAutoSaveTimer);
+                        _drawerAutoSaveTimer = setTimeout(function() { _drawerAutoSave(form); }, 300);
+                    }
+                });
+                return;
+            }
+            el.addEventListener('input', onFieldChange);
+            el.addEventListener('change', onFieldChange);
+        });
+
+        var observer = new MutationObserver(function() {
+            container.querySelectorAll('input, select, textarea').forEach(function(el) {
+                if (el._autoSaveBound) return;
+                el._autoSaveBound = true;
+                if (el.type === 'file') {
+                    el.addEventListener('change', function() {
+                        var form = container.querySelector('form');
+                        if (form) {
+                            if (_drawerAutoSaveTimer) clearTimeout(_drawerAutoSaveTimer);
+                            _drawerAutoSaveTimer = setTimeout(function() { _drawerAutoSave(form); }, 300);
+                        }
+                    });
+                } else {
+                    el.addEventListener('input', onFieldChange);
+                    el.addEventListener('change', onFieldChange);
+                }
+            });
+        });
+        observer.observe(container, { childList: true, subtree: true });
+    }, 100);
 }
 
 var _csrfToken = function() { return document.querySelector('meta[name="csrf-token"]').content; };
@@ -820,7 +957,7 @@ function ajaxSaveBlock(e, form) {
         btn.innerHTML = origText;
         if (data.success) {
             showToast('Block saved', 'success');
-            refreshPreview();
+            _refreshDrawerPreview();
             closeEditDrawerGlobal();
         } else {
             showToast(data.error || 'Failed to save', 'error');
