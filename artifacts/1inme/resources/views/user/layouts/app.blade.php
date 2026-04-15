@@ -164,19 +164,27 @@
             display: flex;
             align-items: center;
             gap: 6px;
-            font-size: 13px;
+            font-size: 14px;
+            min-width: 0;
         }
         .header-breadcrumb .bc-sep {
             color: var(--text-faint);
-            font-size: 10px;
+            font-size: 9px;
+            flex-shrink: 0;
         }
         .header-breadcrumb .bc-current {
-            font-weight: 600;
+            font-weight: 700;
             color: var(--text-primary);
+            letter-spacing: -0.01em;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         .header-breadcrumb .bc-parent {
             color: var(--text-faint);
             transition: color 0.2s;
+            text-decoration: none;
+            white-space: nowrap;
         }
         .header-breadcrumb .bc-parent:hover {
             color: var(--text-muted);
@@ -388,35 +396,34 @@
         <div class="flex-1 flex flex-col min-w-0 main-content-v2"
              :style="'margin-left:' + (isDesktop ? sidebarWidth : 0) + 'px'">
 
-            <header class="h-[64px] flex items-center justify-between px-5 sticky top-0 z-20 header-v2 relative"
-                    style="background: var(--bg-header); backdrop-filter: blur(40px) saturate(1.4); -webkit-backdrop-filter: blur(40px) saturate(1.4);">
+            <header class="h-16 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-20 header-v2 relative"
+                    style="background: var(--bg-header); backdrop-filter: blur(40px) saturate(1.4); -webkit-backdrop-filter: blur(40px) saturate(1.4); border-bottom: 1px solid var(--border-subtle);">
                 <div class="header-glow"></div>
 
-                <div class="flex items-center gap-3">
-                    <button @click="mobileMenu = !mobileMenu" class="lg:hidden p-1.5 rounded-lg transition-colors" style="color: var(--text-muted);">
-                        <i class="fas fa-bars"></i>
+                <div class="flex items-center gap-3 min-w-0">
+                    <button @click="mobileMenu = !mobileMenu" class="lg:hidden header-icon-btn flex-shrink-0" style="width: 34px; height: 34px;">
+                        <i class="fas fa-bars" style="font-size: 13px;"></i>
                     </button>
 
-                    <button @click="setSidebar('full')" class="hidden lg:flex sidebar-toggle-btn" x-show="sidebarMode === 'hidden'" x-cloak title="Expand sidebar"
-                            style="background: var(--bg-glass); border: 1px solid var(--border-glass); width: 32px; height: 32px; border-radius: 10px;">
-                        <i class="fas fa-angles-right" style="font-size: 11px; color: var(--text-muted);"></i>
+                    <button @click="setSidebar('full')" class="hidden lg:flex header-icon-btn flex-shrink-0" x-show="sidebarMode === 'hidden'" x-cloak title="Expand sidebar"
+                            style="width: 34px; height: 34px;">
+                        <i class="fas fa-angles-right" style="font-size: 11px;"></i>
                     </button>
 
-                    <div class="header-breadcrumb hidden sm:flex">
+                    <div class="header-breadcrumb min-w-0">
                         @hasSection('breadcrumb_parent')
-                            <a href="@yield('breadcrumb_parent_url', '#')" class="bc-parent">@yield('breadcrumb_parent')</a>
-                            <i class="fas fa-chevron-right bc-sep"></i>
+                            <a href="@yield('breadcrumb_parent_url', '#')" class="bc-parent hidden sm:inline">@yield('breadcrumb_parent')</a>
+                            <i class="fas fa-chevron-right bc-sep hidden sm:inline"></i>
                         @endif
-                        <span class="bc-current">@yield('title', 'Dashboard')</span>
+                        <span class="bc-current truncate">@yield('title', 'Dashboard')</span>
                     </div>
-                    <span class="sm:hidden text-sm font-semibold" style="color: var(--text-primary);">@yield('title', 'Dashboard')</span>
                 </div>
 
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 flex-shrink-0">
                     @if(session('impersonate_user_id'))
                     <div class="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 px-2.5 py-1 rounded-lg text-[10px] font-semibold">
                         <i class="fas fa-user-secret"></i>
-                        <span>Admin viewing</span>
+                        <span class="hidden sm:inline">Admin viewing</span>
                         <form action="{{ route('user.logout') }}" method="POST" class="inline">
                             @csrf
                             <button type="submit" class="ml-1 text-yellow-300 hover:text-yellow-200 font-bold">Exit</button>
@@ -429,7 +436,7 @@
                         <input type="text" placeholder="Search links, projects..." x-data x-on:keydown.enter="if($el.value.trim()) window.location.href='{{ route('user.links.index') }}?search='+encodeURIComponent($el.value.trim())">
                     </div>
 
-                    <div class="hidden lg:block">
+                    <div class="hidden lg:flex items-center">
                         @include('common.partials.theme-toggle')
                     </div>
 
@@ -438,20 +445,28 @@
                         <span class="badge-dot"></span>
                     </button>
 
-                    <a href="{{ route('user.links.create') }}" class="btn-primary hidden sm:inline-flex text-xs py-2">
-                        <i class="fas fa-plus text-[10px]"></i> New Link
+                    <a href="{{ route('user.links.create') }}" class="btn-primary hidden sm:inline-flex items-center gap-1.5 text-xs px-3.5 py-2 whitespace-nowrap">
+                        <i class="fas fa-plus" style="font-size: 9px;"></i>
+                        <span>New Link</span>
                     </a>
 
                     <div x-data="{ open: false }" class="relative lg:hidden">
                         <button @click="open = !open" class="header-icon-btn">
                             <i class="fas fa-ellipsis-v text-xs"></i>
                         </button>
-                        <div x-show="open" @click.away="open = false" x-cloak
-                             class="absolute right-0 mt-2 w-44 rounded-xl py-1 z-50" style="background: var(--bg-sidebar); border: 1px solid var(--border-subtle); box-shadow: var(--card-shadow);">
-                            <a href="{{ route('user.profile.edit') }}" class="block px-3 py-2 text-xs hover:opacity-80" style="color: var(--text-muted);">Profile</a>
+                        <div x-show="open" @click.away="open = false" x-cloak x-transition
+                             class="absolute right-0 mt-2 w-48 rounded-xl py-1.5 z-50" style="background: var(--bg-sidebar); border: 1px solid var(--border-subtle); box-shadow: var(--card-shadow);">
+                            <div class="px-3 py-2" style="border-bottom: 1px solid var(--border-subtle);">
+                                @include('common.partials.theme-toggle')
+                            </div>
+                            <a href="{{ route('user.profile.edit') }}" class="flex items-center gap-2.5 px-3 py-2 text-xs hover:opacity-80 transition-opacity" style="color: var(--text-muted);">
+                                <i class="fas fa-user-circle" style="width: 14px; text-align: center;"></i> Profile
+                            </a>
                             <form action="{{ route('user.logout') }}" method="POST">
                                 @csrf
-                                <button type="submit" class="w-full text-left px-3 py-2 text-xs text-red-400 hover:bg-white/5">Logout</button>
+                                <button type="submit" class="w-full flex items-center gap-2.5 text-left px-3 py-2 text-xs text-red-400 hover:bg-red-500/5 transition-colors">
+                                    <i class="fas fa-sign-out-alt" style="width: 14px; text-align: center;"></i> Logout
+                                </button>
                             </form>
                         </div>
                     </div>
