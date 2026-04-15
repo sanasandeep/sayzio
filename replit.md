@@ -39,7 +39,8 @@ pnpm workspace monorepo using TypeScript + PHP/Laravel. Each package manages its
 - **Font**: Space Grotesk (Google Fonts CDN), antialiased rendering
 - **Component classes**: `.card-premium` (`::before` gradient mask border, translateY(-3px) hover), `.stat-card` (`::before` accent bar + `::after` glow overlay on hover, CSS vars `--stat-accent/--stat-glow`), `.btn-primary` (`::before` shimmer on hover), `.btn-ghost`, `.badge`, `.gradient-text`, `.glow-icon`, `.shimmer`, `.upgrade-card`
 - **Login page**: Split layout — left: animated floating orbs + gradient "built for growth" text + feature bullets with glow icons + social proof; right: glassmorphism login form
-- **Sidebar**: Fixed position, 260px width, gradient logo icon with glow, upgrade-card CTA, user profile footer
+- **Sidebar (3-mode collapsible)**: Full (260px), Icons-only (72px), Hidden (0px); 3 direct-switch buttons in sidebar header; state persisted in `localStorage('1inme_sidebar')`; smooth CSS transitions (0.35s cubic-bezier); tooltips on hover in icons-only mode; user avatar with gradient ring; upgrade card auto-hides in collapsed modes; responsive via `matchMedia` listener
+- **Header**: Glassmorphism with gradient glow line at bottom; breadcrumb navigation (supports `@section('breadcrumb_parent')`); live search box (expandable on focus, Enter to search); notification bell with badge dot; theme toggle; "New Link" CTA button; hamburger to restore hidden sidebar
 - **Dashboard**: Gradient-text greeting, shimmer stat cards with glow-icon accents, premium recent links + quick actions cards, animated progress bar
 - **Links page**: Colored type badges, theme-consistent filter bar, premium card styling, themed action buttons
 - **Biolink editor**: card-premium accordion sections with colored icon headers, themed customization form using `.theme-input`, premium phone preview with purple glow frame, glassmorphism add-block modal

@@ -216,8 +216,8 @@
     .sidebar-link {
         display: flex;
         align-items: center;
-        gap: 0.75rem;
-        padding: 0.6rem 0.875rem;
+        gap: 0.625rem;
+        padding: 0.45rem 0.75rem;
         font-size: 0.8125rem;
         font-weight: 500;
         border-radius: 0.75rem;
@@ -225,11 +225,11 @@
         color: var(--sidebar-link);
         letter-spacing: 0.01em;
         position: relative;
+        margin-bottom: 2px;
     }
     .sidebar-link:hover {
         background: var(--sidebar-link-hover-bg);
         color: var(--sidebar-link-hover-text);
-        transform: translateX(2px);
     }
     .sidebar-link.active {
         background: var(--sidebar-active-bg);
@@ -255,7 +255,7 @@
         text-align: center;
         transition: transform 0.2s;
     }
-    .sidebar-link:hover i { transform: scale(1.1); }
+    .sidebar-link:hover i { transform: scale(1.08); }
 
     .bg-mesh {
         position: fixed;
