@@ -15,6 +15,10 @@
     $twitter = $bs['twitter'] ?? [];
     $manifest = $bs['manifest'] ?? [];
     $favicons = $bs['favicons'] ?? [];
+    $shareBtn = $bs['share_button'] ?? [];
+    $menuBar = $bs['menu_bar'] ?? [];
+    $autoTranslate = $bs['auto_translate'] ?? [];
+    $menuBarItems = $menuBar['items'] ?? [];
 @endphp
 
 <div class="w-full max-w-7xl mx-auto">
@@ -330,6 +334,278 @@
                 </div>
             </div>
 
+            <div class="card-premium p-6" x-data="shareButtonSettings()">
+                <div class="flex items-center justify-between mb-1">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(139,92,246,0.1);"><i class="fas fa-share-nodes text-violet-400 text-xs"></i></div>
+                        <h3 class="text-sm font-bold" style="color: var(--text-primary);">Share Button & QR Code</h3>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="hidden" name="share_button[enabled]" value="0">
+                        <input type="checkbox" name="share_button[enabled]" value="1" x-model="enabled" class="sr-only peer">
+                        <div class="w-9 h-5 rounded-full peer-focus:ring-2 peer-focus:ring-violet-500/40 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:rounded-full after:h-4 after:w-4 after:transition-all" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);" :style="enabled ? 'background: #7c3aed' : ''">
+                            <div class="absolute top-[2px] start-[2px] rounded-full h-4 w-4 transition-all bg-white" :class="enabled ? 'translate-x-4' : ''"></div>
+                        </div>
+                    </label>
+                </div>
+                <p class="text-[11px] mb-4 ml-11" style="color: var(--text-dimmed);">Add a floating share button so visitors can share your profile or scan a QR code.</p>
+
+                <div x-show="enabled" x-transition class="space-y-4">
+                    <label class="flex items-center gap-3 cursor-pointer p-3 rounded-xl transition-all hover:bg-white/[0.02]" style="border: 1px solid var(--border-glass);">
+                        <input type="hidden" name="share_button[show_qr]" value="0">
+                        <input type="checkbox" name="share_button[show_qr]" value="1" {{ ($shareBtn['show_qr'] ?? true) ? 'checked' : '' }} class="rounded text-violet-500 focus:ring-violet-500/40 w-4 h-4" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
+                        <div>
+                            <span class="text-xs font-semibold" style="color: var(--text-primary);">Show QR Code</span>
+                            <p class="text-[10px]" style="color: var(--text-dimmed);">Display a scannable QR code in the share popup</p>
+                        </div>
+                    </label>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Button Style</label>
+                            <select name="share_button[style]" class="theme-input w-full text-xs">
+                                @foreach(['fab' => 'Floating (FAB)', 'bar' => 'Share Bar', 'icon' => 'Icon Only'] as $val => $label)
+                                <option value="{{ $val }}" {{ ($shareBtn['style'] ?? 'fab') === $val ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Position</label>
+                            <select name="share_button[position]" class="theme-input w-full text-xs">
+                                @foreach(['bottom-right' => 'Bottom Right', 'bottom-left' => 'Bottom Left', 'bottom-center' => 'Bottom Center', 'top-right' => 'Top Right', 'top-left' => 'Top Left'] as $val => $label)
+                                <option value="{{ $val }}" {{ ($shareBtn['position'] ?? 'bottom-right') === $val ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Size</label>
+                            <select name="share_button[size]" class="theme-input w-full text-xs">
+                                @foreach(['sm' => 'Small', 'md' => 'Medium', 'lg' => 'Large'] as $val => $label)
+                                <option value="{{ $val }}" {{ ($shareBtn['size'] ?? 'md') === $val ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Button Label</label>
+                            <input type="text" name="share_button[label]" value="{{ $shareBtn['label'] ?? 'Share' }}" placeholder="Share" class="theme-input w-full" maxlength="30">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Button Color</label>
+                            <div class="flex items-center gap-2">
+                                <input type="color" name="share_button[color]" value="{{ $shareBtn['color'] ?? '#7c3aed' }}" class="w-8 h-8 rounded-lg border-0 cursor-pointer" style="background: transparent;">
+                                <input type="text" value="{{ $shareBtn['color'] ?? '#7c3aed' }}" class="theme-input flex-1 text-xs font-mono" oninput="this.previousElementSibling.value = this.value" onchange="this.previousElementSibling.value = this.value">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Text Color</label>
+                            <div class="flex items-center gap-2">
+                                <input type="color" name="share_button[text_color]" value="{{ $shareBtn['text_color'] ?? '#ffffff' }}" class="w-8 h-8 rounded-lg border-0 cursor-pointer" style="background: transparent;">
+                                <input type="text" value="{{ $shareBtn['text_color'] ?? '#ffffff' }}" class="theme-input flex-1 text-xs font-mono" oninput="this.previousElementSibling.value = this.value" onchange="this.previousElementSibling.value = this.value">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-4 rounded-xl" style="background: var(--bg-glass); border: 1px solid var(--border-glass);">
+                        <div class="flex items-center gap-2 mb-3">
+                            <i class="fas fa-qrcode text-violet-400 text-[10px]"></i>
+                            <span class="text-xs font-semibold" style="color: var(--text-primary);">QR Code Appearance</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Size (px)</label>
+                                <input type="number" name="share_button[qr_size]" value="{{ $shareBtn['qr_size'] ?? 200 }}" min="100" max="400" step="10" class="theme-input w-full text-xs">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">FG Color</label>
+                                <div class="flex items-center gap-1">
+                                    <input type="color" name="share_button[qr_fg_color]" value="{{ $shareBtn['qr_fg_color'] ?? '#000000' }}" class="w-7 h-7 rounded border-0 cursor-pointer" style="background: transparent;">
+                                    <span class="text-[10px] font-mono" style="color: var(--text-dimmed);">{{ $shareBtn['qr_fg_color'] ?? '#000000' }}</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">BG Color</label>
+                                <div class="flex items-center gap-1">
+                                    <input type="color" name="share_button[qr_bg_color]" value="{{ $shareBtn['qr_bg_color'] ?? '#ffffff' }}" class="w-7 h-7 rounded border-0 cursor-pointer" style="background: transparent;">
+                                    <span class="text-[10px] font-mono" style="color: var(--text-dimmed);">{{ $shareBtn['qr_bg_color'] ?? '#ffffff' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-premium p-6" x-data="menuBarSettings()">
+                <div class="flex items-center justify-between mb-1">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(59,130,246,0.1);"><i class="fas fa-bars text-blue-400 text-xs"></i></div>
+                        <h3 class="text-sm font-bold" style="color: var(--text-primary);">Navigation Menu Bar</h3>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="hidden" name="menu_bar[enabled]" value="0">
+                        <input type="checkbox" name="menu_bar[enabled]" value="1" x-model="enabled" class="sr-only peer">
+                        <div class="w-9 h-5 rounded-full peer-focus:ring-2 peer-focus:ring-blue-500/40 after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:rounded-full after:h-4 after:w-4 after:transition-all" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);" :style="enabled ? 'background: #3b82f6' : ''">
+                            <div class="absolute top-[2px] start-[2px] rounded-full h-4 w-4 transition-all bg-white" :class="enabled ? 'translate-x-4' : ''"></div>
+                        </div>
+                    </label>
+                </div>
+                <p class="text-[11px] mb-4 ml-11" style="color: var(--text-dimmed);">Add a sticky navigation bar linking to other biolink pages or external URLs.</p>
+
+                <div x-show="enabled" x-transition class="space-y-4">
+                    <input type="hidden" name="menu_bar[items]" :value="JSON.stringify(items)">
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Position</label>
+                            <select name="menu_bar[position]" class="theme-input w-full text-xs">
+                                @foreach(['top' => 'Top (Sticky)', 'bottom' => 'Bottom (Sticky)'] as $val => $label)
+                                <option value="{{ $val }}" {{ ($menuBar['position'] ?? 'top') === $val ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Style</label>
+                            <select name="menu_bar[style]" class="theme-input w-full text-xs">
+                                @foreach(['pills' => 'Pills', 'underline' => 'Underline', 'flat' => 'Flat'] as $val => $label)
+                                <option value="{{ $val }}" {{ ($menuBar['style'] ?? 'pills') === $val ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Background</label>
+                            <div class="flex items-center gap-1">
+                                <input type="color" name="menu_bar[bg_color]" value="{{ $menuBar['bg_color'] ?? '#0a0612' }}" class="w-7 h-7 rounded border-0 cursor-pointer" style="background: transparent;">
+                                <span class="text-[10px] font-mono" style="color: var(--text-dimmed);">{{ $menuBar['bg_color'] ?? '#0a0612' }}</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Text</label>
+                            <div class="flex items-center gap-1">
+                                <input type="color" name="menu_bar[text_color]" value="{{ $menuBar['text_color'] ?? '#ffffff' }}" class="w-7 h-7 rounded border-0 cursor-pointer" style="background: transparent;">
+                                <span class="text-[10px] font-mono" style="color: var(--text-dimmed);">{{ $menuBar['text_color'] ?? '#ffffff' }}</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Active</label>
+                            <div class="flex items-center gap-1">
+                                <input type="color" name="menu_bar[active_color]" value="{{ $menuBar['active_color'] ?? '#7c3aed' }}" class="w-7 h-7 rounded border-0 cursor-pointer" style="background: transparent;">
+                                <span class="text-[10px] font-mono" style="color: var(--text-dimmed);">{{ $menuBar['active_color'] ?? '#7c3aed' }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-4 rounded-xl" style="background: var(--bg-glass); border: 1px solid var(--border-glass);">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-link text-blue-400 text-[10px]"></i>
+                                <span class="text-xs font-semibold" style="color: var(--text-primary);">Menu Items</span>
+                            </div>
+                            <button type="button" @click="addItem()" class="text-[10px] font-semibold px-2.5 py-1 rounded-lg transition-all" style="background: rgba(59,130,246,0.15); color: #60a5fa;">
+                                <i class="fas fa-plus mr-1"></i>Add Item
+                            </button>
+                        </div>
+                        <div class="space-y-2">
+                            <template x-for="(item, idx) in items" :key="idx">
+                                <div class="flex items-center gap-2 p-2.5 rounded-lg" style="background: rgba(0,0,0,0.15); border: 1px solid var(--border-glass);">
+                                    <div class="flex-1 grid grid-cols-2 gap-2">
+                                        <input type="text" x-model="item.label" placeholder="Label" class="theme-input w-full text-xs" maxlength="30">
+                                        <input type="text" x-model="item.url" placeholder="URL or /alias" class="theme-input w-full text-xs" maxlength="500">
+                                    </div>
+                                    <label class="flex items-center gap-1 cursor-pointer shrink-0">
+                                        <input type="checkbox" x-model="item.is_active" class="rounded text-blue-500 focus:ring-blue-500/40 w-3 h-3" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
+                                        <span class="text-[9px]" style="color: var(--text-dimmed);">Active</span>
+                                    </label>
+                                    <button type="button" @click="removeItem(idx)" class="text-red-400/60 hover:text-red-400 transition-colors shrink-0">
+                                        <i class="fas fa-trash text-[10px]"></i>
+                                    </button>
+                                </div>
+                            </template>
+                            <template x-if="items.length === 0">
+                                <p class="text-[10px] text-center py-3" style="color: var(--text-dimmed);">No menu items yet. Click "Add Item" to get started.</p>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-premium p-6" x-data="{ atEnabled: {{ ($autoTranslate['enabled'] ?? false) ? 'true' : 'false' }} }">
+                <div class="flex items-center justify-between mb-1">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(34,211,238,0.1);"><i class="fas fa-language text-cyan-400 text-xs"></i></div>
+                        <h3 class="text-sm font-bold" style="color: var(--text-primary);">Auto Page Translation</h3>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="hidden" name="auto_translate[enabled]" value="0">
+                        <input type="checkbox" name="auto_translate[enabled]" value="1" x-model="atEnabled" class="sr-only peer">
+                        <div class="w-9 h-5 rounded-full peer-focus:ring-2 peer-focus:ring-cyan-500/40 after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:rounded-full after:h-4 after:w-4 after:transition-all" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);" :style="atEnabled ? 'background: #06b6d4' : ''">
+                            <div class="absolute top-[2px] start-[2px] rounded-full h-4 w-4 transition-all bg-white" :class="atEnabled ? 'translate-x-4' : ''"></div>
+                        </div>
+                    </label>
+                </div>
+                <p class="text-[11px] mb-4 ml-11" style="color: var(--text-dimmed);">Let visitors translate your page into their language using Google Translate.</p>
+
+                <div x-show="atEnabled" x-transition class="space-y-4">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Widget Position</label>
+                            <select name="auto_translate[position]" class="theme-input w-full text-xs">
+                                @foreach(['top-right' => 'Top Right', 'top-left' => 'Top Left', 'bottom-right' => 'Bottom Right', 'bottom-left' => 'Bottom Left'] as $val => $label)
+                                <option value="{{ $val }}" {{ ($autoTranslate['position'] ?? 'top-right') === $val ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Widget Style</label>
+                            <select name="auto_translate[style]" class="theme-input w-full text-xs">
+                                @foreach(['dropdown' => 'Dropdown Menu', 'flags' => 'Flag Icons', 'minimal' => 'Minimal'] as $val => $label)
+                                <option value="{{ $val }}" {{ ($autoTranslate['style'] ?? 'dropdown') === $val ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Default Language</label>
+                        <select name="auto_translate[default_lang]" class="theme-input w-full text-xs">
+                            @foreach(['en' => 'English', 'es' => 'Spanish', 'fr' => 'French', 'de' => 'German', 'pt' => 'Portuguese', 'it' => 'Italian', 'nl' => 'Dutch', 'ru' => 'Russian', 'ja' => 'Japanese', 'ko' => 'Korean', 'zh-CN' => 'Chinese (Simplified)', 'zh-TW' => 'Chinese (Traditional)', 'ar' => 'Arabic', 'hi' => 'Hindi', 'tr' => 'Turkish', 'th' => 'Thai', 'vi' => 'Vietnamese', 'id' => 'Indonesian', 'ms' => 'Malay', 'pl' => 'Polish', 'sv' => 'Swedish', 'da' => 'Danish', 'no' => 'Norwegian', 'fi' => 'Finnish', 'el' => 'Greek', 'cs' => 'Czech', 'ro' => 'Romanian', 'hu' => 'Hungarian', 'uk' => 'Ukrainian', 'he' => 'Hebrew', 'bn' => 'Bengali'] as $code => $label)
+                            <option value="{{ $code }}" {{ ($autoTranslate['default_lang'] ?? 'en') === $code ? 'selected' : '' }}>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Available Languages</label>
+                        <input type="text" name="auto_translate[languages]" value="{{ $autoTranslate['languages'] ?? 'en,es,fr,de,pt,ja,ko,zh-CN,ar,hi,tr,ru' }}" placeholder="en,es,fr,de,pt,ja,ko,zh-CN,ar,hi" class="theme-input w-full text-xs">
+                        <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">Comma-separated language codes. Leave blank for all languages.</p>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Widget BG</label>
+                            <div class="flex items-center gap-2">
+                                <input type="color" name="auto_translate[bg_color]" value="{{ $autoTranslate['bg_color'] ?? '#1a1a2e' }}" class="w-8 h-8 rounded-lg border-0 cursor-pointer" style="background: transparent;">
+                                <input type="text" value="{{ $autoTranslate['bg_color'] ?? '#1a1a2e' }}" class="theme-input flex-1 text-xs font-mono" oninput="this.previousElementSibling.value = this.value" onchange="this.previousElementSibling.value = this.value">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Widget Text</label>
+                            <div class="flex items-center gap-2">
+                                <input type="color" name="auto_translate[text_color]" value="{{ $autoTranslate['text_color'] ?? '#ffffff' }}" class="w-8 h-8 rounded-lg border-0 cursor-pointer" style="background: transparent;">
+                                <input type="text" value="{{ $autoTranslate['text_color'] ?? '#ffffff' }}" class="theme-input flex-1 text-xs font-mono" oninput="this.previousElementSibling.value = this.value" onchange="this.previousElementSibling.value = this.value">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="card-premium p-6">
                 <div class="flex items-center gap-3 mb-4">
                     <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(16,185,129,0.1);"><i class="fas fa-check-circle text-emerald-400 text-xs"></i></div>
@@ -413,4 +689,23 @@
         </div>
     </div>
 </div>
+<script>
+function shareButtonSettings() {
+    return {
+        enabled: {{ ($shareBtn['enabled'] ?? false) ? 'true' : 'false' }}
+    };
+}
+function menuBarSettings() {
+    return {
+        enabled: {{ ($menuBar['enabled'] ?? false) ? 'true' : 'false' }},
+        items: @json($menuBarItems ?: []),
+        addItem() {
+            this.items.push({ label: '', url: '', is_active: true });
+        },
+        removeItem(idx) {
+            this.items.splice(idx, 1);
+        }
+    };
+}
+</script>
 @endsection

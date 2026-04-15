@@ -328,6 +328,37 @@ class BiolinkBlockController extends Controller
             'manifest.background_color' => 'nullable|string|max:20',
             'manifest.start_url' => 'nullable|string|max:200',
             'manifest.categories' => 'nullable|string|max:200',
+
+            'share_button' => 'nullable|array',
+            'share_button.enabled' => 'boolean',
+            'share_button.show_qr' => 'boolean',
+            'share_button.style' => 'nullable|string|in:fab,bar,icon',
+            'share_button.position' => 'nullable|string|in:bottom-right,bottom-left,bottom-center,top-right,top-left',
+            'share_button.color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
+            'share_button.text_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
+            'share_button.size' => 'nullable|string|in:sm,md,lg',
+            'share_button.qr_size' => 'nullable|integer|min:100|max:400',
+            'share_button.qr_fg_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
+            'share_button.qr_bg_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
+            'share_button.label' => 'nullable|string|max:30',
+
+            'menu_bar' => 'nullable|array',
+            'menu_bar.enabled' => 'boolean',
+            'menu_bar.position' => 'nullable|string|in:top,bottom',
+            'menu_bar.style' => 'nullable|string|in:pills,underline,flat',
+            'menu_bar.bg_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
+            'menu_bar.text_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
+            'menu_bar.active_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
+            'menu_bar.items' => 'nullable|string|max:5000',
+
+            'auto_translate' => 'nullable|array',
+            'auto_translate.enabled' => 'boolean',
+            'auto_translate.position' => 'nullable|string|in:top-right,top-left,bottom-right,bottom-left',
+            'auto_translate.default_lang' => 'nullable|string|max:5',
+            'auto_translate.languages' => 'nullable|string|max:500',
+            'auto_translate.style' => 'nullable|string|in:dropdown,flags,minimal',
+            'auto_translate.bg_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
+            'auto_translate.text_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
         ]);
 
         $user = auth()->user();
@@ -339,10 +370,13 @@ class BiolinkBlockController extends Controller
         $twitterInput = $validated['twitter'] ?? null;
         $faviconsInput = $validated['favicons'] ?? null;
         $manifestInput = $validated['manifest'] ?? null;
+        $shareButtonInput = $validated['share_button'] ?? null;
+        $menuBarInput = $validated['menu_bar'] ?? null;
+        $autoTranslateInput = $validated['auto_translate'] ?? null;
         $slideshowFiles = $request->file('slideshow_images');
         $videoFile = $request->file('video_file');
         $fallbackImageFile = $request->file('bg_fallback_image');
-        unset($validated['block_theme'], $validated['layout'], $validated['meta'], $validated['og'], $validated['twitter'], $validated['favicons'], $validated['manifest'], $validated['og_image_upload'], $validated['apple_touch_upload'], $validated['icon_512_upload'], $validated['slideshow_images'], $validated['video_file'], $validated['bg_fallback_image']);
+        unset($validated['block_theme'], $validated['layout'], $validated['meta'], $validated['og'], $validated['twitter'], $validated['favicons'], $validated['manifest'], $validated['share_button'], $validated['menu_bar'], $validated['auto_translate'], $validated['og_image_upload'], $validated['apple_touch_upload'], $validated['icon_512_upload'], $validated['slideshow_images'], $validated['video_file'], $validated['bg_fallback_image']);
 
         if (!$user->getPlanFeature('custom_branding', false)) {
             unset($validated['custom_branding_text'], $validated['custom_branding_url'], $validated['custom_branding_logo']);
@@ -387,6 +421,47 @@ class BiolinkBlockController extends Controller
         if ($manifestInput !== null) {
             $settings['biolink']['manifest'] = $nullifyEmpty($manifestInput);
             $settings['biolink']['manifest']['enabled'] = !empty($manifestInput['enabled']);
+        }
+
+        if ($shareButtonInput !== null) {
+            $settings['biolink']['share_button'] = $nullifyEmpty($shareButtonInput);
+            $settings['biolink']['share_button']['enabled'] = !empty($shareButtonInput['enabled']);
+            $settings['biolink']['share_button']['show_qr'] = !empty($shareButtonInput['show_qr']);
+        }
+
+        if ($menuBarInput !== null) {
+            $settings['biolink']['menu_bar'] = $nullifyEmpty($menuBarInput);
+            $settings['biolink']['menu_bar']['enabled'] = !empty($menuBarInput['enabled']);
+            if (!empty($menuBarInput['items'])) {
+                $decoded = json_decode($menuBarInput['items'], true);
+                if (is_array($decoded)) {
+                    $sanitizedItems = [];
+                    foreach ($decoded as $item) {
+                        if (!is_array($item)) continue;
+                        $label = trim(strip_tags(substr($item['label'] ?? '', 0, 30)));
+                        $url = trim($item['url'] ?? '');
+                        if (empty($label) || empty($url)) continue;
+                        if (!preg_match('#^(https?://|/)#i', $url)) continue;
+                        $sanitizedItems[] = [
+                            'label' => $label,
+                            'url' => htmlspecialchars($url, ENT_QUOTES, 'UTF-8'),
+                            'is_active' => !empty($item['is_active']),
+                        ];
+                    }
+                    $settings['biolink']['menu_bar']['items'] = array_slice($sanitizedItems, 0, 20);
+                }
+            }
+            unset($settings['biolink']['menu_bar']['items_raw']);
+        }
+
+        if ($autoTranslateInput !== null) {
+            $settings['biolink']['auto_translate'] = $nullifyEmpty($autoTranslateInput);
+            $settings['biolink']['auto_translate']['enabled'] = !empty($autoTranslateInput['enabled']);
+            if (!empty($autoTranslateInput['languages'])) {
+                $codes = array_filter(array_map('trim', explode(',', $autoTranslateInput['languages'])));
+                $validCodes = array_filter($codes, fn($c) => preg_match('/^[a-z]{2}(-[A-Z]{2,3})?$/', $c));
+                $settings['biolink']['auto_translate']['languages'] = implode(',', array_slice($validCodes, 0, 30));
+            }
         }
 
         if ($faviconsInput !== null) {

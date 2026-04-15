@@ -4,6 +4,9 @@
     $twSettings = $link->settings['biolink']['twitter'] ?? [];
     $manifestSettings = $link->settings['biolink']['manifest'] ?? [];
     $faviconSettings = $link->settings['biolink']['favicons'] ?? [];
+    $shareBtnSettings = $link->settings['biolink']['share_button'] ?? [];
+    $menuBarSettings = $link->settings['biolink']['menu_bar'] ?? [];
+    $autoTranslateSettings = $link->settings['biolink']['auto_translate'] ?? [];
     $pageTitle = $metaSettings['seo_title'] ?? $link->seo_title ?? $link->title ?? '1INME Bio Link';
     $pageDesc = $metaSettings['seo_description'] ?? $link->seo_description ?? '';
     $pageImage = $ogSettings['image_url'] ?? $link->seo_image ?? '';
@@ -261,6 +264,172 @@
             backdrop-filter: blur(20px);
             border: 1px solid rgba(255,255,255,0.08);
         }
+        @php
+            $mbEnabled = !empty($menuBarSettings['enabled']);
+            $mbPos = $menuBarSettings['position'] ?? 'top';
+            $mbBg = $menuBarSettings['bg_color'] ?? '#0a0612';
+            $mbText = $menuBarSettings['text_color'] ?? '#ffffff';
+            $mbActive = $menuBarSettings['active_color'] ?? '#7c3aed';
+            $mbStyle = $menuBarSettings['style'] ?? 'pills';
+            $sbEnabled = !empty($shareBtnSettings['enabled']);
+            $sbColor = $shareBtnSettings['color'] ?? '#7c3aed';
+            $sbTextColor = $shareBtnSettings['text_color'] ?? '#ffffff';
+            $sbPos = $shareBtnSettings['position'] ?? 'bottom-right';
+            $sbSize = $shareBtnSettings['size'] ?? 'md';
+            $sbBtnDim = match($sbSize) { 'sm' => '40px', 'lg' => '60px', default => '50px' };
+            $sbIconSize = match($sbSize) { 'sm' => '14px', 'lg' => '22px', default => '18px' };
+            $atEnabled = !empty($autoTranslateSettings['enabled']);
+            $atPos = $autoTranslateSettings['position'] ?? 'top-right';
+            $atBg = $autoTranslateSettings['bg_color'] ?? '#1a1a2e';
+            $atText = $autoTranslateSettings['text_color'] ?? '#ffffff';
+        @endphp
+        @if($mbEnabled)
+        .biolink-menu-bar {
+            position: sticky;
+            {{ $mbPos === 'bottom' ? 'bottom: 0' : 'top: 0' }};
+            z-index: 50;
+            background: {{ $mbBg }}ee;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-{{ $mbPos === 'bottom' ? 'top' : 'bottom' }}: 1px solid rgba(255,255,255,0.06);
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+        .biolink-menu-bar a {
+            color: {{ $mbText }};
+            font-size: 12px;
+            font-weight: 500;
+            padding: 6px 14px;
+            border-radius: {{ $mbStyle === 'pills' ? '9999px' : '6px' }};
+            text-decoration: none;
+            transition: all 0.2s;
+            white-space: nowrap;
+            @if($mbStyle === 'underline')
+                border-radius: 0;
+                border-bottom: 2px solid transparent;
+                padding: 6px 10px;
+            @endif
+        }
+        .biolink-menu-bar a:hover, .biolink-menu-bar a.active {
+            @if($mbStyle === 'pills')
+                background: {{ $mbActive }};
+                color: #fff;
+            @elseif($mbStyle === 'underline')
+                border-bottom-color: {{ $mbActive }};
+                color: {{ $mbActive }};
+            @else
+                color: {{ $mbActive }};
+            @endif
+        }
+        @endif
+        @if($sbEnabled)
+        .share-fab {
+            position: fixed;
+            z-index: 100;
+            @if(str_contains($sbPos, 'bottom')) bottom: 24px; @else top: 24px; @endif
+            @if(str_contains($sbPos, 'right')) right: 24px; @elseif(str_contains($sbPos, 'left')) left: 24px; @else left: 50%; transform: translateX(-50%); @endif
+        }
+        .share-fab-btn {
+            width: {{ $sbBtnDim }};
+            height: {{ $sbBtnDim }};
+            border-radius: 50%;
+            background: {{ $sbColor }};
+            color: {{ $sbTextColor }};
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: {{ $sbIconSize }};
+            box-shadow: 0 8px 30px {{ $sbColor }}40;
+            transition: all 0.3s;
+        }
+        .share-fab-btn:hover {
+            transform: scale(1.08);
+            box-shadow: 0 12px 40px {{ $sbColor }}60;
+        }
+        .share-popup {
+            position: absolute;
+            @if(str_contains($sbPos, 'bottom')) bottom: calc({{ $sbBtnDim }} + 12px); @else top: calc({{ $sbBtnDim }} + 12px); @endif
+            @if(str_contains($sbPos, 'right')) right: 0; @elseif(str_contains($sbPos, 'left')) left: 0; @else left: 50%; transform: translateX(-50%); @endif
+            background: {{ $sbColor }}15;
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 20px;
+            min-width: 240px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            display: none;
+        }
+        .share-popup.open { display: block; animation: fadeUp 0.25s ease; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .share-popup-actions { display: flex; gap: 10px; justify-content: center; margin-top: 14px; }
+        .share-popup-actions a {
+            width: 40px; height: 40px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(255,255,255,0.08); color: #fff;
+            transition: all 0.2s; font-size: 16px; text-decoration: none;
+        }
+        .share-popup-actions a:hover { background: {{ $sbColor }}; transform: translateY(-2px); }
+        @endif
+        @if($atEnabled)
+        .translate-widget {
+            position: fixed;
+            z-index: 90;
+            @if(str_contains($atPos, 'top')) top: {{ $mbEnabled && $mbPos === 'top' ? '56px' : '16px' }}; @else bottom: {{ $mbEnabled && $mbPos === 'bottom' ? '56px' : '16px' }}; @endif
+            @if(str_contains($atPos, 'right')) right: 16px; @else left: 16px; @endif
+        }
+        .translate-toggle {
+            background: {{ $atBg }}dd;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            color: {{ $atText }};
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 10px;
+            padding: 7px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+        .translate-toggle:hover { border-color: rgba(255,255,255,0.2); }
+        .translate-dropdown {
+            position: absolute;
+            @if(str_contains($atPos, 'top')) top: 100%; margin-top: 6px; @else bottom: 100%; margin-bottom: 6px; @endif
+            @if(str_contains($atPos, 'right')) right: 0; @else left: 0; @endif
+            background: {{ $atBg }}f0;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 6px;
+            min-width: 160px;
+            max-height: 280px;
+            overflow-y: auto;
+            box-shadow: 0 16px 48px rgba(0,0,0,0.4);
+            display: none;
+        }
+        .translate-dropdown.open { display: block; animation: fadeUp 0.2s ease; }
+        .translate-dropdown a {
+            display: block;
+            padding: 7px 12px;
+            color: {{ $atText }};
+            font-size: 12px;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: background 0.15s;
+        }
+        .translate-dropdown a:hover { background: rgba(255,255,255,0.08); }
+        .translate-dropdown a.active { background: rgba(124,58,237,0.2); font-weight: 600; }
+        @endif
         .ticker-scroll { animation: ticker 20s linear infinite; }
         @keyframes ticker { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
         @keyframes morphText { 0%,100% { filter: blur(0px); } 50% { filter: blur(3px); } }
@@ -306,7 +475,19 @@
     <style>{!! $bs['custom_css'] !!}</style>
     @endif
 </head>
-<body class="flex justify-center">
+<body class="{{ $mbEnabled && $mbPos === 'bottom' ? 'flex flex-col min-h-screen' : 'flex' }} justify-center">
+    @if($mbEnabled && $mbPos === 'top')
+    @php $mbItems = $menuBarSettings['items'] ?? []; @endphp
+    <nav class="biolink-menu-bar">
+        @foreach($mbItems as $mi)
+            @if(!empty($mi['label']) && !empty($mi['url']) && ($mi['is_active'] ?? true))
+                <a href="{{ $mi['url'] }}" @if(str_starts_with($mi['url'], 'http')) target="_blank" rel="noopener" @endif
+                   class="{{ request()->url() === url($mi['url']) ? 'active' : '' }}">{{ $mi['label'] }}</a>
+            @endif
+        @endforeach
+    </nav>
+    @endif
+
     @if($bgType === 'slideshow' && count($slideshowImages) > 0)
     <div class="bg-slideshow bg-layer">
         @foreach($slideshowImages as $si => $sImg)
@@ -1204,6 +1385,197 @@
         }
     }
     </script>
+
+    @if($mbEnabled && $mbPos === 'bottom')
+    @php $mbItems = $menuBarSettings['items'] ?? []; @endphp
+    <nav class="biolink-menu-bar" style="margin-top: auto;">
+        @foreach($mbItems as $mi)
+            @if(!empty($mi['label']) && !empty($mi['url']) && ($mi['is_active'] ?? true))
+                <a href="{{ $mi['url'] }}" @if(str_starts_with($mi['url'], 'http')) target="_blank" rel="noopener" @endif
+                   class="{{ request()->url() === url($mi['url']) ? 'active' : '' }}">{{ $mi['label'] }}</a>
+            @endif
+        @endforeach
+    </nav>
+    @endif
+
+    @if($sbEnabled)
+    @php
+        $showQr = $shareBtnSettings['show_qr'] ?? true;
+        $sbLabel = $shareBtnSettings['label'] ?? 'Share';
+        $sbStyleType = $shareBtnSettings['style'] ?? 'fab';
+        $qrSize = $shareBtnSettings['qr_size'] ?? 200;
+        $qrFg = urlencode($shareBtnSettings['qr_fg_color'] ?? '#000000');
+        $qrBg = urlencode($shareBtnSettings['qr_bg_color'] ?? '#ffffff');
+        $shareUrl = request()->url();
+        $qrApiUrl = "https://api.qrserver.com/v1/create-qr-code/?size={$qrSize}x{$qrSize}&data=" . urlencode($shareUrl) . "&color=" . ltrim($qrFg, '%23') . "&bgcolor=" . ltrim($qrBg, '%23');
+    @endphp
+    <div class="share-fab" id="shareFab">
+        @if($sbStyleType === 'bar')
+        <button type="button" onclick="document.getElementById('sharePopup').classList.toggle('open')" title="{{ $sbLabel }}"
+                style="display:flex;align-items:center;gap:8px;padding:10px 20px;border-radius:12px;background:{{ $sbColor }};color:{{ $sbTextColor }};border:none;cursor:pointer;font-size:13px;font-weight:600;box-shadow:0 8px 30px {{ $sbColor }}40;transition:all 0.3s;">
+            <i class="fas fa-share-alt"></i>
+            <span>{{ $sbLabel }}</span>
+        </button>
+        @elseif($sbStyleType === 'icon')
+        <button type="button" onclick="document.getElementById('sharePopup').classList.toggle('open')" title="{{ $sbLabel }}"
+                style="background:transparent;border:none;cursor:pointer;color:{{ $sbColor }};font-size:{{ $sbIconSize }};padding:8px;transition:all 0.3s;opacity:0.7;"
+                onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
+            <i class="fas fa-share-alt"></i>
+        </button>
+        @else
+        <button type="button" class="share-fab-btn" onclick="document.getElementById('sharePopup').classList.toggle('open')" title="{{ $sbLabel }}">
+            <i class="fas fa-share-alt"></i>
+        </button>
+        @endif
+        <div class="share-popup" id="sharePopup">
+            @if($showQr)
+            <div style="text-align:center; margin-bottom: 12px;">
+                <img src="{{ $qrApiUrl }}" alt="QR Code" style="width: {{ min($qrSize, 200) }}px; height: {{ min($qrSize, 200) }}px; border-radius: 8px; margin: 0 auto;">
+                <p style="font-size: 10px; margin-top: 6px; opacity: 0.5;">Scan to visit</p>
+            </div>
+            @endif
+            <div style="margin-bottom: 10px;">
+                <div style="display: flex; gap: 6px; align-items: center;">
+                    <input type="text" value="{{ $shareUrl }}" readonly id="shareUrlInput" style="flex: 1; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 7px 10px; font-size: 11px; color: #fff; outline: none; min-width: 0;">
+                    <button type="button" onclick="navigator.clipboard.writeText('{{ $shareUrl }}'); this.innerHTML='<i class=\'fas fa-check\'></i>'; setTimeout(() => this.innerHTML='<i class=\'fas fa-copy\'></i>', 1500);"
+                            style="background: rgba(255,255,255,0.08); border: none; border-radius: 8px; padding: 7px 10px; color: #fff; cursor: pointer; font-size: 13px;">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="share-popup-actions">
+                <a href="https://twitter.com/intent/tweet?url={{ urlencode($shareUrl) }}" target="_blank" rel="noopener" title="Twitter"><i class="fab fa-x-twitter"></i></a>
+                <a href="https://www.facebook.com/sharer/sharer.php?u={{ urlencode($shareUrl) }}" target="_blank" rel="noopener" title="Facebook"><i class="fab fa-facebook-f"></i></a>
+                <a href="https://wa.me/?text={{ urlencode($shareUrl) }}" target="_blank" rel="noopener" title="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+                <a href="https://t.me/share/url?url={{ urlencode($shareUrl) }}" target="_blank" rel="noopener" title="Telegram"><i class="fab fa-telegram"></i></a>
+                <a href="mailto:?body={{ urlencode($shareUrl) }}" title="Email"><i class="fas fa-envelope"></i></a>
+            </div>
+        </div>
+    </div>
+    <script>
+    document.addEventListener('click', function(e) {
+        var fab = document.getElementById('shareFab');
+        if (fab && !fab.contains(e.target)) {
+            document.getElementById('sharePopup').classList.remove('open');
+        }
+    });
+    </script>
+    @endif
+
+    @if($atEnabled)
+    @php
+        $atDefaultLang = $autoTranslateSettings['default_lang'] ?? 'en';
+        $atLangs = $autoTranslateSettings['languages'] ?? 'en,es,fr,de,pt,ja,ko,zh-CN,ar,hi,tr,ru';
+        $atLangList = array_filter(array_map('trim', explode(',', $atLangs)));
+        $langNames = [
+            'en' => 'English', 'es' => 'Spanish', 'fr' => 'French', 'de' => 'German',
+            'pt' => 'Portuguese', 'it' => 'Italian', 'nl' => 'Dutch', 'ru' => 'Russian',
+            'ja' => 'Japanese', 'ko' => 'Korean', 'zh-CN' => 'Chinese (Simplified)',
+            'zh-TW' => 'Chinese (Traditional)', 'ar' => 'Arabic', 'hi' => 'Hindi',
+            'tr' => 'Turkish', 'th' => 'Thai', 'vi' => 'Vietnamese', 'id' => 'Indonesian',
+            'ms' => 'Malay', 'pl' => 'Polish', 'sv' => 'Swedish', 'da' => 'Danish',
+            'no' => 'Norwegian', 'fi' => 'Finnish', 'el' => 'Greek', 'cs' => 'Czech',
+            'ro' => 'Romanian', 'hu' => 'Hungarian', 'uk' => 'Ukrainian', 'he' => 'Hebrew',
+            'bn' => 'Bengali',
+        ];
+        $langFlags = [
+            'en' => '🇬🇧', 'es' => '🇪🇸', 'fr' => '🇫🇷', 'de' => '🇩🇪', 'pt' => '🇧🇷',
+            'it' => '🇮🇹', 'nl' => '🇳🇱', 'ru' => '🇷🇺', 'ja' => '🇯🇵', 'ko' => '🇰🇷',
+            'zh-CN' => '🇨🇳', 'zh-TW' => '🇹🇼', 'ar' => '🇸🇦', 'hi' => '🇮🇳',
+            'tr' => '🇹🇷', 'th' => '🇹🇭', 'vi' => '🇻🇳', 'id' => '🇮🇩',
+            'ms' => '🇲🇾', 'pl' => '🇵🇱', 'sv' => '🇸🇪', 'da' => '🇩🇰',
+            'no' => '🇳🇴', 'fi' => '🇫🇮', 'el' => '🇬🇷', 'cs' => '🇨🇿',
+            'ro' => '🇷🇴', 'hu' => '🇭🇺', 'uk' => '🇺🇦', 'he' => '🇮🇱', 'bn' => '🇧🇩',
+        ];
+        $atWidgetStyle = $autoTranslateSettings['style'] ?? 'dropdown';
+    @endphp
+    <div class="translate-widget" id="translateWidget">
+        <button type="button" class="translate-toggle" onclick="document.getElementById('translateDropdown').classList.toggle('open')">
+            <i class="fas fa-globe" style="font-size: 14px;"></i>
+            @if($atWidgetStyle !== 'minimal')
+            <span id="currentLangLabel">{{ $langNames[$atDefaultLang] ?? 'English' }}</span>
+            @endif
+            <i class="fas fa-chevron-down" style="font-size: 8px; opacity: 0.5;"></i>
+        </button>
+        <div class="translate-dropdown" id="translateDropdown">
+            @foreach($atLangList as $lc)
+                @if(preg_match('/^[a-z]{2}(-[A-Z]{2,3})?$/', $lc))
+                <a href="#" class="translate-lang-link {{ $lc === $atDefaultLang ? 'active' : '' }}"
+                   data-lang="{{ e($lc) }}">
+                    @if($atWidgetStyle === 'flags' && isset($langFlags[$lc]))
+                        <span style="margin-right: 6px;">{{ $langFlags[$lc] }}</span>
+                    @endif
+                    {{ $langNames[$lc] ?? $lc }}
+                </a>
+                @endif
+            @endforeach
+        </div>
+    </div>
+    <script>
+    (function() {
+        var defaultLang = '{{ e($atDefaultLang) }}';
+        var langNames = @json($langNames);
+        var validPattern = /^[a-z]{2}(-[A-Z]{2,3})?$/;
+
+        document.addEventListener('click', function(e) {
+            var tw = document.getElementById('translateWidget');
+            if (tw && !tw.contains(e.target)) {
+                document.getElementById('translateDropdown').classList.remove('open');
+            }
+
+            var langLink = e.target.closest('.translate-lang-link');
+            if (langLink) {
+                e.preventDefault();
+                var lang = langLink.getAttribute('data-lang');
+                if (!lang || !validPattern.test(lang)) return;
+
+                document.getElementById('translateDropdown').classList.remove('open');
+                var label = document.getElementById('currentLangLabel');
+
+                if (lang === defaultLang) {
+                    var iframe = document.querySelector('.goog-te-banner-frame');
+                    if (iframe) iframe.remove();
+                    document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                    document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.' + location.hostname;
+                    location.reload();
+                    return;
+                }
+
+                document.cookie = 'googtrans=/' + defaultLang + '/' + lang + '; path=/;';
+                document.cookie = 'googtrans=/' + defaultLang + '/' + lang + '; path=/; domain=.' + location.hostname;
+
+                if (!document.getElementById('google_translate_element')) {
+                    var div = document.createElement('div');
+                    div.id = 'google_translate_element';
+                    div.style.display = 'none';
+                    document.body.appendChild(div);
+                    var script = document.createElement('script');
+                    script.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+                    document.body.appendChild(script);
+                    window.googleTranslateElementInit = function() {
+                        new google.translate.TranslateElement({
+                            pageLanguage: defaultLang,
+                            autoDisplay: false,
+                            layout: google.translate.TranslateElement.InlineLayout.SIMPLE
+                        }, 'google_translate_element');
+                    };
+                } else {
+                    location.reload();
+                }
+
+                document.querySelectorAll('.translate-lang-link').forEach(function(a) { a.classList.remove('active'); });
+                langLink.classList.add('active');
+                if (label && langNames[lang]) label.textContent = langNames[lang];
+            }
+        });
+    })();
+    </script>
+    <style>
+    .goog-te-banner-frame, .skiptranslate { display: none !important; }
+    body { top: 0 !important; }
+    .goog-te-gadget { font-size: 0 !important; }
+    </style>
+    @endif
 
     @include('common.partials.pixel-scripts', ['link' => $link])
 
