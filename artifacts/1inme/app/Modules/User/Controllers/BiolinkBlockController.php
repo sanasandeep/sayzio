@@ -344,11 +344,13 @@ class BiolinkBlockController extends Controller
 
             'menu_bar' => 'nullable|array',
             'menu_bar.enabled' => 'boolean',
-            'menu_bar.position' => 'nullable|string|in:top,bottom',
+            'menu_bar.position' => 'nullable|string|in:top,bottom,floating-top-right,floating-top-left,floating-bottom-right,floating-bottom-left',
             'menu_bar.style' => 'nullable|string|in:pills,underline,flat',
             'menu_bar.bg_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
             'menu_bar.text_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
             'menu_bar.active_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
+            'menu_bar.icon_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
+            'menu_bar.overlay_bg' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
             'menu_bar.items' => 'nullable|string|max:5000',
 
             'auto_translate' => 'nullable|array',

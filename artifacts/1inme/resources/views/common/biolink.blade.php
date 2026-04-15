@@ -267,10 +267,13 @@
         @php
             $mbEnabled = !empty($menuBarSettings['enabled']);
             $mbPos = $menuBarSettings['position'] ?? 'top';
+            $mbIsFloating = str_starts_with($mbPos, 'floating');
             $mbBg = $menuBarSettings['bg_color'] ?? '#0a0612';
             $mbText = $menuBarSettings['text_color'] ?? '#ffffff';
             $mbActive = $menuBarSettings['active_color'] ?? '#7c3aed';
             $mbStyle = $menuBarSettings['style'] ?? 'pills';
+            $mbIconColor = $menuBarSettings['icon_color'] ?? '#ffffff';
+            $mbOverlayBg = $menuBarSettings['overlay_bg'] ?? '#0a0612';
             $sbEnabled = !empty($shareBtnSettings['enabled']);
             $sbColor = $shareBtnSettings['color'] ?? '#7c3aed';
             $sbTextColor = $shareBtnSettings['text_color'] ?? '#ffffff';
@@ -283,7 +286,7 @@
             $atBg = $autoTranslateSettings['bg_color'] ?? '#1a1a2e';
             $atText = $autoTranslateSettings['text_color'] ?? '#ffffff';
         @endphp
-        @if($mbEnabled)
+        @if($mbEnabled && !$mbIsFloating)
         .biolink-menu-bar {
             position: sticky;
             {{ $mbPos === 'bottom' ? 'bottom: 0' : 'top: 0' }};
@@ -325,6 +328,121 @@
             @else
                 color: {{ $mbActive }};
             @endif
+        }
+        @endif
+        @if($mbEnabled && $mbIsFloating)
+        .menu-fab {
+            position: fixed;
+            z-index: 100;
+            @if(str_contains($mbPos, 'bottom')) bottom: 24px; @else top: 24px; @endif
+            @if(str_contains($mbPos, 'right')) right: 24px; @else left: 24px; @endif
+        }
+        .menu-fab-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: {{ $mbBg }};
+            color: {{ $mbIconColor }};
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            box-shadow: 0 8px 30px {{ $mbBg }}40;
+            transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+            position: relative;
+            z-index: 101;
+        }
+        .menu-fab-btn:hover {
+            transform: scale(1.08);
+            box-shadow: 0 12px 40px {{ $mbBg }}60;
+        }
+        .menu-fab-btn .bar1, .menu-fab-btn .bar2, .menu-fab-btn .bar3 {
+            display: block;
+            width: 18px;
+            height: 2px;
+            background: {{ $mbIconColor }};
+            border-radius: 2px;
+            transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+            position: absolute;
+        }
+        .menu-fab-btn .bar1 { top: calc(50% - 6px); }
+        .menu-fab-btn .bar2 { top: calc(50% - 1px); }
+        .menu-fab-btn .bar3 { top: calc(50% + 4px); }
+        .menu-fab-btn.open .bar1 { transform: rotate(45deg); top: calc(50% - 1px); }
+        .menu-fab-btn.open .bar2 { opacity: 0; transform: scaleX(0); }
+        .menu-fab-btn.open .bar3 { transform: rotate(-45deg); top: calc(50% - 1px); }
+        .menu-overlay-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 99;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .menu-overlay-backdrop.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .menu-overlay-panel {
+            position: fixed;
+            z-index: 100;
+            @if(str_contains($mbPos, 'bottom')) bottom: 86px; @else top: 86px; @endif
+            @if(str_contains($mbPos, 'right')) right: 24px; @else left: 24px; @endif
+            background: {{ $mbOverlayBg }}f2;
+            backdrop-filter: blur(24px) saturate(1.4);
+            -webkit-backdrop-filter: blur(24px) saturate(1.4);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 8px;
+            min-width: 200px;
+            max-width: 280px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 40px {{ $mbActive }}15;
+            opacity: 0;
+            transform: scale(0.9) translateY({{ str_contains($mbPos, 'bottom') ? '10px' : '-10px' }});
+            pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+        }
+        .menu-overlay-panel.open {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+            pointer-events: auto;
+        }
+        .menu-overlay-panel a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            color: {{ $mbText }};
+            font-size: 13px;
+            font-weight: 500;
+            text-decoration: none;
+            border-radius: 10px;
+            transition: all 0.2s;
+        }
+        .menu-overlay-panel a:hover {
+            background: {{ $mbActive }}18;
+            color: {{ $mbActive }};
+        }
+        .menu-overlay-panel a.active {
+            background: {{ $mbActive }}20;
+            color: {{ $mbActive }};
+        }
+        .menu-overlay-panel a .menu-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: {{ $mbActive }}40;
+            flex-shrink: 0;
+        }
+        .menu-overlay-panel a.active .menu-dot,
+        .menu-overlay-panel a:hover .menu-dot {
+            background: {{ $mbActive }};
+            box-shadow: 0 0 8px {{ $mbActive }}60;
         }
         @endif
         @if($sbEnabled)
@@ -382,52 +500,101 @@
         .translate-widget {
             position: fixed;
             z-index: 90;
-            @if(str_contains($atPos, 'top')) top: {{ $mbEnabled && $mbPos === 'top' ? '56px' : '16px' }}; @else bottom: {{ $mbEnabled && $mbPos === 'bottom' ? '56px' : '16px' }}; @endif
+            @if(str_contains($atPos, 'top')) top: {{ $mbEnabled && !$mbIsFloating && $mbPos === 'top' ? '56px' : '16px' }}; @else bottom: {{ $mbEnabled && !$mbIsFloating && $mbPos === 'bottom' ? '56px' : '16px' }}; @endif
             @if(str_contains($atPos, 'right')) right: 16px; @else left: 16px; @endif
         }
         .translate-toggle {
-            background: {{ $atBg }}dd;
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            background: {{ $atBg }}cc;
+            backdrop-filter: blur(20px) saturate(1.3);
+            -webkit-backdrop-filter: blur(20px) saturate(1.3);
             color: {{ $atText }};
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 10px;
-            padding: 7px 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 8px 14px;
             font-size: 12px;
+            font-weight: 500;
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 6px;
-            transition: all 0.2s;
+            gap: 8px;
+            transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            letter-spacing: 0.01em;
         }
-        .translate-toggle:hover { border-color: rgba(255,255,255,0.2); }
+        .translate-toggle:hover {
+            border-color: rgba(255,255,255,0.2);
+            transform: translateY(-1px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+        }
+        .translate-toggle .globe-icon {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            flex-shrink: 0;
+        }
+        .translate-toggle .chevron {
+            font-size: 8px;
+            opacity: 0.5;
+            transition: transform 0.3s;
+        }
+        .translate-widget.open .translate-toggle .chevron {
+            transform: rotate(180deg);
+        }
         .translate-dropdown {
             position: absolute;
-            @if(str_contains($atPos, 'top')) top: 100%; margin-top: 6px; @else bottom: 100%; margin-bottom: 6px; @endif
+            @if(str_contains($atPos, 'top')) top: 100%; margin-top: 8px; @else bottom: 100%; margin-bottom: 8px; @endif
             @if(str_contains($atPos, 'right')) right: 0; @else left: 0; @endif
-            background: {{ $atBg }}f0;
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 12px;
+            background: {{ $atBg }}f5;
+            backdrop-filter: blur(24px) saturate(1.4);
+            -webkit-backdrop-filter: blur(24px) saturate(1.4);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 14px;
             padding: 6px;
-            min-width: 160px;
-            max-height: 280px;
+            min-width: 180px;
+            max-height: 320px;
             overflow-y: auto;
-            box-shadow: 0 16px 48px rgba(0,0,0,0.4);
-            display: none;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03);
+            opacity: 0;
+            transform: scale(0.95) translateY({{ str_contains($atPos, 'top') ? '-4px' : '4px' }});
+            pointer-events: none;
+            transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
         }
-        .translate-dropdown.open { display: block; animation: fadeUp 0.2s ease; }
+        .translate-dropdown.open {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+            pointer-events: auto;
+        }
         .translate-dropdown a {
-            display: block;
-            padding: 7px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
             color: {{ $atText }};
             font-size: 12px;
+            font-weight: 400;
             text-decoration: none;
             border-radius: 8px;
-            transition: background 0.15s;
+            transition: all 0.15s;
         }
-        .translate-dropdown a:hover { background: rgba(255,255,255,0.08); }
+        .translate-dropdown a:hover {
+            background: rgba(255,255,255,0.08);
+        }
+        .translate-dropdown a.active {
+            background: rgba(255,255,255,0.1);
+            font-weight: 600;
+        }
+        .translate-dropdown a .lang-flag {
+            font-size: 16px;
+            line-height: 1;
+        }
+        .translate-dropdown::-webkit-scrollbar { width: 3px; }
+        .translate-dropdown::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+        .translate-dropdown::-webkit-scrollbar-track { background: transparent; }
         .translate-dropdown a.active { background: rgba(124,58,237,0.2); font-weight: 600; }
         @endif
         .ticker-scroll { animation: ticker 20s linear infinite; }
@@ -476,7 +643,7 @@
     @endif
 </head>
 <body class="flex flex-col items-center {{ $mbEnabled && $mbPos === 'bottom' ? 'min-h-screen' : '' }}">
-    @if($mbEnabled && $mbPos === 'top')
+    @if($mbEnabled && !$mbIsFloating && $mbPos === 'top')
     @php $mbItems = $menuBarSettings['items'] ?? []; @endphp
     <nav class="biolink-menu-bar" style="align-self: stretch;">
         @foreach($mbItems as $mi)
@@ -1386,7 +1553,7 @@
     }
     </script>
 
-    @if($mbEnabled && $mbPos === 'bottom')
+    @if($mbEnabled && !$mbIsFloating && $mbPos === 'bottom')
     @php $mbItems = $menuBarSettings['items'] ?? []; @endphp
     <nav class="biolink-menu-bar" style="margin-top: auto; align-self: stretch;">
         @foreach($mbItems as $mi)
@@ -1396,6 +1563,40 @@
             @endif
         @endforeach
     </nav>
+    @endif
+
+    @if($mbEnabled && $mbIsFloating)
+    @php $mbItems = $menuBarSettings['items'] ?? []; @endphp
+    <div class="menu-fab" id="menuFab">
+        <button type="button" class="menu-fab-btn" id="menuFabBtn" onclick="toggleMenuOverlay()">
+            <span class="bar1"></span>
+            <span class="bar2"></span>
+            <span class="bar3"></span>
+        </button>
+    </div>
+    <div class="menu-overlay-backdrop" id="menuBackdrop" onclick="toggleMenuOverlay()"></div>
+    <div class="menu-overlay-panel" id="menuPanel">
+        @foreach($mbItems as $mi)
+            @if(!empty($mi['label']) && !empty($mi['url']) && ($mi['is_active'] ?? true))
+                <a href="{{ e($mi['url']) }}" @if(str_starts_with($mi['url'], 'http')) target="_blank" rel="noopener" @endif
+                   class="{{ request()->url() === url($mi['url']) ? 'active' : '' }}">
+                    <span class="menu-dot"></span>
+                    {{ $mi['label'] }}
+                </a>
+            @endif
+        @endforeach
+    </div>
+    <script>
+    function toggleMenuOverlay() {
+        var btn = document.getElementById('menuFabBtn');
+        var panel = document.getElementById('menuPanel');
+        var backdrop = document.getElementById('menuBackdrop');
+        var isOpen = panel.classList.contains('open');
+        btn.classList.toggle('open', !isOpen);
+        panel.classList.toggle('open', !isOpen);
+        backdrop.classList.toggle('open', !isOpen);
+    }
+    </script>
     @endif
 
     @if($sbEnabled)
@@ -1490,20 +1691,20 @@
         $atWidgetStyle = $autoTranslateSettings['style'] ?? 'dropdown';
     @endphp
     <div class="translate-widget" id="translateWidget">
-        <button type="button" class="translate-toggle" onclick="document.getElementById('translateDropdown').classList.toggle('open')">
-            <i class="fas fa-globe" style="font-size: 14px;"></i>
+        <button type="button" class="translate-toggle" onclick="var w=document.getElementById('translateWidget');w.classList.toggle('open');document.getElementById('translateDropdown').classList.toggle('open')">
+            <span class="globe-icon"><i class="fas fa-globe"></i></span>
             @if($atWidgetStyle !== 'minimal')
             <span id="currentLangLabel">{{ $langNames[$atDefaultLang] ?? 'English' }}</span>
             @endif
-            <i class="fas fa-chevron-down" style="font-size: 8px; opacity: 0.5;"></i>
+            <i class="fas fa-chevron-down chevron"></i>
         </button>
         <div class="translate-dropdown" id="translateDropdown">
             @foreach($atLangList as $lc)
                 @if(preg_match('/^[a-z]{2}(-[A-Z]{2,3})?$/', $lc))
                 <a href="#" class="translate-lang-link {{ $lc === $atDefaultLang ? 'active' : '' }}"
                    data-lang="{{ e($lc) }}">
-                    @if($atWidgetStyle === 'flags' && isset($langFlags[$lc]))
-                        <span style="margin-right: 6px;">{{ $langFlags[$lc] }}</span>
+                    @if(isset($langFlags[$lc]))
+                        <span class="lang-flag">{{ $langFlags[$lc] }}</span>
                     @endif
                     {{ $langNames[$lc] ?? $lc }}
                 </a>
@@ -1520,6 +1721,7 @@
         document.addEventListener('click', function(e) {
             var tw = document.getElementById('translateWidget');
             if (tw && !tw.contains(e.target)) {
+                tw.classList.remove('open');
                 document.getElementById('translateDropdown').classList.remove('open');
             }
 
@@ -1529,6 +1731,7 @@
                 var lang = langLink.getAttribute('data-lang');
                 if (!lang || !validPattern.test(lang)) return;
 
+                document.getElementById('translateWidget').classList.remove('open');
                 document.getElementById('translateDropdown').classList.remove('open');
                 var label = document.getElementById('currentLangLabel');
 

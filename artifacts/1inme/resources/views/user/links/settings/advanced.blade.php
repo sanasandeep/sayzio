@@ -456,19 +456,26 @@
                 </div>
                 <p class="text-[11px] mb-4 ml-11" style="color: var(--text-dimmed);">Add a sticky navigation bar linking to other biolink pages or external URLs.</p>
 
-                <div x-show="enabled" x-transition class="space-y-4">
+                <div x-show="enabled" x-transition class="space-y-4" x-data="{ mbPos: '{{ $menuBar['position'] ?? 'top' }}' }">
                     <input type="hidden" name="menu_bar[items]" :value="JSON.stringify(items)">
 
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Position</label>
-                            <select name="menu_bar[position]" class="theme-input w-full text-xs">
-                                @foreach(['top' => 'Top (Sticky)', 'bottom' => 'Bottom (Sticky)'] as $val => $label)
-                                <option value="{{ $val }}" {{ ($menuBar['position'] ?? 'top') === $val ? 'selected' : '' }}>{{ $label }}</option>
-                                @endforeach
+                            <select name="menu_bar[position]" x-model="mbPos" class="theme-input w-full text-xs">
+                                <optgroup label="Bar (Sticky)">
+                                    <option value="top" {{ ($menuBar['position'] ?? 'top') === 'top' ? 'selected' : '' }}>Top Bar</option>
+                                    <option value="bottom" {{ ($menuBar['position'] ?? 'top') === 'bottom' ? 'selected' : '' }}>Bottom Bar</option>
+                                </optgroup>
+                                <optgroup label="Floating Button">
+                                    <option value="floating-bottom-right" {{ ($menuBar['position'] ?? 'top') === 'floating-bottom-right' ? 'selected' : '' }}>Bottom Right</option>
+                                    <option value="floating-bottom-left" {{ ($menuBar['position'] ?? 'top') === 'floating-bottom-left' ? 'selected' : '' }}>Bottom Left</option>
+                                    <option value="floating-top-right" {{ ($menuBar['position'] ?? 'top') === 'floating-top-right' ? 'selected' : '' }}>Top Right</option>
+                                    <option value="floating-top-left" {{ ($menuBar['position'] ?? 'top') === 'floating-top-left' ? 'selected' : '' }}>Top Left</option>
+                                </optgroup>
                             </select>
                         </div>
-                        <div>
+                        <div x-show="!mbPos.startsWith('floating')">
                             <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Style</label>
                             <select name="menu_bar[style]" class="theme-input w-full text-xs">
                                 @foreach(['pills' => 'Pills', 'underline' => 'Underline', 'flat' => 'Flat'] as $val => $label)
@@ -498,6 +505,23 @@
                             <div class="flex items-center gap-1">
                                 <input type="color" name="menu_bar[active_color]" value="{{ $menuBar['active_color'] ?? '#7c3aed' }}" class="w-7 h-7 rounded border-0 cursor-pointer" style="background: transparent;">
                                 <span class="text-[10px] font-mono" style="color: var(--text-dimmed);">{{ $menuBar['active_color'] ?? '#7c3aed' }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div x-show="mbPos.startsWith('floating')" x-transition class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Button Icon</label>
+                            <div class="flex items-center gap-1">
+                                <input type="color" name="menu_bar[icon_color]" value="{{ $menuBar['icon_color'] ?? '#ffffff' }}" class="w-7 h-7 rounded border-0 cursor-pointer" style="background: transparent;">
+                                <span class="text-[10px] font-mono" style="color: var(--text-dimmed);">{{ $menuBar['icon_color'] ?? '#ffffff' }}</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Overlay BG</label>
+                            <div class="flex items-center gap-1">
+                                <input type="color" name="menu_bar[overlay_bg]" value="{{ $menuBar['overlay_bg'] ?? '#0a0612' }}" class="w-7 h-7 rounded border-0 cursor-pointer" style="background: transparent;">
+                                <span class="text-[10px] font-mono" style="color: var(--text-dimmed);">{{ $menuBar['overlay_bg'] ?? '#0a0612' }}</span>
                             </div>
                         </div>
                     </div>
