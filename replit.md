@@ -33,16 +33,18 @@ pnpm workspace monorepo using TypeScript + PHP/Laravel. Each package manages its
   - Shared theme partial: `common/partials/theme-styles.blade.php` (CSS vars + light-mode JS overrides)
   - Toggle component: `common/partials/theme-toggle.blade.php` (pill switch with sun/moon icons)
   - Default: dark mode; pre-render script prevents flash
-- **Premium Glassmorphism**: Dark bg `#0a0612` / light `#f4f2f8`, enhanced blur(24px) + saturate(1.2), noise texture overlay, mesh gradient backgrounds
-- **Purple palette**: primary `#8b5cf6`, accent `#a78bfa`, CTA gradient `from-purple-500 to-violet-600`
+- **Premium Glassmorphism**: Dark bg `#06010f` / light `#f0edf6`, `backdrop-filter: blur(40px) saturate(1.4)`, animated aurora mesh background (`bg-mesh::before/::after` with CSS `aurora` keyframe 25s)
+- **Animated Effects**: Aurora mesh (25s), floating particles (JS-generated, 12-20 per layout), shimmer sweep (4s), pulse-glow (3s box-shadow), gradient-shift, float-slow (20s/28s); all gated by `@media (prefers-reduced-motion: reduce)`
+- **Purple palette**: primary `#8b5cf6`, accent `#a78bfa`, CTA gradient `135deg #8b5cf6 → #7c3aed → #6d28d9`
 - **Font**: Space Grotesk (Google Fonts CDN), antialiased rendering
-- **Component classes**: `.card-premium` (hover lift + shadow), `.stat-card` (gradient accent bar on hover), `.btn-primary` (gradient + shadow), `.btn-ghost`, `.badge` (pill style)
-- **Login page**: Split layout — left: branding + feature bullets + social proof; right: login form with Password/OTP tabs
-- **Sidebar**: Fixed position, 260px width, gradient logo icon, navigation with section headers, upgrade CTA card, user profile footer
-- **Dashboard**: Time-of-day greeting, 5 stat cards with colored accent bars, recent links with premium card style, quick actions with chevron arrows, plan progress bar
-- **Links page**: Colored type badges (purple/pink/green/amber/cyan), always-visible action buttons (40% opacity → 100% on hover), theme-input filter bar
-- **Form inputs**: `.theme-input` class with focus ring + box-shadow
-- All pages include theme-styles partial; mobile responsive with slide-out drawers
+- **Component classes**: `.card-premium` (`::before` gradient mask border, translateY(-3px) hover), `.stat-card` (`::before` accent bar + `::after` glow overlay on hover, CSS vars `--stat-accent/--stat-glow`), `.btn-primary` (`::before` shimmer on hover), `.btn-ghost`, `.badge`, `.gradient-text`, `.glow-icon`, `.shimmer`, `.upgrade-card`
+- **Login page**: Split layout — left: animated floating orbs + gradient "built for growth" text + feature bullets with glow icons + social proof; right: glassmorphism login form
+- **Sidebar**: Fixed position, 260px width, gradient logo icon with glow, upgrade-card CTA, user profile footer
+- **Dashboard**: Gradient-text greeting, shimmer stat cards with glow-icon accents, premium recent links + quick actions cards, animated progress bar
+- **Links page**: Colored type badges, theme-consistent filter bar, premium card styling, themed action buttons
+- **Biolink editor**: card-premium accordion sections with colored icon headers, themed customization form using `.theme-input`, premium phone preview with purple glow frame, glassmorphism add-block modal
+- **Form inputs**: `.theme-input` class with focus ring + box-shadow, all using CSS custom properties
+- All pages include theme-styles partial; mobile responsive with slide-out drawers; consistent CSS variable usage throughout
 
 ### Block Display Settings
 - Per-block visibility controls in `user/links/partials/block-display-settings.blade.php`

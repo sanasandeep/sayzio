@@ -3,22 +3,22 @@
 
 @section('content')
 <div x-data="biolinkEditor()" class="max-w-7xl mx-auto">
-    <div class="flex items-center gap-2 text-sm text-white/30 mb-2">
-        <a href="{{ route('user.links.index') }}" class="hover:text-white/60 transition-colors">Links</a>
+    <div class="flex items-center gap-2 text-sm mb-2" style="color: var(--text-faint);">
+        <a href="{{ route('user.links.index') }}" class="hover:text-purple-400 transition-colors">Links</a>
         <i class="fas fa-chevron-right text-[8px]"></i>
-        <span class="text-white/50">Biolink Settings</span>
+        <span style="color: var(--text-muted);">Biolink Settings</span>
     </div>
 
     <div class="flex items-center justify-between mb-1">
         <div>
-            <h1 class="text-2xl font-bold text-white">{{ $link->alias }}</h1>
+            <h1 class="text-2xl font-bold gradient-text">{{ $link->alias }}</h1>
             <div class="flex items-center gap-2 mt-1" x-data="{ copied: false }">
                 <span class="inline-flex items-center gap-1.5 text-sm">
-                    <span class="w-2 h-2 rounded-full {{ $link->is_active ? 'bg-emerald-400' : 'bg-red-400' }}"></span>
-                    <span class="text-white/40">Your link is</span>
+                    <span class="w-2 h-2 rounded-full {{ $link->is_active ? 'bg-emerald-400' : 'bg-red-400' }}" style="{{ $link->is_active ? 'box-shadow: 0 0 8px rgba(16,185,129,0.5);' : '' }}"></span>
+                    <span style="color: var(--text-dimmed);">Your link is</span>
                     <span class="text-purple-400">{{ $link->getShortUrl() }}</span>
                 </span>
-                <button @click="navigator.clipboard.writeText('{{ $link->getShortUrl() }}'); copied = true; setTimeout(() => copied = false, 2000)" class="text-white/20 hover:text-purple-400 transition-colors">
+                <button @click="navigator.clipboard.writeText('{{ $link->getShortUrl() }}'); copied = true; setTimeout(() => copied = false, 2000)" class="hover:text-purple-400 transition-colors" style="color: var(--text-faint);">
                     <i x-show="!copied" class="fas fa-copy text-xs"></i>
                     <i x-show="copied" x-cloak class="fas fa-check text-emerald-400 text-xs"></i>
                 </button>
@@ -27,30 +27,30 @@
         <div class="flex items-center gap-2">
             <form action="{{ route('user.links.toggle-active', $link) }}" method="POST">
                 @csrf
-                <button class="p-2.5 rounded-xl border border-white/10 text-white/40 hover:bg-white/5 transition-all" title="{{ $link->is_active ? 'Deactivate' : 'Activate' }}">
+                <button class="btn-ghost text-xs py-2" title="{{ $link->is_active ? 'Deactivate' : 'Activate' }}">
                     <i class="fas {{ $link->is_active ? 'fa-toggle-on text-emerald-400' : 'fa-toggle-off' }}"></i>
                 </button>
             </form>
-            <a href="{{ url('/' . $link->alias) }}" target="_blank" class="p-2.5 rounded-xl border border-white/10 text-white/40 hover:bg-white/5 transition-all" title="Open in new tab">
-                <i class="fas fa-external-link-alt text-sm"></i>
+            <a href="{{ url('/' . $link->alias) }}" target="_blank" class="btn-ghost text-xs py-2" title="Open in new tab">
+                <i class="fas fa-external-link-alt text-[10px]"></i>
             </a>
-            <a href="{{ route('user.links.qrcode', $link) }}" class="p-2.5 rounded-xl border border-white/10 text-white/40 hover:bg-white/5 transition-all" title="QR Code">
-                <i class="fas fa-qrcode text-sm"></i>
+            <a href="{{ route('user.links.qrcode', $link) }}" class="btn-ghost text-xs py-2" title="QR Code">
+                <i class="fas fa-qrcode text-[10px]"></i>
             </a>
-            <a href="{{ route('user.links.show', $link) }}" class="p-2.5 rounded-xl border border-white/10 text-white/40 hover:bg-white/5 transition-all" title="Analytics">
-                <i class="fas fa-chart-bar text-sm"></i>
+            <a href="{{ route('user.links.show', $link) }}" class="btn-ghost text-xs py-2" title="Analytics">
+                <i class="fas fa-chart-bar text-[10px]"></i>
             </a>
         </div>
     </div>
 
     <div class="flex items-center gap-3 mt-5 mb-6">
-        <button @click="activeTab = 'settings'" :class="activeTab === 'settings' ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20' : 'bg-white/5 text-white/50 hover:bg-white/10 border border-white/10'" class="px-5 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center gap-2">
+        <button @click="activeTab = 'settings'" :class="activeTab === 'settings' ? 'btn-primary shadow-lg' : 'btn-ghost'" class="px-5 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center gap-2">
             <i class="fas fa-cog text-xs"></i> Settings
         </button>
-        <button @click="activeTab = 'blocks'" :class="activeTab === 'blocks' ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20' : 'bg-white/5 text-white/50 hover:bg-white/10 border border-white/10'" class="px-5 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center gap-2">
+        <button @click="activeTab = 'blocks'" :class="activeTab === 'blocks' ? 'btn-primary shadow-lg' : 'btn-ghost'" class="px-5 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center gap-2">
             <i class="fas fa-th-large text-xs"></i> Blocks
         </button>
-        <button @click="showAddBlock = true" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-xl transition-all hover:shadow-lg hover:shadow-emerald-500/20 flex items-center gap-2 ml-1">
+        <button @click="showAddBlock = true" class="btn-primary px-5 py-2.5 text-sm ml-1" style="background: linear-gradient(135deg, #10b981, #059669);">
             <i class="fas fa-plus text-xs"></i> Add block
         </button>
     </div>
@@ -61,182 +61,189 @@
                 <div class="space-y-2">
                     @php $bs = $link->settings['biolink'] ?? []; @endphp
 
-                    <div class="glass rounded-2xl overflow-hidden" x-data="{ open: true }">
+                    <div class="card-premium overflow-hidden" x-data="{ open: true }">
                         <button @click="open = !open" class="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-white/[0.02] transition-colors">
-                            <span class="flex items-center gap-3 text-sm font-medium text-white">
-                                <i class="fas fa-link text-purple-400 w-5 text-center"></i> Short URL
+                            <span class="flex items-center gap-3 text-sm font-semibold" style="color: var(--text-primary);">
+                                <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.15);"><i class="fas fa-link text-purple-400 text-[10px]"></i></div>
+                                Short URL
                             </span>
-                            <i class="fas fa-chevron-down text-xs text-white/20 transition-transform" :class="open ? 'rotate-180' : ''"></i>
+                            <i class="fas fa-chevron-down text-xs transition-transform duration-300" style="color: var(--text-faint);" :class="open ? 'rotate-180' : ''"></i>
                         </button>
-                        <div x-show="open" x-cloak class="px-5 pb-5 border-t border-white/5 pt-4">
-                            <div class="flex items-center bg-white/5 border border-white/10 rounded-xl overflow-hidden">
-                                <span class="bg-white/5 px-3 py-2.5 text-sm text-white/30 border-r border-white/10">{{ request()->getHost() }}/</span>
-                                <span class="flex-1 px-3 py-2.5 text-sm text-white">{{ $link->alias }}</span>
+                        <div x-show="open" x-cloak class="px-5 pb-5 pt-4" style="border-top: 1px solid var(--border-subtle);">
+                            <div class="flex items-center rounded-xl overflow-hidden" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                                <span class="px-3 py-2.5 text-sm" style="color: var(--text-faint); background: var(--bg-glass-input); border-right: 1px solid var(--border-glass);">{{ request()->getHost() }}/</span>
+                                <span class="flex-1 px-3 py-2.5 text-sm font-medium" style="color: var(--text-primary);">{{ $link->alias }}</span>
                             </div>
-                            <p class="text-xs text-white/20 mt-2">This is your unique biolink URL. Share it with your audience.</p>
+                            <p class="text-xs mt-2" style="color: var(--text-faint);">This is your unique biolink URL. Share it with your audience.</p>
                         </div>
                     </div>
 
                     <form method="POST" action="{{ route('user.links.page-settings', $link) }}" enctype="multipart/form-data">
                         @csrf
 
-                        <div class="glass rounded-2xl overflow-hidden" x-data="{ open: false }">
+                        <div class="card-premium overflow-hidden" x-data="{ open: false }">
                             <button type="button" @click="open = !open" class="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-white/[0.02] transition-colors">
-                                <span class="flex items-center gap-3 text-sm font-medium text-white">
-                                    <i class="fas fa-palette text-pink-400 w-5 text-center"></i> Customizations
+                                <span class="flex items-center gap-3 text-sm font-semibold" style="color: var(--text-primary);">
+                                    <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background: rgba(236,72,153,0.1); border: 1px solid rgba(236,72,153,0.15);"><i class="fas fa-palette text-pink-400 text-[10px]"></i></div>
+                                    Customizations
                                 </span>
-                                <i class="fas fa-chevron-down text-xs text-white/20 transition-transform" :class="open ? 'rotate-180' : ''"></i>
+                                <i class="fas fa-chevron-down text-xs transition-transform duration-300" style="color: var(--text-faint);" :class="open ? 'rotate-180' : ''"></i>
                             </button>
-                            <div x-show="open" x-cloak class="px-5 pb-5 border-t border-white/5 pt-4 space-y-4">
+                            <div x-show="open" x-cloak class="px-5 pb-5 pt-4 space-y-4" style="border-top: 1px solid var(--border-subtle);">
                                 <div>
-                                    <label class="block text-xs text-white/40 mb-1.5">Page Title</label>
-                                    <input type="text" name="biolink_title" value="{{ $bs['biolink_title'] ?? $link->title }}" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-purple-500/40 outline-none">
+                                    <label class="block text-xs mb-1.5" style="color: var(--text-faint);">Page Title</label>
+                                    <input type="text" name="biolink_title" value="{{ $bs['biolink_title'] ?? $link->title }}" class="theme-input w-full">
                                 </div>
                                 <div>
-                                    <label class="block text-xs text-white/40 mb-1.5">Description</label>
-                                    <textarea name="biolink_description" rows="2" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-purple-500/40 outline-none">{{ $bs['biolink_description'] ?? '' }}</textarea>
+                                    <label class="block text-xs mb-1.5" style="color: var(--text-faint);">Description</label>
+                                    <textarea name="biolink_description" rows="2" class="theme-input w-full">{{ $bs['biolink_description'] ?? '' }}</textarea>
                                 </div>
                                 <div>
-                                    <label class="block text-xs text-white/40 mb-1.5">Background Type</label>
-                                    <select name="background_type" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-purple-500/40 outline-none">
-                                        <option value="color" {{ ($bs['background_type'] ?? '') === 'color' ? 'selected' : '' }} class="bg-[#0d0818]">Solid Color</option>
-                                        <option value="gradient" {{ ($bs['background_type'] ?? '') === 'gradient' ? 'selected' : '' }} class="bg-[#0d0818]">Gradient</option>
-                                        <option value="image" {{ ($bs['background_type'] ?? '') === 'image' ? 'selected' : '' }} class="bg-[#0d0818]">Image</option>
+                                    <label class="block text-xs mb-1.5" style="color: var(--text-faint);">Background Type</label>
+                                    <select name="background_type" class="theme-input w-full">
+                                        <option value="color" {{ ($bs['background_type'] ?? '') === 'color' ? 'selected' : '' }}>Solid Color</option>
+                                        <option value="gradient" {{ ($bs['background_type'] ?? '') === 'gradient' ? 'selected' : '' }}>Gradient</option>
+                                        <option value="image" {{ ($bs['background_type'] ?? '') === 'image' ? 'selected' : '' }}>Image</option>
                                     </select>
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label class="block text-xs text-white/40 mb-1.5">Background Color</label>
-                                        <input type="color" name="background_color" value="{{ $bs['background_color'] ?? '#0a0612' }}" class="w-full h-10 rounded-xl border border-white/10 bg-white/5 cursor-pointer">
+                                        <label class="block text-xs mb-1.5" style="color: var(--text-faint);">Background Color</label>
+                                        <input type="color" name="background_color" value="{{ $bs['background_color'] ?? '#0a0612' }}" class="w-full h-10 rounded-xl cursor-pointer" style="border: 1px solid var(--border-subtle); background: var(--input-bg);">
                                     </div>
                                     <div>
-                                        <label class="block text-xs text-white/40 mb-1.5">Font Color</label>
-                                        <input type="color" name="font_color" value="{{ $bs['font_color'] ?? '#ffffff' }}" class="w-full h-10 rounded-xl border border-white/10 bg-white/5 cursor-pointer">
+                                        <label class="block text-xs mb-1.5" style="color: var(--text-faint);">Font Color</label>
+                                        <input type="color" name="font_color" value="{{ $bs['font_color'] ?? '#ffffff' }}" class="w-full h-10 rounded-xl cursor-pointer" style="border: 1px solid var(--border-subtle); background: var(--input-bg);">
                                     </div>
                                 </div>
                                 <div>
-                                    <label class="block text-xs text-white/40 mb-1.5">Gradient CSS</label>
-                                    <input type="text" name="background_gradient" value="{{ $bs['background_gradient'] ?? 'linear-gradient(135deg, #0a0612 0%, #1a0533 50%, #0a0612 100%)' }}" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-purple-500/40 outline-none">
+                                    <label class="block text-xs mb-1.5" style="color: var(--text-faint);">Gradient CSS</label>
+                                    <input type="text" name="background_gradient" value="{{ $bs['background_gradient'] ?? 'linear-gradient(135deg, #0a0612 0%, #1a0533 50%, #0a0612 100%)' }}" class="theme-input w-full">
                                 </div>
                                 <div>
-                                    <label class="block text-xs text-white/40 mb-1.5">Background Image</label>
-                                    <input type="file" name="background_image" accept="image/*" class="w-full text-sm text-white/40 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:bg-white/10 file:text-white/60 hover:file:bg-white/15">
+                                    <label class="block text-xs mb-1.5" style="color: var(--text-faint);">Background Image</label>
+                                    <input type="file" name="background_image" accept="image/*" class="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm" style="color: var(--text-faint); --file-bg: var(--input-bg);">
                                 </div>
                                 <div>
-                                    <label class="block text-xs text-white/40 mb-1.5">Font Family</label>
-                                    <select name="font_family" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-purple-500/40 outline-none">
+                                    <label class="block text-xs mb-1.5" style="color: var(--text-faint);">Font Family</label>
+                                    <select name="font_family" class="theme-input w-full">
                                         @foreach(['Space Grotesk', 'Inter', 'Poppins', 'Roboto', 'Playfair Display', 'Montserrat'] as $font)
-                                        <option value="{{ $font }}" {{ ($bs['font_family'] ?? '') === $font ? 'selected' : '' }} class="bg-[#0d0818]">{{ $font }}</option>
+                                        <option value="{{ $font }}" {{ ($bs['font_family'] ?? '') === $font ? 'selected' : '' }}>{{ $font }}</option>
                                         @endforeach
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="block text-xs text-white/40 mb-1.5">Button Style</label>
-                                    <select name="button_style" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-purple-500/40 outline-none">
+                                    <label class="block text-xs mb-1.5" style="color: var(--text-faint);">Button Style</label>
+                                    <select name="button_style" class="theme-input w-full">
                                         @foreach(['rounded' => 'Rounded', 'pill' => 'Pill', 'square' => 'Square', 'outline' => 'Outline', 'shadow' => 'Shadow'] as $val => $label)
-                                        <option value="{{ $val }}" {{ ($bs['button_style'] ?? '') === $val ? 'selected' : '' }} class="bg-[#0d0818]">{{ $label }}</option>
+                                        <option value="{{ $val }}" {{ ($bs['button_style'] ?? '') === $val ? 'selected' : '' }}>{{ $label }}</option>
                                         @endforeach
                                     </select>
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label class="block text-xs text-white/40 mb-1.5">Button Color</label>
-                                        <input type="color" name="button_color" value="{{ $bs['button_color'] ?? '#7c3aed' }}" class="w-full h-10 rounded-xl border border-white/10 bg-white/5 cursor-pointer">
+                                        <label class="block text-xs mb-1.5" style="color: var(--text-faint);">Button Color</label>
+                                        <input type="color" name="button_color" value="{{ $bs['button_color'] ?? '#7c3aed' }}" class="w-full h-10 rounded-xl cursor-pointer" style="border: 1px solid var(--border-subtle); background: var(--input-bg);">
                                     </div>
                                     <div>
-                                        <label class="block text-xs text-white/40 mb-1.5">Button Text Color</label>
-                                        <input type="color" name="button_text_color" value="{{ $bs['button_text_color'] ?? '#ffffff' }}" class="w-full h-10 rounded-xl border border-white/10 bg-white/5 cursor-pointer">
+                                        <label class="block text-xs mb-1.5" style="color: var(--text-faint);">Button Text Color</label>
+                                        <input type="color" name="button_text_color" value="{{ $bs['button_text_color'] ?? '#ffffff' }}" class="w-full h-10 rounded-xl cursor-pointer" style="border: 1px solid var(--border-subtle); background: var(--input-bg);">
                                     </div>
                                 </div>
-                                <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2.5 rounded-xl text-sm font-medium transition-all mt-2">Save Customizations</button>
+                                <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm mt-2">Save Customizations</button>
                             </div>
                         </div>
 
-                        <div class="glass rounded-2xl overflow-hidden" x-data="{ open: false }">
+                        <div class="card-premium overflow-hidden" x-data="{ open: false }">
                             <button type="button" @click="open = !open" class="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-white/[0.02] transition-colors">
-                                <span class="flex items-center gap-3 text-sm font-medium text-white">
-                                    <i class="fas fa-check-circle text-emerald-400 w-5 text-center"></i> Verified badge
+                                <span class="flex items-center gap-3 text-sm font-semibold" style="color: var(--text-primary);">
+                                    <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.15);"><i class="fas fa-check-circle text-emerald-400 text-[10px]"></i></div>
+                                    Verified badge
                                 </span>
-                                <i class="fas fa-chevron-down text-xs text-white/20 transition-transform" :class="open ? 'rotate-180' : ''"></i>
+                                <i class="fas fa-chevron-down text-xs transition-transform duration-300" style="color: var(--text-faint);" :class="open ? 'rotate-180' : ''"></i>
                             </button>
-                            <div x-show="open" x-cloak class="px-5 pb-5 border-t border-white/5 pt-4">
+                            <div x-show="open" x-cloak class="px-5 pb-5 pt-4" style="border-top: 1px solid var(--border-subtle);">
                                 <label class="flex items-center gap-3 cursor-pointer">
                                     <input type="hidden" name="verified_badge" value="0">
-                                    <input type="checkbox" name="verified_badge" value="1" {{ ($bs['verified_badge'] ?? false) ? 'checked' : '' }} class="rounded bg-white/5 border-white/20 text-purple-500 focus:ring-purple-500/40 w-5 h-5">
-                                    <span class="text-sm text-white/60">Show verified badge on your biolink page</span>
+                                    <input type="checkbox" name="verified_badge" value="1" {{ ($bs['verified_badge'] ?? false) ? 'checked' : '' }} class="rounded text-purple-500 focus:ring-purple-500/40 w-5 h-5" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
+                                    <span class="text-sm" style="color: var(--text-muted);">Show verified badge on your biolink page</span>
                                 </label>
-                                <p class="text-xs text-white/20 mt-2">Display a verified checkmark next to your name.</p>
+                                <p class="text-xs mt-2" style="color: var(--text-faint);">Display a verified checkmark next to your name.</p>
                             </div>
                         </div>
 
-                        <div class="glass rounded-2xl overflow-hidden" x-data="{ open: false }">
+                        <div class="card-premium overflow-hidden" x-data="{ open: false }">
                             <button type="button" @click="open = !open" class="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-white/[0.02] transition-colors">
-                                <span class="flex items-center gap-3 text-sm font-medium text-white">
-                                    <i class="fas fa-star text-amber-400 w-5 text-center"></i> Branding
+                                <span class="flex items-center gap-3 text-sm font-semibold" style="color: var(--text-primary);">
+                                    <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.15);"><i class="fas fa-star text-amber-400 text-[10px]"></i></div>
+                                    Branding
                                 </span>
-                                <i class="fas fa-chevron-down text-xs text-white/20 transition-transform" :class="open ? 'rotate-180' : ''"></i>
+                                <i class="fas fa-chevron-down text-xs transition-transform duration-300" style="color: var(--text-faint);" :class="open ? 'rotate-180' : ''"></i>
                             </button>
-                            <div x-show="open" x-cloak class="px-5 pb-5 border-t border-white/5 pt-4">
+                            <div x-show="open" x-cloak class="px-5 pb-5 pt-4" style="border-top: 1px solid var(--border-subtle);">
                                 <label class="flex items-center gap-3 cursor-pointer">
                                     <input type="hidden" name="branding_hidden" value="0">
-                                    <input type="checkbox" name="branding_hidden" value="1" {{ ($bs['branding_hidden'] ?? false) ? 'checked' : '' }} class="rounded bg-white/5 border-white/20 text-purple-500 focus:ring-purple-500/40 w-5 h-5">
-                                    <span class="text-sm text-white/60">Hide "Powered by 1INME" branding</span>
+                                    <input type="checkbox" name="branding_hidden" value="1" {{ ($bs['branding_hidden'] ?? false) ? 'checked' : '' }} class="rounded text-purple-500 focus:ring-purple-500/40 w-5 h-5" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
+                                    <span class="text-sm" style="color: var(--text-muted);">Hide "Powered by 1INME" branding</span>
                                 </label>
                             </div>
                         </div>
                     </form>
 
-                    <div class="glass rounded-2xl overflow-hidden" x-data="{ open: false }">
+                    <div class="card-premium overflow-hidden" x-data="{ open: false }">
                         <button @click="open = !open" class="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-white/[0.02] transition-colors">
-                            <span class="flex items-center gap-3 text-sm font-medium text-white">
-                                <i class="fas fa-bullseye text-cyan-400 w-5 text-center"></i> Pixels
+                            <span class="flex items-center gap-3 text-sm font-semibold" style="color: var(--text-primary);">
+                                <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background: rgba(6,182,212,0.1); border: 1px solid rgba(6,182,212,0.15);"><i class="fas fa-bullseye text-cyan-400 text-[10px]"></i></div>
+                                Pixels
                             </span>
-                            <i class="fas fa-chevron-down text-xs text-white/20 transition-transform" :class="open ? 'rotate-180' : ''"></i>
+                            <i class="fas fa-chevron-down text-xs transition-transform duration-300" style="color: var(--text-faint);" :class="open ? 'rotate-180' : ''"></i>
                         </button>
-                        <div x-show="open" x-cloak class="px-5 pb-5 border-t border-white/5 pt-4">
+                        <div x-show="open" x-cloak class="px-5 pb-5 pt-4" style="border-top: 1px solid var(--border-subtle);">
                             @if($link->pixels->count())
                                 <div class="flex flex-wrap gap-2">
                                     @foreach($link->pixels as $pixel)
-                                    <span class="bg-white/5 text-white/50 px-3 py-1.5 rounded-lg text-xs border border-white/10">{{ $pixel->name }}</span>
+                                    <span class="badge" style="background: rgba(139,92,246,0.08); color: var(--accent-light); border: 1px solid rgba(139,92,246,0.12);">{{ $pixel->name }}</span>
                                     @endforeach
                                 </div>
                             @else
-                                <p class="text-xs text-white/20">No tracking pixels attached. <a href="{{ route('user.links.edit', $link) }}" class="text-purple-400 hover:underline">Add via link settings</a></p>
+                                <p class="text-xs" style="color: var(--text-faint);">No tracking pixels attached. <a href="{{ route('user.links.edit', $link) }}" class="text-purple-400 hover:underline">Add via link settings</a></p>
                             @endif
                         </div>
                     </div>
 
-                    <div class="glass rounded-2xl overflow-hidden" x-data="{ open: false }">
+                    <div class="card-premium overflow-hidden" x-data="{ open: false }">
                         <button @click="open = !open" class="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-white/[0.02] transition-colors">
-                            <span class="flex items-center gap-3 text-sm font-medium text-white">
-                                <i class="fas fa-tags text-violet-400 w-5 text-center"></i> UTM Parameters
+                            <span class="flex items-center gap-3 text-sm font-semibold" style="color: var(--text-primary);">
+                                <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.15);"><i class="fas fa-tags text-violet-400 text-[10px]"></i></div>
+                                UTM Parameters
                             </span>
-                            <i class="fas fa-chevron-down text-xs text-white/20 transition-transform" :class="open ? 'rotate-180' : ''"></i>
+                            <i class="fas fa-chevron-down text-xs transition-transform duration-300" style="color: var(--text-faint);" :class="open ? 'rotate-180' : ''"></i>
                         </button>
-                        <div x-show="open" x-cloak class="px-5 pb-5 border-t border-white/5 pt-4">
+                        <div x-show="open" x-cloak class="px-5 pb-5 pt-4" style="border-top: 1px solid var(--border-subtle);">
                             @if($link->utm_source || $link->utm_medium || $link->utm_campaign)
                                 <div class="space-y-2 text-sm">
-                                    @if($link->utm_source)<div class="flex justify-between"><span class="text-white/30">Source</span><span class="text-white/60">{{ $link->utm_source }}</span></div>@endif
-                                    @if($link->utm_medium)<div class="flex justify-between"><span class="text-white/30">Medium</span><span class="text-white/60">{{ $link->utm_medium }}</span></div>@endif
-                                    @if($link->utm_campaign)<div class="flex justify-between"><span class="text-white/30">Campaign</span><span class="text-white/60">{{ $link->utm_campaign }}</span></div>@endif
+                                    @if($link->utm_source)<div class="flex justify-between"><span style="color: var(--text-faint);">Source</span><span style="color: var(--text-muted);">{{ $link->utm_source }}</span></div>@endif
+                                    @if($link->utm_medium)<div class="flex justify-between"><span style="color: var(--text-faint);">Medium</span><span style="color: var(--text-muted);">{{ $link->utm_medium }}</span></div>@endif
+                                    @if($link->utm_campaign)<div class="flex justify-between"><span style="color: var(--text-faint);">Campaign</span><span style="color: var(--text-muted);">{{ $link->utm_campaign }}</span></div>@endif
                                 </div>
                             @else
-                                <p class="text-xs text-white/20">No UTM parameters set. <a href="{{ route('user.links.edit', $link) }}" class="text-purple-400 hover:underline">Configure via link settings</a></p>
+                                <p class="text-xs" style="color: var(--text-faint);">No UTM parameters set. <a href="{{ route('user.links.edit', $link) }}" class="text-purple-400 hover:underline">Configure via link settings</a></p>
                             @endif
                         </div>
                     </div>
 
-                    <div class="glass rounded-2xl overflow-hidden" x-data="{ open: false }">
+                    <div class="card-premium overflow-hidden" x-data="{ open: false }">
                         <button @click="open = !open" class="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-white/[0.02] transition-colors">
-                            <span class="flex items-center gap-3 text-sm font-medium text-white">
-                                <i class="fas fa-search text-blue-400 w-5 text-center"></i> SEO
+                            <span class="flex items-center gap-3 text-sm font-semibold" style="color: var(--text-primary);">
+                                <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.15);"><i class="fas fa-search text-blue-400 text-[10px]"></i></div>
+                                SEO
                             </span>
-                            <i class="fas fa-chevron-down text-xs text-white/20 transition-transform" :class="open ? 'rotate-180' : ''"></i>
+                            <i class="fas fa-chevron-down text-xs transition-transform duration-300" style="color: var(--text-faint);" :class="open ? 'rotate-180' : ''"></i>
                         </button>
-                        <div x-show="open" x-cloak class="px-5 pb-5 border-t border-white/5 pt-4">
+                        <div x-show="open" x-cloak class="px-5 pb-5 pt-4" style="border-top: 1px solid var(--border-subtle);">
                             <div class="space-y-2 text-sm">
-                                <div class="flex justify-between"><span class="text-white/30">SEO Title</span><span class="text-white/60">{{ $link->seo_title ?: 'Not set' }}</span></div>
-                                <div class="flex justify-between"><span class="text-white/30">Description</span><span class="text-white/60 truncate max-w-[200px]">{{ $link->seo_description ?: 'Not set' }}</span></div>
+                                <div class="flex justify-between"><span style="color: var(--text-faint);">SEO Title</span><span style="color: var(--text-muted);">{{ $link->seo_title ?: 'Not set' }}</span></div>
+                                <div class="flex justify-between"><span style="color: var(--text-faint);">Description</span><span class="truncate max-w-[200px]" style="color: var(--text-muted);">{{ $link->seo_description ?: 'Not set' }}</span></div>
                             </div>
                             <a href="{{ route('user.links.edit', $link) }}" class="inline-block text-xs text-purple-400 hover:underline mt-3">Edit SEO settings</a>
                         </div>
@@ -247,24 +254,24 @@
             <div x-show="activeTab === 'blocks'">
                 <div class="space-y-2">
                     @forelse($blocks as $block)
-                    <div class="glass rounded-2xl overflow-hidden group"
+                    <div class="card-premium overflow-hidden group"
                          data-block-id="{{ $block->id }}"
                          x-data="{ editing: false }">
                         <div class="px-5 py-3.5 flex items-center gap-3 hover:bg-white/[0.02] transition-colors">
-                            <div class="text-white/15 cursor-move handle">
+                            <div class="cursor-move handle" style="color: var(--text-faint);">
                                 <i class="fas fa-grip-vertical"></i>
                             </div>
-                            <div class="w-9 h-9 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center flex-shrink-0">
+                            <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.15);">
                                 <i class="fas {{ $blockTypes[$block->type]['icon'] ?? 'fa-cube' }} text-purple-400 text-sm"></i>
                             </div>
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center gap-2">
-                                    <span class="text-sm font-medium text-white">{{ $blockTypes[$block->type]['label'] ?? ucfirst($block->type) }}</span>
+                                    <span class="text-sm font-semibold" style="color: var(--text-primary);">{{ $blockTypes[$block->type]['label'] ?? ucfirst($block->type) }}</span>
                                     @if(!$block->is_active)
-                                    <span class="text-[10px] bg-red-500/10 text-red-400 px-1.5 py-0.5 rounded border border-red-500/20">hidden</span>
+                                    <span class="badge" style="background: rgba(239,68,68,0.08); color: #f87171; border: 1px solid rgba(239,68,68,0.12);">hidden</span>
                                     @endif
                                 </div>
-                                <p class="text-xs text-white/25 truncate mt-0.5">
+                                <p class="text-xs truncate mt-0.5" style="color: var(--text-faint);">
                                     @if($block->type === 'link'){{ $block->settings['text'] ?? $block->settings['url'] ?? '' }}
                                     @elseif($block->type === 'heading'){{ $block->settings['text'] ?? '' }}
                                     @elseif($block->type === 'paragraph'){{ \Illuminate\Support\Str::limit($block->settings['text'] ?? '', 50) }}
@@ -276,42 +283,42 @@
                                 </p>
                             </div>
                             <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button @click="editing = !editing" class="p-2 text-white/25 hover:text-purple-400 rounded-lg hover:bg-purple-500/10 transition-all" title="Edit">
+                                <button @click="editing = !editing" class="p-2 rounded-lg hover:text-purple-400 hover:bg-purple-500/10 transition-all" style="color: var(--text-faint);" title="Edit">
                                     <i class="fas fa-edit text-xs"></i>
                                 </button>
                                 <form method="POST" action="{{ route('user.links.blocks.toggle', [$link, $block]) }}">
                                     @csrf
-                                    <button class="p-2 text-white/25 hover:text-amber-400 rounded-lg hover:bg-amber-500/10 transition-all" title="{{ $block->is_active ? 'Hide' : 'Show' }}">
+                                    <button class="p-2 rounded-lg hover:text-amber-400 hover:bg-amber-500/10 transition-all" style="color: var(--text-faint);" title="{{ $block->is_active ? 'Hide' : 'Show' }}">
                                         <i class="fas {{ $block->is_active ? 'fa-eye' : 'fa-eye-slash' }} text-xs"></i>
                                     </button>
                                 </form>
                                 <form method="POST" action="{{ route('user.links.blocks.destroy', [$link, $block]) }}" onsubmit="return confirm('Delete this block?')">
                                     @csrf @method('DELETE')
-                                    <button class="p-2 text-white/25 hover:text-red-400 rounded-lg hover:bg-red-500/10 transition-all" title="Delete">
+                                    <button class="p-2 rounded-lg hover:text-red-400 hover:bg-red-500/10 transition-all" style="color: var(--text-faint);" title="Delete">
                                         <i class="fas fa-trash text-xs"></i>
                                     </button>
                                 </form>
                             </div>
                         </div>
 
-                        <div x-show="editing" x-cloak class="px-5 pb-5 border-t border-white/5 pt-4">
+                        <div x-show="editing" x-cloak class="px-5 pb-5 pt-4" style="border-top: 1px solid var(--border-subtle);">
                             <form method="POST" action="{{ route('user.links.blocks.update', [$link, $block]) }}">
                                 @csrf @method('PUT')
                                 @include('user.links.partials.block-settings-form', ['block' => $block])
                                 <div class="flex items-center gap-2 mt-4">
-                                    <button type="submit" class="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-xl transition-all">Save</button>
-                                    <button type="button" @click="editing = false" class="px-5 py-2 text-sm text-white/30 hover:text-white hover:bg-white/5 rounded-xl transition-all">Cancel</button>
+                                    <button type="submit" class="btn-primary text-sm py-2 px-5">Save</button>
+                                    <button type="button" @click="editing = false" class="btn-ghost text-sm py-2 px-5">Cancel</button>
                                 </div>
                             </form>
                         </div>
                     </div>
                     @empty
-                    <div class="glass rounded-2xl p-12 text-center">
-                        <div class="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-4">
-                            <i class="fas fa-th-large text-white/15 text-xl"></i>
+                    <div class="card-premium p-12 text-center">
+                        <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse-glow" style="background: rgba(139,92,246,0.08); border: 1px solid rgba(139,92,246,0.12);">
+                            <i class="fas fa-th-large text-xl text-purple-400"></i>
                         </div>
-                        <p class="text-white/30 text-sm mb-4">No blocks yet. Add your first block to start building your biolink page.</p>
-                        <button @click="showAddBlock = true" class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition-all">
+                        <p class="text-sm mb-4" style="color: var(--text-muted);">No blocks yet. Add your first block to start building your biolink page.</p>
+                        <button @click="showAddBlock = true" class="btn-primary text-sm py-2.5 px-5" style="background: linear-gradient(135deg, #10b981, #059669);">
                             <i class="fas fa-plus text-xs"></i> Add block
                         </button>
                     </div>
@@ -323,44 +330,45 @@
         <div class="lg:col-span-5 xl:col-span-5">
             <div class="sticky top-6 flex justify-center">
                 <div class="relative" style="width: 320px;">
-                    <div class="absolute -inset-1 bg-gradient-to-b from-white/10 via-white/5 to-white/10 rounded-[3rem] blur-sm"></div>
-                    <div class="relative bg-black rounded-[2.5rem] p-2 shadow-2xl shadow-black/50" style="border: 3px solid rgba(255,255,255,0.1);">
+                    <div class="absolute -inset-2 rounded-[3.5rem] animate-pulse-glow" style="background: linear-gradient(135deg, rgba(139,92,246,0.1), rgba(168,85,247,0.05)); filter: blur(20px);"></div>
+                    <div class="absolute -inset-1 rounded-[3rem]" style="background: linear-gradient(180deg, rgba(139,92,246,0.15), rgba(255,255,255,0.05), rgba(139,92,246,0.1)); filter: blur(1px);"></div>
+                    <div class="relative bg-black rounded-[2.5rem] p-2 shadow-2xl" style="border: 3px solid rgba(255,255,255,0.08); box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 40px rgba(139,92,246,0.08);">
                         <div class="absolute top-0 left-1/2 -translate-x-1/2 w-28 h-6 bg-black rounded-b-2xl z-10 flex items-center justify-center">
-                            <div class="w-16 h-3.5 bg-white/5 rounded-full"></div>
+                            <div class="w-16 h-3.5 rounded-full" style="background: rgba(255,255,255,0.05);"></div>
                         </div>
 
-                        <div class="rounded-[2rem] overflow-hidden bg-[#0a0612]" style="height: 580px;">
+                        <div class="rounded-[2rem] overflow-hidden" style="height: 580px; background: var(--bg-body);">
                             <iframe id="previewFrame" src="{{ url('/' . $link->alias) }}" class="w-full h-full border-0 rounded-[2rem]" style="transform-origin: top left;"></iframe>
                         </div>
 
-                        <div class="absolute bottom-2 left-1/2 -translate-x-1/2 w-28 h-1 bg-white/10 rounded-full"></div>
+                        <div class="absolute bottom-2 left-1/2 -translate-x-1/2 w-28 h-1 rounded-full" style="background: rgba(255,255,255,0.08);"></div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div x-show="showAddBlock" x-cloak x-transition.opacity class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" @click.self="showAddBlock = false">
-        <div x-transition class="w-full max-w-lg mx-4 rounded-2xl max-h-[80vh] overflow-hidden flex flex-col" style="background: rgba(15,10,26,0.98); backdrop-filter: blur(30px); border: 1px solid rgba(255,255,255,0.08);">
-            <div class="p-5 border-b border-white/5 flex items-center justify-between flex-shrink-0">
-                <h3 class="text-lg font-semibold text-white">Add Block</h3>
-                <button @click="showAddBlock = false" class="text-white/30 hover:text-white transition-colors"><i class="fas fa-times"></i></button>
+    <div x-show="showAddBlock" x-cloak x-transition.opacity class="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md" style="background: var(--overlay-bg);" @click.self="showAddBlock = false">
+        <div x-transition class="w-full max-w-lg mx-4 rounded-2xl max-h-[80vh] overflow-hidden flex flex-col card-premium" style="background: var(--bg-sidebar); backdrop-filter: blur(40px) saturate(1.4);">
+            <div class="p-5 flex items-center justify-between flex-shrink-0" style="border-bottom: 1px solid var(--border-subtle);">
+                <h3 class="text-lg font-bold gradient-text">Add Block</h3>
+                <button @click="showAddBlock = false" class="p-1.5 rounded-lg hover:bg-white/[0.05] transition-all" style="color: var(--text-faint);"><i class="fas fa-times"></i></button>
             </div>
             <div class="p-5 overflow-y-auto flex-1">
                 @foreach($blockCategories as $catKey => $catLabel)
                 <div class="mb-6 last:mb-0">
-                    <h4 class="text-[11px] font-semibold uppercase text-white/20 tracking-wider mb-3">{{ $catLabel }}</h4>
+                    <h4 class="text-[10px] font-bold uppercase tracking-[0.15em] mb-3" style="color: var(--text-faint);">{{ $catLabel }}</h4>
                     <div class="grid grid-cols-2 gap-2">
                         @foreach($blockTypes as $typeKey => $typeInfo)
                             @if($typeInfo['category'] === $catKey)
                             <form method="POST" action="{{ route('user.links.blocks.store', $link) }}">
                                 @csrf
                                 <input type="hidden" name="type" value="{{ $typeKey }}">
-                                <button type="submit" class="w-full flex items-center gap-3 p-3 rounded-xl border border-white/5 hover:border-purple-500/30 hover:bg-purple-500/5 transition-all text-left group">
-                                    <div class="w-9 h-9 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                                <button type="submit" class="w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left group hover:translate-x-1" style="border: 1px solid var(--border-subtle); background: transparent;" onmouseover="this.style.borderColor='rgba(139,92,246,0.3)';this.style.background='rgba(139,92,246,0.04)'" onmouseout="this.style.borderColor='var(--border-subtle)';this.style.background='transparent'">
+                                    <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-all duration-300" style="background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.15);">
                                         <i class="fas {{ $typeInfo['icon'] }} text-purple-400 text-sm"></i>
                                     </div>
-                                    <span class="text-sm text-white/50 group-hover:text-white transition-colors">{{ $typeInfo['label'] }}</span>
+                                    <span class="text-sm group-hover:text-purple-400 transition-colors" style="color: var(--text-muted);">{{ $typeInfo['label'] }}</span>
                                 </button>
                             </form>
                             @endif

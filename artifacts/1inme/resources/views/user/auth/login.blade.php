@@ -15,10 +15,13 @@
 <body class="min-h-screen relative overflow-hidden" style="background: var(--bg-body);">
     <div class="bg-mesh"></div>
 
+    <div class="particles" id="login-particles"></div>
+
     <div class="absolute inset-0 overflow-hidden pointer-events-none">
-        <div class="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full animate-float-slow" style="background: radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 70%);"></div>
-        <div class="absolute -bottom-24 -right-24 w-[400px] h-[400px] rounded-full animate-float-slow-delay" style="background: radial-gradient(circle, rgba(168,85,247,0.08) 0%, transparent 70%);"></div>
-        <div class="absolute top-1/3 right-1/4 w-[300px] h-[300px] rounded-full animate-float-slow" style="background: radial-gradient(circle, rgba(99,102,241,0.06) 0%, transparent 70%); animation-delay: -7s;"></div>
+        <div class="absolute -top-32 -left-32 w-[600px] h-[600px] rounded-full animate-float-slow" style="background: radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 70%);"></div>
+        <div class="absolute -bottom-32 -right-32 w-[500px] h-[500px] rounded-full animate-float-slow-delay" style="background: radial-gradient(circle, rgba(168,85,247,0.1) 0%, transparent 70%);"></div>
+        <div class="absolute top-1/4 right-1/3 w-[350px] h-[350px] rounded-full animate-float-slow" style="background: radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%); animation-delay: -8s;"></div>
+        <div class="absolute bottom-1/3 left-1/4 w-[250px] h-[250px] rounded-full animate-float-slow-delay" style="background: radial-gradient(circle, rgba(236,72,153,0.06) 0%, transparent 70%); animation-delay: -5s;"></div>
     </div>
 
     <div class="absolute top-5 right-5 z-20">
@@ -28,63 +31,73 @@
     <div class="min-h-screen flex relative z-10">
         <div class="hidden lg:flex flex-1 flex-col justify-center items-center p-12 xl:p-20 relative">
             <div class="max-w-md">
-                <a href="{{ route('home') }}" class="inline-flex items-center gap-1 text-4xl font-bold tracking-tight mb-3">
-                    <span style="color: var(--text-primary);">1IN</span><span class="text-purple-400">ME</span>
+                <a href="{{ route('home') }}" class="inline-flex items-center gap-2.5 mb-6 group">
+                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 via-violet-500 to-purple-700 flex items-center justify-center shadow-xl group-hover:shadow-purple-500/30 transition-all duration-500" style="box-shadow: 0 8px 24px rgba(139,92,246,0.3);">
+                        <span class="text-white text-lg font-bold">1</span>
+                    </div>
+                    <span class="text-4xl font-bold tracking-tight">
+                        <span style="color: var(--text-primary);">1IN</span><span class="text-purple-400">ME</span>
+                    </span>
                 </a>
-                <p class="text-lg font-medium mb-2" style="color: var(--text-secondary);">The link management platform built for growth.</p>
-                <p class="text-sm leading-relaxed mb-10" style="color: var(--text-dimmed);">Shorten URLs, build bio pages, generate QR codes, and track every click with powerful analytics.</p>
+                <p class="text-xl font-semibold mb-2" style="color: var(--text-secondary);">The link management platform<br><span class="gradient-text">built for growth.</span></p>
+                <p class="text-sm leading-relaxed mb-12" style="color: var(--text-dimmed);">Shorten URLs, build bio pages, generate QR codes, and track every click with powerful analytics.</p>
 
-                <div class="space-y-5">
-                    <div class="flex items-start gap-4">
-                        <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.15);">
+                <div class="space-y-6">
+                    <div class="flex items-start gap-4 group">
+                        <div class="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 glow-icon transition-all duration-500 group-hover:scale-110" style="background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.15);">
                             <i class="fas fa-link text-purple-400 text-sm"></i>
                         </div>
                         <div>
-                            <p class="text-sm font-semibold mb-0.5" style="color: var(--text-primary);">6 Link Types</p>
+                            <p class="text-sm font-bold mb-0.5" style="color: var(--text-primary);">6 Link Types</p>
                             <p class="text-xs" style="color: var(--text-dimmed);">URL shortener, bio links, file links, vCards, events & more</p>
                         </div>
                     </div>
-                    <div class="flex items-start gap-4">
-                        <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.15);">
+                    <div class="flex items-start gap-4 group">
+                        <div class="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 glow-icon transition-all duration-500 group-hover:scale-110" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.15);">
                             <i class="fas fa-chart-line text-emerald-400 text-sm"></i>
                         </div>
                         <div>
-                            <p class="text-sm font-semibold mb-0.5" style="color: var(--text-primary);">Real-time Analytics</p>
+                            <p class="text-sm font-bold mb-0.5" style="color: var(--text-primary);">Real-time Analytics</p>
                             <p class="text-xs" style="color: var(--text-dimmed);">Track clicks, devices, locations & referrers in real time</p>
                         </div>
                     </div>
-                    <div class="flex items-start gap-4">
-                        <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.15);">
+                    <div class="flex items-start gap-4 group">
+                        <div class="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 glow-icon transition-all duration-500 group-hover:scale-110" style="background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.15);">
                             <i class="fas fa-th-large text-amber-400 text-sm"></i>
                         </div>
                         <div>
-                            <p class="text-sm font-semibold mb-0.5" style="color: var(--text-primary);">99+ Bio Link Blocks</p>
+                            <p class="text-sm font-bold mb-0.5" style="color: var(--text-primary);">99+ Bio Link Blocks</p>
                             <p class="text-xs" style="color: var(--text-dimmed);">Build stunning bio pages with videos, forms, maps & more</p>
                         </div>
                     </div>
                 </div>
 
-                <div class="mt-12 flex items-center gap-3">
-                    <div class="flex -space-x-2">
-                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 border-2 flex items-center justify-center text-white text-[10px] font-bold" style="border-color: var(--bg-body);">A</div>
-                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-cyan-400 border-2 flex items-center justify-center text-white text-[10px] font-bold" style="border-color: var(--bg-body);">M</div>
-                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-400 border-2 flex items-center justify-center text-white text-[10px] font-bold" style="border-color: var(--bg-body);">K</div>
+                <div class="mt-14 flex items-center gap-3">
+                    <div class="flex -space-x-2.5">
+                        <div class="w-9 h-9 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 border-2 flex items-center justify-center text-white text-[10px] font-bold shadow-md" style="border-color: var(--bg-body);">A</div>
+                        <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-cyan-400 border-2 flex items-center justify-center text-white text-[10px] font-bold shadow-md" style="border-color: var(--bg-body);">M</div>
+                        <div class="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-400 to-teal-400 border-2 flex items-center justify-center text-white text-[10px] font-bold shadow-md" style="border-color: var(--bg-body);">K</div>
                     </div>
-                    <p class="text-xs" style="color: var(--text-dimmed);">Trusted by <span class="font-semibold" style="color: var(--text-muted);">10,000+</span> creators & businesses</p>
+                    <p class="text-xs" style="color: var(--text-dimmed);">Trusted by <span class="font-bold" style="color: var(--text-muted);">10,000+</span> creators & businesses</p>
                 </div>
             </div>
         </div>
 
-        <div class="flex-1 lg:flex-none lg:w-[480px] flex items-center justify-center p-6 lg:p-12">
+        <div class="flex-1 lg:flex-none lg:w-[480px] flex items-center justify-center p-6 lg:p-12 relative">
+            <div class="hidden lg:block absolute inset-y-0 left-0 w-px" style="background: linear-gradient(180deg, transparent, var(--border-glass), transparent);"></div>
+
             <div class="w-full max-w-sm" x-data="{ mode: 'password' }">
                 <div class="text-center mb-7 lg:hidden">
-                    <a href="{{ route('home') }}" class="inline-block text-3xl font-bold tracking-tight">
-                        <span style="color: var(--text-primary);">1IN</span><span class="text-purple-400">ME</span>
+                    <a href="{{ route('home') }}" class="inline-flex items-center gap-2 text-3xl font-bold tracking-tight">
+                        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 via-violet-500 to-purple-700 flex items-center justify-center shadow-lg">
+                            <span class="text-white text-sm font-bold">1</span>
+                        </div>
+                        <span><span style="color: var(--text-primary);">1IN</span><span class="text-purple-400">ME</span></span>
                     </a>
                 </div>
 
                 <div class="hidden lg:block mb-7">
-                    <h2 class="text-xl font-bold" style="color: var(--text-primary);">Welcome back</h2>
+                    <h2 class="text-2xl font-bold" style="color: var(--text-primary);">Welcome back</h2>
                     <p class="text-sm mt-1" style="color: var(--text-dimmed);">Sign in to your account to continue</p>
                 </div>
 
@@ -138,10 +151,10 @@
                         @csrf
                         <div class="space-y-4">
                             <div class="flex gap-2">
-                                <button type="button" @click="otpType = 'email'" :class="otpType === 'email' ? 'border-purple-500/40 text-purple-400' : ''" class="flex-1 py-2 text-xs font-medium rounded-lg border transition" :style="otpType !== 'email' ? 'background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-muted)' : 'background: rgba(139,92,246,0.08)'">
+                                <button type="button" @click="otpType = 'email'" :class="otpType === 'email' ? 'border-purple-500/40 text-purple-400' : ''" class="flex-1 py-2 text-xs font-medium rounded-xl border transition-all" :style="otpType !== 'email' ? 'background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-muted)' : 'background: rgba(139,92,246,0.08)'">
                                     <i class="fas fa-envelope mr-1"></i> Email
                                 </button>
-                                <button type="button" @click="otpType = 'mobile'" :class="otpType === 'mobile' ? 'border-purple-500/40 text-purple-400' : ''" class="flex-1 py-2 text-xs font-medium rounded-lg border transition" :style="otpType !== 'mobile' ? 'background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-muted)' : 'background: rgba(139,92,246,0.08)'">
+                                <button type="button" @click="otpType = 'mobile'" :class="otpType === 'mobile' ? 'border-purple-500/40 text-purple-400' : ''" class="flex-1 py-2 text-xs font-medium rounded-xl border transition-all" :style="otpType !== 'mobile' ? 'background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-muted)' : 'background: rgba(139,92,246,0.08)'">
                                     <i class="fas fa-mobile-alt mr-1"></i> Mobile
                                 </button>
                             </div>
@@ -159,7 +172,7 @@
                 </div>
 
                 <div class="mt-6 pt-6" style="border-top: 1px solid var(--border-glass);">
-                    <p class="text-center text-[10px] uppercase tracking-wider font-semibold mb-3" style="color: var(--text-faint);">Quick access</p>
+                    <p class="text-center text-[10px] uppercase tracking-wider font-bold mb-3" style="color: var(--text-faint);">Quick access</p>
                     <div class="grid grid-cols-2 gap-2">
                         <form method="POST" action="{{ route('user.demo.login') }}">
                             @csrf
@@ -183,5 +196,22 @@
             </div>
         </div>
     </div>
+
+    <script>
+    (function(){
+        var c = document.getElementById('login-particles');
+        if(!c) return;
+        for(var i = 0; i < 20; i++){
+            var p = document.createElement('div');
+            p.className = 'particle';
+            p.style.left = Math.random()*100+'%';
+            p.style.animationDuration = (12+Math.random()*20)+'s';
+            p.style.animationDelay = Math.random()*15+'s';
+            p.style.width = p.style.height = (1+Math.random()*3)+'px';
+            p.style.opacity = 0.15+Math.random()*0.35;
+            c.appendChild(p);
+        }
+    })();
+    </script>
 </body>
 </html>

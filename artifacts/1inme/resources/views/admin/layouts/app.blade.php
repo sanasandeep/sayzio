@@ -26,6 +26,8 @@
 <body class="min-h-screen" style="color: var(--text-primary);">
     <div class="bg-mesh"></div>
 
+    <div class="particles" id="admin-particles"></div>
+
     <div class="flex min-h-screen relative z-10" x-data="{ sidebarOpen: true, mobileMenu: false }">
         @include('admin.partials.sidebar')
 
@@ -83,5 +85,22 @@
             </main>
         </div>
     </div>
+
+    <script>
+    (function(){
+        var c = document.getElementById('admin-particles');
+        if(!c) return;
+        for(var i = 0; i < 12; i++){
+            var p = document.createElement('div');
+            p.className = 'particle';
+            p.style.left = Math.random()*100+'%';
+            p.style.animationDuration = (18+Math.random()*25)+'s';
+            p.style.animationDelay = Math.random()*20+'s';
+            p.style.width = p.style.height = (1+Math.random()*2)+'px';
+            p.style.opacity = 0.1+Math.random()*0.25;
+            c.appendChild(p);
+        }
+    })();
+    </script>
 </body>
 </html>
