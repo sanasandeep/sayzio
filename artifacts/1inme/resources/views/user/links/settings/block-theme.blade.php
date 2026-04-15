@@ -269,9 +269,7 @@
         </div>
 
         <div class="lg:col-span-5 hidden lg:block">
-            <div class="sticky top-0 self-start">
-                @include('user.links.partials.device-preview', ['link' => $link])
-            </div>
+            @include('user.links.partials.device-preview', ['link' => $link])
         </div>
     </div>
 </div>
