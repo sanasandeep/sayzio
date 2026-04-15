@@ -21,8 +21,31 @@ class BiolinkBlockController extends Controller
 
     public function settings(Link $link)
     {
+        return redirect()->route('user.links.settings.appearance', $link);
+    }
+
+    public function settingsAppearance(Link $link)
+    {
         abort_if($link->user_id !== auth()->id() || $link->type !== 'biolink', 403);
-        return view('user.links.biolink-settings', compact('link'));
+        return view('user.links.settings.appearance', compact('link'));
+    }
+
+    public function settingsLayout(Link $link)
+    {
+        abort_if($link->user_id !== auth()->id() || $link->type !== 'biolink', 403);
+        return view('user.links.settings.layout', compact('link'));
+    }
+
+    public function settingsBlockTheme(Link $link)
+    {
+        abort_if($link->user_id !== auth()->id() || $link->type !== 'biolink', 403);
+        return view('user.links.settings.block-theme', compact('link'));
+    }
+
+    public function settingsAdvanced(Link $link)
+    {
+        abort_if($link->user_id !== auth()->id() || $link->type !== 'biolink', 403);
+        return view('user.links.settings.advanced', compact('link'));
     }
 
     public function store(Request $request, Link $link)
@@ -225,7 +248,15 @@ class BiolinkBlockController extends Controller
         }
         $link->update($updateData);
 
-        return redirect()->route('user.links.blocks.settings', $link)->with('success', 'Page settings updated.');
+        $referer = $request->headers->get('referer', '');
+        if (str_contains($referer, '/settings/layout')) {
+            return redirect()->route('user.links.settings.layout', $link)->with('success', 'Page settings updated.');
+        } elseif (str_contains($referer, '/settings/block-theme')) {
+            return redirect()->route('user.links.settings.block-theme', $link)->with('success', 'Page settings updated.');
+        } elseif (str_contains($referer, '/settings/advanced')) {
+            return redirect()->route('user.links.settings.advanced', $link)->with('success', 'Page settings updated.');
+        }
+        return redirect()->route('user.links.settings.appearance', $link)->with('success', 'Page settings updated.');
     }
 
     private function sanitizeLayout(array $input): array

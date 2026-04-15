@@ -66,6 +66,10 @@ Route::prefix('user')->name('user.')->group(function () {
 
         Route::get('links/{link}/blocks', [BiolinkBlockController::class, 'editor'])->name('links.blocks.editor');
         Route::get('links/{link}/settings', [BiolinkBlockController::class, 'settings'])->name('links.blocks.settings');
+        Route::get('links/{link}/settings/appearance', [BiolinkBlockController::class, 'settingsAppearance'])->name('links.settings.appearance');
+        Route::get('links/{link}/settings/layout', [BiolinkBlockController::class, 'settingsLayout'])->name('links.settings.layout');
+        Route::get('links/{link}/settings/block-theme', [BiolinkBlockController::class, 'settingsBlockTheme'])->name('links.settings.block-theme');
+        Route::get('links/{link}/settings/advanced', [BiolinkBlockController::class, 'settingsAdvanced'])->name('links.settings.advanced');
         Route::post('links/{link}/blocks', [BiolinkBlockController::class, 'store'])->name('links.blocks.store');
         Route::put('links/{link}/blocks/{block}', [BiolinkBlockController::class, 'update'])->name('links.blocks.update');
         Route::get('links/{link}/blocks/{block}/edit-form', [BiolinkBlockController::class, 'editForm'])->name('links.blocks.editForm');

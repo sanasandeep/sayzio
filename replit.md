@@ -49,7 +49,13 @@ All block operations (add, edit, save, toggle, delete, reorder) are AJAX-driven,
 ### Biolink Editor (Split Pages)
 The biolink editor is split into two separate pages:
 - **Blocks page** (`/user/links/{link}/blocks`): Block management with drag-and-drop reorder, grid-span width controls, add/edit/toggle/delete blocks, device preview (phone/tablet/desktop). No settings content.
-- **Settings page** (`/user/links/{link}/settings`): 4-tab design (Appearance, Layout, Block Theme, Advanced). Appearance covers page design, colors, background, button styles. Layout covers max width, padding, block spacing. Block Theme has global templates, text, fill, border, shadow, effects sub-tabs. Advanced has badges, branding, favicon, custom CSS/JS, SEO info. Single sticky Save button redirects back to settings.
+- **Settings** — 4 separate URL-based pages (not JS tabs), each with shared header nav + sticky Save:
+  - `/user/links/{link}/settings/appearance` — Short URL, page design (title/font/description), colors & background, button style
+  - `/user/links/{link}/settings/layout` — Max width per device, page padding, block spacing
+  - `/user/links/{link}/settings/block-theme` — Global block theme with templates, text, fill, border, shadow, effects sub-tabs
+  - `/user/links/{link}/settings/advanced` — Badges, branding, favicon, custom CSS/JS, SEO & tracking
+  - `/user/links/{link}/settings` redirects to `/settings/appearance`
+  - Shared partials: `settings-header.blade.php` (nav tabs as `<a>` links), `settings-footer.blade.php` (sticky save)
 
 The platform supports approximately 99 block types across 14 categories. All HTML content is sanitized for security, and URLs are validated. Blocks can be scheduled for visibility.
 
