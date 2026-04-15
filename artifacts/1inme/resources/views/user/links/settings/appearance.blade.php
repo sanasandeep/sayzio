@@ -25,9 +25,6 @@
     $bgBlur = $bs['bg_blur'] ?? 0;
     $bgOverlayColor = $bs['bg_overlay_color'] ?? '#000000';
     $bgOverlayOpacity = $bs['bg_overlay_opacity'] ?? 0;
-    $btnStyle = $bs['button_style'] ?? 'rounded';
-    $btnColor = $bs['button_color'] ?? '#7c3aed';
-    $btnTextColor = $bs['button_text_color'] ?? '#ffffff';
     $fontFamily = $bs['font_family'] ?? 'Space Grotesk';
 @endphp
 
@@ -328,56 +325,6 @@
                         </div>
                     </div>
 
-                    <div class="card-premium p-6" x-data="{ btnStyle: '{{ $btnStyle }}', btnColor: '{{ $btnColor }}', btnTextColor: '{{ $btnTextColor }}' }">
-                        <div class="flex items-center gap-3 mb-4">
-                            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(139,92,246,0.1);"><i class="fas fa-hand-pointer text-purple-400 text-xs"></i></div>
-                            <h3 class="text-sm font-bold" style="color: var(--text-primary);">Button Style</h3>
-                        </div>
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block text-xs font-medium mb-2" style="color: var(--text-muted);">Shape</label>
-                                <div class="grid grid-cols-5 gap-2">
-                                    @foreach(['rounded'=>['Rounded','12px','fa-square'], 'pill'=>['Pill','999px','fa-circle'], 'square'=>['Square','4px','fa-stop'], 'outline'=>['Outline','12px','fa-square fa-regular'], 'shadow'=>['Shadow','12px','fa-clone']] as $val => $info)
-                                    <button type="button" @click="btnStyle = '{{ $val }}'"
-                                        :class="btnStyle === '{{ $val }}' ? 'ring-2 ring-purple-500' : ''"
-                                        class="flex flex-col items-center gap-1 p-2 rounded-lg transition-all"
-                                        style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
-                                        <i class="fas {{ $info[2] }} text-xs" style="color: var(--text-muted);"></i>
-                                        <span class="text-[9px] font-semibold" style="color: var(--text-faint);">{{ $info[0] }}</span>
-                                    </button>
-                                    @endforeach
-                                </div>
-                                <input type="hidden" name="button_style" :value="btnStyle">
-                            </div>
-
-                            <div>
-                                <label class="block text-xs font-medium mb-2" style="color: var(--text-muted);">Preview</label>
-                                <div class="flex justify-center p-4 rounded-xl" style="background: var(--bg-glass-input);">
-                                    <div class="px-6 py-2.5 text-sm font-semibold transition-all"
-                                         :style="'background:' + btnColor + '; color:' + btnTextColor + '; border-radius:' + (btnStyle === 'pill' ? '999px' : btnStyle === 'square' ? '4px' : '12px') + ';' + (btnStyle === 'outline' ? 'background:transparent; border:2px solid ' + btnColor + '; color:' + btnColor + ';' : '') + (btnStyle === 'shadow' ? 'box-shadow: 0 4px 14px ' + btnColor + '40;' : '')">
-                                        Sample Button
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Button Color</label>
-                                    <div class="flex items-center gap-2">
-                                        <input type="color" name="button_color" x-model="btnColor" class="w-10 h-10 rounded-lg cursor-pointer flex-shrink-0" style="border: 1px solid var(--border-subtle);">
-                                        <span class="text-xs font-mono" style="color: var(--text-faint);" x-text="btnColor">{{ $btnColor }}</span>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Button Text Color</label>
-                                    <div class="flex items-center gap-2">
-                                        <input type="color" name="button_text_color" x-model="btnTextColor" class="w-10 h-10 rounded-lg cursor-pointer flex-shrink-0" style="border: 1px solid var(--border-subtle);">
-                                        <span class="text-xs font-mono" style="color: var(--text-faint);" x-text="btnTextColor">{{ $btnTextColor }}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 @include('user.links.partials.settings-footer', ['link' => $link])
