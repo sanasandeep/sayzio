@@ -6,8 +6,23 @@
     $borderStyles = ['none' => 'None', 'solid' => 'Solid', 'dashed' => 'Dashed', 'dotted' => 'Dotted', 'double' => 'Double', 'groove' => 'Groove', 'ridge' => 'Ridge'];
     $shadowTypes = ['none' => 'None', 'soft' => 'Soft', 'hard' => 'Hard', 'neon' => 'Neon Glow', 'glow' => 'Subtle Glow', 'neumorphic' => 'Neumorphic', 'inset' => 'Inner Shadow'];
     $effects = ['none' => 'None', 'glass' => 'Glassmorphism', 'gradient_border' => 'Gradient Border'];
+
+    $noStyleBlocks = ['spacer', 'divider'];
+    $noTextBlocks = [
+        'avatar', 'image', 'image_grid', 'image_slider', 'image_slider_v2',
+        'video', 'header_video', 'audio', 'spacer', 'divider',
+        'map', 'yandex_maps', 'iframe_embed', 'custom_html',
+        'spotify', 'apple_music', 'soundcloud', 'tidal', 'mixcloud', 'anchor_fm',
+        'youtube', 'youtube_feed', 'vimeo', 'twitch', 'kick', 'rumble_video', 'vk_video',
+        'instagram_media', 'tiktok_video', 'tiktok_profile', 'twitter_video',
+        'facebook_post', 'reddit_post', 'telegram_post', 'discord_server',
+        'pdf_document', 'powerpoint', 'excel', 'qr_code',
+    ];
+    $showText = !in_array($block->type, $noTextBlocks);
+    $showStyle = !in_array($block->type, $noStyleBlocks);
 @endphp
 
+@if($showStyle)
 <div class="mt-4 pt-4" style="border-top: 1px solid var(--border-subtle);" x-data="{ showStyle: false, activeStyleTab: 'templates' }">
     <button type="button" @click="showStyle = !showStyle"
             class="w-full flex items-center justify-between text-sm font-medium py-1" style="color: var(--text-muted);">
@@ -24,12 +39,14 @@
                     class="flex-1 text-[10px] font-bold py-1.5 rounded-md transition-all">
                 <i class="fas fa-magic mr-1"></i>Templates
             </button>
+            @if($showText)
             <button type="button" @click="activeStyleTab = 'typography'"
                     :class="activeStyleTab === 'typography' ? 'text-white shadow-sm' : ''"
                     :style="activeStyleTab === 'typography' ? 'background: linear-gradient(135deg, #8b5cf6, #7c3aed);' : 'color: var(--text-faint);'"
                     class="flex-1 text-[10px] font-bold py-1.5 rounded-md transition-all">
                 <i class="fas fa-font mr-1"></i>Text
             </button>
+            @endif
             <button type="button" @click="activeStyleTab = 'background'"
                     :class="activeStyleTab === 'background' ? 'text-white shadow-sm' : ''"
                     :style="activeStyleTab === 'background' ? 'background: linear-gradient(135deg, #8b5cf6, #7c3aed);' : 'color: var(--text-faint);'"
@@ -75,6 +92,7 @@
             </div>
         </div>
 
+        @if($showText)
         {{-- TYPOGRAPHY TAB --}}
         <div x-show="activeStyleTab === 'typography'" class="space-y-3">
             <div>
@@ -117,6 +135,7 @@
                 </div>
             </div>
         </div>
+        @endif
 
         {{-- BACKGROUND TAB --}}
         <div x-show="activeStyleTab === 'background'" class="space-y-3">
@@ -239,6 +258,8 @@
 
     </div>
 </div>
+
+@endif
 
 <script>
 var blockTemplates = @json($templates);
