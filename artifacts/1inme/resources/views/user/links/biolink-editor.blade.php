@@ -599,12 +599,16 @@ function biolinkEditor() {
             });
             window.addEventListener('close-edit-drawer', function() {
                 self.editingBlockId = null;
-                document.getElementById('editDrawerContent').innerHTML = '';
+                var c = document.getElementById('editDrawerContent');
+                Alpine.destroyTree(c);
+                c.innerHTML = '';
             });
         },
         closeEditDrawer() {
             this.editingBlockId = null;
-            document.getElementById('editDrawerContent').innerHTML = '';
+            var container = document.getElementById('editDrawerContent');
+            Alpine.destroyTree(container);
+            container.innerHTML = '';
         }
     }
 }
@@ -616,7 +620,9 @@ function closeEditDrawerGlobal() {
 function openEditDrawer(blockId) {
     var tmpl = document.getElementById('editForm_' + blockId);
     if (!tmpl) return;
-    document.getElementById('editDrawerContent').innerHTML = tmpl.innerHTML;
+    var container = document.getElementById('editDrawerContent');
+    container.innerHTML = tmpl.innerHTML;
+    Alpine.initTree(container);
     window.dispatchEvent(new CustomEvent('open-edit-drawer', { detail: { id: blockId } }));
 }
 
