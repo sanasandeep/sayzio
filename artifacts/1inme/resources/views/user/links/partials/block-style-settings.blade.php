@@ -51,13 +51,18 @@
         </div>
 
         {{-- TEMPLATES TAB --}}
-        <div x-show="activeStyleTab === 'templates'" class="space-y-2">
+        <div x-show="activeStyleTab === 'templates'" class="space-y-2" x-data="{ selectedTemplate: '{{ $st['_template'] ?? '' }}' }">
+            <input type="hidden" name="style[_template]" :value="selectedTemplate">
             <p class="text-[10px] mb-2" style="color: var(--text-dimmed);"><i class="fas fa-info-circle mr-1"></i>Click a template to apply its style instantly</p>
             <div class="grid grid-cols-2 gap-2">
                 @foreach($templates as $tKey => $tpl)
-                <button type="button" class="p-3 rounded-xl text-left transition-all hover:scale-[1.03]"
-                        style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);"
-                        onclick="applyBlockTemplate('{{ $tKey }}', this)">
+                <button type="button" class="p-3 rounded-xl text-left transition-all hover:scale-[1.03] relative"
+                        :style="selectedTemplate === '{{ $tKey }}' ? 'background: rgba(139,92,246,0.12); border: 2px solid rgba(139,92,246,0.6); box-shadow: 0 0 12px rgba(139,92,246,0.15);' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass);'"
+                        @click="selectedTemplate = '{{ $tKey }}'; applyBlockTemplate('{{ $tKey }}', $el)">
+                    <div class="absolute top-1.5 right-1.5 w-5 h-5 rounded-full flex items-center justify-center transition-all"
+                         :style="selectedTemplate === '{{ $tKey }}' ? 'background: #8b5cf6; opacity: 1;' : 'opacity: 0;'">
+                        <i class="fas fa-check text-white text-[8px]"></i>
+                    </div>
                     <div class="flex items-center gap-2 mb-1.5">
                         <div class="w-6 h-6 rounded-md flex items-center justify-center" style="background: {{ $tpl['preview_bg'] }}; border: 1px solid {{ $tpl['preview_bg'] }}30;">
                             <i class="fas {{ $tpl['icon'] }} text-[9px]" style="color: {{ $tpl['preview_text'] }};"></i>
@@ -251,14 +256,29 @@ function applyBlockTemplate(key, btn) {
             input.dispatchEvent(new Event('change', { bubbles: true }));
         }
     }
+    var tplInput = form.querySelector('[name="style[_template]"]');
+    if (tplInput) {
+        tplInput.value = key;
+        tplInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }
     btn.style.transform = 'scale(0.95)';
     setTimeout(function() { btn.style.transform = ''; }, 150);
-    var label = btn.querySelector('span');
-    if (label) {
-        var orig = label.textContent;
-        label.textContent = 'Applied!';
-        label.style.color = '#10b981';
-        setTimeout(function() { label.textContent = orig; label.style.color = ''; }, 1000);
-    }
+    setTimeout(function() {
+        var fd = new FormData(form);
+        fetch(form.action, {
+            method: 'POST',
+            headers: { 'Accept': 'application/json' },
+            body: fd
+        }).then(function(r) { return r.json(); }).then(function(data) {
+            if (data.success) {
+                if (typeof showToast === 'function') showToast('Template applied', 'success');
+                if (typeof refreshPreview === 'function') refreshPreview();
+            } else {
+                if (typeof showToast === 'function') showToast(data.error || 'Failed to apply', 'error');
+            }
+        }).catch(function() {
+            if (typeof showToast === 'function') showToast('Failed to apply template', 'error');
+        });
+    }, 100);
 }
 </script>

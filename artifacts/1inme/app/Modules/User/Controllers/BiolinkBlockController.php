@@ -459,6 +459,11 @@ class BiolinkBlockController extends Controller
                 if (filter_var($val, FILTER_VALIDATE_URL) && preg_match('/^https?:\/\//', $val)) {
                     $result[$key] = substr($val, 0, 500);
                 }
+            } elseif ($key === '_template') {
+                $validTemplates = array_keys(BiolinkBlock::BLOCK_TEMPLATES);
+                if (in_array($val, $validTemplates, true)) {
+                    $result[$key] = $val;
+                }
             }
         }
         return $result;

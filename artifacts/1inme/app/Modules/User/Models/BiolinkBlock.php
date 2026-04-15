@@ -181,6 +181,7 @@ class BiolinkBlock extends Model
         'glass_blur' => 20,
         'glass_opacity' => 15,
         'padding' => '',
+        '_template' => '',
     ];
 
     public const BLOCK_TEMPLATES = [
