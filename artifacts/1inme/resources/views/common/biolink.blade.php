@@ -475,10 +475,10 @@
     <style>{!! $bs['custom_css'] !!}</style>
     @endif
 </head>
-<body class="{{ $mbEnabled && $mbPos === 'bottom' ? 'flex flex-col min-h-screen' : 'flex' }} justify-center">
+<body class="flex flex-col items-center {{ $mbEnabled && $mbPos === 'bottom' ? 'min-h-screen' : '' }}">
     @if($mbEnabled && $mbPos === 'top')
     @php $mbItems = $menuBarSettings['items'] ?? []; @endphp
-    <nav class="biolink-menu-bar">
+    <nav class="biolink-menu-bar" style="align-self: stretch;">
         @foreach($mbItems as $mi)
             @if(!empty($mi['label']) && !empty($mi['url']) && ($mi['is_active'] ?? true))
                 <a href="{{ $mi['url'] }}" @if(str_starts_with($mi['url'], 'http')) target="_blank" rel="noopener" @endif
@@ -1388,7 +1388,7 @@
 
     @if($mbEnabled && $mbPos === 'bottom')
     @php $mbItems = $menuBarSettings['items'] ?? []; @endphp
-    <nav class="biolink-menu-bar" style="margin-top: auto;">
+    <nav class="biolink-menu-bar" style="margin-top: auto; align-self: stretch;">
         @foreach($mbItems as $mi)
             @if(!empty($mi['label']) && !empty($mi['url']) && ($mi['is_active'] ?? true))
                 <a href="{{ $mi['url'] }}" @if(str_starts_with($mi['url'], 'http')) target="_blank" rel="noopener" @endif
