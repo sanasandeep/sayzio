@@ -83,8 +83,8 @@ class UserFileController extends Controller
         }
 
         $fileType = UserFile::detectType($mime);
-        $disk = config('filesystems.default') === 's3' ? 's3' : 'public';
-        $folder = "user-files/{$user->id}/{$fileType}s";
+        $disk = config('filesystems.default') === 's3' ? 's3' : 'user_files';
+        $folder = "{$user->id}/{$fileType}s";
         $filename = Str::uuid() . '.' . $ext;
 
         $storedPath = $file->storeAs($folder, $filename, $disk);
@@ -107,10 +107,76 @@ class UserFileController extends Controller
         ]);
     }
 
+    public function serve(Request $request, $id, $filename)
+    {
+        $file = UserFile::findOrFail($id);
+
+        if ($file->filename !== $filename) {
+            abort(404);
+        }
+
+        $user = $request->user();
+        $ownerId = (int) $file->user_id;
+
+        $authorized = false;
+
+        if ($user && (int) $user->id === $ownerId) {
+            $authorized = true;
+        }
+
+        if (!$authorized && $user) {
+            $owner = \App\Modules\User\Models\User::find($ownerId);
+            if ($owner && method_exists($owner, 'teams') && method_exists($user, 'teams')) {
+                $ownerTeamIds = $owner->teams()->pluck('teams.id')->toArray();
+                $userTeamIds = $user->teams()->pluck('teams.id')->toArray();
+                if (!empty(array_intersect($ownerTeamIds, $userTeamIds))) {
+                    $authorized = true;
+                }
+            }
+        }
+
+        if (!$authorized) {
+            $fileUrl = $file->url_path;
+            $usedInBlock = \Illuminate\Support\Facades\DB::table('biolink_blocks')
+                ->where('biolink_blocks.settings', 'like', '%' . $fileUrl . '%')
+                ->join('links', 'biolink_blocks.link_id', '=', 'links.id')
+                ->where('links.is_active', true)
+                ->exists();
+            if ($usedInBlock) {
+                $authorized = true;
+            }
+        }
+
+        if (!$authorized) {
+            abort(403, 'Access denied.');
+        }
+
+        $disk = $file->disk;
+        if ($disk === 's3') {
+            return redirect(Storage::disk('s3')->temporaryUrl($file->path, now()->addMinutes(30)));
+        }
+
+        $storageDisk = $disk === 'public' ? 'public' : 'user_files';
+        $fullPath = Storage::disk($storageDisk)->path($file->path);
+
+        if (!file_exists($fullPath)) {
+            abort(404, 'File not found.');
+        }
+
+        $headers = [
+            'Content-Type' => $file->mime_type,
+            'Content-Disposition' => 'inline; filename="' . addslashes($file->original_name) . '"',
+            'Cache-Control' => 'private, max-age=3600',
+            'X-Content-Type-Options' => 'nosniff',
+        ];
+
+        return response()->file($fullPath, $headers);
+    }
+
     public function destroy(Request $request, UserFile $file)
     {
         $user = $request->user();
-        if ($file->user_id !== $user->id) {
+        if ((int) $file->user_id !== (int) $user->id) {
             return response()->json(['success' => false, 'error' => 'Unauthorized.'], 403);
         }
 

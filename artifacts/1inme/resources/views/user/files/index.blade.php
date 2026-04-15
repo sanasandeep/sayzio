@@ -339,7 +339,7 @@ function fileManager() {
                 const r = await fetch(`/user/files?${params}`, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
                 const d = await r.json();
                 if (d.success) {
-                    this.files = d.files.map(f => ({ ...f, url: this.fileUrl(f) }));
+                    this.files = d.files;
                     this.pagination = d.pagination;
                     this.quota = d.quota;
                     this.filterFiles();
@@ -355,11 +355,6 @@ function fileManager() {
                 const q = this.search.toLowerCase();
                 this.filteredFiles = this.files.filter(f => f.original_name.toLowerCase().includes(q));
             }
-        },
-
-        fileUrl(f) {
-            if (f.disk === 's3') return f.path;
-            return '/storage/' + f.path;
         },
 
         handleFileSelect(e) {

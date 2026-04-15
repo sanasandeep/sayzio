@@ -12,7 +12,7 @@ class UserFile extends Model
         'size_bytes', 'type', 'disk', 'path',
     ];
 
-    protected $appends = ['url', 'size_human'];
+    protected $appends = ['url', 'url_path', 'size_human'];
 
     const ALLOWED_TYPES = [
         'image' => ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'],
@@ -40,10 +40,12 @@ class UserFile extends Model
 
     public function getUrlAttribute(): string
     {
-        if ($this->disk === 's3') {
-            return Storage::disk('s3')->url($this->path);
-        }
-        return Storage::disk('public')->url($this->path);
+        return url('/f/' . $this->id . '/' . $this->filename);
+    }
+
+    public function getUrlPathAttribute(): string
+    {
+        return '/f/' . $this->id . '/' . $this->filename;
     }
 
     public function getSizeHumanAttribute(): string
@@ -56,7 +58,8 @@ class UserFile extends Model
 
     public function deleteFile(): bool
     {
-        Storage::disk($this->disk)->delete($this->path);
+        $storageDisk = $this->disk === 'public' ? 'public' : ($this->disk === 's3' ? 's3' : 'user_files');
+        Storage::disk($storageDisk)->delete($this->path);
         return $this->delete();
     }
 
