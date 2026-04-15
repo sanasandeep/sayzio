@@ -95,6 +95,18 @@
         $bgColor = $bs['background_color'] ?? '#0a0612';
         $bgGradient = $bs['background_gradient'] ?? 'linear-gradient(135deg, #0a0612 0%, #1a0533 50%, #0a0612 100%)';
         $bgImage = $bs['background_image'] ?? '';
+        $bgAttachment = $bs['bg_attachment'] ?? 'fixed';
+        $bgFallbackColor = $bs['bg_fallback_color'] ?? '#0a0612';
+        $bgFallbackImage = $bs['bg_fallback_image'] ?? '';
+        $bgBlur = (int)($bs['bg_blur'] ?? 0);
+        $bgOverlayColor = $bs['bg_overlay_color'] ?? '#000000';
+        $bgOverlayOpacity = (int)($bs['bg_overlay_opacity'] ?? 0);
+        $slideshowImages = $bs['slideshow_images'] ?? [];
+        $slideshowInterval = (int)($bs['slideshow_interval'] ?? 5);
+        $videoUrl = $bs['video_url'] ?? '';
+        $videoFileSrc = $bs['video_file'] ?? '';
+        $bgTemplateId = $bs['bg_template_id'] ?? null;
+        $bgTemplate = $bgTemplateId ? \App\Modules\Admin\Models\BgTemplate::find($bgTemplateId) : null;
         $btnColor = $bs['button_color'] ?? '#7c3aed';
         $btnTextColor = $bs['button_text_color'] ?? '#ffffff';
         $btnStyle = $bs['button_style'] ?? 'rounded';
@@ -158,15 +170,70 @@
         body {
             font-family: '{{ $fontFamily }}', sans-serif;
             color: {{ $fontColor }};
-            @if($bgType === 'image' && $bgImage)
-                background: url('{{ $bgImage }}') center/cover no-repeat fixed;
+            background-color: {{ $bgFallbackColor }};
+            @if($bgType === 'color')
+                background-color: {{ $bgColor }};
             @elseif($bgType === 'gradient')
                 background: {{ $bgGradient }};
-            @else
-                background-color: {{ $bgColor }};
+            @elseif($bgType === 'image' && $bgImage)
+                background: {{ $bgFallbackColor }} url('{{ $bgImage }}') center/cover no-repeat {{ $bgAttachment }};
+            @elseif($bgType === 'slideshow' || $bgType === 'video' || $bgType === 'template')
+                background-color: {{ $bgFallbackColor }};
+                @if($bgFallbackImage)
+                    background-image: url('{{ $bgFallbackImage }}');
+                    background-size: cover;
+                    background-position: center;
+                @endif
             @endif
             min-height: 100vh;
+            position: relative;
         }
+        @if($bgBlur > 0 || $bgOverlayOpacity > 0)
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            @if($bgBlur > 0)
+                backdrop-filter: blur({{ $bgBlur }}px);
+                -webkit-backdrop-filter: blur({{ $bgBlur }}px);
+            @endif
+            @if($bgOverlayOpacity > 0)
+                @php
+                    $r = hexdec(substr($bgOverlayColor, 1, 2));
+                    $g = hexdec(substr($bgOverlayColor, 3, 2));
+                    $b = hexdec(substr($bgOverlayColor, 5, 2));
+                @endphp
+                background: rgba({{ $r }},{{ $g }},{{ $b }},{{ $bgOverlayOpacity / 100 }});
+            @endif
+        }
+        body > *:not(.bg-layer):not(script):not(style) {
+            position: relative;
+            z-index: 1;
+        }
+        @endif
+        @if($bgType === 'slideshow' && count($slideshowImages) > 0)
+        .bg-slideshow { position:fixed; inset:0; z-index:0; }
+        .bg-slideshow img {
+            position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
+            opacity:0; transition:opacity 1.5s ease-in-out;
+            @if($bgAttachment === 'fixed') position:fixed; @endif
+        }
+        .bg-slideshow img.active { opacity:1; }
+        @endif
+        @if($bgType === 'video')
+        .bg-video-wrap { position:fixed; inset:0; z-index:0; overflow:hidden; }
+        .bg-video-wrap video {
+            min-width:100%; min-height:100%; width:auto; height:auto;
+            position:absolute; top:50%; left:50%;
+            transform:translate(-50%,-50%);
+            object-fit:cover;
+        }
+        @endif
+        @if($bgTemplate)
+        {!! $bgTemplate->css !!}
+        @endif
         .bio-btn {
             background: {{ $btnColor }};
             color: {{ $btnTextColor }};
@@ -240,6 +307,31 @@
     @endif
 </head>
 <body class="flex justify-center">
+    @if($bgType === 'slideshow' && count($slideshowImages) > 0)
+    <div class="bg-slideshow bg-layer">
+        @foreach($slideshowImages as $si => $sImg)
+        <img src="{{ $sImg }}" alt="" loading="eager" class="{{ $si === 0 ? 'active' : '' }}">
+        @endforeach
+    </div>
+    @endif
+
+    @if($bgType === 'video')
+    <div class="bg-video-wrap bg-layer">
+        <video autoplay muted loop playsinline @if($bgFallbackImage) poster="{{ $bgFallbackImage }}" @endif>
+            @if($videoFileSrc)
+            <source src="{{ $videoFileSrc }}" type="{{ str_ends_with(strtolower($videoFileSrc), '.webm') ? 'video/webm' : 'video/mp4' }}">
+            @endif
+            @if($videoUrl)
+            <source src="{{ $videoUrl }}" type="{{ str_ends_with(strtolower($videoUrl), '.webm') ? 'video/webm' : 'video/mp4' }}">
+            @endif
+        </video>
+    </div>
+    @endif
+
+    @if($bgType === 'template' && $bgTemplate)
+    <div class="bg-template bg-layer bg-template-{{ $bgTemplate->slug }}" style="position:fixed;inset:0;z-index:0;overflow:hidden;"></div>
+    @endif
+
     <div class="biolink-container">
         @php
             $blocks = $link->activeBiolinkBlocks()->get()->filter(fn($b) => $b->isVisible());
@@ -1135,6 +1227,31 @@
         }
     })();
     </script>
+    @if($bgType === 'slideshow' && count($slideshowImages) > 1)
+    <script>
+    (function(){
+        var imgs = document.querySelectorAll('.bg-slideshow img');
+        if(imgs.length < 2) return;
+        var idx = 0;
+        setInterval(function(){
+            imgs[idx].classList.remove('active');
+            idx = (idx + 1) % imgs.length;
+            imgs[idx].classList.add('active');
+        }, {{ $slideshowInterval * 1000 }});
+    })();
+    </script>
+    @endif
+
+    @if($bgType === 'template' && $bgTemplate && $bgTemplate->js)
+    <script>
+    (function(){
+        var container = document.querySelector('.bg-template-{{ $bgTemplate->slug }}');
+        if(!container) return;
+        {!! $bgTemplate->js !!}
+    })();
+    </script>
+    @endif
+
     @if(!empty($bs['custom_js_body']))
     <script>{!! $bs['custom_js_body'] !!}</script>
     @endif

@@ -29,7 +29,8 @@ class BiolinkBlockController extends Controller
     public function settingsAppearance(Link $link)
     {
         abort_if($link->user_id !== auth()->id() || $link->type !== 'biolink', 403);
-        return view('user.links.settings.appearance', compact('link'));
+        $bgTemplates = \App\Modules\Admin\Models\BgTemplate::active()->get();
+        return view('user.links.settings.appearance', compact('link', 'bgTemplates'));
     }
 
     public function settingsLayout(Link $link)
@@ -179,15 +180,30 @@ class BiolinkBlockController extends Controller
         $validated = $request->validate([
             'biolink_title' => 'nullable|string|max:100',
             'biolink_description' => 'nullable|string|max:500',
-            'background_type' => 'nullable|string|in:color,gradient,image',
-            'background_color' => 'nullable|string|max:20',
-            'background_gradient' => 'nullable|string|max:200',
+            'background_type' => 'nullable|string|in:color,gradient,image,slideshow,video,template',
+            'background_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
+            'background_gradient' => 'nullable|string|max:500',
             'background_image' => 'nullable|image|max:5120',
+            'gradient_colors' => 'nullable|string|max:2000',
+            'gradient_angle' => 'nullable|integer|min:0|max:360',
+            'gradient_type' => 'nullable|string|in:linear,radial,conic',
+            'slideshow_images' => 'nullable|array|max:10',
+            'slideshow_images.*' => 'image|max:5120',
+            'slideshow_interval' => 'nullable|integer|min:1|max:30',
+            'video_url' => 'nullable|string|max:500',
+            'video_file' => 'nullable|mimes:mp4,webm|max:51200',
+            'bg_template_id' => 'nullable|integer|exists:bg_templates,id',
+            'bg_attachment' => 'nullable|string|in:fixed,scroll',
+            'bg_fallback_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
+            'bg_fallback_image' => 'nullable|image|max:5120',
+            'bg_blur' => 'nullable|integer|min:0|max:100',
+            'bg_overlay_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
+            'bg_overlay_opacity' => 'nullable|integer|min:0|max:100',
             'font_family' => 'nullable|string|max:100',
-            'font_color' => 'nullable|string|max:20',
+            'font_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
             'button_style' => 'nullable|string|in:rounded,pill,square,outline,shadow',
-            'button_color' => 'nullable|string|max:20',
-            'button_text_color' => 'nullable|string|max:20',
+            'button_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
+            'button_text_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
             'verified_badge' => 'boolean',
             'branding_hidden' => 'boolean',
             'block_theme' => 'nullable|array',
@@ -248,7 +264,10 @@ class BiolinkBlockController extends Controller
         $twitterInput = $validated['twitter'] ?? null;
         $faviconsInput = $validated['favicons'] ?? null;
         $manifestInput = $validated['manifest'] ?? null;
-        unset($validated['block_theme'], $validated['layout'], $validated['meta'], $validated['og'], $validated['twitter'], $validated['favicons'], $validated['manifest'], $validated['og_image_upload'], $validated['apple_touch_upload'], $validated['icon_512_upload']);
+        $slideshowFiles = $request->file('slideshow_images');
+        $videoFile = $request->file('video_file');
+        $fallbackImageFile = $request->file('bg_fallback_image');
+        unset($validated['block_theme'], $validated['layout'], $validated['meta'], $validated['og'], $validated['twitter'], $validated['favicons'], $validated['manifest'], $validated['og_image_upload'], $validated['apple_touch_upload'], $validated['icon_512_upload'], $validated['slideshow_images'], $validated['video_file'], $validated['bg_fallback_image']);
 
         if (!$user->getPlanFeature('custom_branding', false)) {
             unset($validated['custom_branding_text'], $validated['custom_branding_url'], $validated['custom_branding_logo']);
@@ -308,6 +327,38 @@ class BiolinkBlockController extends Controller
         if ($request->hasFile('background_image')) {
             $path = $request->file('background_image')->store('biolink-backgrounds', 'public');
             $settings['biolink']['background_image'] = Storage::disk('public')->url($path);
+        }
+
+        if (!empty($validated['gradient_colors'])) {
+            $decoded = json_decode($validated['gradient_colors'], true);
+            if (is_array($decoded)) {
+                $settings['biolink']['gradient_colors'] = $decoded;
+            }
+        }
+
+        if ($slideshowFiles && is_array($slideshowFiles)) {
+            $existingSlides = $settings['biolink']['slideshow_images'] ?? [];
+            foreach ($slideshowFiles as $file) {
+                $path = $file->store('biolink-backgrounds', 'public');
+                $existingSlides[] = Storage::disk('public')->url($path);
+            }
+            $settings['biolink']['slideshow_images'] = array_slice($existingSlides, 0, 10);
+        }
+
+        if ($videoFile) {
+            $path = $videoFile->store('biolink-videos', 'public');
+            $settings['biolink']['video_file'] = Storage::disk('public')->url($path);
+        }
+
+        if ($fallbackImageFile) {
+            $path = $fallbackImageFile->store('biolink-backgrounds', 'public');
+            $settings['biolink']['bg_fallback_image'] = Storage::disk('public')->url($path);
+        }
+
+        if ($request->has('remove_slideshow_images')) {
+            $removeIndexes = array_map('intval', (array) $request->input('remove_slideshow_images', []));
+            $existing = $settings['biolink']['slideshow_images'] ?? [];
+            $settings['biolink']['slideshow_images'] = array_values(array_diff_key($existing, array_flip($removeIndexes)));
         }
 
         $faviconValue = null;
