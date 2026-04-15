@@ -976,6 +976,56 @@
                     <iframe src="https://yandex.com/map-widget/v1/?text={{ $yQ }}&z={{ $s['zoom'] ?? 14 }}" class="w-full h-full rounded-xl" frameborder="0" loading="lazy"></iframe>
                 </div>
 
+            {{-- CARD CONTAINER --}}
+            @elseif($block->type === 'card')
+                @php
+                    $cardChildren = $block->activeChildren()->get()->filter(fn($b) => $b->isVisible());
+                    $cols = intval($s['columns'] ?? 2) ?: 2;
+                    $gap = intval($s['gap'] ?? 12);
+                    $pad = intval($s['padding'] ?? 16);
+                    $br = intval($s['border_radius'] ?? 16);
+                    $bgType = $s['bg_type'] ?? 'glass';
+                    $bw = intval($s['border_width'] ?? 1);
+                    $bc = $s['border_color'] ?? 'rgba(255,255,255,0.08)';
+                    $shadow = match($s['shadow'] ?? 'none') {
+                        'sm' => '0 1px 3px ' . ($s['shadow_color'] ?? '#00000040'),
+                        'md' => '0 4px 12px ' . ($s['shadow_color'] ?? '#00000040'),
+                        'lg' => '0 10px 30px ' . ($s['shadow_color'] ?? '#00000040'),
+                        'xl' => '0 20px 50px ' . ($s['shadow_color'] ?? '#00000040'),
+                        default => 'none',
+                    };
+                    $bgStyle = match($bgType) {
+                        'glass' => 'background:rgba(255,255,255,' . (intval($s['glass_opacity'] ?? 6) / 100) . ');backdrop-filter:blur(' . intval($s['glass_blur'] ?? 12) . 'px);-webkit-backdrop-filter:blur(' . intval($s['glass_blur'] ?? 12) . 'px);',
+                        'color' => 'background:' . ($s['bg_color'] ?? 'rgba(255,255,255,0.06)') . ';',
+                        'gradient' => 'background:' . ($s['bg_gradient'] ?? 'linear-gradient(135deg,#7c3aed,#ec4899)') . ';',
+                        'image' => 'background:url(' . ($s['bg_image'] ?? '') . ') center/cover no-repeat;',
+                        'transparent' => 'background:transparent;',
+                        default => 'background:rgba(255,255,255,0.06);',
+                    };
+                @endphp
+                <div class="mb-4 card-container-render" style="{{ $bgStyle }} padding:{{ $pad }}px; border-radius:{{ $br }}px; border:{{ $bw }}px solid {{ $bc }}; box-shadow:{{ $shadow }};">
+                    @if(!empty($s['title']))
+                    <div class="mb-3 text-sm font-semibold" style="color: {{ $fontColor ?? '#fff' }}cc;">{{ $s['title'] }}</div>
+                    @endif
+                    <div style="display:grid; grid-template-columns:repeat({{ $cols }}, 1fr); gap:{{ $gap }}px;">
+                        @foreach($cardChildren as $childBlock)
+                            @php
+                                $cs = $childBlock->settings ?? [];
+                                $childStyle = \App\Modules\User\Models\BiolinkBlock::getBlockStyle($cs, $globalTheme);
+                                $childInline = \App\Modules\User\Models\BiolinkBlock::buildInlineStyle($childStyle);
+                                $childHasStyle = !empty($cs['_style']) || (!empty($globalTheme) && ($globalTheme['apply_to_all'] ?? false));
+                                $childSkipWrap = in_array($childBlock->type, ['avatar', 'divider', 'spacer', 'social_icons']);
+                                $childSpan = intval($childStyle['grid_span'] ?? 12) ?: 12;
+                            @endphp
+                            <div style="grid-column: span {{ min($childSpan, $cols) }};">
+                            @if($childHasStyle && !$childSkipWrap)<div class="block-styled" style="{{ $childInline }}">@endif
+                                @include('common.partials.biolink-block-render', ['block' => $childBlock, 's' => $cs, 'fontColor' => $fontColor ?? '#fff'])
+                            @if($childHasStyle && !$childSkipWrap)</div>@endif
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+
             {{-- IDENTITY --}}
             @elseif($block->type === 'vcard')
                 <div class="mb-4 glass-block rounded-xl p-5 text-center">

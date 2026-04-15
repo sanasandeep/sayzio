@@ -8,7 +8,7 @@ class BiolinkBlock extends Model
 {
     protected $fillable = [
         'link_id', 'type', 'settings', 'sort_order', 'is_active',
-        'start_date', 'end_date',
+        'start_date', 'end_date', 'parent_id',
     ];
 
     protected function casts(): array
@@ -152,6 +152,7 @@ class BiolinkBlock extends Model
         'yandex_maps' => ['label' => 'Yandex Maps', 'icon' => 'fa-map', 'category' => 'maps'],
 
         'spacer' => ['label' => 'Spacer', 'icon' => 'fa-arrows-alt-v', 'category' => 'layout'],
+        'card' => ['label' => 'Card Container', 'icon' => 'fa-layer-group', 'category' => 'layout'],
 
         'vcard' => ['label' => 'VCard', 'icon' => 'fa-address-book', 'category' => 'identity'],
         'avatar' => ['label' => 'Avatar', 'icon' => 'fa-user-circle', 'category' => 'identity'],
@@ -501,6 +502,23 @@ class BiolinkBlock extends Model
     public function link()
     {
         return $this->belongsTo(Link::class);
+    }
+
+    public function children()
+    {
+        return $this->hasMany(self::class, 'parent_id')->orderBy('sort_order');
+    }
+
+    public function activeChildren()
+    {
+        return $this->hasMany(self::class, 'parent_id')
+            ->where('is_active', true)
+            ->orderBy('sort_order');
+    }
+
+    public function parent()
+    {
+        return $this->belongsTo(self::class, 'parent_id');
     }
 
     public function isVisible(): bool

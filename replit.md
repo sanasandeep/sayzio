@@ -58,7 +58,18 @@ The biolink editor is split into two separate pages:
   - `/user/links/{link}/settings` redirects to `/settings/appearance`
   - Shared partials: `settings-header.blade.php` (nav tabs as `<a>` links), `settings-footer.blade.php` (sticky save)
 
-The platform supports approximately 99 block types across 14 categories. All HTML content is sanitized for security, and URLs are validated. Blocks can be scheduled for visibility.
+The platform supports approximately 100+ block types across 14 categories. All HTML content is sanitized for security, and URLs are validated. Blocks can be scheduled for visibility.
+
+#### Card Container Block
+A "Card Container" block type allows grouping child blocks inside a styled card wrapper. Child blocks are stored with a `parent_id` FK referencing the card block (cascade delete). Top-level queries use `whereNull('parent_id')` to exclude children. The card container supports:
+- **Layout**: configurable columns (1-4), gap, padding, border radius
+- **Background**: glassmorphism (blur + opacity sliders), solid color, CSS gradient, background image, or transparent
+- **Border**: color and width controls
+- **Shadow**: none/sm/md/lg/xl with color
+- **Child blocks**: any block type except nested cards; rendered in CSS grid inside the container
+- **Editor UI**: expandable card section showing nested child blocks with drag reorder (SortableJS), edit/toggle/delete actions, and "Add block to card" button that opens the gallery filtered to exclude card type
+- **Public render**: card wrapper with full design styles, children rendered via `@include('common.partials.biolink-block-render')` partial
+- **Data**: `BiolinkBlock` model has `children()`, `activeChildren()`, `parent()` relationships; `activeBiolinkBlocks()` on Link model excludes children
 
 #### Plan-Gated Biolink Features
 Three new plan-gated features have been added to biolink pages (controlled by `custom_branding`, `custom_favicon`, `custom_code` plan features):

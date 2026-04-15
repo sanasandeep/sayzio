@@ -551,6 +551,73 @@ function imageListUploader_{{ $gridImgId }}() {
     <div><label class="{{ $labelClass }}">URL</label><input type="url" name="settings[url]" value="{{ $s['url'] ?? '' }}" class="{{ $inputClass }}"></div>
 </div>
 
+@elseif($block->type === 'card')
+<div class="space-y-4" x-data="{ bgType: '{{ $s['bg_type'] ?? 'glass' }}' }">
+    <div><label class="{{ $labelClass }}">Card Title (optional)</label><input type="text" name="settings[title]" value="{{ $s['title'] ?? '' }}" class="{{ $inputClass }}" placeholder="Optional section title"></div>
+
+    <div class="grid grid-cols-2 gap-3">
+        <div><label class="{{ $labelClass }}">Columns</label>
+            <select name="settings[columns]" class="{{ $selectClass }}">
+                @foreach([1=>'1 Column',2=>'2 Columns',3=>'3 Columns',4=>'4 Columns'] as $v=>$l)
+                <option value="{{ $v }}" {{ ($s['columns'] ?? 2) == $v ? 'selected' : '' }}>{{ $l }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div><label class="{{ $labelClass }}">Gap (px)</label><input type="number" name="settings[gap]" value="{{ $s['gap'] ?? 12 }}" min="0" max="48" class="{{ $inputClass }}"></div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3">
+        <div><label class="{{ $labelClass }}">Padding (px)</label><input type="number" name="settings[padding]" value="{{ $s['padding'] ?? 16 }}" min="0" max="64" class="{{ $inputClass }}"></div>
+        <div><label class="{{ $labelClass }}">Border Radius (px)</label><input type="number" name="settings[border_radius]" value="{{ $s['border_radius'] ?? 16 }}" min="0" max="48" class="{{ $inputClass }}"></div>
+    </div>
+
+    <div><label class="{{ $labelClass }}">Background Type</label>
+        <select name="settings[bg_type]" x-model="bgType" class="{{ $selectClass }}">
+            <option value="glass">Glassmorphism</option>
+            <option value="color">Solid Color</option>
+            <option value="gradient">Gradient</option>
+            <option value="image">Background Image</option>
+            <option value="transparent">Transparent</option>
+        </select>
+    </div>
+
+    <div x-show="bgType === 'color'" x-cloak>
+        <label class="{{ $labelClass }}">Background Color</label>
+        <input type="text" name="settings[bg_color]" value="{{ $s['bg_color'] ?? 'rgba(255,255,255,0.06)' }}" class="{{ $inputClass }}" placeholder="e.g. #1a1a2e or rgba(...)">
+    </div>
+
+    <div x-show="bgType === 'gradient'" x-cloak>
+        <label class="{{ $labelClass }}">CSS Gradient</label>
+        <input type="text" name="settings[bg_gradient]" value="{{ $s['bg_gradient'] ?? '' }}" class="{{ $inputClass }}" placeholder="linear-gradient(135deg, #7c3aed, #ec4899)">
+    </div>
+
+    <div x-show="bgType === 'image'" x-cloak>
+        <label class="{{ $labelClass }}">Image URL</label>
+        <input type="url" name="settings[bg_image]" value="{{ $s['bg_image'] ?? '' }}" class="{{ $inputClass }}" placeholder="https://...">
+    </div>
+
+    <div x-show="bgType === 'glass'" x-cloak class="space-y-3">
+        <div><label class="{{ $labelClass }}">Glass Blur (px)</label><input type="range" name="settings[glass_blur]" value="{{ $s['glass_blur'] ?? 12 }}" min="0" max="40" class="w-full accent-purple-500"></div>
+        <div><label class="{{ $labelClass }}">Glass Opacity (%)</label><input type="range" name="settings[glass_opacity]" value="{{ $s['glass_opacity'] ?? 6 }}" min="0" max="30" class="w-full accent-purple-500"></div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3">
+        <div><label class="{{ $labelClass }}">Border Color</label><input type="text" name="settings[border_color]" value="{{ $s['border_color'] ?? 'rgba(255,255,255,0.08)' }}" class="{{ $inputClass }}"></div>
+        <div><label class="{{ $labelClass }}">Border Width (px)</label><input type="number" name="settings[border_width]" value="{{ $s['border_width'] ?? 1 }}" min="0" max="8" class="{{ $inputClass }}"></div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3">
+        <div><label class="{{ $labelClass }}">Shadow</label>
+            <select name="settings[shadow]" class="{{ $selectClass }}">
+                @foreach(['none'=>'None','sm'=>'Small','md'=>'Medium','lg'=>'Large','xl'=>'Extra Large'] as $sv=>$sl)
+                <option value="{{ $sv }}" {{ ($s['shadow'] ?? 'none') === $sv ? 'selected' : '' }}>{{ $sl }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div><label class="{{ $labelClass }}">Shadow Color</label><input type="text" name="settings[shadow_color]" value="{{ $s['shadow_color'] ?? '#00000040' }}" class="{{ $inputClass }}"></div>
+    </div>
+</div>
+
 @elseif(in_array($block->type, ['catalog', 'market', 'card_slider', 'scroll_cards', 'nav_menu']))
 <div x-data="{ items: {{ json_encode($s['items'] ?? $s['cards'] ?? [['name'=>'','title'=>'','url'=>'']]) }} }">
     <label class="{{ $labelClass }}">Items</label>

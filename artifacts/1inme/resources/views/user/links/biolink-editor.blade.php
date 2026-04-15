@@ -161,6 +161,22 @@
         border-color: rgba(139,92,246,0.3);
     }
 
+    .card-container-block {
+        border-color: rgba(139,92,246,0.2);
+        background: linear-gradient(135deg, var(--bg-card), rgba(139,92,246,0.03));
+    }
+    .card-container-block:hover {
+        border-color: rgba(139,92,246,0.3);
+    }
+    .child-block-card.sortable-ghost {
+        opacity: 0.4;
+        border: 1px dashed rgba(139,92,246,0.4) !important;
+    }
+    .child-block-card.sortable-chosen {
+        box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+        z-index: 10;
+    }
+
     .block-card.sortable-ghost {
         opacity: 0.4;
         border: 2px dashed rgba(139,92,246,0.4);
@@ -445,7 +461,7 @@ $catColors = [
                         $catColor = $catColors[$typeInfo['category'] ?? 'basic'] ?? '#8b5cf6';
                     @endphp
                     @php $curSpan = intval($s['_style']['grid_span'] ?? 12) ?: 12; @endphp
-                    <div class="block-card" data-block-id="{{ $block->id }}" data-grid-span="{{ $curSpan }}" style="grid-column: span {{ $curSpan }}">
+                    <div class="block-card {{ $block->type === 'card' ? 'card-container-block' : '' }}" data-block-id="{{ $block->id }}" data-grid-span="{{ $curSpan }}" style="grid-column: span {{ $curSpan }}">
                         <div class="flex items-center gap-2 p-3">
                             <div class="drag-handle handle">
                                 <div class="flex gap-[3px]"><span class="dot"></span><span class="dot"></span></div>
@@ -466,7 +482,9 @@ $catColors = [
                                     <span class="grid-span-badge text-[9px] px-1.5 py-0.5 rounded font-bold" style="background: rgba(139,92,246,0.08); color: #a78bfa; {{ $curSpan >= 12 ? 'display:none;' : '' }}" data-span-badge="{{ $block->id }}">{{ $curSpan }}/12</span>
                                 </div>
                                 <div class="block-preview-content mt-0.5">
-                                    @if(in_array($block->type, ['link', 'link_big']))
+                                    @if($block->type === 'card')
+                                        <i class="fas fa-layer-group text-[9px] mr-1" style="color: var(--text-faint);"></i>{{ $block->children->count() }} block(s) inside{{ !empty($s['title']) ? ' — ' . $s['title'] : '' }}
+                                    @elseif(in_array($block->type, ['link', 'link_big']))
                                         <i class="fas fa-globe text-[9px] mr-1" style="color: var(--text-faint);"></i>{{ $s['text'] ?? $s['url'] ?? 'No URL set' }}
                                     @elseif(in_array($block->type, ['heading', 'heading_gradient', 'heading_logo', 'heading_morph']))
                                         <i class="fas fa-font text-[9px] mr-1" style="color: var(--text-faint);"></i>{{ $s['text'] ?? 'No text' }}
@@ -504,6 +522,57 @@ $catColors = [
                                 </button>
                             </div>
                         </div>
+
+                        @if($block->type === 'card')
+                        <div class="card-children-area px-3 pb-3" x-data="{ cardExpanded: true }">
+                            <div class="rounded-xl overflow-hidden" style="border: 1px dashed var(--border-glass); background: rgba(139,92,246,0.02);">
+                                <button type="button" @click="cardExpanded = !cardExpanded" class="w-full flex items-center justify-between px-3 py-1.5 text-[10px] font-semibold transition-colors hover:bg-white/[0.02]" style="color: var(--text-faint); background: rgba(139,92,246,0.04);">
+                                    <span><i class="fas fa-cubes mr-1"></i> Child Blocks ({{ $block->children->count() }})</span>
+                                    <i class="fas fa-chevron-down transition-transform text-[8px]" :class="cardExpanded ? 'rotate-180' : ''"></i>
+                                </button>
+                                <div x-show="cardExpanded" x-collapse>
+                                    <div class="card-child-list p-2 space-y-1" data-card-id="{{ $block->id }}">
+                                        @forelse($block->children as $child)
+                                        @php
+                                            $cs = $child->settings ?? [];
+                                            $cTypeInfo = $blockTypes[$child->type] ?? ['label' => ucfirst($child->type), 'icon' => 'fa-cube'];
+                                            $cCatColor = $catColors[$cTypeInfo['category'] ?? 'basic'] ?? '#8b5cf6';
+                                            $childSpan = intval($cs['_style']['grid_span'] ?? 12) ?: 12;
+                                        @endphp
+                                        <div class="flex items-center gap-2 p-2 rounded-lg transition-all hover:bg-white/[0.03] child-block-card" data-block-id="{{ $child->id }}" style="border: 1px solid var(--border-glass);">
+                                            <div class="child-handle cursor-grab" style="color: var(--text-faint);">
+                                                <i class="fas fa-grip-vertical text-[9px]"></i>
+                                            </div>
+                                            <div class="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0" style="background: {{ $cCatColor }}10;">
+                                                <i class="fas {{ $cTypeInfo['icon'] }} text-[9px]" style="color: {{ $cCatColor }};"></i>
+                                            </div>
+                                            <div class="flex-1 min-w-0">
+                                                <span class="text-[11px] font-semibold" style="color: var(--text-primary);">{{ $cTypeInfo['label'] }}</span>
+                                                @if(!$child->is_active)<span class="text-[8px] px-1 py-0.5 rounded-full font-semibold ml-1" style="background: rgba(239,68,68,0.1); color: #f87171;">HIDDEN</span>@endif
+                                                @if($childSpan < 12)<span class="text-[8px] px-1 py-0.5 rounded font-bold ml-1" style="background: rgba(139,92,246,0.08); color: #a78bfa;">{{ $childSpan }}/12</span>@endif
+                                            </div>
+                                            <div class="flex items-center gap-0.5 flex-shrink-0">
+                                                <button class="block-action-btn edit-btn" style="width:22px;height:22px;" title="Edit" onclick="openEditDrawer({{ $child->id }})"><i class="fas fa-pen" style="font-size:8px;"></i></button>
+                                                <button class="block-action-btn toggle-btn" style="width:22px;height:22px;" title="{{ $child->is_active ? 'Hide' : 'Show' }}" onclick="ajaxToggleBlock(this, '{{ route('user.links.blocks.toggle', [$link, $child]) }}', {{ $child->id }})"><i class="fas {{ $child->is_active ? 'fa-eye' : 'fa-eye-slash' }}" style="font-size:8px;"></i></button>
+                                                <button class="block-action-btn delete-btn" style="width:22px;height:22px;" title="Delete" onclick="ajaxDeleteBlock(this, '{{ route('user.links.blocks.destroy', [$link, $child]) }}', {{ $child->id }})"><i class="fas fa-trash" style="font-size:8px;"></i></button>
+                                            </div>
+                                        </div>
+                                        @empty
+                                        <div class="text-center py-3">
+                                            <p class="text-[10px]" style="color: var(--text-dimmed);">No blocks inside this card yet</p>
+                                        </div>
+                                        @endforelse
+                                    </div>
+                                    <div class="px-2 pb-2">
+                                        <button type="button" class="w-full py-1.5 rounded-lg text-[10px] font-semibold flex items-center justify-center gap-1 transition-all hover:bg-purple-500/10" style="border: 1px dashed rgba(139,92,246,0.3); color: #a78bfa;" onclick="openCardGallery({{ $block->id }})">
+                                            <i class="fas fa-plus text-[8px]"></i> Add block to card
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
+
                         <div class="grid-span-row px-3 pb-2" data-span-row="{{ $block->id }}">
                             <div class="flex items-center gap-1.5">
                                 <span class="text-[9px] font-semibold flex-shrink-0" style="color: var(--text-faint);"><i class="fas fa-columns mr-1"></i>Width</span>
@@ -666,7 +735,10 @@ $catColors = [
             <div class="gallery-inner" @click.stop>
                 <div class="p-5 pb-0 flex-shrink-0">
                     <div class="flex items-center justify-between mb-4">
-                        <h2 class="text-lg font-bold gradient-text">Block Gallery</h2>
+                        <div>
+                            <h2 class="text-lg font-bold gradient-text">Block Gallery</h2>
+                            <p class="text-[10px] mt-0.5" style="color: var(--text-faint);" x-show="_cardGalleryParentId" x-cloak><i class="fas fa-layer-group mr-1"></i>Adding to card container</p>
+                        </div>
                         <button @click="showGallery = false" class="block-action-btn" style="color: var(--text-faint);"><i class="fas fa-times"></i></button>
                     </div>
                     <div class="relative mb-4">
@@ -684,9 +756,9 @@ $catColors = [
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
                         @foreach($blockTypes as $typeKey => $typeInfo)
                         @php $catColor = $catColors[$typeInfo['category']] ?? '#8b5cf6'; @endphp
-                        <div x-show="(galleryCategory === 'all' || galleryCategory === '{{ $typeInfo['category'] }}') && (gallerySearch === '' || '{{ strtolower($typeInfo['label']) }}'.includes(gallerySearch.toLowerCase()))"
+                        <div x-show="(galleryCategory === 'all' || galleryCategory === '{{ $typeInfo['category'] }}') && (gallerySearch === '' || '{{ strtolower($typeInfo['label']) }}'.includes(gallerySearch.toLowerCase())) && !(_cardGalleryParentId && '{{ $typeKey }}' === 'card')"
                              x-cloak>
-                            <button type="button" class="gallery-block-card" onclick="ajaxAddBlock('{{ $typeKey }}', '{{ route('user.links.blocks.store', $link) }}')">
+                            <button type="button" class="gallery-block-card" onclick="ajaxAddBlock('{{ $typeKey }}', '{{ route('user.links.blocks.store', $link) }}', _cardGalleryParentId)">
                                 <div class="flex items-center gap-3">
                                     <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background: {{ $catColor }}15; border: 1px solid {{ $catColor }}25;">
                                         <i class="fas {{ $typeInfo['icon'] }} text-sm" style="color: {{ $catColor }};"></i>
@@ -708,8 +780,19 @@ $catColors = [
     <div class="reorder-toast" id="reorderToast"><i class="fas fa-check-circle mr-2"></i>Order saved</div>
 </div>
 
-{{-- Hidden edit forms for each block --}}
-@foreach($blocks as $block)
+{{-- Hidden edit forms for each block (including children) --}}
+@php
+    $allEditBlocks = collect();
+    foreach($blocks as $block) {
+        $allEditBlocks->push($block);
+        if ($block->type === 'card' && $block->children) {
+            foreach($block->children as $child) {
+                $allEditBlocks->push($child);
+            }
+        }
+    }
+@endphp
+@foreach($allEditBlocks as $block)
 <template id="editForm_{{ $block->id }}">
     <form method="POST" action="{{ route('user.links.blocks.update', [$link, $block]) }}" onsubmit="return ajaxSaveBlock(event, this)">
         @csrf @method('PUT')
@@ -748,6 +831,12 @@ function biolinkEditor() {
                 Alpine.destroyTree(c);
                 c.innerHTML = '';
                 _hideEditPreview();
+            });
+            window.addEventListener('open-card-gallery', function() {
+                self.showGallery = true;
+            });
+            self.$watch('showGallery', function(val) {
+                if (!val) _cardGalleryParentId = null;
             });
         },
         closeEditDrawer() {
@@ -1068,10 +1157,13 @@ function ajaxDeleteBlock(btn, url, blockId) {
     }).catch(function() { btn.disabled = false; showToast('Failed to delete', 'error'); });
 }
 
-function ajaxAddBlock(type, url) {
+var _cardGalleryParentId = null;
+
+function ajaxAddBlock(type, url, parentId) {
     var fd = new FormData();
     fd.append('type', type);
     fd.append('_token', _csrfToken());
+    if (parentId) fd.append('parent_id', parentId);
     fetch(url, {
         method: 'POST',
         headers: { 'Accept': 'application/json' },
@@ -1084,6 +1176,16 @@ function ajaxAddBlock(type, url) {
             showToast(data.error || 'Failed to add block', 'error');
         }
     }).catch(function() { showToast('Failed to add block', 'error'); });
+}
+
+function openCardGallery(cardId) {
+    _cardGalleryParentId = cardId;
+    var el = document.querySelector('[x-data="biolinkEditor()"]');
+    if (el && el.__x) {
+        el.__x.$data.showGallery = true;
+    } else {
+        window.dispatchEvent(new CustomEvent('open-card-gallery'));
+    }
 }
 
 function ajaxSaveBlock(e, form) {
@@ -1128,7 +1230,7 @@ document.addEventListener('DOMContentLoaded', function() {
             easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
             onEnd: function() {
                 var ids = [];
-                el.querySelectorAll('.block-card').forEach(function(card) {
+                el.querySelectorAll(':scope > .block-card').forEach(function(card) {
                     ids.push(parseInt(card.dataset.blockId));
                 });
                 fetch('{{ route("user.links.blocks.reorder", $link) }}', {
@@ -1148,6 +1250,38 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    document.querySelectorAll('.card-child-list').forEach(function(childList) {
+        if (childList.children.length > 0) {
+            new Sortable(childList, {
+                handle: '.child-handle',
+                animation: 200,
+                ghostClass: 'sortable-ghost',
+                chosenClass: 'sortable-chosen',
+                easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+                onEnd: function() {
+                    var ids = [];
+                    childList.querySelectorAll('.child-block-card').forEach(function(card) {
+                        ids.push(parseInt(card.dataset.blockId));
+                    });
+                    fetch('{{ route("user.links.blocks.reorder", $link) }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': _csrfToken(),
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ blocks: ids })
+                    }).then(function(r) {
+                        if (r.ok) {
+                            showToast('Order saved', 'success');
+                            refreshPreview();
+                        }
+                    });
+                }
+            });
+        }
+    });
 });
 </script>
 @endsection

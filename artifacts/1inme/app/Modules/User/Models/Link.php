@@ -75,6 +75,7 @@ class Link extends Model
     {
         return $this->hasMany(BiolinkBlock::class)
             ->where('is_active', true)
+            ->whereNull('parent_id')
             ->orderBy('sort_order');
     }
 

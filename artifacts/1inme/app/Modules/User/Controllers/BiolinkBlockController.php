@@ -14,7 +14,8 @@ class BiolinkBlockController extends Controller
     public function editor(Link $link)
     {
         abort_if($link->user_id !== auth()->id() || $link->type !== 'biolink', 403);
-        $blocks = $link->biolinkBlocks;
+        $blocks = $link->biolinkBlocks()->whereNull('parent_id')->orderBy('sort_order')->get();
+        $blocks->load('children');
         $blockTypes = BiolinkBlock::TYPES;
         $blockCategories = BiolinkBlock::CATEGORIES;
         return view('user.links.biolink-editor', compact('link', 'blocks', 'blockTypes', 'blockCategories'));
@@ -57,9 +58,17 @@ class BiolinkBlockController extends Controller
             'type' => 'required|string|in:' . implode(',', array_keys(BiolinkBlock::TYPES)),
             'settings' => 'nullable|array',
             'is_active' => 'boolean',
+            'parent_id' => 'nullable|integer|exists:biolink_blocks,id',
         ]);
 
-        $maxSort = $link->biolinkBlocks()->max('sort_order') ?? -1;
+        $parentId = $validated['parent_id'] ?? null;
+        if ($parentId) {
+            $parentBlock = BiolinkBlock::where('id', $parentId)->where('link_id', $link->id)->where('type', 'card')->firstOrFail();
+            $maxSort = $parentBlock->children()->max('sort_order') ?? -1;
+        } else {
+            $maxSort = $link->biolinkBlocks()->whereNull('parent_id')->max('sort_order') ?? -1;
+        }
+
         $settings = $validated['settings'] ?? $this->getDefaultSettings($validated['type']);
         $settings = $this->sanitizeSettings($validated['type'], $settings);
 
@@ -68,6 +77,7 @@ class BiolinkBlockController extends Controller
             'settings' => $settings,
             'sort_order' => $maxSort + 1,
             'is_active' => $validated['is_active'] ?? true,
+            'parent_id' => $parentId,
         ]);
 
         if ($request->ajax()) {
@@ -569,6 +579,23 @@ class BiolinkBlockController extends Controller
             'ticker' => ['items' => ['Breaking news', 'Updates'], 'speed' => 'normal'],
 
             'spacer' => ['height' => 20],
+            'card' => [
+                'title' => '',
+                'columns' => 2,
+                'gap' => 12,
+                'padding' => 16,
+                'border_radius' => 16,
+                'bg_type' => 'glass',
+                'bg_color' => 'rgba(255,255,255,0.06)',
+                'bg_gradient' => '',
+                'bg_image' => '',
+                'glass_blur' => 12,
+                'glass_opacity' => 6,
+                'border_color' => 'rgba(255,255,255,0.08)',
+                'border_width' => 1,
+                'shadow' => 'none',
+                'shadow_color' => '#00000040',
+            ],
 
             'card_slider' => ['cards' => [['title' => 'Card', 'description' => '', 'image' => '', 'url' => '']]],
             'scroll_cards' => ['cards' => [['title' => 'Card', 'description' => '', 'image' => '']]],
