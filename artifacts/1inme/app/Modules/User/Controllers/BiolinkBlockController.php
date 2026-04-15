@@ -149,12 +149,14 @@ class BiolinkBlockController extends Controller
             'custom_css' => 'nullable|string|max:10000',
             'custom_js_head' => 'nullable|string|max:10000',
             'custom_js_body' => 'nullable|string|max:10000',
+            'layout' => 'nullable|array',
         ]);
 
         $user = auth()->user();
         $settings = $link->settings ?? [];
         $blockTheme = $validated['block_theme'] ?? null;
-        unset($validated['block_theme']);
+        $layoutInput = $validated['layout'] ?? null;
+        unset($validated['block_theme'], $validated['layout']);
 
         if (!$user->getPlanFeature('custom_branding', false)) {
             unset($validated['custom_branding_text'], $validated['custom_branding_url'], $validated['custom_branding_logo']);
@@ -173,6 +175,10 @@ class BiolinkBlockController extends Controller
         if ($blockTheme !== null) {
             $settings['biolink']['block_theme'] = $this->sanitizeBlockStyle($blockTheme);
             $settings['biolink']['block_theme']['apply_to_all'] = !empty($blockTheme['apply_to_all']);
+        }
+
+        if ($layoutInput !== null) {
+            $settings['biolink']['layout'] = $this->sanitizeLayout($layoutInput);
         }
 
         if ($request->hasFile('background_image')) {
@@ -204,6 +210,27 @@ class BiolinkBlockController extends Controller
         $link->update($updateData);
 
         return redirect()->route('user.links.blocks.editor', $link)->with('success', 'Page settings updated.');
+    }
+
+    private function sanitizeLayout(array $input): array
+    {
+        $bounds = [
+            'max_width_phone' => [280, 600],
+            'max_width_tablet' => [320, 900],
+            'max_width_desktop' => [400, 1200],
+            'page_padding_top' => [0, 200],
+            'page_padding_bottom' => [0, 200],
+            'page_padding_x' => [0, 100],
+            'block_gap' => [0, 100],
+            'block_padding' => [0, 60],
+        ];
+        $result = [];
+        foreach ($bounds as $key => [$min, $max]) {
+            if (isset($input[$key]) && $input[$key] !== '' && is_numeric($input[$key])) {
+                $result[$key] = max($min, min($max, (int) $input[$key]));
+            }
+        }
+        return $result;
     }
 
     private function sanitizeUrl(?string $url): string
@@ -469,6 +496,14 @@ class BiolinkBlockController extends Controller
             'glass_blur' => [0, 100],
             'glass_opacity' => [0, 100],
             'padding' => [0, 60],
+            'padding_top' => [0, 200],
+            'padding_bottom' => [0, 200],
+            'padding_left' => [0, 200],
+            'padding_right' => [0, 200],
+            'margin_top' => [-100, 200],
+            'margin_bottom' => [-100, 200],
+            'margin_left' => [-100, 200],
+            'margin_right' => [-100, 200],
         ];
         $colorKeys = ['text_color', 'bg_color', 'border_color', 'shadow_color'];
         $fontWeightKeys = ['font_weight'];

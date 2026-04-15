@@ -181,6 +181,14 @@ class BiolinkBlock extends Model
         'glass_blur' => 20,
         'glass_opacity' => 15,
         'padding' => '',
+        'padding_top' => '',
+        'padding_bottom' => '',
+        'padding_left' => '',
+        'padding_right' => '',
+        'margin_top' => '',
+        'margin_bottom' => '',
+        'margin_left' => '',
+        'margin_right' => '',
         '_template' => '',
     ];
 
@@ -324,7 +332,28 @@ class BiolinkBlock extends Model
         if (!empty($style['font_weight'])) $css[] = "font-weight:{$style['font_weight']}";
         if (($style['font_style'] ?? 'normal') !== 'normal') $css[] = "font-style:{$style['font_style']}";
         if (!empty($style['text_color'])) $css[] = "color:{$style['text_color']}";
-        if (!empty($style['padding'])) $css[] = "padding:{$style['padding']}px";
+
+        $hasIndividualPadding = !empty($style['padding_top']) || !empty($style['padding_bottom']) || !empty($style['padding_left']) || !empty($style['padding_right']);
+        if ($hasIndividualPadding) {
+            $pt = !empty($style['padding_top']) ? $style['padding_top'] . 'px' : (!empty($style['padding']) ? $style['padding'] . 'px' : '');
+            $pb = !empty($style['padding_bottom']) ? $style['padding_bottom'] . 'px' : (!empty($style['padding']) ? $style['padding'] . 'px' : '');
+            $pl = !empty($style['padding_left']) ? $style['padding_left'] . 'px' : (!empty($style['padding']) ? $style['padding'] . 'px' : '');
+            $pr = !empty($style['padding_right']) ? $style['padding_right'] . 'px' : (!empty($style['padding']) ? $style['padding'] . 'px' : '');
+            if ($pt) $css[] = "padding-top:{$pt}";
+            if ($pb) $css[] = "padding-bottom:{$pb}";
+            if ($pl) $css[] = "padding-left:{$pl}";
+            if ($pr) $css[] = "padding-right:{$pr}";
+        } elseif (!empty($style['padding'])) {
+            $css[] = "padding:{$style['padding']}px";
+        }
+
+        $hasMargin = !empty($style['margin_top']) || !empty($style['margin_bottom']) || !empty($style['margin_left']) || !empty($style['margin_right']);
+        if ($hasMargin) {
+            if (!empty($style['margin_top'])) $css[] = "margin-top:{$style['margin_top']}px";
+            if (!empty($style['margin_bottom'])) $css[] = "margin-bottom:{$style['margin_bottom']}px";
+            if (!empty($style['margin_left'])) $css[] = "margin-left:{$style['margin_left']}px";
+            if (!empty($style['margin_right'])) $css[] = "margin-right:{$style['margin_right']}px";
+        }
 
         if (($style['display_mode'] ?? 'card') === 'card') {
             $bgOpacity = ($style['bg_opacity'] ?? 100) / 100;

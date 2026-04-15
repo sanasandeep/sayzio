@@ -459,6 +459,7 @@ $catColors = [
                         @endphp
                         @foreach([
                             ['key' => 'customizations', 'icon' => 'fa-palette', 'color' => '236,72,153', 'label' => 'Customizations'],
+                            ['key' => 'layout', 'icon' => 'fa-ruler-combined', 'color' => '34,211,238', 'label' => 'Page Layout'],
                             ['key' => 'block_theme', 'icon' => 'fa-wand-magic-sparkles', 'color' => '139,92,246', 'label' => 'Global Block Theme'],
                             ['key' => 'verified', 'icon' => 'fa-check-circle', 'color' => '16,185,129', 'label' => 'Verified badge'],
                             ['key' => 'branding', 'icon' => 'fa-star', 'color' => '245,158,11', 'label' => 'Branding'],
@@ -497,6 +498,80 @@ $catColors = [
                                     </div>
                                     <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm mt-2">Save Customizations</button>
                                 </div>
+                                @elseif($section['key'] === 'layout')
+                                @php $layout = $bs['layout'] ?? []; @endphp
+                                <div class="space-y-5">
+                                    <div>
+                                        <div class="flex items-center gap-2 mb-3">
+                                            <div class="w-5 h-5 rounded flex items-center justify-center" style="background: rgba(34,211,238,0.1);"><i class="fas fa-arrows-left-right text-[8px]" style="color: #22d3ee;"></i></div>
+                                            <span class="text-xs font-semibold" style="color: var(--text-primary);">Content Max Width</span>
+                                        </div>
+                                        <p class="text-[10px] mb-3" style="color: var(--text-dimmed);">Set the maximum width of the biolink content area for each device size. Leave empty for defaults.</p>
+                                        <div class="space-y-3">
+                                            <div class="flex items-center gap-3 p-3 rounded-xl" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                                                <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(139,92,246,0.1);"><i class="fas fa-mobile-alt text-xs" style="color: #a78bfa;"></i></div>
+                                                <div class="flex-1">
+                                                    <label class="block text-[10px] font-semibold mb-1" style="color: var(--text-muted);">Phone (px)</label>
+                                                    <input type="number" name="layout[max_width_phone]" value="{{ $layout['max_width_phone'] ?? '' }}" placeholder="448 (default)" min="280" max="600" class="theme-input w-full">
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center gap-3 p-3 rounded-xl" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                                                <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(236,72,153,0.1);"><i class="fas fa-tablet-alt text-xs" style="color: #ec4899;"></i></div>
+                                                <div class="flex-1">
+                                                    <label class="block text-[10px] font-semibold mb-1" style="color: var(--text-muted);">Tablet (px)</label>
+                                                    <input type="number" name="layout[max_width_tablet]" value="{{ $layout['max_width_tablet'] ?? '' }}" placeholder="540 (default)" min="320" max="900" class="theme-input w-full">
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center gap-3 p-3 rounded-xl" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                                                <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(34,211,238,0.1);"><i class="fas fa-desktop text-xs" style="color: #22d3ee;"></i></div>
+                                                <div class="flex-1">
+                                                    <label class="block text-[10px] font-semibold mb-1" style="color: var(--text-muted);">Desktop (px)</label>
+                                                    <input type="number" name="layout[max_width_desktop]" value="{{ $layout['max_width_desktop'] ?? '' }}" placeholder="680 (default)" min="400" max="1200" class="theme-input w-full">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div style="border-top: 1px solid var(--border-subtle);" class="pt-4">
+                                        <div class="flex items-center gap-2 mb-3">
+                                            <div class="w-5 h-5 rounded flex items-center justify-center" style="background: rgba(251,146,60,0.1);"><i class="fas fa-arrows-alt-v text-[8px]" style="color: #fb923c;"></i></div>
+                                            <span class="text-xs font-semibold" style="color: var(--text-primary);">Page Padding</span>
+                                        </div>
+                                        <p class="text-[10px] mb-3" style="color: var(--text-dimmed);">Padding around the entire biolink page content area.</p>
+                                        <div class="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label class="block text-[10px] mb-1" style="color: var(--text-faint);">Top (px)</label>
+                                                <input type="number" name="layout[page_padding_top]" value="{{ $layout['page_padding_top'] ?? '' }}" placeholder="32" min="0" max="200" class="theme-input w-full">
+                                            </div>
+                                            <div>
+                                                <label class="block text-[10px] mb-1" style="color: var(--text-faint);">Bottom (px)</label>
+                                                <input type="number" name="layout[page_padding_bottom]" value="{{ $layout['page_padding_bottom'] ?? '' }}" placeholder="64" min="0" max="200" class="theme-input w-full">
+                                            </div>
+                                            <div class="col-span-2">
+                                                <label class="block text-[10px] mb-1" style="color: var(--text-faint);">Horizontal / Sides (px)</label>
+                                                <input type="number" name="layout[page_padding_x]" value="{{ $layout['page_padding_x'] ?? '' }}" placeholder="16" min="0" max="100" class="theme-input w-full">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div style="border-top: 1px solid var(--border-subtle);" class="pt-4">
+                                        <div class="flex items-center gap-2 mb-3">
+                                            <div class="w-5 h-5 rounded flex items-center justify-center" style="background: rgba(139,92,246,0.1);"><i class="fas fa-layer-group text-[8px]" style="color: #a78bfa;"></i></div>
+                                            <span class="text-xs font-semibold" style="color: var(--text-primary);">Default Block Spacing</span>
+                                        </div>
+                                        <p class="text-[10px] mb-3" style="color: var(--text-dimmed);">Default spacing applied to all blocks. Individual block settings override these.</p>
+                                        <div class="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label class="block text-[10px] mb-1" style="color: var(--text-faint);">Block Gap (px)</label>
+                                                <input type="number" name="layout[block_gap]" value="{{ $layout['block_gap'] ?? '' }}" placeholder="12" min="0" max="100" class="theme-input w-full">
+                                            </div>
+                                            <div>
+                                                <label class="block text-[10px] mb-1" style="color: var(--text-faint);">Block Padding (px)</label>
+                                                <input type="number" name="layout[block_padding]" value="{{ $layout['block_padding'] ?? '' }}" placeholder="Auto" min="0" max="60" class="theme-input w-full">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm mt-2">Save Layout</button>
+                                </div>
+
                                 @elseif($section['key'] === 'block_theme')
                                 @php
                                     $bt = $bs['block_theme'] ?? [];
@@ -552,7 +627,25 @@ $catColors = [
                                             <div><label class="block text-xs mb-1.5" style="color: var(--text-faint);">Background Color</label><input type="color" name="block_theme[bg_color]" value="{{ $bt['bg_color'] ?? '#ffffff0d' }}" class="w-full h-9 rounded-lg cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
                                             <div><label class="block text-xs mb-1.5" style="color: var(--text-faint);">Opacity (%)</label><input type="number" name="block_theme[bg_opacity]" value="{{ $bt['bg_opacity'] ?? 100 }}" min="0" max="100" class="theme-input w-full"></div>
                                         </div>
-                                        <div><label class="block text-xs mb-1.5" style="color: var(--text-faint);">Padding (px)</label><input type="number" name="block_theme[padding]" value="{{ $bt['padding'] ?? '' }}" placeholder="Auto" min="0" max="60" class="theme-input w-full"></div>
+                                        <div class="pt-3" style="border-top: 1px solid var(--border-subtle);">
+                                            <p class="text-[10px] font-semibold mb-2" style="color: var(--text-muted);"><i class="fas fa-expand mr-1 text-cyan-400"></i>Default Padding</p>
+                                            <div><label class="block text-[10px] mb-1" style="color: var(--text-faint);">All Sides (px)</label><input type="number" name="block_theme[padding]" value="{{ $bt['padding'] ?? '' }}" placeholder="Auto" min="0" max="60" class="theme-input w-full"></div>
+                                            <div class="grid grid-cols-4 gap-2 mt-2">
+                                                <div><label class="block text-[10px] mb-1" style="color: var(--text-faint);">Top</label><input type="number" name="block_theme[padding_top]" value="{{ $bt['padding_top'] ?? '' }}" placeholder="—" min="0" max="200" class="theme-input w-full"></div>
+                                                <div><label class="block text-[10px] mb-1" style="color: var(--text-faint);">Bottom</label><input type="number" name="block_theme[padding_bottom]" value="{{ $bt['padding_bottom'] ?? '' }}" placeholder="—" min="0" max="200" class="theme-input w-full"></div>
+                                                <div><label class="block text-[10px] mb-1" style="color: var(--text-faint);">Left</label><input type="number" name="block_theme[padding_left]" value="{{ $bt['padding_left'] ?? '' }}" placeholder="—" min="0" max="200" class="theme-input w-full"></div>
+                                                <div><label class="block text-[10px] mb-1" style="color: var(--text-faint);">Right</label><input type="number" name="block_theme[padding_right]" value="{{ $bt['padding_right'] ?? '' }}" placeholder="—" min="0" max="200" class="theme-input w-full"></div>
+                                            </div>
+                                        </div>
+                                        <div class="pt-3" style="border-top: 1px solid var(--border-subtle);">
+                                            <p class="text-[10px] font-semibold mb-2" style="color: var(--text-muted);"><i class="fas fa-arrows-alt-v mr-1 text-orange-400"></i>Default Margin</p>
+                                            <div class="grid grid-cols-4 gap-2">
+                                                <div><label class="block text-[10px] mb-1" style="color: var(--text-faint);">Top</label><input type="number" name="block_theme[margin_top]" value="{{ $bt['margin_top'] ?? '' }}" placeholder="—" min="-100" max="200" class="theme-input w-full"></div>
+                                                <div><label class="block text-[10px] mb-1" style="color: var(--text-faint);">Bottom</label><input type="number" name="block_theme[margin_bottom]" value="{{ $bt['margin_bottom'] ?? '' }}" placeholder="—" min="-100" max="200" class="theme-input w-full"></div>
+                                                <div><label class="block text-[10px] mb-1" style="color: var(--text-faint);">Left</label><input type="number" name="block_theme[margin_left]" value="{{ $bt['margin_left'] ?? '' }}" placeholder="—" min="-100" max="200" class="theme-input w-full"></div>
+                                                <div><label class="block text-[10px] mb-1" style="color: var(--text-faint);">Right</label><input type="number" name="block_theme[margin_right]" value="{{ $bt['margin_right'] ?? '' }}" placeholder="—" min="-100" max="200" class="theme-input w-full"></div>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <div x-show="gtTab === 'border'" class="space-y-3">

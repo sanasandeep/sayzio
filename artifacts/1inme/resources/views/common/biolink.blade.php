@@ -119,13 +119,44 @@
         @keyframes ticker { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
         @keyframes morphText { 0%,100% { filter: blur(0px); } 50% { filter: blur(3px); } }
         .morph-text { animation: morphText 4s ease-in-out infinite; }
+        @php
+            $layout = $bs['layout'] ?? [];
+            $maxPhone = $layout['max_width_phone'] ?? 448;
+            $maxTablet = $layout['max_width_tablet'] ?? 540;
+            $maxDesktop = $layout['max_width_desktop'] ?? 680;
+            $pagePadTop = $layout['page_padding_top'] ?? 32;
+            $pagePadBottom = $layout['page_padding_bottom'] ?? 64;
+            $pagePadX = $layout['page_padding_x'] ?? 16;
+            $blockGap = $layout['block_gap'] ?? 12;
+            $defaultBlockPadding = $layout['block_padding'] ?? '';
+        @endphp
+        .biolink-container {
+            width: 100%;
+            max-width: {{ $maxPhone }}px;
+            margin: 0 auto;
+            padding: {{ $pagePadTop }}px {{ $pagePadX }}px {{ $pagePadBottom }}px;
+        }
+        @media (min-width: 768px) {
+            .biolink-container { max-width: {{ $maxTablet }}px; }
+        }
+        @media (min-width: 1024px) {
+            .biolink-container { max-width: {{ $maxDesktop }}px; }
+        }
+        .biolink-block-wrap {
+            margin-bottom: {{ $blockGap }}px;
+        }
+        @if($defaultBlockPadding)
+        .biolink-block-wrap > :first-child {
+            padding: {{ $defaultBlockPadding }}px;
+        }
+        @endif
     </style>
     @if(!empty($bs['custom_css']))
     <style>{!! $bs['custom_css'] !!}</style>
     @endif
 </head>
-<body class="flex justify-center p-4 pt-8 pb-16">
-    <div class="w-full max-w-md">
+<body class="flex justify-center">
+    <div class="biolink-container">
         @php
             $blocks = $link->activeBiolinkBlocks()->get()->filter(fn($b) => $b->isVisible());
             $pageTitle = $bs['biolink_title'] ?? $link->title ?: 'Bio Link';

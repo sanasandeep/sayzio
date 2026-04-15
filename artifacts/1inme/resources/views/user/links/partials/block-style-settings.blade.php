@@ -65,6 +65,12 @@
                     class="flex-1 text-[10px] font-bold py-1.5 rounded-md transition-all">
                 <i class="fas fa-sparkles mr-1"></i>FX
             </button>
+            <button type="button" @click="activeStyleTab = 'spacing'"
+                    :class="activeStyleTab === 'spacing' ? 'text-white shadow-sm' : ''"
+                    :style="activeStyleTab === 'spacing' ? 'background: linear-gradient(135deg, #8b5cf6, #7c3aed);' : 'color: var(--text-faint);'"
+                    class="flex-1 text-[10px] font-bold py-1.5 rounded-md transition-all">
+                <i class="fas fa-arrows-alt mr-1"></i>Space
+            </button>
         </div>
 
         {{-- TEMPLATES TAB --}}
@@ -168,10 +174,6 @@
                 <label class="{{ $labelClass }}">Background Image URL</label>
                 <input type="url" name="style[bg_image]" value="{{ $st['bg_image'] ?? '' }}" placeholder="https://..." class="{{ $inputClass }}">
             </div>
-            <div>
-                <label class="{{ $labelClass }}">Padding (px)</label>
-                <input type="number" name="style[padding]" value="{{ $st['padding'] ?? '' }}" placeholder="Auto" min="0" max="60" class="{{ $inputClass }}">
-            </div>
         </div>
 
         {{-- BORDER TAB --}}
@@ -253,6 +255,68 @@
             <div>
                 <label class="{{ $labelClass }}">Glass Opacity (%)</label>
                 <input type="number" name="style[glass_opacity]" value="{{ $st['glass_opacity'] ?? 15 }}" min="0" max="100" class="{{ $inputClass }}">
+            </div>
+        </div>
+
+        {{-- SPACING TAB --}}
+        <div x-show="activeStyleTab === 'spacing'" class="space-y-4">
+            <div>
+                <div class="flex items-center gap-2 mb-2">
+                    <div class="w-5 h-5 rounded flex items-center justify-center" style="background: rgba(34,211,238,0.1); border: 1px solid rgba(34,211,238,0.15);"><i class="fas fa-expand text-[8px]" style="color: #22d3ee;"></i></div>
+                    <span class="text-[11px] font-semibold" style="color: var(--text-primary);">Padding (inner spacing)</span>
+                </div>
+                <div class="relative p-3 rounded-xl" style="background: var(--bg-glass-input); border: 1px dashed var(--border-glass);">
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="{{ $labelClass }}">Top (px)</label>
+                            <input type="number" name="style[padding_top]" value="{{ $st['padding_top'] ?? '' }}" placeholder="—" min="0" max="200" class="{{ $inputClass }}">
+                        </div>
+                        <div>
+                            <label class="{{ $labelClass }}">Bottom (px)</label>
+                            <input type="number" name="style[padding_bottom]" value="{{ $st['padding_bottom'] ?? '' }}" placeholder="—" min="0" max="200" class="{{ $inputClass }}">
+                        </div>
+                        <div>
+                            <label class="{{ $labelClass }}">Left (px)</label>
+                            <input type="number" name="style[padding_left]" value="{{ $st['padding_left'] ?? '' }}" placeholder="—" min="0" max="200" class="{{ $inputClass }}">
+                        </div>
+                        <div>
+                            <label class="{{ $labelClass }}">Right (px)</label>
+                            <input type="number" name="style[padding_right]" value="{{ $st['padding_right'] ?? '' }}" placeholder="—" min="0" max="200" class="{{ $inputClass }}">
+                        </div>
+                    </div>
+                    <div class="mt-2 pt-2" style="border-top: 1px solid var(--border-subtle);">
+                        <label class="{{ $labelClass }}">All Sides (px)</label>
+                        <input type="number" name="style[padding]" value="{{ $st['padding'] ?? '' }}" placeholder="Auto" min="0" max="60" class="{{ $inputClass }}">
+                        <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">Sets uniform padding; individual values override this</p>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <div class="flex items-center gap-2 mb-2">
+                    <div class="w-5 h-5 rounded flex items-center justify-center" style="background: rgba(251,146,60,0.1); border: 1px solid rgba(251,146,60,0.15);"><i class="fas fa-arrows-alt-v text-[8px]" style="color: #fb923c;"></i></div>
+                    <span class="text-[11px] font-semibold" style="color: var(--text-primary);">Margin (outer spacing)</span>
+                </div>
+                <div class="relative p-3 rounded-xl" style="background: var(--bg-glass-input); border: 1px dashed var(--border-glass);">
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="{{ $labelClass }}">Top (px)</label>
+                            <input type="number" name="style[margin_top]" value="{{ $st['margin_top'] ?? '' }}" placeholder="—" min="-100" max="200" class="{{ $inputClass }}">
+                        </div>
+                        <div>
+                            <label class="{{ $labelClass }}">Bottom (px)</label>
+                            <input type="number" name="style[margin_bottom]" value="{{ $st['margin_bottom'] ?? '' }}" placeholder="—" min="-100" max="200" class="{{ $inputClass }}">
+                        </div>
+                        <div>
+                            <label class="{{ $labelClass }}">Left (px)</label>
+                            <input type="number" name="style[margin_left]" value="{{ $st['margin_left'] ?? '' }}" placeholder="—" min="-100" max="200" class="{{ $inputClass }}">
+                        </div>
+                        <div>
+                            <label class="{{ $labelClass }}">Right (px)</label>
+                            <input type="number" name="style[margin_right]" value="{{ $st['margin_right'] ?? '' }}" placeholder="—" min="-100" max="200" class="{{ $inputClass }}">
+                        </div>
+                    </div>
+                    <p class="text-[10px] mt-2" style="color: var(--text-dimmed);"><i class="fas fa-info-circle mr-1"></i>Negative values pull the block closer to neighbors</p>
+                </div>
             </div>
         </div>
 
