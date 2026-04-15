@@ -14,7 +14,9 @@ use App\Modules\User\Controllers\VcfLinkController;
 use App\Modules\User\Controllers\QrCodeController;
 use App\Modules\User\Controllers\BiolinkBlockController;
 use App\Modules\User\Controllers\UserFileController;
+use App\Modules\User\Controllers\PlanManagementController;
 use App\Modules\User\Middleware\CheckPlanLimit;
+use App\Modules\User\Middleware\SuperAdmin;
 
 Route::get('/', [\App\Modules\Common\Controllers\HomeController::class, 'index'])->name('home');
 
@@ -87,6 +89,10 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post('upload', [UserFileController::class, 'upload'])->name('upload');
             Route::delete('{file}', [UserFileController::class, 'destroy'])->name('destroy');
             Route::get('quota', [UserFileController::class, 'quota'])->name('quota');
+        });
+
+        Route::middleware(SuperAdmin::class)->group(function () {
+            Route::resource('plans', PlanManagementController::class)->except(['show']);
         });
     });
 });

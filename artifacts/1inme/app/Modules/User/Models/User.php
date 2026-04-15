@@ -11,7 +11,7 @@ class User extends Authenticatable
     use Notifiable;
 
     protected $fillable = [
-        'name', 'email', 'mobile', 'password', 'phone', 'avatar', 'status',
+        'name', 'email', 'mobile', 'password', 'phone', 'avatar', 'status', 'role',
         'plan_id', 'billing_cycle', 'plan_expires_at', 'trial_ends_at',
         'timezone', 'language', 'email_verified_at', 'last_login_at',
     ];
@@ -85,6 +85,11 @@ class User extends Authenticatable
         if ($this->isOnTrial()) return true;
         if (!$this->plan_expires_at) return false;
         return $this->plan_expires_at->isFuture();
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === 'super_admin';
     }
 
     public function isOnFreePlan(): bool

@@ -341,6 +341,17 @@
                     <span class="sidebar-tooltip">Files</span>
                 </a>
 
+                @if(auth()->user()->isSuperAdmin())
+                <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Super Admin</div>
+
+                <a href="{{ route('user.plans.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.plans.*') ? 'active' : '' }}">
+                    <div class="nav-icon-wrap"><i class="fas fa-layer-group"></i></div>
+                    <span class="nav-label">Plans</span>
+                    <span class="sidebar-tooltip">Plans</span>
+                </a>
+                @endif
+
                 <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Account</div>
 
                 <a href="{{ route('user.profile.edit') }}"
@@ -493,6 +504,12 @@
                         <a href="{{ route('user.projects.index') }}" class="sidebar-link {{ request()->routeIs('user.projects.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-folder"></i></div> <span>Projects</span></a>
                         <a href="{{ route('user.pixels.index') }}" class="sidebar-link {{ request()->routeIs('user.pixels.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bullseye"></i></div> <span>Pixels</span></a>
                         <a href="{{ route('user.files.index') }}" class="sidebar-link {{ request()->routeIs('user.files.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-cloud-upload-alt"></i></div> <span>My Files</span></a>
+                        @if(auth()->user()->isSuperAdmin())
+                        <div class="pt-3 mt-2" style="border-top: 1px solid var(--border-subtle);">
+                            <p class="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Super Admin</p>
+                            <a href="{{ route('user.plans.index') }}" class="sidebar-link {{ request()->routeIs('user.plans.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-layer-group"></i></div> <span>Plans</span></a>
+                        </div>
+                        @endif
                         <a href="{{ route('user.profile.edit') }}" class="sidebar-link {{ request()->routeIs('user.profile.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-circle"></i></div> <span>Profile</span></a>
                     </nav>
                     <div class="p-3" style="border-top: 1px solid var(--border-subtle);">

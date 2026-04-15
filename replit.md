@@ -34,6 +34,9 @@ Image blocks can have optional trackable destination URLs with full link attribu
 #### Block Display Settings
 Per-block visibility can be controlled by schedule (dates), geographical location (continents, countries, cities), device type, operating system, browser, and browser language. Visibility rules operate on an allowlist basis.
 
+### Super Admin Role System
+Users can have a `role` column (`user` or `super_admin`). Super admins get access to a "Super Admin" section in the sidebar with Plans CRUD management. The `SuperAdmin` middleware (`App\Modules\User\Middleware\SuperAdmin`) gates routes server-side. The demo user (demo@1inme.com) is created with `super_admin` role. Plans management at `user/plans/*` allows creating, editing, and deleting subscription plans with features/limits configuration.
+
 ### File Management System
 A per-user file storage system organizes files (images, videos, audio, documents) into `user-files/{user_id}/{type}s/` with UUID-based filenames. It includes quota management (`storage_limit_mb`, `max_file_size_mb`) configurable per plan. An AJAX API handles file listing, upload, deletion, and quota checks. Allowed file types are strictly defined.
 

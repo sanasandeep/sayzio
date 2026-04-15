@@ -172,6 +172,7 @@ class AuthController extends Controller
                 'name' => 'Demo User',
                 'email' => 'demo@1inme.com',
                 'password' => Hash::make('password'),
+                'role' => 'super_admin',
                 'plan_id' => $freePlan?->id,
                 'status' => 'active',
                 'email_verified_at' => now(),
