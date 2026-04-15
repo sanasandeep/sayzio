@@ -30,6 +30,102 @@
         box-shadow: 0 0 12px rgba(139,92,246,0.1);
     }
 
+    .device-frame-phone {
+        --frame-w: 290px;
+        --scale: 0.773;
+        --viewport-w: 375px;
+        --viewport-h: 812px;
+        width: var(--frame-w);
+    }
+    .device-frame-phone .device-screen {
+        width: calc(var(--viewport-w) * var(--scale));
+        height: calc(var(--viewport-h) * var(--scale));
+        overflow: hidden;
+        border-radius: 2rem;
+    }
+    .device-frame-phone .device-screen iframe {
+        width: var(--viewport-w);
+        height: var(--viewport-h);
+        transform: scale(var(--scale));
+        transform-origin: top left;
+        border: 0;
+    }
+
+    .device-frame-tablet {
+        --scale: 0.52;
+        --viewport-w: 768px;
+        --viewport-h: 1024px;
+        width: calc(var(--viewport-w) * var(--scale) + 24px);
+        max-width: 100%;
+    }
+    .device-frame-tablet .device-screen {
+        width: calc(var(--viewport-w) * var(--scale));
+        height: calc(var(--viewport-h) * var(--scale));
+        overflow: hidden;
+        border-radius: 0.75rem;
+        margin: 0 auto;
+    }
+    .device-frame-tablet .device-screen iframe {
+        width: var(--viewport-w);
+        height: var(--viewport-h);
+        transform: scale(var(--scale));
+        transform-origin: top left;
+        border: 0;
+    }
+
+    .device-frame-tablet-land {
+        --scale: 0.44;
+        --viewport-w: 1024px;
+        --viewport-h: 768px;
+        width: calc(var(--viewport-w) * var(--scale) + 24px);
+        max-width: 100%;
+    }
+    .device-frame-tablet-land .device-screen {
+        width: calc(var(--viewport-w) * var(--scale));
+        height: calc(var(--viewport-h) * var(--scale));
+        overflow: hidden;
+        border-radius: 0.75rem;
+        margin: 0 auto;
+    }
+    .device-frame-tablet-land .device-screen iframe {
+        width: var(--viewport-w);
+        height: var(--viewport-h);
+        transform: scale(var(--scale));
+        transform-origin: top left;
+        border: 0;
+    }
+
+    .device-frame-desktop {
+        --scale: 0.38;
+        --viewport-w: 1440px;
+        --viewport-h: 900px;
+        width: calc(var(--viewport-w) * var(--scale) + 6px);
+        max-width: 100%;
+    }
+    .device-frame-desktop .device-screen {
+        width: calc(var(--viewport-w) * var(--scale));
+        height: calc(var(--viewport-h) * var(--scale));
+        overflow: hidden;
+        margin: 0 auto;
+    }
+    .device-frame-desktop .device-screen iframe {
+        width: var(--viewport-w);
+        height: var(--viewport-h);
+        transform: scale(var(--scale));
+        transform-origin: top left;
+        border: 0;
+    }
+
+    .device-resolution-label {
+        text-align: center;
+        font-size: 10px;
+        color: var(--text-faint);
+        margin-top: 8px;
+        font-family: 'SF Mono', 'Fira Code', monospace;
+        letter-spacing: 0.5px;
+        opacity: 0.6;
+    }
+
     .block-card {
         position: relative;
         border-radius: 1rem;
@@ -743,56 +839,74 @@ $catColors = [
                     </button>
                 </div>
                 <div class="flex justify-center transition-all duration-500 ease-in-out">
-                    {{-- Phone --}}
-                    <div x-show="previewMode === 'phone'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" class="relative" style="width: 320px;">
-                        <div class="absolute -inset-2 rounded-[3.5rem] animate-pulse-glow" style="background: linear-gradient(135deg, rgba(139,92,246,0.1), rgba(168,85,247,0.05)); filter: blur(20px);"></div>
-                        <div class="absolute -inset-1 rounded-[3rem]" style="background: linear-gradient(180deg, rgba(139,92,246,0.15), rgba(255,255,255,0.05), rgba(139,92,246,0.1)); filter: blur(1px);"></div>
-                        <div class="relative bg-black rounded-[2.5rem] p-2 shadow-2xl" style="border: 3px solid rgba(255,255,255,0.08); box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 40px rgba(139,92,246,0.08);">
-                            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-28 h-6 bg-black rounded-b-2xl z-10 flex items-center justify-center">
-                                <div class="w-16 h-3.5 rounded-full" style="background: rgba(255,255,255,0.05);"></div>
+                    {{-- Phone — iPhone 15 style (375×812) --}}
+                    <div x-show="previewMode === 'phone'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" class="device-frame-phone relative mx-auto">
+                        <div class="absolute -inset-3 rounded-[3.5rem] animate-pulse-glow" style="background: linear-gradient(135deg, rgba(139,92,246,0.12), rgba(168,85,247,0.06)); filter: blur(24px);"></div>
+                        <div class="relative bg-black rounded-[2.8rem] p-[10px] shadow-2xl" style="border: 2.5px solid rgba(60,60,70,0.8); box-shadow: 0 24px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 1px rgba(0,0,0,0.3);">
+                            <div class="absolute top-0 left-1/2 -translate-x-1/2 z-10 flex items-center justify-center" style="width: 100px; height: 28px; background: #000; border-radius: 0 0 18px 18px;">
+                                <div class="rounded-full" style="width: 56px; height: 16px; background: rgba(25,25,30,0.95); border: 1px solid rgba(40,40,50,0.6);"></div>
                             </div>
-                            <div class="rounded-[2rem] overflow-hidden" style="height: 580px; background: var(--bg-body);">
-                                <iframe class="preview-iframe w-full h-full border-0 rounded-[2rem]" data-preview="phone" style="transform-origin: top left;"></iframe>
+                            <div class="absolute top-[6px] right-[22px] z-10 flex items-center gap-1">
+                                <div style="width: 14px; height: 8px; border-radius: 2px; border: 1px solid rgba(255,255,255,0.15);"><div style="width: 60%; height: 100%; background: rgba(255,255,255,0.15); border-radius: 1px;"></div></div>
                             </div>
-                            <div class="absolute bottom-2 left-1/2 -translate-x-1/2 w-28 h-1 rounded-full" style="background: rgba(255,255,255,0.08);"></div>
+                            <div class="device-screen relative" style="background: #000;">
+                                <iframe class="preview-iframe" data-preview="phone"></iframe>
+                            </div>
+                            <div class="absolute bottom-[6px] left-1/2 -translate-x-1/2 rounded-full" style="width: 110px; height: 4px; background: rgba(255,255,255,0.12);"></div>
                         </div>
+                        <div class="device-resolution-label">iPhone 15 &middot; 375 &times; 812</div>
                     </div>
-                    {{-- Tablet Portrait --}}
-                    <div x-show="previewMode === 'tablet'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-cloak class="relative" style="width: 100%; max-width: 520px;">
-                        <div class="relative rounded-[1.5rem] p-2 shadow-2xl" style="background: #1a1a2e; border: 3px solid rgba(255,255,255,0.06); box-shadow: 0 20px 60px rgba(0,0,0,0.5);">
-                            <div class="absolute top-2 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full" style="background: rgba(255,255,255,0.05);"></div>
-                            <div class="rounded-xl overflow-hidden mt-4" style="height: 600px; background: var(--bg-body);">
-                                <iframe class="preview-iframe w-full h-full border-0" data-preview="tablet"></iframe>
+                    {{-- Tablet Portrait — iPad style (768×1024) --}}
+                    <div x-show="previewMode === 'tablet'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-cloak class="device-frame-tablet relative mx-auto">
+                        <div class="relative rounded-[1.8rem] shadow-2xl" style="background: linear-gradient(180deg, #2a2a35, #1a1a25); border: 2.5px solid rgba(60,60,70,0.7); box-shadow: 0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);">
+                            <div class="flex justify-center pt-2 pb-1">
+                                <div class="rounded-full" style="width: 8px; height: 8px; background: rgba(30,30,40,0.9); border: 1px solid rgba(60,60,70,0.5); box-shadow: inset 0 1px 2px rgba(0,0,0,0.4);"></div>
                             </div>
-                            <div class="mt-2 flex justify-center"><div class="w-10 h-10 rounded-full" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);"></div></div>
-                        </div>
-                    </div>
-                    {{-- Tablet Landscape --}}
-                    <div x-show="previewMode === 'tablet-land'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-cloak class="relative w-full">
-                        <div class="relative rounded-[1.5rem] p-2 shadow-2xl" style="background: #1a1a2e; border: 3px solid rgba(255,255,255,0.06); box-shadow: 0 20px 60px rgba(0,0,0,0.5);">
-                            <div class="absolute top-1/2 -translate-y-1/2 left-2 w-3 h-3 rounded-full" style="background: rgba(255,255,255,0.05);"></div>
-                            <div class="rounded-xl overflow-hidden ml-4" style="height: 440px; background: var(--bg-body);">
-                                <iframe class="preview-iframe w-full h-full border-0" data-preview="tablet-land"></iframe>
+                            <div class="px-3 pb-3">
+                                <div class="device-screen rounded-lg" style="background: #000;">
+                                    <iframe class="preview-iframe" data-preview="tablet"></iframe>
+                                </div>
                             </div>
                         </div>
+                        <div class="device-resolution-label">iPad &middot; 768 &times; 1024</div>
                     </div>
-                    {{-- Desktop --}}
-                    <div x-show="previewMode === 'desktop'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-cloak class="relative w-full">
-                        <div class="relative rounded-t-xl shadow-2xl" style="background: #1a1a2e; border: 3px solid rgba(255,255,255,0.06); box-shadow: 0 20px 60px rgba(0,0,0,0.5);">
-                            <div class="flex items-center gap-1.5 px-3 py-2" style="border-bottom: 1px solid rgba(255,255,255,0.06);">
-                                <div class="w-2.5 h-2.5 rounded-full" style="background: #ef4444;"></div>
-                                <div class="w-2.5 h-2.5 rounded-full" style="background: #f59e0b;"></div>
-                                <div class="w-2.5 h-2.5 rounded-full" style="background: #22c55e;"></div>
-                                <div class="flex-1 ml-3 rounded-md py-1 px-3 text-[10px] truncate" style="background: rgba(255,255,255,0.04); color: var(--text-faint);">
+                    {{-- Tablet Landscape — iPad landscape (1024×768) --}}
+                    <div x-show="previewMode === 'tablet-land'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-cloak class="device-frame-tablet-land relative mx-auto">
+                        <div class="relative rounded-[1.8rem] shadow-2xl" style="background: linear-gradient(90deg, #2a2a35, #1a1a25); border: 2.5px solid rgba(60,60,70,0.7); box-shadow: 0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);">
+                            <div class="flex items-center" style="min-height: 100%;">
+                                <div class="flex flex-col justify-center items-center px-1.5" style="flex-shrink: 0;">
+                                    <div class="rounded-full" style="width: 8px; height: 8px; background: rgba(30,30,40,0.9); border: 1px solid rgba(60,60,70,0.5); box-shadow: inset 0 1px 2px rgba(0,0,0,0.4);"></div>
+                                </div>
+                                <div class="py-3 pr-3 flex-1">
+                                    <div class="device-screen rounded-lg" style="background: #000;">
+                                        <iframe class="preview-iframe" data-preview="tablet-land"></iframe>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="device-resolution-label">iPad Landscape &middot; 1024 &times; 768</div>
+                    </div>
+                    {{-- Desktop — MacBook style (1440×900) --}}
+                    <div x-show="previewMode === 'desktop'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-cloak class="device-frame-desktop relative mx-auto">
+                        <div class="relative rounded-t-xl shadow-2xl" style="background: linear-gradient(180deg, #2c2c38, #1e1e28); border: 2.5px solid rgba(60,60,70,0.7); border-bottom: none; box-shadow: 0 -2px 40px rgba(0,0,0,0.3);">
+                            <div class="flex items-center gap-1.5 px-4 py-2" style="border-bottom: 1px solid rgba(60,60,70,0.5);">
+                                <div class="w-[10px] h-[10px] rounded-full" style="background: #ff5f57; box-shadow: inset 0 -1px 1px rgba(0,0,0,0.2);"></div>
+                                <div class="w-[10px] h-[10px] rounded-full" style="background: #febc2e; box-shadow: inset 0 -1px 1px rgba(0,0,0,0.2);"></div>
+                                <div class="w-[10px] h-[10px] rounded-full" style="background: #28c840; box-shadow: inset 0 -1px 1px rgba(0,0,0,0.2);"></div>
+                                <div class="flex-1 ml-4 mr-8 rounded-md py-1 px-3 text-[10px] truncate flex items-center gap-1.5" style="background: rgba(0,0,0,0.25); color: rgba(255,255,255,0.4); border: 1px solid rgba(60,60,70,0.4);">
+                                    <i class="fas fa-lock text-[7px]" style="color: rgba(255,255,255,0.25);"></i>
                                     {{ url('/' . $link->alias) }}
                                 </div>
                             </div>
-                            <div class="overflow-hidden" style="height: 480px; background: var(--bg-body);">
-                                <iframe class="preview-iframe w-full h-full border-0" data-preview="desktop"></iframe>
+                            <div class="device-screen" style="background: #000;">
+                                <iframe class="preview-iframe" data-preview="desktop"></iframe>
                             </div>
                         </div>
-                        <div class="mx-auto" style="width: 40%; height: 24px; background: linear-gradient(180deg, #1a1a2e, #111); border-radius: 0 0 4px 4px; border: 2px solid rgba(255,255,255,0.04); border-top: 0;"></div>
-                        <div class="mx-auto" style="width: 60%; height: 6px; background: #1a1a2e; border-radius: 0 0 8px 8px; border: 2px solid rgba(255,255,255,0.04); border-top: 0;"></div>
+                        <div class="mx-auto relative" style="width: 50%; height: 18px; background: linear-gradient(180deg, #2a2a35, #1e1e28); border-radius: 0 0 2px 2px; border: 2px solid rgba(60,60,70,0.5); border-top: 1px solid rgba(60,60,70,0.3);">
+                            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-[3px] rounded-b" style="background: rgba(255,255,255,0.04);"></div>
+                        </div>
+                        <div class="mx-auto" style="width: 70%; height: 4px; background: linear-gradient(180deg, #25252f, #1a1a22); border-radius: 0 0 8px 8px; border: 1.5px solid rgba(60,60,70,0.4); border-top: none;"></div>
+                        <div class="device-resolution-label">MacBook &middot; 1440 &times; 900</div>
                     </div>
                 </div>
             </div>
