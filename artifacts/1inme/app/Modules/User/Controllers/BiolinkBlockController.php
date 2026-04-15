@@ -85,7 +85,7 @@ class BiolinkBlockController extends Controller
         abort_if($link->user_id !== auth()->id() || $block->link_id !== $link->id, 403);
         $block->delete();
 
-        if (request()->ajax()) {
+        if (request()->ajax() || request()->wantsJson()) {
             return response()->json(['success' => true]);
         }
 
@@ -115,8 +115,8 @@ class BiolinkBlockController extends Controller
         abort_if($link->user_id !== auth()->id() || $block->link_id !== $link->id, 403);
         $block->update(['is_active' => !$block->is_active]);
 
-        if (request()->ajax()) {
-            return response()->json(['success' => true, 'is_active' => $block->is_active]);
+        if (request()->ajax() || request()->wantsJson()) {
+            return response()->json(['success' => true, 'block' => $block->fresh()]);
         }
 
         return redirect()->route('user.links.blocks.editor', $link)->with('success', 'Block visibility toggled.');

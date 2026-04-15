@@ -82,6 +82,32 @@ pnpm workspace monorepo using TypeScript + PHP/Laravel. Each package manages its
 - Uses allowlist pattern: empty array = show to all; populated = only show to those values
 - Data stored in `settings['_visibility']` JSON on `BiolinkBlock` model
 
+### User File Storage System
+- **Per-user file folders**: Files stored in `user-files/{user_id}/{type}s/` (images, videos, audios, documents)
+- **Model**: `UserFile` with `user_id`, `original_name`, `filename` (UUID), `mime_type`, `size_bytes`, `type`, `disk`, `path`
+- **Quota management**: `storage_limit_mb` (default 100MB) and `max_file_size_mb` (default 5MB) configurable per plan via admin
+- **API endpoints** (all AJAX/JSON):
+  - `GET /user/files` — list files with pagination + type filter
+  - `POST /user/files/upload` — upload with MIME/extension/size/quota validation
+  - `DELETE /user/files/{id}` — delete file and reclaim quota
+  - `GET /user/files/quota` — current storage usage info
+- **User model helpers**: `getStorageUsedBytes()`, `getStorageLimitBytes()`, `getStorageRemainingBytes()`
+- **Allowed types**: image (jpg/png/gif/webp/svg), video (mp4/webm/ogg/mov), audio (mp3/wav/ogg/aac/m4a), document (pdf/ppt/xls/doc)
+- **Storage disk**: Uses `public` locally, `s3` when configured
+- **Admin plan config**: `storage_limit_mb` field added to plan create/edit forms
+
+### File Upload Dropzone Component
+- **Partial**: `user/links/partials/file-upload-field.blade.php` — reusable upload field with 3 modes: URL, Upload (drag-drop), My Files (browse)
+- **Features**: Drag-drop area, progress bar, XHR upload with progress tracking, file browser with thumbnail grid, search, pagination
+- **Used in**: image, image_grid, image_slider, video, header_video, audio, pdf_document, powerpoint, excel, link thumbnail, heading_logo blocks
+- **Image grid/slider**: Multi-file upload support with batch progress indicator
+
+### AJAX Block Editor
+- All block operations are AJAX (no page reloads): add block, edit/save block, toggle visibility, delete block, reorder
+- Toast notifications for success/error feedback
+- Smooth animations for block removal
+- Preview iframe auto-refreshes after changes
+
 ### Homepage
 - Linktree-inspired colorful design: dark navy hero with animated blobs, **purple accent**, bold solid-color sections
 - Hero mockup showcases biolink as a full website builder: text blocks, 2-column video/gallery layout, audio player with animated equalizer, file download + shop buttons, embed widget, social icons

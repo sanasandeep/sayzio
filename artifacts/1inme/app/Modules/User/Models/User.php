@@ -54,6 +54,27 @@ class User extends Authenticatable
         return $this->hasMany(Domain::class);
     }
 
+    public function files()
+    {
+        return $this->hasMany(UserFile::class);
+    }
+
+    public function getStorageUsedBytes(): int
+    {
+        return (int) $this->files()->sum('size_bytes');
+    }
+
+    public function getStorageLimitBytes(): int
+    {
+        $mb = (int) $this->getPlanFeature('storage_limit_mb', 100);
+        return $mb * 1048576;
+    }
+
+    public function getStorageRemainingBytes(): int
+    {
+        return max(0, $this->getStorageLimitBytes() - $this->getStorageUsedBytes());
+    }
+
     public function isOnTrial(): bool
     {
         return $this->trial_ends_at && $this->trial_ends_at->isFuture();

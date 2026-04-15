@@ -552,18 +552,12 @@ $catColors = [
                                 <button class="block-action-btn edit-btn" title="Edit" onclick="openEditDrawer({{ $block->id }})">
                                     <i class="fas fa-pen"></i>
                                 </button>
-                                <form method="POST" action="{{ route('user.links.blocks.toggle', [$link, $block]) }}" class="inline">
-                                    @csrf
-                                    <button class="block-action-btn toggle-btn" title="{{ $block->is_active ? 'Hide' : 'Show' }}">
-                                        <i class="fas {{ $block->is_active ? 'fa-eye' : 'fa-eye-slash' }}"></i>
-                                    </button>
-                                </form>
-                                <form method="POST" action="{{ route('user.links.blocks.destroy', [$link, $block]) }}" class="inline" onsubmit="return confirm('Delete this block?')">
-                                    @csrf @method('DELETE')
-                                    <button class="block-action-btn delete-btn" title="Delete">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </form>
+                                <button class="block-action-btn toggle-btn" title="{{ $block->is_active ? 'Hide' : 'Show' }}" onclick="ajaxToggleBlock(this, '{{ route('user.links.blocks.toggle', [$link, $block]) }}', {{ $block->id }})">
+                                    <i class="fas {{ $block->is_active ? 'fa-eye' : 'fa-eye-slash' }}"></i>
+                                </button>
+                                <button class="block-action-btn delete-btn" title="Delete" onclick="ajaxDeleteBlock(this, '{{ route('user.links.blocks.destroy', [$link, $block]) }}', {{ $block->id }})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -638,12 +632,9 @@ $catColors = [
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
                         @foreach($blockTypes as $typeKey => $typeInfo)
                         @php $catColor = $catColors[$typeInfo['category']] ?? '#8b5cf6'; @endphp
-                        <form method="POST" action="{{ route('user.links.blocks.store', $link) }}"
-                              x-show="(galleryCategory === 'all' || galleryCategory === '{{ $typeInfo['category'] }}') && (gallerySearch === '' || '{{ strtolower($typeInfo['label']) }}'.includes(gallerySearch.toLowerCase()))"
-                              x-cloak>
-                            @csrf
-                            <input type="hidden" name="type" value="{{ $typeKey }}">
-                            <button type="submit" class="gallery-block-card">
+                        <div x-show="(galleryCategory === 'all' || galleryCategory === '{{ $typeInfo['category'] }}') && (gallerySearch === '' || '{{ strtolower($typeInfo['label']) }}'.includes(gallerySearch.toLowerCase()))"
+                             x-cloak>
+                            <button type="button" class="gallery-block-card" onclick="ajaxAddBlock('{{ $typeKey }}', '{{ route('user.links.blocks.store', $link) }}')">
                                 <div class="flex items-center gap-3">
                                     <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background: {{ $catColor }}15; border: 1px solid {{ $catColor }}25;">
                                         <i class="fas {{ $typeInfo['icon'] }} text-sm" style="color: {{ $catColor }};"></i>
@@ -654,7 +645,7 @@ $catColors = [
                                     </div>
                                 </div>
                             </button>
-                        </form>
+                        </div>
                         @endforeach
                     </div>
                 </div>
@@ -668,7 +659,7 @@ $catColors = [
 {{-- Hidden edit forms for each block --}}
 @foreach($blocks as $block)
 <template id="editForm_{{ $block->id }}">
-    <form method="POST" action="{{ route('user.links.blocks.update', [$link, $block]) }}">
+    <form method="POST" action="{{ route('user.links.blocks.update', [$link, $block]) }}" onsubmit="return ajaxSaveBlock(event, this)">
         @csrf @method('PUT')
         <div class="mb-4">
             <div class="flex items-center gap-2 mb-4">
@@ -680,7 +671,7 @@ $catColors = [
         </div>
         @include('user.links.partials.block-settings-form', ['block' => $block])
         <div class="flex items-center gap-2 mt-6 pt-4" style="border-top: 1px solid var(--border-subtle);">
-            <button type="submit" class="btn-primary text-sm py-2.5 px-6 flex-1 justify-center">Save Changes</button>
+            <button type="submit" class="btn-primary text-sm py-2.5 px-6 flex-1 justify-center" id="saveBtn_{{ $block->id }}">Save Changes</button>
             <button type="button" onclick="closeEditDrawerGlobal()" class="btn-ghost text-sm py-2.5 px-4">Cancel</button>
         </div>
     </form>
@@ -729,6 +720,119 @@ function openEditDrawer(blockId) {
     window.dispatchEvent(new CustomEvent('open-edit-drawer', { detail: { id: blockId } }));
 }
 
+var _csrfToken = function() { return document.querySelector('meta[name="csrf-token"]').content; };
+
+function showToast(msg, type) {
+    var colors = { success: 'linear-gradient(135deg, #10b981, #059669)', error: 'linear-gradient(135deg, #ef4444, #dc2626)', info: 'linear-gradient(135deg, #8b5cf6, #7c3aed)' };
+    var icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', info: 'fa-info-circle' };
+    var toast = document.createElement('div');
+    toast.className = 'fixed bottom-4 right-4 z-[9999] px-4 py-2.5 rounded-xl text-xs font-medium text-white shadow-lg transition-all';
+    toast.style.cssText = 'background:' + (colors[type] || colors.info) + ';';
+    toast.innerHTML = '<i class="fas ' + (icons[type] || icons.info) + ' mr-1.5"></i>' + msg;
+    document.body.appendChild(toast);
+    setTimeout(function() { toast.style.opacity = '0'; setTimeout(function() { toast.remove(); }, 300); }, 2500);
+}
+
+function refreshPreview() {
+    var f = document.getElementById('previewFrame');
+    if (f) f.src = f.src;
+}
+
+function ajaxToggleBlock(btn, url, blockId) {
+    btn.disabled = true;
+    fetch(url, {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': _csrfToken(), 'Accept': 'application/json', 'Content-Type': 'application/json' },
+        body: '{}'
+    }).then(function(r) { return r.json(); }).then(function(data) {
+        btn.disabled = false;
+        if (data.success) {
+            var icon = btn.querySelector('i');
+            var card = btn.closest('.block-card');
+            if (data.block && data.block.is_active) {
+                icon.className = 'fas fa-eye';
+                btn.title = 'Hide';
+                if (card) card.style.opacity = '1';
+            } else {
+                icon.className = 'fas fa-eye-slash';
+                btn.title = 'Show';
+                if (card) card.style.opacity = '0.5';
+            }
+            showToast('Block ' + (data.block && data.block.is_active ? 'shown' : 'hidden'), 'success');
+            refreshPreview();
+        }
+    }).catch(function() { btn.disabled = false; showToast('Failed to toggle', 'error'); });
+}
+
+function ajaxDeleteBlock(btn, url, blockId) {
+    if (!confirm('Delete this block?')) return;
+    btn.disabled = true;
+    fetch(url, {
+        method: 'DELETE',
+        headers: { 'X-CSRF-TOKEN': _csrfToken(), 'Accept': 'application/json' }
+    }).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.success) {
+            var card = document.querySelector('.block-card[data-block-id="' + blockId + '"]');
+            if (card) { card.style.transition = 'all 0.3s'; card.style.opacity = '0'; card.style.transform = 'translateX(-20px)'; setTimeout(function() { card.remove(); }, 300); }
+            var tmpl = document.getElementById('editForm_' + blockId);
+            if (tmpl) tmpl.remove();
+            showToast('Block deleted', 'success');
+            refreshPreview();
+        } else {
+            btn.disabled = false;
+            showToast(data.error || 'Failed to delete', 'error');
+        }
+    }).catch(function() { btn.disabled = false; showToast('Failed to delete', 'error'); });
+}
+
+function ajaxAddBlock(type, url) {
+    var fd = new FormData();
+    fd.append('type', type);
+    fd.append('_token', _csrfToken());
+    fetch(url, {
+        method: 'POST',
+        headers: { 'Accept': 'application/json' },
+        body: fd
+    }).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.success) {
+            showToast('Block added', 'success');
+            setTimeout(function() { location.reload(); }, 400);
+        } else {
+            showToast(data.error || 'Failed to add block', 'error');
+        }
+    }).catch(function() { showToast('Failed to add block', 'error'); });
+}
+
+function ajaxSaveBlock(e, form) {
+    e.preventDefault();
+    var btn = form.querySelector('button[type="submit"]');
+    var origText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Saving...';
+
+    var fd = new FormData(form);
+    fetch(form.action, {
+        method: 'POST',
+        headers: { 'Accept': 'application/json' },
+        body: fd
+    }).then(function(r) { return r.json(); }).then(function(data) {
+        btn.disabled = false;
+        btn.innerHTML = origText;
+        if (data.success) {
+            showToast('Block saved', 'success');
+            refreshPreview();
+            closeEditDrawerGlobal();
+        } else {
+            showToast(data.error || 'Failed to save', 'error');
+        }
+    }).catch(function() {
+        btn.disabled = false;
+        btn.innerHTML = origText;
+        showToast('Failed to save', 'error');
+    });
+    return false;
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     var el = document.getElementById('blockList');
     if (el && el.children.length > 0 && el.querySelector('.block-card')) {
@@ -748,16 +852,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'X-CSRF-TOKEN': _csrfToken(),
                         'Accept': 'application/json'
                     },
                     body: JSON.stringify({ blocks: ids })
                 }).then(function(r) {
                     if (r.ok) {
-                        var toast = document.getElementById('reorderToast');
-                        toast.classList.add('show');
-                        setTimeout(function() { toast.classList.remove('show'); }, 2000);
-                        document.getElementById('previewFrame').src = document.getElementById('previewFrame').src;
+                        showToast('Order saved', 'success');
+                        refreshPreview();
                     }
                 });
             }

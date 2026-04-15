@@ -13,6 +13,7 @@ use App\Modules\User\Controllers\IcsLinkController;
 use App\Modules\User\Controllers\VcfLinkController;
 use App\Modules\User\Controllers\QrCodeController;
 use App\Modules\User\Controllers\BiolinkBlockController;
+use App\Modules\User\Controllers\UserFileController;
 use App\Modules\User\Middleware\CheckPlanLimit;
 
 Route::get('/', [\App\Modules\Common\Controllers\HomeController::class, 'index'])->name('home');
@@ -79,5 +80,12 @@ Route::prefix('user')->name('user.')->group(function () {
 
         Route::resource('pixels', PixelController::class)->except(['show', 'store']);
         Route::post('pixels', [PixelController::class, 'store'])->middleware(CheckPlanLimit::class . ':pixels')->name('pixels.store');
+
+        Route::prefix('files')->name('files.')->group(function () {
+            Route::get('/', [UserFileController::class, 'index'])->name('index');
+            Route::post('upload', [UserFileController::class, 'upload'])->name('upload');
+            Route::delete('{file}', [UserFileController::class, 'destroy'])->name('destroy');
+            Route::get('quota', [UserFileController::class, 'quota'])->name('quota');
+        });
     });
 });

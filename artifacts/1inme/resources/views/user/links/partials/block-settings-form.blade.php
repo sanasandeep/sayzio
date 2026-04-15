@@ -12,7 +12,7 @@ $labelClass = 'block text-xs mb-1';
     <div><label class="{{ $labelClass }}">Link Text</label><input type="text" name="settings[text]" value="{{ $s['text'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div><label class="{{ $labelClass }}">URL</label><input type="url" name="settings[url]" value="{{ $s['url'] ?? '' }}" placeholder="https://" class="{{ $inputClass }}"></div>
     <div><label class="{{ $labelClass }}">Icon (FA class)</label><input type="text" name="settings[icon]" value="{{ $s['icon'] ?? '' }}" placeholder="fas fa-globe" class="{{ $inputClass }}"></div>
-    <div><label class="{{ $labelClass }}">Thumbnail URL</label><input type="text" name="settings[thumbnail]" value="{{ $s['thumbnail'] ?? '' }}" class="{{ $inputClass }}"></div>
+    @include('user.links.partials.file-upload-field', ['fieldName' => 'settings[thumbnail]', 'currentValue' => $s['thumbnail'] ?? '', 'acceptTypes' => 'image', 'labelText' => 'Thumbnail', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
 </div>
 
 @elseif($block->type === 'link_big')
@@ -21,7 +21,7 @@ $labelClass = 'block text-xs mb-1';
     <div><label class="{{ $labelClass }}">Description</label><input type="text" name="settings[description]" value="{{ $s['description'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div><label class="{{ $labelClass }}">URL</label><input type="url" name="settings[url]" value="{{ $s['url'] ?? '' }}" placeholder="https://" class="{{ $inputClass }}"></div>
     <div><label class="{{ $labelClass }}">Icon (FA class)</label><input type="text" name="settings[icon]" value="{{ $s['icon'] ?? '' }}" class="{{ $inputClass }}"></div>
-    <div><label class="{{ $labelClass }}">Thumbnail URL</label><input type="text" name="settings[thumbnail]" value="{{ $s['thumbnail'] ?? '' }}" class="{{ $inputClass }}"></div>
+    @include('user.links.partials.file-upload-field', ['fieldName' => 'settings[thumbnail]', 'currentValue' => $s['thumbnail'] ?? '', 'acceptTypes' => 'image', 'labelText' => 'Thumbnail', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
     <div><label class="{{ $labelClass }}">Background Color</label><input type="color" name="settings[bg_color]" value="{{ $s['bg_color'] ?? '#7c3aed' }}" class="w-full h-10 rounded-xl cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
 </div>
 
@@ -50,7 +50,7 @@ $labelClass = 'block text-xs mb-1';
 @elseif($block->type === 'heading_logo')
 <div class="space-y-3">
     <div><label class="{{ $labelClass }}">Text</label><input type="text" name="settings[text]" value="{{ $s['text'] ?? '' }}" class="{{ $inputClass }}"></div>
-    <div><label class="{{ $labelClass }}">Logo URL</label><input type="url" name="settings[logo_url]" value="{{ $s['logo_url'] ?? '' }}" class="{{ $inputClass }}"></div>
+    @include('user.links.partials.file-upload-field', ['fieldName' => 'settings[logo_url]', 'currentValue' => $s['logo_url'] ?? '', 'acceptTypes' => 'image', 'labelText' => 'Logo', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
     <div class="grid grid-cols-2 gap-3">
         <div><label class="{{ $labelClass }}">Size</label><select name="settings[size]" class="{{ $selectClass }}"><option value="h1" {{ ($s['size'] ?? '') === 'h1' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">H1</option><option value="h2" {{ ($s['size'] ?? '') === 'h2' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">H2</option><option value="h3" {{ ($s['size'] ?? '') === 'h3' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">H3</option></select></div>
         <div><label class="{{ $labelClass }}">Align</label><select name="settings[align]" class="{{ $selectClass }}"><option value="center" {{ ($s['align'] ?? '') === 'center' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Center</option><option value="left" {{ ($s['align'] ?? '') === 'left' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Left</option></select></div>
@@ -128,28 +128,85 @@ $labelClass = 'block text-xs mb-1';
 @elseif($block->type === 'image')
 @php $imgStyle = $s['_image_style'] ?? []; $imgLink = $s['_link'] ?? []; @endphp
 <div class="space-y-3">
-    <div><label class="{{ $labelClass }}">Image URL</label><input type="url" name="settings[url]" value="{{ $s['url'] ?? '' }}" class="{{ $inputClass }}"></div>
+    @include('user.links.partials.file-upload-field', ['fieldName' => 'settings[url]', 'currentValue' => $s['url'] ?? '', 'acceptTypes' => 'image', 'labelText' => 'Image', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
     <div><label class="{{ $labelClass }}">Alt Text</label><input type="text" name="settings[alt]" value="{{ $s['alt'] ?? '' }}" class="{{ $inputClass }}"></div>
 </div>
 @include('user.links.partials.image-style-settings', ['imgStyle' => $imgStyle, 'inputClass' => $inputClass, 'labelClass' => $labelClass, 'selectClass' => $selectClass])
 @include('user.links.partials.block-link-settings', ['imgLink' => $imgLink, 'inputClass' => $inputClass, 'labelClass' => $labelClass])
 
 @elseif(in_array($block->type, ['image_grid', 'image_slider', 'image_slider_v2']))
-@php $imgStyle = $s['_image_style'] ?? []; $imgLink = $s['_link'] ?? []; @endphp
-<div x-data="{ images: {{ json_encode($s['images'] ?? []) }} }">
-    <label class="{{ $labelClass }}">Images (URLs)</label>
+@php
+    $imgStyle = $s['_image_style'] ?? [];
+    $imgLink = $s['_link'] ?? [];
+    $gridImgId = 'gridimg_' . $block->id;
+@endphp
+<div x-data="imageListUploader_{{ $gridImgId }}()">
+    <label class="{{ $labelClass }}">Images</label>
     <template x-for="(img, i) in images" :key="i">
-        <div class="flex gap-2 mb-2"><input type="url" x-model="images[i]" :name="'settings[images][' + i + ']'" placeholder="https://..." class="{{ $inputClass }}"><button type="button" @click="images.splice(i,1)" class="text-red-400/60 hover:text-red-400 px-2"><i class="fas fa-times text-xs"></i></button></div>
+        <div class="flex gap-2 mb-2 items-center">
+            <template x-if="isImageUrl(img)">
+                <img :src="img" class="w-8 h-8 rounded object-cover flex-shrink-0" alt="">
+            </template>
+            <input type="url" x-model="images[i]" :name="'settings[images][' + i + ']'" placeholder="https://..." class="{{ $inputClass }} flex-1">
+            <button type="button" @click="images.splice(i,1)" class="text-red-400/60 hover:text-red-400 px-1.5 flex-shrink-0"><i class="fas fa-times text-xs"></i></button>
+        </div>
     </template>
-    <button type="button" @click="images.push('')" class="text-xs text-purple-400 hover:text-purple-300"><i class="fas fa-plus mr-1"></i>Add Image</button>
+    <div class="flex items-center gap-2 mt-1">
+        <button type="button" @click="images.push('')" class="text-xs text-purple-400 hover:text-purple-300"><i class="fas fa-plus mr-1"></i>Add URL</button>
+        <span class="text-white/10">|</span>
+        <button type="button" @click="$refs.gridFileInput.click()" class="text-xs text-emerald-400 hover:text-emerald-300"><i class="fas fa-cloud-upload-alt mr-1"></i>Upload</button>
+    </div>
+    <input type="file" x-ref="gridFileInput" accept=".jpg,.jpeg,.png,.gif,.webp,.svg" multiple class="hidden" @change="uploadMultiple($event)">
+    <template x-if="uploading">
+        <div class="mt-2 rounded-lg p-2" style="background: var(--bg-glass); border: 1px solid var(--border-glass);">
+            <div class="w-full rounded-full h-1.5 mb-1" style="background: var(--bg-glass-input);">
+                <div class="h-1.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all" :style="'width:' + uploadProgress + '%'"></div>
+            </div>
+            <p class="text-[10px] text-purple-300"><i class="fas fa-spinner fa-spin mr-1"></i>Uploading...</p>
+        </div>
+    </template>
     @if($block->type === 'image_grid')<div class="mt-3"><label class="{{ $labelClass }}">Columns</label><select name="settings[columns]" class="{{ $selectClass }}"><option value="2" {{ ($s['columns'] ?? 3) == 2 ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">2</option><option value="3" {{ ($s['columns'] ?? 3) == 3 ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">3</option><option value="4" {{ ($s['columns'] ?? 3) == 4 ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">4</option></select></div>@endif
 </div>
+<script>
+function imageListUploader_{{ $gridImgId }}() {
+    return {
+        images: {!! json_encode($s['images'] ?? []) !!},
+        uploading: false,
+        uploadProgress: 0,
+        isImageUrl(u) { return u && (u.startsWith('http') || u.startsWith('/')); },
+        async uploadMultiple(e) {
+            var files = Array.from(e.target.files);
+            if (!files.length) return;
+            this.uploading = true;
+            this.uploadProgress = 0;
+            var done = 0;
+            for (var f of files) {
+                var fd = new FormData();
+                fd.append('file', f);
+                try {
+                    var r = await fetch('{{ route("user.files.upload") }}', {
+                        method: 'POST',
+                        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' },
+                        body: fd
+                    });
+                    var data = await r.json();
+                    if (data.success && data.file) this.images.push(data.file.url);
+                } catch(err) {}
+                done++;
+                this.uploadProgress = Math.round((done / files.length) * 100);
+            }
+            this.uploading = false;
+            e.target.value = '';
+        }
+    }
+}
+</script>
 @include('user.links.partials.image-style-settings', ['imgStyle' => $imgStyle, 'inputClass' => $inputClass, 'labelClass' => $labelClass, 'selectClass' => $selectClass])
 @include('user.links.partials.block-link-settings', ['imgLink' => $imgLink, 'inputClass' => $inputClass, 'labelClass' => $labelClass])
 
 @elseif(in_array($block->type, ['video', 'header_video']))
 <div class="space-y-3">
-    <div><label class="{{ $labelClass }}">Video URL</label><input type="url" name="settings[url]" value="{{ $s['url'] ?? '' }}" class="{{ $inputClass }}"></div>
+    @include('user.links.partials.file-upload-field', ['fieldName' => 'settings[url]', 'currentValue' => $s['url'] ?? '', 'acceptTypes' => 'video', 'labelText' => 'Video', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
     @if($block->type === 'header_video')
     <div class="flex gap-4">
         <label class="flex items-center gap-2 text-xs text-white/40"><input type="checkbox" name="settings[autoplay]" value="1" {{ ($s['autoplay'] ?? false) ? 'checked' : '' }} class="rounded text-purple-500" style="background: var(--bg-glass-input); border-color: var(--border-glass);">Autoplay</label>
@@ -161,13 +218,13 @@ $labelClass = 'block text-xs mb-1';
 
 @elseif($block->type === 'audio')
 <div class="space-y-3">
-    <div><label class="{{ $labelClass }}">Audio URL</label><input type="url" name="settings[url]" value="{{ $s['url'] ?? '' }}" class="{{ $inputClass }}"></div>
+    @include('user.links.partials.file-upload-field', ['fieldName' => 'settings[url]', 'currentValue' => $s['url'] ?? '', 'acceptTypes' => 'audio', 'labelText' => 'Audio File', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
     <div><label class="{{ $labelClass }}">Title</label><input type="text" name="settings[title]" value="{{ $s['title'] ?? '' }}" class="{{ $inputClass }}"></div>
 </div>
 
 @elseif(in_array($block->type, ['pdf_document', 'powerpoint', 'excel']))
 <div class="space-y-3">
-    <div><label class="{{ $labelClass }}">File URL</label><input type="url" name="settings[url]" value="{{ $s['url'] ?? '' }}" class="{{ $inputClass }}"></div>
+    @include('user.links.partials.file-upload-field', ['fieldName' => 'settings[url]', 'currentValue' => $s['url'] ?? '', 'acceptTypes' => 'document', 'labelText' => 'File', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
     <div><label class="{{ $labelClass }}">Title</label><input type="text" name="settings[title]" value="{{ $s['title'] ?? '' }}" class="{{ $inputClass }}"></div>
 </div>
 

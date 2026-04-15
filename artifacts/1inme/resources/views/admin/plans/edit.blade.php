@@ -77,6 +77,11 @@
                             <input type="number" name="features[max_projects]" value="{{ $features['max_projects'] ?? 3 }}" min="0"
                                    class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-purple-500/40 outline-none">
                         </div>
+                        <div>
+                            <label class="block text-xs text-white/40 mb-1">Storage Limit (MB)</label>
+                            <input type="number" name="features[storage_limit_mb]" value="{{ $features['storage_limit_mb'] ?? 100 }}" min="0"
+                                   class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-purple-500/40 outline-none">
+                        </div>
                     </div>
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
                         @foreach(['custom_domains' => 'Custom Domains', 'qr_customization' => 'QR Customization', 'pixels' => 'Tracking Pixels', 'utm_params' => 'UTM Parameters', 'link_protection' => 'Link Protection', 'seo_settings' => 'SEO Settings', 'teams' => 'Teams', 'ecommerce' => 'E-Commerce', 'custom_forms' => 'Custom Forms'] as $key => $label)
