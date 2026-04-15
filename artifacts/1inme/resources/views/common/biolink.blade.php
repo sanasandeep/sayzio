@@ -72,6 +72,9 @@
     @foreach($extraFonts as $ef)
     <link href="https://fonts.googleapis.com/css2?family={{ urlencode($ef) }}:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     @endforeach
+    @if(!empty($bs['custom_js_head']))
+    <script>{!! $bs['custom_js_head'] !!}</script>
+    @endif
     <style>
         body {
             font-family: '{{ $fontFamily }}', sans-serif;
@@ -117,6 +120,9 @@
         @keyframes morphText { 0%,100% { filter: blur(0px); } 50% { filter: blur(3px); } }
         .morph-text { animation: morphText 4s ease-in-out infinite; }
     </style>
+    @if(!empty($bs['custom_css']))
+    <style>{!! $bs['custom_css'] !!}</style>
+    @endif
 </head>
 <body class="flex justify-center p-4 pt-8 pb-16">
     <div class="w-full max-w-md">
@@ -894,7 +900,28 @@
             </div>
         @endforelse
 
-        <p class="text-center text-xs mt-10" style="color: {{ $fontColor }}33">Powered by 1INME</p>
+        @if(!($bs['branding_hidden'] ?? false))
+            @if(!empty($bs['custom_branding_text']))
+            <div class="text-center mt-10">
+                @if(!empty($bs['custom_branding_url']))
+                <a href="{{ $bs['custom_branding_url'] }}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 hover:opacity-80 transition-opacity" style="color: {{ $fontColor }}55; text-decoration: none;">
+                @else
+                <span class="inline-flex items-center gap-2" style="color: {{ $fontColor }}55;">
+                @endif
+                    @if(!empty($bs['custom_branding_logo']))
+                    <img src="{{ $bs['custom_branding_logo'] }}" class="w-4 h-4 rounded object-contain" alt="">
+                    @endif
+                    <span class="text-xs">{{ $bs['custom_branding_text'] }}</span>
+                @if(!empty($bs['custom_branding_url']))
+                </a>
+                @else
+                </span>
+                @endif
+            </div>
+            @else
+            <p class="text-center text-xs mt-10" style="color: {{ $fontColor }}33">Powered by 1INME</p>
+            @endif
+        @endif
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
@@ -942,5 +969,8 @@
         }
     })();
     </script>
+    @if(!empty($bs['custom_js_body']))
+    <script>{!! $bs['custom_js_body'] !!}</script>
+    @endif
 </body>
 </html>

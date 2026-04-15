@@ -101,6 +101,9 @@ class PlanController extends Controller
             'teams' => false,
             'ecommerce' => false,
             'custom_forms' => false,
+            'custom_branding' => false,
+            'custom_favicon' => false,
+            'custom_code' => false,
         ];
     }
 }

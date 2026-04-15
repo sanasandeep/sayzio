@@ -356,17 +356,28 @@ $catColors = [
                     <form method="POST" action="{{ route('user.links.page-settings', $link) }}" enctype="multipart/form-data">
                         @csrf
 
+                        @php
+                            $canBrand = auth()->user()->getPlanFeature('custom_branding', false);
+                            $canFavicon = auth()->user()->getPlanFeature('custom_favicon', false);
+                            $canCode = auth()->user()->getPlanFeature('custom_code', false);
+                        @endphp
                         @foreach([
                             ['key' => 'customizations', 'icon' => 'fa-palette', 'color' => '236,72,153', 'label' => 'Customizations'],
                             ['key' => 'block_theme', 'icon' => 'fa-wand-magic-sparkles', 'color' => '139,92,246', 'label' => 'Global Block Theme'],
                             ['key' => 'verified', 'icon' => 'fa-check-circle', 'color' => '16,185,129', 'label' => 'Verified badge'],
                             ['key' => 'branding', 'icon' => 'fa-star', 'color' => '245,158,11', 'label' => 'Branding'],
+                            ['key' => 'custom_branding', 'icon' => 'fa-copyright', 'color' => '251,146,60', 'label' => 'Custom Branding', 'pro' => !$canBrand],
+                            ['key' => 'favicon', 'icon' => 'fa-image', 'color' => '34,211,238', 'label' => 'Custom Favicon', 'pro' => !$canFavicon],
+                            ['key' => 'custom_code', 'icon' => 'fa-code', 'color' => '168,85,247', 'label' => 'Custom CSS & JS', 'pro' => !$canCode],
                         ] as $section)
                         <div class="card-premium overflow-hidden" x-data="{ open: false }">
                             <button type="button" @click="open = !open" class="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-white/[0.02] transition-colors">
                                 <span class="flex items-center gap-3 text-sm font-semibold" style="color: var(--text-primary);">
                                     <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background: rgba({{ $section['color'] }},0.1); border: 1px solid rgba({{ $section['color'] }},0.15);"><i class="fas {{ $section['icon'] }} text-[10px]" style="color: rgba({{ $section['color'] }},0.8);"></i></div>
                                     {{ $section['label'] }}
+                                    @if(!empty($section['pro']))
+                                    <span class="text-[9px] px-1.5 py-0.5 rounded-full font-bold" style="background: linear-gradient(135deg, rgba(251,146,60,0.15), rgba(245,158,11,0.1)); color: #fb923c; border: 1px solid rgba(251,146,60,0.2);">PRO</span>
+                                    @endif
                                 </span>
                                 <i class="fas fa-chevron-down text-xs transition-transform duration-300" style="color: var(--text-faint);" :class="open ? 'rotate-180' : ''"></i>
                             </button>
@@ -496,6 +507,100 @@ $catColors = [
                                 <label class="flex items-center gap-3 cursor-pointer"><input type="hidden" name="verified_badge" value="0"><input type="checkbox" name="verified_badge" value="1" {{ ($bs['verified_badge'] ?? false) ? 'checked' : '' }} class="rounded text-purple-500 focus:ring-purple-500/40 w-5 h-5" style="background: var(--bg-glass-input); border-color: var(--border-glass);"><span class="text-sm" style="color: var(--text-muted);">Show verified badge on your biolink page</span></label>
                                 @elseif($section['key'] === 'branding')
                                 <label class="flex items-center gap-3 cursor-pointer"><input type="hidden" name="branding_hidden" value="0"><input type="checkbox" name="branding_hidden" value="1" {{ ($bs['branding_hidden'] ?? false) ? 'checked' : '' }} class="rounded text-purple-500 focus:ring-purple-500/40 w-5 h-5" style="background: var(--bg-glass-input); border-color: var(--border-glass);"><span class="text-sm" style="color: var(--text-muted);">Hide "Powered by 1INME" branding</span></label>
+
+                                @elseif($section['key'] === 'custom_branding')
+                                @if($canBrand)
+                                <div class="space-y-4">
+                                    <p class="text-[11px]" style="color: var(--text-dimmed);">Replace the default "Powered by 1INME" footer with your own brand.</p>
+                                    <div><label class="block text-xs mb-1.5" style="color: var(--text-faint);">Brand Name</label><input type="text" name="custom_branding_text" value="{{ $bs['custom_branding_text'] ?? '' }}" placeholder="Your Brand Name" class="theme-input w-full"></div>
+                                    <div><label class="block text-xs mb-1.5" style="color: var(--text-faint);">Brand URL</label><input type="url" name="custom_branding_url" value="{{ $bs['custom_branding_url'] ?? '' }}" placeholder="https://yourbrand.com" class="theme-input w-full"></div>
+                                    <div><label class="block text-xs mb-1.5" style="color: var(--text-faint);">Brand Logo URL</label><input type="url" name="custom_branding_logo" value="{{ $bs['custom_branding_logo'] ?? '' }}" placeholder="https://yourbrand.com/logo.png" class="theme-input w-full"></div>
+                                    @if($bs['custom_branding_logo'] ?? '')
+                                    <div class="flex items-center gap-2 p-2 rounded-lg" style="background: var(--bg-glass);">
+                                        <img src="{{ $bs['custom_branding_logo'] }}" class="w-6 h-6 rounded object-contain" alt="Logo preview">
+                                        <span class="text-xs" style="color: var(--text-muted);">Current logo</span>
+                                    </div>
+                                    @endif
+                                    <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm mt-2">Save Branding</button>
+                                </div>
+                                @else
+                                <div class="text-center py-4">
+                                    <div class="w-10 h-10 rounded-xl mx-auto mb-3 flex items-center justify-center" style="background: linear-gradient(135deg, rgba(251,146,60,0.1), rgba(245,158,11,0.05)); border: 1px solid rgba(251,146,60,0.15);"><i class="fas fa-lock text-sm" style="color: #fb923c;"></i></div>
+                                    <p class="text-sm font-medium mb-1" style="color: var(--text-primary);">Custom Branding</p>
+                                    <p class="text-xs mb-3" style="color: var(--text-faint);">Replace "Powered by 1INME" with your own brand name, logo, and URL.</p>
+                                    <a href="{{ route('user.dashboard') }}" class="inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-lg" style="background: linear-gradient(135deg, #fb923c, #f59e0b); color: #fff;">Upgrade Plan</a>
+                                </div>
+                                @endif
+
+                                @elseif($section['key'] === 'favicon')
+                                @if($canFavicon)
+                                <div class="space-y-4">
+                                    <p class="text-[11px]" style="color: var(--text-dimmed);">Set a custom favicon (browser tab icon) for this biolink page.</p>
+                                    @if($link->favicon)
+                                    <div class="flex items-center gap-3 p-3 rounded-xl" style="background: var(--bg-glass); border: 1px solid var(--border-glass);">
+                                        <img src="{{ $link->favicon }}" class="w-8 h-8 rounded object-contain" alt="Current favicon">
+                                        <div>
+                                            <span class="text-xs font-medium" style="color: var(--text-muted);">Current Favicon</span>
+                                            <p class="text-[10px] truncate max-w-[200px]" style="color: var(--text-dimmed);">{{ $link->favicon }}</p>
+                                        </div>
+                                    </div>
+                                    @endif
+                                    <div><label class="block text-xs mb-1.5" style="color: var(--text-faint);">Favicon URL</label><input type="url" name="favicon_url" value="{{ $bs['favicon_url'] ?? $link->favicon ?? '' }}" placeholder="https://example.com/favicon.png" class="theme-input w-full"></div>
+                                    <div class="relative">
+                                        <label class="block text-xs mb-1.5" style="color: var(--text-faint);">Or Upload Favicon</label>
+                                        <input type="file" name="favicon_upload" accept="image/png,image/x-icon,image/svg+xml,image/jpeg" class="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm" style="color: var(--text-faint);">
+                                        <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">PNG, ICO, SVG or JPG. Recommended: 32×32px or 64×64px</p>
+                                    </div>
+                                    <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm mt-2">Save Favicon</button>
+                                </div>
+                                @else
+                                <div class="text-center py-4">
+                                    <div class="w-10 h-10 rounded-xl mx-auto mb-3 flex items-center justify-center" style="background: linear-gradient(135deg, rgba(34,211,238,0.1), rgba(6,182,212,0.05)); border: 1px solid rgba(34,211,238,0.15);"><i class="fas fa-lock text-sm" style="color: #22d3ee;"></i></div>
+                                    <p class="text-sm font-medium mb-1" style="color: var(--text-primary);">Custom Favicon</p>
+                                    <p class="text-xs mb-3" style="color: var(--text-faint);">Set a custom browser tab icon for your biolink page.</p>
+                                    <a href="{{ route('user.dashboard') }}" class="inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-lg" style="background: linear-gradient(135deg, #22d3ee, #06b6d4); color: #fff;">Upgrade Plan</a>
+                                </div>
+                                @endif
+
+                                @elseif($section['key'] === 'custom_code')
+                                @if($canCode)
+                                <div class="space-y-4" x-data="{ codeTab: 'css' }">
+                                    <p class="text-[11px]" style="color: var(--text-dimmed);">Inject custom CSS and JavaScript into your biolink page at different positions.</p>
+                                    <div class="flex gap-1 p-0.5 rounded-lg" style="background: var(--bg-glass-input);">
+                                        @foreach(['css' => 'Custom CSS', 'js_head' => 'JS (Head)', 'js_body' => 'JS (Body)'] as $ctKey => $ctLabel)
+                                        <button type="button" @click="codeTab = '{{ $ctKey }}'"
+                                                :class="codeTab === '{{ $ctKey }}' ? 'text-white shadow-sm' : ''"
+                                                :style="codeTab === '{{ $ctKey }}' ? 'background: linear-gradient(135deg, #a855f7, #7c3aed);' : 'color: var(--text-faint);'"
+                                                class="flex-1 text-[10px] font-bold py-1.5 rounded-md transition-all">{{ $ctLabel }}</button>
+                                        @endforeach
+                                    </div>
+
+                                    <div x-show="codeTab === 'css'">
+                                        <label class="block text-xs mb-1.5" style="color: var(--text-faint);">Custom CSS <span class="text-[10px]" style="color: var(--text-dimmed);">— injected in &lt;head&gt;</span></label>
+                                        <textarea name="custom_css" rows="8" class="theme-input w-full font-mono text-xs" placeholder="/* Your custom styles */&#10;.bio-btn { border-radius: 999px; }">{{ $bs['custom_css'] ?? '' }}</textarea>
+                                    </div>
+
+                                    <div x-show="codeTab === 'js_head'">
+                                        <label class="block text-xs mb-1.5" style="color: var(--text-faint);">JavaScript (Head) <span class="text-[10px]" style="color: var(--text-dimmed);">— runs before page loads</span></label>
+                                        <textarea name="custom_js_head" rows="8" class="theme-input w-full font-mono text-xs" placeholder="// JavaScript in <head>&#10;// Analytics, meta tags, etc.">{{ $bs['custom_js_head'] ?? '' }}</textarea>
+                                        <p class="text-[10px] mt-1" style="color: var(--text-dimmed);"><i class="fas fa-exclamation-triangle text-yellow-500 mr-1"></i>Head scripts run before content. Avoid DOM manipulation here.</p>
+                                    </div>
+
+                                    <div x-show="codeTab === 'js_body'">
+                                        <label class="block text-xs mb-1.5" style="color: var(--text-faint);">JavaScript (Body) <span class="text-[10px]" style="color: var(--text-dimmed);">— runs after page loads</span></label>
+                                        <textarea name="custom_js_body" rows="8" class="theme-input w-full font-mono text-xs" placeholder="// JavaScript at end of <body>&#10;// DOM interactions, widgets, etc.">{{ $bs['custom_js_body'] ?? '' }}</textarea>
+                                    </div>
+
+                                    <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm mt-2">Save Custom Code</button>
+                                </div>
+                                @else
+                                <div class="text-center py-4">
+                                    <div class="w-10 h-10 rounded-xl mx-auto mb-3 flex items-center justify-center" style="background: linear-gradient(135deg, rgba(168,85,247,0.1), rgba(139,92,246,0.05)); border: 1px solid rgba(168,85,247,0.15);"><i class="fas fa-lock text-sm" style="color: #a855f7;"></i></div>
+                                    <p class="text-sm font-medium mb-1" style="color: var(--text-primary);">Custom CSS & JavaScript</p>
+                                    <p class="text-xs mb-3" style="color: var(--text-faint);">Add custom CSS styles and JavaScript code at different sections of your page.</p>
+                                    <a href="{{ route('user.dashboard') }}" class="inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-lg" style="background: linear-gradient(135deg, #a855f7, #7c3aed); color: #fff;">Upgrade Plan</a>
+                                </div>
+                                @endif
                                 @endif
                             </div>
                         </div>

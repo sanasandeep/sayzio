@@ -141,11 +141,33 @@ class BiolinkBlockController extends Controller
             'verified_badge' => 'boolean',
             'branding_hidden' => 'boolean',
             'block_theme' => 'nullable|array',
+            'custom_branding_text' => 'nullable|string|max:100',
+            'custom_branding_url' => 'nullable|string|max:500',
+            'custom_branding_logo' => 'nullable|string|max:500',
+            'favicon_url' => 'nullable|string|max:500',
+            'favicon_upload' => 'nullable|image|max:1024',
+            'custom_css' => 'nullable|string|max:10000',
+            'custom_js_head' => 'nullable|string|max:10000',
+            'custom_js_body' => 'nullable|string|max:10000',
         ]);
 
+        $user = auth()->user();
         $settings = $link->settings ?? [];
         $blockTheme = $validated['block_theme'] ?? null;
         unset($validated['block_theme']);
+
+        if (!$user->getPlanFeature('custom_branding', false)) {
+            unset($validated['custom_branding_text'], $validated['custom_branding_url'], $validated['custom_branding_logo']);
+        }
+        if (!$user->getPlanFeature('custom_favicon', false)) {
+            unset($validated['favicon_url']);
+            $request->files->remove('favicon_upload');
+        }
+        if (!$user->getPlanFeature('custom_code', false)) {
+            unset($validated['custom_css'], $validated['custom_js_head'], $validated['custom_js_body']);
+        }
+
+        unset($validated['favicon_upload']);
         $settings['biolink'] = array_merge($settings['biolink'] ?? [], $validated);
 
         if ($blockTheme !== null) {
@@ -158,7 +180,28 @@ class BiolinkBlockController extends Controller
             $settings['biolink']['background_image'] = Storage::disk('public')->url($path);
         }
 
-        $link->update(['settings' => $settings]);
+        $faviconValue = null;
+        if ($request->hasFile('favicon_upload') && $user->getPlanFeature('custom_favicon', false)) {
+            $path = $request->file('favicon_upload')->store('biolink-favicons', 'public');
+            $faviconValue = Storage::disk('public')->url($path);
+            $settings['biolink']['favicon_url'] = $faviconValue;
+        } elseif (!empty($validated['favicon_url']) && $user->getPlanFeature('custom_favicon', false)) {
+            $faviconValue = $this->sanitizeUrl($validated['favicon_url']);
+            $settings['biolink']['favicon_url'] = $faviconValue;
+        }
+
+        if (!empty($settings['biolink']['custom_branding_url'])) {
+            $settings['biolink']['custom_branding_url'] = $this->sanitizeUrl($settings['biolink']['custom_branding_url']);
+        }
+        if (!empty($settings['biolink']['custom_branding_logo'])) {
+            $settings['biolink']['custom_branding_logo'] = $this->sanitizeUrl($settings['biolink']['custom_branding_logo']);
+        }
+
+        $updateData = ['settings' => $settings];
+        if ($faviconValue !== null) {
+            $updateData['favicon'] = $faviconValue;
+        }
+        $link->update($updateData);
 
         return redirect()->route('user.links.blocks.editor', $link)->with('success', 'Page settings updated.');
     }

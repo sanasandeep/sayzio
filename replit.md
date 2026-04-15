@@ -44,7 +44,14 @@ A reusable Blade partial (`file-upload-field.blade.php`) provides a drag-and-dro
 All block operations (add, edit, save, toggle, delete, reorder) are AJAX-driven, providing a fluid user experience with toast notifications and smooth animations. The preview iframe auto-refreshes on changes.
 
 ### Biolink Blocks System
-The platform supports approximately 99 block types across 14 categories, offering extensive content and integration options. A tabbed editor with a phone mockup preview facilitates block management and page settings (background, fonts, button styles). All HTML content is sanitized for security, and URLs are validated. Blocks can be scheduled for visibility.
+The platform supports approximately 99 block types across 14 categories, offering extensive content and integration options. A tabbed editor with a multi-device preview (phone/tablet/desktop) facilitates block management and page settings (background, fonts, button styles). All HTML content is sanitized for security, and URLs are validated. Blocks can be scheduled for visibility.
+
+#### Plan-Gated Biolink Features
+Three new plan-gated features have been added to biolink pages (controlled by `custom_branding`, `custom_favicon`, `custom_code` plan features):
+- **Custom Branding**: Replace the "Powered by 1INME" footer with custom brand name, URL, and logo. Stored in `settings.biolink.custom_branding_text/url/logo`.
+- **Custom Favicon**: Set a custom browser tab icon per biolink page via URL or file upload. Stored in `settings.biolink.favicon_url` and synced to `links.favicon` column.
+- **Custom CSS & JS**: Inject custom CSS (in `<head>`), JS in `<head>` (before page load), and JS at end of `<body>` (after page load). Stored in `settings.biolink.custom_css/custom_js_head/custom_js_body`.
+All URL fields are sanitized via `sanitizeUrl()` (http/https only). Features show PRO badge + locked upgrade prompt for plans without access.
 
 # External Dependencies
 
