@@ -9,7 +9,8 @@ class LinkClick extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'link_id', 'ip_address', 'country_code', 'city',
+        'link_id', 'block_id', 'block_type', 'destination_url',
+        'ip_address', 'country_code', 'city',
         'browser', 'os', 'device_type', 'referrer',
         'language', 'utm_params', 'clicked_at',
     ];

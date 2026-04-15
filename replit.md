@@ -57,6 +57,25 @@ pnpm workspace monorepo using TypeScript + PHP/Laravel. Each package manages its
 - **Rendering**: `biolink.blade.php` wraps styled blocks in `<div class="block-styled" style="...">` with computed inline styles
 - **Data storage**: Per-block in `settings['_style']`, global in `settings['biolink']['block_theme']`
 
+### Image Styling System
+- **Per-image styling**: Available for `image`, `image_grid`, `image_slider`, `image_slider_v2` blocks
+- **Mask/Crop shapes**: 10 options — None, Rounded, Circle, Square, Diamond, Hexagon, Octagon, Star, Blob, Arch (using CSS clip-path)
+- **Border**: style (solid/dashed/dotted/double), width, color, custom radius
+- **Shadow**: 6 types — Soft, Hard, Glow, Neon, Drop Shadow (CSS filter), None — with color/blur/offset/spread controls
+- **Object fit**: cover, contain, fill, none
+- **UI**: Collapsible "Image Styling" section in block editor via `image-style-settings.blade.php` partial
+- **Data storage**: `settings['_image_style']` JSON on block; sanitized via `sanitizeImageStyle()`
+- **Rendering**: `BiolinkBlock::buildImageInlineStyle()` generates inline CSS; `MASK_CLIP_PATHS` constant for shape definitions
+
+### Trackable Block Links
+- **Optional links**: Any image block can have a destination URL with full link attributes
+- **Attributes**: URL, target (_blank/_self), rel (noopener/nofollow/noreferrer/sponsored/ugc), title/tooltip
+- **UTM parameters**: utm_source, utm_medium, utm_campaign, utm_term, utm_content — appended to destination URL
+- **Click tracking**: Clicks route through `/{alias}/b/{blockId}` → `RedirectController::handleBlockClick()` → `LinkTrackingService::trackBlockClick()`
+- **Tracking data**: Same as page clicks (IP, browser, OS, device, referrer, country, city, UTM) + block_id, block_type, destination_url in `link_clicks` table
+- **UI**: Collapsible "Trackable Link" section in block editor via `block-link-settings.blade.php` partial
+- **Data storage**: `settings['_link']` JSON on block; sanitized via `sanitizeLinkSettings()`
+
 ### Block Display Settings
 - Per-block visibility controls in `user/links/partials/block-display-settings.blade.php`
 - Collapsible section with schedule (start/end dates), continents, countries, cities, devices, OS, browsers, and browser languages

@@ -389,6 +389,84 @@ class BiolinkBlock extends Model
         };
     }
 
+    public const IMAGE_STYLE_DEFAULTS = [
+        'mask_shape' => 'none',
+        'border_radius' => '',
+        'object_fit' => 'cover',
+        'border_style' => 'none',
+        'border_width' => '',
+        'border_color' => '',
+        'shadow_type' => 'none',
+        'shadow_color' => '#00000040',
+        'shadow_x' => 0,
+        'shadow_y' => 4,
+        'shadow_blur' => 12,
+        'shadow_spread' => 0,
+    ];
+
+    public const MASK_CLIP_PATHS = [
+        'circle' => 'circle(50% at 50% 50%)',
+        'diamond' => 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)',
+        'hexagon' => 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)',
+        'octagon' => 'polygon(29.3% 0%, 70.7% 0%, 100% 29.3%, 100% 70.7%, 70.7% 100%, 29.3% 100%, 0% 70.7%, 0% 29.3%)',
+        'star' => 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)',
+        'blob' => 'polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)',
+        'arch' => 'polygon(0% 100%, 0% 30%, 5% 15%, 15% 5%, 30% 0%, 70% 0%, 85% 5%, 95% 15%, 100% 30%, 100% 100%)',
+    ];
+
+    public static function buildImageInlineStyle(array $imgStyle): string
+    {
+        $css = [];
+
+        $shape = $imgStyle['mask_shape'] ?? 'none';
+        if ($shape === 'circle') {
+            $css[] = 'border-radius:50%';
+            $css[] = 'clip-path:circle(50% at 50% 50%)';
+        } elseif ($shape === 'rounded') {
+            $css[] = 'border-radius:20px';
+        } elseif ($shape === 'square') {
+            $css[] = 'border-radius:0';
+        } elseif (isset(self::MASK_CLIP_PATHS[$shape])) {
+            $css[] = 'clip-path:' . self::MASK_CLIP_PATHS[$shape];
+        }
+
+        if ($shape === 'none' && !empty($imgStyle['border_radius'])) {
+            $css[] = "border-radius:{$imgStyle['border_radius']}px";
+        }
+
+        if (!empty($imgStyle['object_fit']) && $imgStyle['object_fit'] !== 'cover') {
+            $css[] = "object-fit:{$imgStyle['object_fit']}";
+        }
+
+        if (($imgStyle['border_style'] ?? 'none') !== 'none' && !empty($imgStyle['border_width'])) {
+            $css[] = "border:{$imgStyle['border_width']}px {$imgStyle['border_style']} {$imgStyle['border_color']}";
+        }
+
+        $shadowType = $imgStyle['shadow_type'] ?? 'none';
+        if ($shadowType !== 'none') {
+            $color = $imgStyle['shadow_color'] ?? '#00000040';
+            $x = $imgStyle['shadow_x'] ?? 0;
+            $y = $imgStyle['shadow_y'] ?? 4;
+            $blur = $imgStyle['shadow_blur'] ?? 12;
+            $spread = $imgStyle['shadow_spread'] ?? 0;
+
+            if ($shadowType === 'drop') {
+                $css[] = "filter:drop-shadow({$x}px {$y}px {$blur}px {$color})";
+            } else {
+                $shadow = match($shadowType) {
+                    'soft' => "{$x}px {$y}px {$blur}px {$spread}px {$color}",
+                    'hard' => "{$x}px {$y}px 0px {$spread}px {$color}",
+                    'neon' => "0 0 {$blur}px {$color}, 0 0 " . ($blur * 2) . "px {$color}",
+                    'glow' => "0 0 {$blur}px {$color}",
+                    default => '',
+                };
+                if ($shadow) $css[] = "box-shadow:{$shadow}";
+            }
+        }
+
+        return implode(';', $css);
+    }
+
     public function link()
     {
         return $this->belongsTo(Link::class);

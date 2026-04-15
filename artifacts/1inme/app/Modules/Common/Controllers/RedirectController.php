@@ -4,6 +4,7 @@ namespace App\Modules\Common\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Common\Services\LinkTrackingService;
+use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Link;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -158,6 +159,39 @@ class RedirectController extends Controller
 
         $fileLink->increment('download_count');
         return Storage::disk($disk)->download($fileLink->stored_path, $fileLink->original_name);
+    }
+
+    public function handleBlockClick(Request $request, string $alias, int $blockId)
+    {
+        $link = Link::where('alias', $alias)->where('type', 'biolink')->firstOrFail();
+
+        if (!$link->isAccessible()) {
+            abort(410, 'This link is no longer available.');
+        }
+
+        $block = BiolinkBlock::where('id', $blockId)->where('link_id', $link->id)->firstOrFail();
+        $s = $block->settings ?? [];
+        $linkData = $s['_link'] ?? [];
+        $destinationUrl = $linkData['url'] ?? $s['link'] ?? $s['url'] ?? '#';
+
+        if ($destinationUrl === '#' || empty($destinationUrl)) {
+            abort(404, 'No destination URL configured.');
+        }
+
+        $utmParams = [];
+        foreach (['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'] as $param) {
+            if (!empty($linkData[$param])) {
+                $utmParams[$param] = $linkData[$param];
+            }
+        }
+        if (!empty($utmParams)) {
+            $separator = str_contains($destinationUrl, '?') ? '&' : '?';
+            $destinationUrl .= $separator . http_build_query($utmParams);
+        }
+
+        $this->trackingService->trackBlockClick($link, $block, $destinationUrl, $request);
+
+        return redirect()->away($destinationUrl, 302);
     }
 
     protected function handleIcsDownload(Link $link)

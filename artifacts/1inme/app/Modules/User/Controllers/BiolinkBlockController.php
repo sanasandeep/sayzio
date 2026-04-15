@@ -241,6 +241,14 @@ class BiolinkBlockController extends Controller
             $settings['html'] = $this->sanitizeHtml($settings['html']);
         }
 
+        if (isset($settings['_image_style']) && is_array($settings['_image_style'])) {
+            $settings['_image_style'] = $this->sanitizeImageStyle($settings['_image_style']);
+        }
+
+        if (isset($settings['_link']) && is_array($settings['_link'])) {
+            $settings['_link'] = $this->sanitizeLinkSettings($settings['_link']);
+        }
+
         return $settings;
     }
 
@@ -453,6 +461,78 @@ class BiolinkBlockController extends Controller
                 }
             }
         }
+        return $result;
+    }
+
+    private function sanitizeImageStyle(array $input): array
+    {
+        $enums = [
+            'mask_shape' => ['none', 'rounded', 'circle', 'square', 'diamond', 'hexagon', 'octagon', 'star', 'blob', 'arch'],
+            'object_fit' => ['cover', 'contain', 'fill', 'none'],
+            'border_style' => ['none', 'solid', 'dashed', 'dotted', 'double'],
+            'shadow_type' => ['none', 'soft', 'hard', 'glow', 'neon', 'drop'],
+        ];
+        $numericBounds = [
+            'border_radius' => [0, 999],
+            'border_width' => [0, 10],
+            'shadow_x' => [-40, 40],
+            'shadow_y' => [-40, 40],
+            'shadow_blur' => [0, 80],
+            'shadow_spread' => [-20, 40],
+        ];
+        $colorKeys = ['border_color', 'shadow_color'];
+
+        $result = [];
+        foreach (array_keys(BiolinkBlock::IMAGE_STYLE_DEFAULTS) as $key) {
+            if (!isset($input[$key]) || $input[$key] === '') continue;
+            $val = is_string($input[$key]) ? trim($input[$key]) : $input[$key];
+
+            if (isset($enums[$key])) {
+                if (in_array($val, $enums[$key], true)) $result[$key] = $val;
+            } elseif (isset($numericBounds[$key])) {
+                if (is_numeric($val)) {
+                    $result[$key] = max($numericBounds[$key][0], min($numericBounds[$key][1], (float) $val));
+                }
+            } elseif (in_array($key, $colorKeys, true)) {
+                if (preg_match('/^(#[0-9a-fA-F]{3,8}|rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*[\d.]+\s*)?\)|transparent)$/', $val)) {
+                    $result[$key] = $val;
+                }
+            }
+        }
+        return $result;
+    }
+
+    private function sanitizeLinkSettings(array $input): array
+    {
+        $result = [];
+
+        if (!empty($input['url'])) {
+            $url = trim($input['url']);
+            if (filter_var($url, FILTER_VALIDATE_URL) && preg_match('/^https?:\/\//', $url)) {
+                $result['url'] = substr($url, 0, 2048);
+            }
+        }
+
+        $allowedTargets = ['_blank', '_self'];
+        if (isset($input['target']) && in_array($input['target'], $allowedTargets, true)) {
+            $result['target'] = $input['target'];
+        }
+
+        $allowedRels = ['noopener', 'noopener nofollow', 'noopener noreferrer', 'noopener noreferrer nofollow', 'sponsored', 'ugc'];
+        if (isset($input['rel']) && in_array($input['rel'], $allowedRels, true)) {
+            $result['rel'] = $input['rel'];
+        }
+
+        if (!empty($input['title'])) {
+            $result['title'] = substr(strip_tags(trim($input['title'])), 0, 200);
+        }
+
+        foreach (['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'] as $utm) {
+            if (!empty($input[$utm])) {
+                $result[$utm] = preg_replace('/[^a-zA-Z0-9_\-. ]/', '', substr(trim($input[$utm]), 0, 100));
+            }
+        }
+
         return $result;
     }
 }

@@ -126,13 +126,16 @@ $labelClass = 'block text-xs mb-1';
 </div>
 
 @elseif($block->type === 'image')
+@php $imgStyle = $s['_image_style'] ?? []; $imgLink = $s['_link'] ?? []; @endphp
 <div class="space-y-3">
     <div><label class="{{ $labelClass }}">Image URL</label><input type="url" name="settings[url]" value="{{ $s['url'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div><label class="{{ $labelClass }}">Alt Text</label><input type="text" name="settings[alt]" value="{{ $s['alt'] ?? '' }}" class="{{ $inputClass }}"></div>
-    <div><label class="{{ $labelClass }}">Link To</label><input type="url" name="settings[link]" value="{{ $s['link'] ?? '' }}" class="{{ $inputClass }}"></div>
 </div>
+@include('user.links.partials.image-style-settings', ['imgStyle' => $imgStyle, 'inputClass' => $inputClass, 'labelClass' => $labelClass, 'selectClass' => $selectClass])
+@include('user.links.partials.block-link-settings', ['imgLink' => $imgLink, 'inputClass' => $inputClass, 'labelClass' => $labelClass])
 
 @elseif(in_array($block->type, ['image_grid', 'image_slider', 'image_slider_v2']))
+@php $imgStyle = $s['_image_style'] ?? []; $imgLink = $s['_link'] ?? []; @endphp
 <div x-data="{ images: {{ json_encode($s['images'] ?? []) }} }">
     <label class="{{ $labelClass }}">Images (URLs)</label>
     <template x-for="(img, i) in images" :key="i">
@@ -141,6 +144,8 @@ $labelClass = 'block text-xs mb-1';
     <button type="button" @click="images.push('')" class="text-xs text-purple-400 hover:text-purple-300"><i class="fas fa-plus mr-1"></i>Add Image</button>
     @if($block->type === 'image_grid')<div class="mt-3"><label class="{{ $labelClass }}">Columns</label><select name="settings[columns]" class="{{ $selectClass }}"><option value="2" {{ ($s['columns'] ?? 3) == 2 ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">2</option><option value="3" {{ ($s['columns'] ?? 3) == 3 ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">3</option><option value="4" {{ ($s['columns'] ?? 3) == 4 ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">4</option></select></div>@endif
 </div>
+@include('user.links.partials.image-style-settings', ['imgStyle' => $imgStyle, 'inputClass' => $inputClass, 'labelClass' => $labelClass, 'selectClass' => $selectClass])
+@include('user.links.partials.block-link-settings', ['imgLink' => $imgLink, 'inputClass' => $inputClass, 'labelClass' => $labelClass])
 
 @elseif(in_array($block->type, ['video', 'header_video']))
 <div class="space-y-3">

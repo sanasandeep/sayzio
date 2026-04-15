@@ -241,24 +241,56 @@
 
             {{-- MEDIA --}}
             @elseif($block->type === 'image')
-                <div class="mb-4 rounded-xl overflow-hidden">
-                    @if(!empty($s['link']))<a href="{{ $s['link'] }}" target="_blank" rel="noopener">@endif
-                    <img src="{{ $s['url'] ?? '' }}" alt="{{ $s['alt'] ?? '' }}" class="w-full rounded-xl">
-                    @if(!empty($s['link']))</a>@endif
+                @php
+                    $imgSt = $s['_image_style'] ?? [];
+                    $imgInline = \App\Modules\User\Models\BiolinkBlock::buildImageInlineStyle($imgSt);
+                    $imgLk = $s['_link'] ?? [];
+                    $imgLinkUrl = $imgLk['url'] ?? $s['link'] ?? '';
+                    $imgTrackUrl = $imgLinkUrl ? route('redirect.block', ['alias' => $link->alias, 'blockId' => $block->id]) : '';
+                    $imgTarget = $imgLk['target'] ?? '_blank';
+                    $imgRel = $imgLk['rel'] ?? 'noopener';
+                    $imgTitle = $imgLk['title'] ?? '';
+                @endphp
+                <div class="mb-4 overflow-hidden{{ empty($imgSt['mask_shape']) || ($imgSt['mask_shape'] ?? 'none') === 'none' ? ' rounded-xl' : '' }}">
+                    @if($imgTrackUrl)<a href="{{ $imgTrackUrl }}" target="{{ $imgTarget }}" rel="{{ $imgRel }}"{{ $imgTitle ? ' title="'.e($imgTitle).'"' : '' }}>@endif
+                    <img src="{{ $s['url'] ?? '' }}" alt="{{ $s['alt'] ?? '' }}" class="w-full{{ empty($imgInline) ? ' rounded-xl' : '' }}" style="{{ $imgInline }}">
+                    @if($imgTrackUrl)</a>@endif
                 </div>
 
             @elseif($block->type === 'image_grid')
+                @php
+                    $imgSt = $s['_image_style'] ?? [];
+                    $imgInline = \App\Modules\User\Models\BiolinkBlock::buildImageInlineStyle($imgSt);
+                    $imgLk = $s['_link'] ?? [];
+                    $gridLinkUrl = $imgLk['url'] ?? '';
+                    $gridTrackUrl = $gridLinkUrl ? route('redirect.block', ['alias' => $link->alias, 'blockId' => $block->id]) : '';
+                    $gridTarget = $imgLk['target'] ?? '_blank';
+                    $gridRel = $imgLk['rel'] ?? 'noopener';
+                @endphp
                 <div class="mb-4 grid grid-cols-{{ $s['columns'] ?? 3 }} gap-{{ $s['gap'] ?? 2 }}">
+                    @if($gridTrackUrl)<a href="{{ $gridTrackUrl }}" target="{{ $gridTarget }}" rel="{{ $gridRel }}" class="contents">@endif
                     @foreach(($s['images'] ?? []) as $img)
-                        <img src="{{ is_array($img) ? ($img['url'] ?? '') : $img }}" alt="" class="w-full aspect-square object-cover rounded-lg">
+                        <img src="{{ is_array($img) ? ($img['url'] ?? '') : $img }}" alt="" class="w-full aspect-square object-cover{{ empty($imgInline) ? ' rounded-lg' : '' }}" style="{{ $imgInline }}">
                     @endforeach
+                    @if($gridTrackUrl)</a>@endif
                 </div>
 
             @elseif(in_array($block->type, ['image_slider', 'image_slider_v2']))
+                @php
+                    $imgSt = $s['_image_style'] ?? [];
+                    $imgInline = \App\Modules\User\Models\BiolinkBlock::buildImageInlineStyle($imgSt);
+                    $sliderLk = $s['_link'] ?? [];
+                    $sliderLinkUrl = $sliderLk['url'] ?? '';
+                    $sliderTrackUrl = $sliderLinkUrl ? route('redirect.block', ['alias' => $link->alias, 'blockId' => $block->id]) : '';
+                    $sliderTarget = $sliderLk['target'] ?? '_blank';
+                    $sliderRel = $sliderLk['rel'] ?? 'noopener';
+                @endphp
                 <div class="mb-4 rounded-xl overflow-hidden relative" x-data="{ current: 0, images: {{ json_encode($s['images'] ?? []) }} }" x-init="setInterval(() => { if(images.length > 1) current = (current + 1) % images.length }, {{ $s['interval'] ?? 3000 }})">
+                    @if($sliderTrackUrl)<a href="{{ $sliderTrackUrl }}" target="{{ $sliderTarget }}" rel="{{ $sliderRel }}">@endif
                     <template x-for="(img, i) in images" :key="i">
-                        <img :src="typeof img === 'string' ? img : img.url" x-show="current === i" class="w-full rounded-xl {{ ($s['effect'] ?? '') === 'fade' ? 'transition-opacity duration-500' : '' }}" alt="">
+                        <img :src="typeof img === 'string' ? img : img.url" x-show="current === i" class="w-full{{ empty($imgInline) ? ' rounded-xl' : '' }} {{ ($s['effect'] ?? '') === 'fade' ? 'transition-opacity duration-500' : '' }}" style="{{ $imgInline }}" alt="">
                     </template>
+                    @if($sliderTrackUrl)</a>@endif
                     <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
                         <template x-for="(_, i) in images" :key="'d'+i">
                             <button @click="current = i" class="w-2 h-2 rounded-full transition-all" :class="current === i ? 'bg-white w-4' : 'bg-white/40'"></button>

@@ -2,6 +2,7 @@
 
 namespace App\Modules\Common\Services;
 
+use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\LinkClick;
 use Illuminate\Http\Request;
@@ -98,6 +99,43 @@ class LinkTrackingService
         if (!$lang) return null;
 
         return substr($lang, 0, 2);
+    }
+
+    public function trackBlockClick(Link $link, BiolinkBlock $block, string $destinationUrl, Request $request): LinkClick
+    {
+        $userAgent = $request->userAgent();
+        $geoService = app(GeoIpService::class);
+
+        $click = LinkClick::create([
+            'link_id' => $link->id,
+            'block_id' => $block->id,
+            'block_type' => $block->type,
+            'destination_url' => substr($destinationUrl, 0, 2048),
+            'ip_address' => $request->ip(),
+            'browser' => $this->detectBrowser($userAgent),
+            'os' => $this->detectOS($userAgent),
+            'device_type' => $this->detectDeviceType($userAgent),
+            'referrer' => $request->header('referer'),
+            'language' => $this->detectLanguage($request),
+            'country_code' => $geoService->detectCountry($request->ip()),
+            'city' => $geoService->detectCity($request->ip()),
+            'utm_params' => $this->extractUtmParams($request),
+            'clicked_at' => now(),
+        ]);
+
+        $link->increment('total_clicks');
+
+        $isUnique = !LinkClick::where('link_id', $link->id)
+            ->where('ip_address', $request->ip())
+            ->where('clicked_at', '>=', now()->subDay())
+            ->where('id', '!=', $click->id)
+            ->exists();
+
+        if ($isUnique) {
+            $link->increment('unique_clicks');
+        }
+
+        return $click;
     }
 
     protected function extractUtmParams(Request $request): ?array
