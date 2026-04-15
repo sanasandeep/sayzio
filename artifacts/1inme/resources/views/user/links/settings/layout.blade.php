@@ -14,7 +14,7 @@
     @include('user.links.partials.editor-header', ['link' => $link, 'activeMainTab' => 'settings'])
     @include('user.links.partials.settings-header', ['link' => $link, 'activeSettingsTab' => $activeSettingsTab])
 
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         <div class="lg:col-span-7">
             <form method="POST" action="{{ route('user.links.page-settings', $link) }}" enctype="multipart/form-data">
                 @csrf
@@ -85,7 +85,7 @@
         </div>
 
         <div class="lg:col-span-5 hidden lg:block">
-            <div class="sticky top-6">
+            <div class="sticky top-0 self-start">
                 @include('user.links.partials.device-preview', ['link' => $link])
             </div>
         </div>

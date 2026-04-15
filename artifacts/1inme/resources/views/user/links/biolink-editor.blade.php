@@ -351,7 +351,7 @@ $catColors = [
         @endif
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         <div class="lg:col-span-7 xl:col-span-7">
 
             {{-- BLOCKS --}}
@@ -530,7 +530,7 @@ $catColors = [
 
         {{-- DEVICE PREVIEW --}}
         <div class="lg:col-span-5 xl:col-span-5 hidden lg:block">
-            <div class="sticky top-6">
+            <div class="sticky top-0 self-start">
                 @include('user.links.partials.device-preview', ['link' => $link])
             </div>
         </div>
