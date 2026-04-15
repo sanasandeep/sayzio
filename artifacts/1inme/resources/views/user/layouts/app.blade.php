@@ -238,7 +238,7 @@
     <div class="bg-mesh"></div>
     <div class="particles" id="particles"></div>
 
-    <div class="flex min-h-screen relative z-10"
+    <div class="flex h-screen relative z-10 overflow-hidden"
          x-data="{
             sidebarMode: localStorage.getItem('1inme_sidebar') || 'full',
             mobileMenu: false,
@@ -404,10 +404,10 @@
             </div>
         </aside>
 
-        <div class="flex-1 flex flex-col min-w-0 main-content-v2"
+        <div class="flex-1 flex flex-col min-w-0 min-h-0 main-content-v2"
              :style="'margin-left:' + (isDesktop ? sidebarWidth : 0) + 'px'">
 
-            <header class="h-16 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-20 header-v2 relative"
+            <header class="h-16 flex-shrink-0 flex items-center justify-between px-4 lg:px-6 z-20 header-v2 relative"
                     style="background: var(--bg-header); backdrop-filter: blur(40px) saturate(1.4); -webkit-backdrop-filter: blur(40px) saturate(1.4); border-bottom: 1px solid var(--border-subtle);">
                 <div class="header-glow"></div>
 
