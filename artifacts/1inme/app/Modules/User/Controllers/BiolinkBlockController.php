@@ -73,7 +73,7 @@ class BiolinkBlockController extends Controller
             'end_date' => $validated['end_date'] ?? $block->end_date,
         ]);
 
-        if ($request->ajax()) {
+        if ($request->ajax() || $request->wantsJson()) {
             return response()->json(['success' => true, 'block' => $block->fresh()]);
         }
 
