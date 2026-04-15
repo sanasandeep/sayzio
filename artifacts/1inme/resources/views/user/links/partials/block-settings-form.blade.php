@@ -1,9 +1,11 @@
 @php $s = $block->settings ?? []; @endphp
 @php
-$inputClass = 'w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:ring-2 focus:ring-purple-500/40 outline-none';
+$inputClass = 'theme-input w-full';
 $selectClass = $inputClass;
-$labelClass = 'block text-xs text-white/40 mb-1';
+$labelClass = 'block text-xs mb-1';
 @endphp
+<style>.block-settings-form label { color: var(--text-faint); } .block-settings-form .glass { background: var(--bg-glass); border: 1px solid var(--border-glass); }</style>
+<div class="block-settings-form">
 
 @if($block->type === 'link')
 <div class="space-y-3">
@@ -20,15 +22,15 @@ $labelClass = 'block text-xs text-white/40 mb-1';
     <div><label class="{{ $labelClass }}">URL</label><input type="url" name="settings[url]" value="{{ $s['url'] ?? '' }}" placeholder="https://" class="{{ $inputClass }}"></div>
     <div><label class="{{ $labelClass }}">Icon (FA class)</label><input type="text" name="settings[icon]" value="{{ $s['icon'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div><label class="{{ $labelClass }}">Thumbnail URL</label><input type="text" name="settings[thumbnail]" value="{{ $s['thumbnail'] ?? '' }}" class="{{ $inputClass }}"></div>
-    <div><label class="{{ $labelClass }}">Background Color</label><input type="color" name="settings[bg_color]" value="{{ $s['bg_color'] ?? '#7c3aed' }}" class="w-full h-10 rounded-xl border border-white/10 bg-white/5 cursor-pointer"></div>
+    <div><label class="{{ $labelClass }}">Background Color</label><input type="color" name="settings[bg_color]" value="{{ $s['bg_color'] ?? '#7c3aed' }}" class="w-full h-10 rounded-xl cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
 </div>
 
 @elseif($block->type === 'heading')
 <div class="space-y-3">
     <div><label class="{{ $labelClass }}">Text</label><input type="text" name="settings[text]" value="{{ $s['text'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div class="grid grid-cols-2 gap-3">
-        <div><label class="{{ $labelClass }}">Size</label><select name="settings[size]" class="{{ $selectClass }}"><option value="h1" {{ ($s['size'] ?? '') === 'h1' ? 'selected' : '' }} class="bg-[#0d0818]">H1</option><option value="h2" {{ ($s['size'] ?? '') === 'h2' ? 'selected' : '' }} class="bg-[#0d0818]">H2</option><option value="h3" {{ ($s['size'] ?? '') === 'h3' ? 'selected' : '' }} class="bg-[#0d0818]">H3</option></select></div>
-        <div><label class="{{ $labelClass }}">Align</label><select name="settings[align]" class="{{ $selectClass }}"><option value="left" {{ ($s['align'] ?? '') === 'left' ? 'selected' : '' }} class="bg-[#0d0818]">Left</option><option value="center" {{ ($s['align'] ?? '') === 'center' ? 'selected' : '' }} class="bg-[#0d0818]">Center</option><option value="right" {{ ($s['align'] ?? '') === 'right' ? 'selected' : '' }} class="bg-[#0d0818]">Right</option></select></div>
+        <div><label class="{{ $labelClass }}">Size</label><select name="settings[size]" class="{{ $selectClass }}"><option value="h1" {{ ($s['size'] ?? '') === 'h1' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">H1</option><option value="h2" {{ ($s['size'] ?? '') === 'h2' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">H2</option><option value="h3" {{ ($s['size'] ?? '') === 'h3' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">H3</option></select></div>
+        <div><label class="{{ $labelClass }}">Align</label><select name="settings[align]" class="{{ $selectClass }}"><option value="left" {{ ($s['align'] ?? '') === 'left' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Left</option><option value="center" {{ ($s['align'] ?? '') === 'center' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Center</option><option value="right" {{ ($s['align'] ?? '') === 'right' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Right</option></select></div>
     </div>
 </div>
 
@@ -36,12 +38,12 @@ $labelClass = 'block text-xs text-white/40 mb-1';
 <div class="space-y-3">
     <div><label class="{{ $labelClass }}">Text</label><input type="text" name="settings[text]" value="{{ $s['text'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div class="grid grid-cols-2 gap-3">
-        <div><label class="{{ $labelClass }}">From Color</label><input type="color" name="settings[from_color]" value="{{ $s['from_color'] ?? '#7c3aed' }}" class="w-full h-10 rounded-xl border border-white/10 bg-white/5"></div>
-        <div><label class="{{ $labelClass }}">To Color</label><input type="color" name="settings[to_color]" value="{{ $s['to_color'] ?? '#ec4899' }}" class="w-full h-10 rounded-xl border border-white/10 bg-white/5"></div>
+        <div><label class="{{ $labelClass }}">From Color</label><input type="color" name="settings[from_color]" value="{{ $s['from_color'] ?? '#7c3aed' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
+        <div><label class="{{ $labelClass }}">To Color</label><input type="color" name="settings[to_color]" value="{{ $s['to_color'] ?? '#ec4899' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
     </div>
     <div class="grid grid-cols-2 gap-3">
-        <div><label class="{{ $labelClass }}">Size</label><select name="settings[size]" class="{{ $selectClass }}"><option value="h1" {{ ($s['size'] ?? '') === 'h1' ? 'selected' : '' }} class="bg-[#0d0818]">H1</option><option value="h2" {{ ($s['size'] ?? '') === 'h2' ? 'selected' : '' }} class="bg-[#0d0818]">H2</option><option value="h3" {{ ($s['size'] ?? '') === 'h3' ? 'selected' : '' }} class="bg-[#0d0818]">H3</option></select></div>
-        <div><label class="{{ $labelClass }}">Align</label><select name="settings[align]" class="{{ $selectClass }}"><option value="left" {{ ($s['align'] ?? '') === 'left' ? 'selected' : '' }} class="bg-[#0d0818]">Left</option><option value="center" {{ ($s['align'] ?? '') === 'center' ? 'selected' : '' }} class="bg-[#0d0818]">Center</option><option value="right" {{ ($s['align'] ?? '') === 'right' ? 'selected' : '' }} class="bg-[#0d0818]">Right</option></select></div>
+        <div><label class="{{ $labelClass }}">Size</label><select name="settings[size]" class="{{ $selectClass }}"><option value="h1" {{ ($s['size'] ?? '') === 'h1' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">H1</option><option value="h2" {{ ($s['size'] ?? '') === 'h2' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">H2</option><option value="h3" {{ ($s['size'] ?? '') === 'h3' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">H3</option></select></div>
+        <div><label class="{{ $labelClass }}">Align</label><select name="settings[align]" class="{{ $selectClass }}"><option value="left" {{ ($s['align'] ?? '') === 'left' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Left</option><option value="center" {{ ($s['align'] ?? '') === 'center' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Center</option><option value="right" {{ ($s['align'] ?? '') === 'right' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Right</option></select></div>
     </div>
 </div>
 
@@ -50,8 +52,8 @@ $labelClass = 'block text-xs text-white/40 mb-1';
     <div><label class="{{ $labelClass }}">Text</label><input type="text" name="settings[text]" value="{{ $s['text'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div><label class="{{ $labelClass }}">Logo URL</label><input type="url" name="settings[logo_url]" value="{{ $s['logo_url'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div class="grid grid-cols-2 gap-3">
-        <div><label class="{{ $labelClass }}">Size</label><select name="settings[size]" class="{{ $selectClass }}"><option value="h1" {{ ($s['size'] ?? '') === 'h1' ? 'selected' : '' }} class="bg-[#0d0818]">H1</option><option value="h2" {{ ($s['size'] ?? '') === 'h2' ? 'selected' : '' }} class="bg-[#0d0818]">H2</option><option value="h3" {{ ($s['size'] ?? '') === 'h3' ? 'selected' : '' }} class="bg-[#0d0818]">H3</option></select></div>
-        <div><label class="{{ $labelClass }}">Align</label><select name="settings[align]" class="{{ $selectClass }}"><option value="center" {{ ($s['align'] ?? '') === 'center' ? 'selected' : '' }} class="bg-[#0d0818]">Center</option><option value="left" {{ ($s['align'] ?? '') === 'left' ? 'selected' : '' }} class="bg-[#0d0818]">Left</option></select></div>
+        <div><label class="{{ $labelClass }}">Size</label><select name="settings[size]" class="{{ $selectClass }}"><option value="h1" {{ ($s['size'] ?? '') === 'h1' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">H1</option><option value="h2" {{ ($s['size'] ?? '') === 'h2' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">H2</option><option value="h3" {{ ($s['size'] ?? '') === 'h3' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">H3</option></select></div>
+        <div><label class="{{ $labelClass }}">Align</label><select name="settings[align]" class="{{ $selectClass }}"><option value="center" {{ ($s['align'] ?? '') === 'center' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Center</option><option value="left" {{ ($s['align'] ?? '') === 'left' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Left</option></select></div>
     </div>
 </div>
 
@@ -59,15 +61,15 @@ $labelClass = 'block text-xs text-white/40 mb-1';
 <div class="space-y-3">
     <div><label class="{{ $labelClass }}">Text</label><input type="text" name="settings[text]" value="{{ $s['text'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div class="grid grid-cols-2 gap-3">
-        <div><label class="{{ $labelClass }}">Size</label><select name="settings[size]" class="{{ $selectClass }}"><option value="h1" {{ ($s['size'] ?? '') === 'h1' ? 'selected' : '' }} class="bg-[#0d0818]">H1</option><option value="h2" {{ ($s['size'] ?? '') === 'h2' ? 'selected' : '' }} class="bg-[#0d0818]">H2</option></select></div>
-        <div><label class="{{ $labelClass }}">Align</label><select name="settings[align]" class="{{ $selectClass }}"><option value="center" {{ ($s['align'] ?? '') === 'center' ? 'selected' : '' }} class="bg-[#0d0818]">Center</option><option value="left" {{ ($s['align'] ?? '') === 'left' ? 'selected' : '' }} class="bg-[#0d0818]">Left</option></select></div>
+        <div><label class="{{ $labelClass }}">Size</label><select name="settings[size]" class="{{ $selectClass }}"><option value="h1" {{ ($s['size'] ?? '') === 'h1' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">H1</option><option value="h2" {{ ($s['size'] ?? '') === 'h2' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">H2</option></select></div>
+        <div><label class="{{ $labelClass }}">Align</label><select name="settings[align]" class="{{ $selectClass }}"><option value="center" {{ ($s['align'] ?? '') === 'center' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Center</option><option value="left" {{ ($s['align'] ?? '') === 'left' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Left</option></select></div>
     </div>
 </div>
 
 @elseif($block->type === 'paragraph')
 <div class="space-y-3">
     <div><label class="{{ $labelClass }}">Text</label><textarea name="settings[text]" rows="3" class="{{ $inputClass }}">{{ $s['text'] ?? '' }}</textarea></div>
-    <div><label class="{{ $labelClass }}">Align</label><select name="settings[align]" class="{{ $selectClass }}"><option value="left" {{ ($s['align'] ?? '') === 'left' ? 'selected' : '' }} class="bg-[#0d0818]">Left</option><option value="center" {{ ($s['align'] ?? '') === 'center' ? 'selected' : '' }} class="bg-[#0d0818]">Center</option><option value="right" {{ ($s['align'] ?? '') === 'right' ? 'selected' : '' }} class="bg-[#0d0818]">Right</option></select></div>
+    <div><label class="{{ $labelClass }}">Align</label><select name="settings[align]" class="{{ $selectClass }}"><option value="left" {{ ($s['align'] ?? '') === 'left' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Left</option><option value="center" {{ ($s['align'] ?? '') === 'center' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Center</option><option value="right" {{ ($s['align'] ?? '') === 'right' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Right</option></select></div>
 </div>
 
 @elseif($block->type === 'paragraph_rich')
@@ -75,7 +77,7 @@ $labelClass = 'block text-xs text-white/40 mb-1';
 
 @elseif($block->type === 'divider')
 <div class="space-y-3">
-    <div><label class="{{ $labelClass }}">Style</label><select name="settings[style]" class="{{ $selectClass }}"><option value="solid" {{ ($s['style'] ?? '') === 'solid' ? 'selected' : '' }} class="bg-[#0d0818]">Solid</option><option value="dashed" {{ ($s['style'] ?? '') === 'dashed' ? 'selected' : '' }} class="bg-[#0d0818]">Dashed</option><option value="dotted" {{ ($s['style'] ?? '') === 'dotted' ? 'selected' : '' }} class="bg-[#0d0818]">Dotted</option></select></div>
+    <div><label class="{{ $labelClass }}">Style</label><select name="settings[style]" class="{{ $selectClass }}"><option value="solid" {{ ($s['style'] ?? '') === 'solid' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Solid</option><option value="dashed" {{ ($s['style'] ?? '') === 'dashed' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Dashed</option><option value="dotted" {{ ($s['style'] ?? '') === 'dotted' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Dotted</option></select></div>
     <div><label class="{{ $labelClass }}">Color</label><input type="text" name="settings[color]" value="{{ $s['color'] ?? 'rgba(255,255,255,0.1)' }}" class="{{ $inputClass }}"></div>
 </div>
 
@@ -101,7 +103,7 @@ $labelClass = 'block text-xs text-white/40 mb-1';
                 <input type="text" x-model="items[i].name" :name="'settings[items]['+i+'][name]'" placeholder="Feature" class="{{ $inputClass }}">
                 <input type="text" x-model="items[i].price" :name="'settings[items]['+i+'][price]'" placeholder="$10" class="{{ $inputClass }}">
             </div>
-            <label class="flex items-center gap-2 text-xs text-white/40"><input type="checkbox" x-model="items[i].included" :name="'settings[items]['+i+'][included]'" value="1" class="rounded bg-white/5 border-white/20 text-purple-500">Included</label>
+            <label class="flex items-center gap-2 text-xs text-white/40"><input type="checkbox" x-model="items[i].included" :name="'settings[items]['+i+'][included]'" value="1" class="rounded text-purple-500" style="background: var(--bg-glass-input); border-color: var(--border-glass);">Included</label>
             <button type="button" @click="items.splice(i,1)" class="text-xs text-red-400/60 hover:text-red-400 mt-1"><i class="fas fa-times mr-1"></i>Remove</button>
         </div>
     </template>
@@ -111,15 +113,15 @@ $labelClass = 'block text-xs text-white/40 mb-1';
 @elseif($block->type === 'alert')
 <div class="space-y-3">
     <div><label class="{{ $labelClass }}">Text</label><input type="text" name="settings[text]" value="{{ $s['text'] ?? '' }}" class="{{ $inputClass }}"></div>
-    <div><label class="{{ $labelClass }}">Type</label><select name="settings[type]" class="{{ $selectClass }}"><option value="info" {{ ($s['type'] ?? '') === 'info' ? 'selected' : '' }} class="bg-[#0d0818]">Info</option><option value="success" {{ ($s['type'] ?? '') === 'success' ? 'selected' : '' }} class="bg-[#0d0818]">Success</option><option value="warning" {{ ($s['type'] ?? '') === 'warning' ? 'selected' : '' }} class="bg-[#0d0818]">Warning</option><option value="error" {{ ($s['type'] ?? '') === 'error' ? 'selected' : '' }} class="bg-[#0d0818]">Error</option></select></div>
+    <div><label class="{{ $labelClass }}">Type</label><select name="settings[type]" class="{{ $selectClass }}"><option value="info" {{ ($s['type'] ?? '') === 'info' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Info</option><option value="success" {{ ($s['type'] ?? '') === 'success' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Success</option><option value="warning" {{ ($s['type'] ?? '') === 'warning' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Warning</option><option value="error" {{ ($s['type'] ?? '') === 'error' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Error</option></select></div>
 </div>
 
 @elseif($block->type === 'badge')
 <div class="space-y-3">
     <div><label class="{{ $labelClass }}">Text</label><input type="text" name="settings[text]" value="{{ $s['text'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div class="grid grid-cols-2 gap-3">
-        <div><label class="{{ $labelClass }}">Color</label><input type="color" name="settings[color]" value="{{ $s['color'] ?? '#7c3aed' }}" class="w-full h-10 rounded-xl border border-white/10 bg-white/5"></div>
-        <div><label class="{{ $labelClass }}">Text Color</label><input type="color" name="settings[text_color]" value="{{ $s['text_color'] ?? '#ffffff' }}" class="w-full h-10 rounded-xl border border-white/10 bg-white/5"></div>
+        <div><label class="{{ $labelClass }}">Color</label><input type="color" name="settings[color]" value="{{ $s['color'] ?? '#7c3aed' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
+        <div><label class="{{ $labelClass }}">Text Color</label><input type="color" name="settings[text_color]" value="{{ $s['text_color'] ?? '#ffffff' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
     </div>
 </div>
 
@@ -137,7 +139,7 @@ $labelClass = 'block text-xs text-white/40 mb-1';
         <div class="flex gap-2 mb-2"><input type="url" x-model="images[i]" :name="'settings[images][' + i + ']'" placeholder="https://..." class="{{ $inputClass }}"><button type="button" @click="images.splice(i,1)" class="text-red-400/60 hover:text-red-400 px-2"><i class="fas fa-times text-xs"></i></button></div>
     </template>
     <button type="button" @click="images.push('')" class="text-xs text-purple-400 hover:text-purple-300"><i class="fas fa-plus mr-1"></i>Add Image</button>
-    @if($block->type === 'image_grid')<div class="mt-3"><label class="{{ $labelClass }}">Columns</label><select name="settings[columns]" class="{{ $selectClass }}"><option value="2" {{ ($s['columns'] ?? 3) == 2 ? 'selected' : '' }} class="bg-[#0d0818]">2</option><option value="3" {{ ($s['columns'] ?? 3) == 3 ? 'selected' : '' }} class="bg-[#0d0818]">3</option><option value="4" {{ ($s['columns'] ?? 3) == 4 ? 'selected' : '' }} class="bg-[#0d0818]">4</option></select></div>@endif
+    @if($block->type === 'image_grid')<div class="mt-3"><label class="{{ $labelClass }}">Columns</label><select name="settings[columns]" class="{{ $selectClass }}"><option value="2" {{ ($s['columns'] ?? 3) == 2 ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">2</option><option value="3" {{ ($s['columns'] ?? 3) == 3 ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">3</option><option value="4" {{ ($s['columns'] ?? 3) == 4 ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">4</option></select></div>@endif
 </div>
 
 @elseif(in_array($block->type, ['video', 'header_video']))
@@ -145,9 +147,9 @@ $labelClass = 'block text-xs text-white/40 mb-1';
     <div><label class="{{ $labelClass }}">Video URL</label><input type="url" name="settings[url]" value="{{ $s['url'] ?? '' }}" class="{{ $inputClass }}"></div>
     @if($block->type === 'header_video')
     <div class="flex gap-4">
-        <label class="flex items-center gap-2 text-xs text-white/40"><input type="checkbox" name="settings[autoplay]" value="1" {{ ($s['autoplay'] ?? false) ? 'checked' : '' }} class="rounded bg-white/5 border-white/20 text-purple-500">Autoplay</label>
-        <label class="flex items-center gap-2 text-xs text-white/40"><input type="checkbox" name="settings[muted]" value="1" {{ ($s['muted'] ?? false) ? 'checked' : '' }} class="rounded bg-white/5 border-white/20 text-purple-500">Muted</label>
-        <label class="flex items-center gap-2 text-xs text-white/40"><input type="checkbox" name="settings[loop]" value="1" {{ ($s['loop'] ?? false) ? 'checked' : '' }} class="rounded bg-white/5 border-white/20 text-purple-500">Loop</label>
+        <label class="flex items-center gap-2 text-xs text-white/40"><input type="checkbox" name="settings[autoplay]" value="1" {{ ($s['autoplay'] ?? false) ? 'checked' : '' }} class="rounded text-purple-500" style="background: var(--bg-glass-input); border-color: var(--border-glass);">Autoplay</label>
+        <label class="flex items-center gap-2 text-xs text-white/40"><input type="checkbox" name="settings[muted]" value="1" {{ ($s['muted'] ?? false) ? 'checked' : '' }} class="rounded text-purple-500" style="background: var(--bg-glass-input); border-color: var(--border-glass);">Muted</label>
+        <label class="flex items-center gap-2 text-xs text-white/40"><input type="checkbox" name="settings[loop]" value="1" {{ ($s['loop'] ?? false) ? 'checked' : '' }} class="rounded text-purple-500" style="background: var(--bg-glass-input); border-color: var(--border-glass);">Loop</label>
     </div>
     @endif
 </div>
@@ -171,8 +173,8 @@ $labelClass = 'block text-xs text-white/40 mb-1';
 @include('user.links.partials.socials-form', ['s' => $s])
 @if($block->type === 'socials_custom')
 <div class="mt-3 grid grid-cols-2 gap-3">
-    <div><label class="{{ $labelClass }}">Style</label><select name="settings[style]" class="{{ $selectClass }}"><option value="rounded" {{ ($s['style'] ?? '') === 'rounded' ? 'selected' : '' }} class="bg-[#0d0818]">Rounded</option><option value="square" {{ ($s['style'] ?? '') === 'square' ? 'selected' : '' }} class="bg-[#0d0818]">Square</option><option value="circle" {{ ($s['style'] ?? '') === 'circle' ? 'selected' : '' }} class="bg-[#0d0818]">Circle</option></select></div>
-    <div><label class="{{ $labelClass }}">Size</label><select name="settings[size]" class="{{ $selectClass }}"><option value="sm" {{ ($s['size'] ?? '') === 'sm' ? 'selected' : '' }} class="bg-[#0d0818]">Small</option><option value="md" {{ ($s['size'] ?? '') === 'md' ? 'selected' : '' }} class="bg-[#0d0818]">Medium</option><option value="lg" {{ ($s['size'] ?? '') === 'lg' ? 'selected' : '' }} class="bg-[#0d0818]">Large</option></select></div>
+    <div><label class="{{ $labelClass }}">Style</label><select name="settings[style]" class="{{ $selectClass }}"><option value="rounded" {{ ($s['style'] ?? '') === 'rounded' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Rounded</option><option value="square" {{ ($s['style'] ?? '') === 'square' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Square</option><option value="circle" {{ ($s['style'] ?? '') === 'circle' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Circle</option></select></div>
+    <div><label class="{{ $labelClass }}">Size</label><select name="settings[size]" class="{{ $selectClass }}"><option value="sm" {{ ($s['size'] ?? '') === 'sm' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Small</option><option value="md" {{ ($s['size'] ?? '') === 'md' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Medium</option><option value="lg" {{ ($s['size'] ?? '') === 'lg' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Large</option></select></div>
 </div>
 @endif
 
@@ -191,7 +193,7 @@ $labelClass = 'block text-xs text-white/40 mb-1';
 @elseif($block->type === 'spotify')
 <div class="space-y-3">
     <div><label class="{{ $labelClass }}">Spotify URL</label><input type="url" name="settings[url]" value="{{ $s['url'] ?? '' }}" class="{{ $inputClass }}"></div>
-    <div><label class="{{ $labelClass }}">Type</label><select name="settings[type]" class="{{ $selectClass }}"><option value="track" {{ ($s['type'] ?? '') === 'track' ? 'selected' : '' }} class="bg-[#0d0818]">Track</option><option value="album" {{ ($s['type'] ?? '') === 'album' ? 'selected' : '' }} class="bg-[#0d0818]">Album</option><option value="playlist" {{ ($s['type'] ?? '') === 'playlist' ? 'selected' : '' }} class="bg-[#0d0818]">Playlist</option></select></div>
+    <div><label class="{{ $labelClass }}">Type</label><select name="settings[type]" class="{{ $selectClass }}"><option value="track" {{ ($s['type'] ?? '') === 'track' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Track</option><option value="album" {{ ($s['type'] ?? '') === 'album' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Album</option><option value="playlist" {{ ($s['type'] ?? '') === 'playlist' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Playlist</option></select></div>
 </div>
 
 @elseif($block->type === 'youtube')
@@ -292,7 +294,7 @@ $labelClass = 'block text-xs text-white/40 mb-1';
             <input type="text" x-model="items[i].title" :name="'settings[items]['+i+'][title]'" placeholder="Title" class="{{ $inputClass }}">
             <input type="text" x-model="items[i].description" :name="'settings[items]['+i+'][description]'" placeholder="Description" class="{{ $inputClass }}">
             @if($block->type === 'timeline')<input type="text" x-model="items[i].date" :name="'settings[items]['+i+'][date]'" placeholder="Date" class="{{ $inputClass }}">@endif
-            @if($block->type === 'timeline_staged')<select x-model="items[i].status" :name="'settings[items]['+i+'][status]'" class="{{ $selectClass }}"><option value="completed" class="bg-[#0d0818]">Completed</option><option value="active" class="bg-[#0d0818]">Active</option><option value="upcoming" class="bg-[#0d0818]">Upcoming</option></select>@endif
+            @if($block->type === 'timeline_staged')<select x-model="items[i].status" :name="'settings[items]['+i+'][status]'" class="{{ $selectClass }}"><option value="completed" style="background: var(--bg-body); color: var(--text-primary);">Completed</option><option value="active" style="background: var(--bg-body); color: var(--text-primary);">Active</option><option value="upcoming" style="background: var(--bg-body); color: var(--text-primary);">Upcoming</option></select>@endif
             <button type="button" @click="items.splice(i,1)" class="text-xs text-red-400/60 hover:text-red-400"><i class="fas fa-times mr-1"></i>Remove</button>
         </div>
     </template>
@@ -370,7 +372,7 @@ $labelClass = 'block text-xs text-white/40 mb-1';
         <div class="glass rounded-lg p-3 mb-2 grid grid-cols-3 gap-2">
             <input type="text" x-model="items[i].label" :name="'settings[items]['+i+'][label]'" placeholder="Label" class="{{ $inputClass }}">
             <input type="number" x-model="items[i].value" :name="'settings[items]['+i+'][value]'" min="0" max="100" placeholder="%" class="{{ $inputClass }}">
-            <input type="color" x-model="items[i].color" :name="'settings[items]['+i+'][color]'" class="w-full h-10 rounded-xl border border-white/10 bg-white/5">
+            <input type="color" x-model="items[i].color" :name="'settings[items]['+i+'][color]'" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);">
         </div>
     </template>
     <button type="button" @click="items.push({label:'',value:50,color:'#7c3aed'})" class="text-xs text-purple-400 hover:text-purple-300"><i class="fas fa-plus mr-1"></i>Add</button>
@@ -381,16 +383,16 @@ $labelClass = 'block text-xs text-white/40 mb-1';
     <div><label class="{{ $labelClass }}">Button Text</label><input type="text" name="settings[text]" value="{{ $s['text'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div><label class="{{ $labelClass }}">URL</label><input type="url" name="settings[url]" value="{{ $s['url'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div class="grid grid-cols-2 gap-3">
-        <div><label class="{{ $labelClass }}">Button Color</label><input type="color" name="settings[color]" value="{{ $s['color'] ?? '#7c3aed' }}" class="w-full h-10 rounded-xl border border-white/10 bg-white/5"></div>
-        <div><label class="{{ $labelClass }}">Text Color</label><input type="color" name="settings[text_color]" value="{{ $s['text_color'] ?? '#ffffff' }}" class="w-full h-10 rounded-xl border border-white/10 bg-white/5"></div>
+        <div><label class="{{ $labelClass }}">Button Color</label><input type="color" name="settings[color]" value="{{ $s['color'] ?? '#7c3aed' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
+        <div><label class="{{ $labelClass }}">Text Color</label><input type="color" name="settings[text_color]" value="{{ $s['text_color'] ?? '#ffffff' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
     </div>
-    <div><label class="{{ $labelClass }}">Size</label><select name="settings[size]" class="{{ $selectClass }}"><option value="sm" {{ ($s['size'] ?? '') === 'sm' ? 'selected' : '' }} class="bg-[#0d0818]">Small</option><option value="md" {{ ($s['size'] ?? '') === 'md' ? 'selected' : '' }} class="bg-[#0d0818]">Medium</option><option value="lg" {{ ($s['size'] ?? '') === 'lg' ? 'selected' : '' }} class="bg-[#0d0818]">Large</option></select></div>
+    <div><label class="{{ $labelClass }}">Size</label><select name="settings[size]" class="{{ $selectClass }}"><option value="sm" {{ ($s['size'] ?? '') === 'sm' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Small</option><option value="md" {{ ($s['size'] ?? '') === 'md' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Medium</option><option value="lg" {{ ($s['size'] ?? '') === 'lg' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Large</option></select></div>
 </div>
 
 @elseif($block->type === 'notification')
 <div class="space-y-3">
     <div><label class="{{ $labelClass }}">Text</label><input type="text" name="settings[text]" value="{{ $s['text'] ?? '' }}" class="{{ $inputClass }}"></div>
-    <div><label class="{{ $labelClass }}">Type</label><select name="settings[type]" class="{{ $selectClass }}"><option value="info" {{ ($s['type'] ?? '') === 'info' ? 'selected' : '' }} class="bg-[#0d0818]">Info</option><option value="success" {{ ($s['type'] ?? '') === 'success' ? 'selected' : '' }} class="bg-[#0d0818]">Success</option><option value="warning" {{ ($s['type'] ?? '') === 'warning' ? 'selected' : '' }} class="bg-[#0d0818]">Warning</option></select></div>
+    <div><label class="{{ $labelClass }}">Type</label><select name="settings[type]" class="{{ $selectClass }}"><option value="info" {{ ($s['type'] ?? '') === 'info' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Info</option><option value="success" {{ ($s['type'] ?? '') === 'success' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Success</option><option value="warning" {{ ($s['type'] ?? '') === 'warning' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Warning</option></select></div>
 </div>
 
 @elseif($block->type === 'ticker')
@@ -452,7 +454,7 @@ $labelClass = 'block text-xs text-white/40 mb-1';
     <div><label class="{{ $labelClass }}">Image URL</label><input type="url" name="settings[url]" value="{{ $s['url'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div class="grid grid-cols-2 gap-3">
         <div><label class="{{ $labelClass }}">Size (px)</label><input type="number" name="settings[size]" value="{{ $s['size'] ?? 96 }}" min="32" max="256" class="{{ $inputClass }}"></div>
-        <div class="flex items-end pb-1"><label class="flex items-center gap-2 text-xs text-white/40"><input type="hidden" name="settings[rounded]" value="0"><input type="checkbox" name="settings[rounded]" value="1" {{ ($s['rounded'] ?? true) ? 'checked' : '' }} class="rounded bg-white/5 border-white/20 text-purple-500">Rounded</label></div>
+        <div class="flex items-end pb-1"><label class="flex items-center gap-2 text-xs text-white/40"><input type="hidden" name="settings[rounded]" value="0"><input type="checkbox" name="settings[rounded]" value="1" {{ ($s['rounded'] ?? true) ? 'checked' : '' }} class="rounded text-purple-500" style="background: var(--bg-glass-input); border-color: var(--border-glass);">Rounded</label></div>
     </div>
 </div>
 
@@ -511,7 +513,7 @@ $labelClass = 'block text-xs text-white/40 mb-1';
         <div class="glass rounded-lg p-3 mb-2 grid grid-cols-3 gap-2">
             <input type="text" x-model="items[i].label" :name="'settings[items]['+i+'][label]'" placeholder="Label" class="{{ $inputClass }}">
             <input type="number" x-model="items[i].value" :name="'settings[items]['+i+'][value]'" placeholder="Value" class="{{ $inputClass }}">
-            <input type="color" x-model="items[i].color" :name="'settings[items]['+i+'][color]'" class="w-full h-10 rounded-xl border border-white/10 bg-white/5">
+            <input type="color" x-model="items[i].color" :name="'settings[items]['+i+'][color]'" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);">
         </div>
     </template>
     <button type="button" @click="items.push({label:'',value:25,color:'#ec4899'})" class="text-xs text-purple-400"><i class="fas fa-plus mr-1"></i>Add</button>
@@ -527,3 +529,4 @@ $labelClass = 'block text-xs text-white/40 mb-1';
 @endif
 
 @include('user.links.partials.block-display-settings', ['block' => $block, 'inputClass' => $inputClass, 'labelClass' => $labelClass])
+</div>
