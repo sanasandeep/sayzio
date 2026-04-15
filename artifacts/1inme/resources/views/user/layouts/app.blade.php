@@ -291,7 +291,7 @@
                 </button>
             </div>
 
-            <nav class="flex-1 py-4 overflow-y-auto" :class="sidebarMode === 'icons' ? 'px-2' : 'px-3'" style="scrollbar-width: none;">
+            <nav class="flex-1 py-4 overflow-y-auto" :class="sidebarMode === 'icons' ? 'px-2' : 'px-3'">
                 <a href="{{ route('user.dashboard') }}"
                    class="sidebar-link {{ request()->routeIs('user.dashboard') ? 'active' : '' }}">
                     <div class="nav-icon-wrap"><i class="fas fa-grid-2"></i></div>

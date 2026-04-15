@@ -265,6 +265,7 @@
         overflow-x: auto;
         padding: 0 20px;
         scrollbar-width: none;
+        -ms-overflow-style: none;
     }
     .gallery-tabs::-webkit-scrollbar { display: none; }
     .gallery-tab {

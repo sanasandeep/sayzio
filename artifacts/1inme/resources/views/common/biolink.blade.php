@@ -76,6 +76,19 @@
     <script>{!! $bs['custom_js_head'] !!}</script>
     @endif
     <style>
+        html {
+            scroll-behavior: smooth;
+        }
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: {{ $fontColor }}18 transparent;
+        }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: {{ $fontColor }}18; border-radius: 100px; }
+        ::-webkit-scrollbar-thumb:hover { background: {{ $fontColor }}30; }
+        ::-webkit-scrollbar-corner { background: transparent; }
+
         body {
             font-family: '{{ $fontFamily }}', sans-serif;
             color: {{ $fontColor }};
