@@ -161,38 +161,38 @@
         border-color: rgba(139,92,246,0.3);
     }
 
-    .insert-block-divider {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 2px 0;
-        opacity: 0;
-        transition: opacity 0.2s ease;
-    }
-    #blockList:hover .insert-block-divider {
-        opacity: 1;
-    }
-    .insert-block-divider:hover {
-        opacity: 1 !important;
+    .block-card-wrapper {
+        position: relative;
     }
     .insert-block-btn {
+        position: absolute;
+        right: -14px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        border: 1.5px solid rgba(16,185,129,0.3);
+        background: var(--bg-card);
+        color: rgba(16,185,129,0.5);
+        font-size: 8px;
+        cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 100%;
-        height: 24px;
-        border-radius: 8px;
-        border: 1.5px dashed rgba(16,185,129,0.3);
-        background: transparent;
-        color: rgba(16,185,129,0.5);
-        font-size: 10px;
-        cursor: pointer;
+        opacity: 0;
         transition: all 0.2s ease;
+        z-index: 5;
+        padding: 0;
+    }
+    .block-card-wrapper:hover .insert-block-btn {
+        opacity: 1;
     }
     .insert-block-btn:hover {
-        border-color: rgba(16,185,129,0.6);
-        background: rgba(16,185,129,0.06);
+        border-color: #10b981;
+        background: rgba(16,185,129,0.12);
         color: #10b981;
+        transform: translateY(-50%) scale(1.15);
     }
 
     .card-container-block {
@@ -236,17 +236,20 @@
         border-radius: 8px;
     }
 
+    .block-card-wrapper.sortable-ghost,
     .block-card.sortable-ghost {
         opacity: 0.4;
         border: 2px dashed rgba(139,92,246,0.4);
         background: rgba(139,92,246,0.04);
         transform: scale(0.97);
     }
+    .block-card-wrapper.sortable-chosen,
     .block-card.sortable-chosen {
         box-shadow: 0 16px 48px rgba(0,0,0,0.4), 0 0 30px rgba(139,92,246,0.12);
         border-color: rgba(139,92,246,0.3);
         z-index: 10;
     }
+    .block-card-wrapper.sortable-drag,
     .block-card.sortable-drag {
         opacity: 1 !important;
     }
@@ -512,7 +515,7 @@ $catColors = [
                 </div>
                 @endif
 
-                <div id="blockList" class="grid gap-2" style="grid-template-columns: repeat(12, 1fr);">
+                <div id="blockList" class="grid gap-2" style="grid-template-columns: repeat(12, 1fr); padding-right: 16px;">
                     @forelse($blocks as $block)
                     @php
                         $s = $block->settings ?? [];
@@ -520,7 +523,11 @@ $catColors = [
                         $catColor = $catColors[$typeInfo['category'] ?? 'basic'] ?? '#8b5cf6';
                     @endphp
                     @php $curSpan = intval($s['_style']['grid_span'] ?? 12) ?: 12; @endphp
-                    <div class="block-card {{ $block->type === 'card' ? 'card-container-block' : '' }}" data-block-id="{{ $block->id }}" data-grid-span="{{ $curSpan }}" style="grid-column: span {{ $curSpan }}">
+                    <div class="block-card-wrapper" data-block-id="{{ $block->id }}" style="grid-column: span {{ $curSpan }}">
+                    <button type="button" class="insert-block-btn" onclick="openInsertGallery({{ $block->id }})" title="Insert block after this">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                    <div class="block-card {{ $block->type === 'card' ? 'card-container-block' : '' }}" data-block-id="{{ $block->id }}" data-grid-span="{{ $curSpan }}">
                         <div class="flex items-center gap-2 p-3">
                             <div class="drag-handle handle">
                                 <div class="flex gap-[3px]"><span class="dot"></span><span class="dot"></span></div>
@@ -659,10 +666,6 @@ $catColors = [
                             </div>
                         </div>
                     </div>
-                    <div class="insert-block-divider" style="grid-column: 1 / -1;">
-                        <button type="button" class="insert-block-btn" onclick="openInsertGallery({{ $block->id }})" title="Insert block here">
-                            <i class="fas fa-plus"></i>
-                        </button>
                     </div>
                     @empty
                     <div class="py-16 text-center">
@@ -1159,11 +1162,12 @@ window.addEventListener('resize', function() {
 
 function setGridSpan(blockId, span, btn) {
     var card = btn.closest('.block-card');
+    var wrapper = card.closest('.block-card-wrapper') || card;
     var row = card.querySelector('.grid-span-row');
     row.querySelectorAll('.span-btn').forEach(function(b) { b.classList.remove('active'); });
     btn.classList.add('active');
     card.dataset.gridSpan = span;
-    card.style.gridColumn = 'span ' + span;
+    wrapper.style.gridColumn = 'span ' + span;
     var badge = document.querySelector('[data-span-badge="' + blockId + '"]');
     if (badge) {
         badge.textContent = span + '/12';
@@ -1267,7 +1271,8 @@ function ajaxDeleteBlock(btn, url, blockId) {
     }).then(function(r) { return r.json(); }).then(function(data) {
         if (data.success) {
             var card = document.querySelector('.block-card[data-block-id="' + blockId + '"]');
-            if (card) { card.style.transition = 'all 0.3s'; card.style.opacity = '0'; card.style.transform = 'translateX(-20px)'; setTimeout(function() { card.remove(); }, 300); }
+            var wrapper = card ? (card.closest('.block-card-wrapper') || card) : null;
+            if (wrapper) { wrapper.style.transition = 'all 0.3s'; wrapper.style.opacity = '0'; wrapper.style.transform = 'translateX(-20px)'; setTimeout(function() { wrapper.remove(); }, 300); }
             var tmpl = document.getElementById('editForm_' + blockId);
             if (tmpl) tmpl.remove();
             showToast('Block deleted', 'success');
@@ -1389,15 +1394,17 @@ document.addEventListener('DOMContentLoaded', function() {
             dragClass: 'sortable-drag',
             easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
             group: { name: 'blocks', pull: true, put: function(to, from, dragEl) {
-                return !dragEl.classList.contains('card-container-block');
+                var inner = dragEl.querySelector('.card-container-block') || dragEl.classList.contains('card-container-block');
+                return !inner;
             }},
-            filter: '.card-children-area, .card-child-list, .child-span-row, .grid-span-row, .insert-block-divider',
+            draggable: '.block-card-wrapper',
+            filter: '.card-children-area, .card-child-list, .child-span-row, .grid-span-row, .insert-block-btn',
             onAdd: function(evt) {
                 var blockId = parseInt(evt.item.dataset.blockId);
                 doMoveBlock(blockId, null).then(function(data) {
                     if (data.success) {
                         showToast('Block moved out of card', 'success');
-                        reorderList(el, ':scope > .block-card, :scope > .child-block-card').then(function() {
+                        reorderList(el, ':scope > .block-card-wrapper, :scope > .child-block-card').then(function() {
                             location.reload();
                         });
                     } else {
@@ -1408,7 +1415,7 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             onEnd: function(evt) {
                 if (evt.from === evt.to) {
-                    reorderList(el, ':scope > .block-card').then(function(r) {
+                    reorderList(el, ':scope > .block-card-wrapper').then(function(r) {
                         if (r && r.ok) {
                             showToast('Order saved', 'success');
                             refreshPreview();
@@ -1428,10 +1435,11 @@ document.addEventListener('DOMContentLoaded', function() {
             chosenClass: 'sortable-chosen',
             easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
             group: { name: 'blocks', pull: true, put: true },
-            draggable: '.child-block-card, .block-card',
+            draggable: '.child-block-card, .block-card, .block-card-wrapper',
             onAdd: function(evt) {
                 var blockId = parseInt(evt.item.dataset.blockId);
-                if (evt.item.classList.contains('card-container-block')) {
+                var hasCard = evt.item.querySelector && evt.item.querySelector('.card-container-block');
+                if (evt.item.classList.contains('card-container-block') || hasCard) {
                     showToast('Cannot put a card inside another card', 'error');
                     location.reload();
                     return;
@@ -1439,7 +1447,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 doMoveBlock(blockId, cardId).then(function(data) {
                     if (data.success) {
                         showToast('Block moved into card', 'success');
-                        reorderList(childList, '.child-block-card, .block-card').then(function() {
+                        reorderList(childList, '.child-block-card, .block-card, .block-card-wrapper').then(function() {
                             location.reload();
                         });
                     } else {
