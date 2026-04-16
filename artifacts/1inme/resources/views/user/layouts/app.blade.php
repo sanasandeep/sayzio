@@ -704,6 +704,21 @@
                 @endif
 
                 @yield('content')
+
+                <footer class="mt-10 pt-5 pb-2 text-[11px] flex flex-col sm:flex-row items-center justify-between gap-2"
+                        style="border-top: 1px solid var(--border-glass); color: var(--text-dimmed);">
+                    <div class="flex items-center gap-2">
+                        <span>&copy; {{ date('Y') }} <span style="color: var(--text-muted); font-weight: 600;">1INME</span></span>
+                        <span style="color: var(--border-glass-light);">•</span>
+                        <span>All rights reserved</span>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <a href="#" class="hover:text-[color:var(--accent)] transition-colors">Docs</a>
+                        <a href="#" class="hover:text-[color:var(--accent)] transition-colors">Support</a>
+                        <a href="#" class="hover:text-[color:var(--accent)] transition-colors">Privacy</a>
+                        <a href="#" class="hover:text-[color:var(--accent)] transition-colors">Terms</a>
+                    </div>
+                </footer>
             </main>
         </div>
     </div>
