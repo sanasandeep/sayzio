@@ -962,9 +962,8 @@
         });
 
         const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 10 });
-        map.on('mouseenter', 'clicks-points', (e) => {
-            map.getCanvas().style.cursor = 'pointer';
-            const f = e.features[0];
+        // Build a popup for a given feature (used by both hover & tap).
+        function showPopupFor(f) {
             const p = f.properties;
             // DOM text nodes only — XSS-safe with DB-sourced strings.
             const wrap = document.createElement('div');
@@ -992,10 +991,19 @@
             wrap.appendChild(title);
             wrap.appendChild(counts);
             popup.setLngLat(f.geometry.coordinates).setDOMContent(wrap).addTo(map);
+        }
+        // Desktop: hover.
+        map.on('mouseenter', 'clicks-points', (e) => {
+            map.getCanvas().style.cursor = 'pointer';
+            showPopupFor(e.features[0]);
         });
         map.on('mouseleave', 'clicks-points', () => {
             map.getCanvas().style.cursor = '';
             popup.remove();
+        });
+        // Mobile / touch: tap on a marker to open its popup.
+        map.on('click', 'clicks-points', (e) => {
+            if (e.features && e.features[0]) showPopupFor(e.features[0]);
         });
     }
 
