@@ -212,13 +212,42 @@ class LinkController extends Controller
             ->paginate(25)
             ->withQueryString();
 
+        // Engagement: page sessions
+        $sessionsQuery = \App\Modules\User\Models\PageSession::where('link_id', $link->id)
+            ->whereBetween('started_at', [$startDate, $endDate]);
+
+        $totalSessions = (clone $sessionsQuery)->count();
+        $avgSessionSeconds = (int) round((clone $sessionsQuery)->avg('duration_seconds') ?? 0);
+        $totalEngagedSeconds = (int) ((clone $sessionsQuery)->sum('duration_seconds') ?? 0);
+        $bounceSessions = (clone $sessionsQuery)->where('duration_seconds', '<', 5)->count();
+        $bounceRate = $totalSessions > 0 ? round(($bounceSessions / $totalSessions) * 100, 1) : 0;
+
+        // Engagement: per-block dwell time
+        $blockEngagement = \App\Modules\User\Models\BlockView::where('link_id', $link->id)
+            ->whereBetween('first_viewed_at', [$startDate, $endDate])
+            ->selectRaw("block_id, block_type,
+                SUM(view_duration_ms) as total_ms,
+                AVG(view_duration_ms) as avg_ms,
+                SUM(impression_count) as impressions,
+                COUNT(DISTINCT session_id) as unique_viewers")
+            ->groupBy('block_id', 'block_type')
+            ->orderByDesc('total_ms')
+            ->limit(50)
+            ->get();
+
+        // Map block clicks for CTR calc
+        $blockClickMap = [];
+        foreach ($blockStats as $b) { $blockClickMap[$b->block_id] = $b->count; }
+
         return view('user.links.show', compact(
             'link', 'clicksOverTime', 'topReferrers',
             'browserStats', 'osStats', 'countryStats', 'cityStats',
             'deviceStats', 'languageStats', 'blockStats', 'utmStats',
             'recentClicks', 'totalInRange', 'uniqueInRange',
             'blockClicksInRange', 'pageVisitsInRange',
-            'period', 'groupBy', 'startDate', 'endDate'
+            'period', 'groupBy', 'startDate', 'endDate',
+            'totalSessions', 'avgSessionSeconds', 'totalEngagedSeconds',
+            'bounceRate', 'blockEngagement', 'blockClickMap'
         ));
     }
 

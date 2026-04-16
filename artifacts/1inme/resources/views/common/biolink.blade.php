@@ -698,7 +698,7 @@
             @endphp
 
             @php $gridSpan = intval($blockStyle['grid_span'] ?? 12) ?: 12; @endphp
-            <div data-block-id="{{ $block->id }}" class="biolink-block-wrap" style="grid-column: span {{ $gridSpan }}">
+            <div data-block-id="{{ $block->id }}" data-block-type="{{ $block->type }}" class="biolink-block-wrap" style="grid-column: span {{ $gridSpan }}">
             @if($hasCustomStyle && !$skipWrap)<div class="mb-3 block-styled" style="{{ $blockInline }}">@endif
 
             {{-- BASIC CONTENT --}}
@@ -1978,5 +1978,146 @@
     @if(!empty($bs['custom_js_body']))
     <script>{!! $bs['custom_js_body'] !!}</script>
     @endif
+
+    {{-- Engagement tracking: page session + per-block dwell time --}}
+    <script>
+    (function(){
+        var ALIAS = @json($link->alias);
+        var startUrl = '/' + ALIAS + '/track/session';
+        var hbUrl    = '/' + ALIAS + '/track/heartbeat';
+        var sessionId = null;
+        var sessionStart = Date.now();
+        var lastActive = Date.now();
+        var totalActiveMs = 0;
+        var hidden = false;
+        var blockState = {}; // id -> {type, totalMs, impressions, visibleSince}
+        var pendingFlush = {}; // id -> {addedMs, addedImpr, type}
+
+        function now(){ return Date.now(); }
+        function activeSeconds(){ return Math.floor(totalActiveMs / 1000); }
+
+        function tickActive(){
+            if(!hidden){
+                var n = now();
+                totalActiveMs += (n - lastActive);
+                lastActive = n;
+            }
+        }
+
+        function snapshotPending(final){
+            tickActive();
+            // close any currently visible blocks for snapshot
+            Object.keys(blockState).forEach(function(id){
+                var b = blockState[id];
+                if(b.visibleSince && !hidden){
+                    var dur = now() - b.visibleSince;
+                    b.totalMs += dur;
+                    if(!pendingFlush[id]) pendingFlush[id] = {addedMs:0, addedImpr:0, type:b.type};
+                    pendingFlush[id].addedMs += dur;
+                    b.visibleSince = now();
+                }
+            });
+            var blockViews = Object.keys(pendingFlush).filter(function(id){
+                var p = pendingFlush[id];
+                return (p.addedMs > 0) || (p.addedImpr > 0);
+            }).map(function(id){
+                var p = pendingFlush[id];
+                return {block_id: parseInt(id,10), block_type: p.type, view_duration_ms: p.addedMs|0, impression_count: p.addedImpr|0};
+            });
+            pendingFlush = {};
+            return blockViews;
+        }
+
+        function sendHeartbeat(final){
+            if(!sessionId) return;
+            var blockViews = snapshotPending(final);
+            var payload = JSON.stringify({
+                session_id: sessionId,
+                duration_seconds: activeSeconds(),
+                ended: !!final,
+                block_views: blockViews
+            });
+            try {
+                if(final && navigator.sendBeacon){
+                    var blob = new Blob([payload], {type: 'application/json'});
+                    navigator.sendBeacon(hbUrl, blob);
+                } else {
+                    fetch(hbUrl, {method:'POST', headers:{'Content-Type':'application/json'}, body: payload, keepalive: true});
+                }
+            } catch(e){}
+        }
+
+        function startSession(){
+            fetch(startUrl, {method:'POST', headers:{'Content-Type':'application/json'}, body: '{}'})
+                .then(function(r){ return r.json(); })
+                .then(function(d){ if(d && d.session_id){ sessionId = d.session_id; setupObserver(); } })
+                .catch(function(){});
+        }
+
+        function setupObserver(){
+            if(!('IntersectionObserver' in window)) return;
+            var io = new IntersectionObserver(function(entries){
+                entries.forEach(function(en){
+                    var el = en.target;
+                    var id = el.getAttribute('data-block-id');
+                    var type = el.getAttribute('data-block-type') || '';
+                    if(!id) return;
+                    if(!blockState[id]) blockState[id] = {type:type, totalMs:0, impressions:0, visibleSince:null};
+                    var b = blockState[id];
+                    if(en.isIntersecting && en.intersectionRatio >= 0.5){
+                        if(!b.visibleSince){
+                            b.visibleSince = now();
+                            b.impressions += 1;
+                            if(!pendingFlush[id]) pendingFlush[id] = {addedMs:0, addedImpr:0, type:type};
+                            pendingFlush[id].addedImpr += 1;
+                        }
+                    } else {
+                        if(b.visibleSince){
+                            var dur = now() - b.visibleSince;
+                            b.totalMs += dur;
+                            if(!pendingFlush[id]) pendingFlush[id] = {addedMs:0, addedImpr:0, type:type};
+                            pendingFlush[id].addedMs += dur;
+                            b.visibleSince = null;
+                        }
+                    }
+                });
+            }, {threshold: [0, 0.5, 1]});
+            document.querySelectorAll('[data-block-id]').forEach(function(el){ io.observe(el); });
+        }
+
+        document.addEventListener('visibilitychange', function(){
+            tickActive();
+            hidden = document.hidden;
+            if(hidden){
+                // pause all visible blocks
+                Object.keys(blockState).forEach(function(id){
+                    var b = blockState[id];
+                    if(b.visibleSince){
+                        var dur = now() - b.visibleSince;
+                        b.totalMs += dur;
+                        if(!pendingFlush[id]) pendingFlush[id] = {addedMs:0, addedImpr:0, type:b.type};
+                        pendingFlush[id].addedMs += dur;
+                        b.visibleSince = null;
+                    }
+                });
+                sendHeartbeat(false);
+            } else {
+                lastActive = now();
+            }
+        });
+
+        ['mousemove','keydown','scroll','touchstart','click'].forEach(function(ev){
+            window.addEventListener(ev, function(){ tickActive(); lastActive = now(); }, {passive:true});
+        });
+
+        window.addEventListener('pagehide', function(){ sendHeartbeat(true); });
+        window.addEventListener('beforeunload', function(){ sendHeartbeat(true); });
+
+        setInterval(function(){ sendHeartbeat(false); }, 15000);
+
+        if(document.readyState === 'complete' || document.readyState === 'interactive') startSession();
+        else document.addEventListener('DOMContentLoaded', startSession);
+    })();
+    </script>
 </body>
 </html>

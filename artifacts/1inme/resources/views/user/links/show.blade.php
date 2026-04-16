@@ -83,6 +83,31 @@
     </div>
 </div>
 
+@php
+    function _fmtSecs($s){ $s=(int)$s; if($s<60) return $s.'s'; $m=intdiv($s,60); $r=$s%60; if($m<60) return $m.'m '.$r.'s'; $h=intdiv($m,60); return $h.'h '.($m%60).'m'; }
+    function _fmtMs($ms){ return _fmtSecs(intdiv((int)$ms,1000)); }
+@endphp
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+    <div class="stat-card" style="--stat-accent: linear-gradient(90deg, #14b8a6, #2dd4bf); --stat-glow: rgba(20,184,166,0.12); --stat-border-color: rgba(20,184,166,0.2);">
+        <p class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Sessions</p>
+        <p class="text-2xl font-bold" style="color: var(--text-primary);">{{ number_format($totalSessions) }}</p>
+    </div>
+    <div class="stat-card" style="--stat-accent: linear-gradient(90deg, #6366f1, #818cf8); --stat-glow: rgba(99,102,241,0.12); --stat-border-color: rgba(99,102,241,0.2);">
+        <p class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Avg. Time on Page</p>
+        <p class="text-2xl font-bold" style="color: var(--text-primary);">{{ _fmtSecs($avgSessionSeconds) }}</p>
+    </div>
+    <div class="stat-card" style="--stat-accent: linear-gradient(90deg, #f59e0b, #fbbf24); --stat-glow: rgba(245,158,11,0.12); --stat-border-color: rgba(245,158,11,0.2);">
+        <p class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Total Engaged Time</p>
+        <p class="text-2xl font-bold" style="color: var(--text-primary);">{{ _fmtSecs($totalEngagedSeconds) }}</p>
+    </div>
+    <div class="stat-card" style="--stat-accent: linear-gradient(90deg, #ef4444, #f87171); --stat-glow: rgba(239,68,68,0.12); --stat-border-color: rgba(239,68,68,0.2);">
+        <p class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Bounce Rate</p>
+        <p class="text-2xl font-bold" style="color: var(--text-primary);">{{ $bounceRate }}%</p>
+        <p class="text-[10px] mt-0.5" style="color: var(--text-faint);">Sessions under 5s</p>
+    </div>
+</div>
+
 <div class="card-premium p-5 mb-6">
     <div class="flex items-center justify-between mb-4">
         <div class="flex items-center gap-2.5">
@@ -201,6 +226,51 @@
                 <td class="py-2 px-2 text-xs truncate max-w-md" style="color: var(--text-muted);">{{ $b->destination_url }}</td>
                 <td class="py-2 px-2 text-right font-medium" style="color: var(--text-primary);">{{ $b->count }}</td>
                 <td class="py-2 px-2 text-right" style="color: var(--text-muted);">{{ $b->unique_count }}</td>
+            </tr>
+            @endforeach
+            </tbody>
+        </table>
+    </div>
+    @endif
+</div>
+
+<div class="card-premium p-5 mb-6">
+    <div class="flex items-center gap-2.5 mb-4">
+        <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(20,184,166,0.1); border: 1px solid rgba(20,184,166,0.15);"><i class="fas fa-eye text-teal-400 text-xs"></i></div>
+        <h3 class="text-sm font-bold" style="color: var(--text-primary);">Block Engagement (Visibility)</h3>
+        <span class="text-[10px] px-2 py-0.5 rounded-full ml-auto" style="background: rgba(20,184,166,0.1); color: #2dd4bf;">Time visible on screen</span>
+    </div>
+    @if($blockEngagement->isEmpty())
+        <p class="text-sm text-center py-8" style="color: var(--text-faint);">No view data yet. Visit the public biolink page to start collecting engagement data.</p>
+    @else
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead><tr class="text-[10px] uppercase tracking-wider" style="color: var(--text-faint);">
+                <th class="text-left py-2 px-2 font-bold">Block</th>
+                <th class="text-left py-2 px-2 font-bold">Type</th>
+                <th class="text-right py-2 px-2 font-bold">Impressions</th>
+                <th class="text-right py-2 px-2 font-bold">Viewers</th>
+                <th class="text-right py-2 px-2 font-bold">Total Time</th>
+                <th class="text-right py-2 px-2 font-bold">Avg / View</th>
+                <th class="text-right py-2 px-2 font-bold">Clicks</th>
+                <th class="text-right py-2 px-2 font-bold">CTR</th>
+            </tr></thead>
+            <tbody>
+            @foreach($blockEngagement as $b)
+            @php
+                $info = $blockTypes[$b->block_type] ?? ['label'=>ucfirst($b->block_type ?? 'block'), 'icon'=>'fa-cube'];
+                $clicks = $blockClickMap[$b->block_id] ?? 0;
+                $ctr = $b->impressions > 0 ? round(($clicks / $b->impressions) * 100, 1) : 0;
+            @endphp
+            <tr class="hover:bg-white/[0.02]" style="border-top: 1px solid var(--border-glass);">
+                <td class="py-2 px-2" style="color: var(--text-primary);"><i class="fas {{ $info['icon'] }} mr-1.5 text-teal-400"></i> #{{ $b->block_id }}</td>
+                <td class="py-2 px-2"><span class="badge text-[10px]" style="background:rgba(20,184,166,0.08); color:#2dd4bf;">{{ $info['label'] }}</span></td>
+                <td class="py-2 px-2 text-right" style="color: var(--text-muted);">{{ number_format($b->impressions) }}</td>
+                <td class="py-2 px-2 text-right" style="color: var(--text-muted);">{{ number_format($b->unique_viewers) }}</td>
+                <td class="py-2 px-2 text-right font-medium" style="color: var(--text-primary);">{{ _fmtMs($b->total_ms) }}</td>
+                <td class="py-2 px-2 text-right" style="color: var(--text-muted);">{{ number_format(($b->avg_ms ?? 0)/1000, 1) }}s</td>
+                <td class="py-2 px-2 text-right" style="color: var(--text-muted);">{{ $clicks }}</td>
+                <td class="py-2 px-2 text-right text-xs" style="color: var(--text-dimmed);">{{ $ctr }}%</td>
             </tr>
             @endforeach
             </tbody>

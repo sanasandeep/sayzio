@@ -13,6 +13,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: '*');
         $middleware->redirectGuestsTo('/user/login');
+        $middleware->validateCsrfTokens(except: [
+            '*/track/session',
+            '*/track/heartbeat',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
