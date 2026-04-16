@@ -273,6 +273,22 @@ class LinkController extends Controller
         return [$start, $end, $period, $groupBy];
     }
 
+    public function recentClicksPartial(Request $request, Link $link)
+    {
+        abort_if($link->user_id !== $request->user()->id, 403);
+        [$startDate, $endDate] = $this->resolveAnalyticsRange($request);
+
+        $recentClicks = $link->clicks()
+            ->whereBetween('clicked_at', [$startDate, $endDate])
+            ->orderByDesc('clicked_at')
+            ->paginate(25)
+            ->withQueryString();
+
+        $blockTypes = \App\Modules\User\Models\BiolinkBlock::TYPES;
+
+        return view('user.links.partials.recent-clicks-table', compact('recentClicks', 'blockTypes'));
+    }
+
     public function exportClicks(Request $request, Link $link)
     {
         abort_if($link->user_id !== $request->user()->id, 403);

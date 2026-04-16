@@ -81,6 +81,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('links/{link}/blocks/{block}/move', [BiolinkBlockController::class, 'moveBlock'])->name('links.blocks.move');
         Route::post('links/{link}/page-settings', [BiolinkBlockController::class, 'updatePageSettings'])->name('links.page-settings');
 
+        Route::get('links/{link}/clicks/partial', [LinkController::class, 'recentClicksPartial'])->name('links.clicks.partial');
         Route::get('links/{link}/clicks/export', [LinkController::class, 'exportClicks'])->name('links.clicks.export');
         Route::get('links/{link}/qrcode', [QrCodeController::class, 'show'])->name('links.qrcode');
         Route::post('links/{link}/qrcode', [QrCodeController::class, 'generate'])->name('links.qrcode.download');
