@@ -1067,6 +1067,7 @@ class LinkController extends Controller
         return redirect()->route('user.links.show', $link)->with('success', $msg);
     }
 
+
     public function toggleActive(Request $request, Link $link)
     {
         abort_if($link->user_id !== $request->user()->id, 403);

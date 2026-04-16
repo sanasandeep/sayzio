@@ -565,6 +565,11 @@ class LinkPerformanceCoach
             'reason'   => "Clicks are concentrated on a single block. Move it to the top so visitors see it first.",
             'action_label' => 'Manage blocks',
             'action_url'   => self::editUrl($ctx),
+            'action'       => [
+                'type'     => 'promote_block',
+                'block_id' => (int) $top->block_id,
+                'label'    => 'Pin top performer to the top',
+            ],
         ];
         // One-click: promote the top-performing block to position 1 — but only
         // if the top block is a real top-level block on THIS link (child blocks
