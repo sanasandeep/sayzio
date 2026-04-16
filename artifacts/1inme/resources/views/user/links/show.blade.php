@@ -279,6 +279,29 @@
         color: #6d28d9;
         border-color: rgba(124,58,237,0.25);
     }
+    /* Light-mode overrides for inline pastel text colors so badges stay legible on white cards */
+    html.light-mode [style*="color: #86efac"],
+    html.light-mode [style*="color:#86efac"]   { color: #047857 !important; }   /* green pill */
+    html.light-mode [style*="color: #d8b4fe"],
+    html.light-mode [style*="color:#d8b4fe"]   { color: #6b21a8 !important; }   /* violet badge */
+    html.light-mode [style*="color: #5eead4"],
+    html.light-mode [style*="color:#5eead4"]   { color: #0f766e !important; }   /* teal badge */
+    html.light-mode [style*="color: #c4b5fd"],
+    html.light-mode [style*="color:#c4b5fd"]   { color: #5b21b6 !important; }
+    html.light-mode [style*="color: #a5b4fc"],
+    html.light-mode [style*="color:#a5b4fc"]   { color: #3730a3 !important; }
+    html.light-mode [style*="color: #93c5fd"],
+    html.light-mode [style*="color:#93c5fd"]   { color: #1d4ed8 !important; }
+    html.light-mode [style*="color: #f9a8d4"],
+    html.light-mode [style*="color:#f9a8d4"]   { color: #be185d !important; }
+    html.light-mode [style*="color: #fcd34d"],
+    html.light-mode [style*="color:#fcd34d"]   { color: #b45309 !important; }
+    html.light-mode [style*="color: #fdba74"],
+    html.light-mode [style*="color:#fdba74"]   { color: #c2410c !important; }
+    html.light-mode [style*="color: #6ee7b7"],
+    html.light-mode [style*="color:#6ee7b7"]   { color: #047857 !important; }
+    html.light-mode [style*="color: #cbd5e1"],
+    html.light-mode [style*="color:#cbd5e1"]   { color: #334155 !important; }
 
     /* ============ Fancy Table ============ */
     .fancy-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12.5px; }
