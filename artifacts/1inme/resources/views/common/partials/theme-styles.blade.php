@@ -7,16 +7,16 @@
 <style>
     :root {
         --bg-body: #0f1014;
-        --bg-sidebar: #131419;
-        --bg-sidebar-mobile: #131419;
-        --bg-header: #131419;
-        --bg-glass: #16171c;
-        --bg-glass-light: #1a1b21;
-        --bg-glass-hover: #1e1f26;
-        --bg-glass-input: #16171c;
-        --bg-glass-input-focus: #1c1d24;
-        --bg-card: #16171c;
-        --bg-card-hover: #1a1b21;
+        --bg-sidebar: #0f1014;
+        --bg-sidebar-mobile: #0f1014;
+        --bg-header: #0f1014;
+        --bg-glass: #0f1014;
+        --bg-glass-light: #161720;
+        --bg-glass-hover: #1a1b22;
+        --bg-glass-input: #0f1014;
+        --bg-glass-input-focus: #161720;
+        --bg-card: #0f1014;
+        --bg-card-hover: #161720;
         --border-glass: #26272e;
         --border-glass-light: #2d2e36;
         --border-subtle: #1c1d23;
@@ -55,7 +55,7 @@
     }
 
     html.light-mode {
-        --bg-body: #f9f9f9;
+        --bg-body: #ffffff;
         --bg-sidebar: #ffffff;
         --bg-sidebar-mobile: #ffffff;
         --bg-header: #ffffff;
@@ -65,7 +65,7 @@
         --bg-glass-input: #ffffff;
         --bg-glass-input-focus: #ffffff;
         --bg-card: #ffffff;
-        --bg-card-hover: #ffffff;
+        --bg-card-hover: #fafafb;
         --border-glass: #e4e6ef;
         --border-glass-light: #dbdde5;
         --border-subtle: #eef0f5;
