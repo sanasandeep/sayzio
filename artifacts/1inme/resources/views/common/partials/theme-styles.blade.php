@@ -29,14 +29,14 @@
         --sidebar-link: #a1a1aa;
         --sidebar-link-hover-bg: #1f1f23;
         --sidebar-link-hover-text: #f5f5f7;
-        --sidebar-active-bg: rgba(27,132,255,0.14);
-        --sidebar-active-border: rgba(27,132,255,0.28);
-        --sidebar-active-text: #3e97ff;
-        --accent: #1b84ff;
-        --accent-light: #3e97ff;
-        --accent-glow: rgba(27,132,255,0.35);
-        --glow-1: rgba(27,132,255,0);
-        --glow-2: rgba(27,132,255,0);
+        --sidebar-active-bg: rgba(139,92,246,0.16);
+        --sidebar-active-border: rgba(139,92,246,0.30);
+        --sidebar-active-text: #c4b5fd;
+        --accent: #8b5cf6;
+        --accent-light: #a78bfa;
+        --accent-glow: rgba(139,92,246,0.35);
+        --glow-1: rgba(139,92,246,0);
+        --glow-2: rgba(168,85,247,0);
         --scrollbar-thumb: #2d2d34;
         --scrollbar-thumb-hover: #3f3f46;
         --overlay-bg: rgba(0,0,0,0.7);
@@ -44,7 +44,7 @@
         --noise-opacity: 0;
 
         /* Multi-color accent palette (used for stat cards, badges, tints) */
-        --c-primary:   #1b84ff;  --c-primary-soft:   rgba(27,132,255,0.14);
+        --c-primary:   #8b5cf6;  --c-primary-soft:   rgba(139,92,246,0.14);
         --c-success:   #10b981;  --c-success-soft:   rgba(16,185,129,0.14);
         --c-info:      #06b6d4;  --c-info-soft:      rgba(6,182,212,0.14);
         --c-warning:   #f59e0b;  --c-warning-soft:   rgba(245,158,11,0.14);
@@ -78,21 +78,21 @@
         --sidebar-link: #475569;
         --sidebar-link-hover-bg: #f4f4f5;
         --sidebar-link-hover-text: #0f172a;
-        --sidebar-active-bg: rgba(27,132,255,0.08);
-        --sidebar-active-border: rgba(27,132,255,0.18);
-        --sidebar-active-text: #1b84ff;
-        --accent: #1b84ff;
-        --accent-light: #3e97ff;
-        --accent-glow: rgba(27,132,255,0.18);
-        --glow-1: rgba(27,132,255,0);
-        --glow-2: rgba(27,132,255,0);
+        --sidebar-active-bg: rgba(124,58,237,0.10);
+        --sidebar-active-border: rgba(124,58,237,0.22);
+        --sidebar-active-text: #6d28d9;
+        --accent: #7c3aed;
+        --accent-light: #8b5cf6;
+        --accent-glow: rgba(124,58,237,0.20);
+        --glow-1: rgba(124,58,237,0);
+        --glow-2: rgba(168,85,247,0);
         --scrollbar-thumb: #d4d4d8;
         --scrollbar-thumb-hover: #a1a1aa;
         --overlay-bg: rgba(15,23,42,0.28);
         --card-shadow: 0 1px 2px rgba(15,23,42,0.04);
         --noise-opacity: 0;
 
-        --c-primary:   #1b84ff;  --c-primary-soft:   #e7f1ff;
+        --c-primary:   #7c3aed;  --c-primary-soft:   #f3eeff;
         --c-success:   #10b981;  --c-success-soft:   #e6f7f0;
         --c-info:      #06b6d4;  --c-info-soft:      #e0f7fb;
         --c-warning:   #f59e0b;  --c-warning-soft:   #fef4e0;
@@ -129,7 +129,9 @@
         border: 1px solid var(--border-glass);
         box-shadow: var(--card-shadow);
         border-radius: 0.875rem;
+        padding: 1.5rem;
     }
+    .glass.no-pad, .glass-no-pad { padding: 0; }
     .glass-light {
         background: var(--bg-glass-light);
         border: 1px solid var(--border-glass-light);
@@ -143,9 +145,11 @@
         border: 1px solid var(--border-glass);
         border-radius: 0.875rem;
         box-shadow: var(--card-shadow);
+        padding: 1.75rem;
         transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
         overflow: hidden;
     }
+    .card-premium.no-pad { padding: 0; }
     .card-premium::before { display: none; }
     .card-premium:hover {
         background: var(--bg-card-hover);
@@ -182,8 +186,8 @@
         overflow: hidden;
         background: var(--bg-card);
         border: 1px solid var(--border-glass);
-        border-radius: 0.75rem;
-        padding: 1.25rem 1.5rem;
+        border-radius: 0.875rem;
+        padding: 1.75rem 2rem;
         transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }
     .stat-card::before { display: none; }
@@ -305,7 +309,7 @@
         transition: opacity 0.3s;
     }
     .btn-primary:hover {
-        background: #0a6fe0;
+        background: #6d28d9;
         box-shadow: 0 2px 4px rgba(0,0,0,0.12);
         transform: translateY(-1px);
     }

@@ -243,9 +243,8 @@
         position: relative;
         background: var(--bg-glass);
         border: 1px solid var(--border-glass);
-        border-radius: 20px;
-        padding: 22px;
-        backdrop-filter: blur(20px);
+        border-radius: 14px;
+        padding: 28px 32px;
         overflow: hidden;
     }
     .section-card::before {

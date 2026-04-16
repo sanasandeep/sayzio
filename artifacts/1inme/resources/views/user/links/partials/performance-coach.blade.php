@@ -383,8 +383,7 @@
     }
     .perf-coach .pc-gauge::before {
         content: ''; position: absolute; inset: 5px; border-radius: 50%;
-        background: var(--bg-secondary, rgba(15,15,25,0.85));
-        backdrop-filter: blur(10px);
+        background: var(--bg-card);
     }
     .perf-coach .pc-gauge-inner {
         position: relative; z-index: 1; text-align: center; line-height: 1;
@@ -410,17 +409,17 @@
     .perf-coach .pc-insight:hover { transform: translateY(-1px); }
     .perf-coach .pc-insight-icon {
         width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
-        border-radius: 8px; background: rgba(255,255,255,0.05); font-size: 14px; flex-shrink: 0;
+        border-radius: 8px; background: var(--bg-glass-hover); font-size: 14px; flex-shrink: 0;
     }
     .perf-coach .pc-insight-cta {
         display: inline-flex; align-items: center;
         padding: 5px 10px; border-radius: 999px;
         border: 1px solid;
         font-size: 11px; font-weight: 600; white-space: nowrap;
-        background: rgba(255,255,255,0.03);
+        background: var(--bg-glass);
         transition: background .15s ease;
     }
-    .perf-coach .pc-insight-cta:hover { background: rgba(255,255,255,0.08); }
+    .perf-coach .pc-insight-cta:hover { background: var(--bg-glass-hover); }
     .perf-coach .pc-threshold-chip {
         display: inline-flex; align-items: center; gap: 4px;
         margin-top: 6px;
@@ -468,7 +467,7 @@
     }
     .perf-coach .pc-bd-track {
         width: 100%; height: 28px;
-        background: rgba(148,163,184,0.12);
+        background: var(--bg-glass-hover);
         border-radius: 3px; overflow: hidden;
         display: flex; align-items: flex-end;
         position: relative;
@@ -503,13 +502,13 @@
         position: absolute; top: 10px; right: 10px; z-index: 2;
         display: inline-flex; align-items: center; gap: 6px;
         padding: 4px 10px; border-radius: 999px;
-        border: 1px solid var(--border-glass, rgba(148,163,184,0.25));
-        background: rgba(255,255,255,0.04);
-        color: var(--text-faint, #cbd5e1);
+        border: 1px solid var(--border-glass);
+        background: var(--bg-glass-hover);
+        color: var(--text-muted);
         font-size: 11px; font-weight: 600;
         transition: background .15s ease, color .15s ease;
     }
-    .perf-coach .pc-settings-btn:hover { background: rgba(255,255,255,0.1); color: var(--text-primary, #fff); }
+    .perf-coach .pc-settings-btn:hover { background: var(--bg-glass-light); color: var(--text-primary); }
     .perf-coach .pc-settings-btn-label { white-space: nowrap; }
     .perf-coach .pc-settings {
         margin-top: 16px; padding-top: 14px;
