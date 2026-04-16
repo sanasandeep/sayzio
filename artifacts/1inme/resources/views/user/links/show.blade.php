@@ -490,6 +490,19 @@
 
 {{-- ===================== BIOLINK BLOCKS ===================== --}}
 @if($link->type === 'biolink')
+@php
+    $blockIdentity = function($id, $type) use ($blockMeta, $blockTypes) {
+        $info  = $blockTypes[$type] ?? ['label' => ucfirst($type ?? 'block'), 'icon' => 'fa-cube'];
+        $meta  = $blockMeta[$id] ?? [];
+        $title = $meta['title'] ?? null;
+        $url   = $meta['url']   ?? null;
+        $thumb = $meta['thumb'] ?? null;
+        if (!$title && $url) { $title = parse_url($url, PHP_URL_HOST) ?: \Illuminate\Support\Str::limit($url, 50); }
+        if (!$title) { $title = $info['label'] . ' #' . $id; }
+        return compact('info', 'title', 'url', 'thumb');
+    };
+@endphp
+
 <div class="section-card mb-6" style="--sc-accent: linear-gradient(90deg,#a855f7,#d946ef); --sc-glow: rgba(168,85,247,0.35); --sc-color: #d8b4fe; --sc-border: rgba(168,85,247,0.3);">
     <div class="section-head">
         <div class="section-title"><div class="section-icon"><i class="fas fa-th-large"></i></div> Block-Level Clicks</div>
@@ -501,24 +514,36 @@
     <div class="overflow-x-auto -mx-2 px-2">
         <table class="fancy-table">
             <thead><tr>
-                <th>#</th><th>Block</th><th>Type</th><th>Destination</th><th class="text-right">Clicks</th><th class="text-right">Unique</th><th>Share</th>
+                <th>#</th><th>Block</th><th>Destination</th><th class="text-right">Clicks</th><th class="text-right">Unique</th><th>Share</th>
             </tr></thead>
             <tbody>
             @php $maxB = $blockStats->max('count') ?: 1; $totalB = $blockStats->sum('count') ?: 1; @endphp
             @foreach($blockStats as $i => $b)
             @php
-                $info = $blockTypes[$b->block_type] ?? ['label'=>ucfirst($b->block_type), 'icon'=>'fa-cube'];
-                $w = round(($b->count / $maxB) * 100, 1);
-                $pct = round(($b->count / $totalB) * 100, 1);
+                $bi   = $blockIdentity($b->block_id, $b->block_type);
+                $info = $bi['info'];
+                $w    = round(($b->count / $maxB) * 100, 1);
+                $pct  = round(($b->count / $totalB) * 100, 1);
             @endphp
             <tr>
                 <td style="width:38px;"><span class="rank-badge {{ $i<3 ? 'rank-'.($i+1) : '' }}">{{ $i+1 }}</span></td>
-                <td style="color: var(--text-primary);" class="font-medium">
-                    <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg mr-2" style="background: linear-gradient(135deg,#a855f7,#d946ef); color:#fff;"><i class="fas {{ $info['icon'] }} text-[11px]"></i></span>
-                    #{{ $b->block_id }}
+                <td style="color: var(--text-primary); min-width: 220px;">
+                    <div class="flex items-center gap-2.5">
+                        @if(!empty($bi['thumb']))
+                            <span class="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0" style="border: 1px solid var(--border-glass);"><img src="{{ $bi['thumb'] }}" class="w-full h-full object-cover" onerror="this.parentNode.innerHTML='<span class=\'inline-flex items-center justify-center w-full h-full\' style=\'background: linear-gradient(135deg,#a855f7,#d946ef); color:#fff;\'><i class=\'fas {{ $info['icon'] }}\'></i></span>'"></span>
+                        @else
+                            <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg flex-shrink-0" style="background: linear-gradient(135deg,#a855f7,#d946ef); color:#fff;"><i class="fas {{ $info['icon'] }} text-xs"></i></span>
+                        @endif
+                        <div class="min-w-0">
+                            <div class="text-sm font-semibold truncate" style="color: var(--text-primary); max-width: 240px;" title="{{ $bi['title'] }}">{{ $bi['title'] }}</div>
+                            <div class="flex items-center gap-1.5 mt-0.5">
+                                <span class="text-[9.5px] px-1.5 py-0.5 rounded-md font-bold" style="background: rgba(168,85,247,0.15); color:#d8b4fe;">{{ $info['label'] }}</span>
+                                <span class="text-[9.5px]" style="color: var(--text-faint);">#{{ $b->block_id }}</span>
+                            </div>
+                        </div>
+                    </div>
                 </td>
-                <td><span class="badge text-[10px] px-2 py-1 rounded-full" style="background: linear-gradient(135deg, rgba(168,85,247,0.18), rgba(217,70,239,0.18)); color:#d8b4fe; border: 1px solid rgba(168,85,247,0.3);">{{ $info['label'] }}</span></td>
-                <td class="text-xs truncate max-w-md" style="color: var(--text-muted);">{{ $b->destination_url }}</td>
+                <td class="text-xs truncate max-w-xs" style="color: var(--text-muted);">{{ $b->destination_url }}</td>
                 <td class="text-right font-bold" style="color: var(--text-primary);">{{ number_format($b->count) }}</td>
                 <td class="text-right" style="color: var(--text-muted);">{{ number_format($b->unique_count) }}</td>
                 <td class="bar-cell" style="width: 22%;">
@@ -543,31 +568,140 @@
     @if($blockEngagement->isEmpty())
         <p class="text-sm text-center py-8" style="color: var(--text-faint);">No view data yet. Visit the public biolink page to start collecting engagement data.</p>
     @else
+
+    {{-- Engagement summary widgets --}}
+    @php
+        $sumImp     = $blockEngagement->sum('impressions');
+        $sumViewers = $blockEngagement->sum('unique_viewers');
+        $sumTimeMs  = $blockEngagement->sum('total_ms');
+        $sumClicks  = 0; foreach ($blockEngagement as $be) { $sumClicks += ($blockClickMap[$be->block_id] ?? 0); }
+        $overallCtr = $sumImp > 0 ? round(($sumClicks / $sumImp) * 100, 1) : 0;
+        $topByTime  = $blockEngagement->take(10);
+    @endphp
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+        <div class="rounded-xl p-3.5" style="background: linear-gradient(135deg, rgba(20,184,166,0.15), rgba(20,184,166,0.04)); border: 1px solid rgba(20,184,166,0.3);">
+            <div class="flex items-center justify-between mb-1.5">
+                <span class="text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">Total Impressions</span>
+                <i class="fas fa-eye text-teal-400 text-xs"></i>
+            </div>
+            <div class="text-xl font-extrabold" style="background: linear-gradient(135deg,#14b8a6,#2dd4bf); -webkit-background-clip:text; background-clip:text; color:transparent;">{{ number_format($sumImp) }}</div>
+        </div>
+        <div class="rounded-xl p-3.5" style="background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(99,102,241,0.04)); border: 1px solid rgba(99,102,241,0.3);">
+            <div class="flex items-center justify-between mb-1.5">
+                <span class="text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">Unique Viewers</span>
+                <i class="fas fa-users text-indigo-400 text-xs"></i>
+            </div>
+            <div class="text-xl font-extrabold" style="background: linear-gradient(135deg,#6366f1,#818cf8); -webkit-background-clip:text; background-clip:text; color:transparent;">{{ number_format($sumViewers) }}</div>
+        </div>
+        <div class="rounded-xl p-3.5" style="background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(245,158,11,0.04)); border: 1px solid rgba(245,158,11,0.3);">
+            <div class="flex items-center justify-between mb-1.5">
+                <span class="text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">Total Visible Time</span>
+                <i class="fas fa-hourglass-half text-amber-400 text-xs"></i>
+            </div>
+            <div class="text-xl font-extrabold" style="background: linear-gradient(135deg,#f59e0b,#fbbf24); -webkit-background-clip:text; background-clip:text; color:transparent;">{{ _fmtMs($sumTimeMs) }}</div>
+        </div>
+        <div class="rounded-xl p-3.5" style="background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.04)); border: 1px solid rgba(16,185,129,0.3);">
+            <div class="flex items-center justify-between mb-1.5">
+                <span class="text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">Overall CTR</span>
+                <i class="fas fa-bullseye text-emerald-400 text-xs"></i>
+            </div>
+            <div class="text-xl font-extrabold" style="background: linear-gradient(135deg,#10b981,#34d399); -webkit-background-clip:text; background-clip:text; color:transparent;">{{ $overallCtr }}%</div>
+            <div class="text-[10px] mt-0.5" style="color: var(--text-faint);">{{ number_format($sumClicks) }} clicks</div>
+        </div>
+    </div>
+
+    {{-- Engagement chart: top 10 blocks by total visible time --}}
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-5 mb-5">
+        <div class="lg:col-span-3 rounded-xl p-4" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+            <div class="flex items-center justify-between mb-3">
+                <h4 class="text-xs font-bold" style="color: var(--text-primary);"><i class="fas fa-chart-bar text-teal-400 mr-1.5"></i> Top 10 Blocks by Visible Time</h4>
+                <span class="text-[10px]" style="color: var(--text-faint);">{{ $blockEngagement->count() }} tracked</span>
+            </div>
+            <div style="height: 320px;"><canvas id="blockEngagementChart"></canvas></div>
+        </div>
+        <div class="lg:col-span-2 rounded-xl p-4" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+            <div class="flex items-center justify-between mb-3">
+                <h4 class="text-xs font-bold" style="color: var(--text-primary);"><i class="fas fa-funnel-dollar text-teal-400 mr-1.5"></i> Engagement Funnel</h4>
+            </div>
+            @php
+                $maxFunnel = max($sumImp, 1);
+                $funnel = [
+                    ['label'=>'Impressions','value'=>$sumImp,'color'=>'linear-gradient(90deg,#14b8a6,#2dd4bf)','glow'=>'rgba(20,184,166,0.4)','icon'=>'fa-eye'],
+                    ['label'=>'Unique Viewers','value'=>$sumViewers,'color'=>'linear-gradient(90deg,#6366f1,#818cf8)','glow'=>'rgba(99,102,241,0.4)','icon'=>'fa-users'],
+                    ['label'=>'Clicks','value'=>$sumClicks,'color'=>'linear-gradient(90deg,#10b981,#34d399)','glow'=>'rgba(16,185,129,0.4)','icon'=>'fa-mouse-pointer'],
+                ];
+            @endphp
+            <div class="space-y-3">
+                @foreach($funnel as $f)
+                    @php $w = $maxFunnel > 0 ? round(($f['value'] / $maxFunnel) * 100, 1) : 0; @endphp
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="text-xs font-semibold" style="color: var(--text-primary);"><i class="fas {{ $f['icon'] }} mr-1.5" style="color:var(--text-faint);"></i>{{ $f['label'] }}</span>
+                            <span class="text-sm font-bold" style="color: var(--text-primary);">{{ number_format($f['value']) }}</span>
+                        </div>
+                        <div class="bar-track" style="height: 12px;">
+                            <div class="bar-fill" style="width: {{ $w }}%; --bar-color: {{ $f['color'] }}; --bar-glow: {{ $f['glow'] }};"></div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+            @if($sumImp > 0)
+            <div class="mt-4 pt-3" style="border-top: 1px dashed var(--border-glass);">
+                <div class="grid grid-cols-2 gap-2 text-center">
+                    <div class="rounded-lg p-2" style="background: var(--bg-glass);">
+                        <div class="text-[9px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">View → Click</div>
+                        <div class="text-base font-bold" style="color: var(--text-primary);">{{ $sumViewers > 0 ? round(($sumClicks / $sumViewers) * 100, 1) : 0 }}%</div>
+                    </div>
+                    <div class="rounded-lg p-2" style="background: var(--bg-glass);">
+                        <div class="text-[9px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">Reach Ratio</div>
+                        <div class="text-base font-bold" style="color: var(--text-primary);">{{ $sumImp > 0 ? round(($sumViewers / $sumImp) * 100, 1) : 0 }}%</div>
+                    </div>
+                </div>
+            </div>
+            @endif
+        </div>
+    </div>
+
     <div class="overflow-x-auto -mx-2 px-2">
         <table class="fancy-table">
             <thead><tr>
-                <th>#</th><th>Block</th><th>Type</th>
+                <th>#</th><th>Block</th>
                 <th class="text-right">Impressions</th>
                 <th class="text-right">Viewers</th>
                 <th class="text-right">Total Time</th>
                 <th class="text-right">Avg / View</th>
                 <th class="text-right">Clicks</th>
                 <th class="text-right">CTR</th>
+                <th>Engagement</th>
             </tr></thead>
             <tbody>
+            @php $maxTime = $blockEngagement->max('total_ms') ?: 1; @endphp
             @foreach($blockEngagement as $i => $b)
             @php
-                $info = $blockTypes[$b->block_type] ?? ['label'=>ucfirst($b->block_type ?? 'block'), 'icon'=>'fa-cube'];
+                $bi     = $blockIdentity($b->block_id, $b->block_type);
+                $info   = $bi['info'];
                 $clicks = $blockClickMap[$b->block_id] ?? 0;
-                $ctr = $b->impressions > 0 ? round(($clicks / $b->impressions) * 100, 1) : 0;
+                $ctr    = $b->impressions > 0 ? round(($clicks / $b->impressions) * 100, 1) : 0;
+                $tw     = round(($b->total_ms / $maxTime) * 100, 1);
             @endphp
             <tr>
                 <td style="width:38px;"><span class="rank-badge {{ $i<3 ? 'rank-'.($i+1) : '' }}">{{ $i+1 }}</span></td>
-                <td style="color: var(--text-primary);" class="font-medium">
-                    <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg mr-2" style="background: linear-gradient(135deg,#14b8a6,#2dd4bf); color:#fff;"><i class="fas {{ $info['icon'] }} text-[11px]"></i></span>
-                    #{{ $b->block_id }}
+                <td style="color: var(--text-primary); min-width: 220px;">
+                    <div class="flex items-center gap-2.5">
+                        @if(!empty($bi['thumb']))
+                            <span class="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0" style="border: 1px solid var(--border-glass);"><img src="{{ $bi['thumb'] }}" class="w-full h-full object-cover" onerror="this.parentNode.innerHTML='<span class=\'inline-flex items-center justify-center w-full h-full\' style=\'background: linear-gradient(135deg,#14b8a6,#2dd4bf); color:#fff;\'><i class=\'fas {{ $info['icon'] }}\'></i></span>'"></span>
+                        @else
+                            <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg flex-shrink-0" style="background: linear-gradient(135deg,#14b8a6,#2dd4bf); color:#fff;"><i class="fas {{ $info['icon'] }} text-xs"></i></span>
+                        @endif
+                        <div class="min-w-0">
+                            <div class="text-sm font-semibold truncate" style="color: var(--text-primary); max-width: 240px;" title="{{ $bi['title'] }}">{{ $bi['title'] }}</div>
+                            <div class="flex items-center gap-1.5 mt-0.5">
+                                <span class="text-[9.5px] px-1.5 py-0.5 rounded-md font-bold" style="background: rgba(20,184,166,0.15); color:#5eead4;">{{ $info['label'] }}</span>
+                                <span class="text-[9.5px]" style="color: var(--text-faint);">#{{ $b->block_id }}</span>
+                            </div>
+                        </div>
+                    </div>
                 </td>
-                <td><span class="badge text-[10px] px-2 py-1 rounded-full" style="background: linear-gradient(135deg, rgba(20,184,166,0.18), rgba(45,212,191,0.18)); color:#5eead4; border: 1px solid rgba(20,184,166,0.3);">{{ $info['label'] }}</span></td>
                 <td class="text-right" style="color: var(--text-muted);">{{ number_format($b->impressions) }}</td>
                 <td class="text-right" style="color: var(--text-muted);">{{ number_format($b->unique_viewers) }}</td>
                 <td class="text-right font-bold" style="color: var(--text-primary);">{{ _fmtMs($b->total_ms) }}</td>
@@ -576,11 +710,73 @@
                 <td class="text-right">
                     <span class="px-2 py-0.5 rounded-md text-[10px] font-bold" style="background: {{ $ctr >= 10 ? 'linear-gradient(135deg,#10b981,#34d399)' : ($ctr >= 3 ? 'linear-gradient(135deg,#f59e0b,#fbbf24)' : 'rgba(148,163,184,0.15)') }}; color: {{ $ctr >= 3 ? '#fff' : 'var(--text-muted)' }};">{{ $ctr }}%</span>
                 </td>
+                <td class="bar-cell" style="width: 18%; min-width: 120px;">
+                    <div class="bar-track">
+                        <div class="bar-fill" style="width: {{ $tw }}%; --bar-color: linear-gradient(90deg,#14b8a6,#2dd4bf); --bar-glow: rgba(20,184,166,0.4);"></div>
+                    </div>
+                </td>
             </tr>
             @endforeach
             </tbody>
         </table>
     </div>
+
+    @push('scripts')
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var el = document.getElementById('blockEngagementChart');
+        if (!el || !window.Chart) return;
+        var isLight = document.documentElement.classList.contains('light-mode');
+        var tickColor = isLight ? 'rgba(15,23,42,0.75)' : 'rgba(255,255,255,0.7)';
+        var gridColor = isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.05)';
+        var labels = @json($topByTime->map(function($b) use ($blockIdentity) { $bi = $blockIdentity($b->block_id, $b->block_type); return \Illuminate\Support\Str::limit($bi['title'], 32); })->values());
+        var times  = @json($topByTime->map(fn($b) => round($b->total_ms / 1000, 1))->values());
+        var imps   = @json($topByTime->map(fn($b) => (int)$b->impressions)->values());
+        var ctx = el.getContext('2d');
+        var grad = ctx.createLinearGradient(0,0,el.width,0);
+        grad.addColorStop(0,'#14b8a6'); grad.addColorStop(1,'#2dd4bf');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Visible time (s)',
+                    data: times,
+                    backgroundColor: grad,
+                    borderRadius: 8,
+                    borderSkipped: false,
+                    maxBarThickness: 22
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: isLight ? 'rgba(255,255,255,0.98)' : 'rgba(20,15,40,0.95)',
+                        titleColor: tickColor, bodyColor: tickColor,
+                        borderColor: 'rgba(20,184,166,0.4)', borderWidth: 1,
+                        padding: 10, cornerRadius: 10,
+                        callbacks: {
+                            label: function(c) {
+                                var i = c.dataIndex;
+                                var s = c.parsed.x;
+                                var imp = imps[i] || 0;
+                                return [' Time: ' + s + 's', ' Impressions: ' + imp];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { grid: { color: gridColor }, ticks: { color: tickColor, font: { size: 10 } }, beginAtZero: true, border: { display: false } },
+                    y: { grid: { display: false }, ticks: { color: tickColor, font: { size: 10.5, weight: '600' }, autoSkip: false }, border: { display: false } }
+                }
+            }
+        });
+    });
+    </script>
+    @endpush
     @endif
 </div>
 @endif

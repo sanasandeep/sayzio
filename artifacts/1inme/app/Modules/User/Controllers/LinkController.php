@@ -239,6 +239,40 @@ class LinkController extends Controller
         $blockClickMap = [];
         foreach ($blockStats as $b) { $blockClickMap[$b->block_id] = $b->count; }
 
+        // Build a lightweight metadata map (title/url/thumb) for each block on this link
+        // so the engagement table can show *what* each block actually is, not just an id.
+        $blockMeta = [];
+        if ($link->type === 'biolink') {
+            $blocksForLink = \App\Modules\User\Models\BiolinkBlock::where('link_id', $link->id)
+                ->get(['id', 'type', 'settings']);
+            foreach ($blocksForLink as $blk) {
+                $s = is_array($blk->settings) ? $blk->settings : (json_decode($blk->settings ?? '{}', true) ?: []);
+                $title = null;
+                foreach (['title', 'heading', 'text', 'label', 'name', 'caption', 'question', 'button_text', 'description'] as $k) {
+                    if (!empty($s[$k]) && is_string($s[$k])) {
+                        $title = \Illuminate\Support\Str::limit(trim(strip_tags($s[$k])), 60);
+                        if ($title !== '') break;
+                    }
+                }
+                $url = null;
+                foreach (['url', 'link', 'destination_url', 'href', 'embed_url', 'src', 'video_url'] as $k) {
+                    if (!empty($s[$k]) && is_string($s[$k])) { $url = $s[$k]; break; }
+                }
+                $thumb = null;
+                foreach (['image', 'image_url', 'thumbnail', 'avatar', 'logo', 'icon_url', 'poster', 'src'] as $k) {
+                    if (!empty($s[$k]) && is_string($s[$k]) && preg_match('~\.(png|jpe?g|gif|webp|svg)(\?|$)~i', $s[$k])) {
+                        $thumb = $s[$k]; break;
+                    }
+                }
+                $blockMeta[$blk->id] = [
+                    'title' => $title,
+                    'url'   => $url,
+                    'thumb' => $thumb,
+                    'type'  => $blk->type,
+                ];
+            }
+        }
+
         return view('user.links.show', compact(
             'link', 'clicksOverTime', 'topReferrers',
             'browserStats', 'osStats', 'countryStats', 'cityStats',
@@ -247,7 +281,7 @@ class LinkController extends Controller
             'blockClicksInRange', 'pageVisitsInRange',
             'period', 'groupBy', 'startDate', 'endDate',
             'totalSessions', 'avgSessionSeconds', 'totalEngagedSeconds',
-            'bounceRate', 'blockEngagement', 'blockClickMap'
+            'bounceRate', 'blockEngagement', 'blockClickMap', 'blockMeta'
         ));
     }
 
