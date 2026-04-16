@@ -6,10 +6,10 @@
 </script>
 <style>
     :root {
-        --bg-body: #06010f;
-        --bg-sidebar: rgba(8,3,20,0.75);
-        --bg-sidebar-mobile: rgba(8,3,20,0.97);
-        --bg-header: rgba(8,3,20,0.55);
+        --bg-body: #0a0a0c;
+        --bg-sidebar: rgba(14,14,17,0.78);
+        --bg-sidebar-mobile: rgba(14,14,17,0.97);
+        --bg-header: rgba(14,14,17,0.58);
         --bg-glass: rgba(255,255,255,0.035);
         --bg-glass-light: rgba(255,255,255,0.055);
         --bg-glass-hover: rgba(255,255,255,0.08);
@@ -20,23 +20,23 @@
         --border-glass: rgba(255,255,255,0.07);
         --border-glass-light: rgba(255,255,255,0.1);
         --border-subtle: rgba(255,255,255,0.045);
-        --text-primary: #f0edf6;
-        --text-secondary: rgba(240,237,246,0.78);
-        --text-muted: rgba(240,237,246,0.5);
-        --text-dimmed: rgba(240,237,246,0.42);
-        --text-faint: rgba(240,237,246,0.28);
-        --text-label: rgba(240,237,246,0.1);
-        --sidebar-link: rgba(240,237,246,0.45);
+        --text-primary: #f5f5f7;
+        --text-secondary: rgba(245,245,247,0.78);
+        --text-muted: rgba(245,245,247,0.5);
+        --text-dimmed: rgba(245,245,247,0.42);
+        --text-faint: rgba(245,245,247,0.28);
+        --text-label: rgba(245,245,247,0.1);
+        --sidebar-link: rgba(245,245,247,0.5);
         --sidebar-link-hover-bg: rgba(255,255,255,0.055);
-        --sidebar-link-hover-text: rgba(240,237,246,0.88);
+        --sidebar-link-hover-text: rgba(245,245,247,0.9);
         --sidebar-active-bg: rgba(139,92,246,0.1);
         --sidebar-active-border: rgba(139,92,246,0.2);
         --sidebar-active-text: #a78bfa;
         --accent: #8b5cf6;
         --accent-light: #a78bfa;
         --accent-glow: rgba(139,92,246,0.5);
-        --glow-1: rgba(139,92,246,0.08);
-        --glow-2: rgba(168,85,247,0.05);
+        --glow-1: rgba(139,92,246,0.05);
+        --glow-2: rgba(168,85,247,0.03);
         --scrollbar-thumb: rgba(255,255,255,0.08);
         --scrollbar-thumb-hover: rgba(255,255,255,0.15);
         --overlay-bg: rgba(0,0,0,0.75);
@@ -45,42 +45,42 @@
     }
 
     html.light-mode {
-        --bg-body: #f0edf6;
-        --bg-sidebar: rgba(255,255,255,0.85);
+        --bg-body: #f7f7f8;
+        --bg-sidebar: rgba(255,255,255,0.9);
         --bg-sidebar-mobile: rgba(255,255,255,0.98);
-        --bg-header: rgba(255,255,255,0.72);
-        --bg-glass: rgba(255,255,255,0.55);
-        --bg-glass-light: rgba(255,255,255,0.7);
-        --bg-glass-hover: rgba(255,255,255,0.85);
-        --bg-glass-input: rgba(0,0,0,0.04);
-        --bg-glass-input-focus: rgba(0,0,0,0.06);
-        --bg-card: rgba(255,255,255,0.72);
-        --bg-card-hover: rgba(255,255,255,0.88);
-        --border-glass: rgba(124,58,237,0.08);
-        --border-glass-light: rgba(124,58,237,0.12);
-        --border-subtle: rgba(0,0,0,0.05);
-        --text-primary: #1a1025;
-        --text-secondary: rgba(26,16,37,0.82);
-        --text-muted: rgba(26,16,37,0.78);
-        --text-dimmed: rgba(26,16,37,0.7);
-        --text-faint: rgba(26,16,37,0.62);
-        --text-label: rgba(26,16,37,0.55);
-        --sidebar-link: rgba(26,16,37,0.48);
-        --sidebar-link-hover-bg: rgba(139,92,246,0.06);
-        --sidebar-link-hover-text: rgba(26,16,37,0.88);
+        --bg-header: rgba(255,255,255,0.78);
+        --bg-glass: rgba(255,255,255,0.7);
+        --bg-glass-light: rgba(255,255,255,0.82);
+        --bg-glass-hover: rgba(255,255,255,0.92);
+        --bg-glass-input: rgba(15,15,17,0.035);
+        --bg-glass-input-focus: rgba(15,15,17,0.055);
+        --bg-card: #ffffff;
+        --bg-card-hover: #ffffff;
+        --border-glass: rgba(15,15,17,0.07);
+        --border-glass-light: rgba(15,15,17,0.09);
+        --border-subtle: rgba(15,15,17,0.055);
+        --text-primary: #111113;
+        --text-secondary: rgba(17,17,19,0.82);
+        --text-muted: rgba(17,17,19,0.68);
+        --text-dimmed: rgba(17,17,19,0.55);
+        --text-faint: rgba(17,17,19,0.42);
+        --text-label: rgba(17,17,19,0.4);
+        --sidebar-link: rgba(17,17,19,0.62);
+        --sidebar-link-hover-bg: rgba(15,15,17,0.04);
+        --sidebar-link-hover-text: #111113;
         --sidebar-active-bg: rgba(139,92,246,0.08);
-        --sidebar-active-border: rgba(139,92,246,0.18);
+        --sidebar-active-border: rgba(139,92,246,0.16);
         --sidebar-active-text: #7c3aed;
         --accent: #7c3aed;
         --accent-light: #8b5cf6;
-        --accent-glow: rgba(124,58,237,0.3);
-        --glow-1: rgba(139,92,246,0.04);
-        --glow-2: rgba(168,85,247,0.03);
-        --scrollbar-thumb: rgba(0,0,0,0.1);
-        --scrollbar-thumb-hover: rgba(0,0,0,0.18);
-        --overlay-bg: rgba(0,0,0,0.25);
-        --card-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 8px 32px rgba(124,58,237,0.06), inset 0 1px 0 rgba(255,255,255,0.8);
-        --noise-opacity: 0.006;
+        --accent-glow: rgba(124,58,237,0.25);
+        --glow-1: rgba(139,92,246,0.02);
+        --glow-2: rgba(168,85,247,0.015);
+        --scrollbar-thumb: rgba(15,15,17,0.12);
+        --scrollbar-thumb-hover: rgba(15,15,17,0.22);
+        --overlay-bg: rgba(15,15,17,0.32);
+        --card-shadow: 0 1px 2px rgba(15,15,17,0.04), 0 4px 16px rgba(15,15,17,0.04);
+        --noise-opacity: 0;
     }
 
     [x-cloak] { display: none !important; }
@@ -153,6 +153,16 @@
         border-color: rgba(139,92,246,0.12);
     }
     .card-premium:hover::before { opacity: 1; }
+    html.light-mode .card-premium {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+    }
+    html.light-mode .card-premium:hover {
+        box-shadow: 0 2px 4px rgba(15,15,17,0.04), 0 12px 32px rgba(15,15,17,0.06);
+        border-color: rgba(15,15,17,0.09);
+        transform: translateY(-2px);
+    }
+    html.light-mode .card-premium::before { display: none; }
 
     .gradient-border {
         position: relative;
@@ -212,6 +222,15 @@
     }
     .stat-card:hover::before { height: 3px; }
     .stat-card:hover::after { opacity: 1; }
+    html.light-mode .stat-card {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+    }
+    html.light-mode .stat-card:hover {
+        box-shadow: 0 2px 4px rgba(15,15,17,0.04), 0 12px 32px rgba(15,15,17,0.06);
+        border-color: var(--stat-border-color, rgba(15,15,17,0.09));
+        transform: translateY(-2px);
+    }
 
     .sidebar-link {
         display: flex;
@@ -305,10 +324,9 @@
         top: -15%;
         left: -15%;
         background:
-            radial-gradient(ellipse 800px 600px at 20% 15%, rgba(139,92,246,0.12), transparent),
-            radial-gradient(ellipse 600px 400px at 80% 80%, rgba(168,85,247,0.08), transparent),
-            radial-gradient(ellipse 500px 350px at 50% 5%, rgba(99,102,241,0.06), transparent),
-            radial-gradient(ellipse 400px 300px at 70% 30%, rgba(236,72,153,0.04), transparent);
+            radial-gradient(ellipse 800px 600px at 20% 15%, rgba(139,92,246,0.07), transparent),
+            radial-gradient(ellipse 600px 400px at 80% 80%, rgba(168,85,247,0.04), transparent),
+            radial-gradient(ellipse 500px 350px at 50% 5%, rgba(99,102,241,0.03), transparent);
         animation: aurora 25s ease-in-out infinite alternate;
     }
     .bg-mesh::after {
@@ -317,21 +335,23 @@
         width: 100%;
         height: 100%;
         background:
-            radial-gradient(circle 200px at 20% 70%, rgba(139,92,246,0.06), transparent),
-            radial-gradient(circle 150px at 75% 20%, rgba(168,85,247,0.04), transparent);
-        animation: aurora 30s ease-in-out infinite alternate-reverse;
-    }
-    html.light-mode .bg-mesh::before {
-        background:
-            radial-gradient(ellipse 800px 600px at 20% 15%, rgba(139,92,246,0.06), transparent),
-            radial-gradient(ellipse 600px 400px at 80% 80%, rgba(168,85,247,0.04), transparent),
-            radial-gradient(ellipse 500px 350px at 50% 5%, rgba(99,102,241,0.03), transparent),
-            radial-gradient(ellipse 400px 300px at 70% 30%, rgba(236,72,153,0.02), transparent);
-    }
-    html.light-mode .bg-mesh::after {
-        background:
             radial-gradient(circle 200px at 20% 70%, rgba(139,92,246,0.03), transparent),
             radial-gradient(circle 150px at 75% 20%, rgba(168,85,247,0.02), transparent);
+        animation: aurora 30s ease-in-out infinite alternate-reverse;
+    }
+    html.light-mode .bg-mesh::before,
+    html.light-mode .bg-mesh::after {
+        background: none;
+        animation: none;
+    }
+    html.light-mode .bg-mesh {
+        background-image:
+            linear-gradient(rgba(15,15,17,0.035) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(15,15,17,0.035) 1px, transparent 1px);
+        background-size: 48px 48px;
+        background-position: -1px -1px;
+        mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 30%, transparent 85%);
+        -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 30%, transparent 85%);
     }
 
     .btn-primary {
@@ -364,6 +384,12 @@
     }
     .btn-primary:hover::before { opacity: 1; }
     .btn-primary:active { transform: translateY(0); }
+    html.light-mode .btn-primary {
+        box-shadow: 0 1px 2px rgba(15,15,17,0.08), 0 4px 12px rgba(124,58,237,0.22);
+    }
+    html.light-mode .btn-primary:hover {
+        box-shadow: 0 2px 6px rgba(15,15,17,0.1), 0 8px 20px rgba(124,58,237,0.28);
+    }
 
     .btn-ghost {
         display: inline-flex;
