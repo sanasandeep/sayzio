@@ -202,6 +202,25 @@ class LinkController extends Controller
             ->groupBy('block_id', 'block_type', 'destination_url')
             ->orderByDesc('count')->limit(50)->get();
 
+        // ---- Previous-period comparison (same span ending immediately before $startDate) ----
+        $rangeSeconds  = max(1, $endDate->diffInSeconds($startDate));
+        $prevEndDate   = (clone $startDate);
+        $prevStartDate = (clone $startDate)->subSeconds($rangeSeconds);
+        $prevClicksQuery = $link->clicks()
+            ->whereBetween('clicked_at', [$prevStartDate, $prevEndDate]);
+
+        $blockClicksInRangePrev   = (clone $prevClicksQuery)->whereNotNull('block_id')->count();
+        $uniqueBlockClicksInRange = (clone $clicksQuery)->whereNotNull('block_id')->distinct('ip_address')->count('ip_address');
+        $uniqueBlockClicksPrev    = (clone $prevClicksQuery)->whereNotNull('block_id')->distinct('ip_address')->count('ip_address');
+
+        // Per-block previous-period counts (keyed by block_id) for delta display
+        $blockStatsPrev = (clone $prevClicksQuery)
+            ->selectRaw("block_id, COUNT(*) as count, COUNT(DISTINCT ip_address) as unique_count")
+            ->whereNotNull('block_id')
+            ->groupBy('block_id')
+            ->get()
+            ->keyBy('block_id');
+
         $utmStats = (clone $clicksQuery)
             ->selectRaw("utm_params, COUNT(*) as count")
             ->whereNotNull('utm_params')
@@ -342,7 +361,9 @@ class LinkController extends Controller
             'blockClicksInRange', 'pageVisitsInRange',
             'period', 'groupBy', 'startDate', 'endDate',
             'totalSessions', 'avgSessionSeconds', 'totalEngagedSeconds',
-            'bounceRate', 'blockEngagement', 'blockClickMap', 'blockMeta'
+            'bounceRate', 'blockEngagement', 'blockClickMap', 'blockMeta',
+            'blockStatsPrev', 'blockClicksInRangePrev',
+            'uniqueBlockClicksInRange', 'uniqueBlockClicksPrev'
         ));
     }
 

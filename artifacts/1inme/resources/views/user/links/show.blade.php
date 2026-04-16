@@ -182,6 +182,62 @@
         letter-spacing: -0.02em;
     }
 
+    /* ============ Comparison Tile (used in Block-Level Clicks) ============ */
+    .cmp-tile {
+        background: var(--bg-glass);
+        border: 1px solid var(--border-glass);
+        border-radius: 14px;
+        padding: 14px 16px;
+        backdrop-filter: blur(14px);
+        transition: all .18s ease;
+    }
+    .cmp-tile:hover { border-color: rgba(168,85,247,0.35); transform: translateY(-1px); }
+    .cmp-tile-head {
+        font-size: 10px; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 0.08em;
+        color: var(--text-faint);
+        display: flex; align-items: center; gap: 6px;
+        margin-bottom: 8px;
+    }
+    .cmp-tile-head i { font-size: 10px; color: #a855f7; }
+    .cmp-tile-row {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 8px;
+    }
+    .cmp-tile-value {
+        font-size: 24px; font-weight: 800;
+        letter-spacing: -0.02em;
+        color: var(--text-primary);
+        line-height: 1.05;
+    }
+    .cmp-tile-value-sm {
+        font-size: 16px; font-weight: 700;
+        letter-spacing: -0.01em;
+        color: var(--text-primary);
+        line-height: 1.15; min-width: 0;
+    }
+    .cmp-tile-sub {
+        margin-top: 6px;
+        font-size: 10.5px;
+        color: var(--text-faint);
+    }
+
+    /* ============ Delta pill (up/down vs prev period) ============ */
+    .delta-pill {
+        display: inline-flex; align-items: center; gap: 4px;
+        font-size: 10.5px; font-weight: 700;
+        padding: 3px 8px; border-radius: 999px;
+        white-space: nowrap;
+        letter-spacing: 0.02em;
+    }
+    .delta-pill i { font-size: 8.5px; }
+    .delta-up   { background: rgba(16,185,129,0.15);  color: #6ee7b7; border: 1px solid rgba(16,185,129,0.30); }
+    .delta-down { background: rgba(239,68,68,0.15);   color: #fca5a5; border: 1px solid rgba(239,68,68,0.30); }
+    .delta-flat { background: rgba(148,163,184,0.15); color: #cbd5e1; border: 1px solid rgba(148,163,184,0.30); }
+    html.light-mode .delta-up   { color: #047857; background: rgba(16,185,129,0.12); }
+    html.light-mode .delta-down { color: #b91c1c; background: rgba(239,68,68,0.12); }
+    html.light-mode .delta-flat { color: #475569; background: rgba(148,163,184,0.12); }
+
     /* ============ Section Card ============ */
     .section-card {
         position: relative;
@@ -677,18 +733,97 @@
     };
 @endphp
 
+@php
+    // Helper: render a delta pill comparing current vs previous values.
+    // Returns a small chip with arrow + percentage colour-coded (up=green, down=red).
+    if (!function_exists('_blockDeltaPill')) {
+        function _blockDeltaPill($curr, $prev) {
+            $curr = (int) $curr; $prev = (int) $prev;
+            if ($prev === 0 && $curr === 0) {
+                return '<span class="delta-pill delta-flat" title="No data in either period">—</span>';
+            }
+            if ($prev === 0) {
+                return '<span class="delta-pill delta-up" title="New in this period"><i class="fas fa-arrow-up"></i> NEW</span>';
+            }
+            if ($curr === 0) {
+                return '<span class="delta-pill delta-down" title="Dropped to zero"><i class="fas fa-arrow-down"></i> -100%</span>';
+            }
+            $pct = round((($curr - $prev) / $prev) * 100, 1);
+            if (abs($pct) < 0.05) {
+                return '<span class="delta-pill delta-flat"><i class="fas fa-minus"></i> 0%</span>';
+            }
+            $cls = $pct > 0 ? 'delta-up' : 'delta-down';
+            $ico = $pct > 0 ? 'fa-arrow-up' : 'fa-arrow-down';
+            $sign = $pct > 0 ? '+' : '';
+            return '<span class="delta-pill '.$cls.'" title="vs previous period: '.number_format($prev).' clicks"><i class="fas '.$ico.'"></i> '.$sign.number_format($pct, 1).'%</span>';
+        }
+    }
+    $topBlock = $blockStats->first();
+    $topBlockPrev = $topBlock && isset($blockStatsPrev[$topBlock->block_id])
+        ? $blockStatsPrev[$topBlock->block_id]->count
+        : 0;
+    // Window labels — compact, e.g. "Apr 9 – Apr 16" / "vs Apr 2 – Apr 9"
+    $rangeFmt = function($a, $b){
+        $sameYear = $a->format('Y') === $b->format('Y');
+        return $a->format('M j').' – '.$b->format($sameYear ? 'M j' : 'M j, Y');
+    };
+@endphp
 <div class="section-card mb-6" style="--sc-accent: linear-gradient(90deg,#a855f7,#d946ef); --sc-glow: rgba(168,85,247,0.35); --sc-color: #d8b4fe; --sc-border: rgba(168,85,247,0.3);">
     <div class="section-head">
         <div class="section-title"><div class="section-icon"><i class="fas fa-th-large"></i></div> Block-Level Clicks</div>
-        <span class="section-pill"><i class="fas fa-link"></i> Internal biolink links</span>
+        <span class="section-pill" title="Each row = one biolink block. Clicks are tracked when a visitor taps the block on your public bio page."><i class="fas fa-link"></i> Internal biolink links · {{ $rangeFmt($startDate, $endDate) }} vs prev</span>
     </div>
+
+    {{-- ===== Comparison KPIs (this period vs previous period of same length) ===== --}}
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
+        <div class="cmp-tile">
+            <div class="cmp-tile-head"><i class="fas fa-mouse-pointer"></i> Block clicks</div>
+            <div class="cmp-tile-row">
+                <div class="cmp-tile-value">{{ number_format($blockClicksInRange) }}</div>
+                {!! _blockDeltaPill($blockClicksInRange, $blockClicksInRangePrev) !!}
+            </div>
+            <div class="cmp-tile-sub">prev: {{ number_format($blockClicksInRangePrev) }}</div>
+        </div>
+        <div class="cmp-tile">
+            <div class="cmp-tile-head"><i class="fas fa-fingerprint"></i> Unique block visitors</div>
+            <div class="cmp-tile-row">
+                <div class="cmp-tile-value">{{ number_format($uniqueBlockClicksInRange) }}</div>
+                {!! _blockDeltaPill($uniqueBlockClicksInRange, $uniqueBlockClicksPrev) !!}
+            </div>
+            <div class="cmp-tile-sub">prev: {{ number_format($uniqueBlockClicksPrev) }}</div>
+        </div>
+        <div class="cmp-tile">
+            <div class="cmp-tile-head"><i class="fas fa-trophy"></i> Top performing block</div>
+            @if($topBlock)
+                @php $tb = $blockIdentity($topBlock->block_id, $topBlock->block_type); @endphp
+                <div class="cmp-tile-row">
+                    <div class="cmp-tile-value-sm truncate" title="{{ $tb['title'] }}">{{ \Illuminate\Support\Str::limit($tb['title'], 22) }}</div>
+                    {!! _blockDeltaPill($topBlock->count, $topBlockPrev) !!}
+                </div>
+                <div class="cmp-tile-sub">{{ number_format($topBlock->count) }} clicks · prev: {{ number_format($topBlockPrev) }}</div>
+            @else
+                <div class="cmp-tile-row">
+                    <div class="cmp-tile-value-sm">—</div>
+                </div>
+                <div class="cmp-tile-sub">no blocks clicked yet</div>
+            @endif
+        </div>
+    </div>
+
     @if($blockStats->isEmpty())
-        <p class="text-sm text-center py-8" style="color: var(--text-faint);">No block clicks recorded yet. Make sure your biolink blocks are using tracked links.</p>
+        <div class="text-center py-10 px-6 rounded-xl" style="background: var(--bg-glass-input); border: 1px dashed var(--border-glass);">
+            <i class="fas fa-th-large text-2xl mb-2" style="color: var(--text-faint);"></i>
+            <p class="text-sm font-semibold mb-1" style="color: var(--text-primary);">No block clicks recorded yet</p>
+            <p class="text-xs" style="color: var(--text-faint);">Visit your public bio page and click a block — it will appear here within seconds.</p>
+            <a href="{{ url('/' . $link->alias) }}" target="_blank" rel="noopener" class="btn-ghost text-xs py-2 mt-3 inline-flex">
+                <i class="fas fa-external-link-alt text-[10px]"></i> Open my bio page
+            </a>
+        </div>
     @else
     <div class="overflow-x-auto -mx-2 px-2">
         <table class="fancy-table">
             <thead><tr>
-                <th>#</th><th>Block</th><th>Destination</th><th class="text-right">Clicks</th><th class="text-right">Unique</th><th>Share</th>
+                <th>#</th><th>Block</th><th>Destination</th><th class="text-right">Clicks</th><th class="text-right">Unique</th><th class="text-right">vs Prev</th><th>Share</th>
             </tr></thead>
             <tbody>
             @php $maxB = $blockStats->max('count') ?: 1; $totalB = $blockStats->sum('count') ?: 1; @endphp
@@ -698,6 +833,7 @@
                 $info = $bi['info'];
                 $w    = round(($b->count / $maxB) * 100, 1);
                 $pct  = round(($b->count / $totalB) * 100, 1);
+                $prev = $blockStatsPrev[$b->block_id]->count ?? 0;
             @endphp
             <tr>
                 <td style="width:38px;"><span class="rank-badge {{ $i<3 ? 'rank-'.($i+1) : '' }}">{{ $i+1 }}</span></td>
@@ -720,7 +856,8 @@
                 <td class="text-xs truncate max-w-xs" style="color: var(--text-muted);">{{ $b->destination_url }}</td>
                 <td class="text-right font-bold" style="color: var(--text-primary);">{{ number_format($b->count) }}</td>
                 <td class="text-right" style="color: var(--text-muted);">{{ number_format($b->unique_count) }}</td>
-                <td class="bar-cell" style="width: 22%;">
+                <td class="text-right">{!! _blockDeltaPill($b->count, $prev) !!}</td>
+                <td class="bar-cell" style="width: 18%;">
                     <div class="bar-track">
                         <div class="bar-fill" style="width: {{ $w }}%; --bar-color: linear-gradient(90deg,#a855f7,#d946ef); --bar-glow: rgba(168,85,247,0.4);"></div>
                     </div>
