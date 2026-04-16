@@ -721,12 +721,108 @@
 {{-- ===================== BIOLINK BLOCKS ===================== --}}
 @if($link->type === 'biolink')
 @php
-    $blockIdentity = function($id, $type) use ($blockMeta, $blockTypes) {
+    // Brand icon + colour table for resolving individual social platform clicks.
+    // Mirrors the icon set used on the public bio page so the analytics row matches what the visitor saw.
+    $socialIconMap = [
+        'instagram'   => ['fab fa-instagram',   '#E4405F', 'Instagram'],
+        'twitter'     => ['fab fa-x-twitter',   '#0f172a', 'X (Twitter)'],
+        'x'           => ['fab fa-x-twitter',   '#0f172a', 'X (Twitter)'],
+        'facebook'    => ['fab fa-facebook-f',  '#1877F2', 'Facebook'],
+        'tiktok'      => ['fab fa-tiktok',      '#0f172a', 'TikTok'],
+        'youtube'     => ['fab fa-youtube',     '#FF0000', 'YouTube'],
+        'linkedin'    => ['fab fa-linkedin-in', '#0A66C2', 'LinkedIn'],
+        'github'      => ['fab fa-github',      '#0f172a', 'GitHub'],
+        'discord'     => ['fab fa-discord',     '#5865F2', 'Discord'],
+        'telegram'    => ['fab fa-telegram',    '#26A5E4', 'Telegram'],
+        'whatsapp'    => ['fab fa-whatsapp',    '#25D366', 'WhatsApp'],
+        'snapchat'    => ['fab fa-snapchat',    '#facc15', 'Snapchat'],
+        'pinterest'   => ['fab fa-pinterest',   '#BD081C', 'Pinterest'],
+        'twitch'      => ['fab fa-twitch',      '#9146FF', 'Twitch'],
+        'dribbble'    => ['fab fa-dribbble',    '#EA4C89', 'Dribbble'],
+        'website'     => ['fas fa-globe',       '#7c3aed', 'Website'],
+        'email'       => ['fas fa-envelope',    '#7c3aed', 'Email'],
+        'spotify'     => ['fab fa-spotify',     '#1DB954', 'Spotify'],
+        'soundcloud'  => ['fab fa-soundcloud',  '#FF5500', 'SoundCloud'],
+        'apple'       => ['fab fa-apple',       '#0f172a', 'Apple'],
+        'reddit'      => ['fab fa-reddit',      '#FF4500', 'Reddit'],
+        'medium'      => ['fab fa-medium',      '#0f172a', 'Medium'],
+        'behance'     => ['fab fa-behance',     '#1769FF', 'Behance'],
+    ];
+
+    // Sniff a platform key from a destination URL when the block-level platforms
+    // map can't resolve it (rare — happens when the platform was renamed/removed
+    // after the click was tracked).
+    $sniffPlatform = function($url) {
+        if (!$url) return null;
+        $host = strtolower(parse_url($url, PHP_URL_HOST) ?: '');
+        $host = preg_replace('/^www\./', '', $host);
+        $map = [
+            'instagram.com' => 'instagram', 'twitter.com' => 'twitter', 'x.com' => 'x',
+            'facebook.com' => 'facebook', 'fb.com' => 'facebook',
+            'tiktok.com' => 'tiktok', 'youtube.com' => 'youtube', 'youtu.be' => 'youtube',
+            'linkedin.com' => 'linkedin', 'github.com' => 'github',
+            'discord.com' => 'discord', 'discord.gg' => 'discord',
+            't.me' => 'telegram', 'telegram.me' => 'telegram',
+            'wa.me' => 'whatsapp', 'whatsapp.com' => 'whatsapp',
+            'snapchat.com' => 'snapchat', 'pinterest.com' => 'pinterest',
+            'twitch.tv' => 'twitch', 'dribbble.com' => 'dribbble',
+            'spotify.com' => 'spotify', 'soundcloud.com' => 'soundcloud',
+            'apple.com' => 'apple', 'reddit.com' => 'reddit',
+            'medium.com' => 'medium', 'behance.net' => 'behance',
+        ];
+        if (isset($map[$host])) return $map[$host];
+        foreach ($map as $needle => $key) {
+            if (str_ends_with($host, '.'.$needle)) return $key;
+        }
+        if (str_starts_with(strtolower($url), 'mailto:')) return 'email';
+        return null;
+    };
+
+    // Resolves the identity of a single click row.
+    // For multi-link blocks (socials/socials_multi/socials_custom) we look up the
+    // destination URL inside the block's `platforms` map so each platform shows its
+    // own brand name + icon (Instagram, YouTube...) instead of the generic "Socials".
+    $blockIdentity = function($id, $type, $destUrl = null) use ($blockMeta, $blockTypes, $socialIconMap, $sniffPlatform) {
         $info  = $blockTypes[$type] ?? ['label' => ucfirst($type ?? 'block'), 'icon' => 'fa-cube'];
         $meta  = $blockMeta[$id] ?? [];
         $title = $meta['title'] ?? null;
         $url   = $meta['url']   ?? null;
         $thumb = $meta['thumb'] ?? null;
+        $isMultiLink = in_array($type, ['socials', 'socials_multi', 'socials_custom']);
+
+        if ($isMultiLink && $destUrl) {
+            $platforms = $meta['platforms'] ?? [];
+            $platKey   = $platforms[$destUrl]['key'] ?? null;
+            $platLabel = $platforms[$destUrl]['label'] ?? null;
+            // Fallback: sniff platform from URL host (handles platforms removed after clicks were logged).
+            if (!$platKey) $platKey = $sniffPlatform($destUrl);
+            if (isset($socialIconMap[$platKey])) {
+                [$ico, $color, $brandLabel] = $socialIconMap[$platKey];
+                return [
+                    'info'  => ['label' => $info['label'], 'icon' => $info['icon']],
+                    'title' => $platLabel ?: $brandLabel,
+                    'url'   => $destUrl,
+                    'thumb' => null,
+                    'platform' => [
+                        'icon'  => $ico,
+                        'color' => $color,
+                        'label' => $platLabel ?: $brandLabel,
+                    ],
+                    'parent_title' => $meta['title'] ?? $info['label'],
+                ];
+            }
+            // Unknown platform but still a sub-link of a socials block — show host as title.
+            $host = parse_url($destUrl, PHP_URL_HOST) ?: \Illuminate\Support\Str::limit($destUrl, 30);
+            return [
+                'info'  => $info,
+                'title' => $platLabel ?: $host,
+                'url'   => $destUrl,
+                'thumb' => null,
+                'platform' => ['icon' => 'fas fa-link', 'color' => '#7c3aed', 'label' => $host],
+                'parent_title' => $meta['title'] ?? $info['label'],
+            ];
+        }
+
         if (!$title && $url) { $title = parse_url($url, PHP_URL_HOST) ?: \Illuminate\Support\Str::limit($url, 50); }
         if (!$title) { $title = $info['label'] . ' #' . $id; }
         return compact('info', 'title', 'url', 'thumb');
@@ -759,9 +855,14 @@
         }
     }
     $topBlock = $blockStats->first();
-    $topBlockPrev = $topBlock && isset($blockStatsPrev[$topBlock->block_id])
-        ? $blockStatsPrev[$topBlock->block_id]->count
-        : 0;
+    // Compare the top row against itself in the previous period using
+    // (block_id, destination_url) so a top-performing social platform
+    // gets its own delta instead of the whole socials block aggregate.
+    $topBlockPrev = 0;
+    if ($topBlock) {
+        $tk = $topBlock->block_id . '|' . ($topBlock->destination_url ?? '');
+        $topBlockPrev = $blockStatsPrevByDest[$tk]->count ?? 0;
+    }
     // Window labels — compact, e.g. "Apr 9 – Apr 16" / "vs Apr 2 – Apr 9"
     $rangeFmt = function($a, $b){
         $sameYear = $a->format('Y') === $b->format('Y');
@@ -795,7 +896,7 @@
         <div class="cmp-tile">
             <div class="cmp-tile-head"><i class="fas fa-trophy"></i> Top performing block</div>
             @if($topBlock)
-                @php $tb = $blockIdentity($topBlock->block_id, $topBlock->block_type); @endphp
+                @php $tb = $blockIdentity($topBlock->block_id, $topBlock->block_type, $topBlock->destination_url); @endphp
                 <div class="cmp-tile-row">
                     <div class="cmp-tile-value-sm truncate" title="{{ $tb['title'] }}">{{ \Illuminate\Support\Str::limit($tb['title'], 22) }}</div>
                     {!! _blockDeltaPill($topBlock->count, $topBlockPrev) !!}
@@ -829,25 +930,34 @@
             @php $maxB = $blockStats->max('count') ?: 1; $totalB = $blockStats->sum('count') ?: 1; @endphp
             @foreach($blockStats as $i => $b)
             @php
-                $bi   = $blockIdentity($b->block_id, $b->block_type);
+                $bi   = $blockIdentity($b->block_id, $b->block_type, $b->destination_url);
                 $info = $bi['info'];
+                $plat = $bi['platform'] ?? null;       // present only for socials* sub-link rows
                 $w    = round(($b->count / $maxB) * 100, 1);
                 $pct  = round(($b->count / $totalB) * 100, 1);
-                $prev = $blockStatsPrev[$b->block_id]->count ?? 0;
+                // Per-(block + destination) prev count so each social platform gets its own delta
+                $prevKey = $b->block_id . '|' . ($b->destination_url ?? '');
+                $prev    = $blockStatsPrevByDest[$prevKey]->count ?? 0;
             @endphp
             <tr>
                 <td style="width:38px;"><span class="rank-badge {{ $i<3 ? 'rank-'.($i+1) : '' }}">{{ $i+1 }}</span></td>
                 <td style="color: var(--text-primary); min-width: 220px;">
                     <div class="flex items-center gap-2.5">
-                        @if(!empty($bi['thumb']))
+                        @if($plat)
+                            {{-- Platform-specific brand icon (per social link inside a socials block) --}}
+                            <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg flex-shrink-0" style="background: {{ $plat['color'] }}1a; color: {{ $plat['color'] }}; border: 1px solid {{ $plat['color'] }}40;"><i class="{{ $plat['icon'] }} text-base"></i></span>
+                        @elseif(!empty($bi['thumb']))
                             <span class="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0" style="border: 1px solid var(--border-glass);"><img src="{{ $bi['thumb'] }}" class="w-full h-full object-cover" onerror="this.parentNode.innerHTML='<span class=\'inline-flex items-center justify-center w-full h-full\' style=\'background: linear-gradient(135deg,#a855f7,#d946ef); color:#fff;\'><i class=\'fas {{ $info['icon'] }}\'></i></span>'"></span>
                         @else
                             <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg flex-shrink-0" style="background: linear-gradient(135deg,#a855f7,#d946ef); color:#fff;"><i class="fas {{ $info['icon'] }} text-xs"></i></span>
                         @endif
                         <div class="min-w-0">
                             <div class="text-sm font-semibold truncate" style="color: var(--text-primary); max-width: 240px;" title="{{ $bi['title'] }}">{{ $bi['title'] }}</div>
-                            <div class="flex items-center gap-1.5 mt-0.5">
+                            <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
                                 <span class="text-[9.5px] px-1.5 py-0.5 rounded-md font-bold" style="background: rgba(168,85,247,0.15); color:#d8b4fe;">{{ $info['label'] }}</span>
+                                @if($plat && !empty($bi['parent_title']))
+                                    <span class="text-[9.5px] px-1.5 py-0.5 rounded-md" style="background: var(--bg-glass-input); color: var(--text-muted); border: 1px solid var(--border-glass);" title="Parent block">in {{ \Illuminate\Support\Str::limit($bi['parent_title'], 22) }}</span>
+                                @endif
                                 <span class="text-[9.5px]" style="color: var(--text-faint);">#{{ $b->block_id }}</span>
                             </div>
                         </div>

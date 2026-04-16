@@ -213,13 +213,22 @@ class LinkController extends Controller
         $uniqueBlockClicksInRange = (clone $clicksQuery)->whereNotNull('block_id')->distinct('ip_address')->count('ip_address');
         $uniqueBlockClicksPrev    = (clone $prevClicksQuery)->whereNotNull('block_id')->distinct('ip_address')->count('ip_address');
 
-        // Per-block previous-period counts (keyed by block_id) for delta display
+        // Per-block previous-period counts (keyed by block_id) — used for KPI tiles
         $blockStatsPrev = (clone $prevClicksQuery)
             ->selectRaw("block_id, COUNT(*) as count, COUNT(DISTINCT ip_address) as unique_count")
             ->whereNotNull('block_id')
             ->groupBy('block_id')
             ->get()
             ->keyBy('block_id');
+
+        // Per-(block + destination) previous-period counts — needed so socials*
+        // and other multi-link blocks get a real per-platform "vs prev" delta.
+        $blockStatsPrevByDest = (clone $prevClicksQuery)
+            ->selectRaw("block_id, destination_url, COUNT(*) as count, COUNT(DISTINCT ip_address) as unique_count")
+            ->whereNotNull('block_id')
+            ->groupBy('block_id', 'destination_url')
+            ->get()
+            ->mapWithKeys(fn($r) => [$r->block_id . '|' . ($r->destination_url ?? '') => $r]);
 
         $utmStats = (clone $clicksQuery)
             ->selectRaw("utm_params, COUNT(*) as count")
@@ -344,11 +353,36 @@ class LinkController extends Controller
                     }
                 }
 
+                // For multi-link blocks (socials*), expose a URL → platform map so the
+                // analytics view can resolve each click row to the right platform name/icon.
+                $platformsMap = [];
+                if (in_array($blk->type, ['socials', 'socials_multi', 'socials_custom'])) {
+                    $platList = $s['platforms'] ?? [];
+                    if ($blk->type === 'socials_multi' && !empty($s['groups']) && is_array($s['groups'])) {
+                        $platList = [];
+                        foreach ($s['groups'] as $group) {
+                            $platList = array_merge($platList, $group['platforms'] ?? []);
+                        }
+                    }
+                    foreach ($platList as $p) {
+                        if (!is_array($p)) continue;
+                        $purl = $p['url'] ?? $p['link'] ?? null;
+                        if (!$purl) continue;
+                        $pname = strtolower(trim($p['name'] ?? $p['platform'] ?? ''));
+                        $platformsMap[$purl] = [
+                            'key'   => $pname,
+                            'label' => $p['label'] ?? ($pname !== '' ? ucfirst($pname) : 'Link'),
+                            'url'   => $purl,
+                        ];
+                    }
+                }
+
                 $blockMeta[$blk->id] = [
-                    'title' => $title,
-                    'url'   => $url,
-                    'thumb' => $thumb,
-                    'type'  => $blk->type,
+                    'title'     => $title,
+                    'url'       => $url,
+                    'thumb'     => $thumb,
+                    'type'      => $blk->type,
+                    'platforms' => $platformsMap,
                 ];
             }
         }
@@ -362,7 +396,7 @@ class LinkController extends Controller
             'period', 'groupBy', 'startDate', 'endDate',
             'totalSessions', 'avgSessionSeconds', 'totalEngagedSeconds',
             'bounceRate', 'blockEngagement', 'blockClickMap', 'blockMeta',
-            'blockStatsPrev', 'blockClicksInRangePrev',
+            'blockStatsPrev', 'blockStatsPrevByDest', 'blockClicksInRangePrev',
             'uniqueBlockClicksInRange', 'uniqueBlockClicksPrev'
         ));
     }
