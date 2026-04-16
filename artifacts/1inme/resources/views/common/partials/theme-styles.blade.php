@@ -129,9 +129,7 @@
         border: 1px solid var(--border-glass);
         box-shadow: var(--card-shadow);
         border-radius: 0.875rem;
-        padding: 1.5rem;
     }
-    .glass.no-pad, .glass-no-pad { padding: 0; }
     .glass-light {
         background: var(--bg-glass-light);
         border: 1px solid var(--border-glass-light);
@@ -145,11 +143,9 @@
         border: 1px solid var(--border-glass);
         border-radius: 0.875rem;
         box-shadow: var(--card-shadow);
-        padding: 1.75rem;
         transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
         overflow: hidden;
     }
-    .card-premium.no-pad { padding: 0; }
     .card-premium::before { display: none; }
     .card-premium:hover {
         background: var(--bg-card-hover);
