@@ -2,7 +2,6 @@
 
 namespace App\Modules\User\Services;
 
-use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Link;
 
 /**
@@ -12,8 +11,9 @@ use App\Modules\User\Models\Link;
  * previous-period totals, block stats, engagement, referrers, link config)
  * into a 0-100 health score + a ranked list of actionable insights.
  *
- * No new DB queries: the engine is a pure transformation of arrays / collections
- * the controller already has in hand.
+ * PURE TRANSFORMER: this class issues no DB queries of its own. Any block
+ * metadata the rules need (active block types/ids) is prefetched once by
+ * the caller and passed in via the `blockInventory` key on the context.
  */
 class LinkPerformanceCoach
 {
@@ -74,9 +74,6 @@ class LinkPerformanceCoach
         'empty_state_threshold' => 1,
     ];
 
-    /** Socials block types. Used by missing-socials rule. */
-    private const SOCIAL_TYPES = ['socials', 'socials_multi', 'socials_custom'];
-
     /**
      * Compute the full Performance Coach payload.
      *
@@ -107,6 +104,16 @@ class LinkPerformanceCoach
         // Empty / onboarding state
         if ($total < $cfg['empty_state_threshold']) {
             return self::emptyState($ctx);
+        }
+
+        // When alias filter is active, scrub session-derived fields from the
+        // rule context so session-dependent rules (bounce, long-page-short-
+        // session, low-bounce-win) silently skip — page_sessions can't be
+        // scoped to a single alias yet.
+        if (!empty($ctx['aliasFilter'])) {
+            $ctx['totalSessions']     = 0;
+            $ctx['avgSessionSeconds'] = 0;
+            $ctx['bounceRate']        = 0.0;
         }
 
         $deltaPct = self::trendDelta($ctx);
@@ -182,12 +189,19 @@ class LinkPerformanceCoach
         // CTR component: 0% => 0, 40%+ => 1.0 (linear).
         $ctrScore = min(1.0, $ctr / $cfg['ctr_excellent']);
 
-        // Bounce: 0% => 1.0, 100% => 0 (linear inverse).
-        $bounceScore = max(0.0, 1.0 - (((float) ($ctx['bounceRate'] ?? 0)) / 100.0));
-
-        // Engagement: 0s => 0, 45s+ => 1.0.
-        $avgSec = (int) ($ctx['avgSessionSeconds'] ?? 0);
-        $engScore = min(1.0, $avgSec / max(1, $cfg['engagement_excellent_seconds']));
+        // Session-derived metrics (bounce + engagement) cannot currently be
+        // alias-scoped because `page_sessions` is per-page, not per-alias.
+        // When an alias filter is active we drop these components from the
+        // score entirely and renormalize the remaining weights — this is
+        // more honest than blending alias click data with page-wide sessions.
+        $sessionsAvailable = empty($ctx['aliasFilter']);
+        $bounceScore = $sessionsAvailable
+            ? max(0.0, 1.0 - (((float) ($ctx['bounceRate'] ?? 0)) / 100.0))
+            : 0.0;
+        $avgSec   = (int) ($ctx['avgSessionSeconds'] ?? 0);
+        $engScore = $sessionsAvailable
+            ? min(1.0, $avgSec / max(1, $cfg['engagement_excellent_seconds']))
+            : 0.0;
 
         // Momentum: piecewise-linear mapping so the configured drop/win
         // thresholds actually map to 0.0 and 1.0 respectively.
@@ -218,15 +232,28 @@ class LinkPerformanceCoach
         $total = (int) ($ctx['totalInRange'] ?? 0);
         $activityScore = min(1.0, $total / max(1, $cfg['min_traffic_for_rules'] * 10));
 
-        $raw =
-            $ctrScore        * $w['ctr']        +
-            $bounceScore     * $w['bounce']     +
-            $engScore        * $w['engagement'] +
-            $momentumScore   * $w['momentum']   +
-            $diversityScore  * $w['diversity']  +
-            $activityScore   * $w['activity'];
-
-        return (int) max(0, min(100, round($raw)));
+        // When session data is unavailable (alias-filtered), drop the bounce +
+        // engagement weights and renormalize so the score still lives on the
+        // full 0-100 range instead of being artificially capped.
+        $components = [
+            ['score' => $ctrScore,       'weight' => $w['ctr']],
+            ['score' => $momentumScore,  'weight' => $w['momentum']],
+            ['score' => $diversityScore, 'weight' => $w['diversity']],
+            ['score' => $activityScore,  'weight' => $w['activity']],
+        ];
+        if ($sessionsAvailable) {
+            $components[] = ['score' => $bounceScore, 'weight' => $w['bounce']];
+            $components[] = ['score' => $engScore,    'weight' => $w['engagement']];
+        }
+        $wSum = 0;
+        $raw  = 0.0;
+        foreach ($components as $c) {
+            $raw  += $c['score'] * $c['weight'];
+            $wSum += $c['weight'];
+        }
+        if ($wSum <= 0) return 0;
+        $normalized = ($raw / $wSum) * 100.0;
+        return (int) max(0, min(100, round($normalized)));
     }
 
     private static function diversityScore(array $ctx): float
@@ -404,21 +431,17 @@ class LinkPerformanceCoach
             $clicked[$b->block_id] = true;
         }
 
-        $active = BiolinkBlock::where('link_id', $link->id)
-            ->where('is_active', true)
-            ->whereNull('parent_id')
-            ->whereNotIn('type', ['heading', 'heading_gradient', 'heading_logo', 'heading_morph',
-                'paragraph', 'paragraph_rich', 'divider', 'spacer', 'verified_heading', 'verified_avatar',
-                'alert', 'badge', 'avatar'])
-            ->get(['id', 'type']);
+        $inv = $ctx['blockInventory'] ?? [];
+        // `clickable` = active top-level blocks whose type is something a visitor
+        // can actually click (so we don't false-flag headings/dividers/etc.).
+        $clickable = $inv['clickable'] ?? [];
+        if (count($clickable) < $cfg['dead_block_min_active_blocks']) return null;
 
-        if ($active->count() < $cfg['dead_block_min_active_blocks']) return null;
+        $dead = array_values(array_filter($clickable, fn ($id) => !isset($clicked[$id])));
+        if (count($dead) < 1) return null;
+        if (count($dead) < 2 && count($clickable) < 5) return null;
 
-        $dead = $active->filter(fn ($b) => !isset($clicked[$b->id]));
-        if ($dead->count() < 1) return null;
-        if ($dead->count() < 2 && $active->count() < 5) return null;
-
-        $n = $dead->count();
+        $n = count($dead);
         return [
             'severity' => 'warning', 'priority' => 75,
             'icon' => 'fa-ghost',
@@ -521,15 +544,9 @@ class LinkPerformanceCoach
         $link = $ctx['link'];
         if ($link->type !== 'biolink') return null;
 
-        $hasSocials = BiolinkBlock::where('link_id', $link->id)
-            ->where('is_active', true)
-            ->whereIn('type', self::SOCIAL_TYPES)
-            ->exists();
-
-        if ($hasSocials) return null;
-
-        $activeCount = BiolinkBlock::where('link_id', $link->id)->where('is_active', true)->count();
-        if ($activeCount < 2) return null; // not worth nagging an empty page
+        $inv = $ctx['blockInventory'] ?? [];
+        if (!empty($inv['has_socials'])) return null;
+        if ((int) ($inv['active_count'] ?? 0) < 2) return null; // not worth nagging an empty page
 
         return [
             'severity' => 'tip', 'priority' => 35,
@@ -549,7 +566,8 @@ class LinkPerformanceCoach
         if ($link->type !== 'biolink') return null;
         if ((int) ($ctx['totalSessions'] ?? 0) < 20) return null;
 
-        $blockCount = BiolinkBlock::where('link_id', $link->id)->where('is_active', true)->whereNull('parent_id')->count();
+        $inv = $ctx['blockInventory'] ?? [];
+        $blockCount = (int) ($inv['top_level_active_count'] ?? 0);
         $avgSec = (int) ($ctx['avgSessionSeconds'] ?? 0);
         if ($blockCount < $cfg['long_page_block_count']) return null;
         if ($avgSec >= $cfg['long_page_avg_seconds']) return null;
@@ -588,9 +606,8 @@ class LinkPerformanceCoach
         $link = $ctx['link'];
         if ($link->type !== 'biolink') return null;
         // Feature gate: only fire if the link has a QR-code block configured.
-        $hasQr = BiolinkBlock::where('link_id', $link->id)
-            ->where('type', 'qr_code')->where('is_active', true)->exists();
-        if (!$hasQr) return null;
+        $inv = $ctx['blockInventory'] ?? [];
+        if (empty($inv['has_qr'])) return null;
 
         $refs = $ctx['topReferrers'] ?? collect();
         $anyQr = false;
@@ -682,21 +699,11 @@ class LinkPerformanceCoach
 
     private static function editUrl(array $ctx): string
     {
-        /** @var Link $link */
-        $link = $ctx['link'];
-        try {
-            return route('user.links.edit', $link);
-        } catch (\Throwable $e) {
-            return '#';
-        }
+        return route('user.links.edit', $ctx['link']);
     }
 
     private static function pixelsUrl(): string
     {
-        try {
-            return route('user.pixels.index');
-        } catch (\Throwable $e) {
-            return '#';
-        }
+        return route('user.pixels.index');
     }
 }

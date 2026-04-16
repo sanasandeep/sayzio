@@ -413,8 +413,32 @@ class LinkController extends Controller
         }
 
         // ---- Performance Coach: derive score + prioritized insights from
-        // everything we've already computed above (no extra DB round-trips
-        // for click data; the engine may do a couple of cheap block lookups).
+        // everything we've already computed above. The engine itself issues
+        // no DB queries — we pre-aggregate a tiny block-inventory snapshot
+        // here in a single query so rules can reason about the page shape.
+        $blockInventory = ['clickable' => [], 'has_socials' => false, 'has_qr' => false,
+                            'active_count' => 0, 'top_level_active_count' => 0];
+        if ($link->type === 'biolink') {
+            $activeBlocks = \App\Modules\User\Models\BiolinkBlock::where('link_id', $link->id)
+                ->where('is_active', true)
+                ->get(['id', 'type', 'parent_id']);
+            $nonInteractive = ['heading', 'heading_gradient', 'heading_logo', 'heading_morph',
+                'paragraph', 'paragraph_rich', 'divider', 'spacer',
+                'verified_heading', 'verified_avatar', 'alert', 'badge', 'avatar'];
+            $socialTypes = ['socials', 'socials_multi', 'socials_custom'];
+            $blockInventory['active_count'] = $activeBlocks->count();
+            foreach ($activeBlocks as $blk) {
+                if ($blk->parent_id === null) {
+                    $blockInventory['top_level_active_count']++;
+                    if (!in_array($blk->type, $nonInteractive, true)) {
+                        $blockInventory['clickable'][] = $blk->id;
+                    }
+                }
+                if (in_array($blk->type, $socialTypes, true)) $blockInventory['has_socials'] = true;
+                if ($blk->type === 'qr_code')                  $blockInventory['has_qr']      = true;
+            }
+        }
+
         $performance = \App\Modules\User\Services\LinkPerformanceCoach::build([
             'link'               => $link,
             'totalInRange'       => $totalInRange,
@@ -429,6 +453,7 @@ class LinkController extends Controller
             'totalInRangePrev'   => $totalInRangePrev,
             'aliasFilter'        => $aliasFilter,
             'period'             => $period,
+            'blockInventory'     => $blockInventory,
         ]);
 
         return view('user.links.show', compact(
