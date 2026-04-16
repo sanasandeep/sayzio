@@ -6,20 +6,20 @@
 </script>
 <style>
     :root {
-        --bg-body: #0f0f11;
-        --bg-sidebar: #131316;
-        --bg-sidebar-mobile: #131316;
-        --bg-header: #131316;
-        --bg-glass: #1a1a1d;
-        --bg-glass-light: #1f1f23;
-        --bg-glass-hover: #24242a;
-        --bg-glass-input: #1a1a1d;
-        --bg-glass-input-focus: #22222a;
-        --bg-card: #17171a;
-        --bg-card-hover: #1b1b1f;
-        --border-glass: #26262c;
-        --border-glass-light: #2d2d34;
-        --border-subtle: #1f1f24;
+        --bg-body: #0f1014;
+        --bg-sidebar: #131419;
+        --bg-sidebar-mobile: #131419;
+        --bg-header: #131419;
+        --bg-glass: #16171c;
+        --bg-glass-light: #1a1b21;
+        --bg-glass-hover: #1e1f26;
+        --bg-glass-input: #16171c;
+        --bg-glass-input-focus: #1c1d24;
+        --bg-card: #16171c;
+        --bg-card-hover: #1a1b21;
+        --border-glass: #26272e;
+        --border-glass-light: #2d2e36;
+        --border-subtle: #1c1d23;
         --text-primary: #f5f5f7;
         --text-secondary: #d4d4d8;
         --text-muted: #a1a1aa;
@@ -55,20 +55,20 @@
     }
 
     html.light-mode {
-        --bg-body: #f5f5f7;
+        --bg-body: #f9f9f9;
         --bg-sidebar: #ffffff;
         --bg-sidebar-mobile: #ffffff;
         --bg-header: #ffffff;
         --bg-glass: #ffffff;
         --bg-glass-light: #ffffff;
-        --bg-glass-hover: #fafafa;
+        --bg-glass-hover: #f4f4f7;
         --bg-glass-input: #ffffff;
         --bg-glass-input-focus: #ffffff;
         --bg-card: #ffffff;
         --bg-card-hover: #ffffff;
-        --border-glass: #e5e7eb;
-        --border-glass-light: #e5e7eb;
-        --border-subtle: #f1f2f4;
+        --border-glass: #e4e6ef;
+        --border-glass-light: #dbdde5;
+        --border-subtle: #eef0f5;
         --text-primary: #0f172a;
         --text-secondary: #334155;
         --text-muted: #64748b;
@@ -182,36 +182,35 @@
         overflow: hidden;
         background: var(--bg-card);
         border: 1px solid var(--border-glass);
-        border-radius: 0.875rem;
+        border-radius: 0.75rem;
         padding: 1.25rem 1.5rem;
-        transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }
-    .stat-card::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 3px;
-        background: var(--stat-accent, var(--c-primary));
-        transition: none;
-    }
+    .stat-card::before { display: none; }
     .stat-card::after { display: none; }
     .stat-card:hover {
-        box-shadow: 0 4px 12px rgba(0,0,0,0.25);
         border-color: var(--border-glass-light);
     }
     html.light-mode .stat-card:hover {
-        box-shadow: 0 2px 4px rgba(15,23,42,0.04), 0 8px 24px rgba(15,23,42,0.06);
-        border-color: #d4d4d8;
+        border-color: #c9cbd6;
     }
-    /* Multi-color stat card variants */
-    .stat-card.tint-primary  { --stat-accent: var(--c-primary); }
-    .stat-card.tint-success  { --stat-accent: var(--c-success); }
-    .stat-card.tint-info     { --stat-accent: var(--c-info); }
-    .stat-card.tint-warning  { --stat-accent: var(--c-warning); }
-    .stat-card.tint-danger   { --stat-accent: var(--c-danger); }
-    .stat-card.tint-pink     { --stat-accent: var(--c-pink); }
-    .stat-card.tint-indigo   { --stat-accent: var(--c-indigo); }
-    .stat-card.tint-teal     { --stat-accent: var(--c-teal); }
+    /* Multi-color stat card variants — pastel tinted fills, Metronic demo1 style */
+    .stat-card.tint-primary  { background: var(--c-primary-soft); border-color: transparent; }
+    .stat-card.tint-success  { background: var(--c-success-soft); border-color: transparent; }
+    .stat-card.tint-info     { background: var(--c-info-soft);    border-color: transparent; }
+    .stat-card.tint-warning  { background: var(--c-warning-soft); border-color: transparent; }
+    .stat-card.tint-danger   { background: var(--c-danger-soft);  border-color: transparent; }
+    .stat-card.tint-pink     { background: var(--c-pink-soft);    border-color: transparent; }
+    .stat-card.tint-indigo   { background: var(--c-indigo-soft);  border-color: transparent; }
+    .stat-card.tint-teal     { background: var(--c-teal-soft);    border-color: transparent; }
+    .stat-card.tint-primary:hover,
+    .stat-card.tint-success:hover,
+    .stat-card.tint-info:hover,
+    .stat-card.tint-warning:hover,
+    .stat-card.tint-danger:hover,
+    .stat-card.tint-pink:hover,
+    .stat-card.tint-indigo:hover,
+    .stat-card.tint-teal:hover { border-color: transparent; filter: brightness(0.98); }
 
     .sidebar-link {
         display: flex;
@@ -235,20 +234,9 @@
     .sidebar-link.active {
         background: var(--sidebar-active-bg);
         color: var(--sidebar-active-text);
-        border: 1px solid var(--sidebar-active-border);
-        box-shadow: 0 0 20px rgba(27,132,255,0.06);
+        font-weight: 600;
     }
-    .sidebar-link.active::before {
-        content: '';
-        position: absolute;
-        left: -12px;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 3px;
-        height: 20px;
-        background: linear-gradient(180deg, #1b84ff, #3e97ff);
-        border-radius: 0 4px 4px 0;
-    }
+    .sidebar-link.active::before { display: none; }
     .sidebar-link .nav-icon-wrap {
         width: 32px;
         height: 32px;
