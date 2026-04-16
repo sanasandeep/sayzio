@@ -13,6 +13,9 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        // Reference data (idempotent — safely no-ops if already populated).
+        $this->call(CitiesTableSeeder::class);
+
         $superAdminRole = Role::create([
             'name' => 'Super Admin',
             'slug' => 'super-admin',

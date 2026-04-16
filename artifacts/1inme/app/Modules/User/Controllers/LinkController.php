@@ -396,82 +396,52 @@ class LinkController extends Controller
             ->whereNotNull('longitude')
             ->count();
 
-        // Cross-DB compatible aggregation: stream points via chunkById and
-        // bucket them in PHP to ~0.1° (~11km) cells. Avoids DB-engine specific
-        // SQL like `::numeric` casts or `mode() within group`.
-        $buckets = []; // key "lat:lng" => ['lat'=>, 'lng'=>, 'weight'=>, 'cities'=>[name=>n], 'countries'=>[cc=>n]]
-        $rowsScanned = 0;
-        $maxRowsScanned = 200000; // hard guard against pathological queries
-        $bucketKeyOf = function (float $lat, float $lng): string {
-            // Round to 1 decimal place via integer math for portability.
-            $rl = round($lat * 10) / 10;
-            $rg = round($lng * 10) / 10;
-            return number_format($rl, 1, '.', '') . ':' . number_format($rg, 1, '.', '');
-        };
-
-        $link->clicks()
+        // Cross-DB compatible aggregation: GROUP BY exact (latitude,
+        // longitude) at the SQL layer so the database engine does the heavy
+        // lifting (works on Postgres, MySQL, SQLite — all support GROUP BY on
+        // numeric columns and COUNT/MAX). For each unique coordinate we also
+        // pick a representative city/country label via MAX() — sufficient
+        // because rows for the same coordinate practically share the same
+        // city/country (coords come from the same offline cities DB or the
+        // same GeoIP response).
+        //
+        // Capped at 5000 *points* (not rows) to keep the response bounded;
+        // the cap is by ORDER BY count desc so we always return the busiest
+        // hotspots first. Total click count is computed separately and is
+        // never truncated.
+        $rows = $link->clicks()
             ->whereBetween('clicked_at', [$startDate, $endDate])
             ->whereNotNull('latitude')->whereNotNull('longitude')
-            ->select('id', 'latitude', 'longitude', 'city', 'country_code')
-            ->orderBy('id')
-            ->chunkById(2000, function ($rows) use (&$buckets, &$rowsScanned, $maxRowsScanned, $bucketKeyOf) {
-                foreach ($rows as $r) {
-                    $lat = (float) $r->latitude;
-                    $lng = (float) $r->longitude;
-                    $k = $bucketKeyOf($lat, $lng);
-                    if (!isset($buckets[$k])) {
-                        $buckets[$k] = [
-                            'lat' => round($lat * 10) / 10,
-                            'lng' => round($lng * 10) / 10,
-                            'weight' => 0,
-                            'cities' => [],
-                            'countries' => [],
-                        ];
-                    }
-                    $buckets[$k]['weight']++;
-                    if ($r->city) {
-                        $buckets[$k]['cities'][$r->city] = ($buckets[$k]['cities'][$r->city] ?? 0) + 1;
-                    }
-                    if ($r->country_code) {
-                        $buckets[$k]['countries'][$r->country_code] = ($buckets[$k]['countries'][$r->country_code] ?? 0) + 1;
-                    }
-                    if (++$rowsScanned >= $maxRowsScanned) return false;
-                }
-                return true;
-            });
-
-        // Sort by weight desc and cap at 2000 buckets.
-        usort($buckets, fn($a, $b) => $b['weight'] <=> $a['weight']);
-        $buckets = array_slice($buckets, 0, 2000);
+            ->select('latitude', 'longitude')
+            ->selectRaw('count(*) as click_count')
+            ->selectRaw('max(city) as city')
+            ->selectRaw('max(country_code) as country_code')
+            ->groupBy('latitude', 'longitude')
+            ->orderByDesc('click_count')
+            ->limit(5000)
+            ->get();
 
         $features = [];
         $maxWeight = 0;
         $shownClicks = 0;
-        foreach ($buckets as $b) {
-            $w = (int) $b['weight'];
-            $shownClicks += $w;
-            if ($w > $maxWeight) $maxWeight = $w;
-
-            // Most frequent label per bucket
-            $city = null; $cityCount = -1;
-            foreach ($b['cities'] as $name => $n) {
-                if ($n > $cityCount) { $city = $name; $cityCount = $n; }
-            }
-            $country = null; $ccCount = -1;
-            foreach ($b['countries'] as $cc => $n) {
-                if ($n > $ccCount) { $country = $cc; $ccCount = $n; }
-            }
-
+        foreach ($rows as $r) {
+            $count = (int) $r->click_count;
+            $shownClicks += $count;
+            if ($count > $maxWeight) $maxWeight = $count;
             $features[] = [
                 'type' => 'Feature',
                 'geometry' => [
                     'type' => 'Point',
-                    'coordinates' => [(float) $b['lng'], (float) $b['lat']],
+                    'coordinates' => [(float) $r->longitude, (float) $r->latitude],
                 ],
                 'properties' => [
-                    'weight'  => $w,
-                    'city'    => $city,
-                    'country' => $country,
+                    'lat'          => (float) $r->latitude,
+                    'lng'          => (float) $r->longitude,
+                    'count'        => $count,
+                    'weight'       => $count, // alias for the heat layer
+                    'city'         => $r->city,
+                    'country_code' => $r->country_code,
+                    'country'      => $r->country_code, // popup alias
                 ],
             ];
         }

@@ -1038,8 +1038,9 @@
         });
     }
 
-    function switchStyle(s) {
+    function switchStyle(s, fromUser) {
         if (!map || s === currentStyle) return;
+        if (fromUser) userPickedStyle = true;
         currentStyle = s;
         setActiveStyleBtn();
         map.setStyle(STYLES[s]);
@@ -1048,12 +1049,29 @@
         });
     }
 
+    // Reactively follow the app's theme toggle: when the user flips
+    // light/dark mode at the document level, swap the basemap to match
+    // (only if the user hasn't manually picked a specific style).
+    let userPickedStyle = false;
+    function syncMapToAppTheme() {
+        if (userPickedStyle || !map) return;
+        const wantLight = document.documentElement.classList.contains('light-mode');
+        const target = wantLight ? 'light' : 'dark';
+        if (target !== currentStyle) switchStyle(target, /*fromUser*/ false);
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
+        // Default basemap follows the current app theme on first load.
+        currentStyle = document.documentElement.classList.contains('light-mode') ? 'light' : 'dark';
         setActiveStyleBtn();
         document.querySelectorAll('.heatmap-style-btn').forEach(btn => {
-            btn.addEventListener('click', () => switchStyle(btn.dataset.style));
+            btn.addEventListener('click', () => switchStyle(btn.dataset.style, /*fromUser*/ true));
         });
         buildMap();
+
+        // Observe class changes on <html> so theme toggles propagate live.
+        const obs = new MutationObserver(syncMapToAppTheme);
+        obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
     });
 })();
 </script>
