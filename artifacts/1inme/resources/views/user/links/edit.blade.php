@@ -31,11 +31,70 @@
             <h2 class="text-lg font-semibold text-white mb-4">Link Details</h2>
 
             <div class="mb-4">
-                <label class="block text-sm font-medium text-white/60 mb-1">Short URL</label>
+                <label class="block text-sm font-medium text-white/60 mb-1">Short URL <span class="text-[10px] text-white/30">(primary alias)</span></label>
                 <div class="flex items-center gap-2 text-sm text-purple-400 bg-purple-500/10 px-3 py-2.5 rounded-xl">
                     <span>{{ $link->getShortUrl() }}</span>
                     <span class="text-xs text-white/40 bg-white/10 px-2 py-0.5 rounded uppercase">{{ $link->type }}</span>
                 </div>
+            </div>
+
+            @php
+                $maxExtras = auth()->user()->getMaxAliasesPerLink();
+                $extras = $link->aliases()->orderBy('created_at')->get();
+                $usedExtras = $extras->count();
+                $canAddMore = $maxExtras === -1 || $usedExtras < $maxExtras;
+                $base = rtrim(config('app.url', url('/')), '/');
+            @endphp
+            <div class="mb-6 p-4 bg-white/5 border border-white/10 rounded-xl">
+                <div class="flex items-center justify-between mb-2">
+                    <div>
+                        <h3 class="text-sm font-semibold text-white/80">Alternative URLs (aliases)</h3>
+                        <p class="text-xs text-white/40 mt-0.5">All aliases serve the same page — no redirect. Useful for campaign-specific links.</p>
+                    </div>
+                    <span class="text-[11px] px-2 py-0.5 rounded-full bg-white/10 text-white/60">
+                        @if($maxExtras === -1) Unlimited
+                        @else {{ $usedExtras }} / {{ $maxExtras }}
+                        @endif
+                    </span>
+                </div>
+
+                @if($maxExtras === 0)
+                    <p class="text-xs text-amber-400/80 mt-2"><i class="fas fa-lock mr-1"></i> Your current plan does not include additional aliases. Upgrade your plan to unlock this feature.</p>
+                @else
+                    @if($extras->isNotEmpty())
+                        <ul class="divide-y divide-white/5 mb-3">
+                            @foreach($extras as $a)
+                                <li class="flex items-center justify-between py-2">
+                                    <a href="{{ $base }}/{{ $a->alias }}" target="_blank" class="text-sm text-purple-300 hover:underline truncate">{{ $base }}/{{ $a->alias }}</a>
+                                    <div class="flex items-center gap-2 ml-3">
+                                        <form method="POST" action="{{ route('user.links.aliases.promote', [$link, $a]) }}" class="inline" onsubmit="return confirm('Make this the primary alias? The current primary will become an alternative.')">
+                                            @csrf
+                                            <button type="submit" class="text-xs text-white/50 hover:text-white px-2 py-1 rounded hover:bg-white/10" title="Make this the primary alias"><i class="fas fa-star"></i></button>
+                                        </form>
+                                        <form method="POST" action="{{ route('user.links.aliases.destroy', [$link, $a]) }}" class="inline" onsubmit="return confirm('Delete this alias? Anyone visiting it will get a 404.')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="text-xs text-red-400/70 hover:text-red-400 px-2 py-1 rounded hover:bg-red-500/10"><i class="fas fa-trash"></i></button>
+                                        </form>
+                                    </div>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
+
+                    @if($canAddMore)
+                        <form method="POST" action="{{ route('user.links.aliases.store', $link) }}" class="flex items-center gap-2">
+                            @csrf
+                            <span class="text-xs text-white/40 whitespace-nowrap">{{ $base }}/</span>
+                            <input type="text" name="alias" required minlength="3" maxlength="60" pattern="[a-zA-Z0-9_-]+"
+                                   placeholder="my-campaign" class="flex-1 border border-white/10 rounded-lg px-3 py-2 text-sm bg-white/5 text-white focus:ring-2 focus:ring-purple-500/40">
+                            <button type="submit" class="px-3 py-2 text-sm bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 rounded-lg whitespace-nowrap"><i class="fas fa-plus mr-1"></i>Add</button>
+                        </form>
+                        @error('alias') <p class="text-red-400 text-xs mt-1">{{ $message }}</p> @enderror
+                    @else
+                        <p class="text-xs text-white/40 mt-2"><i class="fas fa-info-circle mr-1"></i> You've reached your plan's alias limit. Upgrade for more.</p>
+                    @endif
+                @endif
             </div>
 
             @if($link->type === 'url')

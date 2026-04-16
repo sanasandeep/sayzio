@@ -19,7 +19,13 @@ class RedirectController extends Controller
 
     public function handle(Request $request, string $alias)
     {
-        $link = Link::with('pixels')->where('alias', $alias)->firstOrFail();
+        // Resolve to the link via primary alias OR any of its additional aliases.
+        $link = Link::resolveByAlias($alias);
+        if (!$link) abort(404);
+        $link->load('pixels');
+        // Stash the alias the visitor actually used so views and tracking can
+        // distinguish e.g. "/john" vs "/john-instagram" hits on the SAME page.
+        $link->setAttribute('_used_alias', $alias);
 
         if (!$link->isAccessible()) {
             abort(410, 'This link is no longer available.');
@@ -67,7 +73,7 @@ class RedirectController extends Controller
             session(["link_unlocked_{$link->id}" => true]);
         }
 
-        $this->trackingService->track($link, $request);
+        $this->trackingService->track($link, $request, $alias);
 
         return match ($link->type) {
             'url' => redirect()->away($link->getDestinationUrl(), $link->redirect_type ?: 301),
@@ -98,7 +104,8 @@ class RedirectController extends Controller
 
     public function manifest(Request $request, string $alias)
     {
-        $link = Link::where('alias', $alias)->where('type', 'biolink')->firstOrFail();
+        $link = Link::resolveByAlias($alias);
+        if (!$link || $link->type !== 'biolink') abort(404);
 
         if (!$link->isAccessible()) {
             abort(404);
@@ -146,7 +153,8 @@ class RedirectController extends Controller
 
     public function rawFileDownload(Request $request, string $alias)
     {
-        $link = Link::where('alias', $alias)->where('type', 'file')->firstOrFail();
+        $link = Link::resolveByAlias($alias);
+        if (!$link || $link->type !== 'file') abort(404);
 
         if (!$link->isAccessible()) {
             abort(410, 'This link is no longer available.');
@@ -212,7 +220,8 @@ class RedirectController extends Controller
 
     public function handleBlockClick(Request $request, string $alias, int $blockId)
     {
-        $link = Link::where('alias', $alias)->where('type', 'biolink')->firstOrFail();
+        $link = Link::resolveByAlias($alias);
+        if (!$link || $link->type !== 'biolink') abort(404);
 
         if (!$link->isAccessible()) {
             abort(410, 'This link is no longer available.');
@@ -245,7 +254,7 @@ class RedirectController extends Controller
             $destinationUrl .= $separator . http_build_query($utmParams);
         }
 
-        $this->trackingService->trackBlockClick($link, $block, $destinationUrl, $request);
+        $this->trackingService->trackBlockClick($link, $block, $destinationUrl, $request, $alias);
 
         return redirect()->away($destinationUrl, 302);
     }
@@ -281,7 +290,8 @@ class RedirectController extends Controller
 
     public function subscribe(Request $request, string $alias)
     {
-        $link = Link::where('alias', $alias)->firstOrFail();
+        $link = Link::resolveByAlias($alias);
+        if (!$link) abort(404);
 
         $data = $request->validate([
             'block_id' => 'required|integer',

@@ -143,8 +143,27 @@ class LinkController extends Controller
 
         [$startDate, $endDate, $period, $groupBy] = $this->resolveAnalyticsRange($request);
 
+        // Optional per-alias filter — narrow analytics to clicks that came in
+        // through a specific alias (e.g. "?alias=summer-promo").
+        $aliasFilter = $request->query('alias');
+        $availableAliases = $link->getAllAliases();
+        if ($aliasFilter && !in_array($aliasFilter, $availableAliases, true)) {
+            $aliasFilter = null;
+        }
+
+        // Per-alias breakdown (counts BEFORE applying alias filter so the user can
+        // see all aliases and switch between them).
+        $aliasBreakdown = $link->clicks()
+            ->whereBetween('clicked_at', [$startDate, $endDate])
+            ->whereNotNull('alias')
+            ->selectRaw('alias, COUNT(*) as total')
+            ->groupBy('alias')
+            ->orderByDesc('total')
+            ->get();
+
         $clicksQuery = $link->clicks()
-            ->whereBetween('clicked_at', [$startDate, $endDate]);
+            ->whereBetween('clicked_at', [$startDate, $endDate])
+            ->when($aliasFilter, fn ($q) => $q->where('alias', $aliasFilter));
 
         $totalInRange = (clone $clicksQuery)->count();
         $uniqueInRange = (clone $clicksQuery)->distinct('ip_address')->count('ip_address');
@@ -207,7 +226,10 @@ class LinkController extends Controller
         $prevEndDate   = (clone $startDate);
         $prevStartDate = (clone $startDate)->subSeconds($rangeSeconds);
         $prevClicksQuery = $link->clicks()
-            ->whereBetween('clicked_at', [$prevStartDate, $prevEndDate]);
+            ->whereBetween('clicked_at', [$prevStartDate, $prevEndDate])
+            // Mirror the alias filter onto the previous-period query so vs-prev
+            // deltas (KPI tiles, per-platform comparisons) are apples-to-apples.
+            ->when($aliasFilter, fn ($q) => $q->where('alias', $aliasFilter));
 
         $blockClicksInRangePrev   = (clone $prevClicksQuery)->whereNotNull('block_id')->count();
         $uniqueBlockClicksInRange = (clone $clicksQuery)->whereNotNull('block_id')->distinct('ip_address')->count('ip_address');
@@ -397,7 +419,8 @@ class LinkController extends Controller
             'totalSessions', 'avgSessionSeconds', 'totalEngagedSeconds',
             'bounceRate', 'blockEngagement', 'blockClickMap', 'blockMeta',
             'blockStatsPrev', 'blockStatsPrevByDest', 'blockClicksInRangePrev',
-            'uniqueBlockClicksInRange', 'uniqueBlockClicksPrev'
+            'uniqueBlockClicksInRange', 'uniqueBlockClicksPrev',
+            'aliasBreakdown', 'aliasFilter', 'availableAliases'
         ));
     }
 
@@ -726,11 +749,29 @@ class LinkController extends Controller
                 'max:60',
                 'regex:/^[a-zA-Z0-9_-]+$/',
                 'unique:links,alias,' . $link->id,
+                // Aliases must be globally unique across BOTH tables — also
+                // reject if the value is already used as an extra alias on
+                // any other link (an extra owned by THIS link is fine; we'll
+                // demote it implicitly below).
+                function ($attr, $value, $fail) use ($link) {
+                    $exists = \App\Modules\User\Models\LinkAlias::where('alias', $value)
+                        ->where('link_id', '!=', $link->id)
+                        ->exists();
+                    if ($exists) $fail('This alias is already taken. Please choose another.');
+                },
             ],
         ], [
             'alias.regex' => 'Only letters, numbers, hyphens and underscores are allowed.',
             'alias.unique' => 'This alias is already taken. Please choose another.',
         ]);
+
+        // If the new primary value is currently an EXTRA alias on this same
+        // link, free that row first so the unique constraint on link_aliases
+        // is not violated when we later demote (handled by promote() flow);
+        // here we simply delete the dup since it's about to live on links.alias.
+        \App\Modules\User\Models\LinkAlias::where('link_id', $link->id)
+            ->where('alias', $validated['alias'])
+            ->delete();
 
         $link->update(['alias' => $validated['alias']]);
 

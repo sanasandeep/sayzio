@@ -11,7 +11,10 @@ class PublicQrController extends Controller
 {
     public function forLink(Request $request, string $alias)
     {
-        $link = Link::where('alias', $alias)->where('is_active', true)->firstOrFail();
+        // Resolve via primary or additional alias; QR codes for any alias should
+        // point to the same underlying link.
+        $link = Link::resolveByAlias($alias);
+        if (!$link || !$link->is_active) abort(404);
 
         if (!$link->isAccessible()) {
             abort(404);

@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 
 class LinkTrackingService
 {
-    public function track(Link $link, Request $request): LinkClick
+    public function track(Link $link, Request $request, ?string $usedAlias = null): LinkClick
     {
         $userAgent = $request->userAgent();
 
@@ -18,6 +18,7 @@ class LinkTrackingService
 
         $click = LinkClick::create([
             'link_id' => $link->id,
+            'alias' => $usedAlias ?: $link->alias,
             'ip_address' => $request->ip(),
             'browser' => $this->detectBrowser($userAgent),
             'os' => $this->detectOS($userAgent),
@@ -104,7 +105,7 @@ class LinkTrackingService
         return substr($lang, 0, 2);
     }
 
-    public function trackBlockClick(Link $link, BiolinkBlock $block, string $destinationUrl, Request $request): LinkClick
+    public function trackBlockClick(Link $link, BiolinkBlock $block, string $destinationUrl, Request $request, ?string $usedAlias = null): LinkClick
     {
         $userAgent = $request->userAgent();
         $geoService = app(GeoIpService::class);
@@ -112,6 +113,7 @@ class LinkTrackingService
 
         $click = LinkClick::create([
             'link_id' => $link->id,
+            'alias' => $usedAlias ?: $link->alias,
             'block_id' => $block->id,
             'block_type' => $block->type,
             'destination_url' => substr($destinationUrl, 0, 2048),

@@ -77,6 +77,44 @@ class Link extends Model
         return $this->hasMany(BiolinkBlock::class)->orderBy('sort_order');
     }
 
+    /**
+     * Additional aliases (alternative URL slugs) that all serve THIS biolink page
+     * with no redirect. The base `links.alias` column is the "primary" alias and
+     * is NOT stored in this table — it lives on the link row itself for backward
+     * compatibility with all existing queries.
+     */
+    public function aliases()
+    {
+        return $this->hasMany(LinkAlias::class);
+    }
+
+    /**
+     * Returns every alias (primary + extras) as a flat array of strings.
+     */
+    public function getAllAliases(): array
+    {
+        $primary = $this->alias ? [$this->alias] : [];
+        $extras  = $this->relationLoaded('aliases')
+            ? $this->aliases->pluck('alias')->all()
+            : $this->aliases()->pluck('alias')->all();
+        return array_values(array_unique(array_merge($primary, $extras)));
+    }
+
+    /**
+     * Resolve a public-facing alias to its Link row. Checks the primary alias
+     * first (fast path — covers 100% of pre-existing links and the most common
+     * case), then falls back to the link_aliases table for additional aliases.
+     * Returns null if no link matches.
+     */
+    public static function resolveByAlias(string $alias): ?self
+    {
+        $link = static::where('alias', $alias)->first();
+        if ($link) return $link;
+
+        $extra = LinkAlias::where('alias', $alias)->first();
+        return $extra ? static::find($extra->link_id) : null;
+    }
+
     public function activeBiolinkBlocks()
     {
         return $this->hasMany(BiolinkBlock::class)

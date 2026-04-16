@@ -103,4 +103,14 @@ class User extends Authenticatable
         if (!$this->plan || !$this->plan->features) return $default;
         return $this->plan->features[$key] ?? $default;
     }
+
+    /**
+     * Maximum number of additional aliases per biolink for this user.
+     * The primary alias does NOT count toward the limit (it's free with the link).
+     * `-1` means unlimited.
+     */
+    public function getMaxAliasesPerLink(): int
+    {
+        return (int) $this->getPlanFeature('max_aliases_per_link', 0);
+    }
 }

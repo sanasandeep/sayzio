@@ -455,6 +455,24 @@
     </div>
 </div>
 
+@if(count($availableAliases ?? []) > 1)
+{{-- ===================== ALIAS FILTER ===================== --}}
+<div class="glass rounded-2xl px-4 py-3 mb-3 flex flex-wrap items-center gap-2">
+    <span class="text-[10px] uppercase tracking-wider font-bold mr-1" style="color: var(--text-faint);"><i class="fas fa-link text-purple-400"></i> Alias</span>
+    <a href="{{ $buildUrl(['alias' => null]) }}" class="pill {{ empty($aliasFilter) ? 'pill-active' : '' }}">All</a>
+    @foreach($availableAliases as $al)
+        @php $isPrimary = ($al === $link->alias); $count = optional($aliasBreakdown->firstWhere('alias', $al))->total ?? 0; @endphp
+        <a href="{{ $buildUrl(['alias' => $al]) }}" class="pill {{ ($aliasFilter === $al) ? 'pill-active' : '' }}" title="{{ $isPrimary ? 'Primary alias' : 'Alternative alias' }}">
+            @if($isPrimary)<i class="fas fa-star text-[8px] mr-1 text-yellow-400"></i>@endif
+            /{{ $al }} <span class="ml-1 opacity-60">({{ number_format($count) }})</span>
+        </a>
+    @endforeach
+    @if($aliasFilter)
+        <span class="ml-auto text-[11px]" style="color: var(--text-faint);"><i class="fas fa-filter mr-1"></i>Showing only clicks via <code>/{{ $aliasFilter }}</code></span>
+    @endif
+</div>
+@endif
+
 {{-- ===================== PRIMARY KPIs (3 hero numbers) ===================== --}}
 <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
     <div class="kpi-hero">

@@ -14,7 +14,8 @@ class EngagementController extends Controller
 {
     public function startSession(Request $request, string $alias)
     {
-        $link = Link::where('alias', $alias)->firstOrFail();
+        $link = Link::resolveByAlias($alias);
+        if (!$link) abort(404);
         $sessionId = (string) Str::uuid();
 
         $ua = $request->userAgent();
@@ -54,7 +55,8 @@ class EngagementController extends Controller
             'block_views.*.impression_count' => 'nullable|integer|min:0',
         ]);
 
-        $link = Link::where('alias', $alias)->firstOrFail();
+        $link = Link::resolveByAlias($alias);
+        if (!$link) abort(404);
 
         $session = PageSession::where('session_id', $data['session_id'])
             ->where('link_id', $link->id)->first();

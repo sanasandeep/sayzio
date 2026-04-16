@@ -59,6 +59,11 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('links/{link}/toggle-active', [LinkController::class, 'toggleActive'])->name('links.toggle-active');
         Route::put('links/{link}/alias', [LinkController::class, 'updateAlias'])->name('links.update-alias');
 
+        // Additional (alternative) aliases per link — same page served, no redirect.
+        Route::post('links/{link}/aliases', [\App\Modules\User\Controllers\LinkAliasController::class, 'store'])->name('links.aliases.store');
+        Route::delete('links/{link}/aliases/{alias}', [\App\Modules\User\Controllers\LinkAliasController::class, 'destroy'])->name('links.aliases.destroy');
+        Route::post('links/{link}/aliases/{alias}/promote', [\App\Modules\User\Controllers\LinkAliasController::class, 'promote'])->name('links.aliases.promote');
+
         Route::get('links-file/create', [FileLinkController::class, 'create'])->name('links.file.create');
         Route::post('links-file', [FileLinkController::class, 'store'])->middleware(CheckPlanLimit::class . ':links')->name('links.file.store');
         Route::get('links-ics/create', [IcsLinkController::class, 'create'])->name('links.ics.create');
