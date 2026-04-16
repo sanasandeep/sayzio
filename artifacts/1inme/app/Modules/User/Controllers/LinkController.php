@@ -223,7 +223,9 @@ class LinkController extends Controller
 
         // ---- Previous-period comparison (same span ending immediately before $startDate) ----
         $rangeSeconds  = max(1, $endDate->diffInSeconds($startDate));
-        $prevEndDate   = (clone $startDate);
+        // Previous-period end is *exclusive* of the current-period start so a
+        // click occurring exactly at $startDate is counted once, not twice.
+        $prevEndDate   = (clone $startDate)->subSecond();
         $prevStartDate = (clone $startDate)->subSeconds($rangeSeconds);
         $prevClicksQuery = $link->clicks()
             ->whereBetween('clicked_at', [$prevStartDate, $prevEndDate])
@@ -231,6 +233,7 @@ class LinkController extends Controller
             // deltas (KPI tiles, per-platform comparisons) are apples-to-apples.
             ->when($aliasFilter, fn ($q) => $q->where('alias', $aliasFilter));
 
+        $totalInRangePrev         = (clone $prevClicksQuery)->count();
         $blockClicksInRangePrev   = (clone $prevClicksQuery)->whereNotNull('block_id')->count();
         $uniqueBlockClicksInRange = (clone $clicksQuery)->whereNotNull('block_id')->distinct('ip_address')->count('ip_address');
         $uniqueBlockClicksPrev    = (clone $prevClicksQuery)->whereNotNull('block_id')->distinct('ip_address')->count('ip_address');
@@ -409,6 +412,25 @@ class LinkController extends Controller
             }
         }
 
+        // ---- Performance Coach: derive score + prioritized insights from
+        // everything we've already computed above (no extra DB round-trips
+        // for click data; the engine may do a couple of cheap block lookups).
+        $performance = \App\Modules\User\Services\LinkPerformanceCoach::build([
+            'link'               => $link,
+            'totalInRange'       => $totalInRange,
+            'uniqueInRange'      => $uniqueInRange,
+            'blockClicksInRange' => $blockClicksInRange,
+            'pageVisitsInRange'  => $pageVisitsInRange,
+            'totalSessions'      => $totalSessions,
+            'avgSessionSeconds'  => $avgSessionSeconds,
+            'bounceRate'         => $bounceRate,
+            'blockStats'         => $blockStats,
+            'topReferrers'       => $topReferrers,
+            'totalInRangePrev'   => $totalInRangePrev,
+            'aliasFilter'        => $aliasFilter,
+            'period'             => $period,
+        ]);
+
         return view('user.links.show', compact(
             'link', 'clicksOverTime', 'topReferrers',
             'browserStats', 'osStats', 'countryStats', 'cityStats',
@@ -419,8 +441,10 @@ class LinkController extends Controller
             'totalSessions', 'avgSessionSeconds', 'totalEngagedSeconds',
             'bounceRate', 'blockEngagement', 'blockClickMap', 'blockMeta',
             'blockStatsPrev', 'blockStatsPrevByDest', 'blockClicksInRangePrev',
+            'totalInRangePrev',
             'uniqueBlockClicksInRange', 'uniqueBlockClicksPrev',
-            'aliasBreakdown', 'aliasFilter', 'availableAliases'
+            'aliasBreakdown', 'aliasFilter', 'availableAliases',
+            'performance'
         ));
     }
 

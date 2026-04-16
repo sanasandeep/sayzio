@@ -525,6 +525,8 @@
     </div>
 </div>
 
+@include('user.links.partials.performance-coach')
+
 {{-- ===================== SECONDARY METRICS (compact strip) ===================== --}}
 <div class="kpi-strip mb-6">
     <div class="kpi-cell">
