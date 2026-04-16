@@ -452,10 +452,11 @@ class LinkController extends Controller
         $performanceHistory = \App\Modules\User\Models\LinkPerformanceSnapshot::where('link_id', $link->id)
             ->where('date', '>=', now()->subDays(30)->toDateString())
             ->orderBy('date')
-            ->get(['date', 'score'])
+            ->get(['date', 'score', 'components_json'])
             ->map(fn ($r) => [
-                'date'  => $r->date instanceof \Carbon\Carbon ? $r->date->toDateString() : (string) $r->date,
-                'score' => (int) $r->score,
+                'date'       => $r->date instanceof \Carbon\Carbon ? $r->date->toDateString() : (string) $r->date,
+                'score'      => (int) $r->score,
+                'components' => is_array($r->components_json) ? $r->components_json : null,
             ])
             ->values()
             ->all();

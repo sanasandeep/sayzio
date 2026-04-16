@@ -46,6 +46,37 @@
         $last  = (int) ($history[count($history) - 1]['score'] ?? 0);
         $sparkDelta = $last - $first;
     }
+
+    // Component breakdown for the most recent snapshot — tells users *why*
+    // their score sits where it does. Components are normalized 0-1 values
+    // written by `coach:snapshot-scores` into `components_json`.
+    $latestComponents = null;
+    if (is_array($history) && count($history) > 0) {
+        $lastRow = $history[count($history) - 1];
+        if (!empty($lastRow['components']) && is_array($lastRow['components'])) {
+            $latestComponents = $lastRow['components'];
+        }
+    }
+    $componentMeta = [
+        'ctr'        => ['label' => 'CTR',        'color' => '#60a5fa'],
+        'bounce'     => ['label' => 'Bounce',     'color' => '#f472b6'],
+        'engagement' => ['label' => 'Engagement', 'color' => '#a78bfa'],
+        'momentum'   => ['label' => 'Momentum',   'color' => '#34d399'],
+        'diversity'  => ['label' => 'Diversity',  'color' => '#fbbf24'],
+        'activity'   => ['label' => 'Activity',   'color' => '#f87171'],
+    ];
+    $weakestKey = null;
+    $weakestVal = null;
+    if ($latestComponents) {
+        foreach ($componentMeta as $k => $_m) {
+            if (!array_key_exists($k, $latestComponents)) continue;
+            $v = (float) $latestComponents[$k];
+            if ($weakestVal === null || $v < $weakestVal) {
+                $weakestVal = $v;
+                $weakestKey = $k;
+            }
+        }
+    }
 @endphp
 
 <div class="glass rounded-2xl p-4 md:p-5 mb-3 perf-coach"
@@ -148,6 +179,39 @@
                             <span style="color: var(--text-faint); font-weight: 500;">· {{ count($history) }}d</span>
                         </span>
                     </div>
+                @endif
+                @if($latestComponents)
+                    @php
+                        $weakestLabel = $weakestKey ? $componentMeta[$weakestKey]['label'] : null;
+                        $weakestPct   = $weakestVal !== null ? (int) round($weakestVal * 100) : null;
+                    @endphp
+                    <div class="pc-breakdown mt-2" aria-label="Score factor breakdown">
+                        @foreach($componentMeta as $key => $meta)
+                            @php
+                                $val = isset($latestComponents[$key]) ? max(0.0, min(1.0, (float) $latestComponents[$key])) : null;
+                                $pct = $val === null ? 0 : (int) round($val * 100);
+                                $isWeakest = $key === $weakestKey;
+                                $title = $meta['label'] . ': ' . ($val === null ? 'n/a' : $pct . '%')
+                                       . ($isWeakest ? ' — weakest factor' : '');
+                            @endphp
+                            <div class="pc-bd-col {{ $isWeakest ? 'pc-bd-weak' : '' }}"
+                                 title="{{ $title }}" aria-label="{{ $title }}">
+                                <div class="pc-bd-track">
+                                    <div class="pc-bd-fill"
+                                         style="height: {{ $pct }}%; background: {{ $meta['color'] }};
+                                                box-shadow: 0 0 6px -1px {{ $meta['color'] }};"></div>
+                                </div>
+                                <div class="pc-bd-label">{{ strtoupper(substr($meta['label'], 0, 3)) }}</div>
+                            </div>
+                        @endforeach
+                    </div>
+                    @if($weakestLabel !== null && $weakestPct !== null)
+                        <div class="pc-bd-caption" style="color: var(--text-faint);">
+                            <i class="fas fa-arrow-down-wide-short text-[9px] mr-1" style="color:#fca5a5;"></i>
+                            Weakest: <span style="color: var(--text-primary); font-weight: 600;">{{ $weakestLabel }}</span>
+                            <span style="color: var(--text-faint);">· {{ $weakestPct }}%</span>
+                        </div>
+                    @endif
                 @endif
                 <div class="mt-2">
                     @if($deltaUp)
@@ -365,6 +429,42 @@
     .perf-coach .pc-spark-label {
         font-size: 10px; font-weight: 700; letter-spacing: .04em;
         text-transform: uppercase; white-space: nowrap;
+    }
+    .perf-coach .pc-breakdown {
+        display: flex; align-items: flex-end; gap: 4px;
+        padding: 4px 2px 2px;
+    }
+    .perf-coach .pc-bd-col {
+        flex: 1 1 0; min-width: 0;
+        display: flex; flex-direction: column; align-items: center; gap: 3px;
+        cursor: help;
+    }
+    .perf-coach .pc-bd-track {
+        width: 100%; height: 28px;
+        background: rgba(148,163,184,0.12);
+        border-radius: 3px; overflow: hidden;
+        display: flex; align-items: flex-end;
+        position: relative;
+    }
+    .perf-coach .pc-bd-fill {
+        width: 100%; min-height: 2px;
+        border-radius: 3px;
+        transition: height .3s ease;
+    }
+    .perf-coach .pc-bd-label {
+        font-size: 8.5px; font-weight: 700; letter-spacing: .05em;
+        color: var(--text-faint);
+    }
+    .perf-coach .pc-bd-weak .pc-bd-track {
+        outline: 1px solid rgba(252,165,165,0.55);
+        outline-offset: 1px;
+    }
+    .perf-coach .pc-bd-weak .pc-bd-label {
+        color: #fca5a5;
+    }
+    .perf-coach .pc-bd-caption {
+        margin-top: 4px;
+        font-size: 10px; letter-spacing: .02em;
     }
     @media (max-width: 1024px) {
         .perf-coach .pc-insight-cta { display: none; }
