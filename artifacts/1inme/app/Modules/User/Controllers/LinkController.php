@@ -141,54 +141,142 @@ class LinkController extends Controller
 
         $link->load(['project', 'domain', 'pixels']);
 
-        $clicksOverTime = $link->clicks()
-            ->selectRaw("DATE(clicked_at) as date, COUNT(*) as count")
-            ->where('clicked_at', '>=', now()->subDays(30))
-            ->groupByRaw('DATE(clicked_at)')
-            ->orderBy('date')
+        [$startDate, $endDate, $period, $groupBy] = $this->resolveAnalyticsRange($request);
+
+        $clicksQuery = $link->clicks()
+            ->whereBetween('clicked_at', [$startDate, $endDate]);
+
+        $totalInRange = (clone $clicksQuery)->count();
+        $uniqueInRange = (clone $clicksQuery)->distinct('ip_address')->count('ip_address');
+        $blockClicksInRange = (clone $clicksQuery)->whereNotNull('block_id')->count();
+        $pageVisitsInRange = (clone $clicksQuery)->whereNull('block_id')->count();
+
+        $dateExpr = match ($groupBy) {
+            'week' => "TO_CHAR(DATE_TRUNC('week', clicked_at), 'YYYY-MM-DD')",
+            'month' => "TO_CHAR(DATE_TRUNC('month', clicked_at), 'YYYY-MM')",
+            'year' => "TO_CHAR(DATE_TRUNC('year', clicked_at), 'YYYY')",
+            default => "TO_CHAR(DATE_TRUNC('day', clicked_at), 'YYYY-MM-DD')",
+        };
+
+        $clicksOverTime = (clone $clicksQuery)
+            ->selectRaw("$dateExpr as bucket, COUNT(*) as count, COUNT(DISTINCT ip_address) as unique_count")
+            ->groupByRaw($dateExpr)
+            ->orderBy('bucket')
             ->get();
 
-        $topReferrers = $link->clicks()
+        $topReferrers = (clone $clicksQuery)
             ->selectRaw("referrer, COUNT(*) as count")
-            ->whereNotNull('referrer')
-            ->groupBy('referrer')
-            ->orderByDesc('count')
-            ->limit(10)
-            ->get();
+            ->whereNotNull('referrer')->where('referrer', '!=', '')
+            ->groupBy('referrer')->orderByDesc('count')->limit(10)->get();
 
-        $browserStats = $link->clicks()
+        $browserStats = (clone $clicksQuery)
             ->selectRaw("browser, COUNT(*) as count")
-            ->whereNotNull('browser')
-            ->groupBy('browser')
-            ->orderByDesc('count')
-            ->get();
+            ->whereNotNull('browser')->groupBy('browser')->orderByDesc('count')->get();
 
-        $osStats = $link->clicks()
+        $osStats = (clone $clicksQuery)
             ->selectRaw("os, COUNT(*) as count")
-            ->whereNotNull('os')
-            ->groupBy('os')
-            ->orderByDesc('count')
-            ->get();
+            ->whereNotNull('os')->groupBy('os')->orderByDesc('count')->get();
 
-        $countryStats = $link->clicks()
+        $countryStats = (clone $clicksQuery)
             ->selectRaw("country_code, COUNT(*) as count")
-            ->whereNotNull('country_code')
-            ->groupBy('country_code')
-            ->orderByDesc('count')
-            ->limit(10)
-            ->get();
+            ->whereNotNull('country_code')->groupBy('country_code')
+            ->orderByDesc('count')->limit(20)->get();
 
-        $deviceStats = $link->clicks()
+        $cityStats = (clone $clicksQuery)
+            ->selectRaw("city, country_code, COUNT(*) as count")
+            ->whereNotNull('city')->groupBy('city', 'country_code')
+            ->orderByDesc('count')->limit(20)->get();
+
+        $deviceStats = (clone $clicksQuery)
             ->selectRaw("device_type, COUNT(*) as count")
-            ->whereNotNull('device_type')
-            ->groupBy('device_type')
-            ->orderByDesc('count')
-            ->get();
+            ->whereNotNull('device_type')->groupBy('device_type')->orderByDesc('count')->get();
+
+        $languageStats = (clone $clicksQuery)
+            ->selectRaw("language, COUNT(*) as count")
+            ->whereNotNull('language')->groupBy('language')
+            ->orderByDesc('count')->limit(15)->get();
+
+        $blockStats = (clone $clicksQuery)
+            ->selectRaw("block_id, block_type, destination_url, COUNT(*) as count, COUNT(DISTINCT ip_address) as unique_count")
+            ->whereNotNull('block_id')
+            ->groupBy('block_id', 'block_type', 'destination_url')
+            ->orderByDesc('count')->limit(50)->get();
+
+        $utmStats = (clone $clicksQuery)
+            ->selectRaw("utm_params, COUNT(*) as count")
+            ->whereNotNull('utm_params')
+            ->groupBy('utm_params')->orderByDesc('count')->limit(15)->get();
+
+        $recentClicks = (clone $clicksQuery)
+            ->orderByDesc('clicked_at')
+            ->paginate(25)
+            ->withQueryString();
 
         return view('user.links.show', compact(
             'link', 'clicksOverTime', 'topReferrers',
-            'browserStats', 'osStats', 'countryStats', 'deviceStats'
+            'browserStats', 'osStats', 'countryStats', 'cityStats',
+            'deviceStats', 'languageStats', 'blockStats', 'utmStats',
+            'recentClicks', 'totalInRange', 'uniqueInRange',
+            'blockClicksInRange', 'pageVisitsInRange',
+            'period', 'groupBy', 'startDate', 'endDate'
         ));
+    }
+
+    private function resolveAnalyticsRange(Request $request): array
+    {
+        $period = $request->query('period', '30d');
+        $groupBy = $request->query('group', 'day');
+        if (!in_array($groupBy, ['day', 'week', 'month', 'year'])) $groupBy = 'day';
+
+        $end = now()->endOfDay();
+        $start = match ($period) {
+            'today' => now()->startOfDay(),
+            '7d' => now()->subDays(7)->startOfDay(),
+            '90d' => now()->subDays(90)->startOfDay(),
+            'year' => now()->subYear()->startOfDay(),
+            'all' => now()->subYears(10)->startOfDay(),
+            'custom' => $request->query('from') ? \Carbon\Carbon::parse($request->query('from'))->startOfDay() : now()->subDays(30)->startOfDay(),
+            default => now()->subDays(30)->startOfDay(),
+        };
+        if ($period === 'custom' && $request->query('to')) {
+            $end = \Carbon\Carbon::parse($request->query('to'))->endOfDay();
+        }
+        return [$start, $end, $period, $groupBy];
+    }
+
+    public function exportClicks(Request $request, Link $link)
+    {
+        abort_if($link->user_id !== $request->user()->id, 403);
+        [$startDate, $endDate] = $this->resolveAnalyticsRange($request);
+
+        $filename = 'clicks-' . $link->alias . '-' . now()->format('Y-m-d-His') . '.csv';
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ];
+
+        $columns = ['Clicked At', 'IP', 'Country', 'City', 'Browser', 'OS', 'Device', 'Language', 'Referrer', 'Block ID', 'Block Type', 'Destination URL', 'UTM Source', 'UTM Medium', 'UTM Campaign'];
+
+        return response()->stream(function () use ($link, $startDate, $endDate, $columns) {
+            $h = fopen('php://output', 'w');
+            fputcsv($h, $columns);
+            $link->clicks()
+                ->whereBetween('clicked_at', [$startDate, $endDate])
+                ->orderByDesc('clicked_at')
+                ->chunk(500, function ($rows) use ($h) {
+                    foreach ($rows as $r) {
+                        $u = $r->utm_params ?? [];
+                        fputcsv($h, [
+                            optional($r->clicked_at)->format('Y-m-d H:i:s'),
+                            $r->ip_address, $r->country_code, $r->city,
+                            $r->browser, $r->os, $r->device_type, $r->language,
+                            $r->referrer, $r->block_id, $r->block_type, $r->destination_url,
+                            $u['utm_source'] ?? '', $u['utm_medium'] ?? '', $u['utm_campaign'] ?? '',
+                        ]);
+                    }
+                });
+            fclose($h);
+        }, 200, $headers);
     }
 
     public function edit(Request $request, Link $link)

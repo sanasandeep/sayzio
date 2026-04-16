@@ -936,8 +936,12 @@
                 @endphp
                 <div class="flex justify-center gap-3 mb-4 flex-wrap">
                     @foreach($allPlatforms as $platform)
-                        @php $icon = $socialIcons[$platform['name'] ?? ''] ?? ['fas fa-link', '#7c3aed']; @endphp
-                        <a href="{{ $platform['url'] ?? '#' }}" target="_blank" rel="noopener"
+                        @php
+                            $icon = $socialIcons[$platform['name'] ?? ''] ?? ['fas fa-link', '#7c3aed'];
+                            $platUrl = $platform['url'] ?? '#';
+                            $platTrackUrl = $platUrl !== '#' ? route('redirect.block', ['alias' => $link->alias, 'blockId' => $block->id]) . '?to=' . urlencode($platUrl) : '#';
+                        @endphp
+                        <a href="{{ $platTrackUrl }}" target="_blank" rel="noopener"
                            class="{{ $szClass }} {{ ($s['style'] ?? '') === 'square' ? 'rounded-lg' : 'rounded-full' }} glass-block flex items-center justify-center transition-all hover:scale-110 hover:-translate-y-1"
                            style="color: {{ $icon[1] }}"><i class="{{ $icon[0] }} {{ $sz === 'lg' ? 'text-xl' : 'text-lg' }}"></i></a>
                     @endforeach

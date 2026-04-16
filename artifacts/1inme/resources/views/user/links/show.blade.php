@@ -2,7 +2,14 @@
 @section('title', $link->title ?: $link->alias)
 
 @section('content')
-<div class="flex items-center justify-between mb-6">
+@php
+    $countryNames = ['US'=>'United States','IN'=>'India','GB'=>'United Kingdom','CA'=>'Canada','AU'=>'Australia','DE'=>'Germany','FR'=>'France','BR'=>'Brazil','JP'=>'Japan','CN'=>'China','RU'=>'Russia','MX'=>'Mexico','ES'=>'Spain','IT'=>'Italy','NL'=>'Netherlands','SE'=>'Sweden','SG'=>'Singapore','ZA'=>'South Africa','AE'=>'UAE','PK'=>'Pakistan','BD'=>'Bangladesh','ID'=>'Indonesia','TR'=>'Turkey','PH'=>'Philippines','TH'=>'Thailand','VN'=>'Vietnam','KR'=>'South Korea'];
+    $blockTypes = \App\Modules\User\Models\BiolinkBlock::TYPES;
+    $qs = request()->query();
+    $buildUrl = fn($overrides = []) => route('user.links.show', $link) . '?' . http_build_query(array_merge($qs, $overrides));
+@endphp
+
+<div class="flex flex-wrap items-center justify-between gap-3 mb-6">
     <div class="flex items-center gap-4">
         <a href="{{ route('user.links.index') }}" class="p-2 rounded-xl transition-all hover:bg-white/[0.04]" style="color: var(--text-faint);"><i class="fas fa-arrow-left"></i></a>
         <div>
@@ -16,221 +23,325 @@
             </div>
         </div>
     </div>
-    <div class="flex items-center gap-2">
-        <form action="{{ route('user.links.toggle-active', $link) }}" method="POST">
-            @csrf
-            <button class="btn-ghost text-xs py-2 {{ $link->is_active ? 'text-emerald-400 border-emerald-500/20' : 'text-red-400 border-red-500/20' }}">
-                <i class="fas {{ $link->is_active ? 'fa-toggle-on' : 'fa-toggle-off' }}"></i>
-                {{ $link->is_active ? 'Active' : 'Inactive' }}
-            </button>
-        </form>
-        <a href="{{ route('user.links.qrcode', $link) }}" class="btn-ghost text-xs py-2">
-            <i class="fas fa-qrcode text-[10px]"></i> QR Code
-        </a>
+    <div class="flex items-center gap-2 flex-wrap">
+        <a href="{{ route('user.links.clicks.export', $link) }}?{{ http_build_query($qs) }}" class="btn-ghost text-xs py-2"><i class="fas fa-file-csv text-[10px]"></i> Export CSV</a>
+        <a href="{{ route('user.links.qrcode', $link) }}" class="btn-ghost text-xs py-2"><i class="fas fa-qrcode text-[10px]"></i> QR</a>
         @if($link->type === 'biolink')
-        <a href="{{ route('user.links.blocks.editor', $link) }}" class="btn-primary text-xs py-2">
-            <i class="fas fa-th-large text-[10px]"></i> Edit Blocks
-        </a>
+        <a href="{{ route('user.links.blocks.editor', $link) }}" class="btn-primary text-xs py-2"><i class="fas fa-th-large text-[10px]"></i> Edit Blocks</a>
         @endif
-        <a href="{{ route('user.links.edit', $link) }}" class="btn-ghost text-xs py-2">
-            <i class="fas fa-edit text-[10px]"></i> Edit
-        </a>
+        <a href="{{ route('user.links.edit', $link) }}" class="btn-ghost text-xs py-2"><i class="fas fa-edit text-[10px]"></i> Edit</a>
     </div>
 </div>
 
-<div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
-    <div class="stat-card group" style="--stat-accent: linear-gradient(90deg, #8b5cf6, #a78bfa); --stat-glow: rgba(139,92,246,0.12); --stat-border-color: rgba(139,92,246,0.2);">
-        <p class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Total Clicks</p>
+<div class="card-premium p-3 mb-5">
+    <div class="flex flex-wrap items-center gap-2">
+        <span class="text-[10px] uppercase tracking-wider font-bold mr-1" style="color: var(--text-faint);">Period:</span>
+        @foreach(['today'=>'Today','7d'=>'7d','30d'=>'30d','90d'=>'90d','year'=>'Year','all'=>'All'] as $k=>$lbl)
+            <a href="{{ $buildUrl(['period'=>$k]) }}" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all {{ ($period ?? '30d')===$k ? 'text-white' : 'hover:bg-white/[0.04]' }}" style="{{ ($period ?? '30d')===$k ? 'background: linear-gradient(135deg,#7c3aed,#a855f7);' : 'color: var(--text-muted);' }}">{{ $lbl }}</a>
+        @endforeach
+        <span class="mx-3 h-5 w-px" style="background: var(--border-glass);"></span>
+        <span class="text-[10px] uppercase tracking-wider font-bold mr-1" style="color: var(--text-faint);">Group:</span>
+        @foreach(['day'=>'Day','week'=>'Week','month'=>'Month','year'=>'Year'] as $k=>$lbl)
+            <a href="{{ $buildUrl(['group'=>$k]) }}" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all {{ ($groupBy ?? 'day')===$k ? 'text-white' : 'hover:bg-white/[0.04]' }}" style="{{ ($groupBy ?? 'day')===$k ? 'background: rgba(139,92,246,0.2); border: 1px solid rgba(139,92,246,0.4);' : 'color: var(--text-muted);' }}">{{ $lbl }}</a>
+        @endforeach
+        <span class="mx-3 h-5 w-px" style="background: var(--border-glass);"></span>
+        <form method="GET" class="flex items-center gap-2">
+            <input type="hidden" name="period" value="custom">
+            <input type="hidden" name="group" value="{{ $groupBy }}">
+            <input type="date" name="from" value="{{ request('from', $startDate->format('Y-m-d')) }}" class="theme-input text-xs py-1.5 px-2">
+            <span class="text-xs" style="color:var(--text-faint);">to</span>
+            <input type="date" name="to" value="{{ request('to', $endDate->format('Y-m-d')) }}" class="theme-input text-xs py-1.5 px-2">
+            <button class="btn-ghost text-xs py-1.5 px-3">Apply</button>
+        </form>
+    </div>
+</div>
+
+<div class="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
+    <div class="stat-card" style="--stat-accent: linear-gradient(90deg, #8b5cf6, #a78bfa); --stat-glow: rgba(139,92,246,0.12); --stat-border-color: rgba(139,92,246,0.2);">
+        <p class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Total (Range)</p>
+        <p class="text-2xl font-bold" style="color: var(--text-primary);">{{ number_format($totalInRange) }}</p>
+    </div>
+    <div class="stat-card" style="--stat-accent: linear-gradient(90deg, #10b981, #34d399); --stat-glow: rgba(16,185,129,0.12); --stat-border-color: rgba(16,185,129,0.2);">
+        <p class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Unique IPs</p>
+        <p class="text-2xl font-bold" style="color: var(--text-primary);">{{ number_format($uniqueInRange) }}</p>
+    </div>
+    <div class="stat-card" style="--stat-accent: linear-gradient(90deg, #3b82f6, #60a5fa); --stat-glow: rgba(59,130,246,0.12); --stat-border-color: rgba(59,130,246,0.2);">
+        <p class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Page Visits</p>
+        <p class="text-2xl font-bold" style="color: var(--text-primary);">{{ number_format($pageVisitsInRange) }}</p>
+    </div>
+    <div class="stat-card" style="--stat-accent: linear-gradient(90deg, #f59e0b, #fbbf24); --stat-glow: rgba(245,158,11,0.12); --stat-border-color: rgba(245,158,11,0.2);">
+        <p class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Block Clicks</p>
+        <p class="text-2xl font-bold" style="color: var(--text-primary);">{{ number_format($blockClicksInRange) }}</p>
+    </div>
+    <div class="stat-card" style="--stat-accent: linear-gradient(90deg, #ec4899, #f472b6); --stat-glow: rgba(236,72,153,0.12); --stat-border-color: rgba(236,72,153,0.2);">
+        <p class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">All-Time Total</p>
         <p class="text-2xl font-bold" style="color: var(--text-primary);">{{ number_format($link->total_clicks) }}</p>
     </div>
-    <div class="stat-card group" style="--stat-accent: linear-gradient(90deg, #10b981, #34d399); --stat-glow: rgba(16,185,129,0.12); --stat-border-color: rgba(16,185,129,0.2);">
-        <p class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Unique Clicks</p>
+    <div class="stat-card" style="--stat-accent: linear-gradient(90deg, #06b6d4, #22d3ee); --stat-glow: rgba(6,182,212,0.12); --stat-border-color: rgba(6,182,212,0.2);">
+        <p class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">All-Time Unique</p>
         <p class="text-2xl font-bold" style="color: var(--text-primary);">{{ number_format($link->unique_clicks) }}</p>
     </div>
-    <div class="stat-card group" style="--stat-accent: linear-gradient(90deg, #3b82f6, #60a5fa); --stat-glow: rgba(59,130,246,0.12); --stat-border-color: rgba(59,130,246,0.2);">
-        <p class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Created</p>
-        <p class="text-lg font-bold" style="color: var(--text-primary);">{{ $link->created_at->format('M d, Y') }}</p>
+</div>
+
+<div class="card-premium p-5 mb-6">
+    <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.15);"><i class="fas fa-chart-line text-purple-400 text-xs"></i></div>
+            <h3 class="text-sm font-bold" style="color: var(--text-primary);">Clicks Over Time ({{ ucfirst($groupBy) }})</h3>
+        </div>
+        <span class="text-xs" style="color: var(--text-faint);">{{ $startDate->format('M d, Y') }} → {{ $endDate->format('M d, Y') }}</span>
     </div>
-    <div class="stat-card group" style="--stat-accent: linear-gradient(90deg, #f59e0b, #fbbf24); --stat-glow: rgba(245,158,11,0.12); --stat-border-color: rgba(245,158,11,0.2);">
-        <p class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Type</p>
-        <p class="text-lg font-bold capitalize" style="color: var(--text-primary);">{{ $link->type }}</p>
+    @if($clicksOverTime->isEmpty())
+        <p class="text-sm text-center py-12" style="color: var(--text-faint);">No click data in this range</p>
+    @else
+        <div style="height: 300px;"><canvas id="clicksChart"></canvas></div>
+    @endif
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
+    <div class="card-premium p-5">
+        <div class="flex items-center gap-2.5 mb-4">
+            <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.15);"><i class="fas fa-globe text-indigo-400 text-xs"></i></div>
+            <h3 class="text-sm font-bold" style="color: var(--text-primary);">Browsers</h3>
+        </div>
+        @if($browserStats->isEmpty())<p class="text-sm text-center py-8" style="color: var(--text-faint);">No data</p>
+        @else<div style="height: 220px;"><canvas id="browserChart"></canvas></div>@endif
+    </div>
+    <div class="card-premium p-5">
+        <div class="flex items-center gap-2.5 mb-4">
+            <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.15);"><i class="fas fa-laptop text-emerald-400 text-xs"></i></div>
+            <h3 class="text-sm font-bold" style="color: var(--text-primary);">Operating Systems</h3>
+        </div>
+        @if($osStats->isEmpty())<p class="text-sm text-center py-8" style="color: var(--text-faint);">No data</p>
+        @else<div style="height: 220px;"><canvas id="osChart"></canvas></div>@endif
+    </div>
+    <div class="card-premium p-5">
+        <div class="flex items-center gap-2.5 mb-4">
+            <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.15);"><i class="fas fa-mobile-alt text-amber-400 text-xs"></i></div>
+            <h3 class="text-sm font-bold" style="color: var(--text-primary);">Devices</h3>
+        </div>
+        @if($deviceStats->isEmpty())<p class="text-sm text-center py-8" style="color: var(--text-faint);">No data</p>
+        @else<div style="height: 220px;"><canvas id="deviceChart"></canvas></div>@endif
     </div>
 </div>
 
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
     <div class="card-premium p-5">
-        <div class="flex items-center gap-2.5 mb-4">
-            <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.15);">
-                <i class="fas fa-chart-area text-purple-400 text-xs"></i>
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.15);"><i class="fas fa-flag text-blue-400 text-xs"></i></div>
+                <h3 class="text-sm font-bold" style="color: var(--text-primary);">Top Countries</h3>
             </div>
-            <h3 class="text-sm font-bold" style="color: var(--text-primary);">Clicks Over Time (30 Days)</h3>
         </div>
-        @if($clicksOverTime->isEmpty())
-            <p class="text-sm text-center py-8" style="color: var(--text-faint);">No click data yet</p>
+        @if($countryStats->isEmpty())<p class="text-sm text-center py-8" style="color: var(--text-faint);">No data</p>
         @else
-            <div class="space-y-2">
-                @php $maxClicks = $clicksOverTime->max('count') ?: 1; @endphp
-                @foreach($clicksOverTime->slice(-14) as $day)
-                <div class="flex items-center gap-3 text-sm group">
-                    <span class="w-16 flex-shrink-0 text-[11px] font-medium" style="color: var(--text-dimmed);">{{ \Carbon\Carbon::parse($day->date)->format('M d') }}</span>
-                    <div class="flex-1 rounded-full h-5 overflow-hidden" style="background: var(--bg-glass-input);">
-                        <div class="bg-gradient-to-r from-purple-600 to-violet-500 h-full rounded-full transition-all duration-700 group-hover:shadow-lg group-hover:shadow-purple-500/20" style="width: {{ ($day->count / $maxClicks) * 100 }}%"></div>
-                    </div>
-                    <span class="font-medium w-8 text-right text-xs" style="color: var(--text-muted);">{{ $day->count }}</span>
-                </div>
+        <div class="overflow-y-auto max-h-72">
+            <table class="w-full text-sm">
+                <thead><tr class="text-[10px] uppercase tracking-wider" style="color: var(--text-faint);"><th class="text-left py-2 px-2 font-bold">Country</th><th class="text-right py-2 px-2 font-bold">Clicks</th><th class="text-right py-2 px-2 font-bold">%</th></tr></thead>
+                <tbody>
+                @php $totalC = $countryStats->sum('count') ?: 1; @endphp
+                @foreach($countryStats as $stat)
+                <tr class="hover:bg-white/[0.02]" style="border-top: 1px solid var(--border-glass);">
+                    <td class="py-2 px-2" style="color: var(--text-primary);">{{ $countryNames[$stat->country_code] ?? $stat->country_code }} <span style="color: var(--text-faint);">({{ $stat->country_code }})</span></td>
+                    <td class="py-2 px-2 text-right" style="color: var(--text-muted);">{{ $stat->count }}</td>
+                    <td class="py-2 px-2 text-right text-xs" style="color: var(--text-dimmed);">{{ round(($stat->count / $totalC) * 100, 1) }}%</td>
+                </tr>
                 @endforeach
-            </div>
+                </tbody>
+            </table>
+        </div>
         @endif
     </div>
-
     <div class="card-premium p-5">
         <div class="flex items-center gap-2.5 mb-4">
-            <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.15);">
-                <i class="fas fa-globe text-emerald-400 text-xs"></i>
-            </div>
-            <h3 class="text-sm font-bold" style="color: var(--text-primary);">Top Referrers</h3>
+            <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(236,72,153,0.1); border: 1px solid rgba(236,72,153,0.15);"><i class="fas fa-city text-pink-400 text-xs"></i></div>
+            <h3 class="text-sm font-bold" style="color: var(--text-primary);">Top Cities</h3>
         </div>
-        @if($topReferrers->isEmpty())
-            <p class="text-sm text-center py-8" style="color: var(--text-faint);">No referrer data yet</p>
+        @if($cityStats->isEmpty())<p class="text-sm text-center py-8" style="color: var(--text-faint);">No data</p>
         @else
-            <div class="space-y-3">
-                @foreach($topReferrers as $ref)
-                <div class="flex items-center justify-between text-sm p-2 rounded-lg transition-all hover:bg-white/[0.02]">
-                    <span class="truncate flex-1" style="color: var(--text-muted);">{{ parse_url($ref->referrer, PHP_URL_HOST) ?: $ref->referrer }}</span>
-                    <span class="font-medium ml-3 text-xs" style="color: var(--text-dimmed);">{{ $ref->count }}</span>
-                </div>
+        <div class="overflow-y-auto max-h-72">
+            <table class="w-full text-sm">
+                <thead><tr class="text-[10px] uppercase tracking-wider" style="color: var(--text-faint);"><th class="text-left py-2 px-2 font-bold">City</th><th class="text-left py-2 px-2 font-bold">Country</th><th class="text-right py-2 px-2 font-bold">Clicks</th></tr></thead>
+                <tbody>
+                @foreach($cityStats as $stat)
+                <tr class="hover:bg-white/[0.02]" style="border-top: 1px solid var(--border-glass);">
+                    <td class="py-2 px-2" style="color: var(--text-primary);">{{ $stat->city }}</td>
+                    <td class="py-2 px-2" style="color: var(--text-muted);">{{ $stat->country_code }}</td>
+                    <td class="py-2 px-2 text-right" style="color: var(--text-muted);">{{ $stat->count }}</td>
+                </tr>
                 @endforeach
-            </div>
+                </tbody>
+            </table>
+        </div>
         @endif
     </div>
 </div>
 
-<div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
-    <div class="card-premium p-5">
-        <div class="flex items-center gap-2.5 mb-4">
-            <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.15);">
-                <i class="fas fa-globe text-indigo-400 text-xs"></i>
-            </div>
-            <h3 class="text-sm font-bold" style="color: var(--text-primary);">Browsers</h3>
-        </div>
-        @if($browserStats->isEmpty())
-            <p class="text-sm text-center py-4" style="color: var(--text-faint);">No data</p>
-        @else
-            @php $totalBrowser = $browserStats->sum('count') ?: 1; @endphp
-            <div class="space-y-3">
-                @foreach($browserStats as $stat)
-                <div>
-                    <div class="flex justify-between text-xs mb-1.5">
-                        <span style="color: var(--text-muted);">{{ $stat->browser }}</span>
-                        <span style="color: var(--text-dimmed);">{{ round(($stat->count / $totalBrowser) * 100) }}%</span>
-                    </div>
-                    <div class="rounded-full h-1.5" style="background: var(--bg-glass-input);">
-                        <div class="bg-gradient-to-r from-indigo-500 to-purple-500 h-full rounded-full" style="width: {{ ($stat->count / $totalBrowser) * 100 }}%"></div>
-                    </div>
-                </div>
-                @endforeach
-            </div>
-        @endif
+@if($link->type === 'biolink')
+<div class="card-premium p-5 mb-6">
+    <div class="flex items-center gap-2.5 mb-4">
+        <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(168,85,247,0.1); border: 1px solid rgba(168,85,247,0.15);"><i class="fas fa-th-large text-purple-400 text-xs"></i></div>
+        <h3 class="text-sm font-bold" style="color: var(--text-primary);">Block-Level Clicks</h3>
+        <span class="text-[10px] px-2 py-0.5 rounded-full ml-auto" style="background: rgba(168,85,247,0.1); color: #a855f7;">Internal biolink links</span>
     </div>
+    @if($blockStats->isEmpty())
+        <p class="text-sm text-center py-8" style="color: var(--text-faint);">No block clicks recorded yet. Make sure your biolink blocks are using tracked links.</p>
+    @else
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead><tr class="text-[10px] uppercase tracking-wider" style="color: var(--text-faint);">
+                <th class="text-left py-2 px-2 font-bold">Block</th><th class="text-left py-2 px-2 font-bold">Type</th><th class="text-left py-2 px-2 font-bold">Destination</th><th class="text-right py-2 px-2 font-bold">Clicks</th><th class="text-right py-2 px-2 font-bold">Unique</th>
+            </tr></thead>
+            <tbody>
+            @foreach($blockStats as $b)
+            @php $info = $blockTypes[$b->block_type] ?? ['label'=>ucfirst($b->block_type), 'icon'=>'fa-cube']; @endphp
+            <tr class="hover:bg-white/[0.02]" style="border-top: 1px solid var(--border-glass);">
+                <td class="py-2 px-2" style="color: var(--text-primary);"><i class="fas {{ $info['icon'] }} mr-1.5 text-purple-400"></i> #{{ $b->block_id }}</td>
+                <td class="py-2 px-2"><span class="badge text-[10px]" style="background:rgba(139,92,246,0.08); color:#a78bfa;">{{ $info['label'] }}</span></td>
+                <td class="py-2 px-2 text-xs truncate max-w-md" style="color: var(--text-muted);">{{ $b->destination_url }}</td>
+                <td class="py-2 px-2 text-right font-medium" style="color: var(--text-primary);">{{ $b->count }}</td>
+                <td class="py-2 px-2 text-right" style="color: var(--text-muted);">{{ $b->unique_count }}</td>
+            </tr>
+            @endforeach
+            </tbody>
+        </table>
+    </div>
+    @endif
+</div>
+@endif
 
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
     <div class="card-premium p-5">
         <div class="flex items-center gap-2.5 mb-4">
-            <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.15);">
-                <i class="fas fa-laptop text-emerald-400 text-xs"></i>
-            </div>
-            <h3 class="text-sm font-bold" style="color: var(--text-primary);">Operating Systems</h3>
+            <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.15);"><i class="fas fa-link text-emerald-400 text-xs"></i></div>
+            <h3 class="text-sm font-bold" style="color: var(--text-primary);">Top Referrers</h3>
         </div>
-        @if($osStats->isEmpty())
-            <p class="text-sm text-center py-4" style="color: var(--text-faint);">No data</p>
+        @if($topReferrers->isEmpty())<p class="text-sm text-center py-8" style="color: var(--text-faint);">No referrer data</p>
         @else
-            @php $totalOS = $osStats->sum('count') ?: 1; @endphp
-            <div class="space-y-3">
-                @foreach($osStats as $stat)
-                <div>
-                    <div class="flex justify-between text-xs mb-1.5">
-                        <span style="color: var(--text-muted);">{{ $stat->os }}</span>
-                        <span style="color: var(--text-dimmed);">{{ round(($stat->count / $totalOS) * 100) }}%</span>
-                    </div>
-                    <div class="rounded-full h-1.5" style="background: var(--bg-glass-input);">
-                        <div class="bg-gradient-to-r from-emerald-500 to-teal-500 h-full rounded-full" style="width: {{ ($stat->count / $totalOS) * 100 }}%"></div>
-                    </div>
-                </div>
-                @endforeach
+        <div class="space-y-2 max-h-72 overflow-y-auto">
+            @foreach($topReferrers as $ref)
+            <div class="flex items-center justify-between text-sm p-2 rounded-lg hover:bg-white/[0.02]">
+                <span class="truncate flex-1" style="color: var(--text-muted);">{{ parse_url($ref->referrer, PHP_URL_HOST) ?: $ref->referrer }}</span>
+                <span class="font-medium ml-3 text-xs" style="color: var(--text-dimmed);">{{ $ref->count }}</span>
             </div>
+            @endforeach
+        </div>
         @endif
     </div>
+    <div class="card-premium p-5">
+        <div class="flex items-center gap-2.5 mb-4">
+            <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.15);"><i class="fas fa-bullseye text-amber-400 text-xs"></i></div>
+            <h3 class="text-sm font-bold" style="color: var(--text-primary);">UTM Campaigns</h3>
+        </div>
+        @if($utmStats->isEmpty())<p class="text-sm text-center py-8" style="color: var(--text-faint);">No UTM data</p>
+        @else
+        <div class="space-y-2 max-h-72 overflow-y-auto">
+            @foreach($utmStats as $u)
+            @php $p = $u->utm_params; if (is_string($p)) $p = json_decode($p, true) ?: []; @endphp
+            <div class="flex items-center justify-between text-xs p-2 rounded-lg hover:bg-white/[0.02]">
+                <div class="flex-1 truncate">
+                    <span style="color: var(--text-primary);">{{ $p['utm_source'] ?? '—' }}</span>
+                    <span style="color: var(--text-faint);"> / {{ $p['utm_medium'] ?? '—' }}</span>
+                    <span style="color: var(--text-faint);"> / {{ $p['utm_campaign'] ?? '—' }}</span>
+                </div>
+                <span class="font-medium ml-3" style="color: var(--text-dimmed);">{{ $u->count }}</span>
+            </div>
+            @endforeach
+        </div>
+        @endif
+    </div>
+</div>
 
-    <div class="card-premium p-5">
-        <div class="flex items-center gap-2.5 mb-4">
-            <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.15);">
-                <i class="fas fa-mobile-alt text-amber-400 text-xs"></i>
-            </div>
-            <h3 class="text-sm font-bold" style="color: var(--text-primary);">Devices</h3>
+<div class="card-premium p-5 mb-6">
+    <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.15);"><i class="fas fa-list text-purple-400 text-xs"></i></div>
+            <h3 class="text-sm font-bold" style="color: var(--text-primary);">Recent Clicks</h3>
         </div>
-        @if($deviceStats->isEmpty())
-            <p class="text-sm text-center py-4" style="color: var(--text-faint);">No data</p>
-        @else
-            @php $totalDevice = $deviceStats->sum('count') ?: 1; @endphp
-            <div class="space-y-3">
-                @foreach($deviceStats as $stat)
-                <div>
-                    <div class="flex justify-between text-xs mb-1.5">
-                        <span class="capitalize" style="color: var(--text-muted);">{{ $stat->device_type }}</span>
-                        <span style="color: var(--text-dimmed);">{{ round(($stat->count / $totalDevice) * 100) }}%</span>
-                    </div>
-                    <div class="rounded-full h-1.5" style="background: var(--bg-glass-input);">
-                        <div class="bg-gradient-to-r from-amber-500 to-orange-500 h-full rounded-full" style="width: {{ ($stat->count / $totalDevice) * 100 }}%"></div>
-                    </div>
-                </div>
-                @endforeach
-            </div>
-        @endif
+        <a href="{{ route('user.links.clicks.export', $link) }}?{{ http_build_query($qs) }}" class="text-xs text-purple-400 hover:text-purple-300"><i class="fas fa-file-csv"></i> Export full log</a>
     </div>
+    @if($recentClicks->isEmpty())
+        <p class="text-sm text-center py-8" style="color: var(--text-faint);">No clicks yet</p>
+    @else
+    <div class="overflow-x-auto">
+        <table class="w-full text-xs">
+            <thead><tr class="text-[10px] uppercase tracking-wider" style="color: var(--text-faint);">
+                <th class="text-left py-2 px-2 font-bold">When</th>
+                <th class="text-left py-2 px-2 font-bold">IP</th>
+                <th class="text-left py-2 px-2 font-bold">Location</th>
+                <th class="text-left py-2 px-2 font-bold">Device</th>
+                <th class="text-left py-2 px-2 font-bold">Browser</th>
+                <th class="text-left py-2 px-2 font-bold">OS</th>
+                <th class="text-left py-2 px-2 font-bold">Lang</th>
+                <th class="text-left py-2 px-2 font-bold">Referrer</th>
+                <th class="text-left py-2 px-2 font-bold">Block</th>
+            </tr></thead>
+            <tbody>
+            @foreach($recentClicks as $c)
+            <tr class="hover:bg-white/[0.02]" style="border-top: 1px solid var(--border-glass);">
+                <td class="py-2 px-2 whitespace-nowrap" style="color: var(--text-muted);">{{ $c->clicked_at->format('M d, H:i:s') }}</td>
+                <td class="py-2 px-2 font-mono" style="color: var(--text-muted);">{{ $c->ip_address }}</td>
+                <td class="py-2 px-2" style="color: var(--text-muted);">{{ $c->city ? $c->city.', ' : '' }}{{ $c->country_code ?? '—' }}</td>
+                <td class="py-2 px-2 capitalize" style="color: var(--text-muted);">{{ $c->device_type ?? '—' }}</td>
+                <td class="py-2 px-2" style="color: var(--text-muted);">{{ $c->browser ?? '—' }}</td>
+                <td class="py-2 px-2" style="color: var(--text-muted);">{{ $c->os ?? '—' }}</td>
+                <td class="py-2 px-2" style="color: var(--text-muted);">{{ $c->language ?? '—' }}</td>
+                <td class="py-2 px-2 truncate max-w-xs" style="color: var(--text-faint);">{{ $c->referrer ? (parse_url($c->referrer, PHP_URL_HOST) ?: '—') : '—' }}</td>
+                <td class="py-2 px-2" style="color: var(--text-muted);">@if($c->block_id)<span class="badge text-[10px]" style="background:rgba(139,92,246,0.08); color:#a78bfa;">{{ ($blockTypes[$c->block_type]['label'] ?? $c->block_type) }}</span>@else<span style="color:var(--text-faint);">page</span>@endif</td>
+            </tr>
+            @endforeach
+            </tbody>
+        </table>
+    </div>
+    <div class="mt-4">{{ $recentClicks->links() }}</div>
+    @endif
 </div>
 
 <div class="card-premium p-5">
     <div class="flex items-center gap-2.5 mb-4">
-        <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.15);">
-            <i class="fas fa-info-circle text-purple-400 text-xs"></i>
-        </div>
+        <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.15);"><i class="fas fa-info-circle text-purple-400 text-xs"></i></div>
         <h3 class="text-sm font-bold" style="color: var(--text-primary);">Link Details</h3>
     </div>
     <dl class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-        @if($link->long_url)
-        <div class="p-3 rounded-xl" style="background: var(--bg-glass-input);">
-            <dt class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Destination URL</dt>
-            <dd class="truncate" style="color: var(--text-primary);">{{ $link->long_url }}</dd>
-        </div>
-        @endif
-        @if($link->project)
-        <div class="p-3 rounded-xl" style="background: var(--bg-glass-input);">
-            <dt class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Project</dt>
-            <dd class="flex items-center gap-2" style="color: var(--text-primary);">
-                <span class="w-3 h-3 rounded-full" style="background-color: {{ $link->project->color }}"></span>
-                {{ $link->project->name }}
-            </dd>
-        </div>
-        @endif
-        @if($link->expires_at)
-        <div class="p-3 rounded-xl" style="background: var(--bg-glass-input);">
-            <dt class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Expires</dt>
-            <dd style="color: var(--text-primary);">{{ $link->expires_at->format('M d, Y H:i') }}</dd>
-        </div>
-        @endif
-        <div class="p-3 rounded-xl" style="background: var(--bg-glass-input);">
-            <dt class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Password Protected</dt>
-            <dd style="color: var(--text-primary);">{{ $link->is_password_protected ? 'Yes' : 'No' }}</dd>
-        </div>
-        @if($link->pixels->count())
-        <div class="md:col-span-2 p-3 rounded-xl" style="background: var(--bg-glass-input);">
-            <dt class="text-[10px] uppercase tracking-wider font-bold mb-1.5" style="color: var(--text-faint);">Tracking Pixels</dt>
-            <dd class="flex flex-wrap gap-2">
-                @foreach($link->pixels as $pixel)
-                    <span class="badge" style="background: rgba(139,92,246,0.08); color: var(--accent-light); border: 1px solid rgba(139,92,246,0.12);">{{ $pixel->name }}</span>
-                @endforeach
-            </dd>
-        </div>
-        @endif
+        @if($link->long_url)<div class="p-3 rounded-xl" style="background: var(--bg-glass-input);"><dt class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Destination</dt><dd class="truncate" style="color: var(--text-primary);">{{ $link->long_url }}</dd></div>@endif
+        <div class="p-3 rounded-xl" style="background: var(--bg-glass-input);"><dt class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Created</dt><dd style="color: var(--text-primary);">{{ $link->created_at->format('M d, Y H:i') }}</dd></div>
+        <div class="p-3 rounded-xl" style="background: var(--bg-glass-input);"><dt class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Type</dt><dd class="capitalize" style="color: var(--text-primary);">{{ $link->type }}</dd></div>
+        <div class="p-3 rounded-xl" style="background: var(--bg-glass-input);"><dt class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Password Protected</dt><dd style="color: var(--text-primary);">{{ $link->is_password_protected ? 'Yes' : 'No' }}</dd></div>
     </dl>
 </div>
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const isDark = document.documentElement.classList.contains('dark') || !document.documentElement.classList.contains('light');
+    const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+    const tickColor = isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.6)';
+    const palette = ['#7c3aed','#10b981','#3b82f6','#f59e0b','#ec4899','#06b6d4','#a855f7','#ef4444','#14b8a6','#eab308'];
+
+    @if(!$clicksOverTime->isEmpty())
+    new Chart(document.getElementById('clicksChart'), {
+        type: 'line',
+        data: {
+            labels: @json($clicksOverTime->pluck('bucket')),
+            datasets: [
+                { label: 'Total Clicks', data: @json($clicksOverTime->pluck('count')), borderColor: '#7c3aed', backgroundColor: 'rgba(124,58,237,0.15)', tension: 0.4, fill: true, borderWidth: 2, pointRadius: 3 },
+                { label: 'Unique IPs', data: @json($clicksOverTime->pluck('unique_count')), borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.08)', tension: 0.4, fill: true, borderWidth: 2, pointRadius: 3 }
+            ]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: tickColor } } }, scales: { x: { grid: { color: gridColor }, ticks: { color: tickColor } }, y: { grid: { color: gridColor }, ticks: { color: tickColor }, beginAtZero: true } } }
+    });
+    @endif
+
+    function doughnut(id, labels, data) {
+        const el = document.getElementById(id); if (!el) return;
+        new Chart(el, { type: 'doughnut', data: { labels, datasets: [{ data, backgroundColor: palette, borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: tickColor, font: { size: 11 } } } } } });
+    }
+
+    @if(!$browserStats->isEmpty())doughnut('browserChart', @json($browserStats->pluck('browser')), @json($browserStats->pluck('count')));@endif
+    @if(!$osStats->isEmpty())doughnut('osChart', @json($osStats->pluck('os')), @json($osStats->pluck('count')));@endif
+    @if(!$deviceStats->isEmpty())doughnut('deviceChart', @json($deviceStats->pluck('device_type')), @json($deviceStats->pluck('count')));@endif
+});
+</script>
+@endpush
 @endsection

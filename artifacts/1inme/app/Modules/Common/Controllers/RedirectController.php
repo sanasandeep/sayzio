@@ -221,7 +221,14 @@ class RedirectController extends Controller
         $block = BiolinkBlock::where('id', $blockId)->where('link_id', $link->id)->firstOrFail();
         $s = $block->settings ?? [];
         $linkData = $s['_link'] ?? [];
-        $destinationUrl = $linkData['url'] ?? $s['link'] ?? $s['url'] ?? '#';
+
+        $overrideUrl = $request->query('to');
+        if ($overrideUrl) {
+            $parsed = parse_url($overrideUrl);
+            $destinationUrl = (isset($parsed['scheme']) && in_array($parsed['scheme'], ['http', 'https'])) ? $overrideUrl : '#';
+        } else {
+            $destinationUrl = $linkData['url'] ?? $s['link'] ?? $s['url'] ?? '#';
+        }
 
         if ($destinationUrl === '#' || empty($destinationUrl)) {
             abort(404, 'No destination URL configured.');
