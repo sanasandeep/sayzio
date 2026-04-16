@@ -446,9 +446,19 @@ class LinkController extends Controller
             ];
         }
 
+        // Flat point array (alternate consumer-friendly shape).
+        $points = array_map(fn($f) => [
+            'lat'          => $f['properties']['lat'],
+            'lng'          => $f['properties']['lng'],
+            'count'        => $f['properties']['count'],
+            'city'         => $f['properties']['city'],
+            'country_code' => $f['properties']['country_code'],
+        ], $features);
+
         return response()->json([
             'type'     => 'FeatureCollection',
             'features' => $features,
+            'points'   => $points,
             'meta'     => [
                 'max_weight'    => $maxWeight,
                 'point_count'   => count($features),

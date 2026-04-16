@@ -77,8 +77,9 @@ class BackfillCoordinates extends Command
             $bar->start();
 
             $processed = 0; $matched = 0; $unmatched = 0;
+            // Walk EVERY row missing coordinates — even those where city or
+            // country_code is null — so the GeoIP fallback can recover them.
             $modelClass::query()
-                ->whereNotNull('city')->whereNotNull('country_code')
                 ->where(function ($q) {
                     $q->whereNull('latitude')->orWhereNull('longitude');
                 })
