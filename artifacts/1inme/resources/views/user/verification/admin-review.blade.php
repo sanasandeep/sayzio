@@ -4,7 +4,7 @@
 @section('content')
 <div class="max-w-4xl mx-auto">
     <div class="mb-6">
-        <a href="{{ route('user.verification.admin') }}" class="text-xs font-medium transition-colors hover:text-blue-400" style="color: var(--text-muted);">
+        <a href="{{ route('user.verification.admin') }}" class="text-xs font-medium transition-colors hover:text-violet-400" style="color: var(--text-muted);">
             <i class="fas fa-arrow-left mr-1"></i>Back to Requests
         </a>
         <h1 class="text-2xl font-bold mt-2" style="color: var(--text-primary);">Review Verification Request</h1>
@@ -17,12 +17,12 @@
                     @if($verificationRequest->logo_path)
                     <img src="{{ asset('storage/' . $verificationRequest->logo_path) }}" alt="" class="w-16 h-16 rounded-xl object-cover" style="border: 1px solid var(--border-glass);">
                     @else
-                    <div class="w-16 h-16 rounded-xl flex items-center justify-center" style="background: rgba(27,132,255,0.1);"><i class="fas fa-building text-blue-400 text-xl"></i></div>
+                    <div class="w-16 h-16 rounded-xl flex items-center justify-center" style="background: rgba(124,58,237,0.1);"><i class="fas fa-building text-violet-400 text-xl"></i></div>
                     @endif
                     <div>
                         <h2 class="text-lg font-bold" style="color: var(--text-primary);">{{ $verificationRequest->display_name }}</h2>
                         <div class="flex items-center gap-2 mt-1">
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold {{ $verificationRequest->category === 'artist_creator' ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-500/10 text-blue-400' }}">
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold {{ $verificationRequest->category === 'artist_creator' ? 'bg-violet-500/10 text-violet-400' : 'bg-violet-500/10 text-violet-400' }}">
                                 {{ $verificationRequest->category === 'artist_creator' ? 'Artist / Creator' : 'Business / Product' }}
                             </span>
                             @if($verificationRequest->status === 'pending')
@@ -56,7 +56,7 @@
                         <div>
                             <label class="text-[10px] font-semibold uppercase tracking-wider" style="color: var(--text-dimmed);">Biolink Page</label>
                             <p class="text-sm font-medium mt-0.5" style="color: var(--text-primary);">{{ $verificationRequest->link->title ?? $verificationRequest->link->alias }}</p>
-                            <a href="/{{ $verificationRequest->link->alias }}" target="_blank" class="text-[11px] text-blue-400 hover:underline">/{{ $verificationRequest->link->alias }} <i class="fas fa-external-link-alt text-[9px]"></i></a>
+                            <a href="/{{ $verificationRequest->link->alias }}" target="_blank" class="text-[11px] text-violet-400 hover:underline">/{{ $verificationRequest->link->alias }} <i class="fas fa-external-link-alt text-[9px]"></i></a>
                         </div>
                     </div>
                     <div>
@@ -75,7 +75,7 @@
                         @if(str_ends_with($file, '.pdf'))
                         <i class="fas fa-file-pdf text-red-400"></i>
                         @else
-                        <i class="fas fa-file-image text-blue-400"></i>
+                        <i class="fas fa-file-image text-violet-400"></i>
                         @endif
                         <span class="text-xs font-medium truncate" style="color: var(--text-primary);">{{ basename($file) }}</span>
                         <i class="fas fa-external-link-alt text-[9px] ml-auto" style="color: var(--text-dimmed);"></i>

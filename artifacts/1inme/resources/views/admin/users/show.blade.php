@@ -7,7 +7,7 @@
     <div class="lg:col-span-1">
         <div class="glass rounded-2xl border border-white/10  p-6">
             <div class="text-center">
-                <div class="w-20 h-20 rounded-full bg-blue-500/10 text-blue-300 flex items-center justify-center text-2xl font-bold mx-auto">
+                <div class="w-20 h-20 rounded-full bg-violet-500/10 text-violet-300 flex items-center justify-center text-2xl font-bold mx-auto">
                     {{ substr($user->name, 0, 1) }}
                 </div>
                 <h2 class="mt-4 text-lg font-semibold text-white">{{ $user->name }}</h2>
@@ -46,12 +46,12 @@
                     <div>
                         <label class="block text-sm font-medium text-white/80 mb-1">Name</label>
                         <input type="text" name="name" value="{{ $user->name }}"
-                               class="w-full px-4 py-2.5 border border-white/10 rounded-xl focus:ring-2 focus:ring-blue-500/40 outline-none">
+                               class="w-full px-4 py-2.5 border border-white/10 rounded-xl focus:ring-2 focus:ring-violet-500/40 outline-none">
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-white/80 mb-1">Status</label>
-                            <select name="status" class="w-full px-4 py-2.5 border border-white/10 rounded-xl focus:ring-2 focus:ring-blue-500/40 outline-none">
+                            <select name="status" class="w-full px-4 py-2.5 border border-white/10 rounded-xl focus:ring-2 focus:ring-violet-500/40 outline-none">
                                 <option value="active" {{ $user->status == 'active' ? 'selected' : '' }}>Active</option>
                                 <option value="inactive" {{ $user->status == 'inactive' ? 'selected' : '' }}>Inactive</option>
                                 <option value="banned" {{ $user->status == 'banned' ? 'selected' : '' }}>Banned</option>
@@ -59,7 +59,7 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-white/80 mb-1">Plan</label>
-                            <select name="plan_id" class="w-full px-4 py-2.5 border border-white/10 rounded-xl focus:ring-2 focus:ring-blue-500/40 outline-none">
+                            <select name="plan_id" class="w-full px-4 py-2.5 border border-white/10 rounded-xl focus:ring-2 focus:ring-violet-500/40 outline-none">
                                 <option value="">No Plan</option>
                                 @foreach($plans as $plan)
                                     <option value="{{ $plan->id }}" {{ $user->plan_id == $plan->id ? 'selected' : '' }}>{{ $plan->name }}</option>
@@ -70,9 +70,9 @@
                     <div>
                         <label class="block text-sm font-medium text-white/80 mb-1">Plan Expires At</label>
                         <input type="datetime-local" name="plan_expires_at" value="{{ $user->plan_expires_at?->format('Y-m-d\TH:i') }}"
-                               class="w-full px-4 py-2.5 border border-white/10 rounded-xl focus:ring-2 focus:ring-blue-500/40 outline-none">
+                               class="w-full px-4 py-2.5 border border-white/10 rounded-xl focus:ring-2 focus:ring-violet-500/40 outline-none">
                     </div>
-                    <button type="submit" class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition">
+                    <button type="submit" class="px-6 py-2.5 bg-violet-600 text-white rounded-xl font-medium hover:bg-violet-700 transition">
                         Update User
                     </button>
                 </div>

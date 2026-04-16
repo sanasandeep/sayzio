@@ -47,7 +47,7 @@
         <div class="pt-3" style="border-top: 1px solid var(--border-subtle);">
             <button type="button" @click="showUtm = !showUtm"
                     class="flex items-center gap-2 text-xs font-medium py-1" style="color: var(--text-muted);">
-                <i class="fas fa-tags text-blue-400"></i>
+                <i class="fas fa-tags text-violet-400"></i>
                 <span>UTM Parameters</span>
                 <i :class="showUtm ? 'fa-chevron-up' : 'fa-chevron-down'" class="fas text-[9px] ml-1"></i>
             </button>

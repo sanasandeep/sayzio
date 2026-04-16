@@ -35,27 +35,27 @@
         <div class="flex gap-1 mb-4 p-0.5 rounded-lg" style="background: var(--bg-glass-input);">
             <button type="button" @click="activeStyleTab = 'templates'"
                     :class="activeStyleTab === 'templates' ? 'text-white shadow-sm' : ''"
-                    :style="activeStyleTab === 'templates' ? 'background: linear-gradient(135deg, #3e97ff, #1b84ff);' : 'color: var(--text-faint);'"
+                    :style="activeStyleTab === 'templates' ? 'background: linear-gradient(135deg, #8b5cf6, #7c3aed);' : 'color: var(--text-faint);'"
                     class="flex-1 text-[10px] font-bold py-1.5 rounded-md transition-all">
                 <i class="fas fa-magic mr-1"></i>Presets
             </button>
             @if($showText)
             <button type="button" @click="activeStyleTab = 'typography'"
                     :class="activeStyleTab === 'typography' ? 'text-white shadow-sm' : ''"
-                    :style="activeStyleTab === 'typography' ? 'background: linear-gradient(135deg, #3e97ff, #1b84ff);' : 'color: var(--text-faint);'"
+                    :style="activeStyleTab === 'typography' ? 'background: linear-gradient(135deg, #8b5cf6, #7c3aed);' : 'color: var(--text-faint);'"
                     class="flex-1 text-[10px] font-bold py-1.5 rounded-md transition-all">
                 <i class="fas fa-font mr-1"></i>Text
             </button>
             @endif
             <button type="button" @click="activeStyleTab = 'appearance'"
                     :class="activeStyleTab === 'appearance' ? 'text-white shadow-sm' : ''"
-                    :style="activeStyleTab === 'appearance' ? 'background: linear-gradient(135deg, #3e97ff, #1b84ff);' : 'color: var(--text-faint);'"
+                    :style="activeStyleTab === 'appearance' ? 'background: linear-gradient(135deg, #8b5cf6, #7c3aed);' : 'color: var(--text-faint);'"
                     class="flex-1 text-[10px] font-bold py-1.5 rounded-md transition-all">
                 <i class="fas fa-palette mr-1"></i>Look
             </button>
             <button type="button" @click="activeStyleTab = 'spacing'"
                     :class="activeStyleTab === 'spacing' ? 'text-white shadow-sm' : ''"
-                    :style="activeStyleTab === 'spacing' ? 'background: linear-gradient(135deg, #3e97ff, #1b84ff);' : 'color: var(--text-faint);'"
+                    :style="activeStyleTab === 'spacing' ? 'background: linear-gradient(135deg, #8b5cf6, #7c3aed);' : 'color: var(--text-faint);'"
                     class="flex-1 text-[10px] font-bold py-1.5 rounded-md transition-all">
                 <i class="fas fa-arrows-alt mr-1"></i>Layout
             </button>
@@ -68,10 +68,10 @@
             <div class="grid grid-cols-2 gap-2">
                 @foreach($templates as $tKey => $tpl)
                 <button type="button" class="p-3 rounded-xl text-left transition-all hover:scale-[1.03] relative"
-                        :style="selectedTemplate === '{{ $tKey }}' ? 'background: rgba(27,132,255,0.12); border: 2px solid rgba(27,132,255,0.6); box-shadow: 0 0 12px rgba(27,132,255,0.15);' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass);'"
+                        :style="selectedTemplate === '{{ $tKey }}' ? 'background: rgba(124,58,237,0.12); border: 2px solid rgba(124,58,237,0.6); box-shadow: 0 0 12px rgba(124,58,237,0.15);' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass);'"
                         @click="selectedTemplate = '{{ $tKey }}'; applyBlockTemplate('{{ $tKey }}', $el)">
                     <div class="absolute top-1.5 right-1.5 w-5 h-5 rounded-full flex items-center justify-center transition-all"
-                         :style="selectedTemplate === '{{ $tKey }}' ? 'background: #3e97ff; opacity: 1;' : 'opacity: 0;'">
+                         :style="selectedTemplate === '{{ $tKey }}' ? 'background: #8b5cf6; opacity: 1;' : 'opacity: 0;'">
                         <i class="fas fa-check text-white text-[8px]"></i>
                     </div>
                     <div class="flex items-center gap-2 mb-1.5">
@@ -136,11 +136,11 @@
             <div>
                 <label class="{{ $labelClass }}">Display Mode</label>
                 <div class="grid grid-cols-2 gap-2" x-data="{ mode: '{{ $st['display_mode'] ?? 'card' }}' }">
-                    <label class="flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all text-xs font-medium" :style="mode === 'card' ? 'background: rgba(27,132,255,0.1); border: 1px solid rgba(27,132,255,0.3); color: #3e97ff;' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);'">
+                    <label class="flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all text-xs font-medium" :style="mode === 'card' ? 'background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.3); color: #8b5cf6;' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);'">
                         <input type="radio" name="style[display_mode]" value="card" x-model="mode" class="hidden">
                         <i class="fas fa-square text-xs"></i> Card
                     </label>
-                    <label class="flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all text-xs font-medium" :style="mode === 'content' ? 'background: rgba(27,132,255,0.1); border: 1px solid rgba(27,132,255,0.3); color: #3e97ff;' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);'">
+                    <label class="flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all text-xs font-medium" :style="mode === 'content' ? 'background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.3); color: #8b5cf6;' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);'">
                         <input type="radio" name="style[display_mode]" value="content" x-model="mode" class="hidden">
                         <i class="fas fa-align-left text-xs"></i> Content Only
                     </label>
@@ -161,13 +161,13 @@
             <div x-data="{ effect: '{{ $st['effect'] ?? 'none' }}' }">
                 <label class="{{ $labelClass }}">Effect</label>
                 <div class="grid grid-cols-3 gap-2">
-                    <label class="flex items-center justify-center gap-1.5 p-2 rounded-lg cursor-pointer transition-all text-[10px] font-bold" :style="effect === 'none' ? 'background: rgba(27,132,255,0.1); border: 1px solid rgba(27,132,255,0.3); color: #3e97ff;' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);'">
+                    <label class="flex items-center justify-center gap-1.5 p-2 rounded-lg cursor-pointer transition-all text-[10px] font-bold" :style="effect === 'none' ? 'background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.3); color: #8b5cf6;' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);'">
                         <input type="radio" name="style[effect]" value="none" x-model="effect" class="hidden"> None
                     </label>
-                    <label class="flex items-center justify-center gap-1.5 p-2 rounded-lg cursor-pointer transition-all text-[10px] font-bold" :style="effect === 'glass' ? 'background: rgba(27,132,255,0.1); border: 1px solid rgba(27,132,255,0.3); color: #3e97ff;' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);'">
+                    <label class="flex items-center justify-center gap-1.5 p-2 rounded-lg cursor-pointer transition-all text-[10px] font-bold" :style="effect === 'glass' ? 'background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.3); color: #8b5cf6;' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);'">
                         <input type="radio" name="style[effect]" value="glass" x-model="effect" class="hidden"> <i class="fas fa-gem text-[8px]"></i> Glass
                     </label>
-                    <label class="flex items-center justify-center gap-1.5 p-2 rounded-lg cursor-pointer transition-all text-[10px] font-bold" :style="effect === 'gradient_border' ? 'background: rgba(27,132,255,0.1); border: 1px solid rgba(27,132,255,0.3); color: #3e97ff;' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);'">
+                    <label class="flex items-center justify-center gap-1.5 p-2 rounded-lg cursor-pointer transition-all text-[10px] font-bold" :style="effect === 'gradient_border' ? 'background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.3); color: #8b5cf6;' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);'">
                         <input type="radio" name="style[effect]" value="gradient_border" x-model="effect" class="hidden"> <i class="fas fa-circle-notch text-[8px]"></i> Gradient
                     </label>
                 </div>
@@ -267,7 +267,7 @@
                     <label class="flex flex-col items-center cursor-pointer" @click="gridSpan = '{{ $gv }}'">
                         <input type="radio" name="style[grid_span]" value="{{ $gv }}" {{ ($st['grid_span'] ?? 12) == $gv ? 'checked' : '' }} class="hidden">
                         <span class="w-full text-center text-[10px] font-bold py-1.5 rounded-lg border transition-all"
-                              :style="gridSpan == '{{ $gv }}' ? 'background: rgba(27,132,255,0.15); border-color: rgba(27,132,255,0.3); color: #7fbbff;' : 'background: transparent; border-color: transparent; color: var(--text-faint);'">{{ $gl }}</span>
+                              :style="gridSpan == '{{ $gv }}' ? 'background: rgba(124,58,237,0.15); border-color: rgba(124,58,237,0.3); color: #a78bfa;' : 'background: transparent; border-color: transparent; color: var(--text-faint);'">{{ $gl }}</span>
                     </label>
                     @endforeach
                 </div>

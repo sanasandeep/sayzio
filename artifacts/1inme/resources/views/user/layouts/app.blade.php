@@ -14,7 +14,7 @@
                 extend: {
                     fontFamily: { sans: ['Space Grotesk', 'system-ui', 'sans-serif'] },
                     colors: {
-                        primary: { 50:'#eff6ff',100:'#dbeafe',200:'#bfdbfe',300:'#93c5fd',400:'#60a5fa',500:'#3e97ff',600:'#1b84ff',700:'#0065d4',800:'#0c4ea2',900:'#0c2f5a' },
+                        primary: { 50:'#eff6ff',100:'#dbeafe',200:'#bfdbfe',300:'#c4b5fd',400:'#a78bfa',500:'#8b5cf6',600:'#7c3aed',700:'#6d28d9',800:'#5b21b6',900:'#4c1d95' },
                     }
                 }
             }
@@ -93,7 +93,7 @@
             left: 0;
             right: 0;
             height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(27,132,255,0.3) 30%, rgba(62,151,255,0.5) 50%, rgba(27,132,255,0.3) 70%, transparent);
+            background: linear-gradient(90deg, transparent, rgba(124,58,237,0.3) 30%, rgba(139,92,246,0.5) 50%, rgba(124,58,237,0.3) 70%, transparent);
             opacity: 0.6;
         }
 
@@ -115,8 +115,8 @@
         .header-search-box input::placeholder { color: var(--text-faint); }
         .header-search-box input:focus {
             width: 280px;
-            border-color: rgba(27,132,255,0.3);
-            box-shadow: 0 0 0 3px rgba(27,132,255,0.08);
+            border-color: rgba(124,58,237,0.3);
+            box-shadow: 0 0 0 3px rgba(124,58,237,0.08);
             background: var(--bg-glass-input-focus);
         }
         .header-search-box i {
@@ -156,8 +156,8 @@
             width: 6px;
             height: 6px;
             border-radius: 50%;
-            background: #3e97ff;
-            box-shadow: 0 0 6px rgba(27,132,255,0.6);
+            background: #8b5cf6;
+            box-shadow: 0 0 6px rgba(124,58,237,0.6);
         }
 
         .header-breadcrumb {
@@ -217,7 +217,7 @@
         .user-avatar-ring {
             padding: 2px;
             border-radius: 12px;
-            background: linear-gradient(135deg, #3e97ff, #7fbbff, #1b84ff);
+            background: linear-gradient(135deg, #8b5cf6, #a78bfa, #7c3aed);
             display: inline-flex;
         }
         .user-avatar-ring .inner {
@@ -261,9 +261,9 @@
             transition: all .18s ease;
             text-decoration: none;
         }
-        .hero-back:hover { background: rgba(27,132,255,0.18); color: #fff; transform: translateX(-2px); border-color: rgba(27,132,255,0.4); }
-        html.light-mode .hero-back { background: rgba(255,255,255,0.7); color: #0c2f5a; }
-        html.light-mode .hero-back:hover { background: rgba(27,132,255,0.14); color: #0c2f5a; }
+        .hero-back:hover { background: rgba(124,58,237,0.18); color: #fff; transform: translateX(-2px); border-color: rgba(124,58,237,0.4); }
+        html.light-mode .hero-back { background: rgba(255,255,255,0.7); color: #4c1d95; }
+        html.light-mode .hero-back:hover { background: rgba(124,58,237,0.14); color: #4c1d95; }
 
         /* ----- Emblem (favicon / letter avatar) ----- */
         .hero-emblem {
@@ -316,22 +316,22 @@
             display: inline-flex; align-items: center; gap: 8px;
             margin-top: 10px;
             padding: 6px 10px 6px 12px;
-            background: rgba(27,132,255,0.10);
-            border: 1px solid rgba(27,132,255,0.22);
+            background: rgba(124,58,237,0.10);
+            border: 1px solid rgba(124,58,237,0.22);
             border-radius: 999px;
             max-width: 100%;
             font-size: 12.5px;
         }
-        html.light-mode .hero-url { background: rgba(27,132,255,0.07); border-color: rgba(27,132,255,0.20); }
-        .hero-url-icon { font-size: 10px; color: #7fbbff; }
-        html.light-mode .hero-url-icon { color: #1b84ff; }
+        html.light-mode .hero-url { background: rgba(124,58,237,0.07); border-color: rgba(124,58,237,0.20); }
+        .hero-url-icon { font-size: 10px; color: #a78bfa; }
+        html.light-mode .hero-url-icon { color: #7c3aed; }
         .hero-url-text {
             color: var(--text-primary); font-weight: 600;
             text-decoration: none;
             min-width: 0;
         }
-        .hero-url-text:hover { color: #7fbbff; }
-        html.light-mode .hero-url-text:hover { color: #0065d4; }
+        .hero-url-text:hover { color: #a78bfa; }
+        html.light-mode .hero-url-text:hover { color: #6d28d9; }
         .hero-url-btn {
             display: inline-flex; align-items: center; justify-content: center;
             width: 24px; height: 24px; border-radius: 8px;
@@ -341,8 +341,8 @@
             transition: all .15s ease;
             font-size: 10px;
         }
-        .hero-url-btn:hover { background: rgba(27,132,255,0.16); color: #bfdcff; }
-        html.light-mode .hero-url-btn:hover { background: rgba(27,132,255,0.12); color: #0065d4; }
+        .hero-url-btn:hover { background: rgba(124,58,237,0.16); color: #ddd6fe; }
+        html.light-mode .hero-url-btn:hover { background: rgba(124,58,237,0.12); color: #6d28d9; }
 
         @media (max-width: 640px) {
             .page-hero { padding: 16px 18px 16px 22px; border-radius: 18px; }
@@ -396,7 +396,7 @@
                         <span class="text-white text-sm font-bold">1</span>
                     </div>
                     <span class="text-lg font-bold tracking-tight logo-text">
-                        <span style="color: var(--text-primary);">1IN</span><span class="text-blue-400">ME</span>
+                        <span style="color: var(--text-primary);">1IN</span><span class="text-violet-400">ME</span>
                     </span>
                 </a>
                 <template x-if="sidebarMode === 'icons'">
@@ -504,13 +504,13 @@
                 <div class="upgrade-card">
                     <div class="relative z-10 upgrade-inner">
                         <div class="flex items-center gap-2 mb-2">
-                            <div class="w-6 h-6 rounded-lg bg-blue-500 flex items-center justify-center">
+                            <div class="w-6 h-6 rounded-lg bg-violet-500 flex items-center justify-center">
                                 <i class="fas fa-gem text-white text-[8px]"></i>
                             </div>
                             <span class="text-xs font-bold" style="color: var(--text-primary);">{{ auth()->user()->plan->name ?? 'Free' }} Plan</span>
                         </div>
                         <p class="text-[10px] mb-3 leading-relaxed" style="color: var(--text-dimmed);">Unlock analytics, custom domains & more.</p>
-                        <a href="#" class="block text-center text-[10px] font-bold uppercase tracking-wider py-2 rounded-lg text-white transition-all bg-blue-600 hover:shadow-lg hover:shadow">
+                        <a href="#" class="block text-center text-[10px] font-bold uppercase tracking-wider py-2 rounded-lg text-white transition-all bg-violet-600 hover:shadow-lg hover:shadow">
                             Upgrade
                         </a>
                     </div>
@@ -630,7 +630,7 @@
                             <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: var(--accent);">
                                 <span class="text-white text-[10px] font-bold">1</span>
                             </div>
-                            <span class="text-base font-bold"><span style="color: var(--text-primary);">1IN</span><span class="text-blue-400">ME</span></span>
+                            <span class="text-base font-bold"><span style="color: var(--text-primary);">1IN</span><span class="text-violet-400">ME</span></span>
                         </div>
                         <button @click="mobileMenu = false" class="p-1.5 rounded-lg" style="color: var(--text-muted);"><i class="fas fa-times text-sm"></i></button>
                     </div>
@@ -686,7 +686,7 @@
                     </div>
                 @endif
                 @if(session('info'))
-                    <div class="mb-4 p-3.5 rounded-xl text-blue-400 text-xs font-medium flex items-center gap-2.5" style="border: 1px solid rgba(27,132,255,0.15); background: rgba(27,132,255,0.06);">
+                    <div class="mb-4 p-3.5 rounded-xl text-violet-400 text-xs font-medium flex items-center gap-2.5" style="border: 1px solid rgba(124,58,237,0.15); background: rgba(124,58,237,0.06);">
                         <i class="fas fa-info-circle"></i> {{ session('info') }}
                     </div>
                 @endif

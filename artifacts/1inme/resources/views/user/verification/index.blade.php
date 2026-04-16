@@ -8,7 +8,7 @@
             <h1 class="text-2xl font-bold" style="color: var(--text-primary);">Verification</h1>
             <p class="text-sm mt-1" style="color: var(--text-muted);">Get a verified badge on your biolink pages</p>
         </div>
-        <a href="{{ route('user.verification.request') }}" class="px-4 py-2 rounded-xl text-sm font-medium text-white transition-all hover:-translate-y-0.5" style="background: linear-gradient(135deg, #1b84ff, #3e97ff);">
+        <a href="{{ route('user.verification.request') }}" class="px-4 py-2 rounded-xl text-sm font-medium text-white transition-all hover:-translate-y-0.5" style="background: linear-gradient(135deg, #7c3aed, #8b5cf6);">
             <i class="fas fa-plus mr-1.5"></i>Request Verification
         </a>
     </div>
@@ -27,7 +27,7 @@
     <div class="card-premium p-6 mb-6">
         <div class="flex items-start gap-4 mb-4">
             <div class="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style="background: rgba(59,130,246,0.1);">
-                <i class="fas fa-shield-alt text-blue-400 text-lg"></i>
+                <i class="fas fa-shield-alt text-violet-400 text-lg"></i>
             </div>
             <div>
                 <h3 class="font-bold text-sm mb-1" style="color: var(--text-primary);">Why get verified?</h3>
@@ -37,14 +37,14 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div class="p-3 rounded-xl" style="background: rgba(59,130,246,0.05); border: 1px solid rgba(59,130,246,0.1);">
                 <div class="flex items-center gap-2 mb-1">
-                    <i class="fas fa-check-circle text-blue-400 text-xs"></i>
+                    <i class="fas fa-check-circle text-violet-400 text-xs"></i>
                     <span class="text-xs font-semibold" style="color: var(--text-primary);">Build Trust</span>
                 </div>
                 <p class="text-[10px]" style="color: var(--text-dimmed);">Show visitors your page is authentic</p>
             </div>
-            <div class="p-3 rounded-xl" style="background: rgba(27,132,255,0.05); border: 1px solid rgba(27,132,255,0.1);">
+            <div class="p-3 rounded-xl" style="background: rgba(124,58,237,0.05); border: 1px solid rgba(124,58,237,0.1);">
                 <div class="flex items-center gap-2 mb-1">
-                    <i class="fas fa-lock text-blue-400 text-xs"></i>
+                    <i class="fas fa-lock text-violet-400 text-xs"></i>
                     <span class="text-xs font-semibold" style="color: var(--text-primary);">Protected Identity</span>
                 </div>
                 <p class="text-[10px]" style="color: var(--text-dimmed);">Page name locked to prevent impersonation</p>
@@ -68,12 +68,12 @@
                     @if($req->logo_path)
                     <img src="{{ asset('storage/' . $req->logo_path) }}" alt="" class="w-12 h-12 rounded-xl object-cover" style="border: 1px solid var(--border-glass);">
                     @else
-                    <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background: rgba(27,132,255,0.1);"><i class="fas fa-building text-blue-400"></i></div>
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background: rgba(124,58,237,0.1);"><i class="fas fa-building text-violet-400"></i></div>
                     @endif
                     <div>
                         <div class="flex items-center gap-2 mb-0.5">
                             <span class="text-sm font-bold" style="color: var(--text-primary);">{{ $req->display_name }}</span>
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold {{ $req->category === 'artist_creator' ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-500/10 text-blue-400' }}">
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold {{ $req->category === 'artist_creator' ? 'bg-violet-500/10 text-violet-400' : 'bg-violet-500/10 text-violet-400' }}">
                                 {{ $req->category === 'artist_creator' ? 'Artist / Creator' : 'Business / Product' }}
                             </span>
                         </div>
@@ -103,12 +103,12 @@
     </div>
     @else
     <div class="card-premium p-10 text-center">
-        <div class="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center" style="background: rgba(27,132,255,0.1);">
-            <i class="fas fa-check-circle text-blue-400 text-2xl"></i>
+        <div class="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center" style="background: rgba(124,58,237,0.1);">
+            <i class="fas fa-check-circle text-violet-400 text-2xl"></i>
         </div>
         <h3 class="text-sm font-bold mb-1" style="color: var(--text-primary);">No verification requests yet</h3>
         <p class="text-xs mb-4" style="color: var(--text-dimmed);">Submit a verification request to get the blue badge on your biolink page.</p>
-        <a href="{{ route('user.verification.request') }}" class="inline-flex items-center px-4 py-2 rounded-xl text-sm font-medium text-white transition-all hover:-translate-y-0.5" style="background: linear-gradient(135deg, #1b84ff, #3e97ff);">
+        <a href="{{ route('user.verification.request') }}" class="inline-flex items-center px-4 py-2 rounded-xl text-sm font-medium text-white transition-all hover:-translate-y-0.5" style="background: linear-gradient(135deg, #7c3aed, #8b5cf6);">
             <i class="fas fa-plus mr-1.5"></i>Request Verification
         </a>
     </div>

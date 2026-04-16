@@ -8,7 +8,7 @@
     $sevMap = [
         'critical' => ['bg' => 'rgba(239,68,68,0.12)',  'border' => 'rgba(239,68,68,0.35)',  'color' => '#fca5a5', 'icon' => 'fa-triangle-exclamation'],
         'warning'  => ['bg' => 'rgba(245,158,11,0.12)', 'border' => 'rgba(245,158,11,0.35)', 'color' => '#fcd34d', 'icon' => 'fa-circle-exclamation'],
-        'tip'      => ['bg' => 'rgba(59,130,246,0.12)', 'border' => 'rgba(59,130,246,0.35)', 'color' => '#93c5fd', 'icon' => 'fa-lightbulb'],
+        'tip'      => ['bg' => 'rgba(59,130,246,0.12)', 'border' => 'rgba(59,130,246,0.35)', 'color' => '#c4b5fd', 'icon' => 'fa-lightbulb'],
         'win'      => ['bg' => 'rgba(16,185,129,0.12)', 'border' => 'rgba(16,185,129,0.35)', 'color' => '#6ee7b7', 'icon' => 'fa-circle-check'],
     ];
     $deltaPct = $p['delta_pct'] ?? null;
@@ -58,9 +58,9 @@
         }
     }
     $componentMeta = [
-        'ctr'        => ['label' => 'CTR',        'color' => '#60a5fa'],
+        'ctr'        => ['label' => 'CTR',        'color' => '#a78bfa'],
         'bounce'     => ['label' => 'Bounce',     'color' => '#f472b6'],
-        'engagement' => ['label' => 'Engagement', 'color' => '#7fbbff'],
+        'engagement' => ['label' => 'Engagement', 'color' => '#a78bfa'],
         'momentum'   => ['label' => 'Momentum',   'color' => '#34d399'],
         'diversity'  => ['label' => 'Diversity',  'color' => '#fbbf24'],
         'activity'   => ['label' => 'Activity',   'color' => '#f87171'],
@@ -121,7 +121,7 @@
             </div>
             <div class="flex-1 min-w-0">
                 <div class="text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">
-                    <i class="fas fa-wand-magic-sparkles text-blue-400"></i> {{ $p['headline'] }}
+                    <i class="fas fa-wand-magic-sparkles text-violet-400"></i> {{ $p['headline'] }}
                 </div>
                 <div class="text-lg font-semibold mt-0.5" style="color: var(--text-primary);">{{ $p['label'] }}</div>
                 @if(!empty($sparkPoints))
@@ -533,7 +533,7 @@
     }
     .perf-coach .pc-preset-card:hover { background: rgba(255,255,255,0.05); }
     .perf-coach .pc-preset-card.is-active {
-        border-color: rgba(62,151,255,0.6); background: rgba(62,151,255,0.08);
+        border-color: rgba(139,92,246,0.6); background: rgba(139,92,246,0.08);
     }
     .perf-coach .pc-preset-top {
         display: flex; align-items: center; gap: 8px; margin-bottom: 4px;
@@ -574,8 +574,8 @@
         font-size: 13px; font-weight: 600; text-transform: none; letter-spacing: 0;
     }
     .perf-coach .pc-field-row input[type="number"]:focus {
-        outline: none; border-color: rgba(62,151,255,0.55);
-        box-shadow: 0 0 0 2px rgba(62,151,255,0.15);
+        outline: none; border-color: rgba(139,92,246,0.55);
+        box-shadow: 0 0 0 2px rgba(139,92,246,0.15);
     }
     .perf-coach .pc-settings-foot {
         display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px;
@@ -593,8 +593,8 @@
     }
     .perf-coach .pc-btn-ghost:hover { background: rgba(255,255,255,0.05); color: var(--text-primary, #fff); }
     .perf-coach .pc-btn-save {
-        background: linear-gradient(135deg, rgba(62,151,255,0.9), rgba(99,102,241,0.9));
-        color: #fff; border-color: rgba(62,151,255,0.6);
+        background: linear-gradient(135deg, rgba(139,92,246,0.9), rgba(99,102,241,0.9));
+        color: #fff; border-color: rgba(139,92,246,0.6);
     }
     .perf-coach .pc-btn-save:hover { filter: brightness(1.1); }
     [x-cloak] { display: none !important; }

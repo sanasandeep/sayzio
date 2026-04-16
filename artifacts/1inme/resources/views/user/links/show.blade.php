@@ -38,39 +38,39 @@
     }
     .pill:hover { background: var(--bg-glass-hover); color: var(--text-primary); transform: translateY(-1px); }
     .pill-active {
-        background: linear-gradient(135deg, #1b84ff, #3e97ff);
+        background: linear-gradient(135deg, #7c3aed, #8b5cf6);
         color: #fff !important;
-        box-shadow: 0 6px 18px rgba(27,132,255,0.4);
+        box-shadow: 0 6px 18px rgba(124,58,237,0.4);
     }
     .pill-active-soft {
-        background: rgba(27,132,255,0.18);
-        border: 1px solid rgba(27,132,255,0.4);
-        color: #bfdcff !important;
+        background: rgba(124,58,237,0.18);
+        border: 1px solid rgba(124,58,237,0.4);
+        color: #ddd6fe !important;
     }
-    html.light-mode .pill-active-soft { color: #0065d4 !important; background: rgba(27,132,255,0.14); }
+    html.light-mode .pill-active-soft { color: #6d28d9 !important; background: rgba(124,58,237,0.14); }
 
     /* ============ Stat Tile ============ */
     .stat-tile {
         position: relative;
         padding: 18px 18px 16px;
         border-radius: 20px;
-        background: linear-gradient(160deg, var(--tile-bg-from, rgba(27,132,255,0.10)) 0%, var(--bg-glass) 70%);
-        border: 1px solid var(--tile-border, rgba(27,132,255,0.22));
+        background: linear-gradient(160deg, var(--tile-bg-from, rgba(124,58,237,0.10)) 0%, var(--bg-glass) 70%);
+        border: 1px solid var(--tile-border, rgba(124,58,237,0.22));
         overflow: hidden;
         transition: transform .25s ease, box-shadow .25s ease;
     }
     .stat-tile:hover {
         transform: translateY(-3px);
-        box-shadow: 0 18px 48px rgba(0,0,0,0.28), 0 0 32px var(--tile-glow, rgba(27,132,255,0.18));
+        box-shadow: 0 18px 48px rgba(0,0,0,0.28), 0 0 32px var(--tile-glow, rgba(124,58,237,0.18));
     }
     .stat-tile::before {
         content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-        background: var(--tile-accent, linear-gradient(90deg, #3e97ff, #7fbbff));
+        background: var(--tile-accent, linear-gradient(90deg, #8b5cf6, #a78bfa));
     }
     .stat-tile::after {
         content: ""; position: absolute; right: -30px; bottom: -30px;
         width: 120px; height: 120px; border-radius: 50%;
-        background: var(--tile-accent, linear-gradient(135deg,#3e97ff,#7fbbff));
+        background: var(--tile-accent, linear-gradient(135deg,#8b5cf6,#a78bfa));
         opacity: 0.08; filter: blur(20px); pointer-events: none;
     }
     .stat-tile-head {
@@ -84,13 +84,13 @@
     .stat-tile-icon {
         width: 32px; height: 32px; border-radius: 10px;
         display: flex; align-items: center; justify-content: center;
-        background: var(--tile-accent, linear-gradient(135deg,#3e97ff,#7fbbff));
+        background: var(--tile-accent, linear-gradient(135deg,#8b5cf6,#a78bfa));
         color: #fff; font-size: 12px;
-        box-shadow: 0 8px 20px var(--tile-glow, rgba(27,132,255,0.35)), inset 0 1px 0 rgba(255,255,255,0.25);
+        box-shadow: 0 8px 20px var(--tile-glow, rgba(124,58,237,0.35)), inset 0 1px 0 rgba(255,255,255,0.25);
     }
     .stat-tile-value {
         font-size: 26px; font-weight: 800; line-height: 1.05;
-        background: var(--tile-accent, linear-gradient(135deg,#3e97ff,#7fbbff));
+        background: var(--tile-accent, linear-gradient(135deg,#8b5cf6,#a78bfa));
         -webkit-background-clip: text; background-clip: text; color: transparent;
         letter-spacing: -0.02em;
     }
@@ -108,7 +108,7 @@
         backdrop-filter: blur(20px);
         transition: transform .2s ease, border-color .2s ease;
     }
-    .kpi-hero:hover { transform: translateY(-2px); border-color: rgba(27,132,255,0.25); }
+    .kpi-hero:hover { transform: translateY(-2px); border-color: rgba(124,58,237,0.25); }
     .kpi-hero-head {
         display: flex; align-items: center; justify-content: space-between;
         margin-bottom: 10px;
@@ -120,7 +120,7 @@
     .kpi-hero-icon {
         width: 28px; height: 28px; border-radius: 9px;
         display: flex; align-items: center; justify-content: center;
-        background: rgba(27,132,255,0.1);
+        background: rgba(124,58,237,0.1);
         color: var(--accent);
         font-size: 11px;
     }
@@ -191,7 +191,7 @@
         backdrop-filter: blur(14px);
         transition: all .18s ease;
     }
-    .cmp-tile:hover { border-color: rgba(62,151,255,0.35); transform: translateY(-1px); }
+    .cmp-tile:hover { border-color: rgba(139,92,246,0.35); transform: translateY(-1px); }
     .cmp-tile-head {
         font-size: 10px; font-weight: 700;
         text-transform: uppercase; letter-spacing: 0.08em;
@@ -199,7 +199,7 @@
         display: flex; align-items: center; gap: 6px;
         margin-bottom: 8px;
     }
-    .cmp-tile-head i { font-size: 10px; color: #3e97ff; }
+    .cmp-tile-head i { font-size: 10px; color: #8b5cf6; }
     .cmp-tile-row {
         display: flex; align-items: center; justify-content: space-between;
         gap: 8px;
@@ -249,7 +249,7 @@
     }
     .section-card::before {
         content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-        background: var(--sc-accent, linear-gradient(90deg, #3e97ff, #7fbbff));
+        background: var(--sc-accent, linear-gradient(90deg, #8b5cf6, #a78bfa));
         opacity: 0.7;
     }
     .section-head {
@@ -264,19 +264,19 @@
         width: 36px; height: 36px; border-radius: 12px;
         display: flex; align-items: center; justify-content: center;
         color: #fff; font-size: 13px;
-        background: var(--sc-accent, linear-gradient(135deg, #3e97ff, #7fbbff));
-        box-shadow: 0 8px 22px var(--sc-glow, rgba(27,132,255,0.35)), inset 0 1px 0 rgba(255,255,255,0.25);
+        background: var(--sc-accent, linear-gradient(135deg, #8b5cf6, #a78bfa));
+        box-shadow: 0 8px 22px var(--sc-glow, rgba(124,58,237,0.35)), inset 0 1px 0 rgba(255,255,255,0.25);
     }
     .section-pill {
         font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 999px;
-        background: var(--sc-glow, rgba(27,132,255,0.12));
-        color: var(--sc-color, #bfdcff);
-        border: 1px solid var(--sc-border, rgba(27,132,255,0.25));
+        background: var(--sc-glow, rgba(124,58,237,0.12));
+        color: var(--sc-color, #ddd6fe);
+        border: 1px solid var(--sc-border, rgba(124,58,237,0.25));
     }
     html.light-mode .section-pill {
-        background: rgba(27,132,255,0.10);
-        color: #0065d4;
-        border-color: rgba(27,132,255,0.25);
+        background: rgba(124,58,237,0.10);
+        color: #6d28d9;
+        border-color: rgba(124,58,237,0.25);
     }
     /* Light-mode overrides for inline pastel text colors so badges stay legible on white cards */
     html.light-mode [style*="color: #86efac"],
@@ -285,12 +285,12 @@
     html.light-mode [style*="color:#d8b4fe"]   { color: #6b21a8 !important; }   /* violet badge */
     html.light-mode [style*="color: #5eead4"],
     html.light-mode [style*="color:#5eead4"]   { color: #0f766e !important; }   /* teal badge */
-    html.light-mode [style*="color: #bfdcff"],
-    html.light-mode [style*="color:#bfdcff"]   { color: #5b21b6 !important; }
+    html.light-mode [style*="color: #ddd6fe"],
+    html.light-mode [style*="color:#ddd6fe"]   { color: #5b21b6 !important; }
     html.light-mode [style*="color: #a5b4fc"],
     html.light-mode [style*="color:#a5b4fc"]   { color: #3730a3 !important; }
-    html.light-mode [style*="color: #93c5fd"],
-    html.light-mode [style*="color:#93c5fd"]   { color: #1d4ed8 !important; }
+    html.light-mode [style*="color: #c4b5fd"],
+    html.light-mode [style*="color:#c4b5fd"]   { color: #1d4ed8 !important; }
     html.light-mode [style*="color: #f9a8d4"],
     html.light-mode [style*="color:#f9a8d4"]   { color: #be185d !important; }
     html.light-mode [style*="color: #fcd34d"],
@@ -339,8 +339,8 @@
     }
     .bar-fill {
         position: absolute; top: 0; left: 0; bottom: 0; border-radius: 999px;
-        background: var(--bar-color, linear-gradient(90deg, #3e97ff, #ec4899));
-        box-shadow: 0 0 12px var(--bar-glow, rgba(27,132,255,0.5));
+        background: var(--bar-color, linear-gradient(90deg, #8b5cf6, #ec4899));
+        box-shadow: 0 0 12px var(--bar-glow, rgba(124,58,237,0.5));
     }
 
     /* List rows with progress bar (referrers, UTM) */
@@ -357,7 +357,7 @@
     .progress-row::before {
         content: ""; position: absolute; left: 0; top: 0; bottom: 0;
         width: var(--pr-width, 0%);
-        background: var(--pr-color, linear-gradient(90deg, rgba(27,132,255,0.18), rgba(236,72,153,0.10)));
+        background: var(--pr-color, linear-gradient(90deg, rgba(124,58,237,0.18), rgba(236,72,153,0.10)));
         z-index: 0;
     }
     .progress-row > * { position: relative; z-index: 1; }
@@ -381,7 +381,7 @@
         color: var(--text-muted);
         transition: all .2s ease;
     }
-    .table-action:hover { background: linear-gradient(135deg,#1b84ff,#3e97ff); color: #fff; border-color: transparent; box-shadow: 0 6px 18px rgba(27,132,255,0.4); }
+    .table-action:hover { background: linear-gradient(135deg,#7c3aed,#8b5cf6); color: #fff; border-color: transparent; box-shadow: 0 6px 18px rgba(124,58,237,0.4); }
 
     .stat-tile-value-sm { font-size: 22px; }
     @media (max-width: 640px) {
@@ -433,12 +433,12 @@
 {{-- ===================== PERIOD CONTROLS ===================== --}}
 <div class="period-bar mb-6">
     <div class="flex flex-wrap items-center gap-2">
-        <span class="text-[10px] uppercase tracking-wider font-bold mr-1" style="color: var(--text-faint);"><i class="fas fa-clock text-blue-400"></i> Period</span>
+        <span class="text-[10px] uppercase tracking-wider font-bold mr-1" style="color: var(--text-faint);"><i class="fas fa-clock text-violet-400"></i> Period</span>
         @foreach(['today'=>'Today','7d'=>'7d','30d'=>'30d','90d'=>'90d','year'=>'Year','all'=>'All'] as $k=>$lbl)
             <a href="{{ $buildUrl(['period'=>$k]) }}" class="pill {{ ($period ?? '30d')===$k ? 'pill-active' : '' }}">{{ $lbl }}</a>
         @endforeach
         <span class="mx-3 h-5 w-px" style="background: var(--border-glass);"></span>
-        <span class="text-[10px] uppercase tracking-wider font-bold mr-1" style="color: var(--text-faint);"><i class="fas fa-layer-group text-blue-400"></i> Group</span>
+        <span class="text-[10px] uppercase tracking-wider font-bold mr-1" style="color: var(--text-faint);"><i class="fas fa-layer-group text-violet-400"></i> Group</span>
         @foreach(['day'=>'Day','week'=>'Week','month'=>'Month','year'=>'Year'] as $k=>$lbl)
             <a href="{{ $buildUrl(['group'=>$k]) }}" class="pill {{ ($groupBy ?? 'day')===$k ? 'pill-active-soft' : '' }}">{{ $lbl }}</a>
         @endforeach
@@ -457,7 +457,7 @@
 @if(count($availableAliases ?? []) > 1)
 {{-- ===================== ALIAS FILTER ===================== --}}
 <div class="glass rounded-2xl px-4 py-3 mb-3 flex flex-wrap items-center gap-2">
-    <span class="text-[10px] uppercase tracking-wider font-bold mr-1" style="color: var(--text-faint);"><i class="fas fa-link text-blue-400"></i> Alias</span>
+    <span class="text-[10px] uppercase tracking-wider font-bold mr-1" style="color: var(--text-faint);"><i class="fas fa-link text-violet-400"></i> Alias</span>
     <a href="{{ $buildUrl(['alias' => null]) }}" class="pill {{ empty($aliasFilter) ? 'pill-active' : '' }}">All</a>
     @foreach($availableAliases as $al)
         @php $isPrimary = ($al === $link->alias); $count = optional($aliasBreakdown->firstWhere('alias', $al))->total ?? 0; @endphp
@@ -497,7 +497,7 @@
 </div>
 
 {{-- ===================== PRIMARY KPIs (3 hero numbers) ===================== --}}
-<div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+<div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
     <div class="kpi-hero">
         <div class="kpi-hero-head">
             <span class="kpi-hero-label">Total clicks</span>
@@ -563,7 +563,7 @@
 </div>
 
 {{-- ===================== CLICKS OVER TIME ===================== --}}
-<div class="section-card mb-6" style="--sc-accent: linear-gradient(90deg,#1b84ff,#ec4899); --sc-glow: rgba(27,132,255,0.35); --sc-color: #bfdcff; --sc-border: rgba(27,132,255,0.3);">
+<div class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#7c3aed,#ec4899); --sc-glow: rgba(124,58,237,0.35); --sc-color: #ddd6fe; --sc-border: rgba(124,58,237,0.3);">
     <div class="section-head">
         <div class="section-title"><div class="section-icon"><i class="fas fa-chart-line"></i></div> Clicks Over Time <span class="text-[11px] font-medium ml-1" style="color:var(--text-faint);">({{ ucfirst($groupBy) }})</span></div>
         <span class="section-pill"><i class="fas fa-calendar-week"></i> {{ $startDate->format('M d, Y') }} → {{ $endDate->format('M d, Y') }}</span>
@@ -576,7 +576,7 @@
 </div>
 
 {{-- ===================== BROWSER / OS / DEVICE ===================== --}}
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-7">
     <div class="section-card" style="--sc-accent: linear-gradient(90deg,#6366f1,#818cf8); --sc-glow: rgba(99,102,241,0.35); --sc-color: #a5b4fc; --sc-border: rgba(99,102,241,0.3);">
         <div class="section-head"><div class="section-title"><div class="section-icon"><i class="fas fa-globe"></i></div> Browsers</div></div>
         @if($browserStats->isEmpty())<p class="text-sm text-center py-8" style="color: var(--text-faint);">No data</p>
@@ -595,7 +595,7 @@
 </div>
 
 {{-- ===================== GEOGRAPHIC HEATMAP ===================== --}}
-<div class="section-card mb-6"
+<div class="section-card mb-7"
      style="--sc-accent: linear-gradient(90deg,#f97316,#ef4444); --sc-glow: rgba(249,115,22,0.35); --sc-color: #fdba74; --sc-border: rgba(249,115,22,0.3);">
     <div class="section-head">
         <div class="section-title">
@@ -693,8 +693,8 @@
 </div>
 
 {{-- ===================== COUNTRIES / CITIES ===================== --}}
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
-    <div class="section-card" style="--sc-accent: linear-gradient(90deg,#3b82f6,#60a5fa); --sc-glow: rgba(59,130,246,0.35); --sc-color: #93c5fd; --sc-border: rgba(59,130,246,0.3);">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-7">
+    <div class="section-card" style="--sc-accent: linear-gradient(90deg,#3b82f6,#a78bfa); --sc-glow: rgba(59,130,246,0.35); --sc-color: #c4b5fd; --sc-border: rgba(59,130,246,0.3);">
         <div class="section-head"><div class="section-title"><div class="section-icon"><i class="fas fa-flag"></i></div> Top Countries</div>
             @if(!$countryStats->isEmpty())<span class="section-pill">{{ $countryStats->count() }} regions</span>@endif
         </div>
@@ -717,7 +717,7 @@
                     <td class="text-right font-bold" style="color: var(--text-primary);">{{ number_format($stat->count) }}</td>
                     <td class="bar-cell" style="width: 38%;">
                         <div class="bar-track">
-                            <div class="bar-fill" style="width: {{ $w }}%; --bar-color: linear-gradient(90deg,#3b82f6,#60a5fa); --bar-glow: rgba(59,130,246,0.4);"></div>
+                            <div class="bar-fill" style="width: {{ $w }}%; --bar-color: linear-gradient(90deg,#3b82f6,#a78bfa); --bar-glow: rgba(59,130,246,0.4);"></div>
                         </div>
                         <div class="text-[10px] mt-1" style="color: var(--text-faint);">{{ $pct }}%</div>
                     </td>
@@ -782,8 +782,8 @@
         'pinterest'   => ['fab fa-pinterest',   '#BD081C', 'Pinterest'],
         'twitch'      => ['fab fa-twitch',      '#9146FF', 'Twitch'],
         'dribbble'    => ['fab fa-dribbble',    '#EA4C89', 'Dribbble'],
-        'website'     => ['fas fa-globe',       '#1b84ff', 'Website'],
-        'email'       => ['fas fa-envelope',    '#1b84ff', 'Email'],
+        'website'     => ['fas fa-globe',       '#7c3aed', 'Website'],
+        'email'       => ['fas fa-envelope',    '#7c3aed', 'Email'],
         'spotify'     => ['fab fa-spotify',     '#1DB954', 'Spotify'],
         'soundcloud'  => ['fab fa-soundcloud',  '#FF5500', 'SoundCloud'],
         'apple'       => ['fab fa-apple',       '#0f172a', 'Apple'],
@@ -861,7 +861,7 @@
                 'title' => $platLabel ?: $host,
                 'url'   => $destUrl,
                 'thumb' => null,
-                'platform' => ['icon' => 'fas fa-link', 'color' => '#1b84ff', 'label' => $host],
+                'platform' => ['icon' => 'fas fa-link', 'color' => '#7c3aed', 'label' => $host],
                 'parent_title' => $meta['title'] ?? $info['label'],
             ];
         }
@@ -912,14 +912,14 @@
         return $a->format('M j').' – '.$b->format($sameYear ? 'M j' : 'M j, Y');
     };
 @endphp
-<div class="section-card mb-6" style="--sc-accent: linear-gradient(90deg,#3e97ff,#d946ef); --sc-glow: rgba(62,151,255,0.35); --sc-color: #d8b4fe; --sc-border: rgba(62,151,255,0.3);">
+<div class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#8b5cf6,#d946ef); --sc-glow: rgba(139,92,246,0.35); --sc-color: #d8b4fe; --sc-border: rgba(139,92,246,0.3);">
     <div class="section-head">
         <div class="section-title"><div class="section-icon"><i class="fas fa-th-large"></i></div> Block-Level Clicks</div>
         <span class="section-pill" title="Each row = one biolink block. Clicks are tracked when a visitor taps the block on your public bio page."><i class="fas fa-link"></i> Internal biolink links · {{ $rangeFmt($startDate, $endDate) }} vs prev</span>
     </div>
 
     {{-- ===== Comparison KPIs (this period vs previous period of same length) ===== --}}
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
         <div class="cmp-tile">
             <div class="cmp-tile-head"><i class="fas fa-mouse-pointer"></i> Block clicks</div>
             <div class="cmp-tile-row">
@@ -990,14 +990,14 @@
                             {{-- Platform-specific brand icon (per social link inside a socials block) --}}
                             <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg flex-shrink-0" style="background: {{ $plat['color'] }}1a; color: {{ $plat['color'] }}; border: 1px solid {{ $plat['color'] }}40;"><i class="{{ $plat['icon'] }} text-base"></i></span>
                         @elseif(!empty($bi['thumb']))
-                            <span class="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0" style="border: 1px solid var(--border-glass);"><img src="{{ $bi['thumb'] }}" class="w-full h-full object-cover" onerror="this.parentNode.innerHTML='<span class=\'inline-flex items-center justify-center w-full h-full\' style=\'background: linear-gradient(135deg,#3e97ff,#d946ef); color:#fff;\'><i class=\'fas {{ $info['icon'] }}\'></i></span>'"></span>
+                            <span class="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0" style="border: 1px solid var(--border-glass);"><img src="{{ $bi['thumb'] }}" class="w-full h-full object-cover" onerror="this.parentNode.innerHTML='<span class=\'inline-flex items-center justify-center w-full h-full\' style=\'background: linear-gradient(135deg,#8b5cf6,#d946ef); color:#fff;\'><i class=\'fas {{ $info['icon'] }}\'></i></span>'"></span>
                         @else
-                            <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg flex-shrink-0" style="background: linear-gradient(135deg,#3e97ff,#d946ef); color:#fff;"><i class="fas {{ $info['icon'] }} text-xs"></i></span>
+                            <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg flex-shrink-0" style="background: linear-gradient(135deg,#8b5cf6,#d946ef); color:#fff;"><i class="fas {{ $info['icon'] }} text-xs"></i></span>
                         @endif
                         <div class="min-w-0">
                             <div class="text-sm font-semibold truncate" style="color: var(--text-primary); max-width: 240px;" title="{{ $bi['title'] }}">{{ $bi['title'] }}</div>
                             <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                                <span class="text-[9.5px] px-1.5 py-0.5 rounded-md font-bold" style="background: rgba(62,151,255,0.15); color:#d8b4fe;">{{ $info['label'] }}</span>
+                                <span class="text-[9.5px] px-1.5 py-0.5 rounded-md font-bold" style="background: rgba(139,92,246,0.15); color:#d8b4fe;">{{ $info['label'] }}</span>
                                 @if($plat && !empty($bi['parent_title']))
                                     <span class="text-[9.5px] px-1.5 py-0.5 rounded-md" style="background: var(--bg-glass-input); color: var(--text-muted); border: 1px solid var(--border-glass);" title="Parent block">in {{ \Illuminate\Support\Str::limit($bi['parent_title'], 22) }}</span>
                                 @endif
@@ -1012,7 +1012,7 @@
                 <td class="text-right">{!! _blockDeltaPill($b->count, $prev) !!}</td>
                 <td class="bar-cell" style="width: 18%;">
                     <div class="bar-track">
-                        <div class="bar-fill" style="width: {{ $w }}%; --bar-color: linear-gradient(90deg,#3e97ff,#d946ef); --bar-glow: rgba(62,151,255,0.4);"></div>
+                        <div class="bar-fill" style="width: {{ $w }}%; --bar-color: linear-gradient(90deg,#8b5cf6,#d946ef); --bar-glow: rgba(139,92,246,0.4);"></div>
                     </div>
                     <div class="text-[10px] mt-1" style="color: var(--text-faint);">{{ $pct }}%</div>
                 </td>
@@ -1024,7 +1024,7 @@
     @endif
 </div>
 
-<div class="section-card mb-6" style="--sc-accent: linear-gradient(90deg,#14b8a6,#2dd4bf); --sc-glow: rgba(20,184,166,0.35); --sc-color: #5eead4; --sc-border: rgba(20,184,166,0.3);">
+<div class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#14b8a6,#2dd4bf); --sc-glow: rgba(20,184,166,0.35); --sc-color: #5eead4; --sc-border: rgba(20,184,166,0.3);">
     <div class="section-head">
         <div class="section-title"><div class="section-icon"><i class="fas fa-eye"></i></div> Block Engagement (Visibility)</div>
         <span class="section-pill"><i class="fas fa-clock"></i> Time visible on screen</span>
@@ -1042,7 +1042,7 @@
         $overallCtr = $sumImp > 0 ? round(($sumClicks / $sumImp) * 100, 1) : 0;
         $topByTime  = $blockEngagement->take(10);
     @endphp
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-5 mb-6">
         <div class="rounded-xl p-3.5" style="background: linear-gradient(135deg, rgba(20,184,166,0.15), rgba(20,184,166,0.04)); border: 1px solid rgba(20,184,166,0.3);">
             <div class="flex items-center justify-between mb-1.5">
                 <span class="text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">Total Impressions</span>
@@ -1075,7 +1075,7 @@
     </div>
 
     {{-- Engagement chart: top 10 blocks by total visible time --}}
-    <div class="grid grid-cols-1 lg:grid-cols-5 gap-5 mb-5">
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-6">
         <div class="lg:col-span-3 rounded-xl p-4" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
             <div class="flex items-center justify-between mb-3">
                 <h4 class="text-xs font-bold" style="color: var(--text-primary);"><i class="fas fa-chart-bar text-teal-400 mr-1.5"></i> Top 10 Blocks by Visible Time</h4>
@@ -1246,7 +1246,7 @@
 @endif
 
 {{-- ===================== REFERRERS / UTM ===================== --}}
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-7">
     <div class="section-card" style="--sc-accent: linear-gradient(90deg,#10b981,#34d399); --sc-glow: rgba(16,185,129,0.35); --sc-color: #6ee7b7; --sc-border: rgba(16,185,129,0.3);">
         <div class="section-head"><div class="section-title"><div class="section-icon"><i class="fas fa-link"></i></div> Top Referrers</div></div>
         @if($topReferrers->isEmpty())<p class="text-sm text-center py-8" style="color: var(--text-faint);">No referrer data</p>
@@ -1301,7 +1301,7 @@
 </div>
 
 {{-- ===================== RECENT CLICKS ===================== --}}
-<div class="section-card mb-6" style="--sc-accent: linear-gradient(90deg,#3e97ff,#7fbbff); --sc-glow: rgba(27,132,255,0.35); --sc-color: #bfdcff; --sc-border: rgba(27,132,255,0.3);">
+<div class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#8b5cf6,#a78bfa); --sc-glow: rgba(124,58,237,0.35); --sc-color: #ddd6fe; --sc-border: rgba(124,58,237,0.3);">
     <div class="section-head">
         <div class="section-title"><div class="section-icon"><i class="fas fa-list"></i></div> Recent Clicks</div>
         <a href="{{ route('user.links.clicks.export', $link) }}?{{ http_build_query($qs) }}" class="table-action"><i class="fas fa-file-csv"></i> Export full log</a>
@@ -1409,7 +1409,7 @@
                     'interpolate', ['linear'], ['heatmap-density'],
                     0,    'rgba(0,0,0,0)',
                     0.15, 'rgba(56,189,248,0.55)',
-                    0.35, 'rgba(27,132,255,0.75)',
+                    0.35, 'rgba(124,58,237,0.75)',
                     0.55, 'rgba(236,72,153,0.85)',
                     0.75, 'rgba(249,115,22,0.92)',
                     1,    'rgba(239,68,68,1)'
@@ -2025,13 +2025,13 @@ document.addEventListener('DOMContentLoaded', function () {
         Chart.defaults.borderColor = gridColor;
         Chart.defaults.font.family = "'Inter', system-ui, -apple-system, sans-serif";
     }
-    const palette = ['#1b84ff','#10b981','#3b82f6','#f59e0b','#ec4899','#06b6d4','#3e97ff','#ef4444','#14b8a6','#eab308'];
+    const palette = ['#7c3aed','#10b981','#3b82f6','#f59e0b','#ec4899','#06b6d4','#8b5cf6','#ef4444','#14b8a6','#eab308'];
 
     @if(!$clicksOverTime->isEmpty())
     (function(){
         const ctx = document.getElementById('clicksChart').getContext('2d');
         const g1 = ctx.createLinearGradient(0,0,0,300);
-        g1.addColorStop(0, 'rgba(27,132,255,0.45)'); g1.addColorStop(1, 'rgba(27,132,255,0.02)');
+        g1.addColorStop(0, 'rgba(124,58,237,0.45)'); g1.addColorStop(1, 'rgba(124,58,237,0.02)');
         const g2 = ctx.createLinearGradient(0,0,0,300);
         g2.addColorStop(0, 'rgba(16,185,129,0.30)'); g2.addColorStop(1, 'rgba(16,185,129,0.02)');
         new Chart(ctx, {
@@ -2039,7 +2039,7 @@ document.addEventListener('DOMContentLoaded', function () {
             data: {
                 labels: @json($clicksOverTime->pluck('bucket')),
                 datasets: [
-                    { label: 'Total Clicks', data: @json($clicksOverTime->pluck('count')), borderColor: '#3e97ff', backgroundColor: g1, tension: 0.4, fill: true, borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 6, pointHoverBackgroundColor: '#3e97ff', pointHoverBorderColor: '#fff', pointHoverBorderWidth: 2 },
+                    { label: 'Total Clicks', data: @json($clicksOverTime->pluck('count')), borderColor: '#8b5cf6', backgroundColor: g1, tension: 0.4, fill: true, borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 6, pointHoverBackgroundColor: '#8b5cf6', pointHoverBorderColor: '#fff', pointHoverBorderWidth: 2 },
                     { label: 'Unique IPs', data: @json($clicksOverTime->pluck('unique_count')), borderColor: '#34d399', backgroundColor: g2, tension: 0.4, fill: true, borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 6, pointHoverBackgroundColor: '#34d399', pointHoverBorderColor: '#fff', pointHoverBorderWidth: 2 }
                 ]
             },
@@ -2048,7 +2048,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 interaction: { intersect: false, mode: 'index' },
                 plugins: {
                     legend: { labels: { color: tickColor, usePointStyle: true, padding: 16, font: { size: 11, weight: '600' } } },
-                    tooltip: { backgroundColor: isLight ? 'rgba(255,255,255,0.98)' : 'rgba(20,15,40,0.95)', titleColor: tickColor, bodyColor: tickColor, borderColor: 'rgba(27,132,255,0.4)', borderWidth: 1, padding: 12, cornerRadius: 10, displayColors: true, boxPadding: 4 }
+                    tooltip: { backgroundColor: isLight ? 'rgba(255,255,255,0.98)' : 'rgba(20,15,40,0.95)', titleColor: tickColor, bodyColor: tickColor, borderColor: 'rgba(124,58,237,0.4)', borderWidth: 1, padding: 12, cornerRadius: 10, displayColors: true, boxPadding: 4 }
                 },
                 scales: {
                     x: { grid: { color: gridColor, drawTicks: false }, ticks: { color: tickColor, font: { size: 10 } }, border: { display: false } },
@@ -2068,7 +2068,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 responsive: true, maintainAspectRatio: false, cutout: '65%',
                 plugins: {
                     legend: { position: 'right', labels: { color: tickColor, font: { size: 11, weight: '500' }, usePointStyle: true, padding: 10, boxWidth: 8 } },
-                    tooltip: { backgroundColor: isLight ? 'rgba(255,255,255,0.98)' : 'rgba(20,15,40,0.95)', titleColor: tickColor, bodyColor: tickColor, borderColor: 'rgba(27,132,255,0.4)', borderWidth: 1, padding: 10, cornerRadius: 10 }
+                    tooltip: { backgroundColor: isLight ? 'rgba(255,255,255,0.98)' : 'rgba(20,15,40,0.95)', titleColor: tickColor, bodyColor: tickColor, borderColor: 'rgba(124,58,237,0.4)', borderWidth: 1, padding: 10, cornerRadius: 10 }
                 }
             }
         });

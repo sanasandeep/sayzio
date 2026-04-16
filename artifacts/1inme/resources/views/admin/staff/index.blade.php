@@ -7,7 +7,7 @@
     <div class="flex items-center gap-4">
         <form method="GET" class="flex items-center gap-2">
             <input type="text" name="search" value="{{ request('search') }}" placeholder="Search staff..."
-                   class="px-4 py-2 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/40 outline-none">
+                   class="px-4 py-2 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
             <select name="status" class="px-3 py-2 border border-white/10 rounded-xl text-sm">
                 <option value="">All Status</option>
                 <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
@@ -16,7 +16,7 @@
             <button type="submit" class="px-4 py-2 bg-white/10 text-white/80 rounded-xl text-sm hover:bg-white/[0.06]">Filter</button>
         </form>
     </div>
-    <a href="{{ route('admin.staff.create') }}" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition">
+    <a href="{{ route('admin.staff.create') }}" class="px-4 py-2 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700 transition">
         <i class="fas fa-plus mr-2"></i>Add Staff
     </a>
 </div>
@@ -38,7 +38,7 @@
             <tr class="hover:bg-white/5">
                 <td class="px-6 py-4">
                     <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-full bg-blue-500/10 text-blue-300 flex items-center justify-center text-sm font-medium">
+                        <div class="w-8 h-8 rounded-full bg-violet-500/10 text-violet-300 flex items-center justify-center text-sm font-medium">
                             {{ substr($member->name, 0, 1) }}
                         </div>
                         <span class="text-sm font-medium text-white">{{ $member->name }}</span>
@@ -55,7 +55,7 @@
                 <td class="px-6 py-4 text-sm text-white/40">{{ $member->last_login_at?->diffForHumans() ?? 'Never' }}</td>
                 <td class="px-6 py-4 text-right">
                     <div class="flex items-center justify-end gap-2">
-                        <a href="{{ route('admin.staff.edit', $member) }}" class="text-white/30 hover:text-blue-400"><i class="fas fa-edit"></i></a>
+                        <a href="{{ route('admin.staff.edit', $member) }}" class="text-white/30 hover:text-violet-400"><i class="fas fa-edit"></i></a>
                         @if($member->id !== auth()->guard('admin')->id())
                         <form action="{{ route('admin.staff.destroy', $member) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure?')">
                             @csrf @method('DELETE')

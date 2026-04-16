@@ -41,7 +41,7 @@
 
                     <div class="card-premium p-6" x-data="{ editing: false, alias: '{{ $link->alias }}' }">
                         <div class="flex items-center gap-3 mb-4">
-                            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(27,132,255,0.1);"><i class="fas fa-link text-blue-400 text-xs"></i></div>
+                            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(124,58,237,0.1);"><i class="fas fa-link text-violet-400 text-xs"></i></div>
                             <h3 class="text-sm font-bold" style="color: var(--text-primary);">Short URL</h3>
                         </div>
                         <div class="flex items-center rounded-xl overflow-hidden" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
@@ -57,7 +57,7 @@
                                     <input x-ref="aliasInput" type="text" x-model="alias" class="flex-1 px-3 py-2.5 text-sm font-medium bg-transparent outline-none" style="color: var(--text-primary);" @keydown.escape="editing = false">
                                     <div class="flex items-center gap-1 pr-2">
                                         <button type="button" @click="editing = false; alias = '{{ $link->alias }}'" class="text-[10px] px-2 py-1 rounded" style="color: var(--text-faint);">Cancel</button>
-                                        <button type="button" class="text-[10px] px-2 py-1 rounded bg-blue-600 text-white"
+                                        <button type="button" class="text-[10px] px-2 py-1 rounded bg-violet-600 text-white"
                                            @click="fetch('{{ route('user.links.update-alias', $link) }}', { method:'PUT', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name=csrf-token]').content,'Accept':'application/json'}, body:JSON.stringify({alias:alias})}).then(r=>r.json()).then(d=>{if(d.success||!d.errors){editing=false;location.reload()}else{alert(d.errors?.alias?.[0]||'Error')}}).catch(()=>alert('Error'))">Save</button>
                                     </div>
                                 </div>
@@ -111,10 +111,10 @@
                                 <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
                                     <template x-for="t in types" :key="t.key">
                                         <button type="button" @click="bgType = t.key"
-                                            :class="bgType === t.key ? 'ring-2 ring-blue-500' : ''"
+                                            :class="bgType === t.key ? 'ring-2 ring-violet-500' : ''"
                                             class="flex flex-col items-center gap-1 p-2.5 rounded-xl transition-all text-center"
                                             style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);"
-                                            :style="bgType === t.key ? 'border-color: rgba(27,132,255,0.5); background: rgba(27,132,255,0.08);' : ''">
+                                            :style="bgType === t.key ? 'border-color: rgba(124,58,237,0.5); background: rgba(124,58,237,0.08);' : ''">
                                             <div class="w-7 h-7 rounded-lg flex items-center justify-center" :style="'background:' + t.preview">
                                                 <i :class="'fas ' + t.icon" class="text-[9px] text-white/80"></i>
                                             </div>
@@ -170,7 +170,7 @@
                                             </div>
                                         </template>
                                     </div>
-                                    <button type="button" @click="addStop()" class="mt-2 text-[11px] font-semibold px-3 py-1.5 rounded-lg transition-all hover:bg-blue-500/10" style="color: #7fbbff; border: 1px dashed rgba(27,132,255,0.3);">
+                                    <button type="button" @click="addStop()" class="mt-2 text-[11px] font-semibold px-3 py-1.5 rounded-lg transition-all hover:bg-violet-500/10" style="color: #a78bfa; border: 1px dashed rgba(124,58,237,0.3);">
                                         <i class="fas fa-plus text-[9px] mr-1"></i> Add Color Stop
                                     </button>
                                     <input type="hidden" name="gradient_colors" :value="JSON.stringify(gradientStops)">
@@ -182,7 +182,7 @@
                             <div x-show="bgType === 'image'" x-transition class="space-y-3">
                                 <div>
                                     <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Background Image</label>
-                                    <input type="file" name="background_image" accept="image/*" class="w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-blue-500/10 file:text-blue-400 file:font-medium" style="color: var(--text-faint);">
+                                    <input type="file" name="background_image" accept="image/*" class="w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-violet-500/10 file:text-violet-400 file:font-medium" style="color: var(--text-faint);">
                                     @if(!empty($bs['background_image']))
                                     <div class="flex items-center gap-2 mt-2 p-2 rounded-lg" style="background: var(--bg-glass);">
                                         <img src="{{ $bs['background_image'] }}" class="w-12 h-12 rounded-lg object-cover" alt="Current bg">
@@ -196,7 +196,7 @@
                             <div x-show="bgType === 'slideshow'" x-transition class="space-y-3">
                                 <div>
                                     <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Slideshow Images (up to 10)</label>
-                                    <input type="file" name="slideshow_images[]" accept="image/*" multiple class="w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-blue-500/10 file:text-blue-400 file:font-medium" style="color: var(--text-faint);">
+                                    <input type="file" name="slideshow_images[]" accept="image/*" multiple class="w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-violet-500/10 file:text-violet-400 file:font-medium" style="color: var(--text-faint);">
                                     @if(!empty($slideshowImages))
                                     <div class="flex flex-wrap gap-2 mt-2">
                                         @foreach($slideshowImages as $si => $sImg)
@@ -228,11 +228,11 @@
                                 </div>
                                 <div>
                                     <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Or Upload Video</label>
-                                    <input type="file" name="video_file" accept="video/mp4,video/webm" class="w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-blue-500/10 file:text-blue-400 file:font-medium" style="color: var(--text-faint);">
+                                    <input type="file" name="video_file" accept="video/mp4,video/webm" class="w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-violet-500/10 file:text-violet-400 file:font-medium" style="color: var(--text-faint);">
                                     <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">MP4 or WebM. Max 50MB. Auto-plays muted with loop.</p>
                                     @if($videoFile)
                                     <div class="flex items-center gap-2 mt-2 p-2 rounded-lg" style="background: var(--bg-glass);">
-                                        <i class="fas fa-film text-blue-400"></i>
+                                        <i class="fas fa-film text-violet-400"></i>
                                         <span class="text-[10px]" style="color: var(--text-faint);">Video uploaded</span>
                                     </div>
                                     @endif
@@ -246,9 +246,9 @@
                                     @foreach($bgTemplates as $tpl)
                                     <label class="cursor-pointer group">
                                         <input type="radio" name="bg_template_id" value="{{ $tpl->id }}" {{ $bgTemplateId == $tpl->id ? 'checked' : '' }} class="hidden peer" @click="selectedTpl = {{ $tpl->id }}">
-                                        <div class="p-2 rounded-xl transition-all peer-checked:ring-2 peer-checked:ring-blue-500 hover:scale-[1.02]"
+                                        <div class="p-2 rounded-xl transition-all peer-checked:ring-2 peer-checked:ring-violet-500 hover:scale-[1.02]"
                                              style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);"
-                                             :style="selectedTpl === {{ $tpl->id }} ? 'border-color: rgba(27,132,255,0.5); background: rgba(27,132,255,0.08);' : ''">
+                                             :style="selectedTpl === {{ $tpl->id }} ? 'border-color: rgba(124,58,237,0.5); background: rgba(124,58,237,0.08);' : ''">
                                             <div class="h-16 rounded-lg mb-2 overflow-hidden" style="background: {{ $tpl->preview_color }};"></div>
                                             <p class="text-[10px] font-semibold text-center" style="color: var(--text-muted);">{{ $tpl->name }}</p>
                                         </div>
@@ -263,7 +263,7 @@
                             {{-- SHARED CONFIGURATIONS --}}
                             <div class="pt-4" style="border-top: 1px solid var(--border-subtle);">
                                 <div class="flex items-center gap-2 mb-3">
-                                    <i class="fas fa-sliders-h text-[10px] text-blue-400"></i>
+                                    <i class="fas fa-sliders-h text-[10px] text-violet-400"></i>
                                     <span class="text-xs font-semibold" style="color: var(--text-primary);">Background Effects</span>
                                 </div>
                                 <div class="space-y-4">
@@ -271,10 +271,10 @@
                                         <div>
                                             <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Position</label>
                                             <div class="flex gap-2" x-data="{ attach: '{{ $bgAttachment }}' }">
-                                                <button type="button" @click="attach = 'fixed'" :class="attach === 'fixed' ? 'ring-2 ring-blue-500' : ''" class="flex-1 py-2 text-[10px] font-semibold rounded-lg transition-all" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);">
+                                                <button type="button" @click="attach = 'fixed'" :class="attach === 'fixed' ? 'ring-2 ring-violet-500' : ''" class="flex-1 py-2 text-[10px] font-semibold rounded-lg transition-all" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);">
                                                     <i class="fas fa-thumbtack text-[9px] mr-1"></i> Fixed
                                                 </button>
-                                                <button type="button" @click="attach = 'scroll'" :class="attach === 'scroll' ? 'ring-2 ring-blue-500' : ''" class="flex-1 py-2 text-[10px] font-semibold rounded-lg transition-all" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);">
+                                                <button type="button" @click="attach = 'scroll'" :class="attach === 'scroll' ? 'ring-2 ring-violet-500' : ''" class="flex-1 py-2 text-[10px] font-semibold rounded-lg transition-all" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);">
                                                     <i class="fas fa-arrows-alt-v text-[9px] mr-1"></i> Scroll
                                                 </button>
                                                 <input type="hidden" name="bg_attachment" :value="attach">
@@ -311,7 +311,7 @@
 
                                     <div x-show="bgType === 'image' || bgType === 'slideshow' || bgType === 'video'" x-transition>
                                         <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Fallback Image</label>
-                                        <input type="file" name="bg_fallback_image" accept="image/*" class="w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-blue-500/10 file:text-blue-400 file:font-medium" style="color: var(--text-faint);">
+                                        <input type="file" name="bg_fallback_image" accept="image/*" class="w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-violet-500/10 file:text-violet-400 file:font-medium" style="color: var(--text-faint);">
                                         <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">Shown while media loads or if it fails.</p>
                                         @if($bgFallbackImage)
                                         <div class="flex items-center gap-2 mt-1 p-1.5 rounded-lg" style="background: var(--bg-glass);">
@@ -346,10 +346,10 @@ function bgSettings() {
         gradientStops: @json($gradientColors),
         types: [
             { key: 'color', label: 'Solid Color', icon: 'fa-fill', preview: 'linear-gradient(135deg, #6b21a8, #3b0764)' },
-            { key: 'gradient', label: 'Gradient', icon: 'fa-rainbow', preview: 'linear-gradient(135deg, #ec4899, #3e97ff, #06b6d4)' },
+            { key: 'gradient', label: 'Gradient', icon: 'fa-rainbow', preview: 'linear-gradient(135deg, #ec4899, #8b5cf6, #06b6d4)' },
             { key: 'image', label: 'Image', icon: 'fa-image', preview: 'rgba(99,102,241,0.15)' },
             { key: 'slideshow', label: 'Slideshow', icon: 'fa-images', preview: 'rgba(236,72,153,0.15)' },
-            { key: 'video', label: 'Video', icon: 'fa-film', preview: 'rgba(27,132,255,0.15)' },
+            { key: 'video', label: 'Video', icon: 'fa-film', preview: 'rgba(124,58,237,0.15)' },
             { key: 'template', label: 'Template', icon: 'fa-magic', preview: 'linear-gradient(135deg, #0f0c29, #302b63)' }
         ],
         init() {
@@ -364,7 +364,7 @@ function bgSettings() {
         addStop() {
             if (this.gradientStops.length >= 10) return;
             var last = this.gradientStops[this.gradientStops.length - 1];
-            this.gradientStops.push({ color: '#3e97ff', pos: Math.min(100, (last ? last.pos : 50) + 10) });
+            this.gradientStops.push({ color: '#8b5cf6', pos: Math.min(100, (last ? last.pos : 50) + 10) });
         },
         removeStop(idx) {
             if (this.gradientStops.length <= 2) return;

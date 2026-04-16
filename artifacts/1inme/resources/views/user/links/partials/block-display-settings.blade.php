@@ -9,7 +9,7 @@
 <div class="mt-4 pt-4" style="border-top: 1px solid var(--border-subtle);" x-data="{ showDisplay: false }">
     <button type="button" @click="showDisplay = !showDisplay"
             class="w-full flex items-center justify-between text-sm font-medium py-1" style="color: var(--text-muted);">
-        <span><i class="fas fa-sliders-h mr-2 text-blue-400"></i>Display Settings</span>
+        <span><i class="fas fa-sliders-h mr-2 text-violet-400"></i>Display Settings</span>
         <i :class="showDisplay ? 'fa-chevron-up' : 'fa-chevron-down'" class="fas text-xs"></i>
     </button>
 
@@ -28,15 +28,15 @@
 
         <div x-data="{ open: false }">
             <button type="button" @click="open = !open" class="text-xs font-medium flex items-center gap-1.5" style="color: var(--text-muted);">
-                <i class="fas fa-globe text-blue-400"></i> Continents
-                <span class="text-blue-400/60">({{ count($vis['continents'] ?? []) ?: 'All' }})</span>
+                <i class="fas fa-globe text-violet-400"></i> Continents
+                <span class="text-violet-400/60">({{ count($vis['continents'] ?? []) ?: 'All' }})</span>
             </button>
             <div x-show="open" x-cloak class="mt-2 grid grid-cols-2 gap-1.5">
                 @foreach($allContinents as $c)
                 <label class="flex items-center gap-2 text-xs cursor-pointer px-2 py-1.5 rounded-lg" style="color: var(--text-muted); background: var(--bg-glass-input);">
                     <input type="checkbox" name="visibility[continents][]" value="{{ $c }}"
                            {{ in_array($c, $vis['continents'] ?? []) ? 'checked' : '' }}
-                           class="rounded border-white/20 bg-white/5 text-blue-500 focus:ring-blue-500/30">
+                           class="rounded border-white/20 bg-white/5 text-violet-500 focus:ring-violet-500/30">
                     {{ $c }}
                 </label>
                 @endforeach
@@ -45,8 +45,8 @@
 
         <div x-data="{ open: false }">
             <button type="button" @click="open = !open" class="text-xs font-medium flex items-center gap-1.5" style="color: var(--text-muted);">
-                <i class="fas fa-flag text-blue-400"></i> Countries
-                <span class="text-blue-400/60">({{ count($vis['countries'] ?? []) ?: 'All' }})</span>
+                <i class="fas fa-flag text-violet-400"></i> Countries
+                <span class="text-violet-400/60">({{ count($vis['countries'] ?? []) ?: 'All' }})</span>
             </button>
             <div x-show="open" x-cloak class="mt-2">
                 <input type="text" name="visibility_countries_text"
@@ -63,8 +63,8 @@
 
         <div x-data="{ open: false }">
             <button type="button" @click="open = !open" class="text-xs font-medium flex items-center gap-1.5" style="color: var(--text-muted);">
-                <i class="fas fa-city text-blue-400"></i> Cities
-                <span class="text-blue-400/60">({{ count($vis['cities'] ?? []) ?: 'All' }})</span>
+                <i class="fas fa-city text-violet-400"></i> Cities
+                <span class="text-violet-400/60">({{ count($vis['cities'] ?? []) ?: 'All' }})</span>
             </button>
             <div x-show="open" x-cloak class="mt-2">
                 <input type="text" name="visibility_cities_text"
@@ -81,15 +81,15 @@
 
         <div x-data="{ open: false }">
             <button type="button" @click="open = !open" class="text-xs font-medium flex items-center gap-1.5" style="color: var(--text-muted);">
-                <i class="fas fa-desktop text-blue-400"></i> Devices
-                <span class="text-blue-400/60">({{ count($vis['devices'] ?? []) ?: 'All' }})</span>
+                <i class="fas fa-desktop text-violet-400"></i> Devices
+                <span class="text-violet-400/60">({{ count($vis['devices'] ?? []) ?: 'All' }})</span>
             </button>
             <div x-show="open" x-cloak class="mt-2 flex flex-wrap gap-2">
                 @foreach($allDevices as $d)
                 <label class="flex items-center gap-2 text-xs cursor-pointer px-3 py-1.5 rounded-lg" style="color: var(--text-muted); background: var(--bg-glass-input);">
                     <input type="checkbox" name="visibility[devices][]" value="{{ $d }}"
                            {{ in_array($d, $vis['devices'] ?? []) ? 'checked' : '' }}
-                           class="rounded border-white/20 bg-white/5 text-blue-500 focus:ring-blue-500/30">
+                           class="rounded border-white/20 bg-white/5 text-violet-500 focus:ring-violet-500/30">
                     <i class="fas fa-{{ $d === 'desktop' ? 'desktop' : ($d === 'tablet' ? 'tablet-alt' : 'mobile-alt') }} text-xs"></i>
                     {{ ucfirst($d) }}
                 </label>
@@ -99,15 +99,15 @@
 
         <div x-data="{ open: false }">
             <button type="button" @click="open = !open" class="text-xs font-medium flex items-center gap-1.5" style="color: var(--text-muted);">
-                <i class="fab fa-windows text-blue-400"></i> Operating Systems
-                <span class="text-blue-400/60">({{ count($vis['os'] ?? []) ?: 'All' }})</span>
+                <i class="fab fa-windows text-violet-400"></i> Operating Systems
+                <span class="text-violet-400/60">({{ count($vis['os'] ?? []) ?: 'All' }})</span>
             </button>
             <div x-show="open" x-cloak class="mt-2 grid grid-cols-2 gap-1.5">
                 @foreach($allOs as $o)
                 <label class="flex items-center gap-2 text-xs cursor-pointer px-2 py-1.5 rounded-lg" style="color: var(--text-muted); background: var(--bg-glass-input);">
                     <input type="checkbox" name="visibility[os][]" value="{{ $o }}"
                            {{ in_array($o, $vis['os'] ?? []) ? 'checked' : '' }}
-                           class="rounded border-white/20 bg-white/5 text-blue-500 focus:ring-blue-500/30">
+                           class="rounded border-white/20 bg-white/5 text-violet-500 focus:ring-violet-500/30">
                     {{ $o }}
                 </label>
                 @endforeach
@@ -116,15 +116,15 @@
 
         <div x-data="{ open: false }">
             <button type="button" @click="open = !open" class="text-xs font-medium flex items-center gap-1.5" style="color: var(--text-muted);">
-                <i class="fab fa-chrome text-blue-400"></i> Browsers
-                <span class="text-blue-400/60">({{ count($vis['browsers'] ?? []) ?: 'All' }})</span>
+                <i class="fab fa-chrome text-violet-400"></i> Browsers
+                <span class="text-violet-400/60">({{ count($vis['browsers'] ?? []) ?: 'All' }})</span>
             </button>
             <div x-show="open" x-cloak class="mt-2 grid grid-cols-2 gap-1.5">
                 @foreach($allBrowsers as $b)
                 <label class="flex items-center gap-2 text-xs cursor-pointer px-2 py-1.5 rounded-lg" style="color: var(--text-muted); background: var(--bg-glass-input);">
                     <input type="checkbox" name="visibility[browsers][]" value="{{ $b }}"
                            {{ in_array($b, $vis['browsers'] ?? []) ? 'checked' : '' }}
-                           class="rounded border-white/20 bg-white/5 text-blue-500 focus:ring-blue-500/30">
+                           class="rounded border-white/20 bg-white/5 text-violet-500 focus:ring-violet-500/30">
                     {{ $b }}
                 </label>
                 @endforeach
@@ -133,8 +133,8 @@
 
         <div x-data="{ open: false }">
             <button type="button" @click="open = !open" class="text-xs font-medium flex items-center gap-1.5" style="color: var(--text-muted);">
-                <i class="fas fa-language text-blue-400"></i> Browser Languages
-                <span class="text-blue-400/60">({{ count($vis['languages'] ?? []) ?: 'All' }})</span>
+                <i class="fas fa-language text-violet-400"></i> Browser Languages
+                <span class="text-violet-400/60">({{ count($vis['languages'] ?? []) ?: 'All' }})</span>
             </button>
             <div x-show="open" x-cloak class="mt-2">
                 <input type="text" name="visibility_languages_text"

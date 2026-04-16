@@ -17,7 +17,7 @@
     @foreach($settingsTabs as $tabKey => $tab)
     <a href="{{ route($tab['route'], $link) }}"
        class="flex-1 flex items-center justify-center gap-1.5 text-[11px] font-semibold py-2 rounded-lg transition-all no-underline {{ $activeSettingsTab === $tabKey ? 'text-white shadow-sm' : '' }}"
-       style="{{ $activeSettingsTab === $tabKey ? 'background: rgba(27,132,255,0.2); border: 1px solid rgba(27,132,255,0.3);' : 'color: var(--text-faint);' }}">
+       style="{{ $activeSettingsTab === $tabKey ? 'background: rgba(124,58,237,0.2); border: 1px solid rgba(124,58,237,0.3);' : 'color: var(--text-faint);' }}">
         <i class="fas {{ $tab['icon'] }} text-[9px]"></i>
         <span class="hidden sm:inline">{{ $tab['label'] }}</span>
     </a>

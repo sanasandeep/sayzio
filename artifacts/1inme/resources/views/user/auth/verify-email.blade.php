@@ -16,8 +16,8 @@
     <div class="bg-mesh"></div>
 
     <div class="absolute inset-0 overflow-hidden pointer-events-none">
-        <div class="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full animate-float-slow" style="background: radial-gradient(circle, rgba(27,132,255,0.12) 0%, transparent 70%);"></div>
-        <div class="absolute -bottom-24 -right-24 w-[400px] h-[400px] rounded-full animate-float-slow-delay" style="background: radial-gradient(circle, rgba(62,151,255,0.08) 0%, transparent 70%);"></div>
+        <div class="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full animate-float-slow" style="background: radial-gradient(circle, rgba(124,58,237,0.12) 0%, transparent 70%);"></div>
+        <div class="absolute -bottom-24 -right-24 w-[400px] h-[400px] rounded-full animate-float-slow-delay" style="background: radial-gradient(circle, rgba(139,92,246,0.08) 0%, transparent 70%);"></div>
     </div>
 
     <div class="absolute top-5 right-5 z-20">
@@ -28,12 +28,12 @@
         <div class="w-full max-w-sm text-center">
             <div class="mb-7">
                 <a href="{{ route('home') }}" class="inline-block text-3xl font-bold tracking-tight">
-                    <span style="color: var(--text-primary);">1IN</span><span class="text-blue-400">ME</span>
+                    <span style="color: var(--text-primary);">1IN</span><span class="text-violet-400">ME</span>
                 </a>
             </div>
 
-            <div class="w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-4" style="background: rgba(27,132,255,0.1); border: 1px solid rgba(27,132,255,0.15);">
-                <i class="fas fa-envelope text-blue-400 text-xl"></i>
+            <div class="w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-4" style="background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.15);">
+                <i class="fas fa-envelope text-violet-400 text-xl"></i>
             </div>
             <h2 class="text-lg font-bold mb-1" style="color: var(--text-primary);">Verify Your Email</h2>
             <p class="text-xs mb-6" style="color: var(--text-dimmed);">We've sent a verification link to your email. Please check your inbox and click the link to verify.</p>
@@ -52,7 +52,7 @@
             </form>
 
             <div class="mt-4">
-                <a href="{{ route('user.dashboard') }}" class="text-xs text-blue-400 hover:text-blue-300 font-semibold transition-colors">Skip for now</a>
+                <a href="{{ route('user.dashboard') }}" class="text-xs text-violet-400 hover:text-violet-300 font-semibold transition-colors">Skip for now</a>
             </div>
         </div>
     </div>

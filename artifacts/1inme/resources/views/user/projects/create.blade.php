@@ -13,7 +13,7 @@
         <div class="glass rounded-2xl p-6 space-y-4">
             <div>
                 <label class="block text-sm font-medium text-white/60 mb-1">Name <span class="text-red-500">*</span></label>
-                <input type="text" name="name" value="{{ old('name') }}" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40" required>
+                <input type="text" name="name" value="{{ old('name') }}" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40" required>
                 @error('name') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
             <div>
@@ -22,13 +22,13 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-white/60 mb-1">Description</label>
-                <textarea name="description" rows="3" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40" placeholder="Optional description...">{{ old('description') }}</textarea>
+                <textarea name="description" rows="3" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40" placeholder="Optional description...">{{ old('description') }}</textarea>
             </div>
         </div>
 
         <div class="flex items-center justify-end gap-3 mt-4">
             <a href="{{ route('user.projects.index') }}" class="px-4 py-2.5 text-sm text-white/60 hover:bg-white/10 rounded-xl">Cancel</a>
-            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium">Create Project</button>
+            <button type="submit" class="bg-violet-600 hover:bg-violet-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium">Create Project</button>
         </div>
     </form>
 </div>
