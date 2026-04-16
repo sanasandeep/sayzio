@@ -417,14 +417,23 @@ class LinkController extends Controller
         // $blockMeta — no additional query. The coach engine itself issues
         // zero queries and simply transforms this context into insights.
         $blockInventory = ['clickable' => [], 'has_socials' => false, 'has_qr' => false,
-                            'active_count' => 0, 'top_level_active_count' => 0];
+                            'active_count' => 0, 'top_level_active_count' => 0,
+                            'disabled_socials_block_id' => null];
         if ($link->type === 'biolink' && isset($blocksForLink)) {
             $nonInteractive = ['heading', 'heading_gradient', 'heading_logo', 'heading_morph',
                 'paragraph', 'paragraph_rich', 'divider', 'spacer',
                 'verified_heading', 'verified_avatar', 'alert', 'badge', 'avatar'];
             $socialTypes = ['socials', 'socials_multi', 'socials_custom'];
             foreach ($blocksForLink as $blk) {
-                if (!$blk->is_active) continue;
+                $isSocial = in_array($blk->type, $socialTypes, true);
+                if (!$blk->is_active) {
+                    // Track a disabled socials block so the coach can offer a
+                    // one-click "enable" action instead of the generic tip.
+                    if ($isSocial && $blockInventory['disabled_socials_block_id'] === null) {
+                        $blockInventory['disabled_socials_block_id'] = $blk->id;
+                    }
+                    continue;
+                }
                 $blockInventory['active_count']++;
                 if ($blk->parent_id === null) {
                     $blockInventory['top_level_active_count']++;
@@ -432,8 +441,8 @@ class LinkController extends Controller
                         $blockInventory['clickable'][] = $blk->id;
                     }
                 }
-                if (in_array($blk->type, $socialTypes, true)) $blockInventory['has_socials'] = true;
-                if ($blk->type === 'qr_code')                  $blockInventory['has_qr']      = true;
+                if ($isSocial)              $blockInventory['has_socials'] = true;
+                if ($blk->type === 'qr_code') $blockInventory['has_qr']    = true;
             }
         }
 
@@ -818,6 +827,103 @@ class LinkController extends Controller
         $link->update(['is_active' => !$link->is_active]);
 
         return back()->with('success', 'Link status updated.');
+    }
+
+    /**
+     * One-click action dispatched from a Performance Coach insight.
+     *
+     * Each supported action type maps 1:1 to a recommendation rendered by
+     * LinkPerformanceCoach::build(). Ownership of the link (and every block
+     * referenced in the payload) is re-verified here — we never trust the
+     * block ids sent by the client, even though the coach only surfaces
+     * actions for the current user's own blocks.
+     */
+    public function coachAction(Request $request, Link $link)
+    {
+        abort_if($link->user_id !== $request->user()->id, 403);
+
+        $validated = $request->validate([
+            'action_type' => 'required|string|in:deactivate_blocks,promote_block,enable_block',
+            'block_id'    => 'nullable|integer',
+            'block_ids'   => 'nullable|array|max:50',
+            'block_ids.*' => 'integer',
+        ]);
+
+        $type = $validated['action_type'];
+
+        // Scope every referenced block id to THIS link so a crafted request
+        // can't mutate a block on another link the user does (or doesn't) own.
+        $scopedBlocks = function (array $ids) use ($link) {
+            return \App\Modules\User\Models\BiolinkBlock::where('link_id', $link->id)
+                ->whereIn('id', $ids)
+                ->get();
+        };
+
+        $message = null;
+
+        if ($type === 'deactivate_blocks') {
+            $ids = $validated['block_ids'] ?? [];
+            if (empty($ids)) {
+                return back()->with('error', 'No blocks specified.');
+            }
+            $blocks = $scopedBlocks($ids);
+            if ($blocks->isEmpty()) {
+                return back()->with('error', 'Those blocks no longer exist.');
+            }
+            \App\Modules\User\Models\BiolinkBlock::where('link_id', $link->id)
+                ->whereIn('id', $blocks->pluck('id')->all())
+                ->update(['is_active' => false]);
+            $n = $blocks->count();
+            $message = $n === 1
+                ? 'Hid 1 zero-click block.'
+                : "Hid {$n} zero-click blocks.";
+        } elseif ($type === 'enable_block') {
+            $id = (int) ($validated['block_id'] ?? 0);
+            if ($id <= 0) {
+                return back()->with('error', 'No block specified.');
+            }
+            $block = $scopedBlocks([$id])->first();
+            if (!$block) {
+                return back()->with('error', 'That block no longer exists.');
+            }
+            $block->update(['is_active' => true]);
+            $message = 'Block enabled.';
+        } elseif ($type === 'promote_block') {
+            $id = (int) ($validated['block_id'] ?? 0);
+            if ($id <= 0) {
+                return back()->with('error', 'No block specified.');
+            }
+            $block = $scopedBlocks([$id])->first();
+            if (!$block) {
+                return back()->with('error', 'That block no longer exists.');
+            }
+            // Promotion is a reorder within the block's current parent scope
+            // (top-level siblings, or a card's children). Assign the target
+            // block sort_order=0, then renumber its siblings from 1 onward,
+            // preserving their relative order.
+            $siblingsQuery = \App\Modules\User\Models\BiolinkBlock::where('link_id', $link->id);
+            if ($block->parent_id === null) {
+                $siblingsQuery->whereNull('parent_id');
+            } else {
+                $siblingsQuery->where('parent_id', $block->parent_id);
+            }
+            $siblings = $siblingsQuery->orderBy('sort_order')->orderBy('id')->get();
+
+            \Illuminate\Support\Facades\DB::transaction(function () use ($siblings, $block) {
+                $next = 1;
+                foreach ($siblings as $sib) {
+                    if ($sib->id === $block->id) {
+                        $sib->update(['sort_order' => 0]);
+                    } else {
+                        $sib->update(['sort_order' => $next++]);
+                    }
+                }
+            });
+
+            $message = 'Moved to the top of the page.';
+        }
+
+        return back()->with('success', $message ?? 'Done.');
     }
 
     public function updateAlias(Request $request, Link $link)

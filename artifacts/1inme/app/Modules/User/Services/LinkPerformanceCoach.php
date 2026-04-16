@@ -448,8 +448,15 @@ class LinkPerformanceCoach
             'icon' => 'fa-ghost',
             'headline' => "{$n} block" . ($n === 1 ? ' gets' : 's get') . " zero clicks",
             'reason'   => "Consider removing, rewording, or moving them higher on the page.",
-            'action_label' => 'Manage blocks',
+            'action_label' => $n === 1 ? 'Hide this block' : "Hide all {$n}",
             'action_url'   => self::editUrl($ctx),
+            'action'       => [
+                'type'      => 'deactivate_blocks',
+                'block_ids' => array_values(array_map('intval', $dead)),
+                'confirm'   => $n === 1
+                    ? 'Hide this block from your page?'
+                    : "Hide {$n} zero-click blocks from your page?",
+            ],
         ];
     }
 
@@ -466,14 +473,28 @@ class LinkPerformanceCoach
         if ($share < $cfg['top_heavy_share']) return null;
 
         $pct = round($share * 100);
-        return [
+        $insight = [
             'severity' => 'tip', 'priority' => 50,
             'icon' => 'fa-chart-pie',
             'headline' => "One block captures {$pct}% of clicks",
-            'reason'   => "Clicks are concentrated on a single block. Diversify or double down by adding related blocks near it.",
+            'reason'   => "Clicks are concentrated on a single block. Move it to the top so visitors see it first.",
             'action_label' => 'Manage blocks',
             'action_url'   => self::editUrl($ctx),
         ];
+        // One-click: promote the top-performing block to position 1 — but only
+        // if the top block is a real top-level block on THIS link (child blocks
+        // nested inside cards don't have a meaningful "position 1").
+        $topId = (int) ($top->block_id ?? 0);
+        $topLevelIds = $ctx['blockInventory']['clickable'] ?? [];
+        if ($topId > 0 && in_array($topId, $topLevelIds, true)) {
+            $insight['action_label'] = 'Move to top';
+            $insight['action'] = [
+                'type'     => 'promote_block',
+                'block_id' => $topId,
+                'confirm'  => 'Move this block to the top of your page?',
+            ];
+        }
+        return $insight;
     }
 
     private static function ruleTrafficDrop(array $ctx, ?float $delta): ?array
@@ -548,6 +569,25 @@ class LinkPerformanceCoach
         $inv = $ctx['blockInventory'] ?? [];
         if (!empty($inv['has_socials'])) return null;
         if ((int) ($inv['active_count'] ?? 0) < 2) return null; // not worth nagging an empty page
+
+        // If the user already has a socials block but it's disabled, offer a
+        // one-click enable instead of the "add socials" tip.
+        $disabledId = $inv['disabled_socials_block_id'] ?? null;
+        if ($disabledId) {
+            return [
+                'severity' => 'tip', 'priority' => 38,
+                'icon' => 'fa-share-nodes',
+                'headline' => 'Your socials block is hidden',
+                'reason'   => 'You have a socials block but it\'s disabled — turn it on so visitors can follow you.',
+                'action_label' => 'Enable socials',
+                'action_url'   => self::editUrl($ctx),
+                'action'       => [
+                    'type'     => 'enable_block',
+                    'block_id' => (int) $disabledId,
+                    'confirm'  => 'Enable your socials block?',
+                ],
+            ];
+        }
 
         return [
             'severity' => 'tip', 'priority' => 35,

@@ -86,7 +86,25 @@
                                 <div class="text-sm font-semibold leading-tight" style="color: var(--text-primary);">{{ $ins['headline'] }}</div>
                                 <div class="text-[12px] mt-0.5" style="color: var(--text-faint);">{{ $ins['reason'] }}</div>
                             </div>
-                            @if(!empty($ins['action_url']) && !empty($ins['action_label']))
+                            @if(!empty($ins['action']) && !empty($ins['action_label']) && !empty($link) && isset($ins['action']['type']))
+                                @php $act = $ins['action']; @endphp
+                                <form action="{{ route('user.links.coach-action', $link) }}" method="POST" class="pc-insight-action-form"
+                                      @if(!empty($act['confirm'])) onsubmit="return confirm(@json($act['confirm']));" @endif>
+                                    @csrf
+                                    <input type="hidden" name="action_type" value="{{ $act['type'] }}">
+                                    @if(!empty($act['block_id']))
+                                        <input type="hidden" name="block_id" value="{{ (int) $act['block_id'] }}">
+                                    @endif
+                                    @if(!empty($act['block_ids']) && is_array($act['block_ids']))
+                                        @foreach($act['block_ids'] as $bid)
+                                            <input type="hidden" name="block_ids[]" value="{{ (int) $bid }}">
+                                        @endforeach
+                                    @endif
+                                    <button type="submit" class="pc-insight-cta" style="color: {{ $s['color'] }}; border-color: {{ $s['border'] }};">
+                                        <i class="fas fa-bolt text-[9px] mr-1"></i>{{ $ins['action_label'] }}
+                                    </button>
+                                </form>
+                            @elseif(!empty($ins['action_url']) && !empty($ins['action_label']))
                                 <a href="{{ $ins['action_url'] }}" class="pc-insight-cta" style="color: {{ $s['color'] }}; border-color: {{ $s['border'] }};">
                                     {{ $ins['action_label'] }} <i class="fas fa-arrow-right text-[9px] ml-1"></i>
                                 </a>
