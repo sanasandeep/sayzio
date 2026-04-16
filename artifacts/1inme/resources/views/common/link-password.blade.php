@@ -12,7 +12,7 @@
     <style>
         body { font-family: 'Space Grotesk', system-ui, sans-serif; background: #0a0612; }
         .glass { background: rgba(255,255,255,0.03); backdrop-filter: blur(24px) saturate(1.2); border: 1px solid rgba(255,255,255,0.06); box-shadow: 0 4px 32px rgba(0,0,0,0.4); }
-        .bg-mesh { position: fixed; inset: 0; pointer-events: none; z-index: 0; background: radial-gradient(ellipse 600px 400px at 15% 20%, rgba(139,92,246,0.07), transparent), radial-gradient(ellipse 500px 350px at 85% 75%, rgba(168,85,247,0.05), transparent); }
+        .bg-mesh { position: fixed; inset: 0; pointer-events: none; z-index: 0; background: radial-gradient(ellipse 600px 400px at 15% 20%, rgba(27,132,255,0.07), transparent), radial-gradient(ellipse 500px 350px at 85% 75%, rgba(62,151,255,0.05), transparent); }
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4 text-white">
@@ -35,10 +35,10 @@
                 @csrf
                 <input type="password" name="password" placeholder="Enter password"
                        class="w-full rounded-[0.625rem] px-3.5 py-2.5 text-sm text-white placeholder-white/30 mb-4 outline-none transition-all" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.06);" required autofocus>
-                <button type="submit" class="w-full py-2.5 rounded-[0.625rem] text-sm font-semibold text-white transition-all" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); box-shadow: 0 4px 16px rgba(139,92,246,0.25);">Continue</button>
+                <button type="submit" class="w-full py-2.5 rounded-[0.625rem] text-sm font-semibold text-white transition-all" style="background: linear-gradient(135deg, #3e97ff, #1b84ff); box-shadow: 0 4px 16px rgba(27,132,255,0.25);">Continue</button>
             </form>
         </div>
-        <p class="text-center text-xs text-white/20 mt-4">Powered by <span class="text-white/30">1IN</span><span class="text-purple-400/60">ME</span></p>
+        <p class="text-center text-xs text-white/20 mt-4">Powered by <span class="text-white/30">1IN</span><span class="text-blue-400/60">ME</span></p>
     </div>
     @include('common.partials.pixel-scripts', ['link' => $link])
 </body>

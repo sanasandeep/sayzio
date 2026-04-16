@@ -13,13 +13,13 @@
     .device-switcher-btn:hover {
         background: var(--bg-glass-hover);
         color: var(--text-muted);
-        border-color: rgba(139,92,246,0.15);
+        border-color: rgba(27,132,255,0.15);
     }
     .device-switcher-btn.active {
-        background: rgba(139,92,246,0.15);
-        color: #a78bfa;
-        border-color: rgba(139,92,246,0.3);
-        box-shadow: 0 0 12px rgba(139,92,246,0.1);
+        background: rgba(27,132,255,0.15);
+        color: #7fbbff;
+        border-color: rgba(27,132,255,0.3);
+        box-shadow: 0 0 12px rgba(27,132,255,0.1);
     }
 
     .device-frame-phone {
@@ -135,7 +135,7 @@
     <div class="flex justify-center transition-all duration-500 ease-in-out">
         {{-- Phone --}}
         <div x-show="previewMode === 'phone'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" class="device-frame-phone relative mx-auto">
-            <div class="absolute -inset-3 rounded-[3.5rem] animate-pulse-glow" style="background: linear-gradient(135deg, rgba(139,92,246,0.12), rgba(168,85,247,0.06)); filter: blur(24px);"></div>
+            <div class="absolute -inset-3 rounded-[3.5rem] animate-pulse-glow" style="background: linear-gradient(135deg, rgba(27,132,255,0.12), rgba(62,151,255,0.06)); filter: blur(24px);"></div>
             <div class="relative bg-black rounded-[2.8rem] p-[10px] shadow-2xl" style="border: 2.5px solid rgba(60,60,70,0.8); box-shadow: 0 24px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 1px rgba(0,0,0,0.3);">
                 <div class="absolute top-0 left-1/2 -translate-x-1/2 z-10 flex items-center justify-center" style="width: 100px; height: 28px; background: #000; border-radius: 0 0 18px 18px;">
                     <div class="rounded-full" style="width: 56px; height: 16px; background: rgba(25,25,30,0.95); border: 1px solid rgba(40,40,50,0.6);"></div>

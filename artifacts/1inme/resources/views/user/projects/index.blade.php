@@ -7,19 +7,19 @@
         <h1 class="text-2xl font-bold text-white">Projects</h1>
         <p class="text-white/40 text-sm mt-1">Organize your links into projects</p>
     </div>
-    <a href="{{ route('user.projects.create') }}" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
+    <a href="{{ route('user.projects.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
         <i class="fas fa-plus"></i> New Project
     </a>
 </div>
 
 @if($projects->isEmpty())
 <div class="glass rounded-2xl p-12 text-center">
-    <div class="w-16 h-16 bg-purple-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-        <i class="fas fa-folder text-purple-400 text-2xl"></i>
+    <div class="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+        <i class="fas fa-folder text-blue-400 text-2xl"></i>
     </div>
     <h3 class="text-lg font-semibold text-white mb-2">No projects yet</h3>
     <p class="text-white/40 mb-4">Create a project to organize your links.</p>
-    <a href="{{ route('user.projects.create') }}" class="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-sm font-medium">
+    <a href="{{ route('user.projects.create') }}" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-medium">
         <i class="fas fa-plus"></i> Create Project
     </a>
 </div>
@@ -33,12 +33,12 @@
                     <i class="fas fa-folder" style="color: {{ $project->color }}"></i>
                 </div>
                 <div>
-                    <a href="{{ route('user.projects.show', $project) }}" class="font-semibold text-white hover:text-purple-400">{{ $project->name }}</a>
+                    <a href="{{ route('user.projects.show', $project) }}" class="font-semibold text-white hover:text-blue-400">{{ $project->name }}</a>
                     <div class="text-xs text-white/40 mt-0.5">{{ $project->links_count }} links</div>
                 </div>
             </div>
             <div class="flex items-center gap-1">
-                <a href="{{ route('user.projects.edit', $project) }}" class="p-2 text-white/30 hover:text-purple-400 rounded-xl"><i class="fas fa-edit text-xs"></i></a>
+                <a href="{{ route('user.projects.edit', $project) }}" class="p-2 text-white/30 hover:text-blue-400 rounded-xl"><i class="fas fa-edit text-xs"></i></a>
                 <form action="{{ route('user.projects.destroy', $project) }}" method="POST" onsubmit="return confirm('Delete this project? Links will be kept but unassigned.')">
                     @csrf @method('DELETE')
                     <button class="p-2 text-white/30 hover:text-red-400 rounded-xl"><i class="fas fa-trash text-xs"></i></button>

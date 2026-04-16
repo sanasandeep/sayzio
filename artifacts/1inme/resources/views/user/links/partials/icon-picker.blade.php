@@ -38,7 +38,7 @@ $pickerId = 'iconpicker_' . md5($fieldName . uniqid());
                 <template x-for="cat in categories" :key="cat">
                     <button type="button" @click="activeCategory = cat"
                             class="text-[9px] px-2 py-1 rounded-md whitespace-nowrap transition-all font-medium flex-shrink-0"
-                            :class="activeCategory === cat ? 'bg-purple-500/20 text-purple-300 ring-1 ring-purple-500/30' : 'text-white/30 hover:text-white/50'"
+                            :class="activeCategory === cat ? 'bg-blue-500/20 text-blue-300 ring-1 ring-blue-500/30' : 'text-white/30 hover:text-white/50'"
                             style="background: var(--bg-glass);" x-text="cat">
                     </button>
                 </template>
@@ -48,9 +48,9 @@ $pickerId = 'iconpicker_' . md5($fieldName . uniqid());
             <template x-for="ic in filteredIcons" :key="ic.c">
                 <button type="button" @click="selectIcon(ic.c)"
                         class="w-full aspect-square rounded-lg flex items-center justify-center transition-all group relative"
-                        :class="value === ic.c ? 'ring-2 ring-purple-500 bg-purple-500/20' : 'hover:bg-white/5'"
+                        :class="value === ic.c ? 'ring-2 ring-blue-500 bg-blue-500/20' : 'hover:bg-white/5'"
                         :title="ic.n">
-                    <i :class="ic.c" class="text-sm" :style="value === ic.c ? 'color: #a78bfa' : 'color: var(--text-muted)'"></i>
+                    <i :class="ic.c" class="text-sm" :style="value === ic.c ? 'color: #7fbbff' : 'color: var(--text-muted)'"></i>
                 </button>
             </template>
             <template x-if="filteredIcons.length === 0">

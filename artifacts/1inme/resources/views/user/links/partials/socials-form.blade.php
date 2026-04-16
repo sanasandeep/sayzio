@@ -1,5 +1,5 @@
 @php
-$inputClass = 'w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:ring-2 focus:ring-purple-500/40 outline-none';
+$inputClass = 'w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500/40 outline-none';
 $labelClass = 'block text-xs text-white/40 mb-1';
 $socialOptions = ['instagram','twitter','facebook','tiktok','youtube','linkedin','github','discord','telegram','whatsapp','snapchat','pinterest','twitch','dribbble','spotify','soundcloud','apple','reddit','medium','behance','website','email'];
 @endphp
@@ -19,5 +19,5 @@ $socialOptions = ['instagram','twitter','facebook','tiktok','youtube','linkedin'
             <button type="button" @click="platforms.splice(i,1)" class="text-xs text-red-400/60 hover:text-red-400"><i class="fas fa-times mr-1"></i>Remove</button>
         </div>
     </template>
-    <button type="button" @click="platforms.push({name:'',url:''})" class="text-xs text-purple-400 hover:text-purple-300"><i class="fas fa-plus mr-1"></i>Add Platform</button>
+    <button type="button" @click="platforms.push({name:'',url:''})" class="text-xs text-blue-400 hover:text-blue-300"><i class="fas fa-plus mr-1"></i>Add Platform</button>
 </div>

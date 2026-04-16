@@ -16,8 +16,8 @@
     <div class="bg-mesh"></div>
 
     <div class="absolute inset-0 overflow-hidden pointer-events-none">
-        <div class="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full animate-float-slow" style="background: radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 70%);"></div>
-        <div class="absolute -bottom-24 -right-24 w-[400px] h-[400px] rounded-full animate-float-slow-delay" style="background: radial-gradient(circle, rgba(168,85,247,0.08) 0%, transparent 70%);"></div>
+        <div class="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full animate-float-slow" style="background: radial-gradient(circle, rgba(27,132,255,0.12) 0%, transparent 70%);"></div>
+        <div class="absolute -bottom-24 -right-24 w-[400px] h-[400px] rounded-full animate-float-slow-delay" style="background: radial-gradient(circle, rgba(62,151,255,0.08) 0%, transparent 70%);"></div>
     </div>
 
     <div class="absolute top-5 right-5 z-20">
@@ -28,7 +28,7 @@
         <div class="w-full max-w-sm">
             <div class="text-center mb-7">
                 <a href="{{ route('home') }}" class="inline-block text-3xl font-bold tracking-tight">
-                    <span style="color: var(--text-primary);">1IN</span><span class="text-purple-400">ME</span>
+                    <span style="color: var(--text-primary);">1IN</span><span class="text-blue-400">ME</span>
                 </a>
                 <p class="text-sm mt-1" style="color: var(--text-dimmed);">Create your free account</p>
             </div>
@@ -73,7 +73,7 @@
 
             <p class="mt-6 text-center text-xs" style="color: var(--text-dimmed);">
                 Already have an account?
-                <a href="{{ route('user.login') }}" class="text-purple-400 hover:text-purple-300 font-semibold transition-colors">Sign in</a>
+                <a href="{{ route('user.login') }}" class="text-blue-400 hover:text-blue-300 font-semibold transition-colors">Sign in</a>
             </p>
         </div>
     </div>

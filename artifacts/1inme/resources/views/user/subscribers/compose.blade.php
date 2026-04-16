@@ -21,7 +21,7 @@
 
     <div class="grid grid-cols-2 gap-3 mb-6">
         <div class="glass rounded-2xl p-4 text-center">
-            <div class="text-2xl font-bold text-purple-400">{{ number_format($stats['email']) }}</div>
+            <div class="text-2xl font-bold text-blue-400">{{ number_format($stats['email']) }}</div>
             <div class="text-xs mt-1" style="color: var(--text-muted);">Email Subscribers</div>
         </div>
         <div class="glass rounded-2xl p-4 text-center">
@@ -38,9 +38,9 @@
             <div class="grid grid-cols-2 gap-3">
                 <label class="cursor-pointer">
                     <input type="radio" name="channel" value="email" x-model="channel" class="sr-only peer">
-                    <div class="glass rounded-xl p-4 text-center transition-all peer-checked:ring-2 peer-checked:ring-purple-500 hover:bg-white/[0.03]">
-                        <div class="w-12 h-12 rounded-full mx-auto mb-2 flex items-center justify-center" style="background: linear-gradient(135deg, rgba(124,58,237,0.3), rgba(168,85,247,0.2));">
-                            <i class="fas fa-envelope text-purple-400 text-lg"></i>
+                    <div class="glass rounded-xl p-4 text-center transition-all peer-checked:ring-2 peer-checked:ring-blue-500 hover:bg-white/[0.03]">
+                        <div class="w-12 h-12 rounded-full mx-auto mb-2 flex items-center justify-center" style="background: linear-gradient(135deg, rgba(27,132,255,0.3), rgba(62,151,255,0.2));">
+                            <i class="fas fa-envelope text-blue-400 text-lg"></i>
                         </div>
                         <p class="text-sm font-medium" style="color: var(--text-primary);">Email</p>
                         <p class="text-xs mt-0.5" style="color: var(--text-muted);">{{ $stats['email'] }} recipients</p>
@@ -78,7 +78,7 @@
             <a href="{{ route('user.subscribers.messages') }}" class="text-sm" style="color: var(--text-muted);">
                 <i class="fas fa-history mr-1"></i>Message History
             </a>
-            <button type="submit" class="px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:-translate-y-0.5 flex items-center gap-2" style="background: linear-gradient(135deg, #7c3aed, #a855f7);"
+            <button type="submit" class="px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:-translate-y-0.5 flex items-center gap-2" style="background: linear-gradient(135deg, #1b84ff, #3e97ff);"
                     onclick="return confirm('Send this message to all active subscribers in the selected channel?')">
                 <i class="fas fa-paper-plane"></i>Send Message
             </button>
@@ -92,8 +92,8 @@
             @foreach($messages->take(5) as $msg)
             <div class="glass rounded-xl p-4 flex items-center justify-between">
                 <div class="flex items-center gap-3 min-w-0">
-                    <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background: {{ $msg->channel === 'email' ? 'rgba(124,58,237,0.15)' : 'rgba(37,211,102,0.15)' }};">
-                        <i class="{{ $msg->channel === 'email' ? 'fas fa-envelope text-purple-400' : 'fab fa-whatsapp' }} text-sm" style="{{ $msg->channel !== 'email' ? 'color:#25D366' : '' }}"></i>
+                    <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background: {{ $msg->channel === 'email' ? 'rgba(27,132,255,0.15)' : 'rgba(37,211,102,0.15)' }};">
+                        <i class="{{ $msg->channel === 'email' ? 'fas fa-envelope text-blue-400' : 'fab fa-whatsapp' }} text-sm" style="{{ $msg->channel !== 'email' ? 'color:#25D366' : '' }}"></i>
                     </div>
                     <div class="min-w-0">
                         <p class="text-sm font-medium truncate" style="color: var(--text-primary);">{{ $msg->subject ?: Str::limit($msg->body, 60) }}</p>

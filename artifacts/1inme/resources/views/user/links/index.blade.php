@@ -57,8 +57,8 @@
 
 @if($links->isEmpty())
 <div class="card-premium p-14 text-center">
-    <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style="background: rgba(139,92,246,0.08); border: 1px solid rgba(139,92,246,0.12);">
-        <i class="fas fa-link text-purple-400 text-xl"></i>
+    <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style="background: rgba(27,132,255,0.08); border: 1px solid rgba(27,132,255,0.12);">
+        <i class="fas fa-link text-blue-400 text-xl"></i>
     </div>
     <h3 class="text-base font-bold mb-1.5" style="color: var(--text-primary);">No links yet</h3>
     <p class="text-xs mb-5" style="color: var(--text-dimmed);">Create your first link to start tracking clicks.</p>
@@ -71,7 +71,7 @@
     @foreach($links as $link)
     @php
         $typeStyles = [
-            'url'     => ['icon' => 'fa-link',         'bg' => 'rgba(139,92,246,0.08)', 'border' => 'rgba(139,92,246,0.12)', 'color' => '#a78bfa', 'label' => 'URL'],
+            'url'     => ['icon' => 'fa-link',         'bg' => 'rgba(27,132,255,0.08)', 'border' => 'rgba(27,132,255,0.12)', 'color' => '#7fbbff', 'label' => 'URL'],
             'biolink' => ['icon' => 'fa-id-card',      'bg' => 'rgba(236,72,153,0.08)', 'border' => 'rgba(236,72,153,0.12)', 'color' => '#f472b6', 'label' => 'Bio'],
             'file'    => ['icon' => 'fa-file',         'bg' => 'rgba(16,185,129,0.08)', 'border' => 'rgba(16,185,129,0.12)', 'color' => '#34d399', 'label' => 'File'],
             'ics'     => ['icon' => 'fa-calendar',     'bg' => 'rgba(245,158,11,0.08)', 'border' => 'rgba(245,158,11,0.12)', 'color' => '#fbbf24', 'label' => 'ICS'],
@@ -87,7 +87,7 @@
                 </div>
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2 mb-0.5">
-                        <a href="{{ route('user.links.show', $link) }}" class="text-sm font-semibold truncate transition-colors hover:text-purple-400" style="color: var(--text-primary);">
+                        <a href="{{ route('user.links.show', $link) }}" class="text-sm font-semibold truncate transition-colors hover:text-blue-400" style="color: var(--text-primary);">
                             {{ $link->title ?: $link->alias }}
                         </a>
                         <span class="badge" style="background: {{ $ts['bg'] }}; color: {{ $ts['color'] }}; border: 1px solid {{ $ts['border'] }};">{{ $ts['label'] }}</span>
@@ -101,10 +101,10 @@
                             <i class="fas fa-clock text-[9px]" style="color: var(--text-faint);" title="Expires {{ $link->expires_at->format('M d, Y') }}"></i>
                         @endif
                     </div>
-                    <div class="flex items-center gap-1.5 text-xs text-purple-400/60 mb-0.5" x-data="{ copied: false }">
+                    <div class="flex items-center gap-1.5 text-xs text-blue-400/60 mb-0.5" x-data="{ copied: false }">
                         <span class="truncate">{{ $link->getShortUrl() }}</span>
                         <button @click="navigator.clipboard.writeText('{{ $link->getShortUrl() }}'); copied = true; setTimeout(() => copied = false, 2000)"
-                                class="flex-shrink-0 transition-colors hover:text-purple-400" style="color: var(--text-faint);">
+                                class="flex-shrink-0 transition-colors hover:text-blue-400" style="color: var(--text-faint);">
                             <i x-show="!copied" class="fas fa-copy text-[10px]"></i>
                             <i x-show="copied" x-cloak class="fas fa-check text-emerald-400 text-[10px]"></i>
                         </button>
@@ -130,16 +130,16 @@
                     <div class="text-[10px]" style="color: var(--text-faint);">clicks</div>
                 </div>
                 <div class="flex items-center gap-0.5 opacity-40 group-hover:opacity-100 transition-opacity">
-                    <a href="{{ route('user.links.show', $link) }}" class="p-1.5 rounded-md transition-all hover:bg-purple-500/10" style="color: var(--text-faint);" title="View">
-                        <i class="fas fa-chart-bar text-xs hover:text-purple-400"></i>
+                    <a href="{{ route('user.links.show', $link) }}" class="p-1.5 rounded-md transition-all hover:bg-blue-500/10" style="color: var(--text-faint);" title="View">
+                        <i class="fas fa-chart-bar text-xs hover:text-blue-400"></i>
                     </a>
                     @if($link->type === 'biolink')
                     <a href="{{ route('user.links.blocks.editor', $link) }}" class="p-1.5 rounded-md transition-all hover:bg-pink-500/10" style="color: var(--text-faint);" title="Edit Blocks">
                         <i class="fas fa-th-large text-xs hover:text-pink-400"></i>
                     </a>
                     @endif
-                    <a href="{{ route('user.links.edit', $link) }}" class="p-1.5 rounded-md transition-all hover:bg-purple-500/10" style="color: var(--text-faint);" title="Edit">
-                        <i class="fas fa-edit text-xs hover:text-purple-400"></i>
+                    <a href="{{ route('user.links.edit', $link) }}" class="p-1.5 rounded-md transition-all hover:bg-blue-500/10" style="color: var(--text-faint);" title="Edit">
+                        <i class="fas fa-edit text-xs hover:text-blue-400"></i>
                     </a>
                     <form action="{{ route('user.links.destroy', $link) }}" method="POST" onsubmit="return confirm('Delete this link?')">
                         @csrf @method('DELETE')

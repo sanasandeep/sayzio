@@ -16,7 +16,7 @@
         <div class="text-sm text-white/40">Total Clicks</div>
     </div>
     <div class="glass rounded-2xl p-5">
-        <div class="text-3xl font-bold text-purple-400">{{ number_format($link->unique_clicks) }}</div>
+        <div class="text-3xl font-bold text-blue-400">{{ number_format($link->unique_clicks) }}</div>
         <div class="text-sm text-white/40">Unique Clicks</div>
     </div>
     <div class="glass rounded-2xl p-5">
@@ -31,9 +31,9 @@
         <h2 class="text-lg font-semibold text-white mb-4">Link Details</h2>
         <dl class="space-y-3 text-sm">
             <div class="flex justify-between"><dt class="text-white/40">Type</dt><dd class="font-medium">{{ ucfirst($link->type) }}</dd></div>
-            <div class="flex justify-between"><dt class="text-white/40">Short URL</dt><dd class="font-mono text-purple-400">{{ $link->getShortUrl() }}</dd></div>
+            <div class="flex justify-between"><dt class="text-white/40">Short URL</dt><dd class="font-mono text-blue-400">{{ $link->getShortUrl() }}</dd></div>
             @if($link->long_url)
-            <div><dt class="text-white/40">Destination</dt><dd class="text-purple-400 break-all mt-1">{{ $link->long_url }}</dd></div>
+            <div><dt class="text-white/40">Destination</dt><dd class="text-blue-400 break-all mt-1">{{ $link->long_url }}</dd></div>
             @endif
             @if($link->project)
             <div class="flex justify-between"><dt class="text-white/40">Project</dt><dd>{{ $link->project->name }}</dd></div>

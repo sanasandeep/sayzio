@@ -22,7 +22,7 @@ $labelClass = 'block text-xs mb-1';
     <div><label class="{{ $labelClass }}">URL</label><input type="url" name="settings[url]" value="{{ $s['url'] ?? '' }}" placeholder="https://" class="{{ $inputClass }}"></div>
     @include('user.links.partials.icon-picker', ['fieldName' => 'settings[icon]', 'currentValue' => $s['icon'] ?? '', 'labelText' => 'Icon', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
     @include('user.links.partials.file-upload-field', ['fieldName' => 'settings[thumbnail]', 'currentValue' => $s['thumbnail'] ?? '', 'acceptTypes' => 'image', 'labelText' => 'Thumbnail', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
-    <div><label class="{{ $labelClass }}">Background Color</label><input type="color" name="settings[bg_color]" value="{{ $s['bg_color'] ?? '#7c3aed' }}" class="w-full h-10 rounded-xl cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
+    <div><label class="{{ $labelClass }}">Background Color</label><input type="color" name="settings[bg_color]" value="{{ $s['bg_color'] ?? '#1b84ff' }}" class="w-full h-10 rounded-xl cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
 </div>
 
 @elseif($block->type === 'heading')
@@ -38,7 +38,7 @@ $labelClass = 'block text-xs mb-1';
 <div class="space-y-3">
     <div><label class="{{ $labelClass }}">Text</label><input type="text" name="settings[text]" value="{{ $s['text'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div class="grid grid-cols-2 gap-3">
-        <div><label class="{{ $labelClass }}">From Color</label><input type="color" name="settings[from_color]" value="{{ $s['from_color'] ?? '#7c3aed' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
+        <div><label class="{{ $labelClass }}">From Color</label><input type="color" name="settings[from_color]" value="{{ $s['from_color'] ?? '#1b84ff' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
         <div><label class="{{ $labelClass }}">To Color</label><input type="color" name="settings[to_color]" value="{{ $s['to_color'] ?? '#ec4899' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
     </div>
     <div class="grid grid-cols-2 gap-3">
@@ -90,7 +90,7 @@ $labelClass = 'block text-xs mb-1';
     <template x-for="(item, i) in items" :key="i">
         <div class="flex gap-2 mb-2"><input type="text" x-model="items[i]" :name="'settings[items][' + i + ']'" class="{{ $inputClass }}"><button type="button" @click="items.splice(i,1)" class="text-red-400/60 hover:text-red-400 px-2"><i class="fas fa-times text-xs"></i></button></div>
     </template>
-    <button type="button" @click="items.push('')" class="text-xs text-purple-400 hover:text-purple-300"><i class="fas fa-plus mr-1"></i>Add Item</button>
+    <button type="button" @click="items.push('')" class="text-xs text-blue-400 hover:text-blue-300"><i class="fas fa-plus mr-1"></i>Add Item</button>
     @if($block->type === 'list')<div class="mt-3">@include('user.links.partials.icon-picker', ['fieldName' => 'settings[icon]', 'currentValue' => $s['icon'] ?? 'fa-check', 'labelText' => 'List Icon', 'inputClass' => $inputClass, 'labelClass' => $labelClass])</div>@endif
 </div>
 
@@ -103,11 +103,11 @@ $labelClass = 'block text-xs mb-1';
                 <input type="text" x-model="items[i].name" :name="'settings[items]['+i+'][name]'" placeholder="Feature" class="{{ $inputClass }}">
                 <input type="text" x-model="items[i].price" :name="'settings[items]['+i+'][price]'" placeholder="$10" class="{{ $inputClass }}">
             </div>
-            <label class="flex items-center gap-2 text-xs text-white/40"><input type="checkbox" x-model="items[i].included" :name="'settings[items]['+i+'][included]'" value="1" class="rounded text-purple-500" style="background: var(--bg-glass-input); border-color: var(--border-glass);">Included</label>
+            <label class="flex items-center gap-2 text-xs text-white/40"><input type="checkbox" x-model="items[i].included" :name="'settings[items]['+i+'][included]'" value="1" class="rounded text-blue-500" style="background: var(--bg-glass-input); border-color: var(--border-glass);">Included</label>
             <button type="button" @click="items.splice(i,1)" class="text-xs text-red-400/60 hover:text-red-400 mt-1"><i class="fas fa-times mr-1"></i>Remove</button>
         </div>
     </template>
-    <button type="button" @click="items.push({name:'',price:'',included:true})" class="text-xs text-purple-400 hover:text-purple-300"><i class="fas fa-plus mr-1"></i>Add Item</button>
+    <button type="button" @click="items.push({name:'',price:'',included:true})" class="text-xs text-blue-400 hover:text-blue-300"><i class="fas fa-plus mr-1"></i>Add Item</button>
 </div>
 
 @elseif($block->type === 'alert')
@@ -120,7 +120,7 @@ $labelClass = 'block text-xs mb-1';
 <div class="space-y-3">
     <div><label class="{{ $labelClass }}">Text</label><input type="text" name="settings[text]" value="{{ $s['text'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div class="grid grid-cols-2 gap-3">
-        <div><label class="{{ $labelClass }}">Color</label><input type="color" name="settings[color]" value="{{ $s['color'] ?? '#7c3aed' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
+        <div><label class="{{ $labelClass }}">Color</label><input type="color" name="settings[color]" value="{{ $s['color'] ?? '#1b84ff' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
         <div><label class="{{ $labelClass }}">Text Color</label><input type="color" name="settings[text_color]" value="{{ $s['text_color'] ?? '#ffffff' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
     </div>
 </div>
@@ -152,7 +152,7 @@ $labelClass = 'block text-xs mb-1';
         </div>
     </template>
     <div class="flex items-center gap-2 mt-1">
-        <button type="button" @click="images.push('')" class="text-xs text-purple-400 hover:text-purple-300"><i class="fas fa-plus mr-1"></i>Add URL</button>
+        <button type="button" @click="images.push('')" class="text-xs text-blue-400 hover:text-blue-300"><i class="fas fa-plus mr-1"></i>Add URL</button>
         <span class="text-white/10">|</span>
         <button type="button" @click="$refs.gridFileInput.click()" class="text-xs text-emerald-400 hover:text-emerald-300"><i class="fas fa-cloud-upload-alt mr-1"></i>Upload</button>
     </div>
@@ -160,9 +160,9 @@ $labelClass = 'block text-xs mb-1';
     <template x-if="uploading">
         <div class="mt-2 rounded-lg p-2" style="background: var(--bg-glass); border: 1px solid var(--border-glass);">
             <div class="w-full rounded-full h-1.5 mb-1" style="background: var(--bg-glass-input);">
-                <div class="h-1.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all" :style="'width:' + uploadProgress + '%'"></div>
+                <div class="h-1.5 rounded-full bg-gradient-to-r from-blue-500 to-pink-500 transition-all" :style="'width:' + uploadProgress + '%'"></div>
             </div>
-            <p class="text-[10px] text-purple-300"><i class="fas fa-spinner fa-spin mr-1"></i>Uploading...</p>
+            <p class="text-[10px] text-blue-300"><i class="fas fa-spinner fa-spin mr-1"></i>Uploading...</p>
         </div>
     </template>
     @if($block->type === 'image_grid')<div class="mt-3"><label class="{{ $labelClass }}">Columns</label><select name="settings[columns]" class="{{ $selectClass }}"><option value="2" {{ ($s['columns'] ?? 3) == 2 ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">2</option><option value="3" {{ ($s['columns'] ?? 3) == 3 ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">3</option><option value="4" {{ ($s['columns'] ?? 3) == 4 ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">4</option></select></div>@endif
@@ -209,9 +209,9 @@ function imageListUploader_{{ $gridImgId }}() {
     @include('user.links.partials.file-upload-field', ['fieldName' => 'settings[url]', 'currentValue' => $s['url'] ?? '', 'acceptTypes' => 'video', 'labelText' => 'Video', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
     @if($block->type === 'header_video')
     <div class="flex gap-4">
-        <label class="flex items-center gap-2 text-xs text-white/40"><input type="checkbox" name="settings[autoplay]" value="1" {{ ($s['autoplay'] ?? false) ? 'checked' : '' }} class="rounded text-purple-500" style="background: var(--bg-glass-input); border-color: var(--border-glass);">Autoplay</label>
-        <label class="flex items-center gap-2 text-xs text-white/40"><input type="checkbox" name="settings[muted]" value="1" {{ ($s['muted'] ?? false) ? 'checked' : '' }} class="rounded text-purple-500" style="background: var(--bg-glass-input); border-color: var(--border-glass);">Muted</label>
-        <label class="flex items-center gap-2 text-xs text-white/40"><input type="checkbox" name="settings[loop]" value="1" {{ ($s['loop'] ?? false) ? 'checked' : '' }} class="rounded text-purple-500" style="background: var(--bg-glass-input); border-color: var(--border-glass);">Loop</label>
+        <label class="flex items-center gap-2 text-xs text-white/40"><input type="checkbox" name="settings[autoplay]" value="1" {{ ($s['autoplay'] ?? false) ? 'checked' : '' }} class="rounded text-blue-500" style="background: var(--bg-glass-input); border-color: var(--border-glass);">Autoplay</label>
+        <label class="flex items-center gap-2 text-xs text-white/40"><input type="checkbox" name="settings[muted]" value="1" {{ ($s['muted'] ?? false) ? 'checked' : '' }} class="rounded text-blue-500" style="background: var(--bg-glass-input); border-color: var(--border-glass);">Muted</label>
+        <label class="flex items-center gap-2 text-xs text-white/40"><input type="checkbox" name="settings[loop]" value="1" {{ ($s['loop'] ?? false) ? 'checked' : '' }} class="rounded text-blue-500" style="background: var(--bg-glass-input); border-color: var(--border-glass);">Loop</label>
     </div>
     @endif
 </div>
@@ -389,7 +389,7 @@ function imageListUploader_{{ $gridImgId }}() {
             <button type="button" @click="items.splice(i,1)" class="text-xs text-red-400/60 hover:text-red-400 mt-1"><i class="fas fa-times mr-1"></i>Remove</button>
         </div>
     </template>
-    <button type="button" @click="items.push({question:'',answer:''})" class="text-xs text-purple-400 hover:text-purple-300"><i class="fas fa-plus mr-1"></i>Add Item</button>
+    <button type="button" @click="items.push({question:'',answer:''})" class="text-xs text-blue-400 hover:text-blue-300"><i class="fas fa-plus mr-1"></i>Add Item</button>
 </div>
 
 @elseif($block->type === 'poll')
@@ -399,7 +399,7 @@ function imageListUploader_{{ $gridImgId }}() {
     <template x-for="(opt, i) in options" :key="i">
         <div class="flex gap-2 mb-2"><input type="text" x-model="options[i]" :name="'settings[options]['+i+']'" class="{{ $inputClass }}"><button type="button" @click="options.splice(i,1)" class="text-red-400/60 hover:text-red-400 px-2"><i class="fas fa-times text-xs"></i></button></div>
     </template>
-    <button type="button" @click="options.push('')" class="text-xs text-purple-400 hover:text-purple-300"><i class="fas fa-plus mr-1"></i>Add Option</button>
+    <button type="button" @click="options.push('')" class="text-xs text-blue-400 hover:text-blue-300"><i class="fas fa-plus mr-1"></i>Add Option</button>
 </div>
 
 @elseif($block->type === 'testimonials')
@@ -413,7 +413,7 @@ function imageListUploader_{{ $gridImgId }}() {
             <button type="button" @click="items.splice(i,1)" class="text-xs text-red-400/60 hover:text-red-400"><i class="fas fa-times mr-1"></i>Remove</button>
         </div>
     </template>
-    <button type="button" @click="items.push({name:'',text:'',rating:5})" class="text-xs text-purple-400 hover:text-purple-300"><i class="fas fa-plus mr-1"></i>Add</button>
+    <button type="button" @click="items.push({name:'',text:'',rating:5})" class="text-xs text-blue-400 hover:text-blue-300"><i class="fas fa-plus mr-1"></i>Add</button>
 </div>
 
 @elseif($block->type === 'review')
@@ -436,7 +436,7 @@ function imageListUploader_{{ $gridImgId }}() {
         </div>
     </template>
     @php $extra = $block->type === 'timeline' ? "date:''" : "status:'upcoming'"; @endphp
-    <button type="button" @click="items.push({title:'',description:'',{!! $extra !!}})" class="text-xs text-purple-400 hover:text-purple-300"><i class="fas fa-plus mr-1"></i>Add Item</button>
+    <button type="button" @click="items.push({title:'',description:'',{!! $extra !!}})" class="text-xs text-blue-400 hover:text-blue-300"><i class="fas fa-plus mr-1"></i>Add Item</button>
 </div>
 
 @elseif($block->type === 'product')
@@ -503,7 +503,7 @@ function imageListUploader_{{ $gridImgId }}() {
 </div>
 
 @elseif($block->type === 'progress')
-<div x-data="{ items: {{ json_encode($s['items'] ?? [['label'=>'Progress','value'=>75,'color'=>'#7c3aed']]) }} }">
+<div x-data="{ items: {{ json_encode($s['items'] ?? [['label'=>'Progress','value'=>75,'color'=>'#1b84ff']]) }} }">
     <label class="{{ $labelClass }}">Progress Bars</label>
     <template x-for="(item, i) in items" :key="i">
         <div class="glass rounded-lg p-3 mb-2 grid grid-cols-3 gap-2">
@@ -512,7 +512,7 @@ function imageListUploader_{{ $gridImgId }}() {
             <input type="color" x-model="items[i].color" :name="'settings[items]['+i+'][color]'" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);">
         </div>
     </template>
-    <button type="button" @click="items.push({label:'',value:50,color:'#7c3aed'})" class="text-xs text-purple-400 hover:text-purple-300"><i class="fas fa-plus mr-1"></i>Add</button>
+    <button type="button" @click="items.push({label:'',value:50,color:'#1b84ff'})" class="text-xs text-blue-400 hover:text-blue-300"><i class="fas fa-plus mr-1"></i>Add</button>
 </div>
 
 @elseif($block->type === 'cta_button')
@@ -520,7 +520,7 @@ function imageListUploader_{{ $gridImgId }}() {
     <div><label class="{{ $labelClass }}">Button Text</label><input type="text" name="settings[text]" value="{{ $s['text'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div><label class="{{ $labelClass }}">URL</label><input type="url" name="settings[url]" value="{{ $s['url'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div class="grid grid-cols-2 gap-3">
-        <div><label class="{{ $labelClass }}">Button Color</label><input type="color" name="settings[color]" value="{{ $s['color'] ?? '#7c3aed' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
+        <div><label class="{{ $labelClass }}">Button Color</label><input type="color" name="settings[color]" value="{{ $s['color'] ?? '#1b84ff' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
         <div><label class="{{ $labelClass }}">Text Color</label><input type="color" name="settings[text_color]" value="{{ $s['text_color'] ?? '#ffffff' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
     </div>
     <div><label class="{{ $labelClass }}">Size</label><select name="settings[size]" class="{{ $selectClass }}"><option value="sm" {{ ($s['size'] ?? '') === 'sm' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Small</option><option value="md" {{ ($s['size'] ?? '') === 'md' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Medium</option><option value="lg" {{ ($s['size'] ?? '') === 'lg' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Large</option></select></div>
@@ -538,7 +538,7 @@ function imageListUploader_{{ $gridImgId }}() {
     <template x-for="(item, i) in items" :key="i">
         <div class="flex gap-2 mb-2"><input type="text" x-model="items[i]" :name="'settings[items]['+i+']'" class="{{ $inputClass }}"><button type="button" @click="items.splice(i,1)" class="text-red-400/60 px-2"><i class="fas fa-times text-xs"></i></button></div>
     </template>
-    <button type="button" @click="items.push('')" class="text-xs text-purple-400"><i class="fas fa-plus mr-1"></i>Add</button>
+    <button type="button" @click="items.push('')" class="text-xs text-blue-400"><i class="fas fa-plus mr-1"></i>Add</button>
 </div>
 
 @elseif($block->type === 'iframe_embed')
@@ -591,7 +591,7 @@ function imageListUploader_{{ $gridImgId }}() {
     @include('user.links.partials.file-upload-field', ['fieldName' => 'settings[url]', 'currentValue' => $s['url'] ?? '', 'acceptTypes' => 'image', 'labelText' => 'Avatar Image', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
     <div class="grid grid-cols-2 gap-3">
         <div><label class="{{ $labelClass }}">Size (px)</label><input type="number" name="settings[size]" value="{{ $s['size'] ?? 96 }}" min="32" max="256" class="{{ $inputClass }}"></div>
-        <div class="flex items-end pb-1"><label class="flex items-center gap-2 text-xs text-white/40"><input type="hidden" name="settings[rounded]" value="0"><input type="checkbox" name="settings[rounded]" value="1" {{ ($s['rounded'] ?? true) ? 'checked' : '' }} class="rounded text-purple-500" style="background: var(--bg-glass-input); border-color: var(--border-glass);">Rounded</label></div>
+        <div class="flex items-end pb-1"><label class="flex items-center gap-2 text-xs text-white/40"><input type="hidden" name="settings[rounded]" value="0"><input type="checkbox" name="settings[rounded]" value="1" {{ ($s['rounded'] ?? true) ? 'checked' : '' }} class="rounded text-blue-500" style="background: var(--bg-glass-input); border-color: var(--border-glass);">Rounded</label></div>
     </div>
 </div>
 
@@ -663,7 +663,7 @@ function imageListUploader_{{ $gridImgId }}() {
 
     <div x-show="bgType === 'gradient'" x-cloak>
         <label class="{{ $labelClass }}">CSS Gradient</label>
-        <input type="text" name="settings[bg_gradient]" value="{{ $s['bg_gradient'] ?? '' }}" class="{{ $inputClass }}" placeholder="linear-gradient(135deg, #7c3aed, #ec4899)">
+        <input type="text" name="settings[bg_gradient]" value="{{ $s['bg_gradient'] ?? '' }}" class="{{ $inputClass }}" placeholder="linear-gradient(135deg, #1b84ff, #ec4899)">
     </div>
 
     <div x-show="bgType === 'image'" x-cloak>
@@ -703,7 +703,7 @@ function imageListUploader_{{ $gridImgId }}() {
             <button type="button" @click="items.splice(i,1)" class="text-xs text-red-400/60 hover:text-red-400"><i class="fas fa-times mr-1"></i>Remove</button>
         </div>
     </template>
-    <button type="button" @click="items.push({name:'',url:''})" class="text-xs text-purple-400 hover:text-purple-300"><i class="fas fa-plus mr-1"></i>Add Item</button>
+    <button type="button" @click="items.push({name:'',url:''})" class="text-xs text-blue-400 hover:text-blue-300"><i class="fas fa-plus mr-1"></i>Add Item</button>
 </div>
 
 @elseif($block->type === 'quiz')
@@ -713,7 +713,7 @@ function imageListUploader_{{ $gridImgId }}() {
 </div>
 
 @elseif($block->type === 'chart_pie')
-<div x-data="{ items: {{ json_encode($s['items'] ?? [['label'=>'Segment','value'=>50,'color'=>'#7c3aed']]) }} }">
+<div x-data="{ items: {{ json_encode($s['items'] ?? [['label'=>'Segment','value'=>50,'color'=>'#1b84ff']]) }} }">
     <label class="{{ $labelClass }}">Chart Segments</label>
     <template x-for="(item, i) in items" :key="i">
         <div class="glass rounded-lg p-3 mb-2 grid grid-cols-3 gap-2">
@@ -722,7 +722,7 @@ function imageListUploader_{{ $gridImgId }}() {
             <input type="color" x-model="items[i].color" :name="'settings[items]['+i+'][color]'" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);">
         </div>
     </template>
-    <button type="button" @click="items.push({label:'',value:25,color:'#ec4899'})" class="text-xs text-purple-400"><i class="fas fa-plus mr-1"></i>Add</button>
+    <button type="button" @click="items.push({label:'',value:25,color:'#ec4899'})" class="text-xs text-blue-400"><i class="fas fa-plus mr-1"></i>Add</button>
 </div>
 
 @else

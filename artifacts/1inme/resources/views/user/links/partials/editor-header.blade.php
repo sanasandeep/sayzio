@@ -31,13 +31,13 @@
 <div class="flex items-center gap-1.5 mb-6 p-1 rounded-xl" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
     <a href="{{ route('user.links.blocks.editor', $link) }}"
        class="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold py-2.5 rounded-lg transition-all no-underline {{ $activeMainTab === 'blocks' ? 'text-white shadow-sm' : '' }}"
-       style="{{ $activeMainTab === 'blocks' ? 'background: linear-gradient(135deg, #8b5cf6, #7c3aed);' : 'color: var(--text-faint);' }}">
+       style="{{ $activeMainTab === 'blocks' ? 'background: linear-gradient(135deg, #3e97ff, #1b84ff);' : 'color: var(--text-faint);' }}">
         <i class="fas fa-th-large text-[10px]"></i>
         <span>Blocks</span>
     </a>
     <a href="{{ route('user.links.settings.appearance', $link) }}"
        class="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold py-2.5 rounded-lg transition-all no-underline {{ $activeMainTab === 'settings' ? 'text-white shadow-sm' : '' }}"
-       style="{{ $activeMainTab === 'settings' ? 'background: linear-gradient(135deg, #8b5cf6, #7c3aed);' : 'color: var(--text-faint);' }}">
+       style="{{ $activeMainTab === 'settings' ? 'background: linear-gradient(135deg, #3e97ff, #1b84ff);' : 'color: var(--text-faint);' }}">
         <i class="fas fa-cog text-[10px]"></i>
         <span>Settings</span>
     </a>

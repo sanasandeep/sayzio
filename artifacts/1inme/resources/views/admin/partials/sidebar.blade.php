@@ -1,14 +1,14 @@
 <aside class="w-[260px] flex-shrink-0 hidden lg:flex flex-col fixed inset-y-0 left-0 z-30" style="background: var(--bg-sidebar); backdrop-filter: blur(32px) saturate(1.2); -webkit-backdrop-filter: blur(32px) saturate(1.2); border-right: 1px solid var(--border-subtle);">
     <div class="h-[60px] flex items-center px-5" style="border-bottom: 1px solid var(--border-subtle);">
         <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2">
-            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center shadow-lg" style="box-shadow: 0 4px 12px rgba(139,92,246,0.3);">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg" style="box-shadow: 0 4px 12px rgba(27,132,255,0.3);">
                 <span class="text-white text-xs font-bold">1</span>
             </div>
             <span class="text-base font-bold tracking-tight">
-                <span style="color: var(--text-primary);">1IN</span><span class="text-purple-400">ME</span>
+                <span style="color: var(--text-primary);">1IN</span><span class="text-blue-400">ME</span>
             </span>
         </a>
-        <span class="ml-2 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded" style="background: rgba(139,92,246,0.1); color: var(--accent-light); border: 1px solid rgba(139,92,246,0.15);">Admin</span>
+        <span class="ml-2 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded" style="background: rgba(27,132,255,0.1); color: var(--accent-light); border: 1px solid rgba(27,132,255,0.15);">Admin</span>
     </div>
 
     <nav class="flex-1 py-4 px-3 space-y-0.5 overflow-y-auto">
@@ -61,7 +61,7 @@
 
     <div class="p-3" style="border-top: 1px solid var(--border-subtle);">
         <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center text-white text-xs font-bold shadow-md" style="box-shadow: 0 2px 8px rgba(139,92,246,0.25);">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold shadow-md" style="box-shadow: 0 2px 8px rgba(27,132,255,0.25);">
                 {{ strtoupper(substr(auth()->guard('admin')->user()->name ?? 'A', 0, 1)) }}
             </div>
             <div class="flex-1 min-w-0">

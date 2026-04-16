@@ -7,7 +7,7 @@
 <div class="p-4 lg:p-8 max-w-3xl mx-auto">
     <div class="glass rounded-2xl p-6 lg:p-8" style="border: 1px solid var(--border-glass);">
         <div class="flex items-center gap-3 mb-6">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
                 <i class="fas fa-plus text-white text-sm"></i>
             </div>
             <div>
@@ -25,7 +25,7 @@
                         <input type="text" name="name" value="{{ old('name') }}" required placeholder="e.g. Starter"
                                class="w-full px-4 py-2.5 rounded-xl text-sm outline-none transition-all"
                                style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);"
-                               onfocus="this.style.borderColor='rgba(139,92,246,0.4)'; this.style.boxShadow='0 0 0 3px rgba(139,92,246,0.08)'"
+                               onfocus="this.style.borderColor='rgba(27,132,255,0.4)'; this.style.boxShadow='0 0 0 3px rgba(27,132,255,0.08)'"
                                onblur="this.style.borderColor='var(--border-glass)'; this.style.boxShadow='none'">
                         @error('name')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
                     </div>
@@ -44,7 +44,7 @@
                     <textarea name="description" rows="2" placeholder="Brief plan description..."
                               class="w-full px-4 py-2.5 rounded-xl text-sm outline-none resize-none"
                               style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);"
-                              onfocus="this.style.borderColor='rgba(139,92,246,0.4)'"
+                              onfocus="this.style.borderColor='rgba(27,132,255,0.4)'"
                               onblur="this.style.borderColor='var(--border-glass)'">{{ old('description') }}</textarea>
                 </div>
 
@@ -78,7 +78,7 @@
 
                 <div class="pt-4" style="border-top: 1px solid var(--border-subtle);">
                     <div class="flex items-center gap-2 mb-4">
-                        <i class="fas fa-sliders-h text-purple-400 text-xs"></i>
+                        <i class="fas fa-sliders-h text-blue-400 text-xs"></i>
                         <h3 class="text-sm font-bold" style="color: var(--text-primary);">Plan Features & Limits</h3>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
@@ -120,7 +120,7 @@
                                style="color: var(--text-muted); border: 1px solid transparent;"
                                onmouseover="this.style.background='var(--bg-glass-hover)'; this.style.borderColor='var(--border-subtle)'"
                                onmouseout="this.style.background='transparent'; this.style.borderColor='transparent'">
-                            <input type="checkbox" name="features[{{ $key }}]" value="1" class="rounded border-gray-500 text-purple-500 focus:ring-purple-500/30 bg-transparent">
+                            <input type="checkbox" name="features[{{ $key }}]" value="1" class="rounded border-gray-500 text-blue-500 focus:ring-blue-500/30 bg-transparent">
                             {{ $label }}
                         </label>
                         @endforeach

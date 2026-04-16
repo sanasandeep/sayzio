@@ -5,7 +5,7 @@
 @section('content')
 <div class="flex items-center justify-between mb-6">
     <p class="text-sm text-white/40">Manage staff roles and their permissions</p>
-    <a href="{{ route('admin.roles.create') }}" class="px-4 py-2 bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-purple-700 transition">
+    <a href="{{ route('admin.roles.create') }}" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition">
         <i class="fas fa-plus mr-2"></i>Add Role
     </a>
 </div>
@@ -16,7 +16,7 @@
         <div class="flex items-center justify-between mb-3">
             <h3 class="font-semibold text-white">{{ $role->name }}</h3>
             @if($role->slug === 'super-admin')
-                <span class="text-xs bg-purple-500/10 text-purple-400 px-2 py-0.5 rounded-full">System</span>
+                <span class="text-xs bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-full">System</span>
             @endif
         </div>
         <p class="text-sm text-white/40 mb-4">{{ $role->description ?? 'No description' }}</p>
@@ -27,7 +27,7 @@
             </div>
             @if($role->slug !== 'super-admin')
             <div class="flex items-center gap-2">
-                <a href="{{ route('admin.roles.edit', $role) }}" class="text-white/30 hover:text-purple-400"><i class="fas fa-edit"></i></a>
+                <a href="{{ route('admin.roles.edit', $role) }}" class="text-white/30 hover:text-blue-400"><i class="fas fa-edit"></i></a>
                 <form action="{{ route('admin.roles.destroy', $role) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure?')">
                     @csrf @method('DELETE')
                     <button type="submit" class="text-white/30 hover:text-red-400"><i class="fas fa-trash"></i></button>

@@ -6,7 +6,7 @@
 <div class="flex items-center justify-between mb-6">
     <form method="GET" class="flex items-center gap-2">
         <input type="text" name="search" value="{{ request('search') }}" placeholder="Search users..."
-               class="px-4 py-2 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-purple-500/40 outline-none">
+               class="px-4 py-2 border border-white/10 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/40 outline-none">
         <select name="status" class="px-3 py-2 border border-white/10 rounded-xl text-sm">
             <option value="">All Status</option>
             <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
@@ -39,7 +39,7 @@
             <tr class="hover:bg-white/5">
                 <td class="px-6 py-4">
                     <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-full bg-purple-500/10 text-purple-300 flex items-center justify-center text-sm font-medium">
+                        <div class="w-8 h-8 rounded-full bg-blue-500/10 text-blue-300 flex items-center justify-center text-sm font-medium">
                             {{ substr($user->name, 0, 1) }}
                         </div>
                         <div>
@@ -58,7 +58,7 @@
                 <td class="px-6 py-4 text-sm text-white/40">{{ $user->created_at->format('M d, Y') }}</td>
                 <td class="px-6 py-4 text-right">
                     <div class="flex items-center justify-end gap-2">
-                        <a href="{{ route('admin.users.show', $user) }}" class="text-white/30 hover:text-purple-400" title="View"><i class="fas fa-eye"></i></a>
+                        <a href="{{ route('admin.users.show', $user) }}" class="text-white/30 hover:text-blue-400" title="View"><i class="fas fa-eye"></i></a>
                         <form action="{{ route('admin.users.impersonate', $user) }}" method="POST" class="inline">
                             @csrf
                             <button type="submit" class="text-white/30 hover:text-amber-400" title="Login as user"><i class="fas fa-user-secret"></i></button>

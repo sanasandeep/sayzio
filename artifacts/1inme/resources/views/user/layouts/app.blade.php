@@ -14,7 +14,7 @@
                 extend: {
                     fontFamily: { sans: ['Space Grotesk', 'system-ui', 'sans-serif'] },
                     colors: {
-                        primary: { 50:'#f5f3ff',100:'#ede9fe',200:'#ddd6fe',300:'#c4b5fd',400:'#a78bfa',500:'#8b5cf6',600:'#7c3aed',700:'#6d28d9',800:'#5b21b6',900:'#4c1d95' },
+                        primary: { 50:'#eff6ff',100:'#dbeafe',200:'#bfdbfe',300:'#93c5fd',400:'#60a5fa',500:'#3e97ff',600:'#1b84ff',700:'#0065d4',800:'#0c4ea2',900:'#0c2f5a' },
                     }
                 }
             }
@@ -93,7 +93,7 @@
             left: 0;
             right: 0;
             height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(139,92,246,0.3) 30%, rgba(168,85,247,0.5) 50%, rgba(139,92,246,0.3) 70%, transparent);
+            background: linear-gradient(90deg, transparent, rgba(27,132,255,0.3) 30%, rgba(62,151,255,0.5) 50%, rgba(27,132,255,0.3) 70%, transparent);
             opacity: 0.6;
         }
 
@@ -115,8 +115,8 @@
         .header-search-box input::placeholder { color: var(--text-faint); }
         .header-search-box input:focus {
             width: 280px;
-            border-color: rgba(139,92,246,0.3);
-            box-shadow: 0 0 0 3px rgba(139,92,246,0.08);
+            border-color: rgba(27,132,255,0.3);
+            box-shadow: 0 0 0 3px rgba(27,132,255,0.08);
             background: var(--bg-glass-input-focus);
         }
         .header-search-box i {
@@ -156,8 +156,8 @@
             width: 6px;
             height: 6px;
             border-radius: 50%;
-            background: #8b5cf6;
-            box-shadow: 0 0 6px rgba(139,92,246,0.6);
+            background: #3e97ff;
+            box-shadow: 0 0 6px rgba(27,132,255,0.6);
         }
 
         .header-breadcrumb {
@@ -217,7 +217,7 @@
         .user-avatar-ring {
             padding: 2px;
             border-radius: 12px;
-            background: linear-gradient(135deg, #8b5cf6, #a78bfa, #7c3aed);
+            background: linear-gradient(135deg, #3e97ff, #7fbbff, #1b84ff);
             display: inline-flex;
         }
         .user-avatar-ring .inner {
@@ -237,34 +237,18 @@
         .page-hero {
             background: var(--bg-card);
             border: 1px solid var(--border-glass);
-            border-radius: 22px;
-            padding: 22px 26px 22px 30px;
-            backdrop-filter: blur(20px);
-            box-shadow: 0 20px 60px -15px rgba(124,58,237,0.20);
+            border-radius: 12px;
+            padding: 20px 24px;
+            box-shadow: var(--card-shadow);
             position: relative;
             overflow: hidden;
         }
         html.light-mode .page-hero {
-            background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(248,245,255,0.88));
-            box-shadow: 0 18px 50px -20px rgba(124,58,237,0.22), 0 0 0 1px rgba(124,58,237,0.06);
+            background: #ffffff;
+            box-shadow: 0 1px 2px rgba(15,23,42,0.04);
         }
-        /* Crisp gradient accent bar on the left edge — gives the hero a unique signature */
-        .page-hero::after {
-            content: ""; position: absolute; left: 0; top: 14%; bottom: 14%; width: 4px;
-            border-radius: 0 4px 4px 0;
-            background: linear-gradient(180deg, #8b5cf6 0%, #ec4899 55%, #f97316 100%);
-            box-shadow: 0 0 22px rgba(139,92,246,0.55);
-            z-index: 2;
-        }
-        .page-hero::before {
-            content: ""; position: absolute; inset: -1px; border-radius: 22px;
-            background:
-                radial-gradient(circle at 0% 0%, rgba(139,92,246,0.20), transparent 45%),
-                radial-gradient(circle at 100% 0%, rgba(236,72,153,0.14), transparent 50%),
-                radial-gradient(circle at 100% 100%, rgba(59,130,246,0.10), transparent 50%);
-            opacity: 0.4; pointer-events: none;
-            mask-image: radial-gradient(circle at 50% 50%, black 30%, transparent 75%);
-        }
+        .page-hero::after { display: none; }
+        .page-hero::before { display: none; }
         .page-hero > * { position: relative; z-index: 1; }
         /* ----- Back chip ----- */
         .hero-back {
@@ -277,33 +261,26 @@
             transition: all .18s ease;
             text-decoration: none;
         }
-        .hero-back:hover { background: rgba(139,92,246,0.18); color: #fff; transform: translateX(-2px); border-color: rgba(139,92,246,0.4); }
-        html.light-mode .hero-back { background: rgba(255,255,255,0.7); color: #4c1d95; }
-        html.light-mode .hero-back:hover { background: rgba(139,92,246,0.14); color: #4c1d95; }
+        .hero-back:hover { background: rgba(27,132,255,0.18); color: #fff; transform: translateX(-2px); border-color: rgba(27,132,255,0.4); }
+        html.light-mode .hero-back { background: rgba(255,255,255,0.7); color: #0c2f5a; }
+        html.light-mode .hero-back:hover { background: rgba(27,132,255,0.14); color: #0c2f5a; }
 
         /* ----- Emblem (favicon / letter avatar) ----- */
         .hero-emblem {
-            width: 60px; height: 60px;
-            border-radius: 18px;
+            width: 56px; height: 56px;
+            border-radius: 12px;
             display: flex; align-items: center; justify-content: center;
-            background: linear-gradient(135deg, #7c3aed, #ec4899);
-            box-shadow: 0 14px 42px rgba(124,58,237,0.50), inset 0 1px 0 rgba(255,255,255,0.25);
-            color: #fff; font-size: 22px;
+            background: var(--c-primary-soft);
+            color: var(--accent); font-size: 20px;
             position: relative; overflow: hidden; flex-shrink: 0;
         }
-        .hero-emblem.has-favicon { background: #fff; padding: 8px; }
-        html.light-mode .hero-emblem.has-favicon {
-            background: #fff;
-            box-shadow: 0 10px 28px rgba(124,58,237,0.20), 0 0 0 1px rgba(124,58,237,0.10);
-        }
-        .hero-emblem .favicon-img { width: 100%; height: 100%; object-fit: contain; border-radius: 10px; }
+        .hero-emblem.has-favicon { background: #fff; padding: 8px; border: 1px solid var(--border-glass); }
+        html.light-mode .hero-emblem.has-favicon { background: #fff; }
+        .hero-emblem .favicon-img { width: 100%; height: 100%; object-fit: contain; border-radius: 8px; }
         .hero-emblem-letter {
-            font-size: 26px; font-weight: 800; line-height: 1;
+            font-size: 22px; font-weight: 800; line-height: 1;
             letter-spacing: -0.02em;
-            background: linear-gradient(180deg, #ffffff, #f0e7ff);
-            -webkit-background-clip: text; background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 0 2px 8px rgba(0,0,0,0.12);
+            color: var(--accent);
         }
 
         /* ----- Status chips ----- */
@@ -318,7 +295,7 @@
             text-decoration: none;
             letter-spacing: 0.02em;
         }
-        html.light-mode .hero-chip { background: rgba(255,255,255,0.7); color: #1f1147; }
+        html.light-mode .hero-chip { background: rgba(255,255,255,0.7); color: #0f172a; }
         .hero-chip i { font-size: 9px; }
 
         /* ----- Title ----- */
@@ -339,22 +316,22 @@
             display: inline-flex; align-items: center; gap: 8px;
             margin-top: 10px;
             padding: 6px 10px 6px 12px;
-            background: rgba(124,58,237,0.10);
-            border: 1px solid rgba(124,58,237,0.22);
+            background: rgba(27,132,255,0.10);
+            border: 1px solid rgba(27,132,255,0.22);
             border-radius: 999px;
             max-width: 100%;
             font-size: 12.5px;
         }
-        html.light-mode .hero-url { background: rgba(124,58,237,0.07); border-color: rgba(124,58,237,0.20); }
-        .hero-url-icon { font-size: 10px; color: #a78bfa; }
-        html.light-mode .hero-url-icon { color: #7c3aed; }
+        html.light-mode .hero-url { background: rgba(27,132,255,0.07); border-color: rgba(27,132,255,0.20); }
+        .hero-url-icon { font-size: 10px; color: #7fbbff; }
+        html.light-mode .hero-url-icon { color: #1b84ff; }
         .hero-url-text {
             color: var(--text-primary); font-weight: 600;
             text-decoration: none;
             min-width: 0;
         }
-        .hero-url-text:hover { color: #a78bfa; }
-        html.light-mode .hero-url-text:hover { color: #6d28d9; }
+        .hero-url-text:hover { color: #7fbbff; }
+        html.light-mode .hero-url-text:hover { color: #0065d4; }
         .hero-url-btn {
             display: inline-flex; align-items: center; justify-content: center;
             width: 24px; height: 24px; border-radius: 8px;
@@ -364,8 +341,8 @@
             transition: all .15s ease;
             font-size: 10px;
         }
-        .hero-url-btn:hover { background: rgba(139,92,246,0.16); color: #c4b5fd; }
-        html.light-mode .hero-url-btn:hover { background: rgba(139,92,246,0.12); color: #6d28d9; }
+        .hero-url-btn:hover { background: rgba(27,132,255,0.16); color: #bfdcff; }
+        html.light-mode .hero-url-btn:hover { background: rgba(27,132,255,0.12); color: #0065d4; }
 
         @media (max-width: 640px) {
             .page-hero { padding: 16px 18px 16px 22px; border-radius: 18px; }
@@ -415,16 +392,16 @@
 
             <div class="flex items-center px-4" :class="sidebarMode === 'icons' ? 'justify-center' : 'justify-between'" style="height: 64px; border-bottom: 1px solid var(--border-subtle);">
                 <a href="{{ route('user.dashboard') }}" class="flex items-center gap-2.5 group" :class="sidebarMode === 'icons' ? 'hidden' : ''">
-                    <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 via-violet-500 to-purple-700 flex items-center justify-center shadow-lg group-hover:shadow-purple-500/40 transition-all duration-500 group-hover:scale-105" style="box-shadow: 0 4px 16px rgba(139,92,246,0.3);">
+                    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background: var(--accent);">
                         <span class="text-white text-sm font-bold">1</span>
                     </div>
                     <span class="text-lg font-bold tracking-tight logo-text">
-                        <span style="color: var(--text-primary);">1IN</span><span class="text-purple-400">ME</span>
+                        <span style="color: var(--text-primary);">1IN</span><span class="text-blue-400">ME</span>
                     </span>
                 </a>
                 <template x-if="sidebarMode === 'icons'">
                     <a href="{{ route('user.dashboard') }}" class="group" title="1INME">
-                        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 via-violet-500 to-purple-700 flex items-center justify-center shadow-lg group-hover:shadow-purple-500/40 transition-all duration-500 group-hover:scale-105" style="box-shadow: 0 4px 16px rgba(139,92,246,0.3);">
+                        <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background: var(--accent);">
                             <span class="text-white text-sm font-bold">1</span>
                         </div>
                     </a>
@@ -527,13 +504,13 @@
                 <div class="upgrade-card">
                     <div class="relative z-10 upgrade-inner">
                         <div class="flex items-center gap-2 mb-2">
-                            <div class="w-6 h-6 rounded-lg bg-gradient-to-br from-purple-400 to-violet-500 flex items-center justify-center">
+                            <div class="w-6 h-6 rounded-lg bg-blue-500 flex items-center justify-center">
                                 <i class="fas fa-gem text-white text-[8px]"></i>
                             </div>
                             <span class="text-xs font-bold" style="color: var(--text-primary);">{{ auth()->user()->plan->name ?? 'Free' }} Plan</span>
                         </div>
                         <p class="text-[10px] mb-3 leading-relaxed" style="color: var(--text-dimmed);">Unlock analytics, custom domains & more.</p>
-                        <a href="#" class="block text-center text-[10px] font-bold uppercase tracking-wider py-2 rounded-lg text-white transition-all bg-gradient-to-r from-purple-600 to-violet-600 hover:shadow-lg hover:shadow-purple-500/20">
+                        <a href="#" class="block text-center text-[10px] font-bold uppercase tracking-wider py-2 rounded-lg text-white transition-all bg-blue-600 hover:shadow-lg hover:shadow">
                             Upgrade
                         </a>
                     </div>
@@ -650,10 +627,10 @@
                 <div class="w-[280px] h-full flex flex-col" style="background: var(--bg-sidebar-mobile); backdrop-filter: blur(40px);">
                     <div class="h-[64px] flex items-center justify-between px-5" style="border-bottom: 1px solid var(--border-subtle);">
                         <div class="flex items-center gap-2.5">
-                            <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-purple-500 via-violet-500 to-purple-700 flex items-center justify-center">
+                            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: var(--accent);">
                                 <span class="text-white text-[10px] font-bold">1</span>
                             </div>
-                            <span class="text-base font-bold"><span style="color: var(--text-primary);">1IN</span><span class="text-purple-400">ME</span></span>
+                            <span class="text-base font-bold"><span style="color: var(--text-primary);">1IN</span><span class="text-blue-400">ME</span></span>
                         </div>
                         <button @click="mobileMenu = false" class="p-1.5 rounded-lg" style="color: var(--text-muted);"><i class="fas fa-times text-sm"></i></button>
                     </div>
@@ -709,7 +686,7 @@
                     </div>
                 @endif
                 @if(session('info'))
-                    <div class="mb-4 p-3.5 rounded-xl text-purple-400 text-xs font-medium flex items-center gap-2.5" style="border: 1px solid rgba(139,92,246,0.15); background: rgba(139,92,246,0.06);">
+                    <div class="mb-4 p-3.5 rounded-xl text-blue-400 text-xs font-medium flex items-center gap-2.5" style="border: 1px solid rgba(27,132,255,0.15); background: rgba(27,132,255,0.06);">
                         <i class="fas fa-info-circle"></i> {{ session('info') }}
                     </div>
                 @endif

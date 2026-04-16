@@ -15,7 +15,7 @@
     $gtEffects = ['none' => 'None', 'glass' => 'Glassmorphism', 'gradient_border' => 'Gradient Border'];
     $gtTemplates = \App\Modules\User\Models\BiolinkBlock::BLOCK_TEMPLATES;
     $btnStyle = $bs['button_style'] ?? 'rounded';
-    $btnColor = $bs['button_color'] ?? '#7c3aed';
+    $btnColor = $bs['button_color'] ?? '#1b84ff';
     $btnTextColor = $bs['button_text_color'] ?? '#ffffff';
 @endphp
 
@@ -31,12 +31,12 @@
                 <div class="card-premium p-6" x-data="{ gtTab: 'templates', btnStyle: '{{ $btnStyle }}', btnColor: '{{ $btnColor }}', btnTextColor: '{{ $btnTextColor }}' }">
                     <div class="flex items-center justify-between mb-5">
                         <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(139,92,246,0.1);"><i class="fas fa-wand-magic-sparkles text-purple-400 text-xs"></i></div>
+                            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(27,132,255,0.1);"><i class="fas fa-wand-magic-sparkles text-blue-400 text-xs"></i></div>
                             <h3 class="text-sm font-bold" style="color: var(--text-primary);">Global Block Theme</h3>
                         </div>
-                        <label class="flex items-center gap-2 cursor-pointer px-3 py-1.5 rounded-lg transition-all" style="background: rgba(139,92,246,0.06); border: 1px solid rgba(139,92,246,0.12);">
+                        <label class="flex items-center gap-2 cursor-pointer px-3 py-1.5 rounded-lg transition-all" style="background: rgba(27,132,255,0.06); border: 1px solid rgba(27,132,255,0.12);">
                             <input type="hidden" name="block_theme[apply_to_all]" value="0">
-                            <input type="checkbox" name="block_theme[apply_to_all]" value="1" {{ ($bt['apply_to_all'] ?? false) ? 'checked' : '' }} class="rounded text-purple-500 focus:ring-purple-500/40 w-4 h-4" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
+                            <input type="checkbox" name="block_theme[apply_to_all]" value="1" {{ ($bt['apply_to_all'] ?? false) ? 'checked' : '' }} class="rounded text-blue-500 focus:ring-blue-500/40 w-4 h-4" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
                             <span class="text-[11px] font-semibold" style="color: var(--text-muted);">Apply to all</span>
                         </label>
                     </div>
@@ -45,7 +45,7 @@
                         @foreach(['templates' => 'Templates', 'text' => 'Text', 'fill' => 'Fill & Spacing', 'border' => 'Border & Shadow', 'fx' => 'Effects', 'buttons' => 'Buttons'] as $tabKey => $tabLabel)
                         <button type="button" @click="gtTab = '{{ $tabKey }}'"
                                 :class="gtTab === '{{ $tabKey }}' ? 'text-white shadow-sm' : ''"
-                                :style="gtTab === '{{ $tabKey }}' ? 'background: linear-gradient(135deg, #8b5cf6, #7c3aed);' : 'color: var(--text-faint);'"
+                                :style="gtTab === '{{ $tabKey }}' ? 'background: linear-gradient(135deg, #3e97ff, #1b84ff);' : 'color: var(--text-faint);'"
                                 class="flex-1 text-[10px] font-bold py-2 rounded-md transition-all">{{ $tabLabel }}</button>
                         @endforeach
                     </div>
@@ -198,7 +198,7 @@
                             <div class="grid grid-cols-3 gap-2">
                                 @foreach($gtEffects as $eVal => $eLabel)
                                 <label class="flex items-center gap-2 p-3 rounded-xl cursor-pointer transition-all" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
-                                    <input type="radio" name="block_theme[effect]" value="{{ $eVal }}" {{ ($bt['effect'] ?? 'none') === $eVal ? 'checked' : '' }} class="text-purple-500 focus:ring-purple-500/40" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
+                                    <input type="radio" name="block_theme[effect]" value="{{ $eVal }}" {{ ($bt['effect'] ?? 'none') === $eVal ? 'checked' : '' }} class="text-blue-500 focus:ring-blue-500/40" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
                                     <span class="text-[11px] font-semibold" style="color: var(--text-muted);">{{ $eLabel }}</span>
                                 </label>
                                 @endforeach
@@ -224,7 +224,7 @@
                             <div class="grid grid-cols-5 gap-2">
                                 @foreach(['rounded'=>['Rounded','12px','fa-square'], 'pill'=>['Pill','999px','fa-circle'], 'square'=>['Square','4px','fa-stop'], 'outline'=>['Outline','12px','fa-square fa-regular'], 'shadow'=>['Shadow','12px','fa-clone']] as $val => $info)
                                 <button type="button" @click="btnStyle = '{{ $val }}'"
-                                    :class="btnStyle === '{{ $val }}' ? 'ring-2 ring-purple-500' : ''"
+                                    :class="btnStyle === '{{ $val }}' ? 'ring-2 ring-blue-500' : ''"
                                     class="flex flex-col items-center gap-1 p-2 rounded-lg transition-all"
                                     style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
                                     <i class="fas {{ $info[2] }} text-xs" style="color: var(--text-muted);"></i>

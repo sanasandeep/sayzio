@@ -71,7 +71,7 @@
                         <div class="flex items-center gap-2">
                             <input type="radio" name="preset" :value="c.key" :checked="preset === c.key" class="accent-purple-400" :disabled="!c.key">
                             <span class="font-semibold text-white" x-text="c.label || 'Untitled custom preset'"></span>
-                            <span class="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-200 border border-purple-400/30">Custom</span>
+                            <span class="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-500/20 text-purple-200 border border-blue-400/30">Custom</span>
                         </div>
                         <div class="text-xs text-white/50 mt-1" x-text="c.description || 'Workspace preset'"></div>
                     </label>
@@ -136,7 +136,7 @@
                             Published presets appear alongside the built-ins in every creator's per-link picker.
                         </p>
                     </div>
-                    <button type="button" @click="addCustom()" class="px-3 py-1.5 text-xs bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition">
+                    <button type="button" @click="addCustom()" class="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
                         <i class="fas fa-plus mr-1"></i> Add preset
                     </button>
                 </div>
@@ -195,7 +195,7 @@
             </div>
 
             <div class="flex items-center gap-3 pt-6 mt-4 border-t border-white/10">
-                <button type="submit" class="px-6 py-2.5 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition">
+                <button type="submit" class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition">
                     <i class="fas fa-check mr-1"></i> Save defaults
                 </button>
                 <a href="{{ route('admin.dashboard') }}" class="px-6 py-2.5 bg-white/10 text-white/80 rounded-xl font-medium hover:bg-white/[0.06] transition">Cancel</a>
@@ -213,7 +213,7 @@
         transition: border-color .15s ease, background .15s ease;
     }
     .pc-admin-card:hover { background: rgba(255,255,255,0.05); }
-    .pc-admin-card.is-active { border-color: rgba(168,85,247,0.6); background: rgba(168,85,247,0.08); }
+    .pc-admin-card.is-active { border-color: rgba(62,151,255,0.6); background: rgba(62,151,255,0.08); }
     .pc-admin-group {
         background: rgba(255,255,255,0.02);
         border: 1px solid rgba(148,163,184,0.18);
@@ -237,8 +237,8 @@
         font-size: 13px; font-weight: 600; text-transform: none; letter-spacing: 0;
     }
     .pc-admin-group input:focus {
-        outline: none; border-color: rgba(168,85,247,0.55);
-        box-shadow: 0 0 0 2px rgba(168,85,247,0.15);
+        outline: none; border-color: rgba(62,151,255,0.55);
+        box-shadow: 0 0 0 2px rgba(62,151,255,0.15);
     }
     .pc-admin-sub-label {
         font-size: 10px; color: rgba(255,255,255,0.5);
@@ -250,8 +250,8 @@
         background: rgba(0,0,0,0.25); color: #fff; font-size: 13px;
     }
     .pc-admin-input:focus {
-        outline: none; border-color: rgba(168,85,247,0.55);
-        box-shadow: 0 0 0 2px rgba(168,85,247,0.15);
+        outline: none; border-color: rgba(62,151,255,0.55);
+        box-shadow: 0 0 0 2px rgba(62,151,255,0.15);
     }
 </style>
 @endsection

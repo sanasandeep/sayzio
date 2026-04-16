@@ -59,7 +59,7 @@
         </div>
 
         <div class="pt-3" style="border-top: 1px solid var(--border-subtle);">
-            <p class="text-xs font-semibold mb-2" style="color: var(--text-muted);"><i class="fas fa-border-all mr-1 text-purple-400"></i>Border</p>
+            <p class="text-xs font-semibold mb-2" style="color: var(--text-muted);"><i class="fas fa-border-all mr-1 text-blue-400"></i>Border</p>
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="{{ $labelClass }}">Style</label>

@@ -13,12 +13,12 @@
         <div class="glass rounded-2xl p-6 space-y-4">
             <div>
                 <label class="block text-sm font-medium text-white/60 mb-1">Name <span class="text-red-500">*</span></label>
-                <input type="text" name="name" value="{{ old('name') }}" placeholder="e.g. Facebook Main Pixel" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500/40" required>
+                <input type="text" name="name" value="{{ old('name') }}" placeholder="e.g. Facebook Main Pixel" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40" required>
                 @error('name') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
             <div>
                 <label class="block text-sm font-medium text-white/60 mb-1">Type <span class="text-red-500">*</span></label>
-                <select name="type" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/40" required>
+                <select name="type" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/40" required>
                     <option value="">Select type</option>
                     <option value="facebook" {{ old('type') === 'facebook' ? 'selected' : '' }}>Facebook Pixel</option>
                     <option value="google_analytics" {{ old('type') === 'google_analytics' ? 'selected' : '' }}>Google Analytics</option>
@@ -35,14 +35,14 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-white/60 mb-1">Pixel ID <span class="text-red-500">*</span></label>
-                <input type="text" name="pixel_id" value="{{ old('pixel_id') }}" placeholder="e.g. 123456789" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500/40" required>
+                <input type="text" name="pixel_id" value="{{ old('pixel_id') }}" placeholder="e.g. 123456789" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40" required>
                 @error('pixel_id') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
         </div>
 
         <div class="flex items-center justify-end gap-3 mt-4">
             <a href="{{ route('user.pixels.index') }}" class="px-4 py-2.5 text-sm text-white/60 hover:bg-white/10 rounded-xl">Cancel</a>
-            <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium">Add Pixel</button>
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium">Add Pixel</button>
         </div>
     </form>
 </div>

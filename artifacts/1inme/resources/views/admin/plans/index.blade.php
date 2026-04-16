@@ -5,7 +5,7 @@
 @section('content')
 <div class="flex items-center justify-between mb-6">
     <p class="text-sm text-white/40">Manage subscription plans and pricing</p>
-    <a href="{{ route('admin.plans.create') }}" class="px-4 py-2 bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-purple-700 transition">
+    <a href="{{ route('admin.plans.create') }}" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition">
         <i class="fas fa-plus mr-2"></i>Add Plan
     </a>
 </div>
@@ -42,7 +42,7 @@
         </div>
 
         <div class="flex items-center justify-end gap-2 pt-4 border-t border-white/5">
-            <a href="{{ route('admin.plans.edit', $plan) }}" class="text-white/30 hover:text-purple-400"><i class="fas fa-edit"></i></a>
+            <a href="{{ route('admin.plans.edit', $plan) }}" class="text-white/30 hover:text-blue-400"><i class="fas fa-edit"></i></a>
             @if($plan->users_count === 0)
             <form action="{{ route('admin.plans.destroy', $plan) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure?')">
                 @csrf @method('DELETE')

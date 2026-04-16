@@ -24,7 +24,7 @@
             <div class="space-y-4">
                 <div>
                     <label class="block text-sm font-medium text-white/60 mb-1">Link</label>
-                    <div class="text-sm text-purple-400 bg-purple-500/10 px-3 py-2 rounded-xl font-mono">{{ $link->getShortUrl() }}</div>
+                    <div class="text-sm text-blue-400 bg-blue-500/10 px-3 py-2 rounded-xl font-mono">{{ $link->getShortUrl() }}</div>
                 </div>
 
                 <div>
@@ -52,7 +52,7 @@
 
                 <div>
                     <label class="block text-sm font-medium text-white/60 mb-1">Error Correction</label>
-                    <select x-model="errorCorrection" class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500/40">
+                    <select x-model="errorCorrection" class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500/40">
                         <option value="L">Low (7%)</option>
                         <option value="M">Medium (15%)</option>
                         <option value="Q">Quartile (25%)</option>
@@ -69,7 +69,7 @@
 
                 <div>
                     <label class="block text-sm font-medium text-white/60 mb-1">Download Format</label>
-                    <select x-model="format" class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500/40">
+                    <select x-model="format" class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500/40">
                         <option value="png">PNG (Raster)</option>
                         <option value="svg">SVG (Vector)</option>
                     </select>
@@ -92,7 +92,7 @@
                 <input type="hidden" name="bg_color" :value="bgColor">
                 <input type="hidden" name="error_correction" :value="errorCorrection">
 
-                <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2">
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2">
                     <i class="fas fa-download"></i>
                     <span x-text="'Download ' + format.toUpperCase()"></span>
                 </button>

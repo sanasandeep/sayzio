@@ -24,8 +24,8 @@
 
         <div class="glass rounded-2xl p-6 mb-6">
             <div class="flex items-center gap-3 mb-5">
-                <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, rgba(124,58,237,0.3), rgba(168,85,247,0.2));">
-                    <i class="fas fa-envelope text-purple-400"></i>
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, rgba(27,132,255,0.3), rgba(62,151,255,0.2));">
+                    <i class="fas fa-envelope text-blue-400"></i>
                 </div>
                 <div>
                     <h2 class="font-semibold" style="color: var(--text-primary);">Email Settings</h2>
@@ -144,7 +144,7 @@
         </div>
 
         <div class="flex justify-end">
-            <button type="submit" class="px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:-translate-y-0.5" style="background: linear-gradient(135deg, #7c3aed, #a855f7);">
+            <button type="submit" class="px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:-translate-y-0.5" style="background: linear-gradient(135deg, #1b84ff, #3e97ff);">
                 <i class="fas fa-save mr-1.5"></i>Save Settings
             </button>
         </div>

@@ -13,27 +13,27 @@
                 <div>
                     <label class="block text-sm font-medium text-white/60 mb-1.5">Name</label>
                     <input type="text" name="name" value="{{ old('name', $user->name) }}" required
-                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500/40 outline-none transition-all">
+                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 outline-none transition-all">
                     @error('name')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-white/60 mb-1.5">Email</label>
                     <input type="email" name="email" value="{{ old('email', $user->email) }}" required
-                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500/40 outline-none transition-all">
+                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 outline-none transition-all">
                     @error('email')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-white/60 mb-1.5">Phone</label>
                     <input type="text" name="phone" value="{{ old('phone', $user->phone) }}"
-                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500/40 outline-none transition-all">
+                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 outline-none transition-all">
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-white/60 mb-1.5">Timezone</label>
-                        <select name="timezone" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-purple-500/40 outline-none">
+                        <select name="timezone" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
                             @foreach($timezones as $tz)
                                 <option value="{{ $tz }}" {{ $user->timezone == $tz ? 'selected' : '' }} class="bg-[#0d0818]">{{ $tz }}</option>
                             @endforeach
@@ -41,13 +41,13 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-white/60 mb-1.5">Language</label>
-                        <select name="language" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-purple-500/40 outline-none">
+                        <select name="language" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
                             <option value="en" {{ $user->language == 'en' ? 'selected' : '' }} class="bg-[#0d0818]">English</option>
                         </select>
                     </div>
                 </div>
 
-                <button type="submit" class="px-6 py-2.5 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition-all hover:shadow-lg hover:shadow-purple-500/20">
+                <button type="submit" class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-all hover:shadow-lg hover:shadow-blue-500/20">
                     Save Changes
                 </button>
             </div>
@@ -62,23 +62,23 @@
                 <div>
                     <label class="block text-sm font-medium text-white/60 mb-1.5">Current Password</label>
                     <input type="password" name="current_password" required
-                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-purple-500/40 outline-none transition-all">
+                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none transition-all">
                     @error('current_password')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-white/60 mb-1.5">New Password</label>
                         <input type="password" name="password" required
-                               class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-purple-500/40 outline-none transition-all">
+                               class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none transition-all">
                         @error('password')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-white/60 mb-1.5">Confirm New Password</label>
                         <input type="password" name="password_confirmation" required
-                               class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-purple-500/40 outline-none transition-all">
+                               class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none transition-all">
                     </div>
                 </div>
-                <button type="submit" class="px-6 py-2.5 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition-all hover:shadow-lg hover:shadow-purple-500/20">
+                <button type="submit" class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-all hover:shadow-lg hover:shadow-blue-500/20">
                     Update Password
                 </button>
             </div>

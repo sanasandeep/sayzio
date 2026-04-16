@@ -18,8 +18,8 @@
     <div class="particles" id="login-particles"></div>
 
     <div class="absolute inset-0 overflow-hidden pointer-events-none">
-        <div class="absolute -top-32 -left-32 w-[600px] h-[600px] rounded-full animate-float-slow" style="background: radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 70%);"></div>
-        <div class="absolute -bottom-32 -right-32 w-[500px] h-[500px] rounded-full animate-float-slow-delay" style="background: radial-gradient(circle, rgba(168,85,247,0.1) 0%, transparent 70%);"></div>
+        <div class="absolute -top-32 -left-32 w-[600px] h-[600px] rounded-full animate-float-slow" style="background: radial-gradient(circle, rgba(27,132,255,0.15) 0%, transparent 70%);"></div>
+        <div class="absolute -bottom-32 -right-32 w-[500px] h-[500px] rounded-full animate-float-slow-delay" style="background: radial-gradient(circle, rgba(62,151,255,0.1) 0%, transparent 70%);"></div>
         <div class="absolute top-1/4 right-1/3 w-[350px] h-[350px] rounded-full animate-float-slow" style="background: radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%); animation-delay: -8s;"></div>
         <div class="absolute bottom-1/3 left-1/4 w-[250px] h-[250px] rounded-full animate-float-slow-delay" style="background: radial-gradient(circle, rgba(236,72,153,0.06) 0%, transparent 70%); animation-delay: -5s;"></div>
     </div>
@@ -32,11 +32,11 @@
         <div class="hidden lg:flex flex-1 flex-col justify-center items-center p-12 xl:p-20 relative">
             <div class="max-w-md">
                 <a href="{{ route('home') }}" class="inline-flex items-center gap-2.5 mb-6 group">
-                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 via-violet-500 to-purple-700 flex items-center justify-center shadow-xl group-hover:shadow-purple-500/30 transition-all duration-500" style="box-shadow: 0 8px 24px rgba(139,92,246,0.3);">
+                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 via-blue-500 to-blue-700 flex items-center justify-center shadow-xl group-hover:shadow-blue-500/30 transition-all duration-500" style="box-shadow: 0 8px 24px rgba(27,132,255,0.3);">
                         <span class="text-white text-lg font-bold">1</span>
                     </div>
                     <span class="text-4xl font-bold tracking-tight">
-                        <span style="color: var(--text-primary);">1IN</span><span class="text-purple-400">ME</span>
+                        <span style="color: var(--text-primary);">1IN</span><span class="text-blue-400">ME</span>
                     </span>
                 </a>
                 <p class="text-xl font-semibold mb-2" style="color: var(--text-secondary);">The link management platform<br><span class="gradient-text">built for growth.</span></p>
@@ -44,8 +44,8 @@
 
                 <div class="space-y-6">
                     <div class="flex items-start gap-4 group">
-                        <div class="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 glow-icon transition-all duration-500 group-hover:scale-110" style="background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.15);">
-                            <i class="fas fa-link text-purple-400 text-sm"></i>
+                        <div class="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 glow-icon transition-all duration-500 group-hover:scale-110" style="background: rgba(27,132,255,0.1); border: 1px solid rgba(27,132,255,0.15);">
+                            <i class="fas fa-link text-blue-400 text-sm"></i>
                         </div>
                         <div>
                             <p class="text-sm font-bold mb-0.5" style="color: var(--text-primary);">6 Link Types</p>
@@ -74,7 +74,7 @@
 
                 <div class="mt-14 flex items-center gap-3">
                     <div class="flex -space-x-2.5">
-                        <div class="w-9 h-9 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 border-2 flex items-center justify-center text-white text-[10px] font-bold shadow-md" style="border-color: var(--bg-body);">A</div>
+                        <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-pink-400 border-2 flex items-center justify-center text-white text-[10px] font-bold shadow-md" style="border-color: var(--bg-body);">A</div>
                         <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-cyan-400 border-2 flex items-center justify-center text-white text-[10px] font-bold shadow-md" style="border-color: var(--bg-body);">M</div>
                         <div class="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-400 to-teal-400 border-2 flex items-center justify-center text-white text-[10px] font-bold shadow-md" style="border-color: var(--bg-body);">K</div>
                     </div>
@@ -89,10 +89,10 @@
             <div class="w-full max-w-sm" x-data="{ mode: 'password' }">
                 <div class="text-center mb-7 lg:hidden">
                     <a href="{{ route('home') }}" class="inline-flex items-center gap-2 text-3xl font-bold tracking-tight">
-                        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 via-violet-500 to-purple-700 flex items-center justify-center shadow-lg">
+                        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 via-blue-500 to-blue-700 flex items-center justify-center shadow-lg">
                             <span class="text-white text-sm font-bold">1</span>
                         </div>
-                        <span><span style="color: var(--text-primary);">1IN</span><span class="text-purple-400">ME</span></span>
+                        <span><span style="color: var(--text-primary);">1IN</span><span class="text-blue-400">ME</span></span>
                     </a>
                 </div>
 
@@ -132,10 +132,10 @@
 
                             <div class="flex items-center justify-between">
                                 <label class="flex items-center gap-2 text-xs cursor-pointer" style="color: var(--text-dimmed);">
-                                    <input type="checkbox" name="remember" class="rounded text-purple-500 focus:ring-purple-500/40 w-3.5 h-3.5" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
+                                    <input type="checkbox" name="remember" class="rounded text-blue-500 focus:ring-blue-500/40 w-3.5 h-3.5" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
                                     Remember me
                                 </label>
-                                <a href="{{ route('user.password.request') }}" class="text-xs font-medium text-purple-400 hover:text-purple-300 transition-colors">Forgot?</a>
+                                <a href="{{ route('user.password.request') }}" class="text-xs font-medium text-blue-400 hover:text-blue-300 transition-colors">Forgot?</a>
                             </div>
 
                             <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm">
@@ -151,10 +151,10 @@
                         @csrf
                         <div class="space-y-4">
                             <div class="flex gap-2">
-                                <button type="button" @click="otpType = 'email'" :class="otpType === 'email' ? 'border-purple-500/40 text-purple-400' : ''" class="flex-1 py-2 text-xs font-medium rounded-xl border transition-all" :style="otpType !== 'email' ? 'background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-muted)' : 'background: rgba(139,92,246,0.08)'">
+                                <button type="button" @click="otpType = 'email'" :class="otpType === 'email' ? 'border-blue-500/40 text-blue-400' : ''" class="flex-1 py-2 text-xs font-medium rounded-xl border transition-all" :style="otpType !== 'email' ? 'background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-muted)' : 'background: rgba(27,132,255,0.08)'">
                                     <i class="fas fa-envelope mr-1"></i> Email
                                 </button>
-                                <button type="button" @click="otpType = 'mobile'" :class="otpType === 'mobile' ? 'border-purple-500/40 text-purple-400' : ''" class="flex-1 py-2 text-xs font-medium rounded-xl border transition-all" :style="otpType !== 'mobile' ? 'background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-muted)' : 'background: rgba(139,92,246,0.08)'">
+                                <button type="button" @click="otpType = 'mobile'" :class="otpType === 'mobile' ? 'border-blue-500/40 text-blue-400' : ''" class="flex-1 py-2 text-xs font-medium rounded-xl border transition-all" :style="otpType !== 'mobile' ? 'background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-muted)' : 'background: rgba(27,132,255,0.08)'">
                                     <i class="fas fa-mobile-alt mr-1"></i> Mobile
                                 </button>
                             </div>
@@ -191,7 +191,7 @@
 
                 <p class="mt-6 text-center text-xs" style="color: var(--text-dimmed);">
                     Don't have an account?
-                    <a href="{{ route('user.register') }}" class="text-purple-400 hover:text-purple-300 font-semibold transition-colors">Sign up free</a>
+                    <a href="{{ route('user.register') }}" class="text-blue-400 hover:text-blue-300 font-semibold transition-colors">Sign up free</a>
                 </p>
             </div>
         </div>

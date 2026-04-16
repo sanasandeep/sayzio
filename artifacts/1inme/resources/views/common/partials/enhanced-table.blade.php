@@ -19,8 +19,8 @@
         transition: border-color .15s ease, box-shadow .15s ease;
     }
     .et-search input:focus {
-        border-color: rgba(139,92,246,0.5);
-        box-shadow: 0 0 0 3px rgba(139,92,246,0.12);
+        border-color: rgba(27,132,255,0.5);
+        box-shadow: 0 0 0 3px rgba(27,132,255,0.12);
     }
     .et-search i {
         position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
@@ -48,7 +48,7 @@
     .enhanced-table thead th[data-no-sort] .et-sort-ind { display: none; }
     .enhanced-table thead th:hover .et-sort-ind { opacity: .8; }
     .enhanced-table thead th.et-sorted-asc .et-sort-ind,
-    .enhanced-table thead th.et-sorted-desc .et-sort-ind { opacity: 1; color: #a78bfa; }
+    .enhanced-table thead th.et-sorted-desc .et-sort-ind { opacity: 1; color: #7fbbff; }
     .et-empty {
         text-align: center; padding: 28px 16px;
         color: var(--text-faint); font-size: 12px; font-style: italic;
@@ -69,16 +69,16 @@
         display: inline-flex; align-items: center; justify-content: center;
     }
     .et-page-btn:hover:not(:disabled) {
-        background: rgba(139,92,246,0.12);
-        border-color: rgba(139,92,246,0.35);
+        background: rgba(27,132,255,0.12);
+        border-color: rgba(27,132,255,0.35);
         color: var(--text-primary);
     }
     .et-page-btn:disabled { opacity: .35; cursor: not-allowed; }
     .et-page-btn.active {
-        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        background: linear-gradient(135deg, #3e97ff, #1b84ff);
         border-color: transparent;
         color: #fff;
-        box-shadow: 0 4px 12px rgba(139,92,246,0.35);
+        box-shadow: 0 4px 12px rgba(27,132,255,0.35);
     }
     .et-page-btn.dots { background: transparent; border: 0; cursor: default; }
 </style>

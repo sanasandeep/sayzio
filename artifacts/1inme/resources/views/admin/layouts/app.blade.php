@@ -14,7 +14,7 @@
                 extend: {
                     fontFamily: { sans: ['Space Grotesk', 'system-ui', 'sans-serif'] },
                     colors: {
-                        primary: { 50:'#f5f3ff',100:'#ede9fe',200:'#ddd6fe',300:'#c4b5fd',400:'#a78bfa',500:'#8b5cf6',600:'#7c3aed',700:'#6d28d9',800:'#5b21b6',900:'#4c1d95' },
+                        primary: { 50:'#f5f3ff',100:'#ede9fe',200:'#ddd6fe',300:'#bfdcff',400:'#7fbbff',500:'#3e97ff',600:'#1b84ff',700:'#0065d4',800:'#5b21b6',900:'#0c2f5a' },
                     }
                 }
             }
@@ -37,11 +37,11 @@
             <div class="w-[280px] h-full flex flex-col" style="background: var(--bg-sidebar-mobile); backdrop-filter: blur(32px);">
                 <div class="h-[60px] flex items-center justify-between px-5" style="border-bottom: 1px solid var(--border-subtle);">
                     <div class="flex items-center gap-2">
-                        <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center">
+                        <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
                             <span class="text-white text-[10px] font-bold">1</span>
                         </div>
-                        <span class="text-base font-bold"><span style="color: var(--text-primary);">1IN</span><span class="text-purple-400">ME</span></span>
-                        <span class="text-[8px] font-bold uppercase px-1.5 py-0.5 rounded" style="background: rgba(139,92,246,0.1); color: var(--accent-light);">Admin</span>
+                        <span class="text-base font-bold"><span style="color: var(--text-primary);">1IN</span><span class="text-blue-400">ME</span></span>
+                        <span class="text-[8px] font-bold uppercase px-1.5 py-0.5 rounded" style="background: rgba(27,132,255,0.1); color: var(--accent-light);">Admin</span>
                     </div>
                     <button @click="mobileMenu = false" style="color: var(--text-muted);"><i class="fas fa-times text-sm"></i></button>
                 </div>
@@ -77,7 +77,7 @@
                     </div>
                 @endif
                 @if(session('info'))
-                    <div class="mb-4 p-3.5 rounded-xl text-purple-400 text-xs font-medium flex items-center gap-2.5" style="border: 1px solid rgba(139,92,246,0.15); background: rgba(139,92,246,0.06);">
+                    <div class="mb-4 p-3.5 rounded-xl text-blue-400 text-xs font-medium flex items-center gap-2.5" style="border: 1px solid rgba(27,132,255,0.15); background: rgba(27,132,255,0.06);">
                         <i class="fas fa-info-circle"></i> {{ session('info') }}
                     </div>
                 @endif

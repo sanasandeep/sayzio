@@ -16,7 +16,7 @@
     <div class="bg-mesh"></div>
 
     <div class="absolute inset-0 overflow-hidden pointer-events-none">
-        <div class="absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full animate-float-slow" style="background: radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 70%);"></div>
+        <div class="absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full animate-float-slow" style="background: radial-gradient(circle, rgba(27,132,255,0.12) 0%, transparent 70%);"></div>
         <div class="absolute -bottom-24 -left-24 w-[400px] h-[400px] rounded-full animate-float-slow-delay" style="background: radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%);"></div>
     </div>
 
@@ -28,7 +28,7 @@
         <div class="w-full max-w-sm">
             <div class="text-center mb-7">
                 <a href="{{ route('home') }}" class="inline-block text-3xl font-bold tracking-tight">
-                    <span style="color: var(--text-primary);">1IN</span><span class="text-purple-400">ME</span>
+                    <span style="color: var(--text-primary);">1IN</span><span class="text-blue-400">ME</span>
                 </a>
                 <p class="text-sm mt-1" style="color: var(--text-dimmed);">Set new admin password</p>
             </div>
