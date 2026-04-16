@@ -419,6 +419,37 @@
     </div>
 </div>
 
+{{-- ===================== GEOGRAPHIC HEATMAP ===================== --}}
+<div class="section-card mb-6"
+     style="--sc-accent: linear-gradient(90deg,#f97316,#ef4444); --sc-glow: rgba(249,115,22,0.35); --sc-color: #fdba74; --sc-border: rgba(249,115,22,0.3);">
+    <div class="section-head">
+        <div class="section-title">
+            <div class="section-icon"><i class="fas fa-map-marked-alt"></i></div>
+            Geographic Heatmap
+        </div>
+        <div class="flex items-center gap-2">
+            <span id="heatmap-meta" class="section-pill" style="display:none;"></span>
+            <div class="inline-flex rounded-lg overflow-hidden text-[11px] font-semibold"
+                 style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                <button type="button" data-style="dark" class="heatmap-style-btn px-3 py-1.5"
+                    style="color: var(--text-primary); background: rgba(249,115,22,0.18);">Dark</button>
+                <button type="button" data-style="light" class="heatmap-style-btn px-3 py-1.5"
+                    style="color: var(--text-secondary);">Light</button>
+            </div>
+        </div>
+    </div>
+    <div id="heatmap-empty" style="display:none; padding: 2rem 0; text-align:center; color: var(--text-faint); font-size: 0.875rem;">
+        <i class="fas fa-globe-americas" style="font-size: 2rem; opacity: 0.4; margin-bottom: 0.75rem; display:block;"></i>
+        No geographic data yet for this period — clicks will appear on the map as they come in.
+    </div>
+    <div id="heatmap-container" style="position: relative; height: 420px; border-radius: 14px; overflow: hidden; border: 1px solid var(--border-glass); background: var(--bg-glass-input);">
+        <div id="heatmap" style="width:100%; height:100%;"></div>
+        <div id="heatmap-loading" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color: var(--text-faint); font-size: 0.85rem; background: var(--bg-glass-input);">
+            <i class="fas fa-spinner fa-spin mr-2"></i> Loading map…
+        </div>
+    </div>
+</div>
+
 {{-- ===================== COUNTRIES / CITIES ===================== --}}
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
     <div class="section-card" style="--sc-accent: linear-gradient(90deg,#3b82f6,#60a5fa); --sc-glow: rgba(59,130,246,0.35); --sc-color: #93c5fd; --sc-border: rgba(59,130,246,0.3);">
@@ -859,6 +890,159 @@
 </div>
 
 @push('scripts')
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.min.css">
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script>
+(function () {
+    @php
+        $heatmapQs = http_build_query(request()->only(['period','from','to']));
+        $heatmapHref = route('user.links.heatmap', $link) . ($heatmapQs ? ('?' . $heatmapQs) : '');
+    @endphp
+    const heatmapUrl = @json($heatmapHref);
+    const STYLES = {
+        dark:  'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+        light: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+    };
+
+    let map = null;
+    let currentStyle = document.documentElement.classList.contains('light-mode') ? 'light' : 'dark';
+    let cachedGeoJson = null;
+
+    function setActiveStyleBtn() {
+        document.querySelectorAll('.heatmap-style-btn').forEach(btn => {
+            const active = btn.dataset.style === currentStyle;
+            btn.style.background = active ? 'rgba(249,115,22,0.18)' : 'transparent';
+            btn.style.color = active ? 'var(--text-primary)' : 'var(--text-secondary)';
+        });
+    }
+
+    function addHeatmapLayer(geojson, maxWeight) {
+        if (!map.getSource('clicks')) {
+            map.addSource('clicks', { type: 'geojson', data: geojson });
+        } else {
+            map.getSource('clicks').setData(geojson);
+        }
+        if (map.getLayer('clicks-heat')) map.removeLayer('clicks-heat');
+        if (map.getLayer('clicks-points')) map.removeLayer('clicks-points');
+
+        const max = Math.max(1, maxWeight || 1);
+        map.addLayer({
+            id: 'clicks-heat',
+            type: 'heatmap',
+            source: 'clicks',
+            maxzoom: 11,
+            paint: {
+                'heatmap-weight': ['interpolate', ['linear'], ['get', 'weight'], 0, 0, max, 1],
+                'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 1, 11, 3],
+                'heatmap-color': [
+                    'interpolate', ['linear'], ['heatmap-density'],
+                    0,    'rgba(0,0,0,0)',
+                    0.15, 'rgba(56,189,248,0.55)',
+                    0.35, 'rgba(124,58,237,0.75)',
+                    0.55, 'rgba(236,72,153,0.85)',
+                    0.75, 'rgba(249,115,22,0.92)',
+                    1,    'rgba(239,68,68,1)'
+                ],
+                'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 0, 8, 4, 18, 9, 36],
+                'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 7, 0.95, 11, 0.55],
+            },
+        });
+        map.addLayer({
+            id: 'clicks-points',
+            type: 'circle',
+            source: 'clicks',
+            minzoom: 6,
+            paint: {
+                'circle-radius': ['interpolate', ['linear'], ['get', 'weight'], 1, 4, max, 18],
+                'circle-color': '#f97316',
+                'circle-stroke-color': 'rgba(255,255,255,0.85)',
+                'circle-stroke-width': 1,
+                'circle-opacity': ['interpolate', ['linear'], ['zoom'], 6, 0.2, 9, 0.95],
+            },
+        });
+
+        const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 10 });
+        map.on('mouseenter', 'clicks-points', (e) => {
+            map.getCanvas().style.cursor = 'pointer';
+            const f = e.features[0];
+            const p = f.properties;
+            // Build DOM with text nodes to avoid XSS from DB-sourced strings.
+            const wrap = document.createElement('div');
+            wrap.style.cssText = 'font:12px/1.4 Inter,sans-serif;color:#0f172a;';
+            const title = document.createElement('div');
+            title.style.fontWeight = '700';
+            const cityName = p.city || 'Unknown city';
+            title.textContent = p.country ? (cityName + ', ' + p.country) : cityName;
+            const counts = document.createElement('div');
+            const w = parseInt(p.weight, 10) || 0;
+            counts.textContent = w + ' click' + (w === 1 ? '' : 's');
+            wrap.appendChild(title);
+            wrap.appendChild(counts);
+            popup.setLngLat(f.geometry.coordinates).setDOMContent(wrap).addTo(map);
+        });
+        map.on('mouseleave', 'clicks-points', () => {
+            map.getCanvas().style.cursor = '';
+            popup.remove();
+        });
+    }
+
+    function buildMap() {
+        const el = document.getElementById('heatmap');
+        if (!el || !window.maplibregl) return;
+        map = new maplibregl.Map({
+            container: el,
+            style: STYLES[currentStyle],
+            center: [10, 25],
+            zoom: 1.4,
+            attributionControl: { compact: true },
+        });
+        map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+
+        map.on('load', () => {
+            fetch(heatmapUrl, { headers: { 'Accept': 'application/json' } })
+                .then(r => r.json())
+                .then(data => {
+                    cachedGeoJson = data;
+                    document.getElementById('heatmap-loading').style.display = 'none';
+
+                    const meta = data.meta || {};
+                    const metaEl = document.getElementById('heatmap-meta');
+                    if ((data.features || []).length === 0) {
+                        document.getElementById('heatmap-container').style.display = 'none';
+                        document.getElementById('heatmap-empty').style.display = 'block';
+                        return;
+                    }
+                    metaEl.style.display = 'inline-flex';
+                    metaEl.textContent = `${meta.total_clicks || 0} clicks · ${meta.point_count || 0} locations`;
+                    addHeatmapLayer(data, meta.max_weight || 1);
+                })
+                .catch(err => {
+                    console.error('Heatmap load failed', err);
+                    document.getElementById('heatmap-loading').innerHTML =
+                        '<span style="color:#ef4444;"><i class="fas fa-exclamation-triangle mr-2"></i>Failed to load map data</span>';
+                });
+        });
+    }
+
+    function switchStyle(s) {
+        if (!map || s === currentStyle) return;
+        currentStyle = s;
+        setActiveStyleBtn();
+        map.setStyle(STYLES[s]);
+        map.once('styledata', () => {
+            if (cachedGeoJson) addHeatmapLayer(cachedGeoJson, (cachedGeoJson.meta || {}).max_weight || 1);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        setActiveStyleBtn();
+        document.querySelectorAll('.heatmap-style-btn').forEach(btn => {
+            btn.addEventListener('click', () => switchStyle(btn.dataset.style));
+        });
+        buildMap();
+    });
+})();
+</script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {

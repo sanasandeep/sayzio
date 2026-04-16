@@ -384,6 +384,75 @@ class LinkController extends Controller
         return view('user.links.partials.recent-clicks-table', compact('recentClicks', 'blockTypes'));
     }
 
+    public function heatmap(Request $request, Link $link)
+    {
+        abort_if($link->user_id !== $request->user()->id, 403);
+        [$startDate, $endDate] = $this->resolveAnalyticsRange($request);
+
+        // Total clicks with coordinates in this period (unbounded by limit below).
+        $totalGeoClicks = (int) $link->clicks()
+            ->whereBetween('clicked_at', [$startDate, $endDate])
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude')
+            ->count();
+
+        // Round coordinates to ~0.1° (~11km) buckets so we get a real heatmap
+        // rather than thousands of identical pinpoints. Postgres does this on
+        // the server side for speed. We also pick the *most frequent* city /
+        // country label per bucket via a window-function pass.
+        $points = \DB::table(\DB::raw('(
+            select round(latitude::numeric, 1) as lat,
+                   round(longitude::numeric, 1) as lng,
+                   country_code, city
+            from link_clicks
+            where link_id = ?
+              and clicked_at between ? and ?
+              and latitude is not null and longitude is not null
+        ) as c'))
+            ->setBindings([$link->id, $startDate, $endDate])
+            ->selectRaw('lat, lng, count(*) as weight,
+                         (mode() within group (order by city)) as city,
+                         (mode() within group (order by country_code)) as country_code')
+            ->groupBy('lat', 'lng')
+            ->orderByDesc('weight')
+            ->limit(2000)
+            ->get();
+
+        $features = [];
+        $maxWeight = 0;
+        $shownClicks = 0;
+        foreach ($points as $p) {
+            $w = (int) $p->weight;
+            $shownClicks += $w;
+            if ($w > $maxWeight) $maxWeight = $w;
+            $features[] = [
+                'type' => 'Feature',
+                'geometry' => [
+                    'type' => 'Point',
+                    'coordinates' => [(float) $p->lng, (float) $p->lat],
+                ],
+                'properties' => [
+                    'weight'  => $w,
+                    'city'    => $p->city,
+                    'country' => $p->country_code,
+                ],
+            ];
+        }
+
+        return response()->json([
+            'type'     => 'FeatureCollection',
+            'features' => $features,
+            'meta'     => [
+                'max_weight'    => $maxWeight,
+                'point_count'   => count($features),
+                'total_clicks'  => $totalGeoClicks,
+                'shown_clicks'  => $shownClicks,
+                'period_start'  => $startDate->toIso8601String(),
+                'period_end'    => $endDate->toIso8601String(),
+            ],
+        ]);
+    }
+
     public function exportClicks(Request $request, Link $link)
     {
         abort_if($link->user_id !== $request->user()->id, 403);

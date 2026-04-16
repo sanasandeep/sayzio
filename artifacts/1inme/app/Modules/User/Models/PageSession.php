@@ -8,6 +8,7 @@ class PageSession extends Model
 {
     protected $fillable = [
         'link_id', 'session_id', 'ip_address', 'country_code', 'city',
+        'latitude', 'longitude',
         'browser', 'os', 'device_type', 'referrer', 'language',
         'started_at', 'last_seen_at', 'duration_seconds', 'ended',
     ];
@@ -17,5 +18,7 @@ class PageSession extends Model
         'last_seen_at' => 'datetime',
         'duration_seconds' => 'integer',
         'ended' => 'boolean',
+        'latitude' => 'float',
+        'longitude' => 'float',
     ];
 }

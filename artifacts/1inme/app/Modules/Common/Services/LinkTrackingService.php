@@ -14,6 +14,7 @@ class LinkTrackingService
         $userAgent = $request->userAgent();
 
         $geoService = app(GeoIpService::class);
+        $geo = $geoService->detectGeo($request->ip());
 
         $click = LinkClick::create([
             'link_id' => $link->id,
@@ -23,8 +24,10 @@ class LinkTrackingService
             'device_type' => $this->detectDeviceType($userAgent),
             'referrer' => $request->header('referer'),
             'language' => $this->detectLanguage($request),
-            'country_code' => $geoService->detectCountry($request->ip()),
-            'city' => $geoService->detectCity($request->ip()),
+            'country_code' => $geo['country_code'] ?? null,
+            'city' => $geo['city'] ?? null,
+            'latitude' => $geo['latitude'] ?? null,
+            'longitude' => $geo['longitude'] ?? null,
             'utm_params' => $this->extractUtmParams($request),
             'clicked_at' => now(),
         ]);
@@ -105,6 +108,7 @@ class LinkTrackingService
     {
         $userAgent = $request->userAgent();
         $geoService = app(GeoIpService::class);
+        $geo = $geoService->detectGeo($request->ip());
 
         $click = LinkClick::create([
             'link_id' => $link->id,
@@ -117,8 +121,10 @@ class LinkTrackingService
             'device_type' => $this->detectDeviceType($userAgent),
             'referrer' => $request->header('referer'),
             'language' => $this->detectLanguage($request),
-            'country_code' => $geoService->detectCountry($request->ip()),
-            'city' => $geoService->detectCity($request->ip()),
+            'country_code' => $geo['country_code'] ?? null,
+            'city' => $geo['city'] ?? null,
+            'latitude' => $geo['latitude'] ?? null,
+            'longitude' => $geo['longitude'] ?? null,
             'utm_params' => $this->extractUtmParams($request),
             'clicked_at' => now(),
         ]);

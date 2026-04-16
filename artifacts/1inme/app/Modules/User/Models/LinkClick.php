@@ -10,7 +10,7 @@ class LinkClick extends Model
 
     protected $fillable = [
         'link_id', 'block_id', 'block_type', 'destination_url',
-        'ip_address', 'country_code', 'city',
+        'ip_address', 'country_code', 'city', 'latitude', 'longitude',
         'browser', 'os', 'device_type', 'referrer',
         'language', 'utm_params', 'clicked_at',
     ];
@@ -20,6 +20,8 @@ class LinkClick extends Model
         return [
             'utm_params' => 'array',
             'clicked_at' => 'datetime',
+            'latitude'   => 'float',
+            'longitude'  => 'float',
         ];
     }
 

@@ -18,14 +18,16 @@ class EngagementController extends Controller
         $sessionId = (string) Str::uuid();
 
         $ua = $request->userAgent();
-        $geo = app(GeoIpService::class);
+        $geo = app(GeoIpService::class)->detectGeo($request->ip());
 
         PageSession::create([
             'link_id' => $link->id,
             'session_id' => $sessionId,
             'ip_address' => $request->ip(),
-            'country_code' => $geo->detectCountry($request->ip()),
-            'city' => $geo->detectCity($request->ip()),
+            'country_code' => $geo['country_code'] ?? null,
+            'city' => $geo['city'] ?? null,
+            'latitude' => $geo['latitude'] ?? null,
+            'longitude' => $geo['longitude'] ?? null,
             'browser' => $this->detectBrowser($ua),
             'os' => $this->detectOS($ua),
             'device_type' => $this->detectDeviceType($ua),

@@ -106,6 +106,14 @@ Three new plan-gated features have been added to biolink pages (controlled by `c
 - **Custom CSS & JS**: Inject custom CSS (in `<head>`), JS in `<head>` (before page load), and JS at end of `<body>` (after page load). Stored in `settings.biolink.custom_css/custom_js_head/custom_js_body`.
 All URL fields are sanitized via `sanitizeUrl()` (http/https only). Features show PRO badge + locked upgrade prompt for plans without access.
 
+#### Geographic Heatmap (Link Analytics)
+Snap-Map style geographic heatmap on `user/links/{link}` (link analytics page) showing where each click came from. Built with **MapLibre GL JS** + Carto **Dark Matter / Positron** vector tiles (free, OSM-derived, no API key, no Google Maps).
+- Coordinates persisted on `link_clicks` and `page_sessions` (`latitude`, `longitude` decimals).
+- `GeoIpService::detectGeo()` returns `{country_code, city, latitude, longitude}` — coords come from ipapi.co when available, otherwise resolved offline via `CityLookupService` (~142k cities, bundled CSV at `database/data/world-cities.csv`, lookup map cached on the file store to keep it out of the DB cache).
+- `LinkController::heatmap()` aggregates clicks server-side in Postgres (`round(lat,1) / round(lng,1)` ~11km buckets, `mode() within group` for dominant city/country labels, capped at 2000 buckets) and returns GeoJSON.
+- Backfill command: `php artisan analytics:backfill-coords` (idempotent, processes rows missing either lat or lng).
+- Popup HTML uses `setDOMContent` with text nodes (no `setHTML`) to prevent XSS from DB-sourced city/country strings.
+
 # External Dependencies
 
 - **Monorepo tool**: pnpm
