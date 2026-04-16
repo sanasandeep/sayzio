@@ -7,169 +7,447 @@
     $blockTypes = \App\Modules\User\Models\BiolinkBlock::TYPES;
     $qs = request()->query();
     $buildUrl = fn($overrides = []) => route('user.links.show', $link) . '?' . http_build_query(array_merge($qs, $overrides));
+    $flag = function($cc) {
+        if (!$cc || strlen($cc) !== 2 || !ctype_alpha($cc)) return '🏳️';
+        $cc = strtoupper($cc);
+        return mb_chr(0x1F1E6 + ord($cc[0]) - ord('A')) . mb_chr(0x1F1E6 + ord($cc[1]) - ord('A'));
+    };
+    function _fmtSecs($s){ $s=(int)$s; if($s<60) return $s.'s'; $m=intdiv($s,60); $r=$s%60; if($m<60) return $m.'m '.$r.'s'; $h=intdiv($m,60); return $h.'h '.($m%60).'m'; }
+    function _fmtMs($ms){ return _fmtSecs(intdiv((int)$ms,1000)); }
 @endphp
 
-<div class="flex flex-wrap items-center justify-between gap-3 mb-6">
-    <div class="flex items-center gap-4">
-        <a href="{{ route('user.links.index') }}" class="p-2 rounded-xl transition-all hover:bg-white/[0.04]" style="color: var(--text-faint);"><i class="fas fa-arrow-left"></i></a>
-        <div>
-            <h1 class="text-2xl font-bold gradient-text">{{ $link->title ?: $link->alias }}</h1>
-            <div class="flex items-center gap-2 text-sm text-purple-400 mt-1" x-data="{ copied: false }">
-                <span>{{ $link->getShortUrl() }}</span>
-                <button @click="navigator.clipboard.writeText('{{ $link->getShortUrl() }}'); copied = true; setTimeout(() => copied = false, 2000)" class="transition-colors hover:text-purple-300" style="color: var(--text-faint);">
-                    <i x-show="!copied" class="fas fa-copy"></i>
-                    <i x-show="copied" x-cloak class="fas fa-check text-emerald-400"></i>
-                </button>
+@push('styles')
+<style>
+    /* ============ Stats Hero ============ */
+    .stats-hero {
+        position: relative;
+        border-radius: 28px;
+        padding: 28px 32px;
+        background:
+            radial-gradient(circle at 0% 0%, rgba(168,85,247,0.22), transparent 45%),
+            radial-gradient(circle at 100% 0%, rgba(59,130,246,0.18), transparent 45%),
+            radial-gradient(circle at 50% 120%, rgba(236,72,153,0.18), transparent 50%),
+            linear-gradient(135deg, rgba(124,58,237,0.18), rgba(139,92,246,0.06));
+        border: 1px solid var(--border-glass-light);
+        overflow: hidden;
+        backdrop-filter: blur(20px);
+    }
+    html.light-mode .stats-hero {
+        background:
+            radial-gradient(circle at 0% 0%, rgba(168,85,247,0.16), transparent 45%),
+            radial-gradient(circle at 100% 0%, rgba(59,130,246,0.14), transparent 45%),
+            radial-gradient(circle at 50% 120%, rgba(236,72,153,0.14), transparent 50%),
+            linear-gradient(135deg, rgba(255,255,255,0.85), rgba(245,243,255,0.95));
+    }
+    .stats-hero::before {
+        content: ""; position: absolute; inset: 0;
+        background-image:
+            linear-gradient(var(--border-glass) 1px, transparent 1px),
+            linear-gradient(90deg, var(--border-glass) 1px, transparent 1px);
+        background-size: 32px 32px;
+        opacity: 0.35; pointer-events: none;
+        mask-image: radial-gradient(circle at 50% 50%, black 30%, transparent 75%);
+    }
+    .stats-hero > * { position: relative; z-index: 1; }
+    .hero-emblem {
+        width: 56px; height: 56px;
+        border-radius: 18px;
+        display: flex; align-items: center; justify-content: center;
+        background: linear-gradient(135deg, #7c3aed, #ec4899);
+        box-shadow: 0 12px 40px rgba(124,58,237,0.45), inset 0 1px 0 rgba(255,255,255,0.2);
+        color: #fff; font-size: 22px;
+    }
+    .hero-chip {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 5px 11px; border-radius: 999px;
+        font-size: 10.5px; font-weight: 700;
+        background: rgba(255,255,255,0.08);
+        border: 1px solid var(--border-glass-light);
+        color: var(--text-primary);
+        backdrop-filter: blur(10px);
+    }
+    html.light-mode .hero-chip { background: rgba(255,255,255,0.7); }
+    .hero-chip i { font-size: 9px; }
+
+    /* ============ Period Pills ============ */
+    .period-bar {
+        background: var(--bg-glass);
+        border: 1px solid var(--border-glass);
+        border-radius: 18px;
+        padding: 10px 14px;
+        backdrop-filter: blur(20px);
+    }
+    .pill {
+        padding: 7px 13px;
+        border-radius: 11px;
+        font-size: 11px;
+        font-weight: 600;
+        transition: all .2s ease;
+        color: var(--text-muted);
+    }
+    .pill:hover { background: var(--bg-glass-hover); color: var(--text-primary); transform: translateY(-1px); }
+    .pill-active {
+        background: linear-gradient(135deg, #7c3aed, #a855f7);
+        color: #fff !important;
+        box-shadow: 0 6px 18px rgba(124,58,237,0.4);
+    }
+    .pill-active-soft {
+        background: rgba(139,92,246,0.18);
+        border: 1px solid rgba(139,92,246,0.4);
+        color: #c4b5fd !important;
+    }
+    html.light-mode .pill-active-soft { color: #6d28d9 !important; background: rgba(139,92,246,0.14); }
+
+    /* ============ Stat Tile ============ */
+    .stat-tile {
+        position: relative;
+        padding: 18px 18px 16px;
+        border-radius: 20px;
+        background: linear-gradient(160deg, var(--tile-bg-from, rgba(139,92,246,0.10)) 0%, var(--bg-glass) 70%);
+        border: 1px solid var(--tile-border, rgba(139,92,246,0.22));
+        overflow: hidden;
+        transition: transform .25s ease, box-shadow .25s ease;
+    }
+    .stat-tile:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 18px 48px rgba(0,0,0,0.28), 0 0 32px var(--tile-glow, rgba(139,92,246,0.18));
+    }
+    .stat-tile::before {
+        content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+        background: var(--tile-accent, linear-gradient(90deg, #8b5cf6, #a78bfa));
+    }
+    .stat-tile::after {
+        content: ""; position: absolute; right: -30px; bottom: -30px;
+        width: 120px; height: 120px; border-radius: 50%;
+        background: var(--tile-accent, linear-gradient(135deg,#8b5cf6,#a78bfa));
+        opacity: 0.08; filter: blur(20px); pointer-events: none;
+    }
+    .stat-tile-head {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: 10px;
+    }
+    .stat-tile-label {
+        font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+        color: var(--text-faint);
+    }
+    .stat-tile-icon {
+        width: 32px; height: 32px; border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        background: var(--tile-accent, linear-gradient(135deg,#8b5cf6,#a78bfa));
+        color: #fff; font-size: 12px;
+        box-shadow: 0 8px 20px var(--tile-glow, rgba(139,92,246,0.35)), inset 0 1px 0 rgba(255,255,255,0.25);
+    }
+    .stat-tile-value {
+        font-size: 26px; font-weight: 800; line-height: 1.05;
+        background: var(--tile-accent, linear-gradient(135deg,#8b5cf6,#a78bfa));
+        -webkit-background-clip: text; background-clip: text; color: transparent;
+        letter-spacing: -0.02em;
+    }
+    .stat-tile-sub { font-size: 10px; color: var(--text-faint); margin-top: 4px; }
+
+    /* ============ Section Card ============ */
+    .section-card {
+        position: relative;
+        background: var(--bg-glass);
+        border: 1px solid var(--border-glass);
+        border-radius: 20px;
+        padding: 22px;
+        backdrop-filter: blur(20px);
+        overflow: hidden;
+    }
+    .section-card::before {
+        content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+        background: var(--sc-accent, linear-gradient(90deg, #8b5cf6, #a78bfa));
+        opacity: 0.7;
+    }
+    .section-head {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 10px; margin-bottom: 18px; flex-wrap: wrap;
+    }
+    .section-title {
+        display: flex; align-items: center; gap: 12px;
+        font-size: 13px; font-weight: 700; color: var(--text-primary);
+    }
+    .section-icon {
+        width: 36px; height: 36px; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        color: #fff; font-size: 13px;
+        background: var(--sc-accent, linear-gradient(135deg, #8b5cf6, #a78bfa));
+        box-shadow: 0 8px 22px var(--sc-glow, rgba(139,92,246,0.35)), inset 0 1px 0 rgba(255,255,255,0.25);
+    }
+    .section-pill {
+        font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 999px;
+        background: var(--sc-glow, rgba(139,92,246,0.12));
+        color: var(--sc-color, #c4b5fd);
+        border: 1px solid var(--sc-border, rgba(139,92,246,0.25));
+    }
+
+    /* ============ Fancy Table ============ */
+    .fancy-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12.5px; }
+    .fancy-table thead th {
+        position: sticky; top: 0; z-index: 1;
+        font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em;
+        color: var(--text-faint);
+        padding: 10px 12px; text-align: left;
+        background: linear-gradient(180deg, var(--bg-glass-light), var(--bg-glass));
+        border-bottom: 1px solid var(--border-glass-light);
+    }
+    .fancy-table thead th.text-right { text-align: right; }
+    .fancy-table tbody td { padding: 11px 12px; color: var(--text-muted); border-bottom: 1px solid var(--border-glass); vertical-align: middle; }
+    .fancy-table tbody tr { transition: background .15s ease; }
+    .fancy-table tbody tr:hover { background: var(--bg-glass-hover); }
+    .fancy-table tbody tr:hover td:first-child { color: var(--text-primary); }
+    .fancy-table tbody tr:last-child td { border-bottom: 0; }
+
+    .rank-badge {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 24px; height: 24px; border-radius: 8px;
+        font-size: 10px; font-weight: 800;
+        background: var(--bg-glass-input); color: var(--text-faint);
+        border: 1px solid var(--border-glass);
+        margin-right: 8px;
+    }
+    .rank-1 { background: linear-gradient(135deg,#fbbf24,#f59e0b); color: #fff; border-color: transparent; box-shadow: 0 4px 12px rgba(245,158,11,0.5); }
+    .rank-2 { background: linear-gradient(135deg,#cbd5e1,#94a3b8); color: #fff; border-color: transparent; box-shadow: 0 4px 12px rgba(148,163,184,0.4); }
+    .rank-3 { background: linear-gradient(135deg,#f97316,#ea580c); color: #fff; border-color: transparent; box-shadow: 0 4px 12px rgba(234,88,12,0.4); }
+
+    /* Inline horizontal bar inside a table cell */
+    .bar-cell { position: relative; min-width: 120px; }
+    .bar-track {
+        position: relative; height: 8px; border-radius: 999px;
+        background: var(--bg-glass-input); overflow: hidden;
+    }
+    .bar-fill {
+        position: absolute; top: 0; left: 0; bottom: 0; border-radius: 999px;
+        background: var(--bar-color, linear-gradient(90deg, #8b5cf6, #ec4899));
+        box-shadow: 0 0 12px var(--bar-glow, rgba(139,92,246,0.5));
+    }
+
+    /* List rows with progress bar (referrers, UTM) */
+    .progress-row {
+        position: relative;
+        padding: 10px 14px;
+        border-radius: 12px;
+        background: var(--bg-glass-input);
+        border: 1px solid var(--border-glass);
+        overflow: hidden;
+        transition: transform .15s ease;
+    }
+    .progress-row:hover { transform: translateX(2px); }
+    .progress-row::before {
+        content: ""; position: absolute; left: 0; top: 0; bottom: 0;
+        width: var(--pr-width, 0%);
+        background: var(--pr-color, linear-gradient(90deg, rgba(139,92,246,0.18), rgba(236,72,153,0.10)));
+        z-index: 0;
+    }
+    .progress-row > * { position: relative; z-index: 1; }
+    .progress-favicon {
+        width: 22px; height: 22px; border-radius: 7px;
+        display: flex; align-items: center; justify-content: center;
+        background: var(--bg-glass);
+        border: 1px solid var(--border-glass);
+        font-size: 10px; color: var(--text-muted); overflow: hidden;
+        flex-shrink: 0;
+    }
+    .progress-favicon img { width: 100%; height: 100%; object-fit: cover; }
+
+    /* Table action button */
+    .table-action {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 7px 12px; border-radius: 11px;
+        font-size: 11px; font-weight: 600;
+        background: var(--bg-glass-input);
+        border: 1px solid var(--border-glass);
+        color: var(--text-muted);
+        transition: all .2s ease;
+    }
+    .table-action:hover { background: linear-gradient(135deg,#7c3aed,#a855f7); color: #fff; border-color: transparent; box-shadow: 0 6px 18px rgba(124,58,237,0.4); }
+
+    .stat-tile-value-sm { font-size: 22px; }
+    @media (max-width: 640px) {
+        .stats-hero { padding: 20px; border-radius: 20px; }
+        .stat-tile-value { font-size: 22px; }
+    }
+</style>
+@endpush
+
+{{-- ===================== HERO ===================== --}}
+<div class="stats-hero mb-6">
+    <div class="flex flex-wrap items-start justify-between gap-5">
+        <div class="flex items-start gap-4 min-w-0 flex-1">
+            <a href="{{ route('user.links.index') }}" class="hero-chip" title="Back"><i class="fas fa-arrow-left"></i></a>
+            <div class="hero-emblem flex-shrink-0">
+                <i class="fas {{ $link->type === 'biolink' ? 'fa-th-large' : 'fa-link' }}"></i>
+            </div>
+            <div class="min-w-0">
+                <div class="flex items-center gap-2 flex-wrap mb-1">
+                    <span class="hero-chip"><i class="fas fa-circle text-emerald-400"></i> {{ $link->is_active ?? true ? 'Active' : 'Inactive' }}</span>
+                    <span class="hero-chip"><i class="fas {{ $link->type === 'biolink' ? 'fa-th-large' : 'fa-link' }}"></i> {{ ucfirst($link->type ?? 'link') }}</span>
+                    <span class="hero-chip"><i class="fas fa-calendar"></i> {{ $link->created_at?->format('M d, Y') }}</span>
+                </div>
+                <h1 class="text-3xl font-extrabold gradient-text truncate">{{ $link->title ?: $link->alias }}</h1>
+                <div class="flex items-center gap-2 text-sm mt-2" x-data="{ copied: false }" style="color: var(--text-muted);">
+                    <i class="fas fa-link text-purple-400 text-xs"></i>
+                    <span class="truncate">{{ $link->getShortUrl() }}</span>
+                    <button @click="navigator.clipboard.writeText('{{ $link->getShortUrl() }}'); copied = true; setTimeout(() => copied = false, 2000)" class="transition-colors hover:text-purple-300" style="color: var(--text-faint);">
+                        <i x-show="!copied" class="fas fa-copy"></i>
+                        <i x-show="copied" x-cloak class="fas fa-check text-emerald-400"></i>
+                    </button>
+                    <a href="{{ $link->getShortUrl() }}" target="_blank" class="hover:text-purple-300" style="color: var(--text-faint);"><i class="fas fa-external-link-alt"></i></a>
+                </div>
             </div>
         </div>
-    </div>
-    <div class="flex items-center gap-2 flex-wrap">
-        <a href="{{ route('user.links.clicks.export', $link) }}?{{ http_build_query($qs) }}" class="btn-ghost text-xs py-2"><i class="fas fa-file-csv text-[10px]"></i> Export CSV</a>
-        <a href="{{ route('user.links.qrcode', $link) }}" class="btn-ghost text-xs py-2"><i class="fas fa-qrcode text-[10px]"></i> QR</a>
-        @if($link->type === 'biolink')
-        <a href="{{ route('user.links.blocks.editor', $link) }}" class="btn-primary text-xs py-2"><i class="fas fa-th-large text-[10px]"></i> Edit Blocks</a>
-        @endif
-        <a href="{{ route('user.links.edit', $link) }}" class="btn-ghost text-xs py-2"><i class="fas fa-edit text-[10px]"></i> Edit</a>
+        <div class="flex items-center gap-2 flex-wrap">
+            <a href="{{ route('user.links.clicks.export', $link) }}?{{ http_build_query($qs) }}" class="table-action"><i class="fas fa-file-csv"></i> Export CSV</a>
+            <a href="{{ route('user.links.qrcode', $link) }}" class="table-action"><i class="fas fa-qrcode"></i> QR</a>
+            @if($link->type === 'biolink')
+            <a href="{{ route('user.links.blocks.editor', $link) }}" class="btn-primary text-xs py-2"><i class="fas fa-th-large text-[10px]"></i> Edit Blocks</a>
+            @endif
+            <a href="{{ route('user.links.edit', $link) }}" class="table-action"><i class="fas fa-edit"></i> Edit</a>
+        </div>
     </div>
 </div>
 
-<div class="card-premium p-3 mb-5">
+{{-- ===================== PERIOD CONTROLS ===================== --}}
+<div class="period-bar mb-6">
     <div class="flex flex-wrap items-center gap-2">
-        <span class="text-[10px] uppercase tracking-wider font-bold mr-1" style="color: var(--text-faint);">Period:</span>
+        <span class="text-[10px] uppercase tracking-wider font-bold mr-1" style="color: var(--text-faint);"><i class="fas fa-clock text-purple-400"></i> Period</span>
         @foreach(['today'=>'Today','7d'=>'7d','30d'=>'30d','90d'=>'90d','year'=>'Year','all'=>'All'] as $k=>$lbl)
-            <a href="{{ $buildUrl(['period'=>$k]) }}" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all {{ ($period ?? '30d')===$k ? 'text-white' : 'hover:bg-white/[0.04]' }}" style="{{ ($period ?? '30d')===$k ? 'background: linear-gradient(135deg,#7c3aed,#a855f7);' : 'color: var(--text-muted);' }}">{{ $lbl }}</a>
+            <a href="{{ $buildUrl(['period'=>$k]) }}" class="pill {{ ($period ?? '30d')===$k ? 'pill-active' : '' }}">{{ $lbl }}</a>
         @endforeach
         <span class="mx-3 h-5 w-px" style="background: var(--border-glass);"></span>
-        <span class="text-[10px] uppercase tracking-wider font-bold mr-1" style="color: var(--text-faint);">Group:</span>
+        <span class="text-[10px] uppercase tracking-wider font-bold mr-1" style="color: var(--text-faint);"><i class="fas fa-layer-group text-purple-400"></i> Group</span>
         @foreach(['day'=>'Day','week'=>'Week','month'=>'Month','year'=>'Year'] as $k=>$lbl)
-            <a href="{{ $buildUrl(['group'=>$k]) }}" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all {{ ($groupBy ?? 'day')===$k ? 'text-white' : 'hover:bg-white/[0.04]' }}" style="{{ ($groupBy ?? 'day')===$k ? 'background: rgba(139,92,246,0.2); border: 1px solid rgba(139,92,246,0.4);' : 'color: var(--text-muted);' }}">{{ $lbl }}</a>
+            <a href="{{ $buildUrl(['group'=>$k]) }}" class="pill {{ ($groupBy ?? 'day')===$k ? 'pill-active-soft' : '' }}">{{ $lbl }}</a>
         @endforeach
-        <span class="mx-3 h-5 w-px" style="background: var(--border-glass);"></span>
-        <form method="GET" class="flex items-center gap-2">
+        <span class="mx-3 h-5 w-px hidden md:inline-block" style="background: var(--border-glass);"></span>
+        <form method="GET" class="flex items-center gap-2 ml-auto">
             <input type="hidden" name="period" value="custom">
             <input type="hidden" name="group" value="{{ $groupBy }}">
             <input type="date" name="from" value="{{ request('from', $startDate->format('Y-m-d')) }}" class="theme-input text-xs py-1.5 px-2">
             <span class="text-xs" style="color:var(--text-faint);">to</span>
             <input type="date" name="to" value="{{ request('to', $endDate->format('Y-m-d')) }}" class="theme-input text-xs py-1.5 px-2">
-            <button class="btn-ghost text-xs py-1.5 px-3">Apply</button>
+            <button class="pill pill-active"><i class="fas fa-check text-[9px]"></i> Apply</button>
         </form>
     </div>
 </div>
 
-<div class="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
-    <div class="stat-card" style="--stat-accent: linear-gradient(90deg, #8b5cf6, #a78bfa); --stat-glow: rgba(139,92,246,0.12); --stat-border-color: rgba(139,92,246,0.2);">
-        <p class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Total (Range)</p>
-        <p class="text-2xl font-bold" style="color: var(--text-primary);">{{ number_format($totalInRange) }}</p>
+{{-- ===================== PRIMARY METRICS ===================== --}}
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-5">
+    <div class="stat-tile" style="--tile-accent: linear-gradient(135deg,#8b5cf6,#a78bfa); --tile-glow: rgba(139,92,246,0.4); --tile-bg-from: rgba(139,92,246,0.14); --tile-border: rgba(139,92,246,0.28);">
+        <div class="stat-tile-head"><span class="stat-tile-label">Total (Range)</span><div class="stat-tile-icon"><i class="fas fa-mouse-pointer"></i></div></div>
+        <div class="stat-tile-value">{{ number_format($totalInRange) }}</div>
+        <div class="stat-tile-sub">All clicks in window</div>
     </div>
-    <div class="stat-card" style="--stat-accent: linear-gradient(90deg, #10b981, #34d399); --stat-glow: rgba(16,185,129,0.12); --stat-border-color: rgba(16,185,129,0.2);">
-        <p class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Unique IPs</p>
-        <p class="text-2xl font-bold" style="color: var(--text-primary);">{{ number_format($uniqueInRange) }}</p>
+    <div class="stat-tile" style="--tile-accent: linear-gradient(135deg,#10b981,#34d399); --tile-glow: rgba(16,185,129,0.4); --tile-bg-from: rgba(16,185,129,0.14); --tile-border: rgba(16,185,129,0.28);">
+        <div class="stat-tile-head"><span class="stat-tile-label">Unique IPs</span><div class="stat-tile-icon"><i class="fas fa-fingerprint"></i></div></div>
+        <div class="stat-tile-value">{{ number_format($uniqueInRange) }}</div>
+        <div class="stat-tile-sub">Distinct visitors</div>
     </div>
-    <div class="stat-card" style="--stat-accent: linear-gradient(90deg, #3b82f6, #60a5fa); --stat-glow: rgba(59,130,246,0.12); --stat-border-color: rgba(59,130,246,0.2);">
-        <p class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Page Visits</p>
-        <p class="text-2xl font-bold" style="color: var(--text-primary);">{{ number_format($pageVisitsInRange) }}</p>
+    <div class="stat-tile" style="--tile-accent: linear-gradient(135deg,#3b82f6,#60a5fa); --tile-glow: rgba(59,130,246,0.4); --tile-bg-from: rgba(59,130,246,0.14); --tile-border: rgba(59,130,246,0.28);">
+        <div class="stat-tile-head"><span class="stat-tile-label">Page Visits</span><div class="stat-tile-icon"><i class="fas fa-eye"></i></div></div>
+        <div class="stat-tile-value">{{ number_format($pageVisitsInRange) }}</div>
+        <div class="stat-tile-sub">Page loads</div>
     </div>
-    <div class="stat-card" style="--stat-accent: linear-gradient(90deg, #f59e0b, #fbbf24); --stat-glow: rgba(245,158,11,0.12); --stat-border-color: rgba(245,158,11,0.2);">
-        <p class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Block Clicks</p>
-        <p class="text-2xl font-bold" style="color: var(--text-primary);">{{ number_format($blockClicksInRange) }}</p>
+    <div class="stat-tile" style="--tile-accent: linear-gradient(135deg,#f59e0b,#fbbf24); --tile-glow: rgba(245,158,11,0.4); --tile-bg-from: rgba(245,158,11,0.14); --tile-border: rgba(245,158,11,0.28);">
+        <div class="stat-tile-head"><span class="stat-tile-label">Block Clicks</span><div class="stat-tile-icon"><i class="fas fa-th-large"></i></div></div>
+        <div class="stat-tile-value">{{ number_format($blockClicksInRange) }}</div>
+        <div class="stat-tile-sub">Biolink interactions</div>
     </div>
-    <div class="stat-card" style="--stat-accent: linear-gradient(90deg, #ec4899, #f472b6); --stat-glow: rgba(236,72,153,0.12); --stat-border-color: rgba(236,72,153,0.2);">
-        <p class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">All-Time Total</p>
-        <p class="text-2xl font-bold" style="color: var(--text-primary);">{{ number_format($link->total_clicks) }}</p>
+    <div class="stat-tile" style="--tile-accent: linear-gradient(135deg,#ec4899,#f472b6); --tile-glow: rgba(236,72,153,0.4); --tile-bg-from: rgba(236,72,153,0.14); --tile-border: rgba(236,72,153,0.28);">
+        <div class="stat-tile-head"><span class="stat-tile-label">All-Time</span><div class="stat-tile-icon"><i class="fas fa-infinity"></i></div></div>
+        <div class="stat-tile-value">{{ number_format($link->total_clicks) }}</div>
+        <div class="stat-tile-sub">Lifetime clicks</div>
     </div>
-    <div class="stat-card" style="--stat-accent: linear-gradient(90deg, #06b6d4, #22d3ee); --stat-glow: rgba(6,182,212,0.12); --stat-border-color: rgba(6,182,212,0.2);">
-        <p class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">All-Time Unique</p>
-        <p class="text-2xl font-bold" style="color: var(--text-primary);">{{ number_format($link->unique_clicks) }}</p>
+    <div class="stat-tile" style="--tile-accent: linear-gradient(135deg,#06b6d4,#22d3ee); --tile-glow: rgba(6,182,212,0.4); --tile-bg-from: rgba(6,182,212,0.14); --tile-border: rgba(6,182,212,0.28);">
+        <div class="stat-tile-head"><span class="stat-tile-label">All-Time Unique</span><div class="stat-tile-icon"><i class="fas fa-users"></i></div></div>
+        <div class="stat-tile-value">{{ number_format($link->unique_clicks) }}</div>
+        <div class="stat-tile-sub">Lifetime visitors</div>
     </div>
 </div>
 
-@php
-    function _fmtSecs($s){ $s=(int)$s; if($s<60) return $s.'s'; $m=intdiv($s,60); $r=$s%60; if($m<60) return $m.'m '.$r.'s'; $h=intdiv($m,60); return $h.'h '.($m%60).'m'; }
-    function _fmtMs($ms){ return _fmtSecs(intdiv((int)$ms,1000)); }
-@endphp
-
+{{-- ===================== ENGAGEMENT METRICS ===================== --}}
 <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-    <div class="stat-card" style="--stat-accent: linear-gradient(90deg, #14b8a6, #2dd4bf); --stat-glow: rgba(20,184,166,0.12); --stat-border-color: rgba(20,184,166,0.2);">
-        <p class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Sessions</p>
-        <p class="text-2xl font-bold" style="color: var(--text-primary);">{{ number_format($totalSessions) }}</p>
+    <div class="stat-tile" style="--tile-accent: linear-gradient(135deg,#14b8a6,#2dd4bf); --tile-glow: rgba(20,184,166,0.4); --tile-bg-from: rgba(20,184,166,0.14); --tile-border: rgba(20,184,166,0.28);">
+        <div class="stat-tile-head"><span class="stat-tile-label">Sessions</span><div class="stat-tile-icon"><i class="fas fa-user-clock"></i></div></div>
+        <div class="stat-tile-value stat-tile-value-sm">{{ number_format($totalSessions) }}</div>
     </div>
-    <div class="stat-card" style="--stat-accent: linear-gradient(90deg, #6366f1, #818cf8); --stat-glow: rgba(99,102,241,0.12); --stat-border-color: rgba(99,102,241,0.2);">
-        <p class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Avg. Time on Page</p>
-        <p class="text-2xl font-bold" style="color: var(--text-primary);">{{ _fmtSecs($avgSessionSeconds) }}</p>
+    <div class="stat-tile" style="--tile-accent: linear-gradient(135deg,#6366f1,#818cf8); --tile-glow: rgba(99,102,241,0.4); --tile-bg-from: rgba(99,102,241,0.14); --tile-border: rgba(99,102,241,0.28);">
+        <div class="stat-tile-head"><span class="stat-tile-label">Avg. Time on Page</span><div class="stat-tile-icon"><i class="fas fa-stopwatch"></i></div></div>
+        <div class="stat-tile-value stat-tile-value-sm">{{ _fmtSecs($avgSessionSeconds) }}</div>
     </div>
-    <div class="stat-card" style="--stat-accent: linear-gradient(90deg, #f59e0b, #fbbf24); --stat-glow: rgba(245,158,11,0.12); --stat-border-color: rgba(245,158,11,0.2);">
-        <p class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Total Engaged Time</p>
-        <p class="text-2xl font-bold" style="color: var(--text-primary);">{{ _fmtSecs($totalEngagedSeconds) }}</p>
+    <div class="stat-tile" style="--tile-accent: linear-gradient(135deg,#f59e0b,#fbbf24); --tile-glow: rgba(245,158,11,0.4); --tile-bg-from: rgba(245,158,11,0.14); --tile-border: rgba(245,158,11,0.28);">
+        <div class="stat-tile-head"><span class="stat-tile-label">Total Engaged Time</span><div class="stat-tile-icon"><i class="fas fa-hourglass-half"></i></div></div>
+        <div class="stat-tile-value stat-tile-value-sm">{{ _fmtSecs($totalEngagedSeconds) }}</div>
     </div>
-    <div class="stat-card" style="--stat-accent: linear-gradient(90deg, #ef4444, #f87171); --stat-glow: rgba(239,68,68,0.12); --stat-border-color: rgba(239,68,68,0.2);">
-        <p class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Bounce Rate</p>
-        <p class="text-2xl font-bold" style="color: var(--text-primary);">{{ $bounceRate }}%</p>
-        <p class="text-[10px] mt-0.5" style="color: var(--text-faint);">Sessions under 5s</p>
+    <div class="stat-tile" style="--tile-accent: linear-gradient(135deg,#ef4444,#f87171); --tile-glow: rgba(239,68,68,0.4); --tile-bg-from: rgba(239,68,68,0.14); --tile-border: rgba(239,68,68,0.28);">
+        <div class="stat-tile-head"><span class="stat-tile-label">Bounce Rate</span><div class="stat-tile-icon"><i class="fas fa-running"></i></div></div>
+        <div class="stat-tile-value stat-tile-value-sm">{{ $bounceRate }}%</div>
+        <div class="stat-tile-sub">Sessions under 5s</div>
     </div>
 </div>
 
-<div class="card-premium p-5 mb-6">
-    <div class="flex items-center justify-between mb-4">
-        <div class="flex items-center gap-2.5">
-            <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.15);"><i class="fas fa-chart-line text-purple-400 text-xs"></i></div>
-            <h3 class="text-sm font-bold" style="color: var(--text-primary);">Clicks Over Time ({{ ucfirst($groupBy) }})</h3>
-        </div>
-        <span class="text-xs" style="color: var(--text-faint);">{{ $startDate->format('M d, Y') }} → {{ $endDate->format('M d, Y') }}</span>
+{{-- ===================== CLICKS OVER TIME ===================== --}}
+<div class="section-card mb-6" style="--sc-accent: linear-gradient(90deg,#7c3aed,#ec4899); --sc-glow: rgba(124,58,237,0.35); --sc-color: #c4b5fd; --sc-border: rgba(124,58,237,0.3);">
+    <div class="section-head">
+        <div class="section-title"><div class="section-icon"><i class="fas fa-chart-line"></i></div> Clicks Over Time <span class="text-[11px] font-medium ml-1" style="color:var(--text-faint);">({{ ucfirst($groupBy) }})</span></div>
+        <span class="section-pill"><i class="fas fa-calendar-week"></i> {{ $startDate->format('M d, Y') }} → {{ $endDate->format('M d, Y') }}</span>
     </div>
     @if($clicksOverTime->isEmpty())
         <p class="text-sm text-center py-12" style="color: var(--text-faint);">No click data in this range</p>
     @else
-        <div style="height: 300px;"><canvas id="clicksChart"></canvas></div>
+        <div style="height: 320px;"><canvas id="clicksChart"></canvas></div>
     @endif
 </div>
 
+{{-- ===================== BROWSER / OS / DEVICE ===================== --}}
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
-    <div class="card-premium p-5">
-        <div class="flex items-center gap-2.5 mb-4">
-            <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.15);"><i class="fas fa-globe text-indigo-400 text-xs"></i></div>
-            <h3 class="text-sm font-bold" style="color: var(--text-primary);">Browsers</h3>
-        </div>
+    <div class="section-card" style="--sc-accent: linear-gradient(90deg,#6366f1,#818cf8); --sc-glow: rgba(99,102,241,0.35); --sc-color: #a5b4fc; --sc-border: rgba(99,102,241,0.3);">
+        <div class="section-head"><div class="section-title"><div class="section-icon"><i class="fas fa-globe"></i></div> Browsers</div></div>
         @if($browserStats->isEmpty())<p class="text-sm text-center py-8" style="color: var(--text-faint);">No data</p>
-        @else<div style="height: 220px;"><canvas id="browserChart"></canvas></div>@endif
+        @else<div style="height: 240px;"><canvas id="browserChart"></canvas></div>@endif
     </div>
-    <div class="card-premium p-5">
-        <div class="flex items-center gap-2.5 mb-4">
-            <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.15);"><i class="fas fa-laptop text-emerald-400 text-xs"></i></div>
-            <h3 class="text-sm font-bold" style="color: var(--text-primary);">Operating Systems</h3>
-        </div>
+    <div class="section-card" style="--sc-accent: linear-gradient(90deg,#10b981,#34d399); --sc-glow: rgba(16,185,129,0.35); --sc-color: #6ee7b7; --sc-border: rgba(16,185,129,0.3);">
+        <div class="section-head"><div class="section-title"><div class="section-icon"><i class="fas fa-laptop"></i></div> Operating Systems</div></div>
         @if($osStats->isEmpty())<p class="text-sm text-center py-8" style="color: var(--text-faint);">No data</p>
-        @else<div style="height: 220px;"><canvas id="osChart"></canvas></div>@endif
+        @else<div style="height: 240px;"><canvas id="osChart"></canvas></div>@endif
     </div>
-    <div class="card-premium p-5">
-        <div class="flex items-center gap-2.5 mb-4">
-            <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.15);"><i class="fas fa-mobile-alt text-amber-400 text-xs"></i></div>
-            <h3 class="text-sm font-bold" style="color: var(--text-primary);">Devices</h3>
-        </div>
+    <div class="section-card" style="--sc-accent: linear-gradient(90deg,#f59e0b,#fbbf24); --sc-glow: rgba(245,158,11,0.35); --sc-color: #fcd34d; --sc-border: rgba(245,158,11,0.3);">
+        <div class="section-head"><div class="section-title"><div class="section-icon"><i class="fas fa-mobile-alt"></i></div> Devices</div></div>
         @if($deviceStats->isEmpty())<p class="text-sm text-center py-8" style="color: var(--text-faint);">No data</p>
-        @else<div style="height: 220px;"><canvas id="deviceChart"></canvas></div>@endif
+        @else<div style="height: 240px;"><canvas id="deviceChart"></canvas></div>@endif
     </div>
 </div>
 
+{{-- ===================== COUNTRIES / CITIES ===================== --}}
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
-    <div class="card-premium p-5">
-        <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center gap-2.5">
-                <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.15);"><i class="fas fa-flag text-blue-400 text-xs"></i></div>
-                <h3 class="text-sm font-bold" style="color: var(--text-primary);">Top Countries</h3>
-            </div>
+    <div class="section-card" style="--sc-accent: linear-gradient(90deg,#3b82f6,#60a5fa); --sc-glow: rgba(59,130,246,0.35); --sc-color: #93c5fd; --sc-border: rgba(59,130,246,0.3);">
+        <div class="section-head"><div class="section-title"><div class="section-icon"><i class="fas fa-flag"></i></div> Top Countries</div>
+            @if(!$countryStats->isEmpty())<span class="section-pill">{{ $countryStats->count() }} regions</span>@endif
         </div>
         @if($countryStats->isEmpty())<p class="text-sm text-center py-8" style="color: var(--text-faint);">No data</p>
         @else
-        <div class="overflow-y-auto max-h-72">
-            <table class="w-full text-sm">
-                <thead><tr class="text-[10px] uppercase tracking-wider" style="color: var(--text-faint);"><th class="text-left py-2 px-2 font-bold">Country</th><th class="text-right py-2 px-2 font-bold">Clicks</th><th class="text-right py-2 px-2 font-bold">%</th></tr></thead>
+        <div class="overflow-y-auto max-h-80 -mx-2 px-2">
+            <table class="fancy-table">
+                <thead><tr><th>#</th><th>Country</th><th class="text-right">Clicks</th><th>Share</th></tr></thead>
                 <tbody>
-                @php $totalC = $countryStats->sum('count') ?: 1; @endphp
-                @foreach($countryStats as $stat)
-                <tr class="hover:bg-white/[0.02]" style="border-top: 1px solid var(--border-glass);">
-                    <td class="py-2 px-2" style="color: var(--text-primary);">{{ $countryNames[$stat->country_code] ?? $stat->country_code }} <span style="color: var(--text-faint);">({{ $stat->country_code }})</span></td>
-                    <td class="py-2 px-2 text-right" style="color: var(--text-muted);">{{ $stat->count }}</td>
-                    <td class="py-2 px-2 text-right text-xs" style="color: var(--text-dimmed);">{{ round(($stat->count / $totalC) * 100, 1) }}%</td>
+                @php $totalC = $countryStats->sum('count') ?: 1; $maxC = $countryStats->max('count') ?: 1; @endphp
+                @foreach($countryStats as $i => $stat)
+                @php $pct = round(($stat->count / $totalC) * 100, 1); $w = round(($stat->count / $maxC) * 100, 1); @endphp
+                <tr>
+                    <td style="width:38px;"><span class="rank-badge {{ $i<3 ? 'rank-'.($i+1) : '' }}">{{ $i+1 }}</span></td>
+                    <td style="color: var(--text-primary);">
+                        <span class="text-lg mr-2 align-middle">{{ $flag($stat->country_code) }}</span>
+                        <span class="font-medium">{{ $countryNames[$stat->country_code] ?? $stat->country_code }}</span>
+                        <span class="text-[10px] ml-1" style="color: var(--text-faint);">{{ $stat->country_code }}</span>
+                    </td>
+                    <td class="text-right font-bold" style="color: var(--text-primary);">{{ number_format($stat->count) }}</td>
+                    <td class="bar-cell" style="width: 38%;">
+                        <div class="bar-track">
+                            <div class="bar-fill" style="width: {{ $w }}%; --bar-color: linear-gradient(90deg,#3b82f6,#60a5fa); --bar-glow: rgba(59,130,246,0.4);"></div>
+                        </div>
+                        <div class="text-[10px] mt-1" style="color: var(--text-faint);">{{ $pct }}%</div>
+                    </td>
                 </tr>
                 @endforeach
                 </tbody>
@@ -177,22 +455,30 @@
         </div>
         @endif
     </div>
-    <div class="card-premium p-5">
-        <div class="flex items-center gap-2.5 mb-4">
-            <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(236,72,153,0.1); border: 1px solid rgba(236,72,153,0.15);"><i class="fas fa-city text-pink-400 text-xs"></i></div>
-            <h3 class="text-sm font-bold" style="color: var(--text-primary);">Top Cities</h3>
+    <div class="section-card" style="--sc-accent: linear-gradient(90deg,#ec4899,#f472b6); --sc-glow: rgba(236,72,153,0.35); --sc-color: #f9a8d4; --sc-border: rgba(236,72,153,0.3);">
+        <div class="section-head"><div class="section-title"><div class="section-icon"><i class="fas fa-city"></i></div> Top Cities</div>
+            @if(!$cityStats->isEmpty())<span class="section-pill">{{ $cityStats->count() }} cities</span>@endif
         </div>
         @if($cityStats->isEmpty())<p class="text-sm text-center py-8" style="color: var(--text-faint);">No data</p>
         @else
-        <div class="overflow-y-auto max-h-72">
-            <table class="w-full text-sm">
-                <thead><tr class="text-[10px] uppercase tracking-wider" style="color: var(--text-faint);"><th class="text-left py-2 px-2 font-bold">City</th><th class="text-left py-2 px-2 font-bold">Country</th><th class="text-right py-2 px-2 font-bold">Clicks</th></tr></thead>
+        <div class="overflow-y-auto max-h-80 -mx-2 px-2">
+            <table class="fancy-table">
+                <thead><tr><th>#</th><th>City</th><th>Country</th><th class="text-right">Clicks</th><th>Share</th></tr></thead>
                 <tbody>
-                @foreach($cityStats as $stat)
-                <tr class="hover:bg-white/[0.02]" style="border-top: 1px solid var(--border-glass);">
-                    <td class="py-2 px-2" style="color: var(--text-primary);">{{ $stat->city }}</td>
-                    <td class="py-2 px-2" style="color: var(--text-muted);">{{ $stat->country_code }}</td>
-                    <td class="py-2 px-2 text-right" style="color: var(--text-muted);">{{ $stat->count }}</td>
+                @php $maxCity = $cityStats->max('count') ?: 1; $totalCity = $cityStats->sum('count') ?: 1; @endphp
+                @foreach($cityStats as $i => $stat)
+                @php $w = round(($stat->count / $maxCity) * 100, 1); $pct = round(($stat->count / $totalCity) * 100, 1); @endphp
+                <tr>
+                    <td style="width:38px;"><span class="rank-badge {{ $i<3 ? 'rank-'.($i+1) : '' }}">{{ $i+1 }}</span></td>
+                    <td style="color: var(--text-primary);" class="font-medium">{{ $stat->city }}</td>
+                    <td><span class="text-base align-middle">{{ $flag($stat->country_code) }}</span> <span style="color:var(--text-muted);">{{ $stat->country_code }}</span></td>
+                    <td class="text-right font-bold" style="color: var(--text-primary);">{{ number_format($stat->count) }}</td>
+                    <td class="bar-cell" style="width: 30%;">
+                        <div class="bar-track">
+                            <div class="bar-fill" style="width: {{ $w }}%; --bar-color: linear-gradient(90deg,#ec4899,#f472b6); --bar-glow: rgba(236,72,153,0.4);"></div>
+                        </div>
+                        <div class="text-[10px] mt-1" style="color: var(--text-faint);">{{ $pct }}%</div>
+                    </td>
                 </tr>
                 @endforeach
                 </tbody>
@@ -202,30 +488,45 @@
     </div>
 </div>
 
+{{-- ===================== BIOLINK BLOCKS ===================== --}}
 @if($link->type === 'biolink')
-<div class="card-premium p-5 mb-6">
-    <div class="flex items-center gap-2.5 mb-4">
-        <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(168,85,247,0.1); border: 1px solid rgba(168,85,247,0.15);"><i class="fas fa-th-large text-purple-400 text-xs"></i></div>
-        <h3 class="text-sm font-bold" style="color: var(--text-primary);">Block-Level Clicks</h3>
-        <span class="text-[10px] px-2 py-0.5 rounded-full ml-auto" style="background: rgba(168,85,247,0.1); color: #a855f7;">Internal biolink links</span>
+<div class="section-card mb-6" style="--sc-accent: linear-gradient(90deg,#a855f7,#d946ef); --sc-glow: rgba(168,85,247,0.35); --sc-color: #d8b4fe; --sc-border: rgba(168,85,247,0.3);">
+    <div class="section-head">
+        <div class="section-title"><div class="section-icon"><i class="fas fa-th-large"></i></div> Block-Level Clicks</div>
+        <span class="section-pill"><i class="fas fa-link"></i> Internal biolink links</span>
     </div>
     @if($blockStats->isEmpty())
         <p class="text-sm text-center py-8" style="color: var(--text-faint);">No block clicks recorded yet. Make sure your biolink blocks are using tracked links.</p>
     @else
-    <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead><tr class="text-[10px] uppercase tracking-wider" style="color: var(--text-faint);">
-                <th class="text-left py-2 px-2 font-bold">Block</th><th class="text-left py-2 px-2 font-bold">Type</th><th class="text-left py-2 px-2 font-bold">Destination</th><th class="text-right py-2 px-2 font-bold">Clicks</th><th class="text-right py-2 px-2 font-bold">Unique</th>
+    <div class="overflow-x-auto -mx-2 px-2">
+        <table class="fancy-table">
+            <thead><tr>
+                <th>#</th><th>Block</th><th>Type</th><th>Destination</th><th class="text-right">Clicks</th><th class="text-right">Unique</th><th>Share</th>
             </tr></thead>
             <tbody>
-            @foreach($blockStats as $b)
-            @php $info = $blockTypes[$b->block_type] ?? ['label'=>ucfirst($b->block_type), 'icon'=>'fa-cube']; @endphp
-            <tr class="hover:bg-white/[0.02]" style="border-top: 1px solid var(--border-glass);">
-                <td class="py-2 px-2" style="color: var(--text-primary);"><i class="fas {{ $info['icon'] }} mr-1.5 text-purple-400"></i> #{{ $b->block_id }}</td>
-                <td class="py-2 px-2"><span class="badge text-[10px]" style="background:rgba(139,92,246,0.08); color:#a78bfa;">{{ $info['label'] }}</span></td>
-                <td class="py-2 px-2 text-xs truncate max-w-md" style="color: var(--text-muted);">{{ $b->destination_url }}</td>
-                <td class="py-2 px-2 text-right font-medium" style="color: var(--text-primary);">{{ $b->count }}</td>
-                <td class="py-2 px-2 text-right" style="color: var(--text-muted);">{{ $b->unique_count }}</td>
+            @php $maxB = $blockStats->max('count') ?: 1; $totalB = $blockStats->sum('count') ?: 1; @endphp
+            @foreach($blockStats as $i => $b)
+            @php
+                $info = $blockTypes[$b->block_type] ?? ['label'=>ucfirst($b->block_type), 'icon'=>'fa-cube'];
+                $w = round(($b->count / $maxB) * 100, 1);
+                $pct = round(($b->count / $totalB) * 100, 1);
+            @endphp
+            <tr>
+                <td style="width:38px;"><span class="rank-badge {{ $i<3 ? 'rank-'.($i+1) : '' }}">{{ $i+1 }}</span></td>
+                <td style="color: var(--text-primary);" class="font-medium">
+                    <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg mr-2" style="background: linear-gradient(135deg,#a855f7,#d946ef); color:#fff;"><i class="fas {{ $info['icon'] }} text-[11px]"></i></span>
+                    #{{ $b->block_id }}
+                </td>
+                <td><span class="badge text-[10px] px-2 py-1 rounded-full" style="background: linear-gradient(135deg, rgba(168,85,247,0.18), rgba(217,70,239,0.18)); color:#d8b4fe; border: 1px solid rgba(168,85,247,0.3);">{{ $info['label'] }}</span></td>
+                <td class="text-xs truncate max-w-md" style="color: var(--text-muted);">{{ $b->destination_url }}</td>
+                <td class="text-right font-bold" style="color: var(--text-primary);">{{ number_format($b->count) }}</td>
+                <td class="text-right" style="color: var(--text-muted);">{{ number_format($b->unique_count) }}</td>
+                <td class="bar-cell" style="width: 22%;">
+                    <div class="bar-track">
+                        <div class="bar-fill" style="width: {{ $w }}%; --bar-color: linear-gradient(90deg,#a855f7,#d946ef); --bar-glow: rgba(168,85,247,0.4);"></div>
+                    </div>
+                    <div class="text-[10px] mt-1" style="color: var(--text-faint);">{{ $pct }}%</div>
+                </td>
             </tr>
             @endforeach
             </tbody>
@@ -234,43 +535,47 @@
     @endif
 </div>
 
-<div class="card-premium p-5 mb-6">
-    <div class="flex items-center gap-2.5 mb-4">
-        <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(20,184,166,0.1); border: 1px solid rgba(20,184,166,0.15);"><i class="fas fa-eye text-teal-400 text-xs"></i></div>
-        <h3 class="text-sm font-bold" style="color: var(--text-primary);">Block Engagement (Visibility)</h3>
-        <span class="text-[10px] px-2 py-0.5 rounded-full ml-auto" style="background: rgba(20,184,166,0.1); color: #2dd4bf;">Time visible on screen</span>
+<div class="section-card mb-6" style="--sc-accent: linear-gradient(90deg,#14b8a6,#2dd4bf); --sc-glow: rgba(20,184,166,0.35); --sc-color: #5eead4; --sc-border: rgba(20,184,166,0.3);">
+    <div class="section-head">
+        <div class="section-title"><div class="section-icon"><i class="fas fa-eye"></i></div> Block Engagement (Visibility)</div>
+        <span class="section-pill"><i class="fas fa-clock"></i> Time visible on screen</span>
     </div>
     @if($blockEngagement->isEmpty())
         <p class="text-sm text-center py-8" style="color: var(--text-faint);">No view data yet. Visit the public biolink page to start collecting engagement data.</p>
     @else
-    <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead><tr class="text-[10px] uppercase tracking-wider" style="color: var(--text-faint);">
-                <th class="text-left py-2 px-2 font-bold">Block</th>
-                <th class="text-left py-2 px-2 font-bold">Type</th>
-                <th class="text-right py-2 px-2 font-bold">Impressions</th>
-                <th class="text-right py-2 px-2 font-bold">Viewers</th>
-                <th class="text-right py-2 px-2 font-bold">Total Time</th>
-                <th class="text-right py-2 px-2 font-bold">Avg / View</th>
-                <th class="text-right py-2 px-2 font-bold">Clicks</th>
-                <th class="text-right py-2 px-2 font-bold">CTR</th>
+    <div class="overflow-x-auto -mx-2 px-2">
+        <table class="fancy-table">
+            <thead><tr>
+                <th>#</th><th>Block</th><th>Type</th>
+                <th class="text-right">Impressions</th>
+                <th class="text-right">Viewers</th>
+                <th class="text-right">Total Time</th>
+                <th class="text-right">Avg / View</th>
+                <th class="text-right">Clicks</th>
+                <th class="text-right">CTR</th>
             </tr></thead>
             <tbody>
-            @foreach($blockEngagement as $b)
+            @foreach($blockEngagement as $i => $b)
             @php
                 $info = $blockTypes[$b->block_type] ?? ['label'=>ucfirst($b->block_type ?? 'block'), 'icon'=>'fa-cube'];
                 $clicks = $blockClickMap[$b->block_id] ?? 0;
                 $ctr = $b->impressions > 0 ? round(($clicks / $b->impressions) * 100, 1) : 0;
             @endphp
-            <tr class="hover:bg-white/[0.02]" style="border-top: 1px solid var(--border-glass);">
-                <td class="py-2 px-2" style="color: var(--text-primary);"><i class="fas {{ $info['icon'] }} mr-1.5 text-teal-400"></i> #{{ $b->block_id }}</td>
-                <td class="py-2 px-2"><span class="badge text-[10px]" style="background:rgba(20,184,166,0.08); color:#2dd4bf;">{{ $info['label'] }}</span></td>
-                <td class="py-2 px-2 text-right" style="color: var(--text-muted);">{{ number_format($b->impressions) }}</td>
-                <td class="py-2 px-2 text-right" style="color: var(--text-muted);">{{ number_format($b->unique_viewers) }}</td>
-                <td class="py-2 px-2 text-right font-medium" style="color: var(--text-primary);">{{ _fmtMs($b->total_ms) }}</td>
-                <td class="py-2 px-2 text-right" style="color: var(--text-muted);">{{ number_format(($b->avg_ms ?? 0)/1000, 1) }}s</td>
-                <td class="py-2 px-2 text-right" style="color: var(--text-muted);">{{ $clicks }}</td>
-                <td class="py-2 px-2 text-right text-xs" style="color: var(--text-dimmed);">{{ $ctr }}%</td>
+            <tr>
+                <td style="width:38px;"><span class="rank-badge {{ $i<3 ? 'rank-'.($i+1) : '' }}">{{ $i+1 }}</span></td>
+                <td style="color: var(--text-primary);" class="font-medium">
+                    <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg mr-2" style="background: linear-gradient(135deg,#14b8a6,#2dd4bf); color:#fff;"><i class="fas {{ $info['icon'] }} text-[11px]"></i></span>
+                    #{{ $b->block_id }}
+                </td>
+                <td><span class="badge text-[10px] px-2 py-1 rounded-full" style="background: linear-gradient(135deg, rgba(20,184,166,0.18), rgba(45,212,191,0.18)); color:#5eead4; border: 1px solid rgba(20,184,166,0.3);">{{ $info['label'] }}</span></td>
+                <td class="text-right" style="color: var(--text-muted);">{{ number_format($b->impressions) }}</td>
+                <td class="text-right" style="color: var(--text-muted);">{{ number_format($b->unique_viewers) }}</td>
+                <td class="text-right font-bold" style="color: var(--text-primary);">{{ _fmtMs($b->total_ms) }}</td>
+                <td class="text-right" style="color: var(--text-muted);">{{ number_format(($b->avg_ms ?? 0)/1000, 1) }}s</td>
+                <td class="text-right" style="color: var(--text-muted);">{{ $clicks }}</td>
+                <td class="text-right">
+                    <span class="px-2 py-0.5 rounded-md text-[10px] font-bold" style="background: {{ $ctr >= 10 ? 'linear-gradient(135deg,#10b981,#34d399)' : ($ctr >= 3 ? 'linear-gradient(135deg,#f59e0b,#fbbf24)' : 'rgba(148,163,184,0.15)') }}; color: {{ $ctr >= 3 ? '#fff' : 'var(--text-muted)' }};">{{ $ctr }}%</span>
+                </td>
             </tr>
             @endforeach
             </tbody>
@@ -280,41 +585,54 @@
 </div>
 @endif
 
+{{-- ===================== REFERRERS / UTM ===================== --}}
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
-    <div class="card-premium p-5">
-        <div class="flex items-center gap-2.5 mb-4">
-            <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.15);"><i class="fas fa-link text-emerald-400 text-xs"></i></div>
-            <h3 class="text-sm font-bold" style="color: var(--text-primary);">Top Referrers</h3>
-        </div>
+    <div class="section-card" style="--sc-accent: linear-gradient(90deg,#10b981,#34d399); --sc-glow: rgba(16,185,129,0.35); --sc-color: #6ee7b7; --sc-border: rgba(16,185,129,0.3);">
+        <div class="section-head"><div class="section-title"><div class="section-icon"><i class="fas fa-link"></i></div> Top Referrers</div></div>
         @if($topReferrers->isEmpty())<p class="text-sm text-center py-8" style="color: var(--text-faint);">No referrer data</p>
         @else
-        <div class="space-y-2 max-h-72 overflow-y-auto">
-            @foreach($topReferrers as $ref)
-            <div class="flex items-center justify-between text-sm p-2 rounded-lg hover:bg-white/[0.02]">
-                <span class="truncate flex-1" style="color: var(--text-muted);">{{ parse_url($ref->referrer, PHP_URL_HOST) ?: $ref->referrer }}</span>
-                <span class="font-medium ml-3 text-xs" style="color: var(--text-dimmed);">{{ $ref->count }}</span>
+        <div class="space-y-2 max-h-80 overflow-y-auto pr-1">
+            @php $maxR = $topReferrers->max('count') ?: 1; @endphp
+            @foreach($topReferrers as $i => $ref)
+            @php
+                $host = parse_url($ref->referrer, PHP_URL_HOST) ?: $ref->referrer;
+                $w = round(($ref->count / $maxR) * 100, 1);
+            @endphp
+            <div class="progress-row flex items-center gap-3" style="--pr-width: {{ $w }}%; --pr-color: linear-gradient(90deg, rgba(16,185,129,0.20), rgba(52,211,153,0.06));">
+                <span class="rank-badge {{ $i<3 ? 'rank-'.($i+1) : '' }} m-0">{{ $i+1 }}</span>
+                <div class="progress-favicon">
+                    @if($host && $host !== $ref->referrer)
+                        <img src="https://www.google.com/s2/favicons?sz=32&domain={{ urlencode($host) }}" alt="" onerror="this.style.display='none'; this.parentNode.innerHTML='<i class=\'fas fa-globe\'></i>'">
+                    @else
+                        <i class="fas fa-globe"></i>
+                    @endif
+                </div>
+                <span class="truncate flex-1 text-sm font-medium" style="color: var(--text-primary);">{{ $host }}</span>
+                <span class="font-bold text-sm" style="color: var(--text-primary);">{{ number_format($ref->count) }}</span>
             </div>
             @endforeach
         </div>
         @endif
     </div>
-    <div class="card-premium p-5">
-        <div class="flex items-center gap-2.5 mb-4">
-            <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.15);"><i class="fas fa-bullseye text-amber-400 text-xs"></i></div>
-            <h3 class="text-sm font-bold" style="color: var(--text-primary);">UTM Campaigns</h3>
-        </div>
+    <div class="section-card" style="--sc-accent: linear-gradient(90deg,#f59e0b,#fbbf24); --sc-glow: rgba(245,158,11,0.35); --sc-color: #fcd34d; --sc-border: rgba(245,158,11,0.3);">
+        <div class="section-head"><div class="section-title"><div class="section-icon"><i class="fas fa-bullseye"></i></div> UTM Campaigns</div></div>
         @if($utmStats->isEmpty())<p class="text-sm text-center py-8" style="color: var(--text-faint);">No UTM data</p>
         @else
-        <div class="space-y-2 max-h-72 overflow-y-auto">
-            @foreach($utmStats as $u)
-            @php $p = $u->utm_params; if (is_string($p)) $p = json_decode($p, true) ?: []; @endphp
-            <div class="flex items-center justify-between text-xs p-2 rounded-lg hover:bg-white/[0.02]">
-                <div class="flex-1 truncate">
-                    <span style="color: var(--text-primary);">{{ $p['utm_source'] ?? '—' }}</span>
-                    <span style="color: var(--text-faint);"> / {{ $p['utm_medium'] ?? '—' }}</span>
-                    <span style="color: var(--text-faint);"> / {{ $p['utm_campaign'] ?? '—' }}</span>
+        <div class="space-y-2 max-h-80 overflow-y-auto pr-1">
+            @php $maxU = $utmStats->max('count') ?: 1; @endphp
+            @foreach($utmStats as $i => $u)
+            @php
+                $p = $u->utm_params; if (is_string($p)) $p = json_decode($p, true) ?: [];
+                $w = round(($u->count / $maxU) * 100, 1);
+            @endphp
+            <div class="progress-row flex items-center gap-3" style="--pr-width: {{ $w }}%; --pr-color: linear-gradient(90deg, rgba(245,158,11,0.22), rgba(251,191,36,0.06));">
+                <span class="rank-badge {{ $i<3 ? 'rank-'.($i+1) : '' }} m-0">{{ $i+1 }}</span>
+                <div class="flex-1 truncate text-xs">
+                    <span class="font-bold" style="color: var(--text-primary);">{{ $p['utm_source'] ?? '—' }}</span>
+                    <span style="color: var(--text-faint);"> · {{ $p['utm_medium'] ?? '—' }}</span>
+                    <span style="color: var(--text-faint);"> · {{ $p['utm_campaign'] ?? '—' }}</span>
                 </div>
-                <span class="font-medium ml-3" style="color: var(--text-dimmed);">{{ $u->count }}</span>
+                <span class="font-bold text-sm" style="color: var(--text-primary);">{{ number_format($u->count) }}</span>
             </div>
             @endforeach
         </div>
@@ -322,20 +640,95 @@
     </div>
 </div>
 
-<div class="card-premium p-5 mb-6">
-    <div class="flex items-center justify-between mb-4">
-        <div class="flex items-center gap-2.5">
-            <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.15);"><i class="fas fa-list text-purple-400 text-xs"></i></div>
-            <h3 class="text-sm font-bold" style="color: var(--text-primary);">Recent Clicks</h3>
-        </div>
-        <a href="{{ route('user.links.clicks.export', $link) }}?{{ http_build_query($qs) }}" class="text-xs text-purple-400 hover:text-purple-300"><i class="fas fa-file-csv"></i> Export full log</a>
+{{-- ===================== RECENT CLICKS ===================== --}}
+<div class="section-card mb-6" style="--sc-accent: linear-gradient(90deg,#8b5cf6,#a78bfa); --sc-glow: rgba(139,92,246,0.35); --sc-color: #c4b5fd; --sc-border: rgba(139,92,246,0.3);">
+    <div class="section-head">
+        <div class="section-title"><div class="section-icon"><i class="fas fa-list"></i></div> Recent Clicks</div>
+        <a href="{{ route('user.links.clicks.export', $link) }}?{{ http_build_query($qs) }}" class="table-action"><i class="fas fa-file-csv"></i> Export full log</a>
     </div>
     <div id="recent-clicks-container" data-endpoint="{{ route('user.links.clicks.partial', $link) }}?{{ http_build_query($qs) }}">
         @include('user.links.partials.recent-clicks-table')
     </div>
 </div>
 
+{{-- ===================== LINK DETAILS ===================== --}}
+<div class="section-card" style="--sc-accent: linear-gradient(90deg,#64748b,#94a3b8); --sc-glow: rgba(100,116,139,0.35); --sc-color: #cbd5e1; --sc-border: rgba(100,116,139,0.3);">
+    <div class="section-head"><div class="section-title"><div class="section-icon"><i class="fas fa-info-circle"></i></div> Link Details</div></div>
+    <dl class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+        @if($link->long_url)<div class="p-3 rounded-xl" style="background: var(--bg-glass-input);"><dt class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Destination</dt><dd class="truncate" style="color: var(--text-primary);">{{ $link->long_url }}</dd></div>@endif
+        <div class="p-3 rounded-xl" style="background: var(--bg-glass-input);"><dt class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Alias</dt><dd style="color: var(--text-primary);">{{ $link->alias }}</dd></div>
+        <div class="p-3 rounded-xl" style="background: var(--bg-glass-input);"><dt class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Type</dt><dd class="capitalize" style="color: var(--text-primary);">{{ $link->type }}</dd></div>
+        <div class="p-3 rounded-xl" style="background: var(--bg-glass-input);"><dt class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Created</dt><dd style="color: var(--text-primary);">{{ $link->created_at?->format('M d, Y · H:i') }}</dd></div>
+    </dl>
+</div>
+
 @push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const isLight = document.documentElement.classList.contains('light-mode');
+    const gridColor = isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.05)';
+    const tickColor = isLight ? 'rgba(15,23,42,0.75)' : 'rgba(255,255,255,0.7)';
+    if (window.Chart) {
+        Chart.defaults.color = tickColor;
+        Chart.defaults.borderColor = gridColor;
+        Chart.defaults.font.family = "'Inter', system-ui, -apple-system, sans-serif";
+    }
+    const palette = ['#7c3aed','#10b981','#3b82f6','#f59e0b','#ec4899','#06b6d4','#a855f7','#ef4444','#14b8a6','#eab308'];
+
+    @if(!$clicksOverTime->isEmpty())
+    (function(){
+        const ctx = document.getElementById('clicksChart').getContext('2d');
+        const g1 = ctx.createLinearGradient(0,0,0,300);
+        g1.addColorStop(0, 'rgba(124,58,237,0.45)'); g1.addColorStop(1, 'rgba(124,58,237,0.02)');
+        const g2 = ctx.createLinearGradient(0,0,0,300);
+        g2.addColorStop(0, 'rgba(16,185,129,0.30)'); g2.addColorStop(1, 'rgba(16,185,129,0.02)');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: @json($clicksOverTime->pluck('bucket')),
+                datasets: [
+                    { label: 'Total Clicks', data: @json($clicksOverTime->pluck('count')), borderColor: '#a855f7', backgroundColor: g1, tension: 0.4, fill: true, borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 6, pointHoverBackgroundColor: '#a855f7', pointHoverBorderColor: '#fff', pointHoverBorderWidth: 2 },
+                    { label: 'Unique IPs', data: @json($clicksOverTime->pluck('unique_count')), borderColor: '#34d399', backgroundColor: g2, tension: 0.4, fill: true, borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 6, pointHoverBackgroundColor: '#34d399', pointHoverBorderColor: '#fff', pointHoverBorderWidth: 2 }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                interaction: { intersect: false, mode: 'index' },
+                plugins: {
+                    legend: { labels: { color: tickColor, usePointStyle: true, padding: 16, font: { size: 11, weight: '600' } } },
+                    tooltip: { backgroundColor: isLight ? 'rgba(255,255,255,0.98)' : 'rgba(20,15,40,0.95)', titleColor: tickColor, bodyColor: tickColor, borderColor: 'rgba(139,92,246,0.4)', borderWidth: 1, padding: 12, cornerRadius: 10, displayColors: true, boxPadding: 4 }
+                },
+                scales: {
+                    x: { grid: { color: gridColor, drawTicks: false }, ticks: { color: tickColor, font: { size: 10 } }, border: { display: false } },
+                    y: { grid: { color: gridColor, drawTicks: false }, ticks: { color: tickColor, font: { size: 10 } }, beginAtZero: true, border: { display: false } }
+                }
+            }
+        });
+    })();
+    @endif
+
+    function doughnut(id, labels, data) {
+        const el = document.getElementById(id); if (!el) return;
+        new Chart(el, {
+            type: 'doughnut',
+            data: { labels, datasets: [{ data, backgroundColor: palette, borderWidth: 0, hoverOffset: 8, spacing: 2 }] },
+            options: {
+                responsive: true, maintainAspectRatio: false, cutout: '65%',
+                plugins: {
+                    legend: { position: 'right', labels: { color: tickColor, font: { size: 11, weight: '500' }, usePointStyle: true, padding: 10, boxWidth: 8 } },
+                    tooltip: { backgroundColor: isLight ? 'rgba(255,255,255,0.98)' : 'rgba(20,15,40,0.95)', titleColor: tickColor, bodyColor: tickColor, borderColor: 'rgba(139,92,246,0.4)', borderWidth: 1, padding: 10, cornerRadius: 10 }
+                }
+            }
+        });
+    }
+
+    @if(!$browserStats->isEmpty())doughnut('browserChart', @json($browserStats->pluck('browser')), @json($browserStats->pluck('count')));@endif
+    @if(!$osStats->isEmpty())doughnut('osChart', @json($osStats->pluck('os')), @json($osStats->pluck('count')));@endif
+    @if(!$deviceStats->isEmpty())doughnut('deviceChart', @json($deviceStats->pluck('device_type')), @json($deviceStats->pluck('count')));@endif
+});
+</script>
+
 <script>
 (function(){
     var container = document.getElementById('recent-clicks-container');
@@ -366,59 +759,6 @@
             });
     });
 })();
-</script>
-@endpush
-
-
-<div class="card-premium p-5">
-    <div class="flex items-center gap-2.5 mb-4">
-        <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.15);"><i class="fas fa-info-circle text-purple-400 text-xs"></i></div>
-        <h3 class="text-sm font-bold" style="color: var(--text-primary);">Link Details</h3>
-    </div>
-    <dl class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-        @if($link->long_url)<div class="p-3 rounded-xl" style="background: var(--bg-glass-input);"><dt class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Destination</dt><dd class="truncate" style="color: var(--text-primary);">{{ $link->long_url }}</dd></div>@endif
-        <div class="p-3 rounded-xl" style="background: var(--bg-glass-input);"><dt class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Created</dt><dd style="color: var(--text-primary);">{{ $link->created_at->format('M d, Y H:i') }}</dd></div>
-        <div class="p-3 rounded-xl" style="background: var(--bg-glass-input);"><dt class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Type</dt><dd class="capitalize" style="color: var(--text-primary);">{{ $link->type }}</dd></div>
-        <div class="p-3 rounded-xl" style="background: var(--bg-glass-input);"><dt class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color: var(--text-faint);">Password Protected</dt><dd style="color: var(--text-primary);">{{ $link->is_password_protected ? 'Yes' : 'No' }}</dd></div>
-    </dl>
-</div>
-
-@push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const isLight = document.documentElement.classList.contains('light-mode');
-    const gridColor = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.06)';
-    const tickColor = isLight ? 'rgba(15,23,42,0.75)' : 'rgba(255,255,255,0.7)';
-    if (window.Chart) {
-        Chart.defaults.color = tickColor;
-        Chart.defaults.borderColor = gridColor;
-    }
-    const palette = ['#7c3aed','#10b981','#3b82f6','#f59e0b','#ec4899','#06b6d4','#a855f7','#ef4444','#14b8a6','#eab308'];
-
-    @if(!$clicksOverTime->isEmpty())
-    new Chart(document.getElementById('clicksChart'), {
-        type: 'line',
-        data: {
-            labels: @json($clicksOverTime->pluck('bucket')),
-            datasets: [
-                { label: 'Total Clicks', data: @json($clicksOverTime->pluck('count')), borderColor: '#7c3aed', backgroundColor: 'rgba(124,58,237,0.15)', tension: 0.4, fill: true, borderWidth: 2, pointRadius: 3 },
-                { label: 'Unique IPs', data: @json($clicksOverTime->pluck('unique_count')), borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.08)', tension: 0.4, fill: true, borderWidth: 2, pointRadius: 3 }
-            ]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: tickColor } } }, scales: { x: { grid: { color: gridColor }, ticks: { color: tickColor } }, y: { grid: { color: gridColor }, ticks: { color: tickColor }, beginAtZero: true } } }
-    });
-    @endif
-
-    function doughnut(id, labels, data) {
-        const el = document.getElementById(id); if (!el) return;
-        new Chart(el, { type: 'doughnut', data: { labels, datasets: [{ data, backgroundColor: palette, borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: tickColor, font: { size: 11 } } } } } });
-    }
-
-    @if(!$browserStats->isEmpty())doughnut('browserChart', @json($browserStats->pluck('browser')), @json($browserStats->pluck('count')));@endif
-    @if(!$osStats->isEmpty())doughnut('osChart', @json($osStats->pluck('os')), @json($osStats->pluck('count')));@endif
-    @if(!$deviceStats->isEmpty())doughnut('deviceChart', @json($deviceStats->pluck('device_type')), @json($deviceStats->pluck('count')));@endif
-});
 </script>
 @endpush
 @endsection
