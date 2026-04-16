@@ -233,6 +233,7 @@
             font-weight: 700;
         }
     </style>
+    @stack('styles')
 </head>
 <body class="min-h-screen" style="color: var(--text-primary);">
     <div class="bg-mesh"></div>
