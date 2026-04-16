@@ -106,12 +106,36 @@
                             $sparkTitle .= " ({$sign}{$sparkDelta} pts)";
                         }
                     @endphp
-                    <div class="pc-spark mt-2" title="{{ $sparkTitle }}" aria-label="{{ $sparkTitle }}">
-                        <svg viewBox="0 0 140 36" width="140" height="36" preserveAspectRatio="none" style="display:block;">
+                    <div class="pc-spark mt-2" aria-label="{{ $sparkTitle }}">
+                        <svg viewBox="0 0 140 36" width="140" height="36" preserveAspectRatio="none" style="display:block; overflow: visible;" role="img" aria-label="{{ $sparkTitle }}">
+                            <title>{{ $sparkTitle }}</title>
                             <path d="{{ $areaPath }}" fill="{{ $sparkFill }}" stroke="none" />
                             <path d="{{ $linePath }}" fill="none" stroke="{{ $sparkColor }}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-                            @php $last = end($sparkPoints); @endphp
-                            <circle cx="{{ explode(',', $last)[0] }}" cy="{{ explode(',', $last)[1] }}" r="2" fill="{{ $sparkColor }}" />
+                            @php $lastPoint = end($sparkPoints); @endphp
+                            <circle cx="{{ explode(',', $lastPoint)[0] }}" cy="{{ explode(',', $lastPoint)[1] }}" r="2" fill="{{ $sparkColor }}" />
+                            {{-- Per-day hoverable / focusable points with date + score tooltips. --}}
+                            @foreach($sparkPoints as $i => $pt)
+                                @php
+                                    [$cx, $cy] = explode(',', $pt);
+                                    $row = $history[$i] ?? [];
+                                    $rawDate = $row['date'] ?? null;
+                                    try {
+                                        $dateLabel = $rawDate ? \Carbon\Carbon::parse($rawDate)->format('M j, Y') : '';
+                                    } catch (\Throwable $e) {
+                                        $dateLabel = (string) $rawDate;
+                                    }
+                                    $pointScore = (int) ($row['score'] ?? 0);
+                                    $pointTitle = trim($dateLabel . ($dateLabel !== '' ? ' — ' : '') . $pointScore . ' pts');
+                                @endphp
+                                <circle class="pc-spark-point"
+                                        cx="{{ $cx }}" cy="{{ $cy }}" r="6"
+                                        fill="transparent"
+                                        tabindex="0"
+                                        role="img"
+                                        aria-label="{{ $pointTitle }}">
+                                    <title>{{ $pointTitle }}</title>
+                                </circle>
+                            @endforeach
                         </svg>
                         <span class="pc-spark-label" style="color: {{ $sparkColor }};">
                             @if($sparkDelta > 0)
@@ -326,6 +350,17 @@
     .perf-coach .pc-spark svg {
         flex-shrink: 0;
         filter: drop-shadow(0 1px 2px rgba(0,0,0,0.25));
+    }
+    .perf-coach .pc-spark-point {
+        cursor: pointer;
+        transition: fill .12s ease, stroke .12s ease;
+        outline: none;
+    }
+    .perf-coach .pc-spark-point:hover,
+    .perf-coach .pc-spark-point:focus-visible {
+        fill: rgba(255,255,255,0.95);
+        stroke: rgba(0,0,0,0.4);
+        stroke-width: 1;
     }
     .perf-coach .pc-spark-label {
         font-size: 10px; font-weight: 700; letter-spacing: .04em;
