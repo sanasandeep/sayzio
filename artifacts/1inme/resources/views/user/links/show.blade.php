@@ -154,6 +154,90 @@
     html.light-mode .stat-tile-label { color: rgba(26,16,37,0.7); }
     html.light-mode .stat-tile-sub { color: rgba(26,16,37,0.6); }
 
+    /* ============ Calm KPI hero (top 3) ============ */
+    .kpi-hero {
+        position: relative;
+        background: var(--bg-card);
+        border: 1px solid var(--border-glass);
+        border-radius: 18px;
+        padding: 18px 20px;
+        backdrop-filter: blur(20px);
+        transition: transform .2s ease, border-color .2s ease;
+    }
+    .kpi-hero:hover { transform: translateY(-2px); border-color: rgba(124,58,237,0.25); }
+    .kpi-hero-head {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: 10px;
+    }
+    .kpi-hero-label {
+        font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+        color: var(--text-muted);
+    }
+    .kpi-hero-icon {
+        width: 28px; height: 28px; border-radius: 9px;
+        display: flex; align-items: center; justify-content: center;
+        background: rgba(124,58,237,0.1);
+        color: var(--accent);
+        font-size: 11px;
+    }
+    .kpi-hero-value {
+        font-size: 32px; font-weight: 800; line-height: 1.05;
+        color: var(--text-primary);
+        letter-spacing: -0.025em;
+    }
+    .kpi-hero-sub {
+        font-size: 11px; color: var(--text-faint); margin-top: 4px;
+    }
+    html.light-mode .kpi-hero-sub { color: rgba(26,16,37,0.6); }
+
+    /* ============ Quick-stats strip (rest) ============ */
+    .kpi-strip {
+        background: var(--bg-card);
+        border: 1px solid var(--border-glass);
+        border-radius: 18px;
+        backdrop-filter: blur(20px);
+        padding: 6px 4px;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0;
+    }
+    @media (min-width: 640px) { .kpi-strip { grid-template-columns: repeat(4, 1fr); } }
+    @media (min-width: 1024px) { .kpi-strip { grid-template-columns: repeat(8, 1fr); } }
+    .kpi-cell {
+        padding: 14px 14px;
+        border-right: 1px solid var(--border-subtle);
+        border-bottom: 1px solid var(--border-subtle);
+        display: flex; flex-direction: column; gap: 4px;
+    }
+    .kpi-cell:nth-child(2n) { border-right: none; }
+    @media (min-width: 640px) {
+        .kpi-cell { border-right: 1px solid var(--border-subtle); }
+        .kpi-cell:nth-child(2n) { border-right: 1px solid var(--border-subtle); }
+        .kpi-cell:nth-child(4n) { border-right: none; }
+        .kpi-cell:nth-last-child(-n+4) { border-bottom: none; }
+    }
+    @media (min-width: 1024px) {
+        .kpi-cell { border-bottom: none; border-right: 1px solid var(--border-subtle); }
+        .kpi-cell:nth-child(4n) { border-right: 1px solid var(--border-subtle); }
+        .kpi-cell:nth-child(8n) { border-right: none; }
+        .kpi-cell:last-child { border-right: none; }
+    }
+    .kpi-cell-head {
+        display: flex; align-items: center; gap: 6px;
+        font-size: 10px; font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .kpi-cell-head i {
+        font-size: 10px; color: var(--text-faint);
+        width: 14px; text-align: center;
+    }
+    .kpi-cell-value {
+        font-size: 18px; font-weight: 700;
+        color: var(--text-primary);
+        letter-spacing: -0.02em;
+    }
+
     /* ============ Section Card ============ */
     .section-card {
         position: relative;
@@ -363,58 +447,67 @@
     </div>
 </div>
 
-{{-- ===================== PRIMARY METRICS ===================== --}}
-<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-5">
-    <div class="stat-tile" style="--tile-accent: linear-gradient(135deg,#8b5cf6,#a78bfa); --tile-glow: rgba(139,92,246,0.4); --tile-bg-from: rgba(139,92,246,0.14); --tile-border: rgba(139,92,246,0.28);">
-        <div class="stat-tile-head"><span class="stat-tile-label">Total (Range)</span><div class="stat-tile-icon"><i class="fas fa-mouse-pointer"></i></div></div>
-        <div class="stat-tile-value">{{ number_format($totalInRange) }}</div>
-        <div class="stat-tile-sub">All clicks in window</div>
+{{-- ===================== PRIMARY KPIs (3 hero numbers) ===================== --}}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+    <div class="kpi-hero">
+        <div class="kpi-hero-head">
+            <span class="kpi-hero-label">Total clicks</span>
+            <div class="kpi-hero-icon"><i class="fas fa-mouse-pointer"></i></div>
+        </div>
+        <div class="kpi-hero-value">{{ number_format($totalInRange) }}</div>
+        <div class="kpi-hero-sub">in selected range</div>
     </div>
-    <div class="stat-tile" style="--tile-accent: linear-gradient(135deg,#10b981,#34d399); --tile-glow: rgba(16,185,129,0.4); --tile-bg-from: rgba(16,185,129,0.14); --tile-border: rgba(16,185,129,0.28);">
-        <div class="stat-tile-head"><span class="stat-tile-label">Unique IPs</span><div class="stat-tile-icon"><i class="fas fa-fingerprint"></i></div></div>
-        <div class="stat-tile-value">{{ number_format($uniqueInRange) }}</div>
-        <div class="stat-tile-sub">Distinct visitors</div>
+    <div class="kpi-hero">
+        <div class="kpi-hero-head">
+            <span class="kpi-hero-label">Unique visitors</span>
+            <div class="kpi-hero-icon"><i class="fas fa-fingerprint"></i></div>
+        </div>
+        <div class="kpi-hero-value">{{ number_format($uniqueInRange) }}</div>
+        <div class="kpi-hero-sub">distinct people</div>
     </div>
-    <div class="stat-tile" style="--tile-accent: linear-gradient(135deg,#3b82f6,#60a5fa); --tile-glow: rgba(59,130,246,0.4); --tile-bg-from: rgba(59,130,246,0.14); --tile-border: rgba(59,130,246,0.28);">
-        <div class="stat-tile-head"><span class="stat-tile-label">Page Visits</span><div class="stat-tile-icon"><i class="fas fa-eye"></i></div></div>
-        <div class="stat-tile-value">{{ number_format($pageVisitsInRange) }}</div>
-        <div class="stat-tile-sub">Page loads</div>
-    </div>
-    <div class="stat-tile" style="--tile-accent: linear-gradient(135deg,#f59e0b,#fbbf24); --tile-glow: rgba(245,158,11,0.4); --tile-bg-from: rgba(245,158,11,0.14); --tile-border: rgba(245,158,11,0.28);">
-        <div class="stat-tile-head"><span class="stat-tile-label">Block Clicks</span><div class="stat-tile-icon"><i class="fas fa-th-large"></i></div></div>
-        <div class="stat-tile-value">{{ number_format($blockClicksInRange) }}</div>
-        <div class="stat-tile-sub">Biolink interactions</div>
-    </div>
-    <div class="stat-tile" style="--tile-accent: linear-gradient(135deg,#ec4899,#f472b6); --tile-glow: rgba(236,72,153,0.4); --tile-bg-from: rgba(236,72,153,0.14); --tile-border: rgba(236,72,153,0.28);">
-        <div class="stat-tile-head"><span class="stat-tile-label">All-Time</span><div class="stat-tile-icon"><i class="fas fa-infinity"></i></div></div>
-        <div class="stat-tile-value">{{ number_format($link->total_clicks) }}</div>
-        <div class="stat-tile-sub">Lifetime clicks</div>
-    </div>
-    <div class="stat-tile" style="--tile-accent: linear-gradient(135deg,#06b6d4,#22d3ee); --tile-glow: rgba(6,182,212,0.4); --tile-bg-from: rgba(6,182,212,0.14); --tile-border: rgba(6,182,212,0.28);">
-        <div class="stat-tile-head"><span class="stat-tile-label">All-Time Unique</span><div class="stat-tile-icon"><i class="fas fa-users"></i></div></div>
-        <div class="stat-tile-value">{{ number_format($link->unique_clicks) }}</div>
-        <div class="stat-tile-sub">Lifetime visitors</div>
+    <div class="kpi-hero">
+        <div class="kpi-hero-head">
+            <span class="kpi-hero-label">Sessions</span>
+            <div class="kpi-hero-icon"><i class="fas fa-user-clock"></i></div>
+        </div>
+        <div class="kpi-hero-value">{{ number_format($totalSessions) }}</div>
+        <div class="kpi-hero-sub">avg {{ _fmtSecs($avgSessionSeconds) }} on page</div>
     </div>
 </div>
 
-{{-- ===================== ENGAGEMENT METRICS ===================== --}}
-<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-    <div class="stat-tile" style="--tile-accent: linear-gradient(135deg,#14b8a6,#2dd4bf); --tile-glow: rgba(20,184,166,0.4); --tile-bg-from: rgba(20,184,166,0.14); --tile-border: rgba(20,184,166,0.28);">
-        <div class="stat-tile-head"><span class="stat-tile-label">Sessions</span><div class="stat-tile-icon"><i class="fas fa-user-clock"></i></div></div>
-        <div class="stat-tile-value stat-tile-value-sm">{{ number_format($totalSessions) }}</div>
+{{-- ===================== SECONDARY METRICS (compact strip) ===================== --}}
+<div class="kpi-strip mb-6">
+    <div class="kpi-cell">
+        <div class="kpi-cell-head"><i class="fas fa-eye"></i> Page visits</div>
+        <div class="kpi-cell-value">{{ number_format($pageVisitsInRange) }}</div>
     </div>
-    <div class="stat-tile" style="--tile-accent: linear-gradient(135deg,#6366f1,#818cf8); --tile-glow: rgba(99,102,241,0.4); --tile-bg-from: rgba(99,102,241,0.14); --tile-border: rgba(99,102,241,0.28);">
-        <div class="stat-tile-head"><span class="stat-tile-label">Avg. Time on Page</span><div class="stat-tile-icon"><i class="fas fa-stopwatch"></i></div></div>
-        <div class="stat-tile-value stat-tile-value-sm">{{ _fmtSecs($avgSessionSeconds) }}</div>
+    <div class="kpi-cell">
+        <div class="kpi-cell-head"><i class="fas fa-th-large"></i> Block clicks</div>
+        <div class="kpi-cell-value">{{ number_format($blockClicksInRange) }}</div>
     </div>
-    <div class="stat-tile" style="--tile-accent: linear-gradient(135deg,#f59e0b,#fbbf24); --tile-glow: rgba(245,158,11,0.4); --tile-bg-from: rgba(245,158,11,0.14); --tile-border: rgba(245,158,11,0.28);">
-        <div class="stat-tile-head"><span class="stat-tile-label">Total Engaged Time</span><div class="stat-tile-icon"><i class="fas fa-hourglass-half"></i></div></div>
-        <div class="stat-tile-value stat-tile-value-sm">{{ _fmtSecs($totalEngagedSeconds) }}</div>
+    <div class="kpi-cell">
+        <div class="kpi-cell-head"><i class="fas fa-hourglass-half"></i> Engaged time</div>
+        <div class="kpi-cell-value">{{ _fmtSecs($totalEngagedSeconds) }}</div>
     </div>
-    <div class="stat-tile" style="--tile-accent: linear-gradient(135deg,#ef4444,#f87171); --tile-glow: rgba(239,68,68,0.4); --tile-bg-from: rgba(239,68,68,0.14); --tile-border: rgba(239,68,68,0.28);">
-        <div class="stat-tile-head"><span class="stat-tile-label">Bounce Rate</span><div class="stat-tile-icon"><i class="fas fa-running"></i></div></div>
-        <div class="stat-tile-value stat-tile-value-sm">{{ $bounceRate }}%</div>
-        <div class="stat-tile-sub">Sessions under 5s</div>
+    <div class="kpi-cell">
+        <div class="kpi-cell-head"><i class="fas fa-running"></i> Bounce rate</div>
+        <div class="kpi-cell-value">{{ $bounceRate }}%</div>
+    </div>
+    <div class="kpi-cell">
+        <div class="kpi-cell-head"><i class="fas fa-stopwatch"></i> Avg. time</div>
+        <div class="kpi-cell-value">{{ _fmtSecs($avgSessionSeconds) }}</div>
+    </div>
+    <div class="kpi-cell">
+        <div class="kpi-cell-head"><i class="fas fa-infinity"></i> All-time clicks</div>
+        <div class="kpi-cell-value">{{ number_format($link->total_clicks) }}</div>
+    </div>
+    <div class="kpi-cell">
+        <div class="kpi-cell-head"><i class="fas fa-users"></i> All-time unique</div>
+        <div class="kpi-cell-value">{{ number_format($link->unique_clicks) }}</div>
+    </div>
+    <div class="kpi-cell">
+        <div class="kpi-cell-head"><i class="fas fa-percentage"></i> Conversion</div>
+        <div class="kpi-cell-value">{{ $totalInRange > 0 ? round(($uniqueInRange / $totalInRange) * 100) : 0 }}%</div>
     </div>
 </div>
 
