@@ -363,7 +363,51 @@
             </tbody>
         </table>
     </div>
-    <div class="mt-4">{{ $recentClicks->links() }}</div>
+    @if($recentClicks->hasPages())
+    <div class="mt-4 flex items-center justify-between flex-wrap gap-3">
+        <div class="text-xs" style="color: var(--text-faint);">
+            Showing {{ $recentClicks->firstItem() }}–{{ $recentClicks->lastItem() }} of {{ number_format($recentClicks->total()) }}
+        </div>
+        <nav class="flex items-center gap-1.5">
+            @if($recentClicks->onFirstPage())
+                <span class="px-3 py-1.5 rounded-lg text-xs font-medium opacity-40 cursor-not-allowed" style="background: var(--bg-glass-input); color: var(--text-faint); border: 1px solid var(--border-glass);">‹ Prev</span>
+            @else
+                <a href="{{ $recentClicks->previousPageUrl() }}" class="px-3 py-1.5 rounded-lg text-xs font-medium hover:opacity-80 transition" style="background: var(--bg-glass-input); color: var(--text-primary); border: 1px solid var(--border-glass);">‹ Prev</a>
+            @endif
+
+            @php
+                $current = $recentClicks->currentPage();
+                $last = $recentClicks->lastPage();
+                $start = max(1, $current - 2);
+                $end = min($last, $current + 2);
+            @endphp
+
+            @if($start > 1)
+                <a href="{{ $recentClicks->url(1) }}" class="px-3 py-1.5 rounded-lg text-xs font-medium hover:opacity-80 transition" style="background: var(--bg-glass-input); color: var(--text-primary); border: 1px solid var(--border-glass);">1</a>
+                @if($start > 2)<span class="px-1 text-xs" style="color: var(--text-faint);">…</span>@endif
+            @endif
+
+            @for($i = $start; $i <= $end; $i++)
+                @if($i == $current)
+                    <span class="px-3 py-1.5 rounded-lg text-xs font-bold" style="background: linear-gradient(135deg, #8b5cf6, #a78bfa); color: white; border: 1px solid rgba(139,92,246,0.4);">{{ $i }}</span>
+                @else
+                    <a href="{{ $recentClicks->url($i) }}" class="px-3 py-1.5 rounded-lg text-xs font-medium hover:opacity-80 transition" style="background: var(--bg-glass-input); color: var(--text-primary); border: 1px solid var(--border-glass);">{{ $i }}</a>
+                @endif
+            @endfor
+
+            @if($end < $last)
+                @if($end < $last - 1)<span class="px-1 text-xs" style="color: var(--text-faint);">…</span>@endif
+                <a href="{{ $recentClicks->url($last) }}" class="px-3 py-1.5 rounded-lg text-xs font-medium hover:opacity-80 transition" style="background: var(--bg-glass-input); color: var(--text-primary); border: 1px solid var(--border-glass);">{{ $last }}</a>
+            @endif
+
+            @if($recentClicks->hasMorePages())
+                <a href="{{ $recentClicks->nextPageUrl() }}" class="px-3 py-1.5 rounded-lg text-xs font-medium hover:opacity-80 transition" style="background: var(--bg-glass-input); color: var(--text-primary); border: 1px solid var(--border-glass);">Next ›</a>
+            @else
+                <span class="px-3 py-1.5 rounded-lg text-xs font-medium opacity-40 cursor-not-allowed" style="background: var(--bg-glass-input); color: var(--text-faint); border: 1px solid var(--border-glass);">Next ›</span>
+            @endif
+        </nav>
+    </div>
+    @endif
     @endif
 </div>
 
