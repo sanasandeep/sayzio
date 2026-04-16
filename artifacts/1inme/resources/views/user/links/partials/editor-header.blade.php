@@ -1,62 +1,75 @@
 @php
     $activeMainTab = $activeMainTab ?? 'blocks';
+    $favSrc = $link->favicon
+        ?? ($link->settings['biolink']['favicons']['icon_512'] ?? null)
+        ?? ($link->settings['biolink']['favicons']['apple_touch_icon'] ?? null);
+    if (!$favSrc && !empty($link->long_url)) {
+        $host = parse_url($link->long_url, PHP_URL_HOST);
+        if ($host) $favSrc = 'https://www.google.com/s2/favicons?sz=64&domain=' . urlencode($host);
+    }
+    $shortUrl = $link->getShortUrl();
 @endphp
-<div class="flex items-center justify-between mb-1">
-    <div class="flex items-center gap-3">
-        <div class="relative w-12 h-12 rounded-2xl overflow-hidden flex-shrink-0 flex items-center justify-center" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); box-shadow: 0 6px 20px rgba(139,92,246,0.15);" title="Current favicon for this page">
-            @if($link->favicon)
-                <img src="{{ $link->favicon }}" alt="favicon" class="w-full h-full object-cover">
-            @elseif(!empty(($link->settings['biolink']['favicons']['icon_512'] ?? null)))
-                <img src="{{ $link->settings['biolink']['favicons']['icon_512'] }}" alt="favicon" class="w-full h-full object-cover">
-            @elseif(!empty(($link->settings['biolink']['favicons']['apple_touch_icon'] ?? null)))
-                <img src="{{ $link->settings['biolink']['favicons']['apple_touch_icon'] }}" alt="favicon" class="w-full h-full object-cover">
-            @else
-                <i class="fas fa-image text-base" style="color: var(--text-faint);"></i>
-            @endif
-            <span class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold text-white" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); border: 2px solid var(--bg-body);" title="Favicon">
-                <i class="fas fa-star text-[7px]"></i>
-            </span>
-        </div>
-        <div>
-            <h1 class="text-2xl font-bold gradient-text">{{ $link->alias }}</h1>
-            <div class="flex items-center gap-2 mt-1" x-data="{ copied: false }">
-            <span class="inline-flex items-center gap-1.5 text-sm">
-                <span class="w-2 h-2 rounded-full {{ $link->is_active ? 'bg-emerald-400' : 'bg-red-400' }}" style="{{ $link->is_active ? 'box-shadow: 0 0 8px rgba(16,185,129,0.5);' : '' }}"></span>
-                <span style="color: var(--text-dimmed);">Your link is</span>
-                <span class="text-purple-400">{{ $link->getShortUrl() }}</span>
-            </span>
-            <button @click="navigator.clipboard.writeText('{{ $link->getShortUrl() }}'); copied = true; setTimeout(() => copied = false, 2000)" class="hover:text-purple-400 transition-colors" style="color: var(--text-faint);">
-                <i x-show="!copied" class="fas fa-copy text-xs"></i>
-                <i x-show="copied" x-cloak class="fas fa-check text-emerald-400 text-xs"></i>
-            </button>
-            </div>
-            @if(!$link->favicon && empty($link->settings['biolink']['favicons']['icon_512'] ?? null) && empty($link->settings['biolink']['favicons']['apple_touch_icon'] ?? null))
-            <a href="{{ route('user.links.edit', $link) }}" class="inline-flex items-center gap-1 text-[10px] mt-0.5 text-purple-400 hover:text-purple-300 transition-colors">
-                <i class="fas fa-info-circle text-[9px]"></i> No favicon set — upload one to brand your link
+
+<div class="page-hero mb-4" x-data="{ copied: false }">
+    <div class="flex flex-wrap items-start justify-between gap-4">
+        <div class="flex items-start gap-4 min-w-0 flex-1">
+            <a href="{{ route('user.links.index') }}" class="hero-chip" title="Back to links" aria-label="Back">
+                <i class="fas fa-arrow-left"></i>
             </a>
-            @endif
+            <div class="hero-emblem {{ $favSrc ? 'has-favicon' : '' }}" x-data="{ failed: false }" title="Page favicon">
+                @if($favSrc)
+                    <img src="{{ $favSrc }}" alt="favicon" class="favicon-img"
+                         x-show="!failed" @@error="failed = true">
+                    <i x-show="failed" x-cloak class="fas {{ $link->type === 'biolink' ? 'fa-th-large' : 'fa-link' }}" style="color:#7c3aed;"></i>
+                @else
+                    <i class="fas {{ $link->type === 'biolink' ? 'fa-th-large' : 'fa-link' }}"></i>
+                @endif
+            </div>
+            <div class="min-w-0">
+                <div class="flex items-center gap-2 flex-wrap mb-1">
+                    <span class="hero-chip">
+                        <i class="fas fa-circle {{ $link->is_active ? 'text-emerald-400' : 'text-red-400' }}"></i>
+                        {{ $link->is_active ? 'Active' : 'Inactive' }}
+                    </span>
+                    <span class="hero-chip"><i class="fas {{ $link->type === 'biolink' ? 'fa-th-large' : 'fa-link' }}"></i> {{ ucfirst($link->type ?? 'link') }}</span>
+                </div>
+                <h1 class="hero-title gradient-text truncate">{{ $link->title ?: $link->alias }}</h1>
+                <div class="flex items-center gap-2 mt-1.5 text-sm">
+                    <span style="color: var(--text-dimmed);">Your link is</span>
+                    <a href="{{ url('/' . $link->alias) }}" target="_blank" class="text-purple-400 hover:text-purple-300 truncate" style="text-decoration: none;">{{ $shortUrl }}</a>
+                    <button type="button" @click="navigator.clipboard.writeText('{{ $shortUrl }}'); copied = true; setTimeout(() => copied = false, 2000)" class="hover:text-purple-400 transition-colors" style="color: var(--text-faint);" title="Copy short URL">
+                        <i x-show="!copied" class="fas fa-copy text-xs"></i>
+                        <i x-show="copied" x-cloak class="fas fa-check text-emerald-400 text-xs"></i>
+                    </button>
+                </div>
+                @if(!$favSrc)
+                    <a href="{{ route('user.links.edit', $link) }}" class="inline-flex items-center gap-1 text-[10px] mt-1 text-purple-400 hover:text-purple-300 transition-colors">
+                        <i class="fas fa-info-circle text-[9px]"></i> No favicon set — upload one to brand your link
+                    </a>
+                @endif
+            </div>
         </div>
-    </div>
-    <div class="flex items-center gap-2">
-        <form action="{{ route('user.links.toggle-active', $link) }}" method="POST" class="inline">
-            @csrf
-            <button class="btn-ghost text-xs py-2" title="{{ $link->is_active ? 'Deactivate' : 'Activate' }}">
-                <i class="fas {{ $link->is_active ? 'fa-toggle-on text-emerald-400' : 'fa-toggle-off' }}"></i>
-            </button>
-        </form>
-        <a href="{{ url('/' . $link->alias) }}" target="_blank" class="btn-ghost text-xs py-2" title="Open in new tab">
-            <i class="fas fa-external-link-alt text-[10px]"></i>
-        </a>
-        <a href="{{ route('user.links.qrcode', $link) }}" class="btn-ghost text-xs py-2" title="QR Code">
-            <i class="fas fa-qrcode text-[10px]"></i>
-        </a>
-        <a href="{{ route('user.links.show', $link) }}" class="btn-ghost text-xs py-2" title="Analytics">
-            <i class="fas fa-chart-bar text-[10px]"></i>
-        </a>
+        <div class="flex items-center gap-2 flex-wrap">
+            <form action="{{ route('user.links.toggle-active', $link) }}" method="POST" class="inline">
+                @csrf
+                <button class="btn-ghost text-xs py-2" title="{{ $link->is_active ? 'Deactivate' : 'Activate' }}">
+                    <i class="fas {{ $link->is_active ? 'fa-toggle-on text-emerald-400' : 'fa-toggle-off' }}"></i>
+                </button>
+            </form>
+            <a href="{{ url('/' . $link->alias) }}" target="_blank" class="btn-ghost text-xs py-2" title="Open in new tab">
+                <i class="fas fa-external-link-alt text-[10px]"></i>
+            </a>
+            <a href="{{ route('user.links.qrcode', $link) }}" class="btn-ghost text-xs py-2" title="QR Code">
+                <i class="fas fa-qrcode text-[10px]"></i>
+            </a>
+            <a href="{{ route('user.links.show', $link) }}" class="btn-ghost text-xs py-2" title="Analytics">
+                <i class="fas fa-chart-bar text-[10px]"></i>
+            </a>
+        </div>
     </div>
 </div>
 
-<div class="flex items-center gap-1.5 mt-5 mb-6 p-1 rounded-xl" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+<div class="flex items-center gap-1.5 mb-6 p-1 rounded-xl" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
     <a href="{{ route('user.links.blocks.editor', $link) }}"
        class="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold py-2.5 rounded-lg transition-all no-underline {{ $activeMainTab === 'blocks' ? 'text-white shadow-sm' : '' }}"
        style="{{ $activeMainTab === 'blocks' ? 'background: linear-gradient(135deg, #8b5cf6, #7c3aed);' : 'color: var(--text-faint);' }}">

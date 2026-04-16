@@ -1,6 +1,6 @@
 # Overview
 
-This project is a pnpm workspace monorepo integrating TypeScript and PHP/Laravel to build a comprehensive link management SaaS platform. The core offering, "1INME", aims to provide users with a powerful tool to manage, track, and brand their links, biolinks, and QR codes, effectively serving as a mini-website builder. The platform emphasizes a premium, visually engaging user experience with advanced customization options for biolinks, comprehensive analytics, and robust tracking features. The business vision is to offer a highly competitive and feature-rich solution in the link management market, catering to creators, businesses, and individuals seeking to optimize their online presence and engagement.
+This project is a pnpm workspace monorepo for "1INME," a comprehensive SaaS platform for link management. It integrates TypeScript and PHP/Laravel to offer robust tools for managing, tracking, and branding links, biolinks (mini-websites), and QR codes. The platform targets creators, businesses, and individuals, providing a premium user experience, advanced biolink customization, detailed analytics, and extensive tracking features to optimize online presence and engagement.
 
 # User Preferences
 
@@ -8,131 +8,72 @@ I prefer iterative development. I want to be asked before making major changes. 
 
 # System Architecture
 
-The project is structured as a pnpm workspace monorepo. The backend utilizes PHP 8.4 with Laravel for the 1INME application, and Node.js 24 with Express 5 for API services. PostgreSQL is used for data storage, with Drizzle ORM for the API server and Laravel Eloquent for 1INME. TypeScript 5.9 is used across the Node.js parts of the monorepo, with Zod for validation and Orval for API codegen from OpenAPI specifications. esbuild is used for CJS bundling.
+The project employs a pnpm workspace monorepo structure. The backend consists of a PHP 8.4 Laravel application (1INME) and Node.js 24 Express 5 API services. PostgreSQL is the primary data store, utilizing Drizzle ORM for Node.js services and Laravel Eloquent for 1INME. TypeScript 5.9 is used throughout the Node.js components, with Zod for validation and Orval for API codegen from OpenAPI specifications. esbuild handles CJS bundling.
 
 ## 1INME Laravel App (`artifacts/1inme/`)
 
 ### Core Architecture
-The Laravel application follows an HMVC (Hierarchical Model-View-Controller) pattern with modules (`Admin`, `User`, `Common`) for organizational clarity. Routes are module-specific, and authentication uses `admin` and `web` guards, supporting both password and OTP logins.
+The Laravel application follows an HMVC pattern with `Admin`, `User`, and `Common` modules. Authentication uses `admin` and `web` guards, supporting password and OTP logins.
 
-### UI/UX Design (Premium Redesign)
-The UI features a premium glassmorphism design with a dark/light mode toggle. A purple color palette is consistently used. Animated elements like an aurora mesh background, floating particles, shimmer sweeps, and pulse-glow effects are integrated, with accessibility considerations for reduced motion. The typography uses Space Grotesk. Components like `.card-premium`, `.stat-card`, and various button styles reinforce the premium aesthetic.
-
-The login page features a split layout with animated elements and social proof on one side, and a glassmorphism login form on the other. A 3-mode collapsible sidebar (Full, Icons-only, Hidden) with state persistence and smooth transitions enhances navigation. The header is glassmorphic with breadcrumb navigation, live search, notifications, and a theme toggle.
+### UI/UX Design
+The UI features a premium glassmorphism design with dark/light mode, a purple color palette, Space Grotesk typography, and animated elements like an aurora mesh background and pulse-glow effects. Navigation includes a 3-mode collapsible sidebar, a glassmorphic header with breadcrumbs, live search, and notifications.
 
 ### Biolink Customization Systems
-
-#### Block Styling System
-This system allows per-block styling with 11 customizable properties (font, color, background, border, shadow, display mode, effects, padding). Ten block templates provide one-click presets. A global block theme can be applied page-wide, with per-block overrides. Styling is rendered as inline CSS and stored in JSON `settings` fields. Strict validation is applied to all style properties.
-
-#### Image Styling System
-Available for image-based blocks, this system offers 10 mask/crop shapes using CSS `clip-path`, customizable borders, 6 shadow types, and object fit controls. Inline CSS is generated for rendering, and styles are stored in JSON.
-
-#### Trackable Block Links
-Image blocks can have optional trackable destination URLs with full link attributes (target, rel, title, UTM parameters). Clicks are tracked through a dedicated redirect controller and service, capturing comprehensive analytics data (IP, browser, OS, device, referrer, country, city, UTM).
-
-#### Block Display Settings
-Per-block visibility can be controlled by schedule (dates), geographical location (continents, countries, cities), device type, operating system, browser, and browser language. Visibility rules operate on an allowlist basis.
+- **Block Styling System**: Allows per-block styling with 11 properties, 10 templates, and global themes with overrides. Styles are rendered as inline CSS and stored in JSON.
+- **Image Styling System**: Offers 10 mask/crop shapes, customizable borders, 6 shadow types, and object fit controls for image blocks.
+- **Trackable Block Links**: Image blocks can have trackable destination URLs with comprehensive analytics capture (IP, browser, OS, device, referrer, UTM).
+- **Block Display Settings**: Controls per-block visibility based on schedule, geographical location, device type, operating system, browser, and language.
 
 ### Super Admin Role System
-Users can have a `role` column (`user` or `super_admin`). Super admins get access to a "Super Admin" section in the sidebar with Plans CRUD management. The `SuperAdmin` middleware (`App\Modules\User\Middleware\SuperAdmin`) gates routes server-side. The demo user (demo@1inme.com) is created with `super_admin` role. Plans management at `user/plans/*` allows creating, editing, and deleting subscription plans with features/limits configuration.
+Introduces a `super_admin` role with access to a "Super Admin" section for Plans CRUD management, gated by `SuperAdmin` middleware.
 
 ### File Management System
-A per-user file storage system organizes files (images, videos, audio, documents) into `user-files/{user_id}/{type}s/` with UUID-based filenames. It includes quota management (`storage_limit_mb`, `max_file_size_mb`) configurable per plan. An AJAX API handles file listing, upload, deletion, and quota checks. Allowed file types are strictly defined.
+A per-user file storage system organizes files into `user-files/{user_id}/{type}s/` with UUIDs, including quota management configurable per plan. An AJAX API handles file operations.
 
 ### File Upload Dropzone Component
-A reusable Blade partial (`file-upload-field.blade.php`) provides a drag-and-drop upload interface with progress bars, XHR uploads, and a file browser. It supports multi-file uploads for image grids/sliders.
+A reusable Blade partial for drag-and-drop file uploads with progress bars, XHR, and a file browser.
 
 ### AJAX Block Editor
-All block operations (add, edit, save, toggle, delete, reorder) are AJAX-driven, providing a fluid user experience with toast notifications and smooth animations. The preview iframe auto-refreshes on changes.
+All biolink block operations (add, edit, save, toggle, delete, reorder) are AJAX-driven for a fluid user experience. The preview iframe auto-refreshes.
 
 ### Biolink Editor (Split Pages)
-The biolink editor is split into two separate pages:
-- **Blocks page** (`/user/links/{link}/blocks`): Block management with drag-and-drop reorder, grid-span width controls, add/edit/toggle/delete blocks, device preview (phone/tablet/desktop). No settings content.
-- **Settings** — 4 separate URL-based pages (not JS tabs), each with shared header nav + sticky Save:
-  - `/user/links/{link}/settings/appearance` — Short URL, page design (title/font/description), colors & background, button style
-  - `/user/links/{link}/settings/layout` — Max width per device, page padding, block spacing
-  - `/user/links/{link}/settings/block-theme` — Global block theme with templates, text, fill, border, shadow, effects sub-tabs
-  - `/user/links/{link}/settings/advanced` — SEO & meta tags, Open Graph, Twitter Cards, Favicon & Touch Icons, Web App Manifest/PWA, **Share Button & QR Code** (enable/disable, FAB/bar/icon styles, position, colors, QR code config with size/colors via qrserver.com API), **Navigation Menu Bar** (enable/disable, top/bottom sticky position, pills/underline/flat styles, dynamic menu items with label+URL+active, colors, max 20 items, URL sanitized to http/https/internal), **Auto Page Translation** (enable/disable, Google Translate integration, position, dropdown/flags/minimal styles, default language, allowlisted language codes with regex validation, colors), Badges & Branding, Custom Branding, Custom CSS/JS
-  - Dynamic manifest.json: `/{alias}/manifest.json` — serves PWA manifest when enabled; checks `isAccessible()` and `manifest.enabled`
-  - `/user/links/{link}/settings` redirects to `/settings/appearance`
-  - Shared partials: `settings-header.blade.php` (nav tabs as `<a>` links), `settings-footer.blade.php` (sticky save)
-
-The platform supports approximately 100+ block types across 14 categories. All HTML content is sanitized for security, and URLs are validated. Blocks can be scheduled for visibility.
+The biolink editor is split into:
+- **Blocks page**: Block management with drag-and-drop reorder, grid-span width controls, and device preview.
+- **Settings pages**: Four distinct URL-based pages for `appearance`, `layout`, `block-theme`, and `advanced` settings. Features include SEO/meta tags, Open Graph, PWA, share button/QR code configuration, navigation menu, auto page translation, badges, branding, and custom CSS/JS injection.
 
 #### Card Container Block
-A "Card Container" block type allows grouping child blocks inside a styled card wrapper. Child blocks are stored with a `parent_id` FK referencing the card block (cascade delete). Top-level queries use `whereNull('parent_id')` to exclude children. The card container supports:
-- **Layout**: configurable columns (1-4), gap, padding, border radius
-- **Background**: glassmorphism (blur + opacity sliders), solid color, CSS gradient, background image, or transparent
-- **Border**: color and width controls
-- **Shadow**: none/sm/md/lg/xl with color
-- **Child blocks**: any block type except nested cards; rendered in CSS grid inside the container. Child blocks have their own width controls (¼, ⅓, ½, ⅔, ¾, Full) that map proportionally to the card's column count.
-- **Cross-container drag & drop**: Blocks can be dragged from the main block list into a card container, and from a card container back to the main list. Uses SortableJS `group` option with shared group name 'blocks'. Card containers cannot be dragged inside other cards. The `moveBlock` endpoint (`POST /user/links/{link}/blocks/{block}/move`) handles parent_id changes and re-normalizes sort_order in the source container.
-- **Editor UI**: expandable card section showing nested child blocks with drag reorder (SortableJS), per-child width controls, edit/toggle/delete actions, and "Add block to card" button that opens the gallery filtered to exclude card type
-- **Public render**: card wrapper with full design styles, children rendered via `@include('common.partials.biolink-block-render')` partial. Child `grid_span` (12-column) is proportionally mapped to card's column count: `round(span/12 * cols)`.
-- **Data**: `BiolinkBlock` model has `children()`, `activeChildren()`, `parent()` relationships; `activeBiolinkBlocks()` on Link model excludes children
+A "Card Container" block type allows grouping child blocks inside a styled, customizable card. It supports configurable layouts, backgrounds, borders, and shadows. Child blocks have independent width controls and can be drag-and-dropped between the main block list and card containers using SortableJS.
 
 ### Subscription System
-A full subscriber management system that collects and manages email and WhatsApp subscribers from biolink pages.
+A comprehensive system for collecting and managing email and WhatsApp subscribers from biolink pages.
+- **Subscribe Block Types**: Includes `email_subscribe`, `whatsapp_channel_subscribe`, and `whatsapp_number_subscribe` blocks.
+- **Database**: `subscribers` and `subscriber_messages` tables manage subscriber data and messaging history.
+- **Functionality**: Routes and controllers provide full CRUD for subscribers, export, settings configuration (SMTP, WhatsApp API, welcome email), message composition, and sending.
 
-#### Subscribe Block Types
-- **Email Subscribe** (`email_subscribe`): Newsletter signup form with name field (optional), email field, customizable title/description/placeholder/button text/success message. Submits via AJAX to `/alias/subscribe`.
-- **WhatsApp Channel Subscribe** (`whatsapp_channel_subscribe`): Button to follow a WhatsApp channel. Tracks click as subscription, opens channel URL.
-- **WhatsApp Number Subscribe** (`whatsapp_number_subscribe`): Collects visitor's phone number (optional), submits subscription, opens WhatsApp with pre-filled message.
+### Plan-Gated Biolink Features
+- **Custom Branding**: Replace the "Powered by 1INME" footer with custom text, URL, and logo.
+- **Custom Favicon**: Set a custom browser tab icon.
+- **Custom CSS & JS**: Inject custom CSS and JavaScript into biolink pages.
 
-#### Database
-- `subscribers` table: user_id, link_id, block_id, type (email/whatsapp_channel/whatsapp_number), email, phone, name, channel_url, status, source, metadata (JSON), subscribed_at, unsubscribed_at. Unique constraint on (user_id, type, email).
-- `subscriber_messages` table: user_id, channel, subject, body, status, recipients_count, sent_count, failed_count, filters (JSON), sent_at.
-- `users.settings` JSON column stores subscription configuration (SMTP, WhatsApp API, welcome email).
-
-#### Routes
-- Public: `POST /{alias}/subscribe` — handles subscribe form submissions (JSON API, CSRF protected)
-- User: `GET user/subscribers` — subscriber list with filters (type, status, search, link)
-- User: `GET user/subscribers/settings` — configure SMTP, WhatsApp API, welcome email
-- User: `GET user/subscribers/compose` — compose and send messages to subscribers
-- User: `POST user/subscribers/send` — send email/WhatsApp messages
-- User: `GET user/subscribers/export` — CSV export of subscribers
-- User: `GET user/subscribers/messages` — message history
-
-#### Controllers
-- `SubscriberController` — full CRUD, export, settings, compose, send
-- `RedirectController@subscribe` — public subscribe endpoint
-- Models: `Subscriber`, `SubscriberMessage`
-
-#### Plan-Gated Biolink Features
-Three new plan-gated features have been added to biolink pages (controlled by `custom_branding`, `custom_favicon`, `custom_code` plan features):
-- **Custom Branding**: Replace the "Powered by 1INME" footer with custom brand name, URL, and logo. Stored in `settings.biolink.custom_branding_text/url/logo`.
-- **Custom Favicon**: Set a custom browser tab icon per biolink page via URL or file upload. Stored in `settings.biolink.favicon_url` and synced to `links.favicon` column.
-- **Custom CSS & JS**: Inject custom CSS (in `<head>`), JS in `<head>` (before page load), and JS at end of `<body>` (after page load). Stored in `settings.biolink.custom_css/custom_js_head/custom_js_body`.
-All URL fields are sanitized via `sanitizeUrl()` (http/https only). Features show PRO badge + locked upgrade prompt for plans without access.
-
-#### Geographic Heatmap (Link Analytics)
-Snap-Map style geographic heatmap on `user/links/{link}` (link analytics page) showing where each click came from. Built with **MapLibre GL JS** + Carto **Dark Matter / Positron** vector tiles (free, OSM-derived, no API key, no Google Maps).
-- Coordinates persisted on `link_clicks` and `page_sessions` (`latitude`, `longitude` decimals).
-- `GeoIpService::detectGeo()` returns `{country_code, city, latitude, longitude}` — coords come from ipapi.co when available, otherwise resolved offline via `CityLookupService`.
-- `CityLookupService` resolves `(city, country_code) → (lat, lng)` against the seeded `cities` reference table (schema: `country_code`, `city_normalized`, `city_name`, `latitude`, `longitude`, `population`), with a fallback to the bundled CSV at `database/data/world-cities.csv`. The CSV map is cached on the file store to keep it out of the DB cache.
-- Bundled offline city data in `database/data/`: `world-cities.csv` (~142k cities, **public domain**, derived from lutangar/cities.json — equivalent in spirit to SimpleMaps Basic World Cities, which is also public-domain but cannot be auto-downloaded since it requires browser-based ToS acceptance) and `cities15000.txt` (~26k major cities, **CC-BY 4.0**, GeoNames) which supplies the `population` field. `CitiesTableSeeder` ingests both (GeoNames first to capture population), seeds ~145k rows total with ~33k carrying population values. The seeder is wired into the default `DatabaseSeeder` and is fully idempotent (no-ops when the table already has rows; safe to re-run). Attribution lives at `database/data/ATTRIBUTION.md`.
-- `LinkController::heatmap()` aggregates clicks server-side via `GROUP BY (latitude, longitude)` (cross-DB compatible — works on Postgres, MySQL, SQLite). Each returned point is a real city-level marker with exact coordinates, an aggregated `count`, and the dominant city/country label. Capped at 5000 *points* (not rows — the DB engine does the heavy lifting, so volume is unbounded by row scans). Total click count is computed in a separate query and is never truncated. Returns GeoJSON.
-- Backfill command: `php artisan analytics:backfill-coords` (idempotent, resumable). Resolves each row via the cities DB first, then falls back to the cached `GeoIpService` lookup by IP. `--no-geoip` disables the GeoIP fallback.
-- Popup HTML uses `setDOMContent` with text nodes (no `setHTML`) to prevent XSS, and shows a country flag emoji (built from the ISO-3166-1 alpha-2 code via regional-indicator code points) alongside the city name and click count. Popups open on hover (desktop) and on tap (mobile/touch — `click` handler on the `clicks-points` layer).
-- The map basemap follows the app's light/dark theme reactively: a `MutationObserver` watches the `light-mode` class on `<html>` and swaps Carto Positron / Dark Matter tiles whenever the user toggles theme. If the user manually picks a basemap from the in-panel controls, that overrides the auto-sync.
+### Geographic Heatmap (Link Analytics)
+A Snap-Map style geographic heatmap on link analytics pages displays click origins using **MapLibre GL JS** and Carto vector tiles. Geographic coordinates (`latitude`, `longitude`) are persisted from `link_clicks` and `page_sessions` via `GeoIpService` and `CityLookupService`, which utilizes a seeded `cities` reference table derived from public domain and CC-BY 4.0 datasets. The heatmap aggregates clicks server-side and renders points as GeoJSON. A backfill command `php artisan analytics:backfill-coords` is available. The map basemap automatically switches between light/dark themes.
 
 # External Dependencies
 
-- **Monorepo tool**: pnpm
-- **API framework**: Express 5
+- **Monorepo Tool**: pnpm
+- **API Framework**: Express 5
 - **Database**: PostgreSQL
-- **ORM**: Drizzle ORM (API server), Laravel Eloquent (1INME)
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
-- **API codegen**: Orval (from OpenAPI spec)
-- **Build tool**: esbuild
+- **ORM**: Drizzle ORM, Laravel Eloquent
+- **Validation**: Zod
+- **API Codegen**: Orval
+- **Build Tool**: esbuild
 - **Frontend Frameworks**: Tailwind CSS, Alpine.js
-- **Fonts**: Google Fonts CDN (Space Grotesk)
-- **Tracking Pixels Integration**: Facebook, Google Analytics, GTM, LinkedIn, Twitter, Pinterest, TikTok, Snapchat, Quora
+- **Fonts**: Google Fonts CDN
+- **Tracking Pixels**: Facebook, Google Analytics, GTM, LinkedIn, Twitter, Pinterest, TikTok, Snapchat, Quora
 - **Social Embeds**: Instagram, TikTok, Twitter, Pinterest, Snapchat
 - **Music/Streaming Embeds**: Spotify, Apple Music, SoundCloud, Tidal, Mixcloud, Anchor FM
 - **Video Platforms Embeds**: YouTube, Vimeo, Twitch, Kick
 - **Integration Widgets**: Typeform, Calendly, Discord
-- **Payment Gateways**: PayPal (for donation/product blocks)
-- **Mapping Services**: Google Maps, Yandex Maps
+- **Payment Gateways**: PayPal
+- **Mapping Services**: MapLibre GL JS, Carto (vector tiles), Google Maps, Yandex Maps
 - **Storage**: Local public disk, S3 (optional)

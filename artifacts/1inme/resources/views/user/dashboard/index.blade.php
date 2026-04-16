@@ -2,22 +2,24 @@
 @section('title', 'Dashboard')
 
 @section('content')
-<div class="mb-8">
-    <div class="flex items-center gap-3 mb-1">
-        <h1 class="text-2xl font-bold">
-            @php
-                $hour = now()->hour;
-                $greeting = $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good evening');
-            @endphp
-            <span style="color: var(--text-primary);">{{ $greeting }},</span>
-            <span class="gradient-text">{{ $user->name }}</span>
-        </h1>
-        <span class="text-lg" style="animation: float-slow 3s ease-in-out infinite;">
-            @if($hour < 12)☀️@elseif($hour < 17)🌤️@else🌙@endif
-        </span>
-    </div>
-    <p class="text-sm" style="color: var(--text-dimmed);">Here's an overview of your link performance</p>
-</div>
+@php
+    $hour = now()->hour;
+    $greeting = $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good evening');
+    $heroIcon = $hour < 12 ? 'fa-sun' : ($hour < 17 ? 'fa-cloud-sun' : 'fa-moon');
+    $heroDay = now()->format('l');
+@endphp
+@include('user.partials.page-hero', [
+    'title'    => $greeting . ', ' . $user->name,
+    'subtitle' => "Here's an overview of your link performance.",
+    'icon'     => $heroIcon,
+    'chips'    => [
+        ['icon' => 'fa-calendar-day', 'text' => $heroDay],
+        ['icon' => 'fa-link', 'text' => ($stats['total_links'] ?? 0) . ' links'],
+    ],
+    'actions'  => [
+        ['label' => 'Create Link', 'url' => route('user.links.create'), 'icon' => 'fa-plus', 'class' => 'btn-primary'],
+    ],
+])
 
 <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-8">
     <div class="stat-card group shimmer" style="--stat-accent: linear-gradient(90deg, #8b5cf6, #a78bfa); --stat-glow: rgba(139,92,246,0.12); --stat-border-color: rgba(139,92,246,0.2);">

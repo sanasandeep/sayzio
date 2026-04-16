@@ -232,6 +232,65 @@
             font-size: 11px;
             font-weight: 700;
         }
+
+        /* ============ Reusable Page Hero ============ */
+        .page-hero {
+            background: var(--bg-card);
+            border: 1px solid var(--border-glass);
+            border-radius: 22px;
+            padding: 22px 26px;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 20px 60px -15px rgba(124,58,237,0.18);
+            position: relative;
+            overflow: hidden;
+        }
+        html.light-mode .page-hero {
+            background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(248,245,255,0.85));
+            box-shadow: 0 18px 50px -20px rgba(124,58,237,0.22), 0 0 0 1px rgba(124,58,237,0.06);
+        }
+        .page-hero::before {
+            content: ""; position: absolute; inset: -1px; border-radius: 22px;
+            background:
+                radial-gradient(circle at 0% 0%, rgba(139,92,246,0.18), transparent 45%),
+                radial-gradient(circle at 100% 0%, rgba(236,72,153,0.13), transparent 50%),
+                radial-gradient(circle at 100% 100%, rgba(59,130,246,0.10), transparent 50%);
+            opacity: 0.35; pointer-events: none;
+            mask-image: radial-gradient(circle at 50% 50%, black 30%, transparent 75%);
+        }
+        .page-hero > * { position: relative; z-index: 1; }
+        .hero-emblem {
+            width: 56px; height: 56px;
+            border-radius: 18px;
+            display: flex; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, #7c3aed, #ec4899);
+            box-shadow: 0 12px 40px rgba(124,58,237,0.45), inset 0 1px 0 rgba(255,255,255,0.2);
+            color: #fff; font-size: 22px;
+            position: relative; overflow: hidden; flex-shrink: 0;
+        }
+        .hero-emblem.has-favicon { background: #fff; padding: 8px; }
+        html.light-mode .hero-emblem.has-favicon {
+            background: #fff;
+            box-shadow: 0 8px 24px rgba(124,58,237,0.18), 0 0 0 1px rgba(124,58,237,0.10);
+        }
+        .hero-emblem .favicon-img { width: 100%; height: 100%; object-fit: contain; border-radius: 10px; }
+        .hero-chip {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 5px 11px; border-radius: 999px;
+            font-size: 10.5px; font-weight: 700;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid var(--border-glass-light);
+            color: var(--text-primary);
+            backdrop-filter: blur(10px);
+            text-decoration: none;
+        }
+        html.light-mode .hero-chip { background: rgba(255,255,255,0.7); }
+        .hero-chip i { font-size: 9px; }
+        .hero-title { font-size: 1.875rem; font-weight: 800; line-height: 1.15; }
+        @media (max-width: 640px) {
+            .page-hero { padding: 16px 18px; border-radius: 18px; }
+            .hero-emblem { width: 48px; height: 48px; font-size: 18px; }
+            .hero-title { font-size: 1.4rem; }
+        }
     </style>
     @stack('styles')
 </head>

@@ -2,15 +2,17 @@
 @section('title', 'My Links')
 
 @section('content')
-<div class="flex items-center justify-between mb-6">
-    <div>
-        <h1 class="text-xl font-bold" style="color: var(--text-primary);">My Links</h1>
-        <p class="text-xs mt-0.5" style="color: var(--text-dimmed);">Manage and track all your shortened links</p>
-    </div>
-    <a href="{{ route('user.links.create') }}" class="btn-primary text-xs py-2">
-        <i class="fas fa-plus text-[10px]"></i> Create Link
-    </a>
-</div>
+@include('user.partials.page-hero', [
+    'title'    => 'My Links',
+    'subtitle' => 'Manage and track all your shortened links.',
+    'icon'     => 'fa-link',
+    'chips'    => [
+        ['icon' => 'fa-layer-group', 'text' => ($links->total() ?? $links->count()) . ' total'],
+    ],
+    'actions'  => [
+        ['label' => 'Create Link', 'url' => route('user.links.create'), 'icon' => 'fa-plus', 'class' => 'btn-primary'],
+    ],
+])
 
 <div class="card-premium mb-5">
     <form method="GET" class="p-4 flex flex-wrap items-end gap-3">

@@ -300,7 +300,7 @@
                  x-data="{ failed: false }">
                 @if($favSrc)
                     <img src="{{ $favSrc }}" alt="favicon" class="favicon-img"
-                         x-show="!failed" @error="failed = true">
+                         x-show="!failed" @@error="failed = true">
                     <i x-show="failed" x-cloak
                        class="fas {{ $link->type === 'biolink' ? 'fa-th-large' : 'fa-link' }}"
                        style="color:#7c3aed;"></i>

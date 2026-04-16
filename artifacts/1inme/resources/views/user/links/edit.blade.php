@@ -2,11 +2,27 @@
 @section('title', 'Edit Link')
 
 @section('content')
+@php
+    $favSrc = $link->favicon
+        ?? ($link->settings['biolink']['favicons']['icon_512'] ?? null)
+        ?? ($link->settings['biolink']['favicons']['apple_touch_icon'] ?? null);
+    if (!$favSrc && !empty($link->long_url)) {
+        $host = parse_url($link->long_url, PHP_URL_HOST);
+        if ($host) $favSrc = 'https://www.google.com/s2/favicons?sz=64&domain=' . urlencode($host);
+    }
+@endphp
 <div class="max-w-3xl mx-auto">
-    <div class="flex items-center gap-4 mb-6">
-        <a href="{{ route('user.links.show', $link) }}" class="text-white/30 hover:text-white/50"><i class="fas fa-arrow-left"></i></a>
-        <h1 class="text-2xl font-bold text-white">Edit Link</h1>
-    </div>
+    @include('user.partials.page-hero', [
+        'title'    => 'Edit Link',
+        'subtitle' => $link->title ?: $link->alias,
+        'icon'     => $link->type === 'biolink' ? 'fa-th-large' : 'fa-link',
+        'favicon'  => $favSrc,
+        'back'     => route('user.links.show', $link),
+        'chips'    => [
+            ['icon' => 'fa-circle ' . ($link->is_active ? 'text-emerald-400' : 'text-red-400'), 'text' => $link->is_active ? 'Active' : 'Inactive'],
+            ['icon' => 'fa-' . ($link->type === 'biolink' ? 'th-large' : 'link'), 'text' => ucfirst($link->type ?? 'link')],
+        ],
+    ])
 
     <form method="POST" action="{{ route('user.links.update', $link) }}" enctype="multipart/form-data" x-data="{ passwordProtect: {{ $link->is_password_protected ? 'true' : 'false' }} }">
         @csrf @method('PUT')
