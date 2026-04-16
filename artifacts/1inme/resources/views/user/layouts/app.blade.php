@@ -411,10 +411,11 @@
                 </button>
             </div>
 
-            <nav class="flex-1 py-4 overflow-y-auto" :class="sidebarMode === 'icons' ? 'px-2' : 'px-3'">
+            <nav class="flex-1 py-4 overflow-y-auto sidebar-nav-scroll" :class="sidebarMode === 'icons' ? 'px-2' : 'px-3'">
                 <a href="{{ route('user.dashboard') }}"
-                   class="sidebar-link {{ request()->routeIs('user.dashboard') ? 'active' : '' }}">
-                    <div class="nav-icon-wrap"><i class="fas fa-grid-2"></i></div>
+                   class="sidebar-link {{ request()->routeIs('user.dashboard') ? 'active' : '' }}"
+                   style="--nav-tint:#7c3aed; --nav-tint-soft:rgba(124,58,237,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-house"></i></div>
                     <span class="nav-label">Dashboard</span>
                     <span class="sidebar-tooltip">Dashboard</span>
                 </a>
@@ -422,19 +423,22 @@
                 <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Links</div>
 
                 <a href="{{ route('user.links.index') }}"
-                   class="sidebar-link {{ request()->routeIs('user.links.index') || request()->routeIs('user.links.show') ? 'active' : '' }}">
+                   class="sidebar-link {{ request()->routeIs('user.links.index') || request()->routeIs('user.links.show') ? 'active' : '' }}"
+                   style="--nav-tint:#8b5cf6; --nav-tint-soft:rgba(139,92,246,0.12);">
                     <div class="nav-icon-wrap"><i class="fas fa-link"></i></div>
                     <span class="nav-label">All Links</span>
                     <span class="sidebar-tooltip">All Links</span>
                 </a>
                 <a href="{{ route('user.links.create') }}"
-                   class="sidebar-link {{ request()->routeIs('user.links.create') ? 'active' : '' }}">
+                   class="sidebar-link {{ request()->routeIs('user.links.create') ? 'active' : '' }}"
+                   style="--nav-tint:#10b981; --nav-tint-soft:rgba(16,185,129,0.12);">
                     <div class="nav-icon-wrap"><i class="fas fa-plus-circle"></i></div>
                     <span class="nav-label">Create Link</span>
                     <span class="sidebar-tooltip">Create Link</span>
                 </a>
                 <a href="{{ route('user.qrcode') }}"
-                   class="sidebar-link {{ request()->routeIs('user.qrcode*') ? 'active' : '' }}">
+                   class="sidebar-link {{ request()->routeIs('user.qrcode*') ? 'active' : '' }}"
+                   style="--nav-tint:#6366f1; --nav-tint-soft:rgba(99,102,241,0.12);">
                     <div class="nav-icon-wrap"><i class="fas fa-qrcode"></i></div>
                     <span class="nav-label">QR Codes</span>
                     <span class="sidebar-tooltip">QR Codes</span>
@@ -443,31 +447,36 @@
                 <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Manage</div>
 
                 <a href="{{ route('user.projects.index') }}"
-                   class="sidebar-link {{ request()->routeIs('user.projects.*') ? 'active' : '' }}">
+                   class="sidebar-link {{ request()->routeIs('user.projects.*') ? 'active' : '' }}"
+                   style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
                     <div class="nav-icon-wrap"><i class="fas fa-folder"></i></div>
                     <span class="nav-label">Projects</span>
                     <span class="sidebar-tooltip">Projects</span>
                 </a>
                 <a href="{{ route('user.pixels.index') }}"
-                   class="sidebar-link {{ request()->routeIs('user.pixels.*') ? 'active' : '' }}">
+                   class="sidebar-link {{ request()->routeIs('user.pixels.*') ? 'active' : '' }}"
+                   style="--nav-tint:#ec4899; --nav-tint-soft:rgba(236,72,153,0.12);">
                     <div class="nav-icon-wrap"><i class="fas fa-bullseye"></i></div>
                     <span class="nav-label">Tracking Pixels</span>
                     <span class="sidebar-tooltip">Pixels</span>
                 </a>
                 <a href="{{ route('user.files.index') }}"
-                   class="sidebar-link {{ request()->routeIs('user.files.*') ? 'active' : '' }}">
+                   class="sidebar-link {{ request()->routeIs('user.files.*') ? 'active' : '' }}"
+                   style="--nav-tint:#06b6d4; --nav-tint-soft:rgba(6,182,212,0.12);">
                     <div class="nav-icon-wrap"><i class="fas fa-cloud-upload-alt"></i></div>
                     <span class="nav-label">My Files</span>
                     <span class="sidebar-tooltip">Files</span>
                 </a>
                 <a href="{{ route('user.subscribers.index') }}"
-                   class="sidebar-link {{ request()->routeIs('user.subscribers.*') ? 'active' : '' }}">
+                   class="sidebar-link {{ request()->routeIs('user.subscribers.*') ? 'active' : '' }}"
+                   style="--nav-tint:#14b8a6; --nav-tint-soft:rgba(20,184,166,0.12);">
                     <div class="nav-icon-wrap"><i class="fas fa-users"></i></div>
                     <span class="nav-label">Subscribers</span>
                     <span class="sidebar-tooltip">Subscribers</span>
                 </a>
                 <a href="{{ route('user.verification.index') }}"
-                   class="sidebar-link {{ request()->routeIs('user.verification.*') ? 'active' : '' }}">
+                   class="sidebar-link {{ request()->routeIs('user.verification.*') ? 'active' : '' }}"
+                   style="--nav-tint:#3b82f6; --nav-tint-soft:rgba(59,130,246,0.12);">
                     <div class="nav-icon-wrap"><i class="fas fa-check-circle"></i></div>
                     <span class="nav-label">Verification</span>
                     <span class="sidebar-tooltip">Verification</span>
@@ -477,13 +486,15 @@
                 <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Super Admin</div>
 
                 <a href="{{ route('user.plans.index') }}"
-                   class="sidebar-link {{ request()->routeIs('user.plans.*') ? 'active' : '' }}">
+                   class="sidebar-link {{ request()->routeIs('user.plans.*') ? 'active' : '' }}"
+                   style="--nav-tint:#f43f5e; --nav-tint-soft:rgba(244,63,94,0.12);">
                     <div class="nav-icon-wrap"><i class="fas fa-layer-group"></i></div>
                     <span class="nav-label">Plans</span>
                     <span class="sidebar-tooltip">Plans</span>
                 </a>
                 <a href="{{ route('user.verification.admin') }}"
-                   class="sidebar-link {{ request()->routeIs('user.verification.admin*') ? 'active' : '' }}">
+                   class="sidebar-link {{ request()->routeIs('user.verification.admin*') ? 'active' : '' }}"
+                   style="--nav-tint:#f97316; --nav-tint-soft:rgba(249,115,22,0.12);">
                     <div class="nav-icon-wrap"><i class="fas fa-user-check"></i></div>
                     <span class="nav-label">Verify Requests</span>
                     <span class="sidebar-tooltip">Verify Requests</span>
@@ -493,7 +504,8 @@
                 <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Account</div>
 
                 <a href="{{ route('user.profile.edit') }}"
-                   class="sidebar-link {{ request()->routeIs('user.profile.*') ? 'active' : '' }}">
+                   class="sidebar-link {{ request()->routeIs('user.profile.*') ? 'active' : '' }}"
+                   style="--nav-tint:#a78bfa; --nav-tint-soft:rgba(167,139,250,0.12);">
                     <div class="nav-icon-wrap"><i class="fas fa-user-circle"></i></div>
                     <span class="nav-label">Profile</span>
                     <span class="sidebar-tooltip">Profile</span>
@@ -635,7 +647,7 @@
                         <button @click="mobileMenu = false" class="p-1.5 rounded-lg" style="color: var(--text-muted);"><i class="fas fa-times text-sm"></i></button>
                     </div>
                     <nav class="flex-1 py-4 px-3 space-y-0.5 overflow-y-auto">
-                        <a href="{{ route('user.dashboard') }}" class="sidebar-link {{ request()->routeIs('user.dashboard') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-grid-2"></i></div> <span>Dashboard</span></a>
+                        <a href="{{ route('user.dashboard') }}" class="sidebar-link {{ request()->routeIs('user.dashboard') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-house"></i></div> <span>Dashboard</span></a>
                         <a href="{{ route('user.links.index') }}" class="sidebar-link {{ request()->routeIs('user.links.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-link"></i></div> <span>All Links</span></a>
                         <a href="{{ route('user.links.create') }}" class="sidebar-link"><div class="nav-icon-wrap"><i class="fas fa-plus-circle"></i></div> <span>Create Link</span></a>
                         <a href="{{ route('user.qrcode') }}" class="sidebar-link {{ request()->routeIs('user.qrcode*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-qrcode"></i></div> <span>QR Codes</span></a>

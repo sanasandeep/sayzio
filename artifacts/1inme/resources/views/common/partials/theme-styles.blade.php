@@ -212,19 +212,36 @@
     .stat-card.tint-indigo:hover,
     .stat-card.tint-teal:hover { border-color: transparent; filter: brightness(0.98); }
 
+    /* ===== Sidebar nav scrollbar (thin, subtle) ===== */
+    .sidebar-nav-scroll {
+        scrollbar-width: thin;
+        scrollbar-color: transparent transparent;
+        scrollbar-gutter: stable;
+    }
+    .sidebar-nav-scroll:hover { scrollbar-color: var(--scrollbar-thumb) transparent; }
+    .sidebar-nav-scroll::-webkit-scrollbar { width: 6px; }
+    .sidebar-nav-scroll::-webkit-scrollbar-track { background: transparent; }
+    .sidebar-nav-scroll::-webkit-scrollbar-thumb {
+        background: transparent;
+        border-radius: 3px;
+        transition: background 0.2s ease;
+    }
+    .sidebar-nav-scroll:hover::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); }
+    .sidebar-nav-scroll::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
+
     .sidebar-link {
         display: flex;
         align-items: center;
-        gap: 0.625rem;
-        padding: 0.45rem 0.75rem;
+        gap: 0.75rem;
+        padding: 0.625rem 0.875rem;
         font-size: 0.8125rem;
         font-weight: 500;
-        border-radius: 0.75rem;
-        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: 0.625rem;
+        transition: background 0.18s ease, color 0.18s ease;
         color: var(--sidebar-link);
         letter-spacing: 0.01em;
         position: relative;
-        margin-bottom: 2px;
+        margin-bottom: 4px;
         text-decoration: none;
     }
     .sidebar-link:hover {
@@ -254,13 +271,22 @@
         color: inherit;
         transition: transform 0.2s;
     }
+    .sidebar-link .nav-icon-wrap {
+        background: var(--bg-glass-hover);
+        color: var(--nav-tint, var(--text-muted));
+    }
     .sidebar-link:hover .nav-icon-wrap {
-        transform: scale(1.08);
+        background: var(--nav-tint-soft, var(--bg-glass-light));
+        color: var(--nav-tint, var(--text-primary));
+    }
+    .sidebar-link.active {
+        background: var(--nav-tint-soft, var(--sidebar-active-bg));
+        color: var(--nav-tint, var(--sidebar-active-text));
     }
     .sidebar-link.active .nav-icon-wrap {
-        background: rgba(124,58,237,0.15);
-        box-shadow: 0 0 12px rgba(124,58,237,0.15);
-        color: var(--sidebar-active-text);
+        background: var(--nav-tint, var(--sidebar-active-text));
+        color: #fff;
+        box-shadow: 0 4px 10px -2px var(--nav-tint, var(--sidebar-active-text));
     }
     .sidebar-link .nav-label {
         white-space: nowrap;
