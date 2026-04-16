@@ -2,7 +2,6 @@
 
 namespace App\Modules\Common\Services;
 
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -12,21 +11,27 @@ use Illuminate\Support\Facades\Schema;
  *
  * Resolution order on each lookup:
  *   1. The seeded `cities` reference table (if present and populated).
- *   2. The bundled CSV at database/data/world-cities.csv (~142k cities,
- *      public-domain data derived from lutangar/cities.json), loaded
- *      once and cached on the file store.
+ *      This is the expected hot path in any deployed or properly
+ *      seeded environment (see database/seeders/CitiesTableSeeder).
+ *   2. A streaming scan of the bundled CSV at
+ *      database/data/world-cities.csv (~142k rows, public-domain data
+ *      derived from lutangar/cities.json). This is only used when the
+ *      `cities` table is missing or empty — e.g. before the seeder has
+ *      run — and is intentionally streamed row-by-row so the full file
+ *      never materialises in memory or in a cache entry.
  *
  * Lookups are case- and accent-insensitive on (city_name, country_code).
+ * Per-request results are memoised in-process so repeated lookups for the
+ * same key (hit or miss) do not re-scan the CSV.
  */
 class CityLookupService
 {
     /** Per-request cache of resolved keys → [lat, lng] (or null). */
     protected array $hits = [];
 
-    /** Lazy-loaded CSV map (only built on first miss against the DB table). */
-    protected ?array $csvMap = null;
-
     protected ?bool $hasDbTable = null;
+
+    protected ?bool $csvMissingLogged = null;
 
     protected function csvPath(): string
     {
@@ -49,7 +54,7 @@ class CityLookupService
             return $this->hits[$key];
         }
 
-        // 1) DB-backed reference table
+        // 1) DB-backed reference table (the expected path).
         if ($this->dbTableAvailable()) {
             $row = DB::table('cities')
                 ->where('country_code', $cc)
@@ -63,14 +68,10 @@ class CityLookupService
             }
         }
 
-        // 2) CSV fallback
-        $map = $this->getCsvMap();
-        if (isset($map[$key])) {
-            [$lat, $lng] = $map[$key];
-            return $this->hits[$key] = ['latitude' => $lat, 'longitude' => $lng];
-        }
-
-        return $this->hits[$key] = null;
+        // 2) CSV fallback — streamed row-by-row so memory stays bounded
+        //    even though the file is ~5 MB / 142k rows.
+        $coords = $this->streamCsvLookup($cc, $norm);
+        return $this->hits[$key] = $coords;
     }
 
     protected function dbTableAvailable(): bool
@@ -86,47 +87,45 @@ class CityLookupService
         }
     }
 
-    protected function getCsvMap(): array
+    /**
+     * Streams the bundled CSV looking for a single (country_code, normalized)
+     * match. O(n) per miss but allocates only one row at a time, so peak
+     * memory is a few kB regardless of the file's size.
+     */
+    protected function streamCsvLookup(string $cc, string $norm): ?array
     {
-        if ($this->csvMap !== null) return $this->csvMap;
-
         $path = $this->csvPath();
         if (!is_file($path)) {
-            Log::warning("CityLookupService: CSV not found at {$path}");
-            return $this->csvMap = [];
+            if ($this->csvMissingLogged !== true) {
+                Log::warning("CityLookupService: CSV not found at {$path}");
+                $this->csvMissingLogged = true;
+            }
+            return null;
         }
 
-        $cacheKey = 'city_lookup_map_v1_' . filemtime($path);
-        // Force the file store so the ~5 MB serialized lookup map never lands
-        // in the (default) database cache table.
-        try { $store = Cache::store('file'); }
-        catch (\Throwable $e) { $store = Cache::store(); }
-
-        $this->csvMap = $store->remember($cacheKey, 86400 * 30, function () use ($path) {
-            return $this->buildMap($path);
-        });
-        return $this->csvMap;
-    }
-
-    protected function buildMap(string $path): array
-    {
-        $map = [];
         $fh = fopen($path, 'r');
-        if (!$fh) return $map;
-        fgetcsv($fh); // header
-        while (($row = fgetcsv($fh)) !== false) {
-            if (count($row) < 4) continue;
-            $cc   = strtoupper($row[0] ?? '');
-            $name = $row[1] ?? '';
-            $lat  = (float) ($row[2] ?? 0);
-            $lng  = (float) ($row[3] ?? 0);
-            if (strlen($cc) !== 2 || $name === '') continue;
-            if ($lat === 0.0 && $lng === 0.0) continue;
-            $key = $cc . '|' . $this->normalize($name);
-            if (!isset($map[$key])) $map[$key] = [$lat, $lng];
+        if (!$fh) return null;
+
+        try {
+            fgetcsv($fh); // header
+            while (($row = fgetcsv($fh)) !== false) {
+                if (count($row) < 4) continue;
+                $rowCc = strtoupper($row[0] ?? '');
+                if ($rowCc !== $cc) continue;
+                $name = $row[1] ?? '';
+                if ($name === '') continue;
+                if ($this->normalize($name) !== $norm) continue;
+
+                $lat = (float) ($row[2] ?? 0);
+                $lng = (float) ($row[3] ?? 0);
+                if ($lat === 0.0 && $lng === 0.0) return null;
+
+                return ['latitude' => $lat, 'longitude' => $lng];
+            }
+        } finally {
+            fclose($fh);
         }
-        fclose($fh);
-        return $map;
+        return null;
     }
 
     protected function normalize(string $name): string

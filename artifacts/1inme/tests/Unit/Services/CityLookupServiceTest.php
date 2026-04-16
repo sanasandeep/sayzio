@@ -5,7 +5,6 @@ namespace Tests\Unit\Services;
 use App\Modules\Common\Services\CityLookupService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Tests\Feature\Analytics\TestCityLookupService;
 use Tests\TestCase;
 
 class CityLookupServiceTest extends TestCase
@@ -26,9 +25,7 @@ class CityLookupServiceTest extends TestCase
 
     private function service(): CityLookupService
     {
-        // Use a subclass that skips the huge bundled CSV fallback so these
-        // unit tests remain fast and bounded in memory.
-        return new TestCityLookupService();
+        return new CityLookupService();
     }
 
     public function test_it_resolves_a_known_city(): void
@@ -52,7 +49,9 @@ class CityLookupServiceTest extends TestCase
     public function test_unknown_city_returns_null(): void
     {
         $service = $this->service();
-        $this->assertNull($service->lookup('Atlantis', 'GB'));
+        // Uses a country code that does not exist in the bundled CSV so the
+        // streaming fallback runs to completion without finding a match.
+        $this->assertNull($service->lookup('Atlantis', 'ZZ'));
     }
 
     public function test_invalid_input_returns_null(): void

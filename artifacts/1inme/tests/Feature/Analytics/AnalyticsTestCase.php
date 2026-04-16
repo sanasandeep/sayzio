@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Analytics;
 
-use App\Modules\Common\Services\CityLookupService;
 use App\Modules\Common\Services\GeoIpService;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\User;
@@ -16,14 +15,6 @@ use Tests\TestCase;
 abstract class AnalyticsTestCase extends TestCase
 {
     use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        // Prevent the real CityLookupService from loading the bundled
-        // 142k-row CSV into a file-cache during tests (runs out of memory).
-        $this->app->bind(CityLookupService::class, fn () => new TestCityLookupService());
-    }
 
     protected function makeUser(array $overrides = []): User
     {
