@@ -61,10 +61,10 @@
         --border-subtle: rgba(0,0,0,0.05);
         --text-primary: #1a1025;
         --text-secondary: rgba(26,16,37,0.82);
-        --text-muted: rgba(26,16,37,0.68);
-        --text-dimmed: rgba(26,16,37,0.58);
-        --text-faint: rgba(26,16,37,0.5);
-        --text-label: rgba(26,16,37,0.35);
+        --text-muted: rgba(26,16,37,0.78);
+        --text-dimmed: rgba(26,16,37,0.7);
+        --text-faint: rgba(26,16,37,0.62);
+        --text-label: rgba(26,16,37,0.55);
         --sidebar-link: rgba(26,16,37,0.48);
         --sidebar-link-hover-bg: rgba(139,92,246,0.06);
         --sidebar-link-hover-text: rgba(26,16,37,0.88);

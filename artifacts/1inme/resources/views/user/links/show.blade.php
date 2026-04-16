@@ -151,6 +151,8 @@
         letter-spacing: -0.02em;
     }
     .stat-tile-sub { font-size: 10px; color: var(--text-faint); margin-top: 4px; }
+    html.light-mode .stat-tile-label { color: rgba(26,16,37,0.7); }
+    html.light-mode .stat-tile-sub { color: rgba(26,16,37,0.6); }
 
     /* ============ Section Card ============ */
     .section-card {
