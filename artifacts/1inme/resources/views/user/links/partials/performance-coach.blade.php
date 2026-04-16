@@ -250,6 +250,19 @@
                             <div class="flex-1 min-w-0">
                                 <div class="text-sm font-semibold leading-tight" style="color: var(--text-primary);">{{ $ins['headline'] }}</div>
                                 <div class="text-[12px] mt-0.5" style="color: var(--text-faint);">{{ $ins['reason'] }}</div>
+                                @if(!empty($ins['threshold']) && !empty($ins['threshold']['key']))
+                                    @php $th = $ins['threshold']; @endphp
+                                    <button type="button"
+                                            class="pc-threshold-chip"
+                                            style="color: {{ $s['color'] }}; border-color: {{ $s['border'] }}; background: {{ $s['bg'] }};"
+                                            title="Click to tune this threshold"
+                                            @click="pcSettingsOpen = true; $nextTick(() => { const el = $root.querySelector('[name=&quot;overrides[{{ $th['key'] }}]&quot;]'); if (el) { el.scrollIntoView({behavior:'smooth', block:'center'}); el.focus(); el.select && el.select(); } })">
+                                        <i class="fas fa-sliders text-[9px] mr-1"></i>
+                                        <span class="pc-threshold-chip-rule">{{ $th['threshold_label'] }}</span>
+                                        <span class="pc-threshold-chip-sep">·</span>
+                                        <span class="pc-threshold-chip-actual">{{ $th['actual_label'] }}</span>
+                                    </button>
+                                @endif
                             </div>
                             @if(!empty($ins['action']) && !empty($ins['action_label']) && !empty($link) && isset($ins['action']['type']))
                                 @php $act = $ins['action']; @endphp
@@ -408,6 +421,20 @@
         transition: background .15s ease;
     }
     .perf-coach .pc-insight-cta:hover { background: rgba(255,255,255,0.08); }
+    .perf-coach .pc-threshold-chip {
+        display: inline-flex; align-items: center; gap: 4px;
+        margin-top: 6px;
+        padding: 3px 8px; border-radius: 999px;
+        border: 1px solid;
+        font-size: 10px; font-weight: 600;
+        letter-spacing: .02em;
+        cursor: pointer; max-width: 100%;
+        transition: filter .15s ease, transform .15s ease;
+    }
+    .perf-coach .pc-threshold-chip:hover { filter: brightness(1.15); transform: translateY(-1px); }
+    .perf-coach .pc-threshold-chip-rule { text-transform: lowercase; }
+    .perf-coach .pc-threshold-chip-sep { opacity: .5; margin: 0 2px; }
+    .perf-coach .pc-threshold-chip-actual { opacity: .85; }
     .perf-coach .pc-spark {
         display: flex; align-items: center; gap: 8px;
     }

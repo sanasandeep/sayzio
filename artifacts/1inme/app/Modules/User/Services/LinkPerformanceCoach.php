@@ -415,6 +415,7 @@ class LinkPerformanceCoach
                 'reason'   => "Most visitors leave within 5 seconds. Improve the hero — clearer headline, first-screen CTA.",
                 'action_label' => 'Edit page',
                 'action_url'   => self::editUrl($ctx),
+                'threshold'    => self::thresholdPayload('bounce_critical', 'critical', '≥', round($cfg['bounce_critical']) . '%', round($rate) . '%'),
             ];
         }
         if ($rate >= $cfg['bounce_warning']) {
@@ -425,6 +426,7 @@ class LinkPerformanceCoach
                 'reason'   => "Over half of visitors leave almost immediately. Tighten the top of the page.",
                 'action_label' => 'Edit page',
                 'action_url'   => self::editUrl($ctx),
+                'threshold'    => self::thresholdPayload('bounce_warning', 'warning', '≥', round($cfg['bounce_warning']) . '%', round($rate) . '%'),
             ];
         }
         return null;
@@ -441,6 +443,7 @@ class LinkPerformanceCoach
                 'icon' => 'fa-hand-holding-heart',
                 'headline' => "Only {$rate}% bounce",
                 'reason'   => "Visitors are sticking around — your page is compelling.",
+                'threshold' => self::thresholdPayload('bounce_excellent', 'excellent', '≤', round($cfg['bounce_excellent']) . '%', round($rate) . '%'),
             ];
         }
         return null;
@@ -463,6 +466,7 @@ class LinkPerformanceCoach
                 'reason'   => "Visitors arrive but rarely click a block. Reorder or rewrite your top blocks.",
                 'action_label' => 'Reorder blocks',
                 'action_url'   => self::editUrl($ctx),
+                'threshold'    => self::thresholdPayload('ctr_critical', 'critical', '<', round($cfg['ctr_critical'] * 100) . '%', $pct . '%'),
             ];
         }
         if ($ctr < $cfg['ctr_warning']) {
@@ -473,6 +477,7 @@ class LinkPerformanceCoach
                 'reason'   => "Below healthy click-through. Move your strongest link to the top.",
                 'action_label' => 'Edit page',
                 'action_url'   => self::editUrl($ctx),
+                'threshold'    => self::thresholdPayload('ctr_warning', 'warning', '<', round($cfg['ctr_warning'] * 100) . '%', $pct . '%'),
             ];
         }
         return null;
@@ -492,6 +497,7 @@ class LinkPerformanceCoach
                 'icon' => 'fa-bullseye',
                 'headline' => "{$pct}% of visitors click through",
                 'reason'   => "Great engagement. Whatever you're doing — keep it.",
+                'threshold' => self::thresholdPayload('ctr_excellent', 'excellent', '≥', round($cfg['ctr_excellent'] * 100) . '%', $pct . '%'),
             ];
         }
         return null;
@@ -589,6 +595,7 @@ class LinkPerformanceCoach
                 'icon' => 'fa-arrow-trend-down',
                 'headline' => "Traffic down {$pct}%",
                 'reason'   => "Clicks dropped sharply vs the previous period. Check referrers and recent changes.",
+                'threshold' => self::thresholdPayload('momentum_drop_critical', 'critical', '≤', round($cfg['momentum_drop_critical'] * 100) . '%', round($delta * 100) . '%'),
             ];
         }
         if ($delta <= $cfg['momentum_drop_warning']) {
@@ -598,6 +605,7 @@ class LinkPerformanceCoach
                 'icon' => 'fa-arrow-trend-down',
                 'headline' => "Traffic down {$pct}%",
                 'reason'   => "Softer than the previous period. Refresh your share channels.",
+                'threshold' => self::thresholdPayload('momentum_drop_warning', 'warning', '≤', round($cfg['momentum_drop_warning'] * 100) . '%', round($delta * 100) . '%'),
             ];
         }
         return null;
@@ -610,11 +618,13 @@ class LinkPerformanceCoach
         if ($delta < $cfg['momentum_win_threshold']) return null;
         if ((int) ($ctx['totalInRange'] ?? 0) < $cfg['min_traffic_for_rules']) return null;
         $pct = round($delta * 100);
+        $sign = $pct > 0 ? '+' : '';
         return [
             'severity' => 'win', 'priority' => 40,
             'icon' => 'fa-arrow-trend-up',
             'headline' => "Traffic up {$pct}%",
             'reason'   => "Momentum is on your side. Lean into whatever channel drove the spike.",
+            'threshold' => self::thresholdPayload('momentum_win_threshold', 'win', '≥', '+' . round($cfg['momentum_win_threshold'] * 100) . '%', $sign . $pct . '%'),
         ];
     }
 
@@ -805,6 +815,27 @@ class LinkPerformanceCoach
     /* ------------------------------------------------------------------
      | Helpers
      |------------------------------------------------------------------*/
+
+    /**
+     * Build the threshold metadata attached to an insight so the UI can show
+     * creators which rule fired and jump them to the matching tuning field.
+     *
+     * @param string $key             One of TUNABLE_KEYS.
+     * @param string $severityLabel   Human label: 'critical', 'warning', 'excellent', 'win'.
+     * @param string $comparator      Symbolic comparator that matches the rule condition ('>', '<', '≥', '≤').
+     * @param string $thresholdDisplay Pre-formatted threshold value (e.g. '50%').
+     * @param string $actualDisplay    Pre-formatted measured value (e.g. '58%').
+     */
+    private static function thresholdPayload(string $key, string $severityLabel, string $comparator, string $thresholdDisplay, string $actualDisplay): array
+    {
+        return [
+            'key'             => $key,
+            'severity_label'  => $severityLabel,
+            'comparator'      => $comparator,
+            'threshold_label' => "{$severityLabel} {$comparator} {$thresholdDisplay}",
+            'actual_label'    => "your value {$actualDisplay}",
+        ];
+    }
 
     private static function severityRank(string $s): int
     {
