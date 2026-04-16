@@ -966,12 +966,11 @@
             map.getCanvas().style.cursor = 'pointer';
             const f = e.features[0];
             const p = f.properties;
-            // Build DOM with text nodes to avoid XSS from DB-sourced strings.
+            // DOM text nodes only — XSS-safe with DB-sourced strings.
             const wrap = document.createElement('div');
             wrap.style.cssText = 'font:12px/1.4 Inter,sans-serif;color:#0f172a;min-width:140px;';
             const title = document.createElement('div');
             title.style.cssText = 'font-weight:700;display:flex;align-items:center;gap:6px;';
-            // Country flag from ISO-3166-1 alpha-2 → regional indicator emoji.
             const cc = (p.country || '').toUpperCase();
             if (cc.length === 2 && /^[A-Z]{2}$/.test(cc)) {
                 const flag = String.fromCodePoint(0x1F1E6 + cc.charCodeAt(0) - 65,
@@ -1049,9 +1048,7 @@
         });
     }
 
-    // Reactively follow the app's theme toggle: when the user flips
-    // light/dark mode at the document level, swap the basemap to match
-    // (only if the user hasn't manually picked a specific style).
+    // Follow the app's theme toggle unless the user manually picked a basemap.
     let userPickedStyle = false;
     function syncMapToAppTheme() {
         if (userPickedStyle || !map) return;
@@ -1061,17 +1058,14 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        // Default basemap follows the current app theme on first load.
         currentStyle = document.documentElement.classList.contains('light-mode') ? 'light' : 'dark';
         setActiveStyleBtn();
         document.querySelectorAll('.heatmap-style-btn').forEach(btn => {
-            btn.addEventListener('click', () => switchStyle(btn.dataset.style, /*fromUser*/ true));
+            btn.addEventListener('click', () => switchStyle(btn.dataset.style, true));
         });
         buildMap();
-
-        // Observe class changes on <html> so theme toggles propagate live.
-        const obs = new MutationObserver(syncMapToAppTheme);
-        obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+        new MutationObserver(syncMapToAppTheme)
+            .observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
     });
 })();
 </script>

@@ -59,13 +59,15 @@ class BackfillCoordinates extends Command
             $modelClass = $target['model'];
             $label      = $target['label'];
 
-            $total = $modelClass::query()
-                ->whereNotNull('city')->whereNotNull('country_code')
+            // Match the processing query: every row missing coordinates,
+            // including rows with null city/country (GeoIP fallback may
+            // still recover them by IP).
+            $missingQuery = fn() => $modelClass::query()
                 ->where(function ($q) {
                     $q->whereNull('latitude')->orWhereNull('longitude');
-                })
-                ->count();
+                });
 
+            $total = (clone $missingQuery())->count();
             if ($total === 0) {
                 $this->line("✓ {$label}: nothing to backfill");
                 continue;
@@ -77,12 +79,7 @@ class BackfillCoordinates extends Command
             $bar->start();
 
             $processed = 0; $matched = 0; $unmatched = 0;
-            // Walk EVERY row missing coordinates — even those where city or
-            // country_code is null — so the GeoIP fallback can recover them.
-            $modelClass::query()
-                ->where(function ($q) {
-                    $q->whereNull('latitude')->orWhereNull('longitude');
-                })
+            $missingQuery()
                 ->select('id', 'city', 'country_code', 'ip_address')
                 ->orderBy('id')
                 ->chunkById($chunk, function ($rows) use (&$processed, &$matched, &$unmatched, $resolve, $modelClass, $bar, $cap) {

@@ -389,26 +389,16 @@ class LinkController extends Controller
         abort_if($link->user_id !== $request->user()->id, 403);
         [$startDate, $endDate] = $this->resolveAnalyticsRange($request);
 
-        // Total clicks with coordinates in this period (unbounded by bucket cap).
+        // True period total (never truncated by the points cap below).
         $totalGeoClicks = (int) $link->clicks()
             ->whereBetween('clicked_at', [$startDate, $endDate])
             ->whereNotNull('latitude')
             ->whereNotNull('longitude')
             ->count();
 
-        // Cross-DB compatible aggregation: GROUP BY exact (latitude,
-        // longitude) at the SQL layer so the database engine does the heavy
-        // lifting (works on Postgres, MySQL, SQLite — all support GROUP BY on
-        // numeric columns and COUNT/MAX). For each unique coordinate we also
-        // pick a representative city/country label via MAX() — sufficient
-        // because rows for the same coordinate practically share the same
-        // city/country (coords come from the same offline cities DB or the
-        // same GeoIP response).
-        //
-        // Capped at 5000 *points* (not rows) to keep the response bounded;
-        // the cap is by ORDER BY count desc so we always return the busiest
-        // hotspots first. Total click count is computed separately and is
-        // never truncated.
+        // Aggregate by exact (lat, lng) so each point is a real city marker.
+        // Cross-DB: only uses GROUP BY + COUNT + MAX. Capped at the busiest
+        // 5000 hotspots to bound response size.
         $rows = $link->clicks()
             ->whereBetween('clicked_at', [$startDate, $endDate])
             ->whereNotNull('latitude')->whereNotNull('longitude')
@@ -438,15 +428,14 @@ class LinkController extends Controller
                     'lat'          => (float) $r->latitude,
                     'lng'          => (float) $r->longitude,
                     'count'        => $count,
-                    'weight'       => $count, // alias for the heat layer
+                    'weight'       => $count,
                     'city'         => $r->city,
                     'country_code' => $r->country_code,
-                    'country'      => $r->country_code, // popup alias
+                    'country'      => $r->country_code,
                 ],
             ];
         }
 
-        // Flat point array (alternate consumer-friendly shape).
         $points = array_map(fn($f) => [
             'lat'          => $f['properties']['lat'],
             'lng'          => $f['properties']['lng'],
