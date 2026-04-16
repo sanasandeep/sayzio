@@ -475,6 +475,10 @@
                 <button type="button" data-style="light" class="heatmap-style-btn px-3 py-1.5"
                     style="color: var(--text-secondary);">Light</button>
             </div>
+            <button type="button" id="heatmap-download" class="table-action" title="Download as image"
+                style="font-size: 11px;">
+                <i class="fas fa-download"></i> <span class="hidden sm:inline">Download</span>
+            </button>
         </div>
     </div>
     <style>
@@ -975,8 +979,17 @@
     @php
         $heatmapQs = http_build_query(request()->only(['period','from','to']));
         $heatmapHref = route('user.links.heatmap', $link) . ($heatmapQs ? ('?' . $heatmapQs) : '');
+        $periodKey  = request('period', $period ?? '30d');
+        $periodMap  = ['today'=>'Today','7d'=>'Last 7 days','30d'=>'Last 30 days','90d'=>'Last 90 days','year'=>'This year','all'=>'All time'];
+        $periodLabelStr = $periodMap[$periodKey] ?? ucfirst($periodKey);
+        if (request('from') || request('to')) {
+            $periodLabelStr = trim((request('from') ?: '…') . ' → ' . (request('to') ?: '…'));
+        }
+        $linkSlugStr = $link->alias ?? $link->slug ?? ($link->short_url ?? '');
     @endphp
     const heatmapUrl = @json($heatmapHref);
+    const heatmapPeriod = @json($periodLabelStr);
+    const heatmapLinkSlug = @json($linkSlugStr);
     const heatmapLiveUrl = @json(route('user.links.heatmap.live', $link));
     const STYLES = {
         dark:  'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
@@ -1095,6 +1108,7 @@
             center: [10, 25],
             zoom: 1.4,
             attributionControl: { compact: true },
+            preserveDrawingBuffer: true,
         });
         map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
 
@@ -1111,6 +1125,13 @@
                         // Keep the map visible so Live mode can still drop pins on it,
                         // but show an inline hint above the map when there's no aggregate data.
                         document.getElementById('heatmap-empty').style.display = 'block';
+                        const dlBtn = document.getElementById('heatmap-download');
+                        if (dlBtn) {
+                            dlBtn.disabled = true;
+                            dlBtn.style.opacity = '0.45';
+                            dlBtn.style.cursor = 'not-allowed';
+                            dlBtn.title = 'No map data to export yet';
+                        }
                         return;
                     }
                     metaEl.style.display = 'inline-flex';
@@ -1271,6 +1292,88 @@
     function toggleLive() {
         if (liveEnabled) stopLive(); else startLive();
     }
+    function downloadHeatmapPng() {
+        if (!map) return;
+        // Force a synchronous render so the WebGL drawing buffer is fresh.
+        try { map.triggerRepaint(); } catch (e) {}
+        const src = map.getCanvas();
+        const w = src.width, h = src.height;
+        if (!w || !h) return;
+
+        const out = document.createElement('canvas');
+        out.width = w; out.height = h;
+        const ctx = out.getContext('2d');
+
+        // Background fill matching current basemap so transparent areas read clean.
+        ctx.fillStyle = currentStyle === 'light' ? '#f8fafc' : '#0b1220';
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(src, 0, 0, w, h);
+
+        // Branded overlay (bottom-left) with 1INME wordmark + period label.
+        const dpr = Math.max(1, w / src.clientWidth || 1);
+        const padX = 22 * dpr, padY = 18 * dpr;
+        const boxX = 18 * dpr, boxY = h - 18 * dpr;
+        const titleSize = 26 * dpr, subSize = 14 * dpr;
+
+        ctx.font = `800 ${titleSize}px Inter, system-ui, -apple-system, sans-serif`;
+        const title = '1INME';
+        const sub = (heatmapPeriod || '').toString();
+        const slug = (heatmapLinkSlug || '').toString();
+        const tWidth = ctx.measureText(title).width;
+        ctx.font = `600 ${subSize}px Inter, system-ui, -apple-system, sans-serif`;
+        const sWidth = Math.max(ctx.measureText(sub).width, slug ? ctx.measureText('/' + slug).width : 0);
+        const boxW = Math.max(tWidth, sWidth) + padX * 2;
+        const boxH = titleSize + subSize + (slug ? subSize + 6 * dpr : 0) + padY * 2 + 8 * dpr;
+
+        // Rounded translucent panel.
+        const r = 14 * dpr;
+        const x = boxX, y = boxY - boxH;
+        ctx.fillStyle = 'rgba(8, 12, 24, 0.72)';
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + boxW - r, y);
+        ctx.quadraticCurveTo(x + boxW, y, x + boxW, y + r);
+        ctx.lineTo(x + boxW, y + boxH - r);
+        ctx.quadraticCurveTo(x + boxW, y + boxH, x + boxW - r, y + boxH);
+        ctx.lineTo(x + r, y + boxH);
+        ctx.quadraticCurveTo(x, y + boxH, x, y + boxH - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+        ctx.fill();
+
+        // Wordmark gradient.
+        const grad = ctx.createLinearGradient(x + padX, 0, x + padX + tWidth, 0);
+        grad.addColorStop(0, '#f97316');
+        grad.addColorStop(1, '#ef4444');
+        ctx.fillStyle = grad;
+        ctx.font = `800 ${titleSize}px Inter, system-ui, -apple-system, sans-serif`;
+        ctx.textBaseline = 'top';
+        ctx.fillText(title, x + padX, y + padY);
+
+        // Period label.
+        ctx.fillStyle = 'rgba(248, 250, 252, 0.92)';
+        ctx.font = `600 ${subSize}px Inter, system-ui, -apple-system, sans-serif`;
+        ctx.fillText(sub, x + padX, y + padY + titleSize + 6 * dpr);
+
+        if (slug) {
+            ctx.fillStyle = 'rgba(148, 163, 184, 0.95)';
+            ctx.font = `500 ${subSize}px Inter, system-ui, -apple-system, sans-serif`;
+            ctx.fillText('/' + slug, x + padX, y + padY + titleSize + subSize + 12 * dpr);
+        }
+
+        let url;
+        try { url = out.toDataURL('image/png'); }
+        catch (e) { console.error('Heatmap export failed', e); alert('Could not export the map image.'); return; }
+
+        const a = document.createElement('a');
+        const safeSlug = (slug || 'link').replace(/[^a-z0-9_-]+/gi, '-').toLowerCase();
+        a.href = url;
+        a.download = `1inme-heatmap-${safeSlug}-${new Date().toISOString().slice(0,10)}.png`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+    }
 
     document.addEventListener('DOMContentLoaded', function () {
         currentStyle = document.documentElement.classList.contains('light-mode') ? 'light' : 'dark';
@@ -1289,6 +1392,8 @@
                 livePollTimer = setInterval(pollLive, LIVE_POLL_MS);
             }
         });
+        const dlBtn = document.getElementById('heatmap-download');
+        if (dlBtn) dlBtn.addEventListener('click', downloadHeatmapPng);
         buildMap();
         new MutationObserver(syncMapToAppTheme)
             .observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
