@@ -245,25 +245,86 @@ class LinkController extends Controller
         if ($link->type === 'biolink') {
             $blocksForLink = \App\Modules\User\Models\BiolinkBlock::where('link_id', $link->id)
                 ->get(['id', 'type', 'settings']);
+
+            $titleKeys = ['title', 'heading', 'text', 'label', 'name', 'caption', 'question', 'button_text', 'description', 'bio', 'code'];
+            $urlKeys   = ['url', 'link', 'destination_url', 'href', 'embed_url', 'src', 'video_url'];
+            $imgKeys   = ['image', 'image_url', 'thumbnail', 'avatar', 'logo', 'icon_url', 'poster', 'src', 'url'];
+
+            // Recursively find the first non-empty string value for any of $keys
+            $findString = function ($data, array $keys, int $depth = 0) use (&$findString) {
+                if ($depth > 4 || !is_array($data)) return null;
+                foreach ($keys as $k) {
+                    if (!empty($data[$k]) && is_string($data[$k])) {
+                        $v = trim(strip_tags($data[$k]));
+                        if ($v !== '') return $v;
+                    }
+                }
+                foreach ($data as $v) {
+                    if (is_array($v)) {
+                        $r = $findString($v, $keys, $depth + 1);
+                        if ($r) return $r;
+                    }
+                }
+                return null;
+            };
+            $findImage = function ($data, array $keys, int $depth = 0) use (&$findImage) {
+                if ($depth > 4 || !is_array($data)) return null;
+                foreach ($keys as $k) {
+                    if (!empty($data[$k]) && is_string($data[$k]) && preg_match('~^(https?:|/)|\.(png|jpe?g|gif|webp|svg)(\?|$)~i', $data[$k])) {
+                        return $data[$k];
+                    }
+                }
+                foreach ($data as $v) {
+                    if (is_array($v)) {
+                        $r = $findImage($v, $keys, $depth + 1);
+                        if ($r) return $r;
+                    }
+                }
+                return null;
+            };
+
             foreach ($blocksForLink as $blk) {
                 $s = is_array($blk->settings) ? $blk->settings : (json_decode($blk->settings ?? '{}', true) ?: []);
+
                 $title = null;
-                foreach (['title', 'heading', 'text', 'label', 'name', 'caption', 'question', 'button_text', 'description'] as $k) {
-                    if (!empty($s[$k]) && is_string($s[$k])) {
-                        $title = \Illuminate\Support\Str::limit(trim(strip_tags($s[$k])), 60);
-                        if ($title !== '') break;
+                // Socials should always render as "Socials: name1, name2..." not just "instagram"
+                if ($blk->type === 'socials' && !empty($s['platforms']) && is_array($s['platforms'])) {
+                    $names = [];
+                    foreach (array_slice($s['platforms'], 0, 3) as $p) {
+                        if (is_array($p)) $names[] = ucfirst($p['platform'] ?? $p['name'] ?? '');
+                    }
+                    $names = array_filter($names);
+                    $more  = count($s['platforms']) - count($names);
+                    $typeLabel = \App\Modules\User\Models\BiolinkBlock::TYPES['socials']['label'] ?? 'Socials';
+                    $title = $typeLabel . ': ' . (empty($names) ? count($s['platforms']) . ' platforms' : implode(', ', $names) . ($more > 0 ? " +{$more}" : ''));
+                } else {
+                    $title = $findString($s, $titleKeys);
+                    if ($title) $title = \Illuminate\Support\Str::limit($title, 60);
+                }
+
+                $url   = $findString($s, $urlKeys);
+                $thumb = $findImage($s, $imgKeys);
+
+                // Type-specific fallbacks for blocks that have no obvious text value
+                if (!$title) {
+                    $typeLabel = \App\Modules\User\Models\BiolinkBlock::TYPES[$blk->type]['label'] ?? ucfirst($blk->type);
+                    if ($blk->type === 'socials' && !empty($s['platforms']) && is_array($s['platforms'])) {
+                        $names = [];
+                        foreach (array_slice($s['platforms'], 0, 3) as $p) {
+                            if (is_array($p) && !empty($p['platform'])) $names[] = ucfirst($p['platform']);
+                            elseif (is_array($p) && !empty($p['name'])) $names[] = $p['name'];
+                        }
+                        $more = count($s['platforms']) - count($names);
+                        $title = $typeLabel . ': ' . (empty($names) ? count($s['platforms']) . ' platforms' : implode(', ', $names) . ($more > 0 ? " +{$more}" : ''));
+                    } elseif (in_array($blk->type, ['faq', 'progress', 'list', 'list_numbered', 'list_pricing']) && !empty($s['items']) && is_array($s['items'])) {
+                        $first = $s['items'][0] ?? null;
+                        $firstText = is_array($first) ? ($first['question'] ?? $first['title'] ?? $first['label'] ?? $first['text'] ?? $first['name'] ?? null) : null;
+                        $title = $typeLabel . ' (' . count($s['items']) . ($firstText ? '): "' . \Illuminate\Support\Str::limit(trim(strip_tags($firstText)), 35) . '"' : ' items)');
+                    } else {
+                        $title = $typeLabel;
                     }
                 }
-                $url = null;
-                foreach (['url', 'link', 'destination_url', 'href', 'embed_url', 'src', 'video_url'] as $k) {
-                    if (!empty($s[$k]) && is_string($s[$k])) { $url = $s[$k]; break; }
-                }
-                $thumb = null;
-                foreach (['image', 'image_url', 'thumbnail', 'avatar', 'logo', 'icon_url', 'poster', 'src'] as $k) {
-                    if (!empty($s[$k]) && is_string($s[$k]) && preg_match('~\.(png|jpe?g|gif|webp|svg)(\?|$)~i', $s[$k])) {
-                        $thumb = $s[$k]; break;
-                    }
-                }
+
                 $blockMeta[$blk->id] = [
                     'title' => $title,
                     'url'   => $url,
