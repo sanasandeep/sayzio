@@ -59,6 +59,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('links/{link}/toggle-active', [LinkController::class, 'toggleActive'])->name('links.toggle-active');
         Route::post('links/{link}/coach-action', [LinkController::class, 'coachAction'])->name('links.coach-action');
         Route::post('links/{link}/performance-coach/settings', [LinkController::class, 'updatePerformanceCoachSettings'])->name('links.performance-coach.settings');
+        Route::post('links/coach-undo', [LinkController::class, 'coachUndo'])->name('links.coach-undo');
         Route::delete('links/{link}/stats', [LinkController::class, 'resetStats'])->name('links.reset-stats');
         Route::put('links/{link}/alias', [LinkController::class, 'updateAlias'])->name('links.update-alias');
 

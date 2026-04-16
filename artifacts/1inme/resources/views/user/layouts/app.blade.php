@@ -688,7 +688,19 @@
             <main class="flex-1 p-5 lg:p-6 overflow-y-auto">
                 @if(session('success'))
                     <div class="mb-4 p-3.5 rounded-xl text-emerald-400 text-xs font-medium flex items-center gap-2.5 shimmer" style="border: 1px solid rgba(16,185,129,0.15); background: rgba(16,185,129,0.06);">
-                        <i class="fas fa-check-circle"></i> {{ session('success') }}
+                        <i class="fas fa-check-circle"></i>
+                        <span class="flex-1">{{ session('success') }}</span>
+                        @if(session('coach_undo'))
+                            <form action="{{ route('user.links.coach-undo') }}" method="POST" class="ml-auto">
+                                @csrf
+                                <input type="hidden" name="undo_token" value="{{ session('coach_undo') }}">
+                                <button type="submit"
+                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold"
+                                        style="border: 1px solid rgba(16,185,129,0.3); background: rgba(16,185,129,0.08); color: #6ee7b7;">
+                                    <i class="fas fa-rotate-left text-[9px]"></i> Undo
+                                </button>
+                            </form>
+                        @endif
                     </div>
                 @endif
                 @if(session('error'))

@@ -5,6 +5,7 @@ namespace App\Modules\User\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\Link;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 
@@ -909,6 +910,10 @@ class LinkController extends Controller
         };
 
         $message = null;
+        // Pre-change snapshot for the Undo control rendered on the next page
+        // view. Each branch records the minimum state needed to invert the
+        // mutation. Null => no undo offered (nothing actually changed).
+        $undoData = null;
 
         if ($type === 'deactivate_blocks') {
             $ids = $validated['block_ids'] ?? [];
@@ -919,10 +924,16 @@ class LinkController extends Controller
             if ($blocks->isEmpty()) {
                 return back()->with('error', 'Those blocks no longer exist.');
             }
-            \App\Modules\User\Models\BiolinkBlock::where('link_id', $link->id)
-                ->whereIn('id', $blocks->pluck('id')->all())
-                ->update(['is_active' => false]);
-            $n = $blocks->count();
+            // Only blocks that were actually active get flipped — those are
+            // the ones Undo should re-enable.
+            $changedIds = $blocks->where('is_active', true)->pluck('id')->all();
+            if (!empty($changedIds)) {
+                \App\Modules\User\Models\BiolinkBlock::where('link_id', $link->id)
+                    ->whereIn('id', $changedIds)
+                    ->update(['is_active' => false]);
+                $undoData = ['ids' => array_values($changedIds)];
+            }
+            $n = count($changedIds);
             $message = $n === 1
                 ? 'Hid 1 zero-click block.'
                 : "Hid {$n} zero-click blocks.";
@@ -935,7 +946,10 @@ class LinkController extends Controller
             if (!$block) {
                 return back()->with('error', 'That block no longer exists.');
             }
-            $block->update(['is_active' => true]);
+            if (!$block->is_active) {
+                $block->update(['is_active' => true]);
+                $undoData = ['id' => $block->id];
+            }
             $message = 'Block enabled.';
         } elseif ($type === 'promote_block') {
             $id = (int) ($validated['block_id'] ?? 0);
@@ -958,6 +972,13 @@ class LinkController extends Controller
             }
             $siblings = $siblingsQuery->orderBy('sort_order')->orderBy('id')->get();
 
+            // Capture pre-reorder sort_order for every sibling so Undo can
+            // restore the exact prior arrangement.
+            $prevOrder = [];
+            foreach ($siblings as $sib) {
+                $prevOrder[(string) $sib->id] = (int) $sib->sort_order;
+            }
+
             \Illuminate\Support\Facades\DB::transaction(function () use ($siblings, $block) {
                 $next = 1;
                 foreach ($siblings as $sib) {
@@ -969,10 +990,106 @@ class LinkController extends Controller
                 }
             });
 
+            $undoData = ['order' => $prevOrder];
             $message = 'Moved to the top of the page.';
         }
 
-        return back()->with('success', $message ?? 'Done.');
+        $response = back()->with('success', $message ?? 'Done.');
+
+        if ($undoData !== null) {
+            // Sign the undo payload so the bounded, idempotent undo action
+            // doesn't require a new DB table. The token embeds link/user and
+            // an expiry so it can't be replayed later or on another link.
+            $token = Crypt::encrypt([
+                'link_id'    => $link->id,
+                'user_id'    => $request->user()->id,
+                'type'       => $type,
+                'data'       => $undoData,
+                'expires_at' => now()->addMinutes(10)->timestamp,
+            ]);
+            $response->with('coach_undo', $token);
+        }
+
+        return $response;
+    }
+
+    /**
+     * Reverse the most recent one-click coach action. The inverse is derived
+     * from a short-lived, encrypted token issued by coachAction(); no new
+     * table is needed. Re-applying the same token is a no-op because the
+     * inverse writes specific prior values (active=true / specific sort
+     * orders) which are already in place after the first undo.
+     */
+    public function coachUndo(Request $request)
+    {
+        $validated = $request->validate([
+            'undo_token' => 'required|string',
+        ]);
+
+        try {
+            $payload = Crypt::decrypt($validated['undo_token']);
+        } catch (\Throwable $e) {
+            return back()->with('error', 'This undo link is no longer valid.');
+        }
+
+        if (!is_array($payload)
+            || ($payload['user_id'] ?? null) !== $request->user()->id
+            || empty($payload['link_id'])
+            || empty($payload['type'])
+        ) {
+            abort(403);
+        }
+
+        if (($payload['expires_at'] ?? 0) < now()->timestamp) {
+            return back()->with('error', 'The undo window has expired.');
+        }
+
+        $link = Link::where('user_id', $request->user()->id)
+            ->where('id', $payload['link_id'])
+            ->first();
+        if (!$link) {
+            abort(404);
+        }
+
+        $type = $payload['type'];
+        $data = $payload['data'] ?? [];
+        $message = 'Change undone.';
+
+        if ($type === 'deactivate_blocks') {
+            $ids = array_values(array_filter(array_map('intval', $data['ids'] ?? [])));
+            if (!empty($ids)) {
+                \App\Modules\User\Models\BiolinkBlock::where('link_id', $link->id)
+                    ->whereIn('id', $ids)
+                    ->update(['is_active' => true]);
+            }
+            $message = count($ids) === 1
+                ? 'Restored hidden block.'
+                : 'Restored ' . count($ids) . ' hidden blocks.';
+        } elseif ($type === 'enable_block') {
+            $id = (int) ($data['id'] ?? 0);
+            if ($id > 0) {
+                \App\Modules\User\Models\BiolinkBlock::where('link_id', $link->id)
+                    ->where('id', $id)
+                    ->update(['is_active' => false]);
+            }
+            $message = 'Block disabled again.';
+        } elseif ($type === 'promote_block') {
+            $order = $data['order'] ?? [];
+            if (is_array($order) && !empty($order)) {
+                \Illuminate\Support\Facades\DB::transaction(function () use ($link, $order) {
+                    foreach ($order as $id => $sort) {
+                        \App\Modules\User\Models\BiolinkBlock::where('link_id', $link->id)
+                            ->where('id', (int) $id)
+                            ->update(['sort_order' => (int) $sort]);
+                    }
+                });
+            }
+            $message = 'Restored previous block order.';
+        } else {
+            return back()->with('error', 'Unknown undo action.');
+        }
+
+        return redirect()->route('user.links.show', $link)->with('success', $message);
     }
 
     public function updateAlias(Request $request, Link $link)
