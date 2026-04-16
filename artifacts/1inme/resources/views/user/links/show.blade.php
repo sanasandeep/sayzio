@@ -387,9 +387,13 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const isDark = document.documentElement.classList.contains('dark') || !document.documentElement.classList.contains('light');
-    const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
-    const tickColor = isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.6)';
+    const isLight = document.documentElement.classList.contains('light-mode');
+    const gridColor = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.06)';
+    const tickColor = isLight ? 'rgba(15,23,42,0.75)' : 'rgba(255,255,255,0.7)';
+    if (window.Chart) {
+        Chart.defaults.color = tickColor;
+        Chart.defaults.borderColor = gridColor;
+    }
     const palette = ['#7c3aed','#10b981','#3b82f6','#f59e0b','#ec4899','#06b6d4','#a855f7','#ef4444','#14b8a6','#eab308'];
 
     @if(!$clicksOverTime->isEmpty())
