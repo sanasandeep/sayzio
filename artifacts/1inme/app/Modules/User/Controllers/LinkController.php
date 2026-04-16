@@ -3,6 +3,7 @@
 namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Common\Services\CityLookupService;
 use App\Modules\User\Models\Link;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
@@ -621,12 +622,62 @@ class LinkController extends Controller
             ];
         }
 
+        // Second pass: rows with a known city + country_code but no stored
+        // lat/lng (older clicks, or ones the backfill couldn't resolve).
+        // Group by (city, country_code) and resolve each group to a coarser
+        // pin via the offline CityLookupService so they still show up on
+        // the map instead of being silently dropped.
+        $cityRows = $link->clicks()
+            ->whereBetween('clicked_at', [$startDate, $endDate])
+            ->where(function ($q) {
+                $q->whereNull('latitude')->orWhereNull('longitude');
+            })
+            ->whereNotNull('city')
+            ->whereNotNull('country_code')
+            ->selectRaw('city, country_code, count(*) as click_count')
+            ->groupBy('city', 'country_code')
+            ->get();
+
+        if ($cityRows->isNotEmpty()) {
+            $lookup = app(CityLookupService::class);
+            $resolvedTotal = 0;
+            foreach ($cityRows as $r) {
+                $coords = $lookup->lookup($r->city, $r->country_code);
+                if (!$coords) continue;
+                $count = (int) $r->click_count;
+                $resolvedTotal += $count;
+                $shownClicks += $count;
+                if ($count > $maxWeight) $maxWeight = $count;
+                $features[] = [
+                    'type' => 'Feature',
+                    'geometry' => [
+                        'type' => 'Point',
+                        'coordinates' => [(float) $coords['longitude'], (float) $coords['latitude']],
+                    ],
+                    'properties' => [
+                        'lat'          => (float) $coords['latitude'],
+                        'lng'          => (float) $coords['longitude'],
+                        'count'        => $count,
+                        'weight'       => $count,
+                        'city'         => $r->city,
+                        'country_code' => $r->country_code,
+                        'country'      => $r->country_code,
+                        'approximate'  => true,
+                    ],
+                ];
+            }
+            $totalGeoClicks += $resolvedTotal;
+            // Keep busiest hotspots first after merging both passes.
+            usort($features, fn($a, $b) => $b['properties']['count'] <=> $a['properties']['count']);
+        }
+
         $points = array_map(fn($f) => [
             'lat'          => $f['properties']['lat'],
             'lng'          => $f['properties']['lng'],
             'count'        => $f['properties']['count'],
             'city'         => $f['properties']['city'],
             'country_code' => $f['properties']['country_code'],
+            'approximate'  => $f['properties']['approximate'] ?? false,
         ], $features);
 
         return response()->json([
