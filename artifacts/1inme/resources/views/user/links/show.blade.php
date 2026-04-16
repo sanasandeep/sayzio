@@ -1343,6 +1343,7 @@
     const heatmapPeriod = @json($periodLabelStr);
     const heatmapLinkSlug = @json($linkSlugStr);
     const heatmapLiveUrl = @json(route('user.links.heatmap.live', $link));
+    const heatmapLiveStreamUrl = @json(route('user.links.heatmap.live.stream', $link));
     // Use Esri "Gray Canvas" raster tiles as the basemap — these show neutral
     // terrain shading with NO political boundaries drawn, so no country's
     // disputed-border lines (e.g. Kashmir) are imposed on the map. The heatmap
@@ -1637,35 +1638,124 @@
         text.textContent = n + ' live visitor' + (n === 1 ? '' : 's') + ' right now';
     }
 
+    // Cursor of the latest click id we've ever rendered. Lets the server
+    // resume the stream without replaying clicks on reconnect, and lets the
+    // polling fallback skip already-seen rows.
+    let liveLastId = 0;
+    let liveEventSource = null;
+    let liveUsingSse = false;
+
+    function handleLivePayload(data) {
+        if (!liveEnabled || !data) return;
+        const points = data.points || [];
+        points.forEach(p => {
+            addLivePin(p);
+            if (typeof p.id === 'number' && p.id > liveLastId) liveLastId = p.id;
+        });
+        const meta = data.meta || {};
+        if (typeof meta.last_id === 'number' && meta.last_id > liveLastId) {
+            liveLastId = meta.last_id;
+        }
+        updateLiveMeta(meta.unique_visitors || 0);
+    }
+
     function pollLive() {
         if (!liveEnabled || liveInFlight || !map) return;
         liveInFlight = true;
         pruneSeen();
         fetch(heatmapLiveUrl, { headers: { 'Accept': 'application/json' } })
             .then(r => r.ok ? r.json() : Promise.reject(r.status))
-            .then(data => {
-                if (!liveEnabled) return;
-                const points = (data && data.points) || [];
-                points.forEach(p => addLivePin(p));
-                updateLiveMeta((data && data.meta && data.meta.unique_visitors) || 0);
-            })
+            .then(data => handleLivePayload(data))
             .catch(err => { console.warn('Live heatmap poll failed', err); })
             .finally(() => { liveInFlight = false; });
+    }
+
+    function startPollingFallback() {
+        liveUsingSse = false;
+        pollLive();
+        if (livePollTimer) clearInterval(livePollTimer);
+        livePollTimer = setInterval(pollLive, LIVE_POLL_MS);
+    }
+
+    // Track repeated SSE errors so we can give up and fall back to polling
+    // even after the stream opened successfully at least once (e.g. a proxy
+    // starts dropping long-held connections mid-session).
+    const SSE_FAILURE_WINDOW_MS = 60000;
+    const SSE_FAILURE_THRESHOLD = 3;
+    let sseErrorTimestamps = [];
+
+    function startSse() {
+        if (typeof window.EventSource === 'undefined') {
+            startPollingFallback();
+            return;
+        }
+        let opened = false;
+        try {
+            const url = heatmapLiveStreamUrl
+                + (heatmapLiveStreamUrl.indexOf('?') === -1 ? '?' : '&')
+                + 'lastId=' + encodeURIComponent(liveLastId);
+            liveEventSource = new EventSource(url, { withCredentials: true });
+        } catch (e) {
+            startPollingFallback();
+            return;
+        }
+        const onData = (ev) => {
+            try { handleLivePayload(JSON.parse(ev.data)); } catch (e) {}
+        };
+        liveEventSource.addEventListener('snapshot', (ev) => {
+            opened = true;
+            sseErrorTimestamps = []; // healthy stream resets the failure budget
+            onData(ev);
+        });
+        liveEventSource.addEventListener('clicks', onData);
+        liveEventSource.addEventListener('bye', (ev) => {
+            // Server closed the stream cleanly after its max duration; the
+            // browser will auto-reconnect, but force a fresh URL with the
+            // updated cursor so no window.lastId is missed.
+            try { liveEventSource && liveEventSource.close(); } catch (e) {}
+            liveEventSource = null;
+            if (liveEnabled) startSse();
+        });
+        liveEventSource.onopen = () => { opened = true; liveUsingSse = true; };
+        liveEventSource.onerror = () => {
+            // If we never got a successful open on this attempt, the endpoint
+            // is probably unreachable (proxy strips SSE, auth failed, etc).
+            // Fall back to polling instead of letting EventSource spin on
+            // reconnects.
+            if (!opened) {
+                try { liveEventSource && liveEventSource.close(); } catch (e) {}
+                liveEventSource = null;
+                if (liveEnabled) startPollingFallback();
+                return;
+            }
+            // Previously opened but failing now: track the rate of errors and
+            // downgrade to polling if it crosses the threshold in our window.
+            const now = Date.now();
+            sseErrorTimestamps.push(now);
+            sseErrorTimestamps = sseErrorTimestamps.filter(t => now - t <= SSE_FAILURE_WINDOW_MS);
+            if (sseErrorTimestamps.length >= SSE_FAILURE_THRESHOLD) {
+                try { liveEventSource && liveEventSource.close(); } catch (e) {}
+                liveEventSource = null;
+                sseErrorTimestamps = [];
+                if (liveEnabled) startPollingFallback();
+            }
+            // Otherwise: let EventSource keep attempting its built-in reconnect.
+        };
     }
 
     function startLive() {
         liveEnabled = true;
         setLiveButtonState();
         updateLiveMeta(0);
-        pollLive();
-        if (livePollTimer) clearInterval(livePollTimer);
-        livePollTimer = setInterval(pollLive, LIVE_POLL_MS);
+        startSse();
     }
 
     function stopLive() {
         liveEnabled = false;
         setLiveButtonState();
         if (livePollTimer) { clearInterval(livePollTimer); livePollTimer = null; }
+        if (liveEventSource) { try { liveEventSource.close(); } catch (e) {} liveEventSource = null; }
+        liveUsingSse = false;
         clearAllLiveMarkers();
         updateLiveMeta(0);
     }

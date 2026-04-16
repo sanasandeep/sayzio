@@ -216,4 +216,93 @@ class HeatmapEndpointTest extends AnalyticsTestCase
         $this->get(route('user.links.heatmap', $link))
             ->assertRedirect('/user/login');
     }
+
+    public function test_live_stream_snapshot_contains_recent_clicks(): void
+    {
+        $owner = $this->makeUser();
+        $link = $this->makeLink($owner);
+
+        LinkClick::create([
+            'link_id' => $link->id,
+            'ip_address' => '203.0.113.10',
+            'country_code' => 'GB', 'city' => 'London',
+            'latitude' => 51.50853, 'longitude' => -0.12574,
+            'clicked_at' => now(),
+        ]);
+        LinkClick::create([
+            'link_id' => $link->id,
+            'ip_address' => '203.0.113.11',
+            'country_code' => 'FR', 'city' => 'Paris',
+            'latitude' => 48.85341, 'longitude' => 2.3488,
+            'clicked_at' => now(),
+        ]);
+
+        $response = $this->actingAs($owner)
+            ->get(route('user.links.heatmap.live.stream', $link) . '?once=1');
+
+        $response->assertOk();
+        $response->assertHeader('content-type', 'text/event-stream; charset=UTF-8');
+        $body = $response->streamedContent();
+
+        // SSE framing: one snapshot event + terminating bye event.
+        $this->assertStringContainsString('event: snapshot', $body);
+        $this->assertStringContainsString('event: bye', $body);
+
+        // Extract the snapshot data line and decode it.
+        preg_match('/event: snapshot\ndata: (.+)\n/', $body, $m);
+        $this->assertNotEmpty($m[1] ?? null, 'snapshot payload missing');
+        $snapshot = json_decode($m[1], true);
+
+        $this->assertCount(2, $snapshot['points']);
+        $cities = array_column($snapshot['points'], 'city');
+        $this->assertContains('London', $cities);
+        $this->assertContains('Paris', $cities);
+        $this->assertSame(2, $snapshot['meta']['unique_visitors']);
+        $this->assertGreaterThan(0, $snapshot['meta']['last_id']);
+    }
+
+    public function test_live_stream_is_scoped_to_owner(): void
+    {
+        $owner = $this->makeUser();
+        $other = $this->makeUser();
+        $link = $this->makeLink($owner);
+
+        $this->actingAs($other)
+            ->get(route('user.links.heatmap.live.stream', $link) . '?once=1')
+            ->assertStatus(403);
+    }
+
+    public function test_live_stream_last_id_filters_older_clicks(): void
+    {
+        $owner = $this->makeUser();
+        $link = $this->makeLink($owner);
+
+        $old = LinkClick::create([
+            'link_id' => $link->id,
+            'ip_address' => '203.0.113.10',
+            'country_code' => 'GB', 'city' => 'London',
+            'latitude' => 51.50853, 'longitude' => -0.12574,
+            'clicked_at' => now(),
+        ]);
+        LinkClick::create([
+            'link_id' => $link->id,
+            'ip_address' => '203.0.113.11',
+            'country_code' => 'FR', 'city' => 'Paris',
+            'latitude' => 48.85341, 'longitude' => 2.3488,
+            'clicked_at' => now(),
+        ]);
+
+        $response = $this->actingAs($owner)
+            ->get(route('user.links.heatmap.live.stream', $link)
+                . '?once=1&lastId=' . $old->id);
+
+        $response->assertOk();
+        $body = $response->streamedContent();
+        preg_match('/event: snapshot\ndata: (.+)\n/', $body, $m);
+        $snapshot = json_decode($m[1], true);
+
+        // Only the newer Paris click should be in the snapshot.
+        $this->assertCount(1, $snapshot['points']);
+        $this->assertSame('Paris', $snapshot['points'][0]['city']);
+    }
 }

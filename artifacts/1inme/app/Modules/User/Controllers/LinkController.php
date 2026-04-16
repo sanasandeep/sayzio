@@ -711,18 +711,7 @@ class LinkController extends Controller
             ->limit(200)
             ->get(['id', 'latitude', 'longitude', 'city', 'country_code', 'clicked_at', 'ip_address']);
 
-        $points = [];
-        foreach ($rows as $r) {
-            $points[] = [
-                'id'           => (int) $r->id,
-                'lat'          => (float) $r->latitude,
-                'lng'          => (float) $r->longitude,
-                'city'         => $r->city,
-                'country_code' => $r->country_code,
-                'clicked_at'   => optional($r->clicked_at)->toIso8601String(),
-                'ts'           => optional($r->clicked_at)->getTimestamp(),
-            ];
-        }
+        $points = $this->formatLivePoints($rows);
 
         $uniqueVisitors = $rows->pluck('ip_address')->filter()->unique()->count();
 
@@ -736,6 +725,162 @@ class LinkController extends Controller
                 'server_ts'       => now()->getTimestamp(),
             ],
         ]);
+    }
+
+    /**
+     * Server-Sent Events stream of recent visitors.
+     *
+     * The browser opens this once and receives new clicks as soon as the
+     * server notices them — no client polling. Works for any Laravel setup
+     * because it doesn't require Redis/Reverb/pub-sub: the server itself
+     * tails the clicks table at a short interval and flushes each new row
+     * out over the held connection.
+     *
+     * The connection is capped at ~55s so PHP-FPM/proxies don't kill it
+     * mid-flight; EventSource reconnects automatically and the `lastId`
+     * cursor (remembered client-side and echoed back in each payload)
+     * prevents duplicate pins across reconnects.
+     */
+    public function heatmapLiveStream(Request $request, Link $link)
+    {
+        abort_if($link->user_id !== $request->user()->id, 403);
+
+        $lastId = (int) $request->query('lastId', 0);
+        $sinceTs = $request->query('since');
+        // When the client has no cursor yet, seed from the existing 5-minute
+        // window so the first batch of events matches what `heatmapLive()`
+        // would have returned — keeps the "X live visitors" pill accurate
+        // the moment the stream opens.
+        $windowStart = $sinceTs
+            ? \Carbon\Carbon::createFromTimestamp((int) $sinceTs)
+            : now()->subMinutes(5);
+
+        $maxDurationSec = 55;        // cap before forcing client reconnect
+        $pollIntervalMs = 1000;      // server-side DB tail cadence
+        $heartbeatEverySec = 15;     // keep proxies / browsers from timing out
+        // `?once=1` emits just the initial snapshot and exits — used by
+        // automated tests so they don't have to wait out the tail loop.
+        $onceOnly = (bool) $request->query('once', false);
+
+        return response()->stream(function () use ($link, $lastId, $windowStart, $maxDurationSec, $pollIntervalMs, $heartbeatEverySec, $onceOnly) {
+            @ini_set('zlib.output_compression', '0');
+
+            $emit = function (string $event, array $payload) {
+                echo "event: {$event}\n";
+                echo 'data: ' . json_encode($payload) . "\n\n";
+                @ob_flush();
+                @flush();
+            };
+
+            // Initial snapshot: same shape as the polling endpoint so the
+            // client can reuse its existing rendering path.
+            $initialRows = $link->clicks()
+                ->where('clicked_at', '>=', $windowStart)
+                ->when($lastId > 0, fn($q) => $q->where('id', '>', $lastId))
+                ->whereNotNull('latitude')
+                ->whereNotNull('longitude')
+                ->orderBy('id')
+                ->limit(200)
+                ->get(['id', 'latitude', 'longitude', 'city', 'country_code', 'clicked_at', 'ip_address']);
+
+            foreach ($initialRows as $r) {
+                if ((int) $r->id > $lastId) $lastId = (int) $r->id;
+            }
+
+            $uniqueVisitors = $link->clicks()
+                ->where('clicked_at', '>=', now()->subMinutes(5))
+                ->whereNotNull('ip_address')
+                ->distinct('ip_address')
+                ->count('ip_address');
+
+            $emit('snapshot', [
+                'points' => $this->formatLivePoints($initialRows),
+                'meta'   => [
+                    'count'           => $initialRows->count(),
+                    'unique_visitors' => $uniqueVisitors,
+                    'window_seconds'  => 300,
+                    'server_ts'       => now()->getTimestamp(),
+                    'last_id'         => $lastId,
+                ],
+            ]);
+
+            if ($onceOnly) {
+                $emit('bye', ['last_id' => $lastId]);
+                return;
+            }
+
+            $deadline = microtime(true) + $maxDurationSec;
+            $lastHeartbeat = microtime(true);
+
+            while (microtime(true) < $deadline) {
+                if (connection_aborted()) break;
+
+                $newRows = $link->clicks()
+                    ->where('id', '>', $lastId)
+                    ->whereNotNull('latitude')
+                    ->whereNotNull('longitude')
+                    ->orderBy('id')
+                    ->limit(100)
+                    ->get(['id', 'latitude', 'longitude', 'city', 'country_code', 'clicked_at', 'ip_address']);
+
+                if ($newRows->isNotEmpty()) {
+                    foreach ($newRows as $r) {
+                        if ((int) $r->id > $lastId) $lastId = (int) $r->id;
+                    }
+                    $unique = $link->clicks()
+                        ->where('clicked_at', '>=', now()->subMinutes(5))
+                        ->whereNotNull('ip_address')
+                        ->distinct('ip_address')
+                        ->count('ip_address');
+                    $emit('clicks', [
+                        'points' => $this->formatLivePoints($newRows),
+                        'meta'   => [
+                            'unique_visitors' => $unique,
+                            'server_ts'       => now()->getTimestamp(),
+                            'last_id'         => $lastId,
+                        ],
+                    ]);
+                    $lastHeartbeat = microtime(true);
+                } elseif (microtime(true) - $lastHeartbeat >= $heartbeatEverySec) {
+                    // Comment frame = SSE "ping" — keeps intermediaries from
+                    // closing an idle connection but isn't delivered as an event.
+                    echo ": ping\n\n";
+                    @ob_flush();
+                    @flush();
+                    $lastHeartbeat = microtime(true);
+                }
+
+                usleep($pollIntervalMs * 1000);
+            }
+
+            $emit('bye', ['last_id' => $lastId]);
+        }, 200, [
+            'Content-Type'      => 'text/event-stream',
+            'Cache-Control'     => 'no-cache, no-transform',
+            'X-Accel-Buffering' => 'no',
+            'Connection'        => 'keep-alive',
+        ]);
+    }
+
+    /**
+     * Shared point formatter for the polling and SSE live endpoints so both
+     * return identical shapes to the browser.
+     */
+    private function formatLivePoints($rows): array
+    {
+        $points = [];
+        foreach ($rows as $r) {
+            $points[] = [
+                'id'           => (int) $r->id,
+                'lat'          => (float) $r->latitude,
+                'lng'          => (float) $r->longitude,
+                'city'         => $r->city,
+                'country_code' => $r->country_code,
+                'clicked_at'   => optional($r->clicked_at)->toIso8601String(),
+                'ts'           => optional($r->clicked_at)->getTimestamp(),
+            ];
+        }
+        return $points;
     }
 
     public function exportClicks(Request $request, Link $link)
