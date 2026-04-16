@@ -77,8 +77,27 @@ class LinkAliasController extends Controller
         abort_if($link->user_id !== $request->user()->id, 403);
         abort_if($alias->link_id !== $link->id, 404);
 
-        $alias->delete();
-        return $this->respond($request, true, 'Alias removed.');
+        // MERGE behavior: when an alias is deleted, its historical clicks are
+        // re-assigned to the link's primary alias so the numbers roll up into
+        // the main total instead of being orphaned as a dangling label.
+        $deletedAlias = $alias->alias;
+        $primary = $link->alias;
+        $merged = 0;
+
+        DB::transaction(function () use ($link, $alias, $deletedAlias, $primary, &$merged) {
+            if ($primary && $deletedAlias !== $primary) {
+                $merged = DB::table('link_clicks')
+                    ->where('link_id', $link->id)
+                    ->where('alias', $deletedAlias)
+                    ->update(['alias' => $primary]);
+            }
+            $alias->delete();
+        });
+
+        $msg = $merged > 0
+            ? "Alias removed. {$merged} historical click" . ($merged === 1 ? '' : 's') . " merged into the primary alias."
+            : 'Alias removed.';
+        return $this->respond($request, true, $msg);
     }
 
     /**

@@ -473,6 +473,30 @@
 </div>
 @endif
 
+{{-- ===================== DANGER ZONE — RESET STATS ===================== --}}
+<div class="glass rounded-2xl px-4 py-3 mb-3 flex flex-wrap items-center gap-2">
+    <span class="text-[10px] uppercase tracking-wider font-bold mr-1" style="color: var(--text-faint);"><i class="fas fa-triangle-exclamation text-amber-400"></i> Reset</span>
+    @if($aliasFilter)
+        <form method="POST" action="{{ route('user.links.reset-stats', $link) }}?alias={{ urlencode($aliasFilter) }}" class="inline"
+              onsubmit="return confirm('Delete ALL click data for /{{ $aliasFilter }} on this link?\n\nThis cannot be undone. Engagement sessions are preserved.');">
+            @csrf
+            @method('DELETE')
+            <button type="submit" class="pill" style="background:rgba(245,158,11,0.15); color:#fbbf24; border-color:rgba(245,158,11,0.3);">
+                <i class="fas fa-eraser text-[9px]"></i> Reset /{{ $aliasFilter }}
+            </button>
+        </form>
+    @endif
+    <form method="POST" action="{{ route('user.links.reset-stats', $link) }}" class="inline"
+          onsubmit="return confirm('Delete ALL analytics data for this link?\n\n• Clicks\n• Page sessions\n• Block views\n\nThis cannot be undone.') && confirm('Are you absolutely sure? Type-check: this will wipe every analytics record for this link.');">
+        @csrf
+        @method('DELETE')
+        <button type="submit" class="pill" style="background:rgba(239,68,68,0.15); color:#fca5a5; border-color:rgba(239,68,68,0.3);">
+            <i class="fas fa-trash text-[9px]"></i> Reset all stats
+        </button>
+    </form>
+    <span class="text-[11px] ml-2" style="color: var(--text-faint);">Deletes analytics data permanently. Link itself and its aliases are preserved.</span>
+</div>
+
 {{-- ===================== PRIMARY KPIs (3 hero numbers) ===================== --}}
 <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
     <div class="kpi-hero">

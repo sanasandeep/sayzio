@@ -728,6 +728,42 @@ class LinkController extends Controller
             ->with('success', 'Link deleted successfully.');
     }
 
+    /**
+     * Reset analytics data for a link. By default wipes ALL click + engagement
+     * data for the link; if `?alias=` is supplied and valid, only click rows
+     * belonging to that alias are wiped (engagement sessions have no alias
+     * column so they are preserved in the alias-scoped case).
+     */
+    public function resetStats(Request $request, Link $link)
+    {
+        abort_if($link->user_id !== $request->user()->id, 403);
+
+        $aliasScope = $request->query('alias') ?: $request->input('alias');
+        if ($aliasScope && !in_array($aliasScope, $link->getAllAliases(), true)) {
+            $aliasScope = null;
+        }
+
+        if ($aliasScope) {
+            $deleted = \DB::table('link_clicks')
+                ->where('link_id', $link->id)
+                ->where('alias', $aliasScope)
+                ->delete();
+            $msg = "Reset complete — removed {$deleted} click" . ($deleted === 1 ? '' : 's') . " for /{$aliasScope}.";
+        } else {
+            \DB::transaction(function () use ($link) {
+                \DB::table('block_views')->where('link_id', $link->id)->delete();
+                \DB::table('page_sessions')->where('link_id', $link->id)->delete();
+                \DB::table('link_clicks')->where('link_id', $link->id)->delete();
+            });
+            $msg = 'All analytics data for this link has been reset.';
+        }
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['success' => true, 'message' => $msg]);
+        }
+        return redirect()->route('user.links.show', $link)->with('success', $msg);
+    }
+
     public function toggleActive(Request $request, Link $link)
     {
         abort_if($link->user_id !== $request->user()->id, 403);

@@ -57,6 +57,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::resource('links', LinkController::class)->except(['store']);
         Route::post('links', [LinkController::class, 'store'])->middleware(CheckPlanLimit::class . ':links')->name('links.store');
         Route::post('links/{link}/toggle-active', [LinkController::class, 'toggleActive'])->name('links.toggle-active');
+        Route::delete('links/{link}/stats', [LinkController::class, 'resetStats'])->name('links.reset-stats');
         Route::put('links/{link}/alias', [LinkController::class, 'updateAlias'])->name('links.update-alias');
 
         // Additional (alternative) aliases per link — same page served, no redirect.
