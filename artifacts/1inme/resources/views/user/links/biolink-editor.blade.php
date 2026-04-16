@@ -389,9 +389,9 @@ $catColors = [
                                 <div class="flex items-center gap-2">
                                     <span class="text-sm font-semibold" style="color: var(--text-primary);">{{ $typeInfo['label'] }}</span>
                                     @if(!$block->is_active)
-                                    <span class="text-[9px] px-1.5 py-0.5 rounded-full font-semibold" style="background: rgba(239,68,68,0.1); color: #f87171;">HIDDEN</span>
+                                    <span class="text-[9px] px-2 py-0.5 rounded-full font-bold" style="background: linear-gradient(135deg, rgba(239,68,68,0.3), rgba(220,38,38,0.25)); color: #ffffff; border: 1px solid rgba(239,68,68,0.5); text-shadow: 0 1px 2px rgba(0,0,0,0.3);">HIDDEN</span>
                                     @endif
-                                    <span class="grid-span-badge text-[9px] px-1.5 py-0.5 rounded font-bold" style="background: rgba(139,92,246,0.08); color: #a78bfa; {{ $curSpan >= 12 ? 'display:none;' : '' }}" data-span-badge="{{ $block->id }}">{{ $curSpan }}/12</span>
+                                    <span class="grid-span-badge text-[10px] px-2 py-0.5 rounded-md font-bold" style="background: linear-gradient(135deg, rgba(139,92,246,0.25), rgba(168,85,247,0.2)); color: #ffffff; border: 1px solid rgba(139,92,246,0.45); text-shadow: 0 1px 2px rgba(0,0,0,0.3); box-shadow: 0 2px 6px rgba(139,92,246,0.25); {{ $curSpan >= 12 ? 'display:none;' : '' }}" data-span-badge="{{ $block->id }}">{{ $curSpan }}/12</span>
                                 </div>
                                 <div class="block-preview-content mt-0.5">
                                     @if($block->type === 'card')
@@ -461,8 +461,8 @@ $catColors = [
                                                 </div>
                                                 <div class="flex-1 min-w-0">
                                                     <span class="text-[11px] font-semibold" style="color: var(--text-primary);">{{ $cTypeInfo['label'] }}</span>
-                                                    @if(!$child->is_active)<span class="text-[8px] px-1 py-0.5 rounded-full font-semibold ml-1" style="background: rgba(239,68,68,0.1); color: #f87171;">HIDDEN</span>@endif
-                                                    <span class="text-[8px] px-1 py-0.5 rounded font-bold ml-1" style="background: rgba(139,92,246,0.08); color: #a78bfa; {{ $childSpan >= 12 ? 'display:none;' : '' }}" data-child-span-badge="{{ $child->id }}">{{ $childSpan }}/12</span>
+                                                    @if(!$child->is_active)<span class="text-[9px] px-1.5 py-0.5 rounded-full font-bold ml-1" style="background: linear-gradient(135deg, rgba(239,68,68,0.3), rgba(220,38,38,0.25)); color: #ffffff; border: 1px solid rgba(239,68,68,0.5); text-shadow: 0 1px 2px rgba(0,0,0,0.3);">HIDDEN</span>@endif
+                                                    <span class="text-[9px] px-1.5 py-0.5 rounded-md font-bold ml-1" style="background: linear-gradient(135deg, rgba(139,92,246,0.25), rgba(168,85,247,0.2)); color: #ffffff; border: 1px solid rgba(139,92,246,0.45); text-shadow: 0 1px 2px rgba(0,0,0,0.3); box-shadow: 0 2px 6px rgba(139,92,246,0.25); {{ $childSpan >= 12 ? 'display:none;' : '' }}" data-child-span-badge="{{ $child->id }}">{{ $childSpan }}/12</span>
                                                 </div>
                                                 <div class="flex items-center gap-0.5 flex-shrink-0">
                                                     <button class="block-action-btn edit-btn" style="width:22px;height:22px;" title="Edit" onclick="openEditDrawer({{ $child->id }})"><i class="fas fa-pen" style="font-size:8px;"></i></button>

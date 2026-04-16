@@ -86,7 +86,7 @@
     @if($subscribers->count())
     <div class="glass rounded-2xl overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="w-full text-sm">
+            <table class="enhanced-table w-full text-sm">
                 <thead>
                     <tr style="border-bottom: 1px solid var(--border-subtle);">
                         <th class="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider" style="color: var(--text-muted);">Subscriber</th>
@@ -94,7 +94,7 @@
                         <th class="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider" style="color: var(--text-muted);">Source</th>
                         <th class="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider" style="color: var(--text-muted);">Status</th>
                         <th class="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider" style="color: var(--text-muted);">Date</th>
-                        <th class="text-right px-4 py-3 font-semibold text-xs uppercase tracking-wider" style="color: var(--text-muted);">Actions</th>
+                        <th class="text-right px-4 py-3 font-semibold text-xs uppercase tracking-wider" style="color: var(--text-muted);" data-no-sort>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -159,6 +159,7 @@
     </div>
 
     <div class="mt-4">{{ $subscribers->links() }}</div>
+    @include('common.partials.enhanced-table')
     @else
     <div class="glass rounded-2xl p-12 text-center">
         <div class="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4" style="background: linear-gradient(135deg, rgba(124,58,237,0.2), rgba(168,85,247,0.1));">

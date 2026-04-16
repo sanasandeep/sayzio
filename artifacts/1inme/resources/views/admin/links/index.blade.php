@@ -61,11 +61,11 @@
         </div>
     </div>
 
-    <div class="glass rounded-2xl overflow-hidden">
-        <table class="min-w-full divide-y divide-white/5">
+    <div class="glass rounded-2xl overflow-hidden p-3">
+        <table class="enhanced-table min-w-full divide-y divide-white/5">
             <thead class="bg-white/5">
                 <tr>
-                    <th class="px-4 py-3 text-left">
+                    <th class="px-4 py-3 text-left" data-no-sort>
                         <input type="checkbox" id="selectAll" class="rounded border-white/10 text-purple-400 focus:ring-purple-500/40">
                     </th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-white/40 uppercase">Link</th>
@@ -74,7 +74,7 @@
                     <th class="px-4 py-3 text-left text-xs font-medium text-white/40 uppercase">Clicks</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-white/40 uppercase">Status</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-white/40 uppercase">Created</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-white/40 uppercase">Actions</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-white/40 uppercase" data-no-sort>Actions</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-white/5">
@@ -132,6 +132,8 @@
 @endforeach
 
 <div class="mt-4">{{ $links->links() }}</div>
+
+@include('common.partials.enhanced-table')
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

@@ -24,15 +24,15 @@
     </a>
 </div>
 @else
-<div class="glass rounded-2xl overflow-hidden">
-    <table class="w-full text-sm">
+<div class="glass rounded-2xl overflow-hidden p-3">
+    <table class="enhanced-table w-full text-sm">
         <thead class="bg-white/5 border-b border-white/10">
             <tr>
                 <th class="text-left px-6 py-3 text-xs font-medium text-white/40 uppercase">Name</th>
                 <th class="text-left px-6 py-3 text-xs font-medium text-white/40 uppercase">Type</th>
                 <th class="text-left px-6 py-3 text-xs font-medium text-white/40 uppercase">Pixel ID</th>
                 <th class="text-left px-6 py-3 text-xs font-medium text-white/40 uppercase">Links</th>
-                <th class="text-right px-6 py-3 text-xs font-medium text-white/40 uppercase">Actions</th>
+                <th class="text-right px-6 py-3 text-xs font-medium text-white/40 uppercase" data-no-sort>Actions</th>
             </tr>
         </thead>
         <tbody class="divide-y divide-gray-100">
@@ -58,6 +58,6 @@
         </tbody>
     </table>
 </div>
-<div class="mt-6">{{ $pixels->links() }}</div>
 @endif
+@include('common.partials.enhanced-table')
 @endsection

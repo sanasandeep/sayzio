@@ -21,8 +21,8 @@
     </a>
 </div>
 
-<div class="glass rounded-2xl border border-white/10  overflow-hidden">
-    <table class="w-full">
+<div class="glass rounded-2xl border border-white/10 overflow-hidden p-3">
+    <table class="enhanced-table w-full">
         <thead class="bg-white/5">
             <tr>
                 <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase">Name</th>
@@ -30,7 +30,7 @@
                 <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase">Role</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase">Status</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase">Last Login</th>
-                <th class="px-6 py-3 text-right text-xs font-medium text-white/40 uppercase">Actions</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-white/40 uppercase" data-no-sort>Actions</th>
             </tr>
         </thead>
         <tbody class="divide-y divide-white/5">
@@ -74,4 +74,5 @@
     <div class="px-6 py-4 border-t border-white/10">{{ $staff->links() }}</div>
     @endif
 </div>
+@include('common.partials.enhanced-table')
 @endsection

@@ -2,9 +2,24 @@
     $activeMainTab = $activeMainTab ?? 'blocks';
 @endphp
 <div class="flex items-center justify-between mb-1">
-    <div>
-        <h1 class="text-2xl font-bold gradient-text">{{ $link->alias }}</h1>
-        <div class="flex items-center gap-2 mt-1" x-data="{ copied: false }">
+    <div class="flex items-center gap-3">
+        <div class="relative w-12 h-12 rounded-2xl overflow-hidden flex-shrink-0 flex items-center justify-center" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); box-shadow: 0 6px 20px rgba(139,92,246,0.15);" title="Current favicon for this page">
+            @if($link->favicon)
+                <img src="{{ $link->favicon }}" alt="favicon" class="w-full h-full object-cover">
+            @elseif(!empty(($link->settings['biolink']['favicons']['icon_512'] ?? null)))
+                <img src="{{ $link->settings['biolink']['favicons']['icon_512'] }}" alt="favicon" class="w-full h-full object-cover">
+            @elseif(!empty(($link->settings['biolink']['favicons']['apple_touch_icon'] ?? null)))
+                <img src="{{ $link->settings['biolink']['favicons']['apple_touch_icon'] }}" alt="favicon" class="w-full h-full object-cover">
+            @else
+                <i class="fas fa-image text-base" style="color: var(--text-faint);"></i>
+            @endif
+            <span class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold text-white" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); border: 2px solid var(--bg-body);" title="Favicon">
+                <i class="fas fa-star text-[7px]"></i>
+            </span>
+        </div>
+        <div>
+            <h1 class="text-2xl font-bold gradient-text">{{ $link->alias }}</h1>
+            <div class="flex items-center gap-2 mt-1" x-data="{ copied: false }">
             <span class="inline-flex items-center gap-1.5 text-sm">
                 <span class="w-2 h-2 rounded-full {{ $link->is_active ? 'bg-emerald-400' : 'bg-red-400' }}" style="{{ $link->is_active ? 'box-shadow: 0 0 8px rgba(16,185,129,0.5);' : '' }}"></span>
                 <span style="color: var(--text-dimmed);">Your link is</span>
@@ -14,6 +29,12 @@
                 <i x-show="!copied" class="fas fa-copy text-xs"></i>
                 <i x-show="copied" x-cloak class="fas fa-check text-emerald-400 text-xs"></i>
             </button>
+            </div>
+            @if(!$link->favicon && empty($link->settings['biolink']['favicons']['icon_512'] ?? null) && empty($link->settings['biolink']['favicons']['apple_touch_icon'] ?? null))
+            <a href="{{ route('user.links.edit', $link) }}" class="inline-flex items-center gap-1 text-[10px] mt-0.5 text-purple-400 hover:text-purple-300 transition-colors">
+                <i class="fas fa-info-circle text-[9px]"></i> No favicon set — upload one to brand your link
+            </a>
+            @endif
         </div>
     </div>
     <div class="flex items-center gap-2">

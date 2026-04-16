@@ -22,6 +22,7 @@
     </script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     @include('common.partials.theme-styles')
+    @stack('styles')
 </head>
 <body class="min-h-screen" style="color: var(--text-primary);">
     <div class="bg-mesh"></div>
@@ -102,5 +103,6 @@
         }
     })();
     </script>
+    @stack('scripts')
 </body>
 </html>
