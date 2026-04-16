@@ -840,46 +840,225 @@ class LinkPerformanceCoach
     }
 
     /**
-     * The preset key currently applied to this link ('creator' by default).
+     * Returns true if the link has its own performance-coach settings saved.
+     * Used to distinguish "no per-link override → use admin defaults" from
+     * "explicit creator preset chosen on this link".
+     */
+    private static function hasLinkOverride(?Link $link): bool
+    {
+        $pc = self::linkSettings($link);
+        return !empty($pc['preset']);
+    }
+
+    /**
+     * The preset key currently applied to this link. Falls back to the
+     * admin-chosen workspace default ('creator' if none set).
      */
     public static function resolvePreset(?Link $link): string
     {
-        $pc = self::linkSettings($link);
-        $preset = $pc['preset'] ?? 'creator';
-        if (!in_array($preset, array_merge(array_keys(self::PRESETS), ['custom']), true)) {
-            $preset = 'creator';
+        if (self::hasLinkOverride($link)) {
+            $preset = self::linkSettings($link)['preset'];
+        } else {
+            $admin = self::adminSettings();
+            $preset = $admin['preset'] ?? 'creator';
         }
-        return $preset;
+        $valid = self::validPresetKeys();
+        return in_array($preset, $valid, true) ? $preset : 'creator';
     }
 
     /**
      * The effective config for this link — CONFIG defaults + preset tunables
-     * + per-link custom overrides (clamped to safe bounds).
+     * + custom overrides (from the link if set, otherwise admin defaults).
      */
     public static function resolveConfig(?Link $link): array
     {
         $cfg = self::CONFIG;
-        $pc = self::linkSettings($link);
         $preset = self::resolvePreset($link);
 
         if ($preset === 'custom') {
-            // Custom: start from the creator baseline, then apply stored overrides.
+            // Custom: start from the creator baseline, then apply whichever
+            // set of overrides governs (per-link if set, else admin-wide).
             foreach ((self::PRESETS['creator']['values'] ?? []) as $k => $v) {
                 $cfg[$k] = $v;
             }
-            $overrides = is_array($pc['overrides'] ?? null) ? $pc['overrides'] : [];
+            if (self::hasLinkOverride($link)) {
+                $pc = self::linkSettings($link);
+                $overrides = is_array($pc['overrides'] ?? null) ? $pc['overrides'] : [];
+            } else {
+                $admin = self::adminSettings();
+                $overrides = is_array($admin['overrides'] ?? null) ? $admin['overrides'] : [];
+            }
             foreach (self::TUNABLE_KEYS as $k) {
                 if (array_key_exists($k, $overrides) && is_numeric($overrides[$k])) {
                     $cfg[$k] = self::clampTunable($k, (float) $overrides[$k]);
                 }
             }
         } else {
-            foreach ((self::PRESETS[$preset]['values'] ?? []) as $k => $v) {
-                $cfg[$k] = $v;
+            foreach (self::presetValues($preset) as $k => $v) {
+                if (in_array($k, self::TUNABLE_KEYS, true)) {
+                    $cfg[$k] = $v;
+                }
             }
         }
 
         return $cfg;
+    }
+
+    /* ------------------------------------------------------------------
+     | Admin-wide defaults + custom presets
+     |------------------------------------------------------------------*/
+
+    /**
+     * Read the admin-wide Performance Coach settings blob.
+     * Shape: ['preset' => string, 'overrides' => array, 'custom_presets' => array].
+     */
+    public static function adminSettings(): array
+    {
+        $raw = \App\Modules\Admin\Models\AppSetting::get('coach_defaults', []);
+        return is_array($raw) ? $raw : [];
+    }
+
+    /**
+     * Admin-published custom presets, each shaped like:
+     *   ['key' => 'org_landing', 'label' => 'Our Landing', 'description' => '...',
+     *    'values' => [TUNABLE_KEY => number, ...]]
+     *
+     * @return array<int,array{key:string,label:string,description:string,values:array<string,float>}>
+     */
+    public static function adminCustomPresets(): array
+    {
+        $admin = self::adminSettings();
+        $out = [];
+        foreach (($admin['custom_presets'] ?? []) as $p) {
+            if (!is_array($p) || empty($p['key']) || empty($p['label'])) continue;
+            $values = [];
+            foreach (self::TUNABLE_KEYS as $k) {
+                if (isset($p['values'][$k]) && is_numeric($p['values'][$k])) {
+                    $values[$k] = self::clampTunable($k, (float) $p['values'][$k]);
+                }
+            }
+            if (count($values) !== count(self::TUNABLE_KEYS)) continue;
+            $out[] = [
+                'key'         => (string) $p['key'],
+                'label'       => (string) $p['label'],
+                'description' => (string) ($p['description'] ?? ''),
+                'values'      => $values,
+            ];
+        }
+        return $out;
+    }
+
+    /**
+     * All preset keys a link is allowed to reference: built-ins + admin
+     * custom presets + 'custom' (per-link hand-tuned values).
+     *
+     * @return array<int,string>
+     */
+    public static function validPresetKeys(): array
+    {
+        $keys = array_keys(self::PRESETS);
+        foreach (self::adminCustomPresets() as $p) {
+            $keys[] = $p['key'];
+        }
+        $keys[] = 'custom';
+        return $keys;
+    }
+
+    /**
+     * Menu of presets available in the per-link picker (built-ins + admin
+     * custom presets, same shape as self::PRESETS entries keyed by slug).
+     *
+     * @return array<string,array{label:string,description:string,values:array<string,float>}>
+     */
+    public static function availablePresets(): array
+    {
+        $out = [];
+        foreach (self::PRESETS as $k => $meta) {
+            $out[$k] = [
+                'label'       => $meta['label'],
+                'description' => $meta['description'],
+                'values'      => $meta['values'],
+            ];
+        }
+        foreach (self::adminCustomPresets() as $p) {
+            // Admin-custom keys can collide with built-ins only by mistake;
+            // built-ins win so a typo can't silently replace 'creator'.
+            if (isset($out[$p['key']])) continue;
+            $out[$p['key']] = [
+                'label'       => $p['label'],
+                'description' => $p['description'] ?: 'Workspace preset',
+                'values'      => $p['values'],
+            ];
+        }
+        return $out;
+    }
+
+    /**
+     * Values array for a given preset key. Unknown keys fall back to the
+     * 'creator' preset so scoring never fails on stale / removed presets.
+     */
+    public static function presetValues(string $key): array
+    {
+        $all = self::availablePresets();
+        return $all[$key]['values'] ?? (self::PRESETS['creator']['values'] ?? []);
+    }
+
+    /**
+     * Persist admin-wide default preset + (optional) custom overrides +
+     * (optional) published custom presets. Returns the canonical blob stored.
+     */
+    public static function saveAdminSettings(string $preset, array $overrides = [], array $customPresets = []): array
+    {
+        // Canonicalize custom presets first so a 'preset' pointing to one of
+        // them survives validation against the updated preset list.
+        $cleanCustoms = [];
+        foreach ($customPresets as $p) {
+            if (!is_array($p)) continue;
+            $key = strtolower(trim((string) ($p['key'] ?? '')));
+            $label = trim((string) ($p['label'] ?? ''));
+            if ($key === '' || $label === '') continue;
+            if (!preg_match('/^[a-z0-9][a-z0-9_-]{0,31}$/', $key)) continue;
+            if (isset(self::PRESETS[$key]) || $key === 'custom') continue;
+
+            $values = [];
+            foreach (self::TUNABLE_KEYS as $k) {
+                $v = $p['values'][$k] ?? null;
+                if (!is_numeric($v)) { $values = []; break; }
+                $values[$k] = self::clampTunable($k, (float) $v);
+            }
+            if (count($values) !== count(self::TUNABLE_KEYS)) continue;
+
+            $cleanCustoms[$key] = [
+                'key'         => $key,
+                'label'       => $label,
+                'description' => trim((string) ($p['description'] ?? '')),
+                'values'      => $values,
+            ];
+        }
+        $cleanCustoms = array_values($cleanCustoms);
+
+        // Validate preset against built-ins + the just-canonicalized customs.
+        $validKeys = array_keys(self::PRESETS);
+        foreach ($cleanCustoms as $p) { $validKeys[] = $p['key']; }
+        $validKeys[] = 'custom';
+        if (!in_array($preset, $validKeys, true)) $preset = 'creator';
+
+        $cleanOverrides = [];
+        if ($preset === 'custom') {
+            foreach (self::TUNABLE_KEYS as $k) {
+                if (array_key_exists($k, $overrides) && is_numeric($overrides[$k])) {
+                    $cleanOverrides[$k] = self::clampTunable($k, (float) $overrides[$k]);
+                }
+            }
+        }
+
+        $blob = [
+            'preset'         => $preset,
+            'overrides'      => $cleanOverrides,
+            'custom_presets' => $cleanCustoms,
+        ];
+        \App\Modules\Admin\Models\AppSetting::put('coach_defaults', $blob);
+        return $blob;
     }
 
     /**
@@ -909,7 +1088,7 @@ class LinkPerformanceCoach
      */
     public static function saveLinkSettings(Link $link, string $preset, array $overrides = []): array
     {
-        $validPresets = array_merge(array_keys(self::PRESETS), ['custom']);
+        $validPresets = self::validPresetKeys();
         if (!in_array($preset, $validPresets, true)) $preset = 'creator';
 
         $clean = [];

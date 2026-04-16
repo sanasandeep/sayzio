@@ -2,7 +2,7 @@
 @if(!empty($performance))
 @php
     $p = $performance;
-    $pcPresets = \App\Modules\User\Services\LinkPerformanceCoach::PRESETS;
+    $pcPresets = \App\Modules\User\Services\LinkPerformanceCoach::availablePresets();
     $pcPreset  = \App\Modules\User\Services\LinkPerformanceCoach::resolvePreset($link);
     $pcEffective = \App\Modules\User\Services\LinkPerformanceCoach::resolveConfig($link);
     $sevMap = [

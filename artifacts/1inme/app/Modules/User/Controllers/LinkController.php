@@ -506,7 +506,7 @@ class LinkController extends Controller
         abort_if($link->user_id !== $request->user()->id, 403);
 
         $validated = $request->validate([
-            'preset' => 'required|string|in:creator,storefront,landing,custom',
+            'preset' => ['required', 'string', 'in:' . implode(',', \App\Modules\User\Services\LinkPerformanceCoach::validPresetKeys())],
             'overrides' => 'nullable|array',
             'overrides.ctr_critical' => 'nullable|numeric|between:0,1',
             'overrides.ctr_warning' => 'nullable|numeric|between:0,1',

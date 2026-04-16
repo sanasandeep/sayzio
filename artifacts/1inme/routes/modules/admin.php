@@ -9,6 +9,7 @@ use App\Modules\Admin\Controllers\UserManagementController;
 use App\Modules\Admin\Controllers\RoleController;
 use App\Modules\Admin\Controllers\PlanController;
 use App\Modules\Admin\Controllers\LinkManagementController;
+use App\Modules\Admin\Controllers\CoachDefaultsController;
 use App\Modules\Admin\Middleware\CheckPermission;
 
 Route::prefix('admin')->name('admin.')->group(function () {
@@ -61,6 +62,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('{link}', [LinkManagementController::class, 'show'])->middleware(CheckPermission::class . ':staff.view')->name('show');
             Route::post('{link}/toggle', [LinkManagementController::class, 'toggleActive'])->middleware(CheckPermission::class . ':staff.edit')->name('toggle');
             Route::delete('{link}', [LinkManagementController::class, 'destroy'])->middleware(CheckPermission::class . ':staff.delete')->name('destroy');
+        });
+
+        Route::prefix('coach-defaults')->name('coach-defaults.')->group(function () {
+            Route::get('/', [CoachDefaultsController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
+            Route::post('/', [CoachDefaultsController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
         });
 
         Route::prefix('users')->name('users.')->group(function () {

@@ -51,6 +51,12 @@
             <i class="fas fa-tags"></i>
             <span>Plans</span>
         </a>
+
+        <a href="{{ route('admin.coach-defaults.edit') }}"
+           class="sidebar-link {{ request()->routeIs('admin.coach-defaults.*') ? 'active' : '' }}">
+            <i class="fas fa-wand-magic-sparkles"></i>
+            <span>Coach Defaults</span>
+        </a>
     </nav>
 
     <div class="p-3" style="border-top: 1px solid var(--border-subtle);">
