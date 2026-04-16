@@ -481,6 +481,27 @@
                 style="font-size: 11px;">
                 <i class="fas fa-download"></i> <span class="hidden sm:inline">Download</span>
             </button>
+            <div class="relative inline-block" id="heatmap-share-wrap">
+                <button type="button" id="heatmap-share" class="table-action" title="Share snapshot"
+                    style="font-size: 11px;">
+                    <i class="fas fa-share-nodes"></i> <span class="hidden sm:inline">Share</span>
+                </button>
+                <div id="heatmap-share-menu"
+                    class="absolute right-0 mt-2 w-60 rounded-xl p-1.5 z-50"
+                    style="display:none; background: var(--bg-glass); border: 1px solid var(--border-glass); backdrop-filter: blur(20px); box-shadow: 0 18px 48px rgba(0,0,0,0.35);">
+                    <button type="button" data-share-action="copy" class="w-full text-left px-3 py-2 rounded-lg text-[12px] inline-flex items-center gap-2 hover:bg-white/5" style="color: var(--text-secondary);">
+                        <i class="fas fa-copy w-4 text-center"></i> Copy image to clipboard
+                    </button>
+                    <button type="button" data-share-action="x" class="w-full text-left px-3 py-2 rounded-lg text-[12px] inline-flex items-center gap-2 hover:bg-white/5" style="color: var(--text-secondary);">
+                        <i class="fab fa-twitter w-4 text-center"></i> Share to X (copies image)
+                    </button>
+                    <button type="button" data-share-action="linkedin" class="w-full text-left px-3 py-2 rounded-lg text-[12px] inline-flex items-center gap-2 hover:bg-white/5" style="color: var(--text-secondary);">
+                        <i class="fab fa-linkedin w-4 text-center"></i> Share to LinkedIn (copies image)
+                    </button>
+                </div>
+            </div>
+            <span id="heatmap-share-toast" x-cloak
+                class="section-pill" style="display:none; background: rgba(34,197,94,0.15); border-color: rgba(34,197,94,0.4); color: #86efac;"></span>
         </div>
     </div>
     <style>
@@ -1127,13 +1148,15 @@
                         // Keep the map visible so Live mode can still drop pins on it,
                         // but show an inline hint above the map when there's no aggregate data.
                         document.getElementById('heatmap-empty').style.display = 'block';
-                        const dlBtn = document.getElementById('heatmap-download');
-                        if (dlBtn) {
-                            dlBtn.disabled = true;
-                            dlBtn.style.opacity = '0.45';
-                            dlBtn.style.cursor = 'not-allowed';
-                            dlBtn.title = 'No map data to export yet';
-                        }
+                        ['heatmap-download', 'heatmap-share'].forEach(id => {
+                            const b = document.getElementById(id);
+                            if (b) {
+                                b.disabled = true;
+                                b.style.opacity = '0.45';
+                                b.style.cursor = 'not-allowed';
+                                b.title = 'No map data to export yet';
+                            }
+                        });
                         return;
                     }
                     metaEl.style.display = 'inline-flex';
@@ -1294,13 +1317,13 @@
     function toggleLive() {
         if (liveEnabled) stopLive(); else startLive();
     }
-    function downloadHeatmapPng() {
-        if (!map) return;
+    function buildHeatmapCanvas() {
+        if (!map) return null;
         // Force a synchronous render so the WebGL drawing buffer is fresh.
         try { map.triggerRepaint(); } catch (e) {}
         const src = map.getCanvas();
         const w = src.width, h = src.height;
-        if (!w || !h) return;
+        if (!w || !h) return null;
 
         const out = document.createElement('canvas');
         out.width = w; out.height = h;
@@ -1364,17 +1387,160 @@
             ctx.fillText('/' + slug, x + padX, y + padY + titleSize + subSize + 12 * dpr);
         }
 
-        let url;
-        try { url = out.toDataURL('image/png'); }
-        catch (e) { console.error('Heatmap export failed', e); alert('Could not export the map image.'); return; }
+        return { canvas: out, slug: slug };
+    }
 
-        const a = document.createElement('a');
+    function heatmapFileName(slug) {
         const safeSlug = (slug || 'link').replace(/[^a-z0-9_-]+/gi, '-').toLowerCase();
+        return `1inme-heatmap-${safeSlug}-${new Date().toISOString().slice(0,10)}.png`;
+    }
+
+    function canvasToBlob(canvas) {
+        return new Promise((resolve, reject) => {
+            try {
+                if (canvas.toBlob) {
+                    canvas.toBlob(b => b ? resolve(b) : reject(new Error('Empty blob')), 'image/png');
+                } else {
+                    const data = canvas.toDataURL('image/png');
+                    fetch(data).then(r => r.blob()).then(resolve, reject);
+                }
+            } catch (e) { reject(e); }
+        });
+    }
+
+    function downloadHeatmapPng() {
+        const built = buildHeatmapCanvas();
+        if (!built) return;
+        let url;
+        try { url = built.canvas.toDataURL('image/png'); }
+        catch (e) { console.error('Heatmap export failed', e); alert('Could not export the map image.'); return; }
+        const a = document.createElement('a');
         a.href = url;
-        a.download = `1inme-heatmap-${safeSlug}-${new Date().toISOString().slice(0,10)}.png`;
+        a.download = heatmapFileName(built.slug);
         document.body.appendChild(a);
         a.click();
         a.remove();
+    }
+
+    function showShareToast(msg, isError) {
+        const toast = document.getElementById('heatmap-share-toast');
+        if (!toast) return;
+        toast.textContent = msg;
+        toast.style.display = 'inline-flex';
+        if (isError) {
+            toast.style.background = 'rgba(239,68,68,0.15)';
+            toast.style.borderColor = 'rgba(239,68,68,0.4)';
+            toast.style.color = '#fca5a5';
+        } else {
+            toast.style.background = 'rgba(34,197,94,0.15)';
+            toast.style.borderColor = 'rgba(34,197,94,0.4)';
+            toast.style.color = '#86efac';
+        }
+        clearTimeout(showShareToast._t);
+        showShareToast._t = setTimeout(() => { toast.style.display = 'none'; }, 3500);
+    }
+
+    async function copyImageBlobToClipboard(blob) {
+        if (!navigator.clipboard || typeof ClipboardItem === 'undefined') {
+            throw new Error('Clipboard image copy not supported');
+        }
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+    }
+
+    function shareCaption(slug) {
+        const base = 'Check out where my link traffic is coming from on 1INME';
+        return slug ? `${base} (/${slug})` : base;
+    }
+
+    async function shareHeatmap(action) {
+        const built = buildHeatmapCanvas();
+        if (!built) return;
+        let blob;
+        try { blob = await canvasToBlob(built.canvas); }
+        catch (e) { console.error('Heatmap blob failed', e); showShareToast('Could not capture the map image.', true); return; }
+
+        const fileName = heatmapFileName(built.slug);
+        const caption = shareCaption(built.slug);
+        const shareUrl = window.location.href;
+
+        // If user invoked the primary Share button (action === 'native') and the
+        // browser supports sharing files (Web Share API on mobile mostly), use it.
+        if (action === 'native') {
+            let nativeOk = false;
+            if (navigator.canShare) {
+                try {
+                    const file = new File([blob], fileName, { type: 'image/png' });
+                    if (navigator.canShare({ files: [file] })) {
+                        await navigator.share({ files: [file], title: '1INME Heatmap', text: caption });
+                        return;
+                    }
+                } catch (e) {
+                    if (e && e.name === 'AbortError') return;
+                    console.warn('Native share failed, falling back', e);
+                    nativeOk = false;
+                }
+            }
+            // Native share unavailable or threw — fall back to the menu so the
+            // user can pick copy / X / LinkedIn instead of silently doing nothing.
+            const menu = document.getElementById('heatmap-share-menu');
+            if (menu) menu.style.display = 'block';
+            showShareToast('Sharing isn\u2019t available here — pick a destination below.', true);
+            return;
+        }
+
+        // Desktop fallback: copy image to clipboard, then for X/LinkedIn open intent.
+        let copied = false;
+        try { await copyImageBlobToClipboard(blob); copied = true; }
+        catch (e) { console.warn('Clipboard image copy failed', e); }
+
+        if (action === 'copy') {
+            showShareToast(copied ? 'Image copied to clipboard.' : 'Clipboard not available — try Download instead.', !copied);
+            return;
+        }
+        if (action === 'x') {
+            const intent = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(caption) + '&url=' + encodeURIComponent(shareUrl);
+            window.open(intent, '_blank', 'noopener,noreferrer');
+            showShareToast(copied ? 'Image copied — paste into your post.' : 'Opened X. Use Download to attach the image.', !copied);
+            return;
+        }
+        if (action === 'linkedin') {
+            const intent = 'https://www.linkedin.com/sharing/share-offsite/?url=' + encodeURIComponent(shareUrl);
+            window.open(intent, '_blank', 'noopener,noreferrer');
+            showShareToast(copied ? 'Image copied — paste into your post.' : 'Opened LinkedIn. Use Download to attach the image.', !copied);
+            return;
+        }
+    }
+
+    function deviceSupportsFileShare() {
+        if (!navigator.canShare || typeof File === 'undefined') return false;
+        try { return navigator.canShare({ files: [new File([new Blob()], 'x.png', { type: 'image/png' })] }); }
+        catch (e) { return false; }
+    }
+
+    function setupShareButton() {
+        const btn = document.getElementById('heatmap-share');
+        const menu = document.getElementById('heatmap-share-menu');
+        if (!btn || !menu) return;
+        const closeMenu = () => { menu.style.display = 'none'; };
+        btn.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            if (deviceSupportsFileShare()) {
+                shareHeatmap('native');
+                return;
+            }
+            menu.style.display = (menu.style.display === 'none' || !menu.style.display) ? 'block' : 'none';
+        });
+        menu.querySelectorAll('[data-share-action]').forEach(item => {
+            item.addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                closeMenu();
+                shareHeatmap(item.getAttribute('data-share-action'));
+            });
+        });
+        document.addEventListener('click', (ev) => {
+            if (!menu.contains(ev.target) && ev.target !== btn) closeMenu();
+        });
+        document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') closeMenu(); });
     }
 
     document.addEventListener('DOMContentLoaded', function () {
@@ -1396,6 +1562,7 @@
         });
         const dlBtn = document.getElementById('heatmap-download');
         if (dlBtn) dlBtn.addEventListener('click', downloadHeatmapPng);
+        setupShareButton();
         buildMap();
         new MutationObserver(syncMapToAppTheme)
             .observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
