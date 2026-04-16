@@ -297,7 +297,7 @@ class LinkController extends Controller
         $blockMeta = [];
         if ($link->type === 'biolink') {
             $blocksForLink = \App\Modules\User\Models\BiolinkBlock::where('link_id', $link->id)
-                ->get(['id', 'type', 'settings']);
+                ->get(['id', 'type', 'settings', 'parent_id', 'is_active']);
 
             $titleKeys = ['title', 'heading', 'text', 'label', 'name', 'caption', 'question', 'button_text', 'description', 'bio', 'code'];
             $urlKeys   = ['url', 'link', 'destination_url', 'href', 'embed_url', 'src', 'video_url'];
@@ -412,22 +412,20 @@ class LinkController extends Controller
             }
         }
 
-        // ---- Performance Coach: derive score + prioritized insights from
-        // everything we've already computed above. The engine itself issues
-        // no DB queries — we pre-aggregate a tiny block-inventory snapshot
-        // here in a single query so rules can reason about the page shape.
+        // ---- Performance Coach: derive a tiny block-inventory snapshot from
+        // the `$blocksForLink` collection we already fetched above for
+        // $blockMeta — no additional query. The coach engine itself issues
+        // zero queries and simply transforms this context into insights.
         $blockInventory = ['clickable' => [], 'has_socials' => false, 'has_qr' => false,
                             'active_count' => 0, 'top_level_active_count' => 0];
-        if ($link->type === 'biolink') {
-            $activeBlocks = \App\Modules\User\Models\BiolinkBlock::where('link_id', $link->id)
-                ->where('is_active', true)
-                ->get(['id', 'type', 'parent_id']);
+        if ($link->type === 'biolink' && isset($blocksForLink)) {
             $nonInteractive = ['heading', 'heading_gradient', 'heading_logo', 'heading_morph',
                 'paragraph', 'paragraph_rich', 'divider', 'spacer',
                 'verified_heading', 'verified_avatar', 'alert', 'badge', 'avatar'];
             $socialTypes = ['socials', 'socials_multi', 'socials_custom'];
-            $blockInventory['active_count'] = $activeBlocks->count();
-            foreach ($activeBlocks as $blk) {
+            foreach ($blocksForLink as $blk) {
+                if (!$blk->is_active) continue;
+                $blockInventory['active_count']++;
                 if ($blk->parent_id === null) {
                     $blockInventory['top_level_active_count']++;
                     if (!in_array($blk->type, $nonInteractive, true)) {

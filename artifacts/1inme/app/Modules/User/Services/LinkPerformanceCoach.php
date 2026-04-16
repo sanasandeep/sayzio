@@ -279,11 +279,12 @@ class LinkPerformanceCoach
 
     private static function gradeAndLabel(int $score): array
     {
+        // Four-label scheme from spec: Excellent / Healthy / Needs work / Critical.
         return match (true) {
-            $score >= 90 => ['A', 'Excellent'],
-            $score >= 75 => ['B', 'Healthy'],
-            $score >= 60 => ['C', 'Okay'],
-            $score >= 40 => ['D', 'Needs work'],
+            $score >= 85 => ['A', 'Excellent'],
+            $score >= 70 => ['B', 'Healthy'],
+            $score >= 50 => ['C', 'Needs work'],
+            $score >= 30 => ['D', 'Needs work'],
             default      => ['F', 'Critical'],
         };
     }
