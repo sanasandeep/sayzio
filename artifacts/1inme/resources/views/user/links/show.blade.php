@@ -274,6 +274,11 @@
         color: var(--sc-color, #c4b5fd);
         border: 1px solid var(--sc-border, rgba(139,92,246,0.25));
     }
+    html.light-mode .section-pill {
+        background: rgba(124,58,237,0.10);
+        color: #6d28d9;
+        border-color: rgba(124,58,237,0.25);
+    }
 
     /* ============ Fancy Table ============ */
     .fancy-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12.5px; }
