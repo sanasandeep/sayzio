@@ -18,6 +18,56 @@ use App\Modules\User\Models\Link;
 class LinkPerformanceCoach
 {
     /**
+     * User-tunable threshold fields. These are the only keys a per-link
+     * override (preset or custom) is allowed to change — everything else
+     * (weights, floors, etc.) stays on the defaults below for safety.
+     */
+    public const TUNABLE_KEYS = [
+        'ctr_critical', 'ctr_warning', 'ctr_excellent',
+        'bounce_critical', 'bounce_warning', 'bounce_excellent',
+        'engagement_low_seconds', 'engagement_excellent_seconds',
+        'momentum_drop_critical', 'momentum_drop_warning', 'momentum_win_threshold',
+    ];
+
+    /**
+     * Ready-made preset bundles creators can pick from. Each preset only
+     * overrides the TUNABLE_KEYS — the unchanged defaults in CONFIG still
+     * govern weighting and rule gating.
+     */
+    public const PRESETS = [
+        'creator' => [
+            'label'       => 'Creator / Link-in-bio',
+            'description' => 'Balanced defaults for a link-in-bio page.',
+            'values'      => [
+                'ctr_critical' => 0.05, 'ctr_warning' => 0.15, 'ctr_excellent' => 0.40,
+                'bounce_critical' => 70, 'bounce_warning' => 50, 'bounce_excellent' => 25,
+                'engagement_low_seconds' => 10, 'engagement_excellent_seconds' => 45,
+                'momentum_drop_critical' => -0.40, 'momentum_drop_warning' => -0.15, 'momentum_win_threshold' => 0.25,
+            ],
+        ],
+        'storefront' => [
+            'label'       => 'Storefront',
+            'description' => 'Shopping-oriented page — higher CTR expected, traffic swings normal.',
+            'values'      => [
+                'ctr_critical' => 0.08, 'ctr_warning' => 0.20, 'ctr_excellent' => 0.50,
+                'bounce_critical' => 75, 'bounce_warning' => 60, 'bounce_excellent' => 30,
+                'engagement_low_seconds' => 15, 'engagement_excellent_seconds' => 60,
+                'momentum_drop_critical' => -0.30, 'momentum_drop_warning' => -0.10, 'momentum_win_threshold' => 0.20,
+            ],
+        ],
+        'landing' => [
+            'label'       => 'Landing page',
+            'description' => 'Conversion-focused page — strict click-through and bounce expectations.',
+            'values'      => [
+                'ctr_critical' => 0.15, 'ctr_warning' => 0.30, 'ctr_excellent' => 0.60,
+                'bounce_critical' => 60, 'bounce_warning' => 40, 'bounce_excellent' => 20,
+                'engagement_low_seconds' => 20, 'engagement_excellent_seconds' => 75,
+                'momentum_drop_critical' => -0.25, 'momentum_drop_warning' => -0.10, 'momentum_win_threshold' => 0.15,
+            ],
+        ],
+    ];
+
+    /**
      * Single source of truth for tuning thresholds and weights.
      * Kept at the top of the file as required by the task spec.
      */
@@ -95,10 +145,16 @@ class LinkPerformanceCoach
      */
     public static function build(array $ctx): array
     {
-        $cfg = self::CONFIG;
-
         /** @var Link $link */
         $link  = $ctx['link'];
+
+        // Resolve effective config for this link (preset + overrides) once,
+        // then pass it via $ctx so every rule / score helper sees the same
+        // thresholds without re-resolving.
+        $cfg = self::resolveConfig($link);
+        $ctx['_config'] = $cfg;
+        $ctx['_preset'] = self::resolvePreset($link);
+
         $total = (int) ($ctx['totalInRange'] ?? 0);
 
         // Empty / onboarding state
@@ -191,7 +247,7 @@ class LinkPerformanceCoach
      */
     public static function scoreWithComponents(array $ctx): array
     {
-        $cfg = self::CONFIG;
+        $cfg = $ctx['_config'] ?? self::CONFIG;
         $w   = $cfg['weights'];
 
         $pageVisits  = max(1, (int) ($ctx['pageVisitsInRange'] ?? 0));
@@ -347,7 +403,7 @@ class LinkPerformanceCoach
 
     private static function ruleHighBounce(array $ctx): ?array
     {
-        $cfg = self::CONFIG;
+        $cfg = $ctx['_config'] ?? self::CONFIG;
         if ((int) ($ctx['totalSessions'] ?? 0) < 10) return null;
         $rate = (float) ($ctx['bounceRate'] ?? 0);
 
@@ -376,7 +432,7 @@ class LinkPerformanceCoach
 
     private static function ruleLowBounceWin(array $ctx): ?array
     {
-        $cfg = self::CONFIG;
+        $cfg = $ctx['_config'] ?? self::CONFIG;
         if ((int) ($ctx['totalSessions'] ?? 0) < 20) return null;
         $rate = (float) ($ctx['bounceRate'] ?? 0);
         if ($rate <= $cfg['bounce_excellent']) {
@@ -392,7 +448,7 @@ class LinkPerformanceCoach
 
     private static function ruleLowCtr(array $ctx): ?array
     {
-        $cfg = self::CONFIG;
+        $cfg = $ctx['_config'] ?? self::CONFIG;
         $visits = (int) ($ctx['pageVisitsInRange'] ?? 0);
         $blockClicks = (int) ($ctx['blockClicksInRange'] ?? 0);
         if ($visits < 20) return null;
@@ -424,7 +480,7 @@ class LinkPerformanceCoach
 
     private static function ruleHighCtrWin(array $ctx): ?array
     {
-        $cfg = self::CONFIG;
+        $cfg = $ctx['_config'] ?? self::CONFIG;
         $visits = (int) ($ctx['pageVisitsInRange'] ?? 0);
         $blockClicks = (int) ($ctx['blockClicksInRange'] ?? 0);
         if ($visits < 20) return null;
@@ -443,7 +499,7 @@ class LinkPerformanceCoach
 
     private static function ruleDeadBlocks(array $ctx): ?array
     {
-        $cfg = self::CONFIG;
+        $cfg = $ctx['_config'] ?? self::CONFIG;
         /** @var Link $link */
         $link = $ctx['link'];
         if ($link->type !== 'biolink') return null;
@@ -485,7 +541,7 @@ class LinkPerformanceCoach
 
     private static function ruleTopHeavy(array $ctx): ?array
     {
-        $cfg = self::CONFIG;
+        $cfg = $ctx['_config'] ?? self::CONFIG;
         $blockStats = $ctx['blockStats'] ?? collect();
         $totalBlockClicks = (int) ($ctx['blockClicksInRange'] ?? 0);
         if ($totalBlockClicks < 30 || $blockStats->count() < 3) return null;
@@ -522,7 +578,7 @@ class LinkPerformanceCoach
 
     private static function ruleTrafficDrop(array $ctx, ?float $delta): ?array
     {
-        $cfg = self::CONFIG;
+        $cfg = $ctx['_config'] ?? self::CONFIG;
         if ($delta === null) return null;
         if ((int) ($ctx['totalInRange'] ?? 0) < $cfg['min_traffic_for_rules']) return null;
 
@@ -549,7 +605,7 @@ class LinkPerformanceCoach
 
     private static function ruleMomentumWin(array $ctx, ?float $delta): ?array
     {
-        $cfg = self::CONFIG;
+        $cfg = $ctx['_config'] ?? self::CONFIG;
         if ($delta === null) return null;
         if ($delta < $cfg['momentum_win_threshold']) return null;
         if ((int) ($ctx['totalInRange'] ?? 0) < $cfg['min_traffic_for_rules']) return null;
@@ -564,7 +620,7 @@ class LinkPerformanceCoach
 
     private static function ruleSingleReferrer(array $ctx): ?array
     {
-        $cfg  = self::CONFIG;
+        $cfg = $ctx['_config'] ?? self::CONFIG;
         $refs = $ctx['topReferrers'] ?? collect();
         if ($refs->count() === 0) return null;
         $sum = 0;
@@ -624,7 +680,7 @@ class LinkPerformanceCoach
 
     private static function ruleLongPageShortSession(array $ctx): ?array
     {
-        $cfg = self::CONFIG;
+        $cfg = $ctx['_config'] ?? self::CONFIG;
         /** @var Link $link */
         $link = $ctx['link'];
         if ($link->type !== 'biolink') return null;
@@ -764,6 +820,117 @@ class LinkPerformanceCoach
     private static function editUrl(array $ctx): string
     {
         return route('user.links.edit', $ctx['link']);
+    }
+
+    /* ------------------------------------------------------------------
+     | Per-link tuning (preset / custom overrides)
+     |------------------------------------------------------------------*/
+
+    /**
+     * Read the raw performance-coach settings stored on the link
+     * (settings->performance_coach). Shape: ['preset' => string, 'overrides' => array].
+     */
+    public static function linkSettings(?Link $link): array
+    {
+        if (!$link) return [];
+        $s = $link->settings ?? [];
+        if (!is_array($s)) return [];
+        $pc = $s['performance_coach'] ?? [];
+        return is_array($pc) ? $pc : [];
+    }
+
+    /**
+     * The preset key currently applied to this link ('creator' by default).
+     */
+    public static function resolvePreset(?Link $link): string
+    {
+        $pc = self::linkSettings($link);
+        $preset = $pc['preset'] ?? 'creator';
+        if (!in_array($preset, array_merge(array_keys(self::PRESETS), ['custom']), true)) {
+            $preset = 'creator';
+        }
+        return $preset;
+    }
+
+    /**
+     * The effective config for this link — CONFIG defaults + preset tunables
+     * + per-link custom overrides (clamped to safe bounds).
+     */
+    public static function resolveConfig(?Link $link): array
+    {
+        $cfg = self::CONFIG;
+        $pc = self::linkSettings($link);
+        $preset = self::resolvePreset($link);
+
+        if ($preset === 'custom') {
+            // Custom: start from the creator baseline, then apply stored overrides.
+            foreach ((self::PRESETS['creator']['values'] ?? []) as $k => $v) {
+                $cfg[$k] = $v;
+            }
+            $overrides = is_array($pc['overrides'] ?? null) ? $pc['overrides'] : [];
+            foreach (self::TUNABLE_KEYS as $k) {
+                if (array_key_exists($k, $overrides) && is_numeric($overrides[$k])) {
+                    $cfg[$k] = self::clampTunable($k, (float) $overrides[$k]);
+                }
+            }
+        } else {
+            foreach ((self::PRESETS[$preset]['values'] ?? []) as $k => $v) {
+                $cfg[$k] = $v;
+            }
+        }
+
+        return $cfg;
+    }
+
+    /**
+     * Clamp a user-supplied tunable value into a sane range so a typo
+     * can't break scoring (e.g. negative CTR, 500% bounce).
+     */
+    public static function clampTunable(string $key, float $value): float
+    {
+        return match ($key) {
+            'ctr_critical', 'ctr_warning', 'ctr_excellent'
+                => max(0.0, min(1.0, $value)),
+            'bounce_critical', 'bounce_warning', 'bounce_excellent'
+                => max(0.0, min(100.0, $value)),
+            'engagement_low_seconds', 'engagement_excellent_seconds'
+                => max(1.0, min(600.0, $value)),
+            'momentum_drop_critical', 'momentum_drop_warning'
+                => max(-1.0, min(0.0, $value)),
+            'momentum_win_threshold'
+                => max(0.0, min(5.0, $value)),
+            default => $value,
+        };
+    }
+
+    /**
+     * Persist preset + optional overrides onto the link's settings JSON.
+     * Returns the canonicalized performance-coach block now stored.
+     */
+    public static function saveLinkSettings(Link $link, string $preset, array $overrides = []): array
+    {
+        $validPresets = array_merge(array_keys(self::PRESETS), ['custom']);
+        if (!in_array($preset, $validPresets, true)) $preset = 'creator';
+
+        $clean = [];
+        if ($preset === 'custom') {
+            foreach (self::TUNABLE_KEYS as $k) {
+                if (array_key_exists($k, $overrides) && is_numeric($overrides[$k])) {
+                    $clean[$k] = self::clampTunable($k, (float) $overrides[$k]);
+                }
+            }
+        }
+
+        $settings = $link->settings ?? [];
+        if (!is_array($settings)) $settings = [];
+        $settings['performance_coach'] = [
+            'preset'    => $preset,
+            'overrides' => $clean,
+        ];
+        $link->settings = $settings;
+        $link->save();
+
+        return $settings['performance_coach'];
     }
 
     private static function pixelsUrl(): string

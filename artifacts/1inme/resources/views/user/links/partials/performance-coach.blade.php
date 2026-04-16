@@ -2,6 +2,9 @@
 @if(!empty($performance))
 @php
     $p = $performance;
+    $pcPresets = \App\Modules\User\Services\LinkPerformanceCoach::PRESETS;
+    $pcPreset  = \App\Modules\User\Services\LinkPerformanceCoach::resolvePreset($link);
+    $pcEffective = \App\Modules\User\Services\LinkPerformanceCoach::resolveConfig($link);
     $sevMap = [
         'critical' => ['bg' => 'rgba(239,68,68,0.12)',  'border' => 'rgba(239,68,68,0.35)',  'color' => '#fca5a5', 'icon' => 'fa-triangle-exclamation'],
         'warning'  => ['bg' => 'rgba(245,158,11,0.12)', 'border' => 'rgba(245,158,11,0.35)', 'color' => '#fcd34d', 'icon' => 'fa-circle-exclamation'],
@@ -46,7 +49,29 @@
 @endphp
 
 <div class="glass rounded-2xl p-4 md:p-5 mb-3 perf-coach"
-     style="--pc-ring: {{ $gradeColor }}; --pc-gauge-deg: {{ $gaugeDeg }}deg;">
+     style="--pc-ring: {{ $gradeColor }}; --pc-gauge-deg: {{ $gaugeDeg }}deg;"
+     x-data="{
+        pcSettingsOpen: false,
+        pcPreset: @js($pcPreset),
+        pcPresets: @js(collect($pcPresets)->mapWithKeys(fn($v,$k)=>[$k=>$v['values']])->all()),
+        pcLabels: @js(array_merge(collect($pcPresets)->mapWithKeys(fn($v,$k)=>[$k=>$v['label']])->all(), ['custom' => 'Custom'])),
+        pcValues: @js(collect($pcEffective)->only(\App\Modules\User\Services\LinkPerformanceCoach::TUNABLE_KEYS)->all()),
+        applyPreset(p) {
+            this.pcPreset = p;
+            if (p !== 'custom' && this.pcPresets[p]) {
+                this.pcValues = { ...this.pcPresets[p] };
+            }
+        },
+        onEdit() { if (this.pcPreset !== 'custom') this.pcPreset = 'custom'; }
+     }">
+    <button type="button"
+            @click="pcSettingsOpen = !pcSettingsOpen"
+            class="pc-settings-btn"
+            :aria-expanded="pcSettingsOpen.toString()"
+            title="Tune what counts as 'healthy' for this page">
+        <i class="fas" :class="pcSettingsOpen ? 'fa-xmark' : 'fa-sliders'"></i>
+        <span class="pc-settings-btn-label" x-text="pcLabels[pcPreset] || 'Creator'"></span>
+    </button>
     <div class="flex flex-col lg:flex-row gap-5">
 
         {{-- LEFT: Score gauge / grade / trend --}}
@@ -167,6 +192,83 @@
             @endif
         </div>
     </div>
+
+    {{-- Inline settings drawer: preset picker + custom thresholds --}}
+    <div x-show="pcSettingsOpen" x-cloak x-transition class="pc-settings">
+        <form method="POST" action="{{ route('user.links.performance-coach.settings', $link) }}" class="pc-settings-form">
+            @csrf
+            <div class="pc-settings-head">
+                <div>
+                    <div class="pc-settings-title"><i class="fas fa-sliders mr-1.5"></i> Tune what counts as healthy</div>
+                    <div class="pc-settings-sub">Pick a preset or fine-tune each threshold. Settings are saved per link.</div>
+                </div>
+            </div>
+
+            <div class="pc-preset-grid">
+                @foreach($pcPresets as $key => $meta)
+                    <label class="pc-preset-card" :class="pcPreset === '{{ $key }}' ? 'is-active' : ''"
+                           @click.prevent="applyPreset('{{ $key }}')">
+                        <div class="pc-preset-top">
+                            <input type="radio" name="preset" value="{{ $key }}" :checked="pcPreset === '{{ $key }}'" class="accent-purple-400">
+                            <span class="pc-preset-label">{{ $meta['label'] }}</span>
+                        </div>
+                        <div class="pc-preset-desc">{{ $meta['description'] }}</div>
+                    </label>
+                @endforeach
+                <label class="pc-preset-card" :class="pcPreset === 'custom' ? 'is-active' : ''"
+                       @click.prevent="applyPreset('custom')">
+                    <div class="pc-preset-top">
+                        <input type="radio" name="preset" value="custom" :checked="pcPreset === 'custom'" class="accent-purple-400">
+                        <span class="pc-preset-label">Custom</span>
+                    </div>
+                    <div class="pc-preset-desc">Hand-tune each threshold below.</div>
+                </label>
+            </div>
+
+            <div class="pc-field-grid">
+                {{-- CTR thresholds --}}
+                <div class="pc-field-group">
+                    <div class="pc-field-group-title">Click-through rate (% of visitors who click a block)</div>
+                    <div class="pc-field-row">
+                        <label>Critical below<input type="number" step="0.01" min="0" max="1" name="overrides[ctr_critical]" :value="(+pcValues.ctr_critical).toFixed(2)" @input="pcValues.ctr_critical=$event.target.value; onEdit()"></label>
+                        <label>Warning below<input type="number" step="0.01" min="0" max="1" name="overrides[ctr_warning]" :value="(+pcValues.ctr_warning).toFixed(2)" @input="pcValues.ctr_warning=$event.target.value; onEdit()"></label>
+                        <label>Excellent at<input type="number" step="0.01" min="0" max="1" name="overrides[ctr_excellent]" :value="(+pcValues.ctr_excellent).toFixed(2)" @input="pcValues.ctr_excellent=$event.target.value; onEdit()"></label>
+                    </div>
+                </div>
+                {{-- Bounce thresholds --}}
+                <div class="pc-field-group">
+                    <div class="pc-field-group-title">Bounce rate (%)</div>
+                    <div class="pc-field-row">
+                        <label>Critical above<input type="number" step="1" min="0" max="100" name="overrides[bounce_critical]" :value="Math.round(pcValues.bounce_critical)" @input="pcValues.bounce_critical=$event.target.value; onEdit()"></label>
+                        <label>Warning above<input type="number" step="1" min="0" max="100" name="overrides[bounce_warning]" :value="Math.round(pcValues.bounce_warning)" @input="pcValues.bounce_warning=$event.target.value; onEdit()"></label>
+                        <label>Excellent below<input type="number" step="1" min="0" max="100" name="overrides[bounce_excellent]" :value="Math.round(pcValues.bounce_excellent)" @input="pcValues.bounce_excellent=$event.target.value; onEdit()"></label>
+                    </div>
+                </div>
+                {{-- Engagement thresholds --}}
+                <div class="pc-field-group">
+                    <div class="pc-field-group-title">Avg. session length (seconds)</div>
+                    <div class="pc-field-row">
+                        <label>Low below<input type="number" step="1" min="1" max="600" name="overrides[engagement_low_seconds]" :value="Math.round(pcValues.engagement_low_seconds)" @input="pcValues.engagement_low_seconds=$event.target.value; onEdit()"></label>
+                        <label>Excellent at<input type="number" step="1" min="1" max="600" name="overrides[engagement_excellent_seconds]" :value="Math.round(pcValues.engagement_excellent_seconds)" @input="pcValues.engagement_excellent_seconds=$event.target.value; onEdit()"></label>
+                    </div>
+                </div>
+                {{-- Momentum thresholds --}}
+                <div class="pc-field-group">
+                    <div class="pc-field-group-title">Momentum vs previous period</div>
+                    <div class="pc-field-row">
+                        <label>Critical drop<input type="number" step="0.05" min="-1" max="0" name="overrides[momentum_drop_critical]" :value="(+pcValues.momentum_drop_critical).toFixed(2)" @input="pcValues.momentum_drop_critical=$event.target.value; onEdit()"></label>
+                        <label>Warning drop<input type="number" step="0.05" min="-1" max="0" name="overrides[momentum_drop_warning]" :value="(+pcValues.momentum_drop_warning).toFixed(2)" @input="pcValues.momentum_drop_warning=$event.target.value; onEdit()"></label>
+                        <label>Win at<input type="number" step="0.05" min="0" max="5" name="overrides[momentum_win_threshold]" :value="(+pcValues.momentum_win_threshold).toFixed(2)" @input="pcValues.momentum_win_threshold=$event.target.value; onEdit()"></label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pc-settings-foot">
+                <button type="button" @click="pcSettingsOpen = false" class="pc-btn pc-btn-ghost">Cancel</button>
+                <button type="submit" class="pc-btn pc-btn-save"><i class="fas fa-check mr-1"></i> Save thresholds</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <style>
@@ -232,5 +334,108 @@
     @media (max-width: 1024px) {
         .perf-coach .pc-insight-cta { display: none; }
     }
+
+    /* Settings drawer */
+    .perf-coach { position: relative; }
+    .perf-coach .pc-settings-btn {
+        position: absolute; top: 10px; right: 10px; z-index: 2;
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 4px 10px; border-radius: 999px;
+        border: 1px solid var(--border-glass, rgba(148,163,184,0.25));
+        background: rgba(255,255,255,0.04);
+        color: var(--text-faint, #cbd5e1);
+        font-size: 11px; font-weight: 600;
+        transition: background .15s ease, color .15s ease;
+    }
+    .perf-coach .pc-settings-btn:hover { background: rgba(255,255,255,0.1); color: var(--text-primary, #fff); }
+    .perf-coach .pc-settings-btn-label { white-space: nowrap; }
+    .perf-coach .pc-settings {
+        margin-top: 16px; padding-top: 14px;
+        border-top: 1px solid var(--border-glass, rgba(148,163,184,0.2));
+    }
+    .perf-coach .pc-settings-head { margin-bottom: 10px; }
+    .perf-coach .pc-settings-title {
+        font-size: 13px; font-weight: 700; color: var(--text-primary, #fff);
+    }
+    .perf-coach .pc-settings-sub {
+        font-size: 11px; color: var(--text-faint, #94a3b8); margin-top: 2px;
+    }
+    .perf-coach .pc-preset-grid {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 8px; margin-bottom: 14px;
+    }
+    .perf-coach .pc-preset-card {
+        border: 1px solid var(--border-glass, rgba(148,163,184,0.25));
+        border-radius: 10px; padding: 10px 12px;
+        cursor: pointer; background: rgba(255,255,255,0.02);
+        transition: border-color .15s ease, background .15s ease;
+    }
+    .perf-coach .pc-preset-card:hover { background: rgba(255,255,255,0.05); }
+    .perf-coach .pc-preset-card.is-active {
+        border-color: rgba(168,85,247,0.6); background: rgba(168,85,247,0.08);
+    }
+    .perf-coach .pc-preset-top {
+        display: flex; align-items: center; gap: 8px; margin-bottom: 4px;
+    }
+    .perf-coach .pc-preset-label {
+        font-size: 13px; font-weight: 700; color: var(--text-primary, #fff);
+    }
+    .perf-coach .pc-preset-desc {
+        font-size: 11px; color: var(--text-faint, #94a3b8); line-height: 1.3;
+    }
+    .perf-coach .pc-field-grid {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 12px 16px;
+    }
+    .perf-coach .pc-field-group {
+        background: rgba(255,255,255,0.02);
+        border: 1px solid var(--border-glass, rgba(148,163,184,0.18));
+        border-radius: 10px; padding: 10px 12px;
+    }
+    .perf-coach .pc-field-group-title {
+        font-size: 11px; font-weight: 600; color: var(--text-faint, #94a3b8);
+        margin-bottom: 8px; letter-spacing: .02em;
+    }
+    .perf-coach .pc-field-row {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+        gap: 8px;
+    }
+    .perf-coach .pc-field-row label {
+        display: flex; flex-direction: column; gap: 3px;
+        font-size: 10px; color: var(--text-faint, #94a3b8);
+        font-weight: 600; text-transform: uppercase; letter-spacing: .04em;
+    }
+    .perf-coach .pc-field-row input[type="number"] {
+        width: 100%;
+        padding: 5px 8px; border-radius: 6px;
+        border: 1px solid var(--border-glass, rgba(148,163,184,0.25));
+        background: rgba(0,0,0,0.2); color: var(--text-primary, #fff);
+        font-size: 13px; font-weight: 600; text-transform: none; letter-spacing: 0;
+    }
+    .perf-coach .pc-field-row input[type="number"]:focus {
+        outline: none; border-color: rgba(168,85,247,0.55);
+        box-shadow: 0 0 0 2px rgba(168,85,247,0.15);
+    }
+    .perf-coach .pc-settings-foot {
+        display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px;
+    }
+    .perf-coach .pc-btn {
+        display: inline-flex; align-items: center;
+        padding: 7px 14px; border-radius: 8px;
+        font-size: 12px; font-weight: 600;
+        border: 1px solid transparent; cursor: pointer;
+        transition: background .15s ease, border-color .15s ease;
+    }
+    .perf-coach .pc-btn-ghost {
+        background: transparent; color: var(--text-faint, #94a3b8);
+        border-color: var(--border-glass, rgba(148,163,184,0.25));
+    }
+    .perf-coach .pc-btn-ghost:hover { background: rgba(255,255,255,0.05); color: var(--text-primary, #fff); }
+    .perf-coach .pc-btn-save {
+        background: linear-gradient(135deg, rgba(168,85,247,0.9), rgba(99,102,241,0.9));
+        color: #fff; border-color: rgba(168,85,247,0.6);
+    }
+    .perf-coach .pc-btn-save:hover { filter: brightness(1.1); }
+    [x-cloak] { display: none !important; }
 </style>
 @endif

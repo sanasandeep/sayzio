@@ -493,6 +493,42 @@ class LinkController extends Controller
         ));
     }
 
+    /**
+     * Update the per-link Performance Coach tuning (preset or custom thresholds).
+     * Thresholds are stored on the link's `settings` JSON under `performance_coach`
+     * so they persist between visits and re-apply on the next coach build.
+     */
+    public function updatePerformanceCoachSettings(Request $request, Link $link)
+    {
+        abort_if($link->user_id !== $request->user()->id, 403);
+
+        $validated = $request->validate([
+            'preset' => 'required|string|in:creator,storefront,landing,custom',
+            'overrides' => 'nullable|array',
+            'overrides.ctr_critical' => 'nullable|numeric|between:0,1',
+            'overrides.ctr_warning' => 'nullable|numeric|between:0,1',
+            'overrides.ctr_excellent' => 'nullable|numeric|between:0,1',
+            'overrides.bounce_critical' => 'nullable|numeric|between:0,100',
+            'overrides.bounce_warning' => 'nullable|numeric|between:0,100',
+            'overrides.bounce_excellent' => 'nullable|numeric|between:0,100',
+            'overrides.engagement_low_seconds' => 'nullable|numeric|between:1,600',
+            'overrides.engagement_excellent_seconds' => 'nullable|numeric|between:1,600',
+            'overrides.momentum_drop_critical' => 'nullable|numeric|between:-1,0',
+            'overrides.momentum_drop_warning' => 'nullable|numeric|between:-1,0',
+            'overrides.momentum_win_threshold' => 'nullable|numeric|between:0,5',
+        ]);
+
+        \App\Modules\User\Services\LinkPerformanceCoach::saveLinkSettings(
+            $link,
+            $validated['preset'],
+            $validated['overrides'] ?? []
+        );
+
+        return redirect()
+            ->to(url()->previous() ?: route('user.links.show', $link))
+            ->with('success', 'Performance Coach thresholds updated.');
+    }
+
     private function resolveAnalyticsRange(Request $request): array
     {
         $period = $request->query('period', '30d');

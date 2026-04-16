@@ -58,6 +58,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('links', [LinkController::class, 'store'])->middleware(CheckPlanLimit::class . ':links')->name('links.store');
         Route::post('links/{link}/toggle-active', [LinkController::class, 'toggleActive'])->name('links.toggle-active');
         Route::post('links/{link}/coach-action', [LinkController::class, 'coachAction'])->name('links.coach-action');
+        Route::post('links/{link}/performance-coach/settings', [LinkController::class, 'updatePerformanceCoachSettings'])->name('links.performance-coach.settings');
         Route::delete('links/{link}/stats', [LinkController::class, 'resetStats'])->name('links.reset-stats');
         Route::put('links/{link}/alias', [LinkController::class, 'updateAlias'])->name('links.update-alias');
 
