@@ -14,12 +14,16 @@ run = "cd /home/runner/workspace/artifacts/1inme && php artisan serve --host=0.0
 [services.development.env]
 PORT = "5000"
 
+[services.production.build]
+args = ["sh", "-c", "cd artifacts/1inme && composer install --no-dev --optimize-autoloader --no-interaction && php artisan config:clear && php artisan route:clear && php artisan view:clear"]
+
 [services.production.run]
-args = ["php", "artifacts/1inme/artisan", "serve", "--host=0.0.0.0", "--port=5000"]
+args = ["sh", "-c", "cd artifacts/1inme && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=5000"]
 
 [services.production.run.env]
 PORT = "5000"
 APP_ENV = "production"
+APP_DEBUG = "false"
 
 [services.production.health.startup]
 path = "/"
