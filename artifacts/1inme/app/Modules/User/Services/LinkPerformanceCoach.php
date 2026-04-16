@@ -179,6 +179,18 @@ class LinkPerformanceCoach
 
     private static function computeScore(array $ctx): int
     {
+        return self::scoreWithComponents($ctx)['score'];
+    }
+
+    /**
+     * Compute the 0-100 score alongside the normalized (0-1) per-component
+     * breakdown used to produce it. Split out from `computeScore` so nightly
+     * snapshots can persist both the headline score and its components.
+     *
+     * @return array{score:int, components:array<string,float>}
+     */
+    public static function scoreWithComponents(array $ctx): array
+    {
         $cfg = self::CONFIG;
         $w   = $cfg['weights'];
 
@@ -251,9 +263,20 @@ class LinkPerformanceCoach
             $raw  += $c['score'] * $c['weight'];
             $wSum += $c['weight'];
         }
-        if ($wSum <= 0) return 0;
+        $breakdown = [
+            'ctr'        => round($ctrScore, 4),
+            'bounce'     => round($bounceScore, 4),
+            'engagement' => round($engScore, 4),
+            'momentum'   => round($momentumScore, 4),
+            'diversity'  => round($diversityScore, 4),
+            'activity'   => round($activityScore, 4),
+        ];
+        if ($wSum <= 0) {
+            return ['score' => 0, 'components' => $breakdown];
+        }
         $normalized = ($raw / $wSum) * 100.0;
-        return (int) max(0, min(100, round($normalized)));
+        $score = (int) max(0, min(100, round($normalized)));
+        return ['score' => $score, 'components' => $breakdown];
     }
 
     private static function diversityScore(array $ctx): float

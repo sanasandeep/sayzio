@@ -23,6 +23,26 @@
         default              => '#f87171',
     };
     $gaugeDeg = $score === null ? 0 : round(($score / 100) * 360);
+
+    // Sparkline: last 30 daily score snapshots (written by coach:snapshot-scores).
+    // Only render when we have at least 2 points — a single dot isn't a trend.
+    $history = $performanceHistory ?? [];
+    $sparkPoints = [];
+    $sparkDelta  = null;
+    if (is_array($history) && count($history) >= 2) {
+        $w = 140; $h = 36; $pad = 2;
+        $n = count($history);
+        $stepX = $n > 1 ? ($w - 2 * $pad) / ($n - 1) : 0;
+        foreach ($history as $i => $row) {
+            $s = max(0, min(100, (int) ($row['score'] ?? 0)));
+            $x = $pad + $stepX * $i;
+            $y = $pad + (1 - $s / 100) * ($h - 2 * $pad);
+            $sparkPoints[] = round($x, 2) . ',' . round($y, 2);
+        }
+        $first = (int) ($history[0]['score'] ?? 0);
+        $last  = (int) ($history[count($history) - 1]['score'] ?? 0);
+        $sparkDelta = $last - $first;
+    }
 @endphp
 
 <div class="glass rounded-2xl p-4 md:p-5 mb-3 perf-coach"
@@ -48,6 +68,38 @@
                     <i class="fas fa-wand-magic-sparkles text-purple-400"></i> {{ $p['headline'] }}
                 </div>
                 <div class="text-lg font-semibold mt-0.5" style="color: var(--text-primary);">{{ $p['label'] }}</div>
+                @if(!empty($sparkPoints))
+                    @php
+                        $sparkColor = $sparkDelta > 0 ? '#6ee7b7' : ($sparkDelta < 0 ? '#fca5a5' : '#cbd5e1');
+                        $sparkFill  = $sparkDelta > 0 ? 'rgba(16,185,129,0.18)' : ($sparkDelta < 0 ? 'rgba(239,68,68,0.15)' : 'rgba(148,163,184,0.15)');
+                        $areaPath   = 'M ' . $sparkPoints[0] . ' L ' . implode(' ', array_slice($sparkPoints, 1))
+                                    . ' L 138,34 L 2,34 Z';
+                        $linePath   = 'M ' . $sparkPoints[0] . ' L ' . implode(' ', array_slice($sparkPoints, 1));
+                        $sparkTitle = count($history) . '-day score trend';
+                        if ($sparkDelta !== null) {
+                            $sign = $sparkDelta > 0 ? '+' : '';
+                            $sparkTitle .= " ({$sign}{$sparkDelta} pts)";
+                        }
+                    @endphp
+                    <div class="pc-spark mt-2" title="{{ $sparkTitle }}" aria-label="{{ $sparkTitle }}">
+                        <svg viewBox="0 0 140 36" width="140" height="36" preserveAspectRatio="none" style="display:block;">
+                            <path d="{{ $areaPath }}" fill="{{ $sparkFill }}" stroke="none" />
+                            <path d="{{ $linePath }}" fill="none" stroke="{{ $sparkColor }}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                            @php $last = end($sparkPoints); @endphp
+                            <circle cx="{{ explode(',', $last)[0] }}" cy="{{ explode(',', $last)[1] }}" r="2" fill="{{ $sparkColor }}" />
+                        </svg>
+                        <span class="pc-spark-label" style="color: {{ $sparkColor }};">
+                            @if($sparkDelta > 0)
+                                +{{ $sparkDelta }} pts
+                            @elseif($sparkDelta < 0)
+                                {{ $sparkDelta }} pts
+                            @else
+                                flat
+                            @endif
+                            <span style="color: var(--text-faint); font-weight: 500;">· {{ count($history) }}d</span>
+                        </span>
+                    </div>
+                @endif
                 <div class="mt-2">
                     @if($deltaUp)
                         <span class="pc-trend" style="background:rgba(16,185,129,0.15); color:#6ee7b7; border-color:rgba(16,185,129,0.3);">
@@ -166,6 +218,17 @@
         transition: background .15s ease;
     }
     .perf-coach .pc-insight-cta:hover { background: rgba(255,255,255,0.08); }
+    .perf-coach .pc-spark {
+        display: flex; align-items: center; gap: 8px;
+    }
+    .perf-coach .pc-spark svg {
+        flex-shrink: 0;
+        filter: drop-shadow(0 1px 2px rgba(0,0,0,0.25));
+    }
+    .perf-coach .pc-spark-label {
+        font-size: 10px; font-weight: 700; letter-spacing: .04em;
+        text-transform: uppercase; white-space: nowrap;
+    }
     @media (max-width: 1024px) {
         .perf-coach .pc-insight-cta { display: none; }
     }

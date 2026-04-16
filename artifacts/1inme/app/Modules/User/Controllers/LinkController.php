@@ -446,6 +446,19 @@ class LinkController extends Controller
             }
         }
 
+        // 30-day score history for the sparkline rendered in the coach card.
+        // Rows are produced by the `coach:snapshot-scores` nightly command.
+        $performanceHistory = \App\Modules\User\Models\LinkPerformanceSnapshot::where('link_id', $link->id)
+            ->where('date', '>=', now()->subDays(30)->toDateString())
+            ->orderBy('date')
+            ->get(['date', 'score'])
+            ->map(fn ($r) => [
+                'date'  => $r->date instanceof \Carbon\Carbon ? $r->date->toDateString() : (string) $r->date,
+                'score' => (int) $r->score,
+            ])
+            ->values()
+            ->all();
+
         $performance = \App\Modules\User\Services\LinkPerformanceCoach::build([
             'link'               => $link,
             'totalInRange'       => $totalInRange,
@@ -476,7 +489,7 @@ class LinkController extends Controller
             'totalInRangePrev',
             'uniqueBlockClicksInRange', 'uniqueBlockClicksPrev',
             'aliasBreakdown', 'aliasFilter', 'availableAliases',
-            'performance'
+            'performance', 'performanceHistory'
         ));
     }
 
