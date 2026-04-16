@@ -3,19 +3,30 @@
 namespace App\Modules\Common\Services;
 
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 /**
- * Offline city → (latitude, longitude) lookup backed by a bundled CSV
- * (~142k cities, public-domain data from lutangar/cities.json).
+ * Offline city → (latitude, longitude) lookup.
  *
- * The lookup map is built once on first use and cached for the
- * lifetime of the process / file cache. Lookups are case- and
- * accent-insensitive on (city_name, country_code).
+ * Resolution order on each lookup:
+ *   1. The seeded `cities` reference table (if present and populated).
+ *   2. The bundled CSV at database/data/world-cities.csv (~142k cities,
+ *      public-domain data derived from lutangar/cities.json), loaded
+ *      once and cached on the file store.
+ *
+ * Lookups are case- and accent-insensitive on (city_name, country_code).
  */
 class CityLookupService
 {
-    protected ?array $map = null;
+    /** Per-request cache of resolved keys → [lat, lng] (or null). */
+    protected array $hits = [];
+
+    /** Lazy-loaded CSV map (only built on first miss against the DB table). */
+    protected ?array $csvMap = null;
+
+    protected ?bool $hasDbTable = null;
 
     protected function csvPath(): string
     {
@@ -29,41 +40,72 @@ class CityLookupService
     {
         if (!$city || !$countryCode || strlen($countryCode) !== 2) return null;
 
-        $map = $this->getMap();
-        if (!$map) return null;
+        $cc   = strtoupper($countryCode);
+        $norm = $this->normalize($city);
+        if ($norm === '') return null;
+        $key = $cc . '|' . $norm;
 
-        $key = strtoupper($countryCode) . '|' . $this->normalize($city);
+        if (array_key_exists($key, $this->hits)) {
+            return $this->hits[$key];
+        }
+
+        // 1) DB-backed reference table
+        if ($this->dbTableAvailable()) {
+            $row = DB::table('cities')
+                ->where('country_code', $cc)
+                ->where('city_normalized', $norm)
+                ->first(['latitude', 'longitude']);
+            if ($row) {
+                return $this->hits[$key] = [
+                    'latitude'  => (float) $row->latitude,
+                    'longitude' => (float) $row->longitude,
+                ];
+            }
+        }
+
+        // 2) CSV fallback
+        $map = $this->getCsvMap();
         if (isset($map[$key])) {
             [$lat, $lng] = $map[$key];
-            return ['latitude' => $lat, 'longitude' => $lng];
+            return $this->hits[$key] = ['latitude' => $lat, 'longitude' => $lng];
         }
-        return null;
+
+        return $this->hits[$key] = null;
     }
 
-    protected function getMap(): array
+    protected function dbTableAvailable(): bool
     {
-        if ($this->map !== null) return $this->map;
+        if ($this->hasDbTable !== null) return $this->hasDbTable;
+        try {
+            if (!Schema::hasTable('cities')) {
+                return $this->hasDbTable = false;
+            }
+            return $this->hasDbTable = DB::table('cities')->limit(1)->count() > 0;
+        } catch (\Throwable $e) {
+            return $this->hasDbTable = false;
+        }
+    }
 
-        // Cache key includes the file mtime so a new CSV invalidates automatically.
+    protected function getCsvMap(): array
+    {
+        if ($this->csvMap !== null) return $this->csvMap;
+
         $path = $this->csvPath();
         if (!is_file($path)) {
             Log::warning("CityLookupService: CSV not found at {$path}");
-            $this->map = [];
-            return $this->map;
+            return $this->csvMap = [];
         }
 
         $cacheKey = 'city_lookup_map_v1_' . filemtime($path);
         // Force the file store so the ~5 MB serialized lookup map never lands
         // in the (default) database cache table.
-        try {
-            $store = Cache::store('file');
-        } catch (\Throwable $e) {
-            $store = Cache::store();
-        }
-        $this->map = $store->remember($cacheKey, 86400 * 30, function () use ($path) {
+        try { $store = Cache::store('file'); }
+        catch (\Throwable $e) { $store = Cache::store(); }
+
+        $this->csvMap = $store->remember($cacheKey, 86400 * 30, function () use ($path) {
             return $this->buildMap($path);
         });
-        return $this->map;
+        return $this->csvMap;
     }
 
     protected function buildMap(string $path): array
@@ -71,9 +113,7 @@ class CityLookupService
         $map = [];
         $fh = fopen($path, 'r');
         if (!$fh) return $map;
-
-        // Header row
-        fgetcsv($fh);
+        fgetcsv($fh); // header
         while (($row = fgetcsv($fh)) !== false) {
             if (count($row) < 4) continue;
             $cc   = strtoupper($row[0] ?? '');
@@ -83,10 +123,7 @@ class CityLookupService
             if (strlen($cc) !== 2 || $name === '') continue;
             if ($lat === 0.0 && $lng === 0.0) continue;
             $key = $cc . '|' . $this->normalize($name);
-            // Keep first occurrence
-            if (!isset($map[$key])) {
-                $map[$key] = [$lat, $lng];
-            }
+            if (!isset($map[$key])) $map[$key] = [$lat, $lng];
         }
         fclose($fh);
         return $map;
@@ -94,15 +131,11 @@ class CityLookupService
 
     protected function normalize(string $name): string
     {
-        $name = trim($name);
-        // Lowercase
-        $name = mb_strtolower($name, 'UTF-8');
-        // Strip accents
+        $name = trim(mb_strtolower($name, 'UTF-8'));
         if (function_exists('iconv')) {
             $tr = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $name);
             if ($tr !== false) $name = $tr;
         }
-        // Collapse non-alnum to single space
         $name = preg_replace('/[^a-z0-9]+/i', ' ', $name);
         return trim(strtolower($name));
     }

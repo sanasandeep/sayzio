@@ -968,12 +968,26 @@
             const p = f.properties;
             // Build DOM with text nodes to avoid XSS from DB-sourced strings.
             const wrap = document.createElement('div');
-            wrap.style.cssText = 'font:12px/1.4 Inter,sans-serif;color:#0f172a;';
+            wrap.style.cssText = 'font:12px/1.4 Inter,sans-serif;color:#0f172a;min-width:140px;';
             const title = document.createElement('div');
-            title.style.fontWeight = '700';
+            title.style.cssText = 'font-weight:700;display:flex;align-items:center;gap:6px;';
+            // Country flag from ISO-3166-1 alpha-2 → regional indicator emoji.
+            const cc = (p.country || '').toUpperCase();
+            if (cc.length === 2 && /^[A-Z]{2}$/.test(cc)) {
+                const flag = String.fromCodePoint(0x1F1E6 + cc.charCodeAt(0) - 65,
+                                                  0x1F1E6 + cc.charCodeAt(1) - 65);
+                const flagSpan = document.createElement('span');
+                flagSpan.textContent = flag;
+                flagSpan.style.fontSize = '15px';
+                title.appendChild(flagSpan);
+            }
+            const labelSpan = document.createElement('span');
             const cityName = p.city || 'Unknown city';
-            title.textContent = p.country ? (cityName + ', ' + p.country) : cityName;
+            labelSpan.textContent = cc ? (cityName + ', ' + cc) : cityName;
+            title.appendChild(labelSpan);
+
             const counts = document.createElement('div');
+            counts.style.cssText = 'margin-top:2px;color:#475569;';
             const w = parseInt(p.weight, 10) || 0;
             counts.textContent = w + ' click' + (w === 1 ? '' : 's');
             wrap.appendChild(title);

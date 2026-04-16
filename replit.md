@@ -109,10 +109,12 @@ All URL fields are sanitized via `sanitizeUrl()` (http/https only). Features sho
 #### Geographic Heatmap (Link Analytics)
 Snap-Map style geographic heatmap on `user/links/{link}` (link analytics page) showing where each click came from. Built with **MapLibre GL JS** + Carto **Dark Matter / Positron** vector tiles (free, OSM-derived, no API key, no Google Maps).
 - Coordinates persisted on `link_clicks` and `page_sessions` (`latitude`, `longitude` decimals).
-- `GeoIpService::detectGeo()` returns `{country_code, city, latitude, longitude}` — coords come from ipapi.co when available, otherwise resolved offline via `CityLookupService` (~142k cities, bundled CSV at `database/data/world-cities.csv`, lookup map cached on the file store to keep it out of the DB cache).
-- `LinkController::heatmap()` aggregates clicks server-side in Postgres (`round(lat,1) / round(lng,1)` ~11km buckets, `mode() within group` for dominant city/country labels, capped at 2000 buckets) and returns GeoJSON.
-- Backfill command: `php artisan analytics:backfill-coords` (idempotent, processes rows missing either lat or lng).
-- Popup HTML uses `setDOMContent` with text nodes (no `setHTML`) to prevent XSS from DB-sourced city/country strings.
+- `GeoIpService::detectGeo()` returns `{country_code, city, latitude, longitude}` — coords come from ipapi.co when available, otherwise resolved offline via `CityLookupService`.
+- `CityLookupService` resolves `(city, country_code) → (lat, lng)` against the seeded `cities` reference table (schema: `country_code`, `city_normalized`, `city_name`, `latitude`, `longitude`, `population`), with a fallback to the bundled CSV at `database/data/world-cities.csv` (~142k cities, public-domain data derived from lutangar/cities.json). The CSV map is cached on the file store to keep it out of the DB cache.
+- Seed the cities table with `php artisan db:seed --class=CitiesTableSeeder` (idempotent, ~141k rows; not part of the default `DatabaseSeeder` to keep initial setup lean).
+- `LinkController::heatmap()` streams rows via `chunkById` and buckets them in PHP to ~0.1° (~11km) cells (cross-DB compatible — no Postgres-specific SQL), choosing the most frequent city/country label per bucket, capped at 2000 buckets. Returns GeoJSON with both `total_clicks` (true period total) and `shown_clicks` (sum of returned buckets).
+- Backfill command: `php artisan analytics:backfill-coords` (idempotent, resumable). Resolves each row via the cities DB first, then falls back to the cached `GeoIpService` lookup by IP. `--no-geoip` disables the GeoIP fallback.
+- Popup HTML uses `setDOMContent` with text nodes (no `setHTML`) to prevent XSS, and shows a country flag emoji (built from the ISO-3166-1 alpha-2 code via regional-indicator code points) alongside the city name and click count.
 
 # External Dependencies
 

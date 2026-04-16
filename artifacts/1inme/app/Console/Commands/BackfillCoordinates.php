@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Modules\Common\Services\CityLookupService;
+use App\Modules\Common\Services\GeoIpService;
 use App\Modules\User\Models\LinkClick;
 use App\Modules\User\Models\PageSession;
 use Illuminate\Console\Command;
@@ -16,23 +17,39 @@ class BackfillCoordinates extends Command
 {
     protected $signature = 'analytics:backfill-coords
         {--chunk=500 : Rows processed per batch}
-        {--limit=0 : Optional cap on rows per table (0 = no cap)}';
+        {--limit=0 : Optional cap on rows per table (0 = no cap)}
+        {--no-geoip : Skip the cached-GeoIP fallback for unmatched rows}';
 
-    protected $description = 'Backfill missing latitude/longitude on link_clicks and page_sessions using the offline cities DB.';
+    protected $description = 'Backfill missing latitude/longitude on link_clicks and page_sessions: looks up the bundled cities DB first, then falls back to cached GeoIP (by IP) for any leftover rows.';
 
-    public function handle(CityLookupService $cities): int
+    public function handle(CityLookupService $cities, GeoIpService $geo): int
     {
-        $chunk = max(50, (int) $this->option('chunk'));
-        $limit = max(0, (int) $this->option('limit'));
+        $chunk    = max(50, (int) $this->option('chunk'));
+        $limit    = max(0, (int) $this->option('limit'));
+        $useGeoip = !$this->option('no-geoip');
 
         // (city, country_code) -> [lat, lng] cache for this run
         $cache = [];
+        // ip -> [lat, lng]|null cache for this run
+        $ipCache = [];
 
-        $resolve = function (?string $city, ?string $cc) use ($cities, &$cache): ?array {
-            if (!$city || !$cc) return null;
-            $key = strtoupper($cc) . '|' . strtolower($city);
-            if (array_key_exists($key, $cache)) return $cache[$key];
-            return $cache[$key] = $cities->lookup($city, $cc);
+        $resolve = function (?string $city, ?string $cc, ?string $ip)
+            use ($cities, $geo, $useGeoip, &$cache, &$ipCache): ?array {
+            if ($city && $cc) {
+                $key = strtoupper($cc) . '|' . strtolower($city);
+                if (!array_key_exists($key, $cache)) {
+                    $cache[$key] = $cities->lookup($city, $cc);
+                }
+                if ($cache[$key]) return $cache[$key];
+            }
+            // Fallback: cached GeoIP lookup using the row's IP
+            if ($useGeoip && $ip) {
+                if (!array_key_exists($ip, $ipCache)) {
+                    $ipCache[$ip] = $geo->detectCoordinates($ip);
+                }
+                if ($ipCache[$ip]) return $ipCache[$ip];
+            }
+            return null;
         };
 
         foreach ([
@@ -65,12 +82,12 @@ class BackfillCoordinates extends Command
                 ->where(function ($q) {
                     $q->whereNull('latitude')->orWhereNull('longitude');
                 })
-                ->select('id', 'city', 'country_code')
+                ->select('id', 'city', 'country_code', 'ip_address')
                 ->orderBy('id')
                 ->chunkById($chunk, function ($rows) use (&$processed, &$matched, &$unmatched, $resolve, $modelClass, $bar, $cap) {
                     $byCoords = [];
                     foreach ($rows as $row) {
-                        $coords = $resolve($row->city, $row->country_code);
+                        $coords = $resolve($row->city, $row->country_code, $row->ip_address);
                         if ($coords) {
                             $key = $coords['latitude'] . ':' . $coords['longitude'];
                             $byCoords[$key]['lat'] = $coords['latitude'];
