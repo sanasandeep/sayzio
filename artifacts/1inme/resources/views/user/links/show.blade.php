@@ -56,7 +56,14 @@
         background: linear-gradient(135deg, #7c3aed, #ec4899);
         box-shadow: 0 12px 40px rgba(124,58,237,0.45), inset 0 1px 0 rgba(255,255,255,0.2);
         color: #fff; font-size: 22px;
+        position: relative; overflow: hidden;
     }
+    .hero-emblem img {
+        width: 100%; height: 100%; object-fit: cover;
+    }
+    .hero-emblem.has-favicon { background: #fff; padding: 8px; }
+    html.light-mode .hero-emblem.has-favicon { background: #fff; box-shadow: 0 8px 24px rgba(124,58,237,0.18), 0 0 0 1px rgba(124,58,237,0.10); }
+    .hero-emblem .favicon-img { width: 100%; height: 100%; object-fit: contain; border-radius: 10px; }
     .hero-chip {
         display: inline-flex; align-items: center; gap: 6px;
         padding: 5px 11px; border-radius: 999px;
@@ -276,8 +283,30 @@
     <div class="flex flex-wrap items-start justify-between gap-5">
         <div class="flex items-start gap-4 min-w-0 flex-1">
             <a href="{{ route('user.links.index') }}" class="hero-chip" title="Back"><i class="fas fa-arrow-left"></i></a>
-            <div class="hero-emblem flex-shrink-0">
-                <i class="fas {{ $link->type === 'biolink' ? 'fa-th-large' : 'fa-link' }}"></i>
+            @php
+                // Resolve a favicon URL: explicit field → biolink page favicon
+                // → Google's S2 favicon for the long URL's domain → fallback icon.
+                $favSrc = null;
+                if (!empty($link->favicon)) {
+                    $favSrc = $link->favicon;
+                } elseif ($link->type === 'biolink') {
+                    $favSrc = url('favicon.ico');
+                } elseif (!empty($link->long_url)) {
+                    $host = parse_url($link->long_url, PHP_URL_HOST);
+                    if ($host) $favSrc = 'https://www.google.com/s2/favicons?sz=64&domain=' . urlencode($host);
+                }
+            @endphp
+            <div class="hero-emblem flex-shrink-0 {{ $favSrc ? 'has-favicon' : '' }}"
+                 x-data="{ failed: false }">
+                @if($favSrc)
+                    <img src="{{ $favSrc }}" alt="favicon" class="favicon-img"
+                         x-show="!failed" @error="failed = true">
+                    <i x-show="failed" x-cloak
+                       class="fas {{ $link->type === 'biolink' ? 'fa-th-large' : 'fa-link' }}"
+                       style="color:#7c3aed;"></i>
+                @else
+                    <i class="fas {{ $link->type === 'biolink' ? 'fa-th-large' : 'fa-link' }}"></i>
+                @endif
             </div>
             <div class="min-w-0">
                 <div class="flex items-center gap-2 flex-wrap mb-1">
