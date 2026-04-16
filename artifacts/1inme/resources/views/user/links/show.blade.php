@@ -591,13 +591,6 @@
                 <i class="fas fa-circle text-[8px]" style="opacity:0.5;"></i>
                 <span>Live</span>
             </button>
-            <div class="inline-flex rounded-lg overflow-hidden text-[11px] font-semibold"
-                 style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
-                <button type="button" data-style="dark" class="heatmap-style-btn px-3 py-1.5"
-                    style="color: var(--text-primary); background: rgba(249,115,22,0.18);">Dark</button>
-                <button type="button" data-style="light" class="heatmap-style-btn px-3 py-1.5"
-                    style="color: var(--text-secondary);">Light</button>
-            </div>
             <button type="button" id="heatmap-download" class="table-action" title="Download as image"
                 style="font-size: 11px;">
                 <i class="fas fa-download"></i> <span class="hidden sm:inline">Download</span>
