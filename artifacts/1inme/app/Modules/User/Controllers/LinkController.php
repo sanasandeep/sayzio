@@ -459,6 +459,49 @@ class LinkController extends Controller
         ]);
     }
 
+    public function heatmapLive(Request $request, Link $link)
+    {
+        abort_if($link->user_id !== $request->user()->id, 403);
+
+        // "Live" window: last 5 minutes of clicks. Short enough to feel real-time,
+        // long enough to keep a few pulses on screen between 10s polls.
+        $windowStart = now()->subMinutes(5);
+
+        $rows = $link->clicks()
+            ->where('clicked_at', '>=', $windowStart)
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude')
+            ->orderByDesc('clicked_at')
+            ->limit(200)
+            ->get(['id', 'latitude', 'longitude', 'city', 'country_code', 'clicked_at', 'ip_address']);
+
+        $points = [];
+        foreach ($rows as $r) {
+            $points[] = [
+                'id'           => (int) $r->id,
+                'lat'          => (float) $r->latitude,
+                'lng'          => (float) $r->longitude,
+                'city'         => $r->city,
+                'country_code' => $r->country_code,
+                'clicked_at'   => optional($r->clicked_at)->toIso8601String(),
+                'ts'           => optional($r->clicked_at)->getTimestamp(),
+            ];
+        }
+
+        $uniqueVisitors = $rows->pluck('ip_address')->filter()->unique()->count();
+
+        return response()->json([
+            'points' => $points,
+            'meta'   => [
+                'count'           => count($points),
+                'unique_visitors' => $uniqueVisitors,
+                'window_seconds'  => 300,
+                'server_time'     => now()->toIso8601String(),
+                'server_ts'       => now()->getTimestamp(),
+            ],
+        ]);
+    }
+
     public function exportClicks(Request $request, Link $link)
     {
         abort_if($link->user_id !== $request->user()->id, 403);

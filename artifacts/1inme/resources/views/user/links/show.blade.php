@@ -456,8 +456,18 @@
             <div class="section-icon"><i class="fas fa-map-marked-alt"></i></div>
             Geographic Heatmap
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
             <span id="heatmap-meta" class="section-pill" style="display:none;"></span>
+            <span id="heatmap-live-meta" class="section-pill" style="display:none; background: rgba(34,197,94,0.15); border-color: rgba(34,197,94,0.4); color: #86efac;">
+                <span class="live-dot" style="display:inline-block;width:8px;height:8px;border-radius:999px;background:#22c55e;margin-right:6px;box-shadow:0 0 0 0 rgba(34,197,94,0.7);animation:livePulseDot 1.4s infinite;"></span>
+                <span id="heatmap-live-meta-text">0 live visitors right now</span>
+            </span>
+            <button type="button" id="heatmap-live-toggle" class="px-3 py-1.5 rounded-lg text-[11px] font-semibold inline-flex items-center gap-1.5"
+                    style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-secondary);"
+                    aria-pressed="false" title="Show clicks happening right now">
+                <i class="fas fa-circle text-[8px]" style="opacity:0.5;"></i>
+                <span>Live</span>
+            </button>
             <div class="inline-flex rounded-lg overflow-hidden text-[11px] font-semibold"
                  style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
                 <button type="button" data-style="dark" class="heatmap-style-btn px-3 py-1.5"
@@ -467,6 +477,45 @@
             </div>
         </div>
     </div>
+    <style>
+        @keyframes livePulseDot {
+            0%   { box-shadow: 0 0 0 0 rgba(34,197,94,0.7); }
+            70%  { box-shadow: 0 0 0 8px rgba(34,197,94,0); }
+            100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+        }
+        .live-pin {
+            position: relative;
+            width: 16px; height: 16px;
+            pointer-events: none;
+        }
+        .live-pin::before, .live-pin::after {
+            content: '';
+            position: absolute;
+            left: 50%; top: 50%;
+            border-radius: 999px;
+            transform: translate(-50%, -50%);
+        }
+        .live-pin::before {
+            width: 12px; height: 12px;
+            background: #22c55e;
+            box-shadow: 0 0 12px rgba(34,197,94,0.9), 0 0 0 2px rgba(255,255,255,0.85);
+            z-index: 2;
+        }
+        .live-pin::after {
+            width: 12px; height: 12px;
+            background: rgba(34,197,94,0.55);
+            animation: livePinPulse 1.6s ease-out infinite;
+            z-index: 1;
+        }
+        @keyframes livePinPulse {
+            0%   { width: 12px; height: 12px; opacity: 0.7; }
+            100% { width: 56px; height: 56px; opacity: 0; }
+        }
+        .live-pin.fading::before, .live-pin.fading::after {
+            transition: opacity 1.5s ease-out;
+            opacity: 0;
+        }
+    </style>
     <div id="heatmap-empty" style="display:none; padding: 2rem 0; text-align:center; color: var(--text-faint); font-size: 0.875rem;">
         <i class="fas fa-globe-americas" style="font-size: 2rem; opacity: 0.4; margin-bottom: 0.75rem; display:block;"></i>
         No geographic data yet for this period — clicks will appear on the map as they come in.
@@ -928,6 +977,7 @@
         $heatmapHref = route('user.links.heatmap', $link) . ($heatmapQs ? ('?' . $heatmapQs) : '');
     @endphp
     const heatmapUrl = @json($heatmapHref);
+    const heatmapLiveUrl = @json(route('user.links.heatmap.live', $link));
     const STYLES = {
         dark:  'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
         light: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
@@ -1058,7 +1108,8 @@
                     const meta = data.meta || {};
                     const metaEl = document.getElementById('heatmap-meta');
                     if ((data.features || []).length === 0) {
-                        document.getElementById('heatmap-container').style.display = 'none';
+                        // Keep the map visible so Live mode can still drop pins on it,
+                        // but show an inline hint above the map when there's no aggregate data.
                         document.getElementById('heatmap-empty').style.display = 'block';
                         return;
                     }
@@ -1094,11 +1145,149 @@
         if (target !== currentStyle) switchStyle(target, /*fromUser*/ false);
     }
 
+    // ===== LIVE PINS =====
+    // Each click in the last few minutes pulses on the map for ~30s, then fades out.
+    // We dedupe by click id so the same click doesn't get re-added on every poll.
+    const LIVE_POLL_MS = 10000;
+    const LIVE_PIN_TTL_MS = 30000;
+    const liveMarkers = new Map(); // id -> { marker, removeAt, timeoutId }
+    // Persistent record of click ids we've ever rendered in this session, so a
+    // click that already pulsed for ~30s is NOT re-animated when the backend
+    // keeps returning it inside its 5-minute window. Entries are evicted after
+    // the backend window so memory stays bounded.
+    const seenClickIds = new Map(); // id -> evictAt (ms epoch)
+    const SEEN_TTL_MS = 10 * 60 * 1000; // > server window (5 min) with margin
+    let liveEnabled = false;
+    let livePollTimer = null;
+    let liveInFlight = false;
+
+    function pruneSeen() {
+        const now = Date.now();
+        for (const [id, evictAt] of seenClickIds) {
+            if (evictAt <= now) seenClickIds.delete(id);
+        }
+    }
+
+    function setLiveButtonState() {
+        const btn = document.getElementById('heatmap-live-toggle');
+        if (!btn) return;
+        btn.setAttribute('aria-pressed', liveEnabled ? 'true' : 'false');
+        const dot = btn.querySelector('i');
+        if (liveEnabled) {
+            btn.style.background = 'rgba(34,197,94,0.18)';
+            btn.style.borderColor = 'rgba(34,197,94,0.45)';
+            btn.style.color = '#86efac';
+            if (dot) { dot.style.color = '#22c55e'; dot.style.opacity = '1'; }
+        } else {
+            btn.style.background = 'var(--bg-glass-input)';
+            btn.style.borderColor = '';
+            btn.style.color = 'var(--text-secondary)';
+            if (dot) { dot.style.color = ''; dot.style.opacity = '0.5'; }
+        }
+    }
+
+    function clearLiveMarker(id) {
+        const entry = liveMarkers.get(id);
+        if (!entry) return;
+        if (entry.timeoutId) clearTimeout(entry.timeoutId);
+        const el = entry.marker.getElement();
+        el.classList.add('fading');
+        setTimeout(() => { try { entry.marker.remove(); } catch (e) {} }, 1500);
+        liveMarkers.delete(id);
+    }
+
+    function clearAllLiveMarkers() {
+        Array.from(liveMarkers.keys()).forEach(clearLiveMarker);
+    }
+
+    function addLivePin(point) {
+        if (!map) return;
+        // Skip if currently rendered OR previously rendered in this session.
+        if (liveMarkers.has(point.id) || seenClickIds.has(point.id)) return;
+        seenClickIds.set(point.id, Date.now() + SEEN_TTL_MS);
+        const el = document.createElement('div');
+        el.className = 'live-pin';
+        const cc = (point.country_code || '').toUpperCase();
+        const flag = (cc.length === 2 && /^[A-Z]{2}$/.test(cc))
+            ? String.fromCodePoint(0x1F1E6 + cc.charCodeAt(0) - 65, 0x1F1E6 + cc.charCodeAt(1) - 65) + ' '
+            : '';
+        el.title = (flag + (point.city || 'Unknown city') + (cc ? ', ' + cc : '')).trim();
+        const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+            .setLngLat([point.lng, point.lat])
+            .addTo(map);
+        // Compute remaining TTL: clicks already a few seconds old should fade sooner.
+        const ageMs = point.ts ? Math.max(0, Date.now() - point.ts * 1000) : 0;
+        const ttl = Math.max(4000, LIVE_PIN_TTL_MS - ageMs);
+        const timeoutId = setTimeout(() => clearLiveMarker(point.id), ttl);
+        liveMarkers.set(point.id, { marker, removeAt: Date.now() + ttl, timeoutId });
+    }
+
+    function updateLiveMeta(uniqueVisitors) {
+        const pill = document.getElementById('heatmap-live-meta');
+        const text = document.getElementById('heatmap-live-meta-text');
+        if (!pill || !text) return;
+        if (!liveEnabled) {
+            pill.style.display = 'none';
+            return;
+        }
+        pill.style.display = 'inline-flex';
+        const n = uniqueVisitors || 0;
+        text.textContent = n + ' live visitor' + (n === 1 ? '' : 's') + ' right now';
+    }
+
+    function pollLive() {
+        if (!liveEnabled || liveInFlight || !map) return;
+        liveInFlight = true;
+        pruneSeen();
+        fetch(heatmapLiveUrl, { headers: { 'Accept': 'application/json' } })
+            .then(r => r.ok ? r.json() : Promise.reject(r.status))
+            .then(data => {
+                if (!liveEnabled) return;
+                const points = (data && data.points) || [];
+                points.forEach(p => addLivePin(p));
+                updateLiveMeta((data && data.meta && data.meta.unique_visitors) || 0);
+            })
+            .catch(err => { console.warn('Live heatmap poll failed', err); })
+            .finally(() => { liveInFlight = false; });
+    }
+
+    function startLive() {
+        liveEnabled = true;
+        setLiveButtonState();
+        updateLiveMeta(0);
+        pollLive();
+        if (livePollTimer) clearInterval(livePollTimer);
+        livePollTimer = setInterval(pollLive, LIVE_POLL_MS);
+    }
+
+    function stopLive() {
+        liveEnabled = false;
+        setLiveButtonState();
+        if (livePollTimer) { clearInterval(livePollTimer); livePollTimer = null; }
+        clearAllLiveMarkers();
+        updateLiveMeta(0);
+    }
+
+    function toggleLive() {
+        if (liveEnabled) stopLive(); else startLive();
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         currentStyle = document.documentElement.classList.contains('light-mode') ? 'light' : 'dark';
         setActiveStyleBtn();
         document.querySelectorAll('.heatmap-style-btn').forEach(btn => {
             btn.addEventListener('click', () => switchStyle(btn.dataset.style, true));
+        });
+        const liveBtn = document.getElementById('heatmap-live-toggle');
+        if (liveBtn) liveBtn.addEventListener('click', toggleLive);
+        // Pause polling when the tab is hidden to be a good citizen.
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                if (livePollTimer) { clearInterval(livePollTimer); livePollTimer = null; }
+            } else if (liveEnabled && !livePollTimer) {
+                pollLive();
+                livePollTimer = setInterval(pollLive, LIVE_POLL_MS);
+            }
         });
         buildMap();
         new MutationObserver(syncMapToAppTheme)

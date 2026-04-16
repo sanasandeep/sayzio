@@ -82,6 +82,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('links/{link}/page-settings', [BiolinkBlockController::class, 'updatePageSettings'])->name('links.page-settings');
 
         Route::get('links/{link}/heatmap', [LinkController::class, 'heatmap'])->name('links.heatmap');
+        Route::get('links/{link}/heatmap/live', [LinkController::class, 'heatmapLive'])->name('links.heatmap.live');
         Route::get('links/{link}/clicks/partial', [LinkController::class, 'recentClicksPartial'])->name('links.clicks.partial');
         Route::get('links/{link}/clicks/export', [LinkController::class, 'exportClicks'])->name('links.clicks.export');
         Route::get('links/{link}/qrcode', [QrCodeController::class, 'show'])->name('links.qrcode');
