@@ -18,63 +18,7 @@
 
 @push('styles')
 <style>
-    /* ============ Stats Hero ============ */
-    .stats-hero {
-        position: relative;
-        border-radius: 28px;
-        padding: 28px 32px;
-        background:
-            radial-gradient(circle at 0% 0%, rgba(168,85,247,0.22), transparent 45%),
-            radial-gradient(circle at 100% 0%, rgba(59,130,246,0.18), transparent 45%),
-            radial-gradient(circle at 50% 120%, rgba(236,72,153,0.18), transparent 50%),
-            linear-gradient(135deg, rgba(124,58,237,0.18), rgba(139,92,246,0.06));
-        border: 1px solid var(--border-glass-light);
-        overflow: hidden;
-        backdrop-filter: blur(20px);
-    }
-    html.light-mode .stats-hero {
-        background:
-            radial-gradient(circle at 0% 0%, rgba(168,85,247,0.16), transparent 45%),
-            radial-gradient(circle at 100% 0%, rgba(59,130,246,0.14), transparent 45%),
-            radial-gradient(circle at 50% 120%, rgba(236,72,153,0.14), transparent 50%),
-            linear-gradient(135deg, rgba(255,255,255,0.85), rgba(245,243,255,0.95));
-    }
-    .stats-hero::before {
-        content: ""; position: absolute; inset: 0;
-        background-image:
-            linear-gradient(var(--border-glass) 1px, transparent 1px),
-            linear-gradient(90deg, var(--border-glass) 1px, transparent 1px);
-        background-size: 32px 32px;
-        opacity: 0.35; pointer-events: none;
-        mask-image: radial-gradient(circle at 50% 50%, black 30%, transparent 75%);
-    }
-    .stats-hero > * { position: relative; z-index: 1; }
-    .hero-emblem {
-        width: 56px; height: 56px;
-        border-radius: 18px;
-        display: flex; align-items: center; justify-content: center;
-        background: linear-gradient(135deg, #7c3aed, #ec4899);
-        box-shadow: 0 12px 40px rgba(124,58,237,0.45), inset 0 1px 0 rgba(255,255,255,0.2);
-        color: #fff; font-size: 22px;
-        position: relative; overflow: hidden;
-    }
-    .hero-emblem img {
-        width: 100%; height: 100%; object-fit: cover;
-    }
-    .hero-emblem.has-favicon { background: #fff; padding: 8px; }
-    html.light-mode .hero-emblem.has-favicon { background: #fff; box-shadow: 0 8px 24px rgba(124,58,237,0.18), 0 0 0 1px rgba(124,58,237,0.10); }
-    .hero-emblem .favicon-img { width: 100%; height: 100%; object-fit: contain; border-radius: 10px; }
-    .hero-chip {
-        display: inline-flex; align-items: center; gap: 6px;
-        padding: 5px 11px; border-radius: 999px;
-        font-size: 10.5px; font-weight: 700;
-        background: rgba(255,255,255,0.08);
-        border: 1px solid var(--border-glass-light);
-        color: var(--text-primary);
-        backdrop-filter: blur(10px);
-    }
-    html.light-mode .hero-chip { background: rgba(255,255,255,0.7); }
-    .hero-chip i { font-size: 9px; }
+    /* Hero is supplied globally by user/layouts/app.blade.php — no local overrides here */
 
     /* ============ Period Pills ============ */
     .period-bar {
@@ -386,70 +330,50 @@
 
     .stat-tile-value-sm { font-size: 22px; }
     @media (max-width: 640px) {
-        .stats-hero { padding: 20px; border-radius: 20px; }
         .stat-tile-value { font-size: 22px; }
     }
 </style>
 @endpush
 
 {{-- ===================== HERO ===================== --}}
-<div class="stats-hero mb-6">
-    <div class="flex flex-wrap items-start justify-between gap-5">
-        <div class="flex items-start gap-4 min-w-0 flex-1">
-            <a href="{{ route('user.links.index') }}" class="hero-chip" title="Back"><i class="fas fa-arrow-left"></i></a>
-            @php
-                // Resolve a favicon URL: explicit field → biolink page favicon
-                // → Google's S2 favicon for the long URL's domain → fallback icon.
-                $favSrc = null;
-                if (!empty($link->favicon)) {
-                    $favSrc = $link->favicon;
-                } elseif ($link->type === 'biolink') {
-                    $favSrc = url('favicon.ico');
-                } elseif (!empty($link->long_url)) {
-                    $host = parse_url($link->long_url, PHP_URL_HOST);
-                    if ($host) $favSrc = 'https://www.google.com/s2/favicons?sz=64&domain=' . urlencode($host);
-                }
-            @endphp
-            <div class="hero-emblem flex-shrink-0 {{ $favSrc ? 'has-favicon' : '' }}"
-                 x-data="{ failed: false }">
-                @if($favSrc)
-                    <img src="{{ $favSrc }}" alt="favicon" class="favicon-img"
-                         x-show="!failed" @@error="failed = true">
-                    <i x-show="failed" x-cloak
-                       class="fas {{ $link->type === 'biolink' ? 'fa-th-large' : 'fa-link' }}"
-                       style="color:#7c3aed;"></i>
-                @else
-                    <i class="fas {{ $link->type === 'biolink' ? 'fa-th-large' : 'fa-link' }}"></i>
-                @endif
-            </div>
-            <div class="min-w-0">
-                <div class="flex items-center gap-2 flex-wrap mb-1">
-                    <span class="hero-chip"><i class="fas fa-circle text-emerald-400"></i> {{ $link->is_active ?? true ? 'Active' : 'Inactive' }}</span>
-                    <span class="hero-chip"><i class="fas {{ $link->type === 'biolink' ? 'fa-th-large' : 'fa-link' }}"></i> {{ ucfirst($link->type ?? 'link') }}</span>
-                    <span class="hero-chip"><i class="fas fa-calendar"></i> {{ $link->created_at?->format('M d, Y') }}</span>
-                </div>
-                <h1 class="text-3xl font-extrabold gradient-text truncate">{{ $link->title ?: $link->alias }}</h1>
-                <div class="flex items-center gap-2 text-sm mt-2" x-data="{ copied: false }" style="color: var(--text-muted);">
-                    <i class="fas fa-link text-purple-400 text-xs"></i>
-                    <span class="truncate">{{ $link->getShortUrl() }}</span>
-                    <button @click="navigator.clipboard.writeText('{{ $link->getShortUrl() }}'); copied = true; setTimeout(() => copied = false, 2000)" class="transition-colors hover:text-purple-300" style="color: var(--text-faint);">
-                        <i x-show="!copied" class="fas fa-copy"></i>
-                        <i x-show="copied" x-cloak class="fas fa-check text-emerald-400"></i>
-                    </button>
-                    <a href="{{ $link->getShortUrl() }}" target="_blank" class="hover:text-purple-300" style="color: var(--text-faint);"><i class="fas fa-external-link-alt"></i></a>
-                </div>
-            </div>
-        </div>
-        <div class="flex items-center gap-2 flex-wrap">
-            <a href="{{ route('user.links.clicks.export', $link) }}?{{ http_build_query($qs) }}" class="table-action"><i class="fas fa-file-csv"></i> Export CSV</a>
-            <a href="{{ route('user.links.qrcode', $link) }}" class="table-action"><i class="fas fa-qrcode"></i> QR</a>
-            @if($link->type === 'biolink')
-            <a href="{{ route('user.links.blocks.editor', $link) }}" class="btn-primary text-xs py-2"><i class="fas fa-th-large text-[10px]"></i> Edit Blocks</a>
-            @endif
-            <a href="{{ route('user.links.edit', $link) }}" class="table-action"><i class="fas fa-edit"></i> Edit</a>
-        </div>
-    </div>
-</div>
+@php
+    // Resolve a favicon URL: explicit field → biolink page favicon
+    // → Google's S2 favicon for the long URL's domain.
+    $favSrc = null;
+    if (!empty($link->favicon)) {
+        $favSrc = $link->favicon;
+    } elseif (!empty($link->settings['biolink']['favicons']['icon_512'])) {
+        $favSrc = $link->settings['biolink']['favicons']['icon_512'];
+    } elseif (!empty($link->settings['biolink']['favicons']['apple_touch_icon'])) {
+        $favSrc = $link->settings['biolink']['favicons']['apple_touch_icon'];
+    } elseif (!empty($link->long_url)) {
+        $host = parse_url($link->long_url, PHP_URL_HOST);
+        if ($host) $favSrc = 'https://www.google.com/s2/favicons?sz=64&domain=' . urlencode($host);
+    } elseif ($link->type === 'biolink') {
+        $favSrc = url('favicon.ico');
+    }
+    $heroActions = [
+        ['label' => 'Export CSV', 'url' => route('user.links.clicks.export', $link).'?'.http_build_query($qs), 'icon' => 'fa-file-csv', 'class' => 'btn-ghost'],
+        ['label' => 'QR', 'url' => route('user.links.qrcode', $link), 'icon' => 'fa-qrcode', 'class' => 'btn-ghost'],
+    ];
+    if ($link->type === 'biolink') {
+        $heroActions[] = ['label' => 'Edit Blocks', 'url' => route('user.links.blocks.editor', $link), 'icon' => 'fa-th-large', 'class' => 'btn-primary'];
+    }
+    $heroActions[] = ['label' => 'Edit', 'url' => route('user.links.edit', $link), 'icon' => 'fa-edit', 'class' => 'btn-ghost'];
+@endphp
+@include('user.partials.page-hero', [
+    'title'    => $link->title ?: $link->alias,
+    'icon'     => $link->type === 'biolink' ? 'fa-th-large' : 'fa-link',
+    'favicon'  => $favSrc,
+    'url'      => $link->getShortUrl(),
+    'chips'    => [
+        ['icon' => 'fa-circle text-emerald-400', 'text' => ($link->is_active ?? true) ? 'Active' : 'Inactive'],
+        ['icon' => $link->type === 'biolink' ? 'fa-th-large' : 'fa-link', 'text' => ucfirst($link->type ?? 'link')],
+        ['icon' => 'fa-calendar', 'text' => $link->created_at?->format('M d, Y')],
+    ],
+    'back'     => route('user.links.index'),
+    'actions'  => $heroActions,
+])
 
 {{-- ===================== PERIOD CONTROLS ===================== --}}
 <div class="period-bar mb-6">

@@ -233,46 +233,80 @@
             font-weight: 700;
         }
 
-        /* ============ Reusable Page Hero ============ */
+        /* ============ Reusable Page Hero (unified across all user pages) ============ */
         .page-hero {
             background: var(--bg-card);
             border: 1px solid var(--border-glass);
             border-radius: 22px;
-            padding: 22px 26px;
+            padding: 22px 26px 22px 30px;
             backdrop-filter: blur(20px);
-            box-shadow: 0 20px 60px -15px rgba(124,58,237,0.18);
+            box-shadow: 0 20px 60px -15px rgba(124,58,237,0.20);
             position: relative;
             overflow: hidden;
         }
         html.light-mode .page-hero {
-            background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(248,245,255,0.85));
+            background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(248,245,255,0.88));
             box-shadow: 0 18px 50px -20px rgba(124,58,237,0.22), 0 0 0 1px rgba(124,58,237,0.06);
+        }
+        /* Crisp gradient accent bar on the left edge — gives the hero a unique signature */
+        .page-hero::after {
+            content: ""; position: absolute; left: 0; top: 14%; bottom: 14%; width: 4px;
+            border-radius: 0 4px 4px 0;
+            background: linear-gradient(180deg, #8b5cf6 0%, #ec4899 55%, #f97316 100%);
+            box-shadow: 0 0 22px rgba(139,92,246,0.55);
+            z-index: 2;
         }
         .page-hero::before {
             content: ""; position: absolute; inset: -1px; border-radius: 22px;
             background:
-                radial-gradient(circle at 0% 0%, rgba(139,92,246,0.18), transparent 45%),
-                radial-gradient(circle at 100% 0%, rgba(236,72,153,0.13), transparent 50%),
+                radial-gradient(circle at 0% 0%, rgba(139,92,246,0.20), transparent 45%),
+                radial-gradient(circle at 100% 0%, rgba(236,72,153,0.14), transparent 50%),
                 radial-gradient(circle at 100% 100%, rgba(59,130,246,0.10), transparent 50%);
-            opacity: 0.35; pointer-events: none;
+            opacity: 0.4; pointer-events: none;
             mask-image: radial-gradient(circle at 50% 50%, black 30%, transparent 75%);
         }
         .page-hero > * { position: relative; z-index: 1; }
+        /* ----- Back chip ----- */
+        .hero-back {
+            width: 36px; height: 36px; border-radius: 12px;
+            display: inline-flex; align-items: center; justify-content: center;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid var(--border-glass-light);
+            color: var(--text-secondary);
+            font-size: 12px; flex-shrink: 0;
+            transition: all .18s ease;
+            text-decoration: none;
+        }
+        .hero-back:hover { background: rgba(139,92,246,0.18); color: #fff; transform: translateX(-2px); border-color: rgba(139,92,246,0.4); }
+        html.light-mode .hero-back { background: rgba(255,255,255,0.7); color: #4c1d95; }
+        html.light-mode .hero-back:hover { background: rgba(139,92,246,0.14); color: #4c1d95; }
+
+        /* ----- Emblem (favicon / letter avatar) ----- */
         .hero-emblem {
-            width: 56px; height: 56px;
+            width: 60px; height: 60px;
             border-radius: 18px;
             display: flex; align-items: center; justify-content: center;
             background: linear-gradient(135deg, #7c3aed, #ec4899);
-            box-shadow: 0 12px 40px rgba(124,58,237,0.45), inset 0 1px 0 rgba(255,255,255,0.2);
+            box-shadow: 0 14px 42px rgba(124,58,237,0.50), inset 0 1px 0 rgba(255,255,255,0.25);
             color: #fff; font-size: 22px;
             position: relative; overflow: hidden; flex-shrink: 0;
         }
         .hero-emblem.has-favicon { background: #fff; padding: 8px; }
         html.light-mode .hero-emblem.has-favicon {
             background: #fff;
-            box-shadow: 0 8px 24px rgba(124,58,237,0.18), 0 0 0 1px rgba(124,58,237,0.10);
+            box-shadow: 0 10px 28px rgba(124,58,237,0.20), 0 0 0 1px rgba(124,58,237,0.10);
         }
         .hero-emblem .favicon-img { width: 100%; height: 100%; object-fit: contain; border-radius: 10px; }
+        .hero-emblem-letter {
+            font-size: 26px; font-weight: 800; line-height: 1;
+            letter-spacing: -0.02em;
+            background: linear-gradient(180deg, #ffffff, #f0e7ff);
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.12);
+        }
+
+        /* ----- Status chips ----- */
         .hero-chip {
             display: inline-flex; align-items: center; gap: 6px;
             padding: 5px 11px; border-radius: 999px;
@@ -282,14 +316,63 @@
             color: var(--text-primary);
             backdrop-filter: blur(10px);
             text-decoration: none;
+            letter-spacing: 0.02em;
         }
-        html.light-mode .hero-chip { background: rgba(255,255,255,0.7); }
+        html.light-mode .hero-chip { background: rgba(255,255,255,0.7); color: #1f1147; }
         .hero-chip i { font-size: 9px; }
-        .hero-title { font-size: 1.875rem; font-weight: 800; line-height: 1.15; }
+
+        /* ----- Title ----- */
+        .hero-title {
+            font-size: 1.875rem;
+            font-weight: 800;
+            line-height: 1.12;
+            letter-spacing: -0.02em;
+        }
+        .hero-subtitle {
+            font-size: 0.875rem;
+            margin-top: 0.4rem;
+            color: var(--text-muted);
+        }
+
+        /* ----- URL row (short link + copy/open) ----- */
+        .hero-url {
+            display: inline-flex; align-items: center; gap: 8px;
+            margin-top: 10px;
+            padding: 6px 10px 6px 12px;
+            background: rgba(124,58,237,0.10);
+            border: 1px solid rgba(124,58,237,0.22);
+            border-radius: 999px;
+            max-width: 100%;
+            font-size: 12.5px;
+        }
+        html.light-mode .hero-url { background: rgba(124,58,237,0.07); border-color: rgba(124,58,237,0.20); }
+        .hero-url-icon { font-size: 10px; color: #a78bfa; }
+        html.light-mode .hero-url-icon { color: #7c3aed; }
+        .hero-url-text {
+            color: var(--text-primary); font-weight: 600;
+            text-decoration: none;
+            min-width: 0;
+        }
+        .hero-url-text:hover { color: #a78bfa; }
+        html.light-mode .hero-url-text:hover { color: #6d28d9; }
+        .hero-url-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 24px; height: 24px; border-radius: 8px;
+            color: var(--text-faint);
+            background: transparent; border: none; cursor: pointer;
+            text-decoration: none;
+            transition: all .15s ease;
+            font-size: 10px;
+        }
+        .hero-url-btn:hover { background: rgba(139,92,246,0.16); color: #c4b5fd; }
+        html.light-mode .hero-url-btn:hover { background: rgba(139,92,246,0.12); color: #6d28d9; }
+
         @media (max-width: 640px) {
-            .page-hero { padding: 16px 18px; border-radius: 18px; }
-            .hero-emblem { width: 48px; height: 48px; font-size: 18px; }
+            .page-hero { padding: 16px 18px 16px 22px; border-radius: 18px; }
+            .hero-emblem { width: 50px; height: 50px; font-size: 18px; }
+            .hero-emblem-letter { font-size: 22px; }
             .hero-title { font-size: 1.4rem; }
+            .page-hero::after { width: 3px; top: 16px; bottom: 16px; }
         }
     </style>
     @stack('styles')
