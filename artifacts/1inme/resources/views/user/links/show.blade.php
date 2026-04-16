@@ -1052,9 +1052,36 @@
     const heatmapPeriod = @json($periodLabelStr);
     const heatmapLinkSlug = @json($linkSlugStr);
     const heatmapLiveUrl = @json(route('user.links.heatmap.live', $link));
+    // Use Esri "Gray Canvas" raster tiles as the basemap — these show neutral
+    // terrain shading with NO political boundaries drawn, so no country's
+    // disputed-border lines (e.g. Kashmir) are imposed on the map. The heatmap
+    // overlay is the only thing that conveys geography of clicks.
+    const ESRI_ATTRIB = '&copy; <a href="https://www.esri.com/" target="_blank" rel="noopener">Esri</a>';
+    const buildBasemapStyle = (tileUrl, bgColor) => ({
+        version: 8,
+        sources: {
+            basemap: {
+                type: 'raster',
+                tiles: [tileUrl],
+                tileSize: 256,
+                attribution: ESRI_ATTRIB,
+                maxzoom: 16,
+            }
+        },
+        layers: [
+            { id: 'bg',      type: 'background', paint: { 'background-color': bgColor } },
+            { id: 'basemap', type: 'raster',     source: 'basemap' }
+        ],
+    });
     const STYLES = {
-        dark:  'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
-        light: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+        dark:  buildBasemapStyle(
+            'https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+            '#0a0a0f'
+        ),
+        light: buildBasemapStyle(
+            'https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+            '#f5f5f5'
+        ),
     };
 
     let map = null;
