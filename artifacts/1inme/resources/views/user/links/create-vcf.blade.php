@@ -18,7 +18,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-white/60 mb-1">First Name <span class="text-red-500">*</span></label>
-                    <input type="text" name="first_name" value="{{ old('first_name') }}" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-violet-500/40" required>
+                    <input type="text" name="first_name" value="{{ old('first_name', $prefillTitle ?? '') }}" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-violet-500/40" required>
                     @error('first_name') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div>
