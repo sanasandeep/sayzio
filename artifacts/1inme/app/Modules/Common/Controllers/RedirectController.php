@@ -3,6 +3,7 @@
 namespace App\Modules\Common\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Common\Services\AppLinkResolver;
 use App\Modules\Common\Services\LinkTrackingService;
 use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Link;
@@ -116,8 +117,38 @@ class RedirectController extends Controller
             return response()->view('common.preview-page', compact('link'));
         }
 
-        if (!$previewEnabled) {
+        // Track once per visitor click. The app-opener interstitial sends
+        // users back here with `?_web=1` for the in-browser fallback — we
+        // must NOT re-track that bounce or it inflates click counts.
+        if (!$previewEnabled && !$request->boolean('_web')) {
             $this->trackingService->track($link, $request, $alias);
+        }
+
+        // Mobile app opener — for url-type links pointing at known apps,
+        // serve a tiny interstitial that tries the native app's deep link
+        // first and falls back to the web. Bypassed with ?_web=1 (used by
+        // the "Continue in browser" button on the interstitial itself).
+        if ($link->type === 'url'
+            && ($settings['open_in_app'] ?? true) !== false
+            && !$request->boolean('_web')) {
+            $ua = $request->userAgent() ?? '';
+            $isIos     = (bool) preg_match('/iPhone|iPad|iPod/i', $ua);
+            $isAndroid = (bool) preg_match('/Android/i', $ua);
+            if ($isIos || $isAndroid) {
+                $destination = $link->getDestinationUrl();
+                $matched = AppLinkResolver::resolve($destination);
+                if ($matched) {
+                    $appUrl = $isIos ? ($matched['ios'] ?? null) : ($matched['android'] ?? null);
+                    if ($appUrl) {
+                        $webUrl = $request->fullUrlWithQuery(['_web' => 1]);
+                        return response()->view('common.app-opener', [
+                            'app'    => $matched,
+                            'appUrl' => $appUrl,
+                            'webUrl' => $webUrl,
+                        ]);
+                    }
+                }
+            }
         }
 
         return match ($link->type) {

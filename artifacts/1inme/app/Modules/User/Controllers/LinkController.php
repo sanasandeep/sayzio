@@ -4,6 +4,7 @@ namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Common\Services\CityLookupService;
+use App\Modules\Common\Services\AppLinkResolver;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\UserFile;
 use Illuminate\Http\Request;
@@ -160,6 +161,11 @@ class LinkController extends Controller
             'is_password_protected' => 'boolean',
             'password' => 'nullable|string|min:3|max:100',
             'expires_at' => 'nullable|date|after:now',
+            'expiry_url' => 'nullable|url:http,https|max:2048',
+            'max_clicks' => 'nullable|integer|min:0|max:1000000000',
+            'start_at'   => 'nullable|date',
+            'expire_on_first_click' => 'nullable|boolean',
+            'open_in_app' => 'nullable|boolean',
             'seo_title' => 'nullable|string|max:255',
             'seo_description' => 'nullable|string|max:500',
             'utm_source' => 'nullable|string|max:255',
@@ -206,8 +212,24 @@ class LinkController extends Controller
         if ($request->boolean('show_preview_page') && in_array($validated['type'], ['url', 'ics', 'vcf'], true)) {
             $settings['show_preview_page'] = true;
         }
+        // Scheduling / limits / app opener — same shape as update().
+        if (!empty($validated['expiry_url']))     $settings['expiry_url'] = $validated['expiry_url'];
+        if (!empty($validated['max_clicks']))     $settings['max_clicks'] = (int) $validated['max_clicks'];
+        if (!empty($validated['start_at']))       $settings['start_at']   = $validated['start_at'];
+        if (!empty($validated['expire_on_first_click'])) $settings['expire_on_first_click'] = true;
+        // Default `open_in_app` to true for url-type links so app opening
+        // is on by default — users can disable it per-link.
+        if (($validated['type'] ?? null) === 'url') {
+            $settings['open_in_app'] = $request->has('open_in_app')
+                ? $request->boolean('open_in_app')
+                : true;
+        }
         $validated['settings'] = !empty($settings) ? $settings : null;
-        unset($validated['country_restrictions'], $validated['device_targeting']);
+        unset(
+            $validated['country_restrictions'], $validated['device_targeting'],
+            $validated['expiry_url'], $validated['max_clicks'], $validated['start_at'],
+            $validated['expire_on_first_click'], $validated['open_in_app']
+        );
 
         $validated['user_id'] = $request->user()->id;
 
@@ -1038,7 +1060,11 @@ class LinkController extends Controller
         $domains = $request->user()->domains()->where('is_verified', true)->get();
         $link->load('pixels');
 
-        return view('user.links.edit', compact('link', 'projects', 'pixels', 'domains'));
+        // Detect a known mobile app for the destination URL so the edit form
+        // can show "Opens in YouTube on mobile" etc.
+        $detectedApp = $link->type === 'url' ? AppLinkResolver::resolve($link->long_url) : null;
+
+        return view('user.links.edit', compact('link', 'projects', 'pixels', 'domains', 'detectedApp'));
     }
 
     public function update(Request $request, Link $link)
@@ -1061,6 +1087,8 @@ class LinkController extends Controller
             'max_clicks' => 'nullable|integer|min:0|max:1000000000',
             'start_at' => 'nullable|date',
             'expire_on_first_click' => 'nullable|boolean',
+            'open_in_app' => 'nullable|boolean',
+            'show_preview_page' => 'nullable|boolean',
             '_exp_mode' => 'nullable|in:none,date,clicks,first_click',
             'seo_title' => 'nullable|string|max:255',
             'seo_description' => 'nullable|string|max:500',
@@ -1153,11 +1181,28 @@ class LinkController extends Controller
             unset($settings['expire_on_first_click']);
         }
 
+        // App-opener toggle (only meaningful for url-type links). The form
+        // always submits a hidden `open_in_app=0` plus the checkbox so
+        // unchecking really clears it.
+        if ($link->type === 'url' && $request->has('open_in_app')) {
+            $settings['open_in_app'] = $request->boolean('open_in_app');
+        }
+
+        // Engagement preview-page toggle (url/ics/vcf).
+        if (in_array($link->type, ['url', 'ics', 'vcf'], true) && $request->has('show_preview_page')) {
+            if ($request->boolean('show_preview_page')) {
+                $settings['show_preview_page'] = true;
+            } else {
+                unset($settings['show_preview_page']);
+            }
+        }
+
         $validated['settings'] = !empty($settings) ? $settings : null;
         unset(
             $validated['country_restrictions'], $validated['device_targeting'],
             $validated['expiry_url'], $validated['max_clicks'],
-            $validated['start_at'], $validated['expire_on_first_click']
+            $validated['start_at'], $validated['expire_on_first_click'],
+            $validated['open_in_app'], $validated['show_preview_page']
         );
 
         $pixelIds = $validated['pixel_ids'] ?? [];

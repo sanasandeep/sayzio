@@ -24,7 +24,20 @@
         ],
     ])
 
-    <form method="POST" action="{{ route('user.links.update', $link) }}" enctype="multipart/form-data" x-data="{ passwordProtect: {{ $link->is_password_protected ? 'true' : 'false' }} }">
+    @php
+        $s = $link->settings ?? [];
+        $expMode = !empty($s['expire_on_first_click']) ? 'first_click'
+            : (!empty($s['max_clicks']) ? 'clicks'
+            : ($link->expires_at ? 'date' : 'none'));
+        $openInApp = ($s['open_in_app'] ?? true) ? 'true' : 'false';
+        $showPreview = !empty($s['show_preview_page']) ? 'true' : 'false';
+    @endphp
+    <form method="POST" action="{{ route('user.links.update', $link) }}" enctype="multipart/form-data" x-data="{
+        passwordProtect: {{ $link->is_password_protected ? 'true' : 'false' }},
+        expMode: '{{ $expMode }}',
+        openInApp: {{ $openInApp }},
+        showPreview: {{ $showPreview }}
+    }">
         @csrf @method('PUT')
 
         <div class="glass rounded-2xl p-6 mb-6">
@@ -138,8 +151,8 @@
         </div>
 
         <div class="glass rounded-2xl p-6 mb-6">
-            <h2 class="text-lg font-semibold text-white mb-4">Protection & Expiry</h2>
-            <div class="space-y-3">
+            <h2 class="text-lg font-semibold text-white mb-4">Protection & Scheduling</h2>
+            <div class="space-y-4">
                 <label class="flex items-center gap-3">
                     <input type="checkbox" name="is_password_protected" value="1" x-model="passwordProtect" class="rounded text-violet-400 focus:ring-violet-500/40">
                     <span class="text-sm text-white/60">Password protect this link</span>
@@ -147,12 +160,93 @@
                 <div x-show="passwordProtect" class="ml-7">
                     <input type="password" name="password" placeholder="New password (leave empty to keep current)" class="w-full max-w-xs border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
                 </div>
+
                 <div>
+                    <label class="block text-sm text-white/60 mb-1">Goes Live At <span class="text-white/30">(optional)</span></label>
+                    <input type="datetime-local" name="start_at"
+                           value="{{ old('start_at', !empty($s['start_at']) ? \Carbon\Carbon::parse($s['start_at'])->format('Y-m-d\TH:i') : '') }}"
+                           class="border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
+                    <p class="text-xs text-white/30 mt-1">Visitors before this time see "not yet available".</p>
+                </div>
+
+                <div>
+                    <label class="block text-sm text-white/60 mb-1">Expiry Rule</label>
+                    <select name="_exp_mode" x-model="expMode" class="border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
+                        <option value="none">Never expires</option>
+                        <option value="date">Expires on a specific date</option>
+                        <option value="clicks">Expires after N clicks</option>
+                        <option value="first_click">One-time use (expires after first click)</option>
+                    </select>
+                </div>
+
+                <div x-show="expMode === 'date'">
                     <label class="block text-sm text-white/60 mb-1">Expiration Date</label>
                     <input type="datetime-local" name="expires_at" value="{{ old('expires_at', $link->expires_at?->format('Y-m-d\TH:i')) }}" class="border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
                 </div>
+
+                <div x-show="expMode === 'clicks'">
+                    <label class="block text-sm text-white/60 mb-1">Maximum Clicks</label>
+                    <input type="number" min="1" name="max_clicks" value="{{ old('max_clicks', $s['max_clicks'] ?? '') }}" placeholder="e.g. 100" class="border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
+                </div>
+
+                <div x-show="expMode !== 'none'">
+                    <label class="block text-sm text-white/60 mb-1">After Expiry, Redirect To <span class="text-white/30">(optional)</span></label>
+                    <input type="url" name="expiry_url" value="{{ old('expiry_url', $s['expiry_url'] ?? '') }}" placeholder="https://example.com/expired" class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
+                    <p class="text-xs text-white/30 mt-1">Leave empty to show the default "link expired" page.</p>
+                </div>
             </div>
         </div>
+
+        @if($link->type === 'url')
+        <div class="glass rounded-2xl p-6 mb-6">
+            <h2 class="text-lg font-semibold text-white mb-2">App Opener (Mobile Deep Link)</h2>
+            <p class="text-xs text-white/40 mb-4">When a phone visitor lands on your short link, try opening the destination in its native app instead of the browser. Falls back to the web automatically if the app isn't installed.</p>
+
+            @if($detectedApp)
+                <div class="flex items-center gap-3 p-3 mb-4 rounded-xl bg-violet-500/10 border border-violet-500/30">
+                    <i class="{{ $detectedApp['icon'] }} text-2xl text-violet-300"></i>
+                    <div class="flex-1">
+                        <div class="text-sm font-medium text-white">Detected: {{ $detectedApp['name'] }}</div>
+                        <div class="text-xs text-white/50">Mobile visitors will be sent to the {{ $detectedApp['name'] }} app when this is enabled.</div>
+                    </div>
+                </div>
+            @else
+                <div class="flex items-center gap-3 p-3 mb-4 rounded-xl bg-white/5 border border-white/10">
+                    <i class="fa-regular fa-circle-question text-xl text-white/40"></i>
+                    <div class="flex-1">
+                        <div class="text-sm text-white/70">No supported app detected for this URL</div>
+                        <div class="text-xs text-white/40">Supported: YouTube, Instagram, TikTok, X, Facebook, Spotify, LinkedIn, Reddit, Pinterest, Snapchat, WhatsApp, Telegram, Threads, Apple Music, Google Maps, Twitch.</div>
+                    </div>
+                </div>
+            @endif
+
+            @if($detectedApp)
+                {{-- Hidden 0 ensures unchecking submits a falsy value (browsers
+                     omit unchecked checkboxes from form data). Only emitted when
+                     an app is actually detected — otherwise saving the form
+                     would silently disable opener for that link. --}}
+                <input type="hidden" name="open_in_app" value="0">
+                <label class="flex items-center gap-3">
+                    <input type="checkbox" name="open_in_app" value="1" x-model="openInApp" class="rounded text-violet-400 focus:ring-violet-500/40">
+                    <span class="text-sm text-white/70">Open in app on mobile when available</span>
+                </label>
+            @else
+                <p class="text-xs text-white/40 italic">Toggle becomes available once your destination URL points at one of the supported apps.</p>
+            @endif
+        </div>
+        @endif
+
+        @if(in_array($link->type, ['url', 'ics', 'vcf'], true))
+        <div class="glass rounded-2xl p-6 mb-6">
+            <h2 class="text-lg font-semibold text-white mb-2">Engagement</h2>
+            <p class="text-xs text-white/40 mb-4">Show a short interstitial page before redirecting so you can fire tracking pixels and measure dwell time.</p>
+            <input type="hidden" name="show_preview_page" value="0">
+            <label class="flex items-center gap-3">
+                <input type="checkbox" name="show_preview_page" value="1" x-model="showPreview" class="rounded text-violet-400 focus:ring-violet-500/40">
+                <span class="text-sm text-white/70">Show preview page before redirecting</span>
+            </label>
+        </div>
+        @endif
 
         <div class="glass rounded-2xl p-6 mb-6">
             <h2 class="text-lg font-semibold text-white mb-4">SEO Settings</h2>
