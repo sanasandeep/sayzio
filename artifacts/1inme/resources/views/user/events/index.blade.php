@@ -26,10 +26,39 @@
 #bz-cal .fc-button{ text-transform:capitalize; font-weight:600; font-size:.78rem; padding:.4rem .8rem; border-radius:.6rem }
 #bz-cal .fc-event{ border-radius:6px; padding:1px 4px; font-weight:600; font-size:.72rem; cursor:pointer }
 #bz-cal .fc-list-empty{ background:transparent; color:var(--text-muted) }
-html.light-mode #bz-cal{ --fc-border-color:#e2e8f0; --fc-neutral-bg-color:#f8fafc;
-                         --fc-button-bg-color:#fff; --fc-button-border-color:#e2e8f0;
-                         --fc-list-event-hover-bg-color:rgba(124,58,237,.06);
-                         --fc-today-bg-color:rgba(124,58,237,.06) }
+html.light-mode #bz-cal{
+    --fc-border-color:#e2e8f0;
+    --fc-page-bg-color:#fff;
+    --fc-neutral-bg-color:#f8fafc;
+    --fc-button-bg-color:#fff;
+    --fc-button-border-color:#e2e8f0;
+    --fc-button-text-color:#0f172a;
+    --fc-button-hover-bg-color:rgba(124,58,237,.10);
+    --fc-button-hover-border-color:rgba(124,58,237,.30);
+    --fc-button-active-bg-color:#7c3aed;
+    --fc-button-active-border-color:#7c3aed;
+    --fc-list-event-hover-bg-color:rgba(124,58,237,.06);
+    --fc-today-bg-color:rgba(124,58,237,.06);
+    --fc-event-text-color:#fff;
+}
+html.light-mode #bz-cal .fc-toolbar-title,
+html.light-mode #bz-cal .fc-col-header-cell-cushion,
+html.light-mode #bz-cal .fc-daygrid-day-number,
+html.light-mode #bz-cal .fc-list-day-cushion,
+html.light-mode #bz-cal .fc-list-day-cushion *,
+html.light-mode #bz-cal .fc-timegrid-slot-label-cushion,
+html.light-mode #bz-cal .fc-timegrid-axis-cushion,
+html.light-mode #bz-cal .fc-list-event-time,
+html.light-mode #bz-cal .fc-list-event-title,
+html.light-mode #bz-cal .fc-list-event-title a{ color:#0f172a }
+html.light-mode #bz-cal .fc-day-other .fc-daygrid-day-number{ color:#94a3b8 }
+html.light-mode #bz-cal .fc-button.fc-button-active,
+html.light-mode #bz-cal .fc-button.fc-button-active:focus{ color:#fff !important }
+html.light-mode #bz-cal .fc-list-day-cushion{ background:rgba(124,58,237,.06) !important }
+html.light-mode #bz-cal .fc-list,
+html.light-mode #bz-cal .fc-scrollgrid,
+html.light-mode #bz-cal table{ background:#fff }
+html.light-mode #bz-cal .fc-list-empty{ color:#64748b }
 </style>
 @endpush
 
