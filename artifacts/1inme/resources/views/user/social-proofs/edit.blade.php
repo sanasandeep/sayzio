@@ -503,6 +503,11 @@ function buzzEditor() {
                     targeting: {...this.targeting},
                     notifications: JSON.parse(JSON.stringify(this.notifications.filter(n => n.is_active))),
                     live_visitors: 23,
+                }, {
+                    uuid: window.__BUZZ.uuid,
+                    trackUrl: '/sp/' + window.__BUZZ.uuid + '/track',
+                    preview: true,
+                    mountTo: '#bz-preview',
                 });
             }, 250);
         },

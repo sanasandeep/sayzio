@@ -38,16 +38,47 @@
     cfg = cfg || { uuid: uuid, trackUrl: '/sp/' + uuid + '/track', preview: true };
     cfg.uuid = uuid;
     cfg.preview = true;
+    // Resolve optional mount target (Element | CSS selector). When provided, ALL
+    // rendered widgets are appended into this element with absolute positioning
+    // contained inside it (so previews stay inside the editor's preview pane
+    // rather than landing on the host page).
+    var mountEl = cfg.mountTo || null;
+    if (typeof mountEl === 'string') mountEl = document.querySelector(mountEl);
+    cfg.mountEl = (mountEl && mountEl.nodeType === 1) ? mountEl : null;
+
     var inst = RUNTIME.instances[uuid] = RUNTIME.instances[uuid] || { cfg: cfg, config: null, cleanups: [] };
     inst.cfg = cfg;
     // Cleanup previous render
     (inst.cleanups || []).forEach(function (fn) { try { fn(); } catch (e) {} });
     inst.cleanups = [];
+    // Wipe widgets for this uuid wherever they live (body OR previous mount)
     document.querySelectorAll('.__1inme_sp[data-uuid="' + cssEsc(uuid) + '"]').forEach(function (n) {
       n.parentNode && n.parentNode.removeChild(n);
     });
+    if (cfg.mountEl) {
+      // Make sure the mount node is a positioning context so position:fixed children
+      // become effectively contained within it (we override fixed -> absolute below).
+      var cs = window.getComputedStyle(cfg.mountEl);
+      if (cs.position === 'static') cfg.mountEl.style.position = 'relative';
+      cfg.mountEl.style.overflow = cfg.mountEl.style.overflow || 'hidden';
+    }
     inst.config = config;
     run(cfg, config);
+  }
+
+  /**
+   * Mount a rendered widget container in the right place. In preview mode with
+   * a mountEl we append into that element and convert position:fixed -> absolute
+   * so the preview is visually contained.
+   */
+  function mountWidget(cont, cfg) {
+    if (cfg && cfg.mountEl) {
+      cont.style.position = 'absolute';
+      cont.style.zIndex = '5';
+      cfg.mountEl.appendChild(cont);
+    } else {
+      mountWidget(cont, cfg);
+    }
   }
 
   function cssEsc(s) { return String(s).replace(/[^a-zA-Z0-9_-]/g, ''); }
@@ -334,7 +365,7 @@
     if (typeof html === 'string') card.innerHTML = html;
     else card.appendChild(html);
     cont.appendChild(card);
-    document.body.appendChild(cont);
+    mountWidget(cont, cfg);
     track(cfg, n, 'impression');
     var dur = opts.persist ? 0 : (opts.duration || 8000);
     var closer = showFor(cont, dur);
@@ -393,7 +424,7 @@
       card.appendChild(body);
       var cont = makeContainer(cfg.uuid, design);
       cont.appendChild(card);
-      document.body.appendChild(cont);
+      mountWidget(cont, cfg);
       track(cfg, n, 'impression');
       var closer = showFor(cont, (+t.duration || 5) * 1000);
       withCloseButton(card, design, closer);
@@ -486,7 +517,7 @@
     row.appendChild(input); row.appendChild(btn);
     card.appendChild(title); if (s.body) card.appendChild(text); card.appendChild(row);
     var cont = makeContainer(cfg.uuid, design);
-    cont.appendChild(card); document.body.appendChild(cont);
+    cont.appendChild(card); mountWidget(cont, cfg);
     track(cfg, n, 'impression');
     var closer = showFor(cont, 0);
     withCloseButton(card, design, closer);
@@ -661,7 +692,7 @@
         iframe.allowFullscreen = true;
         modal.appendChild(iframe);
         modal.addEventListener('click', function (e) { if (e.target === modal) modal.remove(); });
-        document.body.appendChild(modal);
+        mountWidget(modal, cfg);
       }
     });
   };
@@ -696,7 +727,7 @@
     var wrap = document.createElement('div'); wrap.innerHTML = sanitizeHtml(s.html || '');
     card.appendChild(wrap);
     var cont = makeContainer(cfg.uuid, design);
-    cont.appendChild(card); document.body.appendChild(cont);
+    cont.appendChild(card); mountWidget(cont, cfg);
     track(cfg, n, 'impression');
     var closer = showFor(cont, 0);
     withCloseButton(card, design, closer);
