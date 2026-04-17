@@ -118,35 +118,7 @@
 
                 <div class="h-px bg-white/5"></div>
 
-                <div>
-                    <h3 class="text-sm font-medium text-violet-400 mb-3"><i class="fas fa-globe mr-2"></i>Country Restrictions</h3>
-                    <input type="text" name="country_restrictions" value="{{ old('country_restrictions') }}" placeholder="e.g. US,GB,CA (comma-separated country codes)"
-                           class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
-                    <p class="text-xs text-white/20 mt-1">Only allow access from these countries (ISO 2-letter codes)</p>
-                </div>
-
-                <div class="h-px bg-white/5"></div>
-
-                <div>
-                    <h3 class="text-sm font-medium text-violet-400 mb-3"><i class="fas fa-mobile-alt mr-2"></i>Device Targeting</h3>
-                    <div class="flex gap-6">
-                        <label class="flex items-center gap-2.5 text-sm text-white/60 cursor-pointer">
-                            <input type="checkbox" name="device_targeting[]" value="desktop" class="rounded bg-white/5 border-white/20 text-violet-600 focus:ring-violet-500/40" {{ is_array(old('device_targeting')) && in_array('desktop', old('device_targeting')) ? 'checked' : '' }}>
-                            <i class="fas fa-desktop text-white/30"></i> Desktop
-                        </label>
-                        <label class="flex items-center gap-2.5 text-sm text-white/60 cursor-pointer">
-                            <input type="checkbox" name="device_targeting[]" value="mobile" class="rounded bg-white/5 border-white/20 text-violet-600 focus:ring-violet-500/40" {{ is_array(old('device_targeting')) && in_array('mobile', old('device_targeting')) ? 'checked' : '' }}>
-                            <i class="fas fa-mobile-alt text-white/30"></i> Mobile
-                        </label>
-                        <label class="flex items-center gap-2.5 text-sm text-white/60 cursor-pointer">
-                            <input type="checkbox" name="device_targeting[]" value="tablet" class="rounded bg-white/5 border-white/20 text-violet-600 focus:ring-violet-500/40" {{ is_array(old('device_targeting')) && in_array('tablet', old('device_targeting')) ? 'checked' : '' }}>
-                            <i class="fas fa-tablet-alt text-white/30"></i> Tablet
-                        </label>
-                    </div>
-                    <p class="text-xs text-white/20 mt-1.5">Leave unchecked to allow all devices</p>
-                </div>
-
-                <div class="h-px bg-white/5"></div>
+                {{-- Country / device targeting removed — Smart Redirect Rules covers this. --}}
 
                 <div>
                     <h3 class="text-sm font-medium text-violet-400 mb-3"><i class="fas fa-chart-bar mr-2"></i>UTM Parameters</h3>

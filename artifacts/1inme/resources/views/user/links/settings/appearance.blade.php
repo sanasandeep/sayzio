@@ -584,49 +584,7 @@
                     </div>
                 </div>
 
-                {{-- TARGETING --}}
-                <div class="card-premium p-6" x-data="{ help: false }">
-                    <div class="flex items-start justify-between gap-4 mb-4">
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(20,184,166,0.1);"><i class="fas fa-globe text-teal-400 text-xs"></i></div>
-                            <div>
-                                <h3 class="text-sm font-bold" style="color: var(--text-primary);">Audience Targeting</h3>
-                                <p class="text-[11px] mt-0.5" style="color: var(--text-faint);">Limit who can open this link based on where they are and what device they're using. Most people leave this empty.</p>
-                            </div>
-                        </div>
-                        <button type="button" @click="help = !help" class="text-[10px] px-2 py-1 rounded-md flex-shrink-0" style="background: var(--bg-glass-input); color: var(--text-faint);"><i class="fas fa-question-circle mr-1"></i> Do I need this?</button>
-                    </div>
-                    <div x-show="help" x-transition x-cloak class="mb-4 p-3 rounded-lg text-[11px] leading-relaxed" style="background: rgba(20,184,166,0.06); border: 1px solid rgba(20,184,166,0.2); color: var(--text-muted);">
-                        <p class="mb-2"><strong style="color: var(--text-primary);">You probably don't.</strong> Leave both fields blank if you want everyone to see your link.</p>
-                        <p class="mb-1.5">Use targeting only when:</p>
-                        <ul class="list-disc pl-4 space-y-0.5">
-                            <li>You sell something only available in certain countries (shipping, licensing, language).</li>
-                            <li>You're running a desktop-only product demo and want to spare mobile visitors a broken page.</li>
-                            <li>Your app exists only on iOS or Android and you want to hide irrelevant traffic.</li>
-                        </ul>
-                        <p class="mt-2 text-[10px]"><i class="fas fa-shield-alt mr-1 text-teal-400"></i> Visitors who don't match are sent to your fallback URL (or shown the unavailable page).</p>
-                    </div>
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Allowed Countries</label>
-                            <input type="text" name="country_restrictions" value="{{ old('country_restrictions', $countryRestrictions) }}" placeholder="e.g. US, GB, CA" class="theme-input w-full">
-                            <p class="text-[10px] mt-1" style="color: var(--text-faint);">Type two-letter country codes separated by commas (US = United States, GB = United Kingdom, IN = India, …). <strong>Leave empty to allow every country.</strong></p>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium mb-2" style="color: var(--text-muted);">Allowed Devices</label>
-                            <div class="flex flex-wrap gap-2">
-                                @foreach(['desktop' => 'fa-desktop', 'mobile' => 'fa-mobile-screen', 'tablet' => 'fa-tablet-screen-button'] as $dev => $icon)
-                                <label class="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer select-none" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
-                                    <input type="checkbox" name="device_targeting[]" value="{{ $dev }}" class="rounded text-violet-500" {{ in_array($dev, $deviceTargeting) ? 'checked' : '' }}>
-                                    <i class="fas {{ $icon }} text-[11px]" style="color: var(--text-faint);"></i>
-                                    <span class="text-xs font-medium capitalize" style="color: var(--text-primary);">{{ $dev }}</span>
-                                </label>
-                                @endforeach
-                            </div>
-                            <p class="text-[10px] mt-1.5" style="color: var(--text-faint);"><strong>Leave all unchecked to allow every device</strong> (recommended for most links).</p>
-                        </div>
-                    </div>
-                </div>
+                {{-- Audience Targeting card removed — Smart Redirect Rules now handles country/device gating. --}}
 
                 {{-- UTM --}}
                 <div class="card-premium p-6" x-data="{ help: false }">

@@ -404,37 +404,7 @@
             </div>
         </div>
 
-@if($link->type !== 'url')
-        <div class="glass rounded-2xl p-6 mb-6">
-            <h2 class="text-lg font-semibold text-white mb-4">Targeting</h2>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-white/60 mb-1">Country Restrictions</label>
-                    <input type="text" name="country_restrictions" value="{{ old('country_restrictions', implode(',', $link->settings['country_restrictions'] ?? [])) }}" placeholder="e.g. US,GB,CA" class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
-                    <p class="text-xs text-white/30 mt-1">Comma-separated ISO country codes. Leave empty for no restriction.</p>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-white/60 mb-2">Device Targeting</label>
-                    @php $deviceTargeting = $link->settings['device_targeting'] ?? []; @endphp
-                    <div class="flex gap-4">
-                        <label class="flex items-center gap-2 text-sm text-white/60">
-                            <input type="checkbox" name="device_targeting[]" value="desktop" class="rounded text-violet-400" {{ in_array('desktop', $deviceTargeting) ? 'checked' : '' }}>
-                            Desktop
-                        </label>
-                        <label class="flex items-center gap-2 text-sm text-white/60">
-                            <input type="checkbox" name="device_targeting[]" value="mobile" class="rounded text-violet-400" {{ in_array('mobile', $deviceTargeting) ? 'checked' : '' }}>
-                            Mobile
-                        </label>
-                        <label class="flex items-center gap-2 text-sm text-white/60">
-                            <input type="checkbox" name="device_targeting[]" value="tablet" class="rounded text-violet-400" {{ in_array('tablet', $deviceTargeting) ? 'checked' : '' }}>
-                            Tablet
-                        </label>
-                    </div>
-                    <p class="text-xs text-white/30 mt-1">Leave unchecked to allow all devices.</p>
-                </div>
-            </div>
-        </div>
-@endif
+{{-- Targeting card removed — Smart Redirect Rules now handles country/device gating across all link types. --}}
 
         <div class="glass rounded-2xl p-6 mb-6">
             <h2 class="text-lg font-semibold text-white mb-4">UTM Parameters</h2>
