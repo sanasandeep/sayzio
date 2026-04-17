@@ -132,6 +132,16 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('qrcode', [QrCodeController::class, 'generateStandalone'])->name('qrcode.download');
         Route::get('qrcode/preview', [QrCodeController::class, 'previewStandalone'])->name('qrcode.preview');
 
+        // QR Studio (full builder + library)
+        Route::get   ('qr-codes',                    [QrCodeController::class, 'index'])    ->name('qr-codes.index');
+        Route::get   ('qr-codes/create',             [QrCodeController::class, 'create'])   ->name('qr-codes.create');
+        Route::post  ('qr-codes',                    [QrCodeController::class, 'store'])    ->name('qr-codes.store');
+        Route::get   ('qr-codes/{qrCode}/edit',      [QrCodeController::class, 'edit'])     ->name('qr-codes.edit');
+        Route::put   ('qr-codes/{qrCode}',           [QrCodeController::class, 'update'])   ->name('qr-codes.update');
+        Route::delete('qr-codes/{qrCode}',           [QrCodeController::class, 'destroy'])  ->name('qr-codes.destroy');
+        Route::post  ('qr-codes/{qrCode}/duplicate', [QrCodeController::class, 'duplicate'])->name('qr-codes.duplicate');
+        Route::post  ('qr-codes/resolve',            [QrCodeController::class, 'resolvePayload'])->name('qr-codes.resolve');
+
         Route::resource('pixels', PixelController::class)->except(['show', 'store']);
         Route::post('pixels', [PixelController::class, 'store'])->middleware(CheckPlanLimit::class . ':pixels')->name('pixels.store');
 

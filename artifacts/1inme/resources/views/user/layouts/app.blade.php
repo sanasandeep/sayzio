@@ -430,8 +430,8 @@
                     <span class="nav-label">Create Link</span>
                     <span class="sidebar-tooltip">Create Link</span>
                 </a>
-                <a href="{{ route('user.qrcode') }}"
-                   class="sidebar-link {{ request()->routeIs('user.qrcode*') ? 'active' : '' }}"
+                <a href="{{ route('user.qr-codes.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.qr-codes.*') || request()->routeIs('user.qrcode*') ? 'active' : '' }}"
                    style="--nav-tint:#6366f1; --nav-tint-soft:rgba(99,102,241,0.12);">
                     <div class="nav-icon-wrap"><i class="fas fa-qrcode"></i></div>
                     <span class="nav-label">QR Codes</span>

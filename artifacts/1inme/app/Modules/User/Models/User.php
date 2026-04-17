@@ -45,6 +45,11 @@ class User extends Authenticatable
         return $this->hasMany(Link::class);
     }
 
+    public function qrCodes()
+    {
+        return $this->hasMany(QrCode::class);
+    }
+
     public function splashPages()
     {
         return $this->hasMany(SplashPage::class);
