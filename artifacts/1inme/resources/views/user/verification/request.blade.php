@@ -93,16 +93,12 @@
 
         <div class="card-premium p-6">
             <h3 class="text-sm font-bold mb-4" style="color: var(--text-primary);"><i class="fas fa-image text-emerald-400 mr-2"></i>Logo / Profile Image</h3>
-            <div class="flex items-center gap-4">
-                <label class="cursor-pointer flex items-center gap-3 p-4 rounded-xl transition-all hover:bg-white/[0.03]" style="background: var(--bg-glass); border: 2px dashed var(--border-glass);">
-                    <i class="fas fa-cloud-upload-alt text-violet-400"></i>
-                    <div>
-                        <span class="text-xs font-semibold block" style="color: var(--text-primary);">Upload Logo</span>
-                        <span class="text-[10px]" style="color: var(--text-dimmed);">PNG, JPG up to 2MB</span>
-                    </div>
-                    <input type="file" name="logo" accept="image/*" class="hidden">
-                </label>
-            </div>
+            @include('user.partials.dropzone-input', [
+                'name'   => 'logo',
+                'accept' => 'image/*',
+                'hint'   => 'PNG / JPG, used for your verified avatar block',
+                'maxMb'  => 2,
+            ])
             <p class="text-[10px] mt-2" style="color: var(--text-dimmed);">This logo will be used for your verified avatar block and cannot be changed after verification.</p>
         </div>
 
@@ -112,12 +108,14 @@
                 <span x-show="category === 'artist_creator'">Upload proof of your identity (government ID, verified social media screenshots, official website, press coverage, etc.)</span>
                 <span x-show="category === 'business_product'">Upload proof of your business (business registration, trademark certificate, official documents, etc.)</span>
             </p>
-            <label class="cursor-pointer block p-6 rounded-xl text-center transition-all hover:bg-white/[0.03]" style="background: var(--bg-glass); border: 2px dashed var(--border-glass);">
-                <i class="fas fa-folder-open text-violet-400 text-2xl mb-2"></i>
-                <p class="text-xs font-semibold mb-1" style="color: var(--text-primary);">Click to upload proof files</p>
-                <p class="text-[10px]" style="color: var(--text-dimmed);">PDF, PNG, JPG up to 5MB each. Multiple files allowed.</p>
-                <input type="file" name="proof_files[]" multiple accept=".pdf,.png,.jpg,.jpeg,.webp" class="hidden">
-            </label>
+            @include('user.partials.dropzone-input', [
+                'name'        => 'proof_files',
+                'accept'      => '.pdf,.png,.jpg,.jpeg,.webp',
+                'multiple'    => true,
+                'hint'        => 'PDF, PNG, JPG, WEBP. Drop multiple files here or click to browse',
+                'maxMb'       => 5,
+                'previewKind' => 'file',
+            ])
         </div>
 
         <div class="flex justify-end gap-3">

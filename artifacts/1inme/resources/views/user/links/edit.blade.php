@@ -409,21 +409,23 @@
             <div class="space-y-3">
                 <input type="text" name="seo_title" value="{{ old('seo_title', $link->seo_title) }}" placeholder="SEO Title" class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
                 <textarea name="seo_description" placeholder="SEO Description" rows="2" class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">{{ old('seo_description', $link->seo_description) }}</textarea>
-                <div>
-                    <label class="block text-sm text-white/60 mb-1">OG Image</label>
-                    @if($link->seo_image)
-                        <div class="mb-2"><img src="{{ $link->seo_image }}" alt="Current OG image" class="h-20 rounded border"></div>
-                    @endif
-                    <input type="file" name="seo_image" accept="image/*" class="w-full text-sm text-white/40 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:bg-white/10 file:text-white/60 hover:file:bg-white/15">
-                </div>
-                <div>
-                    <label class="block text-sm text-white/60 mb-1">Favicon</label>
-                    @if($link->favicon)
-                        <div class="mb-2"><img src="{{ $link->favicon }}" alt="Current favicon" class="h-8 rounded border"></div>
-                    @endif
-                    <input type="file" name="favicon" accept="image/*" class="w-full text-sm text-white/40 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:bg-white/10 file:text-white/60 hover:file:bg-white/15">
-                    <p class="text-xs text-white/30 mt-1">Small icon shown in browser tab (recommended: 32x32 or 64x64 px)</p>
-                </div>
+                @include('user.partials.dropzone-input', [
+                    'name'        => 'seo_image',
+                    'label'       => 'OG Image',
+                    'accept'      => 'image/*',
+                    'currentUrl'  => $link->seo_image,
+                    'currentName' => $link->seo_image ? 'Saved OG image' : null,
+                    'maxMb'       => 5,
+                ])
+                @include('user.partials.dropzone-input', [
+                    'name'        => 'favicon',
+                    'label'       => 'Favicon',
+                    'accept'      => 'image/*',
+                    'currentUrl'  => $link->favicon,
+                    'currentName' => $link->favicon ? 'Saved favicon' : null,
+                    'maxMb'       => 2,
+                    'hint'        => 'Browser-tab icon · recommended 32x32 or 64x64',
+                ])
             </div>
         </div>
 

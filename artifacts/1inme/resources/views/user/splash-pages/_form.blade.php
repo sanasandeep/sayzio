@@ -79,21 +79,24 @@
             ] as [$field,$label,$state,$rmFlag,$hint])
                 <div>
                     <label class="block text-xs font-semibold mb-1.5" style="color: var(--text-secondary);">{{ $label }}</label>
-                    <div class="rounded-lg p-3 flex items-center justify-center min-h-[100px]"
-                         style="background: var(--bg-glass-hover); border: 1px dashed var(--border-glass);">
-                        <template x-if="{{ $state }}">
-                            <img :src="{{ $state }}" alt="" class="max-h-20 max-w-full object-contain">
-                        </template>
-                        <template x-if="!{{ $state }}">
-                            <span class="text-xs" style="color: var(--text-faint);">No image</span>
-                        </template>
-                    </div>
-                    <input type="file" name="{{ $field }}" accept="image/*" class="text-xs mt-2 w-full"
-                           @change="readPreview($event.target, '{{ $state }}')">
-                    <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">{{ $hint }}</p>
-                    <label class="inline-flex items-center gap-1.5 text-[11px] mt-1.5" style="color: var(--text-muted);">
-                        <input type="checkbox" name="{{ $rmFlag }}" value="1"> Remove
-                    </label>
+                    @include('user.partials.dropzone-input', [
+                        'name'        => $field,
+                        'accept'      => 'image/*',
+                        'currentUrl'  => null,
+                        'currentName' => null,
+                        'compact'     => true,
+                        'hint'        => $hint,
+                        'maxMb'       => 5,
+                    ])
+                    <template x-if="{{ $state }}">
+                        <div class="mt-2 flex items-center gap-2 p-2 rounded-lg bg-white/5">
+                            <img :src="{{ $state }}" alt="" class="w-10 h-10 rounded object-cover">
+                            <span class="text-xs flex-1" style="color: var(--text-muted);">Current image</span>
+                            <label class="inline-flex items-center gap-1.5 text-[11px] cursor-pointer" style="color: #f87171;">
+                                <input type="checkbox" name="{{ $rmFlag }}" value="1"> Remove
+                            </label>
+                        </div>
+                    </template>
                 </div>
             @endforeach
         </div>

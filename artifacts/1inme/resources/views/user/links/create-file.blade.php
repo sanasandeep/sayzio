@@ -15,15 +15,14 @@
         @csrf
         <div class="glass rounded-2xl p-6 space-y-4">
             <div>
-                <label class="block text-sm font-medium text-white/60 mb-1">File <span class="text-red-500">*</span></label>
-                <div class="border-2 border-dashed border-white/10 rounded-xl p-8 text-center hover:border-primary-400 transition-colors" x-data="{ fileName: '' }">
-                    <input type="file" name="file" @change="fileName = $event.target.files[0]?.name || ''" class="hidden" id="file-input" required>
-                    <label for="file-input" class="cursor-pointer">
-                        <i class="fas fa-cloud-upload-alt text-white/30 text-3xl mb-3 block"></i>
-                        <p class="text-sm text-white/50" x-show="!fileName">Click to upload a file (max {{ $maxFileSizeMb }}MB)</p>
-                        <p class="text-sm text-violet-400 font-medium" x-show="fileName" x-text="fileName" x-cloak></p>
-                    </label>
-                </div>
+                @include('user.partials.dropzone-input', [
+                    'name'     => 'file',
+                    'label'    => 'File',
+                    'required' => true,
+                    'maxMb'    => $maxFileSizeMb,
+                    'accept'   => '*/*',
+                    'hint'     => 'Any file type. Drop here or click to browse',
+                ])
                 @error('file') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
 

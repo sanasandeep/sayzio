@@ -81,15 +81,21 @@
             @break
 
         @case('file')
-            <input type="file" id="f_{{ $id }}" name="{{ $id }}" class="form-input"
-                @if(!empty($field['file_types'])) accept="{{ collect(explode(',', preg_replace('/[^a-zA-Z0-9,]/', '', (string)$field['file_types'])))->map(fn($e) => '.' . $e)->implode(',') }}" @endif
-                @if($required) required @endif>
-            @if(!empty($field['file_max_kb']) || !empty($field['file_types']))
-                <div class="form-help" style="margin-top:0.4rem;">
-                    @if(!empty($field['file_types'])){{ strtoupper(str_replace(',', ', ', $field['file_types'])) }}@endif
-                    @if(!empty($field['file_max_kb'])) · max {{ number_format(((int) $field['file_max_kb']) / 1024, 1) }} MB @endif
-                </div>
-            @endif
+            @php
+                $ffAccept  = !empty($field['file_types'])
+                    ? collect(explode(',', preg_replace('/[^a-zA-Z0-9,]/', '', (string)$field['file_types'])))->map(fn($e) => '.' . $e)->implode(',')
+                    : '*/*';
+                $ffMaxMb   = !empty($field['file_max_kb']) ? round(((int) $field['file_max_kb']) / 1024, 1) : null;
+                $ffHint    = !empty($field['file_types']) ? strtoupper(str_replace(',', ', ', $field['file_types'])) : null;
+            @endphp
+            @include('user.partials.dropzone-input', [
+                'name'     => $id,
+                'accept'   => $ffAccept,
+                'required' => $required,
+                'maxMb'    => $ffMaxMb,
+                'hint'     => $ffHint,
+                'compact'  => true,
+            ])
             @break
 
         @case('signature')

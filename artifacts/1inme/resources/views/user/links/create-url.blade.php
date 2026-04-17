@@ -102,17 +102,19 @@
                                class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
                         <textarea name="seo_description" placeholder="SEO Description" rows="2"
                                   class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">{{ old('seo_description') }}</textarea>
-                        <div>
-                            <label class="block text-sm text-white/60 mb-1.5">OG Image</label>
-                            <input type="file" name="seo_image" accept="image/*"
-                                   class="w-full text-sm text-white/40 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:bg-white/10 file:text-white/60 hover:file:bg-white/15">
-                        </div>
-                        <div>
-                            <label class="block text-sm text-white/60 mb-1.5">Favicon</label>
-                            <input type="file" name="favicon" accept="image/*"
-                                   class="w-full text-sm text-white/40 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:bg-white/10 file:text-white/60 hover:file:bg-white/15">
-                            <p class="text-xs text-white/20 mt-1">Small icon shown in browser tab (recommended: 32x32 or 64x64 px)</p>
-                        </div>
+                        @include('user.partials.dropzone-input', [
+                            'name'   => 'seo_image',
+                            'label'  => 'OG Image',
+                            'accept' => 'image/*',
+                            'maxMb'  => 5,
+                        ])
+                        @include('user.partials.dropzone-input', [
+                            'name'   => 'favicon',
+                            'label'  => 'Favicon',
+                            'accept' => 'image/*',
+                            'maxMb'  => 2,
+                            'hint'   => 'Browser-tab icon · recommended 32x32 or 64x64',
+                        ])
                     </div>
                 </div>
 

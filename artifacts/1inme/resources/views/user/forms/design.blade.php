@@ -99,7 +99,14 @@
                                 <input type="checkbox" name="remove_card_image" value="1" class="rounded"> Remove card image
                             </label>
                         @endif
-                        <input type="file" name="card_image" accept="image/*" class="w-full text-xs file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-violet-500/10 file:text-violet-400" style="color: var(--text-faint);">
+                        @include('user.partials.dropzone-input', [
+                            'name'        => 'card_image',
+                            'accept'      => 'image/*',
+                            'currentUrl'  => $design['card_image'] ?? null,
+                            'currentName' => !empty($design['card_image']) ? 'Saved card image' : null,
+                            'maxMb'       => 5,
+                            'compact'     => true,
+                        ])
                     </div>
                     <div>
                         <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Image fit</label>
@@ -170,19 +177,31 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div>
                         <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Logo</label>
+                        @include('user.partials.dropzone-input', [
+                            'name'        => 'logo',
+                            'accept'      => 'image/*',
+                            'currentUrl'  => $design['logo'] ?? null,
+                            'currentName' => !empty($design['logo']) ? 'Saved logo' : null,
+                            'maxMb'       => 5,
+                            'compact'     => true,
+                        ])
                         @if(!empty($design['logo']))
-                            <img src="{{ $design['logo'] }}" class="h-14 mb-2 rounded-lg" style="background: rgba(0,0,0,0.05); padding: 6px;">
-                            <label class="text-[10px] inline-flex items-center gap-1.5 mb-2 cursor-pointer" style="color: #f87171;"><input type="checkbox" name="remove_logo" value="1" class="rounded"> Remove</label>
+                            <label class="text-[10px] inline-flex items-center gap-1.5 mt-2 cursor-pointer" style="color: #f87171;"><input type="checkbox" name="remove_logo" value="1" class="rounded"> Remove saved logo</label>
                         @endif
-                        <input type="file" name="logo" accept="image/*" class="w-full text-xs file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-violet-500/10 file:text-violet-400" style="color: var(--text-faint);">
                     </div>
                     <div>
                         <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Cover image</label>
+                        @include('user.partials.dropzone-input', [
+                            'name'        => 'cover_image',
+                            'accept'      => 'image/*',
+                            'currentUrl'  => $design['cover'] ?? null,
+                            'currentName' => !empty($design['cover']) ? 'Saved cover image' : null,
+                            'maxMb'       => 5,
+                            'compact'     => true,
+                        ])
                         @if(!empty($design['cover']))
-                            <img src="{{ $design['cover'] }}" class="h-20 mb-2 rounded-lg w-full object-cover">
-                            <label class="text-[10px] inline-flex items-center gap-1.5 mb-2 cursor-pointer" style="color: #f87171;"><input type="checkbox" name="remove_cover" value="1" class="rounded"> Remove</label>
+                            <label class="text-[10px] inline-flex items-center gap-1.5 mt-2 cursor-pointer" style="color: #f87171;"><input type="checkbox" name="remove_cover" value="1" class="rounded"> Remove saved cover</label>
                         @endif
-                        <input type="file" name="cover_image" accept="image/*" class="w-full text-xs file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-violet-500/10 file:text-violet-400" style="color: var(--text-faint);">
                     </div>
                 </div>
 

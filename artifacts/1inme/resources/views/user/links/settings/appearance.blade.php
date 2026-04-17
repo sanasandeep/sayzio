@@ -247,23 +247,29 @@
 
                             {{-- STATIC IMAGE --}}
                             <div x-show="bgType === 'image'" x-transition class="space-y-3">
-                                <div>
-                                    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Background Image</label>
-                                    <input type="file" name="background_image" accept="image/*" class="w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-violet-500/10 file:text-violet-400 file:font-medium" style="color: var(--text-faint);">
-                                    @if(!empty($bs['background_image']))
-                                    <div class="flex items-center gap-2 mt-2 p-2 rounded-lg" style="background: var(--bg-glass);">
-                                        <img src="{{ $bs['background_image'] }}" class="w-12 h-12 rounded-lg object-cover" alt="Current bg">
-                                        <span class="text-[10px]" style="color: var(--text-faint);">Current background image</span>
-                                    </div>
-                                    @endif
-                                </div>
+                                @include('user.partials.dropzone-input', [
+                                    'name'        => 'background_image',
+                                    'label'       => 'Background Image',
+                                    'accept'      => 'image/*',
+                                    'currentUrl'  => $bs['background_image'] ?? null,
+                                    'currentName' => !empty($bs['background_image']) ? 'Saved background image' : null,
+                                    'maxMb'       => 10,
+                                    'compact'     => true,
+                                ])
                             </div>
 
                             {{-- SLIDESHOW --}}
                             <div x-show="bgType === 'slideshow'" x-transition class="space-y-3">
                                 <div>
-                                    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Slideshow Images (up to 10)</label>
-                                    <input type="file" name="slideshow_images[]" accept="image/*" multiple class="w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-violet-500/10 file:text-violet-400 file:font-medium" style="color: var(--text-faint);">
+                                    @include('user.partials.dropzone-input', [
+                                        'name'     => 'slideshow_images',
+                                        'label'    => 'Slideshow Images (up to 10)',
+                                        'accept'   => 'image/*',
+                                        'multiple' => true,
+                                        'maxMb'    => 10,
+                                        'hint'     => 'Drop multiple images',
+                                        'compact'  => true,
+                                    ])
                                     @if(!empty($slideshowImages))
                                     <div class="flex flex-wrap gap-2 mt-2">
                                         @foreach($slideshowImages as $si => $sImg)
@@ -293,17 +299,17 @@
                                     <input type="url" name="video_url" value="{{ $videoUrl }}" class="theme-input w-full" placeholder="https://example.com/video.mp4">
                                     <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">Direct link to MP4 or WebM file. YouTube/Vimeo links are not supported.</p>
                                 </div>
-                                <div>
-                                    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Or Upload Video</label>
-                                    <input type="file" name="video_file" accept="video/mp4,video/webm" class="w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-violet-500/10 file:text-violet-400 file:font-medium" style="color: var(--text-faint);">
-                                    <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">MP4 or WebM. Max 50MB. Auto-plays muted with loop.</p>
-                                    @if($videoFile)
-                                    <div class="flex items-center gap-2 mt-2 p-2 rounded-lg" style="background: var(--bg-glass);">
-                                        <i class="fas fa-film text-violet-400"></i>
-                                        <span class="text-[10px]" style="color: var(--text-faint);">Video uploaded</span>
-                                    </div>
-                                    @endif
-                                </div>
+                                @include('user.partials.dropzone-input', [
+                                    'name'        => 'video_file',
+                                    'label'       => 'Or Upload Video',
+                                    'accept'      => 'video/mp4,video/webm',
+                                    'currentUrl'  => null,
+                                    'currentName' => $videoFile ? 'Saved video file' : null,
+                                    'maxMb'       => 50,
+                                    'hint'        => 'MP4 or WebM · auto-plays muted on loop',
+                                    'previewKind' => 'file',
+                                    'compact'     => true,
+                                ])
                             </div>
 
                             {{-- CSS/JS TEMPLATES --}}
@@ -377,15 +383,16 @@
                                     </div>
 
                                     <div x-show="bgType === 'image' || bgType === 'slideshow' || bgType === 'video'" x-transition>
-                                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Fallback Image</label>
-                                        <input type="file" name="bg_fallback_image" accept="image/*" class="w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-violet-500/10 file:text-violet-400 file:font-medium" style="color: var(--text-faint);">
-                                        <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">Shown while media loads or if it fails.</p>
-                                        @if($bgFallbackImage)
-                                        <div class="flex items-center gap-2 mt-1 p-1.5 rounded-lg" style="background: var(--bg-glass);">
-                                            <img src="{{ $bgFallbackImage }}" class="w-8 h-8 rounded object-cover">
-                                            <span class="text-[10px]" style="color: var(--text-faint);">Current fallback</span>
-                                        </div>
-                                        @endif
+                                        @include('user.partials.dropzone-input', [
+                                            'name'        => 'bg_fallback_image',
+                                            'label'       => 'Fallback Image',
+                                            'accept'      => 'image/*',
+                                            'currentUrl'  => $bgFallbackImage ?: null,
+                                            'currentName' => $bgFallbackImage ? 'Saved fallback' : null,
+                                            'maxMb'       => 5,
+                                            'hint'        => 'Shown while media loads or if it fails',
+                                            'compact'     => true,
+                                        ])
                                     </div>
                                 </div>
                             </div>
@@ -561,18 +568,26 @@
                             <textarea name="seo_description" maxlength="160" placeholder="Two short sentences telling people why to click." rows="2" class="theme-input w-full">{{ old('seo_description', $link->seo_description) }}</textarea>
                             <p class="text-[10px] mt-1" style="color: var(--text-faint);"><i class="fas fa-lightbulb text-amber-400 mr-1"></i> Aim for ~150 characters. Think of it as a one-line elevator pitch.</p>
                         </div>
-                        <div>
-                            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Share Preview Image <span class="text-[10px]" style="color: var(--text-faint);">— the big picture in social previews</span></label>
-                            @if($link->seo_image)<div class="mb-2"><img src="{{ $link->seo_image }}" alt="Current preview image" class="h-24 rounded-lg" style="border: 1px solid var(--border-subtle);"></div>@endif
-                            <input type="file" name="seo_image" accept="image/*" class="w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-violet-500/10 file:text-violet-400 file:font-medium" style="color: var(--text-faint);">
-                            <p class="text-[10px] mt-1" style="color: var(--text-faint);"><i class="fas fa-lightbulb text-amber-400 mr-1"></i> Best size: 1200×630 px. Use a bold image with minimal text — most platforms shrink it down.</p>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Browser Tab Icon (Favicon)</label>
-                            @if($link->favicon)<div class="mb-2"><img src="{{ $link->favicon }}" alt="Current favicon" class="h-8 rounded" style="border: 1px solid var(--border-subtle);"></div>@endif
-                            <input type="file" name="favicon" accept="image/*" class="w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-violet-500/10 file:text-violet-400 file:font-medium" style="color: var(--text-faint);">
-                            <p class="text-[10px] mt-1" style="color: var(--text-faint);">The tiny icon people see in their browser tab and bookmarks. A simple square logo works best (32×32 or 64×64 px).</p>
-                        </div>
+                        @include('user.partials.dropzone-input', [
+                            'name'        => 'seo_image',
+                            'label'       => 'Share Preview Image',
+                            'accept'      => 'image/*',
+                            'currentUrl'  => $link->seo_image,
+                            'currentName' => $link->seo_image ? 'Saved preview image' : null,
+                            'maxMb'       => 5,
+                            'hint'        => 'Best 1200×630, bold image with minimal text',
+                            'compact'     => true,
+                        ])
+                        @include('user.partials.dropzone-input', [
+                            'name'        => 'favicon',
+                            'label'       => 'Browser Tab Icon (Favicon)',
+                            'accept'      => 'image/*',
+                            'currentUrl'  => $link->favicon,
+                            'currentName' => $link->favicon ? 'Saved favicon' : null,
+                            'maxMb'       => 1,
+                            'hint'        => 'Simple square logo · 32×32 or 64×64',
+                            'compact'     => true,
+                        ])
                     </div>
                 </div>
 

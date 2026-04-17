@@ -64,9 +64,14 @@
                 </div>
 
                 <div x-show="format === 'png'">
-                    <label class="block text-sm font-medium text-white/60 mb-1">Logo Overlay</label>
-                    <input type="file" name="logo" accept="image/*" class="w-full text-sm text-white/40 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:bg-white/10 file:text-white/60 hover:file:bg-gray-200" form="downloadForm">
-                    <p class="text-xs text-white/30 mt-1">Optional logo centered on the QR code (PNG only, max 2MB)</p>
+                    @include('user.partials.dropzone-input', [
+                        'name'   => 'logo',
+                        'label'  => 'Logo Overlay',
+                        'accept' => 'image/*',
+                        'maxMb'  => 2,
+                        'hint'   => 'Optional logo centered on the QR code (PNG only)',
+                        'form'   => 'downloadForm',
+                    ])
                 </div>
 
                 <div>

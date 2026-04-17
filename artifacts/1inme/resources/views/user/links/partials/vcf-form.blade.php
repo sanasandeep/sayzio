@@ -25,34 +25,32 @@
     urls:     @js($urlsInit),
     addrs:    @js($addrsInit),
     socials:  @js($socialsInit),
-    photoUrl: @js($photoUrl),
 })" class="space-y-4">
 
+    @php /* photo handled by the dropzone-input partial below; vcfForm() no longer
+            tracks the photo preview itself. */ @endphp
+
     {{-- AVATAR --}}
-    <div class="glass rounded-2xl p-6">
+    <div class="glass rounded-2xl p-6" x-data="{ removePhoto: false }">
         <h2 class="text-lg font-semibold text-white mb-4"><i class="fas fa-image text-violet-400 mr-2"></i>Avatar</h2>
-        <div class="flex items-center gap-4">
-            <div class="w-24 h-24 rounded-2xl overflow-hidden flex items-center justify-center flex-shrink-0 bg-white/5 border border-white/10">
-                <template x-if="photoPreview">
-                    <img :src="photoPreview" alt="Avatar" class="w-full h-full object-cover">
-                </template>
-                <template x-if="!photoPreview">
-                    <i class="fas fa-user text-3xl text-white/20"></i>
-                </template>
-            </div>
-            <div class="flex-1">
-                <label class="{{ $miniBtn }} cursor-pointer">
-                    <i class="fas fa-upload text-[10px]"></i> Choose Photo
-                    <input type="file" name="photo" accept="image/*" @change="onPhoto($event)" class="hidden">
-                </label>
-                <button type="button" x-show="photoPreview" @click="removePhoto()" class="{{ $miniBtn }} ml-2" style="color:#f87171;">
-                    <i class="fas fa-trash text-[10px]"></i> Remove
-                </button>
-                <input type="hidden" name="remove_photo" :value="removeFlag ? '1' : '0'">
-                <p class="text-xs text-white/40 mt-2">Square JPG/PNG up to 5 MB. Embedded in the .vcf so contacts work offline.</p>
-                @error('photo') <p class="text-red-400 text-xs mt-1">{{ $message }}</p> @enderror
-            </div>
-        </div>
+        @include('user.partials.dropzone-input', [
+            'name'        => 'photo',
+            'accept'      => 'image/*',
+            'currentUrl'  => $photoUrl,
+            'currentName' => $photoUrl ? 'Saved avatar' : null,
+            'hint'        => 'Square JPG/PNG, embedded in the .vcf so contacts work offline',
+            'maxMb'       => 5,
+            'previewKind' => 'image',
+        ])
+        @if($photoUrl)
+            <label class="inline-flex items-center gap-2 mt-3 text-xs text-white/50 hover:text-red-400 cursor-pointer">
+                <input type="checkbox" name="remove_photo" value="1" x-model="removePhoto" class="rounded border-white/20 bg-white/5 text-red-500 focus:ring-red-500/40">
+                <span x-text="removePhoto ? 'Saved avatar will be removed on save' : 'Remove saved avatar'"></span>
+            </label>
+        @else
+            <input type="hidden" name="remove_photo" value="0">
+        @endif
+        @error('photo') <p class="text-red-400 text-xs mt-1">{{ $message }}</p> @enderror
     </div>
 
     {{-- NAME --}}
@@ -263,32 +261,18 @@
 </div>
 
 <script>
-function vcfForm({ emails, phones, urls, addrs, socials, photoUrl }) {
+function vcfForm({ emails, phones, urls, addrs, socials }) {
     return {
         emails: emails.length ? emails : [{ label: 'Personal', value: '' }],
         phones: phones.length ? phones : [{ label: 'Mobile', value: '' }],
         urls:   urls.length   ? urls   : [{ label: 'Website', value: '' }],
         addrs,
         socials,
-        photoPreview: photoUrl,
-        removeFlag: false,
         addEmail()   { this.emails.push({ label: 'Personal', value: '' }); },
         addPhone()   { this.phones.push({ label: 'Mobile', value: '' }); },
         addUrl()     { this.urls.push({ label: 'Website', value: '' }); },
         addAddress() { this.addrs.push({ label: 'Home', street: '', city: '', state: '', zip: '', country: '' }); },
         addSocial()  { this.socials.push({ service: 'Twitter', value: '' }); },
-        onPhoto(ev)  {
-            const f = ev.target.files && ev.target.files[0];
-            if (!f) return;
-            this.removeFlag = false;
-            this.photoPreview = URL.createObjectURL(f);
-        },
-        removePhoto() {
-            this.photoPreview = null;
-            this.removeFlag = true;
-            const input = document.querySelector('input[type=file][name=photo]');
-            if (input) input.value = '';
-        },
     };
 }
 </script>

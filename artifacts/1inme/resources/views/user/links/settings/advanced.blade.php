@@ -129,15 +129,16 @@
                         <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">Recommended: 1200×630px. Shows as preview when shared on social media.</p>
                     </div>
                     <div>
-                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Or Upload OG Image</label>
-                        @if(!empty($og['image_url']) || $link->seo_image)
-                        <div class="flex items-center gap-2 p-2 rounded-lg mb-2" style="background: var(--bg-glass); border: 1px solid var(--border-glass);">
-                            <img src="{{ $og['image_url'] ?? $link->seo_image }}" class="h-12 rounded object-cover" alt="OG Image">
-                            <span class="text-[10px]" style="color: var(--text-muted);">Current OG image</span>
-                        </div>
-                        @endif
-                        <input type="file" name="og_image_upload" accept="image/png,image/jpeg,image/webp" class="w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-pink-500/10 file:text-pink-400 file:font-medium" style="color: var(--text-faint);">
-                        <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">PNG, JPG or WebP. Max 2MB.</p>
+                        @include('user.partials.dropzone-input', [
+                            'name'        => 'og_image_upload',
+                            'label'       => 'Or Upload OG Image',
+                            'accept'      => 'image/png,image/jpeg,image/webp',
+                            'currentUrl'  => $og['image_url'] ?? $link->seo_image,
+                            'currentName' => ($og['image_url'] ?? $link->seo_image) ? 'Saved OG image' : null,
+                            'maxMb'       => 2,
+                            'hint'        => 'PNG, JPG or WebP',
+                            'compact'     => true,
+                        ])
                     </div>
 
                     <div class="pt-3 mt-3" style="border-top: 1px solid var(--border-glass);">
@@ -194,11 +195,14 @@
                         @endif
                         <div class="space-y-2">
                             <div><label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Favicon URL</label><input type="url" name="favicon_url" value="{{ $bs['favicon_url'] ?? $link->favicon ?? '' }}" placeholder="https://example.com/favicon.png" class="theme-input w-full"></div>
-                            <div>
-                                <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Or Upload</label>
-                                <input type="file" name="favicon_upload" accept="image/png,image/x-icon,image/svg+xml,image/jpeg" class="w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-cyan-500/10 file:text-cyan-400 file:font-medium" style="color: var(--text-faint);">
-                                <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">PNG, ICO, SVG or JPG. 32×32 or 64×64px recommended.</p>
-                            </div>
+                            @include('user.partials.dropzone-input', [
+                                'name'    => 'favicon_upload',
+                                'label'   => 'Or Upload',
+                                'accept'  => 'image/png,image/x-icon,image/svg+xml,image/jpeg',
+                                'maxMb'   => 1,
+                                'hint'    => 'PNG, ICO, SVG or JPG · 32×32 or 64×64',
+                                'compact' => true,
+                            ])
                         </div>
                     </div>
 
@@ -214,11 +218,14 @@
                         @endif
                         <div class="space-y-2">
                             <div><label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Apple Touch Icon URL</label><input type="url" name="favicons[apple_touch_icon]" value="{{ $favicons['apple_touch_icon'] ?? '' }}" placeholder="https://example.com/apple-touch-icon.png" class="theme-input w-full"></div>
-                            <div>
-                                <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Or Upload (180×180px)</label>
-                                <input type="file" name="apple_touch_upload" accept="image/png" class="w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-gray-500/10 file:text-gray-400 file:font-medium" style="color: var(--text-faint);">
-                                <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">PNG only. 180×180px. Shown when users add your page to their home screen on iOS.</p>
-                            </div>
+                            @include('user.partials.dropzone-input', [
+                                'name'    => 'apple_touch_upload',
+                                'label'   => 'Or Upload (180×180)',
+                                'accept'  => 'image/png',
+                                'maxMb'   => 1,
+                                'hint'    => 'PNG only · iOS home-screen icon',
+                                'compact' => true,
+                            ])
                         </div>
                     </div>
 
@@ -234,11 +241,14 @@
                         @endif
                         <div class="space-y-2">
                             <div><label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Icon URL</label><input type="url" name="favicons[icon_512]" value="{{ $favicons['icon_512'] ?? '' }}" placeholder="https://example.com/icon-512.png" class="theme-input w-full"></div>
-                            <div>
-                                <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Or Upload</label>
-                                <input type="file" name="icon_512_upload" accept="image/png" class="w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-indigo-500/10 file:text-indigo-400 file:font-medium" style="color: var(--text-faint);">
-                                <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">PNG only. Used for PWA splash screens and Android home screen.</p>
-                            </div>
+                            @include('user.partials.dropzone-input', [
+                                'name'    => 'icon_512_upload',
+                                'label'   => 'Or Upload',
+                                'accept'  => 'image/png',
+                                'maxMb'   => 1,
+                                'hint'    => 'PNG only · PWA splash & Android home',
+                                'compact' => true,
+                            ])
                         </div>
                     </div>
                 </div>
