@@ -1,4 +1,4 @@
-@extends('layouts.user')
+@extends('user.layouts.app')
 
 @section('title', 'RSVPs — ' . $link->title)
 
