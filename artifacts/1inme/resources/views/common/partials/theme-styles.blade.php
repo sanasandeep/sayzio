@@ -59,21 +59,23 @@
     }
 
     html.light-mode {
-        /* Metronic demo1 inspired — flat, clean, ultra-light surfaces */
-        --bg-body: #fcfcfc;
+        /* Metronic demo1 inspired — flat, clean, ultra-light surfaces.
+           Body is a soft neutral gray so pure-white cards visibly lift off the
+           page; borders are darker than before so card edges are obvious. */
+        --bg-body: #f5f5f8;
         --bg-sidebar: #ffffff;
         --bg-sidebar-mobile: #ffffff;
         --bg-header: #ffffff;
         --bg-glass: #ffffff;
         --bg-glass-light: #ffffff;
-        --bg-glass-hover: #f9f9f9;
+        --bg-glass-hover: #f7f7fa;
         --bg-glass-input: #ffffff;
         --bg-glass-input-focus: #ffffff;
         --bg-card: #ffffff;
         --bg-card-hover: #ffffff;
-        --border-glass: #f1f1f4;
-        --border-glass-light: #e4e6ef;
-        --border-subtle: #f1f1f4;
+        --border-glass: #dbdfe9;
+        --border-glass-light: #c4c8d3;
+        --border-subtle: #e1e3ea;
         --text-primary: #071437;
         --text-secondary: #252f4a;
         --text-muted: #4b5675;
@@ -155,16 +157,31 @@
     }
     .glass-hover:hover { background: var(--bg-glass-hover); }
 
-    /* ===== CARD SYSTEM (Metronic demo1 — flat, 1px border, micro shadow) ===== */
+    /* ===== CARD SYSTEM (Metronic demo1 — flat, 1.5px border, micro shadow) ===== */
     .card-premium {
         position: relative;
         background: var(--bg-card);
-        border: 1px solid var(--border-glass);
+        border: 1.5px solid var(--border-glass);
         border-radius: var(--radius-card);
         box-shadow: var(--card-shadow);
         transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
         overflow: hidden;
     }
+    /* Roomier inner spacing for cards — boosts the common Tailwind padding
+       utilities applied as direct children. Specificity .card-premium > .pX
+       wins over the bare utility, so existing markup is upgraded automatically
+       without touching individual blade files. */
+    .card-premium > .p-3  { padding: 1.25rem; }
+    .card-premium > .p-4  { padding: 1.5rem; }
+    .card-premium > .p-5  { padding: 1.875rem; }
+    .card-premium > .p-6  { padding: 2.25rem; }
+    .card-premium > .px-4 { padding-left: 1.5rem;   padding-right: 1.5rem; }
+    .card-premium > .px-5 { padding-left: 1.875rem; padding-right: 1.875rem; }
+    .card-premium > .px-6 { padding-left: 2.25rem;  padding-right: 2.25rem; }
+    .card-premium > .py-3 { padding-top: 1.125rem;  padding-bottom: 1.125rem; }
+    .card-premium > .py-4 { padding-top: 1.375rem;  padding-bottom: 1.375rem; }
+    .card-premium > .py-5 { padding-top: 1.625rem;  padding-bottom: 1.625rem; }
+    .card-premium > .py-6 { padding-top: 1.875rem;  padding-bottom: 1.875rem; }
     .card-premium::before { display: none; }
     .card-premium:hover {
         border-color: var(--border-glass-light);
@@ -210,9 +227,9 @@
         position: relative;
         overflow: hidden;
         background: var(--bg-card);
-        border: 1px solid var(--border-glass);
+        border: 1.5px solid var(--border-glass);
         border-radius: var(--radius-card);
-        padding: 1.5rem 1.5rem 1.625rem;
+        padding: 1.875rem 1.875rem 2rem;
         box-shadow: var(--card-shadow);
         transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
     }
