@@ -60,6 +60,31 @@ class SocialProof extends Model
         'custom_html'        => 'Custom HTML',
     ];
 
+    public const TYPE_DESCRIPTIONS = [
+        'recent_activity'   => 'Show real-time signups, purchases or downloads',
+        'visitor_count'     => 'Live viewer count to build social proof',
+        'conversion_count'  => 'Total conversions in the last X days',
+        'social_followers'  => 'Followers / subscribers count badge',
+        'trust_badge'       => 'Star rating + review count badge',
+        'review'            => 'Rotating customer review with stars',
+        'testimonial_quote' => 'Big quote from a happy customer',
+        'email_signup'      => 'Inline email capture popup',
+        'exit_offer'        => 'Stop visitors from leaving with an offer',
+        'feedback_thumbs'   => 'Quick thumbs up / down feedback',
+        'countdown'         => 'Ticking countdown to a date',
+        'flash_sale'        => 'Bold sale banner with discount %',
+        'low_stock'         => 'Only N left in stock — urgency nudge',
+        'price_drop'        => 'Strikethrough old price + new price',
+        'announcement_bar'  => 'Slim full-width announcement at top/bottom',
+        'sticky_cta'        => 'Persistent call-to-action button',
+        'cookie_consent'    => 'GDPR-style cookie consent bar',
+        'whatsapp_chat'     => 'Floating WhatsApp chat bubble',
+        'click_to_call'     => 'Floating click-to-call phone bubble',
+        'video_popup'       => 'Click to open a video in lightbox',
+        'share_buttons'     => 'Row of social share buttons',
+        'custom_html'       => 'Paste your own HTML / embed code',
+    ];
+
     public const TYPE_GROUPS = [
         'Social proof' => ['recent_activity', 'visitor_count', 'conversion_count', 'social_followers', 'trust_badge', 'review', 'testimonial_quote'],
         'Capture'      => ['email_signup', 'exit_offer', 'feedback_thumbs'],

@@ -49,24 +49,35 @@ html.light-mode .bz-scope [class*="border-white/"]{border-color:#e2e8f0 !importa
 html.light-mode .bz-scope [class*="bg-black/"]{background:#0f172a !important;color:#f8fafc !important}
 html.light-mode .bz-scope [class*="bg-black/"] *{color:inherit !important}
 
-/* --- Type-picker modal: theme-aware --- */
-.bz-modal{background:#18181b;border:1px solid rgba(255,255,255,.10)}
-.bz-modal-title{color:#fff}
-.bz-modal-close{color:rgba(255,255,255,.55)}
-.bz-modal-close:hover{color:#fff}
-.bz-modal-group{color:rgba(255,255,255,.50)}
-.bz-modal-item{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.06)}
-.bz-modal-item:hover{background:rgba(124,58,237,.20);border-color:rgba(139,92,246,.45)}
-.bz-modal-item-label{color:#fff}
+/* --- Inline template picker cards --- */
+.bz-tpl{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);cursor:pointer;display:flex;flex-direction:column}
+.bz-tpl:hover{border-color:rgba(124,58,237,.50);background:rgba(124,58,237,.08);transform:translateY(-1px)}
+.bz-tpl-preview{height:110px;background:repeating-linear-gradient(45deg,rgba(255,255,255,.02) 0 8px,transparent 8px 16px);border-bottom:1px solid rgba(255,255,255,.08);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:10px}
+.bz-tpl-label{color:#fff}
+.bz-tpl-desc{color:rgba(255,255,255,.45);line-height:1.35}
 
-html.light-mode .bz-modal{background:#fff;border-color:#e2e8f0;box-shadow:0 20px 50px -10px rgba(15,23,42,.30)}
-html.light-mode .bz-modal-title{color:#0f172a}
-html.light-mode .bz-modal-close{color:#94a3b8}
-html.light-mode .bz-modal-close:hover{color:#0f172a}
-html.light-mode .bz-modal-group{color:#64748b;font-weight:600}
-html.light-mode .bz-modal-item{background:#f8fafc;border-color:#e2e8f0}
-html.light-mode .bz-modal-item:hover{background:rgba(124,58,237,.08);border-color:rgba(124,58,237,.40)}
-html.light-mode .bz-modal-item-label{color:#0f172a}
+/* Mini-preview building blocks (used inside .bz-tpl-preview by templatePreview()) */
+.tpl-card{background:#fff;color:#0f172a;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.18);padding:8px 10px;font-size:10px;line-height:1.25;display:flex;gap:8px;align-items:center;max-width:170px}
+.tpl-card.dark{background:#18181b;color:#fff}
+.tpl-card .tpl-avatar{width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#7c3aed);flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:600}
+.tpl-card .tpl-body{display:flex;flex-direction:column;min-width:0}
+.tpl-card .tpl-t1{font-weight:600}
+.tpl-card .tpl-t2{font-size:9px;color:#64748b;margin-top:1px}
+.tpl-pill{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:999px;font-size:9px;font-weight:600;background:#7c3aed;color:#fff}
+.tpl-bar{position:absolute;left:0;right:0;height:22px;display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:600;color:#fff;letter-spacing:.3px}
+.tpl-bar.top{top:6px}
+.tpl-bar.bottom{bottom:6px}
+.tpl-bubble{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;box-shadow:0 6px 18px rgba(0,0,0,.22)}
+.tpl-stars{color:#f59e0b;letter-spacing:1px;font-size:11px}
+.tpl-num{font-size:18px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums}
+.tpl-strike{text-decoration:line-through;color:#94a3b8;font-size:10px}
+.tpl-new{color:#dc2626;font-weight:700;font-size:13px}
+
+html.light-mode .bz-tpl{background:#f8fafc;border-color:#e2e8f0}
+html.light-mode .bz-tpl:hover{background:rgba(124,58,237,.06);border-color:rgba(124,58,237,.40)}
+html.light-mode .bz-tpl-preview{background:repeating-linear-gradient(45deg,#eef2f7 0 8px,#f8fafc 8px 16px);border-bottom-color:#e2e8f0}
+html.light-mode .bz-tpl-label{color:#0f172a}
+html.light-mode .bz-tpl-desc{color:#64748b}
 </style>
 @endpush
 
@@ -150,9 +161,43 @@ html.light-mode .bz-modal-item-label{color:#0f172a}
                 <h3 class="text-white font-semibold text-sm">Notifications in this campaign</h3>
                 <p class="text-white/40 text-xs mt-0.5">Add as many notifications as you want. They'll all run on the embed and rotate based on their triggers.</p>
             </div>
-            <button type="button" @click="openTypePicker = true" class="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-xl text-sm font-medium">
-                <i class="fas fa-plus mr-1"></i> Add notification
+            <button type="button" @click="openTypePicker = !openTypePicker" class="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-xl text-sm font-medium">
+                <i class="fas mr-1" :class="openTypePicker ? 'fa-times' : 'fa-plus'"></i>
+                <span x-text="openTypePicker ? 'Cancel' : 'Add notification'"></span>
             </button>
+        </div>
+
+        {{-- Inline type picker (shows when "Add notification" toggled) --}}
+        <div x-show="openTypePicker" x-collapse>
+            <div class="bz-card">
+                <div class="flex items-center justify-between mb-3">
+                    <div>
+                        <h4 class="text-white font-semibold text-sm">Choose a template</h4>
+                        <p class="text-white/40 text-xs mt-0.5">Pick the kind of notification you want to add. Each one shows a quick preview of how it looks.</p>
+                    </div>
+                    <input type="text" x-model="typeFilter" placeholder="Search…" class="bz-input" style="max-width:220px">
+                </div>
+
+                @foreach(\App\Modules\User\Models\SocialProof::TYPE_GROUPS as $group => $keys)
+                <div class="mb-4" x-show="groupHasMatch(@js($keys))">
+                    <h5 class="bz-label uppercase tracking-wider mb-2">{{ $group }}</h5>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        @foreach($keys as $k)
+                        <button type="button"
+                                x-show="matchesFilter('{{ $k }}', @js(\App\Modules\User\Models\SocialProof::TYPES[$k]))"
+                                @click="addNotification('{{ $k }}'); openTypePicker = false"
+                                class="bz-tpl text-left rounded-xl overflow-hidden transition group">
+                            <div class="bz-tpl-preview" x-html="templatePreview('{{ $k }}')"></div>
+                            <div class="bz-tpl-meta px-3 py-2.5">
+                                <div class="bz-tpl-label text-sm font-semibold">{{ \App\Modules\User\Models\SocialProof::TYPES[$k] }}</div>
+                                <div class="bz-tpl-desc text-[11px] mt-0.5">{{ \App\Modules\User\Models\SocialProof::TYPE_DESCRIPTIONS[$k] ?? '' }}</div>
+                            </div>
+                        </button>
+                        @endforeach
+                    </div>
+                </div>
+                @endforeach
+            </div>
         </div>
 
         {{-- Notifications list --}}
@@ -382,28 +427,6 @@ html.light-mode .bz-modal-item-label{color:#0f172a}
 
     </div>{{-- /grid --}}
 
-    {{-- ============== Type-picker modal ============== --}}
-    <div x-show="openTypePicker" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(0,0,0,.6)" @click.self="openTypePicker = false">
-        <div class="bz-modal rounded-2xl w-full max-w-3xl max-h-[80vh] overflow-y-auto p-5">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="bz-modal-title font-semibold text-lg">Add a notification</h3>
-                <button type="button" @click="openTypePicker = false" class="bz-modal-close"><i class="fas fa-times"></i></button>
-            </div>
-            @foreach(\App\Modules\User\Models\SocialProof::TYPE_GROUPS as $group => $keys)
-            <div class="mb-4">
-                <h4 class="bz-modal-group text-xs uppercase tracking-wider mb-2">{{ $group }}</h4>
-                <div class="grid grid-cols-2 gap-2">
-                    @foreach($keys as $k)
-                    <button type="button" @click="addNotification('{{ $k }}'); openTypePicker = false"
-                            class="bz-modal-item text-left p-3 rounded-xl transition">
-                        <div class="bz-modal-item-label text-sm font-medium">{{ \App\Modules\User\Models\SocialProof::TYPES[$k] }}</div>
-                    </button>
-                    @endforeach
-                </div>
-            </div>
-            @endforeach
-        </div>
-    </div>
 </form>
 </div>
 
@@ -428,6 +451,7 @@ function buzzEditor() {
         ],
         activeTab: 'notifications',
         openTypePicker: false,
+        typeFilter: '',
         types: window.__BUZZ.types,
         notifications: window.__BUZZ.notifications.map(n => ({...n, _open: false})),
         design: {...window.__BUZZ.design},
@@ -460,6 +484,97 @@ function buzzEditor() {
         },
 
         typeLabel(t) { return this.types[t] || t; },
+
+        matchesFilter(key, label) {
+            var q = (this.typeFilter || '').trim().toLowerCase();
+            if (!q) return true;
+            return key.toLowerCase().indexOf(q) !== -1 || (label || '').toLowerCase().indexOf(q) !== -1;
+        },
+        groupHasMatch(keys) {
+            return keys.some(k => this.matchesFilter(k, this.types[k] || ''));
+        },
+
+        /**
+         * Visual mini-preview rendered inside each template card. Uses
+         * lightweight HTML chunks (no widget runtime) so the picker stays fast.
+         */
+        templatePreview(type) {
+            const tpl = {
+                recent_activity:
+                    '<div class="tpl-card"><div class="tpl-avatar">SR</div>'+
+                    '<div class="tpl-body"><div class="tpl-t1">Sarah from NYC</div><div class="tpl-t2">just signed up · 2m ago</div></div></div>',
+                visitor_count:
+                    '<div class="tpl-card"><span style="width:8px;height:8px;border-radius:50%;background:#10b981;display:inline-block;animation:pulse 2s infinite"></span>'+
+                    '<div class="tpl-body"><div class="tpl-t1">23 people viewing</div><div class="tpl-t2">right now</div></div></div>',
+                conversion_count:
+                    '<div class="tpl-card"><div class="tpl-avatar" style="background:linear-gradient(135deg,#34d399,#059669)">✓</div>'+
+                    '<div class="tpl-body"><div class="tpl-t1">142 purchases</div><div class="tpl-t2">in the last 24 hours</div></div></div>',
+                social_followers:
+                    '<div class="tpl-card"><div class="tpl-avatar" style="background:#1da1f2">𝕏</div>'+
+                    '<div class="tpl-body"><div class="tpl-t1">12.4k followers</div><div class="tpl-t2">join us on social</div></div></div>',
+                trust_badge:
+                    '<div class="tpl-card"><div class="tpl-body"><div class="tpl-stars">★★★★★</div><div class="tpl-t2" style="margin-top:2px">4.9 · 2,341 reviews</div></div></div>',
+                review:
+                    '<div class="tpl-card"><div class="tpl-avatar">M</div>'+
+                    '<div class="tpl-body"><div class="tpl-stars">★★★★★</div><div class="tpl-t2">"Best purchase ever!"</div></div></div>',
+                testimonial_quote:
+                    '<div class="tpl-card" style="max-width:180px"><div class="tpl-body">'+
+                    '<div style="font-size:14px;color:#7c3aed;line-height:1">"</div>'+
+                    '<div class="tpl-t2" style="font-style:italic;color:#0f172a">A total game-changer for our team.</div>'+
+                    '<div class="tpl-t2" style="margin-top:3px">— Alex K.</div></div></div>',
+                email_signup:
+                    '<div class="tpl-card" style="max-width:180px;flex-direction:column;align-items:stretch;gap:5px"><div class="tpl-t1">Get 10% off</div>'+
+                    '<div style="display:flex;gap:4px"><div style="flex:1;height:18px;background:#f1f5f9;border-radius:4px"></div><div style="height:18px;padding:0 8px;background:#7c3aed;color:#fff;border-radius:4px;font-size:9px;display:flex;align-items:center">Join</div></div></div>',
+                exit_offer:
+                    '<div class="tpl-card" style="max-width:180px;flex-direction:column;align-items:stretch;gap:5px;border:2px solid #7c3aed">'+
+                    '<div class="tpl-t1" style="color:#7c3aed">Wait! Don\'t leave</div>'+
+                    '<div class="tpl-t2">Take 15% off your order</div></div>',
+                feedback_thumbs:
+                    '<div class="tpl-card" style="gap:6px"><div class="tpl-body" style="flex-direction:row;align-items:center;gap:5px">'+
+                    '<div class="tpl-t1">Helpful?</div><span style="font-size:14px">👍</span><span style="font-size:14px">👎</span></div></div>',
+                countdown:
+                    '<div class="tpl-card" style="flex-direction:column;align-items:center;gap:3px;background:#0f172a;color:#fff">'+
+                    '<div class="tpl-t2" style="color:#cbd5e1">Sale ends in</div>'+
+                    '<div style="font-family:monospace;font-size:13px;font-weight:700;letter-spacing:1px">02:14:36</div></div>',
+                flash_sale:
+                    '<div style="background:linear-gradient(90deg,#ef4444,#dc2626);color:#fff;padding:10px 14px;border-radius:8px;font-size:11px;font-weight:600;text-align:center;width:170px">'+
+                    '⚡ FLASH SALE · 40% OFF</div>',
+                low_stock:
+                    '<div class="tpl-card" style="border-left:3px solid #f59e0b">'+
+                    '<div class="tpl-body"><div class="tpl-t1" style="color:#b45309">⚠ Only 3 left</div>'+
+                    '<div class="tpl-t2">in stock</div></div></div>',
+                price_drop:
+                    '<div class="tpl-card"><div class="tpl-body"><div class="tpl-t2">Was <span class="tpl-strike">$99</span></div>'+
+                    '<div class="tpl-new">Now $59</div></div></div>',
+                announcement_bar:
+                    '<div class="tpl-bar top" style="background:#7c3aed">🎉 Free shipping over $50</div>'+
+                    '<div style="margin-top:14px;color:rgba(255,255,255,.4);font-size:9px">Top bar style</div>',
+                sticky_cta:
+                    '<div class="tpl-bar bottom" style="background:#0f172a">'+
+                    '<span>Get started today</span>'+
+                    '<span style="margin-left:8px;background:#7c3aed;padding:2px 8px;border-radius:4px">Sign up →</span></div>',
+                cookie_consent:
+                    '<div class="tpl-bar bottom" style="background:#1f2937;height:30px;justify-content:space-between;padding:0 8px;font-size:8.5px">'+
+                    '<span>🍪 We use cookies</span>'+
+                    '<span style="background:#7c3aed;padding:2px 6px;border-radius:3px">Accept</span></div>',
+                whatsapp_chat:
+                    '<div class="tpl-bubble" style="background:#25d366">💬</div>',
+                click_to_call:
+                    '<div class="tpl-bubble" style="background:#0f172a">📞</div>',
+                video_popup:
+                    '<div style="width:120px;height:74px;background:linear-gradient(135deg,#1e293b,#0f172a);border-radius:8px;display:flex;align-items:center;justify-content:center;position:relative">'+
+                    '<div style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.95);display:flex;align-items:center;justify-content:center;color:#7c3aed;font-size:14px">▶</div></div>',
+                share_buttons:
+                    '<div style="display:flex;gap:6px">'+
+                    ['#1877f2','#1da1f2','#0a66c2','#bd081c','#25d366'].map(c =>
+                        '<div style="width:26px;height:26px;border-radius:50%;background:'+c+';display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px">●</div>'
+                    ).join('') + '</div>',
+                custom_html:
+                    '<div class="tpl-card" style="font-family:monospace;background:#0f172a;color:#10b981;font-size:9.5px"><span>&lt;/&gt;</span>'+
+                    '<div class="tpl-body" style="color:#cbd5e1"><div>Your HTML here</div><div class="tpl-t2" style="color:#64748b">// fully custom</div></div></div>',
+            };
+            return tpl[type] || '<div class="tpl-card"><div class="tpl-body"><div class="tpl-t1">Notification</div></div></div>';
+        },
 
         addNotification(type) {
             var n = {
