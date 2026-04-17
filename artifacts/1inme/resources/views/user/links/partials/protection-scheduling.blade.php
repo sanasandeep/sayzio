@@ -14,8 +14,8 @@
       expire_on_first_click    0|1 (derived from _exp_mode)
       expiry_url               URL
       active_window_enabled    0|1
-      active_window_start      HH:MM
-      active_window_end        HH:MM
+      active_window_starts[]   HH:MM (one per slot — supports multiple slots/day with breaks)
+      active_window_ends[]     HH:MM (parallel array, paired by index with active_window_starts)
       active_window_days[]     mon|tue|wed|thu|fri|sat|sun
       country_blocklist        comma-separated ISO codes (e.g. "RU,KP")
 --}}
@@ -39,9 +39,21 @@
 
     $aw         = (array) ($s_ps['active_window'] ?? []);
     $awEnabled  = !empty($aw['enabled']);
-    $awStart    = $aw['start'] ?? '09:00';
-    $awEnd      = $aw['end']   ?? '17:00';
     $awDays     = (array) ($aw['days'] ?? ['mon','tue','wed','thu','fri']);
+    // Multi-slot support, with backward compat for the old single-window shape.
+    $awSlots = [];
+    if (!empty($aw['slots']) && is_array($aw['slots'])) {
+        foreach ($aw['slots'] as $sl) {
+            if (!empty($sl['start']) && !empty($sl['end'])) {
+                $awSlots[] = ['start' => $sl['start'], 'end' => $sl['end']];
+            }
+        }
+    } elseif (!empty($aw['start']) && !empty($aw['end'])) {
+        $awSlots[] = ['start' => $aw['start'], 'end' => $aw['end']];
+    }
+    if (empty($awSlots)) {
+        $awSlots[] = ['start' => '09:00', 'end' => '17:00'];
+    }
 
     $blocklist  = implode(',', (array) ($s_ps['country_blocklist'] ?? []));
 
@@ -65,6 +77,7 @@
         expMode: @js($expMode_ps),
         awEnabled: @js($awEnabled),
         awDays: @js($awDays),
+        awSlots: @js($awSlots),
      })">
     <div class="flex items-start justify-between mb-4">
         <div>
@@ -144,19 +157,32 @@
         </label>
 
         <div x-show="awEnabled" x-cloak class="ml-7 space-y-3">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-md">
-                <div>
-                    <label class="block text-xs text-white/60 mb-1">From</label>
-                    <input type="time" name="active_window_start" value="{{ old('active_window_start', $awStart) }}"
-                           class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
-                </div>
-                <div>
-                    <label class="block text-xs text-white/60 mb-1">Until</label>
-                    <input type="time" name="active_window_end" value="{{ old('active_window_end', $awEnd) }}"
-                           class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
-                </div>
+            <div class="space-y-2">
+                <template x-for="(slot, i) in awSlots" :key="i">
+                    <div class="flex items-end gap-2 max-w-md">
+                        <div class="flex-1">
+                            <label class="block text-xs text-white/60 mb-1" x-text="i === 0 ? 'From' : ''">&nbsp;</label>
+                            <input type="time" :name="`active_window_starts[${i}]`" x-model="slot.start"
+                                   class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
+                        </div>
+                        <div class="flex-1">
+                            <label class="block text-xs text-white/60 mb-1" x-text="i === 0 ? 'Until' : ''">&nbsp;</label>
+                            <input type="time" :name="`active_window_ends[${i}]`" x-model="slot.end"
+                                   class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
+                        </div>
+                        <button type="button" @click="awSlots.splice(i, 1)" x-show="awSlots.length > 1"
+                                class="h-9 w-9 mb-0.5 flex items-center justify-center rounded-lg border border-white/10 text-white/50 hover:text-rose-300 hover:border-rose-400/40"
+                                title="Remove this slot">
+                            <i class="fas fa-times text-xs"></i>
+                        </button>
+                    </div>
+                </template>
+                <button type="button" @click="awSlots.push({ start: '18:00', end: '22:00' })"
+                        class="inline-flex items-center gap-1.5 text-xs font-medium text-violet-300 hover:text-violet-200">
+                    <i class="fas fa-plus"></i> Add another time slot
+                </button>
             </div>
-            <p class="text-xs text-white/30">Tip: if "Until" is earlier than "From" the window wraps past midnight (e.g. 22:00 – 02:00).</p>
+            <p class="text-xs text-white/30">Tip: add multiple slots to leave a break in the middle of the day (e.g. 09:00–12:00 and 14:00–18:00). Within a single slot, if "Until" is earlier than "From" the window wraps past midnight (e.g. 22:00–02:00).</p>
 
             <div>
                 <label class="block text-xs text-white/60 mb-2">Active days</label>
@@ -192,6 +218,9 @@
             expMode: initial.expMode || 'none',
             awEnabled: !!initial.awEnabled,
             awDays: Array.isArray(initial.awDays) ? initial.awDays : [],
+            awSlots: Array.isArray(initial.awSlots) && initial.awSlots.length
+                ? initial.awSlots.map(s => ({ start: s.start || '09:00', end: s.end || '17:00' }))
+                : [{ start: '09:00', end: '17:00' }],
         };
     }
 </script>

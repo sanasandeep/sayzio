@@ -1062,20 +1062,30 @@ class LinkController extends Controller
             }
         }
 
-        // ---- Daily active window -----------------------------------------
+        // ---- Daily active window (one or more time slots per day) --------
         if ($request->boolean('active_window_enabled')) {
-            $startT = self::sanitizeTimeOfDay($request->input('active_window_start'));
-            $endT   = self::sanitizeTimeOfDay($request->input('active_window_end'));
-            $days   = array_values(array_intersect(
+            $starts = (array) $request->input('active_window_starts', []);
+            $ends   = (array) $request->input('active_window_ends',   []);
+            // Backward-compat with the old single-window field names.
+            if (empty($starts) && $request->filled('active_window_start')) {
+                $starts = [$request->input('active_window_start')];
+                $ends   = [$request->input('active_window_end')];
+            }
+            $slots = [];
+            foreach ($starts as $i => $s) {
+                $sT = self::sanitizeTimeOfDay($s);
+                $eT = self::sanitizeTimeOfDay($ends[$i] ?? null);
+                if ($sT && $eT) $slots[] = ['start' => $sT, 'end' => $eT];
+            }
+            $days = array_values(array_intersect(
                 ['mon','tue','wed','thu','fri','sat','sun'],
                 (array) $request->input('active_window_days', [])
             ));
-            if ($startT && $endT) {
+            if (!empty($slots)) {
                 $settings['active_window'] = [
                     'enabled' => true,
-                    'start'   => $startT,
-                    'end'     => $endT,
                     'days'    => $days ?: ['mon','tue','wed','thu','fri','sat','sun'],
+                    'slots'   => $slots,
                 ];
             }
         }

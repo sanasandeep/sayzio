@@ -163,10 +163,22 @@ class Link extends Model
         if (!is_array($aw) || empty($aw['enabled'])) return true;
 
         $tz    = $s['timezone'] ?? 'UTC';
-        $start = $aw['start'] ?? null;
-        $end   = $aw['end']   ?? null;
         $days  = (array) ($aw['days'] ?? []);
-        if (!$start || !$end) return true;
+
+        // Normalise to a list of slots. Supports the new multi-slot shape
+        // (`slots: [{start, end}, ...]`) and the legacy single-window shape
+        // (`start`, `end` at the top level).
+        $slots = [];
+        if (!empty($aw['slots']) && is_array($aw['slots'])) {
+            foreach ($aw['slots'] as $sl) {
+                if (!empty($sl['start']) && !empty($sl['end'])) {
+                    $slots[] = ['start' => $sl['start'], 'end' => $sl['end']];
+                }
+            }
+        } elseif (!empty($aw['start']) && !empty($aw['end'])) {
+            $slots[] = ['start' => $aw['start'], 'end' => $aw['end']];
+        }
+        if (empty($slots)) return true;
 
         try {
             $now = \Carbon\Carbon::now($tz);
@@ -175,22 +187,23 @@ class Link extends Model
         }
 
         $cur = (int) $now->format('Hi');
-        $a   = (int) str_replace(':', '', $start);
-        $b   = (int) str_replace(':', '', $end);
-
         $dayKey = strtolower(substr($now->format('D'), 0, 3));
         $prevDayKey = strtolower(substr($now->copy()->subDay()->format('D'), 0, 3));
         $allowedToday    = empty($days) || in_array($dayKey, $days, true);
         $allowedYesterday = empty($days) || in_array($prevDayKey, $days, true);
 
-        if ($a <= $b) {
-            // Same-day window (e.g. 09:00 – 17:00).
-            return $allowedToday && $cur >= $a && $cur <= $b;
+        // Any matching slot opens the window.
+        foreach ($slots as $sl) {
+            $a = (int) str_replace(':', '', $sl['start']);
+            $b = (int) str_replace(':', '', $sl['end']);
+            if ($a <= $b) {
+                if ($allowedToday && $cur >= $a && $cur <= $b) return true;
+            } else {
+                // Wrapped slot (e.g. 22:00 – 02:00).
+                if ($cur >= $a && $allowedToday)    return true;
+                if ($cur <= $b && $allowedYesterday) return true;
+            }
         }
-        // Wrapped window (e.g. 22:00 – 02:00). The "evening" portion belongs to
-        // today's selected day, the "morning" portion belongs to yesterday's.
-        if ($cur >= $a) return $allowedToday;
-        if ($cur <= $b) return $allowedYesterday;
         return false;
     }
 
