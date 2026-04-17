@@ -250,10 +250,9 @@
                                 @include('user.partials.dropzone-input', [
                                     'name'        => 'background_image',
                                     'label'       => 'Background Image',
-                                    'accept'      => 'image/*',
+                                    'policy'      => \App\Services\UploadPolicy::for('link.background_image', auth()->user()),
                                     'currentUrl'  => $bs['background_image'] ?? null,
                                     'currentName' => !empty($bs['background_image']) ? 'Saved background image' : null,
-                                    'maxMb'       => 10,
                                     'compact'     => true,
                                 ])
                             </div>
@@ -264,9 +263,7 @@
                                     @include('user.partials.dropzone-input', [
                                         'name'     => 'slideshow_images',
                                         'label'    => 'Slideshow Images (up to 10)',
-                                        'accept'   => 'image/*',
-                                        'multiple' => true,
-                                        'maxMb'    => 10,
+                                        'policy'   => \App\Services\UploadPolicy::for('link.slideshow_image', auth()->user()),
                                         'hint'     => 'Drop multiple images',
                                         'compact'  => true,
                                     ])
@@ -302,11 +299,10 @@
                                 @include('user.partials.dropzone-input', [
                                     'name'        => 'video_file',
                                     'label'       => 'Or Upload Video',
-                                    'accept'      => 'video/mp4,video/webm',
+                                    'policy'      => \App\Services\UploadPolicy::for('link.video_file', auth()->user()),
                                     'currentUrl'  => null,
                                     'currentName' => $videoFile ? 'Saved video file' : null,
-                                    'maxMb'       => 50,
-                                    'hint'        => 'MP4 or WebM · auto-plays muted on loop',
+                                    'hint'        => 'Auto-plays muted on loop',
                                     'previewKind' => 'file',
                                     'compact'     => true,
                                 ])
@@ -386,10 +382,9 @@
                                         @include('user.partials.dropzone-input', [
                                             'name'        => 'bg_fallback_image',
                                             'label'       => 'Fallback Image',
-                                            'accept'      => 'image/*',
+                                            'policy'      => \App\Services\UploadPolicy::for('link.bg_fallback_image', auth()->user()),
                                             'currentUrl'  => $bgFallbackImage ?: null,
                                             'currentName' => $bgFallbackImage ? 'Saved fallback' : null,
-                                            'maxMb'       => 5,
                                             'hint'        => 'Shown while media loads or if it fails',
                                             'compact'     => true,
                                         ])
@@ -571,20 +566,18 @@
                         @include('user.partials.dropzone-input', [
                             'name'        => 'seo_image',
                             'label'       => 'Share Preview Image',
-                            'accept'      => 'image/*',
+                            'policy'      => \App\Services\UploadPolicy::for('link.seo_image', auth()->user()),
                             'currentUrl'  => $link->seo_image,
                             'currentName' => $link->seo_image ? 'Saved preview image' : null,
-                            'maxMb'       => 5,
                             'hint'        => 'Best 1200×630, bold image with minimal text',
                             'compact'     => true,
                         ])
                         @include('user.partials.dropzone-input', [
                             'name'        => 'favicon',
                             'label'       => 'Browser Tab Icon (Favicon)',
-                            'accept'      => 'image/*',
+                            'policy'      => \App\Services\UploadPolicy::for('link.favicon', auth()->user()),
                             'currentUrl'  => $link->favicon,
                             'currentName' => $link->favicon ? 'Saved favicon' : null,
-                            'maxMb'       => 1,
                             'hint'        => 'Simple square logo · 32×32 or 64×64',
                             'compact'     => true,
                         ])

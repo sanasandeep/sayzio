@@ -412,18 +412,16 @@
                 @include('user.partials.dropzone-input', [
                     'name'        => 'seo_image',
                     'label'       => 'OG Image',
-                    'accept'      => 'image/*',
+                    'policy'      => \App\Services\UploadPolicy::for('link.seo_image', auth()->user()),
                     'currentUrl'  => $link->seo_image,
                     'currentName' => $link->seo_image ? 'Saved OG image' : null,
-                    'maxMb'       => 5,
                 ])
                 @include('user.partials.dropzone-input', [
                     'name'        => 'favicon',
                     'label'       => 'Favicon',
-                    'accept'      => 'image/*',
+                    'policy'      => \App\Services\UploadPolicy::for('link.favicon', auth()->user()),
                     'currentUrl'  => $link->favicon,
                     'currentName' => $link->favicon ? 'Saved favicon' : null,
-                    'maxMb'       => 2,
                     'hint'        => 'Browser-tab icon · recommended 32x32 or 64x64',
                 ])
             </div>

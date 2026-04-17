@@ -101,10 +101,9 @@
                         @endif
                         @include('user.partials.dropzone-input', [
                             'name'        => 'card_image',
-                            'accept'      => 'image/*',
+                            'policy'      => \App\Services\UploadPolicy::for('forms.card_image', auth()->user()),
                             'currentUrl'  => $design['card_image'] ?? null,
                             'currentName' => !empty($design['card_image']) ? 'Saved card image' : null,
-                            'maxMb'       => 5,
                             'compact'     => true,
                         ])
                     </div>
@@ -179,10 +178,9 @@
                         <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Logo</label>
                         @include('user.partials.dropzone-input', [
                             'name'        => 'logo',
-                            'accept'      => 'image/*',
+                            'policy'      => \App\Services\UploadPolicy::for('forms.logo', auth()->user()),
                             'currentUrl'  => $design['logo'] ?? null,
                             'currentName' => !empty($design['logo']) ? 'Saved logo' : null,
-                            'maxMb'       => 5,
                             'compact'     => true,
                         ])
                         @if(!empty($design['logo']))
@@ -193,10 +191,9 @@
                         <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Cover image</label>
                         @include('user.partials.dropzone-input', [
                             'name'        => 'cover_image',
-                            'accept'      => 'image/*',
+                            'policy'      => \App\Services\UploadPolicy::for('forms.cover', auth()->user()),
                             'currentUrl'  => $design['cover'] ?? null,
                             'currentName' => !empty($design['cover']) ? 'Saved cover image' : null,
-                            'maxMb'       => 5,
                             'compact'     => true,
                         ])
                         @if(!empty($design['cover']))

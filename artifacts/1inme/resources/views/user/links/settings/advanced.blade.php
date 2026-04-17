@@ -132,11 +132,9 @@
                         @include('user.partials.dropzone-input', [
                             'name'        => 'og_image_upload',
                             'label'       => 'Or Upload OG Image',
-                            'accept'      => 'image/png,image/jpeg,image/webp',
+                            'policy'      => \App\Services\UploadPolicy::for('link.og_image_upload', auth()->user()),
                             'currentUrl'  => $og['image_url'] ?? $link->seo_image,
                             'currentName' => ($og['image_url'] ?? $link->seo_image) ? 'Saved OG image' : null,
-                            'maxMb'       => 2,
-                            'hint'        => 'PNG, JPG or WebP',
                             'compact'     => true,
                         ])
                     </div>
@@ -198,9 +196,8 @@
                             @include('user.partials.dropzone-input', [
                                 'name'    => 'favicon_upload',
                                 'label'   => 'Or Upload',
-                                'accept'  => 'image/png,image/x-icon,image/svg+xml,image/jpeg',
-                                'maxMb'   => 1,
-                                'hint'    => 'PNG, ICO, SVG or JPG · 32×32 or 64×64',
+                                'policy'  => \App\Services\UploadPolicy::for('link.favicon_upload', auth()->user()),
+                                'hint'    => '32×32 or 64×64',
                                 'compact' => true,
                             ])
                         </div>
@@ -221,9 +218,8 @@
                             @include('user.partials.dropzone-input', [
                                 'name'    => 'apple_touch_upload',
                                 'label'   => 'Or Upload (180×180)',
-                                'accept'  => 'image/png',
-                                'maxMb'   => 1,
-                                'hint'    => 'PNG only · iOS home-screen icon',
+                                'policy'  => \App\Services\UploadPolicy::for('link.apple_touch_upload', auth()->user()),
+                                'hint'    => 'iOS home-screen icon',
                                 'compact' => true,
                             ])
                         </div>
@@ -244,9 +240,8 @@
                             @include('user.partials.dropzone-input', [
                                 'name'    => 'icon_512_upload',
                                 'label'   => 'Or Upload',
-                                'accept'  => 'image/png',
-                                'maxMb'   => 1,
-                                'hint'    => 'PNG only · PWA splash & Android home',
+                                'policy'  => \App\Services\UploadPolicy::for('link.icon_512_upload', auth()->user()),
+                                'hint'    => 'PWA splash & Android home',
                                 'compact' => true,
                             ])
                         </div>

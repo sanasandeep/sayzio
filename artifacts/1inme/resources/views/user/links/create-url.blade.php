@@ -105,14 +105,12 @@
                         @include('user.partials.dropzone-input', [
                             'name'   => 'seo_image',
                             'label'  => 'OG Image',
-                            'accept' => 'image/*',
-                            'maxMb'  => 5,
+                            'policy' => \App\Services\UploadPolicy::for('link.seo_image', auth()->user()),
                         ])
                         @include('user.partials.dropzone-input', [
                             'name'   => 'favicon',
                             'label'  => 'Favicon',
-                            'accept' => 'image/*',
-                            'maxMb'  => 2,
+                            'policy' => \App\Services\UploadPolicy::for('link.favicon', auth()->user()),
                             'hint'   => 'Browser-tab icon · recommended 32x32 or 64x64',
                         ])
                     </div>

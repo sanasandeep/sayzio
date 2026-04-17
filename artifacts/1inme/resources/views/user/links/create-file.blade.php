@@ -19,9 +19,8 @@
                     'name'     => 'file',
                     'label'    => 'File',
                     'required' => true,
-                    'maxMb'    => $maxFileSizeMb,
-                    'accept'   => '*/*',
-                    'hint'     => 'Any file type. Drop here or click to browse',
+                    'policy'   => \App\Services\UploadPolicy::for('link.file_share', auth()->user()),
+                    'hint'     => 'Drop here or click to browse',
                 ])
                 @error('file') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
             </div>

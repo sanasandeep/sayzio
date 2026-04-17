@@ -113,6 +113,56 @@
                     </div>
                 </div>
 
+                @php
+                    $uploadRows = \App\Services\UploadPolicy::contextsForPlan($features);
+                    $uploadGroups = collect($uploadRows)->groupBy('group');
+                @endphp
+                <div class="border-t border-white/10 pt-5">
+                    <div class="flex items-center gap-2 mb-2">
+                        <h3 class="text-sm font-medium text-white/80">Upload Limits per Location</h3>
+                        <span class="text-[10px] px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-300 border border-violet-500/20">PER PLAN</span>
+                    </div>
+                    <p class="text-[11px] text-white/40 mb-4">Override the maximum file size and allowed file types for each upload location. Leave blank to use the system default. Extensions are comma-separated, no dots (e.g. <span class="font-mono">jpg, png, webp</span>).</p>
+
+                    <div x-data="{ open: {} }" class="space-y-3">
+                        @foreach($uploadGroups as $groupName => $rows)
+                            <div class="rounded-xl border border-white/10 bg-white/[0.02]">
+                                <button type="button" @click="open['{{ $loop->index }}'] = !open['{{ $loop->index }}']"
+                                        class="w-full flex items-center justify-between px-4 py-3 hover:bg-white/[0.04] transition rounded-xl">
+                                    <span class="text-xs font-semibold text-white/80">{{ $groupName }} <span class="text-white/30 font-normal ml-1">({{ $rows->count() }})</span></span>
+                                    <i class="fas fa-chevron-down text-[10px] text-white/40 transition-transform" :class="open['{{ $loop->index }}'] ? 'rotate-180' : ''"></i>
+                                </button>
+                                <div x-show="open['{{ $loop->index }}']" x-cloak class="px-4 pb-4 space-y-3">
+                                    @foreach($rows as $key => $row)
+                                        <div class="grid grid-cols-12 gap-3 items-end pt-3 border-t border-white/5 first:border-0 first:pt-0">
+                                            <div class="col-span-12 md:col-span-4">
+                                                <label class="block text-[11px] text-white/60">{{ $row['label'] }}</label>
+                                                <p class="text-[10px] text-white/30 font-mono mt-0.5">{{ $key }}</p>
+                                            </div>
+                                            <div class="col-span-4 md:col-span-2">
+                                                <label class="block text-[10px] text-white/40 mb-1">Max MB</label>
+                                                <input type="number" min="0" step="1"
+                                                       name="features[upload_limits][{{ $key }}][max_mb]"
+                                                       value="{{ $row['max_mb'] }}"
+                                                       placeholder="{{ $row['default_max_mb'] }}"
+                                                       class="w-full px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white text-xs focus:ring-2 focus:ring-violet-500/40 outline-none">
+                                            </div>
+                                            <div class="col-span-8 md:col-span-6">
+                                                <label class="block text-[10px] text-white/40 mb-1">Allowed extensions <span class="text-white/30">(default: {{ implode(', ', $row['default_extensions']) ?: 'any' }})</span></label>
+                                                <input type="text"
+                                                       name="features[upload_limits][{{ $key }}][extensions]"
+                                                       value="{{ implode(',', $row['extensions']) }}"
+                                                       placeholder="{{ implode(',', $row['default_extensions']) }}"
+                                                       class="w-full px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white text-xs font-mono focus:ring-2 focus:ring-violet-500/40 outline-none">
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+
                 <div class="flex items-center gap-3 pt-4">
                     <button type="submit" class="px-6 py-2.5 bg-violet-600 text-white rounded-xl font-medium hover:bg-violet-700 transition">Update Plan</button>
                     <a href="{{ route('admin.plans.index') }}" class="px-6 py-2.5 bg-white/10 text-white/80 rounded-xl font-medium hover:bg-white/[0.06] transition">Cancel</a>

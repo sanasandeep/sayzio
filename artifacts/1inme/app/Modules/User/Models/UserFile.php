@@ -103,10 +103,30 @@ class UserFile extends Model
     {
         $enforceAllowlist = $options['enforce_allowlist'] ?? true;
         $maxSizeOverride  = $options['max_size_mb'] ?? null;
+        $uploadKey        = $options['upload_key'] ?? null;
+        $policyExtensions = null;
+
+        // When an upload_key (UploadPolicy context) is provided we let the
+        // per-context plan override authoritatively drive both the size cap
+        // and the extension allowlist. This makes plan-level
+        // features.upload_limits overrides binding at the storage layer.
+        if ($uploadKey !== null) {
+            $policy = \App\Services\UploadPolicy::for($uploadKey, $user);
+            if ($maxSizeOverride === null && !empty($policy['max_mb'])) {
+                $maxSizeOverride = (int) $policy['max_mb'];
+            }
+            if (!empty($policy['extensions'])) {
+                $policyExtensions = array_map('strtolower', $policy['extensions']);
+            }
+        }
 
         $mime = $file->getMimeType() ?: 'application/octet-stream';
         $ext  = strtolower($file->getClientOriginalExtension() ?: 'bin');
         $size = (int) $file->getSize();
+
+        if ($policyExtensions !== null && !in_array($ext, $policyExtensions, true)) {
+            throw new RuntimeException('File extension not allowed for this upload.');
+        }
 
         if ($enforceAllowlist) {
             if (! in_array($mime, self::getAllAllowedMimes(), true)) {

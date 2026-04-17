@@ -51,7 +51,7 @@ class FileLinkController extends Controller
         try {
             $userFile = UserFile::createFromUpload($file, $request->user(), [
                 'enforce_allowlist' => false,
-                'max_size_mb'       => $maxFileSizeMb,
+                'upload_key'        => 'link.file_share',
             ]);
         } catch (\RuntimeException $e) {
             return back()->withInput()->with('error', $e->getMessage());

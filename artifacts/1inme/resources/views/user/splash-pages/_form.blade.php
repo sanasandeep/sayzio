@@ -73,20 +73,18 @@
         <p class="text-xs mb-5" style="color: var(--text-muted);">Logo, favicon, and social-share image.</p>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             @foreach([
-                ['logo','Logo','previewLogo','remove_logo','PNG/JPG up to 2 MB'],
-                ['favicon','Favicon','previewFavicon','remove_favicon','PNG/ICO up to 512 KB'],
-                ['og_image','Social image','previewOg','remove_og','PNG/JPG up to 4 MB'],
-            ] as [$field,$label,$state,$rmFlag,$hint])
+                ['logo','Logo','previewLogo','remove_logo','splash.logo'],
+                ['favicon','Favicon','previewFavicon','remove_favicon','splash.favicon'],
+                ['og_image','Social image','previewOg','remove_og','splash.og'],
+            ] as [$field,$label,$state,$rmFlag,$policyKey])
                 <div>
                     <label class="block text-xs font-semibold mb-1.5" style="color: var(--text-secondary);">{{ $label }}</label>
                     @include('user.partials.dropzone-input', [
                         'name'        => $field,
-                        'accept'      => 'image/*',
+                        'policy'      => \App\Services\UploadPolicy::for($policyKey, auth()->user()),
                         'currentUrl'  => null,
                         'currentName' => null,
                         'compact'     => true,
-                        'hint'        => $hint,
-                        'maxMb'       => 5,
                     ])
                     <template x-if="{{ $state }}">
                         <div class="mt-2 flex items-center gap-2 p-2 rounded-lg bg-white/5">

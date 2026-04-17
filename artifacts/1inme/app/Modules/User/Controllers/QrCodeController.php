@@ -212,7 +212,7 @@ class QrCodeController extends Controller
             'fg_color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'bg_color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'error_correction' => 'nullable|in:L,M,Q,H',
-            'logo' => 'nullable|image|max:2048',
+            'logo' => \App\Services\UploadPolicy::rule('qr.logo', $request->user()),
         ]);
 
         $size = (int) ($validated['size'] ?? 300);
@@ -288,7 +288,7 @@ class QrCodeController extends Controller
             'fg_color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'bg_color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'error_correction' => 'nullable|in:L,M,Q,H',
-            'logo' => 'nullable|image|max:2048',
+            'logo' => \App\Services\UploadPolicy::rule('qr.logo', $request->user()),
         ]);
 
         $size = (int) ($validated['size'] ?? 300);

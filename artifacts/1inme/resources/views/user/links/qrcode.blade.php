@@ -65,8 +65,7 @@
                     @include('user.partials.dropzone-input', [
                         'name'   => 'logo',
                         'label'  => 'Logo Overlay',
-                        'accept' => 'image/*',
-                        'maxMb'  => 2,
+                        'policy' => \App\Services\UploadPolicy::for('qr.logo', auth()->user()),
                         'hint'   => 'Optional logo centered on the QR code (PNG only)',
                         'form'   => 'downloadForm',
                     ])

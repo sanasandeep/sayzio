@@ -5,16 +5,25 @@
     file (or click) to assign it to the input. Shows image previews when
     the file is an image, otherwise a filename + size chip.
 
-    Usage:
+    Usage (preferred — pass a plan-driven policy array):
+        @php $policy = \App\Services\UploadPolicy::for('vcf.photo', auth()->user()); @endphp
+        @include('user.partials.dropzone-input', [
+            'name'        => 'photo',
+            'policy'      => $policy,        // ← plan-driven max_mb + extensions + accept
+            'currentUrl'  => $vcf?->photoUrl(),
+            'label'       => 'Photo',
+        ])
+
+    Usage (manual — back-compat with explicit accept/maxMb):
         @include('user.partials.dropzone-input', [
             'name'        => 'photo',
             'accept'      => 'image/*',
+            'maxMb'       => 5,
             'multiple'    => false,
-            'currentUrl'  => $vcf?->photoUrl(),
+            'currentUrl'  => null,
             'currentName' => null,
             'label'       => null,
             'hint'        => 'JPG/PNG up to 5 MB',
-            'maxMb'       => 5,
             'previewKind' => 'image',  // 'image' | 'file'
             'compact'     => false,
             'required'    => false,
@@ -24,13 +33,20 @@
 --}}
 @php
     $dzId        = 'dz_' . substr(md5($name . uniqid('', true)), 0, 10);
-    $accept      = $accept      ?? '*/*';
-    $multiple    = $multiple    ?? false;
+    $policy      = $policy      ?? null;
+    // Policy-driven defaults override individual props when policy is provided,
+    // but explicit props can still override the policy.
+    $accept      = $accept      ?? ($policy['accept']   ?? '*/*');
+    $maxMb       = $maxMb       ?? ($policy['max_mb']   ?? null);
+    $multiple    = $multiple    ?? ($policy['multiple'] ?? false);
+    $extensions  = $policy['extensions'] ?? null;
     $currentUrl  = $currentUrl  ?? null;
     $currentName = $currentName ?? null;
     $label       = $label       ?? null;
     $hint        = $hint        ?? null;
-    $maxMb       = $maxMb       ?? null;
+    if (!$hint && $extensions) {
+        $hint = strtoupper(implode(', ', array_slice($extensions, 0, 4))) . (count($extensions) > 4 ? '…' : '');
+    }
     $previewKind = $previewKind ?? 'image';
     $compact     = $compact     ?? false;
     $required    = $required    ?? false;
@@ -45,7 +61,7 @@
     @endif
 
     <div class="relative rounded-xl overflow-hidden transition-all"
-         :class="{ 'ring-2 ring-violet-500/60 bg-violet-500/5': dragging, 'bg-white/5': !dragging }"
+         :class="{ 'ring-2 ring-violet-500/60 bg-violet-500/5': dragging, 'ring-2 ring-red-500/60 bg-red-500/5': error, 'bg-white/5': !dragging && !error }"
          style="border: 1.5px dashed rgba(255,255,255,0.18);"
          @dragover.prevent="dragging = true"
          @dragleave.prevent="dragging = false"
@@ -128,6 +144,14 @@
             </div>
         </template>
     </div>
+
+    {{-- Inline error chip (size/type rejection) --}}
+    <template x-if="error">
+        <p class="text-[11px] text-red-400 mt-1.5 flex items-center gap-1.5">
+            <i class="fas fa-exclamation-circle"></i>
+            <span x-text="error"></span>
+        </p>
+    </template>
 </div>
 
 <script>
@@ -135,18 +159,32 @@ function dropzoneInput_{{ $dzId }}() {
     return {
         files: [],
         dragging: false,
+        error: '',
         currentUrl: @js($currentUrl),
         currentName: @js($currentName),
         multiple: @js($multiple),
         accept: @js($accept),
+        maxMb: @js($maxMb),
 
         onDrop(e) {
             this.dragging = false;
+            this.error = '';
             const dropped = Array.from(e.dataTransfer.files || []);
             if (!dropped.length) return;
-            const accepted = dropped.filter((f) => this.matchesAccept(f));
+            const accepted = [];
+            for (const f of dropped) {
+                if (!this.matchesAccept(f)) {
+                    this.error = `"${f.name}" is not an allowed file type.`;
+                    continue;
+                }
+                if (this.maxMb && f.size > this.maxMb * 1024 * 1024) {
+                    this.error = `"${f.name}" is ${this.formatSize(f.size)} — over the ${this.maxMb} MB limit.`;
+                    continue;
+                }
+                accepted.push(f);
+            }
             if (!accepted.length) return;
-            // Push the dropped files into the underlying <input> using a
+            // Push accepted files into the underlying <input> using a
             // DataTransfer so the form sees them on submit.
             const dt = new DataTransfer();
             const start = this.multiple ? Array.from(this.$refs.input.files || []) : [];
@@ -156,6 +194,22 @@ function dropzoneInput_{{ $dzId }}() {
         },
 
         onChange() {
+            this.error = '';
+            // Validate manually-picked files too — drop any that fail.
+            const picked = Array.from(this.$refs.input.files || []);
+            const dt = new DataTransfer();
+            for (const f of picked) {
+                if (!this.matchesAccept(f)) {
+                    this.error = `"${f.name}" is not an allowed file type.`;
+                    continue;
+                }
+                if (this.maxMb && f.size > this.maxMb * 1024 * 1024) {
+                    this.error = `"${f.name}" is ${this.formatSize(f.size)} — over the ${this.maxMb} MB limit.`;
+                    continue;
+                }
+                dt.items.add(f);
+            }
+            this.$refs.input.files = dt.files;
             this.refreshFiles();
         },
 
@@ -174,6 +228,7 @@ function dropzoneInput_{{ $dzId }}() {
             Array.from(this.$refs.input.files).forEach((f, idx) => { if (idx !== i) dt.items.add(f); });
             this.$refs.input.files = dt.files;
             this.refreshFiles();
+            this.error = '';
         },
 
         matchesAccept(file) {

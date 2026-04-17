@@ -95,9 +95,8 @@
             <h3 class="text-sm font-bold mb-4" style="color: var(--text-primary);"><i class="fas fa-image text-emerald-400 mr-2"></i>Logo / Profile Image</h3>
             @include('user.partials.dropzone-input', [
                 'name'   => 'logo',
-                'accept' => 'image/*',
-                'hint'   => 'PNG / JPG, used for your verified avatar block',
-                'maxMb'  => 2,
+                'policy' => \App\Services\UploadPolicy::for('verification.logo', auth()->user()),
+                'hint'   => 'Used for your verified avatar block',
             ])
             <p class="text-[10px] mt-2" style="color: var(--text-dimmed);">This logo will be used for your verified avatar block and cannot be changed after verification.</p>
         </div>
@@ -110,10 +109,8 @@
             </p>
             @include('user.partials.dropzone-input', [
                 'name'        => 'proof_files',
-                'accept'      => '.pdf,.png,.jpg,.jpeg,.webp',
-                'multiple'    => true,
-                'hint'        => 'PDF, PNG, JPG, WEBP. Drop multiple files here or click to browse',
-                'maxMb'       => 5,
+                'policy'      => \App\Services\UploadPolicy::for('verification.proof', auth()->user()),
+                'hint'        => 'Drop multiple files here or click to browse',
                 'previewKind' => 'file',
             ])
         </div>

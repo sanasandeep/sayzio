@@ -143,7 +143,7 @@ class VcfLinkController extends Controller
             'suffix'        => 'nullable|string|max:50',
             'nickname'      => 'nullable|string|max:100',
 
-            'photo'         => 'nullable|image|max:5120',
+            'photo'         => \App\Services\UploadPolicy::rule('vcf.photo', $request->user()),
             'remove_photo'  => 'nullable|boolean',
 
             'organization'  => 'nullable|string|max:255',

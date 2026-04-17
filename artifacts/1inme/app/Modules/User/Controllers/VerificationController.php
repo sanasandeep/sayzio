@@ -41,8 +41,8 @@ class VerificationController extends Controller
             'business_name' => 'required|string|max:200',
             'display_name' => 'required|string|max:200',
             'purpose' => 'required|string|max:2000',
-            'logo' => 'nullable|image|max:2048',
-            'proof_files.*' => 'nullable|file|max:5120',
+            'logo' => \App\Services\UploadPolicy::rule('verification.logo', $request->user()),
+            'proof_files.*' => \App\Services\UploadPolicy::rule('verification.proof', $request->user()),
         ]);
 
         $link = Link::where('id', $data['link_id'])->where('user_id', $user->id)->firstOrFail();
@@ -60,7 +60,7 @@ class VerificationController extends Controller
             try {
                 // Logo capped at 2MB by validation above; allowlist enforces image MIME.
                 $logoFile = UserFile::createFromUpload($request->file('logo'), $user, [
-                    'max_size_mb' => 2,
+                    'upload_key' => 'verification.logo',
                 ]);
                 $logoPath = $logoFile->url_path;
             } catch (\RuntimeException $e) {
@@ -75,7 +75,7 @@ class VerificationController extends Controller
                     // Proof files accept arbitrary types (PDFs, screenshots, docs).
                     $pf = UserFile::createFromUpload($file, $user, [
                         'enforce_allowlist' => false,
-                        'max_size_mb'       => 5,
+                        'upload_key'        => 'verification.proof',
                     ]);
                     $proofPaths[] = $pf->url_path;
                 } catch (\RuntimeException $e) {

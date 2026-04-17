@@ -296,7 +296,7 @@
                                             @foreach(($childrenBySection[$field['id']] ?? []) as $child)
                                                 @php $cw = (int) ($child['width'] ?? 12); if (!in_array($cw, [4,6,8,12], true)) $cw = 12; @endphp
                                                 <div class="form-grid-cell" style="grid-column: span {{ $cw }};">
-                                                    @include('common.form-field', ['field' => $child, 'errors' => $errors])
+                                                    @include('common.form-field', ['field' => $child, 'errors' => $errors, 'fieldOwner' => $form->user ?? null])
                                                 </div>
                                             @endforeach
                                         </div>
@@ -304,7 +304,7 @@
                                 @else
                                     @php $w = (int) ($field['width'] ?? 12); if (!in_array($w, [4,6,8,12], true)) $w = 12; @endphp
                                     <div class="form-grid-cell" style="grid-column: span {{ $w }};">
-                                        @include('common.form-field', ['field' => $field, 'errors' => $errors])
+                                        @include('common.form-field', ['field' => $field, 'errors' => $errors, 'fieldOwner' => $form->user ?? null])
                                     </div>
                                 @endif
                             @endforeach

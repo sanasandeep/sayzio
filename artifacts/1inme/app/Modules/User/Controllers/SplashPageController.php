@@ -125,9 +125,9 @@ class SplashPageController extends Controller
             'countdown'     => 'nullable|integer|min:0|max:120',
             'custom_css'    => 'nullable|string|max:50000',
             'custom_js'     => 'nullable|string|max:50000',
-            'logo'          => 'nullable|image|max:2048',
-            'favicon'       => 'nullable|image|max:512',
-            'og_image'      => 'nullable|image|max:4096',
+            'logo'          => \App\Services\UploadPolicy::rule('splash.logo', $request->user()),
+            'favicon'       => \App\Services\UploadPolicy::rule('splash.favicon', $request->user()),
+            'og_image'      => \App\Services\UploadPolicy::rule('splash.og', $request->user()),
             'remove_logo'    => 'sometimes|boolean',
             'remove_favicon' => 'sometimes|boolean',
             'remove_og'      => 'sometimes|boolean',
@@ -136,13 +136,13 @@ class SplashPageController extends Controller
 
     private function handleUploads(Request $request, SplashPage $sp): void
     {
-        // Per-asset size caps (matching the validation rules above).
-        $map = [
-            'logo'     => ['col' => 'logo',     'max_mb' => 2],
-            'favicon'  => ['col' => 'favicon',  'max_mb' => 1],
-            'og_image' => ['col' => 'og_image', 'max_mb' => 4],
-        ];
+        // Per-asset size caps come from the user's plan via UploadPolicy.
         $user = $request->user();
+        $map = [
+            'logo'     => ['col' => 'logo',     'max_mb' => \App\Services\UploadPolicy::for('splash.logo',    $user)['max_mb']],
+            'favicon'  => ['col' => 'favicon',  'max_mb' => \App\Services\UploadPolicy::for('splash.favicon', $user)['max_mb']],
+            'og_image' => ['col' => 'og_image', 'max_mb' => \App\Services\UploadPolicy::for('splash.og',      $user)['max_mb']],
+        ];
         $changed = false;
         foreach ($map as $field => $cfg) {
             $col = $cfg['col'];

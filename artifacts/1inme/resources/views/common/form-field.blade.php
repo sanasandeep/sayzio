@@ -82,10 +82,22 @@
 
         @case('file')
             @php
+                // Form-builder file field: per-field configuration takes priority,
+                // otherwise fall back to the form_field.file plan policy if a user is logged in.
+                // Resolve plan policy against the form OWNER (passed in as
+                // $fieldOwner from common/form.blade.php) so that public,
+                // unauthenticated submissions still honour the form-owner's
+                // plan-level upload limits. Falls back to the current viewer.
+                $ffOwner = $fieldOwner ?? auth()->user();
+                $ffPolicy = (!empty($field['file_types']) || !empty($field['file_max_kb']) || !$ffOwner)
+                    ? null
+                    : \App\Services\UploadPolicy::for('form_field.file', $ffOwner);
                 $ffAccept  = !empty($field['file_types'])
                     ? collect(explode(',', preg_replace('/[^a-zA-Z0-9,]/', '', (string)$field['file_types'])))->map(fn($e) => '.' . $e)->implode(',')
-                    : '*/*';
-                $ffMaxMb   = !empty($field['file_max_kb']) ? round(((int) $field['file_max_kb']) / 1024, 1) : null;
+                    : ($ffPolicy['accept'] ?? '*/*');
+                $ffMaxMb   = !empty($field['file_max_kb'])
+                    ? round(((int) $field['file_max_kb']) / 1024, 1)
+                    : ($ffPolicy['max_mb'] ?? null);
                 $ffHint    = !empty($field['file_types']) ? strtoupper(str_replace(',', ', ', $field['file_types'])) : null;
             @endphp
             @include('user.partials.dropzone-input', [

@@ -35,11 +35,10 @@
         <h2 class="text-lg font-semibold text-white mb-4"><i class="fas fa-image text-violet-400 mr-2"></i>Avatar</h2>
         @include('user.partials.dropzone-input', [
             'name'        => 'photo',
-            'accept'      => 'image/*',
+            'policy'      => \App\Services\UploadPolicy::for('vcf.photo', auth()->user()),
             'currentUrl'  => $photoUrl,
             'currentName' => $photoUrl ? 'Saved avatar' : null,
-            'hint'        => 'Square JPG/PNG, embedded in the .vcf so contacts work offline',
-            'maxMb'       => 5,
+            'hint'        => 'Square photo, embedded in the .vcf so contacts work offline',
             'previewKind' => 'image',
         ])
         @if($photoUrl)
