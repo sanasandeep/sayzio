@@ -259,6 +259,7 @@
     </div>
 
     @isset($link)
+        @include('user.links.partials.protection-scheduling', ['link' => $link])
         @include('user.links.partials.smart-rules', ['link' => $link])
     @endisset
 </div>

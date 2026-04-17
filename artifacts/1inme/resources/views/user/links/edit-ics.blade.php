@@ -399,6 +399,9 @@
             </div>
         </div>
 
+        {{-- ==================== Protection & scheduling ==================== --}}
+        @include('user.links.partials.protection-scheduling', ['link' => $link])
+
         {{-- ==================== Smart redirect rules ==================== --}}
         @include('user.links.partials.smart-rules', ['link' => $link])
 

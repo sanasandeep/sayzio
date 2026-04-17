@@ -206,51 +206,17 @@
         </div>
 
         <div class="glass rounded-2xl p-6 mb-6">
-            <h2 class="text-lg font-semibold text-white mb-4">Protection & Scheduling</h2>
-            <div class="space-y-4">
-                <label class="flex items-center gap-3">
-                    <input type="checkbox" name="is_password_protected" value="1" x-model="passwordProtect" class="rounded text-violet-400 focus:ring-violet-500/40">
-                    <span class="text-sm text-white/60">Password protect this link</span>
-                </label>
-                <div x-show="passwordProtect" class="ml-7">
-                    <input type="password" name="password" placeholder="New password (leave empty to keep current)" class="w-full max-w-xs border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
-                </div>
-
-                <div>
-                    <label class="block text-sm text-white/60 mb-1">Goes Live At <span class="text-white/30">(optional)</span></label>
-                    <input type="datetime-local" name="start_at"
-                           value="{{ old('start_at', !empty($s['start_at']) ? \Carbon\Carbon::parse($s['start_at'])->format('Y-m-d\TH:i') : '') }}"
-                           class="border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
-                    <p class="text-xs text-white/30 mt-1">Visitors before this time see "not yet available".</p>
-                </div>
-
-                <div>
-                    <label class="block text-sm text-white/60 mb-1">Expiry Rule</label>
-                    <select name="_exp_mode" x-model="expMode" class="border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
-                        <option value="none">Never expires</option>
-                        <option value="date">Expires on a specific date</option>
-                        <option value="clicks">Expires after N clicks</option>
-                        <option value="first_click">One-time use (expires after first click)</option>
-                    </select>
-                </div>
-
-                <div x-show="expMode === 'date'">
-                    <label class="block text-sm text-white/60 mb-1">Expiration Date</label>
-                    <input type="datetime-local" name="expires_at" value="{{ old('expires_at', $link->expires_at?->format('Y-m-d\TH:i')) }}" class="border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
-                </div>
-
-                <div x-show="expMode === 'clicks'">
-                    <label class="block text-sm text-white/60 mb-1">Maximum Clicks</label>
-                    <input type="number" min="1" name="max_clicks" value="{{ old('max_clicks', $s['max_clicks'] ?? '') }}" placeholder="e.g. 100" class="border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
-                </div>
-
-                <div x-show="expMode !== 'none'">
-                    <label class="block text-sm text-white/60 mb-1">After Expiry, Redirect To <span class="text-white/30">(optional)</span></label>
-                    <input type="url" name="expiry_url" value="{{ old('expiry_url', $s['expiry_url'] ?? '') }}" placeholder="https://example.com/expired" class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
-                    <p class="text-xs text-white/30 mt-1">Leave empty to show the default "link expired" page.</p>
-                </div>
+            <h2 class="text-lg font-semibold text-white mb-4">Password protection</h2>
+            <label class="flex items-center gap-3">
+                <input type="checkbox" name="is_password_protected" value="1" x-model="passwordProtect" class="rounded text-violet-400 focus:ring-violet-500/40">
+                <span class="text-sm text-white/60">Require a password before this link works</span>
+            </label>
+            <div x-show="passwordProtect" class="mt-3 ml-7">
+                <input type="password" name="password" placeholder="New password (leave empty to keep current)" class="w-full max-w-xs border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
             </div>
         </div>
+
+        @include('user.links.partials.protection-scheduling', ['link' => $link])
 
         @if($link->type === 'url')
         <div class="glass rounded-2xl p-6 mb-6">

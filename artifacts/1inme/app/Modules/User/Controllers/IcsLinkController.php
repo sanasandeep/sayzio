@@ -89,10 +89,18 @@ class IcsLinkController extends Controller
             }
         }
 
+        // Protection & Scheduling (timezone, schedule, expiry, daily window,
+        // banned countries) — driven by the shared partial and parsed by the
+        // central LinkController helper so behavior stays identical across
+        // every link-type editor.
+        $ps = \App\Modules\User\Controllers\LinkController::applyProtectionScheduling($request);
+        $newSettings = \App\Modules\User\Controllers\LinkController::mergeProtectionScheduling($newSettings, $ps['settings']);
+
         $link->update([
             'alias'      => $validated['alias'] ?: $link->alias,
             'title'      => $validated['event_name'],
             'project_id' => $validated['project_id'] ?? null,
+            'expires_at' => $ps['expires_at'],
             'settings'   => $newSettings,
         ]);
 

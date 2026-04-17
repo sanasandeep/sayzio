@@ -89,10 +89,15 @@ class VcfLinkController extends Controller
             }
         }
 
+        // Protection & Scheduling — same shared partial / helper as URL & ICS.
+        $ps = LinkController::applyProtectionScheduling($request);
+        $newSettings = LinkController::mergeProtectionScheduling($newSettings, $ps['settings']);
+
         $link->update([
             'alias'      => $validated['alias'] ?: $link->alias,
             'title'      => $this->buildLinkTitle($validated),
             'project_id' => $validated['project_id'] ?? null,
+            'expires_at' => $ps['expires_at'],
             'settings'   => $newSettings,
         ]);
 

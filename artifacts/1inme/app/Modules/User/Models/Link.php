@@ -151,9 +151,67 @@ class Link extends Model
         }
     }
 
+    /**
+     * "Daily active window" — link is only reachable during these hours
+     * on the configured days (in the link's chosen timezone). Returns
+     * true when no window is configured (i.e. always-on).
+     */
+    public function isWithinActiveWindow(): bool
+    {
+        $s  = $this->settings ?? [];
+        $aw = $s['active_window'] ?? null;
+        if (!is_array($aw) || empty($aw['enabled'])) return true;
+
+        $tz    = $s['timezone'] ?? 'UTC';
+        $start = $aw['start'] ?? null;
+        $end   = $aw['end']   ?? null;
+        $days  = (array) ($aw['days'] ?? []);
+        if (!$start || !$end) return true;
+
+        try {
+            $now = \Carbon\Carbon::now($tz);
+        } catch (\Throwable $e) {
+            $now = \Carbon\Carbon::now('UTC');
+        }
+
+        $cur = (int) $now->format('Hi');
+        $a   = (int) str_replace(':', '', $start);
+        $b   = (int) str_replace(':', '', $end);
+
+        $dayKey = strtolower(substr($now->format('D'), 0, 3));
+        $prevDayKey = strtolower(substr($now->copy()->subDay()->format('D'), 0, 3));
+        $allowedToday    = empty($days) || in_array($dayKey, $days, true);
+        $allowedYesterday = empty($days) || in_array($prevDayKey, $days, true);
+
+        if ($a <= $b) {
+            // Same-day window (e.g. 09:00 – 17:00).
+            return $allowedToday && $cur >= $a && $cur <= $b;
+        }
+        // Wrapped window (e.g. 22:00 – 02:00). The "evening" portion belongs to
+        // today's selected day, the "morning" portion belongs to yesterday's.
+        if ($cur >= $a) return $allowedToday;
+        if ($cur <= $b) return $allowedYesterday;
+        return false;
+    }
+
+    /**
+     * True when the visitor's country code (uppercase ISO-2) appears in
+     * the configured banned-locations list. Null country = treat as
+     * not-blocked (we can't verify, so we don't 403).
+     */
+    public function isCountryBlocked(?string $countryCode): bool
+    {
+        $list = (array) (($this->settings ?? [])['country_blocklist'] ?? []);
+        if (empty($list) || !$countryCode) return false;
+        return in_array(strtoupper($countryCode), array_map('strtoupper', $list), true);
+    }
+
     public function isAccessible(): bool
     {
-        return $this->is_active && !$this->isExpired() && !$this->isScheduledFuture();
+        return $this->is_active
+            && !$this->isExpired()
+            && !$this->isScheduledFuture()
+            && $this->isWithinActiveWindow();
     }
 
     /**

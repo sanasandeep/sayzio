@@ -1000,6 +1000,118 @@ class LinkController extends Controller
      * client-side validation, so by the time it reaches us we just want to
      * make sure nothing weird gets persisted to settings.
      */
+    /**
+     * Parse the shared "Protection & Scheduling" partial inputs into a
+     * persistable form. Returns:
+     *   [
+     *     'settings'   => keys to merge into Link::$settings (replaces
+     *                     timezone / start_at / max_clicks / expire_on_first_click /
+     *                     expiry_url / active_window / country_blocklist),
+     *     'expires_at' => Carbon|null  — value for the links.expires_at column,
+     *   ]
+     *
+     * Caller is responsible for applying these (so each link-type controller
+     * can still merge its own settings around them). datetime-local inputs
+     * are interpreted as wall-clock time in the chosen timezone, then
+     * converted to UTC for storage.
+     */
+    public static function applyProtectionScheduling(Request $request): array
+    {
+        $settings = [];
+
+        // ---- Timezone (validated against PHP's known list) ----------------
+        $tz = trim((string) $request->input('tz', 'UTC'));
+        if ($tz === '' || !in_array($tz, \DateTimeZone::listIdentifiers(), true)) {
+            $tz = 'UTC';
+        }
+        $settings['timezone'] = $tz;
+
+        // ---- Goes-live (start_at) — stored in UTC ISO ---------------------
+        $startRaw = trim((string) $request->input('start_at', ''));
+        if ($startRaw !== '') {
+            try {
+                $settings['start_at'] = \Carbon\Carbon::parse($startRaw, $tz)->utc()->toIso8601String();
+            } catch (\Throwable $e) { /* drop silently */ }
+        }
+
+        // ---- Expiry rule -------------------------------------------------
+        $expMode    = $request->input('_exp_mode', 'none');
+        $expiresCol = null;
+        if ($expMode === 'date') {
+            $expRaw = trim((string) $request->input('expires_at', ''));
+            if ($expRaw !== '') {
+                try {
+                    $expiresCol = \Carbon\Carbon::parse($expRaw, $tz)->utc();
+                } catch (\Throwable $e) { /* leave null */ }
+            }
+        } elseif ($expMode === 'clicks') {
+            $max = (int) $request->input('max_clicks', 0);
+            if ($max > 0) $settings['max_clicks'] = $max;
+        } elseif ($expMode === 'first_click') {
+            $settings['expire_on_first_click'] = true;
+        }
+
+        $expiryUrl = trim((string) $request->input('expiry_url', ''));
+        if ($expiryUrl !== '' && filter_var($expiryUrl, FILTER_VALIDATE_URL)) {
+            // Strict scheme check — Link::getExpiryRedirectUrl feeds this into
+            // redirect()->away(), so allowing javascript:/file:/etc. would be a
+            // hole. Mirrors the safety constraint already on smart_rules URLs.
+            $scheme = strtolower((string) parse_url($expiryUrl, PHP_URL_SCHEME));
+            if ($scheme === 'http' || $scheme === 'https') {
+                $settings['expiry_url'] = $expiryUrl;
+            }
+        }
+
+        // ---- Daily active window -----------------------------------------
+        if ($request->boolean('active_window_enabled')) {
+            $startT = self::sanitizeTimeOfDay($request->input('active_window_start'));
+            $endT   = self::sanitizeTimeOfDay($request->input('active_window_end'));
+            $days   = array_values(array_intersect(
+                ['mon','tue','wed','thu','fri','sat','sun'],
+                (array) $request->input('active_window_days', [])
+            ));
+            if ($startT && $endT) {
+                $settings['active_window'] = [
+                    'enabled' => true,
+                    'start'   => $startT,
+                    'end'     => $endT,
+                    'days'    => $days ?: ['mon','tue','wed','thu','fri','sat','sun'],
+                ];
+            }
+        }
+
+        // ---- Banned countries (ISO 2-letter, uppercased) -----------------
+        $blocklistRaw = (string) $request->input('country_blocklist', '');
+        $codes = array_values(array_filter(array_map(
+            fn ($c) => strtoupper(preg_replace('/[^A-Za-z]/', '', $c)),
+            explode(',', $blocklistRaw)
+        ), fn ($c) => strlen($c) === 2));
+        if (!empty($codes)) {
+            $settings['country_blocklist'] = array_values(array_unique($codes));
+        }
+
+        return ['settings' => $settings, 'expires_at' => $expiresCol];
+    }
+
+    /**
+     * Merge protection-scheduling settings into an existing settings array,
+     * stripping the keys this feature owns so toggling them off actually
+     * removes the constraint instead of leaving stale values behind.
+     */
+    public static function mergeProtectionScheduling(array $existing, array $fresh): array
+    {
+        $owned = ['timezone', 'start_at', 'max_clicks', 'expire_on_first_click',
+                  'expiry_url', 'active_window', 'country_blocklist'];
+        foreach ($owned as $k) unset($existing[$k]);
+        return array_merge($existing, $fresh);
+    }
+
+    private static function sanitizeTimeOfDay($v): ?string
+    {
+        if (!is_string($v)) return null;
+        return preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $v) ? $v : null;
+    }
+
     public static function sanitizeSmartRules(?string $json): array
     {
         if (!$json) return [];
@@ -1195,14 +1307,8 @@ class LinkController extends Controller
             'is_active' => 'boolean',
             'is_password_protected' => 'boolean',
             'password' => 'nullable|string|min:3|max:100',
-            'expires_at' => 'nullable|date',
-            'expiry_url' => 'nullable|url:http,https|max:2048',
-            'max_clicks' => 'nullable|integer|min:0|max:1000000000',
-            'start_at' => 'nullable|date',
-            'expire_on_first_click' => 'nullable|boolean',
             'open_in_app' => 'nullable|boolean',
             'show_preview_page' => 'nullable|boolean',
-            '_exp_mode' => 'nullable|in:none,date,clicks,first_click',
             'seo_title' => 'nullable|string|max:255',
             'seo_description' => 'nullable|string|max:500',
             'utm_source' => 'nullable|string|max:255',
@@ -1258,42 +1364,13 @@ class LinkController extends Controller
             unset($settings['device_targeting']);
         }
 
-        // Expiry / availability conditions stored in JSON settings (no migration needed).
-        // The `_exp_mode` field (none|date|clicks|first_click) tells us which
-        // expiry mode the user picked so we can clear the others server-side.
-        $expMode = $validated['_exp_mode'] ?? null;
-        if ($expMode !== null) {
-            if ($expMode !== 'date') {
-                $validated['expires_at'] = null;
-            }
-            if ($expMode !== 'clicks') {
-                $validated['max_clicks'] = null;
-            }
-            // Picking the One-Time mode is itself the activation — no separate checkbox.
-            $validated['expire_on_first_click'] = ($expMode === 'first_click');
-        }
-        unset($validated['_exp_mode']);
-
-        if (!empty($validated['expiry_url'])) {
-            $settings['expiry_url'] = $validated['expiry_url'];
-        } else {
-            unset($settings['expiry_url']);
-        }
-        if (!empty($validated['max_clicks']) && (int) $validated['max_clicks'] > 0) {
-            $settings['max_clicks'] = (int) $validated['max_clicks'];
-        } else {
-            unset($settings['max_clicks']);
-        }
-        if (!empty($validated['start_at'])) {
-            $settings['start_at'] = $validated['start_at'];
-        } else {
-            unset($settings['start_at']);
-        }
-        if (!empty($validated['expire_on_first_click'])) {
-            $settings['expire_on_first_click'] = true;
-        } else {
-            unset($settings['expire_on_first_click']);
-        }
+        // Protection & Scheduling — timezone, schedule, expiry rule, daily
+        // active window, banned countries. The shared partial owns these
+        // fields across all link types; we delegate parsing to a helper so
+        // every editor produces identical persistence behavior.
+        $ps = self::applyProtectionScheduling($request);
+        $settings = self::mergeProtectionScheduling($settings, $ps['settings']);
+        $validated['expires_at'] = $ps['expires_at'];
 
         // App-opener toggle (only meaningful for url-type links). The form
         // always submits a hidden `open_in_app=0` plus the checkbox so
@@ -1325,8 +1402,6 @@ class LinkController extends Controller
         $validated['settings'] = !empty($settings) ? $settings : null;
         unset(
             $validated['country_restrictions'], $validated['device_targeting'],
-            $validated['expiry_url'], $validated['max_clicks'],
-            $validated['start_at'], $validated['expire_on_first_click'],
             $validated['open_in_app'], $validated['show_preview_page'],
             $validated['smart_rules_json']
         );

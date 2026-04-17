@@ -1,0 +1,198 @@
+{{--
+    Shared "Protection & Scheduling" editor.
+    Drops into any link-editor <form>. Self-contained Alpine component
+    so it can live alongside other partials without state collisions.
+
+    Usage:  @include('user.links.partials.protection-scheduling', ['link' => $link])
+
+    Posts these inputs (LinkController::applyProtectionScheduling parses them):
+      tz                       Timezone identifier (e.g. "America/New_York")
+      start_at                 datetime-local (naive wall-clock in the chosen tz)
+      expires_at               datetime-local (naive wall-clock in the chosen tz)
+      _exp_mode                none|date|clicks|first_click
+      max_clicks               integer
+      expire_on_first_click    0|1 (derived from _exp_mode)
+      expiry_url               URL
+      active_window_enabled    0|1
+      active_window_start      HH:MM
+      active_window_end        HH:MM
+      active_window_days[]     mon|tue|wed|thu|fri|sat|sun
+      country_blocklist        comma-separated ISO codes (e.g. "RU,KP")
+--}}
+@php
+    $s_ps          = (array) ($link->settings ?? []);
+    $tz_ps         = $s_ps['timezone'] ?? 'UTC';
+    $startLocal    = '';
+    $expiresLocal  = '';
+    try {
+        if (!empty($s_ps['start_at'])) {
+            $startLocal = \Carbon\Carbon::parse($s_ps['start_at'])->setTimezone($tz_ps)->format('Y-m-d\TH:i');
+        }
+        if ($link->expires_at) {
+            $expiresLocal = $link->expires_at->copy()->setTimezone($tz_ps)->format('Y-m-d\TH:i');
+        }
+    } catch (\Throwable $e) { /* fall through with empty defaults */ }
+
+    $expMode_ps = !empty($s_ps['expire_on_first_click']) ? 'first_click'
+        : (!empty($s_ps['max_clicks']) ? 'clicks'
+        : ($link->expires_at ? 'date' : 'none'));
+
+    $aw         = (array) ($s_ps['active_window'] ?? []);
+    $awEnabled  = !empty($aw['enabled']);
+    $awStart    = $aw['start'] ?? '09:00';
+    $awEnd      = $aw['end']   ?? '17:00';
+    $awDays     = (array) ($aw['days'] ?? ['mon','tue','wed','thu','fri']);
+
+    $blocklist  = implode(',', (array) ($s_ps['country_blocklist'] ?? []));
+
+    $tzList = [
+        'UTC',
+        'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles',
+        'America/Toronto', 'America/Mexico_City', 'America/Sao_Paulo',
+        'Europe/London', 'Europe/Dublin', 'Europe/Paris', 'Europe/Berlin', 'Europe/Madrid',
+        'Europe/Rome', 'Europe/Amsterdam', 'Europe/Stockholm', 'Europe/Moscow',
+        'Africa/Lagos', 'Africa/Cairo', 'Africa/Johannesburg', 'Africa/Nairobi',
+        'Asia/Dubai', 'Asia/Tehran', 'Asia/Karachi', 'Asia/Kolkata', 'Asia/Dhaka',
+        'Asia/Bangkok', 'Asia/Singapore', 'Asia/Hong_Kong', 'Asia/Shanghai',
+        'Asia/Tokyo', 'Asia/Seoul',
+        'Australia/Perth', 'Australia/Sydney', 'Pacific/Auckland', 'Pacific/Honolulu',
+    ];
+@endphp
+
+<div class="glass rounded-2xl p-6 mb-6"
+     x-data="protectionScheduling({
+        tz: @js($tz_ps),
+        expMode: @js($expMode_ps),
+        awEnabled: @js($awEnabled),
+        awDays: @js($awDays),
+     })">
+    <div class="flex items-start justify-between mb-4">
+        <div>
+            <h2 class="text-lg font-semibold text-white">Protection &amp; Scheduling</h2>
+            <p class="text-xs text-white/40 mt-1">Control exactly when this link works, how many clicks it accepts, and which countries can reach it. All times use your selected timezone.</p>
+        </div>
+    </div>
+
+    {{-- Timezone — applies to start, expiry, and the daily active window. --}}
+    <div class="mb-4">
+        <label class="block text-sm text-white/60 mb-1">Timezone</label>
+        <select name="tz" x-model="tz"
+                class="w-full max-w-xs border border-white/10 rounded-xl px-3 py-2 text-sm bg-white/[0.03] focus:ring-2 focus:ring-violet-500/40">
+            @foreach($tzList as $tz)
+                <option value="{{ $tz }}" {{ $tz_ps === $tz ? 'selected' : '' }}>{{ $tz }}</option>
+            @endforeach
+        </select>
+        <p class="text-xs text-white/30 mt-1">All schedule times below are interpreted in this zone.</p>
+    </div>
+
+    {{-- Schedule: goes-live + expiry mode --}}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+            <label class="block text-sm text-white/60 mb-1">Goes live at <span class="text-white/30">(optional)</span></label>
+            <input type="datetime-local" name="start_at"
+                   value="{{ old('start_at', $startLocal) }}"
+                   class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
+            <p class="text-xs text-white/30 mt-1">Visitors before this time see "not yet available".</p>
+        </div>
+
+        <div>
+            <label class="block text-sm text-white/60 mb-1">Expiry rule</label>
+            <select name="_exp_mode" x-model="expMode"
+                    class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
+                <option value="none">Never expires</option>
+                <option value="date">Expires on a specific date</option>
+                <option value="clicks">Expires after N clicks</option>
+                <option value="first_click">One-time use (expires after first click)</option>
+            </select>
+        </div>
+
+        <div x-show="expMode === 'date'" x-cloak>
+            <label class="block text-sm text-white/60 mb-1">Expiration date</label>
+            <input type="datetime-local" name="expires_at"
+                   value="{{ old('expires_at', $expiresLocal) }}"
+                   class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
+        </div>
+
+        <div x-show="expMode === 'clicks'" x-cloak>
+            <label class="block text-sm text-white/60 mb-1">Maximum clicks</label>
+            <input type="number" min="1" name="max_clicks"
+                   value="{{ old('max_clicks', $s_ps['max_clicks'] ?? '') }}"
+                   placeholder="e.g. 100"
+                   class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
+        </div>
+    </div>
+
+    <div x-show="expMode !== 'none'" x-cloak class="mb-4">
+        <label class="block text-sm text-white/60 mb-1">After expiry, redirect to <span class="text-white/30">(optional)</span></label>
+        <input type="url" name="expiry_url"
+               value="{{ old('expiry_url', $s_ps['expiry_url'] ?? '') }}"
+               placeholder="https://example.com/expired"
+               class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
+        <p class="text-xs text-white/30 mt-1">Leave empty to show the default "link expired" page.</p>
+    </div>
+
+    {{-- Daily active window --}}
+    <div class="border-t border-white/5 pt-4 mt-4">
+        <input type="hidden" name="active_window_enabled" :value="awEnabled ? '1' : '0'">
+        <label class="flex items-center gap-3 cursor-pointer mb-3">
+            <input type="checkbox" x-model="awEnabled"
+                   class="rounded text-violet-400 focus:ring-violet-500/40">
+            <div>
+                <div class="text-sm font-medium text-white">Only active during specific hours each day</div>
+                <p class="text-xs text-white/40 mt-0.5">Outside this window the link behaves as expired.</p>
+            </div>
+        </label>
+
+        <div x-show="awEnabled" x-cloak class="ml-7 space-y-3">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-md">
+                <div>
+                    <label class="block text-xs text-white/60 mb-1">From</label>
+                    <input type="time" name="active_window_start" value="{{ old('active_window_start', $awStart) }}"
+                           class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
+                </div>
+                <div>
+                    <label class="block text-xs text-white/60 mb-1">Until</label>
+                    <input type="time" name="active_window_end" value="{{ old('active_window_end', $awEnd) }}"
+                           class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
+                </div>
+            </div>
+            <p class="text-xs text-white/30">Tip: if "Until" is earlier than "From" the window wraps past midnight (e.g. 22:00 – 02:00).</p>
+
+            <div>
+                <label class="block text-xs text-white/60 mb-2">Active days</label>
+                <div class="flex flex-wrap gap-2">
+                    @foreach(['mon'=>'Mon','tue'=>'Tue','wed'=>'Wed','thu'=>'Thu','fri'=>'Fri','sat'=>'Sat','sun'=>'Sun'] as $val => $label)
+                        <label class="cursor-pointer">
+                            <input type="checkbox" name="active_window_days[]" value="{{ $val }}"
+                                   x-model="awDays" class="sr-only peer">
+                            <span class="inline-flex items-center justify-center w-12 h-9 text-xs font-medium rounded-lg border border-white/10 bg-white/[0.03] text-white/60 peer-checked:bg-violet-500/20 peer-checked:border-violet-500/50 peer-checked:text-white">{{ $label }}</span>
+                        </label>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Banned countries --}}
+    <div class="border-t border-white/5 pt-4 mt-4">
+        <label class="block text-sm font-medium text-white mb-1">Banned locations</label>
+        <p class="text-xs text-white/40 mb-2">Visitors from these countries are blocked. Use ISO 2-letter codes separated by commas. Leave empty to allow everywhere.</p>
+        <input type="text" name="country_blocklist"
+               value="{{ old('country_blocklist', $blocklist) }}"
+               placeholder="e.g. RU,KP,IR"
+               class="w-full max-w-md border border-white/10 rounded-xl px-3 py-2 text-sm font-mono uppercase focus:ring-2 focus:ring-violet-500/40">
+    </div>
+</div>
+
+@once
+<script>
+    function protectionScheduling(initial) {
+        return {
+            tz: initial.tz || 'UTC',
+            expMode: initial.expMode || 'none',
+            awEnabled: !!initial.awEnabled,
+            awDays: Array.isArray(initial.awDays) ? initial.awDays : [],
+        };
+    }
+</script>
+@endonce

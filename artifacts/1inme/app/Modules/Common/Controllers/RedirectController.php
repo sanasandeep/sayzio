@@ -56,6 +56,15 @@ class RedirectController extends Controller
             }
         }
 
+        // Banned-locations blocklist (separate from the allowlist above so
+        // owners can either allow-only-these or block-just-these).
+        if (!empty($settings['country_blocklist'])) {
+            $visitorCountry = app(\App\Modules\Common\Services\GeoIpService::class)->detectCountry($request->ip());
+            if ($link->isCountryBlocked($visitorCountry)) {
+                abort(403, 'This link is not available in your region.');
+            }
+        }
+
         if (!empty($settings['device_targeting'])) {
             $ua = $request->userAgent() ?? '';
             $deviceType = 'desktop';
@@ -273,6 +282,15 @@ class RedirectController extends Controller
                 abort(403, 'This link is restricted by region and your location could not be determined.');
             }
             if (!in_array(strtoupper($visitorCountry), $allowedCountries)) {
+                abort(403, 'This link is not available in your region.');
+            }
+        }
+
+        // Banned-locations blocklist (separate from the allowlist above so
+        // owners can either allow-only-these or block-just-these).
+        if (!empty($settings['country_blocklist'])) {
+            $visitorCountry = app(\App\Modules\Common\Services\GeoIpService::class)->detectCountry($request->ip());
+            if ($link->isCountryBlocked($visitorCountry)) {
                 abort(403, 'This link is not available in your region.');
             }
         }
