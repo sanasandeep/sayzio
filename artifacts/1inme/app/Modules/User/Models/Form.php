@@ -72,7 +72,11 @@ class Form extends Model
         return [
             'theme' => 'light',
             'accent' => '#8b5cf6',
-            'background' => '#ffffff',
+            'background' => '#f5f5f8',     // page background
+            'card_color' => '#ffffff',     // form card surface (separate from page bg)
+            'card_image' => null,          // optional background image for the form card
+            'card_image_mode' => 'cover',  // cover | contain | tile
+            'card_image_opacity' => 100,   // 0-100 (rendered as overlay alpha)
             'text' => '#0f172a',
             'border_radius' => 12,
             'button_label' => 'Submit',
@@ -131,6 +135,7 @@ class Form extends Model
             'paragraph' => ['label' => 'Paragraph Text','icon' => 'fa-paragraph'],
             'divider'   => ['label' => 'Divider',     'icon' => 'fa-minus'],
             'page_break'=> ['label' => 'Page Break (Multi-step)', 'icon' => 'fa-file-export'],
+            'section'   => ['label' => 'Section / Group',  'icon' => 'fa-layer-group'],
         ];
     }
 

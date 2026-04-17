@@ -50,6 +50,7 @@
                 <input type="hidden" :name="`fields[${i}][error_message]`" :value="f.error_message || ''">
                 <input type="hidden" :name="`fields[${i}][file_max_kb]`" :value="f.file_max_kb ?? ''">
                 <input type="hidden" :name="`fields[${i}][file_types]`" :value="f.file_types || ''">
+                <input type="hidden" :name="`fields[${i}][parent]`" :value="f.parent || ''">
                 <template x-for="(opt, j) in (f.options || [])" :key="`${f.id}-opt-${j}`">
                     <input type="hidden" :name="`fields[${i}][options][${j}]`" :value="opt">
                 </template>
@@ -85,71 +86,129 @@
                 <div id="fieldsList" class="min-h-[300px]"
                      style="display:grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0.75rem;">
                     <template x-for="(f, i) in fields" :key="f.id">
-                        <div class="card-premium p-4 cursor-grab field-card"
-                             :class="selectedIndex === i ? 'ring-2 ring-violet-500' : ''"
-                             :style="`grid-column: span ${f.width || 12} / span ${f.width || 12};`"
-                             :data-id="f.id" @click="selectedIndex = i">
-                            <div class="flex items-start gap-3">
-                                <i class="fas fa-grip-vertical text-xs mt-1.5 handle" style="color: var(--text-faint);"></i>
-                                <div class="flex-1 min-w-0">
-                                    <div class="flex items-center gap-2 mb-1.5 flex-wrap">
-                                        <i :class="`fas ${types[f.type]?.icon || 'fa-question'} text-violet-400 text-[10px]`"></i>
-                                        <span class="text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint);" x-text="types[f.type]?.label || f.type"></span>
-                                        <template x-if="f.required">
-                                            <span class="text-[9px] px-1.5 py-0.5 rounded font-bold" style="background: rgba(239,68,68,0.12); color: #f87171;">REQUIRED</span>
-                                        </template>
-                                        <template x-if="(f.width || 12) !== 12">
-                                            <span class="text-[9px] px-1.5 py-0.5 rounded font-bold" style="background: rgba(139,92,246,0.14); color: #a78bfa;"
-                                                  x-text="f.width === 6 ? '½ row' : (f.width === 4 ? '⅓ row' : '⅔ row')"></span>
-                                        </template>
+                        <div :data-id="f.id"
+                             :style="`grid-column: span ${f.type === 'section' ? 12 : (f.width || 12)} / span ${f.type === 'section' ? 12 : (f.width || 12)}; ${(!isTopLevel(f)) ? 'display:none;' : ''}`"
+                             :class="f.type === 'section' ? 'section-card' : ''">
+                            {{-- ============ SECTION (group) card ============ --}}
+                            <template x-if="f.type === 'section'">
+                                <div class="card-premium p-5 field-card"
+                                     :class="selectedIndex === i ? 'ring-2 ring-violet-500' : ''"
+                                     style="border-style: dashed; border-width: 2px;"
+                                     @click="selectedIndex = i">
+                                    <div class="flex items-center gap-3 mb-3">
+                                        <i class="fas fa-grip-vertical text-xs handle" style="color: var(--text-faint); cursor: grab;"></i>
+                                        <i class="fas fa-layer-group text-violet-400 text-xs"></i>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">Section</div>
+                                            <div class="text-sm font-bold" style="color: var(--text-primary);" x-text="f.label || '(untitled section)'"></div>
+                                        </div>
+                                        <button type="button" @click.stop="addFieldToSection(f.id)" class="text-[10px] px-2.5 py-1.5 rounded-lg font-semibold" style="background: rgba(139,92,246,0.12); color: #7c3aed;">
+                                            <i class="fas fa-plus text-[9px] mr-1"></i> Add field here
+                                        </button>
+                                        <button type="button" @click.stop="duplicateField(i)" class="w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" style="background: var(--bg-glass-input); color: var(--text-muted);" title="Duplicate"><i class="fas fa-clone"></i></button>
+                                        <button type="button" @click.stop="removeField(i)" class="w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" style="background: rgba(239,68,68,0.1); color: #f87171;" title="Delete section"><i class="fas fa-trash"></i></button>
                                     </div>
-                                    <div class="text-sm font-semibold mb-1" style="color: var(--text-primary);" x-text="f.label || '(no label)'"></div>
-                                    <div x-show="f.type === 'text' || f.type === 'email' || f.type === 'phone' || f.type === 'url' || f.type === 'number'">
-                                        <div class="px-3 py-2 rounded-lg text-xs" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);" x-text="f.placeholder || 'Enter value…'"></div>
-                                    </div>
-                                    <div x-show="f.type === 'textarea'" class="px-3 py-2 rounded-lg text-xs h-16" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);" x-text="f.placeholder || 'Type your message…'"></div>
-                                    <div x-show="f.type === 'select' || f.type === 'radio' || f.type === 'checkbox'" class="text-xs mt-1 space-y-1" style="color: var(--text-muted);">
-                                        <template x-for="opt in (f.options || [])" :key="opt">
-                                            <div class="flex items-center gap-1.5">
-                                                <i :class="f.type === 'select' ? 'fa-caret-right' : (f.type === 'radio' ? 'fa-circle' : 'fa-square')" class="far text-[9px]"></i>
-                                                <span x-text="opt"></span>
+                                    {{-- Children of this section, in their own 12-col mini-grid --}}
+                                    <div style="display:grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0.75rem; padding: 0.5rem; border-radius: 8px; background: var(--bg-body);">
+                                        <template x-for="(cf, ci) in fields" :key="'child-'+cf.id">
+                                            <template x-if="cf.parent === f.id">
+                                                <div class="card-premium p-3 field-card cursor-pointer"
+                                                     :class="selectedIndex === ci ? 'ring-2 ring-violet-500' : ''"
+                                                     :style="`grid-column: span ${cf.width || 12} / span ${cf.width || 12};`"
+                                                     @click.stop="selectedIndex = ci">
+                                                    <div class="flex items-start gap-2">
+                                                        <div class="flex-1 min-w-0">
+                                                            <div class="flex items-center gap-1.5 mb-1 flex-wrap">
+                                                                <i :class="`fas ${types[cf.type]?.icon || 'fa-question'} text-violet-400 text-[10px]`"></i>
+                                                                <span class="text-[9px] uppercase tracking-wider font-bold" style="color: var(--text-faint);" x-text="types[cf.type]?.label || cf.type"></span>
+                                                                <template x-if="cf.required"><span class="text-[8px] px-1 py-0.5 rounded font-bold" style="background: rgba(239,68,68,0.12); color: #f87171;">REQ</span></template>
+                                                            </div>
+                                                            <div class="text-xs font-semibold" style="color: var(--text-primary);" x-text="cf.label || '(no label)'"></div>
+                                                        </div>
+                                                        <button type="button" @click.stop="cf.parent = ''" class="w-6 h-6 rounded flex items-center justify-center text-[9px]" style="background: var(--bg-glass-input); color: var(--text-muted);" title="Move out of section"><i class="fas fa-up-right-from-square"></i></button>
+                                                        <button type="button" @click.stop="removeField(ci)" class="w-6 h-6 rounded flex items-center justify-center text-[9px]" style="background: rgba(239,68,68,0.1); color: #f87171;" title="Delete"><i class="fas fa-trash"></i></button>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                        </template>
+                                        <template x-if="!fields.some(cf => cf.parent === f.id)">
+                                            <div class="text-center py-4 text-[11px]" style="color: var(--text-faint); grid-column: span 12;">
+                                                Empty section. Click <strong>Add field here</strong> above, or pick "{{ '{' }}This section{{ '}' }}" in any field's <em>Section</em> dropdown.
                                             </div>
                                         </template>
                                     </div>
-                                    <div x-show="f.type === 'signature'" class="px-3 py-3 rounded-lg text-center" style="background: var(--bg-glass-input); border: 1px dashed var(--border-glass); color: var(--text-muted);">
-                                        <i class="fas fa-signature text-base mb-1" style="color: #a78bfa;"></i>
-                                        <div class="text-[11px]">Signature pad — drawn by user</div>
-                                    </div>
-                                    <div x-show="f.type === 'file'" class="px-3 py-2 rounded-lg text-xs" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);">
-                                        <i class="fas fa-paperclip mr-1"></i> File upload
-                                        <span x-show="f.file_types" x-text="` · ${(f.file_types || '').toUpperCase()}`"></span>
-                                        <span x-show="f.file_max_kb" x-text="` · max ${((f.file_max_kb || 0) / 1024).toFixed(1)} MB`"></span>
-                                    </div>
-                                    <div x-show="f.type === 'rating'" class="text-amber-400 text-sm">
-                                        <template x-for="n in (parseInt(f.max) || 5)" :key="n"><i class="fas fa-star mr-0.5"></i></template>
-                                    </div>
-                                    <div x-show="f.type === 'scale'" class="flex gap-1 mt-1">
-                                        <template x-for="n in ((parseInt(f.max) || 10) - (parseInt(f.min) || 0) + 1)" :key="n">
-                                            <span class="w-6 h-6 rounded text-[10px] flex items-center justify-center" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);" x-text="(parseInt(f.min) || 0) + n - 1"></span>
-                                        </template>
-                                    </div>
-                                    <div x-show="f.type === 'page_break'" class="text-center py-3 border-t-2 border-b-2 border-dashed" style="border-color: var(--border-glass); color: var(--text-faint);">
-                                        <i class="fas fa-file-export mr-1"></i> Next page →
-                                    </div>
-                                    <div x-show="f.type === 'divider'" class="border-t-2" style="border-color: var(--border-glass);"></div>
-                                    <div x-show="f.type === 'paragraph'" class="text-sm" style="color: var(--text-muted);" x-text="f.label"></div>
-                                    <div x-show="f.help" class="text-[11px] mt-1" style="color: var(--text-faint);" x-text="f.help"></div>
                                 </div>
-                                <div class="flex flex-col gap-1">
-                                    <button type="button" @click.stop="duplicateField(i)" class="w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" style="background: var(--bg-glass-input); color: var(--text-muted);" title="Duplicate"><i class="fas fa-clone"></i></button>
-                                    <button type="button" @click.stop="removeField(i)" class="w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" style="background: rgba(239,68,68,0.1); color: #f87171;" title="Delete"><i class="fas fa-trash"></i></button>
+                            </template>
+
+                            {{-- ============ NORMAL field card (top-level only) ============ --}}
+                            <template x-if="f.type !== 'section'">
+                                <div class="card-premium p-4 field-card"
+                                     :class="selectedIndex === i ? 'ring-2 ring-violet-500' : ''"
+                                     @click="selectedIndex = i">
+                                    <div class="flex items-start gap-3">
+                                        <i class="fas fa-grip-vertical text-xs mt-1.5 handle" style="color: var(--text-faint); cursor: grab;"></i>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+                                                <i :class="`fas ${types[f.type]?.icon || 'fa-question'} text-violet-400 text-[10px]`"></i>
+                                                <span class="text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint);" x-text="types[f.type]?.label || f.type"></span>
+                                                <template x-if="f.required">
+                                                    <span class="text-[9px] px-1.5 py-0.5 rounded font-bold" style="background: rgba(239,68,68,0.12); color: #f87171;">REQUIRED</span>
+                                                </template>
+                                                <template x-if="(f.width || 12) !== 12">
+                                                    <span class="text-[9px] px-1.5 py-0.5 rounded font-bold" style="background: rgba(139,92,246,0.14); color: #a78bfa;"
+                                                          x-text="f.width === 6 ? '½ row' : (f.width === 4 ? '⅓ row' : '⅔ row')"></span>
+                                                </template>
+                                            </div>
+                                            <div class="text-sm font-semibold mb-1" style="color: var(--text-primary);" x-text="f.label || '(no label)'"></div>
+                                            <div x-show="f.type === 'text' || f.type === 'email' || f.type === 'phone' || f.type === 'url' || f.type === 'number'">
+                                                <div class="px-3 py-2 rounded-lg text-xs" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);" x-text="f.placeholder || 'Enter value…'"></div>
+                                            </div>
+                                            <div x-show="f.type === 'textarea'" class="px-3 py-2 rounded-lg text-xs h-16" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);" x-text="f.placeholder || 'Type your message…'"></div>
+                                            <div x-show="f.type === 'select' || f.type === 'radio' || f.type === 'checkbox'" class="text-xs mt-1 space-y-1" style="color: var(--text-muted);">
+                                                <template x-for="opt in (f.options || [])" :key="opt">
+                                                    <div class="flex items-center gap-1.5">
+                                                        <i :class="f.type === 'select' ? 'fa-caret-right' : (f.type === 'radio' ? 'fa-circle' : 'fa-square')" class="far text-[9px]"></i>
+                                                        <span x-text="opt"></span>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                            <div x-show="f.type === 'signature'" class="px-3 py-3 rounded-lg text-center" style="background: var(--bg-glass-input); border: 1px dashed var(--border-glass); color: var(--text-muted);">
+                                                <i class="fas fa-signature text-base mb-1" style="color: #a78bfa;"></i>
+                                                <div class="text-[11px]">Signature pad — drawn by user</div>
+                                            </div>
+                                            <div x-show="f.type === 'file'" class="px-3 py-2 rounded-lg text-xs" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);">
+                                                <i class="fas fa-paperclip mr-1"></i> File upload
+                                                <span x-show="f.file_types" x-text="` · ${(f.file_types || '').toUpperCase()}`"></span>
+                                                <span x-show="f.file_max_kb" x-text="` · max ${((f.file_max_kb || 0) / 1024).toFixed(1)} MB`"></span>
+                                            </div>
+                                            <div x-show="f.type === 'rating'" class="text-amber-400 text-sm">
+                                                <template x-for="n in (parseInt(f.max) || 5)" :key="n"><i class="fas fa-star mr-0.5"></i></template>
+                                            </div>
+                                            <div x-show="f.type === 'scale'" class="flex gap-1 mt-1">
+                                                <template x-for="n in ((parseInt(f.max) || 10) - (parseInt(f.min) || 0) + 1)" :key="n">
+                                                    <span class="w-6 h-6 rounded text-[10px] flex items-center justify-center" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);" x-text="(parseInt(f.min) || 0) + n - 1"></span>
+                                                </template>
+                                            </div>
+                                            <div x-show="f.type === 'page_break'" class="text-center py-3 border-t-2 border-b-2 border-dashed" style="border-color: var(--border-glass); color: var(--text-faint);">
+                                                <i class="fas fa-file-export mr-1"></i> Next page →
+                                            </div>
+                                            <div x-show="f.type === 'divider'" class="border-t-2" style="border-color: var(--border-glass);"></div>
+                                            <div x-show="f.type === 'paragraph'" class="text-sm" style="color: var(--text-muted);" x-text="f.label"></div>
+                                            <div x-show="f.help" class="text-[11px] mt-1" style="color: var(--text-faint);" x-text="f.help"></div>
+                                        </div>
+                                        <div class="flex flex-col gap-1">
+                                            <button type="button" @click.stop="duplicateField(i)" class="w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" style="background: var(--bg-glass-input); color: var(--text-muted);" title="Duplicate"><i class="fas fa-clone"></i></button>
+                                            <button type="button" @click.stop="removeField(i)" class="w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" style="background: rgba(239,68,68,0.1); color: #f87171;" title="Delete"><i class="fas fa-trash"></i></button>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
+                            </template>
                         </div>
                     </template>
-                    <div x-show="fields.length === 0" class="card-premium p-12 text-center">
+                    <div x-show="fields.length === 0" class="card-premium p-12 text-center" style="grid-column: span 12;">
                         <i class="fas fa-mouse-pointer text-3xl mb-3" style="color: var(--text-faint);"></i>
                         <p class="text-sm" style="color: var(--text-muted);">Click a field type from the left to add it to your form.</p>
+                        <p class="text-xs mt-2" style="color: var(--text-faint);">Tip: add a <strong>Section / Group</strong> first, then drop multiple fields inside it for a single grouped card.</p>
                     </div>
                 </div>
 
@@ -217,13 +276,27 @@
                                     @input="fields[selectedIndex].options = $event.target.value.split('\n').map(s => s.trim()).filter(Boolean)"
                                     x-text="(fields[selectedIndex].options || []).join('\n')"></textarea>
                             </div>
-                            <label class="flex items-center gap-2 text-xs cursor-pointer mt-2" style="color: var(--text-secondary);" x-show="!['heading','paragraph','divider','page_break'].includes(fields[selectedIndex].type)">
+                            <label class="flex items-center gap-2 text-xs cursor-pointer mt-2" style="color: var(--text-secondary);" x-show="!['heading','paragraph','divider','page_break','section'].includes(fields[selectedIndex].type)">
                                 <input type="checkbox" x-model="fields[selectedIndex].required" class="rounded text-violet-500">
                                 Required field
                             </label>
 
+                            {{-- Section assignment (group fields into one card) --}}
+                            <div x-show="fields[selectedIndex].type !== 'section' && sectionOptions.length > 0" class="pt-3 mt-1" style="border-top: 1px solid var(--border-glass);">
+                                <label class="block text-[11px] font-medium mb-1.5" style="color: var(--text-muted);">
+                                    <i class="fas fa-layer-group text-violet-400 mr-1"></i> Place in section
+                                    <span class="text-[10px]" style="color: var(--text-faint);">— groups multiple fields into one card</span>
+                                </label>
+                                <select x-model="fields[selectedIndex].parent" class="theme-input w-full text-xs">
+                                    <option value="">— Top level (own card) —</option>
+                                    <template x-for="s in sectionOptions" :key="s.id">
+                                        <option :value="s.id" x-text="s.label || '(untitled section)'"></option>
+                                    </template>
+                                </select>
+                            </div>
+
                             {{-- Width / column layout --}}
-                            <div x-show="!['hidden','page_break'].includes(fields[selectedIndex].type)" class="pt-3 mt-1" style="border-top: 1px solid var(--border-glass);">
+                            <div x-show="!['hidden','page_break','section'].includes(fields[selectedIndex].type)" class="pt-3 mt-1" style="border-top: 1px solid var(--border-glass);">
                                 <label class="block text-[11px] font-medium mb-1.5" style="color: var(--text-muted);">Field width <span class="text-[10px]" style="color: var(--text-faint);">— place 2+ fields per row</span></label>
                                 <div class="grid grid-cols-4 gap-1">
                                     <template x-for="opt in [{v:12,l:'Full'},{v:8,l:'⅔'},{v:6,l:'½'},{v:4,l:'⅓'}]" :key="opt.v">
@@ -299,10 +372,27 @@ function formBuilder(initial) {
         types: initial.types,
         selectedIndex: null,
 
+        get sectionOptions() {
+            return this.fields.filter(f => f.type === 'section');
+        },
+        isTopLevel(f) {
+            // A field is top-level when it has no parent OR its parent no longer exists.
+            if (!f || f.type === 'section') return true;
+            if (!f.parent) return true;
+            return !this.fields.some(s => s.id === f.parent && s.type === 'section');
+        },
+        addFieldToSection(sectionId) {
+            // Add a Short Text by default; user can change type via builder cards.
+            const id = 'text_' + Math.random().toString(36).slice(2, 7);
+            const f = { id, type: 'text', label: 'New field', required: false, width: 6, parent: sectionId };
+            this.fields.push(f);
+            this.selectedIndex = this.fields.length - 1;
+        },
         addField(type) {
             const meta = this.types[type] || {};
             const id = type + '_' + Math.random().toString(36).slice(2, 7);
             const f = { id, type, label: meta.label || 'Untitled', required: false, width: 12 };
+            if (type === 'section') f.label = 'New Section';
             if (['select','radio','checkbox'].includes(type)) f.options = ['Option 1', 'Option 2'];
             if (type === 'rating') { f.min = 0; f.max = 5; }
             if (type === 'scale')  { f.min = 0; f.max = 10; }
@@ -335,10 +425,22 @@ function formBuilder(initial) {
                 handle: '.handle',
                 animation: 150,
                 ghostClass: 'opacity-30',
+                // Reorder by data-id so hidden child wrappers (display:none) don't
+                // throw off array indices.
                 onEnd: (evt) => {
-                    const moved = this.fields.splice(evt.oldIndex, 1)[0];
-                    this.fields.splice(evt.newIndex, 0, moved);
-                    this.selectedIndex = evt.newIndex;
+                    const movedId = evt.item.getAttribute('data-id');
+                    const beforeEl = evt.item.nextElementSibling;
+                    const beforeId = beforeEl ? beforeEl.getAttribute('data-id') : null;
+                    const fromIdx = this.fields.findIndex(f => String(f.id) === String(movedId));
+                    if (fromIdx < 0) return;
+                    const moved = this.fields.splice(fromIdx, 1)[0];
+                    let toIdx = this.fields.length;
+                    if (beforeId) {
+                        const t = this.fields.findIndex(f => String(f.id) === String(beforeId));
+                        if (t >= 0) toIdx = t;
+                    }
+                    this.fields.splice(toIdx, 0, moved);
+                    this.selectedIndex = toIdx;
                 }
             });
         },

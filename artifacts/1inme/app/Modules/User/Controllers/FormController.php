@@ -118,7 +118,7 @@ class FormController extends Controller
                 'required' => filter_var($f['required'] ?? false, FILTER_VALIDATE_BOOL),
             ];
             // Optional common props
-            foreach (['placeholder', 'help', 'error_message', 'pattern', 'pattern_message', 'file_types', 'value'] as $k) {
+            foreach (['placeholder', 'help', 'error_message', 'pattern', 'pattern_message', 'file_types', 'value', 'parent'] as $k) {
                 if (isset($f[$k]) && $f[$k] !== '') $row[$k] = (string) $f[$k];
             }
             // Numeric props
@@ -137,6 +137,27 @@ class FormController extends Controller
             }
             $clean[] = $row;
         }
+
+        // ---- Sanitise parent pointers ----
+        // A field's `parent` may only reference an existing section field's id.
+        // Sections themselves cannot be nested (parent on a section is dropped).
+        // Orphan parents (pointing at a non-existent or non-section field) are
+        // silently nulled so the field renders at top level.
+        $sectionIds = [];
+        foreach ($clean as $f) {
+            if (($f['type'] ?? null) === 'section') $sectionIds[(string) $f['id']] = true;
+        }
+        foreach ($clean as &$f) {
+            if (($f['type'] ?? null) === 'section') {
+                unset($f['parent']);                  // no nested sections
+                $f['required'] = false;               // structural — never validatable
+                continue;
+            }
+            if (isset($f['parent']) && !isset($sectionIds[(string) $f['parent']])) {
+                unset($f['parent']);                  // orphan → drop
+            }
+        }
+        unset($f);
 
         $form->update([
             'title' => $request->input('title'),
@@ -159,11 +180,17 @@ class FormController extends Controller
     public function updateDesign(Request $request, Form $form)
     {
         $this->authorizeForm($request, $form);
+        // Allow #hex (3/4/6/8 chars), rgb()/rgba(), hsl()/hsla() — reject
+        // arbitrary CSS that could escape the inline-style context.
+        $colorRule = ['regex:/^(#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|rgba?\(\s*[\d.\s,%\/]+\)|hsla?\(\s*[\d.\s,%\/]+\))$/'];
         $data = $request->validate([
             'theme' => 'required|in:light,dark,glass',
-            'accent' => 'required|string|max:32',
-            'background' => 'required|string|max:32',
-            'text' => 'required|string|max:32',
+            'accent' => array_merge(['required', 'string', 'max:32'], $colorRule),
+            'background' => array_merge(['required', 'string', 'max:32'], $colorRule),
+            'card_color' => array_merge(['nullable', 'string', 'max:32'], $colorRule),
+            'card_image_mode' => 'nullable|in:cover,contain,tile',
+            'card_image_opacity' => 'nullable|integer|min:0|max:100',
+            'text' => array_merge(['required', 'string', 'max:32'], $colorRule),
             'border_radius' => 'required|integer|min:0|max:48',
             'button_label' => 'required|string|max:60',
             'button_style' => 'required|in:gradient,solid,outline',
@@ -172,6 +199,8 @@ class FormController extends Controller
             'show_branding' => 'sometimes|boolean',
             'cover_image' => 'nullable|image|max:4096',
             'remove_cover' => 'sometimes|boolean',
+            'card_image' => 'nullable|image|max:4096',
+            'remove_card_image' => 'sometimes|boolean',
             'logo' => 'nullable|image|max:2048',
             'remove_logo' => 'sometimes|boolean',
             'custom_css' => 'nullable|string|max:50000',
@@ -180,8 +209,19 @@ class FormController extends Controller
         $design = array_merge(Form::defaultDesign(), $form->design ?? [], $data);
         $design['show_branding'] = $request->boolean('show_branding');
 
-        foreach (['cover_image' => 'cover', 'logo' => 'logo'] as $field => $key) {
-            if ($request->boolean('remove_' . ($field === 'cover_image' ? 'cover' : 'logo'))) {
+        // File-backed design assets — uploaded file form-key => stored design key
+        $assetMap = [
+            'cover_image' => 'cover',
+            'logo'        => 'logo',
+            'card_image'  => 'card_image',
+        ];
+        foreach ($assetMap as $field => $key) {
+            $removeKey = match ($field) {
+                'cover_image' => 'remove_cover',
+                'card_image'  => 'remove_card_image',
+                default       => 'remove_logo',
+            };
+            if ($request->boolean($removeKey)) {
                 if (!empty($design[$key])) {
                     $rel = ltrim(parse_url($design[$key], PHP_URL_PATH) ?? '', '/');
                     $rel = preg_replace('#^storage/#', '', $rel);
@@ -308,7 +348,7 @@ class FormController extends Controller
     public function exportSubmissions(Request $request, Form $form): StreamedResponse
     {
         $this->authorizeForm($request, $form);
-        $headers = collect($form->fields ?? [])->whereNotIn('type', ['heading', 'paragraph', 'divider', 'page_break'])->pluck('id')->all();
+        $headers = collect($form->fields ?? [])->whereNotIn('type', ['heading', 'paragraph', 'divider', 'page_break', 'section'])->pluck('id')->all();
         $filename = 'form-' . $form->slug . '-' . now()->format('Ymd-His') . '.csv';
 
         return response()->streamDownload(function () use ($form, $headers) {
@@ -450,7 +490,7 @@ class FormController extends Controller
         foreach ($form->fields ?? [] as $field) {
             $type = $field['type'] ?? 'text';
             $id = $field['id'] ?? null;
-            if (!$id || in_array($type, ['heading', 'paragraph', 'divider', 'page_break'])) continue;
+            if (!$id || in_array($type, ['heading', 'paragraph', 'divider', 'page_break', 'section'])) continue;
 
             if ($type === 'file' && $request->hasFile($id)) {
                 $path = $request->file($id)->store("forms/{$form->id}/submissions", 'public');
@@ -501,7 +541,7 @@ class FormController extends Controller
         foreach ($form->fields ?? [] as $field) {
             $type = $field['type'] ?? 'text';
             $id = $field['id'] ?? null;
-            if (!$id || in_array($type, ['heading', 'paragraph', 'divider', 'page_break'])) continue;
+            if (!$id || in_array($type, ['heading', 'paragraph', 'divider', 'page_break', 'section'])) continue;
 
             $req = !empty($field['required']);
             $base = $req ? 'required' : 'nullable';

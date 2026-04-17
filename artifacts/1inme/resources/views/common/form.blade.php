@@ -16,6 +16,12 @@
         $font = $design['font'] ?? 'Plus Jakarta Sans';
         $logo = $design['logo'] ?? null;
         $cover = $design['cover'] ?? null;
+        $cardColor = $design['card_color'] ?? ($theme === 'light' ? '#ffffff' : ($theme === 'dark' ? '#1e293b' : 'rgba(255,255,255,0.04)'));
+        $cardImage = $design['card_image'] ?? null;
+        $cardImageMode = $design['card_image_mode'] ?? 'cover';
+        $cardImageOpacity = max(0, min(100, (int) ($design['card_image_opacity'] ?? 100)));
+        $cardBgSize = $cardImageMode === 'contain' ? 'contain' : ($cardImageMode === 'tile' ? 'auto' : 'cover');
+        $cardBgRepeat = $cardImageMode === 'tile' ? 'repeat' : 'no-repeat';
 
         // Group fields into pages by page_break
         $pages = [[]];
@@ -67,13 +73,42 @@
         }
 
         .form-card {
+            position: relative;
             width: 100%; max-width: 640px;
-            background: {{ $theme === 'light' ? 'white' : ($theme === 'dark' ? '#1e293b' : 'rgba(255,255,255,0.04)') }};
+            background-color: {{ $cardColor }};
+            @if($cardImage)
+            background-image: url('{{ $cardImage }}');
+            background-size: {{ $cardBgSize }};
+            background-position: center;
+            background-repeat: {{ $cardBgRepeat }};
+            @endif
             border-radius: var(--form-radius);
             padding: 2.5rem 2rem;
             {{ $theme === 'glass' ? 'border: 1px solid rgba(255,255,255,0.10); backdrop-filter: blur(18px) saturate(1.1); -webkit-backdrop-filter: blur(18px) saturate(1.1);' : '' }}
             {{ $theme === 'light' ? 'box-shadow: 0 30px 80px -20px rgba(0,0,0,0.10), 0 4px 12px -2px rgba(0,0,0,0.05);' : 'box-shadow: 0 30px 80px -20px rgba(0,0,0,0.6);' }}
         }
+        @if($cardImage && $cardImageOpacity < 100)
+        /* Color scrim over the image so text stays legible. Opacity slider is
+           the *image* opacity, so scrim alpha = (100 - opacity) / 100. */
+        .form-card::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: {{ $cardColor }};
+            opacity: {{ (100 - $cardImageOpacity) / 100 }};
+            border-radius: inherit;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .form-card > * { position: relative; z-index: 1; }
+        @endif
+        .form-section-card {
+            background: {{ $theme === 'light' ? 'rgba(15,23,42,0.025)' : 'rgba(255,255,255,0.04)' }};
+            border: 1px solid {{ $theme === 'light' ? '#e2e8f0' : 'rgba(255,255,255,0.08)' }};
+            border-radius: var(--form-radius-sm);
+            padding: 1.25rem 1.25rem 0.25rem;
+            margin-bottom: 1.25rem;
+        }
+        .form-section-card .form-grid { row-gap: 0; }
         .form-card.has-cover { border-top-left-radius: 0; border-top-right-radius: 0; padding-top: 1.5rem; }
         .form-logo { width: 60px; height: 60px; border-radius: 14px; margin-bottom: 1rem; object-fit: contain; padding: 6px; background: rgba(0,0,0,0.04); }
         .form-title { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 0.5rem; }
@@ -227,12 +262,51 @@
                     @endif
 
                     @foreach($pages as $pageIdx => $pageFields)
+                        @php
+                            // Build section map for this page so we can group children
+                            // under their parent section card (single grouped surface).
+                            $sectionIds = [];
+                            foreach ($pageFields as $pf) {
+                                if (($pf['type'] ?? null) === 'section') $sectionIds[$pf['id']] = true;
+                            }
+                            $childrenBySection = [];
+                            foreach ($pageFields as $pf) {
+                                $parent = $pf['parent'] ?? null;
+                                if ($parent && isset($sectionIds[$parent]) && ($pf['type'] ?? null) !== 'section') {
+                                    $childrenBySection[$parent][] = $pf;
+                                }
+                            }
+                        @endphp
                         <div x-show="page === {{ $pageIdx }}" class="form-grid">
                             @foreach($pageFields as $field)
-                                @php $w = (int) ($field['width'] ?? 12); if (!in_array($w, [4,6,8,12], true)) $w = 12; @endphp
-                                <div class="form-grid-cell" style="grid-column: span {{ $w }};">
-                                    @include('common.form-field', ['field' => $field, 'errors' => $errors])
-                                </div>
+                                @php
+                                    $parent = $field['parent'] ?? null;
+                                    // Skip child fields here — they're rendered inside their section card below.
+                                    if ($parent && isset($sectionIds[$parent]) && ($field['type'] ?? null) !== 'section') continue;
+                                @endphp
+                                @if(($field['type'] ?? null) === 'section')
+                                    <div class="form-grid-cell form-section-card" style="grid-column: span 12;">
+                                        @if(!empty($field['label']))
+                                            <h3 class="form-heading" style="margin: 0 0 0.4rem;">{{ $field['label'] }}</h3>
+                                        @endif
+                                        @if(!empty($field['help']))
+                                            <p class="form-help" style="margin: 0 0 0.85rem;">{{ $field['help'] }}</p>
+                                        @endif
+                                        <div class="form-grid">
+                                            @foreach(($childrenBySection[$field['id']] ?? []) as $child)
+                                                @php $cw = (int) ($child['width'] ?? 12); if (!in_array($cw, [4,6,8,12], true)) $cw = 12; @endphp
+                                                <div class="form-grid-cell" style="grid-column: span {{ $cw }};">
+                                                    @include('common.form-field', ['field' => $child, 'errors' => $errors])
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @else
+                                    @php $w = (int) ($field['width'] ?? 12); if (!in_array($w, [4,6,8,12], true)) $w = 12; @endphp
+                                    <div class="form-grid-cell" style="grid-column: span {{ $w }};">
+                                        @include('common.form-field', ['field' => $field, 'errors' => $errors])
+                                    </div>
+                                @endif
                             @endforeach
                         </div>
                     @endforeach

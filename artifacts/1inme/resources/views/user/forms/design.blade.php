@@ -7,6 +7,10 @@
         theme: @js($design['theme']),
         accent: @js($design['accent']),
         background: @js($design['background']),
+        cardColor: @js($design['card_color'] ?? '#ffffff'),
+        cardImage: @js($design['card_image'] ?? null),
+        cardImageMode: @js($design['card_image_mode'] ?? 'cover'),
+        cardImageOpacity: {{ (int) ($design['card_image_opacity'] ?? 100) }},
         text: @js($design['text']),
         radius: {{ (int) $design['border_radius'] }},
         buttonLabel: @js($design['button_label']),
@@ -50,8 +54,8 @@
                     @endforeach
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    @foreach(['accent' => 'Accent', 'background' => 'Background', 'text' => 'Text'] as $key => $label)
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    @foreach(['accent' => 'Accent', 'text' => 'Text'] as $key => $label)
                         <div>
                             <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">{{ $label }}</label>
                             <div class="flex items-center gap-2">
@@ -60,6 +64,55 @@
                             </div>
                         </div>
                     @endforeach
+                </div>
+            </div>
+
+            {{-- Card Surface — separate from page background so users can have a
+                 colored page with a contrasting card, or use a card image. --}}
+            <div class="card-premium p-6">
+                <h3 class="text-sm font-bold mb-1" style="color: var(--text-primary);">Card Surface & Background</h3>
+                <p class="text-[11px] mb-5" style="color: var(--text-faint);">The page background sits behind the form card. Use a different card color (or an image) to make the form pop.</p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+                    <div>
+                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Page background</label>
+                        <div class="flex items-center gap-2">
+                            <input type="color" x-model="background" class="w-10 h-10 rounded-lg cursor-pointer" style="border: 1px solid var(--border-glass);">
+                            <input type="text" name="background" x-model="background" class="theme-input flex-1 text-xs font-mono">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Card color</label>
+                        <div class="flex items-center gap-2">
+                            <input type="color" x-model="cardColor" class="w-10 h-10 rounded-lg cursor-pointer" style="border: 1px solid var(--border-glass);">
+                            <input type="text" name="card_color" x-model="cardColor" class="theme-input flex-1 text-xs font-mono">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="sm:col-span-3">
+                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Card background image (optional)</label>
+                        @if(!empty($design['card_image']))
+                            <img src="{{ $design['card_image'] }}" class="h-20 mb-2 rounded-lg w-full object-cover" style="border: 1px solid var(--border-glass);">
+                            <label class="text-[10px] inline-flex items-center gap-1.5 mb-2 cursor-pointer" style="color: #f87171;">
+                                <input type="checkbox" name="remove_card_image" value="1" class="rounded"> Remove card image
+                            </label>
+                        @endif
+                        <input type="file" name="card_image" accept="image/*" class="w-full text-xs file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-violet-500/10 file:text-violet-400" style="color: var(--text-faint);">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Image fit</label>
+                        <select name="card_image_mode" x-model="cardImageMode" class="theme-input w-full text-xs">
+                            <option value="cover">Cover (fill, may crop)</option>
+                            <option value="contain">Contain (fit, no crop)</option>
+                            <option value="tile">Tile (repeat)</option>
+                        </select>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Image opacity (<span x-text="cardImageOpacity"></span>%) <span class="text-[10px]" style="color: var(--text-faint);">— lower = more card color showing through</span></label>
+                        <input type="range" name="card_image_opacity" min="0" max="100" x-model.number="cardImageOpacity" class="w-full accent-violet-500">
+                    </div>
                 </div>
             </div>
 
@@ -157,7 +210,11 @@
             <div class="card-premium p-5 lg:sticky lg:top-4">
                 <h4 class="text-xs font-bold uppercase tracking-wider mb-3" style="color: var(--text-faint);">Live Preview</h4>
                 <div class="rounded-2xl overflow-hidden" :style="`background: ${theme === 'dark' ? '#0f172a' : (theme === 'glass' ? 'linear-gradient(160deg,#1a1230,#0a0b10)' : background)}; padding: 1.5rem;`">
-                    <div :style="`background: ${theme === 'dark' ? '#1e293b' : (theme === 'glass' ? 'rgba(255,255,255,0.05)' : 'white')}; border-radius: ${radius}px; padding: 1.5rem; ${theme === 'glass' ? 'border:1px solid rgba(255,255,255,0.1); backdrop-filter: blur(20px);' : ''}`">
+                    <div :style="`position: relative; background-color: ${theme === 'dark' ? '#1e293b' : (theme === 'glass' ? 'rgba(255,255,255,0.05)' : cardColor)}; ${cardImage ? `background-image: url('${cardImage}'); background-size: ${cardImageMode === 'contain' ? 'contain' : (cardImageMode === 'tile' ? 'auto' : 'cover')}; background-position: center; background-repeat: ${cardImageMode === 'tile' ? 'repeat' : 'no-repeat'};` : ''} border-radius: ${radius}px; padding: 1.5rem; ${theme === 'glass' ? 'border:1px solid rgba(255,255,255,0.1); backdrop-filter: blur(20px);' : ''}`">
+                        <template x-if="cardImage && cardImageOpacity < 100">
+                            <div :style="`position: absolute; inset: 0; background: ${cardColor}; opacity: ${(100 - cardImageOpacity) / 100}; border-radius: ${radius}px; pointer-events: none;`"></div>
+                        </template>
+                        <div style="position: relative; z-index: 1;">
                         <div :style="`color: ${theme === 'light' ? text : 'white'}; font-weight: 800; font-size: 1.25rem; margin-bottom: 0.5rem;`">{{ $form->title }}</div>
                         <div class="text-xs mb-4" :style="`color: ${theme === 'light' ? text : 'rgba(255,255,255,0.6)'}; opacity: 0.7;`">Preview of how visitors will see your form.</div>
                         <div class="space-y-3 mb-4">
@@ -170,6 +227,7 @@
                                   : `background: ${accent}; color: white; border-radius: ${Math.max(4, radius/2)}px; padding: 0.7rem 1.5rem; font-weight: 700; font-size: 0.85rem;`)"
                                 x-text="buttonLabel"></button>
                         <div x-show="showBranding" class="text-[10px] mt-4 opacity-50" :style="`color: ${theme === 'light' ? text : 'white'};`">Powered by 1INME</div>
+                        </div>{{-- /relative inner --}}
                     </div>
                 </div>
                 <button type="submit" class="btn-primary w-full mt-4 px-6 py-3 text-sm font-semibold inline-flex items-center justify-center gap-2">
