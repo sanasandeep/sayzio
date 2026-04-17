@@ -3,6 +3,7 @@
 
 @push('styles')
 <style>
+/* --- Buzz editor: theme-aware base (dark mode defaults) --- */
 .bz-tab.active{background:rgba(124,58,237,.18);color:#fff;border-color:rgba(124,58,237,.4)}
 .bz-input{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);border-radius:10px;padding:8px 10px;color:#fff;font-size:13px}
 .bz-input:focus{outline:none;border-color:#7c3aed}
@@ -15,6 +16,38 @@
 .bz-trig-card{background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.12);border-radius:10px;padding:10px}
 .preview-frame{height:520px;background:repeating-linear-gradient(45deg,rgba(255,255,255,.02) 0 10px,transparent 10px 20px);border-radius:14px;border:1px solid rgba(255,255,255,.08);position:relative;overflow:hidden}
 [x-cloak]{display:none!important}
+
+/* --- Buzz editor: LIGHT MODE overrides (scoped to #bz-editor only) --- */
+html.light-mode #bz-editor .bz-tab{color:#475569;border-color:rgba(15,23,42,.10);background:#fff}
+html.light-mode #bz-editor .bz-tab:hover{background:#f8fafc}
+html.light-mode #bz-editor .bz-tab.active{background:rgba(124,58,237,.10);color:#6d28d9;border-color:rgba(124,58,237,.35)}
+html.light-mode #bz-editor .bz-input{background:#fff;border-color:#e2e8f0;color:#0f172a}
+html.light-mode #bz-editor .bz-input::placeholder{color:#94a3b8}
+html.light-mode #bz-editor .bz-input:focus{border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.10)}
+html.light-mode #bz-editor .bz-label{color:#475569;font-weight:600}
+html.light-mode #bz-editor .bz-card{background:#fff;border-color:#e2e8f0;box-shadow:0 1px 2px rgba(15,23,42,.04)}
+html.light-mode #bz-editor .bz-divider{background:#e2e8f0}
+html.light-mode #bz-editor .bz-pill{background:rgba(124,58,237,.10);color:#6d28d9;border-color:rgba(124,58,237,.25)}
+html.light-mode #bz-editor .bz-btn-icon{background:#f1f5f9;border-color:#e2e8f0;color:#475569}
+html.light-mode #bz-editor .bz-btn-icon:hover{background:#e2e8f0;color:#0f172a}
+html.light-mode #bz-editor .bz-trig-card{background:#f8fafc;border-color:#cbd5e1;border-style:dashed}
+html.light-mode #bz-editor .preview-frame{background:repeating-linear-gradient(45deg,#f1f5f9 0 10px,transparent 10px 20px);border-color:#e2e8f0}
+
+/* Tailwind utility overrides (color-on-color invisibility) — scoped */
+html.light-mode .bz-scope .text-white,
+html.light-mode .bz-scope h1.text-white,
+html.light-mode .bz-scope h2.text-white,
+html.light-mode .bz-scope h3.text-white,
+html.light-mode .bz-scope h4.text-white{color:#0f172a !important}
+html.light-mode .bz-scope [class*="text-white/"]{color:#475569 !important}
+html.light-mode .bz-scope [class*="text-white/40"],
+html.light-mode .bz-scope [class*="text-white/50"]{color:#64748b !important}
+html.light-mode .bz-scope [class*="text-white/60"],
+html.light-mode .bz-scope [class*="text-white/70"]{color:#475569 !important}
+html.light-mode .bz-scope [class*="bg-white/"]{background:#f8fafc !important}
+html.light-mode .bz-scope [class*="border-white/"]{border-color:#e2e8f0 !important}
+html.light-mode .bz-scope [class*="bg-black/"]{background:#0f172a !important;color:#f8fafc !important}
+html.light-mode .bz-scope [class*="bg-black/"] *{color:inherit !important}
 </style>
 @endpush
 
@@ -25,7 +58,7 @@
     $notifications = is_array($proof->notifications) ? $proof->notifications : [];
 @endphp
 
-<div class="mb-5 flex items-center justify-between">
+<div id="bz-header" class="bz-scope mb-5 flex items-center justify-between">
     <div>
         <a href="{{ route('user.social-proofs.index') }}" class="text-white/50 hover:text-white text-xs"><i class="fas fa-arrow-left mr-1"></i> Back to Buzz</a>
         <h1 class="text-2xl font-bold text-white mt-1">{{ $proof->name }}</h1>
@@ -42,7 +75,7 @@
 <div class="mb-4 px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm">{{ session('success') }}</div>
 @endif
 
-<div x-data="buzzEditor()" x-init="init()" x-cloak>
+<div id="bz-editor" class="bz-scope" x-data="buzzEditor()" x-init="init()" x-cloak>
 
 <form method="POST" action="{{ route('user.social-proofs.update', $proof) }}" @submit="syncBeforeSubmit">
     @csrf @method('PUT')
