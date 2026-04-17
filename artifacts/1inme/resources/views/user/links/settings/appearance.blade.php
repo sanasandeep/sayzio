@@ -445,9 +445,26 @@
 
                 {{-- PROTECTION & EXPIRY --}}
                 <div class="card-premium p-6">
-                    <div class="flex items-center gap-3 mb-4">
-                        <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(245,158,11,0.1);"><i class="fas fa-shield-alt text-amber-400 text-xs"></i></div>
-                        <h3 class="text-sm font-bold" style="color: var(--text-primary);">Protection & Expiry</h3>
+                    <div class="flex items-start justify-between gap-4 mb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(245,158,11,0.1);"><i class="fas fa-shield-alt text-amber-400 text-xs"></i></div>
+                            <div>
+                                <h3 class="text-sm font-bold" style="color: var(--text-primary);">Protection & Expiry</h3>
+                                <p class="text-[11px] mt-0.5" style="color: var(--text-faint);">Control who can open this link, and when it should stop working.</p>
+                            </div>
+                        </div>
+                        <button type="button" @click="$refs.expHelp.classList.toggle('hidden')" class="text-[10px] px-2 py-1 rounded-md flex-shrink-0" style="background: var(--bg-glass-input); color: var(--text-faint);"><i class="fas fa-question-circle mr-1"></i> Help</button>
+                    </div>
+                    <div x-ref="expHelp" class="hidden mb-4 p-3 rounded-lg text-[11px] leading-relaxed" style="background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.2); color: var(--text-muted);">
+                        <p class="mb-1.5"><strong style="color: var(--text-primary);">When would I use this?</strong></p>
+                        <ul class="list-disc pl-4 space-y-0.5">
+                            <li><strong>Password</strong> — keep prying eyes out of a private page (a portfolio share, an early-access drop).</li>
+                            <li><strong>Schedule</strong> — pre-publish a launch link today and have it go live exactly at sale time.</li>
+                            <li><strong>Expire on date</strong> — promo or coupon page that should auto-close after a deadline.</li>
+                            <li><strong>Click limit</strong> — limited offers ("first 100 visitors only"), invite caps for events.</li>
+                            <li><strong>One-Time</strong> — secret reveals, single-use tickets, password reset URLs.</li>
+                            <li><strong>Redirect after expired</strong> — instead of showing the default "expired" page, send leftover visitors to your homepage or sale page.</li>
+                        </ul>
                     </div>
                     <div class="space-y-5">
                         {{-- PASSWORD --}}
@@ -519,39 +536,73 @@
                 </div>
 
                 {{-- SEO --}}
-                <div class="card-premium p-6">
-                    <div class="flex items-center gap-3 mb-4">
-                        <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(99,102,241,0.1);"><i class="fas fa-search text-indigo-400 text-xs"></i></div>
-                        <h3 class="text-sm font-bold" style="color: var(--text-primary);">SEO & Social Sharing</h3>
+                <div class="card-premium p-6" x-data="{ help: false }">
+                    <div class="flex items-start justify-between gap-4 mb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(99,102,241,0.1);"><i class="fas fa-search text-indigo-400 text-xs"></i></div>
+                            <div>
+                                <h3 class="text-sm font-bold" style="color: var(--text-primary);">Search & Social Sharing</h3>
+                                <p class="text-[11px] mt-0.5" style="color: var(--text-faint);">How your link looks on Google, WhatsApp, Twitter, LinkedIn and other platforms when someone shares it.</p>
+                            </div>
+                        </div>
+                        <button type="button" @click="help = !help" class="text-[10px] px-2 py-1 rounded-md flex-shrink-0" style="background: var(--bg-glass-input); color: var(--text-faint);"><i class="fas fa-question-circle mr-1"></i> Why this matters</button>
                     </div>
-                    <div class="space-y-3">
-                        <input type="text" name="seo_title" value="{{ old('seo_title', $link->seo_title) }}" placeholder="SEO Title" class="theme-input w-full">
-                        <textarea name="seo_description" placeholder="SEO Description" rows="2" class="theme-input w-full">{{ old('seo_description', $link->seo_description) }}</textarea>
+                    <div x-show="help" x-transition x-cloak class="mb-4 p-3 rounded-lg text-[11px] leading-relaxed" style="background: rgba(99,102,241,0.06); border: 1px solid rgba(99,102,241,0.2); color: var(--text-muted);">
+                        When someone pastes your link in a chat or shares it on social media, those apps show a small preview card with a title, description and image. By default they grab whatever your page contains — which can look ugly or wrong. Filling these in lets you <strong style="color: var(--text-primary);">control exactly what people see before they click</strong>, which dramatically increases the number of people who actually open the link.
+                    </div>
+                    <div class="space-y-4">
                         <div>
-                            <label class="block text-[10px] font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-muted);">OG Image</label>
-                            @if($link->seo_image)<div class="mb-2"><img src="{{ $link->seo_image }}" alt="Current OG image" class="h-20 rounded-lg" style="border: 1px solid var(--border-subtle);"></div>@endif
-                            <input type="file" name="seo_image" accept="image/*" class="w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-violet-500/10 file:text-violet-400 file:font-medium" style="color: var(--text-faint);">
+                            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Page Title <span class="text-[10px]" style="color: var(--text-faint);">— shown in browser tabs & Google results</span></label>
+                            <input type="text" name="seo_title" value="{{ old('seo_title', $link->seo_title) }}" maxlength="60" placeholder="e.g. Sarah's Photography Portfolio" class="theme-input w-full">
+                            <p class="text-[10px] mt-1" style="color: var(--text-faint);"><i class="fas fa-lightbulb text-amber-400 mr-1"></i> Keep it under 60 characters. Lead with the most interesting word.</p>
                         </div>
                         <div>
-                            <label class="block text-[10px] font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-muted);">Favicon</label>
+                            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Description <span class="text-[10px]" style="color: var(--text-faint);">— the small grey text below the title</span></label>
+                            <textarea name="seo_description" maxlength="160" placeholder="Two short sentences telling people why to click." rows="2" class="theme-input w-full">{{ old('seo_description', $link->seo_description) }}</textarea>
+                            <p class="text-[10px] mt-1" style="color: var(--text-faint);"><i class="fas fa-lightbulb text-amber-400 mr-1"></i> Aim for ~150 characters. Think of it as a one-line elevator pitch.</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Share Preview Image <span class="text-[10px]" style="color: var(--text-faint);">— the big picture in social previews</span></label>
+                            @if($link->seo_image)<div class="mb-2"><img src="{{ $link->seo_image }}" alt="Current preview image" class="h-24 rounded-lg" style="border: 1px solid var(--border-subtle);"></div>@endif
+                            <input type="file" name="seo_image" accept="image/*" class="w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-violet-500/10 file:text-violet-400 file:font-medium" style="color: var(--text-faint);">
+                            <p class="text-[10px] mt-1" style="color: var(--text-faint);"><i class="fas fa-lightbulb text-amber-400 mr-1"></i> Best size: 1200×630 px. Use a bold image with minimal text — most platforms shrink it down.</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Browser Tab Icon (Favicon)</label>
                             @if($link->favicon)<div class="mb-2"><img src="{{ $link->favicon }}" alt="Current favicon" class="h-8 rounded" style="border: 1px solid var(--border-subtle);"></div>@endif
                             <input type="file" name="favicon" accept="image/*" class="w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-violet-500/10 file:text-violet-400 file:font-medium" style="color: var(--text-faint);">
-                            <p class="text-[10px] mt-1" style="color: var(--text-faint);">Browser-tab icon. Recommended 32×32 or 64×64 px.</p>
+                            <p class="text-[10px] mt-1" style="color: var(--text-faint);">The tiny icon people see in their browser tab and bookmarks. A simple square logo works best (32×32 or 64×64 px).</p>
                         </div>
                     </div>
                 </div>
 
                 {{-- TARGETING --}}
-                <div class="card-premium p-6">
-                    <div class="flex items-center gap-3 mb-4">
-                        <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(20,184,166,0.1);"><i class="fas fa-globe text-teal-400 text-xs"></i></div>
-                        <h3 class="text-sm font-bold" style="color: var(--text-primary);">Geo & Device Targeting</h3>
+                <div class="card-premium p-6" x-data="{ help: false }">
+                    <div class="flex items-start justify-between gap-4 mb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(20,184,166,0.1);"><i class="fas fa-globe text-teal-400 text-xs"></i></div>
+                            <div>
+                                <h3 class="text-sm font-bold" style="color: var(--text-primary);">Audience Targeting</h3>
+                                <p class="text-[11px] mt-0.5" style="color: var(--text-faint);">Limit who can open this link based on where they are and what device they're using. Most people leave this empty.</p>
+                            </div>
+                        </div>
+                        <button type="button" @click="help = !help" class="text-[10px] px-2 py-1 rounded-md flex-shrink-0" style="background: var(--bg-glass-input); color: var(--text-faint);"><i class="fas fa-question-circle mr-1"></i> Do I need this?</button>
+                    </div>
+                    <div x-show="help" x-transition x-cloak class="mb-4 p-3 rounded-lg text-[11px] leading-relaxed" style="background: rgba(20,184,166,0.06); border: 1px solid rgba(20,184,166,0.2); color: var(--text-muted);">
+                        <p class="mb-2"><strong style="color: var(--text-primary);">You probably don't.</strong> Leave both fields blank if you want everyone to see your link.</p>
+                        <p class="mb-1.5">Use targeting only when:</p>
+                        <ul class="list-disc pl-4 space-y-0.5">
+                            <li>You sell something only available in certain countries (shipping, licensing, language).</li>
+                            <li>You're running a desktop-only product demo and want to spare mobile visitors a broken page.</li>
+                            <li>Your app exists only on iOS or Android and you want to hide irrelevant traffic.</li>
+                        </ul>
+                        <p class="mt-2 text-[10px]"><i class="fas fa-shield-alt mr-1 text-teal-400"></i> Visitors who don't match are sent to your fallback URL (or shown the unavailable page).</p>
                     </div>
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Country Restrictions</label>
+                            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Allowed Countries</label>
                             <input type="text" name="country_restrictions" value="{{ old('country_restrictions', $countryRestrictions) }}" placeholder="e.g. US, GB, CA" class="theme-input w-full">
-                            <p class="text-[10px] mt-1" style="color: var(--text-faint);">Comma-separated ISO country codes. Leave empty for no restriction.</p>
+                            <p class="text-[10px] mt-1" style="color: var(--text-faint);">Type two-letter country codes separated by commas (US = United States, GB = United Kingdom, IN = India, …). <strong>Leave empty to allow every country.</strong></p>
                         </div>
                         <div>
                             <label class="block text-xs font-medium mb-2" style="color: var(--text-muted);">Allowed Devices</label>
@@ -564,31 +615,69 @@
                                 </label>
                                 @endforeach
                             </div>
-                            <p class="text-[10px] mt-1.5" style="color: var(--text-faint);">Leave all unchecked to allow every device.</p>
+                            <p class="text-[10px] mt-1.5" style="color: var(--text-faint);"><strong>Leave all unchecked to allow every device</strong> (recommended for most links).</p>
                         </div>
                     </div>
                 </div>
 
                 {{-- UTM --}}
-                <div class="card-premium p-6">
-                    <div class="flex items-center gap-3 mb-4">
-                        <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(236,72,153,0.1);"><i class="fas fa-tags text-pink-400 text-xs"></i></div>
-                        <h3 class="text-sm font-bold" style="color: var(--text-primary);">UTM Parameters</h3>
+                <div class="card-premium p-6" x-data="{ help: false }">
+                    <div class="flex items-start justify-between gap-4 mb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(236,72,153,0.1);"><i class="fas fa-tags text-pink-400 text-xs"></i></div>
+                            <div>
+                                <h3 class="text-sm font-bold" style="color: var(--text-primary);">Campaign Tags (UTM)</h3>
+                                <p class="text-[11px] mt-0.5" style="color: var(--text-faint);">Optional labels that follow visitors into Google Analytics so you know which post / email / ad sent them.</p>
+                            </div>
+                        </div>
+                        <button type="button" @click="help = !help" class="text-[10px] px-2 py-1 rounded-md flex-shrink-0" style="background: var(--bg-glass-input); color: var(--text-faint);"><i class="fas fa-question-circle mr-1"></i> Plain English</button>
                     </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        @foreach(['utm_source' => 'Source', 'utm_medium' => 'Medium', 'utm_campaign' => 'Campaign', 'utm_term' => 'Term', 'utm_content' => 'Content'] as $field => $label)
-                        <input type="text" name="{{ $field }}" value="{{ old($field, $link->$field) }}" placeholder="{{ $label }}" class="theme-input w-full">
+                    <div x-show="help" x-transition x-cloak class="mb-4 p-3 rounded-lg text-[11px] leading-relaxed" style="background: rgba(236,72,153,0.06); border: 1px solid rgba(236,72,153,0.2); color: var(--text-muted);">
+                        <p class="mb-2"><strong style="color: var(--text-primary);">In one sentence:</strong> these are sticky labels you add to your link so analytics tools (like Google Analytics on the destination site) can tell you "this visitor came from your Instagram bio" instead of just "this visitor came from somewhere".</p>
+                        <p class="mb-1.5"><strong style="color: var(--text-primary);">Skip this if</strong> you don't run paid ads or use Google Analytics on the page you link to. The settings below only matter for tracking — they don't change what visitors see.</p>
+                        <div class="mt-2 p-2 rounded" style="background: var(--bg-glass-input);">
+                            <p class="text-[10px] mb-1" style="color: var(--text-faint);">Example for an Instagram bio link sending people to your shop:</p>
+                            <p class="font-mono text-[10px]"><strong>Source</strong>: instagram &nbsp; <strong>Medium</strong>: social &nbsp; <strong>Campaign</strong>: spring_sale</p>
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        @php
+                            $utmFields = [
+                                'utm_source'   => ['Source',   'instagram, newsletter, podcast', 'WHERE the click came from — the platform or website name.'],
+                                'utm_medium'   => ['Medium',   'social, email, cpc, banner',     'HOW you reached them — the channel type. Use "social" for organic posts, "cpc" for paid ads, "email" for newsletters.'],
+                                'utm_campaign' => ['Campaign', 'spring_sale, product_launch',    'WHICH campaign — a name only you understand. Use the same value across every link in one campaign so analytics groups them together.'],
+                                'utm_term'     => ['Term',     'running shoes, vegan recipes',   'Optional. The keyword you bid on (mostly for Google Ads).'],
+                                'utm_content'  => ['Content',  'header_button, footer_link',     'Optional. Tells you which version of an ad/email got the click when you have multiple links going to the same page.'],
+                            ];
+                        @endphp
+                        @foreach($utmFields as $field => [$label, $eg, $explain])
+                        <div>
+                            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">{{ $label }} <span class="text-[10px] font-normal" style="color: var(--text-faint);">— {{ $explain }}</span></label>
+                            <input type="text" name="{{ $field }}" value="{{ old($field, $link->$field) }}" placeholder="e.g. {{ $eg }}" class="theme-input w-full">
+                        </div>
                         @endforeach
                     </div>
                 </div>
 
                 {{-- TRACKING PIXELS --}}
                 @if($pixels->count())
-                <div class="card-premium p-6">
-                    <div class="flex items-center gap-3 mb-4">
-                        <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(6,182,212,0.1);"><i class="fas fa-bullseye text-cyan-400 text-xs"></i></div>
-                        <h3 class="text-sm font-bold" style="color: var(--text-primary);">Tracking Pixels</h3>
+                <div class="card-premium p-6" x-data="{ help: false }">
+                    <div class="flex items-start justify-between gap-4 mb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(6,182,212,0.1);"><i class="fas fa-bullseye text-cyan-400 text-xs"></i></div>
+                            <div>
+                                <h3 class="text-sm font-bold" style="color: var(--text-primary);">Retargeting Pixels</h3>
+                                <p class="text-[11px] mt-0.5" style="color: var(--text-faint);">Tell ad platforms (Facebook, Google, TikTok, …) "this person visited my page" so you can show them ads later.</p>
+                            </div>
+                        </div>
+                        <button type="button" @click="help = !help" class="text-[10px] px-2 py-1 rounded-md flex-shrink-0" style="background: var(--bg-glass-input); color: var(--text-faint);"><i class="fas fa-question-circle mr-1"></i> What's a pixel?</button>
                     </div>
+                    <div x-show="help" x-transition x-cloak class="mb-4 p-3 rounded-lg text-[11px] leading-relaxed" style="background: rgba(6,182,212,0.06); border: 1px solid rgba(6,182,212,0.2); color: var(--text-muted);">
+                        <p class="mb-2">A <strong style="color: var(--text-primary);">pixel</strong> is a tiny invisible snippet from an advertising platform. When a visitor opens your page, the pixel fires and the ad platform remembers them. Later you can run an ad campaign that targets <em>only people who already visited this link</em> — that audience converts way better than strangers.</p>
+                        <p class="mb-1.5"><strong style="color: var(--text-primary);">When to use:</strong> if you advertise on Facebook/Instagram/Google/TikTok and want to re-engage people who clicked your link but didn't buy. Skip this otherwise.</p>
+                        <p class="text-[10px]"><i class="fas fa-cog mr-1"></i> Pixels are configured once in <a href="{{ route('user.dashboard') }}" class="underline">Account → Pixels</a>; here you just tick which ones to fire on this specific link.</p>
+                    </div>
+                    <p class="text-[10px] mb-2" style="color: var(--text-muted);">Tick the pixels you want to fire when someone opens this link:</p>
                     <div class="space-y-1.5">
                         @foreach($pixels as $pixel)
                         <label class="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer select-none" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
