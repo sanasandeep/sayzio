@@ -52,8 +52,11 @@
         }
         .sidebar-v2.collapsed .sidebar-link {
             justify-content: center;
-            padding-left: 0;
-            padding-right: 0;
+            align-items: center;
+            padding: 0;
+            height: 44px;
+            margin: 2px auto;
+            width: 44px;
         }
         .sidebar-v2.collapsed .sidebar-link i {
             margin: 0;
@@ -61,6 +64,73 @@
         }
         .sidebar-v2.collapsed .sidebar-link.active::before {
             left: 0;
+        }
+        /* When collapsed, center every nav item on the sidebar's vertical axis */
+        .sidebar-v2.collapsed nav { display: flex; flex-direction: column; align-items: center; }
+        .sidebar-v2.collapsed nav > * { width: 100%; display: flex; justify-content: center; }
+
+        /* Sidebar shell: visible right border in both modes */
+        .sidebar-shell {
+            border-right: 1px solid var(--border-strong);
+            box-shadow: 1px 0 0 rgba(0,0,0,.10);
+        }
+        html.light-mode .sidebar-shell {
+            border-right: 1px solid #cbd5e1;
+            box-shadow: 1px 0 0 rgba(15,23,42,.04);
+        }
+
+        /* Edge-mounted collapse handle — sits 50% in / 50% out of sidebar */
+        .sidebar-edge-toggle {
+            position: absolute;
+            top: 70px;
+            right: -14px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--bg-card, #1f1f23);
+            border: 1px solid var(--border-strong);
+            color: var(--text-primary);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,.30);
+            font-size: 11px;
+            z-index: 60;
+            transition: all .2s ease;
+        }
+        .sidebar-edge-toggle:hover {
+            background: #7c3aed; color: #fff; border-color: #7c3aed;
+            transform: scale(1.08);
+        }
+        html.light-mode .sidebar-edge-toggle {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            color: #0f172a;
+            box-shadow: 0 4px 12px rgba(15,23,42,.10);
+        }
+
+        /* Logout button — clear outline so it's discoverable */
+        .logout-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 32px; height: 32px;
+            border-radius: 8px;
+            border: 1px solid var(--border-strong);
+            background: transparent;
+            color: var(--text-muted);
+            transition: all .18s ease;
+        }
+        .logout-btn:hover {
+            background: rgba(239,68,68,.10);
+            border-color: rgba(239,68,68,.45);
+            color: #ef4444;
+        }
+        html.light-mode .logout-btn {
+            border-color: #cbd5e1;
+            color: #475569;
+        }
+        html.light-mode .logout-btn:hover {
+            background: rgba(239,68,68,.08);
+            border-color: rgba(239,68,68,.40);
+            color: #dc2626;
         }
 
         .sidebar-tooltip {
@@ -379,12 +449,20 @@
             }
          }">
 
-        <aside class="hidden lg:flex flex-col fixed inset-y-0 left-0 z-30 sidebar-v2"
+        <aside class="hidden lg:flex flex-col fixed inset-y-0 left-0 z-30 sidebar-v2 sidebar-shell"
                :class="sidebarMode === 'icons' ? 'collapsed' : ''"
                :style="'width:' + sidebarWidth + 'px; transform: translateX(' + (sidebarMode === 'hidden' ? '-100%' : '0') + '); pointer-events:' + (sidebarMode === 'hidden' ? 'none' : 'auto')"
-               style="background: var(--bg-sidebar); backdrop-filter: none; -webkit-backdrop-filter: none; border-right: 1px solid var(--border-subtle);">
+               style="background: var(--bg-sidebar); backdrop-filter: none; -webkit-backdrop-filter: none;">
 
-            <div class="flex items-center px-4" :class="sidebarMode === 'icons' ? 'justify-center' : 'justify-between'" style="height: 64px; border-bottom: 1px solid var(--border-subtle);">
+            {{-- Edge-mounted collapse handle (sits 50% in / 50% out of sidebar) --}}
+            <button @click="setSidebar(sidebarMode === 'icons' ? 'full' : 'icons')"
+                    class="sidebar-edge-toggle"
+                    title="Toggle sidebar"
+                    aria-label="Toggle sidebar">
+                <i class="fas" :class="sidebarMode === 'icons' ? 'fa-chevron-right' : 'fa-chevron-left'"></i>
+            </button>
+
+            <div class="flex items-center px-4" :class="sidebarMode === 'icons' ? 'justify-center' : 'justify-start'" style="height: 64px; border-bottom: 1px solid var(--border-strong);">
                 <a href="{{ route('user.dashboard') }}" class="flex items-center gap-2.5 group" :class="sidebarMode === 'icons' ? 'hidden' : ''">
                     <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background: var(--accent);">
                         <span class="text-white text-sm font-bold">1</span>
@@ -400,9 +478,6 @@
                         </div>
                     </a>
                 </template>
-                <button @click="cycleSidebar()" class="sidebar-toggle-btn" :class="sidebarMode === 'icons' ? 'hidden' : ''" title="Toggle sidebar">
-                    <i class="fas fa-chevron-left" style="font-size: 10px;"></i>
-                </button>
             </div>
 
             <nav class="flex-1 py-4 overflow-y-auto overflow-x-hidden sidebar-nav-scroll" :class="sidebarMode === 'icons' ? 'px-2' : 'px-3'">
@@ -565,7 +640,7 @@
                 </div>
             </div>
 
-            <div class="px-3 py-3" style="border-top: 1px solid var(--border-subtle);">
+            <div class="px-3 py-3" style="border-top: 1px solid var(--border-strong);">
                 <div class="flex items-center" :class="sidebarMode === 'icons' ? 'justify-center' : 'gap-3'">
                     <div class="user-avatar-ring flex-shrink-0">
                         <div class="inner">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</div>
@@ -576,17 +651,11 @@
                     </div>
                     <form action="{{ route('user.logout') }}" method="POST" class="user-info">
                         @csrf
-                        <button type="submit" class="p-1.5 rounded-lg hover:text-red-400 hover:bg-red-500/10 transition-all" style="color: var(--text-dimmed);" title="Logout">
+                        <button type="submit" class="logout-btn" title="Logout">
                             <i class="fas fa-sign-out-alt text-xs"></i>
                         </button>
                     </form>
                 </div>
-                <button @click="setSidebar(sidebarMode === 'icons' ? 'full' : 'icons')"
-                        class="w-full mt-2 flex items-center justify-center gap-2 py-2 rounded-lg text-[11px] font-medium transition-all hover:bg-white/5"
-                        style="color: var(--text-faint); border: 1px solid var(--border-subtle);">
-                    <i class="fas" :class="sidebarMode === 'icons' ? 'fa-angles-right' : 'fa-angles-left'" style="font-size: 10px;"></i>
-                    <span class="nav-label" x-text="sidebarMode === 'icons' ? '' : 'Collapse'"></span>
-                </button>
             </div>
         </aside>
 

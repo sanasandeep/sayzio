@@ -21,6 +21,7 @@
         --border-glass: #2a2d38;
         --border-glass-light: #3a3e4c;
         --border-subtle: #16171d;
+        --border-strong: #2e313d;
         --text-primary: #f5f6fa;
         --text-secondary: #cdcfd6;
         --text-muted: #9498a3;
@@ -76,6 +77,7 @@
         --border-glass: #dbdfe9;
         --border-glass-light: #c4c8d3;
         --border-subtle: #e1e3ea;
+        --border-strong: #cbd5e1;
         --text-primary: #071437;
         --text-secondary: #252f4a;
         --text-muted: #4b5675;
