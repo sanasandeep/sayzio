@@ -52,7 +52,7 @@ class RedirectController extends Controller
                 abort(403, 'This link is restricted by region and your location could not be determined.');
             }
             if (!in_array(strtoupper($visitorCountry), $allowedCountries)) {
-                abort(403, 'This link is not available in your region.');
+                return response()->view('common.link-expired', ['link' => $link, 'reason' => 'banned_country'], 403);
             }
         }
 
@@ -61,7 +61,7 @@ class RedirectController extends Controller
         if (!empty($settings['country_blocklist'])) {
             $visitorCountry = app(\App\Modules\Common\Services\GeoIpService::class)->detectCountry($request->ip());
             if ($link->isCountryBlocked($visitorCountry)) {
-                abort(403, 'This link is not available in your region.');
+                return response()->view('common.link-expired', ['link' => $link, 'reason' => 'banned_country'], 403);
             }
         }
 
@@ -282,7 +282,7 @@ class RedirectController extends Controller
                 abort(403, 'This link is restricted by region and your location could not be determined.');
             }
             if (!in_array(strtoupper($visitorCountry), $allowedCountries)) {
-                abort(403, 'This link is not available in your region.');
+                return response()->view('common.link-expired', ['link' => $link, 'reason' => 'banned_country'], 403);
             }
         }
 
@@ -291,7 +291,7 @@ class RedirectController extends Controller
         if (!empty($settings['country_blocklist'])) {
             $visitorCountry = app(\App\Modules\Common\Services\GeoIpService::class)->detectCountry($request->ip());
             if ($link->isCountryBlocked($visitorCountry)) {
-                abort(403, 'This link is not available in your region.');
+                return response()->view('common.link-expired', ['link' => $link, 'reason' => 'banned_country'], 403);
             }
         }
 

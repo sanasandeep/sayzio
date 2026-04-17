@@ -228,6 +228,64 @@ class Link extends Model
     }
 
     /**
+     * High-level reason this link is currently inaccessible. Drives the
+     * messaging on the visitor-facing "link unavailable" page. Returns
+     * null when the link is reachable.
+     */
+    public function unavailabilityReason(): ?string
+    {
+        if (!$this->is_active)            return 'inactive';
+        if ($this->isExpired())           return $this->expires_at && $this->expires_at->isPast() ? 'expired' : 'limit_reached';
+        if ($this->isScheduledFuture())   return 'scheduled';
+        if (!$this->isWithinActiveWindow()) return 'closed_hours';
+        return null;
+    }
+
+    /**
+     * Next moment (in the link's timezone) at which the daily active
+     * window will be open again, or null if no window is configured /
+     * we can't find an opening within the next 7 days.
+     */
+    public function nextActiveWindowOpening(): ?\Carbon\Carbon
+    {
+        $s  = $this->settings ?? [];
+        $aw = $s['active_window'] ?? null;
+        if (!is_array($aw) || empty($aw['enabled'])) return null;
+
+        $tz   = $s['timezone'] ?? 'UTC';
+        $days = (array) ($aw['days'] ?? ['mon','tue','wed','thu','fri','sat','sun']);
+
+        $slots = [];
+        if (!empty($aw['slots']) && is_array($aw['slots'])) {
+            foreach ($aw['slots'] as $sl) {
+                if (!empty($sl['start']) && !empty($sl['end'])) $slots[] = $sl;
+            }
+        } elseif (!empty($aw['start']) && !empty($aw['end'])) {
+            $slots[] = ['start' => $aw['start'], 'end' => $aw['end']];
+        }
+        if (empty($slots)) return null;
+
+        try { $now = \Carbon\Carbon::now($tz); } catch (\Throwable $e) { return null; }
+
+        // Sweep the next 7 days for the earliest start that is in the future
+        // and falls on an allowed day.
+        $best = null;
+        for ($i = 0; $i < 8; $i++) {
+            $day    = $now->copy()->addDays($i);
+            $dayKey = strtolower(substr($day->format('D'), 0, 3));
+            if (!in_array($dayKey, $days, true)) continue;
+            foreach ($slots as $sl) {
+                [$h, $m] = array_pad(explode(':', $sl['start']), 2, '0');
+                $candidate = $day->copy()->setTime((int) $h, (int) $m, 0);
+                if ($candidate->lessThanOrEqualTo($now)) continue;
+                if ($best === null || $candidate->lessThan($best)) $best = $candidate;
+            }
+            if ($best) break; // earliest opening on this day wins
+        }
+        return $best;
+    }
+
+    /**
      * Splash page (standalone, reusable across multiple links).
      */
     public function splashPage()
