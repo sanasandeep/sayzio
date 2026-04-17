@@ -1,5 +1,5 @@
 @extends('user.layouts.app')
-@section('title', 'Edit Event Invite')
+@section('title', 'Edit Event')
 
 @section('content')
 @php
@@ -62,13 +62,13 @@
 
 <div class="max-w-3xl mx-auto pb-12">
     @include('user.partials.page-hero', [
-        'title'    => 'Edit Event Invite',
+        'title'    => 'Edit Event',
         'subtitle' => $link->title ?: $link->alias,
         'icon'     => 'fa-calendar',
         'back'     => route('user.links.show', $link),
         'chips'    => [
             ['icon' => 'fa-circle ' . ($link->is_active ? 'text-emerald-400' : 'text-red-400'), 'text' => $link->is_active ? 'Active' : 'Inactive'],
-            ['icon' => 'fa-calendar', 'text' => 'Event Invite'],
+            ['icon' => 'fa-calendar', 'text' => 'Event'],
         ],
     ])
 

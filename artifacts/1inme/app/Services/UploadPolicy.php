@@ -36,7 +36,7 @@ class UploadPolicy
         'link.icon_512_upload'   => ['label' => 'Bio PWA 512x512 Icon',       'group' => 'Bio Advanced',       'max_mb' => 2,  'extensions' => ['png'],                                     'multiple' => false],
 
         // ── vCard ─────────────────────────────────────────────────────────
-        'vcf.photo'              => ['label' => 'vCard / Digital Card Photo','group' => 'vCard',              'max_mb' => 5,  'extensions' => ['jpg','jpeg','png','webp'],                'multiple' => false],
+        'vcf.photo'              => ['label' => 'Contact Card Photo',        'group' => 'Contact Card',       'max_mb' => 5,  'extensions' => ['jpg','jpeg','png','webp'],                'multiple' => false],
 
         // ── Forms ─────────────────────────────────────────────────────────
         'forms.logo'             => ['label' => 'Form Logo',                  'group' => 'Forms',              'max_mb' => 2,  'extensions' => ['jpg','jpeg','png','webp','svg'],          'multiple' => false],
@@ -44,10 +44,10 @@ class UploadPolicy
         'forms.card_image'       => ['label' => 'Form Card Image',            'group' => 'Forms',              'max_mb' => 5,  'extensions' => ['jpg','jpeg','png','webp'],                'multiple' => false],
         'form_field.file'        => ['label' => 'Form Builder File Field',    'group' => 'Forms',              'max_mb' => 10, 'extensions' => ['pdf','doc','docx','xls','xlsx','jpg','jpeg','png','webp','zip'], 'multiple' => false],
 
-        // ── Splash Pages ──────────────────────────────────────────────────
-        'splash.logo'            => ['label' => 'Splash Page Logo',           'group' => 'Splash Pages',       'max_mb' => 2,  'extensions' => ['jpg','jpeg','png','webp','svg'],          'multiple' => false],
-        'splash.favicon'         => ['label' => 'Splash Page Favicon',        'group' => 'Splash Pages',       'max_mb' => 1,  'extensions' => ['ico','png','svg','jpg','jpeg'],           'multiple' => false],
-        'splash.og'              => ['label' => 'Splash Page OG Image',       'group' => 'Splash Pages',       'max_mb' => 2,  'extensions' => ['jpg','jpeg','png','webp'],                'multiple' => false],
+        // ── Intros ────────────────────────────────────────────────────────
+        'splash.logo'            => ['label' => 'Intro Logo',                 'group' => 'Intros',             'max_mb' => 2,  'extensions' => ['jpg','jpeg','png','webp','svg'],          'multiple' => false],
+        'splash.favicon'         => ['label' => 'Intro Favicon',              'group' => 'Intros',             'max_mb' => 1,  'extensions' => ['ico','png','svg','jpg','jpeg'],           'multiple' => false],
+        'splash.og'              => ['label' => 'Intro OG Image',             'group' => 'Intros',             'max_mb' => 2,  'extensions' => ['jpg','jpeg','png','webp'],                'multiple' => false],
 
         // ── QR Studio ─────────────────────────────────────────────────────
         'qr.logo'                => ['label' => 'QR Code Logo Overlay',       'group' => 'QR Studio',          'max_mb' => 2,  'extensions' => ['jpg','jpeg','png','webp','svg'],          'multiple' => false],

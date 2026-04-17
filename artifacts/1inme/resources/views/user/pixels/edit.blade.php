@@ -1,11 +1,11 @@
 @extends('user.layouts.app')
-@section('title', 'Edit Pixel')
+@section('title', 'Edit Tracker')
 
 @section('content')
 <div class="max-w-xl mx-auto">
     <div class="flex items-center gap-4 mb-6">
         <a href="{{ route('user.pixels.index') }}" class="text-white/30 hover:text-white/50"><i class="fas fa-arrow-left"></i></a>
-        <h1 class="text-2xl font-bold text-white">Edit Pixel</h1>
+        <h1 class="text-2xl font-bold text-white">Edit Tracker</h1>
     </div>
 
     <form method="POST" action="{{ route('user.pixels.update', $pixel) }}">
@@ -25,7 +25,7 @@
                 </select>
             </div>
             <div>
-                <label class="block text-sm font-medium text-white/60 mb-1">Pixel ID</label>
+                <label class="block text-sm font-medium text-white/60 mb-1">Tracker ID</label>
                 <input type="text" name="pixel_id" value="{{ old('pixel_id', $pixel->pixel_id) }}" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40" required>
             </div>
         </div>

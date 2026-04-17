@@ -48,7 +48,7 @@ class IcsLinkController extends Controller
         IcsData::create($this->icsPayload($validated, $link->id));
 
         return redirect()->route('user.links.show', $link)
-            ->with('success', 'Event Invite created successfully.');
+            ->with('success', 'Event created successfully.');
     }
 
     public function edit(Request $request, Link $link)
@@ -130,7 +130,7 @@ class IcsLinkController extends Controller
         }
 
         return redirect()->route('user.links.show', $link)
-            ->with('success', 'Event Invite updated successfully.');
+            ->with('success', 'Event updated successfully.');
     }
 
     private function validateRequest(Request $request, ?Link $link): array

@@ -46,7 +46,7 @@ class CheckPlanLimit
 
             case 'pixels':
                 if (empty($features['pixels'])) {
-                    return back()->with('error', 'Tracking pixels are not available on your current plan. Upgrade to access this feature.');
+                    return back()->with('error', 'Tracking is not available on your current plan. Upgrade to access this feature.');
                 }
                 break;
 

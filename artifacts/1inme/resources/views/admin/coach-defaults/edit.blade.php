@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
-@section('title', 'Performance Coach Defaults')
-@section('page-title', 'Performance Coach Defaults')
+@section('title', 'Score Presets')
+@section('page-title', 'Score Presets')
 
 @php
     $builtinSlugs = array_keys($builtinPresets);

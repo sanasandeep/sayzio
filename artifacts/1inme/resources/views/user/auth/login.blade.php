@@ -49,7 +49,7 @@
                         </div>
                         <div>
                             <p class="text-sm font-bold mb-0.5" style="color: var(--text-primary);">6 Link Types</p>
-                            <p class="text-xs" style="color: var(--text-dimmed);">Short Links, Link in Bio pages, File Share, Digital Cards, Event Invites & more</p>
+                            <p class="text-xs" style="color: var(--text-dimmed);">Short Links, Link in Bio pages, File Share, Contact Cards, Events & more</p>
                         </div>
                     </div>
                     <div class="flex items-start gap-4 group">

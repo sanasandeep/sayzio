@@ -1,10 +1,10 @@
 @extends('user.layouts.app')
-@section('title', 'Social Proof')
+@section('title', 'Buzz')
 
 @section('content')
 <div class="flex items-center justify-between mb-6">
     <div>
-        <h1 class="text-2xl font-bold text-white">Social Proof</h1>
+        <h1 class="text-2xl font-bold text-white">Buzz</h1>
         <p class="text-white/40 text-sm mt-1">Build trust with notification widgets you can embed anywhere — including your biolinks.</p>
     </div>
     <a href="{{ route('user.social-proofs.create') }}" class="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2">

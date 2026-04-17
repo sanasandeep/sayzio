@@ -7,7 +7,7 @@
     <div class="d-flex align-items-center justify-content-between mb-4">
         <div>
             <h1 class="h3 mb-1 fw-bold">Calendar Sync</h1>
-            <p class="text-muted mb-0">Connect Google, Microsoft, or any CalDAV calendar to mirror events as Event Invite links and push back changes.</p>
+            <p class="text-muted mb-0">Connect Google, Microsoft, or any CalDAV calendar to mirror events as Event links and push back changes.</p>
         </div>
     </div>
 

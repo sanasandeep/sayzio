@@ -634,18 +634,18 @@
                         <div class="flex items-center gap-3">
                             <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(6,182,212,0.1);"><i class="fas fa-bullseye text-cyan-400 text-xs"></i></div>
                             <div>
-                                <h3 class="text-sm font-bold" style="color: var(--text-primary);">Retargeting Pixels</h3>
+                                <h3 class="text-sm font-bold" style="color: var(--text-primary);">Tracking</h3>
                                 <p class="text-[11px] mt-0.5" style="color: var(--text-faint);">Tell ad platforms (Facebook, Google, TikTok, …) "this person visited my page" so you can show them ads later.</p>
                             </div>
                         </div>
-                        <button type="button" @click="help = !help" class="text-[10px] px-2 py-1 rounded-md flex-shrink-0" style="background: var(--bg-glass-input); color: var(--text-faint);"><i class="fas fa-question-circle mr-1"></i> What's a pixel?</button>
+                        <button type="button" @click="help = !help" class="text-[10px] px-2 py-1 rounded-md flex-shrink-0" style="background: var(--bg-glass-input); color: var(--text-faint);"><i class="fas fa-question-circle mr-1"></i> What's a tracker?</button>
                     </div>
                     <div x-show="help" x-transition x-cloak class="mb-4 p-3 rounded-lg text-[11px] leading-relaxed" style="background: rgba(6,182,212,0.06); border: 1px solid rgba(6,182,212,0.2); color: var(--text-muted);">
-                        <p class="mb-2">A <strong style="color: var(--text-primary);">pixel</strong> is a tiny invisible snippet from an advertising platform. When a visitor opens your page, the pixel fires and the ad platform remembers them. Later you can run an ad campaign that targets <em>only people who already visited this link</em> — that audience converts way better than strangers.</p>
+                        <p class="mb-2">A <strong style="color: var(--text-primary);">tracker</strong> is a tiny invisible snippet from an advertising platform. When a visitor opens your page, the tracker fires and the ad platform remembers them. Later you can run an ad campaign that targets <em>only people who already visited this link</em> — that audience converts way better than strangers.</p>
                         <p class="mb-1.5"><strong style="color: var(--text-primary);">When to use:</strong> if you advertise on Facebook/Instagram/Google/TikTok and want to re-engage people who clicked your link but didn't buy. Skip this otherwise.</p>
-                        <p class="text-[10px]"><i class="fas fa-cog mr-1"></i> Pixels are configured once in <a href="{{ route('user.dashboard') }}" class="underline">Account → Pixels</a>; here you just tick which ones to fire on this specific link.</p>
+                        <p class="text-[10px]"><i class="fas fa-cog mr-1"></i> Trackers are configured once in <a href="{{ route('user.dashboard') }}" class="underline">Account → Tracking</a>; here you just tick which ones to fire on this specific link.</p>
                     </div>
-                    <p class="text-[10px] mb-2" style="color: var(--text-muted);">Tick the pixels you want to fire when someone opens this link:</p>
+                    <p class="text-[10px] mb-2" style="color: var(--text-muted);">Tick the trackers you want to fire when someone opens this link:</p>
                     <div class="space-y-1.5">
                         @foreach($pixels as $pixel)
                         <label class="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer select-none" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">

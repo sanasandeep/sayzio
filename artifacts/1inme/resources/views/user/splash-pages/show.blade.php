@@ -5,7 +5,7 @@
 <div class="max-w-4xl mx-auto space-y-6">
     @include('user.partials.page-hero', [
         'title'    => $splashPage->name,
-        'subtitle' => $splashPage->title ?: 'Splash page',
+        'subtitle' => $splashPage->title ?: 'Intro',
         'icon'     => 'fa-rocket',
         'back'     => route('user.splash-pages.index'),
         'actions'  => [
@@ -17,7 +17,7 @@
     <div class="card-premium p-6">
         <h3 class="text-sm font-bold mb-3" style="color: var(--text-primary);">Used by {{ $splashPage->links->count() }} link(s)</h3>
         @if($splashPage->links->isEmpty())
-            <p class="text-xs" style="color: var(--text-muted);">No links use this splash page yet. Open any link's settings → Splash to attach it.</p>
+            <p class="text-xs" style="color: var(--text-muted);">No links use this intro yet. Open any link's settings → Intro to attach it.</p>
         @else
             <div class="divide-y" style="border-color: var(--border-subtle);">
                 @foreach($splashPage->links as $link)

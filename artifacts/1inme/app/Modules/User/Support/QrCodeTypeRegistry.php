@@ -23,7 +23,7 @@ class QrCodeTypeRegistry
             'location' => ['label' => 'Location',    'icon' => 'fa-location-dot',       'group' => 'utility'],
             'wifi'     => ['label' => 'WiFi',        'icon' => 'fa-wifi',               'group' => 'utility'],
             'event'    => ['label' => 'Event',       'icon' => 'fa-calendar-day',       'group' => 'utility'],
-            'vcard'    => ['label' => 'vCard',       'icon' => 'fa-id-card',            'group' => 'utility'],
+            'vcard'    => ['label' => 'Contact Card', 'icon' => 'fa-id-card',            'group' => 'utility'],
             'crypto'   => ['label' => 'Crypto',      'icon' => 'fa-brands fa-bitcoin',  'group' => 'payments'],
             'paypal'   => ['label' => 'PayPal',      'icon' => 'fa-brands fa-paypal',   'group' => 'payments'],
             'upi'      => ['label' => 'UPI Payment', 'icon' => 'fa-indian-rupee-sign',  'group' => 'payments'],

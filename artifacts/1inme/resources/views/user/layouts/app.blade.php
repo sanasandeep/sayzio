@@ -448,8 +448,8 @@
                    class="sidebar-link {{ request()->routeIs('user.splash-pages.*') ? 'active' : '' }}"
                    style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">
                     <div class="nav-icon-wrap"><i class="fas fa-rocket"></i></div>
-                    <span class="nav-label">Splash Pages</span>
-                    <span class="sidebar-tooltip">Splash Pages</span>
+                    <span class="nav-label">Intros</span>
+                    <span class="sidebar-tooltip">Intros</span>
                 </a>
                 <a href="{{ route('user.integrations.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.integrations.*') ? 'active' : '' }}"
@@ -479,8 +479,8 @@
                    class="sidebar-link {{ request()->routeIs('user.pixels.*') ? 'active' : '' }}"
                    style="--nav-tint:#ec4899; --nav-tint-soft:rgba(236,72,153,0.12);">
                     <div class="nav-icon-wrap"><i class="fas fa-bullseye"></i></div>
-                    <span class="nav-label">Tracking Pixels</span>
-                    <span class="sidebar-tooltip">Pixels</span>
+                    <span class="nav-label">Tracking</span>
+                    <span class="sidebar-tooltip">Tracking</span>
                 </a>
                 <a href="{{ route('user.files.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.files.*') ? 'active' : '' }}"
@@ -493,8 +493,8 @@
                    class="sidebar-link {{ request()->routeIs('user.subscribers.*') ? 'active' : '' }}"
                    style="--nav-tint:#14b8a6; --nav-tint-soft:rgba(20,184,166,0.12);">
                     <div class="nav-icon-wrap"><i class="fas fa-users"></i></div>
-                    <span class="nav-label">Subscribers</span>
-                    <span class="sidebar-tooltip">Subscribers</span>
+                    <span class="nav-label">Leads</span>
+                    <span class="sidebar-tooltip">Leads</span>
                 </a>
                 <a href="{{ route('user.verification.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.verification.*') ? 'active' : '' }}"
@@ -674,10 +674,10 @@
                         <a href="{{ route('user.links.create') }}" class="sidebar-link"><div class="nav-icon-wrap"><i class="fas fa-plus-circle"></i></div> <span>Create Link</span></a>
                         <a href="{{ route('user.qrcode') }}" class="sidebar-link {{ request()->routeIs('user.qrcode*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-qrcode"></i></div> <span>QR Codes</span></a>
                         <a href="{{ route('user.projects.index') }}" class="sidebar-link {{ request()->routeIs('user.projects.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-folder"></i></div> <span>Projects</span></a>
-                        <a href="{{ route('user.pixels.index') }}" class="sidebar-link {{ request()->routeIs('user.pixels.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bullseye"></i></div> <span>Pixels</span></a>
-                        <a href="{{ route('user.social-proofs.index') }}" class="sidebar-link {{ request()->routeIs('user.social-proofs.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bell"></i></div> <span>Social Proof</span></a>
+                        <a href="{{ route('user.pixels.index') }}" class="sidebar-link {{ request()->routeIs('user.pixels.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bullseye"></i></div> <span>Tracking</span></a>
+                        <a href="{{ route('user.social-proofs.index') }}" class="sidebar-link {{ request()->routeIs('user.social-proofs.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bell"></i></div> <span>Buzz</span></a>
                         <a href="{{ route('user.files.index') }}" class="sidebar-link {{ request()->routeIs('user.files.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-cloud-upload-alt"></i></div> <span>My Files</span></a>
-                        <a href="{{ route('user.subscribers.index') }}" class="sidebar-link {{ request()->routeIs('user.subscribers.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-users"></i></div> <span>Subscribers</span></a>
+                        <a href="{{ route('user.subscribers.index') }}" class="sidebar-link {{ request()->routeIs('user.subscribers.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-users"></i></div> <span>Leads</span></a>
                         <a href="{{ route('user.verification.index') }}" class="sidebar-link {{ request()->routeIs('user.verification.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-check-circle"></i></div> <span>Verification</span></a>
                         @if(auth()->user()->isSuperAdmin())
                         <div class="pt-3 mt-2" style="border-top: 1px solid var(--border-subtle);">

@@ -168,7 +168,7 @@
                     <div class="w-8 h-8 rounded-xl flex items-center justify-center glow-icon transition-all duration-300" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.12);">
                         <i class="fas fa-bullseye text-emerald-400 text-[10px]"></i>
                     </div>
-                    <span class="text-xs font-medium" style="color: var(--text-muted);">Add Tracking Pixel</span>
+                    <span class="text-xs font-medium" style="color: var(--text-muted);">Add Tracker</span>
                     <i class="fas fa-chevron-right text-[8px] ml-auto transition-transform group-hover:translate-x-1" style="color: var(--text-faint);"></i>
                 </a>
                 <a href="{{ route('user.qrcode') }}" class="flex items-center gap-3 p-2.5 rounded-xl transition-all group hover:translate-x-1" style="background: transparent;" onmouseover="this.style.background='var(--bg-glass-input)'" onmouseout="this.style.background='transparent'">

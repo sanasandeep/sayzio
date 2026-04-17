@@ -260,7 +260,7 @@
         @if(in_array($link->type, ['url', 'ics', 'vcf'], true))
         <div class="glass rounded-2xl p-6 mb-6">
             <h2 class="text-lg font-semibold text-white mb-2">Engagement</h2>
-            <p class="text-xs text-white/40 mb-4">Show a short interstitial page before redirecting so you can fire tracking pixels and measure dwell time.</p>
+            <p class="text-xs text-white/40 mb-4">Show a short interstitial page before redirecting so you can fire trackers and measure dwell time.</p>
             <input type="hidden" name="show_preview_page" value="0">
             <label class="flex items-center gap-3">
                 <input type="checkbox" name="show_preview_page" value="1" x-model="showPreview" class="rounded text-violet-400 focus:ring-violet-500/40">
@@ -454,7 +454,7 @@
 
         @if($pixels->count())
         <div class="glass rounded-2xl p-6 mb-6">
-            <h2 class="text-lg font-semibold text-white mb-4">Tracking Pixels</h2>
+            <h2 class="text-lg font-semibold text-white mb-4">Tracking</h2>
             <div class="space-y-2">
                 @foreach($pixels as $pixel)
                 <label class="flex items-center gap-3">

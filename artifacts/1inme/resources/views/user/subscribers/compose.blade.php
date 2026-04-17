@@ -9,7 +9,7 @@
         </a>
         <div>
             <h1 class="text-2xl font-bold" style="color: var(--text-primary);">Compose Message</h1>
-            <p class="text-sm mt-0.5" style="color: var(--text-muted);">Send a message to your subscribers</p>
+            <p class="text-sm mt-0.5" style="color: var(--text-muted);">Send a message to your leads</p>
         </div>
     </div>
 
@@ -22,11 +22,11 @@
     <div class="grid grid-cols-2 gap-3 mb-6">
         <div class="glass rounded-2xl p-4 text-center">
             <div class="text-2xl font-bold text-violet-400">{{ number_format($stats['email']) }}</div>
-            <div class="text-xs mt-1" style="color: var(--text-muted);">Email Subscribers</div>
+            <div class="text-xs mt-1" style="color: var(--text-muted);">Email Leads</div>
         </div>
         <div class="glass rounded-2xl p-4 text-center">
             <div class="text-2xl font-bold" style="color: #25D366;">{{ number_format($stats['whatsapp_number']) }}</div>
-            <div class="text-xs mt-1" style="color: var(--text-muted);">WhatsApp Subscribers</div>
+            <div class="text-xs mt-1" style="color: var(--text-muted);">WhatsApp Leads</div>
         </div>
     </div>
 
@@ -79,7 +79,7 @@
                 <i class="fas fa-history mr-1"></i>Message History
             </a>
             <button type="submit" class="px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:-translate-y-0.5 flex items-center gap-2" style="background: linear-gradient(135deg, #7c3aed, #8b5cf6);"
-                    onclick="return confirm('Send this message to all active subscribers in the selected channel?')">
+                    onclick="return confirm('Send this message to all active leads in the selected channel?')">
                 <i class="fas fa-paper-plane"></i>Send Message
             </button>
         </div>

@@ -163,7 +163,7 @@
                 @if($pixels->count())
                 <div class="h-px bg-white/5"></div>
                 <div>
-                    <h3 class="text-sm font-medium text-violet-400 mb-3"><i class="fas fa-bullseye mr-2"></i>Tracking Pixels</h3>
+                    <h3 class="text-sm font-medium text-violet-400 mb-3"><i class="fas fa-bullseye mr-2"></i>Tracking</h3>
                     <div class="space-y-2">
                         @foreach($pixels as $pixel)
                         <label class="flex items-center gap-3 cursor-pointer">

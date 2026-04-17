@@ -111,7 +111,7 @@ class BiolinkBlock extends Model
         'timeline' => ['label' => 'Timeline', 'icon' => 'fa-stream', 'category' => 'interactive'],
         'timeline_staged' => ['label' => 'Timeline (Staged)', 'icon' => 'fa-project-diagram', 'category' => 'interactive'],
         'rsvp' => ['label' => 'RSVP', 'icon' => 'fa-calendar-check', 'category' => 'interactive'],
-        'social_proof' => ['label' => 'Social Proof', 'icon' => 'fa-bell', 'category' => 'interactive'],
+        'social_proof' => ['label' => 'Buzz', 'icon' => 'fa-bell', 'category' => 'interactive'],
 
         'product' => ['label' => 'Product', 'icon' => 'fa-box', 'category' => 'business'],
         'service' => ['label' => 'Service', 'icon' => 'fa-concierge-bell', 'category' => 'business'],
@@ -160,7 +160,7 @@ class BiolinkBlock extends Model
         'spacer' => ['label' => 'Spacer', 'icon' => 'fa-arrows-alt-v', 'category' => 'layout'],
         'card' => ['label' => 'Card Container', 'icon' => 'fa-layer-group', 'category' => 'layout'],
 
-        'vcard' => ['label' => 'VCard', 'icon' => 'fa-address-book', 'category' => 'identity'],
+        'vcard' => ['label' => 'Contact Card', 'icon' => 'fa-address-book', 'category' => 'identity'],
         'avatar' => ['label' => 'Avatar', 'icon' => 'fa-user-circle', 'category' => 'identity'],
 
         'verified_heading' => ['label' => 'Verified Heading', 'icon' => 'fa-check-circle', 'category' => 'verified', 'system' => true],

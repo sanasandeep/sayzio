@@ -34,7 +34,7 @@ class PixelController extends Controller
         $request->user()->pixels()->create($validated);
 
         return redirect()->route('user.pixels.index')
-            ->with('success', 'Tracking pixel created successfully.');
+            ->with('success', 'Tracker created successfully.');
     }
 
     public function edit(Request $request, Pixel $pixel)
@@ -57,7 +57,7 @@ class PixelController extends Controller
         $pixel->update($validated);
 
         return redirect()->route('user.pixels.index')
-            ->with('success', 'Tracking pixel updated successfully.');
+            ->with('success', 'Tracker updated successfully.');
     }
 
     public function destroy(Request $request, Pixel $pixel)
@@ -67,6 +67,6 @@ class PixelController extends Controller
         $pixel->delete();
 
         return redirect()->route('user.pixels.index')
-            ->with('success', 'Tracking pixel deleted successfully.');
+            ->with('success', 'Tracker deleted successfully.');
     }
 }

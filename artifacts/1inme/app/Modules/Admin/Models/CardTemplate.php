@@ -41,7 +41,7 @@ class CardTemplate extends Model
             'general' => 'General',
             'hero' => 'Hero',
             'cta' => 'Call to Action',
-            'social' => 'Social Proof',
+            'social' => 'Buzz',
             'contact' => 'Contact',
             'product' => 'Product',
             'event' => 'Event',

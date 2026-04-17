@@ -415,7 +415,7 @@
         $heroActions[] = ['label' => 'Edit Blocks', 'url' => route('user.links.blocks.editor', $link), 'icon' => 'fa-th-large', 'class' => 'btn-primary'];
     }
     $heroActions[] = ['label' => 'Edit', 'url' => route('user.links.edit', $link), 'icon' => 'fa-edit', 'class' => 'btn-ghost'];
-    $heroActions[] = ['label' => $link->hasSplashEnabled() ? 'Splash · On' : 'Splash', 'url' => route('user.links.splash', $link), 'icon' => 'fa-rocket', 'class' => 'btn-ghost'];
+    $heroActions[] = ['label' => $link->hasSplashEnabled() ? 'Intro · On' : 'Intro', 'url' => route('user.links.splash', $link), 'icon' => 'fa-rocket', 'class' => 'btn-ghost'];
 @endphp
 @include('user.partials.page-hero', [
     'title'    => $link->title ?: $link->alias,

@@ -60,7 +60,7 @@
         </dl>
 
         @if($link->pixels->count())
-        <h3 class="text-sm font-semibold text-white/60 mt-4 mb-2">Tracking Pixels ({{ $link->pixels->count() }})</h3>
+        <h3 class="text-sm font-semibold text-white/60 mt-4 mb-2">Tracking ({{ $link->pixels->count() }})</h3>
         <div class="flex flex-wrap gap-1">
             @foreach($link->pixels as $pixel)
                 <span class="bg-white/10 text-white/60 px-2 py-0.5 rounded text-xs">{{ $pixel->name }}</span>

@@ -1,5 +1,5 @@
 @extends('user.layouts.app')
-@section('title', 'Edit Digital Card')
+@section('title', 'Edit Contact Card')
 
 @section('content')
 <div class="max-w-3xl mx-auto">
@@ -7,7 +7,7 @@
         <div class="flex items-center gap-4">
             <a href="{{ route('user.links.show', $link) }}" class="text-white/30 hover:text-white/50" title="Back to link"><i class="fas fa-arrow-left"></i></a>
             <div>
-                <h1 class="text-2xl font-bold text-white">Edit Digital Card</h1>
+                <h1 class="text-2xl font-bold text-white">Edit Contact Card</h1>
                 <p class="text-xs text-white/40 mt-0.5">{{ $vcf->fullName() ?: 'Untitled' }}</p>
             </div>
         </div>

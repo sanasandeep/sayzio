@@ -793,7 +793,7 @@ function imageListUploader_{{ $gridImgId }}() {
 
 @elseif($block->type === 'social_proof')
     @php $userSps = \App\Modules\User\Models\SocialProof::where('user_id', auth()->id())->orderByDesc('id')->get(); @endphp
-    <label class="{{ $labelClass }}">Pick a Social Proof campaign</label>
+    <label class="{{ $labelClass }}">Pick a Buzz campaign</label>
     @if($userSps->isEmpty())
         <p class="text-xs text-white/40 mb-2">You haven't created any campaigns yet.</p>
         <a href="{{ route('user.social-proofs.create') }}" target="_blank" class="text-xs text-violet-400 hover:text-violet-300"><i class="fas fa-plus mr-1"></i>Create one</a>

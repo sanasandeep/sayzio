@@ -163,7 +163,7 @@
 
     <div class="flex items-center gap-3">
         <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold" style="background: var(--accent); color: #fff;">
-            <i class="fas fa-save"></i> {{ $isEdit ? 'Save Changes' : 'Create Splash Page' }}
+            <i class="fas fa-save"></i> {{ $isEdit ? 'Save Changes' : 'Create Intro' }}
         </button>
         @if($isEdit)
             <a href="{{ route('user.splash-pages.preview', $splashPage) }}" target="_blank"

@@ -1,14 +1,14 @@
 @extends('user.layouts.app')
-@section('title', 'Tracking Pixels')
+@section('title', 'Tracking')
 
 @section('content')
 <div class="flex items-center justify-between mb-6">
     <div>
-        <h1 class="text-2xl font-bold text-white">Tracking Pixels</h1>
-        <p class="text-white/40 text-sm mt-1">Manage your tracking pixels for retargeting</p>
+        <h1 class="text-2xl font-bold text-white">Tracking</h1>
+        <p class="text-white/40 text-sm mt-1">Manage your trackers for retargeting</p>
     </div>
     <a href="{{ route('user.pixels.create') }}" class="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
-        <i class="fas fa-plus"></i> Add Pixel
+        <i class="fas fa-plus"></i> Add Tracker
     </a>
 </div>
 
@@ -17,10 +17,10 @@
     <div class="w-16 h-16 bg-violet-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
         <i class="fas fa-bullseye text-violet-400 text-2xl"></i>
     </div>
-    <h3 class="text-lg font-semibold text-white mb-2">No tracking pixels yet</h3>
-    <p class="text-white/40 mb-4">Add tracking pixels to retarget link visitors.</p>
+    <h3 class="text-lg font-semibold text-white mb-2">No trackers yet</h3>
+    <p class="text-white/40 mb-4">Add trackers to retarget link visitors.</p>
     <a href="{{ route('user.pixels.create') }}" class="inline-flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-xl text-sm font-medium">
-        <i class="fas fa-plus"></i> Add Pixel
+        <i class="fas fa-plus"></i> Add Tracker
     </a>
 </div>
 @else
@@ -30,7 +30,7 @@
             <tr>
                 <th class="text-left px-6 py-3 text-xs font-medium text-white/40 uppercase">Name</th>
                 <th class="text-left px-6 py-3 text-xs font-medium text-white/40 uppercase">Type</th>
-                <th class="text-left px-6 py-3 text-xs font-medium text-white/40 uppercase">Pixel ID</th>
+                <th class="text-left px-6 py-3 text-xs font-medium text-white/40 uppercase">Tracker ID</th>
                 <th class="text-left px-6 py-3 text-xs font-medium text-white/40 uppercase">Links</th>
                 <th class="text-right px-6 py-3 text-xs font-medium text-white/40 uppercase" data-no-sort>Actions</th>
             </tr>
@@ -47,7 +47,7 @@
                 <td class="px-6 py-4 text-right">
                     <div class="flex items-center justify-end gap-2">
                         <a href="{{ route('user.pixels.edit', $pixel) }}" class="text-white/30 hover:text-violet-400"><i class="fas fa-edit"></i></a>
-                        <form action="{{ route('user.pixels.destroy', $pixel) }}" method="POST" onsubmit="return confirm('Delete this pixel?')">
+                        <form action="{{ route('user.pixels.destroy', $pixel) }}" method="POST" onsubmit="return confirm('Delete this tracker?')">
                             @csrf @method('DELETE')
                             <button class="text-white/30 hover:text-red-400"><i class="fas fa-trash"></i></button>
                         </form>

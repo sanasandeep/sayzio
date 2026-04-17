@@ -5,7 +5,7 @@
 <div class="max-w-4xl mx-auto">
     @include('user.partials.page-hero', [
         'title'    => $splashPage->name,
-        'subtitle' => 'Splash page settings',
+        'subtitle' => 'Intro settings',
         'icon'     => 'fa-rocket',
         'back'     => route('user.splash-pages.index'),
         'chips'    => [

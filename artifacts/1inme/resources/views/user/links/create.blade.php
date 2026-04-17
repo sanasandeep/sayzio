@@ -51,8 +51,8 @@
                     ['value' => 'url',     'icon' => 'fa-link',         'color' => 'text-violet-400',  'label' => 'Short Link'],
                     ['value' => 'biolink', 'icon' => 'fa-id-card',      'color' => 'text-pink-400',    'label' => 'Link in Bio'],
                     ['value' => 'file',    'icon' => 'fa-file',         'color' => 'text-emerald-400', 'label' => 'File Share'],
-                    ['value' => 'ics',     'icon' => 'fa-calendar',     'color' => 'text-amber-400',   'label' => 'Event Invite'],
-                    ['value' => 'vcf',     'icon' => 'fa-address-card', 'color' => 'text-cyan-400',    'label' => 'Digital Card'],
+                    ['value' => 'ics',     'icon' => 'fa-calendar',     'color' => 'text-amber-400',   'label' => 'Event'],
+                    ['value' => 'vcf',     'icon' => 'fa-address-card', 'color' => 'text-cyan-400',    'label' => 'Contact Card'],
                 ] as $opt)
                     <label class="relative cursor-pointer block">
                         <input type="radio" name="type" value="{{ $opt['value'] }}" x-model="type" class="sr-only">

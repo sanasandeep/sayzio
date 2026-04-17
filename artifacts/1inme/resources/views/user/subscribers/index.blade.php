@@ -1,12 +1,12 @@
 @extends('user.layouts.app')
-@section('title', 'Subscribers')
+@section('title', 'Leads')
 
 @section('content')
 <div class="max-w-7xl mx-auto" x-data="{ deleteId: null }">
     <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
-            <h1 class="text-2xl font-bold" style="color: var(--text-primary);">Subscribers</h1>
-            <p class="text-sm mt-1" style="color: var(--text-muted);">Manage your email & WhatsApp subscribers</p>
+            <h1 class="text-2xl font-bold" style="color: var(--text-primary);">Leads</h1>
+            <p class="text-sm mt-1" style="color: var(--text-muted);">Manage your email & WhatsApp leads</p>
         </div>
         <div class="flex items-center gap-2">
             <a href="{{ route('user.subscribers.compose') }}" class="px-4 py-2 rounded-xl text-sm font-medium text-white transition-all hover:-translate-y-0.5" style="background: linear-gradient(135deg, #7c3aed, #8b5cf6);">
@@ -89,7 +89,7 @@
             <table class="enhanced-table w-full text-sm">
                 <thead>
                     <tr style="border-bottom: 1px solid var(--border-subtle);">
-                        <th class="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider" style="color: var(--text-muted);">Subscriber</th>
+                        <th class="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider" style="color: var(--text-muted);">Lead</th>
                         <th class="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider" style="color: var(--text-muted);">Type</th>
                         <th class="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider" style="color: var(--text-muted);">Source</th>
                         <th class="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider" style="color: var(--text-muted);">Status</th>
@@ -143,7 +143,7 @@
                                         <i class="fas {{ $sub->status === 'active' ? 'fa-pause' : 'fa-play' }} text-xs"></i>
                                     </button>
                                 </form>
-                                <form method="POST" action="{{ route('user.subscribers.destroy', $sub) }}" onsubmit="return confirm('Remove this subscriber?')">
+                                <form method="POST" action="{{ route('user.subscribers.destroy', $sub) }}" onsubmit="return confirm('Remove this lead?')">
                                     @csrf @method('DELETE')
                                     <button type="submit" class="p-1.5 rounded-lg transition hover:bg-red-500/10" style="color: var(--text-muted);" title="Delete">
                                         <i class="fas fa-trash text-xs"></i>
@@ -165,8 +165,8 @@
         <div class="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4" style="background: linear-gradient(135deg, rgba(124,58,237,0.2), rgba(139,92,246,0.1));">
             <i class="fas fa-users text-2xl text-violet-400"></i>
         </div>
-        <h3 class="text-lg font-semibold mb-2" style="color: var(--text-primary);">No subscribers yet</h3>
-        <p class="text-sm mb-4" style="color: var(--text-muted);">Add Email Subscribe, WhatsApp Channel, or WhatsApp Number blocks to your Link in Bio pages to start collecting subscribers.</p>
+        <h3 class="text-lg font-semibold mb-2" style="color: var(--text-primary);">No leads yet</h3>
+        <p class="text-sm mb-4" style="color: var(--text-muted);">Add Email Subscribe, WhatsApp Channel, or WhatsApp Number blocks to your link in bio pages to start collecting leads.</p>
         <a href="{{ route('user.links.index') }}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-white" style="background: linear-gradient(135deg, #7c3aed, #8b5cf6);">
             <i class="fas fa-link"></i>Go to Links
         </a>

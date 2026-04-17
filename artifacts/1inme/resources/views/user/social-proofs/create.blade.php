@@ -1,12 +1,12 @@
 @extends('user.layouts.app')
-@section('title', 'New Social Proof')
+@section('title', 'New Buzz')
 
 @section('content')
 <div class="max-w-3xl mx-auto">
     <div class="mb-6">
         <a href="{{ route('user.social-proofs.index') }}" class="text-white/50 hover:text-white text-sm"><i class="fas fa-arrow-left mr-1"></i> Back</a>
         <h1 class="text-2xl font-bold text-white mt-2">Choose a notification type</h1>
-        <p class="text-white/40 text-sm mt-1">Pick the kind of social proof you want to display.</p>
+        <p class="text-white/40 text-sm mt-1">Pick the kind of buzz you want to display.</p>
     </div>
 
     @if($errors->any())

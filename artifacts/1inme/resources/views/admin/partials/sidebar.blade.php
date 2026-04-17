@@ -61,7 +61,7 @@
         <a href="{{ route('admin.coach-defaults.edit') }}"
            class="sidebar-link {{ request()->routeIs('admin.coach-defaults.*') ? 'active' : '' }}">
             <i class="fas fa-wand-magic-sparkles"></i>
-            <span>Coach Defaults</span>
+            <span>Score Presets</span>
         </a>
     </nav>
 

@@ -28,8 +28,8 @@
                 <option value="url" {{ request('type') === 'url' ? 'selected' : '' }} class="bg-[#0a0612]">Short Link</option>
                 <option value="biolink" {{ request('type') === 'biolink' ? 'selected' : '' }} class="bg-[#0a0612]">Link in Bio</option>
                 <option value="file" {{ request('type') === 'file' ? 'selected' : '' }} class="bg-[#0a0612]">File Share</option>
-                <option value="ics" {{ request('type') === 'ics' ? 'selected' : '' }} class="bg-[#0a0612]">Event Invite</option>
-                <option value="vcf" {{ request('type') === 'vcf' ? 'selected' : '' }} class="bg-[#0a0612]">Digital Card</option>
+                <option value="ics" {{ request('type') === 'ics' ? 'selected' : '' }} class="bg-[#0a0612]">Event</option>
+                <option value="vcf" {{ request('type') === 'vcf' ? 'selected' : '' }} class="bg-[#0a0612]">Contact Card</option>
             </select>
         </div>
         <div>
@@ -74,8 +74,8 @@
             'url'     => ['icon' => 'fa-link',         'bg' => 'rgba(124,58,237,0.08)', 'border' => 'rgba(124,58,237,0.12)', 'color' => '#a78bfa', 'label' => 'Short Link'],
             'biolink' => ['icon' => 'fa-id-card',      'bg' => 'rgba(236,72,153,0.08)', 'border' => 'rgba(236,72,153,0.12)', 'color' => '#f472b6', 'label' => 'Link in Bio'],
             'file'    => ['icon' => 'fa-file',         'bg' => 'rgba(16,185,129,0.08)', 'border' => 'rgba(16,185,129,0.12)', 'color' => '#34d399', 'label' => 'File Share'],
-            'ics'     => ['icon' => 'fa-calendar',     'bg' => 'rgba(245,158,11,0.08)', 'border' => 'rgba(245,158,11,0.12)', 'color' => '#fbbf24', 'label' => 'Event Invite'],
-            'vcf'     => ['icon' => 'fa-address-card', 'bg' => 'rgba(6,182,212,0.08)',  'border' => 'rgba(6,182,212,0.12)',  'color' => '#22d3ee', 'label' => 'Digital Card'],
+            'ics'     => ['icon' => 'fa-calendar',     'bg' => 'rgba(245,158,11,0.08)', 'border' => 'rgba(245,158,11,0.12)', 'color' => '#fbbf24', 'label' => 'Event'],
+            'vcf'     => ['icon' => 'fa-address-card', 'bg' => 'rgba(6,182,212,0.08)',  'border' => 'rgba(6,182,212,0.12)',  'color' => '#22d3ee', 'label' => 'Contact Card'],
         ];
         $ts = $typeStyles[$link->type] ?? $typeStyles['url'];
 

@@ -728,9 +728,9 @@ class LinkPerformanceCoach
         return [
             'severity' => 'tip', 'priority' => 25,
             'icon' => 'fa-bullseye-arrow',
-            'headline' => 'No tracking pixel attached',
-            'reason'   => 'Attach a Meta, TikTok, or Google pixel to retarget the visitors you already have.',
-            'action_label' => 'Add pixel',
+            'headline' => 'No tracker attached',
+            'reason'   => 'Attach a Meta, TikTok, or Google tracker to retarget the visitors you already have.',
+            'action_label' => 'Add tracker',
             'action_url'   => self::pixelsUrl(),
         ];
     }
@@ -796,9 +796,9 @@ class LinkPerformanceCoach
             [
                 'severity' => 'tip', 'priority' => 70,
                 'icon' => 'fa-bullseye-arrow',
-                'headline' => 'Attach a tracking pixel',
+                'headline' => 'Attach a tracker',
                 'reason'   => 'Retargeting unlocks as soon as you start getting traffic.',
-                'action_label' => 'Add pixel',
+                'action_label' => 'Add tracker',
                 'action_url'   => self::pixelsUrl(),
             ],
         ];

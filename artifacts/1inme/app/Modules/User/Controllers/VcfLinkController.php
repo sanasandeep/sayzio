@@ -64,7 +64,7 @@ class VcfLinkController extends Controller
         VcfData::create($payload);
 
         return redirect()->route('user.links.show', $link)
-            ->with('success', 'Digital Card created successfully.');
+            ->with('success', 'Contact Card created successfully.');
     }
 
     public function update(Request $request, Link $link)
@@ -112,7 +112,7 @@ class VcfLinkController extends Controller
         }
 
         return redirect()->route('user.links.show', $link)
-            ->with('success', 'Digital Card updated.');
+            ->with('success', 'Contact Card updated.');
     }
 
     // ---- Helpers ----------------------------------------------------------
@@ -134,7 +134,7 @@ class VcfLinkController extends Controller
             $v['prefix'] ?? null, $v['first_name'] ?? null, $v['middle_name'] ?? null,
             $v['last_name'] ?? null, $v['suffix'] ?? null,
         ])));
-        return $name ?: ($v['organization'] ?? 'Digital Card');
+        return $name ?: ($v['organization'] ?? 'Contact Card');
     }
 
     private function validatePayload(Request $request, ?Link $link = null): array

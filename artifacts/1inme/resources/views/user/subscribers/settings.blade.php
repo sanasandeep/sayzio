@@ -29,7 +29,7 @@
                 </div>
                 <div>
                     <h2 class="font-semibold" style="color: var(--text-primary);">Email Settings</h2>
-                    <p class="text-xs" style="color: var(--text-muted);">Configure how emails are sent to subscribers</p>
+                    <p class="text-xs" style="color: var(--text-muted);">Configure how emails are sent to leads</p>
                 </div>
             </div>
 

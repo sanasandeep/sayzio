@@ -1,5 +1,5 @@
 @extends('user.layouts.app')
-@section('title', 'Edit Social Proof')
+@section('title', 'Edit Buzz')
 
 @section('content')
 @php
@@ -287,7 +287,7 @@
             </div>
             <div class="glass rounded-2xl p-5">
                 <h3 class="text-white font-semibold mb-2">Use in a biolink</h3>
-                <p class="text-white/60 text-sm">In any biolink editor, add a <strong class="text-white">Social Proof</strong> block and pick this campaign — it will render inline on the biolink page.</p>
+                <p class="text-white/60 text-sm">In any biolink editor, add a <strong class="text-white">Buzz</strong> block and pick this campaign — it will render inline on the biolink page.</p>
             </div>
             <div class="glass rounded-2xl p-5">
                 <h3 class="text-white font-semibold mb-2">Live preview URL</h3>

@@ -9,7 +9,7 @@
         </a>
         <div>
             <h1 class="text-2xl font-bold" style="color: var(--text-primary);">Message History</h1>
-            <p class="text-sm mt-0.5" style="color: var(--text-muted);">All messages sent to your subscribers</p>
+            <p class="text-sm mt-0.5" style="color: var(--text-muted);">All messages sent to your leads</p>
         </div>
     </div>
 
@@ -48,7 +48,7 @@
             <i class="fas fa-paper-plane text-2xl text-violet-400"></i>
         </div>
         <h3 class="text-lg font-semibold mb-2" style="color: var(--text-primary);">No messages yet</h3>
-        <p class="text-sm" style="color: var(--text-muted);">Messages you send to subscribers will appear here.</p>
+        <p class="text-sm" style="color: var(--text-muted);">Messages you send to leads will appear here.</p>
     </div>
     @endif
 </div>

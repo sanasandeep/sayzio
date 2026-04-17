@@ -1,17 +1,17 @@
 @extends('user.layouts.app')
-@section('title', 'Splash Pages')
+@section('title', 'Intros')
 
 @section('content')
 <div class="max-w-7xl mx-auto">
     @include('user.partials.page-hero', [
-        'title'    => 'Splash Pages',
+        'title'    => 'Intros',
         'subtitle' => 'Reusable transition pages — attach one to any link.',
         'icon'     => 'fa-rocket',
         'chips'    => [
             ['icon' => 'fa-layer-group', 'text' => $splashPages->total() . ' total'],
         ],
         'actions'  => [
-            ['url' => route('user.splash-pages.create'), 'label' => 'New Splash Page', 'icon' => 'fa-plus', 'class' => 'btn-primary'],
+            ['url' => route('user.splash-pages.create'), 'label' => 'New Intro', 'icon' => 'fa-plus', 'class' => 'btn-primary'],
         ],
     ])
 
@@ -20,7 +20,7 @@
             <div class="relative flex-1 max-w-md">
                 <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs" style="color: var(--text-faint);"></i>
                 <input type="text" name="search" value="{{ request('search') }}"
-                       placeholder="Search splash pages…"
+                       placeholder="Search intros…"
                        class="w-full pl-9 pr-3 py-2 text-sm rounded-lg outline-none"
                        style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
             </div>
@@ -43,7 +43,7 @@
             <div class="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center" style="background: var(--c-primary-soft);">
                 <i class="fas fa-rocket text-2xl" style="color: var(--c-primary);"></i>
             </div>
-            <h3 class="text-lg font-bold mb-2" style="color: var(--text-primary);">No splash pages yet</h3>
+            <h3 class="text-lg font-bold mb-2" style="color: var(--text-primary);">No intros yet</h3>
             <p class="text-sm mb-5" style="color: var(--text-muted);">Create a reusable transition page that visitors see before reaching their destination.</p>
             <a href="{{ route('user.splash-pages.create') }}"
                class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold"
@@ -82,7 +82,7 @@
                     <div class="flex items-center gap-2 pt-3 border-t" style="border-color: var(--border-subtle);">
                         <a href="{{ route('user.splash-pages.edit', $sp) }}" class="flex-1 text-center px-3 py-1.5 text-xs rounded-lg font-semibold" style="background: var(--bg-glass-hover); color: var(--text-primary);"><i class="fas fa-pen mr-1"></i> Edit</a>
                         <a href="{{ route('user.splash-pages.preview', $sp) }}" target="_blank" class="px-3 py-1.5 text-xs rounded-lg" style="background: var(--bg-glass-hover); color: var(--text-secondary);" title="Preview"><i class="fas fa-eye"></i></a>
-                        <form method="POST" action="{{ route('user.splash-pages.destroy', $sp) }}" onsubmit="return confirm('Delete this splash page? Links using it will lose their splash.');">
+                        <form method="POST" action="{{ route('user.splash-pages.destroy', $sp) }}" onsubmit="return confirm('Delete this intro? Links using it will lose their intro.');">
                             @csrf @method('DELETE')
                             <button type="submit" class="px-3 py-1.5 text-xs rounded-lg" style="background: var(--bg-glass-hover); color: var(--c-danger);" title="Delete"><i class="fas fa-trash"></i></button>
                         </form>

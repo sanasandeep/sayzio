@@ -363,8 +363,8 @@ class Link extends Model
         'url'     => 'Short Link',
         'biolink' => 'Link in Bio',
         'file'    => 'File Share',
-        'ics'     => 'Event Invite',
-        'vcf'     => 'Digital Card',
+        'ics'     => 'Event',
+        'vcf'     => 'Contact Card',
     ];
 
     public static function typeLabel(?string $type): string

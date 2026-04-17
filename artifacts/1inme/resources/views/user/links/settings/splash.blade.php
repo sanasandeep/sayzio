@@ -1,10 +1,10 @@
 @extends('user.layouts.app')
-@section('title', 'Splash · ' . ($link->title ?: $link->alias))
+@section('title', 'Intro · ' . ($link->title ?: $link->alias))
 
 @section('content')
 <div class="max-w-3xl mx-auto">
     @include('user.partials.page-hero', [
-        'title'    => 'Splash Page',
+        'title'    => 'Intro',
         'subtitle' => $link->title ?: $link->alias,
         'icon'     => 'fa-rocket',
         'favicon'  => $link->favicon,
@@ -22,7 +22,7 @@
         <div class="card-premium p-6">
             <div class="flex items-start justify-between gap-4">
                 <div>
-                    <h3 class="text-base font-bold mb-1" style="color: var(--text-primary);">Show a splash before this link</h3>
+                    <h3 class="text-base font-bold mb-1" style="color: var(--text-primary);">Show an intro before this link</h3>
                     <p class="text-xs" style="color: var(--text-muted);">Display a transition page (announcements, branding, ads, disclaimers) before sending visitors to the destination.</p>
                 </div>
                 <label class="inline-flex items-center cursor-pointer flex-shrink-0">
@@ -36,12 +36,12 @@
         </div>
 
         <div class="card-premium p-6" x-show="enabled" x-cloak>
-            <h3 class="text-base font-bold mb-1" style="color: var(--text-primary);">Choose splash page</h3>
-            <p class="text-xs mb-4" style="color: var(--text-muted);">Pick from your reusable splash pages, or create a new one.</p>
+            <h3 class="text-base font-bold mb-1" style="color: var(--text-primary);">Choose intro</h3>
+            <p class="text-xs mb-4" style="color: var(--text-muted);">Pick from your reusable intros, or create a new one.</p>
 
             @if($splashPages->isEmpty())
                 <div class="rounded-lg p-5 text-center" style="background: var(--bg-glass-hover); border: 1px dashed var(--border-glass);">
-                    <p class="text-sm mb-3" style="color: var(--text-muted);">You don't have any splash pages yet.</p>
+                    <p class="text-sm mb-3" style="color: var(--text-muted);">You don't have any intros yet.</p>
                     <a href="{{ route('user.splash-pages.create') }}"
                        class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold" style="background: var(--accent); color: #fff;">
                         <i class="fas fa-plus"></i> Create your first
@@ -71,7 +71,7 @@
 
                 <div class="mt-4 pt-4 border-t" style="border-color: var(--border-subtle);">
                     <a href="{{ route('user.splash-pages.create') }}" class="text-xs font-semibold inline-flex items-center gap-1.5" style="color: var(--accent);">
-                        <i class="fas fa-plus"></i> Create new splash page
+                        <i class="fas fa-plus"></i> Create new intro
                     </a>
                 </div>
             @endif
