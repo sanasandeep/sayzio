@@ -305,4 +305,93 @@
 
 {{-- Live preview of THIS notification on the editor itself --}}
 <script src="{{ url('/sp/' . $proof->uuid . '.js') }}" async></script>
+
+{{-- Reactively update the live preview as the editor tweaks design fields,
+     without needing to save+reload. Runs once after DOM ready. --}}
+<script>
+(function () {
+    var POS = ['bottom-left','bottom-right','top-left','top-right'];
+    var THEMES = ['light','dark'];
+    var ANIMS = ['slide-up','fade','zoom'];
+    var RADII = {sm:'6px', md:'10px', lg:'14px', xl:'20px', full:'999px'};
+
+    function val(name) {
+        var el = document.querySelector('[name="' + name + '"]');
+        if (!el) return '';
+        if (el.type === 'checkbox') return el.checked;
+        if (el.type === 'color') return el.value;
+        return el.value;
+    }
+    function checkbox(name) {
+        // For checkboxes we have a hidden 0 + a checkbox 1; read the visible one
+        var els = document.querySelectorAll('[name="' + name + '"]');
+        for (var i = 0; i < els.length; i++) {
+            if (els[i].type === 'checkbox') return els[i].checked;
+        }
+        return false;
+    }
+
+    function applyDesign() {
+        var position  = val('design[position]')  || 'bottom-left';
+        var theme     = val('design[theme]')     || 'light';
+        var animation = val('design[animation]') || 'slide-up';
+        var rounded   = val('design[rounded]')   || 'lg';
+        var accent    = val('design[accent]')    || '#7c3aed';
+        var shadow    = checkbox('design[shadow]');
+        var showClose = checkbox('design[show_close]');
+
+        var containers = document.querySelectorAll('.__1inme_sp');
+        containers.forEach(function (c) {
+            // Strip old position/theme/animation classes
+            POS.forEach(function (p)   { c.classList.remove('__1inme_sp_' + p); });
+            THEMES.forEach(function (t){ c.classList.remove('__1inme_sp_' + t); });
+            ANIMS.forEach(function (a) { c.classList.remove('__1inme_sp_anim_' + a); });
+            // Apply new
+            c.classList.add('__1inme_sp_' + position);
+            c.classList.add('__1inme_sp_' + theme);
+            c.classList.add('__1inme_sp_anim_' + animation);
+            c.classList.toggle('__1inme_sp_shadow', !!shadow);
+            c.style.setProperty('--sp-accent', accent);
+            c.style.setProperty('--sp-radius', RADII[rounded] || RADII.lg);
+            // Toggle close buttons
+            c.querySelectorAll('.__sp_close').forEach(function (btn) {
+                btn.style.display = showClose ? '' : 'none';
+            });
+        });
+    }
+
+    function bind() {
+        var fields = document.querySelectorAll(
+            '[name="design[position]"],[name="design[theme]"],[name="design[animation]"],' +
+            '[name="design[rounded]"],[name="design[accent]"],[name="design[shadow]"],[name="design[show_close]"]'
+        );
+        fields.forEach(function (el) {
+            el.addEventListener('change', applyDesign);
+            el.addEventListener('input',  applyDesign);
+        });
+        // Apply once on load (covers any post-render race with the widget)
+        applyDesign();
+        // The widget recreates its container on each show for some types — keep
+        // re-applying via a MutationObserver so new containers inherit settings.
+        var mo = new MutationObserver(function (muts) {
+            for (var i = 0; i < muts.length; i++) {
+                for (var j = 0; j < muts[i].addedNodes.length; j++) {
+                    var n = muts[i].addedNodes[j];
+                    if (n.nodeType === 1 && n.classList && n.classList.contains('__1inme_sp')) {
+                        applyDesign();
+                        return;
+                    }
+                }
+            }
+        });
+        mo.observe(document.body, {childList: true});
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bind);
+    } else {
+        bind();
+    }
+})();
+</script>
 @endsection
