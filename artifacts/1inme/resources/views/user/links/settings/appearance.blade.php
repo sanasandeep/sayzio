@@ -32,6 +32,14 @@
     @include('user.links.partials.editor-header', ['link' => $link, 'activeMainTab' => 'settings'])
     @include('user.links.partials.settings-header', ['link' => $link, 'activeSettingsTab' => $activeSettingsTab])
 
+    {{-- Aliases card lives OUTSIDE the page-settings form because it contains
+         its own <form> tags (add / promote / delete) — nesting forms is invalid HTML. --}}
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start mb-6">
+        <div class="lg:col-span-7">
+            @include('user.links.partials.aliases-card', ['link' => $link])
+        </div>
+    </div>
+
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         <div class="lg:col-span-7">
             <form method="POST" action="{{ route('user.links.page-settings', $link) }}" enctype="multipart/form-data">
@@ -39,14 +47,8 @@
 
                 <div class="space-y-6">
 
-                    @php
-                        $maxExtras = auth()->user()->getMaxAliasesPerLink();
-                        $extras = $link->aliases()->orderBy('created_at')->get();
-                        $usedExtras = $extras->count();
-                        $canAddMore = $maxExtras === -1 || $usedExtras < $maxExtras;
-                        $aliasHost = request()->getHost();
-                    @endphp
-                    <div class="card-premium p-6" x-data="{ editing: false, alias: '{{ $link->alias }}' }">
+                    {{-- Legacy inline aliases card kept hidden as a structural placeholder; do not display. --}}
+                    <div style="display:none" x-data="{ editing: false, alias: '{{ $link->alias }}' }">
                         <div class="flex items-center justify-between mb-4">
                             <div class="flex items-center gap-3">
                                 <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(124,58,237,0.1);"><i class="fas fa-link text-violet-400 text-xs"></i></div>
