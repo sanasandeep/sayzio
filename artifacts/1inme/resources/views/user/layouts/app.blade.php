@@ -405,7 +405,7 @@
                 </button>
             </div>
 
-            <nav class="flex-1 py-4 overflow-y-auto sidebar-nav-scroll" :class="sidebarMode === 'icons' ? 'px-2' : 'px-3'">
+            <nav class="flex-1 py-4 overflow-y-auto overflow-x-hidden sidebar-nav-scroll" :class="sidebarMode === 'icons' ? 'px-2' : 'px-3'">
                 <a href="{{ route('user.dashboard') }}"
                    class="sidebar-link {{ request()->routeIs('user.dashboard') ? 'active' : '' }}"
                    style="--nav-tint:#7c3aed; --nav-tint-soft:rgba(124,58,237,0.12);">
