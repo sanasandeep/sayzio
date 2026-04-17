@@ -40,7 +40,7 @@
                     </span>
                 </a>
                 <p class="text-xl font-semibold mb-2" style="color: var(--text-secondary);">The link management platform<br><span class="gradient-text">built for growth.</span></p>
-                <p class="text-sm leading-relaxed mb-12" style="color: var(--text-dimmed);">Shorten URLs, build bio pages, generate QR codes, and track every click with powerful analytics.</p>
+                <p class="text-sm leading-relaxed mb-12" style="color: var(--text-dimmed);">Shorten URLs, build Link in Bio pages, generate QR codes, and track every click with powerful analytics.</p>
 
                 <div class="space-y-6">
                     <div class="flex items-start gap-4 group">
@@ -49,7 +49,7 @@
                         </div>
                         <div>
                             <p class="text-sm font-bold mb-0.5" style="color: var(--text-primary);">6 Link Types</p>
-                            <p class="text-xs" style="color: var(--text-dimmed);">URL shortener, bio links, file links, vCards, events & more</p>
+                            <p class="text-xs" style="color: var(--text-dimmed);">Short Links, Link in Bio pages, File Share, Digital Cards, Event Invites & more</p>
                         </div>
                     </div>
                     <div class="flex items-start gap-4 group">
@@ -67,7 +67,7 @@
                         </div>
                         <div>
                             <p class="text-sm font-bold mb-0.5" style="color: var(--text-primary);">99+ Link in Bio Blocks</p>
-                            <p class="text-xs" style="color: var(--text-dimmed);">Build stunning bio pages with videos, forms, maps & more</p>
+                            <p class="text-xs" style="color: var(--text-dimmed);">Build stunning Link in Bio pages with videos, forms, maps & more</p>
                         </div>
                     </div>
                 </div>

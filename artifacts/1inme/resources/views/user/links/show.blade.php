@@ -959,9 +959,9 @@
         <div class="text-center py-10 px-6 rounded-xl" style="background: var(--bg-glass-input); border: 1px dashed var(--border-glass);">
             <i class="fas fa-th-large text-2xl mb-2" style="color: var(--text-faint);"></i>
             <p class="text-sm font-semibold mb-1" style="color: var(--text-primary);">No block clicks recorded yet</p>
-            <p class="text-xs" style="color: var(--text-faint);">Visit your public bio page and click a block — it will appear here within seconds.</p>
+            <p class="text-xs" style="color: var(--text-faint);">Visit your public Link in Bio page and click a block — it will appear here within seconds.</p>
             <a href="{{ url('/' . $link->alias) }}" target="_blank" rel="noopener" class="btn-ghost text-xs py-2 mt-3 inline-flex">
-                <i class="fas fa-external-link-alt text-[10px]"></i> Open my bio page
+                <i class="fas fa-external-link-alt text-[10px]"></i> Open my Link in Bio
             </a>
         </div>
     @else

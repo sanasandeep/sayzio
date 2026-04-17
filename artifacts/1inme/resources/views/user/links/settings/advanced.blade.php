@@ -41,7 +41,7 @@
                 <div class="space-y-3">
                     <div>
                         <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">SEO Title</label>
-                        <input type="text" name="meta[seo_title]" value="{{ $meta['seo_title'] ?? $link->seo_title ?? '' }}" placeholder="My Awesome Bio Page" class="theme-input w-full" maxlength="70">
+                        <input type="text" name="meta[seo_title]" value="{{ $meta['seo_title'] ?? $link->seo_title ?? '' }}" placeholder="My Awesome Link in Bio" class="theme-input w-full" maxlength="70">
                         <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">Recommended: 50-60 characters. Shown in browser tabs & search results.</p>
                     </div>
                     <div>
@@ -51,7 +51,7 @@
                     </div>
                     <div>
                         <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Meta Keywords</label>
-                        <input type="text" name="meta[keywords]" value="{{ $meta['keywords'] ?? '' }}" placeholder="bio link, portfolio, social media" class="theme-input w-full">
+                        <input type="text" name="meta[keywords]" value="{{ $meta['keywords'] ?? '' }}" placeholder="link in bio, portfolio, social media" class="theme-input w-full">
                         <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">Comma-separated keywords relevant to your page.</p>
                     </div>
                     <div class="grid grid-cols-2 gap-3">

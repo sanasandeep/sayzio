@@ -46,7 +46,7 @@
     <div class="glass rounded-2xl border border-white/10 p-12 text-center">
         <i class="fas fa-layer-group text-3xl text-violet-400 mb-3"></i>
         <h3 class="text-base font-semibold text-white mb-1">No {{ $tab }} templates yet</h3>
-        <p class="text-sm text-white/40 mb-4">Capture a snapshot from any biolink to seed the gallery.</p>
+        <p class="text-sm text-white/40 mb-4">Capture a snapshot from any Link in Bio page to seed the gallery.</p>
         <a href="{{ route('admin.templates.create', ['kind' => $tab]) }}" class="inline-block px-4 py-2 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700 transition">
             Create Template
         </a>

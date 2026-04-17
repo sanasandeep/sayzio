@@ -73,9 +73,9 @@
         <h3 class="text-sm font-semibold text-white mb-1">{{ $isEdit ? 'Re-capture Snapshot' : 'Snapshot Source' }}</h3>
         <p class="text-xs text-white/40 mb-4">
             @if($kind === 'card')
-                Pick a biolink, then choose a card block from it to snapshot.
+                Pick a Link in Bio page, then choose a card block from it to snapshot.
             @else
-                Pick a biolink to snapshot all of its page settings + block tree.
+                Pick a Link in Bio page to snapshot all of its page settings + block tree.
             @endif
         </p>
 
@@ -89,7 +89,7 @@
         <div :class="{{ $isEdit ? '!recapture && !showJson && \'opacity-40 pointer-events-none\'' : 'false' }}">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div class="md:col-span-2 relative">
-                    <label class="block text-xs font-medium text-white/60 mb-1.5">Search biolink (title, alias, user email)</label>
+                    <label class="block text-xs font-medium text-white/60 mb-1.5">Search Link in Bio page (title, alias, user email)</label>
                     <input type="text" x-model="search" @input.debounce.300ms="searchLinks()" placeholder="Type to search…" class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white">
                     <div x-show="results.length" x-cloak class="absolute z-10 left-0 right-0 mt-1 max-h-60 overflow-y-auto rounded-xl border border-white/10 bg-[#0d0818] shadow-2xl">
                         <template x-for="r in results" :key="r.id">

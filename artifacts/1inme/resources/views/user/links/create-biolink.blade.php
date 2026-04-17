@@ -18,7 +18,7 @@
         <div class="glass rounded-2xl p-6 mb-6 space-y-4">
             <div>
                 <label class="block text-sm font-medium text-white/60 mb-1.5">Title</label>
-                <input type="text" name="title" value="{{ old('title', $prefillTitle ?? '') }}" placeholder="My bio page"
+                <input type="text" name="title" value="{{ old('title', $prefillTitle ?? '') }}" placeholder="My Link in Bio"
                        class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none transition-all">
                 <p class="text-xs text-white/30 mt-1">Shown in your dashboard. Visitors won't see this directly.</p>
                 @error('title') <p class="text-red-400 text-sm mt-1">{{ $message }}</p> @enderror
