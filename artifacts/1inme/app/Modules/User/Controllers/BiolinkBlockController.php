@@ -915,13 +915,20 @@ class BiolinkBlockController extends Controller
             'languages' => null,
         ];
 
+        // CSV-style fields (free-form text, comma-separated): accept scalar string too.
+        $csvFields = ['countries', 'cities', 'languages'];
+
         $result = [];
         foreach ($allowed as $key => $validValues) {
-            if (!isset($input[$key]) || !is_array($input[$key])) {
+            $raw = $input[$key] ?? null;
+            if (is_string($raw) && in_array($key, $csvFields, true)) {
+                $raw = array_map('trim', explode(',', $raw));
+            }
+            if (!is_array($raw)) {
                 $result[$key] = [];
                 continue;
             }
-            $values = array_filter(array_map('trim', $input[$key]), fn($v) => $v !== '');
+            $values = array_filter(array_map('trim', $raw), fn($v) => $v !== '');
             if ($validValues !== null) {
                 $values = array_values(array_intersect($values, $validValues));
             } else {
@@ -929,6 +936,28 @@ class BiolinkBlockController extends Controller
             }
             $result[$key] = $values;
         }
+
+        // Time slots: list of { days: [mon..sun], start: HH:MM, end: HH:MM }.
+        // Empty list = no time-of-day restriction.
+        $validDays = ['mon','tue','wed','thu','fri','sat','sun'];
+        $slots = [];
+        $rawSlots = $input['time_slots'] ?? [];
+        if (is_array($rawSlots)) {
+            foreach ($rawSlots as $slot) {
+                if (!is_array($slot)) continue;
+                $days = is_array($slot['days'] ?? null)
+                    ? array_values(array_intersect(array_map('strtolower', $slot['days']), $validDays))
+                    : [];
+                $start = (string)($slot['start'] ?? '');
+                $end   = (string)($slot['end'] ?? '');
+                if (!preg_match('/^\d{2}:\d{2}$/', $start) || !preg_match('/^\d{2}:\d{2}$/', $end)) continue;
+                if (empty($days)) continue;
+                $slots[] = ['days' => $days, 'start' => $start, 'end' => $end];
+                if (count($slots) >= 20) break; // hard cap
+            }
+        }
+        $result['time_slots'] = $slots;
+
         return $result;
     }
 

@@ -575,7 +575,54 @@ class BiolinkBlock extends Model
             if ($lang && !in_array($lang, $v['languages'])) return false;
         }
 
+        if (!empty($v['time_slots']) && is_array($v['time_slots'])) {
+            if (!self::matchesTimeSlot($v['time_slots'])) return false;
+        }
+
         return true;
+    }
+
+    /**
+     * Returns true if "now" (in the app timezone) falls inside at least one
+     * configured slot. Each slot = [days => [mon..sun], start => HH:MM, end => HH:MM].
+     * Across-midnight ranges (start > end) are treated as wrapping into the next day.
+     */
+    public static function matchesTimeSlot(array $slots): bool
+    {
+        try {
+            $tz = config('app.timezone') ?: 'UTC';
+            $now = new \DateTimeImmutable('now', new \DateTimeZone($tz));
+        } catch (\Throwable $e) {
+            return true; // fail-open on bad tz
+        }
+
+        $dayMap = [1 => 'mon', 2 => 'tue', 3 => 'wed', 4 => 'thu', 5 => 'fri', 6 => 'sat', 7 => 'sun'];
+        $today = $dayMap[(int)$now->format('N')] ?? '';
+        $yesterday = $dayMap[(int)$now->modify('-1 day')->format('N')] ?? '';
+        $minutesNow = ((int)$now->format('G')) * 60 + (int)$now->format('i');
+
+        foreach ($slots as $slot) {
+            if (!is_array($slot)) continue;
+            $days = (array)($slot['days'] ?? []);
+            if (empty($days)) continue;
+            $start = $slot['start'] ?? '';
+            $end   = $slot['end']   ?? '';
+            if (!preg_match('/^(\d{2}):(\d{2})$/', $start, $sM) || !preg_match('/^(\d{2}):(\d{2})$/', $end, $eM)) continue;
+            $startMin = ((int)$sM[1]) * 60 + (int)$sM[2];
+            $endMin   = ((int)$eM[1]) * 60 + (int)$eM[2];
+
+            if ($startMin <= $endMin) {
+                // Same-day window
+                if (in_array($today, $days, true) && $minutesNow >= $startMin && $minutesNow < $endMin) {
+                    return true;
+                }
+            } else {
+                // Wraps midnight: [start..24:00) on chosen day OR [00:00..end) on the next day
+                if (in_array($today, $days, true) && $minutesNow >= $startMin) return true;
+                if (in_array($yesterday, $days, true) && $minutesNow < $endMin) return true;
+            }
+        }
+        return false;
     }
 
     public static function detectCountry($request): string
