@@ -1,5 +1,5 @@
 <header class="h-[60px] flex items-center justify-between px-5 sticky top-0 z-20 flex-shrink-0"
-        style="border-bottom: 1px solid var(--border-subtle); background: var(--bg-header); backdrop-filter: blur(24px) saturate(1.2); -webkit-backdrop-filter: blur(24px) saturate(1.2);">
+        style="border-bottom: 1px solid var(--border-subtle); background: var(--bg-header); backdrop-filter: none; -webkit-backdrop-filter: none;">
     <div class="flex items-center gap-3">
         <button @click="mobileMenu = !mobileMenu" class="lg:hidden hover:opacity-80 p-1" style="color: var(--text-muted);">
             <i class="fas fa-bars"></i>

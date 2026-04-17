@@ -1,7 +1,7 @@
 <script>
 (function(){
     const saved = localStorage.getItem('1inme_theme');
-    if(saved === 'light') document.documentElement.classList.add('light-mode');
+    if(saved !== 'dark') document.documentElement.classList.add('light-mode');
 })();
 </script>
 <style>
@@ -59,50 +59,50 @@
     }
 
     html.light-mode {
-        /* Premium light — soft canvas, white cards/sidebar for contrast */
-        --bg-body: #f7f8fb;
+        /* Metronic demo1 inspired — flat, clean, ultra-light surfaces */
+        --bg-body: #fcfcfc;
         --bg-sidebar: #ffffff;
         --bg-sidebar-mobile: #ffffff;
         --bg-header: #ffffff;
         --bg-glass: #ffffff;
         --bg-glass-light: #ffffff;
-        --bg-glass-hover: #f3f5fa;
+        --bg-glass-hover: #f9f9f9;
         --bg-glass-input: #ffffff;
         --bg-glass-input-focus: #ffffff;
-        --bg-card: #f7f8fb;
-        --bg-card-hover: #fbfcfe;
-        --border-glass: #d3d8e4;
-        --border-glass-light: #b8bfd0;
-        --border-subtle: #eef0f5;
-        --text-primary: #0f1729;
-        --text-secondary: #2c3548;
-        --text-muted: #5a6478;
-        --text-dimmed: #8b94a6;
-        --text-faint: #b3bac8;
-        --text-label: #8b94a6;
-        --sidebar-link: #4a5468;
-        --sidebar-link-hover-bg: #f4f5fa;
-        --sidebar-link-hover-text: #0f1729;
-        --sidebar-active-bg: rgba(124,58,237,0.08);
-        --sidebar-active-border: rgba(124,58,237,0.22);
-        --sidebar-active-text: #5b21b6;
-        --accent: #6d28d9;
-        --accent-light: #7c3aed;
-        --accent-glow: rgba(109,40,217,0.18);
-        --glow-1: rgba(109,40,217,0);
+        --bg-card: #ffffff;
+        --bg-card-hover: #ffffff;
+        --border-glass: #f1f1f4;
+        --border-glass-light: #e4e6ef;
+        --border-subtle: #f1f1f4;
+        --text-primary: #071437;
+        --text-secondary: #252f4a;
+        --text-muted: #4b5675;
+        --text-dimmed: #78829d;
+        --text-faint: #b5b5c3;
+        --text-label: #78829d;
+        --sidebar-link: #4b5675;
+        --sidebar-link-hover-bg: #f9f9f9;
+        --sidebar-link-hover-text: #071437;
+        --sidebar-active-bg: #f3eeff;
+        --sidebar-active-border: transparent;
+        --sidebar-active-text: #7c3aed;
+        --accent: #7c3aed;
+        --accent-light: #8b5cf6;
+        --accent-glow: rgba(124,58,237,0.14);
+        --glow-1: rgba(124,58,237,0);
         --glow-2: rgba(168,85,247,0);
-        --scrollbar-thumb: #d6dae3;
-        --scrollbar-thumb-hover: #b1b8c5;
-        --overlay-bg: rgba(15,23,42,0.32);
-        --card-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 0 0 1px rgba(15,23,42,0.02);
-        --card-shadow-hover: 0 12px 32px -12px rgba(15,23,42,0.12), 0 0 0 1px var(--border-glass-light);
+        --scrollbar-thumb: #e4e6ef;
+        --scrollbar-thumb-hover: #b5b5c3;
+        --overlay-bg: rgba(7,20,55,0.28);
+        --card-shadow: 0 3px 4px rgba(7,20,55,0.03);
+        --card-shadow-hover: 0 6px 14px rgba(7,20,55,0.06);
         --noise-opacity: 0;
 
         --c-primary:   #7c3aed;  --c-primary-soft:   #f3eeff;
-        --c-success:   #10b981;  --c-success-soft:   #e6f7f0;
-        --c-info:      #06b6d4;  --c-info-soft:      #e0f7fb;
-        --c-warning:   #f59e0b;  --c-warning-soft:   #fef4e0;
-        --c-danger:    #ef4444;  --c-danger-soft:    #fde9e9;
+        --c-success:   #17c653;  --c-success-soft:   #e9f9ee;
+        --c-info:      #1b84ff;  --c-info-soft:      #e9f3ff;
+        --c-warning:   #f6c000;  --c-warning-soft:   #fff5d6;
+        --c-danger:    #f8285a;  --c-danger-soft:    #fde7ec;
         --c-pink:      #ec4899;  --c-pink-soft:      #fdeaf3;
         --c-indigo:    #6366f1;  --c-indigo-soft:    #eceffe;
         --c-teal:      #14b8a6;  --c-teal-soft:      #e2f7f4;
@@ -144,49 +144,35 @@
 
     .glass {
         background: var(--bg-glass);
-        border: 2px solid var(--border-glass);
+        border: 1px solid var(--border-glass);
         box-shadow: var(--card-shadow);
         border-radius: var(--radius-card);
     }
     .glass-light {
         background: var(--bg-glass-light);
-        border: 2px solid var(--border-glass-light);
+        border: 1px solid var(--border-glass-light);
         border-radius: 0.875rem;
     }
     .glass-hover:hover { background: var(--bg-glass-hover); }
 
-    /* ===== CARD SYSTEM ===== */
-    /* Cards share their parent's background and rely on a thick 2px border for separation. */
+    /* ===== CARD SYSTEM (Metronic demo1 — flat, 1px border, micro shadow) ===== */
     .card-premium {
         position: relative;
         background: var(--bg-card);
-        border: 2px solid var(--border-glass);
+        border: 1px solid var(--border-glass);
         border-radius: var(--radius-card);
-        box-shadow: none;
-        transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease, background 0.25s ease;
+        box-shadow: var(--card-shadow);
+        transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
         overflow: hidden;
     }
     .card-premium::before { display: none; }
     .card-premium:hover {
         border-color: var(--border-glass-light);
-        background: var(--bg-card-hover);
+        box-shadow: var(--card-shadow-hover);
     }
 
-    /* Decorative animated SVG orb on cards that have an icon header
-       — added by .card-decorated modifier (auto-applied via JS / Blade). */
-    .card-premium.card-decorated::after {
-        content: '';
-        position: absolute;
-        top: -60px; right: -60px;
-        width: 220px; height: 220px;
-        background:
-            radial-gradient(closest-side, var(--card-deco, rgba(139,92,246,0.20)), transparent 72%);
-        filter: blur(8px);
-        pointer-events: none;
-        opacity: 0.85;
-        animation: deco-drift 18s ease-in-out infinite;
-        z-index: 0;
-    }
+    /* Card decorations disabled in Metronic flat style */
+    .card-premium.card-decorated::after { display: none; }
     .card-premium.card-decorated > * { position: relative; z-index: 1; }
 
     /* Doubled spacing between stacked cards (was space-y-6 = 1.5rem) */
@@ -224,11 +210,11 @@
         position: relative;
         overflow: hidden;
         background: var(--bg-card);
-        border: 2px solid var(--border-glass);
+        border: 1px solid var(--border-glass);
         border-radius: var(--radius-card);
         padding: 1.5rem 1.5rem 1.625rem;
-        box-shadow: none;
-        transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease, background 0.25s ease;
+        box-shadow: var(--card-shadow);
+        transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
     }
     /* Animated SVG decorative wave — drifting in the background of every stat card */
     .stat-card::before {
@@ -258,10 +244,19 @@
         animation: deco-float 14s ease-in-out infinite;
     }
     .stat-card > * { position: relative; z-index: 1; }
+    .stat-card::before, .stat-card::after { display: none !important; }
     .stat-card:hover {
         border-color: var(--border-glass-light);
-        transform: translateY(-3px);
+        box-shadow: var(--card-shadow-hover);
     }
+    html.light-mode .stat-card.tint-primary,
+    html.light-mode .stat-card.tint-success,
+    html.light-mode .stat-card.tint-info,
+    html.light-mode .stat-card.tint-warning,
+    html.light-mode .stat-card.tint-danger,
+    html.light-mode .stat-card.tint-pink,
+    html.light-mode .stat-card.tint-indigo,
+    html.light-mode .stat-card.tint-teal { background: var(--bg-card) !important; }
     /* Multi-color stat card variants — smooth gradient + tinted SVG/orb */
     .stat-card.tint-primary  { background: linear-gradient(135deg, var(--c-primary-soft), transparent 110%); --stat-tint: var(--c-primary); --stat-tint-soft: var(--c-primary-soft); }
     .stat-card.tint-success  { background: linear-gradient(135deg, var(--c-success-soft), transparent 110%); --stat-tint: var(--c-success); --stat-tint-soft: var(--c-success-soft); }

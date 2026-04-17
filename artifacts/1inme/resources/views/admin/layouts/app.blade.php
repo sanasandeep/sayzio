@@ -34,7 +34,7 @@
 
         <div x-show="mobileMenu" @click.away="mobileMenu = false" x-cloak
              class="lg:hidden fixed inset-0 z-50 backdrop-blur-sm" style="background: var(--overlay-bg);">
-            <div class="w-[280px] h-full flex flex-col" style="background: var(--bg-sidebar-mobile); backdrop-filter: blur(32px);">
+            <div class="w-[280px] h-full flex flex-col" style="background: var(--bg-sidebar-mobile); backdrop-filter: none;">
                 <div class="h-[60px] flex items-center justify-between px-5" style="border-bottom: 1px solid var(--border-subtle);">
                     <div class="flex items-center gap-2">
                         <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-violet-600 flex items-center justify-center">

@@ -1,4 +1,4 @@
-<aside class="w-[260px] flex-shrink-0 hidden lg:flex flex-col fixed inset-y-0 left-0 z-30" style="background: var(--bg-sidebar); backdrop-filter: blur(32px) saturate(1.2); -webkit-backdrop-filter: blur(32px) saturate(1.2); border-right: 1px solid var(--border-subtle);">
+<aside class="w-[260px] flex-shrink-0 hidden lg:flex flex-col fixed inset-y-0 left-0 z-30" style="background: var(--bg-sidebar); backdrop-filter: none; -webkit-backdrop-filter: none; border-right: 1px solid var(--border-subtle);">
     <div class="h-[60px] flex items-center px-5" style="border-bottom: 1px solid var(--border-subtle);">
         <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2">
             <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-violet-600 flex items-center justify-center shadow-lg" style="box-shadow: 0 4px 12px rgba(124,58,237,0.3);">

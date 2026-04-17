@@ -89,15 +89,7 @@
         .header-v2 {
             transition: margin-left 0.35s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .header-glow {
-            position: absolute;
-            bottom: -1px;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(124,58,237,0.3) 30%, rgba(139,92,246,0.5) 50%, rgba(124,58,237,0.3) 70%, transparent);
-            opacity: 0.6;
-        }
+        .header-glow { display: none; }
 
         .header-search-box {
             position: relative;
@@ -293,7 +285,7 @@
             background: rgba(255,255,255,0.08);
             border: 1px solid var(--border-glass-light);
             color: var(--text-primary);
-            backdrop-filter: blur(10px);
+            backdrop-filter: none;
             text-decoration: none;
             letter-spacing: 0.02em;
         }
@@ -390,7 +382,7 @@
         <aside class="hidden lg:flex flex-col fixed inset-y-0 left-0 z-30 sidebar-v2"
                :class="sidebarMode === 'icons' ? 'collapsed' : ''"
                :style="'width:' + sidebarWidth + 'px; transform: translateX(' + (sidebarMode === 'hidden' ? '-100%' : '0') + '); pointer-events:' + (sidebarMode === 'hidden' ? 'none' : 'auto')"
-               style="background: var(--bg-sidebar); backdrop-filter: blur(40px) saturate(1.4); -webkit-backdrop-filter: blur(40px) saturate(1.4); border-right: 1px solid var(--border-subtle);">
+               style="background: var(--bg-sidebar); backdrop-filter: none; -webkit-backdrop-filter: none; border-right: 1px solid var(--border-subtle);">
 
             <div class="flex items-center px-4" :class="sidebarMode === 'icons' ? 'justify-center' : 'justify-between'" style="height: 64px; border-bottom: 1px solid var(--border-subtle);">
                 <a href="{{ route('user.dashboard') }}" class="flex items-center gap-2.5 group" :class="sidebarMode === 'icons' ? 'hidden' : ''">
@@ -567,7 +559,7 @@
              :style="'margin-left:' + (isDesktop ? sidebarWidth : 0) + 'px'">
 
             <header class="h-16 flex-shrink-0 flex items-center justify-between px-4 lg:px-6 z-20 header-v2 relative"
-                    style="background: var(--bg-header); backdrop-filter: blur(40px) saturate(1.4); -webkit-backdrop-filter: blur(40px) saturate(1.4); border-bottom: 1px solid var(--border-subtle);">
+                    style="background: var(--bg-header); backdrop-filter: none; -webkit-backdrop-filter: none; border-bottom: 1px solid var(--border-subtle);">
                 <div class="header-glow"></div>
 
                 <div class="flex items-center gap-3 min-w-0">
@@ -645,7 +637,7 @@
 
             <div x-show="mobileMenu" x-cloak
                  class="lg:hidden fixed inset-0 z-50 backdrop-blur-sm" @click.self="mobileMenu = false" style="background: var(--overlay-bg);">
-                <div class="w-[280px] h-full flex flex-col" style="background: var(--bg-sidebar-mobile); backdrop-filter: blur(40px);">
+                <div class="w-[280px] h-full flex flex-col" style="background: var(--bg-sidebar-mobile); backdrop-filter: none;">
                     <div class="h-[64px] flex items-center justify-between px-5" style="border-bottom: 1px solid var(--border-subtle);">
                         <div class="flex items-center gap-2.5">
                             <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: var(--accent);">
