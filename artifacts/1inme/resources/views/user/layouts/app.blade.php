@@ -451,6 +451,13 @@
                     <span class="nav-label">Splash Pages</span>
                     <span class="sidebar-tooltip">Splash Pages</span>
                 </a>
+                <a href="{{ route('user.integrations.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.integrations.*') ? 'active' : '' }}"
+                   style="--nav-tint:#10b981; --nav-tint-soft:rgba(16,185,129,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-plug"></i></div>
+                    <span class="nav-label">Integrations</span>
+                    <span class="sidebar-tooltip">Integrations</span>
+                </a>
 
                 <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Manage</div>
 

@@ -115,6 +115,16 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::resource('splash-pages', \App\Modules\User\Controllers\SplashPageController::class);
         Route::get('splash-pages/{splash_page}/preview', [\App\Modules\User\Controllers\SplashPageController::class, 'preview'])->name('splash-pages.preview');
 
+        // Reusable third-party integration configurations (payment / sms / email)
+        Route::get('integrations',                       [\App\Modules\User\Controllers\IntegrationConfigController::class, 'index'])->name('integrations.index');
+        Route::get('integrations/{kind}/create',         [\App\Modules\User\Controllers\IntegrationConfigController::class, 'create'])->name('integrations.create')->where('kind', 'payment|sms|email');
+        Route::post('integrations/{kind}',               [\App\Modules\User\Controllers\IntegrationConfigController::class, 'store'])->name('integrations.store')->where('kind', 'payment|sms|email');
+        Route::get('integrations/{integrationConfig}/edit',         [\App\Modules\User\Controllers\IntegrationConfigController::class, 'edit'])->name('integrations.edit');
+        Route::put('integrations/{integrationConfig}',              [\App\Modules\User\Controllers\IntegrationConfigController::class, 'update'])->name('integrations.update');
+        Route::delete('integrations/{integrationConfig}',           [\App\Modules\User\Controllers\IntegrationConfigController::class, 'destroy'])->name('integrations.destroy');
+        Route::post('integrations/{integrationConfig}/set-default', [\App\Modules\User\Controllers\IntegrationConfigController::class, 'setDefault'])->name('integrations.set-default');
+        Route::post('integrations/{integrationConfig}/toggle',      [\App\Modules\User\Controllers\IntegrationConfigController::class, 'toggleActive'])->name('integrations.toggle');
+
         // Splash attachment for a specific link (picker UI)
         Route::get('links/{link}/splash',  [LinkController::class, 'splashSettings'])->name('links.splash');
         Route::post('links/{link}/splash', [LinkController::class, 'updateSplash'])->name('links.splash.update');

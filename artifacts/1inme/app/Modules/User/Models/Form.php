@@ -100,9 +100,9 @@ class Form extends Model
     public static function defaultNotifications(): array
     {
         return [
-            'email' => ['enabled' => false, 'to' => '', 'subject' => 'New form submission', 'reply_to_field' => 'email'],
-            'autoresponder' => ['enabled' => false, 'subject' => 'Thanks for your submission', 'body' => 'We received your submission and will get back to you soon.', 'email_field' => 'email'],
-            'sms' => ['enabled' => false, 'provider' => 'twilio', 'to' => '', 'message' => 'New form submission on {form_title}'],
+            'email' => ['enabled' => false, 'to' => '', 'subject' => 'New form submission', 'reply_to_field' => 'email', 'config_id' => null],
+            'autoresponder' => ['enabled' => false, 'subject' => 'Thanks for your submission', 'body' => 'We received your submission and will get back to you soon.', 'email_field' => 'email', 'config_id' => null],
+            'sms' => ['enabled' => false, 'to' => '', 'message' => 'New form submission on {form_title}', 'config_id' => null],
             'webhooks' => [], // [{url, method, headers, enabled}]
         ];
     }

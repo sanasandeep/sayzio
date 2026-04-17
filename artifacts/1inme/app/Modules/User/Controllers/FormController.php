@@ -211,11 +211,23 @@ class FormController extends Controller
         $this->authorizeForm($request, $form);
         $n = array_replace_recursive(Form::defaultNotifications(), $form->notifications ?? []);
 
+        // Helper: only accept config_id values that belong to this user and match the expected kind.
+        $resolveConfigId = function (?string $raw, string $kind) use ($request): ?int {
+            if ($raw === null || $raw === '') return null;
+            if (! ctype_digit($raw)) return null;
+            $found = \App\Modules\User\Models\IntegrationConfig::where('id', (int) $raw)
+                ->where('user_id', $request->user()->id)
+                ->kind($kind)
+                ->value('id');
+            return $found ?: null;
+        };
+
         $n['email'] = [
             'enabled' => $request->boolean('email_enabled'),
             'to' => trim((string) $request->input('email_to', '')),
             'subject' => $request->input('email_subject') ?: 'New form submission',
             'reply_to_field' => $request->input('email_reply_to_field') ?: 'email',
+            'config_id' => $resolveConfigId($request->input('email_config_id'), 'email'),
         ];
 
         $n['autoresponder'] = [
@@ -223,13 +235,14 @@ class FormController extends Controller
             'subject' => $request->input('auto_subject') ?: 'Thanks for your submission',
             'body' => $request->input('auto_body') ?: 'We received your submission and will get back to you soon.',
             'email_field' => $request->input('auto_email_field') ?: 'email',
+            'config_id' => $resolveConfigId($request->input('auto_config_id'), 'email'),
         ];
 
         $n['sms'] = [
             'enabled' => $request->boolean('sms_enabled'),
-            'provider' => $request->input('sms_provider', 'twilio'),
             'to' => trim((string) $request->input('sms_to', '')),
             'message' => $request->input('sms_message') ?: 'New form submission on {form_title}',
+            'config_id' => $resolveConfigId($request->input('sms_config_id'), 'sms'),
         ];
 
         $hooks = [];
@@ -639,12 +652,14 @@ class FormController extends Controller
                 // Strip newlines to prevent header injection, then validate
                 $replyTo = $replyToRaw ? preg_replace('/[\r\n\t]+/', '', (string) $replyToRaw) : null;
                 $subject = preg_replace('/[\r\n]+/', ' ', str_replace('{form_title}', $form->title, $n['email']['subject']));
-                Mail::raw($body, function ($m) use ($n, $subject, $replyTo) {
-                    $m->to(array_filter(array_map('trim', explode(',', $n['email']['to']))))->subject($subject);
-                    if ($replyTo && filter_var($replyTo, FILTER_VALIDATE_EMAIL)) {
-                        $m->replyTo($replyTo);
-                    }
-                });
+                $this->sendEmailViaConfig(
+                    $form->user_id,
+                    $n['email']['config_id'] ?? null,
+                    array_filter(array_map('trim', explode(',', $n['email']['to']))),
+                    $subject,
+                    $body,
+                    $replyTo && filter_var($replyTo, FILTER_VALIDATE_EMAIL) ? $replyTo : null,
+                );
             }
         } catch (\Throwable $e) { logger()->warning('Form email failed: ' . $e->getMessage()); }
 
@@ -653,9 +668,14 @@ class FormController extends Controller
             if (!empty($n['autoresponder']['enabled'])) {
                 $to = $submission->data[$n['autoresponder']['email_field']] ?? null;
                 if ($to && filter_var($to, FILTER_VALIDATE_EMAIL)) {
-                    Mail::raw($n['autoresponder']['body'], function ($m) use ($n, $to) {
-                        $m->to($to)->subject($n['autoresponder']['subject']);
-                    });
+                    $this->sendEmailViaConfig(
+                        $form->user_id,
+                        $n['autoresponder']['config_id'] ?? null,
+                        [$to],
+                        $n['autoresponder']['subject'],
+                        $n['autoresponder']['body'],
+                        null,
+                    );
                 }
             }
         } catch (\Throwable $e) { logger()->warning('Form autoresponder failed: ' . $e->getMessage()); }
@@ -689,13 +709,150 @@ class FormController extends Controller
             } catch (\Throwable $e) { logger()->warning('Form webhook failed: ' . $e->getMessage()); }
         }
 
-        // SMS — provider stubs (only logs unless creds are configured)
+        // SMS — dispatch via the user-selected SMS configuration (Twilio HTTP API
+        // implemented; other providers stub-log the call against their saved creds
+        // until per-provider transports are added).
         try {
-            if (!empty($n['sms']['enabled']) && !empty($n['sms']['to'])) {
+            if (!empty($n['sms']['enabled']) && !empty($n['sms']['to']) && !empty($n['sms']['config_id'])) {
                 $msg = str_replace(['{form_title}'], [$form->title], $n['sms']['message']);
-                logger()->info('Form SMS (' . $n['sms']['provider'] . ') to ' . $n['sms']['to'] . ': ' . $msg);
+                $this->sendSmsViaConfig($form->user_id, (int) $n['sms']['config_id'], $n['sms']['to'], $msg);
             }
         } catch (\Throwable $e) { logger()->warning('Form SMS failed: ' . $e->getMessage()); }
+    }
+
+    /**
+     * Send an email through the user-selected mailer configuration. When no
+     * config_id is provided, falls back to the application's default mailer.
+     * Supports SMTP-shaped providers (smtp, sendgrid) end-to-end; other
+     * providers (mailgun, postmark, ses) require their respective transport
+     * packages and will log a warning until those are wired in.
+     *
+     * @param  array<int, string> $to
+     */
+    protected function sendEmailViaConfig(int $userId, ?int $configId, array $to, string $subject, string $body, ?string $replyTo): void
+    {
+        $to = array_values(array_filter($to, fn ($e) => filter_var($e, FILTER_VALIDATE_EMAIL)));
+        if (empty($to)) return;
+
+        $build = function ($m) use ($to, $subject, $replyTo) {
+            $m->to($to)->subject($subject);
+            if ($replyTo) $m->replyTo($replyTo);
+        };
+
+        if (! $configId) {
+            // No config selected → use application default mailer.
+            \Illuminate\Support\Facades\Mail::raw($body, $build);
+            return;
+        }
+
+        $config = \App\Modules\User\Models\IntegrationConfig::where('user_id', $userId)
+            ->where('id', $configId)->kind('email')->active()->first();
+        if (! $config) {
+            logger()->warning("Form email skipped: integration config #{$configId} not found / inactive.");
+            return;
+        }
+
+        $cred = (array) $config->credentials;
+        $meta = (array) $config->meta;
+        $mailerKey = 'integ_' . $config->id;
+
+        // Only smtp + sendgrid are wired today (both go through SMTP transport).
+        $smtpConfig = match ($config->provider) {
+            'smtp' => [
+                'transport'  => 'smtp',
+                'host'       => $meta['host'] ?? null,
+                'port'       => (int) ($meta['port'] ?? 587),
+                'encryption' => $meta['encryption'] ?? null,
+                'username'   => $meta['username'] ?? null,
+                'password'   => $cred['password'] ?? null,
+                'timeout'    => 10,
+            ],
+            'sendgrid' => [
+                'transport'  => 'smtp',
+                'host'       => 'smtp.sendgrid.net',
+                'port'       => 587,
+                'encryption' => 'tls',
+                'username'   => 'apikey',
+                'password'   => $cred['api_key'] ?? null,
+                'timeout'    => 10,
+            ],
+            default => null,
+        };
+
+        if (! $smtpConfig) {
+            logger()->warning("Form email skipped: provider '{$config->provider}' transport not yet wired.");
+            return;
+        }
+
+        config(['mail.mailers.' . $mailerKey => $smtpConfig]);
+        $fromEmail = $meta['from_email'] ?? config('mail.from.address');
+        $fromName  = $meta['from_name']  ?? config('mail.from.name');
+
+        try {
+            \Illuminate\Support\Facades\Mail::mailer($mailerKey)->raw($body, function ($m) use ($build, $fromEmail, $fromName) {
+                if ($fromEmail) $m->from($fromEmail, $fromName ?? '');
+                $build($m);
+            });
+        } finally {
+            // Purge the runtime mailer config so the next request / queue job in
+            // a long-running worker does not see leaked credentials. Also forget
+            // the resolved mailer instance from the MailManager cache.
+            $mailers = (array) config('mail.mailers');
+            unset($mailers[$mailerKey]);
+            config(['mail.mailers' => $mailers]);
+            try { app('mail.manager')->forgetMailers(); } catch (\Throwable $e) { /* older Laravel */ }
+        }
+    }
+
+    /**
+     * Dispatch an SMS through the user-selected SMS configuration. Twilio is
+     * implemented end-to-end via its HTTPS Messages API. Other providers are
+     * recognised and audit-logged with the proper credential trail until their
+     * HTTP transports are added.
+     */
+    protected function sendSmsViaConfig(int $userId, int $configId, string $to, string $message): void
+    {
+        $config = \App\Modules\User\Models\IntegrationConfig::where('user_id', $userId)
+            ->where('id', $configId)->kind('sms')->active()->first();
+        if (! $config) {
+            logger()->warning("Form SMS skipped: integration config #{$configId} not found / inactive.");
+            return;
+        }
+
+        $cred = (array) $config->credentials;
+        $meta = (array) $config->meta;
+
+        // Sanitise destination — keep only digits and a leading '+'.
+        $toClean = preg_replace('/[^\d+]/', '', $to);
+        if ($toClean === '' || strlen($toClean) > 20) {
+            logger()->warning("Form SMS skipped: invalid destination number.");
+            return;
+        }
+
+        switch ($config->provider) {
+            case 'twilio':
+                $sid   = $meta['account_sid'] ?? null;
+                $token = $cred['auth_token']  ?? null;
+                $from  = $meta['from_number'] ?? null;
+                if (! $sid || ! $token || ! $from) {
+                    logger()->warning('Twilio SMS skipped: missing credentials.');
+                    return;
+                }
+                \Illuminate\Support\Facades\Http::withBasicAuth($sid, $token)
+                    ->asForm()->timeout(10)
+                    ->post("https://api.twilio.com/2010-04-01/Accounts/{$sid}/Messages.json", [
+                        'From' => $from, 'To' => $toClean, 'Body' => $message,
+                    ])->throw();
+                break;
+
+            default:
+                // Provider recognised but transport not yet wired — leave a
+                // structured audit entry so the user can see the dispatch
+                // attempt against the correct configuration.
+                logger()->info('SMS dispatch (' . $config->provider . ') via config #' . $config->id
+                    . " to {$toClean}: " . substr($message, 0, 160));
+                break;
+        }
     }
 
     /**

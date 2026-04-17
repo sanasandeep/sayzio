@@ -48,6 +48,16 @@
             </div>
             <div x-show="emailEnabled" x-transition class="grid grid-cols-1 sm:grid-cols-2 gap-3 ml-13" style="margin-left: 3.25rem;">
                 <div class="sm:col-span-2">
+                    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">
+                        Email mailer <span class="text-[10px]" style="color: var(--text-faint);">— which saved configuration to send through</span>
+                    </label>
+                    @include('common.partials.integration-picker', [
+                        'name' => 'email_config_id',
+                        'kind' => 'email',
+                        'value' => $notifications['email']['config_id'] ?? null,
+                    ])
+                </div>
+                <div class="sm:col-span-2">
                     <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Recipients <span class="text-[10px]" style="color: var(--text-faint);">— comma-separated for multiple</span></label>
                     <input type="text" name="email_to" value="{{ $notifications['email']['to'] ?? '' }}" placeholder="you@example.com, sales@example.com" class="theme-input w-full">
                 </div>
@@ -82,6 +92,16 @@
                 </label>
             </div>
             <div x-show="autoEnabled" x-transition class="space-y-3" style="margin-left: 3.25rem;">
+                <div>
+                    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">
+                        Email mailer <span class="text-[10px]" style="color: var(--text-faint);">— pick a different mailer than notifications, e.g. transactional vs marketing</span>
+                    </label>
+                    @include('common.partials.integration-picker', [
+                        'name' => 'auto_config_id',
+                        'kind' => 'email',
+                        'value' => $notifications['autoresponder']['config_id'] ?? null,
+                    ])
+                </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Subject</label>
@@ -108,7 +128,7 @@
                     </div>
                     <div>
                         <h3 class="text-sm font-bold" style="color: var(--text-primary);">SMS alert</h3>
-                        <p class="text-[11px] mt-0.5" style="color: var(--text-faint);">Get a text message — Twilio or MSG91 credentials must be configured at the platform level.</p>
+                        <p class="text-[11px] mt-0.5" style="color: var(--text-faint);">Get a text message — pick from the SMS configurations you've saved under Integrations.</p>
                     </div>
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
@@ -118,21 +138,28 @@
                     <div class="absolute left-0.5 top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5"></div>
                 </label>
             </div>
-            <div x-show="smsEnabled" x-transition class="grid grid-cols-1 sm:grid-cols-3 gap-3" style="margin-left: 3.25rem;">
+            <div x-show="smsEnabled" x-transition class="space-y-3" style="margin-left: 3.25rem;">
                 <div>
-                    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Provider</label>
-                    <select name="sms_provider" class="theme-input w-full">
-                        <option value="twilio" @selected(($notifications['sms']['provider'] ?? '') === 'twilio')>Twilio</option>
-                        <option value="msg91" @selected(($notifications['sms']['provider'] ?? '') === 'msg91')>MSG91</option>
-                    </select>
+                    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">
+                        SMS sender <span class="text-[10px]" style="color: var(--text-faint);">— which saved configuration to send through</span>
+                    </label>
+                    @include('common.partials.integration-picker', [
+                        'name' => 'sms_config_id',
+                        'kind' => 'sms',
+                        'value' => $notifications['sms']['config_id'] ?? null,
+                        'allowEmpty' => false,
+                        'emptyLabel' => '— Select an SMS configuration —',
+                    ])
                 </div>
-                <div>
-                    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Phone number <span class="text-[10px]" style="color: var(--text-faint);">— with country code</span></label>
-                    <input type="text" name="sms_to" value="{{ $notifications['sms']['to'] ?? '' }}" placeholder="+15551234567" class="theme-input w-full">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Message</label>
-                    <input type="text" name="sms_message" value="{{ $notifications['sms']['message'] ?? '' }}" placeholder="New form submission on {form_title}" class="theme-input w-full">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Phone number <span class="text-[10px]" style="color: var(--text-faint);">— with country code</span></label>
+                        <input type="text" name="sms_to" value="{{ $notifications['sms']['to'] ?? '' }}" placeholder="+15551234567" class="theme-input w-full">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Message</label>
+                        <input type="text" name="sms_message" value="{{ $notifications['sms']['message'] ?? '' }}" placeholder="New form submission on {form_title}" class="theme-input w-full">
+                    </div>
                 </div>
             </div>
         </div>
