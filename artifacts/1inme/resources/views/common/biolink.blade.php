@@ -647,9 +647,13 @@
     @php $mbItems = $menuBarSettings['items'] ?? []; @endphp
     <nav class="biolink-menu-bar" style="align-self: stretch;">
         @foreach($mbItems as $mi)
-            @if(!empty($mi['label']) && !empty($mi['url']) && ($mi['is_active'] ?? true))
-                <a href="{{ $mi['url'] }}" target="{{ $mi['target'] ?? '_self' }}" @if(($mi['target'] ?? '_self') === '_blank') rel="noopener" @endif
-                   class="{{ request()->url() === url($mi['url']) ? 'active' : '' }}">{{ $mi['label'] }}</a>
+            @if(!empty($mi['label']) && ($mi['is_active'] ?? true))
+                @if(($mi['target'] ?? '_self') === 'tab' && !empty($mi['id']))
+                    <a href="#{{ $mi['id'] }}" data-biolink-tab="{{ $mi['id'] }}" onclick="return biolinkSwitchTab(event, '{{ $mi['id'] }}')">{{ $mi['label'] }}</a>
+                @elseif(!empty($mi['url']))
+                    <a href="{{ $mi['url'] }}" target="{{ $mi['target'] ?? '_self' }}" @if(($mi['target'] ?? '_self') === '_blank') rel="noopener" @endif
+                       class="{{ request()->url() === url($mi['url']) ? 'active' : '' }}">{{ $mi['label'] }}</a>
+                @endif
             @endif
         @endforeach
     </nav>
@@ -698,7 +702,7 @@
             @endphp
 
             @php $gridSpan = intval($blockStyle['grid_span'] ?? 12) ?: 12; @endphp
-            <div data-block-id="{{ $block->id }}" data-block-type="{{ $block->type }}" class="biolink-block-wrap" style="grid-column: span {{ $gridSpan }}">
+            <div data-block-id="{{ $block->id }}" data-block-type="{{ $block->type }}" data-tab="{{ $s['_tab_id'] ?? '' }}" class="biolink-block-wrap" style="grid-column: span {{ $gridSpan }}">
             @if($hasCustomStyle && !$skipWrap)<div class="mb-3 block-styled" style="{{ $blockInline }}">@endif
 
             {{-- BASIC CONTENT --}}
@@ -1704,9 +1708,13 @@
     @php $mbItems = $menuBarSettings['items'] ?? []; @endphp
     <nav class="biolink-menu-bar" style="margin-top: auto; align-self: stretch;">
         @foreach($mbItems as $mi)
-            @if(!empty($mi['label']) && !empty($mi['url']) && ($mi['is_active'] ?? true))
-                <a href="{{ $mi['url'] }}" target="{{ $mi['target'] ?? '_self' }}" @if(($mi['target'] ?? '_self') === '_blank') rel="noopener" @endif
-                   class="{{ request()->url() === url($mi['url']) ? 'active' : '' }}">{{ $mi['label'] }}</a>
+            @if(!empty($mi['label']) && ($mi['is_active'] ?? true))
+                @if(($mi['target'] ?? '_self') === 'tab' && !empty($mi['id']))
+                    <a href="#{{ $mi['id'] }}" data-biolink-tab="{{ $mi['id'] }}" onclick="return biolinkSwitchTab(event, '{{ $mi['id'] }}')">{{ $mi['label'] }}</a>
+                @elseif(!empty($mi['url']))
+                    <a href="{{ $mi['url'] }}" target="{{ $mi['target'] ?? '_self' }}" @if(($mi['target'] ?? '_self') === '_blank') rel="noopener" @endif
+                       class="{{ request()->url() === url($mi['url']) ? 'active' : '' }}">{{ $mi['label'] }}</a>
+                @endif
             @endif
         @endforeach
     </nav>
@@ -1724,12 +1732,19 @@
     <div class="menu-overlay-backdrop" id="menuBackdrop" onclick="toggleMenuOverlay()"></div>
     <div class="menu-overlay-panel" id="menuPanel">
         @foreach($mbItems as $mi)
-            @if(!empty($mi['label']) && !empty($mi['url']) && ($mi['is_active'] ?? true))
-                <a href="{{ e($mi['url']) }}" target="{{ $mi['target'] ?? '_self' }}" @if(($mi['target'] ?? '_self') === '_blank') rel="noopener" @endif
-                   class="{{ request()->url() === url($mi['url']) ? 'active' : '' }}">
-                    <span class="menu-dot"></span>
-                    {{ $mi['label'] }}
-                </a>
+            @if(!empty($mi['label']) && ($mi['is_active'] ?? true))
+                @if(($mi['target'] ?? '_self') === 'tab' && !empty($mi['id']))
+                    <a href="#{{ $mi['id'] }}" data-biolink-tab="{{ $mi['id'] }}" onclick="toggleMenuOverlay(); return biolinkSwitchTab(event, '{{ $mi['id'] }}')">
+                        <span class="menu-dot"></span>
+                        {{ $mi['label'] }}
+                    </a>
+                @elseif(!empty($mi['url']))
+                    <a href="{{ e($mi['url']) }}" target="{{ $mi['target'] ?? '_self' }}" @if(($mi['target'] ?? '_self') === '_blank') rel="noopener" @endif
+                       class="{{ request()->url() === url($mi['url']) ? 'active' : '' }}">
+                        <span class="menu-dot"></span>
+                        {{ $mi['label'] }}
+                    </a>
+                @endif
             @endif
         @endforeach
     </div>
@@ -2117,6 +2132,40 @@
 
         if(document.readyState === 'complete' || document.readyState === 'interactive') startSession();
         else document.addEventListener('DOMContentLoaded', startSession);
+    })();
+    </script>
+
+    <script>
+    (function(){
+        function applyTab(tabId) {
+            tabId = tabId || '';
+            document.body.setAttribute('data-active-tab', tabId);
+            document.querySelectorAll('.biolink-block-wrap').forEach(function(el){
+                var bt = el.getAttribute('data-tab') || '';
+                el.style.display = (bt === tabId) ? '' : 'none';
+            });
+            document.querySelectorAll('[data-biolink-tab]').forEach(function(btn){
+                btn.classList.toggle('active', btn.getAttribute('data-biolink-tab') === tabId);
+            });
+        }
+        window.biolinkSwitchTab = function(ev, tabId) {
+            if (ev) { ev.preventDefault(); ev.stopPropagation(); }
+            var current = document.body.getAttribute('data-active-tab') || '';
+            applyTab(current === tabId ? '' : tabId);
+            try { history.replaceState(null, '', tabId ? ('#' + tabId) : window.location.pathname + window.location.search); } catch(e){}
+            return false;
+        };
+        function init() {
+            if (!document.querySelector('[data-biolink-tab]')) return;
+            var initial = '';
+            var hash = (window.location.hash || '').replace(/^#/, '');
+            if (hash && document.querySelector('[data-biolink-tab="' + CSS.escape(hash) + '"]')) {
+                initial = hash;
+            }
+            applyTab(initial);
+        }
+        if (document.readyState === 'complete' || document.readyState === 'interactive') init();
+        else document.addEventListener('DOMContentLoaded', init);
     })();
     </script>
 </body>

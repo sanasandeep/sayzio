@@ -468,10 +468,40 @@ class BiolinkBlockController extends Controller
                     foreach ($decoded as $item) {
                         if (!is_array($item)) continue;
                         $label = trim(strip_tags(substr($item['label'] ?? '', 0, 30)));
+                        if (empty($label)) continue;
+                        $rawTarget = $item['target'] ?? '_self';
+                        $target = in_array($rawTarget, ['_self', '_blank', 'tab'], true) ? $rawTarget : '_self';
+
+                        if ($target === 'tab') {
+                            $rawId = trim((string)($item['id'] ?? ''));
+                            if (!preg_match('/^[a-z0-9\-]{1,50}$/i', $rawId)) {
+                                $rawId = \Illuminate\Support\Str::slug($label);
+                                if (empty($rawId)) {
+                                    $rawId = 'tab-' . substr(md5($label . microtime(true) . count($sanitizedItems)), 0, 6);
+                                }
+                            }
+                            $existingIds = array_column(
+                                array_filter($sanitizedItems, fn($i) => ($i['target'] ?? '') === 'tab'),
+                                'id'
+                            );
+                            $baseId = $rawId; $n = 1;
+                            while (in_array($rawId, $existingIds, true)) {
+                                $n++;
+                                $rawId = $baseId . '-' . $n;
+                            }
+                            $sanitizedItems[] = [
+                                'label' => $label,
+                                'url' => '#' . $rawId,
+                                'target' => 'tab',
+                                'id' => $rawId,
+                                'is_active' => !empty($item['is_active']),
+                            ];
+                            continue;
+                        }
+
                         $url = trim($item['url'] ?? '');
-                        if (empty($label) || empty($url)) continue;
+                        if (empty($url)) continue;
                         if (!preg_match('#^(https?://|/)#i', $url)) continue;
-                        $target = ($item['target'] ?? '_self') === '_blank' ? '_blank' : '_self';
                         $sanitizedItems[] = [
                             'label' => $label,
                             'url' => htmlspecialchars($url, ENT_QUOTES, 'UTF-8'),
@@ -713,6 +743,11 @@ class BiolinkBlockController extends Controller
 
         if (isset($settings['_link']) && is_array($settings['_link'])) {
             $settings['_link'] = $this->sanitizeLinkSettings($settings['_link']);
+        }
+
+        if (isset($settings['_tab_id'])) {
+            $tid = trim((string)$settings['_tab_id']);
+            $settings['_tab_id'] = preg_match('/^[a-z0-9\-]{1,50}$/i', $tid) ? $tid : '';
         }
 
         return $settings;

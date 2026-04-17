@@ -541,10 +541,19 @@
                                 <div class="flex items-center gap-2 p-2.5 rounded-lg" style="background: rgba(0,0,0,0.15); border: 1px solid var(--border-glass);">
                                     <div class="flex-1 grid grid-cols-3 gap-2">
                                         <input type="text" x-model="item.label" placeholder="Label" class="theme-input w-full text-xs" maxlength="30">
-                                        <input type="text" x-model="item.url" placeholder="URL or /alias" class="theme-input w-full text-xs" maxlength="500">
+                                        <template x-if="item.target !== 'tab'">
+                                            <input type="text" x-model="item.url" placeholder="URL or /alias" class="theme-input w-full text-xs" maxlength="500">
+                                        </template>
+                                        <template x-if="item.target === 'tab'">
+                                            <div class="theme-input w-full text-xs flex items-center gap-1.5" style="opacity: 0.85;">
+                                                <i class="fas fa-folder-open text-violet-400 text-[10px]"></i>
+                                                <span style="color: var(--text-dimmed);" x-text="'Tab #' + (item.id || (item.label || 'unnamed').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''))"></span>
+                                            </div>
+                                        </template>
                                         <select x-model="item.target" class="theme-input w-full text-xs">
                                             <option value="_self">Same Tab</option>
                                             <option value="_blank">New Tab</option>
+                                            <option value="tab">Page Tab</option>
                                         </select>
                                     </div>
                                     <label class="flex items-center gap-1 cursor-pointer shrink-0">

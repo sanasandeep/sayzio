@@ -4,6 +4,10 @@
     $allDevices = ['desktop','tablet','mobile'];
     $allOs = ['Windows','macOS','Linux','iOS','Android','ChromeOS','Other'];
     $allBrowsers = ['Chrome','Firefox','Safari','Edge','Opera','Samsung Internet','Other'];
+    $tabItems = collect(($link ?? null)?->settings['biolink']['menu_bar']['items'] ?? [])
+        ->filter(fn($i) => is_array($i) && ($i['target'] ?? '') === 'tab' && !empty($i['id'] ?? '') && !empty($i['label'] ?? ''))
+        ->values();
+    $currentTabId = $block->settings['_tab_id'] ?? '';
 @endphp
 
 <div class="mt-4 pt-4" style="border-top: 1px solid var(--border-subtle);" x-data="{ showDisplay: false }">
@@ -14,6 +18,21 @@
     </button>
 
     <div x-show="showDisplay" x-cloak x-transition class="mt-3 space-y-4">
+
+        @if($tabItems->count() > 0)
+        <div>
+            <label class="{{ $labelClass }}"><i class="fas fa-folder-open mr-1.5 text-violet-400"></i>Show on Page Tab</label>
+            <select name="settings[_tab_id]" class="{{ $inputClass }}">
+                <option value="">Main Page (default — visible when no tab is active)</option>
+                @foreach($tabItems as $ti)
+                <option value="{{ $ti['id'] }}" {{ $currentTabId === $ti['id'] ? 'selected' : '' }}>{{ $ti['label'] }}</option>
+                @endforeach
+            </select>
+            <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">Pick which tab this block belongs to. Configure tabs under Settings → Advanced → Navigation Menu Bar.</p>
+        </div>
+        @else
+        <input type="hidden" name="settings[_tab_id]" value="{{ $currentTabId }}">
+        @endif
 
         <div class="grid grid-cols-2 gap-3">
             <div>
