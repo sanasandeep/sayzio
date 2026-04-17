@@ -39,30 +39,97 @@
 
                 <div class="space-y-6">
 
+                    @php
+                        $maxExtras = auth()->user()->getMaxAliasesPerLink();
+                        $extras = $link->aliases()->orderBy('created_at')->get();
+                        $usedExtras = $extras->count();
+                        $canAddMore = $maxExtras === -1 || $usedExtras < $maxExtras;
+                        $aliasHost = request()->getHost();
+                    @endphp
                     <div class="card-premium p-6" x-data="{ editing: false, alias: '{{ $link->alias }}' }">
-                        <div class="flex items-center gap-3 mb-4">
-                            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(124,58,237,0.1);"><i class="fas fa-link text-violet-400 text-xs"></i></div>
-                            <h3 class="text-sm font-bold" style="color: var(--text-primary);">Short URL</h3>
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(124,58,237,0.1);"><i class="fas fa-link text-violet-400 text-xs"></i></div>
+                                <div>
+                                    <h3 class="text-sm font-bold" style="color: var(--text-primary);">Short URL & Aliases</h3>
+                                    <p class="text-[11px] mt-0.5" style="color: var(--text-faint);">All aliases serve the same page — no redirect. Domain is fixed; only the slug is editable.</p>
+                                </div>
+                            </div>
+                            <span class="text-[10px] px-2 py-0.5 rounded-full" style="background: var(--bg-glass-input); color: var(--text-faint);">
+                                @if($maxExtras === -1)
+                                    {{ $usedExtras }} {{ $usedExtras === 1 ? 'extra' : 'extras' }} · Unlimited
+                                @else
+                                    {{ $usedExtras }} / {{ $maxExtras }} extras
+                                @endif
+                            </span>
                         </div>
-                        <div class="flex items-center rounded-xl overflow-hidden" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
-                            <span class="px-3 py-2.5 text-sm flex-shrink-0" style="color: var(--text-faint); border-right: 1px solid var(--border-glass);">{{ request()->getHost() }}/</span>
-                            <template x-if="!editing">
-                                <span class="flex-1 px-3 py-2.5 text-sm font-medium cursor-pointer flex items-center justify-between gap-2 group" style="color: var(--text-primary);" @click="editing = true; $nextTick(() => $refs.aliasInput.focus())">
-                                    <span x-text="alias"></span>
-                                    <i class="fas fa-pen text-[10px] opacity-0 group-hover:opacity-60 transition-opacity" style="color: var(--text-faint);"></i>
-                                </span>
-                            </template>
-                            <template x-if="editing">
-                                <div class="flex-1 flex items-center">
-                                    <input x-ref="aliasInput" type="text" x-model="alias" class="flex-1 px-3 py-2.5 text-sm font-medium bg-transparent outline-none" style="color: var(--text-primary);" @keydown.escape="editing = false">
-                                    <div class="flex items-center gap-1 pr-2">
-                                        <button type="button" @click="editing = false; alias = '{{ $link->alias }}'" class="text-[10px] px-2 py-1 rounded" style="color: var(--text-faint);">Cancel</button>
-                                        <button type="button" class="text-[10px] px-2 py-1 rounded bg-violet-600 text-white"
-                                           @click="fetch('{{ route('user.links.update-alias', $link) }}', { method:'PUT', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name=csrf-token]').content,'Accept':'application/json'}, body:JSON.stringify({alias:alias})}).then(r=>r.json()).then(d=>{if(d.success||!d.errors){editing=false;location.reload()}else{alert(d.errors?.alias?.[0]||'Error')}}).catch(()=>alert('Error'))">Save</button>
+
+                        {{-- PRIMARY ALIAS --}}
+                        <div class="mb-3">
+                            <label class="block text-[10px] font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-muted);">Primary alias</label>
+                            <div class="flex items-stretch rounded-xl overflow-hidden" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                                <span class="px-3 flex items-center text-sm flex-shrink-0" style="color: var(--text-faint); border-right: 1px solid var(--border-glass); background: var(--bg-glass);">{{ $aliasHost }}/</span>
+                                <template x-if="!editing">
+                                    <button type="button" class="flex-1 px-3 py-2.5 text-sm font-medium text-left flex items-center justify-between gap-2 group" style="color: var(--text-primary);" @click="editing = true; $nextTick(() => $refs.aliasInput.focus())">
+                                        <span x-text="alias"></span>
+                                        <span class="text-[10px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1" style="color: var(--text-faint);"><i class="fas fa-pen text-[9px]"></i> Edit</span>
+                                    </button>
+                                </template>
+                                <template x-if="editing">
+                                    <div class="flex-1 flex items-center">
+                                        <input x-ref="aliasInput" type="text" x-model="alias" minlength="3" maxlength="60" pattern="[a-zA-Z0-9_-]+" class="flex-1 px-3 py-2.5 text-sm font-medium bg-transparent outline-none" style="color: var(--text-primary);" @keydown.escape="editing = false">
+                                        <div class="flex items-center gap-1 pr-2">
+                                            <button type="button" @click="editing = false; alias = '{{ $link->alias }}'" class="text-[11px] px-2.5 py-1 rounded-md hover:bg-white/5" style="color: var(--text-faint);">Cancel</button>
+                                            <button type="button" class="text-[11px] px-2.5 py-1 rounded-md bg-violet-600 hover:bg-violet-700 text-white font-semibold"
+                                               @click="fetch('{{ route('user.links.update-alias', $link) }}', { method:'PUT', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name=csrf-token]').content,'Accept':'application/json'}, body:JSON.stringify({alias:alias})}).then(r=>r.json()).then(d=>{if(d.success||!d.errors){editing=false;location.reload()}else{alert(d.errors?.alias?.[0]||'Error')}}).catch(()=>alert('Error'))">Save</button>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        {{-- ADDITIONAL ALIASES --}}
+                        @if($maxExtras !== 0)
+                        <div>
+                            <label class="block text-[10px] font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-muted);">Additional aliases</label>
+
+                            @if($extras->isNotEmpty())
+                            <div class="space-y-1.5 mb-2">
+                                @foreach($extras as $a)
+                                <div class="flex items-stretch rounded-lg overflow-hidden group" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                                    <span class="px-3 flex items-center text-xs flex-shrink-0" style="color: var(--text-faint); border-right: 1px solid var(--border-glass); background: var(--bg-glass);">{{ $aliasHost }}/</span>
+                                    <a href="{{ url($a->alias) }}" target="_blank" class="flex-1 px-3 py-2 text-sm truncate" style="color: var(--text-primary);">{{ $a->alias }}</a>
+                                    <div class="flex items-center gap-0.5 pr-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+                                        <form method="POST" action="{{ route('user.links.aliases.promote', [$link, $a]) }}" class="inline" onsubmit="return confirm('Make this the primary alias? The current primary will become an alternative.')">
+                                            @csrf
+                                            <button type="submit" class="px-2 py-1 rounded hover:bg-amber-500/10" style="color: var(--text-faint);" title="Promote to primary"><i class="fas fa-star text-[11px] hover:text-amber-400"></i></button>
+                                        </form>
+                                        <form method="POST" action="{{ route('user.links.aliases.destroy', [$link, $a]) }}" class="inline" onsubmit="return confirm('Delete this alias? Anyone visiting it will get a 404.')">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" class="px-2 py-1 rounded hover:bg-red-500/10" style="color: var(--text-faint);" title="Delete"><i class="fas fa-trash text-[11px] hover:text-red-400"></i></button>
+                                        </form>
                                     </div>
                                 </div>
-                            </template>
+                                @endforeach
+                            </div>
+                            @endif
+
+                            @if($canAddMore)
+                            <form method="POST" action="{{ route('user.links.aliases.store', $link) }}" class="flex items-stretch rounded-lg overflow-hidden" style="background: var(--bg-glass-input); border: 1px dashed var(--border-glass);">
+                                @csrf
+                                <span class="px-3 flex items-center text-xs flex-shrink-0" style="color: var(--text-faint); border-right: 1px dashed var(--border-glass); background: var(--bg-glass);">{{ $aliasHost }}/</span>
+                                <input type="text" name="alias" required minlength="3" maxlength="60" pattern="[a-zA-Z0-9_-]+"
+                                       placeholder="my-campaign" class="flex-1 px-3 py-2 text-sm bg-transparent outline-none" style="color: var(--text-primary);">
+                                <button type="submit" class="px-3 text-xs font-semibold whitespace-nowrap hover:bg-violet-500/10" style="color: #a78bfa;"><i class="fas fa-plus text-[10px] mr-1"></i>Add alias</button>
+                            </form>
+                            @error('alias') <p class="text-red-400 text-[11px] mt-1">{{ $message }}</p> @enderror
+                            @else
+                            <p class="text-[11px] mt-2" style="color: var(--text-faint);"><i class="fas fa-info-circle mr-1"></i> Alias limit reached on your current plan.</p>
+                            @endif
                         </div>
+                        @else
+                        <p class="text-[11px] mt-2" style="color: #fbbf24;"><i class="fas fa-lock mr-1"></i> Additional aliases are not included in your plan. <a href="{{ route('user.dashboard') }}" class="underline hover:no-underline">Upgrade</a> to unlock.</p>
+                        @endif
                     </div>
 
                     <div class="card-premium p-6">
@@ -328,6 +395,218 @@
                 </div>
 
                 @include('user.links.partials.settings-footer', ['link' => $link])
+            </form>
+
+            {{-- ==================== LINK SETTINGS FORM (merged from /edit) ==================== --}}
+            @php
+                $lset = $link->settings ?? [];
+                $expiryUrl = $lset['expiry_url'] ?? '';
+                $maxClicks = (int) ($lset['max_clicks'] ?? 0);
+                $startAt = $lset['start_at'] ?? null;
+                $expireOnFirstClick = !empty($lset['expire_on_first_click']);
+                $countryRestrictions = implode(',', $lset['country_restrictions'] ?? []);
+                $deviceTargeting = $lset['device_targeting'] ?? [];
+            @endphp
+            <form method="POST" action="{{ route('user.links.update', $link) }}" enctype="multipart/form-data" class="space-y-6 mt-6"
+                  x-data="{ pwd: {{ $link->is_password_protected ? 'true' : 'false' }}, expCondition: '{{ $link->expires_at ? 'date' : ($maxClicks ? 'clicks' : ($expireOnFirstClick ? 'first_click' : 'none')) }}' }">
+                @csrf @method('PUT')
+
+                {{-- LINK DETAILS --}}
+                <div class="card-premium p-6">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(16,185,129,0.1);"><i class="fas fa-sliders-h text-emerald-400 text-xs"></i></div>
+                        <h3 class="text-sm font-bold" style="color: var(--text-primary);">Link Details</h3>
+                    </div>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Internal Title</label>
+                            <input type="text" name="title" value="{{ old('title', $link->title) }}" class="theme-input w-full" placeholder="Internal label for this link">
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Project</label>
+                                <select name="project_id" class="theme-input w-full">
+                                    <option value="">No project</option>
+                                    @foreach($projects as $project)
+                                        <option value="{{ $project->id }}" {{ old('project_id', $link->project_id) == $project->id ? 'selected' : '' }}>{{ $project->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Status</label>
+                                <select name="is_active" class="theme-input w-full">
+                                    <option value="1" {{ $link->is_active ? 'selected' : '' }}>Active</option>
+                                    <option value="0" {{ !$link->is_active ? 'selected' : '' }}>Inactive</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- PROTECTION & EXPIRY --}}
+                <div class="card-premium p-6">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(245,158,11,0.1);"><i class="fas fa-shield-alt text-amber-400 text-xs"></i></div>
+                        <h3 class="text-sm font-bold" style="color: var(--text-primary);">Protection & Expiry</h3>
+                    </div>
+                    <div class="space-y-5">
+                        {{-- PASSWORD --}}
+                        <div>
+                            <label class="flex items-center gap-2.5 cursor-pointer select-none">
+                                <input type="checkbox" name="is_password_protected" value="1" x-model="pwd" class="rounded text-violet-500 focus:ring-violet-500/40" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                                <span class="text-sm font-medium" style="color: var(--text-primary);">Password protect this link</span>
+                            </label>
+                            <div x-show="pwd" x-transition class="mt-2 ml-7">
+                                <input type="password" name="password" placeholder="{{ $link->is_password_protected ? 'New password (leave empty to keep current)' : 'Enter a password' }}" class="theme-input w-full max-w-sm">
+                                <p class="text-[10px] mt-1" style="color: var(--text-faint);">Visitors must enter this password to access the page.</p>
+                            </div>
+                        </div>
+
+                        {{-- SCHEDULED START --}}
+                        <div class="pt-4" style="border-top: 1px solid var(--border-subtle);">
+                            <label class="block text-xs font-semibold mb-1.5" style="color: var(--text-primary);"><i class="fas fa-calendar-plus text-[10px] mr-1.5 text-emerald-400"></i> Schedule Activation</label>
+                            <input type="datetime-local" name="start_at" value="{{ old('start_at', $startAt ? \Carbon\Carbon::parse($startAt)->format('Y-m-d\TH:i') : '') }}" class="theme-input w-full max-w-xs">
+                            <p class="text-[10px] mt-1" style="color: var(--text-faint);">Optional. Link returns 410 (or redirects to your fallback URL) before this time.</p>
+                        </div>
+
+                        {{-- EXPIRY CONDITIONS --}}
+                        <div class="pt-4" style="border-top: 1px solid var(--border-subtle);">
+                            <label class="block text-xs font-semibold mb-2" style="color: var(--text-primary);"><i class="fas fa-hourglass-half text-[10px] mr-1.5 text-amber-400"></i> Expire When…</label>
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+                                <button type="button" @click="expCondition = 'none'" :class="expCondition === 'none' ? 'ring-2 ring-violet-500' : ''" class="px-3 py-2.5 rounded-lg text-[11px] font-semibold transition-all" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);">
+                                    <i class="fas fa-infinity text-[10px] mb-1 block"></i> Never
+                                </button>
+                                <button type="button" @click="expCondition = 'date'" :class="expCondition === 'date' ? 'ring-2 ring-violet-500' : ''" class="px-3 py-2.5 rounded-lg text-[11px] font-semibold transition-all" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);">
+                                    <i class="fas fa-calendar-times text-[10px] mb-1 block"></i> On Date
+                                </button>
+                                <button type="button" @click="expCondition = 'clicks'" :class="expCondition === 'clicks' ? 'ring-2 ring-violet-500' : ''" class="px-3 py-2.5 rounded-lg text-[11px] font-semibold transition-all" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);">
+                                    <i class="fas fa-hashtag text-[10px] mb-1 block"></i> Click Limit
+                                </button>
+                                <button type="button" @click="expCondition = 'first_click'" :class="expCondition === 'first_click' ? 'ring-2 ring-violet-500' : ''" class="px-3 py-2.5 rounded-lg text-[11px] font-semibold transition-all" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);">
+                                    <i class="fas fa-bolt text-[10px] mb-1 block"></i> One-Time
+                                </button>
+                            </div>
+
+                            <div x-show="expCondition === 'date'" x-transition>
+                                <label class="block text-[10px] font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-muted);">Expiration date & time</label>
+                                <input type="datetime-local" name="expires_at" value="{{ old('expires_at', $link->expires_at?->format('Y-m-d\TH:i')) }}" class="theme-input w-full max-w-xs">
+                            </div>
+                            <div x-show="expCondition === 'clicks'" x-transition>
+                                <label class="block text-[10px] font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-muted);">Maximum total clicks</label>
+                                <input type="number" name="max_clicks" min="1" max="1000000000" value="{{ old('max_clicks', $maxClicks ?: '') }}" placeholder="e.g. 100" class="theme-input w-full max-w-xs">
+                                <p class="text-[10px] mt-1" style="color: var(--text-faint);">Currently used: <span class="font-mono">{{ number_format($link->total_clicks) }}</span> click(s).</p>
+                            </div>
+                            <div x-show="expCondition === 'first_click'" x-transition class="p-3 rounded-lg" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                                <p class="text-xs flex items-start gap-2" style="color: var(--text-primary);">
+                                    <i class="fas fa-info-circle text-amber-400 text-[11px] mt-0.5"></i>
+                                    <span>This link will <strong>self-destruct</strong> right after the first visit. Useful for one-time invites, secret reveals, or unique tickets.</span>
+                                </p>
+                            </div>
+
+                            <input type="hidden" name="_exp_mode" :value="expCondition">
+                            {{-- Server uses _exp_mode to clear unselected expiry fields. --}}
+                        </div>
+
+                        {{-- EXPIRY URL --}}
+                        <div class="pt-4" style="border-top: 1px solid var(--border-subtle);">
+                            <label class="block text-xs font-semibold mb-1.5" style="color: var(--text-primary);"><i class="fas fa-arrow-right-from-bracket text-[10px] mr-1.5 text-rose-400"></i> Redirect URL after expired</label>
+                            <input type="url" name="expiry_url" value="{{ old('expiry_url', $expiryUrl) }}" placeholder="https://your-site.com/expired"
+                                   class="theme-input w-full"
+                                   pattern="https?://.+">
+                            <p class="text-[10px] mt-1" style="color: var(--text-faint);">When set, expired/unavailable visitors are redirected here. Otherwise the default expired page is shown. Must be a valid URL starting with <span class="font-mono">http://</span> or <span class="font-mono">https://</span>.</p>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- SEO --}}
+                <div class="card-premium p-6">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(99,102,241,0.1);"><i class="fas fa-search text-indigo-400 text-xs"></i></div>
+                        <h3 class="text-sm font-bold" style="color: var(--text-primary);">SEO & Social Sharing</h3>
+                    </div>
+                    <div class="space-y-3">
+                        <input type="text" name="seo_title" value="{{ old('seo_title', $link->seo_title) }}" placeholder="SEO Title" class="theme-input w-full">
+                        <textarea name="seo_description" placeholder="SEO Description" rows="2" class="theme-input w-full">{{ old('seo_description', $link->seo_description) }}</textarea>
+                        <div>
+                            <label class="block text-[10px] font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-muted);">OG Image</label>
+                            @if($link->seo_image)<div class="mb-2"><img src="{{ $link->seo_image }}" alt="Current OG image" class="h-20 rounded-lg" style="border: 1px solid var(--border-subtle);"></div>@endif
+                            <input type="file" name="seo_image" accept="image/*" class="w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-violet-500/10 file:text-violet-400 file:font-medium" style="color: var(--text-faint);">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-muted);">Favicon</label>
+                            @if($link->favicon)<div class="mb-2"><img src="{{ $link->favicon }}" alt="Current favicon" class="h-8 rounded" style="border: 1px solid var(--border-subtle);"></div>@endif
+                            <input type="file" name="favicon" accept="image/*" class="w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-violet-500/10 file:text-violet-400 file:font-medium" style="color: var(--text-faint);">
+                            <p class="text-[10px] mt-1" style="color: var(--text-faint);">Browser-tab icon. Recommended 32×32 or 64×64 px.</p>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- TARGETING --}}
+                <div class="card-premium p-6">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(20,184,166,0.1);"><i class="fas fa-globe text-teal-400 text-xs"></i></div>
+                        <h3 class="text-sm font-bold" style="color: var(--text-primary);">Geo & Device Targeting</h3>
+                    </div>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Country Restrictions</label>
+                            <input type="text" name="country_restrictions" value="{{ old('country_restrictions', $countryRestrictions) }}" placeholder="e.g. US, GB, CA" class="theme-input w-full">
+                            <p class="text-[10px] mt-1" style="color: var(--text-faint);">Comma-separated ISO country codes. Leave empty for no restriction.</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium mb-2" style="color: var(--text-muted);">Allowed Devices</label>
+                            <div class="flex flex-wrap gap-2">
+                                @foreach(['desktop' => 'fa-desktop', 'mobile' => 'fa-mobile-screen', 'tablet' => 'fa-tablet-screen-button'] as $dev => $icon)
+                                <label class="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer select-none" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                                    <input type="checkbox" name="device_targeting[]" value="{{ $dev }}" class="rounded text-violet-500" {{ in_array($dev, $deviceTargeting) ? 'checked' : '' }}>
+                                    <i class="fas {{ $icon }} text-[11px]" style="color: var(--text-faint);"></i>
+                                    <span class="text-xs font-medium capitalize" style="color: var(--text-primary);">{{ $dev }}</span>
+                                </label>
+                                @endforeach
+                            </div>
+                            <p class="text-[10px] mt-1.5" style="color: var(--text-faint);">Leave all unchecked to allow every device.</p>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- UTM --}}
+                <div class="card-premium p-6">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(236,72,153,0.1);"><i class="fas fa-tags text-pink-400 text-xs"></i></div>
+                        <h3 class="text-sm font-bold" style="color: var(--text-primary);">UTM Parameters</h3>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        @foreach(['utm_source' => 'Source', 'utm_medium' => 'Medium', 'utm_campaign' => 'Campaign', 'utm_term' => 'Term', 'utm_content' => 'Content'] as $field => $label)
+                        <input type="text" name="{{ $field }}" value="{{ old($field, $link->$field) }}" placeholder="{{ $label }}" class="theme-input w-full">
+                        @endforeach
+                    </div>
+                </div>
+
+                {{-- TRACKING PIXELS --}}
+                @if($pixels->count())
+                <div class="card-premium p-6">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(6,182,212,0.1);"><i class="fas fa-bullseye text-cyan-400 text-xs"></i></div>
+                        <h3 class="text-sm font-bold" style="color: var(--text-primary);">Tracking Pixels</h3>
+                    </div>
+                    <div class="space-y-1.5">
+                        @foreach($pixels as $pixel)
+                        <label class="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer select-none" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                            <input type="checkbox" name="pixel_ids[]" value="{{ $pixel->id }}" {{ $link->pixels->contains($pixel->id) ? 'checked' : '' }} class="rounded text-violet-500">
+                            <span class="text-sm font-medium" style="color: var(--text-primary);">{{ $pixel->name }}</span>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded ml-auto" style="background: var(--bg-glass); color: var(--text-faint);">{{ ucfirst(str_replace('_', ' ', $pixel->type)) }}</span>
+                        </label>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
+
+                <div class="sticky bottom-0 mt-6 py-4 flex items-center gap-3" style="background: var(--bg-body); z-index: 10;">
+                    <button type="submit" class="btn-primary px-8 py-3 text-sm font-semibold inline-flex items-center gap-2 shadow-lg">
+                        <i class="fas fa-save text-xs"></i> Save Link Settings
+                    </button>
+                    <a href="{{ route('user.links.show', $link) }}" class="text-xs px-4 py-2 rounded-lg" style="color: var(--text-faint);">Cancel</a>
+                </div>
             </form>
         </div>
 

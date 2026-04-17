@@ -30,7 +30,10 @@ class BiolinkBlockController extends Controller
     {
         abort_if($link->user_id !== auth()->id() || $link->type !== 'biolink', 403);
         $bgTemplates = \App\Modules\Admin\Models\BgTemplate::active()->get();
-        return view('user.links.settings.appearance', compact('link', 'bgTemplates'));
+        $link->load(['pixels', 'aliases']);
+        $projects = auth()->user()->projects()->orderBy('name')->get();
+        $pixels = auth()->user()->pixels()->orderBy('name')->get();
+        return view('user.links.settings.appearance', compact('link', 'bgTemplates', 'projects', 'pixels'));
     }
 
     public function settingsLayout(Link $link)

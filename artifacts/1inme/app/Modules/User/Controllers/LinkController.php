@@ -922,6 +922,12 @@ class LinkController extends Controller
     {
         abort_if($link->user_id !== $request->user()->id, 403);
 
+        // For biolinks, all edit controls live on the unified Appearance
+        // settings page so users have a single, premium place to manage them.
+        if ($link->type === 'biolink') {
+            return redirect()->route('user.links.settings.appearance', $link);
+        }
+
         $projects = $request->user()->projects()->orderBy('name')->get();
         $pixels = $request->user()->pixels()->orderBy('name')->get();
         $domains = $request->user()->domains()->where('is_verified', true)->get();
@@ -946,6 +952,11 @@ class LinkController extends Controller
             'is_password_protected' => 'boolean',
             'password' => 'nullable|string|min:3|max:100',
             'expires_at' => 'nullable|date',
+            'expiry_url' => 'nullable|url:http,https|max:2048',
+            'max_clicks' => 'nullable|integer|min:0|max:1000000000',
+            'start_at' => 'nullable|date',
+            'expire_on_first_click' => 'nullable|boolean',
+            '_exp_mode' => 'nullable|in:none,date,clicks,first_click',
             'seo_title' => 'nullable|string|max:255',
             'seo_description' => 'nullable|string|max:500',
             'utm_source' => 'nullable|string|max:255',
@@ -1008,8 +1019,50 @@ class LinkController extends Controller
         } else {
             unset($settings['device_targeting']);
         }
+
+        // Expiry / availability conditions stored in JSON settings (no migration needed).
+        // The `_exp_mode` field (none|date|clicks|first_click) tells us which
+        // expiry mode the user picked so we can clear the others server-side.
+        $expMode = $validated['_exp_mode'] ?? null;
+        if ($expMode !== null) {
+            if ($expMode !== 'date') {
+                $validated['expires_at'] = null;
+            }
+            if ($expMode !== 'clicks') {
+                $validated['max_clicks'] = null;
+            }
+            // Picking the One-Time mode is itself the activation — no separate checkbox.
+            $validated['expire_on_first_click'] = ($expMode === 'first_click');
+        }
+        unset($validated['_exp_mode']);
+
+        if (!empty($validated['expiry_url'])) {
+            $settings['expiry_url'] = $validated['expiry_url'];
+        } else {
+            unset($settings['expiry_url']);
+        }
+        if (!empty($validated['max_clicks']) && (int) $validated['max_clicks'] > 0) {
+            $settings['max_clicks'] = (int) $validated['max_clicks'];
+        } else {
+            unset($settings['max_clicks']);
+        }
+        if (!empty($validated['start_at'])) {
+            $settings['start_at'] = $validated['start_at'];
+        } else {
+            unset($settings['start_at']);
+        }
+        if (!empty($validated['expire_on_first_click'])) {
+            $settings['expire_on_first_click'] = true;
+        } else {
+            unset($settings['expire_on_first_click']);
+        }
+
         $validated['settings'] = !empty($settings) ? $settings : null;
-        unset($validated['country_restrictions'], $validated['device_targeting']);
+        unset(
+            $validated['country_restrictions'], $validated['device_targeting'],
+            $validated['expiry_url'], $validated['max_clicks'],
+            $validated['start_at'], $validated['expire_on_first_click']
+        );
 
         $pixelIds = $validated['pixel_ids'] ?? [];
         unset($validated['pixel_ids']);
@@ -1307,6 +1360,12 @@ class LinkController extends Controller
                 // any other link (an extra owned by THIS link is fine; we'll
                 // demote it implicitly below).
                 function ($attr, $value, $fail) use ($link) {
+                    // Reserved top-level paths must never be claimed (mirror LinkAliasController).
+                    $reserved = \App\Modules\User\Controllers\LinkAliasController::reservedAliases();
+                    if (in_array(strtolower($value), $reserved, true)) {
+                        $fail("'{$value}' is a reserved name and cannot be used.");
+                        return;
+                    }
                     $exists = \App\Modules\User\Models\LinkAlias::where('alias', $value)
                         ->where('link_id', '!=', $link->id)
                         ->exists();

@@ -28,10 +28,20 @@ class RedirectController extends Controller
         $link->setAttribute('_used_alias', $alias);
 
         if (!$link->isAccessible()) {
-            abort(410, 'This link is no longer available.');
+            if ($redirect = $link->getExpiryRedirectUrl()) {
+                return redirect()->away($redirect, 302);
+            }
+            return response()->view('common.link-expired', ['link' => $link], 410);
         }
 
         $settings = $link->settings ?? [];
+
+        if (!empty($settings['expire_on_first_click']) && (int) $link->total_clicks >= 1) {
+            if ($redirect = $link->getExpiryRedirectUrl()) {
+                return redirect()->away($redirect, 302);
+            }
+            return response()->view('common.link-expired', ['link' => $link], 410);
+        }
 
         if (!empty($settings['country_restrictions'])) {
             $visitorCountry = app(\App\Modules\Common\Services\GeoIpService::class)->detectCountry($request->ip());
@@ -157,7 +167,10 @@ class RedirectController extends Controller
         if (!$link || $link->type !== 'file') abort(404);
 
         if (!$link->isAccessible()) {
-            abort(410, 'This link is no longer available.');
+            if ($redirect = $link->getExpiryRedirectUrl()) {
+                return redirect()->away($redirect, 302);
+            }
+            return response()->view('common.link-expired', ['link' => $link], 410);
         }
 
         $settings = $link->settings ?? [];
@@ -224,7 +237,10 @@ class RedirectController extends Controller
         if (!$link || $link->type !== 'biolink') abort(404);
 
         if (!$link->isAccessible()) {
-            abort(410, 'This link is no longer available.');
+            if ($redirect = $link->getExpiryRedirectUrl()) {
+                return redirect()->away($redirect, 302);
+            }
+            return response()->view('common.link-expired', ['link' => $link], 410);
         }
 
         $block = BiolinkBlock::where('id', $blockId)->where('link_id', $link->id)->firstOrFail();

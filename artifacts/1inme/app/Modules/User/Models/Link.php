@@ -125,12 +125,45 @@ class Link extends Model
 
     public function isExpired(): bool
     {
-        return $this->expires_at && $this->expires_at->isPast();
+        if ($this->expires_at && $this->expires_at->isPast()) return true;
+
+        $s = $this->settings ?? [];
+        $maxClicks = (int) ($s['max_clicks'] ?? 0);
+        if ($maxClicks > 0 && (int) $this->total_clicks >= $maxClicks) return true;
+
+        // One-time link: expired the moment it's been visited at least once.
+        if (!empty($s['expire_on_first_click']) && (int) $this->total_clicks >= 1) return true;
+
+        return false;
+    }
+
+    public function isScheduledFuture(): bool
+    {
+        $s = $this->settings ?? [];
+        $startAt = $s['start_at'] ?? null;
+        if (!$startAt) return false;
+        try {
+            return \Carbon\Carbon::parse($startAt)->isFuture();
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 
     public function isAccessible(): bool
     {
-        return $this->is_active && !$this->isExpired();
+        return $this->is_active && !$this->isExpired() && !$this->isScheduledFuture();
+    }
+
+    /**
+     * URL to send visitors to when this link has expired (or is unavailable).
+     * Returns null if no custom expiry URL configured.
+     */
+    public function getExpiryRedirectUrl(): ?string
+    {
+        $url = $this->settings['expiry_url'] ?? null;
+        if (!$url) return null;
+        $url = trim($url);
+        return filter_var($url, FILTER_VALIDATE_URL) ? $url : null;
     }
 
     public function getShortUrl(): string

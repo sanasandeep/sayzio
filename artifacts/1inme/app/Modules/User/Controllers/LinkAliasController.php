@@ -27,6 +27,12 @@ class LinkAliasController extends Controller
         'terms', 'privacy', 'about', 'contact', 'pricing', 'plans',
     ];
 
+    /** Public accessor so other controllers (e.g. primary alias edit) can mirror this check. */
+    public static function reservedAliases(): array
+    {
+        return self::RESERVED_ALIASES;
+    }
+
     public function store(Request $request, Link $link)
     {
         abort_if($link->user_id !== $request->user()->id, 403);
