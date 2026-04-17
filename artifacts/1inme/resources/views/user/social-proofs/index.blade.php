@@ -33,7 +33,7 @@
         <thead class="bg-white/5 border-b border-white/10">
             <tr>
                 <th class="text-left px-4 py-3 text-white/70 font-medium">Name</th>
-                <th class="text-left px-4 py-3 text-white/70 font-medium">Type</th>
+                <th class="text-left px-4 py-3 text-white/70 font-medium">Notifications</th>
                 <th class="text-left px-4 py-3 text-white/70 font-medium">Impressions</th>
                 <th class="text-left px-4 py-3 text-white/70 font-medium">Clicks</th>
                 <th class="text-left px-4 py-3 text-white/70 font-medium">CTR</th>
@@ -47,7 +47,11 @@
                 <td class="px-4 py-3 text-white">
                     <a href="{{ route('user.social-proofs.edit', $p) }}" class="font-medium hover:text-violet-300">{{ $p->name }}</a>
                 </td>
-                <td class="px-4 py-3 text-white/70">{{ $p->typeLabel() }}</td>
+                <td class="px-4 py-3 text-white/70">
+                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs bg-violet-500/10 text-violet-300 border border-violet-500/20">
+                        <i class="fas fa-bell"></i> {{ $p->notificationCount() }}
+                    </span>
+                </td>
                 <td class="px-4 py-3 text-white/70">{{ number_format($p->impressions) }}</td>
                 <td class="px-4 py-3 text-white/70">{{ number_format($p->clicks) }}</td>
                 <td class="px-4 py-3 text-white/70">{{ $p->ctr() }}%</td>

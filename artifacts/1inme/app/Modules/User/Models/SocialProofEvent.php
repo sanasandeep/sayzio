@@ -9,7 +9,7 @@ class SocialProofEvent extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'social_proof_id', 'kind', 'page_url', 'ip', 'user_agent', 'created_at',
+        'social_proof_id', 'notification_id', 'kind', 'page_url', 'ip', 'user_agent', 'created_at',
     ];
 
     protected $casts = [

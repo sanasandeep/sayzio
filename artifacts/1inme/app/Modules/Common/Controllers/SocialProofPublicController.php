@@ -15,14 +15,8 @@ use Illuminate\Support\Facades\DB;
  */
 class SocialProofPublicController extends Controller
 {
-    /**
-     * Returns a small JS bootstrapper that loads the widget runtime then
-     * configures it with the proof's UUID. Cached briefly at the edge.
-     */
     public function loaderJs(Request $request, string $uuid)
     {
-        // Verify the proof exists & is active before serving the loader so a
-        // disabled/deleted proof returns a no-op script instead of a 404.
         $proof = SocialProof::where('uuid', $uuid)->first();
         if (!$proof || !$proof->is_active) {
             $js = "/* 1inme social-proof: widget disabled or not found */\n";
@@ -61,44 +55,32 @@ class SocialProofPublicController extends Controller
         ]);
     }
 
-    /**
-     * JSON config consumed by the runtime to render the widget.
-     */
     public function config(Request $request, string $uuid)
     {
-        $proof = SocialProof::with('items')
-            ->where('uuid', $uuid)
-            ->where('is_active', true)
-            ->first();
-
+        $proof = SocialProof::where('uuid', $uuid)->where('is_active', true)->first();
         if (!$proof) {
             return response()->json(['error' => 'not_found'], 404, $this->corsHeaders());
         }
 
+        $notifications = is_array($proof->notifications) ? $proof->notifications : [];
+        // Defensive normalization (in case of older un-normalized JSON)
+        $notifications = array_map([SocialProof::class, 'normalizeNotification'], $notifications);
+        // Filter inactive notifications + sort
+        $notifications = array_values(array_filter($notifications, fn($n) => !empty($n['is_active'])));
+        usort($notifications, fn($a, $b) => ($a['sort_order'] ?? 0) <=> ($b['sort_order'] ?? 0));
+
         $payload = [
-            'uuid'      => $proof->uuid,
-            'type'      => $proof->type,
-            'name'      => $proof->name,
-            'settings'  => $proof->settings ?? [],
-            'design'    => $proof->design   ?? SocialProof::defaultDesign(),
-            'targeting' => $proof->targeting?? SocialProof::defaultTargeting(),
-            'items'     => $proof->items->map(fn($i) => [
-                'name'       => $i->name,
-                'location'   => $i->location,
-                'action'     => $i->action,
-                'image_url'  => $i->image_url,
-                'link_url'   => $i->link_url,
-                'time_label' => $i->time_label,
-            ])->values(),
-            'live_visitors' => $this->liveVisitorCount($proof),
+            'uuid'          => $proof->uuid,
+            'name'          => $proof->name,
+            'design'        => $proof->design   ?? SocialProof::defaultDesign(),
+            'targeting'     => $proof->targeting?? SocialProof::defaultTargeting(),
+            'notifications' => $notifications,
+            'live_visitors' => $this->liveVisitorCountFor($notifications),
         ];
 
         return response()->json($payload, 200, $this->corsHeaders());
     }
 
-    /**
-     * Track impression / click / conversion. Throttled at the route level.
-     */
     public function track(Request $request, string $uuid)
     {
         $proof = SocialProof::where('uuid', $uuid)->where('is_active', true)->first();
@@ -113,6 +95,7 @@ class SocialProofPublicController extends Controller
 
         SocialProofEvent::create([
             'social_proof_id' => $proof->id,
+            'notification_id' => substr((string)$request->input('notification_id', ''), 0, 64) ?: null,
             'kind'            => $kind,
             'page_url'        => substr((string)$request->input('page_url', ''), 0, 1000),
             'ip'              => $request->ip(),
@@ -120,7 +103,6 @@ class SocialProofPublicController extends Controller
             'created_at'      => now(),
         ]);
 
-        // Maintain the denormalized counters for fast dashboard reads.
         $col = match ($kind) { 'impression' => 'impressions', 'click' => 'clicks', 'conversion' => 'conversions' };
         DB::table('social_proofs')->where('id', $proof->id)->increment($col);
 
@@ -143,18 +125,21 @@ class SocialProofPublicController extends Controller
     }
 
     /**
-     * For "visitor_count" type. If settings.mode == 'simulated' we don't query
-     * anything — the runtime computes the number deterministically.
-     * In simulated mode we return a plausible varying number derived from a
-     * 30-second time bucket so the front-end can blend it.
+     * For visitor_count notifications: deterministic per-30s plausible number.
+     * If the campaign has any visitor_count notifications, derive the number
+     * from the first one's min/max settings.
      */
-    private function liveVisitorCount(SocialProof $proof): int
+    private function liveVisitorCountFor(array $notifications): int
     {
-        $s = $proof->settings ?? [];
+        $vc = null;
+        foreach ($notifications as $n) {
+            if (($n['type'] ?? '') === 'visitor_count') { $vc = $n; break; }
+        }
+        if (!$vc) return 0;
+        $s = $vc['settings'] ?? [];
         $min = max(0, (int)($s['min'] ?? 5));
         $max = max($min, (int)($s['max'] ?? $min + 10));
         if ($max === $min) return $min;
-        // Deterministic per 30s window so the number visibly varies but stably
         $bucket = (int) floor(time() / 30);
         return $min + ($bucket % ($max - $min + 1));
     }

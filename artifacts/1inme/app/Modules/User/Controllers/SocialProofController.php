@@ -4,7 +4,6 @@ namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\SocialProof;
-use App\Modules\User\Models\SocialProofItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -20,38 +19,49 @@ class SocialProofController extends Controller
 
     public function create()
     {
-        return view('user.social-proofs.create', ['types' => SocialProof::TYPES]);
+        return view('user.social-proofs.create');
     }
 
+    /**
+     * Create an empty campaign envelope with one starter notification, then
+     * redirect into the editor.
+     */
     public function store(Request $request)
     {
         $validated = $request->validate([
             'name' => 'required|string|max:120',
-            'type' => 'required|string|in:' . implode(',', array_keys(SocialProof::TYPES)),
         ]);
 
         $proof = SocialProof::create([
-            'user_id'   => $request->user()->id,
-            'name'      => $validated['name'],
-            'type'      => $validated['type'],
-            'is_active' => true,
-            'settings'  => SocialProof::defaultSettingsFor($validated['type']),
-            'design'    => SocialProof::defaultDesign(),
-            'targeting' => SocialProof::defaultTargeting(),
-            'schedule'  => [],
+            'user_id'       => $request->user()->id,
+            'name'          => $validated['name'],
+            'type'          => 'recent_activity', // legacy column — first notification's type
+            'is_active'     => true,
+            'settings'      => [],
+            'design'        => SocialProof::defaultDesign(),
+            'targeting'     => SocialProof::defaultTargeting(),
+            'schedule'      => [],
+            'notifications' => [SocialProof::newNotification('recent_activity', 'Recent activity')],
         ]);
 
-        return redirect()->route('user.social-proofs.edit', $proof)->with('success', 'Notification campaign created.');
+        return redirect()->route('user.social-proofs.edit', $proof)
+            ->with('success', 'Campaign created — add as many notifications as you like.');
     }
 
     public function edit(Request $request, SocialProof $socialProof)
     {
         abort_if($socialProof->user_id !== $request->user()->id, 403);
-
         $stats = $this->statsFor($socialProof);
+
+        // Make sure notifications is an array even on legacy rows where the
+        // backfill migration somehow didn't populate it.
+        if (!is_array($socialProof->notifications) || empty($socialProof->notifications)) {
+            $socialProof->notifications = [SocialProof::newNotification($socialProof->type ?: 'recent_activity', $socialProof->name)];
+            $socialProof->save();
+        }
+
         return view('user.social-proofs.edit', [
             'proof' => $socialProof,
-            'items' => $socialProof->items,
             'stats' => $stats,
         ]);
     }
@@ -61,40 +71,49 @@ class SocialProofController extends Controller
         abort_if($socialProof->user_id !== $request->user()->id, 403);
 
         $validated = $request->validate([
-            'name'        => 'required|string|max:120',
-            'is_active'   => 'sometimes|boolean',
-            'settings'    => 'nullable|array',
-            'design'      => 'nullable|array',
-            'targeting'   => 'nullable|array',
-            'schedule'    => 'nullable|array',
+            'name'              => 'required|string|max:120',
+            'is_active'         => 'sometimes|boolean',
+            'design'            => 'nullable|array',
+            'targeting'         => 'nullable|array',
+            'schedule'          => 'nullable|array',
+            'notifications_json'=> 'required|string',
         ]);
 
-        $settings = array_merge(
-            SocialProof::defaultSettingsFor($socialProof->type),
-            (array)($socialProof->settings ?? []),
-            (array)($validated['settings'] ?? [])
-        );
-        // Reviews tab posts a JSON string for the items collection — decode back to an array
-        if ($socialProof->type === 'review' && isset($settings['items']) && is_string($settings['items'])) {
-            $decoded = json_decode($settings['items'], true);
-            $settings['items'] = is_array($decoded) ? array_values($decoded) : [];
+        // Decode + normalize the notifications array from the editor's hidden JSON field.
+        // We REJECT invalid input rather than silently resetting an existing campaign —
+        // a corrupted client serialization should not destroy a multi-notification setup.
+        $decoded = json_decode($validated['notifications_json'], true);
+        if (!is_array($decoded) || empty($decoded)) {
+            return back()->withErrors(['notifications_json' => 'Notifications payload is invalid or empty.'])->withInput();
         }
-        // Custom HTML: defense-in-depth sanitize (script tags + on* handlers + javascript:/data: URIs)
-        if ($socialProof->type === 'custom_html' && isset($settings['html'])) {
-            $settings['html'] = $this->sanitizeHtml((string) $settings['html']);
+
+        $notifications = [];
+        foreach (array_values($decoded) as $i => $n) {
+            if (!is_array($n)) continue;
+            $n['sort_order'] = $i;
+            $norm = SocialProof::normalizeNotification($n);
+            if ($norm['type'] === 'custom_html' && isset($norm['settings']['html'])) {
+                $norm['settings']['html'] = $this->sanitizeHtml((string) $norm['settings']['html']);
+            }
+            $notifications[] = $norm;
+        }
+        if (empty($notifications)) {
+            return back()->withErrors(['notifications_json' => 'No valid notifications in payload.'])->withInput();
         }
 
         $design    = array_merge(SocialProof::defaultDesign(),    (array)($socialProof->design ?? []),    (array)($validated['design'] ?? []));
         $targeting = array_merge(SocialProof::defaultTargeting(), (array)($socialProof->targeting ?? []), (array)($validated['targeting'] ?? []));
 
-        // Normalize targeting numeric fields
+        // Coerce design booleans (checkboxes post '0'/'1')
+        $design['shadow']     = (bool)($design['shadow'] ?? false);
+        $design['show_close'] = (bool)($design['show_close'] ?? false);
+
+        // Targeting normalization
         foreach (['delay', 'interval', 'duration', 'max_per_session'] as $k) {
             $targeting[$k] = max(0, (int)($targeting[$k] ?? 0));
         }
-        // Normalize devices to a known set
         $devices = array_values(array_intersect((array)($targeting['devices'] ?? []), ['desktop', 'tablet', 'mobile']));
         $targeting['devices'] = $devices ?: ['desktop', 'tablet', 'mobile'];
-        // Page lists -> array of strings (one per line, trimmed)
         foreach (['pages_include', 'pages_exclude'] as $k) {
             $val = $targeting[$k] ?? [];
             if (is_string($val)) $val = preg_split('/\r?\n/', $val);
@@ -102,12 +121,13 @@ class SocialProofController extends Controller
         }
 
         $socialProof->update([
-            'name'      => $validated['name'],
-            'is_active' => (bool)($validated['is_active'] ?? $socialProof->is_active),
-            'settings'  => $settings,
-            'design'    => $design,
-            'targeting' => $targeting,
-            'schedule'  => (array)($validated['schedule'] ?? $socialProof->schedule ?? []),
+            'name'          => $validated['name'],
+            'is_active'     => (bool)($validated['is_active'] ?? $socialProof->is_active),
+            'design'        => $design,
+            'targeting'     => $targeting,
+            'schedule'      => (array)($validated['schedule'] ?? $socialProof->schedule ?? []),
+            'notifications' => $notifications,
+            'type'          => $notifications[0]['type'] ?? $socialProof->type, // keep legacy column in sync with first notification
         ]);
 
         return redirect()->route('user.social-proofs.edit', $socialProof)->with('success', 'Saved.');
@@ -124,55 +144,107 @@ class SocialProofController extends Controller
     {
         abort_if($socialProof->user_id !== $request->user()->id, 403);
         $socialProof->delete();
-        return redirect()->route('user.social-proofs.index')->with('success', 'Notification campaign deleted.');
+        return redirect()->route('user.social-proofs.index')->with('success', 'Campaign deleted.');
     }
 
-    /* -------- Items (curated activity pool) -------- */
-
-    public function storeItem(Request $request, SocialProof $socialProof)
-    {
-        abort_if($socialProof->user_id !== $request->user()->id, 403);
-        $validated = $request->validate([
-            'name'       => 'nullable|string|max:120',
-            'location'   => 'nullable|string|max:120',
-            'action'     => 'nullable|string|max:200',
-            'image_url'  => 'nullable|url|max:500',
-            'link_url'   => 'nullable|url|max:1000',
-            'time_label' => 'nullable|string|max:60',
-        ]);
-        $validated['social_proof_id'] = $socialProof->id;
-        $validated['sort_order'] = (int)$socialProof->items()->max('sort_order') + 1;
-        SocialProofItem::create($validated);
-        return back()->with('success', 'Activity added.');
-    }
-
-    public function destroyItem(Request $request, SocialProof $socialProof, SocialProofItem $item)
-    {
-        abort_if($socialProof->user_id !== $request->user()->id, 403);
-        abort_if($item->social_proof_id !== $socialProof->id, 404);
-        $item->delete();
-        return back()->with('success', 'Activity removed.');
-    }
-
-    /* -------- Sanitization -------- */
+    /* -------- Sanitization (custom_html) — strict ALLOWLIST DOM-based -------- */
     private function sanitizeHtml(string $html): string
     {
-        // Strip <script>…</script> blocks (greedy across newlines)
-        $html = preg_replace('#<script\b[^>]*>.*?</script>#is', '', $html);
-        // Strip <iframe>, <object>, <embed>, <form>, <meta>, <link>, <style>
-        $html = preg_replace('#<(iframe|object|embed|form|meta|link|style)\b[^>]*>.*?</\1>#is', '', $html);
-        $html = preg_replace('#<(iframe|object|embed|form|meta|link|style)\b[^>]*/?>#is', '', $html);
-        // Strip ALL on* event handlers — quoted, single-quoted, and unquoted
-        $html = preg_replace('#\son[a-z]+\s*=\s*"[^"]*"#i', '', $html);
-        $html = preg_replace("#\son[a-z]+\s*=\s*'[^']*'#i", '', $html);
-        $html = preg_replace('#\son[a-z]+\s*=\s*[^\s>]+#i', '', $html);
-        // Strip javascript:/vbscript:/data: URIs
-        $html = preg_replace('#(href|src|action|formaction|background|cite|poster|data)\s*=\s*("|\')\s*(javascript|vbscript|data)\s*:#i', '$1=$2#', $html);
-        return $html;
+        $html = trim($html);
+        if ($html === '') return '';
+
+        $allowedTags = [
+            'div','span','p','a','strong','em','b','i','u','small','sub','sup','br','hr',
+            'h1','h2','h3','h4','h5','h6','ul','ol','li','blockquote','code','pre',
+            'img','figure','figcaption','section','article','header','footer','nav',
+            'table','thead','tbody','tr','th','td','caption',
+        ];
+        $allowedAttrs = ['id','class','style','title','alt','role','aria-label','aria-hidden','data-action','data-id'];
+        $urlAttrs = ['href','src'];
+        $safeSchemes = ['http', 'https', 'mailto', 'tel', '#'];
+
+        $doc = new \DOMDocument();
+        libxml_use_internal_errors(true);
+        // Wrap so we get a clean root and force UTF-8
+        $doc->loadHTML('<?xml encoding="utf-8"?><div id="__sp_root">' . $html . '</div>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        libxml_clear_errors();
+
+        $root = $doc->getElementById('__sp_root');
+        if (!$root) return '';
+
+        $walk = function (\DOMNode $node) use (&$walk, $allowedTags, $allowedAttrs, $urlAttrs, $safeSchemes) {
+            // Snapshot children — we may mutate during iteration
+            $children = iterator_to_array($node->childNodes);
+            foreach ($children as $child) {
+                if ($child->nodeType !== XML_ELEMENT_NODE) {
+                    if ($child->nodeType !== XML_TEXT_NODE && $child->nodeType !== XML_CDATA_SECTION_NODE) {
+                        $node->removeChild($child);
+                    }
+                    continue;
+                }
+                /** @var \DOMElement $child */
+                $tag = strtolower($child->tagName);
+                if (!in_array($tag, $allowedTags, true)) {
+                    // Drop the element AND all of its descendants entirely
+                    $node->removeChild($child);
+                    continue;
+                }
+                // Strip every attribute not in our allowlist; sanitize URL attrs.
+                $attrs = [];
+                foreach ($child->attributes as $a) $attrs[] = $a->name;
+                foreach ($attrs as $aName) {
+                    $aLower = strtolower($aName);
+                    $isUrlAttr = in_array($aLower, $urlAttrs, true);
+                    if (!in_array($aLower, $allowedAttrs, true) && !$isUrlAttr) {
+                        $child->removeAttribute($aName);
+                        continue;
+                    }
+                    $val = (string) $child->getAttribute($aName);
+                    if ($isUrlAttr) {
+                        $clean = $this->cleanUrl($val, $safeSchemes);
+                        if ($clean === null) { $child->removeAttribute($aName); continue; }
+                        $child->setAttribute($aName, $clean);
+                    }
+                    if ($aLower === 'style') {
+                        // Drop expressions and javascript: in style values
+                        if (preg_match('/expression\s*\(|javascript:|vbscript:|@import|behavior\s*:/i', $val)) {
+                            $child->removeAttribute($aName);
+                        }
+                    }
+                }
+                // Force safe target on links
+                if ($tag === 'a') {
+                    $child->setAttribute('rel', 'noopener noreferrer');
+                    if (!$child->hasAttribute('target')) $child->setAttribute('target', '_blank');
+                }
+                $walk($child);
+            }
+        };
+        $walk($root);
+
+        $out = '';
+        foreach ($root->childNodes as $c) {
+            $out .= $doc->saveHTML($c);
+        }
+        return $out;
+    }
+
+    private function cleanUrl(string $url, array $safeSchemes): ?string
+    {
+        $url = trim($url);
+        if ($url === '') return null;
+        if ($url[0] === '#' || $url[0] === '/') return $url;
+        // Reject anything with an embedded scheme that isn't safe
+        if (preg_match('#^([a-z][a-z0-9+.-]*):#i', $url, $m)) {
+            $scheme = strtolower($m[1]);
+            if (!in_array($scheme, $safeSchemes, true)) return null;
+            return $url;
+        }
+        // No scheme + not absolute path → treat as relative (allow)
+        return $url;
     }
 
     /* -------- Analytics -------- */
-
     private function statsFor(SocialProof $proof): array
     {
         $rows = DB::table('social_proof_events')
