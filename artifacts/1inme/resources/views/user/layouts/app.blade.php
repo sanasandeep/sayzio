@@ -55,19 +55,25 @@
             align-items: center;
             padding: 0;
             height: 44px;
-            margin: 2px auto;
             width: 44px;
+            margin: 2px auto;
+            gap: 0;
         }
         .sidebar-v2.collapsed .sidebar-link i {
             margin: 0;
             font-size: 1rem;
         }
+        /* Hide the left active accent bar when collapsed — it shifts the icon visually off-center */
+        .sidebar-v2.collapsed .sidebar-link.active::after,
         .sidebar-v2.collapsed .sidebar-link.active::before {
-            left: 0;
+            display: none !important;
         }
         /* When collapsed, center every nav item on the sidebar's vertical axis */
-        .sidebar-v2.collapsed nav { display: flex; flex-direction: column; align-items: center; }
+        .sidebar-v2.collapsed nav { display: flex; flex-direction: column; align-items: center; padding-left: 0 !important; padding-right: 0 !important; }
         .sidebar-v2.collapsed nav > * { width: 100%; display: flex; justify-content: center; }
+        .sidebar-v2.collapsed .sidebar-link .nav-icon-wrap {
+            margin: 0 auto;
+        }
 
         /* Sidebar shell: visible right border in both modes */
         .sidebar-shell {
@@ -82,7 +88,7 @@
         /* Edge-mounted collapse handle — sits 50% in / 50% out of sidebar */
         .sidebar-edge-toggle {
             position: absolute;
-            top: 70px;
+            top: 20px;
             right: -14px;
             width: 28px;
             height: 28px;
@@ -643,7 +649,12 @@
             <div class="px-3 py-3" style="border-top: 1px solid var(--border-strong);">
                 <div class="flex items-center" :class="sidebarMode === 'icons' ? 'justify-center' : 'gap-3'">
                     <div class="user-avatar-ring flex-shrink-0">
-                        <div class="inner">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</div>
+                        <div class="inner">
+                            <img src="https://www.gravatar.com/avatar/{{ md5(strtolower(trim(auth()->user()->email))) }}?d=mp&s=80"
+                                 alt="{{ auth()->user()->name }}"
+                                 class="w-full h-full rounded-[10px] object-cover"
+                                 onerror="this.style.display='none';this.parentNode.textContent='{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}';">
+                        </div>
                     </div>
                     <div class="flex-1 min-w-0 user-info">
                         <p class="text-xs font-semibold truncate" style="color: var(--text-primary);">{{ auth()->user()->name }}</p>
