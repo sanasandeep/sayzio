@@ -5,7 +5,7 @@
     // heartbeat) before the visitor is forwarded to the actual destination /
     // download via `?_continue=1`.
     $type        = $link->type;
-    $title       = $link->title ?: ucfirst($type) . ' Link';
+    $title       = $link->title ?: \App\Modules\User\Models\Link::typeLabel($type);
     $continueUrl = request()->fullUrlWithQuery(['_continue' => 1]);
 
     // Type-specific copy + preview details.

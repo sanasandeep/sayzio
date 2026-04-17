@@ -33,7 +33,7 @@ class CheckPlanLimit
             case 'biolinks':
                 $maxBiolinks = $features['max_biolinks'] ?? 1;
                 if ($maxBiolinks !== -1 && $user->links()->where('type', 'biolink')->count() >= $maxBiolinks) {
-                    return back()->with('error', "You've reached your plan's bio link limit ({$maxBiolinks}). Upgrade your plan for more.");
+                    return back()->with('error', "You've reached your plan's Link in Bio limit ({$maxBiolinks}). Upgrade your plan for more.");
                 }
                 break;
 

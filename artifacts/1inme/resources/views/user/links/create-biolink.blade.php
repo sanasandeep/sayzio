@@ -1,12 +1,12 @@
 @extends('user.layouts.app')
-@section('title', 'Create Bio Link')
+@section('title', 'Create Link in Bio')
 
 @section('content')
 <div class="max-w-2xl mx-auto">
     <div class="flex items-center gap-4 mb-6">
         <a href="{{ route('user.links.create') . (!empty($prefillAlias ?? '') ? '?alias=' . urlencode($prefillAlias) : '') }}" class="text-white/30 hover:text-white transition-colors" title="Choose a different type"><i class="fas fa-arrow-left"></i></a>
         <div>
-            <h1 class="text-2xl font-bold text-white">Bio Link</h1>
+            <h1 class="text-2xl font-bold text-white">Link in Bio</h1>
             <p class="text-xs text-white/40 mt-0.5">Step 2 of 2 &middot; <a href="{{ route('user.links.create') . (!empty($prefillAlias ?? '') ? '?alias=' . urlencode($prefillAlias) : '') }}" class="text-violet-400 hover:underline">change type</a></p>
         </div>
     </div>
@@ -50,14 +50,14 @@
 
             <div class="text-xs text-white/40 bg-violet-500/5 border border-violet-500/10 rounded-xl px-4 py-3">
                 <i class="fas fa-info-circle text-violet-400 mr-1.5"></i>
-                After creating, you'll pick a starting template (or skip) and land in the bio link editor where you can add blocks, customize the look, and more.
+                After creating, you'll pick a starting template (or skip) and land in the Link in Bio editor where you can add blocks, customize the look, and more.
             </div>
         </div>
 
         <div class="flex items-center justify-end gap-3">
             <a href="{{ route('user.links.create') . (!empty($prefillAlias ?? '') ? '?alias=' . urlencode($prefillAlias) : '') }}" class="px-5 py-2.5 text-sm text-white/40 hover:text-white hover:bg-white/5 rounded-xl transition-all">Back</a>
             <button type="submit" class="bg-violet-600 hover:bg-violet-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-violet-500/20">
-                Create Bio Link <i class="fas fa-arrow-right ml-1.5 text-xs"></i>
+                Create Link in Bio <i class="fas fa-arrow-right ml-1.5 text-xs"></i>
             </button>
         </div>
     </form>

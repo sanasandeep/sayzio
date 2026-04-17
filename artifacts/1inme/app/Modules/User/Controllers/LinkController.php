@@ -234,7 +234,7 @@ class LinkController extends Controller
         // can discover premium presets.
         if ($link->type === 'biolink' && \App\Modules\Admin\Models\PageTemplate::active()->exists()) {
             return redirect()->route('user.links.templates.picker', $link)
-                ->with('success', 'Bio link created — pick a template to start, or skip.');
+                ->with('success', 'Link in Bio created — pick a template to start, or skip.');
         }
 
         return redirect()->route('user.links.index')

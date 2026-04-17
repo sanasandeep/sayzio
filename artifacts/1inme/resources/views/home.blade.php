@@ -251,9 +251,9 @@
                 <span class="text-xl opacity-30">&bull;</span>
                 <span class="text-sm font-bold uppercase tracking-wider flex items-center gap-2"><i class="fas fa-file-alt"></i> Files</span>
                 <span class="text-xl opacity-30">&bull;</span>
-                <span class="text-sm font-bold uppercase tracking-wider flex items-center gap-2"><i class="fas fa-id-card"></i> Bio Links</span>
+                <span class="text-sm font-bold uppercase tracking-wider flex items-center gap-2"><i class="fas fa-id-card"></i> Link in Bio</span>
                 <span class="text-xl opacity-30">&bull;</span>
-                <span class="text-sm font-bold uppercase tracking-wider flex items-center gap-2"><i class="fas fa-link"></i> URL Shortener</span>
+                <span class="text-sm font-bold uppercase tracking-wider flex items-center gap-2"><i class="fas fa-link"></i> Short Link</span>
                 <span class="text-xl opacity-30">&bull;</span>
                 <span class="text-sm font-bold uppercase tracking-wider flex items-center gap-2"><i class="fas fa-qrcode"></i> QR Codes</span>
                 <span class="text-xl opacity-30">&bull;</span>
@@ -699,8 +699,8 @@
                 <div>
                     <h4 class="text-sm font-bold text-gray-400 uppercase tracking-wide mb-4">Tools</h4>
                     <ul class="space-y-2.5">
-                        <li><a href="{{ route('user.register') }}" class="text-sm text-gray-500 hover:text-[#8b5cf6] transition-colors">URL Shortener</a></li>
-                        <li><a href="{{ route('user.register') }}" class="text-sm text-gray-500 hover:text-[#8b5cf6] transition-colors">Bio Link Builder</a></li>
+                        <li><a href="{{ route('user.register') }}" class="text-sm text-gray-500 hover:text-[#8b5cf6] transition-colors">Short Links</a></li>
+                        <li><a href="{{ route('user.register') }}" class="text-sm text-gray-500 hover:text-[#8b5cf6] transition-colors">Link in Bio</a></li>
                         <li><a href="{{ route('user.register') }}" class="text-sm text-gray-500 hover:text-[#8b5cf6] transition-colors">QR Generator</a></li>
                     </ul>
                 </div>

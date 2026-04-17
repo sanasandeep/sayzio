@@ -220,6 +220,28 @@ class Link extends Model
         return $url;
     }
 
+    /**
+     * Friendly user-facing labels for link types. Internal slugs
+     * (`url`, `biolink`, `file`, `ics`, `vcf`) remain unchanged.
+     */
+    public const TYPE_LABELS = [
+        'url'     => 'Short Link',
+        'biolink' => 'Link in Bio',
+        'file'    => 'File Share',
+        'ics'     => 'Event Invite',
+        'vcf'     => 'Digital Card',
+    ];
+
+    public static function typeLabel(?string $type): string
+    {
+        return self::TYPE_LABELS[$type] ?? ucfirst($type ?? 'link');
+    }
+
+    public function getTypeLabelAttribute(): string
+    {
+        return self::typeLabel($this->type);
+    }
+
     public static function generateAlias(int $length = 7): string
     {
         do {

@@ -66,6 +66,6 @@ class VcfLinkController extends Controller
         VcfData::create($validated);
 
         return redirect()->route('user.links.show', $link)
-            ->with('success', 'VCF contact link created successfully.');
+            ->with('success', 'Digital Card created successfully.');
     }
 }

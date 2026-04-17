@@ -18,7 +18,7 @@
     'url'      => $link->getShortUrl(),
     'chips'    => [
         ['icon' => 'fa-circle ' . ($link->is_active ? 'text-emerald-400' : 'text-red-400'), 'text' => $link->is_active ? 'Active' : 'Inactive'],
-        ['icon' => $link->type === 'biolink' ? 'fa-th-large' : 'fa-link', 'text' => ucfirst($link->type ?? 'link')],
+        ['icon' => $link->type === 'biolink' ? 'fa-th-large' : 'fa-link', 'text' => \App\Modules\User\Models\Link::typeLabel($link->type)],
     ],
     'back'     => route('user.links.index'),
     'actions'  => [

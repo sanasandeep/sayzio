@@ -48,11 +48,11 @@
 
             <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
                 @foreach([
-                    ['value' => 'url',     'icon' => 'fa-link',         'color' => 'text-violet-400',  'label' => 'URL Shortener'],
-                    ['value' => 'biolink', 'icon' => 'fa-id-card',      'color' => 'text-pink-400',    'label' => 'Bio Link'],
-                    ['value' => 'file',    'icon' => 'fa-file',         'color' => 'text-emerald-400', 'label' => 'File Link'],
-                    ['value' => 'ics',     'icon' => 'fa-calendar',     'color' => 'text-amber-400',   'label' => 'ICS Event'],
-                    ['value' => 'vcf',     'icon' => 'fa-address-card', 'color' => 'text-cyan-400',    'label' => 'VCF Contact'],
+                    ['value' => 'url',     'icon' => 'fa-link',         'color' => 'text-violet-400',  'label' => 'Short Link'],
+                    ['value' => 'biolink', 'icon' => 'fa-id-card',      'color' => 'text-pink-400',    'label' => 'Link in Bio'],
+                    ['value' => 'file',    'icon' => 'fa-file',         'color' => 'text-emerald-400', 'label' => 'File Share'],
+                    ['value' => 'ics',     'icon' => 'fa-calendar',     'color' => 'text-amber-400',   'label' => 'Event Invite'],
+                    ['value' => 'vcf',     'icon' => 'fa-address-card', 'color' => 'text-cyan-400',    'label' => 'Digital Card'],
                 ] as $opt)
                     <label class="relative cursor-pointer">
                         <input type="radio" name="type" value="{{ $opt['value'] }}" x-model="type" class="peer sr-only">

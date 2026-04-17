@@ -20,7 +20,7 @@
         'back'     => route('user.links.show', $link),
         'chips'    => [
             ['icon' => 'fa-circle ' . ($link->is_active ? 'text-emerald-400' : 'text-red-400'), 'text' => $link->is_active ? 'Active' : 'Inactive'],
-            ['icon' => 'fa-' . ($link->type === 'biolink' ? 'th-large' : 'link'), 'text' => ucfirst($link->type ?? 'link')],
+            ['icon' => 'fa-' . ($link->type === 'biolink' ? 'th-large' : 'link'), 'text' => \App\Modules\User\Models\Link::typeLabel($link->type)],
         ],
     ])
 
@@ -34,7 +34,7 @@
                 <label class="block text-sm font-medium text-white/60 mb-1">Short URL <span class="text-[10px] text-white/30">(primary alias)</span></label>
                 <div class="flex items-center gap-2 text-sm text-violet-400 bg-violet-500/10 px-3 py-2.5 rounded-xl">
                     <span>{{ $link->getShortUrl() }}</span>
-                    <span class="text-xs text-white/40 bg-white/10 px-2 py-0.5 rounded uppercase">{{ $link->type }}</span>
+                    <span class="text-xs text-white/40 bg-white/10 px-2 py-0.5 rounded">{{ \App\Modules\User\Models\Link::typeLabel($link->type) }}</span>
                 </div>
             </div>
 

@@ -30,7 +30,7 @@
     <div class="glass rounded-2xl p-6">
         <h2 class="text-lg font-semibold text-white mb-4">Link Details</h2>
         <dl class="space-y-3 text-sm">
-            <div class="flex justify-between"><dt class="text-white/40">Type</dt><dd class="font-medium">{{ ucfirst($link->type) }}</dd></div>
+            <div class="flex justify-between"><dt class="text-white/40">Type</dt><dd class="font-medium">{{ \App\Modules\User\Models\Link::typeLabel($link->type) }}</dd></div>
             <div class="flex justify-between"><dt class="text-white/40">Short URL</dt><dd class="font-mono text-violet-400">{{ $link->getShortUrl() }}</dd></div>
             @if($link->long_url)
             <div><dt class="text-white/40">Destination</dt><dd class="text-violet-400 break-all mt-1">{{ $link->long_url }}</dd></div>

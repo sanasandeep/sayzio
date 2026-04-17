@@ -68,6 +68,6 @@ class IcsLinkController extends Controller
         ]);
 
         return redirect()->route('user.links.show', $link)
-            ->with('success', 'ICS event link created successfully.');
+            ->with('success', 'Event Invite created successfully.');
     }
 }

@@ -68,6 +68,6 @@ class FileLinkController extends Controller
         ]);
 
         return redirect()->route('user.links.show', $link)
-            ->with('success', 'File link created successfully.');
+            ->with('success', 'File Share created successfully.');
     }
 }

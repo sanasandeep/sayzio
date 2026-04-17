@@ -66,7 +66,7 @@
                             <i class="fas fa-th-large text-amber-400 text-sm"></i>
                         </div>
                         <div>
-                            <p class="text-sm font-bold mb-0.5" style="color: var(--text-primary);">99+ Bio Link Blocks</p>
+                            <p class="text-sm font-bold mb-0.5" style="color: var(--text-primary);">99+ Link in Bio Blocks</p>
                             <p class="text-xs" style="color: var(--text-dimmed);">Build stunning bio pages with videos, forms, maps & more</p>
                         </div>
                     </div>

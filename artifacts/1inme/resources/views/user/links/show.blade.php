@@ -424,7 +424,7 @@
     'url'      => $link->getShortUrl(),
     'chips'    => [
         ['icon' => 'fa-circle text-emerald-400', 'text' => ($link->is_active ?? true) ? 'Active' : 'Inactive'],
-        ['icon' => $link->type === 'biolink' ? 'fa-th-large' : 'fa-link', 'text' => ucfirst($link->type ?? 'link')],
+        ['icon' => $link->type === 'biolink' ? 'fa-th-large' : 'fa-link', 'text' => \App\Modules\User\Models\Link::typeLabel($link->type)],
         ['icon' => 'fa-calendar', 'text' => $link->created_at?->format('M d, Y')],
     ],
     'back'     => route('user.links.index'),

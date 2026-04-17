@@ -23,7 +23,7 @@
         <div class="text-xs text-white/40 mb-1">By Type</div>
         <div class="flex flex-wrap gap-1">
             @foreach($stats['types'] as $type => $count)
-                <span class="text-xs bg-white/10 text-white/60 px-2 py-0.5 rounded">{{ ucfirst($type) }}: {{ $count }}</span>
+                <span class="text-xs bg-white/10 text-white/60 px-2 py-0.5 rounded">{{ \App\Modules\User\Models\Link::typeLabel($type) }}: {{ $count }}</span>
             @endforeach
         </div>
     </div>
@@ -101,7 +101,7 @@
                             {{ $link->type === 'file' ? 'bg-emerald-500/10 text-emerald-400' : '' }}
                             {{ $link->type === 'ics' ? 'bg-amber-500/10 text-amber-400' : '' }}
                             {{ $link->type === 'vcf' ? 'bg-pink-50 text-pink-700' : '' }}
-                        ">{{ ucfirst($link->type) }}</span>
+                        ">{{ \App\Modules\User\Models\Link::typeLabel($link->type) }}</span>
                     </td>
                     <td class="px-4 py-3 text-sm text-white/60">{{ number_format($link->total_clicks) }}</td>
                     <td class="px-4 py-3">
