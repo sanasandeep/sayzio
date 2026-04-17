@@ -998,22 +998,30 @@ class LinkController extends Controller
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ];
 
-        $columns = ['Clicked At', 'IP', 'Country', 'City', 'Browser', 'OS', 'Device', 'Language', 'Referrer', 'Block ID', 'Block Type', 'Destination URL', 'UTM Source', 'UTM Medium', 'UTM Campaign'];
+        $columns = ['Clicked At', 'Link Type', 'Link Type Slug', 'IP', 'Country', 'City', 'Browser', 'OS', 'Device', 'Language', 'Referrer', 'Block ID', 'Block Type', 'Block Type Slug', 'Destination URL', 'UTM Source', 'UTM Medium', 'UTM Campaign'];
 
-        return response()->stream(function () use ($link, $startDate, $endDate, $columns) {
+        $linkTypeLabel = \App\Modules\User\Models\Link::typeLabel($link->type);
+        $linkTypeSlug = (string) $link->type;
+
+        return response()->stream(function () use ($link, $startDate, $endDate, $columns, $linkTypeLabel, $linkTypeSlug) {
             $h = fopen('php://output', 'w');
             fputcsv($h, $columns);
             $link->clicks()
                 ->whereBetween('clicked_at', [$startDate, $endDate])
                 ->orderByDesc('clicked_at')
-                ->chunk(500, function ($rows) use ($h) {
+                ->chunk(500, function ($rows) use ($h, $linkTypeLabel, $linkTypeSlug) {
                     foreach ($rows as $r) {
                         $u = $r->utm_params ?? [];
+                        $blockTypeSlug = (string) ($r->block_type ?? '');
+                        $blockTypeLabel = $blockTypeSlug !== ''
+                            ? (\App\Modules\User\Models\BiolinkBlock::TYPES[$blockTypeSlug]['label'] ?? ucfirst(str_replace('_', ' ', $blockTypeSlug)))
+                            : '';
                         fputcsv($h, [
                             optional($r->clicked_at)->format('Y-m-d H:i:s'),
+                            $linkTypeLabel, $linkTypeSlug,
                             $r->ip_address, $r->country_code, $r->city,
                             $r->browser, $r->os, $r->device_type, $r->language,
-                            $r->referrer, $r->block_id, $r->block_type, $r->destination_url,
+                            $r->referrer, $r->block_id, $blockTypeLabel, $blockTypeSlug, $r->destination_url,
                             $u['utm_source'] ?? '', $u['utm_medium'] ?? '', $u['utm_campaign'] ?? '',
                         ]);
                     }
