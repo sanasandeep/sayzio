@@ -257,6 +257,10 @@
             </div>
         </label>
     </div>
+
+    @isset($link)
+        @include('user.links.partials.smart-rules', ['link' => $link])
+    @endisset
 </div>
 
 <script>

@@ -74,13 +74,26 @@ class VcfLinkController extends Controller
 
         $validated = $this->validatePayload($request, $link);
 
+        $newSettings = array_merge((array) $link->settings, [
+            'show_preview_page' => $request->boolean('show_preview_page'),
+        ]);
+
+        // Smart redirect rules — supported on every link type. A matched
+        // rule overrides the .vcf download with the rule's destination URL.
+        if ($request->has('smart_rules_json')) {
+            $rules = LinkController::sanitizeSmartRules($request->input('smart_rules_json'));
+            if (!empty($rules)) {
+                $newSettings['smart_rules'] = $rules;
+            } else {
+                unset($newSettings['smart_rules']);
+            }
+        }
+
         $link->update([
             'alias'      => $validated['alias'] ?: $link->alias,
             'title'      => $this->buildLinkTitle($validated),
             'project_id' => $validated['project_id'] ?? null,
-            'settings'   => array_merge((array) $link->settings, [
-                'show_preview_page' => $request->boolean('show_preview_page'),
-            ]),
+            'settings'   => $newSettings,
         ]);
 
         $vcf = $link->vcfData ?: new VcfData(['link_id' => $link->id]);

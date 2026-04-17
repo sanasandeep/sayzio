@@ -125,20 +125,25 @@ class RedirectController extends Controller
             $this->trackingService->track($link, $request, $alias);
         }
 
-        // Smart redirect rules — for url-type links only. Evaluates the
-        // user-defined rule list (device / country / language / time / AB)
-        // and returns the first matching destination, falling back to the
-        // link's normal long_url + UTMs when nothing matches. The chosen
-        // URL is then used for BOTH the app-opener detection and the
-        // final redirect, so e.g. an iOS visitor matched by a country rule
-        // still gets the YouTube app opener if the matched URL is YouTube.
+        // Smart redirect rules — evaluated for ALL link types so that
+        // device/country/language/time/AB rules can override the link's
+        // normal behavior with a custom destination URL. For 'url' links
+        // the resolver also returns the link's own destination as the
+        // fallback. For other link types (biolink/file/vcf/ics) we only
+        // override when a rule actually matched; otherwise we fall through
+        // to the type's normal behavior (landing page / file download).
         $smartCookie = null;
+        $finalUrl    = null;
+        $smart       = app(SmartRedirectResolver::class)->resolve($link, $request);
         if ($link->type === 'url') {
-            $smart = app(SmartRedirectResolver::class)->resolve($link, $request);
             $finalUrl    = $smart['url'];
             $smartCookie = $smart['cookie'];
-        } else {
-            $finalUrl = null;
+        } elseif (!empty($smart['rule'])) {
+            // A user-defined rule matched on a non-url link → redirect to
+            // the rule's URL instead of showing the landing/download.
+            $resp = redirect()->away($smart['url'], 302);
+            if ($smart['cookie']) $resp->withCookie($smart['cookie']);
+            return $resp;
         }
 
         // Mobile app opener — for url-type links pointing at known apps,

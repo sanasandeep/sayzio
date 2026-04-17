@@ -72,13 +72,28 @@ class IcsLinkController extends Controller
 
         $validated = $this->validateRequest($request, $link);
 
+        $newSettings = array_merge((array) $link->settings, [
+            'show_preview_page' => $request->boolean('show_preview_page'),
+        ]);
+
+        // Smart redirect rules — supported on every link type. A matched
+        // rule overrides the .ics download with the rule's destination URL.
+        if ($request->has('smart_rules_json')) {
+            $rules = \App\Modules\User\Controllers\LinkController::sanitizeSmartRules(
+                $request->input('smart_rules_json')
+            );
+            if (!empty($rules)) {
+                $newSettings['smart_rules'] = $rules;
+            } else {
+                unset($newSettings['smart_rules']);
+            }
+        }
+
         $link->update([
             'alias'      => $validated['alias'] ?: $link->alias,
             'title'      => $validated['event_name'],
             'project_id' => $validated['project_id'] ?? null,
-            'settings'   => array_merge((array) $link->settings, [
-                'show_preview_page' => $request->boolean('show_preview_page'),
-            ]),
+            'settings'   => $newSettings,
         ]);
 
         $link->loadMissing('icsData');

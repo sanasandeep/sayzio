@@ -399,6 +399,9 @@
             </div>
         </div>
 
+        {{-- ==================== Smart redirect rules ==================== --}}
+        @include('user.links.partials.smart-rules', ['link' => $link])
+
         {{-- ==================== Link settings ==================== --}}
         <div class="ics-section">
             <div class="ics-section-head">

@@ -201,9 +201,10 @@ class Link extends Model
         return url("/{$this->alias}");
     }
 
-    public function getDestinationUrl(): string
+    public function getDestinationUrl(): ?string
     {
         $url = $this->long_url;
+        if ($url === null || $url === '') return null;
         $utmParams = [];
 
         if ($this->utm_source) $utmParams['utm_source'] = $this->utm_source;

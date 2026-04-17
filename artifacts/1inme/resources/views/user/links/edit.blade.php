@@ -303,16 +303,11 @@
         </div>
         @endif
 
-        @if($link->type === 'url')
+        @include('user.links.partials.smart-rules', ['link' => $link])
+        @php /* Old inline smart-rules block kept disabled for reference, replaced by partial above. */ @endphp
+        @if(false)
         <div class="glass rounded-2xl p-6 mb-6">
-            <div class="flex items-start justify-between mb-2">
-                <div>
-                    <h2 class="text-lg font-semibold text-white">Smart Redirect Rules</h2>
-                    <p class="text-xs text-white/40 mt-1">Send different visitors to different destinations based on their device, country, language, the time of day, or split traffic for A/B testing. Rules run top-to-bottom — the first match wins. If nothing matches, your default destination above is used.</p>
-                </div>
-            </div>
-
-            <input type="hidden" name="smart_rules_json" :value="JSON.stringify(smartRules)">
+            <input type="hidden" name="_dead_smart_rules_json">
 
             <template x-for="(rule, i) in smartRules" :key="i">
                 <div class="border border-white/10 rounded-xl p-4 mb-3 bg-white/[0.02]">

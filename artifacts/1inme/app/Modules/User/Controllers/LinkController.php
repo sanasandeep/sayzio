@@ -225,8 +225,10 @@ class LinkController extends Controller
                 ? $request->boolean('open_in_app')
                 : true;
         }
-        // Smart redirect rules (url-type only).
-        if (($validated['type'] ?? null) === 'url' && !empty($validated['smart_rules_json'])) {
+        // Smart redirect rules — supported on every link type. For non-url
+        // types a matched rule overrides the normal landing/file behavior
+        // with the rule's destination URL (see RedirectController::handle).
+        if (!empty($validated['smart_rules_json'])) {
             $rules = $this->sanitizeSmartRules($validated['smart_rules_json']);
             if (!empty($rules)) $settings['smart_rules'] = $rules;
         }
@@ -998,7 +1000,7 @@ class LinkController extends Controller
      * client-side validation, so by the time it reaches us we just want to
      * make sure nothing weird gets persisted to settings.
      */
-    private function sanitizeSmartRules(?string $json): array
+    public static function sanitizeSmartRules(?string $json): array
     {
         if (!$json) return [];
         $decoded = json_decode($json, true);
@@ -1309,9 +1311,9 @@ class LinkController extends Controller
             }
         }
 
-        // Smart redirect rules (url-type only). Always present in form, even
-        // empty, so unsetting is just "save with zero rules".
-        if ($link->type === 'url' && $request->has('smart_rules_json')) {
+        // Smart redirect rules — supported on every link type. Always present
+        // in form, even empty, so unsetting is just "save with zero rules".
+        if ($request->has('smart_rules_json')) {
             $rules = $this->sanitizeSmartRules($request->input('smart_rules_json'));
             if (!empty($rules)) {
                 $settings['smart_rules'] = $rules;
