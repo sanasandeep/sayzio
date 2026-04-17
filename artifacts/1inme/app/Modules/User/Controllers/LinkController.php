@@ -1160,6 +1160,12 @@ class LinkController extends Controller
             return redirect()->route('user.links.vcf.edit', $link);
         }
 
+        // ICS (Event Invite) links have their own editor with date/time,
+        // location, organizer, recurrence, and multi-schedule support.
+        if ($link->type === 'ics') {
+            return redirect()->route('user.links.ics.edit', $link);
+        }
+
         $projects = $request->user()->projects()->orderBy('name')->get();
         $pixels = $request->user()->pixels()->orderBy('name')->get();
         $domains = $request->user()->domains()->where('is_verified', true)->get();

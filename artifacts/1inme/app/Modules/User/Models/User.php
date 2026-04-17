@@ -150,11 +150,18 @@ class User extends Authenticatable
      */
     public function getAliasLengthLimits(): array
     {
+        // Super admins (and users on plans without explicit alias limits) get
+        // no constraint — sentinel "PHP_INT_MAX" returned by getPlanFeature
+        // for super admins must NOT become a literal min length.
+        if ($this->isSuperAdmin()) {
+            return ['min' => 1, 'max' => 191];
+        }
         $min = (int) $this->getPlanFeature('min_alias_length', 3);
         $max = (int) $this->getPlanFeature('max_alias_length', 50);
-        if ($min < 1)        $min = 1;
-        if ($max < $min)     $max = $min;
-        if ($max > 191)      $max = 191; // matches DB column width
+        if ($min < 1)    $min = 1;
+        if ($max < 1)    $max = 1;
+        if ($max > 191)  $max = 191; // matches DB column width
+        if ($min > $max) $min = $max;
         return ['min' => $min, 'max' => $max];
     }
 

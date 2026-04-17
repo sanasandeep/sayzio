@@ -97,6 +97,8 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('links-file', [FileLinkController::class, 'store'])->middleware(CheckPlanLimit::class . ':links')->name('links.file.store');
         Route::get('links-ics/create', [IcsLinkController::class, 'create'])->name('links.ics.create');
         Route::post('links-ics', [IcsLinkController::class, 'store'])->middleware(CheckPlanLimit::class . ':links')->name('links.ics.store');
+        Route::get('links-ics/{link}/edit', [IcsLinkController::class, 'edit'])->name('links.ics.edit');
+        Route::put('links-ics/{link}', [IcsLinkController::class, 'update'])->name('links.ics.update');
         Route::get('links-vcf/create', [VcfLinkController::class, 'create'])->name('links.vcf.create');
         Route::post('links-vcf', [VcfLinkController::class, 'store'])->middleware(CheckPlanLimit::class . ':links')->name('links.vcf.store');
         Route::get('links-vcf/{link}/edit', [VcfLinkController::class, 'edit'])->name('links.vcf.edit');
