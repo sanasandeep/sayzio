@@ -47,7 +47,7 @@ class CalendarAccountController extends Controller
             ->whereHas('link', fn ($q) => $q->where('user_id', $userId))
             ->where('start_date', '>=', now()->subDay())
             ->orderBy('start_date')
-            ->with('link:id,title,slug,type')
+            ->with('link:id,title,alias,type')
             ->limit(8)
             ->get();
 
@@ -75,7 +75,7 @@ class CalendarAccountController extends Controller
                       $q2->where('start_date', '<=', $start)->where('end_date', '>=', $end);
                   });
             })
-            ->with('link:id,title,slug,type')
+            ->with('link:id,title,alias,type')
             ->get();
 
         $out = [];
