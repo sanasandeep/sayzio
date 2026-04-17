@@ -36,47 +36,63 @@
         $tzList = ['UTC','Asia/Kolkata','Asia/Dubai','Asia/Singapore','Asia/Tokyo','Asia/Shanghai','Europe/London','Europe/Berlin','Europe/Paris','America/New_York','America/Chicago','America/Denver','America/Los_Angeles','America/Sao_Paulo','Australia/Sydney','Africa/Lagos','Africa/Cairo','Africa/Johannesburg'];
         $smartRulesJson = json_encode($s['smart_rules'] ?? [], JSON_UNESCAPED_SLASHES);
     @endphp
-    <form method="POST" action="{{ route('user.links.update', $link) }}" enctype="multipart/form-data" x-data="{
-        passwordProtect: {{ $link->is_password_protected ? 'true' : 'false' }},
-        expMode: '{{ $expMode }}',
-        openInApp: {{ $openInApp }},
-        showPreview: {{ $showPreview }},
-        smartRules: {{ $smartRulesJson }},
-        // 12-char alphanumeric — matches the regex the server uses to
-        // accept variant ids (and is short enough for cookies).
-        newId() {
-            const a='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-            let s=''; for (let k=0;k<12;k++) s += a[Math.floor(Math.random()*a.length)];
-            return s;
-        },
-        addRule(type) {
-            const self = this;
-            const tpl = {
-                device:   { type:'device',   match:['mobile'], url:'' },
-                country:  { type:'country',  match:['US'],     url:'' },
-                language: { type:'language', match:['hi'],     url:'' },
-                time:     { type:'time',     from:'09:00', to:'17:00', tz:'UTC', url:'' },
-                ab:       { type:'ab',       variants:[ {id:self.newId(), url:'', weight:50}, {id:self.newId(), url:'', weight:50} ] },
+    <script>
+    document.addEventListener('alpine:init', function () {
+        window.Alpine.data('linkEditForm', function () {
+            return {
+                passwordProtect: @json((bool) $link->is_password_protected),
+                expMode: @json($expMode),
+                openInApp: @json((bool) ($s['open_in_app'] ?? true)),
+                showPreview: @json(!empty($s['show_preview_page'])),
+                smartRules: @json($s['smart_rules'] ?? [], JSON_UNESCAPED_SLASHES),
+                _newId: function () {
+                    var a = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', s = '';
+                    for (var k = 0; k < 12; k++) s += a[Math.floor(Math.random() * a.length)];
+                    return s;
+                },
+                addRule: function (type) {
+                    var tpl = {
+                        device:   { type: 'device',   match: ['mobile'], url: '' },
+                        country:  { type: 'country',  match: ['US'],     url: '' },
+                        language: { type: 'language', match: ['hi'],     url: '' },
+                        time:     { type: 'time',     from: '09:00', to: '17:00', tz: 'UTC', url: '' },
+                        ab:       { type: 'ab',       variants: [
+                            { id: this._newId(), url: '', weight: 50 },
+                            { id: this._newId(), url: '', weight: 50 }
+                        ] }
+                    };
+                    if (!tpl[type]) return;
+                    this.smartRules.push(JSON.parse(JSON.stringify(tpl[type])));
+                },
+                removeRule: function (i) { this.smartRules.splice(i, 1); },
+                moveRule: function (i, dir) {
+                    var j = i + dir;
+                    if (j < 0 || j >= this.smartRules.length) return;
+                    var tmp = this.smartRules[i];
+                    this.smartRules[i] = this.smartRules[j];
+                    this.smartRules[j] = tmp;
+                },
+                addAbVariant: function (i) {
+                    this.smartRules[i].variants.push({ id: this._newId(), url: '', weight: 50 });
+                },
+                removeAbVariant: function (i, j) {
+                    if (this.smartRules[i].variants.length <= 2) return;
+                    this.smartRules[i].variants.splice(j, 1);
+                },
+                toggleMatch: function (rule, value) {
+                    var idx = rule.match.indexOf(value);
+                    if (idx >= 0) rule.match.splice(idx, 1);
+                    else rule.match.push(value);
+                },
+                ruleLabel: function (t) {
+                    var map = { device: 'Device', country: 'Country', language: 'Language', time: 'Time', ab: 'A/B Split' };
+                    return map[t] || t;
+                }
             };
-            this.smartRules.push(JSON.parse(JSON.stringify(tpl[type])));
-        },
-        removeRule(i) { this.smartRules.splice(i, 1); },
-        moveRule(i, dir) {
-            const j = i + dir;
-            if (j < 0 || j >= this.smartRules.length) return;
-            const tmp = this.smartRules[i]; this.smartRules[i] = this.smartRules[j]; this.smartRules[j] = tmp;
-        },
-        addAbVariant(i) { this.smartRules[i].variants.push({ id:this.newId(), url:'', weight:50 }); },
-        removeAbVariant(i, j) {
-            if (this.smartRules[i].variants.length <= 2) return;
-            this.smartRules[i].variants.splice(j, 1);
-        },
-        toggleMatch(rule, value) {
-            const idx = rule.match.indexOf(value);
-            if (idx >= 0) rule.match.splice(idx, 1); else rule.match.push(value);
-        },
-        ruleLabel(t) { return ({device:'Device', country:'Country', language:'Language', time:'Time', ab:'A/B Split'})[t] || t; },
-    }">
+        });
+    });
+    </script>
+    <form method="POST" action="{{ route('user.links.update', $link) }}" enctype="multipart/form-data" x-data="linkEditForm">
         @csrf @method('PUT')
 
         <div class="glass rounded-2xl p-6 mb-6">
@@ -119,15 +135,14 @@
                                 <li class="flex items-center justify-between py-2">
                                     <a href="{{ $base }}/{{ $a->alias }}" target="_blank" class="text-sm text-violet-300 hover:underline truncate">{{ $base }}/{{ $a->alias }}</a>
                                     <div class="flex items-center gap-2 ml-3">
-                                        <form method="POST" action="{{ route('user.links.aliases.promote', [$link, $a]) }}" class="inline" onsubmit="return confirm('Make this the primary alias? The current primary will become an alternative.')">
-                                            @csrf
-                                            <button type="submit" class="text-xs text-white/50 hover:text-white px-2 py-1 rounded hover:bg-white/10" title="Make this the primary alias"><i class="fas fa-star"></i></button>
-                                        </form>
-                                        <form method="POST" action="{{ route('user.links.aliases.destroy', [$link, $a]) }}" class="inline" onsubmit="return confirm('Delete this alias? Anyone visiting it will get a 404.')">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="text-xs text-red-400/70 hover:text-red-400 px-2 py-1 rounded hover:bg-red-500/10"><i class="fas fa-trash"></i></button>
-                                        </form>
+                                        <button type="button"
+                                                onclick="window.linkAliasAction(this, 'POST', 'Make this the primary alias? The current primary will become an alternative.')"
+                                                data-action="{{ route('user.links.aliases.promote', [$link, $a]) }}"
+                                                class="text-xs text-white/50 hover:text-white px-2 py-1 rounded hover:bg-white/10" title="Make this the primary alias"><i class="fas fa-star"></i></button>
+                                        <button type="button"
+                                                onclick="window.linkAliasAction(this, 'DELETE', 'Delete this alias? Anyone visiting it will get a 404.')"
+                                                data-action="{{ route('user.links.aliases.destroy', [$link, $a]) }}"
+                                                class="text-xs text-red-400/70 hover:text-red-400 px-2 py-1 rounded hover:bg-red-500/10"><i class="fas fa-trash"></i></button>
                                     </div>
                                 </li>
                             @endforeach
@@ -135,13 +150,14 @@
                     @endif
 
                     @if($canAddMore)
-                        <form method="POST" action="{{ route('user.links.aliases.store', $link) }}" class="flex items-center gap-2">
-                            @csrf
+                        <div class="flex items-center gap-2">
                             <span class="text-xs text-white/40 whitespace-nowrap">{{ $base }}/</span>
-                            <input type="text" name="alias" required minlength="3" maxlength="60" pattern="[a-zA-Z0-9_-]+"
+                            <input type="text" id="newAliasInput" required minlength="3" maxlength="60" pattern="[a-zA-Z0-9_-]+"
                                    placeholder="my-campaign" class="flex-1 border border-white/10 rounded-lg px-3 py-2 text-sm bg-white/5 text-white focus:ring-2 focus:ring-violet-500/40">
-                            <button type="submit" class="px-3 py-2 text-sm bg-violet-500/20 text-violet-300 hover:bg-violet-500/30 rounded-lg whitespace-nowrap"><i class="fas fa-plus mr-1"></i>Add</button>
-                        </form>
+                            <button type="button"
+                                    onclick="window.linkAliasAdd('{{ route('user.links.aliases.store', $link) }}')"
+                                    class="px-3 py-2 text-sm bg-violet-500/20 text-violet-300 hover:bg-violet-500/30 rounded-lg whitespace-nowrap"><i class="fas fa-plus mr-1"></i>Add</button>
+                        </div>
                         @error('alias') <p class="text-red-400 text-xs mt-1">{{ $message }}</p> @enderror
                     @else
                         <p class="text-xs text-white/40 mt-2"><i class="fas fa-info-circle mr-1"></i> You've reached your plan's alias limit. Upgrade for more.</p>
@@ -427,6 +443,7 @@
             </div>
         </div>
 
+@if($link->type !== 'url')
         <div class="glass rounded-2xl p-6 mb-6">
             <h2 class="text-lg font-semibold text-white mb-4">Targeting</h2>
             <div class="space-y-4">
@@ -456,6 +473,7 @@
                 </div>
             </div>
         </div>
+@endif
 
         <div class="glass rounded-2xl p-6 mb-6">
             <h2 class="text-lg font-semibold text-white mb-4">UTM Parameters</h2>
@@ -488,4 +506,103 @@
         </div>
     </form>
 </div>
+
+@push('scripts')
+<script>
+// Helper: submit an alias action by building a transient form (top-level,
+// not nested) so HTML doesn't auto-close the parent edit form.
+window.linkAliasAction = function (btn, method, confirmMsg) {
+    if (confirmMsg && !confirm(confirmMsg)) return;
+    var action = btn.getAttribute('data-action');
+    var f = document.createElement('form');
+    f.method = 'POST';
+    f.action = action;
+    f.style.display = 'none';
+    var t = document.createElement('input');
+    t.type = 'hidden'; t.name = '_token';
+    t.value = document.querySelector('meta[name="csrf-token"]')
+        ? document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        : (document.querySelector('input[name="_token"]') ? document.querySelector('input[name="_token"]').value : '');
+    f.appendChild(t);
+    if (method && method.toUpperCase() !== 'POST') {
+        var m = document.createElement('input');
+        m.type = 'hidden'; m.name = '_method'; m.value = method.toUpperCase();
+        f.appendChild(m);
+    }
+    document.body.appendChild(f);
+    f.submit();
+};
+window.linkAliasAdd = function (action) {
+    var input = document.getElementById('newAliasInput');
+    if (!input || !input.value.trim()) { input && input.focus(); return; }
+    var f = document.createElement('form');
+    f.method = 'POST';
+    f.action = action;
+    f.style.display = 'none';
+    var t = document.createElement('input');
+    t.type = 'hidden'; t.name = '_token';
+    t.value = document.querySelector('input[name="_token"]') ? document.querySelector('input[name="_token"]').value : '';
+    f.appendChild(t);
+    var a = document.createElement('input');
+    a.type = 'hidden'; a.name = 'alias'; a.value = input.value.trim();
+    f.appendChild(a);
+    document.body.appendChild(f);
+    f.submit();
+};
+// Legacy fallback object kept for backward-compat; the active component is
+// registered via Alpine.data('linkEditForm', ...) above the form.
+window.linkEditFormState = {
+    passwordProtect: @json((bool) $link->is_password_protected),
+    expMode: @json($expMode),
+    openInApp: @json((bool) ($s['open_in_app'] ?? true)),
+    showPreview: @json(!empty($s['show_preview_page'])),
+    smartRules: @json($s['smart_rules'] ?? [], JSON_UNESCAPED_SLASHES),
+
+    newId: function () {
+        var a = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        var s = '';
+        for (var k = 0; k < 12; k++) s += a[Math.floor(Math.random() * a.length)];
+        return s;
+    },
+    addRule: function (type) {
+        var tpl = {
+            device:   { type: 'device',   match: ['mobile'], url: '' },
+            country:  { type: 'country',  match: ['US'],     url: '' },
+            language: { type: 'language', match: ['hi'],     url: '' },
+            time:     { type: 'time',     from: '09:00', to: '17:00', tz: 'UTC', url: '' },
+            ab:       { type: 'ab',       variants: [
+                { id: this.newId(), url: '', weight: 50 },
+                { id: this.newId(), url: '', weight: 50 }
+            ] }
+        };
+        if (!tpl[type]) return;
+        this.smartRules.push(JSON.parse(JSON.stringify(tpl[type])));
+    },
+    removeRule: function (i) { this.smartRules.splice(i, 1); },
+    moveRule: function (i, dir) {
+        var j = i + dir;
+        if (j < 0 || j >= this.smartRules.length) return;
+        var tmp = this.smartRules[i];
+        this.smartRules[i] = this.smartRules[j];
+        this.smartRules[j] = tmp;
+    },
+    addAbVariant: function (i) {
+        this.smartRules[i].variants.push({ id: this.newId(), url: '', weight: 50 });
+    },
+    removeAbVariant: function (i, j) {
+        if (this.smartRules[i].variants.length <= 2) return;
+        this.smartRules[i].variants.splice(j, 1);
+    },
+    toggleMatch: function (rule, value) {
+        var idx = rule.match.indexOf(value);
+        if (idx >= 0) rule.match.splice(idx, 1);
+        else rule.match.push(value);
+    },
+    ruleLabel: function (t) {
+        var map = { device: 'Device', country: 'Country', language: 'Language', time: 'Time', ab: 'A/B Split' };
+        return map[t] || t;
+    }
+};
+</script>
+@endpush
 @endsection
