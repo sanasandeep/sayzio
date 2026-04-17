@@ -86,7 +86,7 @@
             </label>
         @endif
 
-        <div :class="{{ $isEdit ? '!recapture && \'opacity-40 pointer-events-none\'' : 'false' }}">
+        <div :class="{{ $isEdit ? '!recapture && !showJson && \'opacity-40 pointer-events-none\'' : 'false' }}">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div class="md:col-span-2 relative">
                     <label class="block text-xs font-medium text-white/60 mb-1.5">Search biolink (title, alias, user email)</label>
@@ -120,6 +120,20 @@
             @endif
             @error('source_link_id')<p class="text-red-400 text-xs mt-2">{{ $message }}</p>@enderror
         </div>
+
+        <div class="mt-5 pt-5 border-t border-white/5">
+            <label class="inline-flex items-center gap-2 mb-3 cursor-pointer">
+                <input type="checkbox" x-model="showJson" class="rounded bg-white/5 border-white/20 text-violet-600">
+                <span class="text-sm text-white/70 font-medium">Advanced: edit snapshot JSON directly</span>
+            </label>
+            <div x-show="showJson" x-cloak>
+                <p class="text-xs text-white/40 mb-2">Paste/edit raw snapshot JSON. If valid, this will override any captured snapshot. All block payloads are re-sanitized on apply.</p>
+                <textarea name="snapshot_json" rows="14" spellcheck="false"
+                    class="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-xs text-emerald-300 font-mono"
+                    placeholder='{"blocks":[…]}'>{{ old('snapshot_json', $isEdit ? json_encode($tpl->snapshot, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) : '') }}</textarea>
+                @error('snapshot_json')<p class="text-red-400 text-xs mt-1">{{ $message }}</p>@enderror
+            </div>
+        </div>
     </div>
 
     <div class="flex items-center justify-end gap-3">
@@ -139,6 +153,7 @@ function templateForm() {
         sourceCardId: '',
         cards: [],
         recapture: false,
+        showJson: false,
         searchLinks() {
             if (this.search.trim().length < 1) { this.results = []; return; }
             fetch('{{ route('admin.templates.search-links') }}?kind={{ $kind }}&q=' + encodeURIComponent(this.search), { headers: { 'Accept': 'application/json' } })

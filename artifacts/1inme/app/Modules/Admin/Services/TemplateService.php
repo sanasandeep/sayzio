@@ -2,6 +2,7 @@
 
 namespace App\Modules\Admin\Services;
 
+use App\Modules\User\Controllers\BiolinkBlockController;
 use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Link;
 use Illuminate\Support\Facades\DB;
@@ -13,15 +14,27 @@ use Illuminate\Support\Facades\DB;
  *   Page: { biolink: {...}, blocks: [ {type, settings, is_active, children:[{...}]} ] }
  *   Card: { type:'card', settings, is_active, children: [ {type, settings, is_active} ] }
  *
- * Snapshots come from already-sanitized live blocks, and admin curation is a
- * trusted operation — we treat snapshot JSON as already clean. We still strip
- * any IDs / link_id / parent_id / timestamps on apply so blocks are recreated
- * fresh. _tab_id is preserved on page apply (menu_bar items travel with the
- * page snapshot, so refs remain valid) and stripped on card-only apply (the
- * target link's menu_bar may not have a matching tab).
+ * On apply, every block's settings are re-sanitized through
+ * BiolinkBlockController::sanitizeSettings — even though admin-curated
+ * snapshots come from already-sanitized live blocks, we never trust the
+ * stored payload (it may have been hand-edited via the snapshot JSON
+ * editor in the admin form). All IDs / link_id / parent_id / timestamps
+ * are dropped. _tab_id is preserved on page apply (menu_bar items travel
+ * with the page snapshot, so refs remain valid) and stripped on card-only
+ * apply (the target link's menu_bar may not have a matching tab).
  */
 class TemplateService
 {
+    private ?BiolinkBlockController $sanitizer = null;
+
+    private function sanitize(string $type, array $settings): array
+    {
+        if (!$this->sanitizer) {
+            $this->sanitizer = app(BiolinkBlockController::class);
+        }
+        return $this->sanitizer->sanitizeSettings($type, $settings);
+    }
+
     public function captureFromLink(Link $link): array
     {
         $biolink = (array) ($link->settings['biolink'] ?? []);
@@ -131,6 +144,10 @@ class TemplateService
         if (!array_key_exists($type, BiolinkBlock::TYPES)) {
             throw new \InvalidArgumentException("Unknown block type in snapshot: {$type}");
         }
+
+        // Re-sanitize template payload through the same pipeline used for
+        // user-submitted block settings — never trust stored snapshot JSON.
+        $settings = $this->sanitize($type, $settings);
 
         $block = $link->biolinkBlocks()->create([
             'type' => $type,

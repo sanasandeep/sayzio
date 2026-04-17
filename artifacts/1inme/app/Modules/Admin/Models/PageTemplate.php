@@ -22,6 +22,25 @@ class PageTemplate extends Model
         return $query->where('is_active', true)->orderBy('sort_order');
     }
 
+    /**
+     * Templates available to a user with the given plan slug.
+     * Empty plan_tier = open to all. Otherwise the template's required tier
+     * sort_order must be <= the user's plan sort_order (higher tier users
+     * see lower-tier templates).
+     */
+    public function scopeAvailableForPlan($query, ?string $userPlanSlug)
+    {
+        $ranks = Plan::pluck('sort_order', 'slug');
+        $userRank = $userPlanSlug ? ($ranks[$userPlanSlug] ?? -1) : -1;
+        $allowedTiers = $ranks->filter(fn($rank) => $rank <= $userRank)->keys()->all();
+        return $query->where(function ($q) use ($allowedTiers) {
+            $q->whereNull('plan_tier')->orWhere('plan_tier', '');
+            if (!empty($allowedTiers)) {
+                $q->orWhereIn('plan_tier', $allowedTiers);
+            }
+        });
+    }
+
     public static function categories(): array
     {
         return [

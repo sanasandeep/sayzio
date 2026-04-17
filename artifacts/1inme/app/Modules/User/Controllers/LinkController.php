@@ -135,7 +135,7 @@ class LinkController extends Controller
 
         // For new biolinks, send the user to the template picker so they can
         // start from an admin-curated preset (or skip and start from scratch).
-        if ($link->type === 'biolink' && \App\Modules\Admin\Models\PageTemplate::active()->exists()) {
+        if ($link->type === 'biolink' && \App\Modules\Admin\Models\PageTemplate::active()->availableForPlan($link->user->plan?->slug)->exists()) {
             return redirect()->route('user.links.templates.picker', $link)
                 ->with('success', 'Bio link created — pick a template to start, or skip.');
         }

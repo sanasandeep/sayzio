@@ -638,8 +638,9 @@ $catColors = [
                             <template x-for="t in cardTemplates" :key="t.id">
                                 <div x-show="gallerySearch === '' || (t.name + ' ' + (t.description||'')).toLowerCase().includes(gallerySearch.toLowerCase())"
                                      class="rounded-xl border overflow-hidden transition cursor-pointer" style="border-color: var(--border-glass); background: rgba(124,58,237,0.02);"
-                                     @click="t.locked ? null : applyCardTemplate(t.id)"
-                                     :class="t.locked ? 'opacity-60 cursor-not-allowed' : 'hover:border-violet-500/50'">
+                                     @click="t.locked ? (window.location.href = '{{ route('user.upgrade') }}') : applyCardTemplate(t.id)"
+                                     :class="t.locked ? 'opacity-70 hover:border-amber-500/50' : 'hover:border-violet-500/50'"
+                                     :title="t.locked ? 'Upgrade to ' + t.plan_tier + ' to use this template' : t.name">
                                     <div class="aspect-[4/2] flex items-center justify-center relative" style="background: linear-gradient(135deg, rgba(124,58,237,0.12), rgba(139,92,246,0.04));">
                                         <template x-if="t.thumbnail_url">
                                             <img :src="t.thumbnail_url" :alt="t.name" class="w-full h-full object-cover">

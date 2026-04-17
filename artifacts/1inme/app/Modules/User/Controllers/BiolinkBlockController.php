@@ -676,7 +676,7 @@ class BiolinkBlockController extends Controller
         return $html;
     }
 
-    private function sanitizeSettings(string $type, array $settings): array
+    public function sanitizeSettings(string $type, array $settings): array
     {
         $urlFields = ['url', 'link', 'thumbnail', 'image', 'image_url', 'video_url',
                        'audio_url', 'file_url', 'embed_url', 'logo_url', 'cover',

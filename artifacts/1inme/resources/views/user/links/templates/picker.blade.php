@@ -69,9 +69,9 @@
                             <p class="text-xs text-white/50 mb-3 line-clamp-2">{{ $tpl->description }}</p>
                         @endif
                         @if($locked)
-                            <button type="button" disabled class="block text-center w-full py-2 text-xs font-semibold rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 cursor-not-allowed">
+                            <a href="{{ route('user.upgrade') }}" class="block text-center w-full py-2 text-xs font-semibold rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition">
                                 <i class="fas fa-lock mr-1"></i>Upgrade to "{{ $tpl->plan_tier }}" to use
-                            </button>
+                            </a>
                         @else
                             <form method="POST" action="{{ route('user.links.templates.apply-page', $link) }}">
                                 @csrf

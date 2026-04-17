@@ -111,6 +111,11 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('links/{link}/blocks/{block}/move', [BiolinkBlockController::class, 'moveBlock'])->name('links.blocks.move');
         Route::post('links/{link}/page-settings', [BiolinkBlockController::class, 'updatePageSettings'])->name('links.page-settings');
 
+        // Plan upgrade prompt destination (used by template lock badges).
+        Route::get('upgrade', function () {
+            return redirect()->route('user.dashboard')->with('info', 'Upgrade your plan to unlock premium templates and features. Contact support to change plans.');
+        })->name('upgrade');
+
         // Page & card templates (admin-curated presets)
         Route::get('links/{link}/templates', [\App\Modules\User\Controllers\LinkTemplateController::class, 'picker'])->name('links.templates.picker');
         Route::post('links/{link}/templates/apply-page', [\App\Modules\User\Controllers\LinkTemplateController::class, 'applyPage'])->name('links.templates.apply-page');

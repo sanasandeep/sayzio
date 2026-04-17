@@ -48,12 +48,13 @@ class TemplateController extends Controller
             'sort_order' => 'nullable|integer',
             'source_link_id' => 'nullable|integer|exists:links,id',
             'source_card_id' => 'nullable|integer|exists:biolink_blocks,id',
+            'snapshot_json' => 'nullable|string',
         ]);
 
-        $snapshot = $this->captureSnapshot($kind, $validated);
+        $snapshot = $this->resolveSnapshot($kind, $validated, null);
         if (!$snapshot) {
             return back()->withInput()->withErrors([
-                'source_link_id' => 'Pick a source ' . ($kind === 'card' ? 'card block' : 'biolink') . ' to capture the template snapshot.',
+                'source_link_id' => 'Pick a source ' . ($kind === 'card' ? 'card block' : 'biolink') . ' to capture, or paste valid snapshot JSON.',
             ]);
         }
 
@@ -100,11 +101,12 @@ class TemplateController extends Controller
             'source_link_id' => 'nullable|integer|exists:links,id',
             'source_card_id' => 'nullable|integer|exists:biolink_blocks,id',
             'recapture' => 'nullable|boolean',
+            'snapshot_json' => 'nullable|string',
         ]);
 
-        if (!empty($validated['recapture'])) {
-            $snapshot = $this->captureSnapshot($kind, $validated);
-            if ($snapshot) $tpl->snapshot = $snapshot;
+        $snapshot = $this->resolveSnapshot($kind, $validated, $tpl->snapshot);
+        if ($snapshot && $snapshot !== $tpl->snapshot) {
+            $tpl->snapshot = $snapshot;
         }
 
         $newSlug = $validated['slug'];
@@ -176,6 +178,40 @@ class TemplateController extends Controller
         });
 
         return response()->json(['items' => $out]);
+    }
+
+    /**
+     * Resolve the snapshot for store/update.
+     * Priority: pasted JSON (if valid & non-empty) > source-link/card capture > existing.
+     * Returns null only if nothing is available (caller should error).
+     */
+    private function resolveSnapshot(string $kind, array $input, ?array $existing): ?array
+    {
+        $json = trim((string) ($input['snapshot_json'] ?? ''));
+        if ($json !== '') {
+            $decoded = json_decode($json, true);
+            if (!is_array($decoded)) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'snapshot_json' => 'Snapshot JSON is not valid JSON.',
+                ]);
+            }
+            if ($kind === 'card' && ($decoded['type'] ?? null) !== 'card') {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'snapshot_json' => 'Card snapshot must have "type": "card" at the root.',
+                ]);
+            }
+            if ($kind === 'page' && !isset($decoded['blocks']) && !isset($decoded['biolink'])) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'snapshot_json' => 'Page snapshot must include a "blocks" array.',
+                ]);
+            }
+            return $decoded;
+        }
+
+        $captured = $this->captureSnapshot($kind, $input);
+        if ($captured) return $captured;
+
+        return $existing;
     }
 
     private function captureSnapshot(string $kind, array $input): ?array

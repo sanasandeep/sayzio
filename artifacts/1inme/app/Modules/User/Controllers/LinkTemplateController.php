@@ -16,8 +16,10 @@ class LinkTemplateController extends Controller
     public function picker(Link $link)
     {
         abort_if($link->user_id !== auth()->id() || $link->type !== 'biolink', 403);
-        $pageTemplates = PageTemplate::active()->get();
         $userPlanSlug = auth()->user()->plan?->slug;
+        // Show all active templates so users can see what they could unlock,
+        // but lock the ones above their tier (badge + upgrade CTA).
+        $pageTemplates = PageTemplate::active()->get();
         $lockedFn = fn(?string $required) => $this->isLocked($required, $userPlanSlug);
         return view('user.links.templates.picker', compact('link', 'pageTemplates', 'userPlanSlug', 'lockedFn'));
     }
