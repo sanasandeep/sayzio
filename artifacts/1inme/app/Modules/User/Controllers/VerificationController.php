@@ -4,6 +4,7 @@ namespace App\Modules\User\Controllers;
 
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\BiolinkBlock;
+use App\Modules\User\Models\UserFile;
 use App\Modules\User\Models\VerificationRequest;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -56,13 +57,30 @@ class VerificationController extends Controller
 
         $logoPath = null;
         if ($request->hasFile('logo')) {
-            $logoPath = $request->file('logo')->store('verification/logos', 'public');
+            try {
+                // Logo capped at 2MB by validation above; allowlist enforces image MIME.
+                $logoFile = UserFile::createFromUpload($request->file('logo'), $user, [
+                    'max_size_mb' => 2,
+                ]);
+                $logoPath = $logoFile->url_path;
+            } catch (\RuntimeException $e) {
+                return back()->withInput()->with('error', $e->getMessage());
+            }
         }
 
         $proofPaths = [];
         if ($request->hasFile('proof_files')) {
             foreach ($request->file('proof_files') as $file) {
-                $proofPaths[] = $file->store('verification/proofs', 'public');
+                try {
+                    // Proof files accept arbitrary types (PDFs, screenshots, docs).
+                    $pf = UserFile::createFromUpload($file, $user, [
+                        'enforce_allowlist' => false,
+                        'max_size_mb'       => 5,
+                    ]);
+                    $proofPaths[] = $pf->url_path;
+                } catch (\RuntimeException $e) {
+                    return back()->withInput()->with('error', $e->getMessage());
+                }
             }
         }
 
@@ -161,7 +179,7 @@ class VerificationController extends Controller
         if ($existingAvatar) {
             $existingAvatar->update([
                 'settings' => array_merge($existingAvatar->settings, [
-                    'image_url' => $verificationRequest->logo_path ? asset('storage/' . $verificationRequest->logo_path) : null,
+                    'image_url' => $this->logoUrl($verificationRequest->logo_path),
                     'verified' => true,
                     'locked_image' => true,
                 ]),
@@ -174,7 +192,7 @@ class VerificationController extends Controller
                 'is_active' => true,
                 'sort_order' => 1,
                 'settings' => [
-                    'image_url' => $verificationRequest->logo_path ? asset('storage/' . $verificationRequest->logo_path) : null,
+                    'image_url' => $this->logoUrl($verificationRequest->logo_path),
                     'verified' => true,
                     'locked_image' => true,
                 ],
@@ -221,5 +239,19 @@ class VerificationController extends Controller
         $block->update(['is_active' => !$block->is_active]);
 
         return response()->json(['success' => true, 'is_active' => $block->is_active]);
+    }
+
+    /**
+     * Convert a stored verification logo path into a renderable URL.
+     * Vault paths begin with /f/ and are absolute; legacy public-disk
+     * paths (e.g. "verification/logos/abc.png") are wrapped with asset().
+     */
+    private function logoUrl(?string $stored): ?string
+    {
+        if (! $stored) return null;
+        if (str_starts_with($stored, '/f/') || str_starts_with($stored, 'http')) {
+            return $stored;
+        }
+        return asset('storage/' . $stored);
     }
 }

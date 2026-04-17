@@ -4,6 +4,7 @@ namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\Form;
+use App\Modules\User\Models\UserFile;
 use App\Modules\User\Models\FormSubmission;
 use App\Modules\User\Models\Project;
 use Illuminate\Http\Request;
@@ -230,8 +231,12 @@ class FormController extends Controller
                 $design[$key] = null;
             }
             if ($request->hasFile($field)) {
-                $path = $request->file($field)->store("forms/{$form->id}", 'public');
-                $design[$key] = Storage::url($path);
+                try {
+                    $userFile = UserFile::createFromUpload($request->file($field), $request->user());
+                    $design[$key] = $userFile->url;
+                } catch (\RuntimeException $e) {
+                    return back()->withInput()->with('error', $e->getMessage());
+                }
             }
         }
 
@@ -493,9 +498,20 @@ class FormController extends Controller
             if (!$id || in_array($type, ['heading', 'paragraph', 'divider', 'page_break', 'section'])) continue;
 
             if ($type === 'file' && $request->hasFile($id)) {
-                $path = $request->file($id)->store("forms/{$form->id}/submissions", 'public');
-                $files[$id] = Storage::url($path);
-                $data[$id] = $request->file($id)->getClientOriginalName();
+                // Vault submissions under the form OWNER's quota — visitors are
+                // anonymous and the owner is the one who keeps the file.
+                try {
+                    $userFile = UserFile::createFromUpload($request->file($id), $form->user, [
+                        'enforce_allowlist' => false,
+                    ]);
+                    $files[$id] = $userFile->url;
+                    $data[$id] = $request->file($id)->getClientOriginalName();
+                } catch (\RuntimeException $e) {
+                    // Submission attachment couldn't be stored (e.g. owner over
+                    // quota). Drop the file but keep the rest of the submission
+                    // so the visitor isn't blocked by something they can't fix.
+                    $data[$id] = '[upload failed: ' . $e->getMessage() . ']';
+                }
             } elseif ($type === 'signature') {
                 $raw = (string) $request->input($id, '');
                 if (str_starts_with($raw, 'data:image/png;base64,')) {
@@ -505,10 +521,18 @@ class FormController extends Controller
                     $pngMagic = "\x89PNG\r\n\x1a\n";
                     if ($bin !== false && strlen($bin) >= 24 && strlen($bin) <= 2_000_000
                         && substr($bin, 0, 8) === $pngMagic) {
-                        $path = "forms/{$form->id}/submissions/sig_" . bin2hex(random_bytes(8)) . '.png';
-                        Storage::disk('public')->put($path, $bin);
-                        $files[$id] = Storage::url($path);
-                        $data[$id] = Storage::url($path);
+                        try {
+                            $userFile = UserFile::createFromBytes(
+                                $bin,
+                                'signature_' . bin2hex(random_bytes(4)) . '.png',
+                                'image/png',
+                                $form->user
+                            );
+                            $files[$id] = $userFile->url;
+                            $data[$id]  = $userFile->url;
+                        } catch (\RuntimeException $e) {
+                            $data[$id] = '[signature not stored: ' . $e->getMessage() . ']';
+                        }
                     }
                 }
             } elseif ($type === 'consent') {

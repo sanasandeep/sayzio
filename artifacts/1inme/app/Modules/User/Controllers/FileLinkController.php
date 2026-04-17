@@ -5,6 +5,7 @@ namespace App\Modules\User\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\FileLink;
+use App\Modules\User\Models\UserFile;
 use Illuminate\Http\Request;
 
 class FileLinkController extends Controller
@@ -42,8 +43,19 @@ class FileLinkController extends Controller
         ]);
 
         $file = $request->file('file');
-        $disk = config('filesystems.default') === 's3' ? 's3' : 'public';
-        $storedPath = $file->store('file-links', $disk);
+
+        // Route uploads through the central Vault so storage quota and
+        // per-plan size limits are enforced. File Share intentionally
+        // accepts arbitrary file types, so we disable the mime/ext
+        // allowlist here.
+        try {
+            $userFile = UserFile::createFromUpload($file, $request->user(), [
+                'enforce_allowlist' => false,
+                'max_size_mb'       => $maxFileSizeMb,
+            ]);
+        } catch (\RuntimeException $e) {
+            return back()->withInput()->with('error', $e->getMessage());
+        }
 
         $alias = $validated['alias'] ?: Link::generateAlias();
 
@@ -60,10 +72,10 @@ class FileLinkController extends Controller
         FileLink::create([
             'link_id' => $link->id,
             'original_name' => $file->getClientOriginalName(),
-            'stored_path' => $storedPath,
+            'stored_path' => $userFile->path,
             'mime_type' => $file->getMimeType(),
             'file_size' => $file->getSize(),
-            'disk' => $disk,
+            'disk' => $userFile->disk,
             'show_download_page' => $request->boolean('show_download_page', true),
         ]);
 

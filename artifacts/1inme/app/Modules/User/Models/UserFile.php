@@ -3,7 +3,10 @@
 namespace App\Modules\User\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use RuntimeException;
 
 class UserFile extends Model
 {
@@ -79,5 +82,118 @@ class UserFile extends Model
     public static function getAllAllowedExtensions(): array
     {
         return array_merge(...array_values(self::ALLOWED_EXTENSIONS));
+    }
+
+    /**
+     * Centralised vault-upload helper. Every controller that previously wrote
+     * to the public disk should call this so that quota, per-plan size limits
+     * and storage permissions are enforced uniformly.
+     *
+     * Options:
+     *   enforce_allowlist (bool, default true) — reject mimes/exts outside
+     *     ALLOWED_TYPES. Set false for File Share / verification proofs which
+     *     legitimately accept arbitrary file types.
+     *   max_size_mb (int|null) — overrides the per-plan max_file_size_mb when
+     *     the calling surface has its own contractual limit (e.g. verification
+     *     logo capped at 2MB regardless of plan).
+     *
+     * Throws RuntimeException with a user-safe message on validation failure.
+     */
+    public static function createFromUpload(UploadedFile $file, $user, array $options = []): self
+    {
+        $enforceAllowlist = $options['enforce_allowlist'] ?? true;
+        $maxSizeOverride  = $options['max_size_mb'] ?? null;
+
+        $mime = $file->getMimeType() ?: 'application/octet-stream';
+        $ext  = strtolower($file->getClientOriginalExtension() ?: 'bin');
+        $size = (int) $file->getSize();
+
+        if ($enforceAllowlist) {
+            if (! in_array($mime, self::getAllAllowedMimes(), true)) {
+                throw new RuntimeException('File type not allowed.');
+            }
+            if (! in_array($ext, self::getAllAllowedExtensions(), true)) {
+                throw new RuntimeException('File extension not allowed.');
+            }
+        }
+
+        $maxFileSizeMb = $maxSizeOverride !== null
+            ? (int) $maxSizeOverride
+            : (int) $user->getPlanFeature('max_file_size_mb', 5);
+        $maxFileBytes = $maxFileSizeMb * 1048576;
+        if ($size > $maxFileBytes) {
+            throw new RuntimeException("File exceeds maximum size of {$maxFileSizeMb}MB.");
+        }
+
+        if (method_exists($user, 'getStorageRemainingBytes')) {
+            $remaining = (int) $user->getStorageRemainingBytes();
+            if ($size > $remaining) {
+                $usedMb  = round(((int) $user->getStorageUsedBytes()) / 1048576, 1);
+                $limitMb = round(((int) $user->getStorageLimitBytes()) / 1048576);
+                throw new RuntimeException("Storage quota exceeded. Used {$usedMb}MB of {$limitMb}MB.");
+            }
+        }
+
+        $fileType = self::detectType($mime);
+        $disk     = config('filesystems.default') === 's3' ? 's3' : 'user_files';
+        $folder   = "{$user->id}/{$fileType}s";
+        $filename = (string) Str::uuid() . ($ext ? '.' . $ext : '');
+
+        $storedPath = $file->storeAs($folder, $filename, $disk);
+
+        return self::create([
+            'user_id'       => $user->id,
+            'original_name' => $file->getClientOriginalName(),
+            'filename'      => $filename,
+            'mime_type'     => $mime,
+            'size_bytes'    => $size,
+            'type'          => $fileType,
+            'disk'          => $disk,
+            'path'          => $storedPath,
+        ]);
+    }
+
+    /**
+     * Vault-write raw bytes (e.g. a signature PNG generated client-side).
+     * Bypasses the mime allowlist by design — caller is expected to have
+     * validated the bytes (e.g. PNG magic header check).
+     */
+    public static function createFromBytes(string $bytes, string $originalName, string $mime, $user, array $opts = []): self
+    {
+        $size = strlen($bytes);
+
+        // Per-plan max single-file size (matches createFromUpload).
+        $maxMb = (int) ($opts['max_size_mb']
+            ?? (method_exists($user, 'getPlanFeature') ? $user->getPlanFeature('max_file_size_mb', 5) : 5));
+        if ($maxMb > 0 && $size > $maxMb * 1024 * 1024) {
+            throw new RuntimeException("File exceeds the per-file limit of {$maxMb} MB.");
+        }
+
+        if (method_exists($user, 'getStorageRemainingBytes')) {
+            $remaining = (int) $user->getStorageRemainingBytes();
+            if ($size > $remaining) {
+                throw new RuntimeException('Storage quota exceeded.');
+            }
+        }
+
+        $fileType = self::detectType($mime);
+        $disk     = config('filesystems.default') === 's3' ? 's3' : 'user_files';
+        $folder   = "{$user->id}/{$fileType}s";
+        $ext      = pathinfo($originalName, PATHINFO_EXTENSION) ?: 'bin';
+        $filename = (string) Str::uuid() . '.' . strtolower($ext);
+        $path     = $folder . '/' . $filename;
+
+        Storage::disk($disk)->put($path, $bytes);
+
+        return self::create([
+            'user_id'       => $user->id,
+            'original_name' => $originalName,
+            'filename'      => $filename,
+            'mime_type'     => $mime,
+            'size_bytes'    => $size,
+            'type'          => $fileType,
+            'disk'          => $disk,
+            'path'          => $path,
+        ]);
     }
 }

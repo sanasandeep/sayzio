@@ -5,6 +5,7 @@ namespace App\Modules\User\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Common\Services\CityLookupService;
 use App\Modules\User\Models\Link;
+use App\Modules\User\Models\UserFile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
@@ -184,23 +185,15 @@ class LinkController extends Controller
             $validated['is_password_protected'] = true;
         }
 
-        if ($request->hasFile('seo_image')) {
-            $disk = config('filesystems.default') === 's3' ? 's3' : 'public';
-            $validated['seo_image'] = $request->file('seo_image')->store('seo-images', $disk);
-            if ($disk === 'public') {
-                $validated['seo_image'] = Storage::disk('public')->url($validated['seo_image']);
-            } else {
-                $validated['seo_image'] = Storage::disk('s3')->url($validated['seo_image']);
+        try {
+            if ($request->hasFile('seo_image')) {
+                $validated['seo_image'] = UserFile::createFromUpload($request->file('seo_image'), $request->user())->url;
             }
-        }
-        if ($request->hasFile('favicon')) {
-            $disk = config('filesystems.default') === 's3' ? 's3' : 'public';
-            $validated['favicon'] = $request->file('favicon')->store('favicons', $disk);
-            if ($disk === 'public') {
-                $validated['favicon'] = Storage::disk('public')->url($validated['favicon']);
-            } else {
-                $validated['favicon'] = Storage::disk('s3')->url($validated['favicon']);
+            if ($request->hasFile('favicon')) {
+                $validated['favicon'] = UserFile::createFromUpload($request->file('favicon'), $request->user())->url;
             }
+        } catch (\RuntimeException $e) {
+            return back()->withInput()->with('error', $e->getMessage());
         }
 
         $settings = [];
@@ -1096,28 +1089,19 @@ class LinkController extends Controller
             }
         }
 
-        if ($request->hasFile('seo_image')) {
-            $disk = config('filesystems.default') === 's3' ? 's3' : 'public';
-            $validated['seo_image'] = $request->file('seo_image')->store('seo-images', $disk);
-            if ($disk === 'public') {
-                $validated['seo_image'] = Storage::disk('public')->url($validated['seo_image']);
+        try {
+            if ($request->hasFile('seo_image')) {
+                $validated['seo_image'] = UserFile::createFromUpload($request->file('seo_image'), $request->user())->url;
             } else {
-                $validated['seo_image'] = Storage::disk('s3')->url($validated['seo_image']);
+                unset($validated['seo_image']);
             }
-        } else {
-            unset($validated['seo_image']);
-        }
-
-        if ($request->hasFile('favicon')) {
-            $disk = config('filesystems.default') === 's3' ? 's3' : 'public';
-            $validated['favicon'] = $request->file('favicon')->store('favicons', $disk);
-            if ($disk === 'public') {
-                $validated['favicon'] = Storage::disk('public')->url($validated['favicon']);
+            if ($request->hasFile('favicon')) {
+                $validated['favicon'] = UserFile::createFromUpload($request->file('favicon'), $request->user())->url;
             } else {
-                $validated['favicon'] = Storage::disk('s3')->url($validated['favicon']);
+                unset($validated['favicon']);
             }
-        } else {
-            unset($validated['favicon']);
+        } catch (\RuntimeException $e) {
+            return back()->withInput()->with('error', $e->getMessage());
         }
 
         $settings = $link->settings ?? [];

@@ -4,6 +4,7 @@ namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\SplashPage;
+use App\Modules\User\Models\UserFile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -40,7 +41,12 @@ class SplashPageController extends Controller
         $splashPage = new SplashPage($validated);
         $splashPage->user_id = $request->user()->id;
         $splashPage->save();
-        $this->handleUploads($request, $splashPage);
+        try {
+            $this->handleUploads($request, $splashPage);
+        } catch (\RuntimeException $e) {
+            return redirect()->route('user.splash-pages.edit', $splashPage)
+                ->with('error', $e->getMessage());
+        }
         return redirect()->route('user.splash-pages.edit', $splashPage)
             ->with('success', 'Splash page created.');
     }
@@ -64,7 +70,12 @@ class SplashPageController extends Controller
         $this->authorizeOwnership($request, $splashPage);
         $validated = $this->validateData($request);
         $splashPage->fill($validated)->save();
-        $this->handleUploads($request, $splashPage);
+        try {
+            $this->handleUploads($request, $splashPage);
+        } catch (\RuntimeException $e) {
+            return redirect()->route('user.splash-pages.edit', $splashPage)
+                ->with('error', $e->getMessage());
+        }
         return redirect()->route('user.splash-pages.edit', $splashPage)
             ->with('success', 'Splash page saved.');
     }
@@ -125,27 +136,46 @@ class SplashPageController extends Controller
 
     private function handleUploads(Request $request, SplashPage $sp): void
     {
-        $map = ['logo' => 'logo', 'favicon' => 'favicon', 'og_image' => 'og_image'];
+        // Per-asset size caps (matching the validation rules above).
+        $map = [
+            'logo'     => ['col' => 'logo',     'max_mb' => 2],
+            'favicon'  => ['col' => 'favicon',  'max_mb' => 1],
+            'og_image' => ['col' => 'og_image', 'max_mb' => 4],
+        ];
+        $user = $request->user();
         $changed = false;
-        foreach ($map as $field => $col) {
+        foreach ($map as $field => $cfg) {
+            $col = $cfg['col'];
             $removeFlag = 'remove_' . ($field === 'og_image' ? 'og' : $field);
             if ($request->hasFile($field)) {
-                if ($sp->$col) {
-                    $old = ltrim(parse_url($sp->$col, PHP_URL_PATH) ?? '', '/');
-                    if (str_starts_with($old, 'storage/')) Storage::disk('public')->delete(substr($old, 8));
-                }
-                $path = $request->file($field)->store("splash-pages/{$sp->id}", 'public');
-                $sp->$col = Storage::disk('public')->url($path);
+                $this->deleteLegacyPublicAsset($sp->$col);
+                // Bubble RuntimeException up to store()/update(), which wrap
+                // this call in try/catch and flash an error to the user.
+                $userFile = UserFile::createFromUpload($request->file($field), $user, [
+                    'max_size_mb' => $cfg['max_mb'],
+                ]);
+                $sp->$col = $userFile->url;
                 $changed = true;
             } elseif ($request->boolean($removeFlag)) {
-                if ($sp->$col) {
-                    $old = ltrim(parse_url($sp->$col, PHP_URL_PATH) ?? '', '/');
-                    if (str_starts_with($old, 'storage/')) Storage::disk('public')->delete(substr($old, 8));
-                }
+                $this->deleteLegacyPublicAsset($sp->$col);
                 $sp->$col = null;
                 $changed = true;
             }
         }
         if ($changed) $sp->save();
+    }
+
+    /**
+     * Best-effort cleanup of a legacy public-disk asset path. Vault assets
+     * (URLs starting with /f/) are left alone — the UserFile garbage
+     * collector handles those when the row is hard-deleted.
+     */
+    private function deleteLegacyPublicAsset(?string $url): void
+    {
+        if (! $url) return;
+        $rel = ltrim(parse_url($url, PHP_URL_PATH) ?? '', '/');
+        if (str_starts_with($rel, 'storage/')) {
+            Storage::disk('public')->delete(substr($rel, 8));
+        }
     }
 }

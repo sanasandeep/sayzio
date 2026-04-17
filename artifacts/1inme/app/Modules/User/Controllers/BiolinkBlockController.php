@@ -4,6 +4,7 @@ namespace App\Modules\User\Controllers;
 
 use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Link;
+use App\Modules\User\Models\UserFile;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Storage;
@@ -535,9 +536,15 @@ class BiolinkBlockController extends Controller
             $settings['biolink']['favicons'] = $existingFavicons;
         }
 
+        // Vault helper: store an UploadedFile and return its public vault URL.
+        // Quota / size failures bubble up as RuntimeException; we catch them
+        // once around the whole upload block below.
+        $vault = fn ($file) => UserFile::createFromUpload($file, $user)->url;
+
+        try {
+
         if ($request->hasFile('background_image')) {
-            $path = $request->file('background_image')->store('biolink-backgrounds', 'public');
-            $settings['biolink']['background_image'] = Storage::disk('public')->url($path);
+            $settings['biolink']['background_image'] = $vault($request->file('background_image'));
         }
 
         if (!empty($validated['gradient_colors'])) {
@@ -550,20 +557,17 @@ class BiolinkBlockController extends Controller
         if ($slideshowFiles && is_array($slideshowFiles)) {
             $existingSlides = $settings['biolink']['slideshow_images'] ?? [];
             foreach ($slideshowFiles as $file) {
-                $path = $file->store('biolink-backgrounds', 'public');
-                $existingSlides[] = Storage::disk('public')->url($path);
+                $existingSlides[] = $vault($file);
             }
             $settings['biolink']['slideshow_images'] = array_slice($existingSlides, 0, 10);
         }
 
         if ($videoFile) {
-            $path = $videoFile->store('biolink-videos', 'public');
-            $settings['biolink']['video_file'] = Storage::disk('public')->url($path);
+            $settings['biolink']['video_file'] = $vault($videoFile);
         }
 
         if ($fallbackImageFile) {
-            $path = $fallbackImageFile->store('biolink-backgrounds', 'public');
-            $settings['biolink']['bg_fallback_image'] = Storage::disk('public')->url($path);
+            $settings['biolink']['bg_fallback_image'] = $vault($fallbackImageFile);
         }
 
         if ($request->has('remove_slideshow_images')) {
@@ -574,8 +578,7 @@ class BiolinkBlockController extends Controller
 
         $faviconValue = null;
         if ($request->hasFile('favicon_upload') && $user->getPlanFeature('custom_favicon', false)) {
-            $path = $request->file('favicon_upload')->store('biolink-favicons', 'public');
-            $faviconValue = Storage::disk('public')->url($path);
+            $faviconValue = $vault($request->file('favicon_upload'));
             $settings['biolink']['favicon_url'] = $faviconValue;
         } elseif (!empty($validated['favicon_url']) && $user->getPlanFeature('custom_favicon', false)) {
             $faviconValue = $this->sanitizeUrl($validated['favicon_url']);
@@ -583,19 +586,19 @@ class BiolinkBlockController extends Controller
         }
 
         if ($request->hasFile('apple_touch_upload') && $user->getPlanFeature('custom_favicon', false)) {
-            $path = $request->file('apple_touch_upload')->store('biolink-favicons', 'public');
-            $settings['biolink']['favicons']['apple_touch_icon'] = Storage::disk('public')->url($path);
+            $settings['biolink']['favicons']['apple_touch_icon'] = $vault($request->file('apple_touch_upload'));
         }
 
         if ($request->hasFile('icon_512_upload') && $user->getPlanFeature('custom_favicon', false)) {
-            $path = $request->file('icon_512_upload')->store('biolink-favicons', 'public');
-            $settings['biolink']['favicons']['icon_512'] = Storage::disk('public')->url($path);
+            $settings['biolink']['favicons']['icon_512'] = $vault($request->file('icon_512_upload'));
         }
 
         if ($request->hasFile('og_image_upload')) {
-            $path = $request->file('og_image_upload')->store('seo-images', 'public');
-            $ogImageUrl = Storage::disk('public')->url($path);
-            $settings['biolink']['og']['image_url'] = $ogImageUrl;
+            $settings['biolink']['og']['image_url'] = $vault($request->file('og_image_upload'));
+        }
+
+        } catch (\RuntimeException $e) {
+            return back()->withInput()->with('error', $e->getMessage());
         }
 
         $updateData = ['settings' => $settings];

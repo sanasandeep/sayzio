@@ -14,8 +14,20 @@
         <div class="lg:col-span-2 space-y-5">
             <div class="card-premium p-6">
                 <div class="flex items-center gap-4 mb-5">
+                    @php
+                        // Resolve a stored path to a usable public URL. Vault
+                        // assets are stored as `/f/{id}/{filename}` (or absolute
+                        // URLs); legacy values are bare relative paths under the
+                        // `public` disk.
+                        $resolvePath = function ($p) {
+                            if (!$p) return null;
+                            if (str_starts_with($p, 'http://') || str_starts_with($p, 'https://')) return $p;
+                            if (str_starts_with($p, '/')) return $p;
+                            return asset('storage/' . $p);
+                        };
+                    @endphp
                     @if($verificationRequest->logo_path)
-                    <img src="{{ asset('storage/' . $verificationRequest->logo_path) }}" alt="" class="w-16 h-16 rounded-xl object-cover" style="border: 1px solid var(--border-glass);">
+                    <img src="{{ $resolvePath($verificationRequest->logo_path) }}" alt="" class="w-16 h-16 rounded-xl object-cover" style="border: 1px solid var(--border-glass);">
                     @else
                     <div class="w-16 h-16 rounded-xl flex items-center justify-center" style="background: rgba(124,58,237,0.1);"><i class="fas fa-building text-violet-400 text-xl"></i></div>
                     @endif
@@ -71,7 +83,7 @@
                 <h3 class="text-sm font-bold mb-3" style="color: var(--text-primary);"><i class="fas fa-file-alt text-amber-400 mr-2"></i>Proof Documents ({{ count($verificationRequest->proof_files) }})</h3>
                 <div class="grid grid-cols-2 gap-3">
                     @foreach($verificationRequest->proof_files as $file)
-                    <a href="{{ asset('storage/' . $file) }}" target="_blank" class="flex items-center gap-3 p-3 rounded-xl transition-all hover:bg-white/[0.03]" style="background: var(--bg-glass); border: 1px solid var(--border-glass);">
+                    <a href="{{ $resolvePath($file) }}" target="_blank" class="flex items-center gap-3 p-3 rounded-xl transition-all hover:bg-white/[0.03]" style="background: var(--bg-glass); border: 1px solid var(--border-glass);">
                         @if(str_ends_with($file, '.pdf'))
                         <i class="fas fa-file-pdf text-red-400"></i>
                         @else
