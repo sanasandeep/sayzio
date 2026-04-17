@@ -450,13 +450,11 @@
         </div>
 
         {{-- ==================== Save bar ==================== --}}
-        <div class="sticky bottom-0 -mx-1 px-1 pb-1 pt-3 bg-gradient-to-t from-[#0a0a14] via-[#0a0a14]/95 to-transparent">
-            <div class="flex items-center justify-end gap-3 p-3 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur">
-                <a href="{{ route('user.links.show', $link) }}" class="px-5 py-2.5 text-sm text-white/60 hover:text-white hover:bg-white/5 rounded-xl">Cancel</a>
-                <button type="submit" class="bg-violet-600 hover:bg-violet-700 text-white px-6 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-violet-500/20 transition">
-                    <i class="fas fa-check mr-1.5"></i>Save changes
-                </button>
-            </div>
+        <div class="flex items-center justify-end gap-3 mt-6">
+            <a href="{{ route('user.links.show', $link) }}" class="px-5 py-2.5 text-sm text-white/60 hover:text-white hover:bg-white/5 rounded-xl">Cancel</a>
+            <button type="submit" class="bg-violet-600 hover:bg-violet-700 text-white px-6 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-violet-500/20 transition">
+                <i class="fas fa-check mr-1.5"></i>Save changes
+            </button>
         </div>
     </form>
 </div>
