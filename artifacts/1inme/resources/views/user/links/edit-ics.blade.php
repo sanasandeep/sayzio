@@ -447,6 +447,55 @@
                     <p class="text-xs text-white/50 mt-0.5">Visitors will see your event on a landing page before downloading. Helps with tracking and looks more professional.</p>
                 </div>
             </label>
+
+            {{-- ===== RSVPs ===== --}}
+            <div class="mt-4 p-4 rounded-xl bg-white/5 border border-white/10">
+                <div class="flex items-start justify-between gap-3 mb-3">
+                    <div>
+                        <div class="text-sm font-semibold text-white/90"><i class="fas fa-calendar-check mr-1.5 text-violet-300"></i>Collect RSVPs</div>
+                        <p class="text-xs text-white/50 mt-0.5">Show an RSVP form on the event page so guests can confirm attendance.</p>
+                    </div>
+                    <label class="inline-flex items-center cursor-pointer">
+                        <input type="hidden" name="rsvp_enabled" value="0">
+                        <input type="checkbox" name="rsvp_enabled" value="1" class="sr-only peer"
+                               {{ old('rsvp_enabled', !empty($s['rsvp_enabled'])) ? 'checked' : '' }}>
+                        <div class="w-10 h-6 bg-white/15 peer-checked:bg-violet-500 rounded-full relative transition">
+                            <span class="absolute top-0.5 left-0.5 bg-white w-5 h-5 rounded-full peer-checked:translate-x-4 transition"></span>
+                        </div>
+                    </label>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-xs text-white/70">
+                    <label class="flex items-center gap-2"><input type="hidden" name="rsvp_allow_plus_ones" value="0"><input type="checkbox" name="rsvp_allow_plus_ones" value="1" {{ old('rsvp_allow_plus_ones', !empty($s['rsvp_allow_plus_ones'])) ? 'checked':'' }}> Allow +1s</label>
+                    <label class="flex items-center gap-2"><input type="hidden" name="rsvp_collect_phone" value="0"><input type="checkbox" name="rsvp_collect_phone" value="1" {{ old('rsvp_collect_phone', !empty($s['rsvp_collect_phone'])) ? 'checked':'' }}> Ask for phone</label>
+                </div>
+                @if(!empty($s['rsvp_enabled']))
+                    <a href="{{ route('user.links.rsvps.index', $link) }}" class="inline-block mt-3 text-xs text-violet-300 hover:text-violet-200">
+                        <i class="fas fa-list mr-1"></i> View guest list →
+                    </a>
+                @endif
+            </div>
+
+            {{-- ===== Push to connected calendar ===== --}}
+            @php
+                $calAccounts = \App\Modules\User\Models\CalendarAccount::where('user_id', auth()->id())
+                    ->where('push_enabled', true)->orderBy('provider')->get();
+            @endphp
+            <div class="mt-4 p-4 rounded-xl bg-white/5 border border-white/10">
+                <div class="text-sm font-semibold text-white/90 mb-2"><i class="fas fa-cloud-upload-alt mr-1.5 text-violet-300"></i>Push to my calendar</div>
+                <p class="text-xs text-white/50 mb-3">Save this event to one of your connected calendars. Updates and deletions stay in sync.</p>
+                @if($calAccounts->isEmpty())
+                    <p class="text-xs text-white/40">No calendars connected. <a href="{{ route('user.calendar.index') }}" class="text-violet-300">Connect one</a>.</p>
+                @else
+                    <select name="push_calendar_account_id" class="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-sm text-white">
+                        <option value="">— Don't push —</option>
+                        @foreach($calAccounts as $a)
+                            <option value="{{ $a->id }}" {{ (string)old('push_calendar_account_id', $s['push_calendar_account_id'] ?? '') === (string)$a->id ? 'selected' : '' }}>
+                                {{ ucfirst($a->provider) }} · {{ $a->display_name ?: $a->external_account_id }}
+                            </option>
+                        @endforeach
+                    </select>
+                @endif
+            </div>
         </div>
 
         {{-- ==================== Save bar ==================== --}}

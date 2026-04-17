@@ -494,4 +494,54 @@ class RedirectController extends Controller
 
         return response()->json(['success' => true, 'message' => 'Subscribed successfully!']);
     }
+
+    public function rsvpForm(Request $request, string $alias)
+    {
+        $link = Link::resolveByAlias($alias);
+        if (!$link || $link->type !== 'ics') abort(404);
+        if (empty(($link->settings ?? [])['rsvp_enabled'])) abort(404);
+        $link->load('icsData');
+        $submitted = (bool) $request->session()->get('rsvp_submitted_' . $link->id);
+        return view('common.rsvp-form', compact('link', 'submitted'));
+    }
+
+    public function rsvpSubmit(Request $request, string $alias)
+    {
+        $link = Link::resolveByAlias($alias);
+        if (!$link || $link->type !== 'ics') abort(404);
+        if (empty(($link->settings ?? [])['rsvp_enabled'])) abort(404);
+
+        $allowPlusOnes = !empty(($link->settings ?? [])['rsvp_allow_plus_ones']);
+        $collectPhone  = !empty(($link->settings ?? [])['rsvp_collect_phone']);
+
+        $rules = [
+            'name'      => ['required', 'string', 'max:120'],
+            'email'     => ['nullable', 'email', 'max:160'],
+            'response'  => ['required', 'in:yes,no,maybe'],
+            'plus_ones' => ['nullable', 'integer', 'min:0', 'max:20'],
+            'message'   => ['nullable', 'string', 'max:1000'],
+        ];
+        if ($collectPhone) $rules['phone'] = ['nullable', 'string', 'max:40'];
+        $data = $request->validate($rules);
+
+        \App\Modules\User\Models\Rsvp::create([
+            'link_id'         => $link->id,
+            'source_block_id' => null,
+            'name'            => $data['name'],
+            'email'           => $data['email'] ?? null,
+            'phone'           => $data['phone'] ?? null,
+            'response'        => $data['response'],
+            'plus_ones'       => $allowPlusOnes ? (int)($data['plus_ones'] ?? 0) : 0,
+            'message'         => $data['message'] ?? null,
+            'source'          => $request->input('_source', 'event_page'),
+            'meta'            => ['ip' => $request->ip(), 'ua' => substr((string)$request->userAgent(), 0, 250)],
+        ]);
+
+        $request->session()->put('rsvp_submitted_' . $link->id, true);
+
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'Thanks for your RSVP!']);
+        }
+        return redirect()->route('redirect.rsvp.form', $alias)->with('success', 'Thanks for your RSVP!');
+    }
 }

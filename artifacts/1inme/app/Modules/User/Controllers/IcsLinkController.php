@@ -74,7 +74,24 @@ class IcsLinkController extends Controller
 
         $newSettings = array_merge((array) $link->settings, [
             'show_preview_page' => $request->boolean('show_preview_page'),
+            'rsvp_enabled'      => $request->boolean('rsvp_enabled'),
+            'rsvp_allow_plus_ones' => $request->boolean('rsvp_allow_plus_ones'),
+            'rsvp_collect_phone'   => $request->boolean('rsvp_collect_phone'),
         ]);
+
+        // Push-to-calendar: store the chosen calendar account id (or null to detach)
+        if ($request->has('push_calendar_account_id')) {
+            $accountId = $request->input('push_calendar_account_id');
+            if ($accountId) {
+                $owns = \App\Modules\User\Models\CalendarAccount::where('id', $accountId)
+                    ->where('user_id', $request->user()->id)->exists();
+                if ($owns) {
+                    $newSettings['push_calendar_account_id'] = (int) $accountId;
+                }
+            } else {
+                unset($newSettings['push_calendar_account_id']);
+            }
+        }
 
         // Smart redirect rules — supported on every link type. A matched
         // rule overrides the .ics download with the rule's destination URL.

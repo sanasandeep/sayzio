@@ -74,6 +74,11 @@ class Link extends Model
         return $this->hasOne(VcfData::class);
     }
 
+    public function rsvps()
+    {
+        return $this->hasMany(Rsvp::class);
+    }
+
     public function biolinkBlocks()
     {
         return $this->hasMany(BiolinkBlock::class)->orderBy('sort_order');

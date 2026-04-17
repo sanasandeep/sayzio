@@ -14,6 +14,8 @@ use App\Modules\User\Controllers\IcsLinkController;
 use App\Modules\User\Controllers\VcfLinkController;
 use App\Modules\User\Controllers\QrCodeController;
 use App\Modules\User\Controllers\BiolinkBlockController;
+use App\Modules\User\Controllers\CalendarAccountController;
+use App\Modules\User\Controllers\RsvpController;
 use App\Modules\User\Controllers\UserFileController;
 use App\Modules\User\Controllers\PlanManagementController;
 use App\Modules\User\Controllers\SubscriberController;
@@ -158,6 +160,19 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('links/{link}/qrcode/preview', [QrCodeController::class, 'preview'])->name('links.qrcode.preview');
 
         Route::get('qrcode', [QrCodeController::class, 'standalone'])->name('qrcode');
+
+        // ===== Calendar accounts (Google / Microsoft / CalDAV sync) =====
+        Route::get('calendar',                              [CalendarAccountController::class, 'index'])->name('calendar.index');
+        Route::get('calendar/connect/{provider}',           [CalendarAccountController::class, 'connect'])->name('calendar.connect')->where('provider', 'google|microsoft|caldav');
+        Route::get('calendar/callback/{provider}',          [CalendarAccountController::class, 'callback'])->name('calendar.callback')->where('provider', 'google|microsoft|caldav');
+        Route::post('calendar/{account}/sync',              [CalendarAccountController::class, 'syncNow'])->name('calendar.sync');
+        Route::put('calendar/{account}',                    [CalendarAccountController::class, 'update'])->name('calendar.update');
+        Route::delete('calendar/{account}',                 [CalendarAccountController::class, 'destroy'])->name('calendar.destroy');
+
+        // ===== RSVPs (guest list on Event Invite links) =====
+        Route::get('links/{link}/rsvps',                    [RsvpController::class, 'index'])->name('links.rsvps.index');
+        Route::get('links/{link}/rsvps/export',             [RsvpController::class, 'export'])->name('links.rsvps.export');
+        Route::delete('links/{link}/rsvps/{rsvp}',          [RsvpController::class, 'destroy'])->name('links.rsvps.destroy');
         Route::post('qrcode', [QrCodeController::class, 'generateStandalone'])->name('qrcode.download');
         Route::get('qrcode/preview', [QrCodeController::class, 'previewStandalone'])->name('qrcode.preview');
 

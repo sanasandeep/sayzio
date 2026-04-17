@@ -458,6 +458,13 @@
                     <span class="nav-label">Integrations</span>
                     <span class="sidebar-tooltip">Integrations</span>
                 </a>
+                <a href="{{ route('user.calendar.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.calendar.*') ? 'active' : '' }}"
+                   style="--nav-tint:#7c3aed; --nav-tint-soft:rgba(124,58,237,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-calendar-alt"></i></div>
+                    <span class="nav-label">Calendar Sync</span>
+                    <span class="sidebar-tooltip">Calendar Sync</span>
+                </a>
 
                 <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Manage</div>
 

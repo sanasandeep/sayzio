@@ -14,3 +14,10 @@ Schedule::command('coach:snapshot-scores')
     ->dailyAt('01:15')
     ->withoutOverlapping()
     ->onOneServer();
+
+// Every 15 minutes: pull external calendar events for all enabled accounts
+// and mirror them as Event Invite (.ics) links.
+Schedule::command('calendars:sync')
+    ->everyFifteenMinutes()
+    ->withoutOverlapping()
+    ->onOneServer();
