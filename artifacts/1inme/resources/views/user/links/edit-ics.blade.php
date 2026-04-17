@@ -29,8 +29,8 @@
     $base = rtrim(config('app.url', url('/')), '/');
 @endphp
 
-<style>
-    [x-cloak] { display: none !important; }
+<style>[x-cloak] { display: none !important; }</style>
+<style type="text/tailwindcss">
     .ics-input {
         @apply w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40 transition;
     }
@@ -41,7 +41,7 @@
         @apply text-xs text-white/40 mt-1;
     }
     .ics-section {
-        @apply glass rounded-2xl p-6 mb-5;
+        @apply rounded-2xl p-6 mb-5 bg-white/[0.03] border border-white/10 backdrop-blur;
     }
     .ics-section-head {
         @apply flex items-start gap-3 mb-5 pb-4 border-b border-white/5;
