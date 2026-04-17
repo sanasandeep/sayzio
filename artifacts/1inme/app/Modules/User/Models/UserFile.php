@@ -106,6 +106,11 @@ class UserFile extends Model
         $uploadKey        = $options['upload_key'] ?? null;
         $policyExtensions = null;
 
+        // Super admins bypass the global mime/extension allowlist as well.
+        if (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) {
+            $enforceAllowlist = false;
+        }
+
         // When an upload_key (UploadPolicy context) is provided we let the
         // per-context plan override authoritatively drive both the size cap
         // and the extension allowlist. This makes plan-level

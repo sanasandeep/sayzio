@@ -76,6 +76,19 @@ class UploadPolicy
         $extensions = array_values(array_unique(array_map('strtolower', $base['extensions'] ?? [])));
         $multiple   = (bool) ($base['multiple'] ?? false);
 
+        // Super admins get an effectively unlimited upload policy: 10 GB cap
+        // (well above any reverse-proxy upload limit) and no extension filter.
+        if ($user && method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) {
+            return [
+                'key'        => $key,
+                'label'      => $base['label'] ?? $key,
+                'max_mb'     => 10240,
+                'extensions' => [],
+                'multiple'   => $multiple,
+                'accept'     => '',
+            ];
+        }
+
         if ($user) {
             // Per-context override stored at features.upload_limits.<key>
             $override = $user->getPlanFeature('upload_limits', []);

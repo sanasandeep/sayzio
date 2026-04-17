@@ -82,6 +82,10 @@ class User extends Authenticatable
 
     public function getStorageLimitBytes(): int
     {
+        // Super admins have unlimited storage, regardless of plan.
+        if ($this->isSuperAdmin()) {
+            return PHP_INT_MAX;
+        }
         $mb = (int) $this->getPlanFeature('storage_limit_mb', 100);
         return $mb * 1048576;
     }
@@ -115,7 +119,25 @@ class User extends Authenticatable
 
     public function getPlanFeature(string $key, $default = null)
     {
-        if (!$this->plan || !$this->plan->features) return $default;
+        // Super admins bypass ALL plan gating regardless of what any plan
+        // record stores: numeric limits become effectively unlimited and
+        // boolean feature flags become enabled. Non-scalar defaults (e.g.
+        // arrays for upload_limits) fall through to the explicit plan
+        // value if set, otherwise the default — so per-context overrides
+        // can still be applied to admins if explicitly configured.
+        if ($this->isSuperAdmin()) {
+            if (is_int($default) || is_float($default) || $default === null) {
+                return PHP_INT_MAX;
+            }
+            if (is_bool($default)) {
+                return true;
+            }
+            // For non-scalar defaults fall through to plan-explicit value.
+        }
+
+        if (!$this->plan || !is_array($this->plan->features)) {
+            return $default;
+        }
         return $this->plan->features[$key] ?? $default;
     }
 
