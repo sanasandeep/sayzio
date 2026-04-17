@@ -329,9 +329,9 @@
     }
 
     .sidebar-link .nav-icon-wrap {
-        width: 22px;
-        height: 22px;
-        min-width: 22px;
+        width: 28px;
+        height: 28px;
+        min-width: 28px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -343,7 +343,7 @@
         transition: color .18s ease, transform .18s ease;
     }
     .sidebar-link .nav-icon-wrap i {
-        font-size: 0.95rem;
+        font-size: 1.15rem;
         line-height: 1;
         color: inherit;
     }
@@ -420,8 +420,8 @@
 
     /* Plain icon (no wrap) variant — keeps backwards compat */
     .sidebar-link > i {
-        font-size: 0.9rem;
-        width: 22px;
+        font-size: 1.05rem;
+        width: 28px;
         text-align: center;
         flex-shrink: 0;
         transition: color .18s ease;

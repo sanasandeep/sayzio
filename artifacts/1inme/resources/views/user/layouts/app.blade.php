@@ -92,7 +92,7 @@
             right: -14px;
             width: 28px;
             height: 28px;
-            border-radius: 50%;
+            border-radius: 8px;
             background: var(--bg-card, #1f1f23);
             border: 1px solid var(--border-strong);
             color: var(--text-primary);
