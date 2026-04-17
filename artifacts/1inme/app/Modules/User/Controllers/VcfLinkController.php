@@ -13,7 +13,8 @@ class VcfLinkController extends Controller
     {
         $projects = $request->user()->projects()->orderBy('name')->get();
 
-        return view('user.links.create-vcf', compact('projects'));
+        $prefillTitle = (string) $request->query('title', '');
+        return view('user.links.create-vcf', compact('projects', 'prefillTitle'));
     }
 
     public function store(Request $request)

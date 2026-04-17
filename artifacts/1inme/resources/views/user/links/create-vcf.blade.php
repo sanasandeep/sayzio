@@ -4,8 +4,11 @@
 @section('content')
 <div class="max-w-2xl mx-auto">
     <div class="flex items-center gap-4 mb-6">
-        <a href="{{ route('user.links.index') }}" class="text-white/30 hover:text-white/50"><i class="fas fa-arrow-left"></i></a>
-        <h1 class="text-2xl font-bold text-white">Create Contact Card Link</h1>
+        <a href="{{ route('user.links.create') . (!empty($prefillTitle ?? '') ? '?title=' . urlencode($prefillTitle) : '') }}" class="text-white/30 hover:text-white/50" title="Choose a different type"><i class="fas fa-arrow-left"></i></a>
+        <div>
+            <h1 class="text-2xl font-bold text-white">Create Contact Card Link</h1>
+            <p class="text-xs text-white/40 mt-0.5">Step 2 of 2 &middot; <a href="{{ route('user.links.create') . (!empty($prefillTitle ?? '') ? '?title=' . urlencode($prefillTitle) : '') }}" class="text-violet-400 hover:underline">change type</a></p>
+        </div>
     </div>
 
     <form method="POST" action="{{ route('user.links.vcf.store') }}">

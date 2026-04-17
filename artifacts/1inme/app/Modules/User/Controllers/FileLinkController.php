@@ -14,7 +14,8 @@ class FileLinkController extends Controller
         $projects = $request->user()->projects()->orderBy('name')->get();
         $maxFileSizeMb = (int) $request->user()->getPlanFeature('max_file_size_mb', 5);
 
-        return view('user.links.create-file', compact('projects', 'maxFileSizeMb'));
+        $prefillTitle = (string) $request->query('title', '');
+        return view('user.links.create-file', compact('projects', 'maxFileSizeMb', 'prefillTitle'));
     }
 
     public function store(Request $request)

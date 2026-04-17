@@ -2,215 +2,51 @@
 @section('title', 'Create Link')
 
 @section('content')
-<div class="max-w-3xl mx-auto">
+<div class="max-w-2xl mx-auto">
     <div class="flex items-center gap-4 mb-6">
         <a href="{{ route('user.links.index') }}" class="text-white/30 hover:text-white transition-colors"><i class="fas fa-arrow-left"></i></a>
         <h1 class="text-2xl font-bold text-white">Create Link</h1>
     </div>
 
-    <form method="POST" action="{{ route('user.links.store') }}" enctype="multipart/form-data" x-data="{ type: '{{ old('type', 'url') }}', showAdvanced: false, passwordProtect: {{ old('is_password_protected') ? 'true' : 'false' }} }">
+    <form method="POST" action="{{ route('user.links.choose-type') }}" x-data="{ type: '{{ old('type', 'url') }}' }">
         @csrf
 
         <div class="glass rounded-2xl p-6 mb-6">
-            <h2 class="text-base font-semibold text-white mb-4">Link Type</h2>
+            <label class="block text-sm font-medium text-white/60 mb-1.5">Name <span class="text-white/30 text-xs">(optional)</span></label>
+            <input type="text" name="title" value="{{ old('title', $prefillTitle ?? '') }}" placeholder="My awesome link"
+                   class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none transition-all">
+            @error('title') <p class="text-red-400 text-sm mt-1">{{ $message }}</p> @enderror
+            <p class="text-xs text-white/30 mt-1.5">A friendly label for this link (you can change it later).</p>
+        </div>
+
+        <div class="glass rounded-2xl p-6 mb-6">
+            <h2 class="text-base font-semibold text-white mb-1">What kind of link?</h2>
+            <p class="text-xs text-white/40 mb-4">Pick one to continue — we'll only ask for the fields that matter for that type.</p>
+
             <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
-                <label class="relative cursor-pointer">
-                    <input type="radio" name="type" value="url" x-model="type" class="peer sr-only">
-                    <div class="peer-checked:border-violet-500 peer-checked:bg-violet-500/10 border border-white/10 rounded-xl p-4 text-center transition-all hover:bg-white/[0.04]">
-                        <i class="fas fa-link text-violet-400 text-xl mb-2"></i>
-                        <div class="text-sm font-medium text-white/80">URL Shortener</div>
-                    </div>
-                </label>
-                <label class="relative cursor-pointer">
-                    <input type="radio" name="type" value="biolink" x-model="type" class="peer sr-only">
-                    <div class="peer-checked:border-violet-500 peer-checked:bg-violet-500/10 border border-white/10 rounded-xl p-4 text-center transition-all hover:bg-white/[0.04]">
-                        <i class="fas fa-id-card text-pink-400 text-xl mb-2"></i>
-                        <div class="text-sm font-medium text-white/80">Bio Link</div>
-                    </div>
-                </label>
-                <a href="{{ route('user.links.file.create') }}" class="border border-white/10 rounded-xl p-4 text-center hover:bg-white/[0.04] transition-all block">
-                    <i class="fas fa-file text-emerald-400 text-xl mb-2"></i>
-                    <div class="text-sm font-medium text-white/80">File Link</div>
-                </a>
-                <a href="{{ route('user.links.ics.create') }}" class="border border-white/10 rounded-xl p-4 text-center hover:bg-white/[0.04] transition-all block">
-                    <i class="fas fa-calendar text-amber-400 text-xl mb-2"></i>
-                    <div class="text-sm font-medium text-white/80">ICS Event</div>
-                </a>
-                <a href="{{ route('user.links.vcf.create') }}" class="border border-white/10 rounded-xl p-4 text-center hover:bg-white/[0.04] transition-all block">
-                    <i class="fas fa-address-card text-cyan-400 text-xl mb-2"></i>
-                    <div class="text-sm font-medium text-white/80">VCF Contact</div>
-                </a>
+                @foreach([
+                    ['value' => 'url',     'icon' => 'fa-link',         'color' => 'text-violet-400',  'label' => 'URL Shortener'],
+                    ['value' => 'biolink', 'icon' => 'fa-id-card',      'color' => 'text-pink-400',    'label' => 'Bio Link'],
+                    ['value' => 'file',    'icon' => 'fa-file',         'color' => 'text-emerald-400', 'label' => 'File Link'],
+                    ['value' => 'ics',     'icon' => 'fa-calendar',     'color' => 'text-amber-400',   'label' => 'ICS Event'],
+                    ['value' => 'vcf',     'icon' => 'fa-address-card', 'color' => 'text-cyan-400',    'label' => 'VCF Contact'],
+                ] as $opt)
+                    <label class="relative cursor-pointer">
+                        <input type="radio" name="type" value="{{ $opt['value'] }}" x-model="type" class="peer sr-only">
+                        <div class="peer-checked:border-violet-500 peer-checked:bg-violet-500/10 border border-white/10 rounded-xl p-4 text-center transition-all hover:bg-white/[0.04]">
+                            <i class="fas {{ $opt['icon'] }} {{ $opt['color'] }} text-xl mb-2"></i>
+                            <div class="text-sm font-medium text-white/80">{{ $opt['label'] }}</div>
+                        </div>
+                    </label>
+                @endforeach
             </div>
             @error('type') <p class="text-red-400 text-sm mt-2">{{ $message }}</p> @enderror
-        </div>
-
-        <div class="glass rounded-2xl p-6 mb-6">
-            <h2 class="text-base font-semibold text-white mb-4">Basic Info</h2>
-
-            <div x-show="type === 'url'" class="mb-4">
-                <label class="block text-sm font-medium text-white/60 mb-1.5">Destination URL <span class="text-red-400">*</span></label>
-                <input type="url" name="long_url" value="{{ old('long_url') }}" placeholder="https://example.com/your-long-url"
-                       class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none transition-all">
-                @error('long_url') <p class="text-red-400 text-sm mt-1">{{ $message }}</p> @enderror
-            </div>
-
-            <div x-show="type === 'url'" class="mb-4">
-                <label class="block text-sm font-medium text-white/60 mb-1.5">Redirect Type</label>
-                <select name="redirect_type" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
-                    <option value="301" {{ old('redirect_type', '301') === '301' ? 'selected' : '' }} class="bg-[#0d0818]">301 - Permanent Redirect</option>
-                    <option value="302" {{ old('redirect_type') === '302' ? 'selected' : '' }} class="bg-[#0d0818]">302 - Temporary Redirect</option>
-                </select>
-                <p class="text-xs text-white/20 mt-1">301 passes SEO value; 302 is for temporary redirects</p>
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-white/60 mb-1.5">Title</label>
-                <input type="text" name="title" value="{{ old('title') }}" placeholder="My awesome link"
-                       class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none transition-all">
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-white/60 mb-1.5">Custom Alias</label>
-                    <div class="flex items-center bg-white/5 border border-white/10 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-violet-500/40">
-                        <span class="bg-white/5 px-3 py-2.5 text-sm text-white/30 border-r border-white/10">{{ request()->getHost() }}/</span>
-                        <input type="text" name="alias" value="{{ old('alias') }}" placeholder="auto-generated"
-                               class="flex-1 px-3 py-2.5 text-sm bg-transparent text-white placeholder-white/20 border-0 focus:ring-0 outline-none">
-                    </div>
-                    @error('alias') <p class="text-red-400 text-sm mt-1">{{ $message }}</p> @enderror
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-white/60 mb-1.5">Project</label>
-                    <select name="project_id" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
-                        <option value="" class="bg-[#0d0818]">No project</option>
-                        @foreach($projects as $project)
-                            <option value="{{ $project->id }}" {{ old('project_id') == $project->id ? 'selected' : '' }} class="bg-[#0d0818]">{{ $project->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-            </div>
-        </div>
-
-        <div class="glass rounded-2xl p-6 mb-6">
-            <button type="button" @click="showAdvanced = !showAdvanced" class="flex items-center justify-between w-full">
-                <h2 class="text-base font-semibold text-white">Advanced Options</h2>
-                <i class="fas text-white/30" :class="showAdvanced ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
-            </button>
-
-            <div x-show="showAdvanced" x-cloak class="mt-5 space-y-6">
-                <div>
-                    <h3 class="text-sm font-medium text-violet-400 mb-3"><i class="fas fa-shield-alt mr-2"></i>Protection</h3>
-                    <div class="space-y-3">
-                        <label class="flex items-center gap-3 cursor-pointer">
-                            <input type="checkbox" name="is_password_protected" value="1" x-model="passwordProtect"
-                                   class="rounded bg-white/5 border-white/20 text-violet-600 focus:ring-violet-500/40">
-                            <span class="text-sm text-white/60">Password protect this link</span>
-                        </label>
-                        <div x-show="passwordProtect" class="ml-7">
-                            <input type="password" name="password" placeholder="Enter password"
-                                   class="w-full max-w-xs bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-sm text-white/60 mb-1.5">Expiration Date</label>
-                            <input type="datetime-local" name="expires_at" value="{{ old('expires_at') }}"
-                                   class="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="h-px bg-white/5"></div>
-
-                <div>
-                    <h3 class="text-sm font-medium text-violet-400 mb-3"><i class="fas fa-search mr-2"></i>SEO Settings</h3>
-                    <div class="space-y-3">
-                        <input type="text" name="seo_title" value="{{ old('seo_title') }}" placeholder="SEO Title"
-                               class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
-                        <textarea name="seo_description" placeholder="SEO Description" rows="2"
-                                  class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">{{ old('seo_description') }}</textarea>
-                        <div>
-                            <label class="block text-sm text-white/60 mb-1.5">OG Image</label>
-                            <input type="file" name="seo_image" accept="image/*"
-                                   class="w-full text-sm text-white/40 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:bg-white/10 file:text-white/60 hover:file:bg-white/15">
-                        </div>
-                        <div>
-                            <label class="block text-sm text-white/60 mb-1.5">Favicon</label>
-                            <input type="file" name="favicon" accept="image/*"
-                                   class="w-full text-sm text-white/40 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:bg-white/10 file:text-white/60 hover:file:bg-white/15">
-                            <p class="text-xs text-white/20 mt-1">Small icon shown in browser tab (recommended: 32x32 or 64x64 px)</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="h-px bg-white/5"></div>
-
-                <div>
-                    <h3 class="text-sm font-medium text-violet-400 mb-3"><i class="fas fa-globe mr-2"></i>Country Restrictions</h3>
-                    <input type="text" name="country_restrictions" value="{{ old('country_restrictions') }}" placeholder="e.g. US,GB,CA (comma-separated country codes)"
-                           class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
-                    <p class="text-xs text-white/20 mt-1">Only allow access from these countries (ISO 2-letter codes)</p>
-                </div>
-
-                <div class="h-px bg-white/5"></div>
-
-                <div>
-                    <h3 class="text-sm font-medium text-violet-400 mb-3"><i class="fas fa-mobile-alt mr-2"></i>Device Targeting</h3>
-                    <div class="flex gap-6">
-                        <label class="flex items-center gap-2.5 text-sm text-white/60 cursor-pointer">
-                            <input type="checkbox" name="device_targeting[]" value="desktop" class="rounded bg-white/5 border-white/20 text-violet-600 focus:ring-violet-500/40" {{ is_array(old('device_targeting')) && in_array('desktop', old('device_targeting')) ? 'checked' : '' }}>
-                            <i class="fas fa-desktop text-white/30"></i> Desktop
-                        </label>
-                        <label class="flex items-center gap-2.5 text-sm text-white/60 cursor-pointer">
-                            <input type="checkbox" name="device_targeting[]" value="mobile" class="rounded bg-white/5 border-white/20 text-violet-600 focus:ring-violet-500/40" {{ is_array(old('device_targeting')) && in_array('mobile', old('device_targeting')) ? 'checked' : '' }}>
-                            <i class="fas fa-mobile-alt text-white/30"></i> Mobile
-                        </label>
-                        <label class="flex items-center gap-2.5 text-sm text-white/60 cursor-pointer">
-                            <input type="checkbox" name="device_targeting[]" value="tablet" class="rounded bg-white/5 border-white/20 text-violet-600 focus:ring-violet-500/40" {{ is_array(old('device_targeting')) && in_array('tablet', old('device_targeting')) ? 'checked' : '' }}>
-                            <i class="fas fa-tablet-alt text-white/30"></i> Tablet
-                        </label>
-                    </div>
-                    <p class="text-xs text-white/20 mt-1.5">Leave unchecked to allow all devices</p>
-                </div>
-
-                <div class="h-px bg-white/5"></div>
-
-                <div>
-                    <h3 class="text-sm font-medium text-violet-400 mb-3"><i class="fas fa-chart-bar mr-2"></i>UTM Parameters</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <input type="text" name="utm_source" value="{{ old('utm_source') }}" placeholder="UTM Source"
-                               class="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
-                        <input type="text" name="utm_medium" value="{{ old('utm_medium') }}" placeholder="UTM Medium"
-                               class="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
-                        <input type="text" name="utm_campaign" value="{{ old('utm_campaign') }}" placeholder="UTM Campaign"
-                               class="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
-                        <input type="text" name="utm_term" value="{{ old('utm_term') }}" placeholder="UTM Term"
-                               class="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
-                        <input type="text" name="utm_content" value="{{ old('utm_content') }}" placeholder="UTM Content"
-                               class="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
-                    </div>
-                </div>
-
-                @if($pixels->count())
-                <div class="h-px bg-white/5"></div>
-                <div>
-                    <h3 class="text-sm font-medium text-violet-400 mb-3"><i class="fas fa-bullseye mr-2"></i>Tracking Pixels</h3>
-                    <div class="space-y-2">
-                        @foreach($pixels as $pixel)
-                        <label class="flex items-center gap-3 cursor-pointer">
-                            <input type="checkbox" name="pixel_ids[]" value="{{ $pixel->id }}" class="rounded bg-white/5 border-white/20 text-violet-600 focus:ring-violet-500/40">
-                            <span class="text-sm text-white/60">{{ $pixel->name }} <span class="text-white/25">({{ ucfirst(str_replace('_', ' ', $pixel->type)) }})</span></span>
-                        </label>
-                        @endforeach
-                    </div>
-                </div>
-                @endif
-            </div>
         </div>
 
         <div class="flex items-center justify-end gap-3">
             <a href="{{ route('user.links.index') }}" class="px-5 py-2.5 text-sm text-white/40 hover:text-white hover:bg-white/5 rounded-xl transition-all">Cancel</a>
             <button type="submit" class="bg-violet-600 hover:bg-violet-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-violet-500/20">
-                Create Link
+                Continue <i class="fas fa-arrow-right ml-1.5 text-xs"></i>
             </button>
         </div>
     </form>

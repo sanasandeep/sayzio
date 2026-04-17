@@ -46,11 +46,65 @@ class LinkController extends Controller
 
     public function create(Request $request)
     {
+        // Step 1 of the create-link flow: choose a name + type. The user
+        // continues to a focused, type-specific Step 2 form.
+        return view('user.links.create', [
+            'prefillTitle' => (string) $request->query('title', ''),
+        ]);
+    }
+
+    /**
+     * Step 1 → Step 2 router. Validates the chosen type and forwards the
+     * title via query string to the right type-specific create form.
+     */
+    public function chooseType(Request $request)
+    {
+        $validated = $request->validate([
+            'type' => 'required|in:url,biolink,file,ics,vcf',
+            'title' => 'nullable|string|max:255',
+        ]);
+
+        $title = $validated['title'] ?? null;
+        $params = $title !== null && $title !== '' ? ['title' => $title] : [];
+
+        return match ($validated['type']) {
+            'url'     => redirect()->route('user.links.url.create', $params),
+            'biolink' => redirect()->route('user.links.biolink.create', $params),
+            'file'    => redirect()->route('user.links.file.create', $params),
+            'ics'     => redirect()->route('user.links.ics.create', $params),
+            'vcf'     => redirect()->route('user.links.vcf.create', $params),
+        };
+    }
+
+    /**
+     * Step 2 for URL Shortener — focused form with only URL-relevant fields.
+     */
+    public function createUrl(Request $request)
+    {
         $projects = $request->user()->projects()->orderBy('name')->get();
         $pixels = $request->user()->pixels()->orderBy('name')->get();
         $domains = $request->user()->domains()->where('is_verified', true)->get();
 
-        return view('user.links.create', compact('projects', 'pixels', 'domains'));
+        return view('user.links.create-url', [
+            'projects' => $projects,
+            'pixels' => $pixels,
+            'domains' => $domains,
+            'prefillTitle' => (string) $request->query('title', ''),
+        ]);
+    }
+
+    /**
+     * Step 2 for Bio Link — name + project only, then the existing
+     * template picker / biolink editor takes over.
+     */
+    public function createBiolink(Request $request)
+    {
+        $projects = $request->user()->projects()->orderBy('name')->get();
+
+        return view('user.links.create-biolink', [
+            'projects' => $projects,
+            'prefillTitle' => (string) $request->query('title', ''),
+        ]);
     }
 
     public function store(Request $request)

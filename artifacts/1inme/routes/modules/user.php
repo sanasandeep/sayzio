@@ -76,6 +76,9 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::delete('forms/{form}/submissions/{submission}', [FormController::class, 'destroySubmission'])->name('forms.submissions.destroy');
 
         Route::resource('links', LinkController::class)->except(['store']);
+        Route::post('links/choose-type', [LinkController::class, 'chooseType'])->name('links.choose-type');
+        Route::get('links-url/create', [LinkController::class, 'createUrl'])->name('links.url.create');
+        Route::get('links-biolink/create', [LinkController::class, 'createBiolink'])->name('links.biolink.create');
         Route::post('links', [LinkController::class, 'store'])->middleware(CheckPlanLimit::class . ':links')->name('links.store');
         Route::post('links/{link}/toggle-active', [LinkController::class, 'toggleActive'])->name('links.toggle-active');
         Route::post('links/{link}/coach-action', [LinkController::class, 'coachAction'])->name('links.coach-action');

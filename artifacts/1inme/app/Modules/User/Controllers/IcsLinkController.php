@@ -13,7 +13,8 @@ class IcsLinkController extends Controller
     {
         $projects = $request->user()->projects()->orderBy('name')->get();
 
-        return view('user.links.create-ics', compact('projects'));
+        $prefillTitle = (string) $request->query('title', '');
+        return view('user.links.create-ics', compact('projects', 'prefillTitle'));
     }
 
     public function store(Request $request)
