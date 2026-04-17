@@ -79,6 +79,19 @@ Supports 16 content types: text, url, phone, sms, email, whatsapp, facetime, loc
 
 Builder UI (`resources/views/user/qr-codes/builder.blade.php`) is a 3-column Alpine layout: type picker + per-type form (left), live preview (center), design panel (right). Live rendering uses `qr-code-styling@1.6.0-rc.1` from jsDelivr, supporting dot styles (square/rounded/dots/classy/classy-rounded/extra-rounded), separate inner+outer eye styles+colors, transparent background toggle, logo embed with size, error correction L/M/Q/H, and 8 frame templates (none/scan-me/classic/rounded/ribbon/bubble/minimal/arrow) with custom font + text + colors. "Use existing link" mode swaps the type form for a link-picker so the QR encodes the user's short URL (scans tracked via the link's clicks). PNG/SVG download via the JS library; payload encoding validated server-side via `resolvePayload` endpoint for live preview accuracy. Per-type forms in `_type-forms.blade.php`; sidebar entry in `user/layouts/app.blade.php` points to `user.qr-codes.index`.
 
+### Social Proof System
+A standalone notification widget engine that can be embedded on any external site or attached to a biolink as a block. Migration `2026_04_17_200000_create_social_proofs_tables.php` adds three tables: `social_proofs` (uuid, type, JSON settings/design/targeting/schedule, denormalized impression/click/conversion counters), `social_proof_items` (curated activity pool for `recent_activity` campaigns), and `social_proof_events` (per-event analytics).
+
+Models: `SocialProof` (with `TYPES` const, `defaultSettingsFor`, `defaultDesign`, `defaultTargeting`, auto-generated `uuid` on create), `SocialProofItem`, `SocialProofEvent` (no `updated_at`). User CRUD lives in `App\Modules\User\Controllers\SocialProofController` (resource + items sub-routes + toggle-active + 30-day stats). Routes namespaced as `user.social-proofs.*`.
+
+Public embed (no auth, CORS-open) is served by `App\Modules\Common\Controllers\SocialProofPublicController` at `/sp/{uuid}.js` (loader bootstrap), `/sp/{uuid}.json` (config payload + items + computed live visitor count), `/sp/{uuid}/track` (POST, throttled 120/min, increments counters + writes event row) and `OPTIONS /sp/{uuid}/track` (CORS preflight). The runtime is `public/js/social-proof-widget.js` — vanilla JS, no deps, ~12KB. It renders 7 notification types: `recent_activity`, `visitor_count`, `conversion_count`, `email_signup`, `countdown`, `review`, `custom_html`. Targeting supports device matching, URL include/exclude globs (with `*`), initial delay, repeat interval, display duration, and max-per-session caps. Animations: slide-up / fade / zoom. Tracking uses `sendBeacon` with a `fetch` fallback.
+
+Custom HTML is sanitized server-side (regex strip of `<script>` tags) and again client-side (script tags + `on*` attrs + `javascript:` hrefs) for defense-in-depth.
+
+Biolink integration: new `social_proof` block type registered in `BiolinkBlock::TYPES` (interactive category). The biolink editor's settings form (`block-settings-form.blade.php`) includes a campaign picker that lists the user's campaigns; the public renderer (`biolink-block-render.blade.php`) emits the `<script src="/sp/{uuid}.js" async>` loader for the chosen campaign.
+
+Editor (`resources/views/user/social-proofs/edit.blade.php`) is tabbed: Content (per-type forms), Design (position, theme, accent color, radius, animation, shadow, close button), Targeting (delay/interval/duration/max-per-session, devices, page include/exclude lists), Embed (copyable `<script>` snippet + JSON config URL). The editor itself loads its own widget so changes are previewable in place after save. Sidebar entry sits between Pixels and My Files.
+
 # External Dependencies
 
 - **Monorepo Tool**: pnpm

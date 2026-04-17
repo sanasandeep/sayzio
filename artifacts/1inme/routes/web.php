@@ -5,6 +5,12 @@ use App\Modules\Common\Controllers\RedirectController;
 use App\Modules\Common\Controllers\PublicQrController;
 use App\Modules\User\Controllers\UserFileController;
 
+// ---- Public Social-Proof Widget ----
+Route::get   ('/sp/{uuid}.js',    [\App\Modules\Common\Controllers\SocialProofPublicController::class, 'loaderJs'])->name('sp.public.js')->where('uuid', '[a-f0-9-]{36}');
+Route::get   ('/sp/{uuid}.json',  [\App\Modules\Common\Controllers\SocialProofPublicController::class, 'config'])  ->name('sp.public.config')->where('uuid', '[a-f0-9-]{36}');
+Route::post  ('/sp/{uuid}/track', [\App\Modules\Common\Controllers\SocialProofPublicController::class, 'track'])   ->name('sp.public.track')->where('uuid', '[a-f0-9-]{36}')->middleware('throttle:120,1');
+Route::options('/sp/{uuid}/track',[\App\Modules\Common\Controllers\SocialProofPublicController::class, 'preflight'])->where('uuid', '[a-f0-9-]{36}');
+
 Route::get('/qr/link/{alias}', [PublicQrController::class, 'forLink'])->name('qr.public.link');
 Route::get('/qr/render', [PublicQrController::class, 'render'])->name('qr.public.render');
 

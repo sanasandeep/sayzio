@@ -189,6 +189,18 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::resource('pixels', PixelController::class)->except(['show', 'store']);
         Route::post('pixels', [PixelController::class, 'store'])->middleware(CheckPlanLimit::class . ':pixels')->name('pixels.store');
 
+        Route::prefix('social-proofs')->name('social-proofs.')->group(function () {
+            Route::get('/',                            [\App\Modules\User\Controllers\SocialProofController::class, 'index'])->name('index');
+            Route::get('create',                       [\App\Modules\User\Controllers\SocialProofController::class, 'create'])->name('create');
+            Route::post('/',                           [\App\Modules\User\Controllers\SocialProofController::class, 'store'])->name('store');
+            Route::get('{socialProof}/edit',           [\App\Modules\User\Controllers\SocialProofController::class, 'edit'])->name('edit');
+            Route::put('{socialProof}',                [\App\Modules\User\Controllers\SocialProofController::class, 'update'])->name('update');
+            Route::post('{socialProof}/toggle',        [\App\Modules\User\Controllers\SocialProofController::class, 'toggleActive'])->name('toggle');
+            Route::delete('{socialProof}',             [\App\Modules\User\Controllers\SocialProofController::class, 'destroy'])->name('destroy');
+            Route::post('{socialProof}/items',         [\App\Modules\User\Controllers\SocialProofController::class, 'storeItem'])->name('items.store');
+            Route::delete('{socialProof}/items/{item}',[\App\Modules\User\Controllers\SocialProofController::class, 'destroyItem'])->name('items.destroy');
+        });
+
         Route::prefix('files')->name('files.')->group(function () {
             Route::get('/', [UserFileController::class, 'index'])->name('index');
             Route::post('upload', [UserFileController::class, 'upload'])->name('upload');

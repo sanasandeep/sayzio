@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             '*/track/session',
             '*/track/heartbeat',
+            'sp/*/track',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -415,6 +415,20 @@
         @if($s['dismissible'] ?? true)<button @click="show = false" class="text-white/40 hover:text-white"><i class="fas fa-times text-xs"></i></button>@endif
     </div>
 
+@elseif($block->type === 'social_proof')
+    @php
+        // Ownership-scoped lookup: a user can only embed their own active campaigns
+        $sp = !empty($s['social_proof_id'])
+            ? \App\Modules\User\Models\SocialProof::where('id', $s['social_proof_id'])
+                ->where('user_id', $link->user_id)
+                ->where('is_active', true)
+                ->first()
+            : null;
+    @endphp
+    @if($sp)
+        <script src="{{ url('/sp/' . $sp->uuid . '.js') }}" async></script>
+    @endif
+
 @elseif($block->type === 'qr_code')
     <div class="mb-4 glass-block rounded-xl p-5 flex justify-center">
         <img src="https://api.qrserver.com/v1/create-qr-code/?size={{ $s['size'] ?? 200 }}x{{ $s['size'] ?? 200 }}&data={{ urlencode($s['url'] ?? request()->url()) }}&bgcolor=0f0a1a&color=ffffff" alt="QR Code" class="rounded-lg">

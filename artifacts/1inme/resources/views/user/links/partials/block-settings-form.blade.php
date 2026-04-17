@@ -791,6 +791,24 @@ function imageListUploader_{{ $gridImgId }}() {
     <button type="button" @click="items.push({label:'',value:25,color:'#ec4899'})" class="text-xs text-violet-400"><i class="fas fa-plus mr-1"></i>Add</button>
 </div>
 
+@elseif($block->type === 'social_proof')
+    @php $userSps = \App\Modules\User\Models\SocialProof::where('user_id', auth()->id())->orderByDesc('id')->get(); @endphp
+    <label class="{{ $labelClass }}">Pick a Social Proof campaign</label>
+    @if($userSps->isEmpty())
+        <p class="text-xs text-white/40 mb-2">You haven't created any campaigns yet.</p>
+        <a href="{{ route('user.social-proofs.create') }}" target="_blank" class="text-xs text-violet-400 hover:text-violet-300"><i class="fas fa-plus mr-1"></i>Create one</a>
+    @else
+        <select name="settings[social_proof_id]" class="{{ $inputClass }}">
+            <option value="">— Choose a campaign —</option>
+            @foreach($userSps as $sp)
+                <option value="{{ $sp->id }}" {{ (string)($s['social_proof_id'] ?? '') === (string)$sp->id ? 'selected' : '' }}>
+                    {{ $sp->name }} ({{ $sp->typeLabel() }}){{ $sp->is_active ? '' : ' — paused' }}
+                </option>
+            @endforeach
+        </select>
+        <p class="text-xs text-white/40 mt-2"><i class="fas fa-info-circle mr-1"></i> The notification will appear as a floating widget on the biolink page.</p>
+    @endif
+
 @else
 <p class="text-xs text-white/20">Configure this block's settings below.</p>
 @foreach($s as $key => $val)

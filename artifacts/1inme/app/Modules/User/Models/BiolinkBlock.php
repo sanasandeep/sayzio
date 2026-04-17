@@ -111,6 +111,7 @@ class BiolinkBlock extends Model
         'timeline' => ['label' => 'Timeline', 'icon' => 'fa-stream', 'category' => 'interactive'],
         'timeline_staged' => ['label' => 'Timeline (Staged)', 'icon' => 'fa-project-diagram', 'category' => 'interactive'],
         'rsvp' => ['label' => 'RSVP', 'icon' => 'fa-calendar-check', 'category' => 'interactive'],
+        'social_proof' => ['label' => 'Social Proof', 'icon' => 'fa-bell', 'category' => 'interactive'],
 
         'product' => ['label' => 'Product', 'icon' => 'fa-box', 'category' => 'business'],
         'service' => ['label' => 'Service', 'icon' => 'fa-concierge-bell', 'category' => 'business'],
