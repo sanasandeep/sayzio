@@ -482,6 +482,13 @@
                     <span class="nav-label">Tracking</span>
                     <span class="sidebar-tooltip">Tracking</span>
                 </a>
+                <a href="{{ route('user.social-proofs.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.social-proofs.*') ? 'active' : '' }}"
+                   style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-bell"></i></div>
+                    <span class="nav-label">Buzz</span>
+                    <span class="sidebar-tooltip">Buzz</span>
+                </a>
                 <a href="{{ route('user.files.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.files.*') ? 'active' : '' }}"
                    style="--nav-tint:#06b6d4; --nav-tint-soft:rgba(6,182,212,0.12);">
