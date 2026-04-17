@@ -406,14 +406,49 @@
 
 {{-- Targeting card removed — Smart Redirect Rules now handles country/device gating across all link types. --}}
 
-        <div class="glass rounded-2xl p-6 mb-6">
-            <h2 class="text-lg font-semibold text-white mb-4">UTM Parameters</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <input type="text" name="utm_source" value="{{ old('utm_source', $link->utm_source) }}" placeholder="UTM Source" class="border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
-                <input type="text" name="utm_medium" value="{{ old('utm_medium', $link->utm_medium) }}" placeholder="UTM Medium" class="border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
-                <input type="text" name="utm_campaign" value="{{ old('utm_campaign', $link->utm_campaign) }}" placeholder="UTM Campaign" class="border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
-                <input type="text" name="utm_term" value="{{ old('utm_term', $link->utm_term) }}" placeholder="UTM Term" class="border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
-                <input type="text" name="utm_content" value="{{ old('utm_content', $link->utm_content) }}" placeholder="UTM Content" class="border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
+        <div class="glass rounded-2xl p-6 mb-6" x-data="{ help: false }">
+            <div class="flex items-start justify-between gap-4 mb-1">
+                <div>
+                    <h2 class="text-lg font-semibold text-white">Campaign Tracking <span class="text-white/30 text-sm font-normal">(UTM tags)</span></h2>
+                    <p class="text-xs text-white/40 mt-1">Tiny labels that tell Google Analytics (or whatever tool you use) where each visitor came from. <span class="text-white/60">Leave blank if you don't track campaigns &mdash; most people don't need this.</span></p>
+                </div>
+                <button type="button" @click="help = !help" class="text-[10px] px-2 py-1 rounded-md flex-shrink-0 bg-white/5 text-white/50 hover:text-white"><i class="fas fa-question-circle mr-1"></i> What is this?</button>
+            </div>
+            <div x-show="help" x-cloak x-transition class="mt-3 mb-2 p-3 rounded-lg text-[12px] leading-relaxed bg-violet-500/5 border border-violet-500/20 text-white/70">
+                <p class="mb-2">When you share a link in many places (Twitter, your newsletter, a Facebook ad…), these tags get attached to the URL so your analytics tool can show <em>which one</em> sent each visitor.</p>
+                <p class="mb-1"><strong class="text-white">Example.</strong> Posting the same link in your weekly email and on Instagram?</p>
+                <ul class="list-disc pl-5 space-y-0.5 text-white/60">
+                    <li>For the email link, set <em>Where it lives</em> = <code class="text-violet-300">newsletter</code></li>
+                    <li>For the Instagram link, set <em>Where it lives</em> = <code class="text-violet-300">instagram</code></li>
+                </ul>
+                <p class="mt-2 text-white/50">Now your analytics will tell you which one brought more visitors.</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div>
+                    <label class="block text-xs font-medium text-white/70 mb-1">Where it lives <span class="text-white/30 font-normal">(source)</span></label>
+                    <input type="text" name="utm_source" value="{{ old('utm_source', $link->utm_source) }}" placeholder="e.g. newsletter, twitter, instagram" class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
+                    <p class="text-[11px] text-white/30 mt-1">The site or place where you'll share this link.</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-white/70 mb-1">How they'll see it <span class="text-white/30 font-normal">(medium)</span></label>
+                    <input type="text" name="utm_medium" value="{{ old('utm_medium', $link->utm_medium) }}" placeholder="e.g. email, social, paid-ad" class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
+                    <p class="text-[11px] text-white/30 mt-1">The type of channel &mdash; an email, a social post, a paid ad, etc.</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-white/70 mb-1">Why you're sharing it <span class="text-white/30 font-normal">(campaign)</span></label>
+                    <input type="text" name="utm_campaign" value="{{ old('utm_campaign', $link->utm_campaign) }}" placeholder="e.g. spring-sale, product-launch" class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
+                    <p class="text-[11px] text-white/30 mt-1">The promotion or project this link is part of.</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-white/70 mb-1">Search keyword <span class="text-white/30 font-normal">(term &middot; optional)</span></label>
+                    <input type="text" name="utm_term" value="{{ old('utm_term', $link->utm_term) }}" placeholder="e.g. running shoes" class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
+                    <p class="text-[11px] text-white/30 mt-1">Mostly for paid Google ads &mdash; the keyword you bid on.</p>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-medium text-white/70 mb-1">Which version of the ad <span class="text-white/30 font-normal">(content &middot; optional)</span></label>
+                    <input type="text" name="utm_content" value="{{ old('utm_content', $link->utm_content) }}" placeholder="e.g. blue-button, banner-top" class="w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500/40">
+                    <p class="text-[11px] text-white/30 mt-1">Use this to A/B test &mdash; e.g. tell two ads apart that share the same campaign.</p>
+                </div>
             </div>
         </div>
 

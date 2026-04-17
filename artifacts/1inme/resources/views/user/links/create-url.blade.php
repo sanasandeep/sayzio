@@ -120,19 +120,43 @@
 
                 {{-- Country / device targeting removed — Smart Redirect Rules covers this. --}}
 
-                <div>
-                    <h3 class="text-sm font-medium text-violet-400 mb-3"><i class="fas fa-chart-bar mr-2"></i>UTM Parameters</h3>
+                <div x-data="{ help: false }">
+                    <div class="flex items-start justify-between gap-3 mb-2">
+                        <div>
+                            <h3 class="text-sm font-medium text-violet-400"><i class="fas fa-chart-bar mr-2"></i>Campaign Tracking <span class="text-white/30 font-normal">(UTM tags &middot; optional)</span></h3>
+                            <p class="text-[11px] text-white/40 mt-1">Tiny labels that tell Google Analytics where each visitor came from. Skip this if you're not tracking campaigns &mdash; most people don't need it.</p>
+                        </div>
+                        <button type="button" @click="help = !help" class="text-[10px] px-2 py-1 rounded-md flex-shrink-0 bg-white/5 text-white/50 hover:text-white"><i class="fas fa-question-circle mr-1"></i> What is this?</button>
+                    </div>
+                    <div x-show="help" x-cloak x-transition class="mb-3 p-3 rounded-lg text-[11px] leading-relaxed bg-violet-500/5 border border-violet-500/20 text-white/70">
+                        Sharing the same link in your newsletter <em>and</em> on Instagram? Set <em>Where it lives</em> to <code class="text-violet-300">newsletter</code> for one and <code class="text-violet-300">instagram</code> for the other. Your analytics tool will then tell you which one brought more visitors.
+                    </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <input type="text" name="utm_source" value="{{ old('utm_source') }}" placeholder="UTM Source"
-                               class="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
-                        <input type="text" name="utm_medium" value="{{ old('utm_medium') }}" placeholder="UTM Medium"
-                               class="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
-                        <input type="text" name="utm_campaign" value="{{ old('utm_campaign') }}" placeholder="UTM Campaign"
-                               class="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
-                        <input type="text" name="utm_term" value="{{ old('utm_term') }}" placeholder="UTM Term"
-                               class="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
-                        <input type="text" name="utm_content" value="{{ old('utm_content') }}" placeholder="UTM Content"
-                               class="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
+                        <div>
+                            <label class="block text-[11px] font-medium text-white/60 mb-1">Where it lives <span class="text-white/30">(source)</span></label>
+                            <input type="text" name="utm_source" value="{{ old('utm_source') }}" placeholder="e.g. newsletter, twitter"
+                                   class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-medium text-white/60 mb-1">How they'll see it <span class="text-white/30">(medium)</span></label>
+                            <input type="text" name="utm_medium" value="{{ old('utm_medium') }}" placeholder="e.g. email, social, paid-ad"
+                                   class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-medium text-white/60 mb-1">Why you're sharing it <span class="text-white/30">(campaign)</span></label>
+                            <input type="text" name="utm_campaign" value="{{ old('utm_campaign') }}" placeholder="e.g. spring-sale"
+                                   class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-medium text-white/60 mb-1">Search keyword <span class="text-white/30">(term)</span></label>
+                            <input type="text" name="utm_term" value="{{ old('utm_term') }}" placeholder="e.g. running shoes"
+                                   class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-[11px] font-medium text-white/60 mb-1">Which version of the ad <span class="text-white/30">(content)</span></label>
+                            <input type="text" name="utm_content" value="{{ old('utm_content') }}" placeholder="e.g. blue-button, banner-top"
+                                   class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">
+                        </div>
                     </div>
                 </div>
 
