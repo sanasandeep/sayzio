@@ -161,6 +161,10 @@ Route::prefix('user')->name('user.')->group(function () {
 
         Route::get('qrcode', [QrCodeController::class, 'standalone'])->name('qrcode');
 
+        // ===== Events calendar (month / week / day / list views) =====
+        Route::get('events',                                [CalendarAccountController::class, 'events'])->name('events.index');
+        Route::get('events/feed',                           [CalendarAccountController::class, 'eventsFeed'])->name('events.feed');
+
         // ===== Calendar accounts (Google / Microsoft / CalDAV sync) =====
         Route::get('calendar',                              [CalendarAccountController::class, 'index'])->name('calendar.index');
         Route::get('calendar/connect/{provider}',           [CalendarAccountController::class, 'connect'])->name('calendar.connect')->where('provider', 'google|microsoft|caldav');

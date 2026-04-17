@@ -4,9 +4,12 @@ namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\CalendarAccount;
+use App\Modules\User\Models\IcsData;
+use App\Modules\User\Models\Link;
 use App\Modules\User\Services\Calendar\CalendarProviderRegistry;
 use App\Modules\User\Services\Calendar\CalendarSyncService;
 use App\Modules\User\Services\Calendar\GoogleCalendarProvider;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -29,6 +32,95 @@ class CalendarAccountController extends Controller
             'accounts'         => $accounts,
             'googleConfigured' => $googleConfigured,
         ]);
+    }
+
+    /**
+     * Events calendar — month / week / day / list views of every event
+     * (Event-type Links + extra schedules attached to them) belonging to
+     * the authenticated user.
+     */
+    public function events(Request $request)
+    {
+        $userId = $request->user()->id;
+
+        $upcoming = IcsData::query()
+            ->whereHas('link', fn ($q) => $q->where('user_id', $userId))
+            ->where('start_date', '>=', now()->subDay())
+            ->orderBy('start_date')
+            ->with('link:id,title,slug,type')
+            ->limit(8)
+            ->get();
+
+        $totalEvents = Link::where('user_id', $userId)->where('type', 'ics')->count();
+
+        return view('user.events.index', compact('upcoming', 'totalEvents'));
+    }
+
+    /**
+     * JSON feed for FullCalendar. Returns one entry per primary event plus
+     * one per `extra_schedules` row, scoped to the [start..end] window.
+     */
+    public function eventsFeed(Request $request)
+    {
+        $userId = $request->user()->id;
+        $start  = $request->query('start') ? Carbon::parse($request->query('start')) : now()->subMonth();
+        $end    = $request->query('end')   ? Carbon::parse($request->query('end'))   : now()->addMonths(2);
+
+        $rows = IcsData::query()
+            ->whereHas('link', fn ($q) => $q->where('user_id', $userId))
+            ->where(function ($q) use ($start, $end) {
+                $q->whereBetween('start_date', [$start, $end])
+                  ->orWhereBetween('end_date',   [$start, $end])
+                  ->orWhere(function ($q2) use ($start, $end) {
+                      $q2->where('start_date', '<=', $start)->where('end_date', '>=', $end);
+                  });
+            })
+            ->with('link:id,title,slug,type')
+            ->get();
+
+        $out = [];
+        foreach ($rows as $r) {
+            if (!$r->link) continue;
+            $out[] = [
+                'id'      => 'l'.$r->link_id,
+                'title'   => $r->event_name ?: $r->link->title,
+                'start'   => optional($r->start_date)?->toIso8601String(),
+                'end'     => optional($r->end_date)?->toIso8601String(),
+                'allDay'  => (bool) $r->all_day,
+                'url'     => route('user.links.show', $r->link),
+                'extendedProps' => [
+                    'location'    => $r->location,
+                    'description' => $r->description,
+                    'recurring'   => !empty($r->recurrence_freq),
+                ],
+                'color'   => '#7c3aed',
+            ];
+
+            // Extra schedules attached to this event.
+            foreach ((array) $r->extra_schedules as $i => $ex) {
+                if (empty($ex['start']) || empty($ex['end'])) continue;
+                try {
+                    $s = Carbon::parse($ex['start']);
+                    $e = Carbon::parse($ex['end']);
+                } catch (\Throwable $err) { continue; }
+                if ($e < $start || $s > $end) continue;
+                $out[] = [
+                    'id'      => 'l'.$r->link_id.'-x'.$i,
+                    'title'   => ($ex['label'] ?? $r->event_name) . ' (extra)',
+                    'start'   => $s->toIso8601String(),
+                    'end'     => $e->toIso8601String(),
+                    'url'     => route('user.links.show', $r->link),
+                    'extendedProps' => [
+                        'location'    => $ex['location']    ?? $r->location,
+                        'description' => $ex['description'] ?? null,
+                        'extra'       => true,
+                    ],
+                    'color'   => '#ec4899',
+                ];
+            }
+        }
+
+        return response()->json($out);
     }
 
     public function connect(Request $request, string $provider)

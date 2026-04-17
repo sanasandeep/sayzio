@@ -458,6 +458,13 @@
                     <span class="nav-label">Integrations</span>
                     <span class="sidebar-tooltip">Integrations</span>
                 </a>
+                <a href="{{ route('user.events.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.events.*') ? 'active' : '' }}"
+                   style="--nav-tint:#a78bfa; --nav-tint-soft:rgba(167,139,250,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-calendar-day"></i></div>
+                    <span class="nav-label">Events</span>
+                    <span class="sidebar-tooltip">Events calendar</span>
+                </a>
                 <a href="{{ route('user.calendar.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.calendar.*') ? 'active' : '' }}"
                    style="--nav-tint:#7c3aed; --nav-tint-soft:rgba(124,58,237,0.12);">
