@@ -303,86 +303,132 @@
     .sidebar-nav-scroll:hover::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); }
     .sidebar-nav-scroll::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
 
+    /* ============ Modern sidebar nav (v3) ============
+       Clean, minimal — no per-item chip background. Icon takes the accent
+       color only on hover/active. Active row is a subtle tinted pill with
+       a 3px leading bar; ample breathing room and crisp typography. */
     .sidebar-link {
         display: flex;
         align-items: center;
         gap: 0.75rem;
-        padding: 0.625rem 0.875rem;
+        padding: 0.5rem 0.75rem 0.5rem 0.875rem;
         font-size: 0.8125rem;
         font-weight: 500;
-        border-radius: 0.5rem;
-        transition: background 0.15s ease, color 0.15s ease;
+        border-radius: 8px;
+        transition: background-color .18s ease, color .18s ease, transform .18s ease;
         color: var(--sidebar-link);
         letter-spacing: -0.005em;
         position: relative;
-        margin-bottom: 2px;
+        margin: 1px 0;
         text-decoration: none;
+        line-height: 1.1;
     }
     .sidebar-link:hover {
         background: var(--sidebar-link-hover-bg);
         color: var(--sidebar-link-hover-text);
     }
-    .sidebar-link.active {
-        background: var(--sidebar-active-bg);
-        color: var(--sidebar-active-text);
-        font-weight: 600;
-    }
-    .sidebar-link.active::before { display: none; }
+
     .sidebar-link .nav-icon-wrap {
-        width: 32px;
-        height: 32px;
-        min-width: 32px;
-        border-radius: 10px;
-        display: flex;
+        width: 22px;
+        height: 22px;
+        min-width: 22px;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
-        transition: all 0.3s;
-        color: inherit;
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        color: var(--text-muted);
+        transition: color .18s ease, transform .18s ease;
     }
     .sidebar-link .nav-icon-wrap i {
-        font-size: 0.85rem;
+        font-size: 0.95rem;
+        line-height: 1;
         color: inherit;
-        transition: transform 0.2s;
-    }
-    .sidebar-link .nav-icon-wrap {
-        background: var(--bg-glass-hover);
-        color: var(--nav-tint, var(--text-muted));
     }
     .sidebar-link:hover .nav-icon-wrap {
-        background: var(--nav-tint-soft, var(--bg-glass-light));
-        color: var(--nav-tint, var(--text-primary));
+        color: var(--nav-tint, var(--accent));
+        transform: translateX(1px);
     }
+
+    .sidebar-link .nav-label {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        flex: 1;
+    }
+
+    /* Active row */
     .sidebar-link.active {
         background: var(--nav-tint-soft, var(--sidebar-active-bg));
         color: var(--nav-tint, var(--sidebar-active-text));
         font-weight: 600;
     }
     .sidebar-link.active .nav-icon-wrap {
-        background: transparent;
         color: var(--nav-tint, var(--sidebar-active-text));
     }
-    .sidebar-link.active::after {
-        content: ''; position: absolute;
-        left: -0.875rem; top: 50%; transform: translateY(-50%);
-        width: 3px; height: 18px; border-radius: 0 3px 3px 0;
+    .sidebar-link.active::before {
+        content: '';
+        position: absolute;
+        left: -0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 3px;
+        height: 18px;
+        border-radius: 0 3px 3px 0;
         background: var(--nav-tint, var(--sidebar-active-text));
     }
-    .sidebar-link .nav-label {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+    .sidebar-link.active::after { display: none; }
+
+    /* Trailing arrow on hover (subtle affordance) */
+    .sidebar-link::after {
+        content: '\f105'; /* fa-chevron-right */
+        font-family: 'Font Awesome 6 Free';
+        font-weight: 900;
+        font-size: 9px;
+        margin-left: auto;
+        opacity: 0;
+        color: var(--text-faint);
+        transform: translateX(-4px);
+        transition: opacity .18s ease, transform .18s ease;
     }
+    .sidebar-link:hover::after {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    .sidebar-link.active::after { display: none; }
+
+    /* Section header — slimmer, more spaced */
+    .section-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 16px 12px 6px;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--text-faint);
+    }
+    .section-header::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: linear-gradient(to right, var(--border-subtle), transparent);
+    }
+
+    /* Plain icon (no wrap) variant — keeps backwards compat */
     .sidebar-link > i {
-        font-size: 0.85rem;
-        width: 1.25rem;
+        font-size: 0.9rem;
+        width: 22px;
         text-align: center;
         flex-shrink: 0;
-        transition: transform 0.2s;
-        color: inherit;
+        transition: color .18s ease;
+        color: var(--text-muted);
     }
-    .sidebar-link.active > i { color: var(--sidebar-active-text); }
-    .sidebar-link:hover > i { transform: scale(1.08); }
+    .sidebar-link:hover > i { color: var(--nav-tint, var(--accent)); }
+    .sidebar-link.active > i { color: var(--nav-tint, var(--sidebar-active-text)); }
 
     .bg-mesh { display: none; }
 
