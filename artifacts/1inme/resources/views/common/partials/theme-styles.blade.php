@@ -62,7 +62,7 @@
         /* Metronic demo1 inspired — flat, clean, ultra-light surfaces.
            Body is a soft neutral gray so pure-white cards visibly lift off the
            page; borders are darker than before so card edges are obvious. */
-        --bg-body: #eef0f5;
+        --bg-body: #ffffff;
         --bg-sidebar: #ffffff;
         --bg-sidebar-mobile: #ffffff;
         --bg-header: #ffffff;
