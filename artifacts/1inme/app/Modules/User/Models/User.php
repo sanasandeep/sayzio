@@ -45,6 +45,11 @@ class User extends Authenticatable
         return $this->hasMany(Link::class);
     }
 
+    public function splashPages()
+    {
+        return $this->hasMany(SplashPage::class);
+    }
+
     public function forms()
     {
         return $this->hasMany(Form::class);

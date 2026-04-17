@@ -444,6 +444,13 @@
                     <span class="nav-label">Forms</span>
                     <span class="sidebar-tooltip">Forms</span>
                 </a>
+                <a href="{{ route('user.splash-pages.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.splash-pages.*') ? 'active' : '' }}"
+                   style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-rocket"></i></div>
+                    <span class="nav-label">Splash Pages</span>
+                    <span class="sidebar-tooltip">Splash Pages</span>
+                </a>
 
                 <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Manage</div>
 

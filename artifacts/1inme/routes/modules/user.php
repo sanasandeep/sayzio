@@ -111,7 +111,11 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('links/{link}/blocks/{block}/move', [BiolinkBlockController::class, 'moveBlock'])->name('links.blocks.move');
         Route::post('links/{link}/page-settings', [BiolinkBlockController::class, 'updatePageSettings'])->name('links.page-settings');
 
-        // Splash page (intermediate transition page) — works for ANY link type
+        // Standalone splash pages — reusable across multiple links
+        Route::resource('splash-pages', \App\Modules\User\Controllers\SplashPageController::class);
+        Route::get('splash-pages/{splash_page}/preview', [\App\Modules\User\Controllers\SplashPageController::class, 'preview'])->name('splash-pages.preview');
+
+        // Splash attachment for a specific link (picker UI)
         Route::get('links/{link}/splash',  [LinkController::class, 'splashSettings'])->name('links.splash');
         Route::post('links/{link}/splash', [LinkController::class, 'updateSplash'])->name('links.splash.update');
 

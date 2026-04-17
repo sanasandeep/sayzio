@@ -14,6 +14,7 @@ class Link extends Model
         'seo_title', 'seo_description', 'seo_image', 'favicon',
         'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
         'settings', 'total_clicks', 'unique_clicks',
+        'splash_page_id', 'splash_enabled',
     ];
 
     protected function casts(): array
@@ -22,6 +23,7 @@ class Link extends Model
             'is_active' => 'boolean',
             'is_verified' => 'boolean',
             'is_password_protected' => 'boolean',
+            'splash_enabled' => 'boolean',
             'expires_at' => 'datetime',
             'settings' => 'array',
         ];
@@ -155,18 +157,28 @@ class Link extends Model
     }
 
     /**
+     * Splash page (standalone, reusable across multiple links).
+     */
+    public function splashPage()
+    {
+        return $this->belongsTo(SplashPage::class);
+    }
+
+    /**
      * Whether this link has an enabled splash (intermediate transition) page
      * that should be rendered before the visitor reaches the destination.
      */
     public function hasSplashEnabled(): bool
     {
-        return !empty($this->settings['splash']['enabled']);
+        return $this->splash_enabled && $this->splash_page_id && $this->splashPage;
     }
 
     /** Splash page configuration array (always returns an array). */
     public function getSplashConfig(): array
     {
-        return $this->settings['splash'] ?? [];
+        if (!$this->splash_page_id) return [];
+        $sp = $this->relationLoaded('splashPage') ? $this->splashPage : $this->splashPage()->first();
+        return $sp ? $sp->toRenderArray() : [];
     }
 
     /**
