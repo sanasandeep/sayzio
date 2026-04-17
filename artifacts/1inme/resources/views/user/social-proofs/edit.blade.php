@@ -48,6 +48,25 @@ html.light-mode .bz-scope [class*="bg-white/"]{background:#f8fafc !important}
 html.light-mode .bz-scope [class*="border-white/"]{border-color:#e2e8f0 !important}
 html.light-mode .bz-scope [class*="bg-black/"]{background:#0f172a !important;color:#f8fafc !important}
 html.light-mode .bz-scope [class*="bg-black/"] *{color:inherit !important}
+
+/* --- Type-picker modal: theme-aware --- */
+.bz-modal{background:#18181b;border:1px solid rgba(255,255,255,.10)}
+.bz-modal-title{color:#fff}
+.bz-modal-close{color:rgba(255,255,255,.55)}
+.bz-modal-close:hover{color:#fff}
+.bz-modal-group{color:rgba(255,255,255,.50)}
+.bz-modal-item{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.06)}
+.bz-modal-item:hover{background:rgba(124,58,237,.20);border-color:rgba(139,92,246,.45)}
+.bz-modal-item-label{color:#fff}
+
+html.light-mode .bz-modal{background:#fff;border-color:#e2e8f0;box-shadow:0 20px 50px -10px rgba(15,23,42,.30)}
+html.light-mode .bz-modal-title{color:#0f172a}
+html.light-mode .bz-modal-close{color:#94a3b8}
+html.light-mode .bz-modal-close:hover{color:#0f172a}
+html.light-mode .bz-modal-group{color:#64748b;font-weight:600}
+html.light-mode .bz-modal-item{background:#f8fafc;border-color:#e2e8f0}
+html.light-mode .bz-modal-item:hover{background:rgba(124,58,237,.08);border-color:rgba(124,58,237,.40)}
+html.light-mode .bz-modal-item-label{color:#0f172a}
 </style>
 @endpush
 
@@ -365,19 +384,19 @@ html.light-mode .bz-scope [class*="bg-black/"] *{color:inherit !important}
 
     {{-- ============== Type-picker modal ============== --}}
     <div x-show="openTypePicker" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(0,0,0,.6)" @click.self="openTypePicker = false">
-        <div class="bg-zinc-900 border border-white/10 rounded-2xl w-full max-w-3xl max-h-[80vh] overflow-y-auto p-5">
+        <div class="bz-modal rounded-2xl w-full max-w-3xl max-h-[80vh] overflow-y-auto p-5">
             <div class="flex items-center justify-between mb-4">
-                <h3 class="text-white font-semibold text-lg">Add a notification</h3>
-                <button type="button" @click="openTypePicker = false" class="text-white/50 hover:text-white"><i class="fas fa-times"></i></button>
+                <h3 class="bz-modal-title font-semibold text-lg">Add a notification</h3>
+                <button type="button" @click="openTypePicker = false" class="bz-modal-close"><i class="fas fa-times"></i></button>
             </div>
             @foreach(\App\Modules\User\Models\SocialProof::TYPE_GROUPS as $group => $keys)
             <div class="mb-4">
-                <h4 class="text-white/50 text-xs uppercase tracking-wider mb-2">{{ $group }}</h4>
+                <h4 class="bz-modal-group text-xs uppercase tracking-wider mb-2">{{ $group }}</h4>
                 <div class="grid grid-cols-2 gap-2">
                     @foreach($keys as $k)
                     <button type="button" @click="addNotification('{{ $k }}'); openTypePicker = false"
-                            class="text-left p-3 rounded-xl bg-white/5 hover:bg-violet-600/20 border border-white/5 hover:border-violet-500/40 transition">
-                        <div class="text-white text-sm font-medium">{{ \App\Modules\User\Models\SocialProof::TYPES[$k] }}</div>
+                            class="bz-modal-item text-left p-3 rounded-xl transition">
+                        <div class="bz-modal-item-label text-sm font-medium">{{ \App\Modules\User\Models\SocialProof::TYPES[$k] }}</div>
                     </button>
                     @endforeach
                 </div>
