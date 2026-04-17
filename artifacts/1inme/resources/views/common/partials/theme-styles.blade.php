@@ -171,17 +171,17 @@
        utilities applied as direct children. Specificity .card-premium > .pX
        wins over the bare utility, so existing markup is upgraded automatically
        without touching individual blade files. */
-    .card-premium > .p-3  { padding: 1.25rem; }
-    .card-premium > .p-4  { padding: 1.5rem; }
-    .card-premium > .p-5  { padding: 1.875rem; }
-    .card-premium > .p-6  { padding: 2.25rem; }
-    .card-premium > .px-4 { padding-left: 1.5rem;   padding-right: 1.5rem; }
-    .card-premium > .px-5 { padding-left: 1.875rem; padding-right: 1.875rem; }
-    .card-premium > .px-6 { padding-left: 2.25rem;  padding-right: 2.25rem; }
-    .card-premium > .py-3 { padding-top: 1.125rem;  padding-bottom: 1.125rem; }
-    .card-premium > .py-4 { padding-top: 1.375rem;  padding-bottom: 1.375rem; }
-    .card-premium > .py-5 { padding-top: 1.625rem;  padding-bottom: 1.625rem; }
-    .card-premium > .py-6 { padding-top: 1.875rem;  padding-bottom: 1.875rem; }
+    .card-premium > .p-3  { padding: 1.5rem; }
+    .card-premium > .p-4  { padding: 1.875rem; }
+    .card-premium > .p-5  { padding: 2.25rem; }
+    .card-premium > .p-6  { padding: 2.75rem; }
+    .card-premium > .px-4 { padding-left: 1.875rem; padding-right: 1.875rem; }
+    .card-premium > .px-5 { padding-left: 2.25rem;  padding-right: 2.25rem; }
+    .card-premium > .px-6 { padding-left: 2.75rem;  padding-right: 2.75rem; }
+    .card-premium > .py-3 { padding-top: 1.375rem;  padding-bottom: 1.375rem; }
+    .card-premium > .py-4 { padding-top: 1.625rem;  padding-bottom: 1.625rem; }
+    .card-premium > .py-5 { padding-top: 1.875rem;  padding-bottom: 1.875rem; }
+    .card-premium > .py-6 { padding-top: 2.25rem;   padding-bottom: 2.25rem; }
     .card-premium::before { display: none; }
     .card-premium:hover {
         border-color: var(--border-glass-light);
