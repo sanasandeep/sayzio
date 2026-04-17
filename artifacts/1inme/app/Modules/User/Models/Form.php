@@ -72,7 +72,7 @@ class Form extends Model
         return [
             'theme' => 'light',
             'accent' => '#8b5cf6',
-            'background' => '#f5f5f8',     // page background
+            'background' => '#ffffff',     // page background (light)
             'card_color' => '#ffffff',     // form card surface (separate from page bg)
             'card_image' => null,          // optional background image for the form card
             'card_image_mode' => 'cover',  // cover | contain | tile
