@@ -133,6 +133,13 @@ class LinkController extends Controller
             $link->pixels()->sync($pixelIds);
         }
 
+        // For new biolinks, send the user to the template picker so they can
+        // start from an admin-curated preset (or skip and start from scratch).
+        if ($link->type === 'biolink' && \App\Modules\Admin\Models\PageTemplate::active()->exists()) {
+            return redirect()->route('user.links.templates.picker', $link)
+                ->with('success', 'Bio link created — pick a template to start, or skip.');
+        }
+
         return redirect()->route('user.links.index')
             ->with('success', 'Link created successfully.');
     }

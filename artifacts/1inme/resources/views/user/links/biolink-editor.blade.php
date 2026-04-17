@@ -519,10 +519,15 @@ $catColors = [
                             <i class="fas fa-layer-group text-3xl text-violet-400"></i>
                         </div>
                         <h3 class="text-lg font-bold mb-2" style="color: var(--text-primary);">No blocks yet</h3>
-                        <p class="text-sm mb-6 max-w-xs mx-auto" style="color: var(--text-muted);">Start building your biolink page by adding your first block from the gallery.</p>
-                        <button @click="showGallery = true" class="btn-primary text-sm py-2.5 px-6" style="background: linear-gradient(135deg, #10b981, #059669);">
-                            <i class="fas fa-plus text-xs"></i> Open Block Gallery
-                        </button>
+                        <p class="text-sm mb-6 max-w-xs mx-auto" style="color: var(--text-muted);">Start from a curated template, or add blocks one at a time.</p>
+                        <div class="flex items-center justify-center gap-2 flex-wrap">
+                            <a href="{{ route('user.links.templates.picker', $link) }}" class="btn-primary text-sm py-2.5 px-6" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+                                <i class="fas fa-layer-group text-xs"></i> Browse templates
+                            </a>
+                            <button @click="showGallery = true" class="btn-primary text-sm py-2.5 px-6" style="background: linear-gradient(135deg, #10b981, #059669);">
+                                <i class="fas fa-plus text-xs"></i> Add a block
+                            </button>
+                        </div>
                     </div>
                     @endforelse
                 </div>
@@ -583,11 +588,15 @@ $catColors = [
                         </div>
                         <button @click="showGallery = false" class="block-action-btn" style="color: var(--text-faint);"><i class="fas fa-times"></i></button>
                     </div>
+                    <div class="flex items-center gap-1 mb-3 p-1 rounded-xl bg-white/5 border border-white/5 w-max">
+                        <button @click="galleryMode = 'blocks'" :class="galleryMode === 'blocks' ? 'bg-violet-600 text-white' : 'text-white/50 hover:text-white'" class="px-3 py-1 text-[11px] font-semibold rounded-lg transition">Blocks</button>
+                        <button @click="galleryMode = 'templates'; loadCardTemplates();" :class="galleryMode === 'templates' ? 'bg-violet-600 text-white' : 'text-white/50 hover:text-white'" class="px-3 py-1 text-[11px] font-semibold rounded-lg transition">Card Templates</button>
+                    </div>
                     <div class="relative mb-4">
                         <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs" style="color: var(--text-faint);"></i>
-                        <input type="text" x-model="gallerySearch" placeholder="Search blocks..." class="theme-input w-full pl-9">
+                        <input type="text" x-model="gallerySearch" placeholder="Search…" class="theme-input w-full pl-9">
                     </div>
-                    <div class="gallery-tabs pb-3">
+                    <div class="gallery-tabs pb-3" x-show="galleryMode === 'blocks'">
                         <button class="gallery-tab" :class="galleryCategory === 'all' ? 'active' : ''" @click="galleryCategory = 'all'">All</button>
                         @foreach($blockCategories as $catKey => $catLabel)
                         <button class="gallery-tab" :class="galleryCategory === '{{ $catKey }}' ? 'active' : ''" @click="galleryCategory = '{{ $catKey }}'">{{ $catLabel }}</button>
@@ -595,7 +604,8 @@ $catColors = [
                     </div>
                 </div>
                 <div class="flex-1 overflow-y-auto p-5 pt-2">
-                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {{-- BLOCKS GRID --}}
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2" x-show="galleryMode === 'blocks'">
                         @foreach($blockTypes as $typeKey => $typeInfo)
                         @php $catColor = $catColors[$typeInfo['category']] ?? '#8b5cf6'; @endphp
                         <div x-show="(galleryCategory === 'all' || galleryCategory === '{{ $typeInfo['category'] }}') && (gallerySearch === '' || '{{ strtolower($typeInfo['label']) }}'.includes(gallerySearch.toLowerCase())) && !(_cardGalleryParentId && '{{ $typeKey }}' === 'card') && '{{ $typeInfo['category'] }}' !== 'verified'"
@@ -613,6 +623,39 @@ $catColors = [
                             </button>
                         </div>
                         @endforeach
+                    </div>
+
+                    {{-- CARD TEMPLATES --}}
+                    <div x-show="galleryMode === 'templates'" x-cloak>
+                        <div x-show="cardTemplatesLoading" class="text-center py-10" style="color: var(--text-faint);">
+                            <i class="fas fa-spinner fa-spin text-xl"></i>
+                        </div>
+                        <div x-show="!cardTemplatesLoading && cardTemplates.length === 0" class="text-center py-10">
+                            <i class="fas fa-layer-group text-2xl mb-2" style="color: var(--text-faint);"></i>
+                            <p class="text-sm" style="color: var(--text-muted);">No card templates available yet.</p>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" x-show="!cardTemplatesLoading">
+                            <template x-for="t in cardTemplates" :key="t.id">
+                                <div x-show="gallerySearch === '' || (t.name + ' ' + (t.description||'')).toLowerCase().includes(gallerySearch.toLowerCase())"
+                                     class="rounded-xl border overflow-hidden transition cursor-pointer" style="border-color: var(--border-glass); background: rgba(124,58,237,0.02);"
+                                     @click="t.locked ? null : applyCardTemplate(t.id)"
+                                     :class="t.locked ? 'opacity-60 cursor-not-allowed' : 'hover:border-violet-500/50'">
+                                    <div class="aspect-[4/2] flex items-center justify-center relative" style="background: linear-gradient(135deg, rgba(124,58,237,0.12), rgba(139,92,246,0.04));">
+                                        <template x-if="t.thumbnail_url">
+                                            <img :src="t.thumbnail_url" :alt="t.name" class="w-full h-full object-cover">
+                                        </template>
+                                        <template x-if="!t.thumbnail_url">
+                                            <i class="fas fa-square-poll-vertical text-2xl text-violet-300/60"></i>
+                                        </template>
+                                        <div x-show="t.locked" class="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/90 text-white"><i class="fas fa-lock mr-1"></i><span x-text="t.plan_tier"></span></div>
+                                    </div>
+                                    <div class="p-3">
+                                        <div class="text-xs font-semibold mb-0.5" style="color: var(--text-primary);" x-text="t.name"></div>
+                                        <div class="text-[10px]" style="color: var(--text-faint);"><span x-text="t.children_count"></span> blocks · <span x-text="t.category"></span></div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -661,7 +704,38 @@ function biolinkEditor() {
         showGallery: false,
         gallerySearch: '',
         galleryCategory: 'all',
+        galleryMode: 'blocks',
+        cardTemplates: [],
+        cardTemplatesLoading: false,
+        cardTemplatesLoaded: false,
         editingBlockId: null,
+        loadCardTemplates() {
+            if (this.cardTemplatesLoaded || this.cardTemplatesLoading) return;
+            this.cardTemplatesLoading = true;
+            fetch('{{ route('user.links.templates.cards', $link) }}', { headers: { 'Accept': 'application/json' } })
+                .then(r => r.json())
+                .then(d => { this.cardTemplates = d.items || []; this.cardTemplatesLoaded = true; })
+                .catch(() => { showToast('Failed to load templates', 'error'); })
+                .finally(() => { this.cardTemplatesLoading = false; });
+        },
+        applyCardTemplate(id) {
+            var fd = new FormData();
+            fd.append('_token', _csrfToken());
+            fd.append('template_id', id);
+            if (_insertAfterId) fd.append('insert_after', _insertAfterId);
+            fetch('{{ route('user.links.templates.apply-card', $link) }}', {
+                method: 'POST',
+                headers: { 'Accept': 'application/json' },
+                body: fd
+            }).then(r => r.json()).then(d => {
+                if (d.success) {
+                    showToast('Card template added', 'success');
+                    setTimeout(function() { location.reload(); }, 400);
+                } else {
+                    showToast(d.error || 'Failed to apply template', 'error');
+                }
+            }).catch(() => showToast('Failed to apply template', 'error'));
+        },
         init() {
             var self = this;
             window.addEventListener('open-edit-drawer', function(e) {

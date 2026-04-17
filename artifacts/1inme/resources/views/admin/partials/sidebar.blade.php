@@ -52,6 +52,12 @@
             <span>Plans</span>
         </a>
 
+        <a href="{{ route('admin.templates.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.templates.*') ? 'active' : '' }}">
+            <i class="fas fa-layer-group"></i>
+            <span>Templates</span>
+        </a>
+
         <a href="{{ route('admin.coach-defaults.edit') }}"
            class="sidebar-link {{ request()->routeIs('admin.coach-defaults.*') ? 'active' : '' }}">
             <i class="fas fa-wand-magic-sparkles"></i>

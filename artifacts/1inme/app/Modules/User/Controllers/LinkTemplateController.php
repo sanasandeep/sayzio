@@ -1,0 +1,97 @@
+<?php
+
+namespace App\Modules\User\Controllers;
+
+use App\Modules\Admin\Models\CardTemplate;
+use App\Modules\Admin\Models\PageTemplate;
+use App\Modules\Admin\Services\TemplateService;
+use App\Modules\User\Models\Link;
+use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
+
+class LinkTemplateController extends Controller
+{
+    public function __construct(private TemplateService $templates) {}
+
+    public function picker(Link $link)
+    {
+        abort_if($link->user_id !== auth()->id() || $link->type !== 'biolink', 403);
+        $pageTemplates = PageTemplate::active()->get();
+        $userPlanSlug = auth()->user()->plan?->slug;
+        $lockedFn = fn(?string $required) => $this->isLocked($required, $userPlanSlug);
+        return view('user.links.templates.picker', compact('link', 'pageTemplates', 'userPlanSlug', 'lockedFn'));
+    }
+
+    public function cardGallery(Request $request, Link $link)
+    {
+        abort_if($link->user_id !== auth()->id() || $link->type !== 'biolink', 403);
+        $userPlanSlug = auth()->user()->plan?->slug;
+        $cards = CardTemplate::active()->get()->map(function ($t) use ($userPlanSlug) {
+            return [
+                'id' => $t->id,
+                'name' => $t->name,
+                'category' => $t->category,
+                'description' => $t->description,
+                'thumbnail_url' => $t->thumbnail_url,
+                'plan_tier' => $t->plan_tier,
+                'locked' => $this->isLocked($t->plan_tier, $userPlanSlug),
+                'children_count' => count($t->snapshot['children'] ?? []),
+            ];
+        });
+        return response()->json(['items' => $cards]);
+    }
+
+    public function applyPage(Request $request, Link $link)
+    {
+        abort_if($link->user_id !== auth()->id() || $link->type !== 'biolink', 403);
+        $validated = $request->validate([
+            'template_id' => 'required|integer|exists:page_templates,id',
+        ]);
+        $tpl = PageTemplate::active()->where('id', $validated['template_id'])->firstOrFail();
+        $userPlanSlug = auth()->user()->plan?->slug;
+        if ($this->isLocked($tpl->plan_tier, $userPlanSlug)) {
+            return back()->with('error', 'This template requires a higher plan.');
+        }
+
+        $this->templates->applyPageToLink($link, $tpl->snapshot, /*replace*/ true);
+
+        return redirect()->route('user.links.blocks.editor', $link)
+            ->with('success', 'Template "' . $tpl->name . '" applied.');
+    }
+
+    public function applyCard(Request $request, Link $link)
+    {
+        abort_if($link->user_id !== auth()->id() || $link->type !== 'biolink', 403);
+        $validated = $request->validate([
+            'template_id' => 'required|integer|exists:card_templates,id',
+            'insert_after' => 'nullable|integer|exists:biolink_blocks,id',
+        ]);
+        $tpl = CardTemplate::active()->where('id', $validated['template_id'])->firstOrFail();
+        $userPlanSlug = auth()->user()->plan?->slug;
+        if ($this->isLocked($tpl->plan_tier, $userPlanSlug)) {
+            return response()->json(['success' => false, 'error' => 'This template requires a higher plan.'], 403);
+        }
+
+        $block = $this->templates->applyCardToLink($link, $tpl->snapshot, $validated['insert_after'] ?? null);
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['success' => true, 'block_id' => $block->id]);
+        }
+        return redirect()->route('user.links.blocks.editor', $link)->with('success', 'Card template added.');
+    }
+
+    /**
+     * Locked = template requires a plan tier above the user's current plan.
+     * Empty plan_tier = available to all. Comparison is by Plan::sort_order
+     * (lower sort_order = lower tier). Higher-tier users automatically get
+     * access to lower-tier templates.
+     */
+    public function isLocked(?string $required, ?string $userPlan): bool
+    {
+        if (empty($required)) return false;
+        $ranks = \App\Modules\Admin\Models\Plan::pluck('sort_order', 'slug');
+        $req = $ranks[$required] ?? PHP_INT_MAX;
+        $cur = $userPlan ? ($ranks[$userPlan] ?? -1) : -1;
+        return $cur < $req;
+    }
+}
