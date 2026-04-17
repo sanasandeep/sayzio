@@ -521,7 +521,7 @@
                 <a href="{{ route('user.forms.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.forms.*') ? 'active' : '' }}"
                    style="--nav-tint:#ec4899; --nav-tint-soft:rgba(236,72,153,0.12);">
-                    <div class="nav-icon-wrap"><i class="fas fa-wpforms"></i></div>
+                    <div class="nav-icon-wrap"><i class="fas fa-clipboard-list"></i></div>
                     <span class="nav-label">Forms</span>
                     <span class="sidebar-tooltip">Forms</span>
                 </a>
