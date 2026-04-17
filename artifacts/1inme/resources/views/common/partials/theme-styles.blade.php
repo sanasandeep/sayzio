@@ -16,10 +16,10 @@
         --bg-glass-hover: #1c1d27;
         --bg-glass-input: #0f1015;
         --bg-glass-input-focus: #14151c;
-        --bg-card: #13141b;
-        --bg-card-hover: #16171f;
-        --border-glass: #1f2128;
-        --border-glass-light: #2a2c35;
+        --bg-card: #0a0b10;
+        --bg-card-hover: #10111a;
+        --border-glass: #2a2d38;
+        --border-glass-light: #3a3e4c;
         --border-subtle: #16171d;
         --text-primary: #f5f6fa;
         --text-secondary: #cdcfd6;
@@ -69,10 +69,10 @@
         --bg-glass-hover: #f3f5fa;
         --bg-glass-input: #ffffff;
         --bg-glass-input-focus: #ffffff;
-        --bg-card: #ffffff;
-        --bg-card-hover: #fdfdfe;
-        --border-glass: #e8eaf0;
-        --border-glass-light: #dbdee7;
+        --bg-card: #f7f8fb;
+        --bg-card-hover: #fbfcfe;
+        --border-glass: #d3d8e4;
+        --border-glass-light: #b8bfd0;
         --border-subtle: #eef0f5;
         --text-primary: #0f1729;
         --text-secondary: #2c3548;
@@ -144,31 +144,61 @@
 
     .glass {
         background: var(--bg-glass);
-        border: 1px solid var(--border-glass);
+        border: 2px solid var(--border-glass);
         box-shadow: var(--card-shadow);
         border-radius: var(--radius-card);
     }
     .glass-light {
         background: var(--bg-glass-light);
-        border: 1px solid var(--border-glass-light);
+        border: 2px solid var(--border-glass-light);
         border-radius: 0.875rem;
     }
     .glass-hover:hover { background: var(--bg-glass-hover); }
 
+    /* ===== CARD SYSTEM ===== */
+    /* Cards share their parent's background and rely on a thick 2px border for separation. */
     .card-premium {
         position: relative;
         background: var(--bg-card);
-        border: 1px solid var(--border-glass);
+        border: 2px solid var(--border-glass);
         border-radius: var(--radius-card);
-        box-shadow: var(--card-shadow);
-        transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+        box-shadow: none;
+        transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease, background 0.25s ease;
         overflow: hidden;
     }
     .card-premium::before { display: none; }
     .card-premium:hover {
-        box-shadow: var(--card-shadow-hover);
         border-color: var(--border-glass-light);
+        background: var(--bg-card-hover);
     }
+
+    /* Decorative animated SVG orb on cards that have an icon header
+       — added by .card-decorated modifier (auto-applied via JS / Blade). */
+    .card-premium.card-decorated::after {
+        content: '';
+        position: absolute;
+        top: -60px; right: -60px;
+        width: 220px; height: 220px;
+        background:
+            radial-gradient(closest-side, var(--card-deco, rgba(139,92,246,0.20)), transparent 72%);
+        filter: blur(8px);
+        pointer-events: none;
+        opacity: 0.85;
+        animation: deco-drift 18s ease-in-out infinite;
+        z-index: 0;
+    }
+    .card-premium.card-decorated > * { position: relative; z-index: 1; }
+
+    /* Doubled spacing between stacked cards (was space-y-6 = 1.5rem) */
+    .card-premium + .card-premium,
+    .card-premium + .stat-card,
+    .stat-card + .card-premium,
+    .stat-card + .stat-card { margin-top: 3rem; }
+    /* Inside Tailwind grid layouts (gap-X) we don't override — grid handles spacing. */
+    .grid > .card-premium + .card-premium,
+    .grid > .stat-card + .stat-card,
+    .flex > .card-premium + .card-premium,
+    .flex > .stat-card + .stat-card { margin-top: 0; }
 
     .gradient-border {
         position: relative;
@@ -194,36 +224,53 @@
         position: relative;
         overflow: hidden;
         background: var(--bg-card);
-        border: 1px solid var(--border-glass);
+        border: 2px solid var(--border-glass);
         border-radius: var(--radius-card);
         padding: 1.5rem 1.5rem 1.625rem;
-        box-shadow: var(--card-shadow);
-        transition: border-color 0.15s ease, box-shadow 0.2s ease, transform 0.2s ease;
+        box-shadow: none;
+        transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease, background 0.25s ease;
     }
-    .stat-card::before { display: none; }
-    .stat-card::after { display: none; }
+    /* Animated SVG decorative wave — drifting in the background of every stat card */
+    .stat-card::before {
+        content: '';
+        display: block;
+        position: absolute;
+        inset: 0;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 200' preserveAspectRatio='none'%3E%3Cpath fill='none' stroke='currentColor' stroke-width='1.2' stroke-opacity='0.18' d='M0,140 C60,100 120,180 200,120 S320,80 320,140'/%3E%3Cpath fill='none' stroke='currentColor' stroke-width='1' stroke-opacity='0.12' d='M0,80 C80,40 160,120 240,60 S320,30 320,90'/%3E%3Ccircle cx='280' cy='40' r='2.5' fill='currentColor' fill-opacity='0.2'/%3E%3Ccircle cx='40' cy='160' r='2' fill='currentColor' fill-opacity='0.18'/%3E%3Ccircle cx='200' cy='30' r='1.5' fill='currentColor' fill-opacity='0.15'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-size: 100% 100%;
+        color: var(--stat-tint, var(--accent));
+        pointer-events: none;
+        z-index: 0;
+        animation: deco-drift 22s ease-in-out infinite;
+    }
+    /* Soft floating gradient orb on top-right of the stat card */
+    .stat-card::after {
+        content: '';
+        position: absolute;
+        top: -50px; right: -50px;
+        width: 180px; height: 180px;
+        background: radial-gradient(closest-side, var(--stat-tint-soft, rgba(139,92,246,0.22)), transparent 72%);
+        filter: blur(6px);
+        pointer-events: none;
+        z-index: 0;
+        opacity: 0.9;
+        animation: deco-float 14s ease-in-out infinite;
+    }
+    .stat-card > * { position: relative; z-index: 1; }
     .stat-card:hover {
         border-color: var(--border-glass-light);
-        box-shadow: var(--card-shadow-hover);
-        transform: translateY(-2px);
+        transform: translateY(-3px);
     }
-    /* Multi-color stat card variants — pastel tinted fills, Metronic demo1 style */
-    .stat-card.tint-primary  { background: var(--c-primary-soft); border-color: transparent; }
-    .stat-card.tint-success  { background: var(--c-success-soft); border-color: transparent; }
-    .stat-card.tint-info     { background: var(--c-info-soft);    border-color: transparent; }
-    .stat-card.tint-warning  { background: var(--c-warning-soft); border-color: transparent; }
-    .stat-card.tint-danger   { background: var(--c-danger-soft);  border-color: transparent; }
-    .stat-card.tint-pink     { background: var(--c-pink-soft);    border-color: transparent; }
-    .stat-card.tint-indigo   { background: var(--c-indigo-soft);  border-color: transparent; }
-    .stat-card.tint-teal     { background: var(--c-teal-soft);    border-color: transparent; }
-    .stat-card.tint-primary:hover,
-    .stat-card.tint-success:hover,
-    .stat-card.tint-info:hover,
-    .stat-card.tint-warning:hover,
-    .stat-card.tint-danger:hover,
-    .stat-card.tint-pink:hover,
-    .stat-card.tint-indigo:hover,
-    .stat-card.tint-teal:hover { border-color: transparent; filter: brightness(0.98); }
+    /* Multi-color stat card variants — smooth gradient + tinted SVG/orb */
+    .stat-card.tint-primary  { background: linear-gradient(135deg, var(--c-primary-soft), transparent 110%); --stat-tint: var(--c-primary); --stat-tint-soft: var(--c-primary-soft); }
+    .stat-card.tint-success  { background: linear-gradient(135deg, var(--c-success-soft), transparent 110%); --stat-tint: var(--c-success); --stat-tint-soft: var(--c-success-soft); }
+    .stat-card.tint-info     { background: linear-gradient(135deg, var(--c-info-soft),    transparent 110%); --stat-tint: var(--c-info);    --stat-tint-soft: var(--c-info-soft); }
+    .stat-card.tint-warning  { background: linear-gradient(135deg, var(--c-warning-soft), transparent 110%); --stat-tint: var(--c-warning); --stat-tint-soft: var(--c-warning-soft); }
+    .stat-card.tint-danger   { background: linear-gradient(135deg, var(--c-danger-soft),  transparent 110%); --stat-tint: var(--c-danger);  --stat-tint-soft: var(--c-danger-soft); }
+    .stat-card.tint-pink     { background: linear-gradient(135deg, var(--c-pink-soft),    transparent 110%); --stat-tint: var(--c-pink);    --stat-tint-soft: var(--c-pink-soft); }
+    .stat-card.tint-indigo   { background: linear-gradient(135deg, var(--c-indigo-soft),  transparent 110%); --stat-tint: var(--c-indigo);  --stat-tint-soft: var(--c-indigo-soft); }
+    .stat-card.tint-teal     { background: linear-gradient(135deg, var(--c-teal-soft),    transparent 110%); --stat-tint: var(--c-teal);    --stat-tint-soft: var(--c-teal-soft); }
 
     /* ===== Sidebar nav scrollbar (thin, subtle) ===== */
     .sidebar-nav-scroll {
@@ -544,6 +591,15 @@
         animation: float-slow 15s ease-in-out infinite;
     }
 
+    @keyframes deco-drift {
+        0%, 100% { transform: translate(0, 0) scale(1); }
+        33%      { transform: translate(8px, -6px) scale(1.04); }
+        66%      { transform: translate(-6px, 5px) scale(0.97); }
+    }
+    @keyframes deco-float {
+        0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.85; }
+        50%      { transform: translate(-14px, 12px) scale(1.08); opacity: 1; }
+    }
     @keyframes aurora {
         0% { transform: translate(0,0) rotate(0deg); }
         25% { transform: translate(2%,-1%) rotate(0.5deg); }
@@ -712,5 +768,43 @@
             document.head.appendChild(style);
         });
     }
+})();
+
+/* Auto-decorate cards that contain an icon header (highlight cards)
+   by tagging them with .card-decorated and inheriting the section's accent. */
+(function(){
+    function tintFromIcon(icon){
+        var cls = icon.className || '';
+        var m = cls.match(/text-(violet|purple|emerald|green|cyan|teal|amber|yellow|orange|red|rose|pink|fuchsia|indigo|blue|sky)-(300|400|500|600)/);
+        if(!m) return null;
+        var map = {
+            violet: 'rgba(139,92,246,', purple: 'rgba(168,85,247,',
+            emerald: 'rgba(16,185,129,', green: 'rgba(34,197,94,',
+            cyan: 'rgba(6,182,212,', teal: 'rgba(20,184,166,', sky: 'rgba(14,165,233,',
+            amber: 'rgba(245,158,11,', yellow: 'rgba(234,179,8,', orange: 'rgba(249,115,22,',
+            red: 'rgba(239,68,68,', rose: 'rgba(244,63,94,'  ,
+            pink: 'rgba(236,72,153,', fuchsia: 'rgba(217,70,239,'  ,
+            indigo: 'rgba(99,102,241,', blue: 'rgba(59,130,246,'
+        };
+        return map[m[1]] ? map[m[1]] + '0.20)' : null;
+    }
+    function decorate(){
+        document.querySelectorAll('.card-premium:not(.card-decorated)').forEach(function(card){
+            var icon = card.querySelector('[class*="fa-"]');
+            if(!icon) return;
+            var tint = tintFromIcon(icon);
+            if(tint) card.style.setProperty('--card-deco', tint);
+            card.classList.add('card-decorated');
+        });
+    }
+    if(document.readyState === 'loading'){
+        document.addEventListener('DOMContentLoaded', decorate);
+    } else { decorate(); }
+    document.addEventListener('alpine:initialized', decorate);
+    var mo = new MutationObserver(function(muts){
+        for(var i=0;i<muts.length;i++){ if(muts[i].addedNodes && muts[i].addedNodes.length){ decorate(); break; } }
+    });
+    if(document.body) mo.observe(document.body, {childList:true, subtree:true});
+    else document.addEventListener('DOMContentLoaded', function(){ mo.observe(document.body, {childList:true, subtree:true}); });
 })();
 </script>
