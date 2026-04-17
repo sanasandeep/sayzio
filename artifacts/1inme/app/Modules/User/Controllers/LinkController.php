@@ -48,8 +48,18 @@ class LinkController extends Controller
     {
         // Step 1 of the create-link flow: choose a name + type. The user
         // continues to a focused, type-specific Step 2 form.
+        //
+        // Pre-select the type the user last picked (per-user, stored in session)
+        // so power users who repeatedly create the same kind of link can fly
+        // through Step 1 with a single click + name.
+        $lastType = $request->session()->get('links.last_type');
+        if (!in_array($lastType, ['url', 'biolink', 'file', 'ics', 'vcf'], true)) {
+            $lastType = null;
+        }
+
         return view('user.links.create', [
             'prefillTitle' => (string) $request->query('title', ''),
+            'lastType' => $lastType,
         ]);
     }
 
@@ -66,6 +76,10 @@ class LinkController extends Controller
 
         $title = $validated['title'] ?? null;
         $params = $title !== null && $title !== '' ? ['title' => $title] : [];
+
+        // Remember this type for next time so the user's most-used flow gets
+        // pre-selected on their next visit to Step 1.
+        $request->session()->put('links.last_type', $validated['type']);
 
         return match ($validated['type']) {
             'url'     => redirect()->route('user.links.url.create', $params),

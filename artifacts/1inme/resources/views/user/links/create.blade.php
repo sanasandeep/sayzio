@@ -8,7 +8,7 @@
         <h1 class="text-2xl font-bold text-white">Create Link</h1>
     </div>
 
-    <form method="POST" action="{{ route('user.links.choose-type') }}" x-data="{ type: '{{ old('type', 'url') }}' }">
+    <form method="POST" action="{{ route('user.links.choose-type') }}" x-data="{ type: '{{ old('type', $lastType ?? '') }}' }">
         @csrf
 
         <div class="glass rounded-2xl p-6 mb-6">
