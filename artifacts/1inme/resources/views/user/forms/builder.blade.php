@@ -1,0 +1,264 @@
+@extends('user.layouts.app')
+@section('title', 'Build · ' . $form->title)
+
+@section('content')
+<div class="max-w-7xl mx-auto"
+     x-data="formBuilder({
+        title: @js($form->title),
+        description: @js($form->description ?? ''),
+        fields: @js($form->fields ?? []),
+        types: @js($fieldTypes),
+     })"
+     x-init="$nextTick(() => initSortable())">
+
+    @include('user.partials.page-hero', [
+        'title' => 'Build: ' . $form->title,
+        'subtitle' => 'Drag fields onto your form, then click any field to edit its options.',
+        'icon' => 'fa-pen-ruler',
+        'back' => route('user.forms.show', $form),
+    ])
+
+    @include('user.forms._tabs')
+
+    @if(session('success'))
+    <div class="mb-6 px-4 py-3 rounded-xl text-sm font-medium" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); color: #10b981;">
+        <i class="fas fa-check-circle mr-1.5"></i> {{ session('success') }}
+    </div>
+    @endif
+
+    <form method="POST" action="{{ route('user.forms.builder.update', $form) }}" @submit="serializeFields">
+        @csrf @method('PUT')
+        <input type="hidden" name="title" :value="title">
+        <input type="hidden" name="description" :value="description">
+        <input type="hidden" name="fields_json" id="fieldsJson">
+        <template x-for="(f, i) in fields" :key="f.id + '-' + i">
+            <div>
+                <input type="hidden" :name="`fields[${i}][id]`" :value="f.id">
+                <input type="hidden" :name="`fields[${i}][type]`" :value="f.type">
+                <input type="hidden" :name="`fields[${i}][label]`" :value="f.label || ''">
+                <input type="hidden" :name="`fields[${i}][placeholder]`" :value="f.placeholder || ''">
+                <input type="hidden" :name="`fields[${i}][help]`" :value="f.help || ''">
+                <input type="hidden" :name="`fields[${i}][required]`" :value="f.required ? 1 : 0">
+                <input type="hidden" :name="`fields[${i}][rows]`" :value="f.rows || ''">
+                <input type="hidden" :name="`fields[${i}][min]`" :value="f.min ?? ''">
+                <input type="hidden" :name="`fields[${i}][max]`" :value="f.max ?? ''">
+                <template x-for="(opt, j) in (f.options || [])" :key="`${f.id}-opt-${j}`">
+                    <input type="hidden" :name="`fields[${i}][options][${j}]`" :value="opt">
+                </template>
+            </div>
+        </template>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {{-- LEFT: field type palette --}}
+            <aside class="lg:col-span-3">
+                <div class="card-premium p-4 lg:sticky lg:top-4">
+                    <h4 class="text-xs font-bold uppercase tracking-wider mb-3" style="color: var(--text-faint);">Add a field</h4>
+                    <div class="space-y-1.5 max-h-[70vh] overflow-y-auto pr-1 custom-scrollbar">
+                        <template x-for="(meta, type) in types" :key="type">
+                            <button type="button" @click="addField(type)"
+                                    class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-left transition-all hover:translate-x-1"
+                                    style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-secondary);">
+                                <i :class="`fas ${meta.icon}`" class="text-violet-400 text-xs w-4 text-center"></i>
+                                <span class="flex-1 truncate" x-text="meta.label"></span>
+                                <i class="fas fa-plus text-[9px] opacity-40"></i>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+            </aside>
+
+            {{-- CENTER: form preview / editor --}}
+            <main class="lg:col-span-6">
+                <div class="card-premium p-6 mb-4">
+                    <input type="text" x-model="title" placeholder="Form title" class="w-full text-2xl font-extrabold bg-transparent border-0 outline-none mb-2" style="color: var(--text-primary); letter-spacing: -0.02em;">
+                    <textarea x-model="description" rows="2" placeholder="Optional description shown under the title…" class="w-full text-sm bg-transparent border-0 outline-none resize-none" style="color: var(--text-muted);"></textarea>
+                </div>
+
+                <div id="fieldsList" class="space-y-3 min-h-[300px]">
+                    <template x-for="(f, i) in fields" :key="f.id">
+                        <div class="card-premium p-4 cursor-grab field-card"
+                             :class="selectedIndex === i ? 'ring-2 ring-violet-500' : ''"
+                             :data-id="f.id" @click="selectedIndex = i">
+                            <div class="flex items-start gap-3">
+                                <i class="fas fa-grip-vertical text-xs mt-1.5 handle" style="color: var(--text-faint);"></i>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+                                        <i :class="`fas ${types[f.type]?.icon || 'fa-question'} text-violet-400 text-[10px]`"></i>
+                                        <span class="text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint);" x-text="types[f.type]?.label || f.type"></span>
+                                        <template x-if="f.required">
+                                            <span class="text-[9px] px-1.5 py-0.5 rounded font-bold" style="background: rgba(239,68,68,0.12); color: #f87171;">REQUIRED</span>
+                                        </template>
+                                    </div>
+                                    <div class="text-sm font-semibold mb-1" style="color: var(--text-primary);" x-text="f.label || '(no label)'"></div>
+                                    <div x-show="f.type === 'text' || f.type === 'email' || f.type === 'phone' || f.type === 'url' || f.type === 'number'">
+                                        <div class="px-3 py-2 rounded-lg text-xs" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);" x-text="f.placeholder || 'Enter value…'"></div>
+                                    </div>
+                                    <div x-show="f.type === 'textarea'" class="px-3 py-2 rounded-lg text-xs h-16" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);" x-text="f.placeholder || 'Type your message…'"></div>
+                                    <div x-show="f.type === 'select' || f.type === 'radio' || f.type === 'checkbox'" class="text-xs mt-1 space-y-1" style="color: var(--text-muted);">
+                                        <template x-for="opt in (f.options || [])" :key="opt">
+                                            <div class="flex items-center gap-1.5">
+                                                <i :class="f.type === 'select' ? 'fa-caret-right' : (f.type === 'radio' ? 'fa-circle' : 'fa-square')" class="far text-[9px]"></i>
+                                                <span x-text="opt"></span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                    <div x-show="f.type === 'rating'" class="text-amber-400 text-sm">
+                                        <template x-for="n in (parseInt(f.max) || 5)" :key="n"><i class="fas fa-star mr-0.5"></i></template>
+                                    </div>
+                                    <div x-show="f.type === 'scale'" class="flex gap-1 mt-1">
+                                        <template x-for="n in ((parseInt(f.max) || 10) - (parseInt(f.min) || 0) + 1)" :key="n">
+                                            <span class="w-6 h-6 rounded text-[10px] flex items-center justify-center" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);" x-text="(parseInt(f.min) || 0) + n - 1"></span>
+                                        </template>
+                                    </div>
+                                    <div x-show="f.type === 'page_break'" class="text-center py-3 border-t-2 border-b-2 border-dashed" style="border-color: var(--border-glass); color: var(--text-faint);">
+                                        <i class="fas fa-file-export mr-1"></i> Next page →
+                                    </div>
+                                    <div x-show="f.type === 'divider'" class="border-t-2" style="border-color: var(--border-glass);"></div>
+                                    <div x-show="f.type === 'paragraph'" class="text-sm" style="color: var(--text-muted);" x-text="f.label"></div>
+                                    <div x-show="f.help" class="text-[11px] mt-1" style="color: var(--text-faint);" x-text="f.help"></div>
+                                </div>
+                                <div class="flex flex-col gap-1">
+                                    <button type="button" @click.stop="duplicateField(i)" class="w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" style="background: var(--bg-glass-input); color: var(--text-muted);" title="Duplicate"><i class="fas fa-clone"></i></button>
+                                    <button type="button" @click.stop="removeField(i)" class="w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" style="background: rgba(239,68,68,0.1); color: #f87171;" title="Delete"><i class="fas fa-trash"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                    <div x-show="fields.length === 0" class="card-premium p-12 text-center">
+                        <i class="fas fa-mouse-pointer text-3xl mb-3" style="color: var(--text-faint);"></i>
+                        <p class="text-sm" style="color: var(--text-muted);">Click a field type from the left to add it to your form.</p>
+                    </div>
+                </div>
+
+                <div class="sticky bottom-0 mt-6 py-4 flex items-center gap-3" style="background: var(--bg-body); z-index: 10;">
+                    <button type="submit" class="btn-primary px-8 py-3 text-sm font-semibold inline-flex items-center gap-2 shadow-lg">
+                        <i class="fas fa-save text-xs"></i> Save Form
+                    </button>
+                    <a href="{{ $form->getPublicUrl() }}" target="_blank" class="text-xs px-4 py-2 rounded-lg" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-secondary);">
+                        <i class="fas fa-external-link-alt text-[10px] mr-1"></i> Preview live
+                    </a>
+                </div>
+            </main>
+
+            {{-- RIGHT: per-field editor --}}
+            <aside class="lg:col-span-3">
+                <div class="card-premium p-5 lg:sticky lg:top-4">
+                    <h4 class="text-xs font-bold uppercase tracking-wider mb-3" style="color: var(--text-faint);">
+                        <span x-show="selectedIndex === null">Field options</span>
+                        <span x-show="selectedIndex !== null" x-text="`Editing: ${fields[selectedIndex]?.type}`"></span>
+                    </h4>
+
+                    <template x-if="selectedIndex === null">
+                        <p class="text-xs leading-relaxed" style="color: var(--text-muted);">
+                            Click any field on the left to edit its label, placeholder, options and validation rules.
+                        </p>
+                    </template>
+
+                    <template x-if="selectedIndex !== null">
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-[11px] font-medium mb-1" style="color: var(--text-muted);">Field ID <span class="text-[10px]" style="color: var(--text-faint);">(used in exports & webhooks)</span></label>
+                                <input type="text" x-model="fields[selectedIndex].id" class="theme-input w-full text-xs" pattern="[a-z0-9_-]+">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-medium mb-1" style="color: var(--text-muted);">Label</label>
+                                <input type="text" x-model="fields[selectedIndex].label" class="theme-input w-full text-xs">
+                            </div>
+                            <div x-show="['text','email','phone','url','number','textarea','date','time'].includes(fields[selectedIndex].type)">
+                                <label class="block text-[11px] font-medium mb-1" style="color: var(--text-muted);">Placeholder</label>
+                                <input type="text" x-model="fields[selectedIndex].placeholder" class="theme-input w-full text-xs">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-medium mb-1" style="color: var(--text-muted);">Help text <span class="text-[10px]" style="color: var(--text-faint);">— shown under field</span></label>
+                                <input type="text" x-model="fields[selectedIndex].help" class="theme-input w-full text-xs">
+                            </div>
+                            <div x-show="fields[selectedIndex].type === 'textarea'">
+                                <label class="block text-[11px] font-medium mb-1" style="color: var(--text-muted);">Rows</label>
+                                <input type="number" x-model="fields[selectedIndex].rows" min="2" max="20" class="theme-input w-full text-xs">
+                            </div>
+                            <div x-show="['number','rating','scale'].includes(fields[selectedIndex].type)" class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-[11px] font-medium mb-1" style="color: var(--text-muted);">Min</label>
+                                    <input type="number" x-model="fields[selectedIndex].min" class="theme-input w-full text-xs">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-medium mb-1" style="color: var(--text-muted);">Max</label>
+                                    <input type="number" x-model="fields[selectedIndex].max" class="theme-input w-full text-xs">
+                                </div>
+                            </div>
+                            <div x-show="['select','radio','checkbox'].includes(fields[selectedIndex].type)">
+                                <label class="block text-[11px] font-medium mb-1" style="color: var(--text-muted);">Options <span class="text-[10px]" style="color: var(--text-faint);">— one per line</span></label>
+                                <textarea
+                                    rows="5"
+                                    class="theme-input w-full text-xs"
+                                    @input="fields[selectedIndex].options = $event.target.value.split('\n').map(s => s.trim()).filter(Boolean)"
+                                    x-text="(fields[selectedIndex].options || []).join('\n')"></textarea>
+                            </div>
+                            <label class="flex items-center gap-2 text-xs cursor-pointer mt-2" style="color: var(--text-secondary);" x-show="!['heading','paragraph','divider','page_break'].includes(fields[selectedIndex].type)">
+                                <input type="checkbox" x-model="fields[selectedIndex].required" class="rounded text-violet-500">
+                                Required field
+                            </label>
+                        </div>
+                    </template>
+                </div>
+            </aside>
+        </div>
+    </form>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+<script>
+function formBuilder(initial) {
+    return {
+        title: initial.title,
+        description: initial.description,
+        fields: initial.fields,
+        types: initial.types,
+        selectedIndex: null,
+
+        addField(type) {
+            const meta = this.types[type] || {};
+            const id = type + '_' + Math.random().toString(36).slice(2, 7);
+            const f = { id, type, label: meta.label || 'Untitled', required: false };
+            if (['select','radio','checkbox'].includes(type)) f.options = ['Option 1', 'Option 2'];
+            if (type === 'rating') { f.min = 0; f.max = 5; }
+            if (type === 'scale')  { f.min = 0; f.max = 10; }
+            if (type === 'textarea') f.rows = 4;
+            if (type === 'paragraph') f.label = 'Some descriptive text here…';
+            if (type === 'heading') f.label = 'Section Heading';
+            if (type === 'divider') f.label = '';
+            if (type === 'page_break') f.label = 'Next page';
+            this.fields.push(f);
+            this.selectedIndex = this.fields.length - 1;
+            this.$nextTick(() => this.initSortable());
+        },
+        removeField(i) {
+            this.fields.splice(i, 1);
+            if (this.selectedIndex === i) this.selectedIndex = null;
+            else if (this.selectedIndex > i) this.selectedIndex--;
+        },
+        duplicateField(i) {
+            const copy = JSON.parse(JSON.stringify(this.fields[i]));
+            copy.id = copy.id + '_copy_' + Math.random().toString(36).slice(2,5);
+            this.fields.splice(i + 1, 0, copy);
+            this.$nextTick(() => this.initSortable());
+        },
+        initSortable() {
+            const list = document.getElementById('fieldsList');
+            if (!list || list._sortable) return;
+            list._sortable = new Sortable(list, {
+                handle: '.handle',
+                animation: 150,
+                ghostClass: 'opacity-30',
+                onEnd: (evt) => {
+                    const moved = this.fields.splice(evt.oldIndex, 1)[0];
+                    this.fields.splice(evt.newIndex, 0, moved);
+                    this.selectedIndex = evt.newIndex;
+                }
+            });
+        },
+        serializeFields() { /* hidden inputs handle it */ },
+    };
+}
+</script>
+@endsection

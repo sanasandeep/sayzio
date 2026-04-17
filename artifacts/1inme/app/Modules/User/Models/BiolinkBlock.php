@@ -140,6 +140,7 @@ class BiolinkBlock extends Model
 
         'custom_html' => ['label' => 'Custom HTML', 'icon' => 'fa-code', 'category' => 'integrations'],
         'iframe_embed' => ['label' => 'Iframe Embed', 'icon' => 'fa-window-maximize', 'category' => 'integrations'],
+        'form' => ['label' => '1INME Form', 'icon' => 'fa-wpforms', 'category' => 'integrations'],
         'typeform' => ['label' => 'Typeform', 'icon' => 'fa-clipboard-list', 'category' => 'integrations'],
         'calendly' => ['label' => 'Calendly', 'icon' => 'fa-calendar-check', 'category' => 'integrations'],
         'discord_server' => ['label' => 'Discord Server', 'icon' => 'fa-hashtag', 'category' => 'integrations'],

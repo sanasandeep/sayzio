@@ -547,6 +547,28 @@ function imageListUploader_{{ $gridImgId }}() {
     <div><label class="{{ $labelClass }}">Height (px)</label><input type="number" name="settings[height]" value="{{ $s['height'] ?? 400 }}" class="{{ $inputClass }}"></div>
 </div>
 
+@elseif($block->type === 'form')
+@php $userForms = auth()->user()->forms()->orderBy('title')->get(['id','title','is_active']); @endphp
+<div class="space-y-3">
+    <div>
+        <label class="{{ $labelClass }}">Form</label>
+        @if($userForms->isEmpty())
+            <div class="text-xs px-3 py-2 rounded-lg" style="background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.2); color: #fbbf24;">
+                You haven't built any forms yet. <a href="{{ route('user.forms.create') }}" class="underline font-semibold">Create one →</a>
+            </div>
+        @else
+            <select name="settings[form_id]" class="{{ $inputClass }}">
+                <option value="">— Choose a form —</option>
+                @foreach($userForms as $f)
+                    <option value="{{ $f->id }}" @selected(($s['form_id'] ?? null) == $f->id)>{{ $f->title }} {{ $f->is_active ? '' : '(disabled)' }}</option>
+                @endforeach
+            </select>
+            <p class="text-[10px] mt-1" style="color: var(--text-faint);">The form auto-resizes — height below is the initial frame height.</p>
+        @endif
+    </div>
+    <div><label class="{{ $labelClass }}">Initial height (px)</label><input type="number" name="settings[height]" value="{{ $s['height'] ?? 600 }}" min="200" max="2000" class="{{ $inputClass }}"></div>
+</div>
+
 @elseif($block->type === 'custom_html')
 <div><label class="{{ $labelClass }}">HTML Code</label><textarea name="settings[html]" rows="6" class="{{ $inputClass }} font-mono">{{ $s['html'] ?? '' }}</textarea></div>
 

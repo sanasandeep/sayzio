@@ -7,6 +7,7 @@ use App\Modules\User\Controllers\DashboardController;
 use App\Modules\User\Controllers\ProfileController;
 use App\Modules\User\Controllers\ProjectController;
 use App\Modules\User\Controllers\LinkController;
+use App\Modules\User\Controllers\FormController;
 use App\Modules\User\Controllers\PixelController;
 use App\Modules\User\Controllers\FileLinkController;
 use App\Modules\User\Controllers\IcsLinkController;
@@ -53,6 +54,26 @@ Route::prefix('user')->name('user.')->group(function () {
 
         Route::resource('projects', ProjectController::class)->except(['store']);
         Route::post('projects', [ProjectController::class, 'store'])->middleware(CheckPlanLimit::class . ':projects')->name('projects.store');
+
+        // ---- Forms ----
+        Route::get('forms', [FormController::class, 'index'])->name('forms.index');
+        Route::get('forms/create', [FormController::class, 'create'])->name('forms.create');
+        Route::post('forms', [FormController::class, 'store'])->name('forms.store');
+        Route::get('forms/{form}', [FormController::class, 'show'])->name('forms.show');
+        Route::delete('forms/{form}', [FormController::class, 'destroy'])->name('forms.destroy');
+        Route::post('forms/{form}/toggle-active', [FormController::class, 'toggleActive'])->name('forms.toggle-active');
+        Route::get('forms/{form}/builder', [FormController::class, 'builder'])->name('forms.builder');
+        Route::put('forms/{form}/builder', [FormController::class, 'updateBuilder'])->name('forms.builder.update');
+        Route::get('forms/{form}/design', [FormController::class, 'design'])->name('forms.design');
+        Route::put('forms/{form}/design', [FormController::class, 'updateDesign'])->name('forms.design.update');
+        Route::get('forms/{form}/notifications', [FormController::class, 'notifications'])->name('forms.notifications');
+        Route::put('forms/{form}/notifications', [FormController::class, 'updateNotifications'])->name('forms.notifications.update');
+        Route::get('forms/{form}/embed', [FormController::class, 'embed'])->name('forms.embed');
+        Route::get('forms/{form}/submissions', [FormController::class, 'submissions'])->name('forms.submissions');
+        Route::get('forms/{form}/submissions/export', [FormController::class, 'exportSubmissions'])->name('forms.submissions.export');
+        Route::get('forms/{form}/submissions/{submission}', [FormController::class, 'showSubmission'])->name('forms.submissions.show');
+        Route::post('forms/{form}/submissions/{submission}/star', [FormController::class, 'toggleSubmissionStar'])->name('forms.submissions.star');
+        Route::delete('forms/{form}/submissions/{submission}', [FormController::class, 'destroySubmission'])->name('forms.submissions.destroy');
 
         Route::resource('links', LinkController::class)->except(['store']);
         Route::post('links', [LinkController::class, 'store'])->middleware(CheckPlanLimit::class . ':links')->name('links.store');

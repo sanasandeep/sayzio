@@ -45,6 +45,11 @@ class User extends Authenticatable
         return $this->hasMany(Link::class);
     }
 
+    public function forms()
+    {
+        return $this->hasMany(Form::class);
+    }
+
     public function pixels()
     {
         return $this->hasMany(Pixel::class);
