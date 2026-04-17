@@ -63,6 +63,12 @@
             <i class="fas fa-wand-magic-sparkles"></i>
             <span>Score Presets</span>
         </a>
+
+        <a href="{{ route('admin.assets.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.assets.*') ? 'active' : '' }}">
+            <i class="fas fa-folder-tree"></i>
+            <span>Asset Vault</span>
+        </a>
     </nav>
 
     <div class="p-3" style="border-top: 1px solid var(--border-subtle);">

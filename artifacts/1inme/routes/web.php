@@ -1,9 +1,14 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Modules\Admin\Controllers\AdminAssetController;
 use App\Modules\Common\Controllers\RedirectController;
 use App\Modules\Common\Controllers\PublicQrController;
 use App\Modules\User\Controllers\UserFileController;
+
+Route::get('/admin-assets/{id}/{filename}', [AdminAssetController::class, 'serve'])
+    ->where('filename', '.*')
+    ->name('admin.assets.serve');
 
 // ---- Public Social-Proof Widget ----
 Route::get   ('/sp/{uuid}.js',    [\App\Modules\Common\Controllers\SocialProofPublicController::class, 'loaderJs'])->name('sp.public.js')->where('uuid', '[a-f0-9-]{36}');

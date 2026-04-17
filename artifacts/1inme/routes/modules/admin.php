@@ -11,6 +11,7 @@ use App\Modules\Admin\Controllers\PlanController;
 use App\Modules\Admin\Controllers\LinkManagementController;
 use App\Modules\Admin\Controllers\CoachDefaultsController;
 use App\Modules\Admin\Controllers\TemplateController;
+use App\Modules\Admin\Controllers\AdminAssetController;
 use App\Modules\Admin\Middleware\CheckPermission;
 
 Route::prefix('admin')->name('admin.')->group(function () {
@@ -79,6 +80,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::prefix('coach-defaults')->name('coach-defaults.')->group(function () {
             Route::get('/', [CoachDefaultsController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
             Route::post('/', [CoachDefaultsController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
+        });
+
+        Route::prefix('assets')->name('assets.')->group(function () {
+            Route::get('/', [AdminAssetController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::post('/', [AdminAssetController::class, 'upload'])->middleware(CheckPermission::class . ':settings.manage')->name('upload');
+            Route::put('{asset}', [AdminAssetController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
+            Route::delete('{asset}', [AdminAssetController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
         });
 
         Route::prefix('users')->name('users.')->group(function () {

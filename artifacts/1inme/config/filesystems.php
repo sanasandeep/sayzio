@@ -17,6 +17,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Admin Asset Vault Disk
+    |--------------------------------------------------------------------------
+    |
+    | Which disk the admin asset vault writes to. Defaults to the local
+    | "admin_assets" disk; set ADMIN_ASSETS_DISK=s3 in your env to point the
+    | vault at S3 (requires AWS_* credentials below).
+    |
+    */
+    'admin_assets_disk' => env('ADMIN_ASSETS_DISK', 'admin_assets'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Filesystem Disks
     |--------------------------------------------------------------------------
     |
@@ -50,6 +62,14 @@ return [
         'user_files' => [
             'driver' => 'local',
             'root' => storage_path('app/user-files'),
+            'visibility' => 'private',
+            'throw' => false,
+            'report' => false,
+        ],
+
+        'admin_assets' => [
+            'driver' => 'local',
+            'root' => storage_path('app/admin-assets'),
             'visibility' => 'private',
             'throw' => false,
             'report' => false,
