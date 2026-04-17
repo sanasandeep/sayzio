@@ -42,6 +42,14 @@
                 <input type="hidden" :name="`fields[${i}][rows]`" :value="f.rows || ''">
                 <input type="hidden" :name="`fields[${i}][min]`" :value="f.min ?? ''">
                 <input type="hidden" :name="`fields[${i}][max]`" :value="f.max ?? ''">
+                <input type="hidden" :name="`fields[${i}][width]`" :value="f.width || 12">
+                <input type="hidden" :name="`fields[${i}][min_length]`" :value="f.min_length ?? ''">
+                <input type="hidden" :name="`fields[${i}][max_length]`" :value="f.max_length ?? ''">
+                <input type="hidden" :name="`fields[${i}][pattern]`" :value="f.pattern || ''">
+                <input type="hidden" :name="`fields[${i}][pattern_message]`" :value="f.pattern_message || ''">
+                <input type="hidden" :name="`fields[${i}][error_message]`" :value="f.error_message || ''">
+                <input type="hidden" :name="`fields[${i}][file_max_kb]`" :value="f.file_max_kb ?? ''">
+                <input type="hidden" :name="`fields[${i}][file_types]`" :value="f.file_types || ''">
                 <template x-for="(opt, j) in (f.options || [])" :key="`${f.id}-opt-${j}`">
                     <input type="hidden" :name="`fields[${i}][options][${j}]`" :value="opt">
                 </template>
@@ -74,10 +82,12 @@
                     <textarea x-model="description" rows="2" placeholder="Optional description shown under the title…" class="w-full text-sm bg-transparent border-0 outline-none resize-none" style="color: var(--text-muted);"></textarea>
                 </div>
 
-                <div id="fieldsList" class="space-y-3 min-h-[300px]">
+                <div id="fieldsList" class="min-h-[300px]"
+                     style="display:grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0.75rem;">
                     <template x-for="(f, i) in fields" :key="f.id">
                         <div class="card-premium p-4 cursor-grab field-card"
                              :class="selectedIndex === i ? 'ring-2 ring-violet-500' : ''"
+                             :style="`grid-column: span ${f.width || 12} / span ${f.width || 12};`"
                              :data-id="f.id" @click="selectedIndex = i">
                             <div class="flex items-start gap-3">
                                 <i class="fas fa-grip-vertical text-xs mt-1.5 handle" style="color: var(--text-faint);"></i>
@@ -87,6 +97,10 @@
                                         <span class="text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint);" x-text="types[f.type]?.label || f.type"></span>
                                         <template x-if="f.required">
                                             <span class="text-[9px] px-1.5 py-0.5 rounded font-bold" style="background: rgba(239,68,68,0.12); color: #f87171;">REQUIRED</span>
+                                        </template>
+                                        <template x-if="(f.width || 12) !== 12">
+                                            <span class="text-[9px] px-1.5 py-0.5 rounded font-bold" style="background: rgba(139,92,246,0.14); color: #a78bfa;"
+                                                  x-text="f.width === 6 ? '½ row' : (f.width === 4 ? '⅓ row' : '⅔ row')"></span>
                                         </template>
                                     </div>
                                     <div class="text-sm font-semibold mb-1" style="color: var(--text-primary);" x-text="f.label || '(no label)'"></div>
@@ -101,6 +115,15 @@
                                                 <span x-text="opt"></span>
                                             </div>
                                         </template>
+                                    </div>
+                                    <div x-show="f.type === 'signature'" class="px-3 py-3 rounded-lg text-center" style="background: var(--bg-glass-input); border: 1px dashed var(--border-glass); color: var(--text-muted);">
+                                        <i class="fas fa-signature text-base mb-1" style="color: #a78bfa;"></i>
+                                        <div class="text-[11px]">Signature pad — drawn by user</div>
+                                    </div>
+                                    <div x-show="f.type === 'file'" class="px-3 py-2 rounded-lg text-xs" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);">
+                                        <i class="fas fa-paperclip mr-1"></i> File upload
+                                        <span x-show="f.file_types" x-text="` · ${(f.file_types || '').toUpperCase()}`"></span>
+                                        <span x-show="f.file_max_kb" x-text="` · max ${((f.file_max_kb || 0) / 1024).toFixed(1)} MB`"></span>
                                     </div>
                                     <div x-show="f.type === 'rating'" class="text-amber-400 text-sm">
                                         <template x-for="n in (parseInt(f.max) || 5)" :key="n"><i class="fas fa-star mr-0.5"></i></template>
@@ -198,6 +221,66 @@
                                 <input type="checkbox" x-model="fields[selectedIndex].required" class="rounded text-violet-500">
                                 Required field
                             </label>
+
+                            {{-- Width / column layout --}}
+                            <div x-show="!['hidden','page_break'].includes(fields[selectedIndex].type)" class="pt-3 mt-1" style="border-top: 1px solid var(--border-glass);">
+                                <label class="block text-[11px] font-medium mb-1.5" style="color: var(--text-muted);">Field width <span class="text-[10px]" style="color: var(--text-faint);">— place 2+ fields per row</span></label>
+                                <div class="grid grid-cols-4 gap-1">
+                                    <template x-for="opt in [{v:12,l:'Full'},{v:8,l:'⅔'},{v:6,l:'½'},{v:4,l:'⅓'}]" :key="opt.v">
+                                        <button type="button" @click="fields[selectedIndex].width = opt.v"
+                                                :class="(fields[selectedIndex].width || 12) === opt.v ? 'ring-2 ring-violet-500' : ''"
+                                                class="px-2 py-2 rounded-lg text-[11px] font-semibold"
+                                                style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-secondary);"
+                                                x-text="opt.l"></button>
+                                    </template>
+                                </div>
+                                <p class="text-[10px] mt-1.5" style="color: var(--text-faint);">Adjacent fields with widths that fit in 12 columns will share a row.</p>
+                            </div>
+
+                            {{-- Validation accordion --}}
+                            <div x-show="!['heading','paragraph','divider','page_break','hidden','consent','signature'].includes(fields[selectedIndex].type)"
+                                 x-data="{ open: false }" class="pt-3 mt-1" style="border-top: 1px solid var(--border-glass);">
+                                <button type="button" @click="open = !open" class="flex items-center justify-between w-full text-[11px] font-bold uppercase tracking-wider"
+                                        style="color: var(--text-faint);">
+                                    <span><i class="fas fa-shield-halved mr-1.5 text-violet-400"></i> Validation</span>
+                                    <i class="fas fa-chevron-down text-[10px] transition-transform" :class="open ? 'rotate-180' : ''"></i>
+                                </button>
+                                <div x-show="open" class="space-y-3 mt-3">
+                                    {{-- Min/max length for text-like --}}
+                                    <div x-show="['text','email','phone','url','textarea'].includes(fields[selectedIndex].type)" class="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label class="block text-[10px] font-medium mb-1" style="color: var(--text-muted);">Min length</label>
+                                            <input type="number" min="0" x-model.number="fields[selectedIndex].min_length" class="theme-input w-full text-xs">
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] font-medium mb-1" style="color: var(--text-muted);">Max length</label>
+                                            <input type="number" min="1" x-model.number="fields[selectedIndex].max_length" class="theme-input w-full text-xs">
+                                        </div>
+                                    </div>
+                                    {{-- Regex pattern --}}
+                                    <div x-show="['text','phone'].includes(fields[selectedIndex].type)">
+                                        <label class="block text-[10px] font-medium mb-1" style="color: var(--text-muted);">Pattern (regex) <span class="text-[10px]" style="color: var(--text-faint);">e.g. <code>^[A-Z0-9]{6}$</code></span></label>
+                                        <input type="text" x-model="fields[selectedIndex].pattern" class="theme-input w-full text-xs font-mono" placeholder="^[A-Za-z]+$">
+                                        <input type="text" x-model="fields[selectedIndex].pattern_message" class="theme-input w-full text-xs mt-1" placeholder="Pattern error message (optional)">
+                                    </div>
+                                    {{-- File upload extras --}}
+                                    <div x-show="fields[selectedIndex].type === 'file'" class="space-y-2">
+                                        <div>
+                                            <label class="block text-[10px] font-medium mb-1" style="color: var(--text-muted);">Allowed file types <span class="text-[10px]" style="color: var(--text-faint);">— comma-separated extensions</span></label>
+                                            <input type="text" x-model="fields[selectedIndex].file_types" class="theme-input w-full text-xs font-mono" placeholder="jpg,png,pdf">
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] font-medium mb-1" style="color: var(--text-muted);">Max file size (KB)</label>
+                                            <input type="number" min="1" x-model.number="fields[selectedIndex].file_max_kb" class="theme-input w-full text-xs" placeholder="10240">
+                                        </div>
+                                    </div>
+                                    {{-- Custom required-error message --}}
+                                    <div>
+                                        <label class="block text-[10px] font-medium mb-1" style="color: var(--text-muted);">Custom error message <span class="text-[10px]" style="color: var(--text-faint);">— shown on any validation failure</span></label>
+                                        <input type="text" x-model="fields[selectedIndex].error_message" class="theme-input w-full text-xs" placeholder="This field is invalid">
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </template>
                 </div>
@@ -219,7 +302,7 @@ function formBuilder(initial) {
         addField(type) {
             const meta = this.types[type] || {};
             const id = type + '_' + Math.random().toString(36).slice(2, 7);
-            const f = { id, type, label: meta.label || 'Untitled', required: false };
+            const f = { id, type, label: meta.label || 'Untitled', required: false, width: 12 };
             if (['select','radio','checkbox'].includes(type)) f.options = ['Option 1', 'Option 2'];
             if (type === 'rating') { f.min = 0; f.max = 5; }
             if (type === 'scale')  { f.min = 0; f.max = 10; }
@@ -228,6 +311,8 @@ function formBuilder(initial) {
             if (type === 'heading') f.label = 'Section Heading';
             if (type === 'divider') f.label = '';
             if (type === 'page_break') f.label = 'Next page';
+            if (type === 'signature') f.label = 'Your Signature';
+            if (type === 'file') { f.file_max_kb = 10240; }
             this.fields.push(f);
             this.selectedIndex = this.fields.length - 1;
             this.$nextTick(() => this.initSortable());

@@ -124,6 +124,7 @@ class Form extends Model
             'rating'    => ['label' => 'Star Rating', 'icon' => 'fa-star'],
             'scale'     => ['label' => 'Linear Scale','icon' => 'fa-sliders-h'],
             'file'      => ['label' => 'File Upload', 'icon' => 'fa-paperclip'],
+            'signature' => ['label' => 'Signature',   'icon' => 'fa-signature'],
             'consent'   => ['label' => 'Consent / Terms', 'icon' => 'fa-shield-alt'],
             'hidden'    => ['label' => 'Hidden Field','icon' => 'fa-eye-slash'],
             'heading'   => ['label' => 'Section Heading', 'icon' => 'fa-heading'],

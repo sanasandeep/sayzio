@@ -79,7 +79,11 @@
         .form-title { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 0.5rem; }
         .form-desc { font-size: 0.92rem; opacity: 0.7; margin: 0 0 2rem; line-height: 1.5; }
 
-        .form-field { margin-bottom: 1.25rem; }
+        .form-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: 1rem; row-gap: 0; align-items: start; }
+        .form-grid-cell { min-width: 0; }
+        .form-field { margin-bottom: 1.25rem; min-width: 0; }
+        /* Collapse all width-spans on small screens — apply to the wrapper that actually owns the grid-column */
+        @media (max-width: 640px) { .form-grid-cell { grid-column: span 12 !important; } }
         .form-label { display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 0.5rem; }
         .form-required { color: #ef4444; margin-left: 0.25rem; }
         .form-help { font-size: 0.74rem; opacity: 0.6; margin-top: 0.4rem; }
@@ -223,9 +227,12 @@
                     @endif
 
                     @foreach($pages as $pageIdx => $pageFields)
-                        <div x-show="page === {{ $pageIdx }}" {{ $isMulti ? '' : 'x-init="page = 0"' }}>
+                        <div x-show="page === {{ $pageIdx }}" class="form-grid">
                             @foreach($pageFields as $field)
-                                @include('common.form-field', ['field' => $field, 'errors' => $errors])
+                                @php $w = (int) ($field['width'] ?? 12); if (!in_array($w, [4,6,8,12], true)) $w = 12; @endphp
+                                <div class="form-grid-cell" style="grid-column: span {{ $w }};">
+                                    @include('common.form-field', ['field' => $field, 'errors' => $errors])
+                                </div>
                             @endforeach
                         </div>
                     @endforeach
@@ -272,6 +279,49 @@
                     if (window.parent !== window) {
                         window.parent.postMessage({ type: '1inme-form-resize', height: document.body.scrollHeight + 20 }, '*');
                     }
+                },
+            };
+        }
+
+        function signaturePad(id, required) {
+            return {
+                ctx: null, drawing: false, hasInk: false, dataUrl: '',
+                init() {
+                    const c = this.$refs.pad;
+                    // High-DPI sharp canvas
+                    const r = window.devicePixelRatio || 1;
+                    const w = c.offsetWidth, h = c.offsetHeight;
+                    c.width = Math.round(w * r); c.height = Math.round(h * r);
+                    this.ctx = c.getContext('2d');
+                    this.ctx.scale(r, r);
+                    this.ctx.lineCap = 'round'; this.ctx.lineJoin = 'round';
+                    this.ctx.strokeStyle = '#0f172a'; this.ctx.lineWidth = 2;
+                },
+                _xy(e) {
+                    const c = this.$refs.pad, b = c.getBoundingClientRect();
+                    const t = e.touches && e.touches[0];
+                    return { x: ((t ? t.clientX : e.clientX) - b.left), y: ((t ? t.clientY : e.clientY) - b.top) };
+                },
+                startStroke(e) {
+                    this.drawing = true;
+                    const p = this._xy(e);
+                    this.ctx.beginPath(); this.ctx.moveTo(p.x, p.y);
+                },
+                moveStroke(e) {
+                    if (!this.drawing) return;
+                    const p = this._xy(e);
+                    this.ctx.lineTo(p.x, p.y); this.ctx.stroke();
+                    this.hasInk = true;
+                },
+                endStroke() {
+                    if (!this.drawing) return;
+                    this.drawing = false;
+                    if (this.hasInk) this.dataUrl = this.$refs.pad.toDataURL('image/png');
+                },
+                clearPad() {
+                    const c = this.$refs.pad;
+                    this.ctx.clearRect(0, 0, c.width, c.height);
+                    this.hasInk = false; this.dataUrl = '';
                 },
             };
         }

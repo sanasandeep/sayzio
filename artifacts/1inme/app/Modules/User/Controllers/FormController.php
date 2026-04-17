@@ -93,21 +93,56 @@ class FormController extends Controller
     public function updateBuilder(Request $request, Form $form)
     {
         $this->authorizeForm($request, $form);
-        $data = $request->validate([
+        $request->validate([
             'title' => 'required|string|max:160',
             'description' => 'nullable|string|max:1000',
             'fields' => 'required|array',
-            'fields.*.id' => 'required|string|max:64',
+            'fields.*.id' => 'required|string|max:64|regex:/^[a-zA-Z0-9_-]+$/',
             'fields.*.type' => 'required|string|max:32',
-            'fields.*.label' => 'nullable|string|max:200',
-            'is_multi_step' => 'sometimes|boolean',
+            'fields.*.label' => 'nullable|string|max:300',
         ]);
 
+        $allowedTypes = array_keys(Form::fieldTypes());
+        $allowedWidths = [4, 6, 8, 12]; // 1/3, 1/2, 2/3, full of a 12-col grid
+
+        $clean = [];
+        foreach ((array) $request->input('fields', []) as $f) {
+            if (!is_array($f)) continue;
+            $type = (string) ($f['type'] ?? 'text');
+            if (!in_array($type, $allowedTypes, true)) continue;
+
+            $row = [
+                'id'    => (string) ($f['id'] ?? ''),
+                'type'  => $type,
+                'label' => (string) ($f['label'] ?? ''),
+                'required' => filter_var($f['required'] ?? false, FILTER_VALIDATE_BOOL),
+            ];
+            // Optional common props
+            foreach (['placeholder', 'help', 'error_message', 'pattern', 'pattern_message', 'file_types', 'value'] as $k) {
+                if (isset($f[$k]) && $f[$k] !== '') $row[$k] = (string) $f[$k];
+            }
+            // Numeric props
+            foreach (['rows', 'min', 'max', 'min_length', 'max_length', 'file_max_kb'] as $k) {
+                if (isset($f[$k]) && $f[$k] !== '' && is_numeric($f[$k])) $row[$k] = (int) $f[$k];
+            }
+            // Width (4=1/3, 6=1/2, 8=2/3, 12=full)
+            $w = (int) ($f['width'] ?? 12);
+            $row['width'] = in_array($w, $allowedWidths, true) ? $w : 12;
+            // Options
+            if (isset($f['options']) && is_array($f['options'])) {
+                $row['options'] = array_values(array_filter(array_map(
+                    fn ($o) => trim((string) $o),
+                    $f['options']
+                ), fn ($o) => $o !== ''));
+            }
+            $clean[] = $row;
+        }
+
         $form->update([
-            'title' => $data['title'],
-            'description' => $data['description'] ?? null,
-            'fields' => array_values($data['fields']),
-            'is_multi_step' => collect($data['fields'])->contains(fn ($f) => ($f['type'] ?? null) === 'page_break'),
+            'title' => $request->input('title'),
+            'description' => $request->input('description'),
+            'fields' => $clean,
+            'is_multi_step' => collect($clean)->contains(fn ($f) => ($f['type'] ?? null) === 'page_break'),
         ]);
 
         if ($request->wantsJson()) return response()->json(['ok' => true]);
@@ -390,7 +425,7 @@ class FormController extends Controller
         $form = Form::where('slug', $slug)->where('is_active', true)->firstOrFail();
 
         $rules = $this->buildSubmissionRules($form);
-        $validated = $request->validate($rules);
+        $validated = $request->validate($rules, $this->customMessages);
 
         // Honey-pot
         if (trim((string) $request->input('_hp', '')) !== '') {
@@ -408,6 +443,21 @@ class FormController extends Controller
                 $path = $request->file($id)->store("forms/{$form->id}/submissions", 'public');
                 $files[$id] = Storage::url($path);
                 $data[$id] = $request->file($id)->getClientOriginalName();
+            } elseif ($type === 'signature') {
+                $raw = (string) $request->input($id, '');
+                if (str_starts_with($raw, 'data:image/png;base64,')) {
+                    $bin = base64_decode(substr($raw, strlen('data:image/png;base64,')), true);
+                    // Verify true PNG magic header (8 bytes) — defends against type-spoofing
+                    // via a forged data-URL prefix wrapping arbitrary binary.
+                    $pngMagic = "\x89PNG\r\n\x1a\n";
+                    if ($bin !== false && strlen($bin) >= 24 && strlen($bin) <= 2_000_000
+                        && substr($bin, 0, 8) === $pngMagic) {
+                        $path = "forms/{$form->id}/submissions/sig_" . bin2hex(random_bytes(8)) . '.png';
+                        Storage::disk('public')->put($path, $bin);
+                        $files[$id] = Storage::url($path);
+                        $data[$id] = Storage::url($path);
+                    }
+                }
             } elseif ($type === 'consent') {
                 $data[$id] = $request->boolean($id);
             } elseif ($type === 'checkbox') {
@@ -433,7 +483,8 @@ class FormController extends Controller
 
     protected function buildSubmissionRules(Form $form): array
     {
-        $rules = ['_hp' => 'nullable|string|max:200'];
+        $rules = ['_hp' => ['nullable', 'string', 'max:200']];
+        $messages = [];
         foreach ($form->fields ?? [] as $field) {
             $type = $field['type'] ?? 'text';
             $id = $field['id'] ?? null;
@@ -441,25 +492,120 @@ class FormController extends Controller
 
             $req = !empty($field['required']);
             $base = $req ? 'required' : 'nullable';
-            $rules[$id] = match ($type) {
-                'email' => "$base|email|max:255",
-                'url' => "$base|url|max:500",
-                'phone' => "$base|string|max:40",
-                'number' => "$base|numeric",
-                'date' => "$base|date",
-                'time' => "$base|date_format:H:i",
-                'rating' => "$base|integer|min:0|max:" . ($field['max'] ?? 5),
-                'scale' => "$base|integer|min:" . ($field['min'] ?? 0) . '|max:' . ($field['max'] ?? 10),
-                'select', 'radio' => "$base|string|max:255",
-                'checkbox' => $req ? 'required|array|min:1' : 'nullable|array',
-                'textarea' => "$base|string|max:10000",
-                'consent' => $req ? 'accepted' : 'nullable',
-                'file' => ($req ? 'required' : 'nullable') . '|file|max:10240|mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,ppt,pptx,csv,txt,zip,mp3,mp4,mov',
-                'hidden' => 'nullable|string|max:1000',
-                default => "$base|string|max:1000",
-            };
+            $minL = isset($field['min_length']) ? (int) $field['min_length'] : null;
+            $maxL = isset($field['max_length']) ? (int) $field['max_length'] : null;
+            $minN = isset($field['min']) && $field['min'] !== '' ? $field['min'] : null;
+            $maxN = isset($field['max']) && $field['max'] !== '' ? $field['max'] : null;
+            $pattern = $this->sanitizeRegex($field['pattern'] ?? null);
+
+            $stack = [$base];
+            switch ($type) {
+                case 'email':
+                    $stack[] = 'email';
+                    $stack[] = 'max:' . ($maxL ?: 255);
+                    if ($minL) $stack[] = "min:$minL";
+                    break;
+                case 'url':
+                    $stack[] = 'url';
+                    $stack[] = 'max:' . ($maxL ?: 500);
+                    if ($minL) $stack[] = "min:$minL";
+                    break;
+                case 'phone':
+                    $stack[] = 'string';
+                    $stack[] = 'max:' . ($maxL ?: 40);
+                    if ($minL) $stack[] = "min:$minL";
+                    if ($pattern) $stack[] = 'regex:/' . str_replace('/', '\/', $pattern) . '/';
+                    break;
+                case 'number':
+                    $stack[] = 'numeric';
+                    if ($minN !== null) $stack[] = "min:$minN";
+                    if ($maxN !== null) $stack[] = "max:$maxN";
+                    break;
+                case 'date':    $stack[] = 'date'; break;
+                case 'time':    $stack[] = 'date_format:H:i'; break;
+                case 'rating':  $stack = [$base, 'integer', 'min:0', 'max:' . (int) ($field['max'] ?? 5)]; break;
+                case 'scale':   $stack = [$base, 'integer', 'min:' . (int) ($field['min'] ?? 0), 'max:' . (int) ($field['max'] ?? 10)]; break;
+                case 'select':
+                case 'radio':
+                    $stack[] = 'string';
+                    $stack[] = 'max:255';
+                    if (!empty($field['options'])) $stack[] = 'in:' . implode(',', array_map(fn ($o) => str_replace(',', '\,', $o), $field['options']));
+                    break;
+                case 'checkbox':
+                    $stack = $req ? ['required', 'array', 'min:1'] : ['nullable', 'array'];
+                    break;
+                case 'textarea':
+                    $stack[] = 'string';
+                    $stack[] = 'max:' . ($maxL ?: 10000);
+                    if ($minL) $stack[] = "min:$minL";
+                    break;
+                case 'consent':
+                    $stack = $req ? ['accepted'] : ['nullable'];
+                    break;
+                case 'file':
+                    $maxKb = (int) ($field['file_max_kb'] ?? 10240);
+                    if ($maxKb < 1) $maxKb = 10240;
+                    $mimes = trim((string) ($field['file_types'] ?? ''));
+                    $mimes = $mimes !== '' ? preg_replace('/[^a-zA-Z0-9,]/', '', $mimes) : 'jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,ppt,pptx,csv,txt,zip,mp3,mp4,mov';
+                    $stack = [$req ? 'required' : 'nullable', 'file', "max:$maxKb", "mimes:$mimes"];
+                    break;
+                case 'signature':
+                    // Drawn signature is sent as a base64 PNG data URL string. We keep the
+                    // regex string-rule simple (no user input → no DoS), then re-validate
+                    // PNG magic bytes after decode in publicSubmit.
+                    $stack = [$req ? 'required' : 'nullable', 'string', 'max:2000000', 'regex:/^data:image\/png;base64,[A-Za-z0-9+\/=]+$/'];
+                    if ($req) $messages["$id.required"] = $field['error_message'] ?? 'Please sign before submitting.';
+                    break;
+                case 'hidden':
+                    $stack = ['nullable', 'string', 'max:1000'];
+                    break;
+                default: // text and unknown
+                    $stack[] = 'string';
+                    $stack[] = 'max:' . ($maxL ?: 1000);
+                    if ($minL) $stack[] = "min:$minL";
+                    if ($pattern) $stack[] = 'regex:/' . str_replace('/', '\/', $pattern) . '/';
+            }
+            // Use array form (NOT pipe-delimited) so user-supplied regex containing `|`
+            // is not split mid-rule by Laravel's string-rule parser.
+            $rules[$id] = $stack;
+
+            // Custom user-defined error message (used for any rule that fires)
+            if (!empty($field['error_message'])) {
+                foreach (['required', 'email', 'url', 'numeric', 'integer', 'date', 'date_format', 'min', 'max', 'in', 'array', 'accepted', 'file', 'mimes', 'string', 'regex'] as $rule) {
+                    $messages["$id.$rule"] = $field['error_message'];
+                }
+            }
+            if (!empty($field['pattern_message'])) {
+                $messages["$id.regex"] = $field['pattern_message'];
+            }
         }
+        // Stash messages so the publicSubmit caller can use them
+        $this->customMessages = $messages;
         return $rules;
+    }
+
+    /** @var array<string,string> */
+    protected array $customMessages = [];
+
+    /**
+     * Sanitize a user-supplied regex pattern.
+     * Returns null if the pattern is unsafe, too long, or fails to compile.
+     * Defends against catastrophic-backtracking by rejecting nested unbounded quantifiers.
+     */
+    protected function sanitizeRegex(?string $pattern): ?string
+    {
+        if ($pattern === null || $pattern === '') return null;
+        if (strlen($pattern) > 200) return null;
+        // Reject nested unbounded quantifiers — classic ReDoS shapes like (a+)+, (a*)*, (a+)*, (a*)+
+        if (preg_match('/\([^)]*[+*][^)]*\)\s*[+*]/', $pattern)) return null;
+        // Reject delimiter and modifier-injection attempts
+        if (str_contains($pattern, "\0")) return null;
+        // Compile-test with the same delimiter we use server-side. Suppress warnings.
+        $delimited = '/' . str_replace('/', '\/', $pattern) . '/';
+        set_error_handler(fn () => null);
+        $ok = @preg_match($delimited, '') !== false;
+        restore_error_handler();
+        return $ok ? $pattern : null;
     }
 
     protected function successResponse(Request $request, Form $form, bool $silent, ?FormSubmission $submission = null)

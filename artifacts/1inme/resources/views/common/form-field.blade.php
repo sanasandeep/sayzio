@@ -81,7 +81,31 @@
             @break
 
         @case('file')
-            <input type="file" id="f_{{ $id }}" name="{{ $id }}" class="form-input" @if($required) required @endif>
+            <input type="file" id="f_{{ $id }}" name="{{ $id }}" class="form-input"
+                @if(!empty($field['file_types'])) accept="{{ collect(explode(',', preg_replace('/[^a-zA-Z0-9,]/', '', (string)$field['file_types'])))->map(fn($e) => '.' . $e)->implode(',') }}" @endif
+                @if($required) required @endif>
+            @if(!empty($field['file_max_kb']) || !empty($field['file_types']))
+                <div class="form-help" style="margin-top:0.4rem;">
+                    @if(!empty($field['file_types'])){{ strtoupper(str_replace(',', ', ', $field['file_types'])) }}@endif
+                    @if(!empty($field['file_max_kb'])) · max {{ number_format(((int) $field['file_max_kb']) / 1024, 1) }} MB @endif
+                </div>
+            @endif
+            @break
+
+        @case('signature')
+            <div class="form-signature" x-data="signaturePad('{{ $id }}', @if($required) true @else false @endif)" x-init="init()">
+                <canvas x-ref="pad" width="600" height="180"
+                        style="display:block; width:100%; height:180px; touch-action:none; background:#fff; border:1px dashed #cbd5e1; border-radius: var(--form-radius-sm); cursor:crosshair;"
+                        @mousedown.prevent="startStroke($event)" @mousemove.prevent="moveStroke($event)" @mouseup="endStroke()" @mouseleave="endStroke()"
+                        @touchstart.prevent="startStroke($event)" @touchmove.prevent="moveStroke($event)" @touchend.prevent="endStroke()"></canvas>
+                <input type="hidden" id="f_{{ $id }}" name="{{ $id }}" :value="dataUrl" @if($required) required @endif>
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-top:0.5rem; font-size:0.74rem; opacity:0.7;">
+                    <span>Sign with mouse or finger</span>
+                    <button type="button" @click="clearPad()" style="background:transparent; border:0; color:var(--form-accent); font-weight:600; cursor:pointer; font-size:0.78rem;">
+                        <i class="fas fa-eraser"></i> Clear
+                    </button>
+                </div>
+            </div>
             @break
 
         @case('consent')
