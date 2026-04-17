@@ -4,6 +4,7 @@
         'layout' => ['icon' => 'fa-ruler-combined', 'label' => 'Layout', 'route' => 'user.links.settings.layout'],
         'block-theme' => ['icon' => 'fa-wand-magic-sparkles', 'label' => 'Block Theme', 'route' => 'user.links.settings.block-theme'],
         'advanced' => ['icon' => 'fa-sliders-h', 'label' => 'Advanced', 'route' => 'user.links.settings.advanced'],
+        'splash'   => ['icon' => 'fa-rocket', 'label' => 'Splash', 'route' => 'user.links.splash'],
     ];
 @endphp
 

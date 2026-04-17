@@ -90,6 +90,10 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('links/{link}/blocks/{block}/move', [BiolinkBlockController::class, 'moveBlock'])->name('links.blocks.move');
         Route::post('links/{link}/page-settings', [BiolinkBlockController::class, 'updatePageSettings'])->name('links.page-settings');
 
+        // Splash page (intermediate transition page) — works for ANY link type
+        Route::get('links/{link}/splash',  [LinkController::class, 'splashSettings'])->name('links.splash');
+        Route::post('links/{link}/splash', [LinkController::class, 'updateSplash'])->name('links.splash.update');
+
         Route::get('links/{link}/heatmap', [LinkController::class, 'heatmap'])->name('links.heatmap');
         Route::get('links/{link}/heatmap/live', [LinkController::class, 'heatmapLive'])->name('links.heatmap.live');
         Route::get('links/{link}/heatmap/live/stream', [LinkController::class, 'heatmapLiveStream'])->name('links.heatmap.live.stream');

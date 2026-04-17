@@ -1074,6 +1074,85 @@ class LinkController extends Controller
             ->with('success', 'Link updated successfully.');
     }
 
+    /**
+     * Splash page settings — an intermediate "transition" page that visitors
+     * see before reaching the destination of ANY link type. Stored in the
+     * link's settings JSON under the "splash" key (no migration needed).
+     */
+    public function splashSettings(Request $request, Link $link)
+    {
+        abort_if($link->user_id !== $request->user()->id, 403);
+        $splash = $link->settings['splash'] ?? [];
+        return view('user.links.settings.splash', compact('link', 'splash'));
+    }
+
+    public function updateSplash(Request $request, Link $link)
+    {
+        abort_if($link->user_id !== $request->user()->id, 403);
+
+        $validated = $request->validate([
+            'splash_enabled'       => 'sometimes|boolean',
+            'splash_title'         => 'nullable|string|max:160',
+            'splash_description'   => 'nullable|string|max:1000',
+            'splash_cta_label'     => 'nullable|string|max:60',
+            'splash_cta_url'       => 'nullable|url|max:2000|regex:/^https?:\/\//i',
+            'splash_auto_redirect' => 'sometimes|boolean',
+            'splash_countdown'     => 'nullable|integer|min:0|max:120',
+            'splash_logo'          => 'nullable|image|max:2048',
+            'splash_favicon'       => 'nullable|image|max:512',
+            'splash_og_image'      => 'nullable|image|max:4096',
+            'splash_remove_logo'    => 'sometimes|boolean',
+            'splash_remove_favicon' => 'sometimes|boolean',
+            'splash_remove_og'      => 'sometimes|boolean',
+            'splash_custom_css'    => 'nullable|string|max:50000',
+            'splash_custom_js'     => 'nullable|string|max:50000',
+        ]);
+
+        $settings = $link->settings ?? [];
+        $splash   = $settings['splash'] ?? [];
+
+        $splash['enabled']       = $request->boolean('splash_enabled');
+        $splash['title']         = $validated['splash_title']       ?? null;
+        $splash['description']   = $validated['splash_description'] ?? null;
+        $splash['cta_label']     = $validated['splash_cta_label']   ?? null;
+        $splash['cta_url']       = $validated['splash_cta_url']     ?? null;
+        $splash['auto_redirect'] = $request->boolean('splash_auto_redirect');
+        $splash['countdown']     = isset($validated['splash_countdown']) ? (int) $validated['splash_countdown'] : 5;
+        $splash['custom_css']    = $validated['splash_custom_css']  ?? null;
+        $splash['custom_js']     = $validated['splash_custom_js']   ?? null;
+
+        foreach ([
+            'logo'     => 'splash_logo',
+            'favicon'  => 'splash_favicon',
+            'og_image' => 'splash_og_image',
+        ] as $key => $field) {
+            $removeFlag = 'splash_remove_' . ($key === 'og_image' ? 'og' : $key);
+            if ($request->hasFile($field)) {
+                if (!empty($splash[$key])) {
+                    $old = ltrim(parse_url($splash[$key], PHP_URL_PATH) ?? '', '/');
+                    $old = preg_replace('#^storage/#', '', $old);
+                    if ($old) Storage::disk('public')->delete($old);
+                }
+                $path = $request->file($field)->store("splash/{$link->id}", 'public');
+                $splash[$key] = Storage::disk('public')->url($path);
+            } elseif ($request->boolean($removeFlag)) {
+                if (!empty($splash[$key])) {
+                    $old = ltrim(parse_url($splash[$key], PHP_URL_PATH) ?? '', '/');
+                    $old = preg_replace('#^storage/#', '', $old);
+                    if ($old) Storage::disk('public')->delete($old);
+                }
+                $splash[$key] = null;
+            }
+        }
+
+        $settings['splash'] = $splash;
+        $link->settings = $settings;
+        $link->save();
+
+        return redirect()->route('user.links.splash', $link)
+            ->with('success', 'Splash page saved.');
+    }
+
     public function destroy(Request $request, Link $link)
     {
         abort_if($link->user_id !== $request->user()->id, 403);

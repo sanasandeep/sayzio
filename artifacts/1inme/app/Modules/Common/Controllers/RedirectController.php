@@ -83,6 +83,23 @@ class RedirectController extends Controller
             session(["link_unlocked_{$link->id}" => true]);
         }
 
+        // Splash (intermediate "transition") page — shown once per browser
+        // session per link, before the visitor reaches the actual destination.
+        // Bypassed when the user clicks the CTA / countdown completes and the
+        // page reloads with ?_continue=1.
+        if ($link->hasSplashEnabled()
+            && !$request->boolean('_continue')
+            && !session("link_splash_seen_{$link->id}")) {
+            session(["link_splash_seen_{$link->id}" => true]);
+            $splash = $link->getSplashConfig();
+            $continueUrl = $request->fullUrlWithQuery(['_continue' => 1]);
+            $destinationUrl = match ($link->type) {
+                'url'     => $link->getDestinationUrl(),
+                default   => $continueUrl,
+            };
+            return response()->view('common.splash', compact('link', 'splash', 'continueUrl', 'destinationUrl'));
+        }
+
         $this->trackingService->track($link, $request, $alias);
 
         return match ($link->type) {

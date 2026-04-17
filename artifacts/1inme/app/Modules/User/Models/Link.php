@@ -155,6 +155,21 @@ class Link extends Model
     }
 
     /**
+     * Whether this link has an enabled splash (intermediate transition) page
+     * that should be rendered before the visitor reaches the destination.
+     */
+    public function hasSplashEnabled(): bool
+    {
+        return !empty($this->settings['splash']['enabled']);
+    }
+
+    /** Splash page configuration array (always returns an array). */
+    public function getSplashConfig(): array
+    {
+        return $this->settings['splash'] ?? [];
+    }
+
+    /**
      * URL to send visitors to when this link has expired (or is unavailable).
      * Returns null if no custom expiry URL configured.
      */
