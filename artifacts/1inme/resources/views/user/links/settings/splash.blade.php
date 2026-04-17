@@ -16,12 +16,12 @@
         auto:    {{ $auto    ? 'true' : 'false' }},
         cd:      {{ $cd }},
         showHelp: false,
-        previewLogo:    @json($splash['logo']     ?? null),
-        previewFavicon: @json($splash['favicon']  ?? null),
-        previewOg:      @json($splash['og_image'] ?? null),
-        title:       @json($splash['title']       ?? ''),
-        description: @json($splash['description'] ?? ''),
-        ctaLabel:    @json(($splash['cta_label'] ?? '') ?: 'Continue'),
+        previewLogo:    @js($splash['logo']     ?? null),
+        previewFavicon: @js($splash['favicon']  ?? null),
+        previewOg:      @js($splash['og_image'] ?? null),
+        title:       @js($splash['title']       ?? ''),
+        description: @js($splash['description'] ?? ''),
+        ctaLabel:    @js(($splash['cta_label'] ?? '') ?: 'Continue'),
         readPreview(input, target){
             var f = input.files && input.files[0];
             if(!f) return;
