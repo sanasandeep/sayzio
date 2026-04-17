@@ -636,7 +636,7 @@
                         <p class="mb-2"><strong style="color: var(--text-primary);">In one sentence:</strong> these are sticky labels you add to your link so analytics tools (like Google Analytics on the destination site) can tell you "this visitor came from your Instagram bio" instead of just "this visitor came from somewhere".</p>
                         <p class="mb-1.5"><strong style="color: var(--text-primary);">Skip this if</strong> you don't run paid ads or use Google Analytics on the page you link to. The settings below only matter for tracking — they don't change what visitors see.</p>
                         <div class="mt-2 p-2 rounded" style="background: var(--bg-glass-input);">
-                            <p class="text-[10px] mb-1" style="color: var(--text-faint);">Example for an Instagram bio link sending people to your shop:</p>
+                            <p class="text-[10px] mb-1" style="color: var(--text-faint);">Example for an Instagram Link in Bio sending people to your shop:</p>
                             <p class="font-mono text-[10px]"><strong>Source</strong>: instagram &nbsp; <strong>Medium</strong>: social &nbsp; <strong>Campaign</strong>: spring_sale</p>
                         </div>
                     </div>

@@ -51,7 +51,7 @@
             </div>
             <h3 class="text-xl font-bold mb-2" style="color: var(--text-primary);">No forms yet</h3>
             <p class="text-sm mb-6" style="color: var(--text-muted); max-width: 32rem; margin: 0 auto;">
-                Build a form once and use it everywhere — share a public link, embed it in any website, or drop it into a biolink as a block.
+                Build a form once and use it everywhere — share a public link, embed it in any website, or drop it into a Link in Bio page as a block.
             </p>
             <a href="{{ route('user.forms.create') }}" class="btn-primary inline-flex items-center gap-2 px-6 py-3">
                 <i class="fas fa-plus text-xs"></i> Create your first form

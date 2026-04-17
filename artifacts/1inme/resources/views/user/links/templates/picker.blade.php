@@ -42,7 +42,7 @@
         <div class="glass rounded-2xl border border-white/10 p-12 text-center">
             <i class="fas fa-layer-group text-3xl text-violet-400 mb-3"></i>
             <h3 class="text-base font-semibold text-white mb-1">No templates available yet</h3>
-            <p class="text-sm text-white/40 mb-4">Start from scratch and build your biolink your way.</p>
+            <p class="text-sm text-white/40 mb-4">Start from scratch and build your Link in Bio your way.</p>
             <a href="{{ route('user.links.blocks.editor', $link) }}" class="inline-block px-4 py-2 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700">Open editor</a>
         </div>
     @else
@@ -75,7 +75,7 @@
                         @else
                             @php $hasBlocks = $link->biolinkBlocks()->exists(); @endphp
                             <form method="POST" action="{{ route('user.links.templates.apply-page', $link) }}"
-                                  @if($hasBlocks) onsubmit="return confirm('This will replace your existing blocks on this biolink. Continue?');" @endif>
+                                  @if($hasBlocks) onsubmit="return confirm('This will replace your existing blocks on this Link in Bio. Continue?');" @endif>
                                 @csrf
                                 <input type="hidden" name="template_id" value="{{ $tpl->id }}">
                                 @if($hasBlocks)<input type="hidden" name="confirm_overwrite" value="1">@endif

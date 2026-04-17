@@ -185,7 +185,7 @@
                                 <input type="text" x-model="design.bg_color" @input="render()" class="flex-1 px-2 py-1.5 text-xs font-mono rounded outline-none" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);" :disabled="design.transparent_bg">
                             </div>
                             <label class="inline-flex items-center gap-1.5 text-[11px] mt-1.5 cursor-pointer" style="color: var(--text-muted);">
-                                <input type="checkbox" x-model="design.transparent_bg" @change="render()"> Transparent background (best for biolinks)
+                                <input type="checkbox" x-model="design.transparent_bg" @change="render()"> Transparent background (best for Link in Bio pages)
                             </label>
                         </div>
                         <details>

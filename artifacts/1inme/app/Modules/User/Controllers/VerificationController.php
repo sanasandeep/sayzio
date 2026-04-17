@@ -51,7 +51,7 @@ class VerificationController extends Controller
             ->first();
         if ($existing) {
             return redirect()->route('user.verification.index')
-                ->with('error', 'A verification request is already pending for this biolink.');
+                ->with('error', 'A verification request is already pending for this Link in Bio page.');
         }
 
         $logoPath = null;

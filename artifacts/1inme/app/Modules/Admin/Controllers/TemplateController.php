@@ -54,7 +54,7 @@ class TemplateController extends Controller
         $snapshot = $this->resolveSnapshot($kind, $validated, null);
         if (!$snapshot) {
             return back()->withInput()->withErrors([
-                'source_link_id' => 'Pick a source ' . ($kind === 'card' ? 'card block' : 'biolink') . ' to capture, or paste valid snapshot JSON.',
+                'source_link_id' => 'Pick a source ' . ($kind === 'card' ? 'card block' : 'Link in Bio page') . ' to capture, or paste valid snapshot JSON.',
             ]);
         }
 

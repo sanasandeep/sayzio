@@ -789,7 +789,7 @@ class LinkPerformanceCoach
                 'severity' => 'tip', 'priority' => 80,
                 'icon' => 'fa-th-large',
                 'headline' => 'Add at least 3 blocks',
-                'reason'   => 'A biolink with one block has nothing to compare against. Add your top links.',
+                'reason'   => 'A Link in Bio page with one block has nothing to compare against. Add your top links.',
                 'action_label' => 'Edit page',
                 'action_url'   => self::editUrl($ctx),
             ],

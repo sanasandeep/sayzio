@@ -65,11 +65,11 @@
     </div>
 
     <div x-show="tab === 'biolink'" class="card-premium p-6">
-        <h3 class="text-sm font-bold mb-1" style="color: var(--text-primary);">Add to a biolink</h3>
-        <p class="text-[11px] mb-4" style="color: var(--text-faint);">From any biolink editor, add a "Form" block and select <strong>{{ $form->title }}</strong> from the picker.</p>
+        <h3 class="text-sm font-bold mb-1" style="color: var(--text-primary);">Add to a Link in Bio page</h3>
+        <p class="text-[11px] mb-4" style="color: var(--text-faint);">From any Link in Bio editor, add a "Form" block and select <strong>{{ $form->title }}</strong> from the picker.</p>
         <div class="rounded-xl p-5" style="background: linear-gradient(160deg, rgba(139,92,246,0.08), rgba(236,72,153,0.06)); border: 1px solid rgba(139,92,246,0.2);">
             <ol class="text-sm space-y-2" style="color: var(--text-secondary);">
-                <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style="background: rgba(139,92,246,0.2); color: #a78bfa;">1</span> Open any biolink and click <strong>Edit Blocks</strong>.</li>
+                <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style="background: rgba(139,92,246,0.2); color: #a78bfa;">1</span> Open any Link in Bio page and click <strong>Edit Blocks</strong>.</li>
                 <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style="background: rgba(139,92,246,0.2); color: #a78bfa;">2</span> Add a new block of type <strong>Form</strong>.</li>
                 <li class="flex items-start gap-3"><span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style="background: rgba(139,92,246,0.2); color: #a78bfa;">3</span> In the block settings, select form ID <code class="px-1.5 py-0.5 rounded text-xs" style="background: rgba(255,255,255,0.06);">{{ $form->id }}</code> ({{ $form->title }}).</li>
             </ol>
