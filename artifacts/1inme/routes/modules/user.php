@@ -192,6 +192,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::prefix('files')->name('files.')->group(function () {
             Route::get('/', [UserFileController::class, 'index'])->name('index');
             Route::post('upload', [UserFileController::class, 'upload'])->name('upload');
+            Route::post('import-url', [UserFileController::class, 'importUrl'])->name('import-url');
             Route::delete('{file}', [UserFileController::class, 'destroy'])->name('destroy');
             Route::get('quota', [UserFileController::class, 'quota'])->name('quota');
         });

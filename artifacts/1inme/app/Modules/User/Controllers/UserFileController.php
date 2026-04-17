@@ -143,6 +143,137 @@ class UserFileController extends Controller
     }
 
     /**
+     * Download a remote URL into the user's vault. Used by the dropzone
+     * partial when the user picks the "URL" mode so an arbitrary remote
+     * asset becomes a first-class vault file (subject to quota / mime rules).
+     */
+    public function importUrl(Request $request)
+    {
+        $user = $request->user();
+        $request->validate([
+            'url' => 'required|url|max:2048',
+        ]);
+
+        $url = $request->input('url');
+        $parsed = parse_url($url);
+        if (!$parsed || !in_array(strtolower($parsed['scheme'] ?? ''), ['http', 'https'], true)) {
+            return response()->json(['success' => false, 'error' => 'Only http(s) URLs are supported.'], 422);
+        }
+
+        // SSRF guard: resolve the host ONCE, validate every resolved IP is
+        // public, then pin curl to those IPs via CURLOPT_RESOLVE to defeat
+        // DNS rebinding. Redirects are disallowed so an attacker cannot
+        // bounce us to a fresh hostname that re-resolves to a private IP.
+        $host = strtolower($parsed['host'] ?? '');
+        $port = (int) ($parsed['port'] ?? (strtolower($parsed['scheme']) === 'https' ? 443 : 80));
+        $isOwnHost = $host === strtolower($request->getHost());
+
+        $resolveOpt = null;
+        if (!$isOwnHost) {
+            $ips = [];
+            $records = @dns_get_record($host, DNS_A | DNS_AAAA) ?: [];
+            foreach ($records as $rec) {
+                if (!empty($rec['ip'])) $ips[] = $rec['ip'];
+                if (!empty($rec['ipv6'])) $ips[] = $rec['ipv6'];
+            }
+            if (!$ips && filter_var($host, FILTER_VALIDATE_IP)) $ips[] = $host;
+            if (!$ips) {
+                $resolved = @gethostbyname($host);
+                if ($resolved && $resolved !== $host) $ips[] = $resolved;
+            }
+            if (!$ips) {
+                return response()->json(['success' => false, 'error' => 'Could not resolve host.'], 422);
+            }
+            foreach ($ips as $ip) {
+                if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
+                    return response()->json(['success' => false, 'error' => 'URL points to a disallowed network.'], 422);
+                }
+            }
+            // Pin curl to these IPs so a later DNS swap cannot redirect us
+            // to a private address mid-request.
+            $resolveOpt = $host . ':' . $port . ':' . implode(',', $ips);
+        }
+
+        $maxMb = (int) (method_exists($user, 'getPlanFeature') ? $user->getPlanFeature('max_file_size_mb', 5) : 5);
+        $maxBytes = $maxMb * 1024 * 1024;
+
+        try {
+            $ch = curl_init($url);
+            $opts = [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_FOLLOWLOCATION => false,
+                CURLOPT_TIMEOUT        => 20,
+                CURLOPT_CONNECTTIMEOUT => 8,
+                CURLOPT_USERAGENT      => '1INME-VaultImporter/1.0',
+                CURLOPT_SSL_VERIFYPEER => true,
+                CURLOPT_PROTOCOLS      => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+                CURLOPT_BUFFERSIZE     => 65536,
+                CURLOPT_NOPROGRESS     => false,
+                CURLOPT_PROGRESSFUNCTION => function ($ch, $dlTotal, $dlNow) use ($maxBytes) {
+                    return ($maxBytes > 0 && $dlNow > $maxBytes) ? 1 : 0;
+                },
+            ];
+            if ($resolveOpt !== null) {
+                $opts[CURLOPT_RESOLVE] = [$resolveOpt];
+            }
+            curl_setopt_array($ch, $opts);
+            $bytes = curl_exec($ch);
+            $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+            $contentType = (string) curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+            $finalUrl = (string) curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
+            $err = curl_error($ch);
+            curl_close($ch);
+
+            if ($bytes === false || $status >= 400) {
+                return response()->json(['success' => false, 'error' => 'Could not fetch URL' . ($err ? ': ' . $err : '') . ($status ? " (HTTP {$status})" : '')], 422);
+            }
+            if ($maxBytes > 0 && strlen($bytes) > $maxBytes) {
+                return response()->json(['success' => false, 'error' => "File exceeds maximum size of {$maxMb}MB."], 422);
+            }
+
+            $mime = strtolower(trim(explode(';', $contentType)[0] ?? '')) ?: 'application/octet-stream';
+            $name = basename(parse_url($finalUrl ?: $url, PHP_URL_PATH) ?: 'download');
+            if ($name === '' || $name === '/') $name = 'download';
+            // Ensure name has a sensible extension based on mime when missing.
+            if (!pathinfo($name, PATHINFO_EXTENSION)) {
+                $extMap = [
+                    'image/jpeg' => 'jpg', 'image/png' => 'png', 'image/gif' => 'gif',
+                    'image/webp' => 'webp', 'image/svg+xml' => 'svg',
+                    'video/mp4' => 'mp4', 'video/webm' => 'webm',
+                    'audio/mpeg' => 'mp3', 'audio/wav' => 'wav',
+                    'application/pdf' => 'pdf',
+                ];
+                if (isset($extMap[$mime])) $name .= '.' . $extMap[$mime];
+            }
+
+            // Enforce the same mime/extension allowlist as direct uploads.
+            // Skip for super admins (matches createFromUpload behavior).
+            $isSuperAdmin = method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin();
+            if (!$isSuperAdmin) {
+                $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION) ?: '');
+                if (!in_array($mime, UserFile::getAllAllowedMimes(), true)) {
+                    return response()->json(['success' => false, 'error' => 'File type not allowed.'], 422);
+                }
+                if (!$ext || !in_array($ext, UserFile::getAllAllowedExtensions(), true)) {
+                    return response()->json(['success' => false, 'error' => 'File extension not allowed.'], 422);
+                }
+            }
+
+            $userFile = UserFile::createFromBytes($bytes, $name, $mime, $user);
+
+            return response()->json([
+                'success' => true,
+                'file' => $userFile,
+                'quota' => $this->getQuotaInfo($user->fresh()),
+            ]);
+        } catch (\RuntimeException $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'error' => 'Import failed.'], 500);
+        }
+    }
+
+    /**
      * A vault file is publicly viewable when its URL is referenced from any
      * record that is itself rendered publicly: an active link, a splash page
      * attached to an active link, an approved verification request, an active

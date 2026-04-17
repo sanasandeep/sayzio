@@ -151,10 +151,12 @@ $labelClass = 'block text-xs mb-1';
             <button type="button" @click="images.splice(i,1)" class="text-red-400/60 hover:text-red-400 px-1.5 flex-shrink-0"><i class="fas fa-times text-xs"></i></button>
         </div>
     </template>
-    <div class="flex items-center gap-2 mt-1">
+    <div class="flex items-center gap-2 mt-1 flex-wrap">
         <button type="button" @click="images.push('')" class="text-xs text-violet-400 hover:text-violet-300"><i class="fas fa-plus mr-1"></i>Add URL</button>
         <span class="text-white/10">|</span>
         <button type="button" @click="$refs.gridFileInput.click()" class="text-xs text-emerald-400 hover:text-emerald-300"><i class="fas fa-cloud-upload-alt mr-1"></i>Upload</button>
+        <span class="text-white/10">|</span>
+        <button type="button" @click="toggleVault()" class="text-xs text-cyan-400 hover:text-cyan-300"><i class="fas fa-folder-open mr-1"></i><span x-text="showVault ? 'Close My Files' : 'From My Files'"></span></button>
     </div>
     <input type="file" x-ref="gridFileInput" accept=".jpg,.jpeg,.png,.gif,.webp,.svg" multiple class="hidden" @change="uploadMultiple($event)">
     <template x-if="uploading">
@@ -165,6 +167,25 @@ $labelClass = 'block text-xs mb-1';
             <p class="text-[10px] text-violet-300"><i class="fas fa-spinner fa-spin mr-1"></i>Uploading...</p>
         </div>
     </template>
+    <template x-if="showVault">
+        <div class="mt-2 rounded-lg overflow-hidden" style="background: var(--bg-glass); border: 1px solid var(--border-glass);">
+            <div class="p-2 flex items-center gap-2" style="border-bottom: 1px solid var(--border-subtle, rgba(255,255,255,0.06));">
+                <input type="text" x-model="vaultSearch" placeholder="Search My Files…" class="flex-1 text-xs px-2.5 py-1.5 rounded-lg outline-none" style="background: var(--bg-glass-input); color: var(--text-primary); border: 1px solid var(--border-glass);">
+                <button type="button" @click="loadVault()" class="text-[10px] text-violet-400 hover:text-violet-300 px-2"><i class="fas fa-sync-alt"></i></button>
+            </div>
+            <div class="max-h-48 overflow-y-auto p-2">
+                <template x-if="vaultLoading"><div class="py-6 text-center"><i class="fas fa-spinner fa-spin text-violet-400/60"></i></div></template>
+                <template x-if="!vaultLoading && vaultFiles.length === 0"><div class="py-6 text-center text-xs text-white/30">No images in your vault yet</div></template>
+                <div class="grid grid-cols-4 gap-1.5">
+                    <template x-for="f in filteredVault" :key="f.id">
+                        <button type="button" @click="addFromVault(f)" class="rounded-lg overflow-hidden text-left transition-all hover:ring-2 hover:ring-violet-500/50" style="background: var(--bg-glass-input);">
+                            <img :src="f.url" class="w-full aspect-square object-cover" :alt="f.original_name">
+                        </button>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </template>
     @if($block->type === 'image_grid')<div class="mt-3"><label class="{{ $labelClass }}">Columns</label><select name="settings[columns]" class="{{ $selectClass }}"><option value="2" {{ ($s['columns'] ?? 3) == 2 ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">2</option><option value="3" {{ ($s['columns'] ?? 3) == 3 ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">3</option><option value="4" {{ ($s['columns'] ?? 3) == 4 ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">4</option></select></div>@endif
 </div>
 <script>
@@ -173,6 +194,29 @@ function imageListUploader_{{ $gridImgId }}() {
         images: {!! json_encode($s['images'] ?? []) !!},
         uploading: false,
         uploadProgress: 0,
+        showVault: false,
+        vaultFiles: [],
+        vaultLoading: false,
+        vaultSearch: '',
+        get filteredVault() {
+            if (!this.vaultSearch) return this.vaultFiles;
+            const s = this.vaultSearch.toLowerCase();
+            return this.vaultFiles.filter((f) => (f.original_name || '').toLowerCase().includes(s));
+        },
+        toggleVault() {
+            this.showVault = !this.showVault;
+            if (this.showVault && this.vaultFiles.length === 0) this.loadVault();
+        },
+        async loadVault() {
+            this.vaultLoading = true;
+            try {
+                const r = await fetch('{{ route("user.files.index") }}?type=image&page=1', { headers: { 'Accept': 'application/json' } });
+                const data = await r.json();
+                this.vaultFiles = data.files || [];
+            } catch (e) { this.vaultFiles = []; }
+            this.vaultLoading = false;
+        },
+        addFromVault(f) { if (f && f.url) this.images.push(f.url); },
         isImageUrl(u) { return u && (u.startsWith('http') || u.startsWith('/')); },
         async uploadMultiple(e) {
             var files = Array.from(e.target.files);
