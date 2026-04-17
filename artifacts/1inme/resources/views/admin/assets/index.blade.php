@@ -2,7 +2,25 @@
 @section('title', 'Asset Vault')
 
 @section('content')
-<div x-data="adminAssetVault()" x-init="init()" class="space-y-5">
+<div x-data="adminAssetVault()" x-init="init()" class="space-y-5 relative"
+     @dragenter.prevent.stop="dragDepth++; dragOver = true"
+     @dragover.prevent.stop="dragOver = true"
+     @dragleave.prevent.stop="dragDepth = Math.max(0, dragDepth - 1); if (dragDepth === 0) dragOver = false"
+     @drop.prevent.stop="dragOver = false; dragDepth = 0; handleDrop($event)">
+
+    {{-- Dropzone overlay --}}
+    <div x-show="dragOver" x-cloak
+         class="fixed inset-0 z-40 flex items-center justify-center pointer-events-none"
+         style="background: rgba(124,58,237,0.10); backdrop-filter: blur(2px);">
+        <div class="rounded-2xl px-10 py-8 text-center"
+             style="background: var(--bg-card); border: 2px dashed #7c3aed; box-shadow: 0 20px 60px rgba(0,0,0,.35);">
+            <i class="fas fa-cloud-arrow-up text-5xl text-violet-400 mb-3"></i>
+            <p class="text-base font-bold" style="color: var(--text-primary);">Drop files to upload</p>
+            <p class="text-xs mt-1" style="color: var(--text-faint);"
+               x-text="folder ? 'Files will be added to “' + ((folders.find(f => f.slug === folder) || { name: folder }).name) + '”' : 'Files will be added to Unfiled'"></p>
+        </div>
+    </div>
+
 
     {{-- Header --}}
     <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -146,10 +164,12 @@
             </div>
 
             <div x-show="!loading && assets.length === 0" x-cloak
-                 class="text-center py-16 rounded-xl" style="background: var(--bg-card); border: 1px dashed var(--border-glass);">
-                <i class="fas fa-folder-open text-4xl mb-3" style="color: var(--text-faint);"></i>
-                <p class="text-sm font-medium" style="color: var(--text-secondary);">No assets in this view</p>
-                <p class="text-xs mt-1" style="color: var(--text-faint);">Click <strong>Upload</strong> to add files to this folder.</p>
+                 @click="$refs.fileInput.click()"
+                 class="text-center py-16 rounded-xl cursor-pointer transition-all hover:border-violet-500/50"
+                 style="background: var(--bg-card); border: 2px dashed var(--border-glass);">
+                <i class="fas fa-cloud-arrow-up text-4xl mb-3 text-violet-400"></i>
+                <p class="text-sm font-semibold" style="color: var(--text-secondary);">Drag &amp; drop files here</p>
+                <p class="text-xs mt-1" style="color: var(--text-faint);">or click anywhere in this box to browse</p>
             </div>
 
             <div x-show="!loading && assets.length > 0" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
@@ -287,6 +307,9 @@ function adminAssetVault() {
         newFolderModal: false,
         newFolderName: '',
 
+        dragOver: false,
+        dragDepth: 0,
+
         moveModal: false,
         moveAsset: null,
         moveTarget: '',
@@ -310,9 +333,31 @@ function adminAssetVault() {
             } finally { this.loading = false; }
         },
 
+        async handleDrop(e) {
+            const dt = e.dataTransfer;
+            if (!dt) return;
+            const files = [];
+            if (dt.items) {
+                for (const item of dt.items) {
+                    if (item.kind === 'file') {
+                        const f = item.getAsFile();
+                        if (f) files.push(f);
+                    }
+                }
+            } else if (dt.files) {
+                for (const f of dt.files) files.push(f);
+            }
+            if (files.length) await this.uploadFiles(files);
+        },
+
         async handleFiles(e) {
             const files = Array.from(e.target.files || []);
             if (!files.length) return;
+            await this.uploadFiles(files);
+            e.target.value = '';
+        },
+
+        async uploadFiles(files) {
             this.uploading = true;
             this.uploadTotal = files.length;
             this.uploadDone = 0;
@@ -332,7 +377,6 @@ function adminAssetVault() {
                 } catch (_) { alert('Upload failed'); }
                 this.uploadDone++;
             }
-            e.target.value = '';
             this.uploading = false;
             await this.load(1);
         },

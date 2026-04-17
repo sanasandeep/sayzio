@@ -1,89 +1,133 @@
-<aside class="w-[260px] flex-shrink-0 hidden lg:flex flex-col fixed inset-y-0 left-0 z-30" style="background: var(--bg-sidebar); backdrop-filter: none; -webkit-backdrop-filter: none; border-right: 1px solid var(--border-subtle);">
-    <div class="h-[60px] flex items-center px-5" style="border-bottom: 1px solid var(--border-subtle);">
-        <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2">
-            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-violet-600 flex items-center justify-center shadow-lg" style="box-shadow: 0 4px 12px rgba(124,58,237,0.3);">
-                <span class="text-white text-xs font-bold">1</span>
+<aside class="hidden lg:flex flex-col fixed inset-y-0 left-0 z-30 sidebar-v2 sidebar-shell"
+       :class="sidebarMode === 'icons' ? 'collapsed' : ''"
+       :style="'width:' + sidebarWidth + 'px; transform: translateX(' + (sidebarMode === 'hidden' ? '-100%' : '0') + '); pointer-events:' + (sidebarMode === 'hidden' ? 'none' : 'auto')"
+       style="background: var(--bg-sidebar); backdrop-filter: none; -webkit-backdrop-filter: none;">
+
+    {{-- Edge collapse handle --}}
+    <button @click="setSidebar(sidebarMode === 'icons' ? 'full' : 'icons')"
+            class="sidebar-edge-toggle"
+            title="Toggle sidebar"
+            aria-label="Toggle sidebar">
+        <i class="fas" :class="sidebarMode === 'icons' ? 'fa-chevron-right' : 'fa-chevron-left'"></i>
+    </button>
+
+    <div class="flex items-center px-4" :class="sidebarMode === 'icons' ? 'justify-center' : 'justify-start'"
+         style="height: 64px; border-bottom: 1px solid var(--border-strong);">
+        <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2.5 group" :class="sidebarMode === 'icons' ? 'hidden' : ''">
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background: var(--accent);">
+                <span class="text-white text-sm font-bold">1</span>
             </div>
-            <span class="text-base font-bold tracking-tight">
+            <span class="text-lg font-bold tracking-tight logo-text">
                 <span style="color: var(--text-primary);">1IN</span><span class="text-violet-400">ME</span>
             </span>
+            <span class="ml-1 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded logo-text"
+                  style="background: rgba(124,58,237,0.12); color: var(--accent-light); border: 1px solid rgba(124,58,237,0.2);">Admin</span>
         </a>
-        <span class="ml-2 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded" style="background: rgba(124,58,237,0.1); color: var(--accent-light); border: 1px solid rgba(124,58,237,0.15);">Admin</span>
+        <template x-if="sidebarMode === 'icons'">
+            <a href="{{ route('admin.dashboard') }}" class="group" title="1INME Admin">
+                <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background: var(--accent);">
+                    <span class="text-white text-sm font-bold">1</span>
+                </div>
+            </a>
+        </template>
     </div>
 
-    <nav class="flex-1 py-4 px-3 space-y-0.5 overflow-y-auto">
+    <nav class="flex-1 py-4 overflow-y-auto overflow-x-hidden sidebar-nav-scroll"
+         :class="sidebarMode === 'icons' ? 'px-2' : 'px-3'">
+
         <a href="{{ route('admin.dashboard') }}"
-           class="sidebar-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
-            <i class="fas fa-chart-line"></i>
-            <span>Dashboard</span>
+           class="sidebar-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}"
+           style="--nav-tint:#7c3aed; --nav-tint-soft:rgba(124,58,237,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-chart-line"></i></div>
+            <span class="nav-label">Dashboard</span>
+            <span class="sidebar-tooltip">Dashboard</span>
         </a>
 
-        <div class="pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.12em]" style="color: var(--text-faint);">Management</div>
+        <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Management</div>
 
         <a href="{{ route('admin.users.index') }}"
-           class="sidebar-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
-            <i class="fas fa-users"></i>
-            <span>Users</span>
+           class="sidebar-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}"
+           style="--nav-tint:#3b82f6; --nav-tint-soft:rgba(59,130,246,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-users"></i></div>
+            <span class="nav-label">Users</span>
+            <span class="sidebar-tooltip">Users</span>
         </a>
 
         <a href="{{ route('admin.staff.index') }}"
-           class="sidebar-link {{ request()->routeIs('admin.staff.*') ? 'active' : '' }}">
-            <i class="fas fa-user-shield"></i>
-            <span>Staff</span>
+           class="sidebar-link {{ request()->routeIs('admin.staff.*') ? 'active' : '' }}"
+           style="--nav-tint:#06b6d4; --nav-tint-soft:rgba(6,182,212,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-user-shield"></i></div>
+            <span class="nav-label">Staff</span>
+            <span class="sidebar-tooltip">Staff</span>
         </a>
 
         <a href="{{ route('admin.roles.index') }}"
-           class="sidebar-link {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}">
-            <i class="fas fa-key"></i>
-            <span>Roles & Permissions</span>
+           class="sidebar-link {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}"
+           style="--nav-tint:#eab308; --nav-tint-soft:rgba(234,179,8,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-key"></i></div>
+            <span class="nav-label">Roles &amp; Permissions</span>
+            <span class="sidebar-tooltip">Roles &amp; Permissions</span>
         </a>
 
         <a href="{{ route('admin.links.index') }}"
-           class="sidebar-link {{ request()->routeIs('admin.links.*') ? 'active' : '' }}">
-            <i class="fas fa-link"></i>
-            <span>All Links</span>
+           class="sidebar-link {{ request()->routeIs('admin.links.*') ? 'active' : '' }}"
+           style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-link"></i></div>
+            <span class="nav-label">All Links</span>
+            <span class="sidebar-tooltip">All Links</span>
         </a>
 
-        <div class="pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.12em]" style="color: var(--text-faint);">Settings</div>
+        <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Settings</div>
 
         <a href="{{ route('admin.plans.index') }}"
-           class="sidebar-link {{ request()->routeIs('admin.plans.*') ? 'active' : '' }}">
-            <i class="fas fa-tags"></i>
-            <span>Plans</span>
+           class="sidebar-link {{ request()->routeIs('admin.plans.*') ? 'active' : '' }}"
+           style="--nav-tint:#10b981; --nav-tint-soft:rgba(16,185,129,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-tags"></i></div>
+            <span class="nav-label">Plans</span>
+            <span class="sidebar-tooltip">Plans</span>
         </a>
 
         <a href="{{ route('admin.templates.index') }}"
-           class="sidebar-link {{ request()->routeIs('admin.templates.*') ? 'active' : '' }}">
-            <i class="fas fa-layer-group"></i>
-            <span>Templates</span>
+           class="sidebar-link {{ request()->routeIs('admin.templates.*') ? 'active' : '' }}"
+           style="--nav-tint:#ec4899; --nav-tint-soft:rgba(236,72,153,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-layer-group"></i></div>
+            <span class="nav-label">Templates</span>
+            <span class="sidebar-tooltip">Templates</span>
         </a>
 
         <a href="{{ route('admin.coach-defaults.edit') }}"
-           class="sidebar-link {{ request()->routeIs('admin.coach-defaults.*') ? 'active' : '' }}">
-            <i class="fas fa-wand-magic-sparkles"></i>
-            <span>Score Presets</span>
+           class="sidebar-link {{ request()->routeIs('admin.coach-defaults.*') ? 'active' : '' }}"
+           style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-wand-magic-sparkles"></i></div>
+            <span class="nav-label">Score Presets</span>
+            <span class="sidebar-tooltip">Score Presets</span>
         </a>
 
         <a href="{{ route('admin.assets.index') }}"
-           class="sidebar-link {{ request()->routeIs('admin.assets.*') ? 'active' : '' }}">
-            <i class="fas fa-folder-tree"></i>
-            <span>Asset Vault</span>
+           class="sidebar-link {{ request()->routeIs('admin.assets.*') ? 'active' : '' }}"
+           style="--nav-tint:#7c3aed; --nav-tint-soft:rgba(124,58,237,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-folder-tree"></i></div>
+            <span class="nav-label">Asset Vault</span>
+            <span class="sidebar-tooltip">Asset Vault</span>
         </a>
     </nav>
 
-    <div class="p-3" style="border-top: 1px solid var(--border-subtle);">
-        <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-violet-600 flex items-center justify-center text-white text-xs font-bold shadow-md" style="box-shadow: 0 2px 8px rgba(124,58,237,0.25);">
+    {{-- Footer / user --}}
+    <div class="px-3 py-3" style="border-top: 1px solid var(--border-strong);">
+        <div class="flex items-center gap-3"
+             :class="sidebarMode === 'icons' ? 'justify-center' : ''">
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                 style="background: linear-gradient(135deg,#8b5cf6,#7c3aed);">
                 {{ strtoupper(substr(auth()->guard('admin')->user()->name ?? 'A', 0, 1)) }}
             </div>
-            <div class="flex-1 min-w-0">
-                <p class="text-xs font-semibold truncate" style="color: var(--text-primary);">{{ auth()->guard('admin')->user()->name ?? '' }}</p>
-                <p class="text-[10px] truncate" style="color: var(--text-dimmed);">{{ auth()->guard('admin')->user()->role->name ?? 'Admin' }}</p>
+            <div class="flex-1 min-w-0 user-info">
+                <p class="text-xs font-semibold truncate" style="color: var(--text-primary);">{{ auth()->guard('admin')->user()->name ?? 'Admin' }}</p>
+                <p class="text-[10px] truncate" style="color: var(--text-dimmed);">{{ auth()->guard('admin')->user()->role->name ?? 'Super Admin' }}</p>
             </div>
-            <form action="{{ route('admin.logout') }}" method="POST">
+            <form action="{{ route('admin.logout') }}" method="POST" class="user-info">
                 @csrf
-                <button type="submit" class="p-1.5 rounded-md hover:text-red-400 transition-colors" style="color: var(--text-dimmed);" title="Logout">
-                    <i class="fas fa-sign-out-alt text-xs"></i>
+                <button type="submit" class="logout-btn" title="Log out">
+                    <i class="fas fa-sign-out-alt text-[11px]"></i>
                 </button>
             </form>
         </div>
