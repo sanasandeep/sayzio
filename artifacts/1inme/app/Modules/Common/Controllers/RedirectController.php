@@ -5,6 +5,7 @@ namespace App\Modules\Common\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Common\Services\AppLinkResolver;
 use App\Modules\Common\Services\LinkTrackingService;
+use App\Modules\Common\Services\SmartRedirectResolver;
 use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\Subscriber;
@@ -124,6 +125,22 @@ class RedirectController extends Controller
             $this->trackingService->track($link, $request, $alias);
         }
 
+        // Smart redirect rules — for url-type links only. Evaluates the
+        // user-defined rule list (device / country / language / time / AB)
+        // and returns the first matching destination, falling back to the
+        // link's normal long_url + UTMs when nothing matches. The chosen
+        // URL is then used for BOTH the app-opener detection and the
+        // final redirect, so e.g. an iOS visitor matched by a country rule
+        // still gets the YouTube app opener if the matched URL is YouTube.
+        $smartCookie = null;
+        if ($link->type === 'url') {
+            $smart = app(SmartRedirectResolver::class)->resolve($link, $request);
+            $finalUrl    = $smart['url'];
+            $smartCookie = $smart['cookie'];
+        } else {
+            $finalUrl = null;
+        }
+
         // Mobile app opener — for url-type links pointing at known apps,
         // serve a tiny interstitial that tries the native app's deep link
         // first and falls back to the web. Bypassed with ?_web=1 (used by
@@ -135,24 +152,28 @@ class RedirectController extends Controller
             $isIos     = (bool) preg_match('/iPhone|iPad|iPod/i', $ua);
             $isAndroid = (bool) preg_match('/Android/i', $ua);
             if ($isIos || $isAndroid) {
-                $destination = $link->getDestinationUrl();
-                $matched = AppLinkResolver::resolve($destination);
+                $matched = AppLinkResolver::resolve($finalUrl);
                 if ($matched) {
                     $appUrl = $isIos ? ($matched['ios'] ?? null) : ($matched['android'] ?? null);
                     if ($appUrl) {
                         $webUrl = $request->fullUrlWithQuery(['_web' => 1]);
-                        return response()->view('common.app-opener', [
+                        $resp = response()->view('common.app-opener', [
                             'app'    => $matched,
                             'appUrl' => $appUrl,
                             'webUrl' => $webUrl,
                         ]);
+                        if ($smartCookie) $resp->withCookie($smartCookie);
+                        return $resp;
                     }
                 }
             }
         }
 
         return match ($link->type) {
-            'url' => redirect()->away($link->getDestinationUrl(), $link->redirect_type ?: 301),
+            'url' => tap(
+                redirect()->away($finalUrl, $link->redirect_type ?: 301),
+                fn ($r) => $smartCookie && $r->withCookie($smartCookie)
+            ),
             'biolink' => view('common.biolink', compact('link')),
             'file' => $this->handleFileDownload($link),
             'ics' => $this->handleIcsDownload($link),

@@ -180,6 +180,7 @@ class LinkController extends Controller
             'country_restrictions' => 'nullable|string|max:500',
             'device_targeting' => 'nullable|array',
             'device_targeting.*' => 'in:desktop,mobile,tablet',
+            'smart_rules_json' => 'nullable|string|max:20000',
         ]);
 
         if (empty($validated['alias'])) {
@@ -224,11 +225,17 @@ class LinkController extends Controller
                 ? $request->boolean('open_in_app')
                 : true;
         }
+        // Smart redirect rules (url-type only).
+        if (($validated['type'] ?? null) === 'url' && !empty($validated['smart_rules_json'])) {
+            $rules = $this->sanitizeSmartRules($validated['smart_rules_json']);
+            if (!empty($rules)) $settings['smart_rules'] = $rules;
+        }
         $validated['settings'] = !empty($settings) ? $settings : null;
         unset(
             $validated['country_restrictions'], $validated['device_targeting'],
             $validated['expiry_url'], $validated['max_clicks'], $validated['start_at'],
-            $validated['expire_on_first_click'], $validated['open_in_app']
+            $validated['expire_on_first_click'], $validated['open_in_app'],
+            $validated['smart_rules_json']
         );
 
         $validated['user_id'] = $request->user()->id;
@@ -985,6 +992,98 @@ class LinkController extends Controller
      * Shared point formatter for the polling and SSE live endpoints so both
      * return identical shapes to the browser.
      */
+    /**
+     * Validate + clean the smart_rules JSON submitted from the editor.
+     * Drops anything malformed instead of erroring — the form already shows
+     * client-side validation, so by the time it reaches us we just want to
+     * make sure nothing weird gets persisted to settings.
+     */
+    private function sanitizeSmartRules(?string $json): array
+    {
+        if (!$json) return [];
+        $decoded = json_decode($json, true);
+        if (!is_array($decoded)) return [];
+
+        // Mirrors SmartRedirectResolver::safeUrl exactly so a URL that
+        // passes save-time validation can never be silently rejected at
+        // runtime — and vice versa, no malformed URL ever lands in storage.
+        $isSafeUrl = function (?string $u): bool {
+            if (!is_string($u) || $u === '' || strlen($u) > 2048) return false;
+            $p = @parse_url($u);
+            if (!$p || empty($p['host'])) return false;
+            $s = strtolower($p['scheme'] ?? '');
+            return $s === 'http' || $s === 'https';
+        };
+
+        $allowedDevices = ['mobile', 'tablet', 'desktop'];
+        $clean = [];
+        foreach (array_slice($decoded, 0, 25) as $r) {
+            if (!is_array($r) || empty($r['type'])) continue;
+            $type = (string) $r['type'];
+            $url  = isset($r['url']) ? trim((string) $r['url']) : '';
+            $urlOk = $isSafeUrl($url);
+
+            switch ($type) {
+                case 'device':
+                    $match = is_array($r['match'] ?? null) ? array_values(array_intersect($allowedDevices, array_map('strtolower', $r['match']))) : [];
+                    if ($urlOk && !empty($match)) $clean[] = ['type' => 'device', 'match' => $match, 'url' => $url];
+                    break;
+                case 'country':
+                    $match = is_array($r['match'] ?? null) ? array_values(array_unique(array_filter(array_map(
+                        fn($v) => preg_match('/^[A-Za-z]{2}$/', (string) $v) ? strtoupper($v) : null,
+                        $r['match']
+                    )))) : [];
+                    if ($urlOk && !empty($match)) $clean[] = ['type' => 'country', 'match' => $match, 'url' => $url];
+                    break;
+                case 'language':
+                    $match = is_array($r['match'] ?? null) ? array_values(array_unique(array_filter(array_map(
+                        fn($v) => preg_match('/^[A-Za-z]{2,3}$/', (string) $v) ? strtolower($v) : null,
+                        $r['match']
+                    )))) : [];
+                    if ($urlOk && !empty($match)) $clean[] = ['type' => 'language', 'match' => $match, 'url' => $url];
+                    break;
+                case 'time':
+                    $from = (string) ($r['from'] ?? '');
+                    $to   = (string) ($r['to']   ?? '');
+                    $tz   = (string) ($r['tz']   ?? 'UTC');
+                    $hhmm = '/^([01]\d|2[0-3]):[0-5]\d$/';
+                    if ($urlOk && preg_match($hhmm, $from) && preg_match($hhmm, $to) && in_array($tz, timezone_identifiers_list(), true)) {
+                        $clean[] = ['type' => 'time', 'from' => $from, 'to' => $to, 'tz' => $tz, 'url' => $url];
+                    }
+                    break;
+                case 'ab':
+                    $variants = [];
+                    foreach (array_slice((array) ($r['variants'] ?? []), 0, 10) as $v) {
+                        if (!is_array($v)) continue;
+                        $vu = isset($v['url']) ? trim((string) $v['url']) : '';
+                        $vw = isset($v['weight']) ? max(0, (int) $v['weight']) : 1;
+                        if (!$isSafeUrl($vu) || $vw <= 0) continue;
+                        // Preserve the stable id submitted by the editor so
+                        // existing AB cookies continue to point at the same
+                        // variant after edits. Mint a fresh id only when the
+                        // submitted one is missing or doesn't look like the
+                        // 12-char alphanum the editor produces — defensive
+                        // against tampering or hand-written JSON.
+                        $vid = isset($v['id']) && is_string($v['id']) && preg_match('/^[A-Za-z0-9]{8,32}$/', $v['id'])
+                            ? $v['id']
+                            : bin2hex(random_bytes(6));
+                        $variants[] = ['id' => $vid, 'url' => $vu, 'weight' => $vw];
+                    }
+                    // Reject ids that collide within the same rule (would
+                    // make stickiness ambiguous). Rare but cheap to guard.
+                    $seen = [];
+                    foreach ($variants as &$v) {
+                        if (isset($seen[$v['id']])) $v['id'] = bin2hex(random_bytes(6));
+                        $seen[$v['id']] = true;
+                    }
+                    unset($v);
+                    if (count($variants) >= 2) $clean[] = ['type' => 'ab', 'variants' => $variants];
+                    break;
+            }
+        }
+        return $clean;
+    }
+
     private function formatLivePoints($rows): array
     {
         $points = [];
@@ -1104,6 +1203,7 @@ class LinkController extends Controller
             'country_restrictions' => 'nullable|string|max:500',
             'device_targeting' => 'nullable|array',
             'device_targeting.*' => 'in:desktop,mobile,tablet',
+            'smart_rules_json' => 'nullable|string|max:20000',
         ]);
 
         if (!empty($validated['password'])) {
@@ -1197,12 +1297,24 @@ class LinkController extends Controller
             }
         }
 
+        // Smart redirect rules (url-type only). Always present in form, even
+        // empty, so unsetting is just "save with zero rules".
+        if ($link->type === 'url' && $request->has('smart_rules_json')) {
+            $rules = $this->sanitizeSmartRules($request->input('smart_rules_json'));
+            if (!empty($rules)) {
+                $settings['smart_rules'] = $rules;
+            } else {
+                unset($settings['smart_rules']);
+            }
+        }
+
         $validated['settings'] = !empty($settings) ? $settings : null;
         unset(
             $validated['country_restrictions'], $validated['device_targeting'],
             $validated['expiry_url'], $validated['max_clicks'],
             $validated['start_at'], $validated['expire_on_first_click'],
-            $validated['open_in_app'], $validated['show_preview_page']
+            $validated['open_in_app'], $validated['show_preview_page'],
+            $validated['smart_rules_json']
         );
 
         $pixelIds = $validated['pixel_ids'] ?? [];
