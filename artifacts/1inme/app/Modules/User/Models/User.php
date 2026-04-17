@@ -120,6 +120,23 @@ class User extends Authenticatable
     }
 
     /**
+     * Min/max custom-alias length permitted for this user's plan. Admins
+     * configure these per plan; sane defaults apply for users on the free /
+     * unconfigured tier so link creation always works.
+     *
+     * @return array{min:int,max:int}
+     */
+    public function getAliasLengthLimits(): array
+    {
+        $min = (int) $this->getPlanFeature('min_alias_length', 3);
+        $max = (int) $this->getPlanFeature('max_alias_length', 50);
+        if ($min < 1)        $min = 1;
+        if ($max < $min)     $max = $min;
+        if ($max > 191)      $max = 191; // matches DB column width
+        return ['min' => $min, 'max' => $max];
+    }
+
+    /**
      * Maximum number of additional aliases per biolink for this user.
      * The primary alias does NOT count toward the limit (it's free with the link).
      * `-1` means unlimited.

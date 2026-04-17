@@ -88,6 +88,18 @@
                                    class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
                             <p class="text-[10px] text-white/30 mt-1">-1 = unlimited · 0 = primary alias only</p>
                         </div>
+                        <div>
+                            <label class="block text-xs text-white/40 mb-1" title="Minimum length for the visitor-facing custom URL alias.">Min Custom URL Length</label>
+                            <input type="number" name="features[min_alias_length]" value="{{ $features['min_alias_length'] ?? 3 }}" min="1" max="191"
+                                   class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
+                            <p class="text-[10px] text-white/30 mt-1">Letters, numbers, dashes only.</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-white/40 mb-1" title="Maximum length for the visitor-facing custom URL alias.">Max Custom URL Length</label>
+                            <input type="number" name="features[max_alias_length]" value="{{ $features['max_alias_length'] ?? 50 }}" min="1" max="191"
+                                   class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
+                            <p class="text-[10px] text-white/30 mt-1">Hard cap is 191 characters.</p>
+                        </div>
                     </div>
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
                         @foreach(['custom_domains' => 'Custom Domains', 'qr_customization' => 'QR Customization', 'pixels' => 'Tracking Pixels', 'utm_params' => 'UTM Parameters', 'link_protection' => 'Link Protection', 'seo_settings' => 'SEO Settings', 'teams' => 'Teams', 'ecommerce' => 'E-Commerce', 'custom_forms' => 'Custom Forms', 'custom_branding' => 'Custom Branding', 'custom_favicon' => 'Custom Favicon', 'custom_code' => 'Custom CSS/JS'] as $key => $label)

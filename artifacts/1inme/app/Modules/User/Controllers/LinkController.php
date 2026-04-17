@@ -57,25 +57,42 @@ class LinkController extends Controller
             $lastType = null;
         }
 
+        $user           = $request->user();
+        $aliasLimits    = $user->getAliasLengthLimits();
+        $primaryDomain  = $user->domains()->where('is_verified', true)
+                               ->orderBy('id')->first();
+        $domainHost     = $primaryDomain->domain ?? $request->getHost();
+
         return view('user.links.create', [
-            'prefillTitle' => (string) $request->query('title', ''),
-            'lastType' => $lastType,
+            'prefillAlias' => (string) $request->query('alias', ''),
+            'lastType'     => $lastType,
+            'aliasLimits'  => $aliasLimits,
+            'domainHost'   => $domainHost,
         ]);
     }
 
     /**
      * Step 1 → Step 2 router. Validates the chosen type and forwards the
-     * title via query string to the right type-specific create form.
+     * custom alias via query string to the right type-specific create form.
+     * If the user left it blank, no `alias` param is forwarded and Step 2
+     * (or `Link::generateAlias`) will produce one automatically.
      */
     public function chooseType(Request $request)
     {
+        $limits = $request->user()->getAliasLengthLimits();
+
         $validated = $request->validate([
-            'type' => 'required|in:url,biolink,file,ics,vcf',
-            'title' => 'nullable|string|max:255',
+            'type'  => 'required|in:url,biolink,file,ics,vcf',
+            'alias' => [
+                'nullable', 'string', 'alpha_dash',
+                'min:' . $limits['min'],
+                'max:' . $limits['max'],
+                'unique:links,alias',
+            ],
         ]);
 
-        $title = $validated['title'] ?? null;
-        $params = $title !== null && $title !== '' ? ['title' => $title] : [];
+        $alias  = $validated['alias'] ?? null;
+        $params = $alias !== null && $alias !== '' ? ['alias' => $alias] : [];
 
         // Remember this type for next time so the user's most-used flow gets
         // pre-selected on their next visit to Step 1.
@@ -103,7 +120,8 @@ class LinkController extends Controller
             'projects' => $projects,
             'pixels' => $pixels,
             'domains' => $domains,
-            'prefillTitle' => (string) $request->query('title', ''),
+            'prefillAlias' => (string) $request->query('alias', ''),
+            'aliasLimits' => $request->user()->getAliasLengthLimits(),
         ]);
     }
 
@@ -117,7 +135,8 @@ class LinkController extends Controller
 
         return view('user.links.create-biolink', [
             'projects' => $projects,
-            'prefillTitle' => (string) $request->query('title', ''),
+            'prefillAlias' => (string) $request->query('alias', ''),
+            'aliasLimits' => $request->user()->getAliasLengthLimits(),
         ]);
     }
 
@@ -129,7 +148,11 @@ class LinkController extends Controller
             'type' => 'required|in:url,biolink,file,ics,vcf',
             'long_url' => 'required_if:type,url|nullable|url|max:2048',
             'redirect_type' => 'nullable|in:301,302',
-            'alias' => 'nullable|string|max:50|unique:links,alias|alpha_dash',
+            'alias' => array_merge(
+                ['nullable', 'string', 'alpha_dash', 'unique:links,alias'],
+                ['min:' . $request->user()->getAliasLengthLimits()['min']],
+                ['max:' . $request->user()->getAliasLengthLimits()['max']],
+            ),
             'title' => 'nullable|string|max:255',
             'project_id' => "nullable|exists:projects,id,user_id,{$userId}",
             'domain_id' => "nullable|exists:domains,id,user_id,{$userId}",

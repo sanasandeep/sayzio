@@ -14,8 +14,9 @@ class FileLinkController extends Controller
         $projects = $request->user()->projects()->orderBy('name')->get();
         $maxFileSizeMb = (int) $request->user()->getPlanFeature('max_file_size_mb', 5);
 
-        $prefillTitle = (string) $request->query('title', '');
-        return view('user.links.create-file', compact('projects', 'maxFileSizeMb', 'prefillTitle'));
+        $prefillAlias = (string) $request->query('alias', '');
+        $aliasLimits  = $request->user()->getAliasLengthLimits();
+        return view('user.links.create-file', compact('projects', 'maxFileSizeMb', 'prefillAlias', 'aliasLimits'));
     }
 
     public function store(Request $request)
@@ -25,7 +26,11 @@ class FileLinkController extends Controller
 
         $validated = $request->validate([
             'title' => 'nullable|string|max:255',
-            'alias' => 'nullable|string|max:50|unique:links,alias|alpha_dash',
+            'alias' => array_merge(
+                ['nullable', 'string', 'alpha_dash', 'unique:links,alias'],
+                ['min:' . $request->user()->getAliasLengthLimits()['min']],
+                ['max:' . $request->user()->getAliasLengthLimits()['max']],
+            ),
             'project_id' => ['nullable', 'exists:projects,id', function ($attribute, $value, $fail) use ($request) {
                 if ($value && !\App\Modules\User\Models\Project::where('id', $value)->where('user_id', $request->user()->id)->exists()) {
                     $fail('The selected project does not belong to you.');

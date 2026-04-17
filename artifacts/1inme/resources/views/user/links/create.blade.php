@@ -2,6 +2,10 @@
 @section('title', 'Create Link')
 
 @section('content')
+@php
+    $aliasLimits = $aliasLimits ?? ['min' => 3, 'max' => 50];
+    $domainHost  = $domainHost ?? request()->getHost();
+@endphp
 <div class="max-w-2xl mx-auto">
     <div class="flex items-center gap-4 mb-6">
         <a href="{{ route('user.links.index') }}" class="text-white/30 hover:text-white transition-colors"><i class="fas fa-arrow-left"></i></a>
@@ -12,11 +16,30 @@
         @csrf
 
         <div class="glass rounded-2xl p-6 mb-6">
-            <label class="block text-sm font-medium text-white/60 mb-1.5">Name <span class="text-white/30 text-xs">(optional)</span></label>
-            <input type="text" name="title" value="{{ old('title', $prefillTitle ?? '') }}" placeholder="My awesome link"
-                   class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none transition-all">
-            @error('title') <p class="text-red-400 text-sm mt-1">{{ $message }}</p> @enderror
-            <p class="text-xs text-white/30 mt-1.5">A friendly label for this link (you can change it later).</p>
+            <label class="block text-sm font-medium text-white/60 mb-1.5">
+                Custom URL <span class="text-white/30 text-xs">(optional)</span>
+            </label>
+            <div class="flex items-stretch rounded-xl bg-white/5 border border-white/10 focus-within:ring-2 focus-within:ring-violet-500/40 overflow-hidden">
+                <span class="flex items-center px-3 text-sm text-white/40 bg-white/[0.03] border-r border-white/10 select-none">
+                    {{ $domainHost }}/
+                </span>
+                <input type="text" name="alias"
+                       value="{{ old('alias', $prefillAlias ?? '') }}"
+                       placeholder="leave blank to auto-generate"
+                       minlength="{{ $aliasLimits['min'] }}"
+                       maxlength="{{ $aliasLimits['max'] }}"
+                       pattern="[A-Za-z0-9_\-]+"
+                       autocomplete="off" spellcheck="false"
+                       class="flex-1 bg-transparent px-3 py-2.5 text-sm text-white placeholder-white/20 outline-none">
+            </div>
+            @error('alias') <p class="text-red-400 text-sm mt-1">{{ $message }}</p> @enderror
+            <p class="text-xs text-white/30 mt-1.5">
+                Leave blank and we'll generate one for you. Letters, numbers, dashes &amp; underscores only.
+                Length: {{ $aliasLimits['min'] }}–{{ $aliasLimits['max'] }} characters
+                @if(!empty($aliasUpgradeHint))
+                    · <a href="{{ route('user.plans.index') }}" class="text-violet-400 hover:underline">upgrade for more</a>
+                @endif.
+            </p>
         </div>
 
         <div class="glass rounded-2xl p-6 mb-6">

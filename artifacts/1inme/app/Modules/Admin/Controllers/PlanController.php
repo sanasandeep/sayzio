@@ -92,6 +92,8 @@ class PlanController extends Controller
             'storage_limit_mb' => 100,
             'max_projects' => 3,
             'max_aliases_per_link' => 0,
+            'min_alias_length' => 3,
+            'max_alias_length' => 50,
             'custom_domains' => false,
             'qr_customization' => false,
             'analytics' => 'basic',

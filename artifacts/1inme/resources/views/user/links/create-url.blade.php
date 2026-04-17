@@ -4,10 +4,10 @@
 @section('content')
 <div class="max-w-3xl mx-auto">
     <div class="flex items-center gap-4 mb-6">
-        <a href="{{ route('user.links.create') . (!empty($prefillTitle ?? '') ? '?title=' . urlencode($prefillTitle) : '') }}" class="text-white/30 hover:text-white transition-colors" title="Choose a different type"><i class="fas fa-arrow-left"></i></a>
+        <a href="{{ route('user.links.create') . (!empty($prefillAlias ?? '') ? '?alias=' . urlencode($prefillAlias) : '') }}" class="text-white/30 hover:text-white transition-colors" title="Choose a different type"><i class="fas fa-arrow-left"></i></a>
         <div>
             <h1 class="text-2xl font-bold text-white">URL Shortener</h1>
-            <p class="text-xs text-white/40 mt-0.5">Step 2 of 2 &middot; <a href="{{ route('user.links.create') . (!empty($prefillTitle ?? '') ? '?title=' . urlencode($prefillTitle) : '') }}" class="text-violet-400 hover:underline">change type</a></p>
+            <p class="text-xs text-white/40 mt-0.5">Step 2 of 2 &middot; <a href="{{ route('user.links.create') . (!empty($prefillAlias ?? '') ? '?alias=' . urlencode($prefillAlias) : '') }}" class="text-violet-400 hover:underline">change type</a></p>
         </div>
     </div>
 
@@ -45,7 +45,10 @@
                     <label class="block text-sm font-medium text-white/60 mb-1.5">Custom Alias</label>
                     <div class="flex items-center bg-white/5 border border-white/10 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-violet-500/40">
                         <span class="bg-white/5 px-3 py-2.5 text-sm text-white/30 border-r border-white/10">{{ request()->getHost() }}/</span>
-                        <input type="text" name="alias" value="{{ old('alias') }}" placeholder="auto-generated"
+                        <input type="text" name="alias" value="{{ old('alias', $prefillAlias ?? '') }}" placeholder="auto-generated"
+                               minlength="{{ ($aliasLimits ?? ['min'=>3])['min'] }}"
+                               maxlength="{{ ($aliasLimits ?? ['max'=>50])['max'] }}"
+                               pattern="[A-Za-z0-9_\-]+"
                                class="flex-1 px-3 py-2.5 text-sm bg-transparent text-white placeholder-white/20 border-0 focus:ring-0 outline-none">
                     </div>
                     @error('alias') <p class="text-red-400 text-sm mt-1">{{ $message }}</p> @enderror
@@ -191,7 +194,7 @@
         </div>
 
         <div class="flex items-center justify-end gap-3">
-            <a href="{{ route('user.links.create') . (!empty($prefillTitle ?? '') ? '?title=' . urlencode($prefillTitle) : '') }}" class="px-5 py-2.5 text-sm text-white/40 hover:text-white hover:bg-white/5 rounded-xl transition-all">Back</a>
+            <a href="{{ route('user.links.create') . (!empty($prefillAlias ?? '') ? '?alias=' . urlencode($prefillAlias) : '') }}" class="px-5 py-2.5 text-sm text-white/40 hover:text-white hover:bg-white/5 rounded-xl transition-all">Back</a>
             <button type="submit" class="bg-violet-600 hover:bg-violet-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-violet-500/20">
                 Create Link
             </button>
