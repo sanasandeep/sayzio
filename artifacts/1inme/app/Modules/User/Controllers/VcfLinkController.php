@@ -52,6 +52,7 @@ class VcfLinkController extends Controller
             'title' => trim($linkTitle),
             'project_id' => $validated['project_id'] ?? null,
             'is_active' => true,
+            'settings' => $request->boolean('show_preview_page') ? ['show_preview_page' => true] : null,
         ]);
 
         unset($validated['alias'], $validated['project_id']);

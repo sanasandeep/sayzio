@@ -187,6 +187,9 @@ class LinkController extends Controller
         if (!empty($validated['device_targeting'])) {
             $settings['device_targeting'] = $validated['device_targeting'];
         }
+        if ($request->boolean('show_preview_page') && in_array($validated['type'], ['url', 'ics', 'vcf'], true)) {
+            $settings['show_preview_page'] = true;
+        }
         $validated['settings'] = !empty($settings) ? $settings : null;
         unset($validated['country_restrictions'], $validated['device_targeting']);
 

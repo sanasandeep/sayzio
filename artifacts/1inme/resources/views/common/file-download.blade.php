@@ -73,5 +73,6 @@
     </div>
 
     @include('common.partials.pixel-scripts')
+    @include('common.partials.engagement-tracking')
 </body>
 </html>

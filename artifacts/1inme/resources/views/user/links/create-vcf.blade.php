@@ -109,6 +109,18 @@
             </div>
         </div>
 
+        <div class="glass rounded-2xl p-4 mt-4 flex items-start gap-3">
+            <input type="hidden" name="show_preview_page" value="0">
+            <label class="relative inline-flex items-center cursor-pointer mt-0.5">
+                <input type="checkbox" name="show_preview_page" value="1" {{ old('show_preview_page') ? 'checked' : '' }} class="sr-only peer">
+                <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-violet-600 after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
+            </label>
+            <div class="text-sm">
+                <div class="text-white/80 font-medium">Show preview page before contact download</div>
+                <p class="text-xs text-white/40 mt-0.5">Renders a contact preview that fires marketing pixels and tracks visitor dwell time before the .vcf file is delivered.</p>
+            </div>
+        </div>
+
         <div class="flex items-center justify-end gap-3 mt-4">
             <a href="{{ route('user.links.index') }}" class="px-4 py-2.5 text-sm text-white/60 hover:bg-white/10 rounded-xl">Cancel</a>
             <button type="submit" class="bg-violet-600 hover:bg-violet-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium">Create Contact Link</button>

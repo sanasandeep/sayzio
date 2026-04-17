@@ -100,7 +100,25 @@ class RedirectController extends Controller
             return response()->view('common.splash', compact('link', 'splash', 'continueUrl', 'destinationUrl'));
         }
 
-        $this->trackingService->track($link, $request, $alias);
+        // Optional preview / interstitial page for url/ics/vcf so owners can
+        // capture engagement (dwell time) and fire marketing pixels even when
+        // the underlying action would otherwise be an immediate redirect or
+        // file download. The preview page IS the tracked visitor interaction
+        // (one click record + engagement session, mirroring biolink semantics);
+        // the follow-up `?_continue=1` request just performs the action and
+        // is intentionally NOT tracked again to avoid double-counting.
+        $previewableTypes = ['url', 'ics', 'vcf'];
+        $previewEnabled   = in_array($link->type, $previewableTypes, true)
+            && !empty($settings['show_preview_page']);
+
+        if ($previewEnabled && !$request->boolean('_continue')) {
+            $this->trackingService->track($link, $request, $alias);
+            return response()->view('common.preview-page', compact('link'));
+        }
+
+        if (!$previewEnabled) {
+            $this->trackingService->track($link, $request, $alias);
+        }
 
         return match ($link->type) {
             'url' => redirect()->away($link->getDestinationUrl(), $link->redirect_type ?: 301),

@@ -46,6 +46,7 @@ class IcsLinkController extends Controller
             'title' => $validated['event_name'],
             'project_id' => $validated['project_id'] ?? null,
             'is_active' => true,
+            'settings' => $request->boolean('show_preview_page') ? ['show_preview_page' => true] : null,
         ]);
 
         IcsData::create([
