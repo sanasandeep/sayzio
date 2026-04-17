@@ -78,6 +78,46 @@
             'vcf'     => ['icon' => 'fa-address-card', 'bg' => 'rgba(6,182,212,0.08)',  'border' => 'rgba(6,182,212,0.12)',  'color' => '#22d3ee', 'label' => 'Digital Card'],
         ];
         $ts = $typeStyles[$link->type] ?? $typeStyles['url'];
+
+        // For File Share links, swap in an extension-aware icon + colour so
+        // a PDF looks like a PDF, an image looks like an image, etc.
+        if ($link->type === 'file' && $link->fileLink) {
+            $ext = strtolower(pathinfo($link->fileLink->original_name ?? '', PATHINFO_EXTENSION));
+            $fileIconMap = [
+                'pdf'                                  => ['fa-file-pdf',        '#ef4444', 'rgba(239,68,68,0.08)',  'rgba(239,68,68,0.12)'],
+                'doc'  => 'word', 'docx' => 'word', 'rtf' => 'word', 'odt' => 'word',
+                'xls'  => 'excel','xlsx' => 'excel','csv' => 'excel','ods' => 'excel',
+                'ppt'  => 'ppt',  'pptx' => 'ppt',  'odp' => 'ppt',
+                'jpg'  => 'img',  'jpeg' => 'img',  'png' => 'img',  'gif' => 'img', 'webp' => 'img', 'svg' => 'img', 'bmp' => 'img', 'avif' => 'img',
+                'mp4'  => 'video','mov'  => 'video','avi' => 'video','webm'=> 'video','mkv' => 'video',
+                'mp3'  => 'audio','wav'  => 'audio','ogg' => 'audio','flac'=> 'audio', 'm4a' => 'audio',
+                'zip'  => 'zip',  'rar'  => 'zip',  '7z'  => 'zip',  'tar' => 'zip', 'gz' => 'zip',
+                'txt'  => 'text', 'md'   => 'text', 'log' => 'text',
+                'js'   => 'code', 'ts'   => 'code', 'php' => 'code', 'py' => 'code', 'html' => 'code', 'css' => 'code', 'json' => 'code', 'xml' => 'code',
+            ];
+            $fileGroups = [
+                'word'  => ['fa-file-word',        '#3b82f6', 'rgba(59,130,246,0.08)', 'rgba(59,130,246,0.12)'],
+                'excel' => ['fa-file-excel',       '#10b981', 'rgba(16,185,129,0.08)', 'rgba(16,185,129,0.12)'],
+                'ppt'   => ['fa-file-powerpoint',  '#f97316', 'rgba(249,115,22,0.08)', 'rgba(249,115,22,0.12)'],
+                'img'   => ['fa-file-image',       '#ec4899', 'rgba(236,72,153,0.08)', 'rgba(236,72,153,0.12)'],
+                'video' => ['fa-file-video',       '#8b5cf6', 'rgba(139,92,246,0.08)', 'rgba(139,92,246,0.12)'],
+                'audio' => ['fa-file-audio',       '#06b6d4', 'rgba(6,182,212,0.08)',  'rgba(6,182,212,0.12)'],
+                'zip'   => ['fa-file-zipper',      '#eab308', 'rgba(234,179,8,0.08)',  'rgba(234,179,8,0.12)'],
+                'text'  => ['fa-file-lines',       '#94a3b8', 'rgba(148,163,184,0.08)','rgba(148,163,184,0.12)'],
+                'code'  => ['fa-file-code',        '#a855f7', 'rgba(168,85,247,0.08)', 'rgba(168,85,247,0.12)'],
+            ];
+            $hit = $fileIconMap[$ext] ?? null;
+            if (is_array($hit)) {
+                [$icon, $color, $bg, $border] = $hit;
+            } elseif (is_string($hit) && isset($fileGroups[$hit])) {
+                [$icon, $color, $bg, $border] = $fileGroups[$hit];
+            } else {
+                $icon = $color = $bg = $border = null;
+            }
+            if ($icon) {
+                $ts = ['icon' => $icon, 'color' => $color, 'bg' => $bg, 'border' => $border, 'label' => strtoupper($ext ?: 'FILE')];
+            }
+        }
     @endphp
     <div class="card-premium p-4 group">
         <div class="flex items-start justify-between">
@@ -141,6 +181,12 @@
                     <a href="{{ route('user.links.edit', $link) }}" class="p-1.5 rounded-md transition-all hover:bg-violet-500/10" style="color: var(--text-faint);" title="Edit">
                         <i class="fas fa-edit text-xs hover:text-violet-400"></i>
                     </a>
+                    <form action="{{ route('user.links.duplicate', $link) }}" method="POST">
+                        @csrf
+                        <button class="p-1.5 rounded-md transition-all hover:bg-cyan-500/10" style="color: var(--text-faint);" title="Duplicate">
+                            <i class="fas fa-copy text-xs hover:text-cyan-400"></i>
+                        </button>
+                    </form>
                     <form action="{{ route('user.links.destroy', $link) }}" method="POST" onsubmit="return confirm('Delete this link?')">
                         @csrf @method('DELETE')
                         <button class="p-1.5 rounded-md transition-all hover:bg-red-500/10" style="color: var(--text-faint);" title="Delete">

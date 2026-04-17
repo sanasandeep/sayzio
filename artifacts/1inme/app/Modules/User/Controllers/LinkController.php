@@ -16,7 +16,7 @@ class LinkController extends Controller
 {
     public function index(Request $request)
     {
-        $query = $request->user()->links()->with(['project', 'domain']);
+        $query = $request->user()->links()->with(['project', 'domain', 'fileLink']);
 
         if ($search = $request->get('search')) {
             $query->where(function ($q) use ($search) {
@@ -1366,6 +1366,64 @@ class LinkController extends Controller
 
         return redirect()->route('user.links.index')
             ->with('success', 'Link deleted successfully.');
+    }
+
+    /**
+     * Duplicate a link — copies all attributes (including settings) but
+     * gives the new link a fresh alias, "(Copy)" suffix on the title, and
+     * resets engagement counters. For File / Bio / VCF / ICS links the
+     * type-specific child rows are also cloned so the duplicate is
+     * immediately usable.
+     */
+    public function duplicate(Request $request, Link $link)
+    {
+        abort_if($link->user_id !== $request->user()->id, 403);
+
+        // Plan limit: a duplicate counts as a new link.
+        $maxLinks = (int) $request->user()->getPlanFeature('max_links', 0);
+        if ($maxLinks > 0 && $request->user()->links()->count() >= $maxLinks) {
+            return back()->with('error', 'You have reached your plan link limit. Upgrade to duplicate more links.');
+        }
+
+        $copy = \DB::transaction(function () use ($link) {
+            $new = $link->replicate(['total_clicks', 'unique_clicks', 'created_at', 'updated_at']);
+            $new->alias = Link::generateAlias();
+            $new->title = trim(($link->title ?: $link->alias) . ' (Copy)');
+            $new->is_active = $link->is_active;
+            $new->total_clicks = 0;
+            $new->unique_clicks = 0;
+            $new->save();
+
+            // Clone every type-specific child row so the duplicate is
+            // immediately usable for any link type. Each one is a fresh
+            // query against the source link to avoid relying on whichever
+            // relations happened to be eager-loaded.
+            if ($f = $link->fileLink()->first()) {
+                $nf = $f->replicate(['link_id']);
+                $nf->link_id = $new->id;
+                $nf->save();
+            }
+            if ($i = $link->icsData()->first()) {
+                $ni = $i->replicate(['link_id']);
+                $ni->link_id = $new->id;
+                $ni->save();
+            }
+            if ($v = $link->vcfData()->first()) {
+                $nv = $v->replicate(['link_id']);
+                $nv->link_id = $new->id;
+                $nv->save();
+            }
+            foreach ($link->biolinkBlocks()->get() as $b) {
+                $nb = $b->replicate(['link_id']);
+                $nb->link_id = $new->id;
+                $nb->save();
+            }
+
+            return $new;
+        });
+
+        return redirect()->route('user.links.edit', $copy)
+            ->with('success', 'Link duplicated. You\'re now editing the copy.');
     }
 
     /**
