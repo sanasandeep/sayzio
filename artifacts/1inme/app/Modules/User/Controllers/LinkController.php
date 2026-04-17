@@ -1154,6 +1154,12 @@ class LinkController extends Controller
             return redirect()->route('user.links.settings.appearance', $link);
         }
 
+        // VCF links have their own dedicated editor with the rich vCard
+        // builder (avatar, multiple emails/phones/urls/addresses/socials).
+        if ($link->type === 'vcf') {
+            return redirect()->route('user.links.vcf.edit', $link);
+        }
+
         $projects = $request->user()->projects()->orderBy('name')->get();
         $pixels = $request->user()->pixels()->orderBy('name')->get();
         $domains = $request->user()->domains()->where('is_verified', true)->get();

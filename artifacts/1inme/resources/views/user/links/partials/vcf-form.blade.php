@@ -1,0 +1,294 @@
+{{--
+    Shared rich vCard editor used by create-vcf and edit-vcf.
+    Expects:
+      $vcf            (VcfData|null)
+      $emailLabels, $phoneLabels, $urlLabels, $addrLabels, $socialServices
+      $projects, $aliasLimits, optional $link, optional $prefillAlias
+--}}
+@php
+    $v = $vcf ?? null;
+    $emailsInit  = old('emails',  $v?->emailList()   ?: [['label' => 'Personal', 'value' => '']]);
+    $phonesInit  = old('phones',  $v?->phoneList()   ?: [['label' => 'Mobile',   'value' => '']]);
+    $urlsInit    = old('urls',    $v?->urlList()     ?: [['label' => 'Website',  'value' => '']]);
+    $addrsInit   = old('addresses', $v?->addressList() ?: []);
+    $socialsInit = old('social_profiles', $v?->socialList() ?: []);
+    $birthday    = old('birthday',    $v?->birthday?->format('Y-m-d'));
+    $anniversary = old('anniversary', $v?->anniversary?->format('Y-m-d'));
+    $photoUrl    = $v?->photoUrl();
+    $inputCls    = 'w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40';
+    $miniBtn     = 'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-white/70 bg-white/5 hover:bg-white/10 border border-white/10 transition';
+@endphp
+
+<div x-data="vcfForm({
+    emails:   @js($emailsInit),
+    phones:   @js($phonesInit),
+    urls:     @js($urlsInit),
+    addrs:    @js($addrsInit),
+    socials:  @js($socialsInit),
+    photoUrl: @js($photoUrl),
+})" class="space-y-4">
+
+    {{-- AVATAR --}}
+    <div class="glass rounded-2xl p-6">
+        <h2 class="text-lg font-semibold text-white mb-4"><i class="fas fa-image text-violet-400 mr-2"></i>Avatar</h2>
+        <div class="flex items-center gap-4">
+            <div class="w-24 h-24 rounded-2xl overflow-hidden flex items-center justify-center flex-shrink-0 bg-white/5 border border-white/10">
+                <template x-if="photoPreview">
+                    <img :src="photoPreview" alt="Avatar" class="w-full h-full object-cover">
+                </template>
+                <template x-if="!photoPreview">
+                    <i class="fas fa-user text-3xl text-white/20"></i>
+                </template>
+            </div>
+            <div class="flex-1">
+                <label class="{{ $miniBtn }} cursor-pointer">
+                    <i class="fas fa-upload text-[10px]"></i> Choose Photo
+                    <input type="file" name="photo" accept="image/*" @change="onPhoto($event)" class="hidden">
+                </label>
+                <button type="button" x-show="photoPreview" @click="removePhoto()" class="{{ $miniBtn }} ml-2" style="color:#f87171;">
+                    <i class="fas fa-trash text-[10px]"></i> Remove
+                </button>
+                <input type="hidden" name="remove_photo" :value="removeFlag ? '1' : '0'">
+                <p class="text-xs text-white/40 mt-2">Square JPG/PNG up to 5 MB. Embedded in the .vcf so contacts work offline.</p>
+                @error('photo') <p class="text-red-400 text-xs mt-1">{{ $message }}</p> @enderror
+            </div>
+        </div>
+    </div>
+
+    {{-- NAME --}}
+    <div class="glass rounded-2xl p-6">
+        <h2 class="text-lg font-semibold text-white mb-4"><i class="fas fa-user text-violet-400 mr-2"></i>Name</h2>
+        <div class="grid grid-cols-2 md:grid-cols-6 gap-3">
+            <div>
+                <label class="block text-xs font-medium text-white/60 mb-1">Prefix</label>
+                <input type="text" name="prefix" value="{{ old('prefix', $v?->prefix) }}" placeholder="Mr., Dr." class="{{ $inputCls }}">
+            </div>
+            <div class="col-span-2">
+                <label class="block text-xs font-medium text-white/60 mb-1">First <span class="text-red-400">*</span></label>
+                <input type="text" name="first_name" value="{{ old('first_name', $v?->first_name) }}" required class="{{ $inputCls }}">
+                @error('first_name') <p class="text-red-400 text-xs mt-1">{{ $message }}</p> @enderror
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-white/60 mb-1">Middle</label>
+                <input type="text" name="middle_name" value="{{ old('middle_name', $v?->middle_name) }}" class="{{ $inputCls }}">
+            </div>
+            <div class="col-span-2">
+                <label class="block text-xs font-medium text-white/60 mb-1">Last</label>
+                <input type="text" name="last_name" value="{{ old('last_name', $v?->last_name) }}" class="{{ $inputCls }}">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-white/60 mb-1">Suffix</label>
+                <input type="text" name="suffix" value="{{ old('suffix', $v?->suffix) }}" placeholder="Jr., PhD" class="{{ $inputCls }}">
+            </div>
+            <div class="col-span-2 md:col-span-3">
+                <label class="block text-xs font-medium text-white/60 mb-1">Nickname</label>
+                <input type="text" name="nickname" value="{{ old('nickname', $v?->nickname) }}" class="{{ $inputCls }}">
+            </div>
+        </div>
+    </div>
+
+    {{-- ORG --}}
+    <div class="glass rounded-2xl p-6">
+        <h2 class="text-lg font-semibold text-white mb-4"><i class="fas fa-building text-violet-400 mr-2"></i>Work</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+                <label class="block text-xs font-medium text-white/60 mb-1">Organization</label>
+                <input type="text" name="organization" value="{{ old('organization', $v?->organization) }}" class="{{ $inputCls }}">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-white/60 mb-1">Department</label>
+                <input type="text" name="department" value="{{ old('department', $v?->department) }}" class="{{ $inputCls }}">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-white/60 mb-1">Job Title</label>
+                <input type="text" name="title" value="{{ old('title', $v?->title) }}" class="{{ $inputCls }}">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-white/60 mb-1">Role</label>
+                <input type="text" name="role" value="{{ old('role', $v?->role) }}" placeholder="e.g. Project Manager" class="{{ $inputCls }}">
+            </div>
+        </div>
+    </div>
+
+    {{-- EMAILS --}}
+    <div class="glass rounded-2xl p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-white"><i class="fas fa-envelope text-violet-400 mr-2"></i>Emails</h2>
+            <button type="button" @click="addEmail()" class="{{ $miniBtn }}"><i class="fas fa-plus text-[9px]"></i> Add</button>
+        </div>
+        <template x-for="(e, i) in emails" :key="'em-'+i">
+            <div class="flex gap-2 mb-2">
+                <select :name="`emails[${i}][label]`" x-model="e.label" class="{{ $inputCls }}" style="max-width:130px;">
+                    @foreach($emailLabels as $lab)<option value="{{ $lab }}" class="bg-[#0a0612]">{{ $lab }}</option>@endforeach
+                </select>
+                <input type="email" :name="`emails[${i}][value]`" x-model="e.value" placeholder="name@example.com" class="{{ $inputCls }} flex-1">
+                <button type="button" @click="emails.splice(i,1)" class="{{ $miniBtn }}" style="color:#f87171;"><i class="fas fa-times text-[10px]"></i></button>
+            </div>
+        </template>
+    </div>
+
+    {{-- PHONES --}}
+    <div class="glass rounded-2xl p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-white"><i class="fas fa-phone text-violet-400 mr-2"></i>Phones</h2>
+            <button type="button" @click="addPhone()" class="{{ $miniBtn }}"><i class="fas fa-plus text-[9px]"></i> Add</button>
+        </div>
+        <template x-for="(p, i) in phones" :key="'ph-'+i">
+            <div class="flex gap-2 mb-2">
+                <select :name="`phones[${i}][label]`" x-model="p.label" class="{{ $inputCls }}" style="max-width:130px;">
+                    @foreach($phoneLabels as $lab)<option value="{{ $lab }}" class="bg-[#0a0612]">{{ $lab }}</option>@endforeach
+                </select>
+                <input type="tel" :name="`phones[${i}][value]`" x-model="p.value" placeholder="+1 555 123 4567" class="{{ $inputCls }} flex-1">
+                <button type="button" @click="phones.splice(i,1)" class="{{ $miniBtn }}" style="color:#f87171;"><i class="fas fa-times text-[10px]"></i></button>
+            </div>
+        </template>
+    </div>
+
+    {{-- URLs --}}
+    <div class="glass rounded-2xl p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-white"><i class="fas fa-globe text-violet-400 mr-2"></i>Websites</h2>
+            <button type="button" @click="addUrl()" class="{{ $miniBtn }}"><i class="fas fa-plus text-[9px]"></i> Add</button>
+        </div>
+        <template x-for="(u, i) in urls" :key="'u-'+i">
+            <div class="flex gap-2 mb-2">
+                <select :name="`urls[${i}][label]`" x-model="u.label" class="{{ $inputCls }}" style="max-width:130px;">
+                    @foreach($urlLabels as $lab)<option value="{{ $lab }}" class="bg-[#0a0612]">{{ $lab }}</option>@endforeach
+                </select>
+                <input type="url" :name="`urls[${i}][value]`" x-model="u.value" placeholder="https://example.com" class="{{ $inputCls }} flex-1">
+                <button type="button" @click="urls.splice(i,1)" class="{{ $miniBtn }}" style="color:#f87171;"><i class="fas fa-times text-[10px]"></i></button>
+            </div>
+        </template>
+    </div>
+
+    {{-- SOCIAL --}}
+    <div class="glass rounded-2xl p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-white"><i class="fas fa-hashtag text-violet-400 mr-2"></i>Social Profiles</h2>
+            <button type="button" @click="addSocial()" class="{{ $miniBtn }}"><i class="fas fa-plus text-[9px]"></i> Add</button>
+        </div>
+        <template x-for="(s, i) in socials" :key="'s-'+i">
+            <div class="flex gap-2 mb-2">
+                <select :name="`social_profiles[${i}][service]`" x-model="s.service" class="{{ $inputCls }}" style="max-width:150px;">
+                    @foreach($socialServices as $svc)<option value="{{ $svc }}" class="bg-[#0a0612]">{{ $svc }}</option>@endforeach
+                </select>
+                <input type="text" :name="`social_profiles[${i}][value]`" x-model="s.value" placeholder="@handle or full URL" class="{{ $inputCls }} flex-1">
+                <button type="button" @click="socials.splice(i,1)" class="{{ $miniBtn }}" style="color:#f87171;"><i class="fas fa-times text-[10px]"></i></button>
+            </div>
+        </template>
+        <p x-show="socials.length === 0" class="text-xs text-white/40">No social profiles. Add Twitter, LinkedIn, Instagram, GitHub, and more.</p>
+    </div>
+
+    {{-- ADDRESSES --}}
+    <div class="glass rounded-2xl p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-white"><i class="fas fa-map-marker-alt text-violet-400 mr-2"></i>Addresses</h2>
+            <button type="button" @click="addAddress()" class="{{ $miniBtn }}"><i class="fas fa-plus text-[9px]"></i> Add</button>
+        </div>
+        <template x-for="(a, i) in addrs" :key="'a-'+i">
+            <div class="rounded-xl p-3 mb-3 bg-white/5 border border-white/10">
+                <div class="flex items-center justify-between mb-2">
+                    <select :name="`addresses[${i}][label]`" x-model="a.label" class="{{ $inputCls }}" style="max-width:130px;">
+                        @foreach($addrLabels as $lab)<option value="{{ $lab }}" class="bg-[#0a0612]">{{ $lab }}</option>@endforeach
+                    </select>
+                    <button type="button" @click="addrs.splice(i,1)" class="{{ $miniBtn }}" style="color:#f87171;"><i class="fas fa-times text-[10px]"></i></button>
+                </div>
+                <input type="text" :name="`addresses[${i}][street]`" x-model="a.street" placeholder="Street" class="{{ $inputCls }} mb-2">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    <input type="text" :name="`addresses[${i}][city]`" x-model="a.city" placeholder="City" class="{{ $inputCls }}">
+                    <input type="text" :name="`addresses[${i}][state]`" x-model="a.state" placeholder="State" class="{{ $inputCls }}">
+                    <input type="text" :name="`addresses[${i}][zip]`" x-model="a.zip" placeholder="ZIP" class="{{ $inputCls }}">
+                    <input type="text" :name="`addresses[${i}][country]`" x-model="a.country" placeholder="Country" class="{{ $inputCls }}">
+                </div>
+            </div>
+        </template>
+        <p x-show="addrs.length === 0" class="text-xs text-white/40">No addresses added.</p>
+    </div>
+
+    {{-- DATES + NOTES --}}
+    <div class="glass rounded-2xl p-6">
+        <h2 class="text-lg font-semibold text-white mb-4"><i class="fas fa-calendar text-violet-400 mr-2"></i>Dates &amp; Notes</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+            <div>
+                <label class="block text-xs font-medium text-white/60 mb-1">Birthday</label>
+                <input type="date" name="birthday" value="{{ $birthday }}" class="{{ $inputCls }}">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-white/60 mb-1">Anniversary</label>
+                <input type="date" name="anniversary" value="{{ $anniversary }}" class="{{ $inputCls }}">
+            </div>
+        </div>
+        <div>
+            <label class="block text-xs font-medium text-white/60 mb-1">Notes</label>
+            <textarea name="note" rows="3" class="{{ $inputCls }}">{{ old('note', $v?->note) }}</textarea>
+        </div>
+    </div>
+
+    {{-- LINK SETTINGS --}}
+    <div class="glass rounded-2xl p-6">
+        <h2 class="text-lg font-semibold text-white mb-4"><i class="fas fa-link text-violet-400 mr-2"></i>Link Settings</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+            <div>
+                <label class="block text-xs font-medium text-white/60 mb-1">Custom Alias</label>
+                <input type="text" name="alias" value="{{ old('alias', $link->alias ?? ($prefillAlias ?? '')) }}"
+                       placeholder="auto-generated"
+                       minlength="{{ ($aliasLimits ?? ['min'=>3])['min'] }}"
+                       maxlength="{{ ($aliasLimits ?? ['max'=>50])['max'] }}"
+                       pattern="[A-Za-z0-9_\-]+"
+                       class="{{ $inputCls }}">
+                @error('alias') <p class="text-red-400 text-xs mt-1">{{ $message }}</p> @enderror
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-white/60 mb-1">Project</label>
+                <select name="project_id" class="{{ $inputCls }}">
+                    <option value="" class="bg-[#0a0612]">No project</option>
+                    @foreach($projects as $project)
+                        <option value="{{ $project->id }}" class="bg-[#0a0612]"
+                            {{ old('project_id', $link->project_id ?? null) == $project->id ? 'selected' : '' }}>{{ $project->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
+        <label class="flex items-start gap-3 cursor-pointer">
+            <input type="hidden" name="show_preview_page" value="0">
+            <input type="checkbox" name="show_preview_page" value="1"
+                   {{ old('show_preview_page', $link->settings['show_preview_page'] ?? false) ? 'checked' : '' }}
+                   class="mt-1">
+            <div class="text-xs">
+                <div class="font-medium text-white">Show preview page before download</div>
+                <p class="text-white/40 mt-0.5">Renders a contact preview that fires marketing pixels and tracks visitor dwell time before the .vcf is delivered.</p>
+            </div>
+        </label>
+    </div>
+</div>
+
+<script>
+function vcfForm({ emails, phones, urls, addrs, socials, photoUrl }) {
+    return {
+        emails: emails.length ? emails : [{ label: 'Personal', value: '' }],
+        phones: phones.length ? phones : [{ label: 'Mobile', value: '' }],
+        urls:   urls.length   ? urls   : [{ label: 'Website', value: '' }],
+        addrs,
+        socials,
+        photoPreview: photoUrl,
+        removeFlag: false,
+        addEmail()   { this.emails.push({ label: 'Personal', value: '' }); },
+        addPhone()   { this.phones.push({ label: 'Mobile', value: '' }); },
+        addUrl()     { this.urls.push({ label: 'Website', value: '' }); },
+        addAddress() { this.addrs.push({ label: 'Home', street: '', city: '', state: '', zip: '', country: '' }); },
+        addSocial()  { this.socials.push({ service: 'Twitter', value: '' }); },
+        onPhoto(ev)  {
+            const f = ev.target.files && ev.target.files[0];
+            if (!f) return;
+            this.removeFlag = false;
+            this.photoPreview = URL.createObjectURL(f);
+        },
+        removePhoto() {
+            this.photoPreview = null;
+            this.removeFlag = true;
+            const input = document.querySelector('input[type=file][name=photo]');
+            if (input) input.value = '';
+        },
+    };
+}
+</script>

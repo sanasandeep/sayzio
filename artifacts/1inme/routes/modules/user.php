@@ -99,6 +99,8 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('links-ics', [IcsLinkController::class, 'store'])->middleware(CheckPlanLimit::class . ':links')->name('links.ics.store');
         Route::get('links-vcf/create', [VcfLinkController::class, 'create'])->name('links.vcf.create');
         Route::post('links-vcf', [VcfLinkController::class, 'store'])->middleware(CheckPlanLimit::class . ':links')->name('links.vcf.store');
+        Route::get('links-vcf/{link}/edit', [VcfLinkController::class, 'edit'])->name('links.vcf.edit');
+        Route::put('links-vcf/{link}', [VcfLinkController::class, 'update'])->name('links.vcf.update');
 
         Route::get('links/{link}/blocks', [BiolinkBlockController::class, 'editor'])->name('links.blocks.editor');
         Route::get('links/{link}/settings', [BiolinkBlockController::class, 'settings'])->name('links.blocks.settings');

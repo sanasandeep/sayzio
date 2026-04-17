@@ -38,12 +38,32 @@
         $actionLabel = 'Save contact';
         $vcf = $link->vcfData;
         if ($vcf) {
-            $name = trim(($vcf->first_name ?? '') . ' ' . ($vcf->last_name ?? ''));
-            if ($name) $details[] = ['label' => 'Name', 'value' => $name];
-            if ($vcf->organization) $details[] = ['label' => 'Organization', 'value' => $vcf->organization];
-            if ($vcf->title) $details[] = ['label' => 'Title', 'value' => $vcf->title];
-            if ($vcf->email) $details[] = ['label' => 'Email', 'value' => $vcf->email];
-            if ($vcf->phone) $details[] = ['label' => 'Phone', 'value' => $vcf->phone];
+            $name = $vcf->fullName();
+            if ($name) $details[] = ['label' => 'Name', 'value' => $name . ($vcf->nickname ? ' (“' . $vcf->nickname . '”)' : '')];
+            if ($vcf->title || $vcf->role) $details[] = ['label' => 'Title', 'value' => trim(($vcf->title ?? '') . ($vcf->role ? ' · ' . $vcf->role : ''))];
+            if ($vcf->organization || $vcf->department) {
+                $details[] = ['label' => 'Organization', 'value' => trim(($vcf->organization ?? '') . ($vcf->department ? ' · ' . $vcf->department : ''))];
+            }
+            foreach ($vcf->emailList() as $e) {
+                $details[] = ['label' => $e['label'] ?? 'Email', 'value' => $e['value']];
+            }
+            foreach ($vcf->phoneList() as $p) {
+                $details[] = ['label' => $p['label'] ?? 'Phone', 'value' => $p['value']];
+            }
+            foreach ($vcf->urlList() as $u) {
+                $details[] = ['label' => $u['label'] ?? 'Website', 'value' => $u['value']];
+            }
+            foreach ($vcf->addressList() as $a) {
+                $line = trim(implode(', ', array_filter([
+                    $a['street'] ?? null, $a['city'] ?? null, $a['state'] ?? null, $a['zip'] ?? null, $a['country'] ?? null,
+                ])));
+                if ($line !== '') $details[] = ['label' => $a['label'] ?? 'Address', 'value' => $line];
+            }
+            foreach ($vcf->socialList() as $s) {
+                $details[] = ['label' => $s['service'] ?? 'Social', 'value' => $s['value']];
+            }
+            if ($vcf->birthday)    $details[] = ['label' => 'Birthday',    'value' => $vcf->birthday->format('M j, Y')];
+            if ($vcf->anniversary) $details[] = ['label' => 'Anniversary', 'value' => $vcf->anniversary->format('M j, Y')];
         }
     }
 @endphp
