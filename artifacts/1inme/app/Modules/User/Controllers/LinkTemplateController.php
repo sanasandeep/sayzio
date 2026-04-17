@@ -48,11 +48,19 @@ class LinkTemplateController extends Controller
         abort_if($link->user_id !== auth()->id() || $link->type !== 'biolink', 403);
         $validated = $request->validate([
             'template_id' => 'required|integer|exists:page_templates,id',
+            'confirm_overwrite' => 'nullable|boolean',
         ]);
         $tpl = PageTemplate::active()->where('id', $validated['template_id'])->firstOrFail();
         $userPlanSlug = auth()->user()->plan?->slug;
         if ($this->isLocked($tpl->plan_tier, $userPlanSlug)) {
             return back()->with('error', 'This template requires a higher plan.');
+        }
+
+        // Server-side overwrite guard: if the link already has any blocks,
+        // require explicit confirmation (UI sets the flag from a JS confirm).
+        $hasBlocks = $link->biolinkBlocks()->exists();
+        if ($hasBlocks && empty($validated['confirm_overwrite'])) {
+            return back()->with('error', 'Applying this template will replace your existing blocks. Confirm to proceed.');
         }
 
         $this->templates->applyPageToLink($link, $tpl->snapshot, /*replace*/ true);
@@ -67,6 +75,7 @@ class LinkTemplateController extends Controller
         $validated = $request->validate([
             'template_id' => 'required|integer|exists:card_templates,id',
             'insert_after' => 'nullable|integer|exists:biolink_blocks,id',
+            'tab_id' => 'nullable|string|max:64',
         ]);
         $tpl = CardTemplate::active()->where('id', $validated['template_id'])->firstOrFail();
         $userPlanSlug = auth()->user()->plan?->slug;
@@ -74,7 +83,10 @@ class LinkTemplateController extends Controller
             return response()->json(['success' => false, 'error' => 'This template requires a higher plan.'], 403);
         }
 
-        $block = $this->templates->applyCardToLink($link, $tpl->snapshot, $validated['insert_after'] ?? null);
+        // tab_id present in request (even empty) opts into tab-aware insertion;
+        // absent means honor any _tab_id baked into the admin snapshot.
+        $tabId = $request->has('tab_id') ? ($validated['tab_id'] ?? '') : null;
+        $block = $this->templates->applyCardToLink($link, $tpl->snapshot, $validated['insert_after'] ?? null, $tabId);
 
         if ($request->ajax() || $request->wantsJson()) {
             return response()->json(['success' => true, 'block_id' => $block->id]);

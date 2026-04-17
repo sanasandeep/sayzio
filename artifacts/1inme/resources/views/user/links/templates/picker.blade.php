@@ -73,10 +73,15 @@
                                 <i class="fas fa-lock mr-1"></i>Upgrade to "{{ $tpl->plan_tier }}" to use
                             </a>
                         @else
-                            <form method="POST" action="{{ route('user.links.templates.apply-page', $link) }}">
+                            @php $hasBlocks = $link->biolinkBlocks()->exists(); @endphp
+                            <form method="POST" action="{{ route('user.links.templates.apply-page', $link) }}"
+                                  @if($hasBlocks) onsubmit="return confirm('This will replace your existing blocks on this biolink. Continue?');" @endif>
                                 @csrf
                                 <input type="hidden" name="template_id" value="{{ $tpl->id }}">
-                                <button type="submit" class="w-full py-2 text-xs font-semibold rounded-xl bg-violet-600 hover:bg-violet-700 text-white transition">Use this template</button>
+                                @if($hasBlocks)<input type="hidden" name="confirm_overwrite" value="1">@endif
+                                <button type="submit" class="w-full py-2 text-xs font-semibold rounded-xl bg-violet-600 hover:bg-violet-700 text-white transition">
+                                    {{ $hasBlocks ? 'Replace with this template' : 'Use this template' }}
+                                </button>
                             </form>
                         @endif
                     </div>

@@ -89,9 +89,10 @@ class TemplateService
             $settings = $link->settings ?? [];
             $existingBiolink = (array) ($settings['biolink'] ?? []);
             $tplBiolink = (array) ($snapshot['biolink'] ?? []);
-            // Preserve link-specific identity (verified avatar/heading text & favicon)
-            // by keeping existing keys for those fields if present.
-            $preserveKeys = ['favicon_url', 'custom_branding_text', 'custom_branding_url', 'custom_branding_logo'];
+            // Preserve link-specific identity (verified avatar/heading text &
+            // favicon) and the existing nav-tab structure (menu_bar) when the
+            // template doesn't explicitly bring its own.
+            $preserveKeys = ['favicon_url', 'custom_branding_text', 'custom_branding_url', 'custom_branding_logo', 'menu_bar'];
             foreach ($preserveKeys as $k) {
                 if (array_key_exists($k, $existingBiolink) && !array_key_exists($k, $tplBiolink)) {
                     $tplBiolink[$k] = $existingBiolink[$k];
@@ -109,9 +110,20 @@ class TemplateService
         });
     }
 
-    public function applyCardToLink(Link $link, array $snapshot, ?int $insertAfterId = null): BiolinkBlock
+    /**
+     * Apply a card-template snapshot.
+     *
+     * Tab-awareness:
+     * - If the caller supplies $tabId (id of a menu_bar tab in this link),
+     *   we set `_tab_id` on the inserted card so it shows up on that tab.
+     * - If $tabId is null AND the snapshot has its own _tab_id from the
+     *   source link, we honor it (admin curated). If the supplied tab_id
+     *   is the empty string ('' explicitly), we strip _tab_id (general/all
+     *   tabs).
+     */
+    public function applyCardToLink(Link $link, array $snapshot, ?int $insertAfterId = null, $tabId = null): BiolinkBlock
     {
-        return DB::transaction(function () use ($link, $snapshot, $insertAfterId) {
+        return DB::transaction(function () use ($link, $snapshot, $insertAfterId, $tabId) {
             if (($snapshot['type'] ?? null) !== 'card') {
                 throw new \InvalidArgumentException('Card snapshot missing or invalid.');
             }
@@ -130,7 +142,17 @@ class TemplateService
                 $newSort = ((int) ($link->biolinkBlocks()->whereNull('parent_id')->max('sort_order') ?? -1)) + 1;
             }
 
-            return $this->insertBlockTree($link, $snapshot, null, $newSort, /*stripTabId*/ true);
+            // Apply tab context: explicit tabId wins; '' means strip; null = honor snapshot.
+            if ($tabId !== null) {
+                $snapshot['settings'] = (array) ($snapshot['settings'] ?? []);
+                if ($tabId === '' || $tabId === false) {
+                    unset($snapshot['settings']['_tab_id']);
+                } else {
+                    $snapshot['settings']['_tab_id'] = (string) $tabId;
+                }
+            }
+
+            return $this->insertBlockTree($link, $snapshot, null, $newSort, /*stripTabId*/ false);
         });
     }
 
