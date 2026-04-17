@@ -54,9 +54,12 @@
                     ['value' => 'ics',     'icon' => 'fa-calendar',     'color' => 'text-amber-400',   'label' => 'Event Invite'],
                     ['value' => 'vcf',     'icon' => 'fa-address-card', 'color' => 'text-cyan-400',    'label' => 'Digital Card'],
                 ] as $opt)
-                    <label class="relative cursor-pointer">
-                        <input type="radio" name="type" value="{{ $opt['value'] }}" x-model="type" class="peer sr-only">
-                        <div class="peer-checked:border-violet-500 peer-checked:bg-violet-500/10 border border-white/10 rounded-xl p-4 text-center transition-all hover:bg-white/[0.04]">
+                    <label class="relative cursor-pointer block">
+                        <input type="radio" name="type" value="{{ $opt['value'] }}" x-model="type" class="sr-only">
+                        <div class="border rounded-xl p-4 text-center transition-all"
+                             :class="type === '{{ $opt['value'] }}'
+                                ? 'border-violet-500 bg-violet-500/10 ring-2 ring-violet-500/30'
+                                : 'border-white/10 hover:bg-white/[0.04]'">
                             <i class="fas {{ $opt['icon'] }} {{ $opt['color'] }} text-xl mb-2"></i>
                             <div class="text-sm font-medium text-white/80">{{ $opt['label'] }}</div>
                         </div>
