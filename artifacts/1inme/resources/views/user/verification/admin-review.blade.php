@@ -54,7 +54,7 @@
                             <p class="text-[11px]" style="color: var(--text-muted);">{{ $verificationRequest->user->email }}</p>
                         </div>
                         <div>
-                            <label class="text-[10px] font-semibold uppercase tracking-wider" style="color: var(--text-dimmed);">Biolink Page</label>
+                            <label class="text-[10px] font-semibold uppercase tracking-wider" style="color: var(--text-dimmed);">Link in Bio Page</label>
                             <p class="text-sm font-medium mt-0.5" style="color: var(--text-primary);">{{ $verificationRequest->link->title ?? $verificationRequest->link->alias }}</p>
                             <a href="/{{ $verificationRequest->link->alias }}" target="_blank" class="text-[11px] text-violet-400 hover:underline">/{{ $verificationRequest->link->alias }} <i class="fas fa-external-link-alt text-[9px]"></i></a>
                         </div>

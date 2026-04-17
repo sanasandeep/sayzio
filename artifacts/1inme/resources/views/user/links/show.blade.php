@@ -916,7 +916,7 @@
 <div class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#8b5cf6,#d946ef); --sc-glow: rgba(139,92,246,0.35); --sc-color: #d8b4fe; --sc-border: rgba(139,92,246,0.3);">
     <div class="section-head">
         <div class="section-title"><div class="section-icon"><i class="fas fa-th-large"></i></div> Block-Level Clicks</div>
-        <span class="section-pill" title="Each row = one biolink block. Clicks are tracked when a visitor taps the block on your public bio page."><i class="fas fa-link"></i> Internal biolink links · {{ $rangeFmt($startDate, $endDate) }} vs prev</span>
+        <span class="section-pill" title="Each row = one block in your Link in Bio page. Clicks are tracked when a visitor taps the block on your public page."><i class="fas fa-link"></i> Internal block clicks · {{ $rangeFmt($startDate, $endDate) }} vs prev</span>
     </div>
 
     {{-- ===== Comparison KPIs (this period vs previous period of same length) ===== --}}
@@ -1031,7 +1031,7 @@
         <span class="section-pill"><i class="fas fa-clock"></i> Time visible on screen</span>
     </div>
     @if($blockEngagement->isEmpty())
-        <p class="text-sm text-center py-8" style="color: var(--text-faint);">No view data yet. Visit the public biolink page to start collecting engagement data.</p>
+        <p class="text-sm text-center py-8" style="color: var(--text-faint);">No view data yet. Visit the public Link in Bio page to start collecting engagement data.</p>
     @else
 
     {{-- Engagement summary widgets --}}

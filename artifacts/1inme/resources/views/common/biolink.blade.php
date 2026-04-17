@@ -7,7 +7,7 @@
     $shareBtnSettings = $link->settings['biolink']['share_button'] ?? [];
     $menuBarSettings = $link->settings['biolink']['menu_bar'] ?? [];
     $autoTranslateSettings = $link->settings['biolink']['auto_translate'] ?? [];
-    $pageTitle = $metaSettings['seo_title'] ?? $link->seo_title ?? $link->title ?? '1INME Bio Link';
+    $pageTitle = $metaSettings['seo_title'] ?? $link->seo_title ?? $link->title ?? '1INME Link in Bio';
     $pageDesc = $metaSettings['seo_description'] ?? $link->seo_description ?? '';
     $pageImage = $ogSettings['image_url'] ?? $link->seo_image ?? '';
     $ogTitle = $ogSettings['title'] ?? $pageTitle;
@@ -687,7 +687,7 @@
     <div class="biolink-container">
         @php
             $blocks = $link->activeBiolinkBlocks()->get()->filter(fn($b) => $b->isVisible());
-            $pageTitle = $bs['biolink_title'] ?? $link->title ?: 'Bio Link';
+            $pageTitle = $bs['biolink_title'] ?? $link->title ?: 'Link in Bio';
             $pageDescription = $bs['biolink_description'] ?? $link->seo_description ?? '';
             $globalTheme = $bs['block_theme'] ?? [];
         @endphp
@@ -1653,7 +1653,7 @@
                     <p class="text-sm mt-2" style="color: {{ $fontColor }}aa">{{ $pageDescription }}</p>
                 @endif
                 <div class="glass-block rounded-xl p-6 text-sm mt-6" style="color: {{ $fontColor }}88">
-                    This bio link page is being set up. Check back soon!
+                    This Link in Bio page is being set up. Check back soon!
                 </div>
             </div>
         @endforelse

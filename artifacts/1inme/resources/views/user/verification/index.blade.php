@@ -6,7 +6,7 @@
     <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
             <h1 class="text-2xl font-bold" style="color: var(--text-primary);">Verification</h1>
-            <p class="text-sm mt-1" style="color: var(--text-muted);">Get a verified badge on your biolink pages</p>
+            <p class="text-sm mt-1" style="color: var(--text-muted);">Get a verified badge on your Link in Bio pages</p>
         </div>
         <a href="{{ route('user.verification.request') }}" class="px-4 py-2 rounded-xl text-sm font-medium text-white transition-all hover:-translate-y-0.5" style="background: linear-gradient(135deg, #7c3aed, #8b5cf6);">
             <i class="fas fa-plus mr-1.5"></i>Request Verification
@@ -31,7 +31,7 @@
             </div>
             <div>
                 <h3 class="font-bold text-sm mb-1" style="color: var(--text-primary);">Why get verified?</h3>
-                <p class="text-xs leading-relaxed" style="color: var(--text-muted);">A verified badge confirms your identity and adds a blue checkmark to your biolink page. Verified pages get special blocks (heading & avatar with blue tick) and the page name becomes locked to prevent impersonation.</p>
+                <p class="text-xs leading-relaxed" style="color: var(--text-muted);">A verified badge confirms your identity and adds a blue checkmark to your Link in Bio page. Verified pages get special blocks (heading & avatar with blue tick) and the page name becomes locked to prevent impersonation.</p>
             </div>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -78,7 +78,7 @@
                             </span>
                         </div>
                         <p class="text-[11px]" style="color: var(--text-dimmed);">
-                            {{ $req->business_name }} &middot; Biolink: {{ $req->link->title ?? $req->link->alias }}
+                            {{ $req->business_name }} &middot; Link in Bio: {{ $req->link->title ?? $req->link->alias }}
                         </p>
                     </div>
                 </div>
@@ -107,7 +107,7 @@
             <i class="fas fa-check-circle text-violet-400 text-2xl"></i>
         </div>
         <h3 class="text-sm font-bold mb-1" style="color: var(--text-primary);">No verification requests yet</h3>
-        <p class="text-xs mb-4" style="color: var(--text-dimmed);">Submit a verification request to get the blue badge on your biolink page.</p>
+        <p class="text-xs mb-4" style="color: var(--text-dimmed);">Submit a verification request to get the blue badge on your Link in Bio page.</p>
         <a href="{{ route('user.verification.request') }}" class="inline-flex items-center px-4 py-2 rounded-xl text-sm font-medium text-white transition-all hover:-translate-y-0.5" style="background: linear-gradient(135deg, #7c3aed, #8b5cf6);">
             <i class="fas fa-plus mr-1.5"></i>Request Verification
         </a>

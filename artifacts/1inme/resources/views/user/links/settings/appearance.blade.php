@@ -141,7 +141,7 @@
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Page Title @if($link->is_verified)<span class="text-[10px] px-1.5 py-0.5 rounded ml-1" style="background: rgba(29,155,240,0.1); color: #1d9bf0;"><i class="fas fa-lock text-[8px]"></i> Verified</span>@endif</label>
-                                    <input type="text" name="biolink_title" value="{{ $bs['biolink_title'] ?? $link->title }}" class="theme-input w-full" placeholder="My Bio Link" {{ $link->is_verified ? 'disabled' : '' }}>
+                                    <input type="text" name="biolink_title" value="{{ $bs['biolink_title'] ?? $link->title }}" class="theme-input w-full" placeholder="My Link in Bio" {{ $link->is_verified ? 'disabled' : '' }}>
                                 </div>
                                 <div>
                                     <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Font Family</label>

@@ -269,7 +269,7 @@
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">App Name</label>
-                            <input type="text" name="manifest[name]" value="{{ $manifest['name'] ?? '' }}" placeholder="{{ $link->title ?: 'My Bio Page' }}" class="theme-input w-full" maxlength="100">
+                            <input type="text" name="manifest[name]" value="{{ $manifest['name'] ?? '' }}" placeholder="{{ $link->title ?: 'My Link in Bio' }}" class="theme-input w-full" maxlength="100">
                         </div>
                         <div>
                             <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Short Name</label>
@@ -454,7 +454,7 @@
                         </div>
                     </label>
                 </div>
-                <p class="text-[11px] mb-4 ml-11" style="color: var(--text-dimmed);">Add a sticky navigation bar linking to other biolink pages or external URLs.</p>
+                <p class="text-[11px] mb-4 ml-11" style="color: var(--text-dimmed);">Add a sticky navigation bar linking to other Link in Bio pages or external URLs.</p>
 
                 <div x-show="enabled" x-transition class="space-y-4" x-data="{ mbPos: '{{ $menuBar['position'] ?? 'top' }}' }">
                     <input type="hidden" name="menu_bar[items]" :value="JSON.stringify(items)">
@@ -703,7 +703,7 @@
                     @if(!$canCode)<span class="text-[9px] px-1.5 py-0.5 rounded-full font-bold" style="background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(124,58,237,0.1)); color: #8b5cf6;">PRO</span>@endif
                 </div>
                 @if($canCode)
-                <p class="text-[11px] mb-4" style="color: var(--text-dimmed);">Inject custom code into your biolink page.</p>
+                <p class="text-[11px] mb-4" style="color: var(--text-dimmed);">Inject custom code into your Link in Bio page.</p>
                 <div class="space-y-4" x-data="{ codeTab: 'css' }">
                     <div class="flex gap-1 p-0.5 rounded-lg" style="background: var(--bg-glass-input);">
                         @foreach(['css' => 'CSS', 'js_head' => 'JS (Head)', 'js_body' => 'JS (Body)'] as $ctKey => $ctLabel)

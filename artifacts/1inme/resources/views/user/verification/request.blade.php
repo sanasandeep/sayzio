@@ -25,9 +25,9 @@
         @csrf
 
         <div class="card-premium p-6">
-            <h3 class="text-sm font-bold mb-4" style="color: var(--text-primary);"><i class="fas fa-link text-violet-400 mr-2"></i>Select Biolink Page</h3>
+            <h3 class="text-sm font-bold mb-4" style="color: var(--text-primary);"><i class="fas fa-link text-violet-400 mr-2"></i>Select Link in Bio Page</h3>
             <select name="link_id" required class="theme-input w-full text-sm">
-                <option value="">Choose a biolink page...</option>
+                <option value="">Choose a Link in Bio page...</option>
                 @foreach($biolinks as $bl)
                 <option value="{{ $bl->id }}" {{ (old('link_id', $linkId) == $bl->id) ? 'selected' : '' }}>
                     {{ $bl->title ?: $bl->alias }} {{ $bl->is_verified ? '(Already Verified)' : '' }}
@@ -79,12 +79,12 @@
                 <div>
                     <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Display Name (shown on page)</label>
                     <input type="text" name="display_name" value="{{ old('display_name') }}" required maxlength="200" class="theme-input w-full text-sm" placeholder="Name as it will appear on your verified page">
-                    <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">This name will be locked on your biolink page once verified.</p>
+                    <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">This name will be locked on your Link in Bio page once verified.</p>
                 </div>
                 <div>
                     <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">
                         <span x-show="category === 'artist_creator'">Why should this page be verified?</span>
-                        <span x-show="category === 'business_product'">Purpose of the biolink page</span>
+                        <span x-show="category === 'business_product'">Purpose of the Link in Bio page</span>
                     </label>
                     <textarea name="purpose" required maxlength="2000" rows="4" class="theme-input w-full text-sm" placeholder="Explain how this page is used and why it should be verified...">{{ old('purpose') }}</textarea>
                 </div>

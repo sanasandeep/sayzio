@@ -89,7 +89,7 @@
                     @endif
                     @if(isset($features['max_biolinks']))
                     <span class="px-2 py-0.5 rounded-md text-[10px] font-medium" style="background: var(--bg-glass); color: var(--text-muted); border: 1px solid var(--border-subtle);">
-                        {{ $features['max_biolinks'] }} biolinks
+                        {{ $features['max_biolinks'] }} Link in Bio pages
                     </span>
                     @endif
                     @if(isset($features['max_projects']))

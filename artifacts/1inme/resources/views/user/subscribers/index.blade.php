@@ -68,7 +68,7 @@
                 </select>
             </div>
             <div>
-                <label class="text-xs font-medium mb-1 block" style="color: var(--text-muted);">Biolink</label>
+                <label class="text-xs font-medium mb-1 block" style="color: var(--text-muted);">Link in Bio</label>
                 <select name="link_id" class="px-3 py-2 rounded-xl text-sm outline-none" style="background: var(--bg-input); border: 1px solid var(--border-subtle); color: var(--text-primary);">
                     <option value="">All Links</option>
                     @foreach($links as $l)
@@ -166,7 +166,7 @@
             <i class="fas fa-users text-2xl text-violet-400"></i>
         </div>
         <h3 class="text-lg font-semibold mb-2" style="color: var(--text-primary);">No subscribers yet</h3>
-        <p class="text-sm mb-4" style="color: var(--text-muted);">Add Email Subscribe, WhatsApp Channel, or WhatsApp Number blocks to your biolinks to start collecting subscribers.</p>
+        <p class="text-sm mb-4" style="color: var(--text-muted);">Add Email Subscribe, WhatsApp Channel, or WhatsApp Number blocks to your Link in Bio pages to start collecting subscribers.</p>
         <a href="{{ route('user.links.index') }}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-white" style="background: linear-gradient(135deg, #7c3aed, #8b5cf6);">
             <i class="fas fa-link"></i>Go to Links
         </a>

@@ -96,7 +96,7 @@
                                    style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
                         </div>
                         <div>
-                            <label class="block text-[11px] font-medium mb-1" style="color: var(--text-dimmed);">Max Biolinks</label>
+                            <label class="block text-[11px] font-medium mb-1" style="color: var(--text-dimmed);">Max Link in Bio pages</label>
                             <input type="number" name="features[max_biolinks]" value="{{ $features['max_biolinks'] ?? 1 }}" min="0"
                                    class="w-full px-3 py-2 rounded-xl text-sm outline-none"
                                    style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">

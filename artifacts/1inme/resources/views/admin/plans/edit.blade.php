@@ -63,7 +63,7 @@
                                    class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs text-white/40 mb-1">Max Biolinks</label>
+                            <label class="block text-xs text-white/40 mb-1">Max Link in Bio pages</label>
                             <input type="number" name="features[max_biolinks]" value="{{ $features['max_biolinks'] ?? 1 }}" min="0"
                                    class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
                         </div>
@@ -83,7 +83,7 @@
                                    class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs text-white/40 mb-1" title="Additional aliases per biolink (does NOT include the primary alias). Use -1 for unlimited, 0 to disable.">Extra Aliases per Biolink</label>
+                            <label class="block text-xs text-white/40 mb-1" title="Additional aliases per Link in Bio (does NOT include the primary alias). Use -1 for unlimited, 0 to disable.">Extra Aliases per Link in Bio</label>
                             <input type="number" name="features[max_aliases_per_link]" value="{{ $features['max_aliases_per_link'] ?? 0 }}" min="-1"
                                    class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
                             <p class="text-[10px] text-white/30 mt-1">-1 = unlimited · 0 = primary alias only</p>

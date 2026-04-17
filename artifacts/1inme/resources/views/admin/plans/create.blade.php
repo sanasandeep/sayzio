@@ -63,7 +63,7 @@
                                    class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs text-white/40 mb-1">Max Biolinks</label>
+                            <label class="block text-xs text-white/40 mb-1">Max Link in Bio pages</label>
                             <input type="number" name="features[max_biolinks]" value="{{ old('features.max_biolinks', '1') }}" min="0"
                                    class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
                         </div>
