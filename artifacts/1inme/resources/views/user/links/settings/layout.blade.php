@@ -15,7 +15,7 @@
     @include('user.links.partials.settings-header', ['link' => $link, 'activeSettingsTab' => $activeSettingsTab])
 
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        <div class="lg:col-span-7">
+        <div class="lg:col-span-7" id="settings-tab-content">
             <form method="POST" action="{{ route('user.links.page-settings', $link) }}" enctype="multipart/form-data">
                 @csrf
 
@@ -84,7 +84,7 @@
             </form>
         </div>
 
-        <div class="lg:col-span-5 hidden lg:block">
+        <div class="lg:col-span-5 hidden lg:block lg:self-stretch lg:h-full">
             @include('user.links.partials.device-preview', ['link' => $link])
         </div>
     </div>

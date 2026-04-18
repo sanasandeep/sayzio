@@ -24,7 +24,7 @@
     @include('user.links.partials.settings-header', ['link' => $link, 'activeSettingsTab' => $activeSettingsTab])
 
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        <div class="lg:col-span-7">
+        <div class="lg:col-span-7" id="settings-tab-content">
             <form method="POST" action="{{ route('user.links.page-settings', $link) }}" enctype="multipart/form-data">
                 @csrf
 
@@ -266,31 +266,31 @@
 
                 @include('user.links.partials.settings-footer', ['link' => $link])
             </form>
+
+            <script>
+            var globalTemplates = @json($gtTemplates);
+            function applyGlobalTemplate(key, btn) {
+                var tpl = globalTemplates[key];
+                if (!tpl) return;
+                var form = btn.closest('form');
+                if (!form) return;
+                var style = tpl.style;
+                for (var prop in style) {
+                    var input = form.querySelector('[name="block_theme[' + prop + ']"]');
+                    if (input) {
+                        input.value = style[prop];
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                }
+                btn.style.transform = 'scale(0.95)';
+                setTimeout(function() { btn.style.transform = ''; }, 150);
+            }
+            </script>
         </div>
 
-        <div class="lg:col-span-5 hidden lg:block">
+        <div class="lg:col-span-5 hidden lg:block lg:self-stretch lg:h-full">
             @include('user.links.partials.device-preview', ['link' => $link])
         </div>
     </div>
 </div>
-
-<script>
-var globalTemplates = @json($gtTemplates);
-function applyGlobalTemplate(key, btn) {
-    var tpl = globalTemplates[key];
-    if (!tpl) return;
-    var form = btn.closest('form');
-    if (!form) return;
-    var style = tpl.style;
-    for (var prop in style) {
-        var input = form.querySelector('[name="block_theme[' + prop + ']"]');
-        if (input) {
-            input.value = style[prop];
-            input.dispatchEvent(new Event('input', { bubbles: true }));
-        }
-    }
-    btn.style.transform = 'scale(0.95)';
-    setTimeout(function() { btn.style.transform = ''; }, 150);
-}
-</script>
 @endsection

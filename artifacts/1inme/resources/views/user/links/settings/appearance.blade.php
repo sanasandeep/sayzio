@@ -39,16 +39,14 @@
     @include('user.links.partials.editor-header', ['link' => $link, 'activeMainTab' => 'settings'])
     @include('user.links.partials.settings-header', ['link' => $link, 'activeSettingsTab' => $activeSettingsTab])
 
-    {{-- Aliases card lives OUTSIDE the page-settings form because it contains
-         its own <form> tags (add / promote / delete) — nesting forms is invalid HTML. --}}
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start mb-6">
-        <div class="lg:col-span-7">
-            @include('user.links.partials.aliases-card', ['link' => $link])
-        </div>
-    </div>
-
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        <div class="lg:col-span-7">
+        <div class="lg:col-span-7" id="settings-tab-content">
+            {{-- Aliases card lives OUTSIDE the page-settings form because it contains
+                 its own <form> tags (add / promote / delete) — nesting forms is invalid HTML. --}}
+            <div class="mb-6">
+                @include('user.links.partials.aliases-card', ['link' => $link])
+            </div>
+
             <form method="POST" action="{{ route('user.links.page-settings', $link) }}" enctype="multipart/form-data">
                 @csrf
 
@@ -672,15 +670,8 @@
                     <a href="{{ route('user.links.show', $link) }}" class="text-xs px-4 py-2 rounded-lg" style="color: var(--text-faint);">Cancel</a>
                 </div>
             </form>
-        </div>
 
-        <div class="lg:col-span-5 hidden lg:block lg:self-stretch lg:h-full">
-            @include('user.links.partials.device-preview', ['link' => $link])
-        </div>
-    </div>
-</div>
-
-<script>
+            <script>
 function bgSettings() {
     return {
         bgType: '{{ $bgType }}',
@@ -722,5 +713,12 @@ function bgSettings() {
         }
     };
 }
-</script>
+            </script>
+        </div>
+
+        <div class="lg:col-span-5 hidden lg:block lg:self-stretch lg:h-full">
+            @include('user.links.partials.device-preview', ['link' => $link])
+        </div>
+    </div>
+</div>
 @endsection

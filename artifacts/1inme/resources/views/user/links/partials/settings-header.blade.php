@@ -53,4 +53,87 @@
         background: linear-gradient(135deg, #8b5cf6, #7c3aed);
         box-shadow: 0 4px 14px -4px rgba(124,58,237,0.45);
     }
+    #settings-tab-content.is-loading { opacity: 0.5; pointer-events: none; transition: opacity .15s ease; }
 </style>
+
+<script>
+/* AJAX-swap settings sub-tabs so the device preview iframe never reloads.
+   Only the left column (#settings-tab-content) is fetched and replaced.
+   Falls back to a normal navigation if the destination doesn't expose the
+   #settings-tab-content slot (e.g. the Intro/splash page). */
+(function() {
+    if (window.__settingsTabSwapInit) return;
+    window.__settingsTabSwapInit = true;
+
+    function swapSettingsTab(url, push) {
+        var container = document.getElementById('settings-tab-content');
+        if (!container) { window.location.href = url; return; }
+        container.classList.add('is-loading');
+
+        fetch(url, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'text/html' },
+            credentials: 'same-origin'
+        })
+        .then(function(r) {
+            if (!r.ok) throw new Error('http ' + r.status);
+            return r.text();
+        })
+        .then(function(html) {
+            var doc = new DOMParser().parseFromString(html, 'text/html');
+            var fresh = doc.getElementById('settings-tab-content');
+            if (!fresh) { window.location.href = url; return; }
+
+            container.innerHTML = fresh.innerHTML;
+
+            // <script> tags injected via innerHTML don't execute — re-create them.
+            container.querySelectorAll('script').forEach(function(oldScript) {
+                var s = document.createElement('script');
+                for (var i = 0; i < oldScript.attributes.length; i++) {
+                    var a = oldScript.attributes[i];
+                    s.setAttribute(a.name, a.value);
+                }
+                s.textContent = oldScript.textContent;
+                oldScript.parentNode.replaceChild(s, oldScript);
+            });
+
+            var newTitle = doc.querySelector('title');
+            if (newTitle) document.title = newTitle.textContent;
+
+            if (push) history.pushState({ settingsTabUrl: url }, '', url);
+
+            // Update active state on the visible tabs.
+            document.querySelectorAll('.settings-tab').forEach(function(a) {
+                if (a.getAttribute('href') === url) a.classList.add('is-active');
+                else a.classList.remove('is-active');
+            });
+
+            // Bind Alpine to the freshly inserted DOM.
+            if (window.Alpine && typeof window.Alpine.initTree === 'function') {
+                try { window.Alpine.initTree(container); } catch (e) { console.warn('Alpine.initTree failed', e); }
+            }
+
+            container.classList.remove('is-loading');
+            window.scrollTo({ top: 0, behavior: 'auto' });
+        })
+        .catch(function(err) {
+            console.warn('settings tab swap failed, falling back to full reload', err);
+            window.location.href = url;
+        });
+    }
+
+    document.addEventListener('click', function(e) {
+        var link = e.target.closest('.settings-tab');
+        if (!link) return;
+        if (e.ctrlKey || e.metaKey || e.shiftKey || (e.button !== undefined && e.button !== 0)) return;
+        if (link.classList.contains('is-active')) { e.preventDefault(); return; }
+        var url = link.getAttribute('href');
+        if (!url || url.indexOf('#') === 0) return;
+        e.preventDefault();
+        swapSettingsTab(url, true);
+    });
+
+    window.addEventListener('popstate', function(e) {
+        if (e.state && e.state.settingsTabUrl) swapSettingsTab(e.state.settingsTabUrl, false);
+    });
+})();
+</script>
