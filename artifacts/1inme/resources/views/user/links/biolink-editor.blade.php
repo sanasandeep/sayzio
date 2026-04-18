@@ -400,19 +400,8 @@ $catColors = [
             border-color: rgba(124,58,237,0.35);
             box-shadow: 0 6px 18px -6px rgba(124,58,237,0.45);
         }
-        @media (min-width: 1024px) {
-            .device-preview-sticky {
-                position: sticky;
-                top: 12px;
-            }
-            /* Phone is 375x812 inside a 280px wide frame (~606px tall + chrome).
-               Scale the frame width down so the whole device + switcher + label
-               always fits within the viewport height, no matter how short. */
-            .device-preview-sticky .device-frame-phone {
-                width: min(280px, calc((100vh - 120px) * 375 / 812));
-            }
-            .device-preview-sticky > div > .flex.items-center.justify-center.gap-1 { margin-bottom: 8px; }
-        }
+        /* Sticky behavior now lives inside the device-preview partial so
+           it works on every page that includes it (editor, appearance, etc.). */
     </style>
 
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">

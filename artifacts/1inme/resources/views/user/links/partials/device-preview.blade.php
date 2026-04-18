@@ -26,6 +26,15 @@
         width: 280px;
         margin: 0 auto;
     }
+    @media (min-width: 1024px) {
+        .device-preview-root {
+            position: sticky;
+            top: 12px;
+        }
+        .device-preview-root .device-frame-phone {
+            width: min(280px, calc((100vh - 120px) * 375 / 812));
+        }
+    }
     .device-frame-phone .device-screen {
         width: 100%;
         overflow: hidden;
@@ -117,7 +126,7 @@
     }
 </style>
 
-<div x-data="{ previewMode: 'phone' }">
+<div class="device-preview-root" x-data="{ previewMode: 'phone' }">
     <div class="flex items-center justify-center gap-1 mb-4">
         <button type="button" @click="previewMode = 'phone'; switchPreviewMode('phone')" class="device-switcher-btn" :class="previewMode === 'phone' ? 'active' : ''" title="Phone">
             <i class="fas fa-mobile-alt"></i>
