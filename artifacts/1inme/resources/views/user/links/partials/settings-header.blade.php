@@ -14,13 +14,43 @@
 </div>
 @endif
 
-<div class="flex items-center gap-1 mb-6 p-1 rounded-xl" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+<div class="settings-tabs inline-flex items-center gap-1 mb-6 p-1 rounded-full">
     @foreach($settingsTabs as $tabKey => $tab)
     <a href="{{ route($tab['route'], $link) }}"
-       class="flex-1 flex items-center justify-center gap-1.5 text-[11px] font-semibold py-2 rounded-lg transition-all no-underline {{ $activeSettingsTab === $tabKey ? 'text-white shadow-sm' : '' }}"
-       style="{{ $activeSettingsTab === $tabKey ? 'background: rgba(124,58,237,0.2); border: 1px solid rgba(124,58,237,0.3);' : 'color: var(--text-faint);' }}">
-        <i class="fas {{ $tab['icon'] }} text-[9px]"></i>
-        <span class="hidden sm:inline">{{ $tab['label'] }}</span>
+       class="settings-tab no-underline {{ $activeSettingsTab === $tabKey ? 'is-active' : '' }}">
+        <i class="fas {{ $tab['icon'] }} text-[10px]"></i>
+        <span>{{ $tab['label'] }}</span>
     </a>
     @endforeach
 </div>
+<style>
+    .settings-tabs {
+        background: var(--bg-glass-input);
+        border: 1px solid var(--border-glass);
+        backdrop-filter: blur(16px) saturate(140%);
+        -webkit-backdrop-filter: blur(16px) saturate(140%);
+    }
+    .settings-tab {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 16px;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        color: var(--text-faint);
+        border-radius: 9999px;
+        transition: color .2s ease, background .2s ease, box-shadow .2s ease, transform .2s ease;
+    }
+    .settings-tab:hover { color: var(--text-primary); }
+    .settings-tab.is-active {
+        color: #fff;
+        background: linear-gradient(135deg, rgba(167,139,250,0.95), rgba(103,232,249,0.85));
+        box-shadow: 0 6px 18px -6px rgba(167,139,250,0.55), 0 2px 8px -2px rgba(103,232,249,0.35), inset 0 1px 0 rgba(255,255,255,0.25);
+    }
+    html.light-mode .settings-tab.is-active {
+        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        box-shadow: 0 4px 14px -4px rgba(124,58,237,0.45);
+    }
+</style>
