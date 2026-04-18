@@ -342,14 +342,55 @@ $catColors = [
 <div x-data="biolinkEditor()" class="max-w-7xl mx-auto">
     @include('user.links.partials.editor-header', ['link' => $link, 'activeMainTab' => 'blocks'])
 
-    <div class="flex items-center justify-between mb-4">
-        <button @click="_insertAfterId = null; _cardGalleryParentId = null; showGallery = true" class="btn-primary px-5 py-2.5 text-sm" style="background: linear-gradient(135deg, #10b981, #059669);">
-            <i class="fas fa-plus text-xs"></i> Add block
+    <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
+        <button @click="_insertAfterId = null; _cardGalleryParentId = null; showGallery = true" class="add-block-btn">
+            <span class="add-block-icon"><i class="fas fa-plus text-[11px]"></i></span>
+            <span>Add block</span>
         </button>
         @if($blocks->count())
-        <span class="text-xs px-2 py-1 rounded-lg" style="background: var(--bg-glass); color: var(--text-faint);">{{ $blocks->count() }} blocks</span>
+        <span class="block-count-chip">
+            <i class="fas fa-layer-group text-[10px] opacity-70"></i>
+            <span><strong>{{ $blocks->count() }}</strong> blocks</span>
+        </span>
         @endif
     </div>
+    <style>
+        .add-block-btn {
+            display: inline-flex; align-items: center; gap: 10px;
+            padding: 9px 18px 9px 10px;
+            font-size: 13px; font-weight: 600; color: #fff;
+            border-radius: 9999px; border: 1px solid rgba(167,139,250,0.45);
+            background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 55%, #67e8f9 130%);
+            box-shadow: 0 10px 30px -10px rgba(124,58,237,0.55), 0 4px 14px -4px rgba(103,232,249,0.35), inset 0 1px 0 rgba(255,255,255,0.25);
+            transition: transform .18s ease, box-shadow .25s ease, filter .25s ease;
+        }
+        .add-block-btn:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.08);
+            box-shadow: 0 14px 36px -10px rgba(124,58,237,0.7), 0 6px 18px -4px rgba(103,232,249,0.45), inset 0 1px 0 rgba(255,255,255,0.3);
+        }
+        .add-block-icon {
+            width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center;
+            background: rgba(255,255,255,0.18); border-radius: 9999px;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.25);
+        }
+        .block-count-chip {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 6px 12px; border-radius: 9999px;
+            font-size: 11px; letter-spacing: 0.02em;
+            color: var(--text-faint);
+            background: var(--bg-glass);
+            border: 1px solid var(--border-glass);
+            backdrop-filter: blur(14px) saturate(140%);
+            -webkit-backdrop-filter: blur(14px) saturate(140%);
+        }
+        .block-count-chip strong { color: var(--text-primary); font-weight: 700; }
+        html.light-mode .add-block-btn {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            border-color: rgba(124,58,237,0.35);
+            box-shadow: 0 6px 18px -6px rgba(124,58,237,0.45);
+        }
+    </style>
 
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         <div class="lg:col-span-7 xl:col-span-7">
