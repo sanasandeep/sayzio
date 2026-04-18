@@ -1,6 +1,27 @@
 @extends('admin.layouts.app')
 @section('title', 'Asset Vault')
 
+@push('styles')
+<style>
+    /* On touch devices (no hover), keep asset hover actions always visible */
+    @media (hover: none) {
+        .asset-actions { opacity: 1 !important; }
+    }
+    /* Toast popup for "URL copied" feedback */
+    .vault-toast {
+        position: fixed; left: 50%; bottom: 24px;
+        transform: translateX(-50%);
+        background: #111827; color: #fff;
+        padding: 10px 18px; border-radius: 999px;
+        font-size: 12px; font-weight: 600;
+        box-shadow: 0 10px 30px rgba(0,0,0,.35);
+        z-index: 80; display: flex; align-items: center; gap: 8px;
+        border: 1px solid rgba(124,58,237,.5);
+    }
+    .vault-toast i { color: #a78bfa; }
+</style>
+@endpush
+
 @section('content')
 <div x-data="adminAssetVault()" x-init="init()" class="space-y-5 relative"
      @dragenter.prevent.stop="dragDepth++; dragOver = true"
@@ -193,7 +214,7 @@
                                 <template x-if="a.folder"><span class="ml-auto truncate" x-text="a.folder"></span></template>
                             </p>
                         </div>
-                        <div class="absolute top-1.5 right-1.5 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div class="asset-actions absolute top-1.5 right-1.5 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button @click="openMove(a)" title="Move to folder"
                                     class="w-7 h-7 rounded-md flex items-center justify-center text-xs"
                                     style="background: rgba(0,0,0,0.55); color: #fff;">
@@ -254,6 +275,12 @@
         </div>
     </div>
 
+    {{-- Copy toast --}}
+    <div x-show="toast" x-transition x-cloak class="vault-toast">
+        <i class="fas fa-check-circle"></i>
+        <span x-text="toast"></span>
+    </div>
+
     {{-- Move modal --}}
     <div x-show="moveModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4"
          style="background: rgba(0,0,0,0.55);">
@@ -309,6 +336,9 @@ function adminAssetVault() {
 
         dragOver: false,
         dragDepth: 0,
+
+        toast: '',
+        toastTimer: null,
 
         moveModal: false,
         moveAsset: null,
@@ -466,7 +496,30 @@ function adminAssetVault() {
         },
 
         async copyUrl(a) {
-            try { await navigator.clipboard.writeText(a.url); } catch (_) {}
+            const text = a.url;
+            let ok = false;
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(text);
+                    ok = true;
+                } else {
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.style.position = 'fixed';
+                    ta.style.opacity = '0';
+                    document.body.appendChild(ta);
+                    ta.focus(); ta.select();
+                    ok = document.execCommand('copy');
+                    document.body.removeChild(ta);
+                }
+            } catch (_) { ok = false; }
+            this.showToast(ok ? 'URL copied to clipboard' : 'Copy failed — long-press to copy');
+        },
+
+        showToast(msg) {
+            this.toast = msg;
+            if (this.toastTimer) clearTimeout(this.toastTimer);
+            this.toastTimer = setTimeout(() => { this.toast = ''; }, 2200);
         },
     }
 }
