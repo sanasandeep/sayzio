@@ -100,7 +100,7 @@
     @stack('styles')
 </head>
 <body class="min-h-screen" style="color: var(--text-primary);">
-    <div class="bg-mesh"></div>
+    <div class="bg-mesh"><span class="bloom bloom-pink"></span></div>
     <div class="particles" id="admin-particles"></div>
 
     <div class="flex h-screen relative z-10 overflow-hidden"
