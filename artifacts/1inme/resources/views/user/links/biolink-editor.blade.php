@@ -604,7 +604,7 @@ $catColors = [
         </div>
 
         {{-- DEVICE PREVIEW --}}
-        <div class="lg:col-span-5 xl:col-span-5 hidden lg:block">
+        <div class="lg:col-span-5 xl:col-span-5 hidden lg:block lg:self-stretch lg:h-full">
             <div class="device-preview-sticky">
                 @include('user.links.partials.device-preview', ['link' => $link])
             </div>
