@@ -877,10 +877,10 @@ class BiolinkBlockController extends Controller
 
             'card_slider' => ['cards' => [['title' => 'Card', 'description' => '', 'image' => '', 'url' => '']]],
             'scroll_cards' => ['cards' => [['title' => 'Card', 'description' => '', 'image' => '']]],
-            'profile_card_v1' => ['name' => '', 'title' => '', 'avatar' => '', 'bio' => '', 'socials' => []],
-            'profile_card_v2' => ['name' => '', 'title' => '', 'avatar' => '', 'cover' => '', 'bio' => ''],
-            'profile_card_v3' => ['name' => '', 'title' => '', 'avatar' => '', 'stats' => [['label' => 'Followers', 'value' => '0']]],
-            'profile_card_v4' => ['name' => '', 'title' => '', 'avatar' => '', 'bio' => '', 'badges' => []],
+            'profile_card_v1' => ['name' => 'Your Name', 'title' => 'What you do', 'avatar' => '', 'bio' => 'A short, friendly bio about yourself.', 'socials' => []],
+            'profile_card_v2' => ['name' => 'Your Name', 'title' => 'What you do', 'avatar' => '', 'cover' => '', 'bio' => 'A short, friendly bio about yourself.'],
+            'profile_card_v3' => ['name' => 'Your Name', 'title' => 'What you do', 'avatar' => '', 'stats' => [['label' => 'Followers', 'value' => '1.2K'], ['label' => 'Following', 'value' => '320'], ['label' => 'Posts', 'value' => '48']]],
+            'profile_card_v4' => ['name' => 'Your Name', 'title' => 'What you do', 'avatar' => '', 'bio' => 'A short, friendly bio about yourself.', 'badges' => []],
 
             'custom_html' => ['html' => ''],
             'iframe_embed' => ['url' => '', 'height' => 400],
