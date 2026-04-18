@@ -27,9 +27,12 @@
         margin: 0 auto;
     }
     @media (min-width: 1024px) {
-        .device-preview-root {
-            position: sticky;
-            top: 12px;
+        /* Phone is locked in place by JS (position: fixed, anchored to the
+           right column's bounding rect). Left column scrolls independently. */
+        .device-preview-root.is-fixed {
+            position: fixed;
+            top: 16px;
+            z-index: 30;
         }
         .device-preview-root .device-frame-phone {
             width: min(280px, calc((100vh - 120px) * 375 / 812));
@@ -260,7 +263,49 @@ document.addEventListener('DOMContentLoaded', function() {
     var phoneFrame = document.querySelector('.preview-iframe[data-preview="phone"]');
     if (phoneFrame) phoneFrame.src = _previewUrl;
     setTimeout(_scaleDeviceIframes, 100);
+    _initFixedDevicePreview();
 });
+
+/* Lock the device preview to its column's bounds on lg+ viewports.
+   We can't use plain `position: fixed; right: X` because the page is centered
+   inside max-w-7xl with a sidebar offset — exact left/width depends on layout.
+   So we read the placeholder column's bounding rect and pin the preview there. */
+function _initFixedDevicePreview() {
+    var root = document.querySelector('.device-preview-root');
+    if (!root) return;
+    var placeholder = root.parentElement;
+    if (!placeholder) return;
+
+    function apply() {
+        if (window.innerWidth < 1024) {
+            root.classList.remove('is-fixed');
+            root.style.left = '';
+            root.style.width = '';
+            placeholder.style.minHeight = '';
+            return;
+        }
+        // Temporarily un-fix so we can read the column's natural rect.
+        root.classList.remove('is-fixed');
+        root.style.left = '';
+        root.style.width = '';
+        var rect = placeholder.getBoundingClientRect();
+        if (rect.width <= 0) return;
+        // Reserve a tiny bit of height so the grid keeps the column slot.
+        placeholder.style.minHeight = '1px';
+        root.style.left = rect.left + 'px';
+        root.style.width = rect.width + 'px';
+        root.classList.add('is-fixed');
+        // Iframe scaling depends on the screen width, which just changed.
+        setTimeout(_scaleDeviceIframes, 0);
+    }
+
+    apply();
+    var t;
+    window.addEventListener('resize', function() {
+        clearTimeout(t);
+        t = setTimeout(apply, 80);
+    });
+}
 
 window.addEventListener('resize', function() {
     clearTimeout(window._resizeScaleTimer);
