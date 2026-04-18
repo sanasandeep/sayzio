@@ -403,21 +403,8 @@ $catColors = [
         @media (min-width: 1024px) {
             .device-preview-sticky {
                 position: sticky;
-                top: 88px;
-                max-height: calc(100vh - 104px);
-                overflow-y: auto;
-                overflow-x: hidden;
-                padding-right: 4px;
-                scrollbar-width: thin;
-                scrollbar-color: rgba(167,139,250,0.35) transparent;
+                top: 16px;
             }
-            .device-preview-sticky::-webkit-scrollbar { width: 6px; }
-            .device-preview-sticky::-webkit-scrollbar-track { background: transparent; }
-            .device-preview-sticky::-webkit-scrollbar-thumb {
-                background: rgba(167,139,250,0.3);
-                border-radius: 9999px;
-            }
-            .device-preview-sticky::-webkit-scrollbar-thumb:hover { background: rgba(167,139,250,0.5); }
         }
     </style>
 
