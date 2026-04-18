@@ -206,7 +206,7 @@ export function MinimalMono() {
 function NavItem({ label, shortcut, active = false }: { label: string, shortcut: string, active?: boolean }) {
   return (
     <button 
-      className={`w-full flex items-center justify-between px-2 py-1.5 rounded text-sm transition-colors ${
+      className={`group w-full flex items-center justify-between px-2 py-1.5 rounded text-sm transition-colors ${
         active 
           ? 'bg-zinc-100 text-zinc-900 font-medium' 
           : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50'
