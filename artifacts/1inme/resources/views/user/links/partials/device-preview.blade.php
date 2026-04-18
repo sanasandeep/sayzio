@@ -32,7 +32,26 @@
             top: 12px;
         }
         .device-preview-root .device-frame-phone {
-            width: min(280px, calc((100vh - 120px) * 375 / 812));
+            width: min(280px, max(200px, calc((100vh - 120px) * 375 / 812)));
+        }
+    }
+    /* Activate the side-by-side editor layout (form | device preview) a bit
+       earlier than Tailwind's lg breakpoint so the phone stays visible on
+       ~960-1023px viewports (common iframe widths). */
+    @media (min-width: 900px) and (max-width: 1023.98px) {
+        .grid.lg\:grid-cols-12 {
+            display: grid !important;
+            grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+        }
+        .lg\:col-span-7 { grid-column: span 7 / span 7 !important; }
+        .lg\:col-span-5 { grid-column: span 5 / span 5 !important; }
+        .hidden.lg\:block { display: block !important; }
+        .device-preview-root {
+            position: sticky;
+            top: 12px;
+        }
+        .device-preview-root .device-frame-phone {
+            width: min(260px, max(180px, calc((100vh - 120px) * 375 / 812)));
         }
     }
     .device-frame-phone .device-screen {
