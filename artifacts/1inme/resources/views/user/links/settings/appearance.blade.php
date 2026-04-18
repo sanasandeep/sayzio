@@ -674,7 +674,7 @@
             </form>
         </div>
 
-        <div class="lg:col-span-5 hidden lg:block">
+        <div class="lg:col-span-5 hidden lg:block lg:self-stretch lg:h-full">
             @include('user.links.partials.device-preview', ['link' => $link])
         </div>
     </div>
