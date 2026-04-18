@@ -366,9 +366,10 @@ $catColors = [
     </div>
     <style>
         .add-block-btn {
-            display: inline-flex; align-items: center; gap: 10px;
-            padding: 9px 18px 9px 10px;
-            font-size: 13px; font-weight: 600; color: #fff;
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 7px 18px 7px 8px;
+            font-size: 12px; font-weight: 600; color: #fff;
+            letter-spacing: 0.01em;
             border-radius: 9999px; border: 1px solid rgba(167,139,250,0.45);
             background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 55%, #67e8f9 130%);
             box-shadow: 0 10px 30px -10px rgba(124,58,237,0.55), 0 4px 14px -4px rgba(103,232,249,0.35), inset 0 1px 0 rgba(255,255,255,0.25);
@@ -380,10 +381,11 @@ $catColors = [
             box-shadow: 0 14px 36px -10px rgba(124,58,237,0.7), 0 6px 18px -4px rgba(103,232,249,0.45), inset 0 1px 0 rgba(255,255,255,0.3);
         }
         .add-block-icon {
-            width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center;
+            width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center;
             background: rgba(255,255,255,0.18); border-radius: 9999px;
             box-shadow: inset 0 0 0 1px rgba(255,255,255,0.25);
         }
+        .add-block-icon i { font-size: 9px; }
         .block-count-chip {
             display: inline-flex; align-items: center; gap: 8px;
             padding: 6px 12px; border-radius: 9999px;
