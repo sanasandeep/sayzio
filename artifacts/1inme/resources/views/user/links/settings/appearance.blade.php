@@ -7,6 +7,11 @@
 @php
     $bs = $link->settings['biolink'] ?? [];
     $activeSettingsTab = 'appearance';
+    // Legacy aliases card (display:none) still references these — keep defaults
+    // so the view doesn't blow up if the controller doesn't pass them.
+    $maxExtras  = $maxExtras  ?? (auth()->user()?->getMaxAliasesPerLink() ?? 0);
+    $usedExtras = $usedExtras ?? ($link->aliases?->count() ?? 0);
+    $aliasHost  = $aliasHost  ?? (parse_url(config('app.url'), PHP_URL_HOST) ?: request()->getHost());
     $bgType = $bs['background_type'] ?? 'color';
     $bgColor = $bs['background_color'] ?? '#0a0612';
     $fontColor = $bs['font_color'] ?? '#ffffff';
