@@ -19,7 +19,30 @@ class BiolinkBlockController extends Controller
         $blocks->load('children');
         $blockTypes = BiolinkBlock::TYPES;
         $blockCategories = BiolinkBlock::CATEGORIES;
-        return view('user.links.biolink-editor', compact('link', 'blocks', 'blockTypes', 'blockCategories'));
+
+        $userForms = auth()->user()->forms()
+            ->orderByDesc('id')
+            ->get(['id', 'title', 'slug', 'is_active'])
+            ->map(fn ($f) => [
+                'id'        => $f->id,
+                'title'     => $f->title,
+                'slug'      => $f->slug,
+                'is_active' => (bool) $f->is_active,
+            ])->values();
+
+        $userBuzz = \App\Modules\User\Models\SocialProof::where('user_id', auth()->id())
+            ->orderByDesc('id')
+            ->get(['id', 'name', 'type', 'is_active'])
+            ->map(fn ($b) => [
+                'id'        => $b->id,
+                'name'      => $b->name,
+                'type'      => $b->type,
+                'is_active' => (bool) $b->is_active,
+            ])->values();
+
+        return view('user.links.biolink-editor', compact(
+            'link', 'blocks', 'blockTypes', 'blockCategories', 'userForms', 'userBuzz'
+        ));
     }
 
     public function settings(Link $link)

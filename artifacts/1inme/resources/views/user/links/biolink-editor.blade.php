@@ -664,8 +664,10 @@ $catColors = [
                         <button @click="showGallery = false" class="block-action-btn" style="color: var(--text-faint);"><i class="fas fa-times"></i></button>
                     </div>
                     <div class="flex items-center gap-1 mb-3 p-1 rounded-xl bg-white/5 border border-white/5 w-max">
-                        <button @click="galleryMode = 'blocks'" :class="galleryMode === 'blocks' ? 'bg-violet-600 text-white' : 'text-white/50 hover:text-white'" class="px-3 py-1 text-[11px] font-semibold rounded-lg transition">Blocks</button>
-                        <button @click="galleryMode = 'templates'; loadCardTemplates();" :class="galleryMode === 'templates' ? 'bg-violet-600 text-white' : 'text-white/50 hover:text-white'" class="px-3 py-1 text-[11px] font-semibold rounded-lg transition">Card Templates</button>
+                        <button @click="galleryMode = 'blocks'" :class="galleryMode === 'blocks' ? 'bg-violet-600 text-white' : 'text-white/50 hover:text-white'" class="px-3 py-1 text-[11px] font-semibold rounded-lg transition"><i class="fas fa-th-large mr-1"></i>Blocks</button>
+                        <button @click="galleryMode = 'templates'; loadCardTemplates();" :class="galleryMode === 'templates' ? 'bg-violet-600 text-white' : 'text-white/50 hover:text-white'" class="px-3 py-1 text-[11px] font-semibold rounded-lg transition"><i class="fas fa-layer-group mr-1"></i>Card Templates</button>
+                        <button @click="galleryMode = 'forms'" :class="galleryMode === 'forms' ? 'bg-violet-600 text-white' : 'text-white/50 hover:text-white'" class="px-3 py-1 text-[11px] font-semibold rounded-lg transition"><i class="fas fa-wpforms mr-1"></i>Forms</button>
+                        <button @click="galleryMode = 'buzz'" :class="galleryMode === 'buzz' ? 'bg-violet-600 text-white' : 'text-white/50 hover:text-white'" class="px-3 py-1 text-[11px] font-semibold rounded-lg transition"><i class="fas fa-bell mr-1"></i>Buzz</button>
                     </div>
                     <div class="relative mb-4">
                         <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs" style="color: var(--text-faint);"></i>
@@ -698,6 +700,76 @@ $catColors = [
                             </button>
                         </div>
                         @endforeach
+                    </div>
+
+                    {{-- FORMS PICKER --}}
+                    <div x-show="galleryMode === 'forms'" x-cloak>
+                        @if(empty($userForms) || count($userForms) === 0)
+                            <div class="text-center py-10">
+                                <i class="fas fa-wpforms text-2xl mb-2" style="color: var(--text-faint);"></i>
+                                <p class="text-sm mb-3" style="color: var(--text-muted);">You haven't created any forms yet.</p>
+                                <a href="{{ route('user.forms.index') }}" class="inline-block text-xs px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-semibold"><i class="fas fa-plus mr-1"></i>Create your first form</a>
+                            </div>
+                        @else
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            @foreach($userForms as $f)
+                            <div x-show="gallerySearch === '' || '{{ strtolower(addslashes($f['title'])) }}'.includes(gallerySearch.toLowerCase())">
+                                <button type="button" class="gallery-block-card w-full text-left" onclick="ajaxAddBlockWithSettings('form', {form_id: {{ $f['id'] }}, height: 600}, '{{ route('user.links.blocks.store', $link) }}')">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.20);">
+                                            <i class="fas fa-wpforms text-sm" style="color: #8b5cf6;"></i>
+                                        </div>
+                                        <div class="min-w-0 flex-1">
+                                            <div class="text-xs font-semibold truncate" style="color: var(--text-primary);">{{ $f['title'] }}</div>
+                                            <div class="text-[10px] truncate flex items-center gap-1" style="color: var(--text-faint);">
+                                                <span>{{ $f['slug'] }}</span>
+                                                @if(!$f['is_active'])<span class="px-1 py-0 rounded bg-red-500/15 text-red-300 text-[8px]">Inactive</span>@endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                </button>
+                            </div>
+                            @endforeach
+                        </div>
+                        <div class="text-center mt-4">
+                            <a href="{{ route('user.forms.index') }}" class="text-[11px] text-violet-400 hover:text-violet-300"><i class="fas fa-cog mr-1"></i>Manage all forms</a>
+                        </div>
+                        @endif
+                    </div>
+
+                    {{-- BUZZ PICKER --}}
+                    <div x-show="galleryMode === 'buzz'" x-cloak>
+                        @if(empty($userBuzz) || count($userBuzz) === 0)
+                            <div class="text-center py-10">
+                                <i class="fas fa-bell text-2xl mb-2" style="color: var(--text-faint);"></i>
+                                <p class="text-sm mb-3" style="color: var(--text-muted);">No Buzz campaigns yet.</p>
+                                <a href="{{ route('user.social-proofs.index') }}" class="inline-block text-xs px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-semibold"><i class="fas fa-plus mr-1"></i>Create your first campaign</a>
+                            </div>
+                        @else
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            @foreach($userBuzz as $b)
+                            <div x-show="gallerySearch === '' || '{{ strtolower(addslashes($b['name'])) }}'.includes(gallerySearch.toLowerCase())">
+                                <button type="button" class="gallery-block-card w-full text-left" onclick="ajaxAddBlockWithSettings('social_proof', {social_proof_id: {{ $b['id'] }}}, '{{ route('user.links.blocks.store', $link) }}')">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(244,63,94,0.12); border: 1px solid rgba(244,63,94,0.20);">
+                                            <i class="fas fa-bell text-sm" style="color: #f43f5e;"></i>
+                                        </div>
+                                        <div class="min-w-0 flex-1">
+                                            <div class="text-xs font-semibold truncate" style="color: var(--text-primary);">{{ $b['name'] }}</div>
+                                            <div class="text-[10px] truncate flex items-center gap-1" style="color: var(--text-faint);">
+                                                <span>{{ str_replace('_', ' ', $b['type']) }}</span>
+                                                @if(!$b['is_active'])<span class="px-1 py-0 rounded bg-red-500/15 text-red-300 text-[8px]">Inactive</span>@endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                </button>
+                            </div>
+                            @endforeach
+                        </div>
+                        <div class="text-center mt-4">
+                            <a href="{{ route('user.social-proofs.index') }}" class="text-[11px] text-violet-400 hover:text-violet-300"><i class="fas fa-cog mr-1"></i>Manage all campaigns</a>
+                        </div>
+                        @endif
                     </div>
 
                     {{-- CARD TEMPLATES --}}
@@ -1149,6 +1221,29 @@ function ajaxAddBlock(type, url, parentId) {
     fd.append('type', type);
     fd.append('_token', _csrfToken());
     if (parentId) fd.append('parent_id', parentId);
+    if (_insertAfterId) fd.append('insert_after', _insertAfterId);
+    fetch(url, {
+        method: 'POST',
+        headers: { 'Accept': 'application/json' },
+        body: fd
+    }).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.success) {
+            showToast('Block added', 'success');
+            setTimeout(function() { location.reload(); }, 400);
+        } else {
+            showToast(data.error || 'Failed to add block', 'error');
+        }
+    }).catch(function() { showToast('Failed to add block', 'error'); });
+}
+
+function ajaxAddBlockWithSettings(type, settings, url) {
+    var fd = new FormData();
+    fd.append('type', type);
+    fd.append('_token', _csrfToken());
+    Object.keys(settings || {}).forEach(function(k) {
+        var v = settings[k];
+        fd.append('settings[' + k + ']', v === null || v === undefined ? '' : v);
+    });
     if (_insertAfterId) fd.append('insert_after', _insertAfterId);
     fetch(url, {
         method: 'POST',
