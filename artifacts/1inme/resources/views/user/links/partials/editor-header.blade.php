@@ -28,6 +28,7 @@
     ],
 ])
 
+@if(!($hideEditorTabs ?? false))
 <div class="editor-tabs inline-flex items-center gap-1 mb-6 p-1 rounded-full">
     <a href="{{ route('user.links.blocks.editor', $link) }}"
        class="editor-tab no-underline {{ $activeMainTab === 'blocks' ? 'is-active' : '' }}">
@@ -40,6 +41,7 @@
         <span>Settings</span>
     </a>
 </div>
+@endif
 <style>
     .editor-tabs {
         background: var(--bg-glass-input);

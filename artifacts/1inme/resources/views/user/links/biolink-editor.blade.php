@@ -340,13 +340,23 @@ $catColors = [
 ];
 @endphp
 <div x-data="biolinkEditor()" class="max-w-7xl mx-auto">
-    @include('user.links.partials.editor-header', ['link' => $link, 'activeMainTab' => 'blocks'])
+    @include('user.links.partials.editor-header', ['link' => $link, 'activeMainTab' => 'blocks', 'hideEditorTabs' => true])
 
     <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
-        <button @click="_insertAfterId = null; _cardGalleryParentId = null; showGallery = true" class="add-block-btn">
-            <span class="add-block-icon"><i class="fas fa-plus text-[11px]"></i></span>
-            <span>Add block</span>
-        </button>
+        <div class="flex items-center gap-3 flex-wrap">
+            <div class="editor-tabs inline-flex items-center gap-1 p-1 rounded-full">
+                <a href="{{ route('user.links.blocks.editor', $link) }}" class="editor-tab no-underline is-active">
+                    <i class="fas fa-th-large text-[10px]"></i><span>Blocks</span>
+                </a>
+                <a href="{{ route('user.links.settings.appearance', $link) }}" class="editor-tab no-underline">
+                    <i class="fas fa-cog text-[10px]"></i><span>Settings</span>
+                </a>
+            </div>
+            <button @click="_insertAfterId = null; _cardGalleryParentId = null; showGallery = true" class="add-block-btn">
+                <span class="add-block-icon"><i class="fas fa-plus text-[11px]"></i></span>
+                <span>Add block</span>
+            </button>
+        </div>
         @if($blocks->count())
         <span class="block-count-chip">
             <i class="fas fa-layer-group text-[10px] opacity-70"></i>
@@ -389,6 +399,25 @@ $catColors = [
             background: linear-gradient(135deg, #8b5cf6, #7c3aed);
             border-color: rgba(124,58,237,0.35);
             box-shadow: 0 6px 18px -6px rgba(124,58,237,0.45);
+        }
+        @media (min-width: 1024px) {
+            .device-preview-sticky {
+                position: sticky;
+                top: 88px;
+                max-height: calc(100vh - 104px);
+                overflow-y: auto;
+                overflow-x: hidden;
+                padding-right: 4px;
+                scrollbar-width: thin;
+                scrollbar-color: rgba(167,139,250,0.35) transparent;
+            }
+            .device-preview-sticky::-webkit-scrollbar { width: 6px; }
+            .device-preview-sticky::-webkit-scrollbar-track { background: transparent; }
+            .device-preview-sticky::-webkit-scrollbar-thumb {
+                background: rgba(167,139,250,0.3);
+                border-radius: 9999px;
+            }
+            .device-preview-sticky::-webkit-scrollbar-thumb:hover { background: rgba(167,139,250,0.5); }
         }
     </style>
 
@@ -576,7 +605,9 @@ $catColors = [
 
         {{-- DEVICE PREVIEW --}}
         <div class="lg:col-span-5 xl:col-span-5 hidden lg:block">
-            @include('user.links.partials.device-preview', ['link' => $link])
+            <div class="device-preview-sticky">
+                @include('user.links.partials.device-preview', ['link' => $link])
+            </div>
         </div>
     </div>
 
