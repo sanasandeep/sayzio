@@ -12,6 +12,8 @@
     $maxExtras  = $maxExtras  ?? (auth()->user()?->getMaxAliasesPerLink() ?? 0);
     $usedExtras = $usedExtras ?? ($link->aliases?->count() ?? 0);
     $aliasHost  = $aliasHost  ?? (parse_url(config('app.url'), PHP_URL_HOST) ?: request()->getHost());
+    $extras     = $extras     ?? ($link->aliases ?? collect());
+    $canAddMore = $canAddMore ?? ($maxExtras === -1 || $usedExtras < $maxExtras);
     $bgType = $bs['background_type'] ?? 'color';
     $bgColor = $bs['background_color'] ?? '#0a0612';
     $fontColor = $bs['font_color'] ?? '#ffffff';
