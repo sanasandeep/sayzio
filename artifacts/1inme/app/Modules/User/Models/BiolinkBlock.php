@@ -110,7 +110,6 @@ class BiolinkBlock extends Model
         'review' => ['label' => 'Review', 'icon' => 'fa-star', 'category' => 'interactive'],
         'timeline' => ['label' => 'Timeline', 'icon' => 'fa-stream', 'category' => 'interactive'],
         'timeline_staged' => ['label' => 'Timeline (Staged)', 'icon' => 'fa-project-diagram', 'category' => 'interactive'],
-        'rsvp' => ['label' => 'RSVP', 'icon' => 'fa-calendar-check', 'category' => 'interactive'],
         'social_proof' => ['label' => 'Buzz', 'icon' => 'fa-bell', 'category' => 'interactive'],
 
         'product' => ['label' => 'Product', 'icon' => 'fa-box', 'category' => 'business'],

@@ -1402,6 +1402,55 @@
             @elseif($block->type === 'iframe_embed')
                 <div class="mb-4 rounded-xl overflow-hidden"><iframe src="{{ $s['url'] ?? '' }}" class="w-full rounded-xl" style="height:{{ $s['height'] ?? 400 }}px;" frameborder="0" loading="lazy"></iframe></div>
 
+            @elseif($block->type === 'social_proof')
+                @php
+                    $sp = !empty($s['social_proof_id'])
+                        ? \App\Modules\User\Models\SocialProof::where('id', $s['social_proof_id'])
+                            ->where('user_id', $link->user_id)
+                            ->where('is_active', true)
+                            ->first()
+                        : null;
+                @endphp
+                @if($sp)
+                    <script src="{{ url('/sp/' . $sp->uuid . '.js') }}" async></script>
+                @else
+                    <div class="mb-4 glass-block rounded-xl p-4 text-center text-xs" style="color:{{ $fontColor }}66;">
+                        <i class="fas fa-bell mr-1"></i> Buzz campaign not selected
+                    </div>
+                @endif
+
+            @elseif($block->type === 'form')
+                @php
+                    $formId = $s['form_id'] ?? null;
+                    $formModel = $formId ? \App\Modules\User\Models\Form::find($formId) : null;
+                @endphp
+                @if($formModel && $formModel->is_active && (int)$formModel->user_id === (int)$link->user_id)
+                    <div class="mb-4 rounded-xl overflow-hidden glass-block">
+                        <iframe src="{{ $formModel->getPublicUrl() }}/iframe"
+                                class="w-full block"
+                                style="height: {{ $s['height'] ?? 600 }}px; border: 0; background: transparent;"
+                                loading="lazy"
+                                data-form-frame="{{ $formModel->id }}"
+                                title="{{ $formModel->title }}"></iframe>
+                    </div>
+                    <script>
+                        (function () {
+                            if (window.__1inmeFormResizeBound) return;
+                            window.__1inmeFormResizeBound = true;
+                            window.addEventListener('message', function (e) {
+                                if (!e.data || e.data.type !== '1inme-form-resize') return;
+                                document.querySelectorAll('iframe[data-form-frame]').forEach(function (f) {
+                                    if (f.contentWindow === e.source) f.style.height = (e.data.height + 4) + 'px';
+                                });
+                            });
+                        })();
+                    </script>
+                @else
+                    <div class="mb-4 glass-block rounded-xl p-4 text-center text-xs" style="color:{{ $fontColor }}66;">
+                        <i class="fas fa-wpforms mr-1"></i> Form not selected
+                    </div>
+                @endif
+
             @elseif($block->type === 'typeform')
                 <div class="mb-4 rounded-xl overflow-hidden"><iframe src="{{ $s['url'] ?? '' }}" class="w-full rounded-xl" style="height:500px;" frameborder="0" loading="lazy"></iframe></div>
 

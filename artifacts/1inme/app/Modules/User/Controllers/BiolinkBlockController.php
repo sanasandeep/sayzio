@@ -852,6 +852,7 @@ class BiolinkBlockController extends Controller
             'cta_button' => ['text' => 'Click Here', 'url' => '', 'color' => '#7c3aed', 'text_color' => '#ffffff', 'size' => 'lg'],
             'notification' => ['text' => 'New update!', 'type' => 'info', 'dismissible' => true],
             'social_proof' => ['social_proof_id' => null],
+            'form' => ['form_id' => null, 'height' => 600],
             'nav_menu' => ['items' => [['text' => 'Home', 'url' => '']]],
             'ticker' => ['items' => ['Breaking news', 'Updates'], 'speed' => 'normal'],
 
