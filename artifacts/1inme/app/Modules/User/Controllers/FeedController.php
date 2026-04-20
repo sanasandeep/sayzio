@@ -32,6 +32,15 @@ class FeedController extends Controller
 
         $followingIds = Follow::where('follower_id', $me->id)->pluck('creator_id');
 
+        // Publish any due scheduled posts from creators this viewer follows so
+        // their feed reflects scheduled content as soon as it goes live.
+        \App\Modules\User\Models\CreatorPost::whereIn('user_id', $followingIds)
+            ->dueForPublish()
+            ->get()
+            ->each(function ($p) {
+                \App\Modules\User\Models\CreatorPost::publishDuePosts($p->user_id);
+            });
+
         $events = FeedEvent::with('user')
             ->whereIn('user_id', $followingIds)
             ->orderByDesc('occurred_at')
@@ -44,7 +53,16 @@ class FeedController extends Controller
             ]);
         }
 
-        return view('user.feed.index', compact('events', 'me'));
+        // Pinned posts from followed creators (one per creator, most recent pin first).
+        $pinnedPosts = \App\Modules\User\Models\CreatorPost::with('user')
+            ->whereIn('user_id', $followingIds)
+            ->whereNotNull('pinned_at')
+            ->whereNotNull('published_at')
+            ->orderByDesc('pinned_at')
+            ->limit(10)
+            ->get();
+
+        return view('user.feed.index', compact('events', 'me', 'pinnedPosts'));
     }
 
     public function markAllRead(Request $request)

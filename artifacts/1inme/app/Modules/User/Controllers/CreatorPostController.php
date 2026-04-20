@@ -13,16 +13,24 @@ class CreatorPostController extends Controller
 {
     public function index()
     {
-        $posts = CreatorPost::where('user_id', auth()->id())->latest()->paginate(20);
+        // Lazily publish any due scheduled posts before listing.
+        CreatorPost::publishDuePosts(auth()->id());
+
+        $posts = CreatorPost::where('user_id', auth()->id())
+            ->orderByDesc('pinned_at')
+            ->orderByDesc('created_at')
+            ->paginate(20);
         return view('user.posts.index', compact('posts'));
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
-            'title' => 'nullable|string|max:200',
-            'body'  => 'required|string|max:5000',
-            'image' => 'nullable|image|max:5120',
+            'title'        => 'nullable|string|max:200',
+            'body'         => 'required|string|max:5000',
+            'image'        => 'nullable|image|max:5120',
+            'scheduled_at' => 'nullable|date|after:now',
+            'is_pinned'    => 'nullable|boolean',
         ]);
 
         $imagePath = null;
@@ -30,26 +38,72 @@ class CreatorPostController extends Controller
             $imagePath = '/storage/' . $request->file('image')->store('post-images', 'public');
         }
 
+        $scheduledAt = !empty($data['scheduled_at']) ? \Carbon\Carbon::parse($data['scheduled_at']) : null;
+        $isFuture = $scheduledAt && $scheduledAt->isFuture();
+
         $post = CreatorPost::create([
-            'user_id' => auth()->id(),
-            'title'   => $data['title'] ?? null,
-            'body'    => $data['body'],
-            'image'   => $imagePath,
+            'user_id'      => auth()->id(),
+            'title'        => $data['title'] ?? null,
+            'body'         => $data['body'],
+            'image'        => $imagePath,
+            'scheduled_at' => $scheduledAt,
+            'published_at' => $isFuture ? null : now(),
         ]);
 
         $me = auth()->user();
-        FeedEvent::create([
-            'user_id'      => $me->id,
-            'type'         => 'post',
-            'subject_id'   => $post->id,
-            'subject_type' => CreatorPost::class,
-            'data'         => ['title' => $post->title, 'body_excerpt' => mb_substr($post->body, 0, 160), 'creator_name' => $me->name, 'creator_avatar' => $me->avatar],
-            'occurred_at'  => now(),
-        ]);
 
-        $this->notifyFollowersDebounced($me, 'New post: ' . ($post->title ?: mb_substr($post->body, 0, 60)));
+        if (!$isFuture) {
+            FeedEvent::create([
+                'user_id'      => $me->id,
+                'type'         => 'post',
+                'subject_id'   => $post->id,
+                'subject_type' => CreatorPost::class,
+                'data'         => ['title' => $post->title, 'body_excerpt' => mb_substr($post->body, 0, 160), 'creator_name' => $me->name, 'creator_avatar' => $me->avatar],
+                'occurred_at'  => now(),
+            ]);
 
-        return redirect()->route('user.posts.index')->with('success', 'Post published to your followers.');
+            $this->notifyFollowersDebounced($me, 'New post: ' . ($post->title ?: mb_substr($post->body, 0, 60)));
+        }
+
+        if (!empty($data['is_pinned'])) {
+            // Only published posts can be pinned. If this one is scheduled,
+            // it will be pinnable from the list once it goes live.
+            if (!$isFuture) {
+                CreatorPost::where('user_id', $me->id)->whereNotNull('pinned_at')->update(['pinned_at' => null]);
+                $post->pinned_at = now();
+                $post->save();
+            }
+        }
+
+        $msg = $isFuture
+            ? 'Post scheduled for ' . $scheduledAt->format('M j, Y g:i A') . '.'
+            : 'Post published to your followers.';
+
+        return redirect()->route('user.posts.index')->with('success', $msg);
+    }
+
+    public function pin(CreatorPost $post)
+    {
+        abort_unless($post->user_id === auth()->id(), 403);
+        if (!$post->isPublished()) {
+            return back()->with('error', 'You can only pin a published post.');
+        }
+        // Unpin any other pinned post for this creator.
+        CreatorPost::where('user_id', auth()->id())
+            ->whereNotNull('pinned_at')
+            ->where('id', '!=', $post->id)
+            ->update(['pinned_at' => null]);
+        $post->pinned_at = now();
+        $post->save();
+        return back()->with('success', 'Post pinned.');
+    }
+
+    public function unpin(CreatorPost $post)
+    {
+        abort_unless($post->user_id === auth()->id(), 403);
+        $post->pinned_at = null;
+        $post->save();
+        return back()->with('success', 'Post unpinned.');
     }
 
     public function destroy(CreatorPost $post)

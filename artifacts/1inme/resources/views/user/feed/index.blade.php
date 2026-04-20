@@ -33,6 +33,37 @@
         </div>
     </div>
 
+    @if(!empty($pinnedPosts) && $pinnedPosts->count() > 0)
+        <div class="mb-4 space-y-3">
+            <h2 class="text-xs font-bold uppercase tracking-wider flex items-center gap-2" style="color: var(--text-muted);">
+                <i class="fas fa-thumbtack text-amber-500"></i> Pinned by creators you follow
+            </h2>
+            @foreach($pinnedPosts as $pp)
+                <div class="rounded-2xl border-2 border-amber-300 p-4" style="background: var(--bg-card);">
+                    <div class="flex items-start gap-3">
+                        @if($pp->user && $pp->user->avatar)
+                            <img src="{{ $pp->user->avatar }}" class="w-10 h-10 rounded-full object-cover" alt=""/>
+                        @else
+                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 text-white flex items-center justify-center font-bold">
+                                {{ strtoupper(substr(optional($pp->user)->name ?? '?', 0, 1)) }}
+                            </div>
+                        @endif
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 text-sm">
+                                <span class="font-semibold" style="color: var(--text-primary);">{{ optional($pp->user)->name ?? 'Creator' }}</span>
+                                <span class="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-amber-100 text-amber-800"><i class="fas fa-thumbtack text-[9px]"></i> Pinned</span>
+                                <span class="text-xs" style="color: var(--text-faint);">{{ $pp->published_at?->diffForHumans() }}</span>
+                            </div>
+                            @if($pp->title)<h3 class="font-bold mt-1" style="color: var(--text-primary);">{{ $pp->title }}</h3>@endif
+                            <p class="text-sm mt-1 whitespace-pre-line" style="color: var(--text-muted);">{{ \Illuminate\Support\Str::limit($pp->body, 280) }}</p>
+                            @if($pp->image)<img src="{{ $pp->image }}" class="mt-3 rounded-lg max-h-72"/>@endif
+                        </div>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    @endif
+
     @if($events->count() === 0)
         <div class="text-center py-16 rounded-2xl border" style="background: var(--bg-card); border-color: var(--border-soft);">
             <i class="fas fa-stream text-4xl mb-3" style="color: var(--text-faint);"></i>

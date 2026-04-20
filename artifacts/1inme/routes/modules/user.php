@@ -52,6 +52,8 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('following', [\App\Modules\User\Controllers\FollowController::class, 'following'])->name('following.index');
         Route::get('posts',  [\App\Modules\User\Controllers\CreatorPostController::class, 'index'])->name('posts.index');
         Route::post('posts', [\App\Modules\User\Controllers\CreatorPostController::class, 'store'])->name('posts.store');
+        Route::post('posts/{post}/pin', [\App\Modules\User\Controllers\CreatorPostController::class, 'pin'])->name('posts.pin');
+        Route::post('posts/{post}/unpin', [\App\Modules\User\Controllers\CreatorPostController::class, 'unpin'])->name('posts.unpin');
         Route::delete('posts/{post}', [\App\Modules\User\Controllers\CreatorPostController::class, 'destroy'])->name('posts.destroy');
         Route::get('notifications',  [\App\Modules\User\Controllers\NotificationController::class, 'index'])->name('notifications.index');
         Route::post('notifications/read', [\App\Modules\User\Controllers\NotificationController::class, 'markRead'])->name('notifications.read');

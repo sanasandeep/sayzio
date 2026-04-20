@@ -690,7 +690,39 @@
             $pageTitle = $bs['biolink_title'] ?? $link->title ?: 'Link in Bio';
             $pageDescription = $bs['biolink_description'] ?? $link->seo_description ?? '';
             $globalTheme = $bs['block_theme'] ?? [];
+
+            // Lazily publish any due scheduled posts for this creator before
+            // we surface their pinned post on the biolink.
+            $creatorOwner = $link->user ?? null;
+            if ($creatorOwner) {
+                \App\Modules\User\Models\CreatorPost::publishDuePosts($creatorOwner->id);
+            }
+            $pinnedPost = $creatorOwner
+                ? \App\Modules\User\Models\CreatorPost::where('user_id', $creatorOwner->id)
+                    ->whereNotNull('pinned_at')
+                    ->whereNotNull('published_at')
+                    ->orderByDesc('pinned_at')
+                    ->first()
+                : null;
         @endphp
+
+        @if($pinnedPost)
+            <div class="biolink-block-wrap" style="grid-column: span 12">
+                <div class="mb-3 rounded-2xl p-4" style="background: rgba(255,255,255,0.08); border:1px solid rgba(255,191,80,0.5); color:{{ $fontColor }};">
+                    <div class="flex items-center gap-2 mb-2 text-[11px] font-bold uppercase tracking-wider" style="color: rgba(255,191,80,0.95);">
+                        <i class="fas fa-thumbtack"></i> Pinned post
+                    </div>
+                    @if($pinnedPost->title)
+                        <h3 class="font-bold text-base mb-1" style="color:{{ $fontColor }};">{{ $pinnedPost->title }}</h3>
+                    @endif
+                    <p class="text-sm whitespace-pre-line" style="color:{{ $fontColor }}cc;">{{ \Illuminate\Support\Str::limit($pinnedPost->body, 320) }}</p>
+                    @if($pinnedPost->image)
+                        <img src="{{ $pinnedPost->image }}" class="mt-3 rounded-lg max-h-72 w-full object-cover" alt=""/>
+                    @endif
+                    <p class="text-[11px] mt-2" style="color:{{ $fontColor }}77;">{{ $pinnedPost->published_at?->diffForHumans() }}</p>
+                </div>
+            </div>
+        @endif
 
         @forelse($blocks as $block)
             @php

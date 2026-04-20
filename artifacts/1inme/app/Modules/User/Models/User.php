@@ -41,6 +41,8 @@ class User extends Authenticatable
     public function followers()    { return $this->hasMany(Follow::class, 'creator_id'); }
     public function following()    { return $this->hasMany(Follow::class, 'follower_id'); }
     public function posts()        { return $this->hasMany(CreatorPost::class)->latest(); }
+    public function publishedPosts() { return $this->hasMany(CreatorPost::class)->whereNotNull('published_at')->latest('published_at'); }
+    public function pinnedPost()    { return $this->hasOne(CreatorPost::class)->whereNotNull('pinned_at')->whereNotNull('published_at')->latest('pinned_at'); }
     public function notifications() { return $this->hasMany(UserNotification::class)->latest('created_at'); }
 
     public function isFollowing(int $creatorId): bool
