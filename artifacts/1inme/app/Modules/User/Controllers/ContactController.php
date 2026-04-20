@@ -226,19 +226,99 @@ class ContactController extends Controller
         ]);
 
         $user = $request->user();
-        $existingCount = Contact::where('user_id', $user->id)->count();
-        $cap = $this->planContactsCap($user);
-        $remaining = $cap === -1 ? null : max(0, $cap - $existingCount);
+        // Plan-level cap is enforced by CheckPlanLimit middleware and again
+        // at importConfirm; nothing to compute here for the preview stage.
 
         $file = $request->file('file');
+        $originalName = $file->getClientOriginalName();
         try {
-            $rows = $this->importParser->parse($file->getRealPath(), $file->getClientOriginalName());
+            $rows = $this->importParser->parse($file->getRealPath(), $originalName);
         } catch (\Throwable $e) {
             \Log::warning('Contact import: parse failed', [
-                'user' => $user->id, 'name' => $file->getClientOriginalName(), 'err' => $e->getMessage(),
+                'user' => $user->id, 'name' => $originalName, 'err' => $e->getMessage(),
             ]);
             return back()->with('error', 'We couldn\'t read that file. Make sure it\'s a valid CSV or vCard (.vcf) and try again.');
         }
+
+        // Annotate each parsed row with any per-row warnings so the preview
+        // can flag mistakes (bad email, no usable data, etc.) before commit.
+        $rows = array_map(fn ($r) => $r + ['warnings' => $this->rowWarnings($r)], $rows);
+
+        // Stash to a per-user temp file rather than the DB; this gets cleaned
+        // up on confirm/cancel and is not visible anywhere else in the UI.
+        $token = bin2hex(random_bytes(16));
+        Storage::disk('local')->put($this->stashPath($user->id, $token), json_encode([
+            'original_name' => $originalName,
+            'created_at'    => now()->toIso8601String(),
+            'rows'          => $rows,
+        ]));
+
+        return redirect()->route('user.contacts.import.preview', ['token' => $token]);
+    }
+
+    public function importPreview(Request $request, string $token)
+    {
+        $user = $request->user();
+        $stash = $this->loadStash($user->id, $token);
+        if (!$stash) {
+            return redirect()->route('user.contacts.import')
+                ->with('error', 'That preview is no longer available. Please re-upload the file.');
+        }
+
+        $rows = $stash['rows'];
+        $perPage = 25;
+        $page = max(1, (int) $request->query('page', 1));
+        $paginator = new \Illuminate\Pagination\LengthAwarePaginator(
+            array_slice($rows, ($page - 1) * $perPage, $perPage),
+            count($rows),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()],
+        );
+
+        $existingCount = Contact::where('user_id', $user->id)->count();
+        $cap = $this->planContactsCap($user);
+        $remaining = $cap === -1 ? null : max(0, $cap - $existingCount);
+        $overCap = $cap === -1 ? 0 : max(0, count($rows) - ($remaining ?? 0));
+
+        $stats = [
+            'total'    => count($rows),
+            'warnings' => count(array_filter($rows, fn ($r) => !empty($r['warnings']))),
+            'remaining'=> $remaining,
+            'overCap'  => $overCap,
+        ];
+
+        return view('user.contacts.import_preview', [
+            'token'        => $token,
+            'originalName' => $stash['original_name'] ?? 'upload',
+            'rows'         => $paginator,
+            'stats'        => $stats,
+        ]);
+    }
+
+    public function importCancel(Request $request, string $token)
+    {
+        $this->discardStash($request->user()->id, $token);
+        return redirect()->route('user.contacts.import')
+            ->with('success', 'Import cancelled — nothing was added.');
+    }
+
+    public function importConfirm(Request $request, string $token)
+    {
+        $user = $request->user();
+        // Atomically "claim" the stash before processing so a double-submit
+        // (browser back, refresh, double-click) can't import the same rows
+        // twice. rename() is atomic on POSIX; only one caller wins.
+        $stash = $this->claimStash($user->id, $token);
+        if (!$stash) {
+            return redirect()->route('user.contacts.import')
+                ->with('error', 'That preview is no longer available. Please re-upload the file.');
+        }
+
+        $rows = $stash['rows'];
+        $existingCount = Contact::where('user_id', $user->id)->count();
+        $cap = $this->planContactsCap($user);
+        $remaining = $cap === -1 ? null : max(0, $cap - $existingCount);
 
         $results = [
             'total'      => count($rows),
@@ -329,6 +409,8 @@ class ContactController extends Controller
                 ];
             }
         }
+
+        // Stash was already removed by claimStash(); nothing to clean up.
 
         return view('user.contacts.import_summary', [
             'results' => $results,
@@ -459,6 +541,85 @@ class ContactController extends Controller
     {
         $features = ($user && $user->plan && $user->plan->features) ? $user->plan->features : [];
         return (int) ($features['contacts_max'] ?? 5000);
+    }
+
+    /** Per-row warnings shown in the preview before commit. */
+    private function rowWarnings(array $row): array
+    {
+        $warnings = [];
+
+        $hasName = ($row['display_name'] ?? null) || ($row['given_name'] ?? null) || ($row['family_name'] ?? null);
+        $hasPhone = !empty($row['phones']);
+        $hasEmail = !empty($row['emails']);
+
+        if (!$hasName && !$hasPhone && !$hasEmail) {
+            $warnings[] = 'No name, phone, or email — this row will be skipped.';
+            return $warnings;
+        }
+        if (!$hasName) {
+            $warnings[] = 'Missing name; the contact will be saved without one.';
+        }
+        foreach (($row['emails'] ?? []) as $e) {
+            $val = trim((string) ($e['value'] ?? ''));
+            if ($val !== '' && !filter_var($val, FILTER_VALIDATE_EMAIL)) {
+                $warnings[] = 'Invalid email: ' . $val;
+            }
+        }
+        foreach (($row['phones'] ?? []) as $p) {
+            $val = trim((string) ($p['value'] ?? ''));
+            if ($val !== '' && strlen($val) > 80) {
+                $warnings[] = 'Phone value is too long and will be rejected.';
+            }
+        }
+        return $warnings;
+    }
+
+    private function stashPath(int $userId, string $token): string
+    {
+        // Reject anything that doesn't look like our generated token so a
+        // crafted URL can't escape the imports directory.
+        if (!preg_match('/^[a-f0-9]{32}$/', $token)) {
+            abort(404);
+        }
+        return "imports/{$userId}/{$token}.json";
+    }
+
+    private function loadStash(int $userId, string $token): ?array
+    {
+        $path = $this->stashPath($userId, $token);
+        if (!Storage::disk('local')->exists($path)) return null;
+        $data = json_decode(Storage::disk('local')->get($path), true);
+        return is_array($data) ? $data : null;
+    }
+
+    private function discardStash(int $userId, string $token): void
+    {
+        $path = $this->stashPath($userId, $token);
+        if (Storage::disk('local')->exists($path)) {
+            Storage::disk('local')->delete($path);
+        }
+    }
+
+    /**
+     * Atomically take ownership of a stash file and return its contents.
+     * Returns null if the file is missing OR if another concurrent confirm
+     * already claimed it. Uses rename() so only one caller wins the race.
+     */
+    private function claimStash(int $userId, string $token): ?array
+    {
+        $disk = Storage::disk('local');
+        $path = $this->stashPath($userId, $token);
+        if (!$disk->exists($path)) return null;
+
+        $src   = $disk->path($path);
+        $claim = $src . '.claimed.' . bin2hex(random_bytes(4));
+        if (!@rename($src, $claim)) return null;
+
+        $raw = @file_get_contents($claim);
+        @unlink($claim);
+        if ($raw === false) return null;
+        $data = json_decode($raw, true);
+        return is_array($data) ? $data : null;
     }
 
     private function validatePayload(Request $request): array

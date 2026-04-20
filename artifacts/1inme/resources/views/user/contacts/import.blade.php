@@ -41,7 +41,7 @@
 
             <div class="flex items-center gap-3">
                 <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold text-white" style="background:linear-gradient(135deg,#7c3aed,#ec4899);">
-                    <i class="fas fa-upload mr-1"></i> Upload &amp; import
+                    <i class="fas fa-upload mr-1"></i> Upload &amp; preview
                 </button>
                 <a href="{{ route('user.contacts.index') }}" class="text-xs" style="color:var(--text-muted);">Cancel</a>
             </div>

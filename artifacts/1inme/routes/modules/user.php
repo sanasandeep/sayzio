@@ -245,6 +245,9 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('contacts',                             [ContactController::class, 'store'])->middleware(CheckPlanLimit::class . ':contacts_max')->name('contacts.store');
         Route::get('contacts/import',                       [ContactController::class, 'importForm'])->name('contacts.import');
         Route::post('contacts/import',                      [ContactController::class, 'import'])->middleware(CheckPlanLimit::class . ':contacts_max')->name('contacts.import.store');
+        Route::get('contacts/import/preview/{token}',       [ContactController::class, 'importPreview'])->name('contacts.import.preview');
+        Route::post('contacts/import/confirm/{token}',      [ContactController::class, 'importConfirm'])->middleware(CheckPlanLimit::class . ':contacts_max')->name('contacts.import.confirm');
+        Route::post('contacts/import/cancel/{token}',       [ContactController::class, 'importCancel'])->name('contacts.import.cancel');
         Route::get('contacts/{contact}',                    [ContactController::class, 'show'])->name('contacts.show');
         Route::get('contacts/{contact}/edit',               [ContactController::class, 'edit'])->name('contacts.edit');
         Route::put('contacts/{contact}',                    [ContactController::class, 'update'])->name('contacts.update');
