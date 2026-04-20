@@ -618,7 +618,16 @@
                 </p>
             </div>
 
-            {{-- Anonymous currency switcher (footer-style, but placed inline above the cards). --}}
+            {{-- Anonymous currency switcher: only shown to visitors who have
+                 not chosen a country yet. Signed-in users with a country
+                 see their country's currency (no toggle on the marketing
+                 page); they can change it from profile settings. --}}
+            @auth
+                @php($showSwitcher = empty(auth()->user()->country))
+            @else
+                @php($showSwitcher = true)
+            @endauth
+            @if ($showSwitcher)
             <div class="flex items-center justify-center gap-2 mb-8">
                 <span class="text-xs uppercase tracking-wider text-gray-500">Show prices in:</span>
                 <form method="POST" action="{{ route('upgrade.public.switch-currency') }}" class="inline-flex">
@@ -627,8 +636,20 @@
                     <button type="submit" name="currency" value="INR" class="px-3 py-1 text-xs rounded-r-full border border-white/10 border-l-0 {{ ($currency ?? 'USD') === 'INR' ? 'bg-[#7c3aed] text-white' : 'bg-white/5 text-gray-300 hover:bg-white/10' }}">INR&nbsp;(₹)</button>
                 </form>
             </div>
+            @endif
 
-            <div class="grid md:grid-cols-{{ max(1, count($plans)) }} gap-6 max-w-5xl mx-auto">
+            {{-- Static class strings (Tailwind purge-safe) instead of
+                 interpolated grid-cols-{N}. --}}
+            @php
+                $planCount = max(1, count($plans));
+                $gridClass = match (true) {
+                    $planCount >= 4 => 'md:grid-cols-4',
+                    $planCount === 3 => 'md:grid-cols-3',
+                    $planCount === 2 => 'md:grid-cols-2',
+                    default => 'md:grid-cols-1',
+                };
+            @endphp
+            <div class="grid {{ $gridClass }} gap-6 max-w-5xl mx-auto">
                 @foreach($plans as $i => $plan)
                     @php
                         $featured = $i === 1;
