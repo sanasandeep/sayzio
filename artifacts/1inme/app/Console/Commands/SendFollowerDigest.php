@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Modules\User\Models\Link;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserNotification;
 use Illuminate\Console\Command;
@@ -86,7 +87,9 @@ class SendFollowerDigest extends Command
             $cid = (int) ($data['creator_id'] ?? 0);
             if (!isset($byCreator[$cid])) {
                 $byCreator[$cid] = [
+                    'id'       => $cid,
                     'name'     => $data['creator_name'] ?? 'A creator you follow',
+                    'avatar'   => $this->absoluteAvatarUrl($data['creator_avatar'] ?? null),
                     'messages' => [],
                 ];
             }
@@ -94,38 +97,72 @@ class SendFollowerDigest extends Command
             if ($msg !== '') $byCreator[$cid]['messages'][] = $msg;
         }
 
-        $lines = [];
-        $lines[] = "Hi " . ($user->name ?: 'there') . ",";
-        $lines[] = "";
-        $lines[] = "Here's what creators you follow have been up to since your last digest:";
-        $lines[] = "";
-        foreach ($byCreator as $entry) {
-            $lines[] = "• {$entry['name']}";
-            foreach (array_slice($entry['messages'], 0, 5) as $m) {
-                $lines[] = "    - {$m}";
-            }
-            $extra = count($entry['messages']) - 5;
-            if ($extra > 0) {
-                $lines[] = "    - …and {$extra} more update" . ($extra === 1 ? '' : 's');
-            }
+        // Resolve each creator's primary biolink URL for deep-link CTAs.
+        $creatorIds = array_filter(array_keys($byCreator));
+        $biolinkByCreator = [];
+        if (!empty($creatorIds)) {
+            $biolinkByCreator = Link::whereIn('user_id', $creatorIds)
+                ->where('type', 'biolink')
+                ->with('domain')
+                ->get()
+                ->groupBy('user_id')
+                ->map(fn ($group) => $group->first())
+                ->all();
         }
-        $lines[] = "";
-        $lines[] = "You're receiving the daily digest. To switch to instant emails or turn this off, visit your profile notification settings.";
 
-        $body = implode("\n", $lines);
-        $count = $pending->count();
+        $creators = [];
+        foreach ($byCreator as $cid => $entry) {
+            $shown = array_slice($entry['messages'], 0, 5);
+            $extra = max(0, count($entry['messages']) - 5);
+            $link  = $biolinkByCreator[$cid] ?? null;
+            $creators[] = [
+                'name'     => $entry['name'],
+                'avatar'   => $entry['avatar'],
+                'url'      => $link ? $link->getShortUrl() : null,
+                'messages' => $shown,
+                'extra'    => $extra,
+            ];
+        }
+
+        $totalUpdates = $pending->count();
         $creatorCount = count($byCreator);
-        $subject = "Your daily digest: {$count} update" . ($count === 1 ? '' : 's')
+        $subject = "Your daily digest: {$totalUpdates} update" . ($totalUpdates === 1 ? '' : 's')
             . " from {$creatorCount} creator" . ($creatorCount === 1 ? '' : 's');
 
+        $viewData = [
+            'userName'     => $user->name ?: 'there',
+            'subject'      => $subject,
+            'creators'     => $creators,
+            'totalUpdates' => $totalUpdates,
+            'creatorCount' => $creatorCount,
+        ];
+
         try {
-            Mail::raw($body, function ($m) use ($user, $subject) {
-                $m->to($user->email)->subject($subject);
-            });
+            Mail::send(
+                ['emails.follower-digest', 'emails.follower-digest-text'],
+                $viewData,
+                function ($m) use ($user, $subject) {
+                    $m->to($user->email)->subject($subject);
+                }
+            );
             return true;
         } catch (\Throwable $e) {
             \Log::warning('follower digest send failed for user ' . $user->id . ': ' . $e->getMessage());
             return false;
         }
+    }
+
+    /**
+     * Avatars are stored as relative paths like `/storage/...`. Email clients
+     * need an absolute URL, so promote relatives to absolute and pass through
+     * anything that's already a full URL.
+     */
+    private function absoluteAvatarUrl(?string $avatar): ?string
+    {
+        if (!$avatar) return null;
+        $avatar = trim($avatar);
+        if ($avatar === '') return null;
+        if (preg_match('#^https?://#i', $avatar)) return $avatar;
+        return url($avatar);
     }
 }
