@@ -2,34 +2,47 @@
 
 namespace App\Console\Commands;
 
-use App\Modules\User\Models\Link;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserNotification;
+use App\Modules\User\Services\FollowerDigestComposer;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Mail;
 
 /**
- * Once-a-day job that emails each follower a single digest covering every
+ * Hourly job that emails each follower a single digest covering every
  * creator they follow that has had pending activity since their last
- * digest. Followers in 'instant' mode are skipped (their emails go out
- * synchronously from CreatorPostController). Followers in 'off' mode never
- * have rows queued, so they're naturally excluded.
+ * digest. Runs every hour but only sends to users whose preferred local
+ * hour matches the current hour in their timezone — so a user who picked
+ * 8am in Europe/London receives the digest at 08:00 London time, not
+ * 09:00 UTC like before.
  *
- * Idempotent within a day: digest emails are gated on
- * `follower_digest_last_sent_at`, so re-running the command on the same UTC
- * day does nothing for users that have already received their digest.
+ * Followers in 'instant' mode are skipped (their emails go out
+ * synchronously from CreatorPostController). Followers in 'off' mode
+ * never have rows queued, so they're naturally excluded.
+ *
+ * Idempotent within each user's local day: digest emails are gated on
+ * `follower_digest_last_sent_at`, so re-running the command in the same
+ * local day for that user does nothing.
  */
 class SendFollowerDigest extends Command
 {
     protected $signature = 'followers:send-digest
         {--user= : Optional follower user id to digest (default: all eligible)}
+        {--hour= : Override the "current hour" used for matching (0-23). Defaults to now (UTC).}
+        {--any-hour : Ignore each user\'s preferred hour and send to anyone eligible}
         {--force : Send even if a digest was already sent today}';
 
-    protected $description = 'Email each opted-in follower one digest of new creator activity.';
+    protected $description = 'Email each opted-in follower one digest of new creator activity, honouring their preferred local hour.';
 
     public function handle(): int
     {
-        $today = now()->startOfDay();
+        $now = now();
+        // The "wall-clock" hour the run represents (UTC). For each candidate
+        // user we convert this to their local hour and compare with their
+        // preferred hour.
+        $runHour = $this->option('hour') !== null ? (int) $this->option('hour') : (int) $now->copy()->utc()->format('G');
+        $anyHour = (bool) $this->option('any-hour');
+        $force   = (bool) $this->option('force');
 
         $query = User::query()->where('follower_updates_mode', 'digest');
         if ($this->option('user')) {
@@ -38,12 +51,31 @@ class SendFollowerDigest extends Command
 
         $sent = 0;
         $skipped = 0;
-        $force = (bool) $this->option('force');
 
-        $query->chunkById(200, function ($users) use (&$sent, &$skipped, $today, $force) {
+        $query->chunkById(200, function ($users) use (&$sent, &$skipped, $now, $runHour, $anyHour, $force) {
             foreach ($users as $user) {
+                $tz = $user->timezone ?: 'UTC';
+                try {
+                    $userNow = $now->copy()->setTimezone($tz);
+                } catch (\Throwable $e) {
+                    $userNow = $now->copy();
+                }
+                $preferred = (int) ($user->digest_preferred_hour ?? 9);
+                if ($preferred < 0 || $preferred > 23) $preferred = 9;
+
+                // Compare the user's *local* hour for the run timestamp
+                // against their preferred hour. This naturally honours DST
+                // transitions because Carbon's setTimezone does the work.
+                $localHour = (int) $now->copy()->utc()->setTime($runHour, 0)->setTimezone($tz)->format('G');
+                if (!$anyHour && $localHour !== $preferred) {
+                    $skipped++;
+                    continue;
+                }
+
+                $localStartOfDay = $userNow->copy()->startOfDay();
                 if (!$force && $user->follower_digest_last_sent_at
-                    && $user->follower_digest_last_sent_at->greaterThanOrEqualTo($today)) {
+                    && $user->follower_digest_last_sent_at->copy()->setTimezone($tz)
+                        ->greaterThanOrEqualTo($localStartOfDay)) {
                     $skipped++;
                     continue;
                 }
@@ -60,10 +92,10 @@ class SendFollowerDigest extends Command
                 }
 
                 if ($this->emailDigest($user, $pending)) {
-                    $now = now();
+                    $stamp = now();
                     UserNotification::whereIn('id', $pending->pluck('id'))
-                        ->update(['emailed_at' => $now]);
-                    $user->forceFill(['follower_digest_last_sent_at' => $now])->save();
+                        ->update(['emailed_at' => $stamp]);
+                    $user->forceFill(['follower_digest_last_sent_at' => $stamp])->save();
                     $sent++;
                 } else {
                     $skipped++;
@@ -81,73 +113,14 @@ class SendFollowerDigest extends Command
      */
     private function emailDigest(User $user, $pending): bool
     {
-        $byCreator = [];
-        foreach ($pending as $row) {
-            $data = $row->data ?? [];
-            $cid = (int) ($data['creator_id'] ?? 0);
-            if (!isset($byCreator[$cid])) {
-                $byCreator[$cid] = [
-                    'id'       => $cid,
-                    'name'     => $data['creator_name'] ?? 'A creator you follow',
-                    'avatar'   => $this->absoluteAvatarUrl($data['creator_avatar'] ?? null),
-                    'messages' => [],
-                ];
-            }
-            $msg = trim((string) ($data['message'] ?? ''));
-            if ($msg !== '') {
-                $byCreator[$cid]['messages'][] = [
-                    'text'  => $msg,
-                    'image' => $this->absoluteImageUrl($data['post_image'] ?? null),
-                ];
-            }
-        }
-
-        // Resolve each creator's primary biolink URL for deep-link CTAs.
-        $creatorIds = array_filter(array_keys($byCreator));
-        $biolinkByCreator = [];
-        if (!empty($creatorIds)) {
-            $biolinkByCreator = Link::whereIn('user_id', $creatorIds)
-                ->where('type', 'biolink')
-                ->with('domain')
-                ->get()
-                ->groupBy('user_id')
-                ->map(fn ($group) => $group->first())
-                ->all();
-        }
-
-        $creators = [];
-        foreach ($byCreator as $cid => $entry) {
-            $shown = array_slice($entry['messages'], 0, 5);
-            $extra = max(0, count($entry['messages']) - 5);
-            $link  = $biolinkByCreator[$cid] ?? null;
-            $creators[] = [
-                'name'     => $entry['name'],
-                'avatar'   => $entry['avatar'],
-                'url'      => $link ? $link->getShortUrl() : null,
-                'messages' => $shown,
-                'extra'    => $extra,
-            ];
-        }
-
-        $totalUpdates = $pending->count();
-        $creatorCount = count($byCreator);
-        $subject = "Your daily digest: {$totalUpdates} update" . ($totalUpdates === 1 ? '' : 's')
-            . " from {$creatorCount} creator" . ($creatorCount === 1 ? '' : 's');
-
-        $viewData = [
-            'userName'     => $user->name ?: 'there',
-            'subject'      => $subject,
-            'creators'     => $creators,
-            'totalUpdates' => $totalUpdates,
-            'creatorCount' => $creatorCount,
-        ];
+        $composed = FollowerDigestComposer::compose($user, $pending);
 
         try {
             Mail::send(
                 ['emails.follower-digest', 'emails.follower-digest-text'],
-                $viewData,
-                function ($m) use ($user, $subject) {
-                    $m->to($user->email)->subject($subject);
+                $composed['viewData'],
+                function ($m) use ($user, $composed) {
+                    $m->to($user->email)->subject($composed['subject']);
                 }
             );
             return true;
@@ -155,28 +128,5 @@ class SendFollowerDigest extends Command
             \Log::warning('follower digest send failed for user ' . $user->id . ': ' . $e->getMessage());
             return false;
         }
-    }
-
-    /**
-     * Avatars are stored as relative paths like `/storage/...`. Email clients
-     * need an absolute URL, so promote relatives to absolute and pass through
-     * anything that's already a full URL.
-     */
-    private function absoluteAvatarUrl(?string $avatar): ?string
-    {
-        if (!$avatar) return null;
-        $avatar = trim($avatar);
-        if ($avatar === '') return null;
-        if (preg_match('#^https?://#i', $avatar)) return $avatar;
-        return url($avatar);
-    }
-
-    /**
-     * Same absolute-URL promotion as avatars; kept separate for clarity since
-     * post images come from a different storage path.
-     */
-    private function absoluteImageUrl(?string $image): ?string
-    {
-        return $this->absoluteAvatarUrl($image);
     }
 }

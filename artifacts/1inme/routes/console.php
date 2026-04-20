@@ -30,11 +30,12 @@ Schedule::command('socials:refresh-follower-counts')
     ->withoutOverlapping()
     ->onOneServer();
 
-// Daily at 09:00: email each opted-in follower a single digest summarising
-// new posts/profile changes/published links from creators they follow,
-// instead of one email per creator update.
+// Hourly: email each opted-in follower a single digest summarising new
+// posts/profile changes/published links from creators they follow. The
+// command itself filters by each user's preferred local hour (and
+// timezone) so a user who picked 8am gets it at 08:00 local time.
 Schedule::command('followers:send-digest')
-    ->dailyAt('09:00')
+    ->hourlyAt(0)
     ->withoutOverlapping()
     ->onOneServer();
 

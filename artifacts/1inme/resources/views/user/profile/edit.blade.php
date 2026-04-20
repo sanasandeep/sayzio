@@ -100,6 +100,30 @@
                                     <span><span class="text-white">Off</span> — don't email me about creator updates</span>
                                 </label>
                             </div>
+
+                            @php($prefHour = (int) old('digest_preferred_hour', $user->digest_preferred_hour ?? 9))
+                            <div class="mt-4 pl-1">
+                                <label class="block text-sm font-medium text-white/60 mb-1.5">
+                                    Send my daily digest at
+                                </label>
+                                <div class="flex items-center gap-3">
+                                    <select name="digest_preferred_hour" class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                                        @for($h = 0; $h < 24; $h++)
+                                            @php
+                                                $suffix = $h < 12 ? 'am' : 'pm';
+                                                $disp = $h % 12; if ($disp === 0) $disp = 12;
+                                            @endphp
+                                            <option value="{{ $h }}" {{ $prefHour === $h ? 'selected' : '' }} class="bg-[#0d0818]">
+                                                {{ $disp }}:00 {{ $suffix }}
+                                            </option>
+                                        @endfor
+                                    </select>
+                                    <span class="text-xs text-white/50">
+                                        in your timezone ({{ $user->timezone ?: 'UTC' }})
+                                    </span>
+                                </div>
+                                <p class="text-xs text-white/40 mt-1.5">Only applies when "Daily digest" is selected above.</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -108,6 +132,18 @@
                     Save Changes
                 </button>
             </div>
+        </form>
+    </div>
+
+    <div class="glass rounded-2xl p-6 mb-6">
+        <h2 class="text-lg font-semibold text-white mb-1">Preview your daily digest</h2>
+        <p class="text-sm text-white/50 mb-4">Send yourself a sample email using your current pending updates. Nothing in your real digest queue is changed.</p>
+        <form method="POST" action="{{ route('user.profile.digest.sample') }}">
+            @csrf
+            <button type="submit" class="px-5 py-2 bg-white/5 border border-white/15 text-white rounded-xl font-medium hover:bg-white/10 transition-all">
+                <i class="fas fa-paper-plane mr-1.5 text-violet-300"></i>
+                Send sample digest
+            </button>
         </form>
     </div>
 

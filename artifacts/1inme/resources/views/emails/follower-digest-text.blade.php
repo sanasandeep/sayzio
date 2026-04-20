@@ -1,7 +1,17 @@
 Hi {{ $userName }},
 
+@if(!empty($isSample) && $totalUpdates === 0)
+This is a sample preview of your daily digest. You don't have any new creator
+updates waiting right now — when creators you follow post something, it will
+show up here in your next digest.
+
+@else
+@if(!empty($isSample))
+This is a sample preview of your daily digest, using your {{ $totalUpdates }} update{{ $totalUpdates === 1 ? '' : 's' }} from {{ $creatorCount }} creator{{ $creatorCount === 1 ? '' : 's' }} currently waiting in your queue.
+@else
 Here's what creators you follow have been up to since your last digest
 ({{ $totalUpdates }} update{{ $totalUpdates === 1 ? '' : 's' }} from {{ $creatorCount }} creator{{ $creatorCount === 1 ? '' : 's' }}):
+@endif
 
 @foreach($creators as $c)
 * {{ $c['name'] }}@if(!empty($c['url'])) — {{ $c['url'] }}@endif
@@ -14,5 +24,6 @@ Here's what creators you follow have been up to since your last digest
 @endif
 
 @endforeach
+@endif
 You're receiving the daily digest from 1INME. To switch to instant emails or
 turn this off, visit your profile notification settings.

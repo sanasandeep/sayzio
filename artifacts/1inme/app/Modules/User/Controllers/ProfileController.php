@@ -3,9 +3,12 @@
 namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\User\Models\UserNotification;
+use App\Modules\User\Services\FollowerDigestComposer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 
 class ProfileController extends Controller
@@ -50,6 +53,12 @@ class ProfileController extends Controller
         $validated['follower_updates_mode'] = $mode;
         $validated['notify_follower_updates'] = $mode !== 'off';
 
+        // Preferred digest send hour in the user's local timezone (0–23).
+        // Defaults to 9am if missing or out of range.
+        $hour = (int) $request->input('digest_preferred_hour', 9);
+        if ($hour < 0 || $hour > 23) $hour = 9;
+        $validated['digest_preferred_hour'] = $hour;
+
         $previousAvatar = $user->avatar;
         $previousName   = $user->name;
         $user->update($validated);
@@ -66,6 +75,45 @@ class ProfileController extends Controller
         }
 
         return back()->with('success', 'Profile updated successfully.');
+    }
+
+    /**
+     * Email the signed-in user a sample digest using their currently
+     * pending follower-update notifications, so they can preview what
+     * the digest will look like without waiting for the scheduled job.
+     * Pending rows are NOT marked as emailed — the next real digest
+     * still includes them.
+     */
+    public function sendSample(Request $request)
+    {
+        $user = Auth::user();
+
+        $pending = UserNotification::where('user_id', $user->id)
+            ->where('type', 'follower_update')
+            ->whereNull('emailed_at')
+            ->orderBy('created_at')
+            ->get();
+
+        $composed = FollowerDigestComposer::compose($user, $pending, true);
+
+        try {
+            Mail::send(
+                ['emails.follower-digest', 'emails.follower-digest-text'],
+                $composed['viewData'],
+                function ($m) use ($user, $composed) {
+                    $m->to($user->email)->subject($composed['subject']);
+                }
+            );
+        } catch (\Throwable $e) {
+            \Log::warning('sample digest send failed for user ' . $user->id . ': ' . $e->getMessage());
+            return back()->with('error', "Couldn't send the sample right now. Please try again in a moment.");
+        }
+
+        $msg = $composed['count'] > 0
+            ? "Sample digest sent to {$user->email} with {$composed['count']} pending update" . ($composed['count'] === 1 ? '' : 's') . '.'
+            : "Sample digest sent to {$user->email}. You don't have any pending updates yet, so it's a placeholder preview.";
+
+        return back()->with('success', $msg);
     }
 
 }

@@ -12,12 +12,22 @@
             </div>
 
             <h1 style="font-size:20px; color:#1e293b; margin:0 0 8px 0;">
-                Hi {{ $userName }}, here's your daily digest
+                @if(!empty($isSample))
+                    Hi {{ $userName }}, here's a sample of your daily digest
+                @else
+                    Hi {{ $userName }}, here's your daily digest
+                @endif
             </h1>
-            <p style="font-size:14px; color:#64748b; line-height:1.6; margin:0 0 24px 0;">
-                {{ $totalUpdates }} update{{ $totalUpdates === 1 ? '' : 's' }} from
-                {{ $creatorCount }} creator{{ $creatorCount === 1 ? '' : 's' }} you follow since your last digest.
-            </p>
+            @if(!empty($isSample) && $totalUpdates === 0)
+                <p style="font-size:14px; color:#64748b; line-height:1.6; margin:0 0 24px 0;">
+                    You don't have any new creator updates waiting right now. When creators you follow post something, it'll show up here in your next digest.
+                </p>
+            @else
+                <p style="font-size:14px; color:#64748b; line-height:1.6; margin:0 0 24px 0;">
+                    @if(!empty($isSample))This is a preview using your @endif{{ $totalUpdates }} update{{ $totalUpdates === 1 ? '' : 's' }} from
+                    {{ $creatorCount }} creator{{ $creatorCount === 1 ? '' : 's' }}@if(empty($isSample)) you follow since your last digest@else currently waiting in your queue@endif.
+                </p>
+            @endif
 
             @foreach($creators as $c)
                 <div style="border-top:1px solid #e2e8f0; padding:20px 0;">

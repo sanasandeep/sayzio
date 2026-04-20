@@ -16,6 +16,7 @@ class User extends Authenticatable
         'timezone', 'language', 'settings', 'email_verified_at', 'last_login_at',
         'bio', 'handle', 'discoverable', 'notify_new_follower', 'notify_follower_updates',
         'follower_updates_mode', 'follower_digest_last_sent_at',
+        'digest_preferred_hour',
         'followers_count', 'allow_followers',
         'referral_code', 'referrer_id', 'referral_code_used',
     ];
@@ -35,6 +36,7 @@ class User extends Authenticatable
             'notify_new_follower' => 'boolean',
             'notify_follower_updates' => 'boolean',
             'follower_digest_last_sent_at' => 'datetime',
+            'digest_preferred_hour' => 'integer',
         ];
     }
 
