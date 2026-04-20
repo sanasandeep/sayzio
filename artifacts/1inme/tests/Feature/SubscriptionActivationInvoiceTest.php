@@ -158,9 +158,27 @@ class SubscriptionActivationInvoiceTest extends TestCase
         // dispatcher must wire the listener so an invoice is created.
         $response = $this->post('/webhooks/billing/activate', $payload);
 
-        $response->assertRedirect();
+        $response->assertOk();
+        $response->assertJson(['ok' => true]);
         $this->assertSame(1, Invoice::where('user_id', $buyer->id)->count());
         $this->assertSame($plan->id, $buyer->fresh()->plan_id);
+    }
+
+    public function test_webhook_without_user_id_returns_422_not_500(): void
+    {
+        config(['billing.activation_secret' => 'test-secret-xyz']);
+        $plan = Plan::create([
+            'name' => 'Pro', 'slug' => 'pro-' . Str::random(4), 'description' => 'Pro',
+            'monthly_price' => 9.99, 'annual_price' => 99, 'trial_days' => 0,
+            'status' => 'active', 'sort_order' => 1, 'features' => [],
+        ]);
+
+        $response = $this->post('/webhooks/billing/activate', [
+            'plan_id' => $plan->id,
+            'cycle'   => 'monthly',
+        ], ['Accept' => 'application/json']);
+
+        $response->assertStatus(422);
     }
 
     public function test_webhook_rejects_bad_signature(): void

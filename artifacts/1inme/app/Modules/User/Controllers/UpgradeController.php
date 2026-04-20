@@ -108,6 +108,15 @@ class UpgradeController extends Controller
         ]);
 
         $actor = $request->user();
+        $isWebhook = $request->is('webhooks/billing/*') || !$actor;
+
+        // Unauthenticated/webhook callers must always identify the buyer.
+        if (!$actor && empty($data['user_id'])) {
+            if ($isWebhook) {
+                return response()->json(['error' => 'user_id required'], 422);
+            }
+            abort(422, 'user_id required');
+        }
 
         // Authorization: this endpoint represents a verified payment-success
         // signal and must not be callable by ordinary users for their own
@@ -130,6 +139,9 @@ class UpgradeController extends Controller
             && hash_equals($expected, (string) $data['signature']);
         $isSuperAdmin = $actor && method_exists($actor, 'isSuperAdmin') && $actor->isSuperAdmin();
         if (!$isSuperAdmin && !$hasValidSignature) {
+            if ($isWebhook) {
+                return response()->json(['error' => 'invalid signature'], 403);
+            }
             abort(403, 'Plan activation requires a verified payment signal.');
         }
 
@@ -156,6 +168,9 @@ class UpgradeController extends Controller
             $data['gateway_ref'] ?? null,
         );
 
+        if ($isWebhook || $request->wantsJson()) {
+            return response()->json(['ok' => true, 'plan_id' => $plan->id, 'user_id' => $user->id], 200);
+        }
         return redirect()->route('user.upgrade')->with('success', 'Plan activated. Your tax invoice is available in your billing history.');
     }
 
