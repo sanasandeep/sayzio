@@ -14,6 +14,7 @@ use App\Modules\Admin\Controllers\TemplateController;
 use App\Modules\Admin\Controllers\AdminAssetController;
 use App\Modules\Admin\Controllers\BrandingController;
 use App\Modules\Admin\Controllers\SocialOAuthSettingsController;
+use App\Modules\Admin\Controllers\SpamRuleStatsController;
 use App\Modules\Admin\Middleware\CheckPermission;
 
 Route::prefix('admin')->name('admin.')->group(function () {
@@ -103,6 +104,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::prefix('social-oauth')->name('social-oauth.')->group(function () {
             Route::get('/', [SocialOAuthSettingsController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+        });
+
+        Route::prefix('spam-rules')->name('spam-rules.')->group(function () {
+            Route::get('/', [SpamRuleStatsController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
         });
 
         Route::prefix('referrals')->name('referrals.')->group(function () {

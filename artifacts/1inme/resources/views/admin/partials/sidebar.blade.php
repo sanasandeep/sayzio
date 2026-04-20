@@ -98,6 +98,14 @@
             <span class="sidebar-tooltip">Templates</span>
         </a>
 
+        <a href="{{ route('admin.spam-rules.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.spam-rules.*') ? 'active' : '' }}"
+           style="--nav-tint:#ef4444; --nav-tint-soft:rgba(239,68,68,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-shield-halved"></i></div>
+            <span class="nav-label">Spam Rules</span>
+            <span class="sidebar-tooltip">Spam Rules</span>
+        </a>
+
         <a href="{{ route('admin.coach-defaults.edit') }}"
            class="sidebar-link {{ request()->routeIs('admin.coach-defaults.*') ? 'active' : '' }}"
            style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
