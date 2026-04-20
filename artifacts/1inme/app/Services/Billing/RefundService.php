@@ -136,6 +136,32 @@ class RefundService
         return $refund->fresh();
     }
 
+    /**
+     * Called by a gateway webhook adapter when an asynchronous refund
+     * transitions from pending to succeeded (e.g. Razorpay's
+     * `refund.processed`). Transitions the row atomically and then
+     * runs the same CN / downgrade / email pipeline as the sync path.
+     * Idempotent: a refund that's already succeeded is a no-op.
+     */
+    public function handleGatewaySuccess(Refund $refund, string $gatewayRef): Refund
+    {
+        $fresh = DB::transaction(function () use ($refund, $gatewayRef) {
+            $locked = Refund::whereKey($refund->id)->lockForUpdate()->firstOrFail();
+            if ($locked->status === 'succeeded') return $locked;
+            if (!in_array($locked->status, ['pending', 'failed'], true)) return $locked;
+            $locked->forceFill([
+                'status'       => 'succeeded',
+                'gateway_ref'  => $gatewayRef ?: $locked->gateway_ref,
+                'processed_at' => now(),
+            ])->save();
+            return $locked;
+        });
+        if ($fresh->wasChanged('status')) {
+            $this->finalizeSucceeded($fresh->fresh());
+        }
+        return $fresh->fresh();
+    }
+
     /** CN + downgrade + user email. Shared by both entry points. */
     protected function finalizeSucceeded(Refund $refund): void
     {

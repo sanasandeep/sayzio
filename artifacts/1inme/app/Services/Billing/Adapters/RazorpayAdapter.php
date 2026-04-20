@@ -242,22 +242,17 @@ class RazorpayAdapter extends AbstractAdapter
             $payment = $payload['payload']['payment']['entity'] ?? [];
             $notes   = $payment['notes'] ?? [];
             $invoiceId = (int) ($notes['invoice_id'] ?? 0);
-            // If this is a subscription renewal, Razorpay sends
-            // `payment.captured` with a subscription_id; map that to
-            // an internal renewal invoice below.
-            if (!$invoiceId && !empty($payment['subscription_id'])) {
-                $invoiceId = $this->resolveRenewalInvoiceId(
-                    (string) $payment['subscription_id'],
-                    (int)    ($payment['amount']   ?? 0),
-                    (string) ($payment['currency'] ?? '')
-                );
-            }
-            // Record the actual Razorpay payment_id on the attempt row
-            // so refund() can find it later. We keep event.id as the
-            // router-facing gateway_ref (idempotency), and stash the
-            // payment_id on the raw_response for lookup.
+            // NOTE: if payment has a subscription_id and NO invoice_id in
+            // notes, that means Razorpay auto-charged a renewal. We do
+            // NOT materialise the renewal invoice here — Razorpay also
+            // fires `subscription.charged` for the same charge, which
+            // is our canonical renewal trigger. Handling both would
+            // create duplicate invoices / double period extensions.
+            $subOnly = !$invoiceId && !empty($payment['subscription_id']);
             return [
-                'type'         => $type === 'payment.captured' ? 'payment.succeeded' : 'payment.failed',
+                'type'         => $subOnly
+                                    ? 'payment.requires_review'
+                                    : ($type === 'payment.captured' ? 'payment.succeeded' : 'payment.failed'),
                 'invoice_id'   => $invoiceId ?: null,
                 'gateway_ref'  => $eventId,
                 'amount_minor' => (int) ($payment['amount'] ?? 0),
@@ -300,26 +295,45 @@ class RazorpayAdapter extends AbstractAdapter
             ];
         }
 
-        // ---------- refund.processed ----------
+        // ---------- refund.processed / refund.failed ----------
         if ($type === 'refund.processed' || $type === 'refund.failed') {
-            $refund = $payload['payload']['refund']['entity'] ?? [];
+            $refund   = $payload['payload']['refund']['entity'] ?? [];
             $refundId = (string) ($refund['id'] ?? '');
-            // IDEMPOTENCY GUARD — see subscription.charged comment above.
-            $alreadyProcessed = $this->eventAlreadyProcessed($eventId);
-            $row = (!$alreadyProcessed && $refundId) ? Refund::where('gateway', 'razorpay')
+            // Locate our internal refund row FIRST so we can attach a
+            // real invoice_id to the event. That lets the router's
+            // payment_attempts idempotency path store THIS event.id
+            // (previously invoice_id=null made the router short-circuit
+            // at line ~58 without recording the event, so duplicate
+            // deliveries weren't deduped).
+            $row = $refundId ? Refund::where('gateway', 'razorpay')
                 ->where('gateway_ref', $refundId)->first() : null;
-            if ($row) {
-                $row->forceFill([
-                    'status'       => $type === 'refund.processed' ? 'succeeded' : 'failed',
-                    'processed_at' => $type === 'refund.processed' ? now() : $row->processed_at,
-                ])->save();
+            // IDEMPOTENCY GUARD: if we've already seen this event.id,
+            // do NOT re-run the finalisation pipeline (credit note +
+            // downgrade + email) on the row.
+            if ($row && !$this->eventAlreadyProcessed($eventId)) {
+                if ($type === 'refund.processed') {
+                    // Route through RefundService so credit note,
+                    // optional downgrade and user email all fire.
+                    try {
+                        app(\App\Services\Billing\RefundService::class)
+                            ->handleGatewaySuccess($row, $refundId);
+                    } catch (\Throwable $e) {
+                        Log::warning('Refund gateway-success finalisation failed', [
+                            'refund_id' => $row->id, 'error' => $e->getMessage(),
+                        ]);
+                    }
+                } else {
+                    $row->forceFill([
+                        'status'       => 'failed',
+                        'processed_at' => $row->processed_at ?: now(),
+                    ])->save();
+                }
             }
-            // Router has no refund branch — return a type that triggers
-            // the 202 "requires_review" path with invoice_id=0 so it
-            // short-circuits cleanly.
             return [
                 'type'         => 'payment.requires_review',
-                'invoice_id'   => null,
+                // Attach the refund's invoice so the router can record
+                // event.id -> PaymentAttempt and honour idempotency.
+                'invoice_id'   => $row ? (int) $row->invoice_id : null,
                 'gateway_ref'  => $eventId ?: ('refund:' . $refundId),
                 'amount_minor' => (int) ($refund['amount'] ?? 0),
                 'currency'     => (string) ($refund['currency'] ?? ''),
@@ -331,20 +345,28 @@ class RazorpayAdapter extends AbstractAdapter
         if ($type === 'subscription.cancelled') {
             $sub = $payload['payload']['subscription']['entity'] ?? [];
             $rzpSubId = (string) ($sub['id'] ?? '');
+            $match = $rzpSubId ? Subscription::where('gateway', 'razorpay')
+                ->where('gateway_subscription_id', $rzpSubId)->first() : null;
             // IDEMPOTENCY GUARD — see subscription.charged comment above.
-            if ($rzpSubId && !$this->eventAlreadyProcessed($eventId)) {
-                $match = Subscription::where('gateway', 'razorpay')
-                    ->where('gateway_subscription_id', $rzpSubId)->first();
-                if ($match && $match->status !== 'cancelled') {
+            if ($match && !$this->eventAlreadyProcessed($eventId)) {
+                if ($match->status !== 'cancelled') {
                     $match->forceFill([
                         'status'    => 'cancelled',
                         'cancel_at' => now(),
                     ])->save();
                 }
             }
+            // Latest invoice on this subscription gives the router a
+            // valid FK for the PaymentAttempt row, so the event.id
+            // gets persisted in the unique index (real idempotency).
+            $latestInvoiceId = null;
+            if ($match) {
+                $latestInvoiceId = Invoice::where('subscription_id', $match->id)
+                    ->orderByDesc('id')->value('id');
+            }
             return [
                 'type'         => 'payment.requires_review',
-                'invoice_id'   => null,
+                'invoice_id'   => $latestInvoiceId ? (int) $latestInvoiceId : null,
                 'gateway_ref'  => $eventId ?: ('sub-cancelled:' . $rzpSubId),
                 'amount_minor' => null,
                 'currency'     => null,
