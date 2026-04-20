@@ -17,7 +17,9 @@ class OtpService
             ->where('used', false)
             ->update(['used' => true]);
 
-        $code = '1234';
+        $code = app()->environment('production')
+            ? str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT)
+            : '123456';
 
         DB::table('otps')->insert([
             'identifier' => $identifier,

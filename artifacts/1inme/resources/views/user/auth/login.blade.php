@@ -86,7 +86,7 @@
         <div class="flex-1 lg:flex-none lg:w-[480px] flex items-center justify-center p-6 lg:p-12 relative">
             <div class="hidden lg:block absolute inset-y-0 left-0 w-px" style="background: linear-gradient(180deg, transparent, var(--border-glass), transparent);"></div>
 
-            <div class="w-full max-w-sm" x-data="{ mode: 'password' }">
+            <div class="w-full max-w-sm">
                 <div class="text-center mb-7 lg:hidden">
                     <a href="{{ route('home') }}" class="inline-flex items-center gap-2 text-3xl font-bold tracking-tight">
                         <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 via-violet-500 to-violet-700 flex items-center justify-center shadow-lg">
@@ -98,78 +98,42 @@
 
                 <div class="hidden lg:block mb-7">
                     <h2 class="text-2xl font-bold" style="color: var(--text-primary);">Welcome back</h2>
-                    <p class="text-sm mt-1" style="color: var(--text-dimmed);">Sign in to your account to continue</p>
+                    <p class="text-sm mt-1" style="color: var(--text-dimmed);">We'll email or text you a 6-digit code — no password needed.</p>
                 </div>
 
                 <div class="lg:hidden text-center mb-6">
                     <h2 class="text-xl font-bold" style="color: var(--text-primary);">Welcome back</h2>
-                    <p class="text-sm mt-1" style="color: var(--text-dimmed);">Sign in to continue</p>
+                    <p class="text-sm mt-1" style="color: var(--text-dimmed);">Sign in with a one-time code</p>
                 </div>
 
-                <div class="glass rounded-2xl p-1.5 mb-6">
-                    <div class="flex">
-                        <button @click="mode = 'password'" :class="mode === 'password' ? 'btn-primary shadow-lg' : ''" class="flex-1 py-2 text-sm font-medium rounded-xl transition-all" :style="mode !== 'password' ? 'color: var(--text-muted)' : ''">Password</button>
-                        <button @click="mode = 'otp'" :class="mode === 'otp' ? 'btn-primary shadow-lg' : ''" class="flex-1 py-2 text-sm font-medium rounded-xl transition-all" :style="mode !== 'otp' ? 'color: var(--text-muted)' : ''">OTP Login</button>
+                @if(session('status'))
+                    <div class="mb-4 rounded-xl px-3 py-2.5 text-xs" style="background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.20); color: #86efac;">
+                        {{ session('status') }}
                     </div>
-                </div>
+                @endif
 
-                <div x-show="mode === 'password'" x-cloak x-transition>
-                    <form method="POST" action="{{ route('user.login.submit') }}">
-                        @csrf
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Email</label>
-                                <input type="email" name="email" value="{{ old('email') }}" required autofocus placeholder="you@example.com"
-                                       class="theme-input w-full">
-                                @error('email')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
-                            </div>
-
-                            <div>
-                                <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Password</label>
-                                <input type="password" name="password" required placeholder="Enter your password"
-                                       class="theme-input w-full">
-                            </div>
-
-                            <div class="flex items-center justify-between">
-                                <label class="flex items-center gap-2 text-xs cursor-pointer" style="color: var(--text-dimmed);">
-                                    <input type="checkbox" name="remember" class="rounded text-violet-500 focus:ring-violet-500/40 w-3.5 h-3.5" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
-                                    Remember me
-                                </label>
-                                <a href="{{ route('user.password.request') }}" class="text-xs font-medium text-violet-400 hover:text-violet-300 transition-colors">Forgot?</a>
-                            </div>
-
-                            <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm">
-                                Sign In
-                                <i class="fas fa-arrow-right text-[10px] ml-1"></i>
+                <form method="POST" action="{{ route('user.otp.send') }}" x-data="{ otpType: 'email' }">
+                    @csrf
+                    <div class="space-y-4">
+                        <div class="flex gap-2">
+                            <button type="button" @click="otpType = 'email'" :class="otpType === 'email' ? 'border-violet-500/40 text-violet-400' : ''" class="flex-1 py-2 text-xs font-medium rounded-xl border transition-all" :style="otpType !== 'email' ? 'background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-muted)' : 'background: rgba(124,58,237,0.08)'">
+                                <i class="fas fa-envelope mr-1"></i> Email
+                            </button>
+                            <button type="button" @click="otpType = 'mobile'" :class="otpType === 'mobile' ? 'border-violet-500/40 text-violet-400' : ''" class="flex-1 py-2 text-xs font-medium rounded-xl border transition-all" :style="otpType !== 'mobile' ? 'background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-muted)' : 'background: rgba(124,58,237,0.08)'">
+                                <i class="fas fa-mobile-alt mr-1"></i> Mobile
                             </button>
                         </div>
-                    </form>
-                </div>
-
-                <div x-show="mode === 'otp'" x-cloak x-transition>
-                    <form method="POST" action="{{ route('user.otp.send') }}" x-data="{ otpType: 'email' }">
-                        @csrf
-                        <div class="space-y-4">
-                            <div class="flex gap-2">
-                                <button type="button" @click="otpType = 'email'" :class="otpType === 'email' ? 'border-violet-500/40 text-violet-400' : ''" class="flex-1 py-2 text-xs font-medium rounded-xl border transition-all" :style="otpType !== 'email' ? 'background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-muted)' : 'background: rgba(124,58,237,0.08)'">
-                                    <i class="fas fa-envelope mr-1"></i> Email
-                                </button>
-                                <button type="button" @click="otpType = 'mobile'" :class="otpType === 'mobile' ? 'border-violet-500/40 text-violet-400' : ''" class="flex-1 py-2 text-xs font-medium rounded-xl border transition-all" :style="otpType !== 'mobile' ? 'background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-muted)' : 'background: rgba(124,58,237,0.08)'">
-                                    <i class="fas fa-mobile-alt mr-1"></i> Mobile
-                                </button>
-                            </div>
-                            <input type="hidden" name="type" :value="otpType">
-                            <div>
-                                <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);" x-text="otpType === 'email' ? 'Email Address' : 'Mobile Number'"></label>
-                                <input type="text" name="identifier" required :placeholder="otpType === 'email' ? 'you@example.com' : '+1234567890'" class="theme-input w-full">
-                                @error('identifier')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
-                            </div>
-                            <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm">
-                                <i class="fas fa-paper-plane text-xs"></i> Send OTP
-                            </button>
+                        <input type="hidden" name="type" :value="otpType">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);" x-text="otpType === 'email' ? 'Email Address' : 'Mobile Number'"></label>
+                            <input type="text" name="identifier" value="{{ old('identifier') }}" required autofocus :placeholder="otpType === 'email' ? 'you@example.com' : '+1234567890'" class="theme-input w-full">
+                            @error('identifier')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
                         </div>
-                    </form>
-                </div>
+                        <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm">
+                            <i class="fas fa-paper-plane text-xs"></i> Send 6-digit Code
+                        </button>
+                    </div>
+                </form>
 
                 <div class="mt-6 pt-6" style="border-top: 1px solid var(--border-glass);">
                     <p class="text-center text-[10px] uppercase tracking-wider font-bold mb-3" style="color: var(--text-faint);">Quick access</p>

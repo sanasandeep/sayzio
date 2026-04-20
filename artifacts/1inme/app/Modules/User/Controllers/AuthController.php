@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -26,7 +27,6 @@ class AuthController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'mobile' => 'nullable|string|max:20',
-            'password' => 'required|string|min:8|confirmed',
         ]);
 
         $freePlan = Plan::where('slug', 'free')->first();
@@ -35,51 +35,35 @@ class AuthController extends Controller
             'name' => $validated['name'],
             'email' => $validated['email'],
             'mobile' => $validated['mobile'] ?? null,
-            'password' => Hash::make($validated['password']),
+            // Password column is NOT NULL but unused — fill with an
+            // unguessable random hash so the OTP flow is the only way in.
+            'password' => Hash::make(Str::random(48)),
             'plan_id' => $freePlan?->id,
             'status' => 'active',
         ]);
 
-        Auth::login($user);
-
+        // Send a login OTP and route the new user through verification.
+        $otpService = new OtpService();
+        $code = $otpService->generate($user->email, 'email', 'login', 'web');
         try {
-            $verificationUrl = URL::temporarySignedRoute(
-                'user.verification.verify',
-                now()->addHours(24),
-                ['id' => $user->id, 'hash' => sha1($user->email)]
-            );
-
-            Mail::send('emails.verify-email', ['verificationUrl' => $verificationUrl, 'user' => $user], function ($message) use ($user) {
-                $message->to($user->email);
-                $message->subject('Verify Your Email - 1INME');
-            });
+            $otpService->sendEmail($user->email, $code);
         } catch (\Exception $e) {
-            \Log::warning('Verification email failed: ' . $e->getMessage());
+            \Log::warning('OTP email failed: ' . $e->getMessage());
         }
 
-        return redirect()->route('user.dashboard');
+        session([
+            'otp_identifier' => $user->email,
+            'otp_type'       => 'email',
+        ]);
+
+        return redirect()->route('user.otp.verify.form')
+            ->with('status', 'Account created. We sent a 6-digit code to ' . $user->email . '.');
     }
 
     public function showLogin()
     {
         if (Auth::check()) return redirect()->route('user.dashboard');
         return view('user.auth.login');
-    }
-
-    public function login(Request $request)
-    {
-        $credentials = $request->validate([
-            'email' => 'required|email',
-            'password' => 'required',
-        ]);
-
-        if (Auth::attempt($credentials, $request->boolean('remember'))) {
-            $request->session()->regenerate();
-            Auth::user()->update(['last_login_at' => now()]);
-            return redirect()->intended(route('user.dashboard'));
-        }
-
-        return back()->withErrors(['email' => 'Invalid credentials.'])->onlyInput('email');
     }
 
     public function sendOtp(Request $request)
@@ -115,6 +99,37 @@ class AuthController extends Controller
         session(['otp_identifier' => $identifier, 'otp_type' => $type]);
 
         return redirect()->route('user.otp.verify.form')->with('status', 'OTP sent to your ' . $type . '.');
+    }
+
+    public function resendOtp(Request $request)
+    {
+        $identifier = session('otp_identifier');
+        $type = session('otp_type', 'email');
+        if (!$identifier) {
+            return redirect()->route('user.login');
+        }
+
+        // Only generate/send when a real user matches the session identifier.
+        // Always show a generic success so we don't leak account existence.
+        $user = $type === 'email'
+            ? User::where('email', $identifier)->first()
+            : User::where('mobile', $identifier)->first();
+
+        if ($user) {
+            $otpService = new OtpService();
+            $code = $otpService->generate($identifier, $type, 'login', 'web');
+            try {
+                if ($type === 'email') {
+                    $otpService->sendEmail($identifier, $code);
+                } else {
+                    $otpService->sendSms($identifier, $code);
+                }
+            } catch (\Exception $e) {
+                \Log::warning('Resend OTP failed: ' . $e->getMessage());
+            }
+        }
+
+        return back()->with('status', 'If your account exists, a new code was sent to your ' . $type . '.');
     }
 
     public function showOtpVerify()

@@ -61,9 +61,16 @@
                 </button>
             </form>
 
-            <p class="mt-6 text-xs">
+            <form method="POST" action="{{ route('user.otp.resend') }}" class="mt-4">
+                @csrf
+                <button type="submit" class="text-xs font-medium text-violet-400 hover:text-violet-300 transition-colors">
+                    <i class="fas fa-rotate-right text-[10px] mr-1"></i> Resend code
+                </button>
+            </form>
+
+            <p class="mt-4 text-xs">
                 <a href="{{ route('user.login') }}" class="text-violet-400 hover:text-violet-300 font-semibold transition-colors">
-                    <i class="fas fa-arrow-left text-[10px] mr-1"></i> Back to login
+                    <i class="fas fa-arrow-left text-[10px] mr-1"></i> Use a different {{ session('otp_type', 'email') }}
                 </a>
             </p>
         </div>

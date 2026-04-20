@@ -55,34 +55,14 @@
     </div>
 
     <div class="glass rounded-2xl p-6">
-        <h2 class="text-lg font-semibold text-white mb-4">Change Password</h2>
-        <form method="POST" action="{{ route('user.profile.password') }}">
-            @csrf @method('PUT')
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-white/60 mb-1.5">Current Password</label>
-                    <input type="password" name="current_password" required
-                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none transition-all">
-                    @error('current_password')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-white/60 mb-1.5">New Password</label>
-                        <input type="password" name="password" required
-                               class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none transition-all">
-                        @error('password')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-white/60 mb-1.5">Confirm New Password</label>
-                        <input type="password" name="password_confirmation" required
-                               class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none transition-all">
-                    </div>
-                </div>
-                <button type="submit" class="px-6 py-2.5 bg-violet-600 text-white rounded-xl font-medium hover:bg-violet-700 transition-all hover:shadow-lg hover:shadow-violet-500/20">
-                    Update Password
-                </button>
+        <h2 class="text-lg font-semibold text-white mb-1">Sign-in security</h2>
+        <p class="text-sm text-white/50 mb-4">Your account is protected by one-time codes — there's no password to manage.</p>
+        <div class="flex items-start gap-3 rounded-xl px-4 py-3" style="background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.20);">
+            <i class="fas fa-shield-alt text-violet-400 mt-0.5"></i>
+            <div class="text-sm text-white/70">
+                Each time you sign in, we send a fresh 6-digit code to your email{{ auth()->user()->mobile ? ' or mobile number' : '' }}. Keep your contact details up to date above so you can always receive it.
             </div>
-        </form>
+        </div>
     </div>
 </div>
 @endsection
