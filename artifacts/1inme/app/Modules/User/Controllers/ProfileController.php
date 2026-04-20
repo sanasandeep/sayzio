@@ -23,19 +23,33 @@ class ProfileController extends Controller
     }
 
     /**
-     * Render the digest email Blade template with mock data so the user can
-     * preview what the daily digest will look like before opting in.
+     * Render the digest email Blade template so the user can preview what
+     * the daily digest will look like. When the follower already has
+     * unsent `follower_update` notifications queued, those are used so the
+     * preview reflects exactly what the next real digest will contain.
+     * Otherwise a clearly-labelled mock fallback is shown.
      */
     private function renderDigestPreview($user): string
     {
+        $pending = UserNotification::where('user_id', $user->id)
+            ->where('type', 'follower_update')
+            ->whereNull('emailed_at')
+            ->orderBy('created_at')
+            ->get();
+
+        if ($pending->isNotEmpty()) {
+            $composed = FollowerDigestComposer::compose($user, $pending, true);
+            return view('emails.follower-digest', $composed['viewData'])->render();
+        }
+
         $creators = [
             [
                 'name'     => 'Ada Lovelace',
                 'avatar'   => null,
                 'url'      => null,
                 'messages' => [
-                    'posted a new update: "Just shipped a fresh design"',
-                    'added a new link: Behind the scenes',
+                    ['text' => 'posted a new update: "Just shipped a fresh design"', 'image' => null],
+                    ['text' => 'added a new link: Behind the scenes', 'image' => null],
                 ],
                 'extra'    => 0,
             ],
@@ -44,7 +58,7 @@ class ProfileController extends Controller
                 'avatar'   => null,
                 'url'      => null,
                 'messages' => [
-                    'shared a new photo set from this week',
+                    ['text' => 'shared a new photo set from this week', 'image' => null],
                 ],
                 'extra'    => 0,
             ],
@@ -53,8 +67,8 @@ class ProfileController extends Controller
                 'avatar'   => null,
                 'url'      => null,
                 'messages' => [
-                    'updated their profile',
-                    'posted a new update: "Q&A this Friday — bring questions!"',
+                    ['text' => 'updated their profile', 'image' => null],
+                    ['text' => 'posted a new update: "Q&A this Friday — bring questions!"', 'image' => null],
                 ],
                 'extra'    => 2,
             ],
@@ -65,10 +79,12 @@ class ProfileController extends Controller
 
         return view('emails.follower-digest', [
             'userName'     => $user->name ?: 'there',
-            'subject'      => 'Your daily digest (preview)',
+            'subject'      => 'Your daily digest (example)',
             'creators'     => $creators,
             'totalUpdates' => $totalUpdates,
             'creatorCount' => $creatorCount,
+            'isSample'     => true,
+            'isExample'    => true,
         ])->render();
     }
 

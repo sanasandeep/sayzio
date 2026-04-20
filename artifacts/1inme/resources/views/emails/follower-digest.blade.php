@@ -12,13 +12,19 @@
             </div>
 
             <h1 style="font-size:20px; color:#1e293b; margin:0 0 8px 0;">
-                @if(!empty($isSample))
+                @if(!empty($isExample))
+                    Hi {{ $userName }}, here's an example of your daily digest
+                @elseif(!empty($isSample))
                     Hi {{ $userName }}, here's a sample of your daily digest
                 @else
                     Hi {{ $userName }}, here's your daily digest
                 @endif
             </h1>
-            @if(!empty($isSample) && $totalUpdates === 0)
+            @if(!empty($isExample))
+                <p style="font-size:14px; color:#64748b; line-height:1.6; margin:0 0 24px 0;">
+                    You don't have any pending creator updates yet, so this is an example using made-up creators to show what your digest will look like.
+                </p>
+            @elseif(!empty($isSample) && $totalUpdates === 0)
                 <p style="font-size:14px; color:#64748b; line-height:1.6; margin:0 0 24px 0;">
                     You don't have any new creator updates waiting right now. When creators you follow post something, it'll show up here in your next digest.
                 </p>
