@@ -192,10 +192,11 @@ class CheckoutFlowTest extends TestCase
 
     public function test_webhook_stubbed_gateway_returns_202(): void
     {
-        GatewaySetting::where('gateway_slug', 'stripe')->update(['is_enabled' => true]);
-        $r = $this->post('/webhooks/stripe', ['anything' => 1]);
-        // Stripe adapter throws NotImplementedException inside verifyWebhook →
-        // router converts it into 202 accept-and-ignore to avoid gateway retries.
+        // Switched from stripe → paypal after task-196 activated the
+        // Stripe adapter. Paypal/Cashfree are still stubbed and exercise
+        // the router's accept-and-ignore path for NotImplementedException.
+        GatewaySetting::where('gateway_slug', 'paypal')->update(['is_enabled' => true]);
+        $r = $this->post('/webhooks/paypal', ['anything' => 1]);
         $r->assertStatus(202);
     }
 }
