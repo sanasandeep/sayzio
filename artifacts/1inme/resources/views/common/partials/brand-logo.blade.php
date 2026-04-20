@@ -17,18 +17,18 @@
     if ($variant === 'icon') {
         $url = \App\Modules\Admin\Models\AppSetting::get(
             'brand_icon_url',
-            asset('branding/icon.jpg')
+            '/branding/icon.jpg'
         );
         $tag = '<img src="' . e($url) . '" alt="' . e($alt) . '" class="' . e($height) . ' w-auto rounded-lg object-cover">';
         echo $href ? '<a href="' . e($href) . '" class="inline-flex items-center">' . $tag . '</a>' : $tag;
     } else {
         $lightUrl = \App\Modules\Admin\Models\AppSetting::get(
             'brand_logo_light_url',
-            asset('branding/logo-light.png')
+            '/branding/logo-light.png'
         );
         $darkUrl = \App\Modules\Admin\Models\AppSetting::get(
             'brand_logo_dark_url',
-            asset('branding/logo-dark.png')
+            '/branding/logo-dark.png'
         );
 @endphp
 @if($href)<a href="{{ $href }}" class="inline-flex items-center">@endif

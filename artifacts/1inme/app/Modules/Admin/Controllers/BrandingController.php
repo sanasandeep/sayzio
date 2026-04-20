@@ -28,7 +28,7 @@ class BrandingController extends Controller
     {
         $current = [];
         foreach (self::SLOTS as $key => [$field, $default, $mimes, $max]) {
-            $current[$field] = AppSetting::get($key, asset($default));
+            $current[$field] = AppSetting::get($key, '/' . ltrim($default, '/'));
         }
 
         return view('admin.branding.edit', ['logos' => $current]);
@@ -53,7 +53,7 @@ class BrandingController extends Controller
                 $ext = strtolower($file->getClientOriginalExtension());
                 $name = $field . '-' . time() . '.' . $ext;
                 $file->move($publicDir, $name);
-                AppSetting::put($key, asset('branding/' . $name));
+                AppSetting::put($key, '/branding/' . $name);
             }
         }
 
@@ -63,7 +63,7 @@ class BrandingController extends Controller
     public function reset(Request $request)
     {
         foreach (self::SLOTS as $key => [, $default, , ]) {
-            AppSetting::put($key, asset($default));
+            AppSetting::put($key, '/' . ltrim($default, '/'));
         }
         return back()->with('success', 'Branding reset to defaults.');
     }
