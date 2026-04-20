@@ -101,10 +101,16 @@
                                     <span style="color:#34d399;"><i class="fas fa-check mr-1"></i>Looks good</span>
                                 @endif
                             </td>
-                            <td class="py-2 align-top text-right">
-                                <a href="#{{ $editId }}" class="inline-flex items-center text-xs px-2 py-1 rounded-md" style="background:rgba(255,255,255,.06); color:var(--text-muted); border:1px solid rgba(255,255,255,.08);">
+                            <td class="py-2 align-top text-right whitespace-nowrap">
+                                <a href="#{{ $editId }}" class="inline-flex items-center text-xs px-2 py-1 rounded-md mr-1" style="background:rgba(255,255,255,.06); color:var(--text-muted); border:1px solid rgba(255,255,255,.08);">
                                     <i class="fas fa-pen mr-1"></i>Edit
                                 </a>
+                                <form method="POST" action="{{ route('user.contacts.import.preview.row.skip', ['token' => $token, 'index' => $absIndex]) }}{{ $rows->currentPage() > 1 ? '?page=' . $rows->currentPage() : '' }}" class="inline" onsubmit="return confirm('Skip this row? It will be removed from the preview and not imported.');">
+                                    @csrf
+                                    <button type="submit" class="inline-flex items-center text-xs px-2 py-1 rounded-md" style="background:rgba(239,68,68,0.10); color:#f87171; border:1px solid rgba(239,68,68,0.25);">
+                                        <i class="fas fa-xmark mr-1"></i>Skip
+                                    </button>
+                                </form>
                             </td>
                         </tr>
                         <tr id="{{ $editId }}" class="import-edit-row" style="border-top:1px solid rgba(255,255,255,.04);">

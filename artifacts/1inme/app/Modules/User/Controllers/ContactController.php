@@ -376,6 +376,42 @@ class ContactController extends Controller
             ->with('success', 'Row updated.');
     }
 
+    public function importRowSkip(Request $request, string $token, int $index)
+    {
+        $user = $request->user();
+        $stash = $this->loadStash($user->id, $token);
+        if (!$stash) {
+            return redirect()->route('user.contacts.import')
+                ->with('error', 'That preview is no longer available. Please re-upload the file.');
+        }
+
+        $rows = $stash['rows'] ?? [];
+        if (!isset($rows[$index]) || !is_array($rows[$index])) {
+            abort(404);
+        }
+
+        // Drop the row entirely from the stash and re-key so the remaining
+        // rows keep contiguous indexes (the edit/skip routes index by offset).
+        array_splice($rows, $index, 1);
+
+        Storage::disk('local')->put($this->stashPath($user->id, $token), json_encode([
+            'original_name' => $stash['original_name'] ?? null,
+            'created_at'    => $stash['created_at'] ?? now()->toIso8601String(),
+            'rows'          => $rows,
+        ]));
+
+        // If the page the user was on is now past the end (e.g. they skipped
+        // the last row on the last page), step back one page so the redirect
+        // lands on something useful.
+        $perPage = 25;
+        $page = max(1, (int) $request->query('page', 1));
+        $maxPage = max(1, (int) ceil(count($rows) / $perPage));
+        if ($page > $maxPage) $page = $maxPage;
+
+        return redirect()->route('user.contacts.import.preview', ['token' => $token, 'page' => $page])
+            ->with('success', 'Row skipped — it won\'t be imported.');
+    }
+
     public function importCancel(Request $request, string $token)
     {
         $this->discardStash($request->user()->id, $token);
