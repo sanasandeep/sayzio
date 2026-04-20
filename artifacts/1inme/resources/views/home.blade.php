@@ -149,15 +149,108 @@
         .shake-hover:hover { animation: shake .5s; }
         @keyframes shake { 0%,100%{ transform: translateX(0);} 20%{ transform: translateX(-3px) rotate(-2deg);} 40%{ transform: translateX(3px) rotate(2deg);} 60%{ transform: translateX(-2px) rotate(-1deg);} 80%{ transform: translateX(2px) rotate(1deg);} }
 
+        /* ============ Hero rotating role word ============ */
+        .role-word { display: inline-block; will-change: transform, opacity, filter; }
+        .role-word.word-in { animation: wordIn .55s cubic-bezier(.34,1.56,.64,1) both; }
+        @keyframes wordIn {
+            0%   { opacity: 0; transform: translateY(60%) rotateX(-70deg); filter: blur(8px); }
+            55%  { opacity: 1; filter: blur(0); }
+            100% { opacity: 1; transform: translateY(0) rotateX(0); filter: blur(0); }
+        }
+        .role-word.word-out { animation: wordOut .35s ease both; }
+        @keyframes wordOut {
+            0%   { opacity: 1; transform: translateY(0) rotateX(0); filter: blur(0); }
+            100% { opacity: 0; transform: translateY(-50%) rotateX(60deg); filter: blur(6px); }
+        }
+        /* ============ 3D biolink stack (hero right) ============ */
+        .stack-scene { position: relative; perspective: 1500px; perspective-origin: 55% 50%; }
+        .stack-3d {
+            position: absolute; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            transform-style: preserve-3d;
+            animation: stackFloat 9s ease-in-out infinite;
+        }
+        @keyframes stackFloat {
+            0%,100% { transform: rotateX(8deg) rotateY(-14deg) translateY(0); }
+            50%     { transform: rotateX(5deg) rotateY(-10deg) translateY(-14px); }
+        }
+        .stack-inner {
+            width: 320px; max-width: 86%;
+            display: flex; flex-direction: column; gap: 12px;
+            transform-style: preserve-3d;
+        }
+        .stack-card {
+            position: relative;
+            background: rgba(255,255,255,.07);
+            border: 1px solid rgba(255,255,255,.14);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 12px 14px;
+            display: flex; align-items: center; gap: 12px;
+            color: #fff;
+            box-shadow: 0 22px 48px -22px rgba(0,0,0,.65), 0 0 0 1px rgba(255,255,255,.04), inset 0 1px 0 rgba(255,255,255,.08);
+            opacity: 0;
+            animation: cardIn .7s cubic-bezier(.34,1.56,.64,1) forwards;
+            animation-delay: var(--d, 0ms);
+        }
+        .stack-card.is-profile {
+            padding: 16px;
+            background: linear-gradient(135deg, rgba(255,255,255,.14), rgba(255,255,255,.04));
+            flex-direction: column; align-items: stretch;
+        }
+        .stack-card .card-icon {
+            width: 38px; height: 38px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; flex-shrink: 0;
+            background: rgba(255,255,255,.08);
+        }
+        .stack-card .card-thumb {
+            width: 50px; height: 50px; border-radius: 12px;
+            object-fit: cover; flex-shrink: 0;
+            border: 1px solid rgba(255,255,255,.15);
+        }
+        .stack-card .card-body { min-width: 0; flex: 1; }
+        .stack-card .card-title { font-size: 13px; font-weight: 700; line-height: 1.25; }
+        .stack-card .card-sub   { font-size: 11px; color: rgba(255,255,255,.65); margin-top: 2px; }
+        .stack-card .card-cta   { color: rgba(255,255,255,.55); font-size: 11px; }
+
+        .profile-row { display: flex; gap: 12px; align-items: center; }
+        .profile-avatar { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,.35); flex-shrink: 0; }
+        .profile-handle { font-size: 15px; font-weight: 700; line-height: 1.1; }
+        .profile-tag    { font-size: 11px; color: rgba(255,255,255,.7); margin-top: 3px; }
+        .profile-socials { display: flex; gap: 6px; margin-top: 12px; }
+        .profile-socials span { width: 26px; height: 26px; border-radius: 50%; background: rgba(255,255,255,.14); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; }
+
+        @keyframes cardIn {
+            0%   { opacity: 0; transform: translateY(40px) rotateX(-25deg) scale(.88); }
+            100% { opacity: 1; transform: translateY(0) rotateX(0) scale(1); }
+        }
+        .stack-out .stack-card { animation: cardOut .35s ease forwards; animation-delay: 0ms; }
+        @keyframes cardOut {
+            0%   { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+            100% { opacity: 0; transform: translateY(-24px) scale(.92); filter: blur(4px); }
+        }
+
+        @media (max-width: 1023px) {
+            .stack-3d { animation: none; transform: rotateX(0) rotateY(0); }
+            .stack-inner { width: 280px; }
+        }
+
         /* ============ Reduced motion ============ */
         @media (prefers-reduced-motion: reduce) {
             .reveal, .aurora b, .float-a, .float-b, .float-c, .wiggle, .spin-slow,
             .marquee, .marquee-rev, .eq i, .pulse-dot, .ring-pulse, .spark-line,
-            .gauge-arc, .draw-line, .grad-text, .drift-a, .drift-b, .pop-in, .btn-glow::after {
+            .gauge-arc, .draw-line, .grad-text, .drift-a, .drift-b, .pop-in, .btn-glow::after,
+            .stack-3d, .stack-card, .role-word {
                 animation: none !important; transition: none !important; transform: none !important; opacity: 1 !important;
             }
             .spark-line, .draw-line { stroke-dashoffset: 0 !important; }
             .gauge-arc { stroke-dashoffset: 75 !important; }
+            /* Simple crossfade fallback for the rotating hero */
+            .role-word { transition: opacity .35s ease !important; }
+            #hero-stack { transition: opacity .35s ease !important; }
+            .role-word.rm-out, #hero-stack.rm-out { opacity: 0 !important; }
         }
 
         /* ============ Focus ============ */
@@ -242,6 +335,83 @@
 </nav>
 
 {{-- ============================ HERO ============================ --}}
+@php
+    $heroRoles = [
+        [
+            'word' => 'Creator',
+            'profile' => ['avatar' => '/images/hero-roles/role_creator.jpg', 'handle' => '@jamie.creates', 'tag' => 'Storyteller · 24.1k followers', 'socials' => ['fa-youtube','fa-instagram','fa-tiktok','fa-x-twitter']],
+            'blocks' => [
+                ['icon' => 'fab fa-youtube',           'color' => '#ff0033', 'title' => 'Latest video',       'sub' => 'New drop · 2 days ago',   'thumb' => '/images/hero-roles/thumb_youtube.jpg'],
+                ['icon' => 'fas fa-envelope-open-text','color' => '#7c3aed', 'title' => 'Join the newsletter','sub' => 'Weekly · 12k subs'],
+                ['icon' => 'fas fa-store',             'color' => '#ff8a3c', 'title' => 'Shop merch',         'sub' => 'New tees in stock',       'thumb' => '/images/hero-roles/thumb_merch.jpg'],
+            ],
+        ],
+        [
+            'word' => 'Artist',
+            'profile' => ['avatar' => '/images/hero-roles/role_artist.jpg', 'handle' => '@aria.studio', 'tag' => 'Mixed-media artist · Berlin', 'socials' => ['fa-instagram','fa-pinterest','fa-behance','fa-tiktok']],
+            'blocks' => [
+                ['icon' => 'fas fa-images',             'color' => '#e94e8c', 'title' => 'Latest collection', 'sub' => 'Petals & Concrete · 12 pcs', 'thumb' => '/images/hero-roles/thumb_artwork.jpg'],
+                ['icon' => 'fab fa-spotify',            'color' => '#1ed760', 'title' => 'Studio playlist',   'sub' => '4hr ambient mix'],
+                ['icon' => 'fas fa-hand-holding-heart', 'color' => '#ff8a3c', 'title' => 'Tip jar',           'sub' => 'Buy me a coffee'],
+            ],
+        ],
+        [
+            'word' => 'Businessman',
+            'profile' => ['avatar' => '/images/hero-roles/role_business.jpg', 'handle' => '@marcus.solutions', 'tag' => 'Founder · B2B Consulting', 'socials' => ['fa-linkedin','fa-x-twitter','fa-medium','fa-youtube']],
+            'blocks' => [
+                ['icon' => 'fas fa-concierge-bell', 'color' => '#7c3aed', 'title' => 'Services & pricing', 'sub' => 'Strategy · Audits · Retainers'],
+                ['icon' => 'fas fa-calendar-check', 'color' => '#1bd4d9', 'title' => 'Book a call',        'sub' => '30 min · Calendly'],
+                ['icon' => 'fas fa-paper-plane',    'color' => '#ff8a3c', 'title' => 'Get a quote',        'sub' => 'Reply within 24h'],
+            ],
+        ],
+        [
+            'word' => 'Musician',
+            'profile' => ['avatar' => '/images/hero-roles/role_musician.jpg', 'handle' => '@luna.live', 'tag' => 'Indie pop · New EP out now', 'socials' => ['fa-spotify','fa-apple','fa-youtube','fa-instagram']],
+            'blocks' => [
+                ['icon' => 'fab fa-spotify',     'color' => '#1ed760', 'title' => 'New EP — Saltwater', 'sub' => '5 tracks · Listen now', 'thumb' => '/images/hero-roles/thumb_album.jpg'],
+                ['icon' => 'fas fa-ticket-alt',  'color' => '#e94e8c', 'title' => 'Tour 2026',          'sub' => '12 cities · Tickets live'],
+                ['icon' => 'fas fa-store',       'color' => '#ffc845', 'title' => 'Vinyl & tees',       'sub' => 'Limited drop',          'thumb' => '/images/hero-roles/thumb_merch.jpg'],
+            ],
+        ],
+        [
+            'word' => 'Coach',
+            'profile' => ['avatar' => '/images/hero-roles/role_coach.jpg', 'handle' => '@coach.kai', 'tag' => 'Strength coach · 1:1 + group', 'socials' => ['fa-instagram','fa-tiktok','fa-youtube','fa-spotify']],
+            'blocks' => [
+                ['icon' => 'fas fa-calendar-check',  'color' => '#1bd4d9', 'title' => 'Book a session',     'sub' => '45 min consult'],
+                ['icon' => 'fas fa-quote-right',     'color' => '#7c3aed', 'title' => 'Wins from clients',  'sub' => '140+ five-star reviews'],
+                ['icon' => 'fas fa-clipboard-list',  'color' => '#ff8a3c', 'title' => 'Free intake form',   'sub' => '2 minutes · No fluff'],
+            ],
+        ],
+        [
+            'word' => 'Photographer',
+            'profile' => ['avatar' => '/images/hero-roles/role_photographer.jpg', 'handle' => '@iris.frames', 'tag' => 'Travel & landscape · Iceland', 'socials' => ['fa-instagram','fa-pinterest','fa-flickr','fa-x-twitter']],
+            'blocks' => [
+                ['icon' => 'fas fa-th',            'color' => '#1bd4d9', 'title' => 'Portfolio · 2026', 'sub' => '48 photos',         'thumb' => '/images/hero-roles/thumb_photo.jpg'],
+                ['icon' => 'fas fa-shopping-bag',  'color' => '#ff8a3c', 'title' => 'Print shop',       'sub' => 'A2 / A3 / canvas'],
+                ['icon' => 'fas fa-paper-plane',   'color' => '#e94e8c', 'title' => 'Hire me',          'sub' => 'Weddings · Brand'],
+            ],
+        ],
+        [
+            'word' => 'Influencer',
+            'profile' => ['avatar' => '/images/hero-roles/role_influencer.jpg', 'handle' => '@maya.daily', 'tag' => 'Lifestyle · 480k across socials', 'socials' => ['fa-instagram','fa-tiktok','fa-youtube','fa-snapchat']],
+            'blocks' => [
+                ['icon' => 'fab fa-instagram', 'color' => '#e94e8c', 'title' => 'Latest reel',     'sub' => 'Spring haul'],
+                ['icon' => 'fab fa-tiktok',    'color' => '#1bd4d9', 'title' => 'Trending today',  'sub' => '2.1M views'],
+                ['icon' => 'fas fa-handshake', 'color' => '#ffc845', 'title' => 'Brand deals',     'sub' => 'Press kit · Rates'],
+            ],
+        ],
+        [
+            'word' => 'Podcaster',
+            'profile' => ['avatar' => '/images/hero-roles/role_podcaster.jpg', 'handle' => '@theo.talks', 'tag' => 'Weekly tech & culture', 'socials' => ['fa-spotify','fa-apple','fa-youtube','fa-x-twitter']],
+            'blocks' => [
+                ['icon' => 'fab fa-apple',              'color' => '#ffffff', 'title' => 'Apple Podcasts',  'sub' => 'Ep. 87 · 42 min',     'thumb' => '/images/hero-roles/thumb_podcast.jpg'],
+                ['icon' => 'fab fa-spotify',            'color' => '#1ed760', 'title' => 'Spotify',         'sub' => 'Subscribe · 18k listeners'],
+                ['icon' => 'fas fa-envelope-open-text', 'color' => '#ff8a3c', 'title' => 'Show notes',      'sub' => 'Newsletter every Friday'],
+            ],
+        ],
+    ];
+@endphp
+
 <section class="relative pt-28 pb-20 lg:pt-36 lg:pb-28 overflow-hidden" aria-labelledby="hero-h">
     {{-- Drifting confetti --}}
     <div class="confetti drift-a" style="left:8%;  bottom:-20vh;"><div class="w-3 h-3 rounded-sm" style="background:var(--c1)"></div></div>
@@ -257,28 +427,28 @@
                         <span class="absolute inline-flex h-full w-full rounded-full" style="background:var(--c1)"></span>
                         <span class="ring-pulse" style="inset:0;background:var(--c1);"></span>
                     </span>
-                    <span class="grad-text">Live visitor pins · Performance Coach · QR codes</span>
+                    <span class="grad-text">Built for every kind of you · Live analytics · QR codes</span>
                 </div>
 
                 <h1 id="hero-h" class="reveal rd-1 text-5xl sm:text-6xl lg:text-7xl font-bold leading-[1.05] tracking-tight mb-6">
-                    One link.<br>
-                    Every channel.<br>
-                    <span class="relative inline-block">
-                        <span class="grad-text">Everything you.</span>
+                    <span class="block">I am a</span>
+                    <span class="relative inline-block min-h-[1.1em]">
+                        <span id="hero-role-word" class="grad-text role-word">Creator</span>
                         <svg class="absolute -bottom-3 left-0 w-full" height="14" viewBox="0 0 220 14" preserveAspectRatio="none" aria-hidden="true">
                             <path class="draw-line" d="M2 9 Q 60 2, 110 8 T 218 6" stroke="url(#g)" stroke-width="5" fill="none" stroke-linecap="round"/>
                             <defs><linearGradient id="g"><stop offset="0%" stop-color="#1bd4d9"/><stop offset="50%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#ffc845"/></linearGradient></defs>
                         </svg>
                     </span>
+                    <span class="sr-only" aria-live="polite" aria-atomic="true" id="hero-role-sr">Creator</span>
                 </h1>
 
                 <p class="reveal rd-2 text-lg sm:text-xl text-gray-400 max-w-xl mx-auto lg:mx-0 mb-8 leading-relaxed">
-                    1INME is the all-in-one link platform: <strong class="text-white">build</strong> drag-and-drop biolink pages, <strong class="text-white">share</strong> them anywhere with short links and QR codes, and <strong class="text-white">grow</strong> with live analytics and an AI-style Performance Coach.
+                    Whoever you are, 1INME gives you <strong class="text-white">one link</strong> for everything: drag-and-drop biolink pages, branded short links, dynamic QR codes, plus live analytics and an AI-style Performance Coach.
                 </p>
 
                 <div class="reveal rd-3 flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
                     <button type="button" @click="authTab='register'; authOpen=true" class="btn-bounce btn-glow inline-flex items-center justify-center gap-2 px-8 py-4 grad-bar text-white rounded-full text-base font-bold">
-                        Sign up free <i class="fas fa-arrow-right text-sm"></i>
+                        Make mine free <i class="fas fa-arrow-right text-sm"></i>
                     </button>
                     <a href="#features" class="btn-bounce inline-flex items-center justify-center gap-2 px-8 py-4 glass-2 text-white rounded-full text-base font-semibold">
                         See it live
@@ -292,79 +462,136 @@
                 </div>
             </div>
 
-            {{-- Hero collage --}}
-            <div class="reveal rd-2 relative h-[600px] sm:h-[640px]">
+            {{-- Hero 3D biolink stack --}}
+            <div class="reveal rd-2 relative h-[560px] sm:h-[600px] stack-scene">
                 {{-- Decorative stickers --}}
-                <div class="sticker top-2 left-4 w-12 h-12 rounded-full wiggle shake-hover" style="background:var(--c4)"></div>
-                <div class="sticker top-12 right-2 w-9 h-9 rounded-lg spin-slow" style="background:var(--c5)"></div>
-                <div class="sticker bottom-4 left-2 w-10 h-10 rounded-2xl wiggle" style="background:var(--c1); animation-delay:-1s"></div>
-                <div class="sticker top-1/2 -right-3 w-6 h-6 rounded-full wiggle" style="background:var(--c3); animation-delay:-2s"></div>
+                <div class="sticker top-2 left-4 w-10 h-10 rounded-full wiggle shake-hover opacity-80" style="background:var(--c4)"></div>
+                <div class="sticker top-12 right-2 w-8 h-8 rounded-lg spin-slow opacity-70" style="background:var(--c5)"></div>
+                <div class="sticker bottom-4 left-2 w-9 h-9 rounded-2xl wiggle opacity-80" style="background:var(--c1); animation-delay:-1s"></div>
+                <div class="sticker top-1/2 -right-3 w-6 h-6 rounded-full wiggle opacity-80" style="background:var(--c3); animation-delay:-2s"></div>
 
-                {{-- Phone --}}
+                {{-- 3D stack --}}
                 <div class="absolute inset-0 flex items-center justify-center">
-                    <div class="float-a phone pop-in">
-                        <div class="notch"></div>
-                        <div class="phone-screen p-4 pt-10" style="background: linear-gradient(180deg, var(--c2), var(--c3) 60%, var(--c4));">
-                            <div class="text-center text-white">
-                                <div class="w-16 h-16 mx-auto rounded-full bg-white/20 backdrop-blur-md border-2 border-white/40 flex items-center justify-center font-bold text-lg">JD</div>
-                                <div class="mt-2 font-bold text-sm">@janedoe.studio</div>
-                                <div class="text-[11px] text-white/80">Creator · 12.4k followers</div>
-                            </div>
-                            <div class="mt-4 space-y-2">
-                                <div class="bg-white/95 text-[#0e0e10] rounded-2xl px-4 py-3 text-sm font-bold flex items-center justify-between"><span><i class="fas fa-download mr-2" style="color:var(--c2)"></i>Free Templates</span><i class="fas fa-arrow-right text-[10px]" style="color:var(--c2)"></i></div>
-                                <div class="rounded-2xl px-4 py-3 text-sm font-bold flex items-center justify-between text-[#0e0e10]" style="background:var(--c5)"><span><i class="fas fa-store mr-2"></i>Shop Merch</span><i class="fas fa-arrow-right text-[10px]"></i></div>
-                                <div class="bg-white/95 text-[#0e0e10] rounded-2xl px-4 py-3 text-sm font-bold flex items-center justify-between"><span><i class="fab fa-youtube mr-2" style="color:var(--c3)"></i>Latest Video</span><i class="fas fa-play text-[10px]" style="color:var(--c3)"></i></div>
-                                <div class="bg-white/95 text-[#0e0e10] rounded-2xl px-4 py-3 text-sm font-bold flex items-center justify-between"><span><i class="fas fa-headphones mr-2" style="color:var(--c2)"></i>Podcast Ep. 42</span><span class="eq inline-flex items-end h-3" style="color:var(--c2)"><i></i><i></i><i></i><i></i></span></div>
-                                <div class="flex justify-center gap-2 pt-2">
-                                    <span class="w-7 h-7 rounded-full bg-white/30 flex items-center justify-center text-white text-[10px]"><i class="fab fa-tiktok"></i></span>
-                                    <span class="w-7 h-7 rounded-full bg-white/30 flex items-center justify-center text-white text-[10px]"><i class="fab fa-instagram"></i></span>
-                                    <span class="w-7 h-7 rounded-full bg-white/30 flex items-center justify-center text-white text-[10px]"><i class="fab fa-youtube"></i></span>
-                                    <span class="w-7 h-7 rounded-full bg-white/30 flex items-center justify-center text-white text-[10px]"><i class="fab fa-x-twitter"></i></span>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="stack-3d">
+                        <div id="hero-stack" class="stack-inner" aria-hidden="true"></div>
                     </div>
                 </div>
 
-                {{-- Live visitors card --}}
-                <div class="float-b absolute top-2 -right-2 sm:top-8 sm:right-0 glass-2 rounded-2xl p-3 w-[180px] shadow-2xl shadow-[#1bd4d9]/20">
+                {{-- Live visitors card (compact) --}}
+                <div class="float-b absolute top-2 right-0 sm:top-4 sm:-right-2 glass-2 rounded-2xl p-2.5 w-[150px] shadow-2xl shadow-[#1bd4d9]/20 z-10 hidden sm:block">
                     <div class="flex items-center justify-between mb-1">
                         <span class="text-[9px] uppercase tracking-wider text-gray-400 font-bold">Live visitors</span>
                         <span class="flex items-center gap-1 text-[9px] font-bold" style="color:var(--c1)"><span class="w-1.5 h-1.5 rounded-full pulse-dot" style="background:var(--c1)"></span>NOW</span>
                     </div>
-                    <div class="text-2xl font-bold">247</div>
-                    <svg class="w-full h-8" viewBox="0 0 100 30" preserveAspectRatio="none">
+                    <div class="text-xl font-bold">247</div>
+                    <svg class="w-full h-6" viewBox="0 0 100 30" preserveAspectRatio="none">
                         <polyline class="spark-line" fill="none" stroke="url(#sl)" stroke-width="2.5" stroke-linecap="round" points="0,22 12,18 24,20 36,12 48,15 60,8 72,11 84,5 100,7"/>
                         <defs><linearGradient id="sl"><stop offset="0%" stop-color="#1bd4d9"/><stop offset="100%" stop-color="#e94e8c"/></linearGradient></defs>
                     </svg>
-                    <div class="text-[10px] mt-1 font-semibold" style="color:var(--c1)"><i class="fas fa-arrow-up mr-0.5"></i>+18% today</div>
                 </div>
 
-                {{-- Performance Coach card --}}
-                <div class="float-c absolute bottom-6 -left-2 sm:bottom-12 sm:left-0 glass-2 rounded-2xl p-3 w-[200px] shadow-2xl shadow-[#7c3aed]/30" style="animation-delay:-2s">
-                    <div class="flex items-center gap-2 mb-2">
-                        <div class="w-9 h-9 rounded-xl flex items-center justify-center grad-bar"><i class="fas fa-bolt text-white text-sm"></i></div>
+                {{-- Performance Coach card (compact) --}}
+                <div class="float-c absolute bottom-4 -left-2 sm:bottom-8 sm:left-0 glass-2 rounded-2xl p-2.5 w-[180px] shadow-2xl shadow-[#7c3aed]/30 z-10 hidden sm:block" style="animation-delay:-2s">
+                    <div class="flex items-center gap-2 mb-1.5">
+                        <div class="w-8 h-8 rounded-xl flex items-center justify-center grad-bar"><i class="fas fa-bolt text-white text-xs"></i></div>
                         <div>
                             <div class="text-[9px] uppercase tracking-wider text-gray-400 font-bold">Performance Coach</div>
-                            <div class="text-sm font-bold">Health score 87</div>
+                            <div class="text-xs font-bold">Health score 87</div>
                         </div>
                     </div>
                     <div class="h-1.5 bg-white/10 rounded-full overflow-hidden">
                         <div class="h-full grad-bar rounded-full" style="width:87%"></div>
                     </div>
-                    <div class="text-[10px] text-gray-400 mt-1.5 font-semibold">2 quick fixes available</div>
-                </div>
-
-                {{-- QR card --}}
-                <div class="float-a absolute top-1/2 -translate-y-1/2 right-0 sm:-right-2 rounded-2xl p-3 w-[120px] text-center shadow-2xl shadow-[#e94e8c]/30 text-white" style="background: linear-gradient(135deg, var(--c2), var(--c3)); animation-delay:-3s">
-                    <div class="w-full aspect-square bg-white rounded-lg p-2 mb-1.5">
-                        <div class="w-full h-full" style="background-image:radial-gradient(#0e0e10 1px,transparent 1px);background-size:6px 6px;"></div>
-                    </div>
-                    <div class="text-[10px] font-bold uppercase tracking-wider">Dynamic QR</div>
                 </div>
             </div>
         </div>
     </div>
+
+    <script>
+        (function () {
+            const ROLES = @json($heroRoles);
+            const word  = document.getElementById('hero-role-word');
+            const sr    = document.getElementById('hero-role-sr');
+            const stack = document.getElementById('hero-stack');
+            if (!word || !stack) return;
+
+            const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            const escapeHTML = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+            function buildStackHTML(role) {
+                const p = role.profile;
+                const socials = (p.socials || []).map(s => `<span><i class="fab ${escapeHTML(s)}"></i></span>`).join('');
+                const profile = `
+                    <div class="stack-card is-profile" style="--d:0ms">
+                        <div class="profile-row">
+                            <img class="profile-avatar" src="${escapeHTML(p.avatar)}" alt="" loading="lazy">
+                            <div class="min-w-0">
+                                <div class="profile-handle">${escapeHTML(p.handle)}</div>
+                                <div class="profile-tag">${escapeHTML(p.tag)}</div>
+                            </div>
+                        </div>
+                        <div class="profile-socials">${socials}</div>
+                    </div>`;
+                const blocks = (role.blocks || []).map((b, i) => {
+                    const delay = (i + 1) * 110;
+                    const thumb = b.thumb
+                        ? `<img class="card-thumb" src="${escapeHTML(b.thumb)}" alt="" loading="lazy">`
+                        : `<div class="card-icon" style="background:${escapeHTML(b.color)}33;color:${escapeHTML(b.color)}"><i class="${escapeHTML(b.icon)}"></i></div>`;
+                    return `
+                        <div class="stack-card" style="--d:${delay}ms">
+                            ${thumb}
+                            <div class="card-body">
+                                <div class="card-title">${escapeHTML(b.title)}</div>
+                                <div class="card-sub">${escapeHTML(b.sub || '')}</div>
+                            </div>
+                            <i class="fas fa-arrow-right card-cta"></i>
+                        </div>`;
+                }).join('');
+                return profile + blocks;
+            }
+
+            function setRole(role) {
+                if (sr) sr.textContent = role.word;
+                if (reduce) {
+                    // Simple opacity crossfade fallback
+                    word.classList.add('rm-out');
+                    stack.classList.add('rm-out');
+                    setTimeout(() => {
+                        word.textContent = role.word;
+                        stack.innerHTML = buildStackHTML(role);
+                        word.classList.remove('rm-out');
+                        stack.classList.remove('rm-out');
+                    }, 350);
+                    return;
+                }
+                // Animate word out, swap text, animate in
+                word.classList.remove('word-in');
+                word.classList.add('word-out');
+                // Animate stack out
+                stack.classList.add('stack-out');
+                setTimeout(() => {
+                    word.textContent = role.word;
+                    word.classList.remove('word-out');
+                    // force reflow then play in
+                    void word.offsetWidth;
+                    word.classList.add('word-in');
+                    stack.classList.remove('stack-out');
+                    stack.innerHTML = buildStackHTML(role);
+                }, 360);
+            }
+
+            let i = 0;
+            // Initial paint (no out animation)
+            stack.innerHTML = buildStackHTML(ROLES[0]);
+            word.textContent = ROLES[0].word;
+            if (!reduce) word.classList.add('word-in');
+
+            setInterval(() => {
+                i = (i + 1) % ROLES.length;
+                setRole(ROLES[i]);
+            }, 4200);
+        })();
+    </script>
 </section>
 
 {{-- ============================ MARQUEE STRIP ============================ --}}

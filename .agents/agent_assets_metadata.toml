@@ -1,0 +1,80 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "e3t8rw5hE2-FfEtnuBmVI"
+uri = "file://attached_assets/stock_images/role_artist.jpg"
+type = "image"
+title = "female artist painter portrait, paint splattered apron, studio"
+
+[[outputs]]
+id = "7XRRLuwEY0g5ZOs3loKIL"
+uri = "file://attached_assets/stock_images/role_creator.jpg"
+type = "image"
+title = "young creator portrait, friendly, neutral background, studio light"
+
+[[outputs]]
+id = "Kzv6dkrzG9ov9vNUpimca"
+uri = "file://attached_assets/stock_images/role_musician.jpg"
+type = "image"
+title = "musician portrait, holding microphone, stage lighting"
+
+[[outputs]]
+id = "BGb5tKBliXGXv4fV2p1A-"
+uri = "file://attached_assets/stock_images/role_coach.jpg"
+type = "image"
+title = "fitness coach portrait, athletic, gym background"
+
+[[outputs]]
+id = "tKBJ20sEhzuI6cDAZ0z0A"
+uri = "file://attached_assets/stock_images/role_photographer.jpg"
+type = "image"
+title = "female photographer portrait holding camera"
+
+[[outputs]]
+id = "GxkPvfCuIDVJcyLp2k4KJ"
+uri = "file://attached_assets/stock_images/role_influencer.jpg"
+type = "image"
+title = "social media influencer portrait, vibrant, smiling"
+
+[[outputs]]
+id = "Bzj0urrEdjsZx5CMIZLlV"
+uri = "file://attached_assets/stock_images/role_podcaster.jpg"
+type = "image"
+title = "podcaster portrait wearing headphones at microphone"
+
+[[outputs]]
+id = "_vu8WJqdJJWDFiePebATD"
+uri = "file://attached_assets/stock_images/thumb_youtube.jpg"
+type = "image"
+title = "youtube video thumbnail style flatlay desk creator setup"
+
+[[outputs]]
+id = "rnJ9LU8ZsztS7Jj8V9igU"
+uri = "file://attached_assets/stock_images/thumb_artwork.jpg"
+type = "image"
+title = "abstract colorful painting artwork canvas"
+
+[[outputs]]
+id = "viJwfovz2xMC-vZk6PVv5"
+uri = "file://attached_assets/stock_images/thumb_album.jpg"
+type = "image"
+title = "vinyl record album cover music abstract"
+
+[[outputs]]
+id = "X_MFLLup_ek-j56F-bzo7"
+uri = "file://attached_assets/stock_images/thumb_merch.jpg"
+type = "image"
+title = "fashion lifestyle merch tshirt flatlay"
+
+[[outputs]]
+id = "cwWmm4l9dyFXiRlF6p7L5"
+uri = "file://attached_assets/stock_images/thumb_photo.jpg"
+type = "image"
+title = "scenic landscape photograph mountains golden hour"
+
+[[outputs]]
+id = "dsaWjQ-BeS00KuvqFb5b0"
+uri = "file://attached_assets/stock_images/thumb_podcast.jpg"
+type = "image"
+title = "podcast microphone studio setup warm lighting"
