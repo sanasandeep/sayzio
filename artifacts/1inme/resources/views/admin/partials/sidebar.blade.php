@@ -114,6 +114,14 @@
             <span class="sidebar-tooltip">Branding</span>
         </a>
 
+        <a href="{{ route('admin.social-oauth.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.social-oauth.*') ? 'active' : '' }}"
+           style="--nav-tint:#0ea5e9; --nav-tint-soft:rgba(14,165,233,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-plug"></i></div>
+            <span class="nav-label">Social OAuth</span>
+            <span class="sidebar-tooltip">Social OAuth</span>
+        </a>
+
         <a href="{{ route('admin.assets.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.assets.*') ? 'active' : '' }}"
            style="--nav-tint:#7c3aed; --nav-tint-soft:rgba(124,58,237,0.12);">
