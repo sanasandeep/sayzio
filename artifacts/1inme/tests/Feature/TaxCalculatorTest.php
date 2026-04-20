@@ -78,10 +78,35 @@ class TaxCalculatorTest extends TestCase
         $this->assertSame(1800, $r['tax_total_minor']);
     }
 
-    public function test_eu_b2c_charges_destination_country_vat(): void
+    public function test_in_merchant_to_non_in_buyer_is_zero_rated_export(): void
     {
-        // Merchant is in IN, so any EU sale is "merchant outside EU"
-        // path. Without a VATIN it falls through to charging German VAT.
+        // Indian merchant + foreign buyer → export of services / OIDAR,
+        // zero-rated under Indian GST. Must NOT charge destination VAT.
+        $r = TaxCalculator::calculate($this->items(), [
+            'country' => 'DE', 'region' => null, 'tax_id' => null, 'tax_id_kind' => null,
+        ], 'EUR');
+        $this->assertSame(0, $r['tax_total_minor']);
+        $this->assertSame(10000, $r['grand_total_minor']);
+        $this->assertSame('DE', $r['place_of_supply']);
+        $this->assertStringContainsString('Export of services', (string) $r['reverse_charge_note']);
+    }
+
+    public function test_in_merchant_to_us_buyer_is_zero_rated_export(): void
+    {
+        $r = TaxCalculator::calculate($this->items(), [
+            'country' => 'US', 'region' => 'CA', 'tax_id' => null, 'tax_id_kind' => null,
+        ], 'USD');
+        $this->assertSame(0, $r['tax_total_minor']);
+        $this->assertStringContainsString('Export of services', (string) $r['reverse_charge_note']);
+    }
+
+    public function test_eu_b2c_charges_destination_country_vat_when_merchant_outside_in(): void
+    {
+        // Same buyer, but merchant is now in the UK — no India export rule
+        // applies, so the EU destination-VAT branch should kick in and
+        // charge the German rate.
+        config()->set('billing.merchant.country', 'GB');
+        config()->set('billing.merchant.gst_state', null);
         $r = TaxCalculator::calculate($this->items(), [
             'country' => 'DE', 'region' => null, 'tax_id' => null, 'tax_id_kind' => null,
         ], 'EUR');
@@ -92,7 +117,11 @@ class TaxCalculatorTest extends TestCase
 
     public function test_eu_b2b_with_valid_vatin_uses_reverse_charge(): void
     {
-        // Merchant in IN, buyer in DE with a valid German VATIN → reverse charge.
+        // Switch merchant to a non-IN, non-EU country (UK) so the export
+        // short-circuit doesn't apply. With a buyer-country VATIN, reverse
+        // charge applies.
+        config()->set('billing.merchant.country', 'GB');
+        config()->set('billing.merchant.gst_state', null);
         $r = TaxCalculator::calculate($this->items(), [
             'country' => 'DE', 'region' => null,
             'tax_id' => 'DE123456789', 'tax_id_kind' => 'VATIN',
@@ -166,8 +195,7 @@ class TaxCalculatorTest extends TestCase
 
     public function test_future_dated_rate_is_ignored_until_start_date(): void
     {
-        // Park a future-dated row alongside the seeded one; today's calc
-        // should still use the seeded 19% German VAT, not the future 25%.
+        config()->set('billing.merchant.country', 'GB');
         TaxJurisdiction::create([
             'country' => 'DE', 'region' => null, 'kind' => 'VAT',
             'label' => 'VAT 25%', 'rate_percent' => 25,
@@ -183,7 +211,7 @@ class TaxCalculatorTest extends TestCase
 
     public function test_expired_rate_is_excluded(): void
     {
-        // Mark the seeded German row as expired; calc should fall through to 0%.
+        config()->set('billing.merchant.country', 'GB');
         TaxJurisdiction::where('country', 'DE')->where('kind', 'VAT')->whereNull('region')
             ->update(['effective_to' => now()->subDay()->toDateString()]);
         $r = TaxCalculator::calculate($this->items(), [
@@ -194,7 +222,7 @@ class TaxCalculatorTest extends TestCase
 
     public function test_overlapping_rows_pick_most_recent_effective_from(): void
     {
-        // A newer rate scheduled to start today should override the older row.
+        config()->set('billing.merchant.country', 'GB');
         TaxJurisdiction::create([
             'country' => 'DE', 'region' => null, 'kind' => 'VAT',
             'label' => 'VAT 21%', 'rate_percent' => 21,
@@ -202,17 +230,17 @@ class TaxCalculatorTest extends TestCase
             'effective_from' => now()->toDateString(),
             'effective_to' => null,
         ]);
-        $rows = TaxJurisdiction::where('country','DE')->where('kind','VAT')->whereNull('region')->get();
-        $debug = $rows->map(fn($r) => $r->id.':'.$r->label.':from='.($r->getRawOriginal('effective_from') ?: 'NULL'))->all();
         $r = TaxCalculator::calculate($this->items(), [
             'country' => 'DE', 'region' => null, 'tax_id' => null, 'tax_id_kind' => null,
         ], 'EUR');
-        $this->assertSame('VAT 21%', $r['tax_breakdown'][0]['label'], 'rows: '.json_encode($debug));
+        $this->assertSame('VAT 21%', $r['tax_breakdown'][0]['label']);
     }
 
     public function test_reverse_charge_requires_explicit_vatin_kind(): void
     {
-        // Same VATIN string, but kind=NONE → must NOT trigger reverse charge.
+        // Merchant outside the export-short-circuit (UK) so the reverse-charge
+        // branch is reachable. Same VATIN string with kind=NONE must charge VAT.
+        config()->set('billing.merchant.country', 'GB');
         $r = TaxCalculator::calculate($this->items(), [
             'country' => 'DE', 'region' => null,
             'tax_id' => 'DE123456789', 'tax_id_kind' => 'NONE',

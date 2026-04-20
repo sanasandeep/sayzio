@@ -139,6 +139,24 @@ class TaxCalculator
             return self::pack($subtotal, $breakdown, $lineItems, $currency, 'IN-Export', 'Export of services — buyer responsible for any local tax.');
         }
 
+        // Indian merchant selling to a non-Indian buyer — this is an "export
+        // of services" / OIDAR transaction under Indian GST. Per IGST rules
+        // such supplies are zero-rated as long as payment is received in
+        // convertible foreign exchange. We therefore short-circuit before
+        // the destination-country VAT branches below: charging foreign VAT
+        // would be wrong (the merchant is not VAT-registered in those
+        // jurisdictions) and so would charging IGST.
+        if ($merchantCountry === 'IN') {
+            return self::pack(
+                $subtotal,
+                $breakdown,
+                $lineItems,
+                $currency,
+                $buyerCountry,
+                'Export of services / OIDAR — zero-rated under Indian GST.'
+            );
+        }
+
         // ----- EU + UK/NO/CH path -----
         if (in_array($buyerCountry, self::EU_COUNTRIES, true) || in_array($buyerCountry, ['GB', 'NO', 'CH'], true)) {
             $place = $buyerCountry;
