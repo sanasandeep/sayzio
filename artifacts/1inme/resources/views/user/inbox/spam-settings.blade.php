@@ -25,12 +25,40 @@
     </div>
     @endif
 
+    @if(session('error'))
+    <div class="mb-6 p-3 rounded-xl text-sm font-medium" style="background: rgba(239,68,68,0.1); color: #f87171; border: 1px solid rgba(239,68,68,0.2);">
+        <i class="fas fa-exclamation-circle mr-1.5"></i>{{ session('error') }}
+    </div>
+    @endif
+
     @if($errors->any())
     <div class="mb-6 p-3 rounded-xl text-sm" style="background: rgba(239,68,68,0.1); color: #f87171; border: 1px solid rgba(239,68,68,0.2);">
         <i class="fas fa-exclamation-circle mr-1.5"></i>
         {{ $errors->first() }}
     </div>
     @endif
+
+    <form method="POST" action="{{ route('user.inbox.spam-settings.import') }}" enctype="multipart/form-data" class="glass rounded-2xl p-6 mb-6">
+        @csrf
+        <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(56,189,248,0.15);">
+                <i class="fas fa-file-csv text-sky-400"></i>
+            </div>
+            <div>
+                <h2 class="font-semibold" style="color: var(--text-primary);">Bulk import trusted contacts</h2>
+                <p class="text-xs" style="color: var(--text-muted);">Upload a CSV with <span class="font-mono">email</span> and/or <span class="font-mono">phone</span> columns. Invalid rows are skipped, phone numbers are normalized, duplicates are merged.</p>
+            </div>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-3 sm:items-center">
+            <input type="file" name="csv" accept=".csv,text/csv,text/plain" required
+                class="block w-full text-sm file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-white/5 file:text-white hover:file:bg-white/10"
+                style="color: var(--text-secondary);">
+            <button type="submit" class="px-5 py-2 rounded-xl text-sm font-semibold text-white whitespace-nowrap transition-all hover:-translate-y-0.5" style="background: linear-gradient(135deg, #0284c7, #0ea5e9);">
+                <i class="fas fa-upload mr-1.5"></i>Import CSV
+            </button>
+        </div>
+        <p class="mt-3 text-[11px]" style="color: var(--text-faint);">Recognized headers: email, e_mail, email_address, mail, phone, mobile, tel, telephone, phone_number, cell. With no header row, each cell is auto-classified.</p>
+    </form>
 
     <form method="POST" action="{{ route('user.inbox.spam-settings.update') }}">
         @csrf

@@ -462,6 +462,164 @@ class InboxController
         return back()->with('success', 'Spam settings saved.');
     }
 
+    public function importTrustedCsv(Request $request)
+    {
+        $request->validate([
+            'csv' => 'required|file|max:5120|mimetypes:text/csv,text/plain,application/csv,application/vnd.ms-excel|mimes:csv,txt',
+        ]);
+
+        $user = $request->user();
+        $checker = app(SpamChecker::class);
+
+        $settings = $user->settings ?? [];
+        $spam = $settings['spam'] ?? [];
+        // Re-normalize existing entries before building the dedupe maps so a
+        // previously-stored "VIP@Example.com" still matches an incoming
+        // "vip@example.com" instead of being added a second time.
+        $trustedEmails = [];
+        foreach ((array)($spam['trusted_emails'] ?? []) as $e) {
+            if (!is_string($e)) continue;
+            $n = $checker->normalizeEmail($e);
+            if ($n !== null) $trustedEmails[] = $n;
+        }
+        $trustedPhones = [];
+        foreach ((array)($spam['trusted_phones'] ?? []) as $p) {
+            if (!is_string($p)) continue;
+            $n = $checker->normalizePhone($p);
+            if ($n !== null) $trustedPhones[] = $n;
+        }
+        $trustedEmails = array_values(array_unique($trustedEmails));
+        $trustedPhones = array_values(array_unique($trustedPhones));
+        $existingEmails = array_flip($trustedEmails);
+        $existingPhones = array_flip($trustedPhones);
+
+        $emailsAdded   = 0;
+        $phonesAdded   = 0;
+        $duplicates    = 0;
+        $invalidValues = 0;
+        $invalidRows   = 0;
+        $rowsRead      = 0;
+
+        $emailKeys = ['email', 'e_mail', 'email_address', 'mail'];
+        $phoneKeys = ['phone', 'tel', 'telephone', 'mobile', 'phone_number', 'cell'];
+
+        $h = fopen($request->file('csv')->getRealPath(), 'r');
+        if ($h === false) {
+            return back()->with('error', 'Could not read uploaded file.');
+        }
+
+        // Strip UTF-8 BOM from the first row, if present.
+        $first = fgetcsv($h);
+        if ($first === false) {
+            fclose($h);
+            return back()->with('error', 'CSV is empty.');
+        }
+        if (isset($first[0])) {
+            $first[0] = preg_replace('/^\xEF\xBB\xBF/', '', (string)$first[0]);
+        }
+
+        // Detect headers by checking if any cell matches a known column name.
+        $emailIdx = null;
+        $phoneIdx = null;
+        $hasHeader = false;
+        foreach ($first as $i => $cell) {
+            $key = mb_strtolower(trim((string)$cell));
+            if (in_array($key, $emailKeys, true)) { $emailIdx = $i; $hasHeader = true; }
+            if (in_array($key, $phoneKeys, true)) { $phoneIdx = $i; $hasHeader = true; }
+        }
+
+        $process = function (array $row) use (
+            &$emailsAdded, &$phonesAdded, &$duplicates, &$invalidValues, &$invalidRows, &$rowsRead,
+            &$existingEmails, &$existingPhones, &$trustedEmails, &$trustedPhones,
+            $emailIdx, $phoneIdx, $checker
+        ) {
+            $rowsRead++;
+            $rowEmails = [];
+            $rowPhones = [];
+
+            if ($emailIdx !== null && isset($row[$emailIdx])) {
+                $rowEmails[] = $row[$emailIdx];
+            }
+            if ($phoneIdx !== null && isset($row[$phoneIdx])) {
+                $rowPhones[] = $row[$phoneIdx];
+            }
+            // No headers → guess: email-looking cells go to emails, phone-ish cells to phones.
+            if ($emailIdx === null && $phoneIdx === null) {
+                foreach ($row as $cell) {
+                    $cell = trim((string)$cell);
+                    if ($cell === '') continue;
+                    if (filter_var($cell, FILTER_VALIDATE_EMAIL)) {
+                        $rowEmails[] = $cell;
+                    } elseif (preg_match('/^\+?[\d().\-\s]{7,}$/', $cell)) {
+                        $rowPhones[] = $cell;
+                    }
+                }
+            }
+
+            $usedAny = false;
+            foreach ($rowEmails as $raw) {
+                $raw = trim((string)$raw);
+                if ($raw === '') continue;
+                $usedAny = true;
+                $norm = $checker->normalizeEmail($raw);
+                if ($norm === null || !filter_var($norm, FILTER_VALIDATE_EMAIL)) {
+                    $invalidValues++;
+                    continue;
+                }
+                if (isset($existingEmails[$norm])) {
+                    $duplicates++;
+                    continue;
+                }
+                $existingEmails[$norm] = true;
+                $trustedEmails[] = $norm;
+                $emailsAdded++;
+            }
+            foreach ($rowPhones as $raw) {
+                $raw = trim((string)$raw);
+                if ($raw === '') continue;
+                $usedAny = true;
+                $norm = $checker->normalizePhone($raw);
+                if ($norm === null || strlen($norm) < 7) {
+                    $invalidValues++;
+                    continue;
+                }
+                if (isset($existingPhones[$norm])) {
+                    $duplicates++;
+                    continue;
+                }
+                $existingPhones[$norm] = true;
+                $trustedPhones[] = $norm;
+                $phonesAdded++;
+            }
+            if (!$usedAny) {
+                $invalidRows++;
+            }
+        };
+
+        if (!$hasHeader) {
+            $process($first);
+        }
+        while (($row = fgetcsv($h)) !== false) {
+            // Skip blank rows (single empty cell).
+            if (count($row) === 1 && trim((string)$row[0]) === '') continue;
+            $process($row);
+        }
+        fclose($h);
+
+        $settings['spam'] = array_merge($spam, [
+            'trusted_emails' => array_values(array_unique($trustedEmails)),
+            'trusted_phones' => array_values(array_unique($trustedPhones)),
+        ]);
+        $user->update(['settings' => $settings]);
+
+        $msg = "Imported {$rowsRead} row(s): added {$emailsAdded} email(s), {$phonesAdded} phone(s)";
+        if ($duplicates > 0)    $msg .= ", {$duplicates} duplicate(s) skipped";
+        if ($invalidValues > 0) $msg .= ", {$invalidValues} invalid value(s) skipped";
+        if ($invalidRows > 0)   $msg .= ", {$invalidRows} unusable row(s) skipped";
+        $msg .= '.';
+        return back()->with('success', $msg);
+    }
+
     protected function splitLines(string $raw): array
     {
         $parts = preg_split('/[\r\n,]+/', $raw) ?: [];
