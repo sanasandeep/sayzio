@@ -100,12 +100,41 @@ class UpgradeController extends Controller
     public function activate(Request $request)
     {
         $data = $request->validate([
+            'user_id'     => 'nullable|integer|exists:users,id',
             'plan_id'     => 'required|integer|exists:plans,id',
             'cycle'       => 'required|in:monthly,annual',
             'gateway_ref' => 'nullable|string|max:190',
+            'signature'   => 'nullable|string',
         ]);
 
-        $user = $request->user();
+        $actor = $request->user();
+
+        // Authorization: this endpoint represents a verified payment-success
+        // signal and must not be callable by ordinary users for their own
+        // account (entitlement escalation). Accepted callers:
+        //   1. super_admin (manual grant / ops tool), OR
+        //   2. a signed gateway webhook carrying a valid HMAC of the
+        //      (user_id|plan_id|cycle|gateway_ref) tuple, signed with
+        //      config('billing.activation_secret').
+        $secret = (string) config('billing.activation_secret', '');
+        $expected = $secret !== '' ? hash_hmac('sha256',
+            implode('|', [
+                $data['user_id'] ?? $actor?->id,
+                $data['plan_id'],
+                $data['cycle'],
+                $data['gateway_ref'] ?? '',
+            ]),
+            $secret,
+        ) : null;
+        $hasValidSignature = $expected && !empty($data['signature'])
+            && hash_equals($expected, (string) $data['signature']);
+        $isSuperAdmin = $actor && method_exists($actor, 'isSuperAdmin') && $actor->isSuperAdmin();
+        if (!$isSuperAdmin && !$hasValidSignature) {
+            abort(403, 'Plan activation requires a verified payment signal.');
+        }
+
+        $targetId = $data['user_id'] ?? $actor->id;
+        $user = \App\Modules\User\Models\User::findOrFail($targetId);
         $plan = Plan::findOrFail($data['plan_id']);
         $currency = PricingResolver::currencyForUser($user);
         $priced = PricingResolver::priceFor($plan, $user, $data['cycle']);

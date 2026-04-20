@@ -77,7 +77,26 @@ class SubscriptionActivationInvoiceTest extends TestCase
         $this->assertSame(0, Invoice::where('user_id', $user->id)->count());
     }
 
-    public function test_activate_endpoint_dispatches_event_and_creates_invoice(): void
+    public function test_activate_endpoint_rejects_non_privileged_users(): void
+    {
+        $plan = Plan::create([
+            'name' => 'Pro', 'slug' => 'pro-' . Str::random(4), 'description' => 'Pro',
+            'monthly_price' => 9.99, 'annual_price' => 99, 'trial_days' => 0,
+            'status' => 'active', 'sort_order' => 1, 'features' => [],
+        ]);
+        $user = $this->makeUser();
+
+        $response = $this->actingAs($user)->post('/user/upgrade/activate', [
+            'plan_id' => $plan->id,
+            'cycle'   => 'monthly',
+        ]);
+
+        $response->assertForbidden();
+        $this->assertNull($user->fresh()->plan_id);
+        $this->assertSame(0, Invoice::where('user_id', $user->id)->count());
+    }
+
+    public function test_activate_endpoint_allows_super_admin_and_creates_invoice(): void
     {
         $plan = Plan::create([
             'name' => 'Pro', 'slug' => 'pro-' . Str::random(4), 'description' => 'Pro',
@@ -85,20 +104,58 @@ class SubscriptionActivationInvoiceTest extends TestCase
             'status' => 'active', 'sort_order' => 1, 'features' => [],
         ]);
 
-        $user = $this->makeUser();
+        $buyer = $this->makeUser();
         BillingAddress::create([
-            'user_id' => $user->id, 'country' => 'IN', 'region' => 'MH',
+            'user_id' => $buyer->id, 'country' => 'IN', 'region' => 'MH',
             'postal_code' => '400001', 'line1' => '1 Rd', 'city' => 'Mumbai',
         ]);
 
-        $response = $this->actingAs($user)->post('/user/upgrade/activate', [
+        $admin = $this->makeUser();
+        $admin->forceFill(['role' => 'super_admin'])->save();
+
+        $response = $this->actingAs($admin)->post('/user/upgrade/activate', [
+            'user_id'     => $buyer->id,
             'plan_id'     => $plan->id,
             'cycle'       => 'monthly',
             'gateway_ref' => 'pay_test_abc',
         ]);
 
         $response->assertRedirect();
-        $this->assertSame(1, Invoice::where('user_id', $user->id)->count());
-        $this->assertSame($plan->id, $user->fresh()->plan_id);
+        $this->assertSame(1, Invoice::where('user_id', $buyer->id)->count());
+        $this->assertSame($plan->id, $buyer->fresh()->plan_id);
+    }
+
+    public function test_activate_endpoint_allows_signed_gateway_webhook(): void
+    {
+        config(['billing.activation_secret' => 'test-secret-xyz']);
+
+        $plan = Plan::create([
+            'name' => 'Pro', 'slug' => 'pro-' . Str::random(4), 'description' => 'Pro',
+            'monthly_price' => 9.99, 'annual_price' => 99, 'trial_days' => 0,
+            'status' => 'active', 'sort_order' => 1, 'features' => [],
+        ]);
+
+        $buyer = $this->makeUser();
+        BillingAddress::create([
+            'user_id' => $buyer->id, 'country' => 'IN', 'region' => 'MH',
+            'postal_code' => '400001', 'line1' => '1 Rd', 'city' => 'Mumbai',
+        ]);
+
+        $payload = [
+            'user_id'     => $buyer->id,
+            'plan_id'     => $plan->id,
+            'cycle'       => 'monthly',
+            'gateway_ref' => 'pay_live_abc',
+        ];
+        $payload['signature'] = hash_hmac('sha256',
+            implode('|', [$payload['user_id'], $payload['plan_id'], $payload['cycle'], $payload['gateway_ref']]),
+            'test-secret-xyz',
+        );
+
+        $response = $this->actingAs($buyer)->post('/user/upgrade/activate', $payload);
+
+        $response->assertRedirect();
+        $this->assertSame(1, Invoice::where('user_id', $buyer->id)->count());
+        $this->assertSame($plan->id, $buyer->fresh()->plan_id);
     }
 }
