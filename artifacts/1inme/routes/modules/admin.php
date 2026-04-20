@@ -122,6 +122,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::prefix('banned-names')->name('banned-names.')->group(function () {
             Route::get('/', [BannedNameController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::get('export', [BannedNameController::class, 'export'])->middleware(CheckPermission::class . ':settings.manage')->name('export');
+            Route::get('bulk', [BannedNameController::class, 'bulkCreate'])->middleware(CheckPermission::class . ':settings.manage')->name('bulk');
+            Route::post('bulk', [BannedNameController::class, 'bulkStore'])->middleware(CheckPermission::class . ':settings.manage')->name('bulk.store');
             Route::get('create', [BannedNameController::class, 'create'])->middleware(CheckPermission::class . ':settings.manage')->name('create');
             Route::post('/', [BannedNameController::class, 'store'])->middleware(CheckPermission::class . ':settings.manage')->name('store');
             Route::get('{bannedName}/edit', [BannedNameController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');

@@ -16,12 +16,80 @@
                     where current values already match a banned entry.
                 </p>
             </div>
-            <a href="{{ route('admin.banned-names.create') }}"
-               class="px-4 py-2 rounded-xl text-sm font-medium bg-violet-600 hover:bg-violet-700 text-white inline-flex items-center gap-2">
-                <i class="fas fa-plus text-xs"></i> Add name
-            </a>
+            <div class="flex items-center gap-2 flex-wrap">
+                <a href="{{ route('admin.banned-names.bulk') }}"
+                   class="px-3 py-2 rounded-xl text-sm font-medium bg-white/5 hover:bg-white/10 text-white/80 border border-white/10 inline-flex items-center gap-2">
+                    <i class="fas fa-file-import text-xs"></i> Bulk import
+                </a>
+                <div class="relative" x-data="{ open: false }" @click.outside="open = false">
+                    <button type="button" @click="open = !open"
+                            class="px-3 py-2 rounded-xl text-sm font-medium bg-white/5 hover:bg-white/10 text-white/80 border border-white/10 inline-flex items-center gap-2">
+                        <i class="fas fa-file-export text-xs"></i> Export
+                        <i class="fas fa-chevron-down text-[10px] opacity-60"></i>
+                    </button>
+                    <div x-show="open" x-cloak
+                         class="absolute right-0 mt-1 w-40 rounded-xl bg-zinc-900 border border-white/10 shadow-lg z-10 overflow-hidden">
+                        <a href="{{ route('admin.banned-names.export', ['format' => 'csv']) }}"
+                           class="block px-3 py-2 text-sm text-white/80 hover:bg-white/5">Download CSV</a>
+                        <a href="{{ route('admin.banned-names.export', ['format' => 'json']) }}"
+                           class="block px-3 py-2 text-sm text-white/80 hover:bg-white/5">Download JSON</a>
+                    </div>
+                </div>
+                <a href="{{ route('admin.banned-names.create') }}"
+                   class="px-4 py-2 rounded-xl text-sm font-medium bg-violet-600 hover:bg-violet-700 text-white inline-flex items-center gap-2">
+                    <i class="fas fa-plus text-xs"></i> Add name
+                </a>
+            </div>
         </div>
     </div>
+
+    @if(session('success'))
+        <div class="rounded-xl px-4 py-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-200 text-sm">
+            {{ session('success') }}
+        </div>
+    @endif
+
+    @php
+        $bulkImported   = session('bulk_imported', []);
+        $bulkDuplicates = session('bulk_duplicates', []);
+        $bulkRejected   = session('bulk_rejected', []);
+    @endphp
+    @if(!empty($bulkImported) || !empty($bulkDuplicates) || !empty($bulkRejected))
+        <div class="glass rounded-2xl border border-white/10 p-5 space-y-3">
+            <div class="text-sm font-semibold text-white/80">Import results</div>
+            @if(!empty($bulkImported))
+                <details class="text-xs text-white/70">
+                    <summary class="cursor-pointer text-emerald-300">
+                        Imported {{ count($bulkImported) }} name{{ count($bulkImported) === 1 ? '' : 's' }}
+                    </summary>
+                    <div class="mt-2 font-mono text-white/60 break-words">{{ implode(', ', $bulkImported) }}</div>
+                </details>
+            @endif
+            @if(!empty($bulkDuplicates))
+                <details class="text-xs text-white/70">
+                    <summary class="cursor-pointer text-amber-300">
+                        Skipped {{ count($bulkDuplicates) }} duplicate{{ count($bulkDuplicates) === 1 ? '' : 's' }}
+                    </summary>
+                    <div class="mt-2 font-mono text-white/60 break-words">{{ implode(', ', $bulkDuplicates) }}</div>
+                </details>
+            @endif
+            @if(!empty($bulkRejected))
+                <details class="text-xs text-white/70" open>
+                    <summary class="cursor-pointer text-rose-300">
+                        Rejected {{ count($bulkRejected) }} entr{{ count($bulkRejected) === 1 ? 'y' : 'ies' }}
+                    </summary>
+                    <ul class="mt-2 space-y-1">
+                        @foreach($bulkRejected as $r)
+                            <li class="text-white/70">
+                                <span class="font-mono text-white/80">{{ $r['name'] }}</span>
+                                <span class="text-white/40">— {{ $r['reason'] }}</span>
+                            </li>
+                        @endforeach
+                    </ul>
+                </details>
+            @endif
+        </div>
+    @endif
 
     <div class="glass rounded-2xl border border-white/10 overflow-hidden">
         @if($items->isEmpty())

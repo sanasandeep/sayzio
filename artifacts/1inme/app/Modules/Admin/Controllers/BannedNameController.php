@@ -10,6 +10,7 @@ use App\Modules\User\Models\LinkAlias;
 use App\Modules\User\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Admin CRUD for the banned-names list. Each entry blocks a single
@@ -72,6 +73,143 @@ class BannedNameController extends Controller
 
         return redirect()->route('admin.banned-names.index')
             ->with('success', 'Banned name updated.');
+    }
+
+    /**
+     * Show the bulk-import form.
+     */
+    public function bulkCreate()
+    {
+        return view('admin.banned-names.bulk');
+    }
+
+    /**
+     * Bulk insert names from either a textarea (one per line) or an
+     * uploaded CSV/text file. Duplicates (already present, or repeated
+     * within the input) are skipped, invalid names are rejected with a
+     * reason. Existing single-entry add/edit/delete are unaffected.
+     */
+    public function bulkStore(Request $request)
+    {
+        $request->validate([
+            'names' => ['nullable', 'string', 'max:200000'],
+            'file'  => ['nullable', 'file', 'mimes:csv,txt', 'max:2048'],
+            'note'  => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $raw = (string) $request->input('names', '');
+        if ($request->hasFile('file')) {
+            $raw .= "\n" . file_get_contents($request->file('file')->getRealPath());
+        }
+
+        if (trim($raw) === '') {
+            return redirect()->route('admin.banned-names.bulk')
+                ->withErrors(['names' => 'Paste names or upload a file with at least one name.']);
+        }
+
+        $note    = trim((string) $request->input('note', '')) ?: null;
+        $adminId = Auth::guard('admin')->id();
+
+        // Split on newlines OR commas so a single CSV row works too.
+        $tokens = preg_split('/[\r\n,]+/', $raw) ?: [];
+
+        $imported   = [];
+        $duplicates = [];
+        $rejected   = [];
+        $seen       = [];
+
+        // Snapshot existing names once to avoid N queries.
+        $existing = BannedName::pluck('name')
+            ->map(fn ($n) => mb_strtolower($n))
+            ->flip()
+            ->all();
+
+        foreach ($tokens as $token) {
+            $name = trim($token);
+            if ($name === '') continue;
+
+            if (mb_strlen($name) > 100) {
+                $rejected[] = ['name' => mb_substr($name, 0, 60) . '…', 'reason' => 'too long (max 100)'];
+                continue;
+            }
+            if (!preg_match('/^[A-Za-z0-9_-]+$/', $name)) {
+                $rejected[] = ['name' => $name, 'reason' => 'invalid characters'];
+                continue;
+            }
+
+            $lower = mb_strtolower($name);
+            if (isset($seen[$lower])) {
+                $duplicates[] = $name;
+                continue;
+            }
+            $seen[$lower] = true;
+
+            if (isset($existing[$lower])) {
+                $duplicates[] = $name;
+                continue;
+            }
+
+            BannedName::create([
+                'name'       => $name,
+                'note'       => $note,
+                'created_by' => $adminId,
+            ]);
+            BannedNameChecker::flush($name);
+            $existing[$lower] = true;
+            $imported[] = $name;
+        }
+
+        $msg = sprintf(
+            'Imported %d, skipped %d duplicate%s, rejected %d.',
+            count($imported),
+            count($duplicates), count($duplicates) === 1 ? '' : 's',
+            count($rejected),
+        );
+
+        return redirect()->route('admin.banned-names.index')
+            ->with('success', $msg)
+            ->with('bulk_imported', $imported)
+            ->with('bulk_duplicates', $duplicates)
+            ->with('bulk_rejected', $rejected);
+    }
+
+    /**
+     * Stream the current banned list as CSV or JSON for backup/sharing.
+     */
+    public function export(Request $request)
+    {
+        $format = strtolower((string) $request->query('format', 'csv'));
+        $items  = BannedName::orderBy('name')->get(['name', 'note', 'created_at']);
+        $stamp  = now()->format('Ymd-His');
+
+        if ($format === 'json') {
+            $payload = $items->map(fn ($i) => [
+                'name'       => $i->name,
+                'note'       => $i->note,
+                'created_at' => optional($i->created_at)->toIso8601String(),
+            ])->all();
+
+            return response()->json($payload, 200, [
+                'Content-Disposition' => 'attachment; filename="banned-names-' . $stamp . '.json"',
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        }
+
+        // Default: CSV
+        return new StreamedResponse(function () use ($items) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['name', 'note', 'created_at']);
+            foreach ($items as $i) {
+                fputcsv($out, [
+                    $i->name,
+                    (string) $i->note,
+                    optional($i->created_at)->toIso8601String(),
+                ]);
+            }
+            fclose($out);
+        }, 200, [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="banned-names-' . $stamp . '.csv"',
+        ]);
     }
 
     public function destroy(BannedName $bannedName)
