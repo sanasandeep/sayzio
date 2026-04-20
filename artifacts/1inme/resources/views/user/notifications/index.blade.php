@@ -21,7 +21,12 @@
             @foreach($notifications as $n)
                 @php $d = $n->data ?? []; @endphp
                 <div class="p-4 flex items-start gap-3 {{ $n->read_at ? '' : 'bg-violet-50/30' }}">
-                    @if(!empty($d['follower_avatar']) || !empty($d['creator_avatar']))
+                    @if($n->type === 'social_connection_broken')
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center"
+                             style="background: rgba(239,68,68,0.12); color:#ef4444;">
+                            <i class="fas fa-triangle-exclamation"></i>
+                        </div>
+                    @elseif(!empty($d['follower_avatar']) || !empty($d['creator_avatar']))
                         <img src="{{ $d['follower_avatar'] ?? $d['creator_avatar'] }}" class="w-10 h-10 rounded-full object-cover" alt=""/>
                     @else
                         <div class="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white flex items-center justify-center font-bold">
@@ -33,6 +38,13 @@
                             <p class="text-sm" style="color: var(--text-primary);"><span class="font-semibold">{{ $d['follower_name'] ?? 'Someone' }}</span> started following you.</p>
                         @elseif($n->type === 'follower_update')
                             <p class="text-sm" style="color: var(--text-primary);"><span class="font-semibold">{{ $d['creator_name'] ?? 'A creator' }}</span> {{ $d['message'] ?? 'has new activity' }}</p>
+                        @elseif($n->type === 'social_connection_broken')
+                            <p class="text-sm" style="color: var(--text-primary);">{{ $d['message'] ?? 'A social connection needs your attention.' }}</p>
+                            @if(!empty($d['fix_url']))
+                                <a href="{{ $d['fix_url'] }}" class="inline-flex items-center gap-1 mt-1 text-xs font-semibold text-violet-600 hover:underline">
+                                    <i class="fas fa-rotate-right"></i> Fix it on Connected Accounts
+                                </a>
+                            @endif
                         @else
                             <p class="text-sm" style="color: var(--text-primary);">{{ $d['message'] ?? $n->type }}</p>
                         @endif

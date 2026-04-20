@@ -38,19 +38,23 @@ class FollowerFetcherRegistry
 
             if ($result === null) {
                 $c->update([
-                    'last_refreshed_at'   => now(),
-                    'last_refresh_status' => 'unsupported',
-                    'last_refresh_error'  => null,
+                    'last_refreshed_at'        => now(),
+                    'last_refresh_status'      => 'unsupported',
+                    'last_refresh_error'       => null,
+                    'consecutive_failures'     => 0,
+                    'last_failure_notified_at' => null,
                 ]);
                 return 'unsupported';
             }
 
             $c->fill([
-                'follower_count'      => $result['count'] ?? null,
-                'meta'                => array_merge((array) $c->meta, $result['meta'] ?? []),
-                'last_refreshed_at'   => now(),
-                'last_refresh_status' => 'ok',
-                'last_refresh_error'  => null,
+                'follower_count'           => $result['count'] ?? null,
+                'meta'                     => array_merge((array) $c->meta, $result['meta'] ?? []),
+                'last_refreshed_at'        => now(),
+                'last_refresh_status'      => 'ok',
+                'last_refresh_error'       => null,
+                'consecutive_failures'     => 0,
+                'last_failure_notified_at' => null,
             ]);
             if (! empty($result['profile_url']) && ! $c->profile_url) $c->profile_url = $result['profile_url'];
             if (! empty($result['display_name']) && ! $c->display_name) $c->display_name = $result['display_name'];
@@ -63,9 +67,10 @@ class FollowerFetcherRegistry
                 'connection' => $c->id, 'platform' => $c->platform, 'err' => $e->getMessage(),
             ]);
             $c->update([
-                'last_refreshed_at'   => now(),
-                'last_refresh_status' => 'error',
-                'last_refresh_error'  => substr($e->getMessage(), 0, 500),
+                'last_refreshed_at'    => now(),
+                'last_refresh_status'  => 'error',
+                'last_refresh_error'   => substr($e->getMessage(), 0, 500),
+                'consecutive_failures' => (int) $c->consecutive_failures + 1,
             ]);
             return 'error';
         }

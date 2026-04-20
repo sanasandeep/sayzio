@@ -11,20 +11,26 @@ class SocialAccountConnection extends Model
         'avatar_url', 'external_id', 'access_token', 'refresh_token',
         'token_expires_at', 'follower_count', 'last_refreshed_at',
         'last_refresh_status', 'last_refresh_error', 'meta',
+        'consecutive_failures', 'last_failure_notified_at',
     ];
 
     protected function casts(): array
     {
         return [
-            'token_expires_at'  => 'datetime',
-            'last_refreshed_at' => 'datetime',
-            'meta'              => 'array',
-            'follower_count'    => 'integer',
+            'token_expires_at'         => 'datetime',
+            'last_refreshed_at'        => 'datetime',
+            'last_failure_notified_at' => 'datetime',
+            'meta'                     => 'array',
+            'follower_count'           => 'integer',
+            'consecutive_failures'     => 'integer',
             // Tokens are encrypted at rest; nulls pass through.
-            'access_token'      => 'encrypted',
-            'refresh_token'     => 'encrypted',
+            'access_token'             => 'encrypted',
+            'refresh_token'            => 'encrypted',
         ];
     }
+
+    /** Number of consecutive failures at which we surface a stronger nudge. */
+    public const FAILURE_NUDGE_THRESHOLD = 3;
 
     /** Per-platform brand colour + Font Awesome icon used by the public renderer. */
     public const PLATFORM_META = [
@@ -94,5 +100,60 @@ class SocialAccountConnection extends Model
     {
         if (! $this->last_refreshed_at) return true;
         return $this->last_refreshed_at->lt(now()->subHours($hours));
+    }
+
+    /** Whether this platform connects via OAuth (vs handle-only). */
+    public function isOauthPlatform(): bool
+    {
+        return (self::PLATFORM_META[$this->platform]['kind'] ?? 'handle') === 'oauth';
+    }
+
+    /** True when the most recent refresh attempt failed. */
+    public function isFailing(): bool
+    {
+        return $this->last_refresh_status === 'error';
+    }
+
+    /** True when the connection has missed its refresh window for too long. */
+    public function isStuck(int $hours = 24): bool
+    {
+        if ($this->isFailing()) return true;
+        if (! $this->last_refreshed_at) return false;
+        return $this->last_refreshed_at->lt(now()->subHours($hours))
+            && $this->last_refresh_status !== 'unsupported';
+    }
+
+    /** One-word health bucket used by the Connected Accounts UI. */
+    public function healthState(): string
+    {
+        if ($this->isFailing())                   return 'error';
+        if ($this->last_refresh_status === 'unsupported') return 'unsupported';
+        if (! $this->last_refreshed_at)           return 'pending';
+        if ($this->isStale(24))                   return 'stale';
+        return 'ok';
+    }
+
+    /** Human label for the health badge. */
+    public function healthLabel(): string
+    {
+        return match ($this->healthState()) {
+            'error'       => 'Action needed',
+            'stale'       => 'Stale',
+            'pending'     => 'Awaiting refresh',
+            'unsupported' => 'Manual',
+            default       => 'Healthy',
+        };
+    }
+
+    /** Brand colour-ish hex used by the health badge. */
+    public function healthColor(): string
+    {
+        return match ($this->healthState()) {
+            'error'   => '#ef4444',
+            'stale'   => '#f59e0b',
+            'pending' => '#64748b',
+            'unsupported' => '#7c3aed',
+            default   => '#10b981',
+        };
     }
 }
