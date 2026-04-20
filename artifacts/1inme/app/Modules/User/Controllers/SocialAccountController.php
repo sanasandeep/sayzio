@@ -50,9 +50,14 @@ class SocialAccountController extends Controller
                 'handle'   => $handle,
             ],
             [
-                'access_token'  => $data['access_token'] ?: null,
-                'refresh_token' => $data['refresh_token'] ?: null,
-                'last_refresh_status' => 'pending',
+                'access_token'             => $data['access_token'] ?: null,
+                'refresh_token'            => $data['refresh_token'] ?: null,
+                'last_refresh_status'      => 'pending',
+                'last_refresh_error'       => null,
+                // Manual (re)connect — clear any prior backoff so the new
+                // credentials get a fresh start on the scheduler.
+                'consecutive_failures'     => 0,
+                'last_failure_notified_at' => null,
             ]
         );
 
@@ -66,6 +71,12 @@ class SocialAccountController extends Controller
     public function refresh(SocialAccountConnection $connection, FollowerFetcherRegistry $registry)
     {
         abort_unless($connection->user_id === Auth::id(), 403);
+        // A user-initiated retry should clear any backoff state so the next
+        // scheduled cycle treats this connection as fresh again.
+        $connection->forceFill([
+            'consecutive_failures'     => 0,
+            'last_failure_notified_at' => null,
+        ])->save();
         $status = $registry->refresh($connection);
 
         $msg = match ($status) {

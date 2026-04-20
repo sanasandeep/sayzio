@@ -24,15 +24,28 @@ class RefreshSocialFollowerCounts extends Command
         if ($id = $this->option('connection')) $q->where('id', $id);
         if ($p = $this->option('platform'))    $q->where('platform', $p);
 
+        $hours = max(1, (int) $this->option('stale-hours'));
+
         if (! $this->option('all') && ! $this->option('connection')) {
-            $hours = max(1, (int) $this->option('stale-hours'));
+            // SQL-side coarse filter: include never-refreshed rows, anything
+            // older than the base stale window, OR anything currently failing
+            // (those need the per-row backoff check below).
             $q->where(function ($w) use ($hours) {
                 $w->whereNull('last_refreshed_at')
-                  ->orWhere('last_refreshed_at', '<', now()->subHours($hours));
+                  ->orWhere('last_refreshed_at', '<', now()->subHours($hours))
+                  ->orWhere('consecutive_failures', '>', 0);
             });
         }
 
         $cs = $q->get();
+
+        if (! $this->option('all') && ! $this->option('connection')) {
+            // Per-row backoff: failing connections only get retried once their
+            // exponential-backoff window has elapsed, so a permanently broken
+            // token doesn't keep racking up failures every 4h.
+            $cs = $cs->filter(fn ($c) => $c->isDueForRefresh($hours))->values();
+        }
+
         $this->info("Refreshing {$cs->count()} connection(s)...");
 
         $ok = $err = $skip = 0;

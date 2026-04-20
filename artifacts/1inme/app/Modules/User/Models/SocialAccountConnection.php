@@ -32,6 +32,47 @@ class SocialAccountConnection extends Model
     /** Number of consecutive failures at which we surface a stronger nudge. */
     public const FAILURE_NUDGE_THRESHOLD = 3;
 
+    /**
+     * Exponential backoff schedule for repeatedly-failing refreshes.
+     *
+     * Index = number of consecutive failures, value = minimum hours to wait
+     * before the next scheduled retry. Healthy connections (0 failures) use
+     * the caller's default cadence (typically 4h). Past the end of the
+     * schedule we cap at the last entry (~daily) so a permanently broken
+     * connection still gets a daily probe in case the user reconnects out
+     * of band.
+     */
+    public const FAILURE_BACKOFF_HOURS = [
+        1 => 4,   // first miss — retry on the normal 4h cadence
+        2 => 8,   // second miss — wait 8h
+        3 => 24,  // third miss — back off to ~daily
+    ];
+
+    /**
+     * Minimum hours to wait between refresh attempts given the current
+     * consecutive-failure count. Healthy connections fall back to
+     * $defaultHours (the scheduler's stale window).
+     */
+    public function backoffHours(int $defaultHours = 4): int
+    {
+        $f = max(0, (int) $this->consecutive_failures);
+        if ($f === 0) return $defaultHours;
+        $schedule = self::FAILURE_BACKOFF_HOURS;
+        $hours = $schedule[$f] ?? end($schedule);
+        return max($defaultHours, (int) $hours);
+    }
+
+    /**
+     * Whether this connection is due for another refresh attempt, taking the
+     * exponential backoff schedule into account. Connections that have never
+     * been refreshed are always due.
+     */
+    public function isDueForRefresh(int $defaultHours = 4): bool
+    {
+        if (! $this->last_refreshed_at) return true;
+        return $this->last_refreshed_at->lte(now()->subHours($this->backoffHours($defaultHours)));
+    }
+
     /** Per-platform brand colour + Font Awesome icon used by the public renderer. */
     public const PLATFORM_META = [
         'instagram' => ['label' => 'Instagram', 'icon' => 'fab fa-instagram',  'color' => '#E4405F', 'kind' => 'oauth',  'url' => 'https://instagram.com/{h}'],

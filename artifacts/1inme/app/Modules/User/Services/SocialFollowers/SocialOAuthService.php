@@ -303,11 +303,16 @@ class SocialOAuthService
         return SocialAccountConnection::updateOrCreate(
             ['user_id' => $userId, 'platform' => $provider, 'handle' => $handle],
             [
-                'access_token'        => $access,
-                'refresh_token'       => $refresh,
-                'token_expires_at'    => $expires,
-                'external_id'         => $external_id ?: null,
-                'last_refresh_status' => 'pending',
+                'access_token'             => $access,
+                'refresh_token'            => $refresh,
+                'token_expires_at'         => $expires,
+                'external_id'              => $external_id ?: null,
+                'last_refresh_status'      => 'pending',
+                'last_refresh_error'       => null,
+                // Reconnecting clears any prior backoff so the next refresh
+                // treats this account as a fresh, healthy connection.
+                'consecutive_failures'     => 0,
+                'last_failure_notified_at' => null,
             ]
         );
     }
