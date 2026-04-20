@@ -16,7 +16,148 @@
     // editor can warn inline when "Follow with count" is chosen for a platform
     // with no matching connected account.
     $connCounts = $myConnections->groupBy('platform')->map->count()->toArray();
+
+    // Decide which editor to show. The grouped variant (`socials_multi`) keeps
+    // its entries inside `settings.groups[*].platforms`; the standard and
+    // custom variants store a flat `settings.platforms` list.
+    $isGrouped = isset($block) && $block->type === 'socials_multi';
+
+    // For grouped blocks, seed Alpine with the existing groups. If a legacy
+    // block has only the flat `platforms` array, lift it into a single default
+    // group so the creator can keep editing without losing entries.
+    if ($isGrouped) {
+        $initialGroups = $s['groups'] ?? [];
+        if (empty($initialGroups) && ! empty($s['platforms'] ?? [])) {
+            $initialGroups = [['name' => '', 'platforms' => $s['platforms']]];
+        }
+        // Normalise so every entry has the new keys with sensible defaults.
+        foreach ($initialGroups as &$_g) {
+            $_g['name'] = $_g['name'] ?? '';
+            $_g['platforms'] = array_values(array_map(function ($p) {
+                return [
+                    'name'          => $p['name']          ?? '',
+                    'url'           => $p['url']           ?? '',
+                    'display'       => $p['display']       ?? 'icon',
+                    'connection_id' => $p['connection_id'] ?? '',
+                ];
+            }, $_g['platforms'] ?? []));
+        }
+        unset($_g);
+    }
 @endphp
+
+@if($isGrouped)
+{{-- Grouped editor (socials_multi) ------------------------------------- --}}
+<div x-data="{ groups: {{ json_encode(array_values($initialGroups)) }}, connCounts: {{ json_encode($connCounts) }} }">
+    <div class="flex items-center justify-between mb-2">
+        <label class="{{ $labelClass }} mb-0">Social Groups</label>
+        <a href="{{ $connectedRoute }}" target="_blank" class="text-[10px] text-violet-400 hover:text-violet-300">
+            <i class="fas fa-share-nodes mr-1"></i>Manage connected accounts
+        </a>
+    </div>
+
+    <template x-for="(g, gi) in groups" :key="gi">
+        <div class="glass rounded-lg p-3 mb-3 space-y-2">
+            <div class="flex items-center gap-2">
+                <input type="text" x-model="groups[gi].name" :name="'settings[groups]['+gi+'][name]'"
+                       placeholder="Group label (optional)" class="{{ $inputClass }}">
+                <button type="button" @click="groups.splice(gi,1)" class="text-xs text-red-400/60 hover:text-red-400 whitespace-nowrap">
+                    <i class="fas fa-times mr-1"></i>Remove group
+                </button>
+            </div>
+
+            <template x-for="(p, i) in groups[gi].platforms" :key="i">
+                <div class="rounded-lg p-2 space-y-2" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);">
+                    <div class="grid grid-cols-2 gap-2">
+                        <select x-model="groups[gi].platforms[i].name"
+                                :name="'settings[groups]['+gi+'][platforms]['+i+'][name]'"
+                                class="{{ $inputClass }}">
+                            <option value="" class="bg-[#0d0818]">Select…</option>
+                            @foreach($socialOptions as $opt)
+                                <option value="{{ $opt }}" class="bg-[#0d0818]">{{ ucfirst($opt) }}</option>
+                            @endforeach
+                        </select>
+                        <input type="url" x-model="groups[gi].platforms[i].url"
+                               :name="'settings[groups]['+gi+'][platforms]['+i+'][url]'"
+                               placeholder="https://… (or leave blank if using a connected account)"
+                               class="{{ $inputClass }}">
+                    </div>
+
+                    {{-- Display style: icon · follow button · follow + count --}}
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[10px] text-white/30 block mb-1">Display</label>
+                            <select x-model="groups[gi].platforms[i].display"
+                                    :name="'settings[groups]['+gi+'][platforms]['+i+'][display]'"
+                                    class="{{ $inputClass }}">
+                                <option value="icon"         class="bg-[#0d0818]">Icon</option>
+                                <option value="follow"       class="bg-[#0d0818]">Follow button</option>
+                                <option value="follow_count" class="bg-[#0d0818]">Follow button with count</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-white/30 block mb-1">Follower source</label>
+                            {{-- Each option is hidden when its data-platform doesn't match
+                                 the entry's selected platform; this prevents creators
+                                 from accidentally pairing a connection from a different
+                                 network with this entry. --}}
+                            <select x-model="groups[gi].platforms[i].connection_id"
+                                    :name="'settings[groups]['+gi+'][platforms]['+i+'][connection_id]'"
+                                    @change="if (groups[gi].platforms[i].connection_id) { let opt = $event.target.selectedOptions[0]; if (opt && opt.dataset.platform && opt.dataset.platform !== groups[gi].platforms[i].name) groups[gi].platforms[i].connection_id = ''; }"
+                                    class="{{ $inputClass }}">
+                                <option value="" class="bg-[#0d0818]">— Manual URL only —</option>
+                                @foreach($myConnections as $conn)
+                                    <option value="{{ $conn->id }}" data-platform="{{ $conn->platform }}"
+                                            x-show="!groups[gi].platforms[i].name || groups[gi].platforms[i].name === '{{ $conn->platform }}'"
+                                            class="bg-[#0d0818]">
+                                        {{ \App\Modules\User\Models\SocialAccountConnection::platformLabel($conn->platform) }} · @{{ $conn->handle }}
+                                        @if($conn->follower_count !== null)
+                                            ({{ \App\Modules\User\Models\SocialAccountConnection::formatCount($conn->follower_count) }})
+                                        @endif
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    {{-- Inline warning when "Follow with count" is selected for a
+                         platform that has no matching connected account. --}}
+                    <p x-show="groups[gi].platforms[i].display === 'follow_count' && groups[gi].platforms[i].name && (!connCounts[groups[gi].platforms[i].name] || connCounts[groups[gi].platforms[i].name] === 0)"
+                       class="text-[11px] text-amber-300/80 bg-amber-500/10 border border-amber-500/20 rounded px-2 py-1.5"
+                       style="display: none;">
+                        <i class="fas fa-circle-exclamation mr-1"></i>
+                        You don't have a connected <span x-text="groups[gi].platforms[i].name || ''"></span> account yet, so the count won't show.
+                        <a href="{{ $connectedRoute }}" target="_blank" class="underline hover:text-amber-200">Connect one</a>.
+                    </p>
+
+                    <div class="flex justify-end">
+                        <button type="button" @click="groups[gi].platforms.splice(i,1)" class="text-xs text-red-400/60 hover:text-red-400">
+                            <i class="fas fa-times mr-1"></i>Remove entry
+                        </button>
+                    </div>
+                </div>
+            </template>
+
+            <button type="button"
+                    @click="groups[gi].platforms.push({name:'',url:'',display:'icon',connection_id:''})"
+                    class="text-xs text-violet-400 hover:text-violet-300">
+                <i class="fas fa-plus mr-1"></i>Add entry
+            </button>
+        </div>
+    </template>
+
+    <button type="button"
+            @click="groups.push({name:'',platforms:[{name:'',url:'',display:'icon',connection_id:''}]})"
+            class="text-xs text-violet-400 hover:text-violet-300">
+        <i class="fas fa-plus mr-1"></i>Add Group
+    </button>
+
+    <p class="text-[10px] text-white/30 mt-2">
+        Follower counts come from <a href="{{ $connectedRoute }}" target="_blank" class="text-violet-400 hover:underline">your connected accounts</a> and refresh every few hours.
+    </p>
+</div>
+@else
+{{-- Standard / custom editor (flat platforms) -------------------------- --}}
 <div x-data="{ platforms: {{ json_encode($s['platforms'] ?? []) }}, connCounts: {{ json_encode($connCounts) }} }">
     <div class="flex items-center justify-between mb-2">
         <label class="{{ $labelClass }} mb-0">Social Platforms</label>
@@ -98,3 +239,4 @@
         <i class="fas fa-plus mr-1"></i>Add Platform
     </button>
 </div>
+@endif
