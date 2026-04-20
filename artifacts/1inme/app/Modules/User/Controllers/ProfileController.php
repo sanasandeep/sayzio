@@ -18,8 +18,11 @@ class ProfileController extends Controller
     {
         $user = Auth::user();
         $timezones = \DateTimeZone::listIdentifiers();
-        $digestPreviewHtml = $this->renderDigestPreview($user);
-        return view('user.profile.edit', compact('user', 'timezones', 'digestPreviewHtml'));
+        $preview = $this->renderDigestPreview($user);
+        $digestPreviewHtml = $preview['html'];
+        $digestPreviewIsReal = $preview['isReal'];
+        $digestPreviewCount = $preview['count'];
+        return view('user.profile.edit', compact('user', 'timezones', 'digestPreviewHtml', 'digestPreviewIsReal', 'digestPreviewCount'));
     }
 
     /**
@@ -29,7 +32,7 @@ class ProfileController extends Controller
      * preview reflects exactly what the next real digest will contain.
      * Otherwise a clearly-labelled mock fallback is shown.
      */
-    private function renderDigestPreview($user): string
+    private function renderDigestPreview($user): array
     {
         $pending = UserNotification::where('user_id', $user->id)
             ->where('type', 'follower_update')
@@ -39,7 +42,11 @@ class ProfileController extends Controller
 
         if ($pending->isNotEmpty()) {
             $composed = FollowerDigestComposer::compose($user, $pending, true);
-            return view('emails.follower-digest', $composed['viewData'])->render();
+            return [
+                'html'   => view('emails.follower-digest', $composed['viewData'])->render(),
+                'isReal' => true,
+                'count'  => (int) ($composed['count'] ?? $pending->count()),
+            ];
         }
 
         $creators = [
@@ -77,15 +84,19 @@ class ProfileController extends Controller
         $totalUpdates = array_sum(array_map(fn ($c) => count($c['messages']) + $c['extra'], $creators));
         $creatorCount = count($creators);
 
-        return view('emails.follower-digest', [
-            'userName'     => $user->name ?: 'there',
-            'subject'      => 'Your daily digest (example)',
-            'creators'     => $creators,
-            'totalUpdates' => $totalUpdates,
-            'creatorCount' => $creatorCount,
-            'isSample'     => true,
-            'isExample'    => true,
-        ])->render();
+        return [
+            'html' => view('emails.follower-digest', [
+                'userName'     => $user->name ?: 'there',
+                'subject'      => 'Your daily digest (example)',
+                'creators'     => $creators,
+                'totalUpdates' => $totalUpdates,
+                'creatorCount' => $creatorCount,
+                'isSample'     => true,
+                'isExample'    => true,
+            ])->render(),
+            'isReal' => false,
+            'count'  => 0,
+        ];
     }
 
     public function update(Request $request)

@@ -132,9 +132,19 @@
                                     <i class="fas fa-envelope text-violet-400"></i>
                                     <span>Daily digest preview</span>
                                 </div>
-                                <span class="text-[10px] uppercase tracking-wider text-violet-300/80 px-2 py-0.5 rounded-full bg-violet-500/15 border border-violet-500/30">
-                                    Sample · not a real email
-                                </span>
+                                @if($digestPreviewIsReal)
+                                    <span class="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-emerald-300 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30" title="This preview uses your real pending notifications.">
+                                        <span class="relative flex h-1.5 w-1.5">
+                                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                            <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400"></span>
+                                        </span>
+                                        Live preview · showing your {{ $digestPreviewCount }} pending update{{ $digestPreviewCount === 1 ? '' : 's' }}
+                                    </span>
+                                @else
+                                    <span class="text-[10px] uppercase tracking-wider text-violet-300/80 px-2 py-0.5 rounded-full bg-violet-500/15 border border-violet-500/30" title="You don't have any pending updates yet, so this is a placeholder.">
+                                        Example preview · not your real queue
+                                    </span>
+                                @endif
                             </div>
                             <iframe
                                 title="Digest email preview"
