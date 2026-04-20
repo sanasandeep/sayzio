@@ -12,6 +12,7 @@ class Invoice extends Model
         'billing_address_snapshot', 'merchant_snapshot',
         'line_items', 'tax_breakdown', 'reverse_charge_note',
         'place_of_supply', 'issued_at',
+        'subscription_id', 'gateway', 'status', 'paid_at',
     ];
 
     protected function casts(): array
@@ -26,7 +27,18 @@ class Invoice extends Model
             'grand_total_minor'        => 'integer',
             'seq'                      => 'integer',
             'issued_at'                => 'datetime',
+            'paid_at'                  => 'datetime',
         ];
+    }
+
+    public function subscription()
+    {
+        return $this->belongsTo(Subscription::class);
+    }
+
+    public function paymentAttempts()
+    {
+        return $this->hasMany(PaymentAttempt::class);
     }
 
     public function user()

@@ -188,13 +188,8 @@ class TaxCalculator
             }
 
             // Merchant outside EU selling into EU/UK/NO/CH — destination VAT
-<<<<<<< HEAD
             // (or reverse-charge if buyer is registered with a declared VATIN).
             if ($taxIdKind === 'VATIN' && $taxId !== '' && Vatin::isValid($taxId) && Vatin::countryOf($taxId) === $buyerCountry) {
-=======
-            // (or reverse-charge if buyer is registered).
-            if ($taxId !== '' && Vatin::isValid($taxId) && Vatin::countryOf($taxId) === $buyerCountry) {
->>>>>>> 2faf0c3 (Saved your changes before starting work)
                 return self::pack($subtotal, $breakdown, $lineItems, $currency, $place, 'Reverse charge — customer to account for VAT.');
             }
             if ($rate > 0) {

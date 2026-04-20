@@ -19,6 +19,8 @@ use App\Modules\Admin\Controllers\SocialOAuthSettingsController;
 use App\Modules\Admin\Controllers\SpamRuleStatsController;
 use App\Modules\Admin\Controllers\BannedNameController;
 use App\Modules\Admin\Controllers\TaxController;
+use App\Modules\Admin\Controllers\GatewaySettingsController;
+use App\Modules\Admin\Controllers\PendingPaymentController;
 use App\Modules\Admin\Middleware\CheckPermission;
 
 Route::prefix('admin')->name('admin.')->group(function () {
@@ -160,6 +162,18 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('{tax}/edit', [TaxController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
             Route::put('{tax}', [TaxController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
             Route::delete('{tax}', [TaxController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
+        });
+
+        Route::prefix('payment-gateways')->name('payment-gateways.')->group(function () {
+            Route::get('/', [GatewaySettingsController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::get('{slug}/edit', [GatewaySettingsController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
+            Route::put('{slug}', [GatewaySettingsController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
+            Route::post('{slug}/toggle', [GatewaySettingsController::class, 'toggle'])->middleware(CheckPermission::class . ':settings.manage')->name('toggle');
+        });
+
+        Route::prefix('payments')->name('payments.')->group(function () {
+            Route::get('pending', [PendingPaymentController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('pending');
+            Route::post('{invoice}/mark-paid', [PendingPaymentController::class, 'markPaid'])->middleware(CheckPermission::class . ':settings.manage')->name('mark-paid');
         });
 
         Route::prefix('referrals')->name('referrals.')->group(function () {

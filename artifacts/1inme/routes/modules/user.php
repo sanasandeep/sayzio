@@ -188,6 +188,10 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('upgrade/switch-currency', [\App\Modules\User\Controllers\UpgradeController::class, 'switchCurrency'])->name('upgrade.switch-currency');
         Route::post('upgrade/activate', [\App\Modules\User\Controllers\UpgradeController::class, 'activate'])->name('upgrade.activate');
 
+        // Checkout: plan+addons cart, tax preview, gateway picker, handoff.
+        Route::get('checkout', [\App\Modules\User\Controllers\CheckoutController::class, 'show'])->name('checkout.show');
+        Route::post('checkout/handoff', [\App\Modules\User\Controllers\CheckoutController::class, 'handoff'])->name('checkout.handoff');
+
         // Page & card templates (admin-curated presets)
         Route::get('links/{link}/templates', [\App\Modules\User\Controllers\LinkTemplateController::class, 'picker'])->name('links.templates.picker');
         Route::post('links/{link}/templates/apply-page', [\App\Modules\User\Controllers\LinkTemplateController::class, 'applyPage'])->name('links.templates.apply-page');
