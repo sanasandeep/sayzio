@@ -2,6 +2,7 @@
 
 namespace App\Modules\User\Middleware;
 
+use App\Modules\User\Models\Contact;
 use Closure;
 use Illuminate\Http\Request;
 
@@ -71,6 +72,19 @@ class CheckPlanLimit
             case 'utm_params':
                 if (empty($features['utm_params'])) {
                     return back()->with('error', 'UTM parameters are not available on your current plan. Upgrade to access this feature.');
+                }
+                break;
+
+            case 'contacts_max':
+                $maxContacts = (int) ($features['contacts_max'] ?? 5000);
+                if ($maxContacts !== -1 && Contact::where('user_id', $user->id)->count() >= $maxContacts) {
+                    return back()->with('error', "You've reached your plan's contact limit ({$maxContacts}). Upgrade your plan to add more contacts.");
+                }
+                break;
+
+            case 'contacts_google_sync':
+                if (empty($features['contacts_google_sync'])) {
+                    return redirect()->route('user.contacts.index')->with('error', 'Google Contacts sync is not available on your current plan. Upgrade to connect your Google account.');
                 }
                 break;
         }

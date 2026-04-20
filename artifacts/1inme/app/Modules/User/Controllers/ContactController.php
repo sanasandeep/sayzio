@@ -21,7 +21,6 @@ class ContactController extends Controller
 {
     public const PHONE_LABELS = ['Mobile', 'Work', 'Home', 'Main', 'Other'];
     public const EMAIL_LABELS = ['Personal', 'Work', 'Other'];
-    public const SOFT_CAP     = 5000; // soft per-user cap
 
     public function __construct(
         protected BiolinkAttachResolver $resolver,
@@ -75,9 +74,6 @@ class ContactController extends Controller
     public function store(Request $request)
     {
         $user = $request->user();
-        if (Contact::where('user_id', $user->id)->count() >= self::SOFT_CAP) {
-            return back()->with('error', 'Contact limit reached (' . self::SOFT_CAP . ').');
-        }
         $v = $this->validatePayload($request);
 
         $contact = DB::transaction(function () use ($user, $v, $request) {
@@ -201,9 +197,11 @@ class ContactController extends Controller
 
     public function importForm(Request $request)
     {
+        $cap = $this->planContactsCap($request->user());
+        $existing = Contact::where('user_id', $request->user()->id)->count();
         return view('user.contacts.import', [
-            'softCap' => self::SOFT_CAP,
-            'remaining' => max(0, self::SOFT_CAP - Contact::where('user_id', $request->user()->id)->count()),
+            'softCap'   => $cap === -1 ? null : $cap,
+            'remaining' => $cap === -1 ? null : max(0, $cap - $existing),
         ]);
     }
 
@@ -216,7 +214,8 @@ class ContactController extends Controller
 
         $user = $request->user();
         $existingCount = Contact::where('user_id', $user->id)->count();
-        $remaining = max(0, self::SOFT_CAP - $existingCount);
+        $cap = $this->planContactsCap($user);
+        $remaining = $cap === -1 ? null : max(0, $cap - $existingCount);
 
         $file = $request->file('file');
         try {
@@ -242,7 +241,7 @@ class ContactController extends Controller
             $label  = $row['display_name'] ?: trim(($row['given_name'] ?? '') . ' ' . ($row['family_name'] ?? ''));
             $label  = $label !== '' ? $label : ('Row ' . $rowNum);
 
-            if ($existingCount + $results['created'] >= self::SOFT_CAP) {
+            if ($cap !== -1 && $existingCount + $results['created'] >= $cap) {
                 $results['skippedCap']++;
                 continue;
             }
@@ -441,6 +440,13 @@ class ContactController extends Controller
     }
 
     // ---- helpers ----------------------------------------------------------
+
+    /** Resolve the plan-based contacts_max cap. Returns -1 for unlimited. */
+    private function planContactsCap($user): int
+    {
+        $features = ($user && $user->plan && $user->plan->features) ? $user->plan->features : [];
+        return (int) ($features['contacts_max'] ?? 5000);
+    }
 
     private function validatePayload(Request $request): array
     {

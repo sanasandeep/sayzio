@@ -18,9 +18,17 @@ class GoogleContactsSyncService
         protected BiolinkAttachResolver $resolver,
     ) {}
 
+    /** Per-user contacts cap from the active plan. -1 = unlimited. */
+    protected function contactsCapFor(GoogleContactsAccount $account): int
+    {
+        $user = $account->user;
+        $features = ($user && $user->plan && $user->plan->features) ? $user->plan->features : [];
+        return (int) ($features['contacts_max'] ?? 5000);
+    }
+
     public function syncAccount(GoogleContactsAccount $account): array
     {
-        $stats = ['created' => 0, 'updated' => 0, 'deleted' => 0, 'pushed' => 0, 'errors' => 0];
+        $stats = ['created' => 0, 'updated' => 0, 'deleted' => 0, 'pushed' => 0, 'errors' => 0, 'skipped_capped' => 0];
         $account->update(['last_sync_status' => 'running', 'last_sync_error' => null]);
 
         try {
@@ -100,10 +108,11 @@ class GoogleContactsSyncService
             // 2) Pull (incremental if we have a sync token).
             if ($account->pull_enabled) {
                 $newSyncToken = null;
+                $cap = $this->contactsCapFor($account);
                 try {
                     foreach ($this->provider->listPeople($account, function ($t) use (&$newSyncToken) { $newSyncToken = $t; }) as $p) {
                         try {
-                            $r = $this->upsertFromGoogle($account, $p);
+                            $r = $this->upsertFromGoogle($account, $p, $cap);
                             $stats[$r] = ($stats[$r] ?? 0) + 1;
                         } catch (\Throwable $e) {
                             $stats['errors']++;
@@ -140,13 +149,14 @@ class GoogleContactsSyncService
         return $stats;
     }
 
-    /** Returns 'created' | 'updated' | 'deleted' | 'skipped'. */
-    protected function upsertFromGoogle(GoogleContactsAccount $account, array $p): string
+    /** Returns 'created' | 'updated' | 'deleted' | 'skipped' | 'skipped_capped'. */
+    protected function upsertFromGoogle(GoogleContactsAccount $account, array $p, ?int $cap = null): string
     {
         $rn = $p['resource_name'] ?? null;
         if (!$rn) return 'skipped';
+        $cap = $cap ?? $this->contactsCapFor($account);
 
-        return DB::transaction(function () use ($account, $p, $rn) {
+        return DB::transaction(function () use ($account, $p, $rn, $cap) {
             $contact = Contact::where('user_id', $account->user_id)
                 ->where('google_resource_name', $rn)->first();
 
@@ -156,6 +166,12 @@ class GoogleContactsSyncService
             }
 
             $isNew = !$contact;
+            // Plan-based cap: refuse to import additional contacts for users
+            // whose plan does not allow it. Existing rows still get updates.
+            if ($isNew && $cap !== -1
+                && Contact::where('user_id', $account->user_id)->count() >= $cap) {
+                return 'skipped_capped';
+            }
             // Conflict guard: if the local row has unsynced edits
             // (locally_modified_at newer than last_synced_at), the user's
             // changes win until the next push completes — never let a pull

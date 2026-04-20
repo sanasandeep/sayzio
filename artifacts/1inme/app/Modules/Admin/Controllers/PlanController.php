@@ -91,6 +91,8 @@ class PlanController extends Controller
             'max_file_size_mb' => 5,
             'storage_limit_mb' => 100,
             'max_projects' => 3,
+            'contacts_max' => 100,
+            'contacts_google_sync' => false,
             'max_aliases_per_link' => 0,
             'min_alias_length' => 3,
             'max_alias_length' => 50,

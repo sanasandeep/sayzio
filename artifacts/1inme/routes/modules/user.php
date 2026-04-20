@@ -233,9 +233,9 @@ Route::prefix('user')->name('user.')->group(function () {
         // ===== Contacts & Dialer =====
         Route::get('contacts',                              [ContactController::class, 'index'])->name('contacts.index');
         Route::get('contacts/create',                       [ContactController::class, 'create'])->name('contacts.create');
-        Route::post('contacts',                             [ContactController::class, 'store'])->name('contacts.store');
+        Route::post('contacts',                             [ContactController::class, 'store'])->middleware(CheckPlanLimit::class . ':contacts_max')->name('contacts.store');
         Route::get('contacts/import',                       [ContactController::class, 'importForm'])->name('contacts.import');
-        Route::post('contacts/import',                      [ContactController::class, 'import'])->name('contacts.import.store');
+        Route::post('contacts/import',                      [ContactController::class, 'import'])->middleware(CheckPlanLimit::class . ':contacts_max')->name('contacts.import.store');
         Route::get('contacts/{contact}',                    [ContactController::class, 'show'])->name('contacts.show');
         Route::get('contacts/{contact}/edit',               [ContactController::class, 'edit'])->name('contacts.edit');
         Route::put('contacts/{contact}',                    [ContactController::class, 'update'])->name('contacts.update');
@@ -245,7 +245,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('contacts/{contact}/biolink/sms',       [ContactController::class, 'smsBiolink'])->name('contacts.biolink.sms');
 
         // Google Contacts OAuth + sync.
-        Route::get('contacts/google/connect',               [GoogleContactsAccountController::class, 'connect'])->name('contacts.google.connect');
+        Route::get('contacts/google/connect',               [GoogleContactsAccountController::class, 'connect'])->middleware(CheckPlanLimit::class . ':contacts_google_sync')->name('contacts.google.connect');
         Route::get('contacts/google/callback',              [GoogleContactsAccountController::class, 'callback'])->name('contacts.google.callback');
         Route::post('contacts/google/{account}/sync',       [GoogleContactsAccountController::class, 'syncNow'])->name('contacts.google.sync');
         Route::delete('contacts/google/{account}',          [GoogleContactsAccountController::class, 'destroy'])->name('contacts.google.destroy');

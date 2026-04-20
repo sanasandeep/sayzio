@@ -9,7 +9,7 @@
         'subtitle' => 'Bring your list in from a CSV export or a vCard (.vcf) file. Each row is added the same way as a manual contact, so biolink auto-attach still runs.',
         'icon' => 'fa-file-import',
         'chips' => [
-            ['icon' => 'fa-database text-cyan-400', 'text' => $remaining . ' slots remaining (cap ' . $softCap . ')'],
+            ['icon' => 'fa-database text-cyan-400', 'text' => is_null($softCap) ? 'Unlimited contacts on your plan' : ($remaining . ' slots remaining (cap ' . $softCap . ')')],
         ],
     ])
 

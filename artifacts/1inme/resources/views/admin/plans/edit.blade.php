@@ -83,6 +83,11 @@
                                    class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
                         </div>
                         <div>
+                            <label class="block text-xs text-white/40 mb-1" title="Max contacts a user can store. -1 = unlimited.">Max Contacts</label>
+                            <input type="number" name="features[contacts_max]" value="{{ $features['contacts_max'] ?? 100 }}" min="-1"
+                                   class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
+                        </div>
+                        <div>
                             <label class="block text-xs text-white/40 mb-1" title="Additional aliases per Link in Bio (does NOT include the primary alias). Use -1 for unlimited, 0 to disable.">Extra Aliases per Link in Bio</label>
                             <input type="number" name="features[max_aliases_per_link]" value="{{ $features['max_aliases_per_link'] ?? 0 }}" min="-1"
                                    class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
@@ -102,7 +107,7 @@
                         </div>
                     </div>
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
-                        @foreach(['custom_domains' => 'Custom Domains', 'qr_customization' => 'QR Customization', 'pixels' => 'Tracking', 'utm_params' => 'UTM Parameters', 'link_protection' => 'Link Protection', 'seo_settings' => 'SEO Settings', 'teams' => 'Teams', 'ecommerce' => 'E-Commerce', 'custom_forms' => 'Custom Forms', 'custom_branding' => 'Custom Branding', 'custom_favicon' => 'Custom Favicon', 'custom_code' => 'Custom CSS/JS'] as $key => $label)
+                        @foreach(['custom_domains' => 'Custom Domains', 'qr_customization' => 'QR Customization', 'pixels' => 'Tracking', 'utm_params' => 'UTM Parameters', 'link_protection' => 'Link Protection', 'seo_settings' => 'SEO Settings', 'teams' => 'Teams', 'ecommerce' => 'E-Commerce', 'custom_forms' => 'Custom Forms', 'custom_branding' => 'Custom Branding', 'custom_favicon' => 'Custom Favicon', 'custom_code' => 'Custom CSS/JS', 'contacts_google_sync' => 'Google Contacts Sync'] as $key => $label)
                         <label class="flex items-center gap-2 text-sm text-white/60 p-2 rounded hover:bg-white/5">
                             <input type="checkbox" name="features[{{ $key }}]" value="1"
                                    {{ !empty($features[$key]) ? 'checked' : '' }}

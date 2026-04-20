@@ -47,7 +47,10 @@ class GoogleContactsAccountController extends Controller
         }
         try {
             $account = $this->provider->exchangeCode($stored['user_id'], $code, route('user.contacts.google.callback'));
-            $this->sync->syncAccount($account);
+            $stats = $this->sync->syncAccount($account);
+            if (!empty($stats['skipped_capped'])) {
+                return redirect()->route('user.contacts.index')->with('error', "Google Contacts connected, but {$stats['skipped_capped']} contact(s) were not imported because you've reached your plan's contact limit. Upgrade your plan to import the rest.");
+            }
             return redirect()->route('user.contacts.index')->with('success', 'Google Contacts connected — syncing now.');
         } catch (\Throwable $e) {
             Log::error('Google contacts connect failed', ['err' => $e->getMessage()]);
@@ -60,6 +63,9 @@ class GoogleContactsAccountController extends Controller
         abort_if($account->user_id !== $request->user()->id, 403);
         $stats = $this->sync->syncAccount($account);
         $msg = "Synced — +{$stats['created']} ~{$stats['updated']} -{$stats['deleted']} pushed {$stats['pushed']}";
+        if (!empty($stats['skipped_capped'])) {
+            return back()->with('error', $msg . " — {$stats['skipped_capped']} contact(s) were not imported because you've reached your plan's contact limit. Upgrade your plan to import the rest.");
+        }
         if ($stats['errors']) $msg .= " ({$stats['errors']} errors — see logs.)";
         return back()->with('success', $msg);
     }
