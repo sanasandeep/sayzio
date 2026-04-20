@@ -15,7 +15,10 @@ return new class extends Migration
     public function up(): void
     {
         $driver = DB::connection()->getDriverName();
-        if ($driver === 'sqlite' || $driver === 'pgsql') {
+        if ($driver === 'pgsql') {
+            DB::statement('CREATE UNIQUE INDEX IF NOT EXISTS linked_identifiers_one_primary_per_user
+                           ON linked_identifiers (user_id) WHERE is_primary = true');
+        } elseif ($driver === 'sqlite') {
             DB::statement('CREATE UNIQUE INDEX IF NOT EXISTS linked_identifiers_one_primary_per_user
                            ON linked_identifiers (user_id) WHERE is_primary = 1');
         } elseif ($driver === 'mysql' || $driver === 'mariadb') {
