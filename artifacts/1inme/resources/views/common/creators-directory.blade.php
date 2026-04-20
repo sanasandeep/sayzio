@@ -8,6 +8,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<style>[x-cloak]{display:none!important}</style>
 </head>
 @php
     $viewerNow = \App\Modules\Common\Services\ViewerSession::user();
@@ -80,9 +81,40 @@
                     @endif
                     @php($buzz = $buzzSnippets[$creator->id] ?? null)
                     @if($buzz)
-                        <div class="mt-3 inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-violet-50 text-violet-700 text-[11px] font-semibold max-w-full">
-                            <i class="fas {{ $buzz['icon'] }} text-[10px]"></i>
-                            <span class="truncate">{{ $buzz['text'] }}</span>
+                        <div class="mt-3 relative inline-block max-w-full"
+                             x-data="{ open: false, tapped: false }"
+                             @mouseenter="open = true"
+                             @mouseleave="open = false">
+                            <a href="{{ $href }}"
+                               @focus="open = true"
+                               @blur="open = false"
+                               @click="if (!tapped && window.matchMedia && window.matchMedia('(hover: none)').matches) { $event.preventDefault(); open = true; tapped = true; setTimeout(() => { tapped = false; open = false; }, 4000); }"
+                               class="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-violet-50 text-violet-700 hover:bg-violet-100 text-[11px] font-semibold max-w-full transition-colors"
+                               :aria-expanded="open ? 'true' : 'false'"
+                               aria-describedby="buzz-preview-{{ $creator->id }}">
+                                <i class="fas {{ $buzz['icon'] }} text-[10px]"></i>
+                                <span class="truncate">{{ $buzz['text'] }}</span>
+                            </a>
+                            <div x-show="open"
+                                 x-transition.opacity.duration.150ms
+                                 x-cloak
+                                 id="buzz-preview-{{ $creator->id }}"
+                                 role="tooltip"
+                                 class="absolute z-30 bottom-full left-0 mb-2 w-64 p-3 rounded-xl bg-white shadow-xl border border-slate-200 text-left pointer-events-none">
+                                <div class="flex items-start gap-2">
+                                    <div class="w-8 h-8 rounded-lg bg-violet-100 text-violet-700 flex items-center justify-center flex-shrink-0">
+                                        <i class="fas {{ $buzz['icon'] }} text-xs"></i>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-[12px] font-semibold text-slate-900 leading-snug break-words">{{ $buzz['text'] }}</p>
+                                        <p class="text-[10px] text-slate-500 mt-1 flex items-center gap-1">
+                                            <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                            Live on {{ $creator->name }}'s page
+                                        </p>
+                                    </div>
+                                </div>
+                                <p class="text-[10px] text-violet-600 font-semibold mt-2">Tap to view profile →</p>
+                            </div>
                         </div>
                     @endif
                     <div class="flex items-center justify-between mt-4 pt-4 border-t border-slate-100"
