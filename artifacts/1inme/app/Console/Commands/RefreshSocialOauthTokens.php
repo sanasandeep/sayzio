@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Modules\User\Models\SocialAccountConnection;
+use App\Modules\User\Services\SocialFollowers\SocialConnectionBrokenMail;
 use App\Modules\User\Services\SocialFollowers\SocialOAuthService;
 use Illuminate\Console\Command;
 use Throwable;
@@ -69,11 +70,20 @@ class RefreshSocialOauthTokens extends Command
                 }
             } catch (Throwable $e) {
                 $failed++;
+                // Capture the prior status BEFORE the update so we can detect
+                // the transient -> error transition. We only email on the
+                // flip; the weekly throttle inside the mailer is a backstop
+                // for break/recover/break cycles, not a weekly reminder for
+                // a connection that's been stuck in error all along.
+                $wasBroken = $c->last_refresh_status === 'error';
                 $c->update([
                     'last_refresh_status' => 'error',
                     'last_refresh_error'  => substr('Token refresh failed: ' . $e->getMessage(), 0, 500),
                 ]);
                 $this->warn("  #{$c->id} {$c->platform} {$c->handle}: " . $e->getMessage());
+                if (! $wasBroken && SocialConnectionBrokenMail::dispatchIfDue($c, $e->getMessage())) {
+                    $this->line("    -> emailed reconnect prompt to user #{$c->user_id}");
+                }
             }
         }
 

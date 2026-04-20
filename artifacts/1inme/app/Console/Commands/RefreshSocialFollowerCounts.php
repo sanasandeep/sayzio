@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Modules\User\Models\SocialAccountConnection;
 use App\Modules\User\Models\UserNotification;
 use App\Modules\User\Services\SocialFollowers\FollowerFetcherRegistry;
+use App\Modules\User\Services\SocialFollowers\SocialConnectionBrokenMail;
 use Illuminate\Console\Command;
 
 class RefreshSocialFollowerCounts extends Command
@@ -50,7 +51,10 @@ class RefreshSocialFollowerCounts extends Command
 
         $ok = $err = $skip = 0;
         foreach ($cs as $c) {
-            $status = $registry->refresh($c);
+            // Capture the prior status BEFORE the registry mutates the row so
+            // we can detect a fresh transition into 'error' below.
+            $wasBroken = $c->last_refresh_status === 'error';
+            $status    = $registry->refresh($c);
             $this->line("  #{$c->id} {$c->platform} {$c->handle}: {$status} " .
                 ($c->follower_count !== null ? "({$c->follower_count} followers)" : ''));
             if ($status === 'ok')           $ok++;
@@ -60,7 +64,16 @@ class RefreshSocialFollowerCounts extends Command
             // Surface a one-time in-app nudge once a connection has failed N
             // consecutive refreshes — keeps creators in the loop without
             // re-pinging them on every failed attempt.
-            if ($status === 'error') $this->maybeNotify($c);
+            if ($status === 'error') {
+                $this->maybeNotify($c);
+                // Email only on the actual flip into error. The mailer's
+                // weekly throttle remains a backstop for break/recover/break
+                // cycles, but we don't want to send a fresh email every 7
+                // days for a connection that's just been stuck.
+                if (! $wasBroken && SocialConnectionBrokenMail::dispatchIfDue($c, $c->last_refresh_error)) {
+                    $this->line("    -> emailed reconnect prompt to user #{$c->user_id}");
+                }
+            }
         }
 
         $this->info("Done. ok={$ok} error={$err} skipped={$skip}");

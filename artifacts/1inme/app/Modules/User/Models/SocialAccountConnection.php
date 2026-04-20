@@ -12,6 +12,7 @@ class SocialAccountConnection extends Model
         'token_expires_at', 'follower_count', 'last_refreshed_at',
         'last_refresh_status', 'last_refresh_error', 'meta',
         'consecutive_failures', 'last_failure_notified_at',
+        'last_broken_email_sent_at',
     ];
 
     protected function casts(): array
@@ -20,6 +21,7 @@ class SocialAccountConnection extends Model
             'token_expires_at'         => 'datetime',
             'last_refreshed_at'        => 'datetime',
             'last_failure_notified_at' => 'datetime',
+            'last_broken_email_sent_at' => 'datetime',
             'meta'                     => 'array',
             'follower_count'           => 'integer',
             'consecutive_failures'     => 'integer',
