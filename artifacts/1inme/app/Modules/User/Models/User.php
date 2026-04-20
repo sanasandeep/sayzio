@@ -42,12 +42,63 @@ class User extends Authenticatable
         ];
     }
 
+    /**
+     * On user creation, mirror the email/mobile columns into the
+     * linked_identifiers table so every account has at least one
+     * verified primary identifier from day one. Both new sign-ups and
+     * tests benefit from this — the backfill migration only covers
+     * accounts that existed before the feature shipped.
+     */
+    protected static function booted(): void
+    {
+        static::created(function (User $user) {
+            $primaryAssigned = false;
+            if (!empty($user->email)) {
+                LinkedIdentifier::firstOrCreate(
+                    ['kind' => 'email', 'value' => LinkedIdentifier::normalize('email', $user->email)],
+                    [
+                        'user_id'     => $user->id,
+                        'verified_at' => $user->email_verified_at ?: now(),
+                        'is_primary'  => true,
+                    ]
+                );
+                $primaryAssigned = true;
+            }
+            if (!empty($user->mobile)) {
+                LinkedIdentifier::firstOrCreate(
+                    ['kind' => 'phone', 'value' => LinkedIdentifier::normalize('phone', $user->mobile)],
+                    [
+                        'user_id'     => $user->id,
+                        'verified_at' => now(),
+                        'is_primary'  => !$primaryAssigned,
+                    ]
+                );
+            }
+        });
+    }
+
     public function followers()    { return $this->hasMany(Follow::class, 'creator_id'); }
     public function following()    { return $this->hasMany(Follow::class, 'follower_id'); }
     public function posts()        { return $this->hasMany(CreatorPost::class)->latest(); }
     public function publishedPosts() { return $this->hasMany(CreatorPost::class)->whereNotNull('published_at')->latest('published_at'); }
     public function pinnedPost()    { return $this->hasOne(CreatorPost::class)->whereNotNull('pinned_at')->whereNotNull('published_at')->latest('pinned_at'); }
     public function notifications() { return $this->hasMany(UserNotification::class)->latest('created_at'); }
+
+    public function linkedIdentifiers()
+    {
+        return $this->hasMany(LinkedIdentifier::class)->orderByDesc('is_primary')->orderBy('kind')->orderBy('id');
+    }
+
+    /** All verified identifiers (any kind) currently attached to this account. */
+    public function verifiedIdentifiers()
+    {
+        return $this->hasMany(LinkedIdentifier::class)->whereNotNull('verified_at');
+    }
+
+    public function primaryIdentifier(): ?LinkedIdentifier
+    {
+        return $this->linkedIdentifiers()->where('is_primary', true)->first();
+    }
 
     public function isFollowing(int $creatorId): bool
     {

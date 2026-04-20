@@ -35,6 +35,18 @@ Route::prefix('user')->name('user.')->group(function () {
     Route::get('verify-otp', [AuthController::class, 'showOtpVerify'])->name('otp.verify.form');
     Route::post('verify-otp', [AuthController::class, 'verifyOtp'])->middleware('throttle:10,1')->name('otp.verify');
 
+    // "Sign in with <provider>" — resolves the social identity to its
+    // linked account and signs the visitor in. Available pre-auth.
+    Route::get('social-oauth/{provider}/login', [\App\Modules\User\Controllers\SocialOAuthController::class, 'loginConnect'])
+        ->name('social-oauth.login');
+
+    // OAuth provider callback. Lives outside the auth middleware so that
+    // login-mode flows (where the visitor isn't logged in yet) can
+    // complete. Connect/merge modes inside the handler check Auth::check()
+    // themselves and bounce back to login when needed.
+    Route::get('social-oauth/{provider}/callback', [\App\Modules\User\Controllers\SocialOAuthController::class, 'callback'])
+        ->name('social-oauth.callback');
+
     // Public referral-code availability/validity check (used by signup form).
     Route::get('referrals/check', [\App\Modules\User\Controllers\ReferralController::class, 'check'])
         ->middleware('throttle:60,1')
@@ -171,7 +183,25 @@ Route::prefix('user')->name('user.')->group(function () {
         // Each provider activates only when its CLIENT_ID + CLIENT_SECRET env
         // vars are set; otherwise the UI falls back to manual token paste.
         Route::get('social-oauth/{provider}/connect',  [\App\Modules\User\Controllers\SocialOAuthController::class, 'connect'])->name('social-oauth.connect');
-        Route::get('social-oauth/{provider}/callback', [\App\Modules\User\Controllers\SocialOAuthController::class, 'callback'])->name('social-oauth.callback');
+        Route::get('social-oauth/{provider}/merge',    [\App\Modules\User\Controllers\SocialOAuthController::class, 'mergeConnect'])->name('social-oauth.merge');
+
+        // Linked identifiers (multi-identity account settings).
+        Route::prefix('identifiers')->name('identifiers.')->group(function () {
+            Route::get('/',                                [\App\Modules\User\Controllers\LinkedIdentifierController::class, 'index'])->name('index');
+            Route::post('start',                           [\App\Modules\User\Controllers\LinkedIdentifierController::class, 'start'])->middleware('throttle:5,1')->name('start');
+            Route::post('confirm',                         [\App\Modules\User\Controllers\LinkedIdentifierController::class, 'confirm'])->middleware('throttle:10,1')->name('confirm');
+            Route::delete('{identifier}',                  [\App\Modules\User\Controllers\LinkedIdentifierController::class, 'destroy'])->name('destroy');
+            Route::post('{identifier}/promote',            [\App\Modules\User\Controllers\LinkedIdentifierController::class, 'promote'])->name('promote');
+        });
+
+        // Account merge flow.
+        Route::prefix('merge')->name('merge.')->group(function () {
+            Route::get('/',           [\App\Modules\User\Controllers\AccountMergeController::class, 'start'])->name('start');
+            Route::post('challenge',  [\App\Modules\User\Controllers\AccountMergeController::class, 'challenge'])->middleware('throttle:5,1')->name('challenge');
+            Route::get('preview',     [\App\Modules\User\Controllers\AccountMergeController::class, 'preview'])->name('preview');
+            Route::post('confirm',    [\App\Modules\User\Controllers\AccountMergeController::class, 'confirm'])->name('confirm');
+            Route::post('cancel',     [\App\Modules\User\Controllers\AccountMergeController::class, 'cancel'])->name('cancel');
+        });
 
         Route::get('integrations',                       [\App\Modules\User\Controllers\IntegrationConfigController::class, 'index'])->name('integrations.index');
         Route::get('integrations/{kind}/create',         [\App\Modules\User\Controllers\IntegrationConfigController::class, 'create'])->name('integrations.create')->where('kind', 'payment|sms|email');

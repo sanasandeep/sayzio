@@ -128,6 +128,16 @@
                 </form>
 
                 <div class="mt-6 pt-6" style="border-top: 1px solid var(--border-glass);">
+                    <p class="text-center text-[10px] uppercase tracking-wider font-bold mb-3" style="color: var(--text-faint);">Or sign in with</p>
+                    <div class="grid grid-cols-3 gap-2 mb-4">
+                        @foreach(['instagram' => 'fab fa-instagram', 'facebook' => 'fab fa-facebook', 'twitter' => 'fab fa-x-twitter', 'linkedin' => 'fab fa-linkedin', 'pinterest' => 'fab fa-pinterest', 'tiktok' => 'fab fa-tiktok'] as $p => $icon)
+                            <a href="{{ route('user.social-oauth.login', $p) }}"
+                               class="btn-ghost w-full justify-center text-xs py-2"
+                               title="Sign in with {{ ucfirst($p === 'twitter' ? 'X' : $p) }}">
+                                <i class="{{ $icon }} text-[12px]"></i>
+                            </a>
+                        @endforeach
+                    </div>
                     <p class="text-center text-[10px] uppercase tracking-wider font-bold mb-3" style="color: var(--text-faint);">Quick access</p>
                     <div class="grid grid-cols-2 gap-2">
                         <form method="POST" action="{{ route('user.demo.login') }}">

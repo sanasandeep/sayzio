@@ -3,6 +3,7 @@
 namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\User\Models\LinkedIdentifier;
 use App\Modules\User\Models\User;
 use App\Modules\Admin\Models\Plan;
 use App\Modules\Common\Services\OtpService;
@@ -91,11 +92,7 @@ class AuthController extends Controller
         $identifier = $request->identifier;
         $type = $request->type;
 
-        if ($type === 'email') {
-            $user = User::where('email', $identifier)->first();
-        } else {
-            $user = User::where('mobile', $identifier)->first();
-        }
+        $user = $this->resolveUserByIdentifier($identifier, $type);
 
         if (!$user) {
             session(['otp_identifier' => $identifier, 'otp_type' => $type]);
@@ -112,6 +109,9 @@ class AuthController extends Controller
         }
 
         session(['otp_identifier' => $identifier, 'otp_type' => $type]);
+        // Regular login flow — clear any stale merge-challenge marker so
+        // we don't accidentally hijack the session into a merge.
+        session()->forget('merge_challenge_active');
 
         return redirect()->route('user.otp.verify.form')->with('status', 'OTP sent to your ' . $type . '.');
     }
@@ -126,9 +126,7 @@ class AuthController extends Controller
 
         // Only generate/send when a real user matches the session identifier.
         // Always show a generic success so we don't leak account existence.
-        $user = $type === 'email'
-            ? User::where('email', $identifier)->first()
-            : User::where('mobile', $identifier)->first();
+        $user = $this->resolveUserByIdentifier($identifier, $type);
 
         if ($user) {
             $otpService = new OtpService();
@@ -171,11 +169,23 @@ class AuthController extends Controller
             return back()->withErrors(['code' => 'Invalid or expired OTP.']);
         }
 
-        if ($type === 'email') {
-            $user = User::where('email', $identifier)->first();
-        } else {
-            $user = User::where('mobile', $identifier)->first();
+        // If this is a "merge another account" challenge, hand off to the
+        // merge flow instead of swapping the active session.
+        if (session('merge_challenge_active')) {
+            $other = $this->resolveUserByIdentifier($identifier, $type);
+            session()->forget(['otp_identifier', 'otp_type', 'merge_challenge_active']);
+            if (!$other) {
+                return redirect()->route('user.merge.start')
+                    ->withErrors(['code' => 'No account matched that identifier.']);
+            }
+            session([
+                'merge_secondary_id' => $other->id,
+                'merge_primary_id'   => Auth::id(),
+            ]);
+            return redirect()->route('user.merge.preview');
         }
+
+        $user = $this->resolveUserByIdentifier($identifier, $type);
 
         if ($user) {
             Auth::login($user, true);
@@ -186,6 +196,21 @@ class AuthController extends Controller
         }
 
         return redirect()->route('user.login')->withErrors(['code' => 'User not found.']);
+    }
+
+    /**
+     * Resolve any verified linked identifier (email/phone) to its owning
+     * user. Falls back to the legacy users.email / users.mobile columns
+     * for accounts predating the linked-identifiers backfill.
+     */
+    private function resolveUserByIdentifier(string $identifier, string $type): ?User
+    {
+        $kind = $type === 'mobile' ? 'phone' : 'email';
+        $user = LinkedIdentifier::resolveUser($kind, $identifier);
+        if ($user) return $user;
+        return $type === 'email'
+            ? User::where('email', $identifier)->first()
+            : User::where('mobile', $identifier)->first();
     }
 
     public function demoLogin(Request $request)

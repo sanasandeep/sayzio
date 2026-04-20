@@ -250,6 +250,51 @@ class SocialOAuthService
     }
 
     /**
+     * Exchange the auth code and fetch only the user's external id +
+     * handle, without persisting a connection. Used by the login and
+     * merge-challenge OAuth flows where we just need to identify the
+     * remote user.
+     *
+     * @return array{0:string, 1:?string} [externalId, handle]
+     */
+    public function fetchProfile(string $provider, string $code, string $state): array
+    {
+        $cfg = self::PROVIDERS[$provider];
+        $body = [
+            'grant_type'    => 'authorization_code',
+            'code'          => $code,
+            'redirect_uri'  => $this->callbackUrl($provider),
+            'client_id'     => env($cfg['client_id_env']),
+            'client_secret' => env($cfg['client_secret_env']),
+        ];
+        if (! empty($cfg['pkce'])) $body['code_verifier'] = $state;
+
+        $tokenResp = Http::asForm()->acceptJson()->post($cfg['token_url'], $body);
+        if (! $tokenResp->ok()) {
+            throw new \RuntimeException('Token exchange failed: HTTP ' . $tokenResp->status());
+        }
+        $access = $tokenResp->json('access_token');
+        if (! $access) throw new \RuntimeException('Provider returned no access_token.');
+
+        $profile = Http::withToken($access)->acceptJson()->get($cfg['profile_url'])->json();
+        $externalId = (string) (
+            $profile['id']
+            ?? $profile['data']['user']['open_id']
+            ?? $profile['data']['id']
+            ?? ''
+        );
+        if ($externalId === '') {
+            throw new \RuntimeException('Provider profile lookup returned no id.');
+        }
+        $handle = $profile['username']
+            ?? $profile['data']['username']
+            ?? $profile['name']
+            ?? $profile['data']['display_name']
+            ?? null;
+        return [$externalId, $handle];
+    }
+
+    /**
      * Exchange the authorization code for an access token and persist a
      * SocialAccountConnection for the user. Returns the connection on
      * success; throws on failure.
@@ -292,7 +337,18 @@ class SocialOAuthService
                     ?? $profile['name']
                     ?? $profile['data']['display_name']
                     ?? null;
-                $external_id = (string) ($profile['id'] ?? $profile['data']['user']['open_id'] ?? '');
+                // Match the same set of id locations fetchProfile() reads —
+                // notably Twitter/X returns the id under data.id, and TikTok
+                // under data.user.open_id. Keeping the two readers aligned
+                // is critical: linked_identifiers are keyed off this id, so
+                // a mismatch here means a user can connect a provider but
+                // never sign in with it.
+                $external_id = (string) (
+                    $profile['id']
+                    ?? $profile['data']['user']['open_id']
+                    ?? $profile['data']['id']
+                    ?? ''
+                );
             }
         } catch (\Throwable $e) {
             // ignore
