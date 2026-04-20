@@ -67,7 +67,16 @@ Route::prefix('user')->name('user.')->group(function () {
 
     Route::middleware('auth')->group(function () {
         Route::post('logout', [AuthController::class, 'logout'])->name('logout');
-        Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('dashboard', [DashboardController::class, 'index'])->middleware('onboarding.gate')->name('dashboard');
+
+        // First-run onboarding wizard
+        Route::prefix('onboarding')->name('onboarding.')->group(function () {
+            Route::get('persona',  [\App\Modules\User\Controllers\OnboardingController::class, 'persona'])->name('persona');
+            Route::post('persona', [\App\Modules\User\Controllers\OnboardingController::class, 'savePersona'])->name('persona.save');
+            Route::get('template', [\App\Modules\User\Controllers\OnboardingController::class, 'template'])->name('template');
+            Route::post('template',[\App\Modules\User\Controllers\OnboardingController::class, 'applyTemplate'])->name('template.apply');
+            Route::post('dismiss-banner', [\App\Modules\User\Controllers\OnboardingController::class, 'dismissBanner'])->name('dismiss-banner');
+        });
 
         // ===== Social: followers, posts, notifications (dashboard) =====
         Route::get('followers', [\App\Modules\User\Controllers\FollowController::class, 'followers'])->name('followers.index');

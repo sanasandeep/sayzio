@@ -18,6 +18,9 @@ return Application::configure(basePath: dirname(__DIR__))
             '*/track/heartbeat',
             'sp/*/track',
         ]);
+        $middleware->alias([
+            'onboarding.gate' => \App\Modules\User\Middleware\RedirectToOnboarding::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

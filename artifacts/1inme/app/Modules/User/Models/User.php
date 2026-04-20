@@ -13,7 +13,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name', 'email', 'mobile', 'password', 'phone', 'avatar', 'status', 'role',
         'plan_id', 'billing_cycle', 'plan_expires_at', 'trial_ends_at',
-        'timezone', 'language', 'settings', 'email_verified_at', 'last_login_at',
+        'timezone', 'language', 'persona', 'onboarded_at', 'settings', 'email_verified_at', 'last_login_at',
         'bio', 'handle', 'discoverable', 'notify_new_follower', 'notify_follower_updates',
         'follower_updates_mode', 'follower_digest_last_sent_at',
         'digest_preferred_hour',
@@ -31,6 +31,7 @@ class User extends Authenticatable
             'plan_expires_at' => 'datetime',
             'trial_ends_at' => 'datetime',
             'last_login_at' => 'datetime',
+            'onboarded_at' => 'datetime',
             'password' => 'hashed',
             'settings' => 'array',
             'discoverable' => 'boolean',

@@ -130,6 +130,7 @@ class ProfileController extends Controller
             'handle' => ['nullable', 'string', 'max:60', 'regex:/^[a-z0-9_-]+$/i', Rule::unique('users')->ignore($user->id), new \App\Modules\Admin\Rules\NotBannedName()],
             'bio' => 'nullable|string|max:500',
             'avatar' => 'nullable|image|max:2048',
+            'persona' => ['nullable', 'string', \Illuminate\Validation\Rule::in(\App\Modules\User\Services\PersonaCatalog::slugs())],
         ]);
 
         if ($request->hasFile('avatar')) {

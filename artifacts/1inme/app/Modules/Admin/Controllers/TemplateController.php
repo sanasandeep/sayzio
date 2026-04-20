@@ -49,6 +49,8 @@ class TemplateController extends Controller
             'source_link_id' => 'nullable|integer|exists:links,id',
             'source_card_id' => 'nullable|integer|exists:biolink_blocks,id',
             'snapshot_json' => 'nullable|string',
+            'recommended_personas' => 'nullable|array',
+            'recommended_personas.*' => ['string', \Illuminate\Validation\Rule::in(\App\Modules\User\Services\PersonaCatalog::slugs())],
         ]);
 
         $snapshot = $this->resolveSnapshot($kind, $validated, null);
@@ -61,7 +63,7 @@ class TemplateController extends Controller
         $slug = $validated['slug'] ?? Str::slug($validated['name']);
         $slug = $this->uniqueSlug($modelClass, $slug);
 
-        $modelClass::create([
+        $payload = [
             'name' => $validated['name'],
             'slug' => $slug,
             'category' => $validated['category'],
@@ -71,7 +73,11 @@ class TemplateController extends Controller
             'is_active' => (bool) ($validated['is_active'] ?? true),
             'sort_order' => (int) ($validated['sort_order'] ?? 0),
             'snapshot' => $snapshot,
-        ]);
+        ];
+        if ($kind === 'page') {
+            $payload['recommended_personas'] = $validated['recommended_personas'] ?? [];
+        }
+        $modelClass::create($payload);
 
         return redirect()->route('admin.templates.index', ['tab' => $kind])
             ->with('success', ucfirst($kind) . ' template created.');
@@ -102,6 +108,8 @@ class TemplateController extends Controller
             'source_card_id' => 'nullable|integer|exists:biolink_blocks,id',
             'recapture' => 'nullable|boolean',
             'snapshot_json' => 'nullable|string',
+            'recommended_personas' => 'nullable|array',
+            'recommended_personas.*' => ['string', \Illuminate\Validation\Rule::in(\App\Modules\User\Services\PersonaCatalog::slugs())],
         ]);
 
         $snapshot = $this->resolveSnapshot($kind, $validated, $tpl->snapshot);
@@ -114,7 +122,7 @@ class TemplateController extends Controller
             $newSlug = $this->uniqueSlug(get_class($tpl), $newSlug, $tpl->id);
         }
 
-        $tpl->fill([
+        $fillPayload = [
             'name' => $validated['name'],
             'slug' => $newSlug,
             'category' => $validated['category'],
@@ -123,7 +131,12 @@ class TemplateController extends Controller
             'plan_tier' => $validated['plan_tier'] ?? null,
             'is_active' => (bool) ($validated['is_active'] ?? false),
             'sort_order' => (int) ($validated['sort_order'] ?? 0),
-        ])->save();
+        ];
+        if ($kind === 'page') {
+            // Unchecking every box must clear the tags, not no-op them.
+            $fillPayload['recommended_personas'] = $validated['recommended_personas'] ?? [];
+        }
+        $tpl->fill($fillPayload)->save();
 
         return redirect()->route('admin.templates.index', ['tab' => $kind])
             ->with('success', ucfirst($kind) . ' template updated.');

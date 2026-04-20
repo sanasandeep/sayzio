@@ -7,6 +7,9 @@
         <div>
             <h1 class="text-2xl font-bold text-white">Choose a starting template</h1>
             <p class="text-sm text-white/40 mt-1">Pick a curated preset to skip the blank page, or start from scratch.</p>
+            @if(!empty($hasRecommended))
+                <p class="text-xs text-violet-300 mt-2"><i class="fas fa-sparkles mr-1"></i>Recommended for {{ $personaLabel }}s appear first.</p>
+            @endif
         </div>
         <a href="{{ route('user.links.blocks.editor', $link) }}" class="px-4 py-2 text-sm text-white/60 hover:text-white border border-white/10 rounded-xl hover:bg-white/5 transition">
             Skip — start from scratch

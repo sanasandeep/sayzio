@@ -90,6 +90,17 @@
                             <textarea name="bio" rows="3" maxlength="500" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 outline-none">{{ old('bio', $user->bio) }}</textarea>
                         </div>
                         <div>
+                            <label class="block text-sm font-medium text-white/60 mb-1.5">What best describes you?</label>
+                            <select name="persona" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                                <option value="" class="bg-[#0d0818]">Prefer not to say</option>
+                                @foreach(\App\Modules\User\Services\PersonaCatalog::all() as $p)
+                                    <option value="{{ $p['slug'] }}" {{ old('persona', $user->persona) === $p['slug'] ? 'selected' : '' }} class="bg-[#0d0818]">{{ $p['label'] }}</option>
+                                @endforeach
+                            </select>
+                            <p class="text-[11px] text-white/30 mt-1">Helps us recommend the right templates and blocks for your page.</p>
+                            @error('persona')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
                             <label class="block text-sm font-medium text-white/60 mb-1.5">Avatar</label>
                             @if($user->avatar)<img src="{{ $user->avatar }}" class="w-16 h-16 rounded-full mb-2 object-cover"/>@endif
                             <input type="file" name="avatar" accept="image/*" class="text-white/70 text-sm"/>

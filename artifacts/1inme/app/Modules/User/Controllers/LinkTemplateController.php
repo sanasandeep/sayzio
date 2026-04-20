@@ -16,12 +16,27 @@ class LinkTemplateController extends Controller
     public function picker(Link $link)
     {
         abort_if($link->user_id !== auth()->id() || $link->type !== 'biolink', 403);
-        $userPlanSlug = auth()->user()->plan?->slug;
+        $user = auth()->user();
+        $userPlanSlug = $user->plan?->slug;
         // Show all active templates so users can see what they could unlock,
         // but lock the ones above their tier (badge + upgrade CTA).
         $pageTemplates = PageTemplate::active()->get();
+        // Float persona-recommended templates to the top of the grid so the
+        // user sees the "best for you" set first without filtering anything out.
+        $persona = $user->persona;
+        if ($persona) {
+            $pageTemplates = $pageTemplates->sortByDesc(function ($t) use ($persona) {
+                $tags = $t->recommended_personas ?? [];
+                return is_array($tags) && in_array($persona, $tags, true) ? 1 : 0;
+            })->values();
+        }
+        $hasRecommended = $persona && $pageTemplates->contains(function ($t) use ($persona) {
+            $tags = $t->recommended_personas ?? [];
+            return is_array($tags) && in_array($persona, $tags, true);
+        });
+        $personaLabel = \App\Modules\User\Services\PersonaCatalog::labelFor($persona);
         $lockedFn = fn(?string $required) => $this->isLocked($required, $userPlanSlug);
-        return view('user.links.templates.picker', compact('link', 'pageTemplates', 'userPlanSlug', 'lockedFn'));
+        return view('user.links.templates.picker', compact('link', 'pageTemplates', 'userPlanSlug', 'lockedFn', 'persona', 'personaLabel', 'hasRecommended'));
     }
 
     public function cardGallery(Request $request, Link $link)

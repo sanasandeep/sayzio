@@ -8,13 +8,14 @@ class PageTemplate extends Model
 {
     protected $fillable = [
         'name', 'slug', 'category', 'description', 'thumbnail_url',
-        'plan_tier', 'is_active', 'sort_order', 'snapshot',
+        'plan_tier', 'recommended_personas', 'is_active', 'sort_order', 'snapshot',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
         'sort_order' => 'integer',
         'snapshot' => 'array',
+        'recommended_personas' => 'array',
     ];
 
     public function scopeActive($query)

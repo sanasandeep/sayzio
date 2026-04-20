@@ -98,6 +98,26 @@
                 </a>
             </div>
 
+            @php
+                $personaBannerDismissed = !empty($user->settings['persona_banner_dismissed_at'] ?? null);
+                $showPersonaBanner = $user->onboarded_at && empty($user->persona) && !$personaBannerDismissed;
+            @endphp
+            @if($showPersonaBanner)
+            <div class="m-4 mb-0 rounded-2xl border border-violet-500/20 bg-gradient-to-r from-violet-600/10 to-fuchsia-500/5 p-4 flex items-start gap-3">
+                <div class="w-10 h-10 rounded-xl bg-violet-500/15 flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-sparkles text-violet-300"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-semibold text-white">Want personalised template suggestions?</p>
+                    <p class="text-xs text-white/50 mt-0.5">Tell us what you do in 10 seconds and we'll recommend the templates that fit.</p>
+                </div>
+                <a href="{{ route('user.onboarding.persona') }}" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-violet-600 hover:bg-violet-700 text-white transition flex-shrink-0">Personalise</a>
+                <form method="POST" action="{{ route('user.onboarding.dismiss-banner') }}">
+                    @csrf
+                    <button type="submit" class="text-white/30 hover:text-white/70 px-2 py-1.5" title="Dismiss"><i class="fas fa-times text-xs"></i></button>
+                </form>
+            </div>
+            @endif
             @if($recentLinks->isEmpty())
             <div class="p-12 text-center">
                 <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse-glow" style="background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.12);">
