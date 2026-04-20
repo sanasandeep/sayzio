@@ -102,6 +102,7 @@
 @php
     $heroActions = [
         ['label' => 'Back to Overview', 'url' => route('user.links.show', $link), 'icon' => 'fa-arrow-left', 'class' => 'btn-ghost'],
+        ['label' => 'Export CSV', 'url' => route('user.links.followers.export', $link) . (empty($qs) ? '?' . http_build_query(['period' => $period ?? '30d']) : '?' . http_build_query($qs)), 'icon' => 'fa-file-csv', 'class' => 'btn-primary'],
     ];
 @endphp
 @include('user.partials.page-hero', [

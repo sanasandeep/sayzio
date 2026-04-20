@@ -60,6 +60,7 @@ Route::prefix('user')->name('user.')->group(function () {
 
         Route::get('links/{link}/visitors', [\App\Modules\User\Controllers\VisitorAnalyticsController::class, 'index'])->name('links.visitors');
         Route::get('links/{link}/followers', [\App\Modules\User\Controllers\LinkController::class, 'followers'])->name('links.followers');
+        Route::get('links/{link}/followers/export', [\App\Modules\User\Controllers\LinkController::class, 'followersExport'])->name('links.followers.export');
         Route::get('links/{link}/followers/{follower}', [\App\Modules\User\Controllers\LinkController::class, 'followerHistory'])->name('links.followers.history');
 
         Route::prefix('profile')->name('profile.')->group(function () {

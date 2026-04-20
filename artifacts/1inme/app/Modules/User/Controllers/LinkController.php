@@ -828,6 +828,85 @@ class LinkController extends Controller
     }
 
     /**
+     * CSV export of EVERY follower (not just top 10) who clicked this link
+     * in the selected period. Streams rows via chunked DB iteration so very
+     * large follower lists don't load into memory all at once.
+     */
+    public function followersExport(Request $request, Link $link)
+    {
+        abort_if($link->user_id !== $request->user()->id, 403);
+
+        [$startDate, $endDate, $period] = $this->resolveAnalyticsRange($request);
+
+        $followerIds = Follow::where('creator_id', $link->user_id)->pluck('follower_id');
+
+        $query = DB::table('link_clicks')
+            ->join('users', 'users.id', '=', 'link_clicks.viewer_user_id')
+            ->select(
+                'users.id',
+                'users.name',
+                'users.email',
+                DB::raw('COUNT(*) as click_count'),
+                DB::raw('COUNT(CASE WHEN link_clicks.block_id IS NOT NULL THEN 1 END) as block_click_count'),
+                DB::raw('MIN(link_clicks.clicked_at) as first_seen'),
+                DB::raw('MAX(link_clicks.clicked_at) as last_seen')
+            )
+            ->where('link_clicks.link_id', $link->id)
+            ->whereBetween('link_clicks.clicked_at', [$startDate, $endDate])
+            ->whereIn('link_clicks.viewer_user_id', $followerIds)
+            ->groupBy('users.id', 'users.name', 'users.email')
+            ->orderByDesc('click_count')
+            ->orderBy('users.id');
+
+        $filename = sprintf(
+            'followers-%s-%s-to-%s.csv',
+            $link->alias ?: $link->id,
+            $startDate->format('Y-m-d'),
+            $endDate->format('Y-m-d')
+        );
+
+        // Defend against CSV formula injection when the file is opened in a
+        // spreadsheet — prefix any cell that starts with =, +, -, @ with a
+        // single quote so the spreadsheet treats it as text.
+        $safe = function ($value) {
+            $s = (string) $value;
+            if ($s !== '' && in_array($s[0], ['=', '+', '-', '@'], true)) {
+                return "'" . $s;
+            }
+            return $s;
+        };
+
+        return response()->streamDownload(function () use ($query, $followerIds, $safe) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['name', 'email', 'total clicks', 'block clicks', 'first seen', 'last seen']);
+
+            if ($followerIds->isEmpty()) {
+                fclose($out);
+                return;
+            }
+
+            $query->chunk(500, function ($rows) use ($out, $safe) {
+                foreach ($rows as $r) {
+                    fputcsv($out, [
+                        $safe($r->name ?: 'Anonymous'),
+                        $safe($r->email),
+                        (int) $r->click_count,
+                        (int) $r->block_click_count,
+                        $r->first_seen,
+                        $r->last_seen,
+                    ]);
+                }
+                if (function_exists('flush')) { flush(); }
+            });
+
+            fclose($out);
+        }, $filename, [
+            'Content-Type'  => 'text/csv; charset=UTF-8',
+            'Cache-Control' => 'no-store, no-cache',
+        ]);
+    }
+
+    /**
      * Drill-down: visit history for ONE follower on THIS link. Reached by
      * clicking a row in the Top Followers table on the Followers tab.
      */
