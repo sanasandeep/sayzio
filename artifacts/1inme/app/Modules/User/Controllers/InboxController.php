@@ -505,6 +505,67 @@ class InboxController
         return back()->with('success', 'Spam settings saved.');
     }
 
+    /**
+     * One-click "stop blocking this keyword" action used from chips on the
+     * Spam Settings page and from the spam-reason banner in the inbox.
+     * If the keyword matches a default (case-insensitively) it's added to
+     * `disabled_default_keywords`; if it matches a custom entry it's removed
+     * from `blocked_keywords`. Unknown keywords are a no-op so stale links
+     * don't 500.
+     */
+    public function disableKeyword(Request $request)
+    {
+        $validated = $request->validate([
+            'keyword' => 'required|string|max:200',
+        ]);
+        $kwRaw = trim($validated['keyword']);
+        if ($kwRaw === '') {
+            return back()->with('error', 'No keyword provided.');
+        }
+        $kwLower = mb_strtolower($kwRaw);
+
+        $user = $request->user();
+        $settings = $user->settings ?? [];
+        $spam = $settings['spam'] ?? [];
+
+        $defaultsLower = array_map('mb_strtolower', SpamChecker::BLOCKED_KEYWORDS);
+        $blocked  = array_values(array_filter((array)($spam['blocked_keywords'] ?? []), 'is_string'));
+        $disabled = array_values(array_filter((array)($spam['disabled_default_keywords'] ?? []), 'is_string'));
+
+        $changed = false;
+        $isDefault = in_array($kwLower, $defaultsLower, true);
+        if ($isDefault) {
+            $disabledLower = array_map('mb_strtolower', $disabled);
+            if (!in_array($kwLower, $disabledLower, true)) {
+                // Store with the canonical default casing so the settings
+                // page checkbox matches by exact value.
+                $idx = array_search($kwLower, $defaultsLower, true);
+                $disabled[] = SpamChecker::BLOCKED_KEYWORDS[$idx];
+                $changed = true;
+            }
+        }
+
+        $newBlocked = array_values(array_filter(
+            $blocked,
+            fn($kw) => mb_strtolower($kw) !== $kwLower
+        ));
+        if (count($newBlocked) !== count($blocked)) {
+            $blocked = $newBlocked;
+            $changed = true;
+        }
+
+        if (!$changed) {
+            return back()->with('error', '“' . $kwRaw . '” isn\'t in your blocked keyword list.');
+        }
+
+        $spam['blocked_keywords']          = array_values(array_unique($blocked));
+        $spam['disabled_default_keywords'] = array_values(array_unique($disabled));
+        $settings['spam'] = $spam;
+        $user->update(['settings' => $settings]);
+
+        return back()->with('success', 'Stopped blocking “' . $kwRaw . '”. New submissions matching it won\'t be flagged.');
+    }
+
     public function importTrustedCsv(Request $request)
     {
         $request->validate([

@@ -71,8 +71,15 @@
             <div class="text-[10px] uppercase font-bold tracking-wider mb-2" style="color: var(--text-faint);">Your custom keywords that fired</div>
             <div class="flex flex-wrap gap-1.5">
                 @foreach($customKeywordHits as $kw => $count)
-                    <span class="text-xs px-2 py-1 rounded-lg" style="background: rgba(124,58,237,0.15); color: #c4b5fd;" title="Hit {{ $count }} {{ \Illuminate\Support\Str::plural('time', $count) }} in the last 30 days.">
+                    <span class="inline-flex items-center text-xs pl-2 pr-1 py-1 rounded-lg" style="background: rgba(124,58,237,0.15); color: #c4b5fd;" title="Hit {{ $count }} {{ \Illuminate\Support\Str::plural('time', $count) }} in the last 30 days.">
                         <i class="fas fa-key text-[10px] mr-1 opacity-60"></i>{{ $kw }} <span class="opacity-70 ml-0.5">×{{ $count }}</span>
+                        <form method="POST" action="{{ route('user.inbox.spam-settings.disable-keyword') }}" class="inline ml-1.5" onsubmit="return confirm(@js('Stop blocking “' . $kw . '”?'))">
+                            @csrf
+                            <input type="hidden" name="keyword" value="{{ $kw }}">
+                            <button type="submit" class="px-1.5 rounded hover:bg-white/10" title="Stop blocking this keyword" aria-label="Stop blocking {{ $kw }}">
+                                <i class="fas fa-times text-[10px]"></i>
+                            </button>
+                        </form>
                     </span>
                 @endforeach
             </div>
@@ -84,12 +91,19 @@
             <div class="text-[10px] uppercase font-bold tracking-wider mb-2" style="color: var(--text-faint);">Default keywords that fired</div>
             <div class="flex flex-wrap gap-1.5">
                 @foreach($defaultKeywordHits as $kw => $count)
-                    <span class="text-xs px-2 py-1 rounded-lg" style="background: rgba(234,88,12,0.12); color: #fdba74;" title="Hit {{ $count }} {{ \Illuminate\Support\Str::plural('time', $count) }} in the last 30 days.">
+                    <span class="inline-flex items-center text-xs pl-2 pr-1 py-1 rounded-lg" style="background: rgba(234,88,12,0.12); color: #fdba74;" title="Hit {{ $count }} {{ \Illuminate\Support\Str::plural('time', $count) }} in the last 30 days.">
                         <i class="fas fa-shield-alt text-[10px] mr-1 opacity-60"></i>{{ $kw }} <span class="opacity-70 ml-0.5">×{{ $count }}</span>
+                        <form method="POST" action="{{ route('user.inbox.spam-settings.disable-keyword') }}" class="inline ml-1.5" onsubmit="return confirm(@js('Stop blocking the default keyword “' . $kw . '”?'))">
+                            @csrf
+                            <input type="hidden" name="keyword" value="{{ $kw }}">
+                            <button type="submit" class="px-1.5 rounded hover:bg-white/10" title="Stop blocking this default keyword" aria-label="Stop blocking {{ $kw }}">
+                                <i class="fas fa-times text-[10px]"></i>
+                            </button>
+                        </form>
                     </span>
                 @endforeach
             </div>
-            <p class="mt-2 text-[11px]" style="color: var(--text-faint);">If a default keyword keeps catching real submissions in your niche, uncheck it below.</p>
+            <p class="mt-2 text-[11px]" style="color: var(--text-faint);">If a default keyword keeps catching real submissions in your niche, click the × on its chip or uncheck it below.</p>
         </div>
         @endif
     </div>
@@ -159,6 +173,25 @@
                     <p class="text-xs" style="color: var(--text-muted);">One per line (or comma-separated). Case-insensitive substring match.</p>
                 </div>
             </div>
+            @if(!empty($spam['blocked_keywords'] ?? []))
+            <div class="mb-3">
+                <div class="text-[10px] uppercase font-bold tracking-wider mb-2" style="color: var(--text-faint);">Currently blocked — click × to stop blocking</div>
+                <div class="flex flex-wrap gap-1.5">
+                    @foreach($spam['blocked_keywords'] as $kw)
+                        <span class="inline-flex items-center text-xs pl-2 pr-1 py-1 rounded-lg" style="background: rgba(124,58,237,0.15); color: #c4b5fd;">
+                            <i class="fas fa-key text-[10px] mr-1 opacity-60"></i>{{ $kw }}
+                            <form method="POST" action="{{ route('user.inbox.spam-settings.disable-keyword') }}" class="inline ml-1.5" onsubmit="return confirm(@js('Stop blocking “' . $kw . '”?'))">
+                                @csrf
+                                <input type="hidden" name="keyword" value="{{ $kw }}">
+                                <button type="submit" class="px-1.5 rounded hover:bg-white/10" title="Stop blocking this keyword" aria-label="Stop blocking {{ $kw }}">
+                                    <i class="fas fa-times text-[10px]"></i>
+                                </button>
+                            </form>
+                        </span>
+                    @endforeach
+                </div>
+            </div>
+            @endif
             <textarea name="blocked_keywords" rows="6" placeholder="example phrase&#10;another spammy term"
                 class="w-full px-3 py-2.5 rounded-xl text-sm outline-none resize-y font-mono"
                 style="background: var(--bg-input); border: 1px solid var(--border-subtle); color: var(--text-primary);">{{ old('blocked_keywords', $blockedText) }}</textarea>

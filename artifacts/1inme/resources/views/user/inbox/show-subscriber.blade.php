@@ -25,7 +25,19 @@
                 <span class="px-1.5 py-0.5 rounded font-semibold" style="background: rgba(234,88,12,0.15);">{{ $reasonLabel }}</span>
             @endif
             @if(($subscriber->spam_reason ?? null) && str_starts_with($subscriber->spam_reason, 'blocked_keyword:'))
-                <a href="{{ route('user.inbox.spam-settings') }}" class="ml-auto underline opacity-80 hover:opacity-100">Manage keywords</a>
+                @php $blockedKw = trim(substr($subscriber->spam_reason, strlen('blocked_keyword:'))); @endphp
+                <div class="ml-auto flex items-center gap-2">
+                    @if($blockedKw !== '')
+                        <form method="POST" action="{{ route('user.inbox.spam-settings.disable-keyword') }}" onsubmit="return confirm(@js('Stop blocking “' . $blockedKw . '”? Future submissions matching it won’t be flagged.'))">
+                            @csrf
+                            <input type="hidden" name="keyword" value="{{ $blockedKw }}">
+                            <button type="submit" class="px-2 py-0.5 rounded font-semibold underline" style="background: rgba(234,88,12,0.15);" title="Stop blocking this keyword for all future submissions">
+                                <i class="fas fa-times mr-1"></i>Stop blocking “{{ $blockedKw }}”
+                            </button>
+                        </form>
+                    @endif
+                    <a href="{{ route('user.inbox.spam-settings') }}" class="underline opacity-80 hover:opacity-100">Manage keywords</a>
+                </div>
             @endif
         </div>
     @endif

@@ -255,6 +255,7 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::get('spam-settings', [InboxController::class, 'settings'])->name('spam-settings');
             Route::post('spam-settings', [InboxController::class, 'updateSettings'])->name('spam-settings.update');
             Route::post('spam-settings/import', [InboxController::class, 'importTrustedCsv'])->name('spam-settings.import');
+            Route::post('spam-settings/disable-keyword', [InboxController::class, 'disableKeyword'])->name('spam-settings.disable-keyword');
             Route::post('bulk', [InboxController::class, 'bulk'])->name('bulk');
 
             // Account-level forwarding rules: send new inbox messages to
