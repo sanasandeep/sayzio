@@ -191,7 +191,7 @@
     {{-- Add new connection --}}
     <div class="card-premium p-5" id="new-connection">
         <h2 class="text-base font-bold mb-1" style="color: var(--text-primary);">Connect a new account</h2>
-        <p class="text-xs mb-4" style="color: var(--text-muted);">Pick a platform, enter your handle, and (for OAuth platforms) paste a long-lived access token.</p>
+        <p class="text-xs mb-4" style="color: var(--text-muted);">Pick a platform and enter your handle. For OAuth platforms, use one-click connect when available, or paste a long-lived access token if your admin hasn't enabled it yet.</p>
 
         <div class="flex flex-wrap gap-2 mb-4">
             @foreach($platforms as $key => $meta)
@@ -212,7 +212,15 @@
             <div x-show="tab === '{{ $key }}'" x-cloak>
                 {{-- One-click OAuth connect, when this provider has its
                      CLIENT_ID + CLIENT_SECRET configured server-side. --}}
-                @if($oauthReady)
+                @if($oauthReady && (($meta['kind'] ?? 'handle') === 'oauth'))
+                    <div class="mb-4 px-3 py-2.5 rounded-lg text-[11px] flex items-start gap-2"
+                         style="background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.25); color: var(--text-primary);">
+                        <i class="fas fa-circle-check mt-0.5" style="color:#10b981;"></i>
+                        <div>
+                            <span class="font-semibold" style="color:#10b981;">One-click connect available.</span>
+                            Authorize with {{ $meta['label'] }} below — no token to copy or paste.
+                        </div>
+                    </div>
                     <a href="{{ route('user.social-oauth.connect', ['provider' => $key]) }}"
                        class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold mb-4"
                        style="background: {{ $meta['color'] }}; color: #fff;">
@@ -223,6 +231,19 @@
                         You'll be redirected to {{ $meta['label'] }} to authorize access. We only request the
                         scopes needed to read your public follower count.
                     </p>
+                @elseif(($meta['kind'] ?? 'handle') === 'oauth')
+                    {{-- OAuth not configured on this server — surface a clear notice
+                         instead of silently dropping the user into the manual token form.
+                         Intentionally avoids exposing env var names to end users. --}}
+                    <div class="mb-4 px-3 py-2.5 rounded-lg text-[11px] flex items-start gap-2"
+                         style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.3); color: var(--text-primary);">
+                        <i class="fas fa-circle-info mt-0.5" style="color:#f59e0b;"></i>
+                        <div>
+                            <span class="font-semibold" style="color:#f59e0b;">One-click connect isn't enabled for {{ $meta['label'] }} on this server yet.</span>
+                            You can paste a long-lived access token below to connect manually,
+                            or ask a server admin to enable {{ $meta['label'] }} sign-in.
+                        </div>
+                    </div>
                 @endif
 
                 <form method="POST" action="{{ route('user.social-accounts.store') }}" class="space-y-3">
@@ -252,11 +273,9 @@
                                 @if($oauthReady)
                                     Manual fallback for cases where you already have a long-lived token from another tool.
                                 @else
-                                    {{ $meta['label'] }} OAuth isn't configured on this server yet.
-                                    For now, paste a long-lived access token here and we'll use it for refreshes.
-                                    A server admin can enable one-click connect by setting
-                                    <code>{{ \App\Modules\User\Services\SocialFollowers\SocialOAuthService::PROVIDERS[$key]['client_id_env'] ?? '' }}</code>
-                                    and the matching secret.
+                                    Paste a long-lived {{ $meta['label'] }} access token and we'll use it for refreshes.
+                                    Once a server admin enables {{ $meta['label'] }} sign-in, you'll be able to connect
+                                    in one click without managing tokens yourself.
                                 @endif
                             </p>
                         </div>
