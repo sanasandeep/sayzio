@@ -126,7 +126,7 @@ class SubscriptionActivationInvoiceTest extends TestCase
         $this->assertSame($plan->id, $buyer->fresh()->plan_id);
     }
 
-    public function test_activate_endpoint_allows_signed_gateway_webhook(): void
+    public function test_signed_webhook_without_auth_creates_invoice_end_to_end(): void
     {
         config(['billing.activation_secret' => 'test-secret-xyz']);
 
@@ -153,10 +153,35 @@ class SubscriptionActivationInvoiceTest extends TestCase
             'test-secret-xyz',
         );
 
-        $response = $this->actingAs($buyer)->post('/user/upgrade/activate', $payload);
+        // Unauthenticated call (webhook route is CSRF-exempt and auth-free;
+        // it only trusts the HMAC signature). End-to-end: the real Event
+        // dispatcher must wire the listener so an invoice is created.
+        $response = $this->post('/webhooks/billing/activate', $payload);
 
         $response->assertRedirect();
         $this->assertSame(1, Invoice::where('user_id', $buyer->id)->count());
         $this->assertSame($plan->id, $buyer->fresh()->plan_id);
+    }
+
+    public function test_webhook_rejects_bad_signature(): void
+    {
+        config(['billing.activation_secret' => 'test-secret-xyz']);
+        $plan = Plan::create([
+            'name' => 'Pro', 'slug' => 'pro-' . Str::random(4), 'description' => 'Pro',
+            'monthly_price' => 9.99, 'annual_price' => 99, 'trial_days' => 0,
+            'status' => 'active', 'sort_order' => 1, 'features' => [],
+        ]);
+        $buyer = $this->makeUser();
+
+        $response = $this->post('/webhooks/billing/activate', [
+            'user_id'   => $buyer->id,
+            'plan_id'   => $plan->id,
+            'cycle'     => 'monthly',
+            'signature' => 'deadbeef',
+        ]);
+
+        $response->assertForbidden();
+        $this->assertNull($buyer->fresh()->plan_id);
+        $this->assertSame(0, Invoice::where('user_id', $buyer->id)->count());
     }
 }

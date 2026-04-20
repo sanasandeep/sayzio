@@ -20,6 +20,10 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        //
+        // Note: App\Listeners\IssueInvoiceOnSubscriptionActivated is wired to
+        // App\Events\SubscriptionActivated by Laravel's event auto-discovery
+        // (typed handle() method on a class under app/Listeners). An explicit
+        // Event::listen here would register a second subscription and cause
+        // double-invoicing.
     }
 }

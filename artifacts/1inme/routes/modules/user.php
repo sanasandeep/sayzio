@@ -35,6 +35,12 @@ Route::get('/', [\App\Modules\Common\Controllers\HomeController::class, 'index']
 Route::post('/pricing/switch-currency', [\App\Modules\User\Controllers\UpgradeController::class, 'switchCurrency'])
     ->name('upgrade.public.switch-currency');
 
+// Payment-gateway webhook. Signed with config('billing.activation_secret').
+// CSRF is disabled for /webhooks/billing/* in bootstrap/app.php. No session
+// auth; the controller requires a valid HMAC signature to proceed.
+Route::post('/webhooks/billing/activate', [\App\Modules\User\Controllers\UpgradeController::class, 'activate'])
+    ->name('webhooks.billing.activate');
+
 Route::prefix('user')->name('user.')->group(function () {
     Route::get('register', [AuthController::class, 'showRegister'])->name('register');
     Route::post('register', [AuthController::class, 'register'])->name('register.submit');

@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
             '*/track/session',
             '*/track/heartbeat',
             'sp/*/track',
+            'webhooks/billing/*',
         ]);
         $middleware->alias([
             'onboarding.gate' => \App\Modules\User\Middleware\RedirectToOnboarding::class,

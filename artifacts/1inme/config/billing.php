@@ -58,4 +58,16 @@ return [
         'pad'    => 5,
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Activation webhook secret
+    |--------------------------------------------------------------------------
+    |
+    | HMAC-SHA256 key used by POST /webhooks/billing/activate to verify
+    | payment-gateway signatures. When unset, only super_admin can invoke
+    | the authenticated activation endpoint.
+    |
+    */
+    'activation_secret' => env('BILLING_ACTIVATION_SECRET'),
+
 ];
