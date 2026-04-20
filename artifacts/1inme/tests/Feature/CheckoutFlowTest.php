@@ -151,7 +151,10 @@ class CheckoutFlowTest extends TestCase
 
         $this->assertSame('paid', $invoice->fresh()->status);
         $this->assertSame($plan->id, $buyer->fresh()->plan_id);
-        $this->assertSame(1, PaymentAttempt::where('gateway', 'offline')->where('gateway_ref', 'TXN-42')->count());
+        // ref is scoped to the invoice so reused bank references across
+        // different invoices don't collide on the (gateway,ref) unique index.
+        $this->assertSame(1, PaymentAttempt::where('gateway', 'offline')
+            ->where('gateway_ref', 'inv'.$invoice->id.':TXN-42')->count());
     }
 
     public function test_handoff_rejects_disabled_gateway(): void

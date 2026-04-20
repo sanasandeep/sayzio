@@ -19,7 +19,10 @@ class PendingPaymentController extends Controller
 {
     public function index()
     {
-        $invoices = Invoice::whereIn('status', ['awaiting_admin_approval', 'pending'])
+        // Only queue invoices that are genuinely awaiting a human — plain
+        // `pending` means "in-flight, gateway hasn't responded yet" and is
+        // surfaced through `requires_review` attempts instead.
+        $invoices = Invoice::where('status', 'awaiting_admin_approval')
             ->with(['user', 'paymentAttempts'])
             ->orderByDesc('created_at')
             ->paginate(50);
@@ -42,7 +45,11 @@ class PendingPaymentController extends Controller
             'note'      => ['nullable', 'string', 'max:500'],
         ]);
 
-        $reference = $data['reference'] ?? ('admin-' . $invoice->number);
+        // Scope the uniqueness to THIS invoice so reused bank references
+        // across different invoices don't collide on the (gateway,ref)
+        // unique index and attach to the wrong attempt row.
+        $rawRef = trim((string) ($data['reference'] ?? ''));
+        $reference = 'inv' . $invoice->id . ':' . ($rawRef !== '' ? $rawRef : ('admin-' . $invoice->number));
 
         $attempt = PaymentAttempt::firstOrCreate(
             ['gateway' => 'offline', 'gateway_ref' => $reference],
