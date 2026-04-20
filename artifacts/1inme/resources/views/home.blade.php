@@ -618,6 +618,171 @@
         /* Theme entrance */
         .theme-block { opacity: 0; animation: cardIn .55s cubic-bezier(.34,1.56,.64,1) both; animation-delay: var(--d, 0ms); }
 
+        /* ============ Build-section — block list + phone ============ */
+        .build-list {
+            max-height: 520px; overflow-y: auto;
+            padding-right: 4px;
+            mask-image: linear-gradient(180deg, transparent 0, #000 14px, #000 calc(100% - 22px), transparent 100%);
+            -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 14px, #000 calc(100% - 22px), transparent 100%);
+            scrollbar-width: thin; scrollbar-color: rgba(124,58,237,.5) transparent;
+        }
+        .build-list::-webkit-scrollbar { width: 6px; }
+        .build-list::-webkit-scrollbar-thumb { background: rgba(124,58,237,.45); border-radius: 6px; }
+        .build-list::-webkit-scrollbar-track { background: transparent; }
+        .build-row {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px; border-radius: 14px;
+            background: rgba(255,255,255,.05);
+            border: 1px solid rgba(255,255,255,.10);
+            transition: transform .25s cubic-bezier(.16,1,.3,1), background .25s, border-color .25s;
+        }
+        .build-row:hover { transform: translateX(3px); background: rgba(255,255,255,.08); }
+        .build-row.is-selected {
+            background: rgba(233,78,140,.12);
+            border-color: rgba(233,78,140,.45);
+            box-shadow: 0 0 0 1px rgba(233,78,140,.2), 0 10px 24px -12px rgba(233,78,140,.6);
+        }
+        .build-row.is-columns { align-items: stretch; }
+        .bl-grip { color: #6b7280; font-size: 11px; flex-shrink: 0; cursor: grab; }
+        .bl-ic { width: 36px; height: 36px; border-radius: 10px; display:flex; align-items:center; justify-content:center; font-size: 14px; flex-shrink: 0; }
+        .bl-ic.sm { width: 28px; height: 28px; font-size: 12px; border-radius: 8px; }
+        .bl-title { font-size: 12px; font-weight: 800; color: #fff; line-height: 1.15; }
+        .bl-sub   { font-size: 10px; color: #9ca3af; margin-top: 2px; }
+        .bl-thumb { width: 40px; height: 28px; border-radius: 7px; flex-shrink: 0;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,.12); }
+        .bl-thumb-dark { width: 40px; height: 28px; border-radius: 7px; flex-shrink: 0;
+            background: linear-gradient(135deg,#1a0b2e,#3a0ca3); color:#fff;
+            display:flex; align-items:center; justify-content:center; font-size: 9px;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,.12); }
+        .bl-chip { font-size: 9px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+            padding: 3px 7px; border-radius: 999px;
+            background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18); color:#d1d5db; flex-shrink:0; }
+        .bl-live { display:inline-flex; align-items:center; gap:4px; font-size:9px; font-weight:800;
+            letter-spacing:.06em; text-transform:uppercase; padding: 3px 7px; border-radius: 999px;
+            background: rgba(233,78,140,.2); color: #fda4af; border:1px solid rgba(233,78,140,.45); flex-shrink:0; }
+        .bl-live .dot { width:6px; height:6px; border-radius:50%; background:#ef4444; animation: pulseDot 1.1s ease-in-out infinite; }
+        .bl-eq { display:inline-flex; align-items:flex-end; gap:2px; height:14px; color:#1ed760; flex-shrink:0; }
+        .bl-eq i { width: 3px; background: currentColor; border-radius:2px; animation: eq 1.1s ease-in-out infinite; display:inline-block; }
+        .bl-eq i:nth-child(1){ height:40%; }
+        .bl-eq i:nth-child(2){ height:90%; animation-delay:.15s; }
+        .bl-eq i:nth-child(3){ height:60%; animation-delay:.3s; }
+        .bl-eq i:nth-child(4){ height:100%; animation-delay:.1s; }
+        .bl-mini-grid { display:grid; grid-template-columns: 1fr 1fr; gap:2px; width:24px; height:24px; flex-shrink:0; }
+        .bl-mini-grid i { display:block; background: linear-gradient(135deg,#e94e8c,#7c3aed); border-radius: 3px; }
+        .bl-mini-grid i:nth-child(2){ background: linear-gradient(135deg,#1bd4d9,#7c3aed); }
+        .bl-mini-grid i:nth-child(3){ background: linear-gradient(135deg,#ff8a3c,#ffc845); }
+        .bl-mini-grid i:nth-child(4){ background: linear-gradient(135deg,#7c3aed,#e94e8c); }
+        .bl-date { display:flex; flex-direction:column; align-items:center; background:#fff; color:#0a0a14; border-radius:8px; padding:2px 6px 3px; flex-shrink:0; line-height:1; }
+        .bl-date .mo { font-size:7px; font-weight:900; letter-spacing:.08em; color:#ef4444; }
+        .bl-date .da { font-size:12px; font-weight:900; }
+        .bl-socials { display:flex; gap:4px; flex-shrink:0; font-size: 11px; }
+        .bl-socials i { opacity:.9; }
+        .bl-map { width:40px; height:28px; border-radius:7px; flex-shrink:0; position:relative; overflow:hidden;
+            background:
+                radial-gradient(circle at 35% 45%, rgba(255,255,255,.25) 0 2px, transparent 3px),
+                linear-gradient(135deg,#0f3a2a,#22d3ee 60%,#0a2540);
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,.12); }
+        .bl-map::after { content:""; position:absolute; left:35%; top:40%; width:6px; height:6px; border-radius:50%; background:#ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,.3); }
+        .bl-count { display:flex; gap:3px; flex-shrink:0; font-family: ui-monospace, monospace; font-weight: 900; font-size: 10px; color:#fbbf24; }
+        .bl-count span { background: rgba(251,191,36,.12); border:1px solid rgba(251,191,36,.35); padding: 2px 4px; border-radius: 4px; }
+        .bl-chev { font-size: 10px; color:#a78bfa; flex-shrink:0; }
+        .bl-stars { font-size: 8px; color: #ffc845; letter-spacing: 1px; flex-shrink:0; }
+        .bl-col { flex:1; display:flex; align-items:center; gap:6px; padding: 4px 8px; background: rgba(255,255,255,.05);
+            border: 1px dashed rgba(255,255,255,.18); border-radius: 10px; }
+        .bl-col-t { font-size: 11px; font-weight: 700; color:#e5e7eb; }
+
+        /* Build-section phone preview (biolink) */
+        .bb-phone {
+            width: 218px; aspect-ratio: 9/19; border-radius: 34px;
+            background: #08020f; padding: 8px;
+            box-shadow: 0 28px 70px -20px rgba(124,58,237,.55), 0 0 0 1px rgba(255,255,255,.08);
+        }
+        .bb-screen { position: relative; width:100%; height:100%; border-radius: 28px; overflow: hidden;
+            background: linear-gradient(180deg,#7c3aed 0%,#e94e8c 55%,#ff8a3c 100%); }
+        .bb-notch { position:absolute; top: 7px; left:50%; transform: translateX(-50%); width:64px; height:14px; background:#08020f; border-radius:10px; z-index:20; }
+        .bb-scroll { position:absolute; inset: 28px 10px 10px; overflow-y: auto; display:flex; flex-direction:column; gap:7px;
+            scrollbar-width: none; }
+        .bb-scroll::-webkit-scrollbar { display:none; }
+        .bb-prof { text-align:center; color:#fff; padding: 4px 0; }
+        .bb-prof .bb-av { width: 44px; height:44px; border-radius:50%; background: rgba(255,255,255,.25);
+            margin: 0 auto; display:flex; align-items:center; justify-content:center; font-size: 12px; font-weight: 900;
+            border: 2px solid rgba(255,255,255,.4); }
+        .bb-prof .bb-h { font-size: 11px; font-weight: 900; margin-top: 4px; }
+        .bb-prof .bb-t { font-size: 8px; opacity: .85; margin-top: 1px; }
+        .bb-prof .bb-soc { display:flex; justify-content:center; gap:7px; margin-top:5px; font-size:9px; color:#fff; opacity:.9; }
+        .bb-hero { height: 54px; border-radius: 10px;
+            background: linear-gradient(135deg,#1bd4d9 0%,#7c3aed 60%,#e94e8c 100%);
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,.25); position:relative; overflow:hidden; }
+        .bb-hero::after { content:""; position:absolute; inset:0;
+            background: radial-gradient(circle at 70% 30%, rgba(255,255,255,.4), transparent 50%); }
+        .bb-btn { background: rgba(255,255,255,.94); color:#0a0a14; text-align:center; font-size:10px; font-weight:900;
+            padding: 7px 8px; border-radius: 10px; display:flex; align-items:center; justify-content:center; gap:5px; }
+        .bb-btn.is-accent { background: linear-gradient(135deg,#ff8a3c,#e94e8c); color:#fff; position:relative; }
+        .bb-btn .bb-live { position:absolute; right:5px; top:50%; transform:translateY(-50%); display:inline-flex; align-items:center; gap:3px;
+            font-size:7px; padding:2px 5px; border-radius:999px; background: rgba(0,0,0,.35); color:#fff; }
+        .bb-btn .bb-live .dot { width:5px; height:5px; border-radius:50%; background:#ef4444; animation: pulseDot 1.1s ease-in-out infinite; }
+        .bb-video { border-radius:10px; background: rgba(0,0,0,.45); color:#fff;
+            display:flex; align-items:center; gap:6px; padding: 10px 9px; font-size:9px; font-weight:800;
+            border: 1px solid rgba(255,255,255,.18); position: relative; }
+        .bb-video i { width: 22px; height:22px; border-radius:50%; background:#fff; color:#0a0a14; display:flex; align-items:center; justify-content:center; font-size:8px; }
+        .bb-audio { display:flex; align-items:center; gap:7px; padding: 6px 8px; border-radius: 10px;
+            background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.2); color:#fff; }
+        .bb-audio .ico { width: 22px; height:22px; border-radius:50%; background: rgba(30,215,96,.25); color:#1ed760; display:flex; align-items:center; justify-content:center; font-size: 10px; }
+        .bb-audio .meta { flex:1; min-width:0; }
+        .bb-audio .tt { font-size: 9px; font-weight: 800; line-height:1; }
+        .bb-audio .ss { font-size: 8px; opacity: .75; margin-top: 2px; }
+        .bb-audio .eq { display:inline-flex; align-items:flex-end; gap:2px; height:12px; color:#1ed760; }
+        .bb-audio .eq i { width: 2px; background: currentColor; border-radius:1px; animation: eq 1.1s ease-in-out infinite; display:inline-block; }
+        .bb-audio .eq i:nth-child(1){ height:40%; }
+        .bb-audio .eq i:nth-child(2){ height:90%; animation-delay:.15s; }
+        .bb-audio .eq i:nth-child(3){ height:55%; animation-delay:.3s; }
+        .bb-audio .eq i:nth-child(4){ height:100%; animation-delay:.1s; }
+        .bb-gal { display:grid; grid-template-columns: repeat(3, 1fr); gap: 3px; }
+        .bb-gal i { display:block; aspect-ratio: 1/1; border-radius: 6px;
+            background: linear-gradient(135deg,#e94e8c,#7c3aed); }
+        .bb-gal i:nth-child(2){ background: linear-gradient(135deg,#1bd4d9,#7c3aed); }
+        .bb-gal i:nth-child(3){ background: linear-gradient(135deg,#ffc845,#ff8a3c); }
+        .bb-form { display:flex; gap: 4px; }
+        .bb-form .fi { flex: 1; background: rgba(255,255,255,.9); color:#9ca3af; padding: 7px 8px; border-radius: 9px; font-size: 9px; font-weight: 700; text-align:left; }
+        .bb-form .fb { background:#0a0a14; color:#fff; padding: 7px 10px; border-radius: 9px; font-size: 9px; font-weight: 900; }
+        .bb-cal { display:flex; align-items:center; gap:7px; padding: 6px 8px; border-radius: 10px;
+            background: rgba(255,255,255,.92); color:#0a0a14; }
+        .bb-cal .dt { display:flex; flex-direction:column; align-items:center; line-height:1; }
+        .bb-cal .dt .mo { font-size: 7px; font-weight: 900; color:#ef4444; letter-spacing:.08em; }
+        .bb-cal .dt .da { font-size: 14px; font-weight: 900; }
+        .bb-cal .mt { flex:1; min-width:0; }
+        .bb-cal .mt .tt { font-size: 9px; font-weight: 800; }
+        .bb-cal .mt .ss { font-size: 8px; opacity: .7; margin-top: 1px; }
+        .bb-tip { display:flex; justify-content: space-between; align-items:center;
+            padding: 7px 9px; border-radius: 10px; font-size: 9px; font-weight: 800; color:#fff;
+            background: linear-gradient(135deg, rgba(236,72,153,.35), rgba(124,58,237,.35));
+            border: 1px solid rgba(255,255,255,.2); }
+        .bb-tip .amts { font-weight: 900; font-size: 10px; display:inline-flex; gap:4px; align-items:center; }
+        .bb-tip .amts i { opacity:.5; font-style: normal; }
+        .bb-map { display:flex; align-items:center; gap:5px; padding: 6px 9px; border-radius: 10px;
+            font-size: 9px; font-weight: 700; color:#fff;
+            background: linear-gradient(110deg, rgba(34,211,238,.25), rgba(15,58,42,.6));
+            border: 1px solid rgba(255,255,255,.2); }
+        .bb-map i { color:#ef4444; }
+        .bb-count { display:flex; align-items:center; justify-content:center; gap:2px;
+            padding: 7px 9px; border-radius: 10px; color:#fbbf24; font-family: ui-monospace,monospace; font-weight:900; font-size: 13px;
+            background: rgba(0,0,0,.5); border: 1px solid rgba(251,191,36,.35); }
+        .bb-count span { background: rgba(251,191,36,.1); padding: 3px 6px; border-radius: 6px; }
+        .bb-count i { opacity:.6; font-style: normal; }
+        .bb-2col { display:grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+        .bb-2col > div { background: rgba(255,255,255,.9); color:#0a0a14; text-align:center; padding: 7px 4px; border-radius: 9px; font-size: 9px; font-weight:800;
+            display:flex; align-items:center; justify-content:center; gap:4px; }
+        .bb-faq { display:flex; justify-content: space-between; align-items:center;
+            padding: 7px 9px; border-radius: 10px; font-size: 10px; font-weight: 800; color:#fff;
+            background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.2); }
+        .bb-faq i { font-size: 9px; opacity:.7; }
+        .bb-quote { padding: 7px 9px; border-radius: 10px; font-size: 9px; font-style: italic; color:#fff;
+            background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.22); line-height: 1.3; }
+        .bb-quote div { margin-top: 3px; font-size: 8px; color:#ffc845; font-style: normal; letter-spacing: 1px; }
+        .bb-socials { display:flex; justify-content:space-around; padding: 7px 4px; border-radius: 10px; color:#fff; font-size: 11px;
+            background: rgba(0,0,0,.3); border: 1px solid rgba(255,255,255,.18); }
+        .bb-foot { text-align:center; font-size: 8px; opacity:.7; color:#fff; padding: 4px 0 8px; }
+
         /* ============ Hero category gallery ============ */
         .hero-gallery {
             display: grid;
@@ -1674,38 +1839,179 @@
                     <span class="hidden sm:inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold text-white" style="background:rgba(124,58,237,.25);color:#c4b5fd"><i class="fas fa-grip-vertical"></i> Drag</span>
                 </div>
                 <div class="grid grid-cols-12 gap-3">
-                    <div class="col-span-12 sm:col-span-7 bg-[#0a0a14] rounded-2xl p-3 border border-white/5 space-y-2">
-                        <div class="flex items-center gap-3 bg-white/5 rounded-xl p-3 border border-white/10 lift">
-                            <i class="fas fa-grip-vertical text-gray-500 text-xs"></i>
-                            <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:rgba(27,212,217,.2)"><i class="fas fa-image text-sm" style="color:var(--c1)"></i></div>
-                            <div class="flex-1 min-w-0"><div class="text-xs font-bold">Hero image</div><div class="text-[10px] text-gray-500">1200×630 · WEBP</div></div>
-                        </div>
-                        <div class="flex items-center gap-3 bg-white/5 rounded-xl p-3 border border-white/10 lift">
-                            <i class="fas fa-grip-vertical text-gray-500 text-xs"></i>
-                            <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:rgba(124,58,237,.25)"><i class="fas fa-link text-sm" style="color:var(--c2)"></i></div>
-                            <div class="flex-1 min-w-0"><div class="text-xs font-bold">Free Templates</div><div class="text-[10px] text-gray-500">jane.co/templates</div></div>
-                        </div>
-                        <div class="flex items-center gap-3 rounded-xl p-3 border-2 lift" style="background:rgba(233,78,140,.15);border-color:rgba(233,78,140,.4)">
-                            <i class="fas fa-grip-vertical text-xs" style="color:var(--c3)"></i>
-                            <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:rgba(255,138,60,.25)"><i class="fas fa-store text-sm" style="color:var(--c4)"></i></div>
-                            <div class="flex-1 min-w-0"><div class="text-xs font-bold">Shop Merch</div><div class="text-[10px] text-gray-500">22 products</div></div>
-                            <span class="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded font-bold text-white" style="background:var(--c3)">Live</span>
-                        </div>
-                        <div class="flex items-center gap-3 bg-white/5 rounded-xl p-3 border border-white/10 lift">
-                            <i class="fas fa-grip-vertical text-gray-500 text-xs"></i>
-                            <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:rgba(255,200,69,.25)"><i class="fas fa-wpforms text-sm" style="color:var(--c5)"></i></div>
-                            <div class="flex-1 min-w-0"><div class="text-xs font-bold">Newsletter form</div><div class="text-[10px] text-gray-500">Email + name</div></div>
+                    <div class="col-span-12 sm:col-span-7 bg-[#0a0a14] rounded-2xl p-3 border border-white/5">
+                        <div class="build-list space-y-2">
+                            {{-- 1. Hero image --}}
+                            <div class="build-row lift" data-bl-style="image">
+                                <i class="fas fa-grip-vertical bl-grip"></i>
+                                <div class="bl-ic" style="background:rgba(27,212,217,.2)"><i class="fas fa-image" style="color:var(--c1)"></i></div>
+                                <div class="flex-1 min-w-0"><div class="bl-title">Hero image</div><div class="bl-sub">1200×630 · WEBP</div></div>
+                                <div class="bl-thumb" style="background:linear-gradient(135deg,#1bd4d9,#7c3aed)"></div>
+                            </div>
+                            {{-- 2. Free Templates link --}}
+                            <div class="build-row lift" data-bl-style="link">
+                                <i class="fas fa-grip-vertical bl-grip"></i>
+                                <div class="bl-ic" style="background:rgba(124,58,237,.25)"><i class="fas fa-link" style="color:var(--c2)"></i></div>
+                                <div class="flex-1 min-w-0"><div class="bl-title">Free Templates</div><div class="bl-sub font-mono">jane.co/templates</div></div>
+                                <span class="bl-chip">Link</span>
+                            </div>
+                            {{-- 3. Shop Merch (selected/live) --}}
+                            <div class="build-row is-selected lift" data-bl-style="shop">
+                                <i class="fas fa-grip-vertical bl-grip" style="color:var(--c3)"></i>
+                                <div class="bl-ic" style="background:rgba(255,138,60,.25)"><i class="fas fa-store" style="color:var(--c4)"></i></div>
+                                <div class="flex-1 min-w-0"><div class="bl-title">Shop Merch</div><div class="bl-sub">22 products · From $ 19</div></div>
+                                <span class="bl-live"><span class="dot"></span>Live</span>
+                            </div>
+                            {{-- 4. YouTube embed --}}
+                            <div class="build-row lift" data-bl-style="video">
+                                <i class="fas fa-grip-vertical bl-grip"></i>
+                                <div class="bl-ic" style="background:rgba(255,0,51,.2)"><i class="fab fa-youtube" style="color:#ff0033"></i></div>
+                                <div class="flex-1 min-w-0"><div class="bl-title">Latest video</div><div class="bl-sub">Embed · 4:20</div></div>
+                                <div class="bl-thumb-dark"><i class="fas fa-play"></i></div>
+                            </div>
+                            {{-- 5. Spotify audio --}}
+                            <div class="build-row lift" data-bl-style="audio">
+                                <i class="fas fa-grip-vertical bl-grip"></i>
+                                <div class="bl-ic" style="background:rgba(30,215,96,.2)"><i class="fab fa-spotify" style="color:#1ed760"></i></div>
+                                <div class="flex-1 min-w-0"><div class="bl-title">Latest track</div><div class="bl-sub">Saltwater · 3:42</div></div>
+                                <div class="bl-eq" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+                            </div>
+                            {{-- 6. Gallery --}}
+                            <div class="build-row lift" data-bl-style="gallery">
+                                <i class="fas fa-grip-vertical bl-grip"></i>
+                                <div class="bl-ic" style="background:rgba(233,78,140,.2)"><i class="fas fa-images" style="color:var(--c3)"></i></div>
+                                <div class="flex-1 min-w-0"><div class="bl-title">Photo gallery</div><div class="bl-sub">12 photos · Masonry</div></div>
+                                <div class="bl-mini-grid"><i></i><i></i><i></i><i></i></div>
+                            </div>
+                            {{-- 7. Newsletter form --}}
+                            <div class="build-row lift" data-bl-style="form">
+                                <i class="fas fa-grip-vertical bl-grip"></i>
+                                <div class="bl-ic" style="background:rgba(255,200,69,.25)"><i class="fas fa-wpforms" style="color:var(--c5)"></i></div>
+                                <div class="flex-1 min-w-0"><div class="bl-title">Newsletter form</div><div class="bl-sub">Email + name · 1.2k subs</div></div>
+                                <span class="bl-chip">Form</span>
+                            </div>
+                            {{-- 8. Calendar / booking --}}
+                            <div class="build-row lift" data-bl-style="calendar">
+                                <i class="fas fa-grip-vertical bl-grip"></i>
+                                <div class="bl-ic" style="background:rgba(14,165,233,.2)"><i class="fas fa-calendar-check" style="color:#0ea5e9"></i></div>
+                                <div class="flex-1 min-w-0"><div class="bl-title">Book a call</div><div class="bl-sub">30 min · Calendly</div></div>
+                                <div class="bl-date"><span class="mo">JUN</span><span class="da">14</span></div>
+                            </div>
+                            {{-- 9. Tip jar / payments --}}
+                            <div class="build-row lift" data-bl-style="tip">
+                                <i class="fas fa-grip-vertical bl-grip"></i>
+                                <div class="bl-ic" style="background:rgba(236,72,153,.2)"><i class="fas fa-hand-holding-heart" style="color:#ec4899"></i></div>
+                                <div class="flex-1 min-w-0"><div class="bl-title">Tip jar</div><div class="bl-sub">$ 3 / $ 5 / Custom</div></div>
+                                <span class="bl-chip">Pay</span>
+                            </div>
+                            {{-- 10. Socials row --}}
+                            <div class="build-row lift" data-bl-style="socials">
+                                <i class="fas fa-grip-vertical bl-grip"></i>
+                                <div class="bl-ic" style="background:rgba(124,58,237,.2)"><i class="fas fa-share-nodes" style="color:#c4b5fd"></i></div>
+                                <div class="flex-1 min-w-0"><div class="bl-title">Socials row</div><div class="bl-sub">IG · TikTok · YT · X</div></div>
+                                <div class="bl-socials">
+                                    <i class="fab fa-instagram" style="color:#e94e8c"></i>
+                                    <i class="fab fa-tiktok"></i>
+                                    <i class="fab fa-youtube" style="color:#ff0033"></i>
+                                </div>
+                            </div>
+                            {{-- 11. Map / location --}}
+                            <div class="build-row lift" data-bl-style="map">
+                                <i class="fas fa-grip-vertical bl-grip"></i>
+                                <div class="bl-ic" style="background:rgba(34,211,238,.2)"><i class="fas fa-location-dot" style="color:#22d3ee"></i></div>
+                                <div class="flex-1 min-w-0"><div class="bl-title">Studio location</div><div class="bl-sub">Berlin · 12 Mitte St.</div></div>
+                                <div class="bl-map" aria-hidden="true"></div>
+                            </div>
+                            {{-- 12. Countdown --}}
+                            <div class="build-row lift" data-bl-style="countdown">
+                                <i class="fas fa-grip-vertical bl-grip"></i>
+                                <div class="bl-ic" style="background:rgba(251,191,36,.2)"><i class="fas fa-hourglass-half" style="color:#fbbf24"></i></div>
+                                <div class="flex-1 min-w-0"><div class="bl-title">Drop countdown</div><div class="bl-sub">Spring capsule · 3d 14h</div></div>
+                                <div class="bl-count"><span>03</span>:<span>14</span>:<span>22</span></div>
+                            </div>
+                            {{-- 13. FAQ --}}
+                            <div class="build-row lift" data-bl-style="faq">
+                                <i class="fas fa-grip-vertical bl-grip"></i>
+                                <div class="bl-ic" style="background:rgba(139,92,246,.2)"><i class="fas fa-circle-question" style="color:#a78bfa"></i></div>
+                                <div class="flex-1 min-w-0"><div class="bl-title">FAQ</div><div class="bl-sub">6 questions · Accordion</div></div>
+                                <i class="fas fa-chevron-down bl-chev"></i>
+                            </div>
+                            {{-- 14. File download --}}
+                            <div class="build-row lift" data-bl-style="file">
+                                <i class="fas fa-grip-vertical bl-grip"></i>
+                                <div class="bl-ic" style="background:rgba(59,130,246,.2)"><i class="fas fa-file-lines" style="color:#60a5fa"></i></div>
+                                <div class="flex-1 min-w-0"><div class="bl-title">Media kit · PDF</div><div class="bl-sub">2.4 MB · 12 pages</div></div>
+                                <span class="bl-chip">PDF</span>
+                            </div>
+                            {{-- 15. Testimonials --}}
+                            <div class="build-row lift" data-bl-style="quote">
+                                <i class="fas fa-grip-vertical bl-grip"></i>
+                                <div class="bl-ic" style="background:rgba(16,185,129,.2)"><i class="fas fa-quote-right" style="color:#10b981"></i></div>
+                                <div class="flex-1 min-w-0"><div class="bl-title">Testimonials</div><div class="bl-sub">4.9★ · 140 reviews</div></div>
+                                <div class="bl-stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
+                            </div>
+                            {{-- 16. Two-column row --}}
+                            <div class="build-row is-columns lift" data-bl-style="cols">
+                                <i class="fas fa-grip-vertical bl-grip"></i>
+                                <div class="bl-col"><div class="bl-ic sm" style="background:rgba(27,212,217,.2)"><i class="fas fa-download" style="color:var(--c1)"></i></div><div class="bl-col-t">Download</div></div>
+                                <div class="bl-col"><div class="bl-ic sm" style="background:rgba(255,200,69,.25)"><i class="fas fa-envelope" style="color:var(--c5)"></i></div><div class="bl-col-t">Contact</div></div>
+                            </div>
                         </div>
                     </div>
+
                     <div class="col-span-12 sm:col-span-5 bg-[#0a0a14] rounded-2xl p-3 border border-white/5 flex items-center justify-center">
-                        <div class="phone scale-90">
-                            <div class="phone-screen p-3 pt-9 text-center text-white" style="background: linear-gradient(180deg, var(--c2), var(--c3));">
-                                <div class="w-10 h-10 mx-auto rounded-full bg-white/30 flex items-center justify-center text-xs font-bold">JD</div>
-                                <div class="mt-1 text-[10px] font-bold">@jane</div>
-                                <div class="mt-2 space-y-1.5">
-                                    <div class="bg-white/95 text-[#0e0e10] rounded-xl py-1.5 text-[10px] font-bold">Templates</div>
-                                    <div class="rounded-xl py-1.5 text-[10px] font-bold text-[#0e0e10]" style="background:var(--c5)">Shop</div>
-                                    <div class="bg-white/95 text-[#0e0e10] rounded-xl py-1.5 text-[10px] font-bold">Newsletter</div>
+                        <div class="bb-phone">
+                            <div class="bb-screen">
+                                <div class="bb-notch" aria-hidden="true"></div>
+                                <div class="bb-scroll">
+                                    {{-- Profile header --}}
+                                    <div class="bb-prof">
+                                        <div class="bb-av">JD</div>
+                                        <div class="bb-h">@jane</div>
+                                        <div class="bb-t">Creator · Berlin</div>
+                                        <div class="bb-soc"><i class="fab fa-instagram"></i><i class="fab fa-tiktok"></i><i class="fab fa-youtube"></i><i class="fab fa-x-twitter"></i></div>
+                                    </div>
+                                    {{-- Hero image --}}
+                                    <div class="bb-hero" aria-hidden="true"></div>
+                                    {{-- Link --}}
+                                    <div class="bb-btn">Templates</div>
+                                    {{-- Shop (selected highlight) --}}
+                                    <div class="bb-btn is-accent"><i class="fas fa-store"></i>Shop Merch<span class="bb-live"><span class="dot"></span>Live</span></div>
+                                    {{-- Video embed --}}
+                                    <div class="bb-video"><i class="fas fa-play"></i><span>Latest video · 4:20</span></div>
+                                    {{-- Audio --}}
+                                    <div class="bb-audio">
+                                        <div class="ico"><i class="fab fa-spotify"></i></div>
+                                        <div class="meta"><div class="tt">Saltwater</div><div class="ss">3:42</div></div>
+                                        <div class="eq"><i></i><i></i><i></i><i></i></div>
+                                    </div>
+                                    {{-- Gallery 3-up --}}
+                                    <div class="bb-gal"><i></i><i></i><i></i></div>
+                                    {{-- Newsletter form --}}
+                                    <div class="bb-form">
+                                        <div class="fi">Email</div>
+                                        <div class="fb">Subscribe</div>
+                                    </div>
+                                    {{-- Calendar --}}
+                                    <div class="bb-cal">
+                                        <div class="dt"><span class="mo">JUN</span><span class="da">14</span></div>
+                                        <div class="mt"><div class="tt">Book a 30-min call</div><div class="ss">Calendly · Free intro</div></div>
+                                    </div>
+                                    {{-- Tip jar --}}
+                                    <div class="bb-tip"><span>Tip jar</span><span class="amts">$3<i>·</i>$5<i>·</i>$10</span></div>
+                                    {{-- Map --}}
+                                    <div class="bb-map"><i class="fas fa-location-dot"></i>Berlin · 12 Mitte St.</div>
+                                    {{-- Countdown --}}
+                                    <div class="bb-count"><span>03</span><i>:</i><span>14</span><i>:</i><span>22</span></div>
+                                    {{-- Two-column --}}
+                                    <div class="bb-2col"><div><i class="fas fa-download"></i>Press kit</div><div><i class="fas fa-envelope"></i>Contact</div></div>
+                                    {{-- FAQ --}}
+                                    <div class="bb-faq"><span>FAQ</span><i class="fas fa-chevron-down"></i></div>
+                                    {{-- Testimonials --}}
+                                    <div class="bb-quote">"Best tool I've used all year" <div><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div></div>
+                                    {{-- Socials --}}
+                                    <div class="bb-socials"><i class="fab fa-instagram"></i><i class="fab fa-tiktok"></i><i class="fab fa-youtube"></i><i class="fab fa-x-twitter"></i><i class="fab fa-spotify"></i></div>
+                                    <div class="bb-foot">1inme.co/@jane</div>
                                 </div>
                             </div>
                         </div>
