@@ -1,4 +1,4 @@
-@extends('admin.partials.layout')
+@extends('admin.layouts.app')
 
 @section('content')
 <div class="container py-4" style="max-width:900px">
