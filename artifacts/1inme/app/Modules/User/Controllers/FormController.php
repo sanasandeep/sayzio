@@ -7,6 +7,7 @@ use App\Modules\User\Models\Form;
 use App\Modules\User\Models\UserFile;
 use App\Modules\User\Models\FormSubmission;
 use App\Modules\User\Models\Project;
+use App\Modules\User\Services\SpamChecker;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
@@ -509,11 +510,6 @@ class FormController extends Controller
         $rules = $this->buildSubmissionRules($form);
         $validated = $request->validate($rules, $this->customMessages);
 
-        // Honey-pot
-        if (trim((string) $request->input('_hp', '')) !== '') {
-            return $this->successResponse($request, $form, true);
-        }
-
         $files = [];
         $data  = [];
         foreach ($form->fields ?? [] as $field) {
@@ -568,18 +564,35 @@ class FormController extends Controller
             }
         }
 
+        // Spam heuristics — honeypot, link count, blocked keywords, per-IP rate
+        // limit. Matches are stored with is_spam=true so they're hidden from
+        // the default inbox view but reviewable in the Spam tab.
+        $scanText = collect($data)->reject(fn ($v) => is_array($v) || is_bool($v))
+            ->map(fn ($v) => (string) $v)->implode(' ');
+        $spamCheck = app(SpamChecker::class)->check([
+            'honeypot' => $request->input('_hp'),
+            'ip'       => $request->ip(),
+            'text'     => $scanText,
+            'scope'    => 'form:' . $form->id,
+        ]);
+
         $submission = $form->submissions()->create([
             'data' => $data,
             'files' => $files ?: null,
             'ip' => $request->ip(),
             'user_agent' => substr((string) $request->userAgent(), 0, 500),
             'referrer' => substr((string) $request->headers->get('referer', ''), 0, 500),
+            'is_spam' => $spamCheck['is_spam'],
         ]);
 
         $form->increment('total_submissions');
-        $this->fireNotifications($form, $submission);
+        // Don't fire owner notifications / autoresponders / webhooks for spam —
+        // the whole point of the Spam tab is to keep noise out of the inbox.
+        if (! $spamCheck['is_spam']) {
+            $this->fireNotifications($form, $submission);
+        }
 
-        return $this->successResponse($request, $form, false, $submission);
+        return $this->successResponse($request, $form, $spamCheck['is_spam'], $submission);
     }
 
     protected function buildSubmissionRules(Form $form): array

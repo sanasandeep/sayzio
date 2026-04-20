@@ -9,6 +9,7 @@ use App\Modules\Common\Services\SmartRedirectResolver;
 use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\Subscriber;
+use App\Modules\User\Services\SpamChecker;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -513,6 +514,20 @@ class RedirectController extends Controller
             return response()->json(['success' => true, 'message' => 'Already subscribed.']);
         }
 
+        // Spam heuristics — bots autofill the honeypot, scatter links into the
+        // name field, or hammer the endpoint from one IP. Flagged captures are
+        // still stored (creators can review the Spam tab) but hidden from the
+        // default inbox view and excluded from unread badges.
+        $spamCheck = app(SpamChecker::class)->check([
+            'honeypot' => $request->input('_hp'),
+            'ip'       => $request->ip(),
+            'text'     => trim(implode(' ', array_filter([
+                $data['name'] ?? null, $data['email'] ?? null,
+                $data['phone'] ?? null, $data['channel_url'] ?? null,
+            ]))),
+            'scope'    => 'subscribe:' . $link->id,
+        ]);
+
         Subscriber::create([
             'user_id' => $link->user_id,
             'link_id' => $link->id,
@@ -525,6 +540,7 @@ class RedirectController extends Controller
             'status' => 'active',
             'source' => $data['type'] === 'whatsapp_channel' ? ($data['_fingerprint'] ?? $alias) : $alias,
             'subscribed_at' => now(),
+            'is_spam' => $spamCheck['is_spam'],
         ]);
 
         return response()->json(['success' => true, 'message' => 'Subscribed successfully!']);
