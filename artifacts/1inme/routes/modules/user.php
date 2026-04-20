@@ -257,6 +257,8 @@ Route::prefix('user')->name('user.')->group(function () {
                 ->where('type', 'form_submission|subscriber')->whereNumber('id')->name('show');
             Route::post('{type}/{id}', [InboxController::class, 'update'])
                 ->where('type', 'form_submission|subscriber')->whereNumber('id')->name('update');
+            Route::post('{type}/{id}/reply', [InboxController::class, 'reply'])
+                ->where('type', 'form_submission|subscriber')->whereNumber('id')->name('reply');
         });
 
         Route::prefix('subscribers')->name('subscribers.')->group(function () {

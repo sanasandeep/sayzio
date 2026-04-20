@@ -331,7 +331,31 @@ class FormController extends Controller
         $this->authorizeForm($request, $form);
         abort_unless($submission->form_id === $form->id, 404);
         if (!$submission->is_read) $submission->update(['is_read' => true]);
-        return view('user.forms.submission-show', compact('form', 'submission'));
+
+        $replyTo = null;
+        $data = $submission->data ?? [];
+        foreach (['email', 'Email', 'e_mail', 'email_address'] as $k) {
+            if (!empty($data[$k]) && is_string($data[$k]) && filter_var($data[$k], FILTER_VALIDATE_EMAIL)) {
+                $replyTo = $data[$k];
+                break;
+            }
+        }
+        if (!$replyTo) {
+            foreach ($data as $v) {
+                if (is_string($v) && filter_var($v, FILTER_VALIDATE_EMAIL)) {
+                    $replyTo = $v;
+                    break;
+                }
+            }
+        }
+
+        $replies = \App\Modules\User\Models\InboxReply::where('user_id', $request->user()->id)
+            ->where('item_type', 'form_submission')
+            ->where('item_id', $submission->id)
+            ->orderByDesc('created_at')
+            ->get();
+
+        return view('user.forms.submission-show', compact('form', 'submission', 'replyTo', 'replies'));
     }
 
     public function toggleSubmissionStar(Request $request, Form $form, FormSubmission $submission)

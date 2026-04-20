@@ -4,6 +4,7 @@ namespace App\Modules\User\Controllers;
 
 use App\Modules\User\Models\Form;
 use App\Modules\User\Models\FormSubmission;
+use App\Modules\User\Models\InboxReply;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\Subscriber;
 use App\Modules\User\Services\InboxAggregator;
@@ -60,7 +61,110 @@ class InboxController
             $subscriber->update(['is_read' => true, 'read_at' => now()]);
             InboxAggregator::bustCache($userId);
         }
-        return view('user.inbox.show-subscriber', compact('subscriber'));
+        $candidate = trim((string) $subscriber->email);
+        $replyTo = ($candidate !== '' && filter_var($candidate, FILTER_VALIDATE_EMAIL)) ? $candidate : null;
+        $replies = InboxReply::where('user_id', $userId)
+            ->where('item_type', 'subscriber')
+            ->where('item_id', $subscriber->id)
+            ->orderByDesc('created_at')
+            ->get();
+        return view('user.inbox.show-subscriber', compact('subscriber', 'replyTo', 'replies'));
+    }
+
+    public function reply(Request $request, string $type, int $id)
+    {
+        $userId = $request->user()->id;
+        abort_unless(in_array($type, [InboxAggregator::SOURCE_FORM, 'subscriber'], true), 404);
+
+        $validated = $request->validate([
+            'subject' => 'required|string|max:300',
+            'body' => 'required|string|max:20000',
+        ]);
+
+        $model = $this->locate($type, $id, $userId);
+        $toEmail = trim((string) $this->extractEmail($model));
+        abort_unless($toEmail !== '' && filter_var($toEmail, FILTER_VALIDATE_EMAIL), 422, 'No usable email address.');
+
+        $user = $request->user();
+        $subSettings = ($user->settings ?? [])['subscription'] ?? [];
+        $fromName = $subSettings['email_from_name'] ?? config('app.name');
+        $fromAddress = $subSettings['email_from_address'] ?? config('mail.from.address', 'noreply@1inme.com');
+        $replyTo = $subSettings['email_reply_to'] ?? null;
+
+        $status = 'sent';
+        $error = null;
+
+        try {
+            if (!empty($subSettings['smtp_host'])) {
+                $transport = new \Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport(
+                    $subSettings['smtp_host'],
+                    (int)($subSettings['smtp_port'] ?? 587),
+                    ($subSettings['smtp_encryption'] ?? 'tls') !== 'none',
+                );
+                if (!empty($subSettings['smtp_username'])) {
+                    $transport->setUsername($subSettings['smtp_username']);
+                    $transport->setPassword($subSettings['smtp_password'] ?? '');
+                }
+                $mailer = new \Symfony\Component\Mailer\Mailer($transport);
+                $email = (new \Symfony\Component\Mime\Email())
+                    ->from(new \Symfony\Component\Mime\Address($fromAddress, $fromName))
+                    ->to($toEmail)
+                    ->subject($validated['subject'])
+                    ->html(nl2br(e($validated['body'])));
+                if ($replyTo) {
+                    $email->replyTo(new \Symfony\Component\Mime\Address($replyTo));
+                }
+                $mailer->send($email);
+            } else {
+                \Illuminate\Support\Facades\Mail::html(nl2br(e($validated['body'])), function ($m) use ($toEmail, $validated, $fromName, $fromAddress, $replyTo) {
+                    $m->to($toEmail)->subject($validated['subject'])->from($fromAddress, $fromName);
+                    if ($replyTo) $m->replyTo($replyTo);
+                });
+            }
+        } catch (\Exception $e) {
+            $status = 'failed';
+            $error = $e->getMessage();
+        }
+
+        InboxReply::create([
+            'user_id' => $userId,
+            'item_type' => $type === InboxAggregator::SOURCE_FORM ? 'form_submission' : 'subscriber',
+            'item_id' => $id,
+            'to_email' => $toEmail,
+            'from_email' => $fromAddress,
+            'from_name' => $fromName,
+            'subject' => $validated['subject'],
+            'body' => $validated['body'],
+            'status' => $status,
+            'error' => $error,
+            'sent_at' => $status === 'sent' ? now() : null,
+        ]);
+
+        if ($status === 'failed') {
+            return back()->withInput()->with('error', 'Reply failed: ' . $error);
+        }
+        return back()->with('success', 'Reply sent to ' . $toEmail . '.');
+    }
+
+    protected function extractEmail($model): ?string
+    {
+        if ($model instanceof Subscriber) {
+            return $model->email;
+        }
+        if ($model instanceof FormSubmission) {
+            $data = $model->data ?? [];
+            foreach (['email', 'Email', 'e_mail', 'email_address'] as $k) {
+                if (!empty($data[$k]) && is_string($data[$k]) && filter_var($data[$k], FILTER_VALIDATE_EMAIL)) {
+                    return $data[$k];
+                }
+            }
+            foreach ($data as $v) {
+                if (is_string($v) && filter_var($v, FILTER_VALIDATE_EMAIL)) {
+                    return $v;
+                }
+            }
+        }
+        return null;
     }
 
     public function update(Request $request, string $type, int $id)
