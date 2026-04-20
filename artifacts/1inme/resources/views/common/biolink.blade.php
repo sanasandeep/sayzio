@@ -1177,6 +1177,7 @@
                 <div class="mb-4 glass-block rounded-xl p-5">
                     <p class="text-sm font-semibold mb-3 text-center">{{ $s['title'] ?? 'Contact Us' }}</p>
                     <form class="space-y-3" onsubmit="event.preventDefault(); this.querySelector('button').textContent='Sent!'; this.querySelector('button').disabled=true;">
+                        <input type="text" name="_hp" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none;">
                         <input type="text" placeholder="Name" required class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none" style="color:{{ $fontColor }}">
                         <input type="email" placeholder="Email" required class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none" style="color:{{ $fontColor }}">
                         <textarea placeholder="Message" rows="3" required class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none" style="color:{{ $fontColor }}"></textarea>
@@ -1678,7 +1679,8 @@
                                     block_id: {{ $block->id }},
                                     type: 'email',
                                     email: $refs.emailInput{{ $block->id }}.value,
-                                    name: $refs.nameInput{{ $block->id }} ? $refs.nameInput{{ $block->id }}.value : ''
+                                    name: $refs.nameInput{{ $block->id }} ? $refs.nameInput{{ $block->id }}.value : '',
+                                    _hp: $refs.hpInput{{ $block->id }} ? $refs.hpInput{{ $block->id }}.value : ''
                                 })
                             }).then(r => r.json()).then(d => {
                                 loading = false;
@@ -1686,6 +1688,7 @@
                                 else error = d.message || 'Something went wrong';
                             }).catch(() => { loading = false; error = 'Network error'; })
                         " class="space-y-3">
+                            <input x-ref="hpInput{{ $block->id }}" type="text" name="_hp" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none;">
                             @if($s['name_field'] ?? false)
                             <input x-ref="nameInput{{ $block->id }}" type="text" placeholder="Your name" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm outline-none focus:border-purple-500/40 transition" style="color:{{ $fontColor }}">
                             @endif
@@ -1716,10 +1719,11 @@
                         <p class="text-base font-semibold mb-1">{{ $s['title'] ?? 'Follow our Channel' }}</p>
                         @if(!empty($s['description']))<p class="text-xs opacity-50 leading-relaxed">{{ $s['description'] }}</p>@endif
                     </div>
+                    <input id="hp_{{ $block->id }}" type="text" name="_hp" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none;">
                     <a href="{{ $s['channel_url'] ?? '#' }}" target="_blank" rel="noopener"
                        class="block w-full py-3.5 text-center font-semibold rounded-xl text-sm flex items-center justify-center gap-3 transition-all hover:-translate-y-0.5 hover:shadow-lg"
                        style="background: #25D366; color: #fff;"
-                       onclick="fetch('/{{ $link->alias }}/subscribe', {method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':'{{ csrf_token() }}'},body:JSON.stringify({block_id:{{ $block->id }},type:'whatsapp_channel',channel_url:'{{ $s['channel_url'] ?? '' }}'})})">
+                       onclick="fetch('/{{ $link->alias }}/subscribe', {method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':'{{ csrf_token() }}'},body:JSON.stringify({block_id:{{ $block->id }},type:'whatsapp_channel',channel_url:'{{ $s['channel_url'] ?? '' }}',_hp:(document.getElementById('hp_{{ $block->id }}')||{}).value||''})})">
                         <i class="fab fa-whatsapp text-lg"></i>
                         <span>{{ $s['button_text'] ?? 'Follow Channel' }}</span>
                     </a>
@@ -1736,6 +1740,7 @@
                     </div>
                     <template x-if="!submitted">
                         <div class="space-y-3">
+                            <input x-ref="hpInput{{ $block->id }}" type="text" name="_hp" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none;">
                             @if($s['collect_phone'] ?? true)
                             <input x-model="phone" type="tel" placeholder="Your WhatsApp number" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm outline-none focus:border-green-500/40 transition" style="color:{{ $fontColor }}">
                             @endif
@@ -1747,7 +1752,8 @@
                                     body: JSON.stringify({
                                         block_id: {{ $block->id }},
                                         type: 'whatsapp_number',
-                                        phone: phone
+                                        phone: phone,
+                                        _hp: $refs.hpInput{{ $block->id }} ? $refs.hpInput{{ $block->id }}.value : ''
                                     })
                                 }).then(r => r.json()).then(d => {
                                     loading = false;
