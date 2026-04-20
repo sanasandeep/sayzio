@@ -15,6 +15,20 @@
                         An admin has reserved <span class="font-mono">{{ session('force_handle_rename') }}</span>,
                         which matches your current handle. Please choose a different one below before continuing.
                     </div>
+                    @if(!empty($handleSuggestions))
+                        <div class="mt-3">
+                            <div class="text-xs uppercase tracking-wider text-amber-200/70 mb-1.5">Available suggestions — click to use</div>
+                            <div class="flex flex-wrap gap-2" data-handle-suggestions>
+                                @foreach($handleSuggestions as $suggestion)
+                                    <button type="button"
+                                            data-handle-suggestion="{{ $suggestion }}"
+                                            class="px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-400/40 text-amber-50 hover:bg-amber-500/25 hover:border-amber-300/60 text-sm font-mono transition-colors">
+                                        {{ '@' . $suggestion }}
+                                    </button>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -274,6 +288,19 @@
         if (document.hidden) stop(); else { start(); poll(); }
     });
     start();
+})();
+
+(function () {
+    document.querySelectorAll('[data-handle-suggestion]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const value = btn.getAttribute('data-handle-suggestion') || '';
+            const input = document.querySelector('input[name="handle"]');
+            if (!input) return;
+            input.value = value;
+            input.focus();
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+    });
 })();
 </script>
 @endpush

@@ -22,7 +22,10 @@ class ProfileController extends Controller
         $digestPreviewHtml = $preview['html'];
         $digestPreviewIsReal = $preview['isReal'];
         $digestPreviewCount = $preview['count'];
-        return view('user.profile.edit', compact('user', 'timezones', 'digestPreviewHtml', 'digestPreviewIsReal', 'digestPreviewCount'));
+        $handleSuggestions = session()->has('force_handle_rename')
+            ? \App\Modules\User\Services\HandleSuggester::suggest($user)
+            : [];
+        return view('user.profile.edit', compact('user', 'timezones', 'digestPreviewHtml', 'digestPreviewIsReal', 'digestPreviewCount', 'handleSuggestions'));
     }
 
     /**
