@@ -116,6 +116,8 @@ class PlanController extends Controller
             'monthly_price_secondary' => 'required|integer|min:0',
             'annual_price_secondary' => 'required|integer|min:0',
             'trial_days' => 'required|integer|min:0',
+            'grace_days' => 'required|integer|min:0|max:365',
+            'refund_window_days' => 'required|integer|min:0|max:365',
             'status' => 'required|in:active,inactive',
             'sort_order' => 'integer|min:0',
             'features' => 'nullable|array',

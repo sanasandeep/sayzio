@@ -8,6 +8,8 @@ use App\Modules\User\Models\PaymentAttempt;
 use App\Modules\User\Models\Subscription;
 use App\Services\PricingResolver;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 /**
@@ -129,6 +131,59 @@ class OfflineAdapter extends AbstractAdapter
             'raw_response' => ['note' => 'Offline renewal awaiting manual payment.'],
         ]);
 
+        $this->sendOfflineRenewalEmail($subscription, $invoice);
+
         return ['kind' => 'pending_offline', 'invoice_id' => $invoice->id];
+    }
+
+    /**
+     * Email the user payment instructions for an offline renewal invoice.
+     * Requirement: "email user payment link/instructions for offline renewals".
+     * Failure to send must NOT break the cron run — the invoice is already
+     * persisted and the admin will see it in /admin/payments/pending.
+     */
+    protected function sendOfflineRenewalEmail(Subscription $subscription, Invoice $invoice): void
+    {
+        try {
+            $email = optional($subscription->user)->email;
+            if (!$email) return;
+
+            $planName    = $subscription->plan?->name ?? 'your plan';
+            $amount      = number_format(((int) $invoice->grand_total_minor) / 100, 2) . ' ' . $invoice->currency;
+            $dueDate     = $subscription->current_period_end
+                ? \Carbon\Carbon::parse($subscription->current_period_end)->toFormattedDateString()
+                : 'the end of your current period';
+            $payeeName   = (string) $this->cred('payee_name', config('billing.merchant.name'));
+            $bankDetails = trim((string) $this->cred('bank_details', ''));
+            $upiId       = trim((string) $this->cred('upi_id', ''));
+            $instr       = trim((string) $this->cred('instructions', ''));
+            $invoiceUrl  = url('/user/billing');
+
+            $lines   = [];
+            $lines[] = "Your {$planName} renewal invoice {$invoice->number} is ready.";
+            $lines[] = "Amount due: {$amount}";
+            $lines[] = "Please pay by: {$dueDate}";
+            $lines[] = "";
+            $lines[] = "Payment method: manual bank transfer / UPI";
+            if ($payeeName !== '')   $lines[] = "Payee: {$payeeName}";
+            if ($bankDetails !== '') $lines[] = "Bank details:\n{$bankDetails}";
+            if ($upiId !== '')       $lines[] = "UPI: {$upiId}";
+            if ($instr !== '')       $lines[] = "\n{$instr}";
+            $lines[] = "";
+            $lines[] = "View invoice & payment instructions: {$invoiceUrl}";
+            $lines[] = "Once we confirm payment, your subscription renews automatically.";
+
+            $body    = implode("\n", $lines);
+            $subject = "Action required: pay your {$planName} renewal ({$invoice->number})";
+
+            Mail::raw($body, function ($m) use ($email, $subject) {
+                $m->to($email)->subject($subject);
+            });
+        } catch (\Throwable $e) {
+            Log::warning('Offline renewal email failed: ' . $e->getMessage(), [
+                'subscription_id' => $subscription->id,
+                'invoice_id'      => $invoice->id,
+            ]);
+        }
     }
 }

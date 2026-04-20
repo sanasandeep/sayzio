@@ -58,10 +58,25 @@
                     </div>
                 </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-white/80 mb-1">Trial Days</label>
-                    <input type="number" name="trial_days" value="{{ old('trial_days', $plan->trial_days) }}" min="0" required
-                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-white/80 mb-1">Trial Days</label>
+                        <input type="number" name="trial_days" value="{{ old('trial_days', $plan->trial_days) }}" min="0" required
+                               class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                        <p class="text-[10px] text-white/30 mt-1">Free trial length for new subscribers.</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-white/80 mb-1">Grace Days</label>
+                        <input type="number" name="grace_days" value="{{ old('grace_days', $plan->grace_days ?? 7) }}" min="0" max="365" required
+                               class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                        <p class="text-[10px] text-white/30 mt-1">Days features remain active after a failed renewal before auto-downgrade.</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-white/80 mb-1">Refund Window (days)</label>
+                        <input type="number" name="refund_window_days" value="{{ old('refund_window_days', $plan->refund_window_days ?? 7) }}" min="0" max="365" required
+                               class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                        <p class="text-[10px] text-white/30 mt-1">Self-serve refund eligibility window after payment.</p>
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">

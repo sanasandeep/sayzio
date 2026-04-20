@@ -58,9 +58,13 @@ class BillingController extends Controller
                 && (int) Refund::where('invoice_id', $inv->id)->where('status', 'succeeded')->sum('amount_minor') < (int) $inv->grand_total_minor;
         })->pluck('id')->all();
 
+        $addons = $subscription
+            ? $subscription->addons()->with('addon')->get()
+            : collect();
+
         return view('user.billing.show', compact(
             'subscription', 'invoices', 'creditNotes',
-            'graceDaysRemaining', 'refundableInvoices'
+            'graceDaysRemaining', 'refundableInvoices', 'addons'
         ));
     }
 

@@ -48,6 +48,29 @@
             @endif
           </div>
         </div>
+
+        @if (!empty($addons) && count($addons))
+          <hr class="my-3">
+          <h6 class="text-muted text-uppercase small mb-2">Active add-ons</h6>
+          <ul class="list-unstyled mb-0">
+            @foreach ($addons as $sa)
+              <li class="d-flex justify-content-between py-1 border-bottom">
+                <span>
+                  {{ $sa->addon->name ?? 'Add-on' }}
+                  @if (($sa->qty ?? 1) > 1)
+                    <span class="badge bg-light text-dark ms-1">× {{ $sa->qty }}</span>
+                  @endif
+                  @if (!empty($sa->addon?->type))
+                    <span class="badge bg-secondary ms-1 text-uppercase small">{{ str_replace('_', ' ', $sa->addon->type) }}</span>
+                  @endif
+                </span>
+              </li>
+            @endforeach
+          </ul>
+        @else
+          <hr class="my-3">
+          <div class="text-muted small">No add-ons on this subscription.</div>
+        @endif
       </div>
     </div>
   @else
