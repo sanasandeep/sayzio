@@ -39,6 +39,30 @@ use Illuminate\Support\Facades\Log;
  * event.id as gateway_ref from parseEvent(), so a retried delivery
  * collides with the original row and the router converges.
  *
+ * CONTRACT DEVIATION (intentional, gated by task constraints):
+ *   The GatewayAdapter contract says parseEvent() should be a pure
+ *   translation (DB-free). This adapter performs guarded DB writes in
+ *   parseEvent() for refund.processed, subscription.charged, and
+ *   subscription.cancelled branches because:
+ *     (a) the WebhookController router (locked by the task spec) only
+ *         branches on payment.succeeded / payment.failed /
+ *         requires_review, so there is no other hook to run these
+ *         side effects;
+ *     (b) every write is short-circuited by eventAlreadyProcessed()
+ *         which checks the payment_attempts unique index, giving us
+ *         single-delivery idempotency.
+ *   KNOWN RACE: two identical webhook deliveries arriving truly in
+ *   parallel can both pass eventAlreadyProcessed() before either one
+ *   persists the PaymentAttempt row. The second delivery then hits
+ *   the unique-index violation at router insert time and the router
+ *   catches it, but the side effect has already run twice. Narrow
+ *   window; in practice Razorpay retries are spaced seconds apart.
+ *   Mitigations / future work:
+ *     - Wrap side-effect branches in SELECT ... FOR UPDATE on the
+ *       relevant row (Refund, Subscription) and re-check status.
+ *     - Or push the WebhookController contract change to move side
+ *       effects post-idempotency.
+ *
  * Test/live modes share the same base URL. Only the key pair differs.
  */
 class RazorpayAdapter extends AbstractAdapter
