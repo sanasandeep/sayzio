@@ -93,6 +93,10 @@ class SocialOAuthController extends Controller
             Auth::login($user, true);
             $user->update(['last_login_at' => now()]);
             $request->session()->regenerate();
+
+            if ($redirect = \App\Modules\Admin\Services\HandleRenameEnforcer::maybeRedirect($user)) {
+                return $redirect;
+            }
             return redirect()->intended(route('user.dashboard'));
         }
 

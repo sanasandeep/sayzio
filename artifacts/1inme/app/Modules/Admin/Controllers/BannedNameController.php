@@ -4,10 +4,12 @@ namespace App\Modules\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\BannedName;
+use App\Modules\Admin\Models\BannedNameAcknowledgement;
 use App\Modules\Admin\Services\BannedNameChecker;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\LinkAlias;
 use App\Modules\User\Models\User;
+use App\Modules\User\Models\UserNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -17,7 +19,9 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * exact name (case-insensitive) from being used as a user profile
  * handle or as any link alias. Existing handles/aliases that already
  * match a newly-banned entry are left alone — the index view surfaces
- * a count so the admin can see what's currently in conflict.
+ * a count so the admin can see what's currently in conflict, and the
+ * conflicts() drill-in lets them act on each one (notify, acknowledge,
+ * or force a rename at next login).
  */
 class BannedNameController extends Controller
 {
@@ -26,7 +30,7 @@ class BannedNameController extends Controller
         $items = BannedName::orderBy('name')->get();
         $conflicts = [];
         foreach ($items as $item) {
-            $conflicts[$item->id] = $this->countConflicts($item->name);
+            $conflicts[$item->id] = $this->countConflicts($item);
         }
 
         return view('admin.banned-names.index', compact('items', 'conflicts'));
@@ -222,6 +226,110 @@ class BannedNameController extends Controller
             ->with('success', "'{$name}' removed from the banned list.");
     }
 
+    /**
+     * Drill-in view: list every existing user/link/extra-alias whose
+     * value still matches this banned entry, plus per-row actions.
+     */
+    public function conflicts(BannedName $bannedName)
+    {
+        $rows = $this->collectConflicts($bannedName);
+
+        return view('admin.banned-names.conflicts', [
+            'item' => $bannedName,
+            'rows' => $rows,
+        ]);
+    }
+
+    /**
+     * Send the affected user a system notification asking them to
+     * change their handle. Idempotent enough — we don't dedupe across
+     * sends so an admin can re-prompt if the first nudge was ignored.
+     */
+    public function notifyUser(Request $request, BannedName $bannedName, User $user)
+    {
+        if (mb_strtolower((string) $user->handle) !== mb_strtolower($bannedName->name)) {
+            return back()->with('error', "That user's handle no longer matches '{$bannedName->name}'.");
+        }
+
+        UserNotification::create([
+            'user_id'    => $user->id,
+            'type'       => 'handle_rename_requested',
+            'data'       => [
+                'message'      => "An admin has asked you to change your handle (@{$user->handle}). Please pick a new one in your profile settings.",
+                'banned_name'  => $bannedName->name,
+                'profile_url'  => route('user.profile.edit'),
+            ],
+            'created_at' => now(),
+        ]);
+
+        return back()->with('success', "Notified @{$user->handle} to pick a new handle.");
+    }
+
+    /**
+     * Mark a single conflict (user/link/extra) as acknowledged. The
+     * row stays visible in the drill-in (dimmed, with a "Re-open"
+     * action) so admins keep an audit trail, but it stops counting
+     * toward the conflicts badge on the index. Stored per banned-name
+     * so the same user can stay flagged on a different entry.
+     */
+    public function acknowledge(Request $request, BannedName $bannedName)
+    {
+        $data = $request->validate([
+            'conflict_type' => 'required|in:user,link,extra',
+            'conflict_id'   => 'required|integer|min:1',
+        ]);
+
+        BannedNameAcknowledgement::updateOrCreate(
+            [
+                'banned_name_id' => $bannedName->id,
+                'conflict_type'  => $data['conflict_type'],
+                'conflict_id'    => (int) $data['conflict_id'],
+            ],
+            [
+                'acknowledged_by' => Auth::guard('admin')->id(),
+                'acknowledged_at' => now(),
+            ]
+        );
+
+        return back()->with('success', 'Conflict acknowledged.');
+    }
+
+    /**
+     * Re-open a previously acknowledged conflict so it shows up again.
+     */
+    public function unacknowledge(Request $request, BannedName $bannedName)
+    {
+        $data = $request->validate([
+            'conflict_type' => 'required|in:user,link,extra',
+            'conflict_id'   => 'required|integer|min:1',
+        ]);
+
+        BannedNameAcknowledgement::where('banned_name_id', $bannedName->id)
+            ->where('conflict_type', $data['conflict_type'])
+            ->where('conflict_id', (int) $data['conflict_id'])
+            ->delete();
+
+        return back()->with('success', 'Acknowledgement cleared.');
+    }
+
+    /**
+     * Toggle the "force rename on next login" flag for this entry.
+     * When ON, affected users are bounced to their profile-edit page on
+     * their next sign-in until their handle no longer matches.
+     */
+    public function toggleForceRename(Request $request, BannedName $bannedName)
+    {
+        $bannedName->update([
+            'force_rename_on_login' => !$bannedName->force_rename_on_login,
+        ]);
+
+        $msg = $bannedName->force_rename_on_login
+            ? "Affected users will be prompted to rename on next login."
+            : "Force-rename prompt disabled.";
+
+        return back()->with('success', $msg);
+    }
+
     private function validateInput(Request $request, ?int $ignoreId = null): array
     {
         $request->merge(['name' => trim((string) $request->input('name'))]);
@@ -245,18 +353,90 @@ class BannedNameController extends Controller
     }
 
     /**
-     * Count existing rows that already match a banned name so the admin
-     * can see what would have been blocked had the entry existed
-     * earlier. Existing values are not retroactively renamed.
+     * Cheap aggregate for the index page: counts conflicts but excludes
+     * any that have already been acknowledged so the badge reflects
+     * what still needs attention.
      */
-    private function countConflicts(string $name): array
+    private function countConflicts(BannedName $item): array
     {
-        $lc = mb_strtolower($name);
+        $lc = mb_strtolower($item->name);
 
-        return [
-            'users'  => User::whereRaw('LOWER(handle) = ?', [$lc])->count(),
-            'links'  => Link::whereRaw('LOWER(alias) = ?', [$lc])->count(),
-            'extras' => LinkAlias::whereRaw('LOWER(alias) = ?', [$lc])->count(),
-        ];
+        $ackByType = BannedNameAcknowledgement::where('banned_name_id', $item->id)
+            ->get(['conflict_type', 'conflict_id'])
+            ->groupBy('conflict_type')
+            ->map(fn ($g) => $g->pluck('conflict_id')->all());
+
+        $userIds  = User::whereRaw('LOWER(handle) = ?', [$lc])->pluck('id');
+        $linkIds  = Link::whereRaw('LOWER(alias) = ?', [$lc])->pluck('id');
+        $extraIds = LinkAlias::whereRaw('LOWER(alias) = ?', [$lc])->pluck('id');
+
+        $users  = $userIds->diff($ackByType->get('user', []))->count();
+        $links  = $linkIds->diff($ackByType->get('link', []))->count();
+        $extras = $extraIds->diff($ackByType->get('extra', []))->count();
+
+        return ['users' => $users, 'links' => $links, 'extras' => $extras];
+    }
+
+    /**
+     * Full drill-in payload: each conflicting row with the data the
+     * admin needs to act on it (display name, owner, ack state).
+     */
+    private function collectConflicts(BannedName $item): array
+    {
+        $lc = mb_strtolower($item->name);
+
+        $acks = BannedNameAcknowledgement::where('banned_name_id', $item->id)
+            ->get()
+            ->keyBy(fn ($a) => $a->conflict_type . ':' . $a->conflict_id);
+
+        $users = User::whereRaw('LOWER(handle) = ?', [$lc])
+            ->orderBy('id')
+            ->get(['id', 'name', 'email', 'handle'])
+            ->map(function ($u) use ($acks) {
+                $key = 'user:' . $u->id;
+                return [
+                    'kind'         => 'user',
+                    'id'           => $u->id,
+                    'label'        => '@' . $u->handle,
+                    'detail'       => trim(($u->name ?: 'Unnamed user') . ' · ' . ($u->email ?: '')),
+                    'owner'        => $u,
+                    'acknowledged' => isset($acks[$key]) ? $acks[$key]->acknowledged_at : null,
+                ];
+            })->all();
+
+        $links = Link::whereRaw('LOWER(alias) = ?', [$lc])
+            ->with(['user:id,name,email,handle'])
+            ->orderBy('id')
+            ->get(['id', 'user_id', 'alias', 'title', 'type'])
+            ->map(function ($l) use ($acks) {
+                $key = 'link:' . $l->id;
+                return [
+                    'kind'         => 'link',
+                    'id'           => $l->id,
+                    'label'        => '/' . $l->alias,
+                    'detail'       => 'Primary alias for ' . ($l->title ?: ucfirst((string) $l->type) . ' link'),
+                    'owner'        => $l->user,
+                    'acknowledged' => isset($acks[$key]) ? $acks[$key]->acknowledged_at : null,
+                ];
+            })->all();
+
+        $extras = LinkAlias::whereRaw('LOWER(alias) = ?', [$lc])
+            ->with(['link:id,user_id,title,alias', 'link.user:id,name,email,handle'])
+            ->orderBy('id')
+            ->get()
+            ->map(function ($a) use ($acks) {
+                $key = 'extra:' . $a->id;
+                $link = $a->link;
+                return [
+                    'kind'         => 'extra',
+                    'id'           => $a->id,
+                    'label'        => '/' . $a->alias,
+                    'detail'       => 'Extra alias on ' . ($link?->title ?: ('/' . ($link?->alias ?? '?'))),
+                    'owner'        => $link?->user,
+                    'acknowledged' => isset($acks[$key]) ? $acks[$key]->acknowledged_at : null,
+                ];
+            })->all();
+
+        return array_merge($users, $links, $extras);
     }
 }

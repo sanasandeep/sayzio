@@ -103,6 +103,7 @@
                     <tr>
                         <th class="px-5 py-3 text-left">Name</th>
                         <th class="px-5 py-3 text-left">Note</th>
+                        <th class="px-5 py-3 text-center">Force rename<br><span class="text-[9px] normal-case text-white/30">on next login</span></th>
                         <th class="px-5 py-3 text-right">Existing conflicts</th>
                         <th class="px-5 py-3 text-right">Actions</th>
                     </tr>
@@ -114,15 +115,35 @@
                     <tr class="border-t border-white/5">
                         <td class="px-5 py-3 font-mono text-white/90">{{ $item->name }}</td>
                         <td class="px-5 py-3 text-white/60">{{ $item->note ?: '—' }}</td>
+                        <td class="px-5 py-3 text-center">
+                            <form method="POST" action="{{ route('admin.banned-names.toggle-force-rename', $item) }}" class="inline">
+                                @csrf
+                                @if($item->force_rename_on_login)
+                                    <button type="submit"
+                                            title="Currently ON — affected users are prompted on next login. Click to disable."
+                                            class="px-2 py-1 rounded-lg text-[11px] bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 border border-emerald-500/30 inline-flex items-center gap-1">
+                                        <i class="fas fa-toggle-on"></i> On
+                                    </button>
+                                @else
+                                    <button type="submit"
+                                            title="Currently OFF — affected users keep their handle. Click to require a rename on next login."
+                                            class="px-2 py-1 rounded-lg text-[11px] bg-white/5 hover:bg-white/10 text-white/50 border border-white/10 inline-flex items-center gap-1">
+                                        <i class="fas fa-toggle-off"></i> Off
+                                    </button>
+                                @endif
+                            </form>
+                        </td>
                         <td class="px-5 py-3 text-right">
                             @if($totalC === 0)
                                 <span class="text-white/30 text-xs">none</span>
                             @else
-                                <span class="inline-flex items-center gap-2 text-xs px-2 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-200"
-                                      title="{{ $c['users'] }} user handle(s), {{ $c['links'] }} primary alias(es), {{ $c['extras'] }} extra alias(es)">
+                                <a href="{{ route('admin.banned-names.conflicts', $item) }}"
+                                   class="inline-flex items-center gap-2 text-xs px-2 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-200"
+                                   title="View and act on the {{ $totalC }} conflicting record{{ $totalC === 1 ? '' : 's' }}">
                                     <i class="fas fa-triangle-exclamation"></i>
                                     {{ $totalC }} match{{ $totalC === 1 ? '' : 'es' }}
-                                </span>
+                                    <i class="fas fa-arrow-right text-[10px]"></i>
+                                </a>
                                 <div class="text-[10px] text-white/40 mt-1">
                                     {{ $c['users'] }} handle{{ $c['users'] === 1 ? '' : 's' }} ·
                                     {{ $c['links'] }} primary ·

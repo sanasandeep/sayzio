@@ -130,6 +130,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('{bannedName}/edit', [BannedNameController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
             Route::put('{bannedName}', [BannedNameController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
             Route::delete('{bannedName}', [BannedNameController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
+
+            Route::get('{bannedName}/conflicts', [BannedNameController::class, 'conflicts'])->middleware(CheckPermission::class . ':settings.manage')->name('conflicts');
+            Route::post('{bannedName}/notify-user/{user}', [BannedNameController::class, 'notifyUser'])->middleware(CheckPermission::class . ':settings.manage')->name('notify-user');
+            Route::post('{bannedName}/acknowledge', [BannedNameController::class, 'acknowledge'])->middleware(CheckPermission::class . ':settings.manage')->name('acknowledge');
+            Route::post('{bannedName}/unacknowledge', [BannedNameController::class, 'unacknowledge'])->middleware(CheckPermission::class . ':settings.manage')->name('unacknowledge');
+            Route::post('{bannedName}/toggle-force-rename', [BannedNameController::class, 'toggleForceRename'])->middleware(CheckPermission::class . ':settings.manage')->name('toggle-force-rename');
         });
 
         Route::prefix('referrals')->name('referrals.')->group(function () {

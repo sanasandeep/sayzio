@@ -155,7 +155,16 @@ class ProfileController extends Controller
 
         $previousAvatar = $user->avatar;
         $previousName   = $user->name;
+        $previousHandle = $user->handle;
         $user->update($validated);
+
+        // If we were forcing this user to rename their handle (admin
+        // banned their previous handle and toggled "force rename on
+        // next login"), clear the flag now that they've successfully
+        // picked something else.
+        if (session()->has('force_handle_rename') && $user->handle !== $previousHandle) {
+            session()->forget('force_handle_rename');
+        }
 
         // Profile-update feed event (avatar/name changes are notable for followers).
         if ($user->avatar !== $previousAvatar || $user->name !== $previousName) {

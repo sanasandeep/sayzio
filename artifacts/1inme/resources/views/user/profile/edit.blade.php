@@ -5,6 +5,21 @@
 <div class="max-w-2xl">
     <h1 class="text-2xl font-bold text-white mb-6">Profile Settings</h1>
 
+    @if(session('force_handle_rename'))
+        <div class="rounded-xl px-4 py-3 mb-4 bg-amber-500/10 border border-amber-500/40 text-amber-100 text-sm">
+            <div class="flex items-start gap-3">
+                <i class="fas fa-triangle-exclamation mt-0.5"></i>
+                <div>
+                    <div class="font-semibold">Pick a new handle to continue</div>
+                    <div class="mt-1 text-amber-100/80">
+                        An admin has reserved <span class="font-mono">{{ session('force_handle_rename') }}</span>,
+                        which matches your current handle. Please choose a different one below before continuing.
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <div class="glass rounded-2xl p-6 mb-6">
         <h2 class="text-lg font-semibold text-white mb-4">Personal Information</h2>
         <form method="POST" action="{{ route('user.profile.update') }}" enctype="multipart/form-data">

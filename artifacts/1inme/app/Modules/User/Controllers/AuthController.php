@@ -192,6 +192,10 @@ class AuthController extends Controller
             $user->update(['last_login_at' => now()]);
             session()->forget(['otp_identifier', 'otp_type']);
             $request->session()->regenerate();
+
+            if ($redirect = \App\Modules\Admin\Services\HandleRenameEnforcer::maybeRedirect($user)) {
+                return $redirect;
+            }
             return redirect()->intended(route('user.dashboard'));
         }
 

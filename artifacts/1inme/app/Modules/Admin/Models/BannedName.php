@@ -13,10 +13,19 @@ use Illuminate\Database\Eloquent\Model;
  */
 class BannedName extends Model
 {
-    protected $fillable = ['name', 'note', 'created_by'];
+    protected $fillable = ['name', 'note', 'created_by', 'force_rename_on_login'];
+
+    protected $casts = [
+        'force_rename_on_login' => 'boolean',
+    ];
 
     public function creator()
     {
         return $this->belongsTo(Admin::class, 'created_by');
+    }
+
+    public function acknowledgements()
+    {
+        return $this->hasMany(BannedNameAcknowledgement::class);
     }
 }
