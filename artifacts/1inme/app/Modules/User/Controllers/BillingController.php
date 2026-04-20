@@ -75,10 +75,14 @@ class BillingController extends Controller
         if (!$current) {
             return redirect()->route('user.upgrade');
         }
-        $plans = Plan::active()->ordered()->get()->filter(function (Plan $p) use ($current, $user) {
+        // Currency is locked on the subscription — list upgrade options
+        // by comparing prices in the SUBSCRIPTION's currency, never the
+        // user's current country/session.
+        $subCurrency = (string) $current->currency;
+        $plans = Plan::active()->ordered()->get()->filter(function (Plan $p) use ($current, $subCurrency) {
             return $p->id !== $current->plan_id
-                && ProrationCalculator::resolveMinor($p, $current->billing_cycle, $user)
-                    > ProrationCalculator::resolveMinor($current->plan, $current->billing_cycle, $user);
+                && ProrationCalculator::resolveMinor($p, $current->billing_cycle, null, $subCurrency)
+                    > ProrationCalculator::resolveMinor($current->plan, $current->billing_cycle, null, $subCurrency);
         });
         return view('user.billing.upgrade', compact('current', 'plans'));
     }
@@ -97,6 +101,7 @@ class BillingController extends Controller
             $current->billing_cycle, now(),
             Carbon::parse($current->current_period_end),
             $user,
+            (string) $current->currency,
         );
         abort_unless($calc['is_upgrade'], 422, 'Downgrades apply at the end of the current cycle only.');
         return view('user.billing.upgrade_confirm', [
@@ -126,6 +131,7 @@ class BillingController extends Controller
             $current->billing_cycle, now(),
             Carbon::parse($current->current_period_end),
             $user,
+            (string) $current->currency,
         );
         if (!$calc['is_upgrade'] || $calc['amount_minor'] <= 0) {
             return back()->with('error', 'Nothing to charge for this change.');
@@ -185,7 +191,7 @@ class BillingController extends Controller
             return back()->with('error', 'The refund window for this invoice has closed. Please contact support.');
         }
         try {
-            $refunds->issue($invoice, (int) $invoice->grand_total_minor, [
+            $refund = $refunds->issue($invoice, (int) $invoice->grand_total_minor, [
                 'reason'         => 'Self-serve refund within policy window',
                 'user_initiated' => true,
                 'downgrade_on_success' => true,
@@ -193,7 +199,15 @@ class BillingController extends Controller
         } catch (\Throwable $e) {
             return back()->with('error', 'Refund could not be issued: ' . $e->getMessage());
         }
-        return redirect()->route('user.billing.show')->with('status', 'Refund issued. You are back on the Free plan.');
+        // Distinguish the offline "pending admin confirmation" case
+        // from a gateway-completed refund — the user must not be told
+        // they're back on Free when the refund hasn't actually been
+        // paid out yet.
+        $status = is_object($refund) ? (string) ($refund->status ?? 'pending') : 'pending';
+        $msg = $status === 'succeeded'
+            ? 'Refund issued. You are back on the Free plan.'
+            : 'Refund request received. We\'ll confirm the payout and then downgrade your plan — you\'ll get an email once it\'s complete.';
+        return redirect()->route('user.billing.show')->with('status', $msg);
     }
 
     public function creditNotePdf(Request $request, CreditNote $creditNote)

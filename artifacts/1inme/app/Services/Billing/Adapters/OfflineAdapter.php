@@ -99,7 +99,16 @@ class OfflineAdapter extends AbstractAdapter
         $user = $subscription->user;
         $plan = $subscription->plan;
 
-        $price = PricingResolver::priceFor($plan, $user, $subscription->billing_cycle);
+        // Currency is LOCKED on the subscription at creation time.
+        // Recurring charges MUST resolve pricing in that currency — we
+        // never re-derive from the user's country/session at renewal,
+        // otherwise a user who changed country mid-cycle would be
+        // charged in the wrong currency.
+        $price = PricingResolver::priceForCurrency(
+            $plan,
+            (string) $subscription->currency,
+            $subscription->billing_cycle
+        );
         $items = [[
             'label'        => $plan->name . ' (' . $subscription->billing_cycle . ' renewal)',
             'amount_minor' => (int) $price['amount_minor'],

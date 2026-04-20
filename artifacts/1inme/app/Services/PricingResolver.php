@@ -76,6 +76,19 @@ class PricingResolver
         return self::buildPrice($priceable, self::currencyForCountry($countryCode), $cycle);
     }
 
+    /**
+     * Currency-locked lookup. Used by lifecycle paths (proration,
+     * recurring charges) that must NOT re-derive the currency from the
+     * user's current country/session — once a subscription is created
+     * its currency is locked for the life of the subscription and only
+     * changes at a new-subscription boundary.
+     */
+    public static function priceForCurrency($priceable, string $currency, string $cycle = 'monthly'): array
+    {
+        $currency = in_array($currency, ['USD', 'INR'], true) ? $currency : 'USD';
+        return self::buildPrice($priceable, $currency, $cycle);
+    }
+
     private static function buildPrice($priceable, string $currency, string $cycle): array
     {
         $cycle = $cycle === 'annual' ? 'annual' : 'monthly';

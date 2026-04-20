@@ -75,7 +75,12 @@ class ProrationCalculator
     /**
      * Plan-level entry point used by the upgrade controller. Resolves
      * prices from the authoritative `prices` table via PricingResolver
-     * in the user's billing currency, then delegates to prorateMinor().
+     * in the CURRENCY LOCKED ON THE SUBSCRIPTION (never re-derived from
+     * the user's country/session — that would let a currency change
+     * between sessions silently recompute the upgrade charge in the
+     * wrong currency). Callers must pass `$currency` explicitly; the
+     * `$user` arg is retained for backwards compatibility with legacy
+     * call-sites but is ignored when `$currency` is supplied.
      */
     public static function prorate(
         Plan $from,
@@ -83,26 +88,31 @@ class ProrationCalculator
         string $cycle,
         \DateTimeInterface $now,
         \DateTimeInterface $currentPeriodEnd,
-        ?User $user = null
+        ?User $user = null,
+        ?string $currency = null
     ): array {
         if ($from->id === $to->id) {
             return ['amount_minor' => 0, 'days_left' => 0, 'days_in_cycle' => $cycle === 'annual' ? 365 : 30, 'is_upgrade' => false];
         }
-        $fromMinor = self::resolveMinor($from, $cycle, $user);
-        $toMinor   = self::resolveMinor($to,   $cycle, $user);
+        $fromMinor = self::resolveMinor($from, $cycle, $user, $currency);
+        $toMinor   = self::resolveMinor($to,   $cycle, $user, $currency);
         return self::prorateMinor($fromMinor, $toMinor, $cycle, $now, $currentPeriodEnd);
     }
 
     /**
      * Resolve a plan's price in minor units using the authoritative
-     * `prices` table. Falls back to the legacy decimal column only if
-     * no row exists (pre-backfill rows or test fixtures) — keeps the
-     * calculator usable in unit tests that don't create Price rows.
+     * `prices` table. When `$currency` is provided (lifecycle paths),
+     * the lookup is LOCKED to that currency — no country/session
+     * re-derivation. Legacy call-sites that only pass `$user` still
+     * work via country/session resolution for display pricing.
+     * Falls back to the legacy decimal column only if no row exists.
      */
-    public static function resolveMinor(Plan $plan, string $cycle, ?User $user = null): int
+    public static function resolveMinor(Plan $plan, string $cycle, ?User $user = null, ?string $currency = null): int
     {
         $cycle = $cycle === 'annual' ? 'annual' : 'monthly';
-        $resolved = PricingResolver::priceFor($plan, $user, $cycle);
+        $resolved = $currency !== null
+            ? PricingResolver::priceForCurrency($plan, $currency, $cycle)
+            : PricingResolver::priceFor($plan, $user, $cycle);
         $minor = (int) ($resolved['amount_minor'] ?? 0);
         if ($minor > 0) return $minor;
         // Legacy fallback: tests and pre-backfill rows.

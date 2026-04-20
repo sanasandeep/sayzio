@@ -95,6 +95,12 @@
                     onsubmit="return confirm('Refund and downgrade to Free?');">@csrf
                 <button class="btn btn-link btn-sm text-danger p-0">Refund &amp; downgrade</button>
               </form>
+            @elseif ($inv->status === 'paid' && $inv->paid_at)
+              <a href="mailto:support@1inme.com?subject=Refund%20request%20for%20invoice%20{{ urlencode($inv->number) }}"
+                 class="btn btn-link btn-sm text-muted p-0 ms-2"
+                 title="The self-serve refund window for this invoice has closed.">
+                Contact support
+              </a>
             @endif
           </td>
         </tr>
