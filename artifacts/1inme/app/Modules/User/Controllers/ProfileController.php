@@ -99,6 +99,21 @@ class ProfileController extends Controller
         ];
     }
 
+    /**
+     * JSON endpoint used by the profile edit page to refresh the live
+     * digest preview (badge count + iframe HTML) without a full reload.
+     */
+    public function digestPreview()
+    {
+        $user = Auth::user();
+        $preview = $this->renderDigestPreview($user);
+        return response()->json([
+            'isReal' => $preview['isReal'],
+            'count'  => $preview['count'],
+            'html'   => $preview['html'],
+        ]);
+    }
+
     public function update(Request $request)
     {
         $user = Auth::user();

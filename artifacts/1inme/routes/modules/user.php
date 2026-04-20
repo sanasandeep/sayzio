@@ -73,6 +73,7 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::get('/', [ProfileController::class, 'edit'])->name('edit');
             Route::put('/', [ProfileController::class, 'update'])->name('update');
             Route::post('/digest/sample', [ProfileController::class, 'sendSample'])->name('digest.sample');
+            Route::get('/digest/preview', [ProfileController::class, 'digestPreview'])->name('digest.preview');
         });
 
         Route::resource('projects', ProjectController::class)->except(['store']);
