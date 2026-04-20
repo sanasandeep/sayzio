@@ -53,17 +53,50 @@ class CashfreeAdapter extends AbstractAdapter
     public function slug(): string { return 'cashfree'; }
     public function displayName(): string { return 'Cashfree'; }
 
+    /**
+     * Resolve the effective gateway mode.
+     *
+     * The admin UI persists `gateway_settings.mode` as 'test' or 'live'
+     * (single column, NOT inside the encrypted credentials blob).
+     * Older tests/seeds may still stash `mode` inside credentials; we
+     * accept either. 'test' maps to Cashfree's `sandbox` host bucket.
+     */
+    protected function effectiveMode(): string
+    {
+        $col = $this->settings?->mode;
+        $cr  = (string) $this->cred('mode', '');
+        $raw = (string) ($col ?: $cr ?: 'live');
+        return $raw === 'test' ? 'sandbox' : $raw;
+    }
+
+    /**
+     * Read a credential with fallbacks — the admin settings UI uses
+     * Cashfree's merchant-dashboard naming (`app_id`, `secret_key`),
+     * while this adapter was written against the API's own naming
+     * (`client_id`, `client_secret`). We accept either so admins
+     * configuring through the UI and tests/seeds using API names both
+     * work.
+     */
+    protected function credWithAlias(array $keys, string $default = ''): string
+    {
+        foreach ($keys as $k) {
+            $v = (string) $this->cred($k, '');
+            if ($v !== '') return $v;
+        }
+        return $default;
+    }
+
     protected function apiBase(): string
     {
-        return ((string) $this->cred('mode', 'live')) === 'sandbox'
+        return $this->effectiveMode() === 'sandbox'
             ? 'https://sandbox.cashfree.com/pg'
             : 'https://api.cashfree.com/pg';
     }
 
     protected function httpPg()
     {
-        $id     = (string) $this->cred('client_id', '');
-        $secret = (string) $this->cred('client_secret', '');
+        $id     = $this->credWithAlias(['app_id', 'client_id']);
+        $secret = $this->credWithAlias(['secret_key', 'client_secret']);
         if ($id === '' || $secret === '') {
             throw new NotImplementedException('Cashfree credentials are not configured.');
         }
@@ -129,7 +162,7 @@ class CashfreeAdapter extends AbstractAdapter
                 'payment_session_id' => $handoff['session_id'] ?? null,
                 'order_id'           => $handoff['kind'] === 'order' ? $handoff['ref_id'] : null,
                 'subscription_id'    => $handoff['kind'] === 'subscription' ? $handoff['ref_id'] : null,
-                'mode'               => (string) $this->cred('mode', 'live'),
+                'mode'               => $this->effectiveMode(),
                 'currency'           => strtoupper((string) $invoice->currency),
                 'amount_minor'       => (int) $invoice->grand_total_minor,
                 'description'        => 'Invoice ' . $invoice->number,
@@ -283,7 +316,10 @@ class CashfreeAdapter extends AbstractAdapter
 
     public function verifyWebhook(Request $request): bool
     {
-        $secret    = (string) $this->cred('client_secret', '');
+        // Admin UI exposes a dedicated `webhook_secret` field; if left
+        // blank, Cashfree's PG v2 spec permits using the merchant
+        // Secret Key (a.k.a. `client_secret` in the API) for HMAC.
+        $secret    = $this->credWithAlias(['webhook_secret', 'secret_key', 'client_secret']);
         $sig       = (string) $request->header('x-webhook-signature', '');
         $timestamp = (string) $request->header('x-webhook-timestamp', '');
         if ($secret === '' || $sig === '' || $timestamp === '') return false;

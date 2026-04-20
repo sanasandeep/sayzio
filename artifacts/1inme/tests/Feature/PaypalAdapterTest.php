@@ -88,6 +88,46 @@ class PaypalAdapterTest extends TestCase
         ];
     }
 
+    public function test_admin_ui_test_mode_column_routes_to_sandbox_host(): void
+    {
+        // Regression: the admin GatewaySettingsController persists the
+        // gateway mode on the `gateway_settings.mode` COLUMN as
+        // 'test'|'live' (outside the encrypted credentials blob). The
+        // adapter must honor that column (mapping 'test' → sandbox) —
+        // without this, an admin who flips PayPal to test through the
+        // UI would still hit api-m.paypal.com (LIVE).
+        $row = GatewaySetting::where('gateway_slug', 'paypal')->first();
+        $row->mode = 'test'; // UI persists this string.
+        $row->credentials_encrypted = [
+            // NOTE: no 'mode' key inside the blob — only the column.
+            'client_id'     => 'AXxxClient',
+            'client_secret' => 'EXxxSecret',
+            'webhook_id'    => 'WH-ABC',
+        ];
+        $row->save();
+
+        Http::fake($this->tokenFake() + [
+            'api-m.sandbox.paypal.com/v2/checkout/orders' => Http::response([
+                'id' => 'ORDER-UI',
+                'status' => 'CREATED',
+                'links' => [['rel' => 'approve', 'href' => 'https://paypal.com/checkoutnow?token=ORDER-UI']],
+            ], 201),
+        ]);
+
+        $user    = $this->buyer();
+        $invoice = ActivateSubscription::issuePendingInvoice(
+            $user,
+            [['label' => 'One-off', 'amount_minor' => 2500, 'quantity' => 1, 'meta' => []]],
+            'USD',
+        );
+        $out = app(GatewayManager::class)->for('paypal')->createCheckout($invoice);
+        $this->assertSame('view', $out['kind']);
+        $this->assertSame('ORDER-UI', $out['data']['order_id']);
+        $this->assertSame('sandbox', $out['data']['mode']);
+        Http::assertSent(fn ($req) =>
+            str_contains($req->url(), 'api-m.sandbox.paypal.com/v2/checkout/orders'));
+    }
+
     public function test_one_time_order_checkout_returns_view_with_order_id(): void
     {
         Http::fake($this->tokenFake() + [

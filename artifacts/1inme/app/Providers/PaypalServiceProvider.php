@@ -89,7 +89,15 @@ class PaypalServiceProvider extends ServiceProvider
         $clientId = (string) ($setting?->credential('client_id', '') ?? '');
         $secret   = (string) ($setting?->credential('client_secret', '') ?? '');
         if ($clientId === '' || $secret === '') return;
-        $apiBase = ((string) ($setting->credential('mode', 'live') ?? 'live')) === 'sandbox'
+        // Mirror PaypalAdapter::effectiveMode(): the admin UI persists
+        // mode on the `gateway_settings.mode` COLUMN as 'test'|'live'
+        // (outside the encrypted blob). Legacy seeds may still stash
+        // `mode` inside credentials. 'test' maps to PayPal's sandbox.
+        $modeCol = (string) ($setting?->mode ?? '');
+        $modeCr  = (string) ($setting?->credential('mode', '') ?? '');
+        $rawMode = $modeCol !== '' ? $modeCol : ($modeCr !== '' ? $modeCr : 'live');
+        $mode    = $rawMode === 'test' ? 'sandbox' : $rawMode;
+        $apiBase = $mode === 'sandbox'
             ? 'https://api-m.sandbox.paypal.com'
             : 'https://api-m.paypal.com';
 

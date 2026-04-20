@@ -66,9 +66,25 @@ class PaypalAdapter extends AbstractAdapter
     public function slug(): string { return 'paypal'; }
     public function displayName(): string { return 'PayPal'; }
 
+    /**
+     * Resolve the effective gateway mode.
+     *
+     * The admin UI persists `gateway_settings.mode` as 'test' or 'live'
+     * (single column, NOT inside the encrypted credentials blob).
+     * Older tests/seeds may still stash `mode` inside credentials; we
+     * accept either. 'test' maps to PayPal's `sandbox` host bucket.
+     */
+    protected function effectiveMode(): string
+    {
+        $col = $this->settings?->mode;
+        $cr  = (string) $this->cred('mode', '');
+        $raw = (string) ($col ?: $cr ?: 'live');
+        return $raw === 'test' ? 'sandbox' : $raw;
+    }
+
     protected function apiBase(): string
     {
-        return ((string) $this->cred('mode', 'live')) === 'sandbox'
+        return $this->effectiveMode() === 'sandbox'
             ? 'https://api-m.sandbox.paypal.com'
             : 'https://api-m.paypal.com';
     }
@@ -136,7 +152,7 @@ class PaypalAdapter extends AbstractAdapter
                 'client_id'       => $clientId,
                 'order_id'        => $handoff['kind'] === 'order' ? $handoff['ref_id'] : null,
                 'subscription_id' => $handoff['kind'] === 'subscription' ? $handoff['ref_id'] : null,
-                'mode'            => (string) $this->cred('mode', 'live'),
+                'mode'            => $this->effectiveMode(),
                 'currency'        => strtoupper((string) $invoice->currency),
                 'description'     => 'Invoice ' . $invoice->number,
             ],

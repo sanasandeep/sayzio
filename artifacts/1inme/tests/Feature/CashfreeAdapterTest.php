@@ -362,6 +362,66 @@ class CashfreeAdapterTest extends TestCase
         $this->assertSame('paid', $invoice->status);
     }
 
+    public function test_admin_ui_field_names_and_test_mode_route_to_sandbox(): void
+    {
+        // Regression: the admin GatewaySettingsController stores
+        // `app_id`, `secret_key`, `webhook_secret` and the `mode`
+        // COLUMN as 'test'|'live'. The adapter must accept this
+        // exact contract (aliasing to its legacy `client_id`/
+        // `client_secret` naming) and must treat column mode='test'
+        // as sandbox. Without this, admins cannot actually configure
+        // Cashfree through the UI.
+        $row = GatewaySetting::where('gateway_slug', 'cashfree')->first();
+        $row->is_enabled = true;
+        $row->mode = 'test';
+        $row->credentials_encrypted = [
+            'app_id'         => 'UI_APP_ID',
+            'secret_key'     => 'UI_SECRET',
+            'webhook_secret' => 'UI_WEBHOOK',
+        ];
+        $row->save();
+
+        Http::fake([
+            // ONLY the sandbox URL is stubbed; a live-host call fails.
+            'sandbox.cashfree.com/pg/orders' => Http::response([
+                'order_id' => 'ORD-UI',
+                'payment_session_id' => 'sess_ui_1',
+            ], 200),
+        ]);
+
+        $user = $this->buyer();
+        $invoice = ActivateSubscription::issuePendingInvoice(
+            $user,
+            [['label' => 'One-off', 'amount_minor' => 50000, 'quantity' => 1, 'meta' => []]],
+            'INR',
+        );
+        $out = app(GatewayManager::class)->for('cashfree')->createCheckout($invoice);
+        $this->assertSame('view', $out['kind']);
+        $this->assertSame('sess_ui_1', $out['data']['payment_session_id']);
+        // Assert x-client-id used the UI field name 'app_id' value.
+        Http::assertSent(fn ($req) =>
+            $req->url() === 'https://sandbox.cashfree.com/pg/orders'
+            && $req->header('x-client-id')[0] === 'UI_APP_ID'
+            && $req->header('x-client-secret')[0] === 'UI_SECRET'
+        );
+
+        // Webhook must verify using `webhook_secret`, not `secret_key`.
+        $body = json_encode(['type' => 'PAYMENT_SUCCESS_WEBHOOK', 'data' => ['order' => ['order_id' => 'ORD-UI']]]);
+        $tsMs = (int) floor(microtime(true) * 1000);
+        $sig  = base64_encode(hash_hmac('sha256', $tsMs . $body, 'UI_WEBHOOK', true));
+
+        $resp = $this->call('POST', '/webhooks/cashfree', [], [], [], [
+            'CONTENT_TYPE'             => 'application/json',
+            'HTTP_X-WEBHOOK-TIMESTAMP' => (string) $tsMs,
+            'HTTP_X-WEBHOOK-SIGNATURE' => $sig,
+        ], $body);
+        // Controller returns "invalid signature" (400) if HMAC fails,
+        // otherwise falls through to downstream errors ("missing
+        // gateway_ref"/"invoice not found") — any of the latter proves
+        // the signature verified with webhook_secret='UI_WEBHOOK'.
+        $this->assertStringNotContainsString('invalid signature', (string) $resp->getContent());
+    }
+
     public function test_refund_calls_cashfree_api_and_returns_ref(): void
     {
         Http::fake([

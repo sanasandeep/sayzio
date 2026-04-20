@@ -72,10 +72,25 @@ class CashfreeServiceProvider extends ServiceProvider
         if (!$isUpgrade || !$oldSubId) return;
 
         $setting  = GatewaySetting::where('gateway_slug', 'cashfree')->first();
-        $id       = (string) ($setting?->credential('client_id', '') ?? '');
-        $secret   = (string) ($setting?->credential('client_secret', '') ?? '');
+        // Mirror CashfreeAdapter::credWithAlias — admin UI persists
+        // `app_id`/`secret_key`, legacy seeds use `client_id`/`client_secret`.
+        $pick = function (array $keys) use ($setting): string {
+            foreach ($keys as $k) {
+                $v = (string) ($setting?->credential($k, '') ?? '');
+                if ($v !== '') return $v;
+            }
+            return '';
+        };
+        $id     = $pick(['app_id', 'client_id']);
+        $secret = $pick(['secret_key', 'client_secret']);
         if ($id === '' || $secret === '') return;
-        $apiBase = ((string) ($setting->credential('mode', 'live') ?? 'live')) === 'sandbox'
+        // Mirror CashfreeAdapter::effectiveMode — the admin UI stores
+        // mode on the `gateway_settings.mode` COLUMN as 'test'|'live'.
+        $modeCol = (string) ($setting?->mode ?? '');
+        $modeCr  = (string) ($setting?->credential('mode', '') ?? '');
+        $rawMode = $modeCol !== '' ? $modeCol : ($modeCr !== '' ? $modeCr : 'live');
+        $mode    = $rawMode === 'test' ? 'sandbox' : $rawMode;
+        $apiBase = $mode === 'sandbox'
             ? 'https://sandbox.cashfree.com/pg'
             : 'https://api.cashfree.com/pg';
 
