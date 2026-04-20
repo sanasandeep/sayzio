@@ -17,6 +17,24 @@
     // with no matching connected account.
     $connCounts = $myConnections->groupBy('platform')->map->count()->toArray();
 
+    // Per-platform OAuth-availability map, mirroring the notices on the
+    // Connected Accounts page. Values:
+    //   'available'   — server has CLIENT_ID + CLIENT_SECRET, one-click works.
+    //   'unavailable' — platform supports OAuth but admin hasn't configured it.
+    //   (missing)     — platform isn't OAuth-capable (handle/manual only).
+    // We deliberately don't expose env var names — only the user-facing state.
+    $oauthSvc = app(\App\Modules\User\Services\SocialFollowers\SocialOAuthService::class);
+    $oauthHints = [];
+    foreach (array_keys(\App\Modules\User\Services\SocialFollowers\SocialOAuthService::PROVIDERS) as $_p) {
+        $oauthHints[$_p] = $oauthSvc->isConfigured($_p) ? 'available' : 'unavailable';
+    }
+    // Human-friendly labels for every platform the editor knows about, so the
+    // hint reads "LinkedIn"/"TikTok" rather than the raw slug.
+    $platformLabels = [];
+    foreach ($socialOptions as $_p) {
+        $platformLabels[$_p] = \App\Modules\User\Models\SocialAccountConnection::platformLabel($_p);
+    }
+
     // Decide which editor to show. The grouped variant (`socials_multi`) keeps
     // its entries inside `settings.groups[*].platforms`; the standard and
     // custom variants store a flat `settings.platforms` list.
@@ -48,7 +66,7 @@
 
 @if($isGrouped)
 {{-- Grouped editor (socials_multi) ------------------------------------- --}}
-<div x-data="{ groups: {{ json_encode(array_values($initialGroups)) }}, connCounts: {{ json_encode($connCounts) }} }">
+<div x-data="{ groups: {{ json_encode(array_values($initialGroups)) }}, connCounts: {{ json_encode($connCounts) }}, oauthHints: {{ json_encode($oauthHints) }}, platformLabels: {{ json_encode($platformLabels) }} }">
     <div class="flex items-center justify-between mb-2">
         <label class="{{ $labelClass }} mb-0">Social Groups</label>
         <a href="{{ $connectedRoute }}" target="_blank" class="text-[10px] text-violet-400 hover:text-violet-300">
@@ -120,6 +138,27 @@
                         </div>
                     </div>
 
+                    {{-- OAuth-availability hint for the selected platform —
+                         mirrors the wording on the Connected Accounts page so
+                         creators know up front whether a Follow button will be
+                         able to auto-refresh its count. --}}
+                    <p x-show="groups[gi].platforms[i].name && oauthHints[groups[gi].platforms[i].name] === 'available'"
+                       class="text-[11px] text-emerald-300/90 bg-emerald-500/10 border border-emerald-500/20 rounded px-2 py-1.5"
+                       style="display: none;">
+                        <i class="fas fa-circle-check mr-1"></i>
+                        One-click connect available for <span x-text="platformLabels[groups[gi].platforms[i].name] || groups[gi].platforms[i].name"></span>.
+                        <a href="{{ $connectedRoute }}" target="_blank" class="underline hover:text-emerald-200">Connect now</a>
+                        — no token to copy or paste.
+                    </p>
+                    <p x-show="groups[gi].platforms[i].name && oauthHints[groups[gi].platforms[i].name] === 'unavailable'"
+                       class="text-[11px] text-amber-300/80 bg-amber-500/10 border border-amber-500/20 rounded px-2 py-1.5"
+                       style="display: none;">
+                        <i class="fas fa-circle-info mr-1"></i>
+                        One-click connect isn't enabled for <span x-text="platformLabels[groups[gi].platforms[i].name] || groups[gi].platforms[i].name"></span> on this server yet.
+                        You can <a href="{{ $connectedRoute }}" target="_blank" class="underline hover:text-amber-200">paste a long-lived access token</a>,
+                        or ask a server admin to enable it.
+                    </p>
+
                     {{-- Inline warning when "Follow with count" is selected for a
                          platform that has no matching connected account. --}}
                     <p x-show="groups[gi].platforms[i].display === 'follow_count' && groups[gi].platforms[i].name && (!connCounts[groups[gi].platforms[i].name] || connCounts[groups[gi].platforms[i].name] === 0)"
@@ -158,7 +197,7 @@
 </div>
 @else
 {{-- Standard / custom editor (flat platforms) -------------------------- --}}
-<div x-data="{ platforms: {{ json_encode($s['platforms'] ?? []) }}, connCounts: {{ json_encode($connCounts) }} }">
+<div x-data="{ platforms: {{ json_encode($s['platforms'] ?? []) }}, connCounts: {{ json_encode($connCounts) }}, oauthHints: {{ json_encode($oauthHints) }}, platformLabels: {{ json_encode($platformLabels) }} }">
     <div class="flex items-center justify-between mb-2">
         <label class="{{ $labelClass }} mb-0">Social Platforms</label>
         <a href="{{ $connectedRoute }}" target="_blank" class="text-[10px] text-violet-400 hover:text-violet-300">
@@ -211,6 +250,27 @@
                     </select>
                 </div>
             </div>
+
+            {{-- OAuth-availability hint for the selected platform —
+                 mirrors the wording on the Connected Accounts page so
+                 creators know up front whether a Follow button will be
+                 able to auto-refresh its count. --}}
+            <p x-show="platforms[i].name && oauthHints[platforms[i].name] === 'available'"
+               class="text-[11px] text-emerald-300/90 bg-emerald-500/10 border border-emerald-500/20 rounded px-2 py-1.5"
+               style="display: none;">
+                <i class="fas fa-circle-check mr-1"></i>
+                One-click connect available for <span x-text="platformLabels[platforms[i].name] || platforms[i].name"></span>.
+                <a href="{{ $connectedRoute }}" target="_blank" class="underline hover:text-emerald-200">Connect now</a>
+                — no token to copy or paste.
+            </p>
+            <p x-show="platforms[i].name && oauthHints[platforms[i].name] === 'unavailable'"
+               class="text-[11px] text-amber-300/80 bg-amber-500/10 border border-amber-500/20 rounded px-2 py-1.5"
+               style="display: none;">
+                <i class="fas fa-circle-info mr-1"></i>
+                One-click connect isn't enabled for <span x-text="platformLabels[platforms[i].name] || platforms[i].name"></span> on this server yet.
+                You can <a href="{{ $connectedRoute }}" target="_blank" class="underline hover:text-amber-200">paste a long-lived access token</a>,
+                or ask a server admin to enable it.
+            </p>
 
             {{-- Inline warning when "Follow with count" is selected for a
                  platform that has no matching connected account. The count
