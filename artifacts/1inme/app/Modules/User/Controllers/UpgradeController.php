@@ -2,6 +2,7 @@
 
 namespace App\Modules\User\Controllers;
 
+use App\Events\SubscriptionActivated;
 use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\Addon;
 use App\Modules\Admin\Models\Plan;
@@ -89,6 +90,46 @@ class UpgradeController extends Controller
      * Signed-in users with a country still see their country-default until they
      * change it on the profile page — this only affects the session preview.
      */
+    /**
+     * Activate a plan for the signed-in user and issue a tax invoice.
+     * This is the successful-payment codepath that any gateway webhook
+     * (or the manual "admin grant" flow) dispatches into — it updates
+     * user.plan_id/billing_cycle and fires SubscriptionActivated, whose
+     * listener runs TaxCalculator + InvoiceService::issue().
+     */
+    public function activate(Request $request)
+    {
+        $data = $request->validate([
+            'plan_id'     => 'required|integer|exists:plans,id',
+            'cycle'       => 'required|in:monthly,annual',
+            'gateway_ref' => 'nullable|string|max:190',
+        ]);
+
+        $user = $request->user();
+        $plan = Plan::findOrFail($data['plan_id']);
+        $currency = PricingResolver::currencyForUser($user);
+        $priced = PricingResolver::priceFor($plan, $user, $data['cycle']);
+
+        $user->forceFill([
+            'plan_id'         => $plan->id,
+            'billing_cycle'   => $data['cycle'],
+            'plan_expires_at' => now()->addMonths($data['cycle'] === 'annual' ? 12 : 1),
+        ])->save();
+
+        SubscriptionActivated::dispatch(
+            $user,
+            [[
+                'label'        => $plan->name . ' (' . $data['cycle'] . ')',
+                'amount_minor' => (int) $priced['amount_minor'],
+                'quantity'     => 1,
+            ]],
+            $currency,
+            $data['gateway_ref'] ?? null,
+        );
+
+        return redirect()->route('user.upgrade')->with('success', 'Plan activated. Your tax invoice is available in your billing history.');
+    }
+
     public function switchCurrency(Request $request)
     {
         $currency = strtoupper((string) $request->input('currency', 'USD'));

@@ -180,6 +180,7 @@ Route::prefix('user')->name('user.')->group(function () {
         // Plan upgrade & pricing — uses PricingResolver for country-based currency.
         Route::get('upgrade', [\App\Modules\User\Controllers\UpgradeController::class, 'show'])->name('upgrade');
         Route::post('upgrade/switch-currency', [\App\Modules\User\Controllers\UpgradeController::class, 'switchCurrency'])->name('upgrade.switch-currency');
+        Route::post('upgrade/activate', [\App\Modules\User\Controllers\UpgradeController::class, 'activate'])->name('upgrade.activate');
 
         // Page & card templates (admin-curated presets)
         Route::get('links/{link}/templates', [\App\Modules\User\Controllers\LinkTemplateController::class, 'picker'])->name('links.templates.picker');
