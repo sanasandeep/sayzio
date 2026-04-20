@@ -3,8 +3,10 @@
 namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\ProcessContactImportJob;
 use App\Modules\User\Models\Contact;
 use App\Modules\User\Models\ContactEmail;
+use App\Modules\User\Models\ContactImport;
 use App\Modules\User\Models\ContactPhone;
 use App\Modules\User\Models\ContactDeletionTombstone;
 use App\Modules\User\Models\GoogleContactsAccount;
@@ -72,7 +74,13 @@ class ContactController extends Controller
         $usage['near_cap'] = !$usage['unlimited'] && $usage['percent'] >= 90 && $totalContacts < ($cap ?? 0);
         $usage['at_cap']   = !$usage['unlimited'] && $cap !== null && $totalContacts >= $cap;
 
-        return view('user.contacts.index', compact('contacts', 'tab', 'search', 'googleAccount', 'stats', 'usage'));
+        // Show an "Import in progress" banner if a queued import is still running.
+        $activeImport = ContactImport::where('user_id', $user->id)
+            ->whereIn('status', ['pending', 'processing'])
+            ->orderByDesc('id')
+            ->first();
+
+        return view('user.contacts.index', compact('contacts', 'tab', 'search', 'googleAccount', 'stats', 'usage', 'activeImport'));
     }
 
     public function create(Request $request)
@@ -218,6 +226,9 @@ class ContactController extends Controller
         ]);
     }
 
+    /** Parsed-row count above which we punt to a queued job rather than process inline. */
+    public const ASYNC_THRESHOLD = 200;
+
     public function import(Request $request)
     {
         $request->validate([
@@ -255,6 +266,7 @@ class ContactController extends Controller
 
         return redirect()->route('user.contacts.import.preview', ['token' => $token]);
     }
+
 
     public function importPreview(Request $request, string $token)
     {
@@ -316,9 +328,26 @@ class ContactController extends Controller
         }
 
         $rows = $stash['rows'];
+        $originalName = $stash['original_name'] ?? 'upload';
         $existingCount = Contact::where('user_id', $user->id)->count();
         $cap = $this->planContactsCap($user);
         $remaining = $cap === -1 ? null : max(0, $cap - $existingCount);
+
+        // Large lists go to a queued worker so the user isn't held inside a
+        // synchronous PHP timeout while we build thousands of rows + push to
+        // Google. The summary page polls the persisted ContactImport row.
+        if (count($rows) > self::ASYNC_THRESHOLD) {
+            $import = ContactImport::create([
+                'user_id'           => $user->id,
+                'original_filename' => $originalName,
+                'status'            => 'pending',
+                'total_rows'        => count($rows),
+                'rows'              => $rows,
+            ]);
+            ProcessContactImportJob::dispatch($import->id);
+            return redirect()->route('user.contacts.import.show', $import)
+                ->with('success', 'Import queued — we\'ll add the rows in the background.');
+        }
 
         $results = [
             'total'      => count($rows),
@@ -411,10 +440,45 @@ class ContactController extends Controller
         }
 
         // Stash was already removed by claimStash(); nothing to clean up.
+        // Persist the result so users can revisit it from history. The
+        // summary view (Blade) drives off this row for both inline and
+        // queued imports, so the inline path also writes here.
+        $import = ContactImport::create([
+            'user_id'           => $user->id,
+            'original_filename' => $originalName,
+            'status'            => 'completed',
+            'total_rows'        => $results['total'],
+            'processed_rows'    => $results['total'],
+            'created_count'     => $results['created'],
+            'skipped_cap_count' => $results['skippedCap'],
+            'failed'            => $results['failed'],
+            'started_at'        => now(),
+            'completed_at'      => now(),
+        ]);
 
-        return view('user.contacts.import_summary', [
-            'results' => $results,
-            'remainingBefore' => $remaining,
+        return redirect()->route('user.contacts.import.show', $import);
+    }
+
+    /** Persisted summary page — works for both inline and queued imports. */
+    public function importShow(Request $request, ContactImport $import)
+    {
+        abort_if($import->user_id !== $request->user()->id, 403);
+        return view('user.contacts.import_summary', ['import' => $import]);
+    }
+
+    /** Tiny JSON endpoint the summary page polls while a job is running. */
+    public function importStatus(Request $request, ContactImport $import)
+    {
+        abort_if($import->user_id !== $request->user()->id, 403);
+        return response()->json([
+            'status'         => $import->status,
+            'total'          => $import->total_rows,
+            'processed'      => $import->processed_rows,
+            'created'        => $import->created_count,
+            'failed'         => count($import->failed ?? []),
+            'skipped_cap'    => $import->skipped_cap_count,
+            'percent'        => $import->progressPercent(),
+            'in_progress'    => $import->isInProgress(),
         ]);
     }
 
@@ -537,7 +601,7 @@ class ContactController extends Controller
     // ---- helpers ----------------------------------------------------------
 
     /** Resolve the plan-based contacts_max cap. Returns -1 for unlimited. */
-    private function planContactsCap($user): int
+    public static function planContactsCap($user): int
     {
         $features = ($user && $user->plan && $user->plan->features) ? $user->plan->features : [];
         return (int) ($features['contacts_max'] ?? 5000);

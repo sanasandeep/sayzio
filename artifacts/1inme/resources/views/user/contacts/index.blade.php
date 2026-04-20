@@ -25,6 +25,28 @@
     </div>
     @endif
 
+    @isset($activeImport)
+    @if($activeImport)
+    <a href="{{ route('user.contacts.import.show', $activeImport) }}"
+       class="block mb-6 px-4 py-3 rounded-xl text-sm transition"
+       style="background: linear-gradient(135deg, rgba(124,58,237,0.10), rgba(236,72,153,0.08)); border: 1px solid rgba(124,58,237,0.30); color: var(--text-primary);">
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+            <div class="flex items-center gap-2">
+                <i class="fas fa-spinner fa-spin text-purple-400"></i>
+                <span class="font-semibold">Import in progress</span>
+                <span class="text-xs" style="color: var(--text-muted);">
+                    {{ $activeImport->processed_rows }} / {{ $activeImport->total_rows }} rows ({{ $activeImport->progressPercent() }}%)
+                </span>
+            </div>
+            <span class="text-xs font-medium" style="color:#a78bfa;">View summary <i class="fas fa-arrow-right ml-1 text-[10px]"></i></span>
+        </div>
+        <div class="mt-2 w-full h-1.5 rounded-full overflow-hidden" style="background:rgba(255,255,255,.06);">
+            <div class="h-full" style="width: {{ $activeImport->progressPercent() }}%; background:linear-gradient(135deg,#7c3aed,#ec4899);"></div>
+        </div>
+    </a>
+    @endif
+    @endisset
+
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {{-- Sidebar: Google Contacts connection --}}
         <div class="lg:col-span-1">

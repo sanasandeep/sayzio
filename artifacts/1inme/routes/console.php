@@ -45,6 +45,15 @@ Schedule::command('followers:send-digest')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Every minute: drain queued background jobs (currently used by the contact
+// importer for files over a few hundred rows). --stop-when-empty makes the
+// command short-lived so the scheduler can keep using --withoutOverlapping
+// without leaving a worker pinned forever.
+Schedule::command('queue:work --stop-when-empty --tries=1 --queue=default')
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Every 5 minutes: retry inbox-forward deliveries (email/webhook) that
 // failed transiently. Each delivery has its own exponential backoff window;
 // permanently failing deliveries get parked as 'dead' after MAX_ATTEMPTS.

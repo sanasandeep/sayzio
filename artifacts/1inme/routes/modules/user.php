@@ -248,6 +248,8 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('contacts/import/preview/{token}',       [ContactController::class, 'importPreview'])->name('contacts.import.preview');
         Route::post('contacts/import/confirm/{token}',      [ContactController::class, 'importConfirm'])->middleware(CheckPlanLimit::class . ':contacts_max')->name('contacts.import.confirm');
         Route::post('contacts/import/cancel/{token}',       [ContactController::class, 'importCancel'])->name('contacts.import.cancel');
+        Route::get('contacts/import/{import}',              [ContactController::class, 'importShow'])->name('contacts.import.show');
+        Route::get('contacts/import/{import}/status',       [ContactController::class, 'importStatus'])->name('contacts.import.status');
         Route::get('contacts/{contact}',                    [ContactController::class, 'show'])->name('contacts.show');
         Route::get('contacts/{contact}/edit',               [ContactController::class, 'edit'])->name('contacts.edit');
         Route::put('contacts/{contact}',                    [ContactController::class, 'update'])->name('contacts.update');
