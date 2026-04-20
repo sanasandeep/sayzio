@@ -8,7 +8,9 @@
         <h1 class="text-3xl font-bold text-white mb-2">Pick a starting template</h1>
         <p class="text-sm text-white/50">
             @if($personaLabel)
-                Hand-picked for {{ $personaLabel }}s — or browse all and skip if you'd rather start blank.
+                Hand-picked for {{ $personaLabel }} — or
+                <a href="#all-templates" class="text-violet-300 hover:text-violet-200 underline-offset-2 hover:underline">browse all templates</a>
+                and skip if you'd rather start blank.
             @else
                 Pick something that's close to what you want. You can edit anything afterwards.
             @endif
@@ -39,8 +41,8 @@
         @endif
 
         @if($others->isNotEmpty())
-            <div class="mt-10 mb-3 flex items-center gap-2">
-                <h2 class="text-sm font-semibold text-white/70">{{ $recommended->isEmpty() ? 'All templates' : 'More templates' }}</h2>
+            <div id="all-templates" class="mt-10 mb-3 flex items-center gap-2">
+                <h2 class="text-sm font-semibold text-white/70">{{ $recommended->isEmpty() ? 'All templates' : 'Browse all templates' }}</h2>
             </div>
             @include('user.onboarding._template_grid', ['items' => $others])
         @endif

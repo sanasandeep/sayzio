@@ -82,7 +82,7 @@ class OnboardingController extends Controller
 
         return view('user.onboarding.template', [
             'persona'     => $persona,
-            'personaLabel'=> PersonaCatalog::labelFor($persona),
+            'personaLabel'=> PersonaCatalog::pluralLabelFor($persona),
             'recommended' => $recommended->values(),
             'others'      => $others->values(),
             'lockedFn'    => $lockedFn,

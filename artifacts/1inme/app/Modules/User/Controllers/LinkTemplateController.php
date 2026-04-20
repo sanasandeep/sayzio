@@ -39,7 +39,7 @@ class LinkTemplateController extends Controller
             $tags = $t->recommended_personas ?? [];
             return is_array($tags) && in_array($persona, $tags, true);
         });
-        $personaLabel = \App\Modules\User\Services\PersonaCatalog::labelFor($persona);
+        $personaLabel = \App\Modules\User\Services\PersonaCatalog::pluralLabelFor($persona);
         $lockedFn = fn(?string $required) => $this->isLocked($required, $userPlanSlug);
         return view('user.links.templates.picker', compact('link', 'pageTemplates', 'userPlanSlug', 'lockedFn', 'persona', 'personaLabel', 'hasRecommended'));
     }
