@@ -7,6 +7,7 @@ use App\Modules\User\Models\ContactDeletionTombstone;
 use App\Modules\User\Models\ContactEmail;
 use App\Modules\User\Models\ContactPhone;
 use App\Modules\User\Models\GoogleContactsAccount;
+use App\Modules\User\Models\UserNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -122,6 +123,9 @@ class GoogleContactsSyncService
                     if ($newSyncToken) {
                         $account->update(['sync_token' => $newSyncToken]);
                     }
+                    if (!empty($stats['skipped_capped'])) {
+                        $this->notifyCapHit($account, (int) $stats['skipped_capped'], $cap);
+                    }
                 } catch (ContactsSyncException $e) {
                     if (str_contains($e->getMessage(), 'sync token expired')) {
                         // sync_token already cleared in provider; user can hit Sync now to re-pull
@@ -147,6 +151,43 @@ class GoogleContactsSyncService
         }
 
         return $stats;
+    }
+
+    /**
+     * Create an in-app notice that the plan cap was hit during sync.
+     * Deduped: if there's already an unread cap notice for this account,
+     * just bump its skipped count instead of stacking new rows.
+     */
+    protected function notifyCapHit(GoogleContactsAccount $account, int $skipped, int $cap): void
+    {
+        $existing = UserNotification::where('user_id', $account->user_id)
+            ->where('type', 'contacts_sync_capped')
+            ->whereNull('read_at')
+            ->where('data->account_id', $account->id)
+            ->first();
+
+        if ($existing) {
+            $data = $existing->data ?? [];
+            $data['skipped']      = ((int) ($data['skipped'] ?? 0)) + $skipped;
+            $data['contacts_max'] = $cap;
+            $data['message']      = "Google Contacts sync skipped {$data['skipped']} contact(s) because you've hit your plan's contact limit ({$cap}). Upgrade your plan to import the rest.";
+            $existing->forceFill(['data' => $data])->save();
+            return;
+        }
+
+        UserNotification::create([
+            'user_id'    => $account->user_id,
+            'type'       => 'contacts_sync_capped',
+            'data'       => [
+                'account_id'     => $account->id,
+                'account_email'  => $account->account_email,
+                'skipped'        => $skipped,
+                'contacts_max'   => $cap,
+                'fix_url'        => route('user.contacts.index'),
+                'message'        => "Google Contacts sync skipped {$skipped} contact(s) because you've hit your plan's contact limit ({$cap}). Upgrade your plan to import the rest.",
+            ],
+            'created_at' => now(),
+        ]);
     }
 
     /** Returns 'created' | 'updated' | 'deleted' | 'skipped' | 'skipped_capped'. */
