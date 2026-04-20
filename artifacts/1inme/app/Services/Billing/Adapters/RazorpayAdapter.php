@@ -143,11 +143,19 @@ class RazorpayAdapter extends AbstractAdapter
         $plan  = Plan::findOrFail($intent['plan_id']);
         $cycle = $intent['cycle'];
 
-        $priced       = PricingResolver::priceForCurrency($plan, $currency, $cycle);
-        $amountMinor  = (int) $priced['amount_minor'];
+        // Charge the INVOICE's grand total (tax-inclusive, addons
+        // included), not the plan base price. Razorpay Subscriptions
+        // charge the plan amount per cycle, so by pricing the plan
+        // itself at the invoice total we guarantee the captured
+        // amount matches what the user actually owes. A plan with a
+        // different amount triggers a fresh Razorpay plan object
+        // (cache key includes amount+currency), so tax-variant
+        // customers each get their own tax-inclusive plan.
+        $amountMinor = (int) $invoice->grand_total_minor;
+        $currency    = (string) $invoice->currency;
 
         // 1) Plan object on Razorpay (idempotency by period+amount+cycle+plan).
-        $rzpPlanId = $this->ensureRazorpayPlan($plan, $cycle, $currency, $amountMinor, $keyId, $keySecret);
+        $rzpPlanId = $this->ensureRazorpayPlan($plan, $cycle, $currency, $amountMinor, $keyId, $keySecret, $invoice);
 
         // 2) Create the subscription. total_count=120 ≈ 10 years of
         //    monthly charges — users cancel long before. Razorpay
@@ -183,7 +191,7 @@ class RazorpayAdapter extends AbstractAdapter
      * in the gateway_settings credentials blob so we don't spam the
      * Razorpay dashboard with duplicates per request.
      */
-    protected function ensureRazorpayPlan(Plan $plan, string $cycle, string $currency, int $amountMinor, string $keyId, string $keySecret): string
+    protected function ensureRazorpayPlan(Plan $plan, string $cycle, string $currency, int $amountMinor, string $keyId, string $keySecret, ?Invoice $invoice = null): string
     {
         $cacheKey = sprintf('rzp_plan:%d:%s:%s:%d', $plan->id, $cycle, $currency, $amountMinor);
         $cached   = $this->cred($cacheKey);
@@ -205,7 +213,7 @@ class RazorpayAdapter extends AbstractAdapter
                     'cycle'            => $cycle,
                 ],
             ]);
-        $this->assertOk($res, 'create plan', null);
+        $this->assertOk($res, 'create plan', $invoice);
         $rzpPlanId = (string) $res->json('id');
 
         // Cache it so subsequent checkouts don't re-create.
