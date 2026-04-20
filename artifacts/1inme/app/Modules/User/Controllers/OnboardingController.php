@@ -42,12 +42,10 @@ class OnboardingController extends Controller
 
         $user = Auth::user();
 
+        // Step 1 skip still advances to step 2 (template picker) — onboarding
+        // isn't marked complete until the user reaches the end of step 2.
         if ($request->boolean('skip')) {
-            $user->forceFill([
-                'onboarded_at' => $user->onboarded_at ?: now(),
-            ])->save();
-            return redirect()->route('user.dashboard')
-                ->with('success', "No problem — you can personalise your setup any time from your profile.");
+            return redirect()->route('user.onboarding.template');
         }
 
         if (empty($validated['persona'])) {
@@ -55,8 +53,7 @@ class OnboardingController extends Controller
         }
 
         $user->forceFill([
-            'persona'      => $validated['persona'],
-            'onboarded_at' => $user->onboarded_at ?: now(),
+            'persona' => $validated['persona'],
         ])->save();
 
         return redirect()->route('user.onboarding.template');

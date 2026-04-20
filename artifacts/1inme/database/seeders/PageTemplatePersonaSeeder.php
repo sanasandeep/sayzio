@@ -31,16 +31,15 @@ class PageTemplatePersonaSeeder extends Seeder
 
         $fallback = ['creator', 'business', 'other'];
 
-        PageTemplate::query()
-            ->where(function ($q) {
-                $q->whereNull('recommended_personas')
-                  ->orWhereRaw("recommended_personas::text = '[]'")
-                  ->orWhereRaw("recommended_personas::text = 'null'");
-            })
-            ->get()
-            ->each(function (PageTemplate $tpl) use ($defaultsByCategory, $fallback) {
-                $tpl->recommended_personas = $defaultsByCategory[$tpl->category] ?? $fallback;
-                $tpl->save();
-            });
+        // Filter in PHP rather than via DB-specific JSON casts so this seeder
+        // works on Postgres, MySQL, and SQLite alike.
+        PageTemplate::query()->get()->each(function (PageTemplate $tpl) use ($defaultsByCategory, $fallback) {
+            $tags = $tpl->recommended_personas;
+            if (is_array($tags) && count($tags) > 0) {
+                return; // curator already chose tags; never overwrite
+            }
+            $tpl->recommended_personas = $defaultsByCategory[$tpl->category] ?? $fallback;
+            $tpl->save();
+        });
     }
 }
