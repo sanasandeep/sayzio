@@ -78,6 +78,13 @@
                     @if($creator->bio)
                         <p class="text-sm text-slate-600 mt-3 line-clamp-3">{{ $creator->bio }}</p>
                     @endif
+                    @php($buzz = $buzzSnippets[$creator->id] ?? null)
+                    @if($buzz)
+                        <div class="mt-3 inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-violet-50 text-violet-700 text-[11px] font-semibold max-w-full">
+                            <i class="fas {{ $buzz['icon'] }} text-[10px]"></i>
+                            <span class="truncate">{{ $buzz['text'] }}</span>
+                        </div>
+                    @endif
                     <div class="flex items-center justify-between mt-4 pt-4 border-t border-slate-100"
                          x-data="{ following: {{ $isFollowing ? 'true' : 'false' }}, busy:false }">
                         <span class="text-xs text-slate-500">
