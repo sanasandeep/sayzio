@@ -13,7 +13,7 @@ class LinkTemplateController extends Controller
 {
     public function __construct(private TemplateService $templates) {}
 
-    public function picker(Link $link)
+    public function picker(Request $request, Link $link)
     {
         abort_if($link->user_id !== auth()->id() || $link->type !== 'biolink', 403);
         $user = auth()->user();
@@ -21,9 +21,14 @@ class LinkTemplateController extends Controller
         // Show all active templates so users can see what they could unlock,
         // but lock the ones above their tier (badge + upgrade CTA).
         $pageTemplates = PageTemplate::active()->get();
-        // Float persona-recommended templates to the top of the grid so the
-        // user sees the "best for you" set first without filtering anything out.
-        $persona = $user->persona;
+        // Persona for ordering: explicit ?persona= override (validated) wins
+        // over the user's saved persona so admins/links/share-flows can preview
+        // the "best for X" set without changing the user's stored preference.
+        $personaParam = $request->query('persona');
+        $allowed = \App\Modules\User\Services\PersonaCatalog::slugs();
+        $persona = (is_string($personaParam) && in_array($personaParam, $allowed, true))
+            ? $personaParam
+            : $user->persona;
         if ($persona) {
             $pageTemplates = $pageTemplates->sortByDesc(function ($t) use ($persona) {
                 $tags = $t->recommended_personas ?? [];
