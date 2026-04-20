@@ -116,6 +116,61 @@
     </div>
     @endif
 
+    @if(!empty($disabledDefaults))
+    <div class="glass rounded-2xl p-6 mb-6">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(250,204,21,0.15);">
+                <i class="fas fa-history text-yellow-300"></i>
+            </div>
+            <div>
+                <h2 class="font-semibold" style="color: var(--text-primary);">Disabled default keywords</h2>
+                <p class="text-xs" style="color: var(--text-muted);">Defaults you've turned off. New submissions matching these aren't flagged. Click Undo to put one back.</p>
+            </div>
+        </div>
+        <ul class="divide-y" style="border-color: var(--border-glass);">
+            @foreach($disabledDefaults as $entry)
+                @php
+                    $kw = $entry['keyword'];
+                    $ts = $entry['disabled_at'];
+                    $when = null;
+                    $whenAbs = null;
+                    if ($ts) {
+                        try {
+                            $c = \Carbon\Carbon::parse($ts);
+                            $when = $c->diffForHumans();
+                            $whenAbs = $c->toDayDateTimeString();
+                        } catch (\Exception $e) {
+                            $when = null;
+                        }
+                    }
+                @endphp
+                <li class="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0" style="border-color: var(--border-glass);">
+                    <div class="min-w-0 flex items-center gap-2">
+                        <span class="inline-flex items-center text-xs px-2 py-1 rounded-lg" style="background: rgba(234,88,12,0.12); color: #fdba74;">
+                            <i class="fas fa-shield-alt text-[10px] mr-1 opacity-60"></i>
+                            <span class="line-through opacity-80">{{ $kw }}</span>
+                        </span>
+                        <span class="text-[11px] truncate" style="color: var(--text-faint);" @if($whenAbs) title="{{ $whenAbs }}" @endif>
+                            @if($when)
+                                Disabled {{ $when }}
+                            @else
+                                Disabled (date unknown)
+                            @endif
+                        </span>
+                    </div>
+                    <form method="POST" action="{{ route('user.inbox.spam-settings.enable-default-keyword') }}" onsubmit="return confirm(@js('Re-enable the default keyword “' . $kw . '”? Future submissions matching it will be flagged again.'))">
+                        @csrf
+                        <input type="hidden" name="keyword" value="{{ $kw }}">
+                        <button type="submit" class="px-3 py-1 rounded-lg text-xs font-semibold transition hover:bg-white/10" style="background: var(--bg-glass-input); color: var(--text-secondary); border: 1px solid var(--border-glass);" title="Re-enable this default keyword">
+                            <i class="fas fa-rotate-left text-[10px] mr-1"></i>Undo
+                        </button>
+                    </form>
+                </li>
+            @endforeach
+        </ul>
+    </div>
+    @endif
+
     <form method="POST" action="{{ route('user.inbox.spam-settings.import') }}" enctype="multipart/form-data" class="glass rounded-2xl p-6 mb-6">
         @csrf
         <div class="flex items-center gap-3 mb-4">

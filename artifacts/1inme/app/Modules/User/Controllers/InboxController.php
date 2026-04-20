@@ -454,7 +454,37 @@ class InboxController
         }
         arsort($keywordHits);
 
-        return view('user.inbox.spam-settings', compact('spam', 'defaults', 'keywordHits', 'ruleHits'));
+        // Build the "disabled defaults" audit list for the view: each entry
+        // is the canonically-cased keyword and the ISO timestamp it was
+        // disabled at (null when we don't know — pre-audit-trail entries).
+        $defaultsLowerToCanonical = [];
+        foreach (SpamChecker::BLOCKED_KEYWORDS as $kw) {
+            $defaultsLowerToCanonical[mb_strtolower($kw)] = $kw;
+        }
+        // The normalized $spam from SpamChecker::loadUserSpamSettings() drops
+        // unknown keys, so read the audit-trail meta straight from the raw
+        // user settings to make sure timestamps actually surface.
+        $rawSpam = ($user->settings ?? [])['spam'] ?? [];
+        $meta = (array)($rawSpam['disabled_default_keywords_meta'] ?? []);
+        $disabledDefaults = [];
+        foreach ((array)($spam['disabled_default_keywords'] ?? []) as $kw) {
+            if (!is_string($kw)) continue;
+            $lower = mb_strtolower($kw);
+            if (!isset($defaultsLowerToCanonical[$lower])) continue;
+            $disabledDefaults[] = [
+                'keyword'     => $defaultsLowerToCanonical[$lower],
+                'disabled_at' => isset($meta[$lower]) && is_string($meta[$lower]) ? $meta[$lower] : null,
+            ];
+        }
+        // Newest disables first; unknowns last.
+        usort($disabledDefaults, function ($a, $b) {
+            if ($a['disabled_at'] === null && $b['disabled_at'] === null) return 0;
+            if ($a['disabled_at'] === null) return 1;
+            if ($b['disabled_at'] === null) return -1;
+            return strcmp($b['disabled_at'], $a['disabled_at']);
+        });
+
+        return view('user.inbox.spam-settings', compact('spam', 'defaults', 'keywordHits', 'ruleHits', 'disabledDefaults'));
     }
 
     public function updateSettings(Request $request)
@@ -494,11 +524,30 @@ class InboxController
         )));
 
         $settings = $user->settings ?? [];
+        $existingSpam = $settings['spam'] ?? [];
+        $existingMeta = (array)($existingSpam['disabled_default_keywords_meta'] ?? []);
+
+        // Maintain the audit trail: keep timestamps for keywords still
+        // disabled, stamp newly-disabled ones with now(), and drop entries
+        // for keywords the user just re-enabled.
+        $disabledUnique = array_values(array_unique($disabled));
+        $disabledLowerSet = array_flip(array_map('mb_strtolower', $disabledUnique));
+        $newMeta = [];
+        foreach ($disabledUnique as $kw) {
+            $lower = mb_strtolower($kw);
+            $newMeta[$lower] = isset($existingMeta[$lower]) && is_string($existingMeta[$lower])
+                ? $existingMeta[$lower]
+                : now()->toIso8601String();
+        }
+        // (Entries in $existingMeta whose key is not in $disabledLowerSet are dropped.)
+        unset($disabledLowerSet);
+
         $settings['spam'] = [
-            'blocked_keywords'          => array_values(array_unique($blocked)),
-            'disabled_default_keywords' => array_values(array_unique($disabled)),
-            'trusted_emails'            => array_values(array_unique($emails)),
-            'trusted_phones'            => array_values(array_unique($phones)),
+            'blocked_keywords'               => array_values(array_unique($blocked)),
+            'disabled_default_keywords'      => $disabledUnique,
+            'disabled_default_keywords_meta' => $newMeta,
+            'trusted_emails'                 => array_values(array_unique($emails)),
+            'trusted_phones'                 => array_values(array_unique($phones)),
         ];
         $user->update(['settings' => $settings]);
 
@@ -531,6 +580,7 @@ class InboxController
         $defaultsLower = array_map('mb_strtolower', SpamChecker::BLOCKED_KEYWORDS);
         $blocked  = array_values(array_filter((array)($spam['blocked_keywords'] ?? []), 'is_string'));
         $disabled = array_values(array_filter((array)($spam['disabled_default_keywords'] ?? []), 'is_string'));
+        $meta     = (array)($spam['disabled_default_keywords_meta'] ?? []);
 
         $changed = false;
         $isDefault = in_array($kwLower, $defaultsLower, true);
@@ -541,6 +591,7 @@ class InboxController
                 // page checkbox matches by exact value.
                 $idx = array_search($kwLower, $defaultsLower, true);
                 $disabled[] = SpamChecker::BLOCKED_KEYWORDS[$idx];
+                $meta[$kwLower] = now()->toIso8601String();
                 $changed = true;
             }
         }
@@ -558,12 +609,62 @@ class InboxController
             return back()->with('error', '“' . $kwRaw . '” isn\'t in your blocked keyword list.');
         }
 
-        $spam['blocked_keywords']          = array_values(array_unique($blocked));
-        $spam['disabled_default_keywords'] = array_values(array_unique($disabled));
+        // Prune meta entries for anything no longer in the disabled list
+        // (defensive — keeps storage tidy if state got out of sync).
+        $disabledLowerSet = array_flip(array_map('mb_strtolower', $disabled));
+        $meta = array_intersect_key($meta, $disabledLowerSet);
+
+        $spam['blocked_keywords']               = array_values(array_unique($blocked));
+        $spam['disabled_default_keywords']      = array_values(array_unique($disabled));
+        $spam['disabled_default_keywords_meta'] = $meta;
         $settings['spam'] = $spam;
         $user->update(['settings' => $settings]);
 
         return back()->with('success', 'Stopped blocking “' . $kwRaw . '”. New submissions matching it won\'t be flagged.');
+    }
+
+    /**
+     * One-click "undo" for a previously-disabled default keyword: removes
+     * it from `disabled_default_keywords` (and the audit-trail meta) so the
+     * default protection takes effect again on new submissions.
+     */
+    public function enableDefaultKeyword(Request $request)
+    {
+        $validated = $request->validate([
+            'keyword' => 'required|string|max:200',
+        ]);
+        $kwRaw = trim($validated['keyword']);
+        if ($kwRaw === '') {
+            return back()->with('error', 'No keyword provided.');
+        }
+        $kwLower = mb_strtolower($kwRaw);
+
+        $defaultsLower = array_map('mb_strtolower', SpamChecker::BLOCKED_KEYWORDS);
+        if (!in_array($kwLower, $defaultsLower, true)) {
+            return back()->with('error', '“' . $kwRaw . '” isn\'t a default keyword.');
+        }
+
+        $user = $request->user();
+        $settings = $user->settings ?? [];
+        $spam = $settings['spam'] ?? [];
+        $disabled = array_values(array_filter((array)($spam['disabled_default_keywords'] ?? []), 'is_string'));
+        $meta     = (array)($spam['disabled_default_keywords_meta'] ?? []);
+
+        $newDisabled = array_values(array_filter(
+            $disabled,
+            fn($kw) => mb_strtolower($kw) !== $kwLower
+        ));
+        if (count($newDisabled) === count($disabled)) {
+            return back()->with('error', '“' . $kwRaw . '” wasn\'t disabled.');
+        }
+        unset($meta[$kwLower]);
+
+        $spam['disabled_default_keywords']      = $newDisabled;
+        $spam['disabled_default_keywords_meta'] = $meta;
+        $settings['spam'] = $spam;
+        $user->update(['settings' => $settings]);
+
+        return back()->with('success', 'Re-enabled the default keyword “' . $kwRaw . '”. New submissions matching it will be flagged again.');
     }
 
     public function importTrustedCsv(Request $request)
