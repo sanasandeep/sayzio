@@ -431,6 +431,8 @@
     'actions'  => $heroActions,
 ])
 
+@include('user.links.partials.analytics-tabs', ['link' => $link, 'active' => 'overview'])
+
 {{-- ===================== PERIOD CONTROLS ===================== --}}
 <div class="period-bar mb-6">
     <div class="flex flex-wrap items-center gap-2">

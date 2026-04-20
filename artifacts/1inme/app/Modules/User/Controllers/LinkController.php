@@ -5,9 +5,12 @@ namespace App\Modules\User\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Common\Services\CityLookupService;
 use App\Modules\Common\Services\AppLinkResolver;
+use App\Modules\User\Models\Follow;
 use App\Modules\User\Models\Link;
+use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserFile;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -719,6 +722,146 @@ class LinkController extends Controller
         $blockTypes = \App\Modules\User\Models\BiolinkBlock::TYPES;
 
         return view('user.links.partials.recent-clicks-table', compact('recentClicks', 'blockTypes'));
+    }
+
+    /**
+     * Followers tab on the per-link analytics dashboard.
+     *
+     * Surfaces follower-specific cohort analytics for this link:
+     *  - % of unique visitors (in period) that are followers of this creator
+     *  - top 10 most-engaged followers (by click count on this link)
+     *  - 30-day daily trend of follower vs non-follower clicks (re-uses the
+     *    same Chart.js component as the main analytics chart for consistency)
+     *
+     * "Follower" = a user with a row in `follows` where creator_id = this
+     * link's owner. A click "by a follower" is one whose viewer_user_id is
+     * in that follower set.
+     */
+    public function followers(Request $request, Link $link)
+    {
+        abort_if($link->user_id !== $request->user()->id, 403);
+
+        $link->load(['project', 'domain']);
+        [$startDate, $endDate, $period, $groupBy] = $this->resolveAnalyticsRange($request);
+
+        // All follower IDs for this creator. Cheap lookup table for joins
+        // and the IN-clause we use to mark click rows as follower clicks.
+        $followerIds = Follow::where('creator_id', $link->user_id)
+            ->pluck('follower_id');
+        $totalFollowerCount = $followerIds->count();
+
+        $clicksQuery = $link->clicks()
+            ->whereBetween('clicked_at', [$startDate, $endDate]);
+
+        // Unique visitor cohort split — denominator is unique IPs (matches
+        // the rest of the analytics dashboard); numerator is unique IPs
+        // whose click was attributed to a known follower.
+        $uniqueVisitors = (clone $clicksQuery)->distinct('ip_address')->count('ip_address');
+        $uniqueFollowerVisitors = $totalFollowerCount === 0 ? 0
+            : (clone $clicksQuery)
+                ->whereIn('viewer_user_id', $followerIds)
+                ->distinct('ip_address')->count('ip_address');
+        $followerVisitorPct = $uniqueVisitors > 0
+            ? round(($uniqueFollowerVisitors / $uniqueVisitors) * 100, 1) : 0;
+
+        // Total click split (all clicks, including page-views and block clicks)
+        $totalClicks = (clone $clicksQuery)->count();
+        $followerClicks = $totalFollowerCount === 0 ? 0
+            : (clone $clicksQuery)->whereIn('viewer_user_id', $followerIds)->count();
+        $nonFollowerClicks = max(0, $totalClicks - $followerClicks);
+
+        // 30-day (or selected-period) daily trend: follower vs non-follower
+        // clicks. Buckets by DATE(clicked_at) so the chart can re-use the
+        // existing Chart.js line component without any axis changes.
+        $dateExpr = "TO_CHAR(DATE_TRUNC('day', clicked_at), 'YYYY-MM-DD')";
+        $rawDaily = (clone $clicksQuery)
+            ->selectRaw("$dateExpr as bucket,
+                COUNT(*) as total,
+                COUNT(CASE WHEN viewer_user_id IS NOT NULL " .
+                ($totalFollowerCount === 0 ? "AND FALSE" : "AND viewer_user_id IN (" . $followerIds->map(fn($id) => (int)$id)->implode(',') . ")") .
+                " THEN 1 END) as followers")
+            ->groupByRaw($dateExpr)
+            ->orderBy('bucket')
+            ->get();
+
+        // Fill any missing days with zeros so the chart line is continuous.
+        $period_days = max(1, $startDate->diffInDays($endDate) + 1);
+        $byDay = $rawDaily->keyBy('bucket');
+        $dailySeries = collect();
+        for ($i = 0; $i < $period_days; $i++) {
+            $d = $startDate->copy()->addDays($i)->toDateString();
+            $row = $byDay->get($d);
+            $total = $row ? (int) $row->total : 0;
+            $foll  = $row ? (int) $row->followers : 0;
+            $dailySeries->push((object)[
+                'd'           => $d,
+                'followers'   => $foll,
+                'nonfollowers'=> max(0, $total - $foll),
+            ]);
+        }
+
+        // Top 10 most-engaged followers by clicks on this link in period.
+        // Joined to users so we get name/avatar/email in one query.
+        $topFollowers = $totalFollowerCount === 0 ? collect() : DB::table('link_clicks')
+            ->join('users', 'users.id', '=', 'link_clicks.viewer_user_id')
+            ->select(
+                'users.id', 'users.name', 'users.email', 'users.avatar',
+                DB::raw('COUNT(*) as click_count'),
+                DB::raw('COUNT(CASE WHEN link_clicks.block_id IS NOT NULL THEN 1 END) as block_click_count'),
+                DB::raw('MIN(link_clicks.clicked_at) as first_seen'),
+                DB::raw('MAX(link_clicks.clicked_at) as last_seen')
+            )
+            ->where('link_clicks.link_id', $link->id)
+            ->whereBetween('link_clicks.clicked_at', [$startDate, $endDate])
+            ->whereIn('link_clicks.viewer_user_id', $followerIds)
+            ->groupBy('users.id', 'users.name', 'users.email', 'users.avatar')
+            ->orderByDesc('click_count')
+            ->limit(10)
+            ->get();
+
+        return view('user.links.followers', compact(
+            'link', 'period', 'groupBy', 'startDate', 'endDate',
+            'totalFollowerCount', 'uniqueVisitors', 'uniqueFollowerVisitors',
+            'followerVisitorPct', 'totalClicks', 'followerClicks',
+            'nonFollowerClicks', 'dailySeries', 'topFollowers'
+        ));
+    }
+
+    /**
+     * Drill-down: visit history for ONE follower on THIS link. Reached by
+     * clicking a row in the Top Followers table on the Followers tab.
+     */
+    public function followerHistory(Request $request, Link $link, User $follower)
+    {
+        abort_if($link->user_id !== $request->user()->id, 403);
+
+        // Confirm this user is actually a follower of the link's owner so
+        // the page can't be used as a generic per-user click viewer.
+        $isFollower = Follow::where('creator_id', $link->user_id)
+            ->where('follower_id', $follower->id)
+            ->exists();
+        abort_unless($isFollower, 404);
+
+        [$startDate, $endDate, $period] = $this->resolveAnalyticsRange($request);
+
+        $visits = $link->clicks()
+            ->where('viewer_user_id', $follower->id)
+            ->whereBetween('clicked_at', [$startDate, $endDate])
+            ->orderByDesc('clicked_at')
+            ->paginate(50)
+            ->withQueryString();
+
+        $totalVisits = $link->clicks()
+            ->where('viewer_user_id', $follower->id)
+            ->whereBetween('clicked_at', [$startDate, $endDate])
+            ->count();
+
+        $blockTypes = \App\Modules\User\Models\BiolinkBlock::TYPES;
+
+        return view('user.links.follower-history', compact(
+            'link', 'follower', 'visits', 'totalVisits',
+            'period', 'startDate', 'endDate', 'blockTypes'
+        ));
     }
 
     public function heatmap(Request $request, Link $link)
