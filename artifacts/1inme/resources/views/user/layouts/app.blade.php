@@ -473,10 +473,8 @@
                     @include('common.partials.brand-logo', ['height' => 'h-8'])
                 </a>
                 <template x-if="sidebarMode === 'icons'">
-                    <a href="{{ route('user.dashboard') }}" class="group" title="1INME">
-                        <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background: var(--accent);">
-                            <span class="text-white text-sm font-bold">1</span>
-                        </div>
+                    <a href="{{ route('user.dashboard') }}" class="group" title="{{ config('app.name', '1INME') }}">
+                        @include('common.partials.brand-logo', ['variant' => 'icon', 'height' => 'h-9'])
                     </a>
                 </template>
             </div>
