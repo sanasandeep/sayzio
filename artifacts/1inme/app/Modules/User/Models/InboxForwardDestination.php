@@ -3,6 +3,7 @@
 namespace App\Modules\User\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class InboxForwardDestination extends Model
@@ -12,18 +13,24 @@ class InboxForwardDestination extends Model
     protected $fillable = [
         'user_id', 'label', 'type', 'target', 'method', 'sources',
         'header_key', 'header_value', 'secret', 'is_active',
-        'last_delivered_at', 'last_status',
+        'last_delivered_at', 'last_status', 'last_failure_email_sent_at',
     ];
 
     protected $casts = [
-        'sources'            => 'array',
-        'is_active'          => 'bool',
-        'last_delivered_at'  => 'datetime',
+        'sources'                    => 'array',
+        'is_active'                  => 'bool',
+        'last_delivered_at'          => 'datetime',
+        'last_failure_email_sent_at' => 'datetime',
     ];
 
     public function deliveries(): HasMany
     {
         return $this->hasMany(InboxForwardDelivery::class, 'destination_id');
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     /** Should this destination receive an event for the given source type? */

@@ -9,6 +9,7 @@ use App\Modules\User\Models\Rsvp;
 use App\Modules\User\Models\Subscriber;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
+use App\Modules\User\Services\InboxForwarderHealthMail;
 
 class InboxForwarder
 {
@@ -158,6 +159,18 @@ class InboxForwarder
             }
             $delivery->save();
             $dest->update(['last_status' => $delivery->status]);
+
+            // If this delivery just hit MAX_ATTEMPTS (status=dead) — or the
+            // destination has been dying repeatedly — let the creator know
+            // by email. The mailer enforces its own per-destination 24h
+            // cooldown so we can call it on every failure without spamming.
+            if ($delivery->status === 'dead') {
+                try {
+                    InboxForwarderHealthMail::dispatchIfDue($dest, $delivery);
+                } catch (\Throwable $e) {
+                    logger()->warning('Inbox forwarder health email error: ' . $e->getMessage());
+                }
+            }
         }
     }
 
