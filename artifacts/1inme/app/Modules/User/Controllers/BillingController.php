@@ -71,10 +71,10 @@ class BillingController extends Controller
         if (!$current) {
             return redirect()->route('user.upgrade');
         }
-        $plans = Plan::active()->ordered()->get()->filter(function (Plan $p) use ($current) {
+        $plans = Plan::active()->ordered()->get()->filter(function (Plan $p) use ($current, $user) {
             return $p->id !== $current->plan_id
-                && ProrationCalculator::fullPriceMinor($p, $current->billing_cycle)
-                    > ProrationCalculator::fullPriceMinor($current->plan, $current->billing_cycle);
+                && ProrationCalculator::resolveMinor($p, $current->billing_cycle, $user)
+                    > ProrationCalculator::resolveMinor($current->plan, $current->billing_cycle, $user);
         });
         return view('user.billing.upgrade', compact('current', 'plans'));
     }
@@ -92,7 +92,7 @@ class BillingController extends Controller
             $current->plan, $target,
             $current->billing_cycle, now(),
             Carbon::parse($current->current_period_end),
-            $current->currency,
+            $user,
         );
         abort_unless($calc['is_upgrade'], 422, 'Downgrades apply at the end of the current cycle only.');
         return view('user.billing.upgrade_confirm', [
@@ -121,7 +121,7 @@ class BillingController extends Controller
             $current->plan, $target,
             $current->billing_cycle, now(),
             Carbon::parse($current->current_period_end),
-            $current->currency,
+            $user,
         );
         if (!$calc['is_upgrade'] || $calc['amount_minor'] <= 0) {
             return back()->with('error', 'Nothing to charge for this change.');

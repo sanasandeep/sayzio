@@ -77,11 +77,18 @@ class OfflineAdapter extends AbstractAdapter
         abort(404);
     }
 
+    /**
+     * Offline refunds are a manual action: admin must enter the
+     * bank/UPI reversal reference on the admin refund page. We stay
+     * in 'pending' until admin confirms — only then does the credit
+     * note get issued and the user downgraded. See
+     * RefundService::confirmManual() for the confirmation step.
+     */
     public function refund(Invoice $invoice, int $amountMinor, string $reason = ''): array
     {
         return [
-            'gateway_ref' => 'offline-refund-' . $invoice->number . '-' . Str::random(6),
-            'status'      => 'succeeded',
+            'gateway_ref' => null,
+            'status'      => 'pending',
         ];
     }
 

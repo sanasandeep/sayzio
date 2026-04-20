@@ -114,7 +114,7 @@ class LifecycleTest extends TestCase
         $this->assertSame($free->id, $user->plan_id);
     }
 
-    public function test_user_self_serve_refund_within_window_downgrades_to_free(): void
+    public function test_user_self_serve_offline_refund_is_pending_until_admin_confirms(): void
     {
         $free = $this->makeFreePlan();
         $user = $this->makeUser();
@@ -127,17 +127,44 @@ class LifecycleTest extends TestCase
         $refund = app(RefundService::class)->issue($invoice, (int) $invoice->grand_total_minor, [
             'user_initiated' => true, 'downgrade_on_success' => true,
         ]);
+        $this->assertSame('pending', $refund->status);
+        $this->assertSame(0, CreditNote::where('refund_id', $refund->id)->count());
+        $sub->refresh();
+        $this->assertSame('active', $sub->status, 'no downgrade until admin confirms');
 
+        $refund = app(RefundService::class)->confirmManual($refund, 'UTR-9001', null);
         $this->assertSame('succeeded', $refund->status);
+        $this->assertSame('UTR-9001', $refund->gateway_ref);
         $this->assertSame(1, CreditNote::where('refund_id', $refund->id)->count());
         $sub->refresh(); $user->refresh();
         $this->assertSame('cancelled', $sub->status);
         $this->assertSame($free->id, $user->plan_id);
     }
 
-    public function test_admin_partial_refund_generates_credit_note_and_does_not_downgrade(): void
+    public function test_confirm_manual_requires_a_reference_and_rejects_non_pending(): void
     {
-        $free = $this->makeFreePlan();
+        $this->makeFreePlan();
+        $user = $this->makeUser();
+        $plan = $this->makePlan('pro', 9.99);
+        GatewaySetting::where('gateway_slug', 'offline')->update(['is_enabled' => true]);
+        $this->payPlanInvoice($user, $plan);
+        $invoice = Invoice::where('user_id', $user->id)->where('status', 'paid')->latest()->first();
+        $invoice->forceFill(['gateway' => 'offline'])->save();
+        $refund = app(RefundService::class)->issue($invoice, (int) $invoice->grand_total_minor, []);
+
+        try {
+            app(RefundService::class)->confirmManual($refund, '   ', null);
+            $this->fail('empty reference should throw');
+        } catch (\InvalidArgumentException) { /* ok */ }
+
+        app(RefundService::class)->confirmManual($refund, 'UTR-OK', null);
+        $this->expectException(\InvalidArgumentException::class);
+        app(RefundService::class)->confirmManual($refund->fresh(), 'UTR-AGAIN', null);
+    }
+
+    public function test_admin_partial_refund_creates_credit_note_only_after_confirmation(): void
+    {
+        $this->makeFreePlan();
         $user = $this->makeUser();
         $plan = $this->makePlan('pro', 20.00);
         GatewaySetting::where('gateway_slug', 'offline')->update(['is_enabled' => true]);
@@ -148,6 +175,10 @@ class LifecycleTest extends TestCase
             'downgrade_on_success' => false, 'reason' => 'partial courtesy',
         ]);
         $this->assertSame(500, $refund->amount_minor);
+        $this->assertSame('pending', $refund->status);
+        $this->assertSame(0, CreditNote::where('refund_id', $refund->id)->count());
+
+        app(RefundService::class)->confirmManual($refund, 'UTR-501', null);
         $sub->refresh(); $user->refresh();
         $this->assertSame('active', $sub->status);
         $this->assertSame($plan->id, $user->plan_id);
@@ -182,7 +213,9 @@ class LifecycleTest extends TestCase
         $inv2->forceFill(['gateway' => 'offline'])->save();
 
         $r1 = app(RefundService::class)->issue($inv1, (int) $inv1->grand_total_minor, []);
+        app(RefundService::class)->confirmManual($r1, 'UTR-A', null);
         $r2 = app(RefundService::class)->issue($inv2, (int) $inv2->grand_total_minor, []);
+        app(RefundService::class)->confirmManual($r2, 'UTR-B', null);
         $cn1 = CreditNote::where('refund_id', $r1->id)->first();
         $cn2 = CreditNote::where('refund_id', $r2->id)->first();
         $this->assertSame($cn1->seq + 1, $cn2->seq);
@@ -246,9 +279,82 @@ class LifecycleTest extends TestCase
         $total = (int) $invoice->grand_total_minor;
         $first = intdiv($total, 2) + 10;
         $r1 = app(RefundService::class)->issue($invoice, $first, []);
-        $this->assertSame('succeeded', $r1->status);
+        // Offline refund stays pending but still counts toward the
+        // already-refunded sum inside the lock.
+        $this->assertSame('pending', $r1->status);
         $this->expectException(\InvalidArgumentException::class);
         app(RefundService::class)->issue($invoice, $total - $first + 1, []);
+    }
+
+    public function test_unpaid_offline_renewal_transitions_to_past_due_past_period_end(): void
+    {
+        $this->makeFreePlan();
+        $user = $this->makeUser();
+        $plan = $this->makePlan('pro', 9.99, 7);
+        GatewaySetting::where('gateway_slug', 'offline')->update(['is_enabled' => true]);
+        $sub = $this->payPlanInvoice($user, $plan);
+        // Issue a renewal invoice awaiting_admin_approval (simulating an
+        // offline renewal that hasn't been paid yet).
+        \App\Modules\User\Models\Invoice::create([
+            'number' => 'TEST/2026/0001', 'financial_year' => '2026-27', 'seq' => 9999,
+            'user_id' => $user->id, 'currency' => $sub->currency,
+            'subtotal_minor' => 999, 'tax_total_minor' => 0, 'grand_total_minor' => 999,
+            'billing_address_snapshot' => [], 'merchant_snapshot' => [],
+            'line_items' => [[
+                'label' => 'x', 'amount_minor' => 999, 'quantity' => 1,
+                'meta' => ['kind' => 'plan_renewal', 'renew_subscription_id' => $sub->id],
+            ]],
+            'tax_breakdown' => [], 'reverse_charge_note' => '', 'place_of_supply' => 'IN-MH',
+            'issued_at' => now(), 'subscription_id' => $sub->id,
+            'gateway' => 'offline', 'status' => 'awaiting_admin_approval',
+        ]);
+        $sub->forceFill(['current_period_end' => now()->subMinute()])->save();
+
+        $this->artisan('subscriptions:renew-due')->assertExitCode(0);
+        $sub->refresh();
+        $this->assertSame('past_due', $sub->status);
+        $this->assertNotNull($sub->grace_until);
+    }
+
+    public function test_admin_subscription_timeline_lists_events_in_order(): void
+    {
+        $this->makeFreePlan();
+        $user = $this->makeUser();
+        $plan = $this->makePlan('pro', 9.99);
+        GatewaySetting::where('gateway_slug', 'offline')->update(['is_enabled' => true]);
+        $sub = $this->payPlanInvoice($user, $plan);
+
+        $controller = new \App\Modules\Admin\Controllers\SubscriptionController();
+        $ref = new \ReflectionMethod($controller, 'buildTimeline');
+        $ref->setAccessible(true);
+        $events = $ref->invoke($controller, $sub, collect(), collect(), collect());
+        $this->assertNotEmpty($events);
+        $this->assertSame('created', $events[0]['kind']);
+    }
+
+    public function test_admin_timeline_excludes_other_subscriptions_events(): void
+    {
+        $this->makeFreePlan();
+        $user = $this->makeUser();
+        $planA = $this->makePlan('pro', 9.99);
+        $planB = $this->makePlan('plus', 19.99);
+        GatewaySetting::where('gateway_slug', 'offline')->update(['is_enabled' => true]);
+        $subA = $this->payPlanInvoice($user, $planA);
+        // Simulate a second, independent subscription for the same user.
+        $subB = $this->payPlanInvoice($user, $planB);
+        // Refund subB's invoice and confirm it → should NOT appear on subA's timeline.
+        $invB = Invoice::where('user_id', $user->id)
+            ->where('subscription_id', $subB->id)->latest()->first();
+        $invB->forceFill(['gateway' => 'offline'])->save();
+        $rB = app(RefundService::class)->issue($invB, (int) $invB->grand_total_minor, [
+            'downgrade_on_success' => false,
+        ]);
+        app(RefundService::class)->confirmManual($rB, 'UTR-B', null);
+
+        $response = $this->withoutMiddleware()->get("/admin/subscriptions/{$subA->id}");
+        $response->assertStatus(200);
+        $response->assertDontSee('UTR-B');
+        $response->assertDontSeeText('Refund of ' . number_format($invB->grand_total_minor / 100, 2));
     }
 
     public function test_upgrade_creates_new_subscription_preserving_period_end(): void

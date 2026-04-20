@@ -181,6 +181,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('{invoice}/refund', [\App\Modules\Admin\Controllers\RefundController::class, 'store'])->middleware(CheckPermission::class . ':settings.manage')->name('refund');
         });
 
+        Route::prefix('refunds')->name('refunds.')->group(function () {
+            Route::post('{refund}/confirm', [\App\Modules\Admin\Controllers\RefundController::class, 'confirm'])->middleware(CheckPermission::class . ':settings.manage')->name('confirm');
+        });
+
+        Route::prefix('subscriptions')->name('subscriptions.')->group(function () {
+            Route::get('{subscription}', [\App\Modules\Admin\Controllers\SubscriptionController::class, 'show'])->middleware(CheckPermission::class . ':settings.manage')->name('show');
+        });
+
         Route::prefix('referrals')->name('referrals.')->group(function () {
             Route::get('/', [\App\Modules\Admin\Controllers\ReferralController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
             Route::post('toggle', [\App\Modules\Admin\Controllers\ReferralController::class, 'toggle'])->middleware(CheckPermission::class . ':settings.manage')->name('toggle');

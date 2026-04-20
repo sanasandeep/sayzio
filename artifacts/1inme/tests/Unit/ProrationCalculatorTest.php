@@ -19,9 +19,8 @@ class ProrationCalculatorTest extends TestCase
 
     public function test_same_plan_is_free(): void
     {
-        $plan = $this->plan(1, 9.99, 99.90);
-        $r = ProrationCalculator::prorate(
-            $plan, $plan, 'monthly',
+        $r = ProrationCalculator::prorateMinor(
+            999, 999, 'monthly',
             new \DateTimeImmutable('2026-04-01'),
             new \DateTimeImmutable('2026-04-30'),
         );
@@ -31,10 +30,8 @@ class ProrationCalculatorTest extends TestCase
 
     public function test_downgrade_attempt_is_free(): void
     {
-        $a = $this->plan(1, 19.99, 199.99);
-        $b = $this->plan(2, 9.99, 99.99);
-        $r = ProrationCalculator::prorate(
-            $a, $b, 'monthly',
+        $r = ProrationCalculator::prorateMinor(
+            1999, 999, 'monthly',
             new \DateTimeImmutable('2026-04-01'),
             new \DateTimeImmutable('2026-04-30'),
         );
@@ -44,43 +41,38 @@ class ProrationCalculatorTest extends TestCase
 
     public function test_last_day_of_cycle_charges_at_least_one_day(): void
     {
-        $a = $this->plan(1, 10.00, 100.00);
-        $b = $this->plan(2, 20.00, 200.00);
-        // now == period_end
-        $r = ProrationCalculator::prorate(
-            $a, $b, 'monthly',
+        // fromPrice=1000, toPrice=2000, now==period_end → days_left=1.
+        // Spec: planB_price × days_left / days_in_cycle = 2000 × 1 / 30 = 66.
+        $r = ProrationCalculator::prorateMinor(
+            1000, 2000, 'monthly',
             new \DateTimeImmutable('2026-04-30'),
             new \DateTimeImmutable('2026-04-30'),
         );
         $this->assertTrue($r['is_upgrade']);
         $this->assertSame(1, $r['days_left']);
-        // delta=1000 minor; 1/30 day → 33 minor (floor)
-        $this->assertSame((int) floor(1000 * 1 / 30), $r['amount_minor']);
+        $this->assertSame(intdiv(2000 * 1, 30), $r['amount_minor']);
     }
 
-    public function test_midcycle_upgrade_charges_delta_prorated(): void
+    public function test_midcycle_upgrade_charges_full_new_plan_prorated(): void
     {
-        $a = $this->plan(1, 10.00, 100.00);
-        $b = $this->plan(2, 20.00, 200.00);
-        // 15 days remaining in a 30-day cycle
+        // 16 days remaining in a 30-day cycle. Spec formula uses the
+        // FULL new-plan price, not the delta: 2000 × 16 / 30 = 1066.
         $now = new \DateTimeImmutable('2026-04-15');
         $end = new \DateTimeImmutable('2026-04-30');
-        $r = ProrationCalculator::prorate($a, $b, 'monthly', $now, $end);
+        $r = ProrationCalculator::prorateMinor(1000, 2000, 'monthly', $now, $end);
         $this->assertTrue($r['is_upgrade']);
-        // delta 1000 minor * 16/30 = 533 (since diff between 15th and 30th is 15 days + the 1)
         $this->assertSame(16, $r['days_left']);
-        $this->assertSame(intdiv(1000 * 16, 30), $r['amount_minor']);
+        $this->assertSame(intdiv(2000 * 16, 30), $r['amount_minor']);
     }
 
     public function test_annual_cycle_uses_365_day_divisor(): void
     {
-        $a = $this->plan(1, 10.00, 120.00);
-        $b = $this->plan(2, 20.00, 240.00);
         $now = new \DateTimeImmutable('2026-04-01');
-        $end = new \DateTimeImmutable('2027-03-31'); // 364 day diff -> days_left 365
-        $r = ProrationCalculator::prorate($a, $b, 'annual', $now, $end);
+        $end = new \DateTimeImmutable('2027-03-31'); // 365-day cycle
+        $r = ProrationCalculator::prorateMinor(12000, 24000, 'annual', $now, $end);
         $this->assertSame(365, $r['days_in_cycle']);
         $this->assertTrue($r['is_upgrade']);
-        $this->assertGreaterThan(0, $r['amount_minor']);
+        // 24000 * 365 / 365 = 24000
+        $this->assertSame(24000, $r['amount_minor']);
     }
 }

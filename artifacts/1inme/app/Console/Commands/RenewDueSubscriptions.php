@@ -43,10 +43,48 @@ class RenewDueSubscriptions extends Command
     public function handle(GatewayManager $gateways, SubscriptionLifecycle $lifecycle): int
     {
         $this->processScheduledCancellations($lifecycle);
+        $this->transitionUnpaidPastPeriod($lifecycle);
         $this->renewUpcoming($gateways, $lifecycle);
         $this->expireGraceEnded($lifecycle);
         $this->notifyGraceEnding($lifecycle);
         return self::SUCCESS;
+    }
+
+    /**
+     * Offline renewals stay in `awaiting_admin_approval` until the user
+     * pays manually. If `current_period_end` passes without that invoice
+     * being paid, the subscription needs to move to `past_due` with a
+     * grace window — otherwise `hasRenewalInvoice()` keeps returning
+     * true on every cron tick and the subscription is frozen in `active`
+     * with expired access. This step closes that gap.
+     */
+    protected function transitionUnpaidPastPeriod(SubscriptionLifecycle $lifecycle): void
+    {
+        $subs = Subscription::where('status', 'active')
+            ->where('cancel_at_period_end', false)
+            ->where('current_period_end', '<=', now())
+            ->get();
+        foreach ($subs as $sub) {
+            if ($this->hasPaidRenewal($sub)) continue;
+            $lifecycle->markRenewalFailed($sub);
+        }
+    }
+
+    protected function hasPaidRenewal(Subscription $sub): bool
+    {
+        return Invoice::where('user_id', $sub->user_id)
+            ->where('status', 'paid')
+            ->where('issued_at', '>=', Carbon::parse($sub->current_period_start))
+            ->get()
+            ->contains(function (Invoice $inv) use ($sub) {
+                foreach ((array) $inv->line_items as $li) {
+                    if (($li['meta']['kind'] ?? null) === 'plan_renewal'
+                        && (int) ($li['meta']['renew_subscription_id'] ?? 0) === $sub->id) {
+                        return true;
+                    }
+                }
+                return false;
+            });
     }
 
     /**

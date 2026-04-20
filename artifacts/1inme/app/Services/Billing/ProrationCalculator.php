@@ -3,46 +3,57 @@
 namespace App\Services\Billing;
 
 use App\Modules\Admin\Models\Plan;
+use App\Modules\User\Models\User;
+use App\Services\PricingResolver;
 
 /**
  * Pure, side-effect-free proration math. Separated out so we can
  * unit-test the edge cases (last day of cycle, downgrade attempt,
  * same-plan no-op) without standing up the full checkout pipeline.
  *
+ * Spec — upgrade charge formula:
+ *
+ *     charge_minor = floor( planB_price_minor × days_left / days_in_cycle )
+ *
+ * This is gross proration: the user is billed for the remaining days
+ * AT THE NEW PLAN's rate. The original invoice for plan A is not
+ * credited automatically — admins can issue a partial refund / credit
+ * note if a goodwill adjustment is wanted.
+ *
  * Invariants:
  *   - All money is in MINOR units (paise / cents / pence).
- *   - Downgrades and same-plan switches return 0 — the user doesn't
- *     pay anything mid-cycle; downgrades apply at renewal.
- *   - Last-day-of-cycle upgrades: days_left = 1 (never 0), so the
- *     user at least pays for today.
- *   - Rounded DOWN per spec — never charge more than the exact
- *     prorated share.
+ *   - Downgrades and same-plan switches return 0 — apply at renewal.
+ *   - Last-day-of-cycle upgrades: days_left = 1 (never 0).
+ *   - Rounded DOWN per spec — never charge more than the exact share.
  */
 class ProrationCalculator
 {
     /**
+     * Low-level entry point: caller supplies the resolved prices in
+     * minor units (usually from PricingResolver so the correct
+     * currency and `prices` table row is used). This keeps the math
+     * unit-testable without touching the DB or a PricingResolver.
+     *
      * @return array{amount_minor:int, days_left:int, days_in_cycle:int, is_upgrade:bool}
      */
-    public static function prorate(
-        Plan $from,
-        Plan $to,
+    public static function prorateMinor(
+        int $fromPriceMinor,
+        int $toPriceMinor,
         string $cycle,
         \DateTimeInterface $now,
-        \DateTimeInterface $currentPeriodEnd,
-        string $currency = 'INR'
+        \DateTimeInterface $currentPeriodEnd
     ): array {
-        $cycle  = $cycle === 'annual' ? 'annual' : 'monthly';
-        $days   = $cycle === 'annual' ? 365 : 30;
-        $nowTs  = (new \DateTimeImmutable($now->format('c')))->setTime(0, 0);
-        $endTs  = (new \DateTimeImmutable($currentPeriodEnd->format('c')))->setTime(0, 0);
+        $cycle    = $cycle === 'annual' ? 'annual' : 'monthly';
+        $days     = $cycle === 'annual' ? 365 : 30;
+        $nowTs    = (new \DateTimeImmutable($now->format('c')))->setTime(0, 0);
+        $endTs    = (new \DateTimeImmutable($currentPeriodEnd->format('c')))->setTime(0, 0);
         $daysLeft = max(1, (int) $nowTs->diff($endTs)->format('%r%a') + 1);
         $daysLeft = min($daysLeft, $days);
 
-        $toPrice   = self::fullPriceMinor($to, $cycle);
-        $fromPrice = self::fullPriceMinor($from, $cycle);
-
-        // Same-plan or downgrade — no mid-cycle charge.
-        if ($from->id === $to->id || $toPrice <= $fromPrice) {
+        // Same-plan (fromPrice === toPrice is the best proxy at the
+        // minor-unit level) or downgrade → no mid-cycle charge. At the
+        // plan level, callers compare by id first and short-circuit.
+        if ($toPriceMinor <= $fromPriceMinor) {
             return [
                 'amount_minor'  => 0,
                 'days_left'     => $daysLeft,
@@ -51,23 +62,57 @@ class ProrationCalculator
             ];
         }
 
-        // Charge only the DELTA for the remaining days — not the full
-        // new plan price. The user already paid for plan A for those
-        // days; billing them again for the overlap would double-bill.
-        $delta     = $toPrice - $fromPrice;
-        $chargeRaw = intdiv($delta * $daysLeft, $days); // floor
-
+        // Spec formula: planB_price × days_left / days_in_cycle, floor.
+        $charge = intdiv($toPriceMinor * $daysLeft, $days);
         return [
-            'amount_minor'  => max(0, $chargeRaw),
+            'amount_minor'  => max(0, $charge),
             'days_left'     => $daysLeft,
             'days_in_cycle' => $days,
             'is_upgrade'    => true,
         ];
     }
 
-    public static function fullPriceMinor(Plan $plan, string $cycle): int
+    /**
+     * Plan-level entry point used by the upgrade controller. Resolves
+     * prices from the authoritative `prices` table via PricingResolver
+     * in the user's billing currency, then delegates to prorateMinor().
+     */
+    public static function prorate(
+        Plan $from,
+        Plan $to,
+        string $cycle,
+        \DateTimeInterface $now,
+        \DateTimeInterface $currentPeriodEnd,
+        ?User $user = null
+    ): array {
+        if ($from->id === $to->id) {
+            return ['amount_minor' => 0, 'days_left' => 0, 'days_in_cycle' => $cycle === 'annual' ? 365 : 30, 'is_upgrade' => false];
+        }
+        $fromMinor = self::resolveMinor($from, $cycle, $user);
+        $toMinor   = self::resolveMinor($to,   $cycle, $user);
+        return self::prorateMinor($fromMinor, $toMinor, $cycle, $now, $currentPeriodEnd);
+    }
+
+    /**
+     * Resolve a plan's price in minor units using the authoritative
+     * `prices` table. Falls back to the legacy decimal column only if
+     * no row exists (pre-backfill rows or test fixtures) — keeps the
+     * calculator usable in unit tests that don't create Price rows.
+     */
+    public static function resolveMinor(Plan $plan, string $cycle, ?User $user = null): int
     {
+        $cycle = $cycle === 'annual' ? 'annual' : 'monthly';
+        $resolved = PricingResolver::priceFor($plan, $user, $cycle);
+        $minor = (int) ($resolved['amount_minor'] ?? 0);
+        if ($minor > 0) return $minor;
+        // Legacy fallback: tests and pre-backfill rows.
         $decimal = $cycle === 'annual' ? (float) $plan->annual_price : (float) $plan->monthly_price;
         return (int) round($decimal * 100);
+    }
+
+    /** @deprecated Use resolveMinor(). Kept for call-site compatibility. */
+    public static function fullPriceMinor(Plan $plan, string $cycle): int
+    {
+        return self::resolveMinor($plan, $cycle, null);
     }
 }

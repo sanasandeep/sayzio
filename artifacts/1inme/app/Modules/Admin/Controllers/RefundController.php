@@ -4,6 +4,7 @@ namespace App\Modules\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\Invoice;
+use App\Modules\User\Models\Refund;
 use App\Services\Billing\RefundService;
 use Illuminate\Http\Request;
 
@@ -41,6 +42,24 @@ class RefundController extends Controller
             return back()->with('error', $e->getMessage());
         }
         return back()->with('status', "Refund {$refund->id} issued.");
+    }
+
+    /**
+     * Admin confirms a pending offline refund by recording the
+     * bank/UPI reversal reference. Transitions status to succeeded and
+     * triggers the credit-note + optional downgrade pipeline.
+     */
+    public function confirm(Request $request, Refund $refund, RefundService $refunds)
+    {
+        $data = $request->validate([
+            'gateway_ref' => 'required|string|max:255',
+        ]);
+        try {
+            $refunds->confirmManual($refund, $data['gateway_ref'], $request->user()->id);
+        } catch (\Throwable $e) {
+            return back()->with('error', $e->getMessage());
+        }
+        return back()->with('status', "Refund {$refund->id} confirmed.");
     }
 }
 

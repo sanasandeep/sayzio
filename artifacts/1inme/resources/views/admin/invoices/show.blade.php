@@ -26,6 +26,20 @@
         <td><code>{{ $r->gateway_ref }}</code></td>
         <td>{{ $r->created_at }}</td>
       </tr>
+      @if ($r->status === 'pending')
+        <tr>
+          <td colspan="5" class="bg-light">
+            <form method="POST" action="{{ route('admin.refunds.confirm', $r) }}" class="d-flex gap-2 align-items-end mb-0">
+              @csrf
+              <div>
+                <label class="form-label small mb-0">Payout reference (bank/UPI/UTR)</label>
+                <input type="text" name="gateway_ref" class="form-control form-control-sm" required>
+              </div>
+              <button class="btn btn-sm btn-success">Confirm refund paid out</button>
+            </form>
+          </td>
+        </tr>
+      @endif
     @empty
       <tr><td colspan="5" class="text-muted">No refunds.</td></tr>
     @endforelse
