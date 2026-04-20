@@ -41,20 +41,43 @@
                                         {{ $c['name'] }}
                                     @endif
                                 </div>
-                                <ul style="margin:0 0 12px 0; padding:0 0 0 18px; color:#334155; font-size:14px; line-height:1.6;">
+                                <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%; margin:0 0 12px 0;">
                                     @foreach($c['messages'] as $m)
-                                        <li style="margin-bottom:4px;">
-                                            @if(!empty($c['url']))
-                                                <a href="{{ $c['url'] }}" style="color:#2563eb; text-decoration:none;">{{ $m }}</a>
-                                            @else
-                                                {{ $m }}
+                                        @php
+                                            $text = is_array($m) ? ($m['text'] ?? '') : $m;
+                                            $img  = is_array($m) ? ($m['image'] ?? null) : null;
+                                        @endphp
+                                        <tr>
+                                            @if(!empty($img))
+                                                <td style="width:64px; vertical-align:top; padding:4px 10px 4px 0;">
+                                                    @if(!empty($c['url']))
+                                                        <a href="{{ $c['url'] }}" style="text-decoration:none;">
+                                                            <img src="{{ $img }}" width="56" height="56" alt=""
+                                                                 style="width:56px; height:56px; border-radius:6px; object-fit:cover; display:block; background:#e2e8f0;">
+                                                        </a>
+                                                    @else
+                                                        <img src="{{ $img }}" width="56" height="56" alt=""
+                                                             style="width:56px; height:56px; border-radius:6px; object-fit:cover; display:block; background:#e2e8f0;">
+                                                    @endif
+                                                </td>
                                             @endif
-                                        </li>
+                                            <td style="vertical-align:top; padding:4px 0; color:#334155; font-size:14px; line-height:1.6;">
+                                                @if(!empty($c['url']))
+                                                    <a href="{{ $c['url'] }}" style="color:#2563eb; text-decoration:none;">{{ $text }}</a>
+                                                @else
+                                                    {{ $text }}
+                                                @endif
+                                            </td>
+                                        </tr>
                                     @endforeach
                                     @if(!empty($c['extra']) && $c['extra'] > 0)
-                                        <li style="color:#64748b; font-style:italic;">…and {{ $c['extra'] }} more update{{ $c['extra'] === 1 ? '' : 's' }}</li>
+                                        <tr>
+                                            <td colspan="2" style="padding:4px 0; color:#64748b; font-size:13px; font-style:italic;">
+                                                …and {{ $c['extra'] }} more update{{ $c['extra'] === 1 ? '' : 's' }}
+                                            </td>
+                                        </tr>
                                     @endif
-                                </ul>
+                                </table>
                                 @if(!empty($c['url']))
                                     <a href="{{ $c['url'] }}"
                                        style="display:inline-block; background-color:#2563eb; color:#ffffff; padding:8px 18px; border-radius:8px; text-decoration:none; font-size:13px; font-weight:600;">

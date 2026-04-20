@@ -93,7 +93,8 @@ class CreatorPost extends Model
 
             \App\Modules\User\Controllers\CreatorPostController::notifyFollowersDebounced(
                 $creator,
-                'New post: ' . ($post->title ?: mb_substr($post->body, 0, 60))
+                'New post: ' . ($post->title ?: mb_substr($post->body, 0, 60)),
+                $post
             );
             $count++;
         }

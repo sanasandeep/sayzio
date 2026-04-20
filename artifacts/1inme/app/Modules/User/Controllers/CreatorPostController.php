@@ -62,7 +62,7 @@ class CreatorPostController extends Controller
                 'occurred_at'  => now(),
             ]);
 
-            $this->notifyFollowersDebounced($me, 'New post: ' . ($post->title ?: mb_substr($post->body, 0, 60)));
+            $this->notifyFollowersDebounced($me, 'New post: ' . ($post->title ?: mb_substr($post->body, 0, 60)), $post);
         }
 
         if (!empty($data['is_pinned'])) {
@@ -128,7 +128,7 @@ class CreatorPostController extends Controller
      * Method name kept for backwards compatibility with existing call sites
      * (LinkController, ProfileController, etc.).
      */
-    public static function notifyFollowersDebounced($creator, string $message): void
+    public static function notifyFollowersDebounced($creator, string $message, ?CreatorPost $post = null): void
     {
         $followerIds = Follow::where('creator_id', $creator->id)->pluck('follower_id');
         if ($followerIds->isEmpty()) return;
@@ -139,15 +139,21 @@ class CreatorPostController extends Controller
             $mode = self::resolveFollowerMode($follower);
             if ($mode === 'off') continue;
 
+            $data = [
+                'creator_id'     => (int) $creator->id,
+                'creator_name'   => $creator->name,
+                'creator_avatar' => $creator->avatar,
+                'message'        => $message,
+            ];
+            if ($post) {
+                $data['post_id']    = (int) $post->id;
+                $data['post_image'] = $post->image;
+            }
+
             $notif = UserNotification::create([
                 'user_id' => $follower->id,
                 'type'    => 'follower_update',
-                'data'    => [
-                    'creator_id'     => (int) $creator->id,
-                    'creator_name'   => $creator->name,
-                    'creator_avatar' => $creator->avatar,
-                    'message'        => $message,
-                ],
+                'data'    => $data,
                 'created_at' => now(),
                 'emailed_at' => null,
             ]);

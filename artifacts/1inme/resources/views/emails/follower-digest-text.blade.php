@@ -7,7 +7,7 @@ Here's what creators you follow have been up to since your last digest
 * {{ $c['name'] }}@if(!empty($c['url'])) — {{ $c['url'] }}@endif
 
 @foreach($c['messages'] as $m)
-    - {{ $m }}
+    - {{ is_array($m) ? ($m['text'] ?? '') : $m }}
 @endforeach
 @if(!empty($c['extra']) && $c['extra'] > 0)
     - …and {{ $c['extra'] }} more update{{ $c['extra'] === 1 ? '' : 's' }}

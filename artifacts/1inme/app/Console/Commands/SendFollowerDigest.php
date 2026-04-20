@@ -94,7 +94,12 @@ class SendFollowerDigest extends Command
                 ];
             }
             $msg = trim((string) ($data['message'] ?? ''));
-            if ($msg !== '') $byCreator[$cid]['messages'][] = $msg;
+            if ($msg !== '') {
+                $byCreator[$cid]['messages'][] = [
+                    'text'  => $msg,
+                    'image' => $this->absoluteImageUrl($data['post_image'] ?? null),
+                ];
+            }
         }
 
         // Resolve each creator's primary biolink URL for deep-link CTAs.
@@ -164,5 +169,14 @@ class SendFollowerDigest extends Command
         if ($avatar === '') return null;
         if (preg_match('#^https?://#i', $avatar)) return $avatar;
         return url($avatar);
+    }
+
+    /**
+     * Same absolute-URL promotion as avatars; kept separate for clarity since
+     * post images come from a different storage path.
+     */
+    private function absoluteImageUrl(?string $image): ?string
+    {
+        return $this->absoluteAvatarUrl($image);
     }
 }
