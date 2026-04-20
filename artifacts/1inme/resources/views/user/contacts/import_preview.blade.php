@@ -199,4 +199,75 @@
         </form>
     </div>
 </div>
+
+<script>
+(function () {
+    var WARNING = 'You have unsaved changes in a row edit form. Leave anyway and lose them?';
+    var dirtyForms = new Set();
+
+    function markClean(form) {
+        dirtyForms.delete(form);
+    }
+
+    function markDirty(form) {
+        dirtyForms.add(form);
+    }
+
+    function hasDirty() {
+        return dirtyForms.size > 0;
+    }
+
+    function confirmLeave() {
+        return !hasDirty() || window.confirm(WARNING);
+    }
+
+    document.querySelectorAll('.import-edit-row form').forEach(function (form) {
+        form.addEventListener('input', function () { markDirty(form); });
+        form.addEventListener('change', function () { markDirty(form); });
+        form.addEventListener('submit', function () { markClean(form); });
+
+        // The "Cancel" link inside the edit form discards changes for that row.
+        var cancelLink = form.querySelector('a[href*="contacts/import/preview"]');
+        if (cancelLink) {
+            cancelLink.addEventListener('click', function (e) {
+                if (dirtyForms.has(form) && !window.confirm(WARNING)) {
+                    e.preventDefault();
+                    return;
+                }
+                markClean(form);
+            });
+        }
+    });
+
+    // Opening another row's editor (the per-row "Edit" link) or pagination
+    // links navigate via anchors/hrefs — guard those too.
+    document.querySelectorAll('a[href]').forEach(function (link) {
+        // Skip the in-form cancel links; already handled above.
+        if (link.closest('.import-edit-row')) return;
+        link.addEventListener('click', function (e) {
+            if (!confirmLeave()) {
+                e.preventDefault();
+            }
+        });
+    });
+
+    // Confirm / outer Cancel forms at the bottom.
+    document.querySelectorAll('form').forEach(function (form) {
+        if (form.closest('.import-edit-row')) return;
+        form.addEventListener('submit', function (e) {
+            if (!confirmLeave()) {
+                e.preventDefault();
+            }
+        });
+    });
+
+    window.addEventListener('beforeunload', function (e) {
+        if (hasDirty()) {
+            e.preventDefault();
+            e.returnValue = WARNING;
+            return WARNING;
+        }
+    });
+})();
+</script>
 @endsection
