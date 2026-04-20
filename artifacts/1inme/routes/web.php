@@ -41,6 +41,11 @@ Route::get('/f/{slug}/iframe',   [\App\Modules\User\Controllers\FormController::
 Route::get('/f/{slug}/embed.js', [\App\Modules\User\Controllers\FormController::class, 'publicEmbedJs'])->name('forms.public.embed')->where('slug', '[a-z0-9-]+');
 Route::post('/f/{slug}',         [\App\Modules\User\Controllers\FormController::class, 'publicSubmit'])->name('forms.public.submit')->where('slug', '[a-z0-9-]+')->middleware('throttle:10,1');
 
+// Public referral tracking — must precede the catch-all /{alias} routes.
+Route::get('/r/{code}', [\App\Modules\User\Controllers\ReferralController::class, 'track'])
+    ->name('referrals.track')
+    ->where('code', '[a-z0-9_\-]{3,32}');
+
 Route::get('/{alias}/manifest.json', [RedirectController::class, 'manifest'])->name('redirect.manifest')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f).*$');
 Route::get('/{alias}', [RedirectController::class, 'handle'])->name('redirect.handle')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f).*$');
 Route::post('/{alias}/track/session', [\App\Modules\Common\Controllers\EngagementController::class, 'startSession'])->name('track.session.start')->where('alias', '[^/]+')->middleware('throttle:60,1');

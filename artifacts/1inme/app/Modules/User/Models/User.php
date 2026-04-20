@@ -17,6 +17,7 @@ class User extends Authenticatable
         'bio', 'handle', 'discoverable', 'notify_new_follower', 'notify_follower_updates',
         'follower_updates_mode', 'follower_digest_last_sent_at',
         'followers_count', 'allow_followers',
+        'referral_code', 'referrer_id', 'referral_code_used',
     ];
 
     protected $hidden = ['password', 'remember_token'];

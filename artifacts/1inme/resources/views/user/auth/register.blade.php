@@ -52,6 +52,13 @@
                         @error('mobile')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
                     </div>
 
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Referral code <span style="color: var(--text-faint);">(optional)</span></label>
+                        <input type="text" name="referral_code" id="referral_code_input" value="{{ old('referral_code', $prefilledRef ?? '') }}" maxlength="32" placeholder="friend's code" class="theme-input w-full" autocomplete="off">
+                        <p class="mt-1 text-[11px]" id="referral_code_feedback" style="color: var(--text-faint);">If a friend referred you, paste their code to give them credit.</p>
+                        @error('referral_code')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                    </div>
+
                     <div class="rounded-xl px-3 py-2.5 text-[11px] flex items-start gap-2" style="background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.18); color: var(--text-dimmed);">
                         <i class="fas fa-shield-alt text-violet-400 mt-0.5"></i>
                         <span>No password needed. We'll email you a 6-digit code to sign in every time.</span>
@@ -62,6 +69,27 @@
                     </button>
                 </div>
             </form>
+
+            <script>
+            (function(){
+                const input = document.getElementById('referral_code_input');
+                const fb = document.getElementById('referral_code_feedback');
+                if (!input) return;
+                let timer;
+                const check = async () => {
+                    const v = input.value.trim();
+                    if (!v) { fb.textContent = "If a friend referred you, paste their code to give them credit."; fb.style.color=''; return; }
+                    try {
+                        const r = await fetch('{{ route('user.referrals.check') }}?code=' + encodeURIComponent(v));
+                        const j = await r.json();
+                        fb.textContent = j.ok ? 'Looks good — your friend will get credit.' : j.message;
+                        fb.style.color = j.ok ? '#34d399' : '#f87171';
+                    } catch (_) {}
+                };
+                input.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(check, 300); });
+                if (input.value.trim()) check();
+            })();
+            </script>
 
             <p class="mt-6 text-center text-xs" style="color: var(--text-dimmed);">
                 Already have an account?

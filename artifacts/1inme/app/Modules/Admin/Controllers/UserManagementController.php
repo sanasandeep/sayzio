@@ -5,6 +5,7 @@ namespace App\Modules\Admin\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\User;
 use App\Modules\Admin\Models\Plan;
+use App\Modules\User\Services\ReferralService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -43,7 +44,7 @@ class UserManagementController extends Controller
         return view('admin.users.show', compact('user', 'plans'));
     }
 
-    public function update(Request $request, User $user)
+    public function update(Request $request, User $user, ReferralService $referrals)
     {
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
@@ -52,7 +53,18 @@ class UserManagementController extends Controller
             'plan_expires_at' => 'sometimes|nullable|date',
         ]);
 
+        $previousPlanId = $user->plan_id;
         $user->update($validated);
+
+        // If the admin just moved this user onto a different paid plan, treat
+        // it as a plan activation and run the referral reward engine. The
+        // service is idempotent so repeated saves won't double-pay.
+        if (array_key_exists('plan_id', $validated) && $validated['plan_id'] && $validated['plan_id'] != $previousPlanId) {
+            $newPlan = Plan::find($validated['plan_id']);
+            if ($newPlan) {
+                $referrals->handlePlanActivation($user->fresh(), $newPlan);
+            }
+        }
 
         return redirect()->back()->with('success', 'User updated successfully.');
     }

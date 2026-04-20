@@ -113,6 +113,27 @@
                     </div>
                 </div>
 
+                <div class="border-t border-white/10 pt-5">
+                    <h3 class="text-sm font-medium text-white/80 mb-3">Referral Program (free days)</h3>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs text-white/40 mb-1" title="Free days awarded to a referrer on this plan when one of their invitees activates a paid plan.">Days awarded to referrer</label>
+                            <input type="number" name="features[referrer_free_days]" value="{{ $features['referrer_free_days'] ?? 0 }}" min="0"
+                                   class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-white/40 mb-1" title="Free days awarded to the new customer when they activate THIS plan via a referral.">Days awarded to referred user</label>
+                            <input type="number" name="features[referred_free_days]" value="{{ $features['referred_free_days'] ?? 0 }}" min="0"
+                                   class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-white/40 mb-1" title="Optional bonus to a referrer on this plan the moment one of their invitees signs up (before any payment).">Signup bonus to referrer (optional)</label>
+                            <input type="number" name="features[signup_bonus_days]" value="{{ $features['signup_bonus_days'] ?? 0 }}" min="0"
+                                   class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
+                        </div>
+                    </div>
+                </div>
+
                 @php
                     $uploadRows = \App\Services\UploadPolicy::contextsForPlan($features);
                     $uploadGroups = collect($uploadRows)->groupBy('group');

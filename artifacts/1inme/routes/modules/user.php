@@ -34,6 +34,11 @@ Route::prefix('user')->name('user.')->group(function () {
     Route::get('verify-otp', [AuthController::class, 'showOtpVerify'])->name('otp.verify.form');
     Route::post('verify-otp', [AuthController::class, 'verifyOtp'])->middleware('throttle:10,1')->name('otp.verify');
 
+    // Public referral-code availability/validity check (used by signup form).
+    Route::get('referrals/check', [\App\Modules\User\Controllers\ReferralController::class, 'check'])
+        ->middleware('throttle:60,1')
+        ->name('referrals.check');
+
     Route::get('verify-email', [AuthController::class, 'showVerifyEmail'])->middleware('auth')->name('verification.notice');
     Route::get('verify-email/{id}/{hash}', [AuthController::class, 'verifyEmail'])->middleware(['auth', 'signed'])->name('verification.verify');
     Route::post('verify-email/resend', [AuthController::class, 'resendVerification'])->middleware(['auth', 'throttle:6,1'])->name('verification.send');
@@ -239,6 +244,11 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::get('messages', [SubscriberController::class, 'messageHistory'])->name('messages');
             Route::post('{subscriber}/toggle', [SubscriberController::class, 'toggleStatus'])->name('toggle');
             Route::delete('{subscriber}', [SubscriberController::class, 'destroy'])->name('destroy');
+        });
+
+        Route::prefix('referrals')->name('referrals.')->group(function () {
+            Route::get('/', [\App\Modules\User\Controllers\ReferralController::class, 'index'])->name('index');
+            Route::put('code', [\App\Modules\User\Controllers\ReferralController::class, 'updateCode'])->name('code.update');
         });
 
         Route::prefix('verification')->name('verification.')->group(function () {

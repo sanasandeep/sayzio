@@ -74,6 +74,14 @@
 
         <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Settings</div>
 
+        <a href="{{ route('admin.referrals.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.referrals.*') ? 'active' : '' }}"
+           style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-gift"></i></div>
+            <span class="nav-label">Referrals</span>
+            <span class="sidebar-tooltip">Referrals</span>
+        </a>
+
         <a href="{{ route('admin.plans.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.plans.*') ? 'active' : '' }}"
            style="--nav-tint:#10b981; --nav-tint-soft:rgba(16,185,129,0.12);">

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\User\Models\User;
 use App\Modules\Admin\Models\Plan;
 use App\Modules\Common\Services\OtpService;
+use App\Modules\User\Services\ReferralService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -15,19 +16,29 @@ use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
-    public function showRegister()
+    public function showRegister(Request $request)
     {
         if (Auth::check()) return redirect()->route('user.dashboard');
-        return view('user.auth.register');
+        $prefilledRef = $request->query('ref') ?: $request->cookie(ReferralService::COOKIE_NAME);
+        return view('user.auth.register', ['prefilledRef' => $prefilledRef]);
     }
 
-    public function register(Request $request)
+    public function register(Request $request, ReferralService $referrals)
     {
-        $validated = $request->validate([
+        $rules = [
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'mobile' => 'nullable|string|max:20',
-        ]);
+            'referral_code' => 'nullable|string|max:32',
+        ];
+        $validated = $request->validate($rules);
+
+        // If a referral code was submitted, ensure it resolves to a real user;
+        // otherwise drop it silently and fall back to the cookie attribution.
+        $submittedCode = $validated['referral_code'] ?? null;
+        if ($submittedCode && !$referrals->findReferrerByCode($submittedCode)) {
+            return back()->withErrors(['referral_code' => 'That referral code is not valid.'])->withInput();
+        }
 
         $freePlan = Plan::where('slug', 'free')->first();
 
@@ -40,7 +51,11 @@ class AuthController extends Controller
             'password' => Hash::make(Str::random(48)),
             'plan_id' => $freePlan?->id,
             'status' => 'active',
+            'referral_code' => $referrals->generateUniqueCode(),
         ]);
+
+        $cookieCode = $request->cookie(ReferralService::COOKIE_NAME);
+        $referrals->attributeSignup($user, $submittedCode, $cookieCode, $request->ip(), $request->userAgent());
 
         // Send a login OTP and route the new user through verification.
         $otpService = new OtpService();

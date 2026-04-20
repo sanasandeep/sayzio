@@ -656,6 +656,14 @@
 
                 <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Account</div>
 
+                <a href="{{ route('user.referrals.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.referrals.*') ? 'active' : '' }}"
+                   style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-gift"></i></div>
+                    <span class="nav-label">Referrals</span>
+                    <span class="sidebar-tooltip">Referrals</span>
+                </a>
+
                 <a href="{{ route('user.profile.edit') }}"
                    class="sidebar-link {{ request()->routeIs('user.profile.*') ? 'active' : '' }}"
                    style="--nav-tint:#a78bfa; --nav-tint-soft:rgba(167,139,250,0.12);">
@@ -813,6 +821,7 @@
                             <a href="{{ route('user.verification.admin') }}" class="sidebar-link {{ request()->routeIs('user.verification.admin*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-check"></i></div> <span>Verify Requests</span></a>
                         </div>
                         @endif
+                        <a href="{{ route('user.referrals.index') }}" class="sidebar-link {{ request()->routeIs('user.referrals.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-gift"></i></div> <span>Referrals</span></a>
                         <a href="{{ route('user.profile.edit') }}" class="sidebar-link {{ request()->routeIs('user.profile.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-circle"></i></div> <span>Profile</span></a>
                     </nav>
                     <div class="p-3" style="border-top: 1px solid var(--border-subtle);">
