@@ -242,6 +242,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::delete('contacts/{contact}',                 [ContactController::class, 'destroy'])->name('contacts.destroy');
         Route::post('contacts/{contact}/biolink/detach',    [ContactController::class, 'detachBiolink'])->name('contacts.biolink.detach');
         Route::post('contacts/{contact}/biolink/attach',    [ContactController::class, 'attachBiolink'])->name('contacts.biolink.attach');
+        Route::post('contacts/{contact}/biolink/sms',       [ContactController::class, 'smsBiolink'])->name('contacts.biolink.sms');
 
         // Google Contacts OAuth + sync.
         Route::get('contacts/google/connect',               [GoogleContactsAccountController::class, 'connect'])->name('contacts.google.connect');

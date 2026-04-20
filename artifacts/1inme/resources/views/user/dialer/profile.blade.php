@@ -55,6 +55,17 @@
         </div>
     </div>
 
+    @if(session('success'))
+        <div class="mb-4 px-4 py-3 rounded-xl text-sm font-medium" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); color: #10b981;">
+            <i class="fas fa-check-circle mr-1.5"></i> {{ session('success') }}
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="mb-4 px-4 py-3 rounded-xl text-sm font-medium" style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); color: #ef4444;">
+            <i class="fas fa-circle-exclamation mr-1.5"></i> {{ session('error') }}
+        </div>
+    @endif
+
     @if($payload['biolink'])
         <div class="card-premium p-6" style="border:1px solid rgba(236,72,153,.30);">
             <div class="flex items-start justify-between gap-3">
@@ -63,9 +74,29 @@
                     <h2 class="text-lg font-bold mb-1" style="color:var(--text-primary);">{{ $payload['biolink']['name'] }}</h2>
                     <p class="text-sm mb-4" style="color:var(--text-muted);">&commat;{{ $payload['biolink']['handle'] }}</p>
                     @if($payload['biolink']['url'])
-                        <a href="{{ $payload['biolink']['url'] }}" target="_blank" class="inline-block px-4 py-2 rounded-xl text-sm font-semibold text-white" style="background:linear-gradient(135deg,#7c3aed,#ec4899);">
-                            Open biolink <i class="fas fa-external-link-alt ml-1 text-xs"></i>
-                        </a>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <a href="{{ $payload['biolink']['url'] }}" target="_blank" class="inline-block px-4 py-2 rounded-xl text-sm font-semibold text-white" style="background:linear-gradient(135deg,#7c3aed,#ec4899);">
+                                Open biolink <i class="fas fa-external-link-alt ml-1 text-xs"></i>
+                            </a>
+                            @if($number)
+                                <a href="sms:{{ $number }}?body={{ rawurlencode(($contact?->nameForDisplay() ? 'Hey ' . $contact->nameForDisplay() . ', ' : 'Hey, ') . "here's my 1INME page: " . $payload['biolink']['url']) }}"
+                                   class="inline-block px-4 py-2 rounded-xl text-sm font-semibold"
+                                   style="background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.20)">
+                                    <i class="fas fa-comment-sms mr-1"></i> Text biolink
+                                </a>
+                                @if($contact)
+                                    <form method="POST" action="{{ route('user.contacts.biolink.sms', $contact) }}" class="inline">
+                                        @csrf
+                                        <input type="hidden" name="to" value="{{ $number }}">
+                                        <button type="submit" class="px-4 py-2 rounded-xl text-sm font-semibold"
+                                                style="background:rgba(124,58,237,.12);color:#a78bfa;border:1px solid rgba(124,58,237,.20)"
+                                                title="Send via your configured SMS gateway (desktop fallback)">
+                                            <i class="fas fa-paper-plane mr-1"></i> Send via gateway
+                                        </button>
+                                    </form>
+                                @endif
+                            @endif
+                        </div>
                     @else
                         <p class="text-xs" style="color:var(--text-faint);">This user hasn't published a biolink yet.</p>
                     @endif

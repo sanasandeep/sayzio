@@ -13,6 +13,11 @@
         <i class="fas fa-check-circle mr-1.5"></i> {{ session('success') }}
     </div>
     @endif
+    @if(session('error'))
+    <div class="mb-4 px-4 py-3 rounded-xl text-sm font-medium" style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); color: #ef4444;">
+        <i class="fas fa-circle-exclamation mr-1.5"></i> {{ session('error') }}
+    </div>
+    @endif
 
     <div class="card-premium p-6">
         <div class="flex items-start gap-4 mb-5">
@@ -61,6 +66,27 @@
                     </button>
                 </form>
             </div>
+            @php($_smsPhone = $contact->phones->first(fn($p) => !empty($p->value_e164)) ?? $contact->phones->first())
+            @if($biolinkPreview['url'] && $_smsPhone)
+                @php($_smsTo = $_smsPhone->value_e164 ?: $_smsPhone->value)
+                @php($_smsBody = ($contact->nameForDisplay() ? 'Hey ' . $contact->nameForDisplay() . ', ' : 'Hey, ') . "here's my 1INME page: " . $biolinkPreview['url'])
+                <div class="mt-3 pt-3 flex flex-wrap items-center gap-2" style="border-top:1px dashed rgba(236,72,153,.20);">
+                    <a href="sms:{{ $_smsTo }}?body={{ rawurlencode($_smsBody) }}"
+                       class="px-3 py-1.5 rounded-lg text-xs font-semibold"
+                       style="background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.20)">
+                        <i class="fas fa-comment-sms mr-1"></i> Text biolink to {{ $_smsTo }}
+                    </a>
+                    <form method="POST" action="{{ route('user.contacts.biolink.sms', $contact) }}" class="inline">
+                        @csrf
+                        <input type="hidden" name="to" value="{{ $_smsTo }}">
+                        <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-semibold"
+                                style="background:rgba(124,58,237,.12);color:#a78bfa;border:1px solid rgba(124,58,237,.20)"
+                                title="Send via your configured SMS gateway (desktop fallback)">
+                            <i class="fas fa-paper-plane mr-1"></i> Send via gateway
+                        </button>
+                    </form>
+                </div>
+            @endif
         </div>
         @else
             <form method="POST" action="{{ route('user.contacts.biolink.attach', $contact) }}" class="mb-5">

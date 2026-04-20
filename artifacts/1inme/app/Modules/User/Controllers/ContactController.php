@@ -8,6 +8,7 @@ use App\Modules\User\Models\ContactEmail;
 use App\Modules\User\Models\ContactPhone;
 use App\Modules\User\Models\ContactDeletionTombstone;
 use App\Modules\User\Models\GoogleContactsAccount;
+use App\Modules\User\Models\IntegrationConfig;
 use App\Modules\User\Models\LinkedIdentifier;
 use App\Modules\User\Services\Contacts\BiolinkAttachResolver;
 use App\Modules\User\Services\Contacts\ContactImportParser;
@@ -321,6 +322,122 @@ class ContactController extends Controller
             'results' => $results,
             'remainingBefore' => $remaining,
         ]);
+    }
+
+    /**
+     * Send the contact's matched 1INME biolink URL to one of their phone
+     * numbers via a configured SMS gateway (Twilio today; other providers are
+     * audit-logged until their HTTP transports are wired up). The Blade views
+     * already provide a one-tap `sms:` deeplink for mobile devices — this
+     * endpoint is the desktop fallback when the user has an SMS integration
+     * configured.
+     */
+    public function smsBiolink(Request $request, Contact $contact)
+    {
+        abort_if($contact->user_id !== $request->user()->id, 403);
+        $contact->loadMissing(['phones', 'biolinkUser']);
+
+        $preview = $this->biolinkPreview($contact);
+        if (!$preview || empty($preview['url'])) {
+            return back()->with('error', 'No biolink available to text.');
+        }
+
+        $to = trim((string) $request->input('to', ''));
+        if ($to === '') {
+            $primary = $contact->phones->first();
+            $to = $primary?->value_e164 ?: $primary?->value ?: '';
+        }
+        $toClean = preg_replace('/[^\d+]/', '', $to);
+        if ($toClean === '' || strlen($toClean) > 20) {
+            return back()->with('error', 'This contact has no valid phone number to text.');
+        }
+
+        // Lock the destination to one of the contact's saved phones so a
+        // tampered hidden field cannot turn the user's SMS gateway into a
+        // generic outbound texter.
+        $allowed = $contact->phones
+            ->flatMap(fn ($p) => array_filter([
+                preg_replace('/[^\d+]/', '', (string) $p->value_e164),
+                preg_replace('/[^\d+]/', '', (string) $p->value),
+            ]))
+            ->filter()->unique()->values()->all();
+        if (!in_array($toClean, $allowed, true)) {
+            return back()->with('error', 'You can only text this biolink to a phone number saved on the contact.');
+        }
+
+        $userId = $request->user()->id;
+        $configId = (int) $request->input('config_id', 0);
+        $config = $configId
+            ? IntegrationConfig::where('user_id', $userId)->where('id', $configId)->kind('sms')->active()->first()
+            : IntegrationConfig::where('user_id', $userId)->kind('sms')->active()
+                ->orderByDesc('is_default')->orderBy('id')->first();
+
+        if (!$config) {
+            return back()->with('error', 'No active SMS gateway configured. Add Twilio or Plivo under Integrations, or use the Text biolink button on a mobile device.');
+        }
+
+        $name    = $contact->nameForDisplay();
+        $message = "Hey " . ($name ?: 'there') . ", here's my 1INME page: " . $preview['url'];
+
+        try {
+            $this->dispatchBiolinkSms($config, $toClean, $message);
+        } catch (\Throwable $e) {
+            \Log::warning('Biolink SMS send failed', ['err' => $e->getMessage(), 'config_id' => $config->id]);
+            return back()->with('error', 'SMS gateway rejected the send: ' . $e->getMessage());
+        }
+
+        return back()->with('success', 'Biolink texted to ' . $toClean . ' via ' . $config->providerLabel() . '.');
+    }
+
+    /**
+     * Mirror of FormController::sendSmsViaConfig, scoped to the biolink-text
+     * use case. Twilio is wired end-to-end; other providers are audit-logged
+     * with a structured trail until their transports are added.
+     */
+    private function dispatchBiolinkSms(IntegrationConfig $config, string $toClean, string $message): void
+    {
+        $cred = (array) $config->credentials;
+        $meta = (array) $config->meta;
+
+        switch ($config->provider) {
+            case 'twilio':
+                $sid   = $meta['account_sid'] ?? null;
+                $token = $cred['auth_token']  ?? null;
+                $from  = $meta['from_number'] ?? null;
+                if (!$sid || !$token || !$from) {
+                    throw new \RuntimeException('Twilio credentials incomplete.');
+                }
+                \Illuminate\Support\Facades\Http::withBasicAuth($sid, $token)
+                    ->asForm()->timeout(10)
+                    ->post("https://api.twilio.com/2010-04-01/Accounts/{$sid}/Messages.json", [
+                        'From' => $from, 'To' => $toClean, 'Body' => $message,
+                    ])->throw();
+                break;
+
+            case 'plivo':
+                $authId = $meta['auth_id']    ?? null;
+                $token  = $cred['auth_token'] ?? null;
+                $from   = $meta['from_number'] ?? null;
+                if (!$authId || !$token || !$from) {
+                    throw new \RuntimeException('Plivo credentials incomplete.');
+                }
+                \Illuminate\Support\Facades\Http::withBasicAuth($authId, $token)
+                    ->asJson()->timeout(10)
+                    ->post("https://api.plivo.com/v1/Account/{$authId}/Message/", [
+                        'src' => $from, 'dst' => $toClean, 'text' => $message,
+                    ])->throw();
+                break;
+
+            default:
+                // Provider recognised in IntegrationConfigRegistry but its HTTP
+                // transport isn't wired up here yet. Fail loudly so the user
+                // doesn't see a green "sent" toast for a message that never
+                // actually left the building.
+                throw new \RuntimeException(
+                    'SMS provider "' . $config->provider . '" is not yet supported for biolink texting. '
+                    . 'Use Twilio or Plivo, or text from a mobile device.'
+                );
+        }
     }
 
     // ---- helpers ----------------------------------------------------------
