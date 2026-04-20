@@ -10,6 +10,7 @@ use App\Modules\User\Models\ContactDeletionTombstone;
 use App\Modules\User\Models\GoogleContactsAccount;
 use App\Modules\User\Models\LinkedIdentifier;
 use App\Modules\User\Services\Contacts\BiolinkAttachResolver;
+use App\Modules\User\Services\Contacts\ContactImportParser;
 use App\Modules\User\Services\Contacts\GoogleContactsSyncService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +25,7 @@ class ContactController extends Controller
     public function __construct(
         protected BiolinkAttachResolver $resolver,
         protected GoogleContactsSyncService $sync,
+        protected ContactImportParser $importParser,
     ) {}
 
     public function index(Request $request)
@@ -192,6 +194,133 @@ class ContactController extends Controller
         }
         $this->resolver->resolveFor($contact->fresh('phones'));
         return back()->with('success', 'Biolink reattached if a matching 1INME user was found.');
+    }
+
+    // ---- bulk import ------------------------------------------------------
+
+    public function importForm(Request $request)
+    {
+        return view('user.contacts.import', [
+            'softCap' => self::SOFT_CAP,
+            'remaining' => max(0, self::SOFT_CAP - Contact::where('user_id', $request->user()->id)->count()),
+        ]);
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            // CSV/vCard text files; cap at 5MB to keep parsing predictable.
+            'file' => 'required|file|max:5120|mimes:csv,txt,vcf,vcard',
+        ]);
+
+        $user = $request->user();
+        $existingCount = Contact::where('user_id', $user->id)->count();
+        $remaining = max(0, self::SOFT_CAP - $existingCount);
+
+        $file = $request->file('file');
+        try {
+            $rows = $this->importParser->parse($file->getRealPath(), $file->getClientOriginalName());
+        } catch (\Throwable $e) {
+            \Log::warning('Contact import: parse failed', [
+                'user' => $user->id, 'name' => $file->getClientOriginalName(), 'err' => $e->getMessage(),
+            ]);
+            return back()->with('error', 'We couldn\'t read that file. Make sure it\'s a valid CSV or vCard (.vcf) and try again.');
+        }
+
+        $results = [
+            'total'      => count($rows),
+            'created'    => 0,
+            'failed'     => [],
+            'skippedCap' => 0,
+        ];
+
+        foreach ($rows as $i => $row) {
+            // Prefer the parser's source_line so error messages point at the
+            // user's actual file (CSV header offset, vCard BEGIN: blocks).
+            $rowNum = $row['source_line'] ?? ($i + 1);
+            $label  = $row['display_name'] ?: trim(($row['given_name'] ?? '') . ' ' . ($row['family_name'] ?? ''));
+            $label  = $label !== '' ? $label : ('Row ' . $rowNum);
+
+            if ($existingCount + $results['created'] >= self::SOFT_CAP) {
+                $results['skippedCap']++;
+                continue;
+            }
+
+            $payload = [
+                'display_name' => $row['display_name'] ?: trim(($row['given_name'] ?? '') . ' ' . ($row['family_name'] ?? '')),
+                'given_name'   => $row['given_name'] ?? null,
+                'family_name'  => $row['family_name'] ?? null,
+                'organization' => $row['organization'] ?? null,
+                'phones'       => $row['phones'] ?? [],
+                'emails'       => $row['emails'] ?? [],
+            ];
+
+            // Reuse the same validation rules as manual create so failures
+            // show up identically (e.g. invalid email).
+            $v = validator($payload, [
+                'display_name' => 'nullable|string|max:191',
+                'given_name'   => 'nullable|string|max:191',
+                'family_name'  => 'nullable|string|max:191',
+                'organization' => 'nullable|string|max:191',
+                'phones'                 => 'nullable|array|max:10',
+                'phones.*.label'         => 'nullable|string|max:50',
+                'phones.*.value'         => 'nullable|string|max:80',
+                'emails'                 => 'nullable|array|max:10',
+                'emails.*.label'         => 'nullable|string|max:50',
+                'emails.*.value'         => 'nullable|email|max:191',
+            ]);
+            if ($v->fails()) {
+                $results['failed'][] = [
+                    'row'    => $rowNum,
+                    'name'   => $label,
+                    'reason' => $v->errors()->first(),
+                ];
+                continue;
+            }
+
+            $hasAnything = $payload['display_name'] || $payload['given_name'] || $payload['family_name']
+                || !empty($payload['phones']) || !empty($payload['emails']);
+            if (!$hasAnything) {
+                $results['failed'][] = [
+                    'row' => $rowNum, 'name' => $label,
+                    'reason' => 'No name, phone, or email found.',
+                ];
+                continue;
+            }
+
+            try {
+                $contact = DB::transaction(function () use ($user, $payload) {
+                    $c = Contact::create([
+                        'user_id'      => $user->id,
+                        'display_name' => $payload['display_name'] ?: trim(($payload['given_name'] ?? '') . ' ' . ($payload['family_name'] ?? '')),
+                        'given_name'   => $payload['given_name'],
+                        'family_name'  => $payload['family_name'],
+                        'organization' => $payload['organization'],
+                        'locally_modified_at' => now(),
+                    ]);
+                    $this->syncRows($c, $payload['phones'], $payload['emails']);
+                    return $c;
+                });
+
+                // Same post-create steps as the manual store() path so
+                // biolink auto-attach and best-effort Google push still run.
+                $this->resolver->resolveFor($contact->fresh('phones'));
+                $this->pushToGoogleSafely($user->id, $contact);
+
+                $results['created']++;
+            } catch (\Throwable $e) {
+                $results['failed'][] = [
+                    'row'    => $rowNum,
+                    'name'   => $label,
+                    'reason' => \Illuminate\Support\Str::limit($e->getMessage(), 200),
+                ];
+            }
+        }
+
+        return view('user.contacts.import_summary', [
+            'results' => $results,
+            'remainingBefore' => $remaining,
+        ]);
     }
 
     // ---- helpers ----------------------------------------------------------

@@ -63,8 +63,11 @@
 
             <div class="card-premium p-5 mt-4">
                 <h3 class="text-sm font-bold mb-2" style="color: var(--text-primary);">Quick add</h3>
-                <a href="{{ route('user.contacts.create') }}" class="block w-full px-3 py-2 rounded-lg text-xs font-medium text-center transition" style="background:rgba(34,211,238,.12);color:#22d3ee;border:1px solid rgba(34,211,238,.25)">
+                <a href="{{ route('user.contacts.create') }}" class="block w-full px-3 py-2 rounded-lg text-xs font-medium text-center transition mb-2" style="background:rgba(34,211,238,.12);color:#22d3ee;border:1px solid rgba(34,211,238,.25)">
                     <i class="fas fa-user-plus mr-1"></i> New contact
+                </a>
+                <a href="{{ route('user.contacts.import') }}" class="block w-full px-3 py-2 rounded-lg text-xs font-medium text-center transition" style="background:rgba(124,58,237,.12);color:#a78bfa;border:1px solid rgba(124,58,237,.25)">
+                    <i class="fas fa-file-import mr-1"></i> Import CSV / vCard
                 </a>
             </div>
         </div>
