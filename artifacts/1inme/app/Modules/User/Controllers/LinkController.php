@@ -17,6 +17,25 @@ use Illuminate\Support\Facades\Storage;
 
 class LinkController extends Controller
 {
+    /**
+     * Build a Validation rule that constrains domain_id to a domain the
+     * user can actually attach: their own verified+active domains plus
+     * admin-global active domains tagged for their plan (or untagged
+     * globals open to every plan). Replaces the old "user-owned only"
+     * exists rule that broke admin-global domain selection.
+     */
+    protected function availableDomainRule(User $user): \Closure
+    {
+        return function ($attribute, $value, $fail) use ($user) {
+            if (empty($value)) return;
+            $allowed = \App\Modules\User\Models\Domain::availableTo($user)
+                ->pluck('id')->all();
+            if (!in_array((int) $value, $allowed, true)) {
+                $fail('That domain is not available on your plan.');
+            }
+        };
+    }
+
     public function index(Request $request)
     {
         $query = $request->user()->links()->with(['project', 'domain', 'fileLink']);
@@ -119,7 +138,7 @@ class LinkController extends Controller
     {
         $projects = $request->user()->projects()->orderBy('name')->get();
         $pixels = $request->user()->pixels()->orderBy('name')->get();
-        $domains = $request->user()->domains()->where('is_verified', true)->get();
+        $domains = \App\Modules\User\Models\Domain::availableTo($request->user())->get();
 
         return view('user.links.create-url', [
             'projects' => $projects,
@@ -137,9 +156,11 @@ class LinkController extends Controller
     public function createBiolink(Request $request)
     {
         $projects = $request->user()->projects()->orderBy('name')->get();
+        $domains  = \App\Modules\User\Models\Domain::availableTo($request->user())->get();
 
         return view('user.links.create-biolink', [
             'projects' => $projects,
+            'domains'  => $domains,
             'prefillAlias' => (string) $request->query('alias', ''),
             'aliasLimits' => $request->user()->getAliasLengthLimits(),
         ]);
@@ -160,7 +181,7 @@ class LinkController extends Controller
             ),
             'title' => 'nullable|string|max:255',
             'project_id' => "nullable|exists:projects,id,user_id,{$userId}",
-            'domain_id' => "nullable|exists:domains,id,user_id,{$userId}",
+            'domain_id' => ['nullable', $this->availableDomainRule($request->user())],
             'is_password_protected' => 'boolean',
             'password' => 'nullable|string|min:3|max:100',
             'expires_at' => 'nullable|date|after:now',
@@ -1576,7 +1597,7 @@ class LinkController extends Controller
 
         $projects = $request->user()->projects()->orderBy('name')->get();
         $pixels = $request->user()->pixels()->orderBy('name')->get();
-        $domains = $request->user()->domains()->where('is_verified', true)->get();
+        $domains = \App\Modules\User\Models\Domain::availableTo($request->user())->get();
         $link->load('pixels');
 
         // Detect a known mobile app for the destination URL so the edit form
@@ -1597,7 +1618,7 @@ class LinkController extends Controller
             'redirect_type' => 'nullable|in:301,302',
             'title' => 'nullable|string|max:255',
             'project_id' => "nullable|exists:projects,id,user_id,{$userId}",
-            'domain_id' => "nullable|exists:domains,id,user_id,{$userId}",
+            'domain_id' => ['nullable', $this->availableDomainRule($request->user())],
             'is_active' => 'boolean',
             'is_password_protected' => 'boolean',
             'password' => 'nullable|string|min:3|max:100',

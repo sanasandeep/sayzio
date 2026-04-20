@@ -13,6 +13,7 @@ use App\Modules\Admin\Controllers\CoachDefaultsController;
 use App\Modules\Admin\Controllers\TemplateController;
 use App\Modules\Admin\Controllers\AdminAssetController;
 use App\Modules\Admin\Controllers\BrandingController;
+use App\Modules\Admin\Controllers\DomainController as AdminDomainController;
 use App\Modules\Admin\Controllers\SocialOAuthSettingsController;
 use App\Modules\Admin\Controllers\SpamRuleStatsController;
 use App\Modules\Admin\Middleware\CheckPermission;
@@ -78,6 +79,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::put('{kind}/{id}', [TemplateController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
             Route::post('{kind}/{id}/toggle', [TemplateController::class, 'toggle'])->middleware(CheckPermission::class . ':settings.manage')->name('toggle');
             Route::delete('{kind}/{id}', [TemplateController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
+        });
+
+        Route::prefix('domains')->name('domains.')->group(function () {
+            Route::get('/', [AdminDomainController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::post('/', [AdminDomainController::class, 'store'])->middleware(CheckPermission::class . ':settings.manage')->name('store');
+            Route::put('{domain}', [AdminDomainController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
+            Route::post('{domain}/verify', [AdminDomainController::class, 'verify'])->middleware(CheckPermission::class . ':settings.manage')->name('verify');
+            Route::delete('{domain}', [AdminDomainController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
         });
 
         Route::prefix('branding')->name('branding.')->group(function () {

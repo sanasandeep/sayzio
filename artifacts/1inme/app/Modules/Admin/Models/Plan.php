@@ -26,6 +26,11 @@ class Plan extends Model
         return $this->hasMany(\App\Modules\User\Models\User::class);
     }
 
+    public function domains()
+    {
+        return $this->belongsToMany(\App\Modules\User\Models\Domain::class, 'domain_plan');
+    }
+
     public function scopeActive($query)
     {
         return $query->where('status', 'active');

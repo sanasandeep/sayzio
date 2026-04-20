@@ -28,7 +28,16 @@
                 <div>
                     <label class="block text-sm font-medium text-white/60 mb-1.5">Custom Alias</label>
                     <div class="flex items-center bg-white/5 border border-white/10 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-violet-500/40">
-                        <span class="bg-white/5 px-3 py-2.5 text-sm text-white/30 border-r border-white/10">{{ request()->getHost() }}/</span>
+                        @if(($domains ?? collect())->isNotEmpty())
+                            <select name="domain_id" class="bg-white/5 px-2 py-2.5 text-xs text-white/70 border-r border-white/10 outline-none max-w-[180px]">
+                                <option value="" class="bg-[#0d0818]">{{ parse_url(config('app.url'), PHP_URL_HOST) ?: request()->getHost() }}/</option>
+                                @foreach($domains as $d)
+                                    <option value="{{ $d->id }}" {{ old('domain_id') == $d->id ? 'selected' : '' }} class="bg-[#0d0818]">{{ $d->domain }}/</option>
+                                @endforeach
+                            </select>
+                        @else
+                            <span class="bg-white/5 px-3 py-2.5 text-sm text-white/30 border-r border-white/10">{{ parse_url(config('app.url'), PHP_URL_HOST) ?: request()->getHost() }}/</span>
+                        @endif
                         <input type="text" name="alias" value="{{ old('alias', $prefillAlias ?? '') }}" placeholder="auto-generated"
                                minlength="{{ ($aliasLimits ?? ['min'=>3])['min'] }}"
                                maxlength="{{ ($aliasLimits ?? ['max'=>50])['max'] }}"
@@ -36,6 +45,7 @@
                                class="flex-1 px-3 py-2.5 text-sm bg-transparent text-white placeholder-white/20 border-0 focus:ring-0 outline-none">
                     </div>
                     @error('alias') <p class="text-red-400 text-sm mt-1">{{ $message }}</p> @enderror
+                    @error('domain_id') <p class="text-red-400 text-sm mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-white/60 mb-1.5">Project</label>

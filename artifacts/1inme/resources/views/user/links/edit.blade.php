@@ -203,6 +203,20 @@
                     </select>
                 </div>
             </div>
+
+            @if(($domains ?? collect())->isNotEmpty() || $link->domain_id)
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-white/60 mb-1">Custom Domain</label>
+                <select name="domain_id" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-violet-500/40">
+                    <option value="">{{ parse_url(config('app.url'), PHP_URL_HOST) ?: request()->getHost() }} (default)</option>
+                    @foreach($domains as $d)
+                        <option value="{{ $d->id }}" {{ old('domain_id', $link->domain_id) == $d->id ? 'selected' : '' }}>{{ $d->domain }}</option>
+                    @endforeach
+                </select>
+                @error('domain_id') <p class="text-red-400 text-xs mt-1">{{ $message }}</p> @enderror
+                <p class="text-[11px] text-white/40 mt-1">The short URL renders on the host you choose. Add a domain in <a href="{{ route('user.domains.index') }}" class="text-violet-400 hover:text-violet-300">Domains</a>.</p>
+            </div>
+            @endif
         </div>
 
         <div class="glass rounded-2xl p-6 mb-6">

@@ -6,8 +6,10 @@ use App\Modules\Admin\Models\Admin;
 use App\Modules\Admin\Models\Role;
 use App\Modules\Admin\Models\Permission;
 use App\Modules\Admin\Models\Plan;
+use App\Modules\User\Models\Domain;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class DatabaseSeeder extends Seeder
 {
@@ -130,7 +132,7 @@ class DatabaseSeeder extends Seeder
             ],
         ]);
 
-        Plan::create([
+        $proPlan = Plan::create([
             'name' => 'Pro',
             'slug' => 'pro',
             'description' => 'Everything you need to grow',
@@ -157,7 +159,7 @@ class DatabaseSeeder extends Seeder
             ],
         ]);
 
-        Plan::create([
+        $businessPlan = Plan::create([
             'name' => 'Business',
             'slug' => 'business',
             'description' => 'For teams and businesses',
@@ -183,5 +185,31 @@ class DatabaseSeeder extends Seeder
                 'custom_forms' => true,
             ],
         ]);
+
+        // Example admin-global domains. `short.1inme.io` is open to every
+        // plan (no plan tags); `pro.1inme.io` is gated to Pro+Business;
+        // `biz.1inme.io` is Business-only. These show up automatically as
+        // selectable hosts in the link create/edit screens.
+        $cnameTarget = parse_url(config('app.url'), PHP_URL_HOST) ?: '1inme.com';
+
+        $shared = Domain::create([
+            'user_id' => null, 'domain' => 'short.1inme.io', 'type' => 'redirect',
+            'is_active' => true, 'is_verified' => true, 'verified_at' => now(),
+            'verification_token' => Str::random(32), 'cname_target' => $cnameTarget,
+        ]);
+
+        $proDomain = Domain::create([
+            'user_id' => null, 'domain' => 'pro.1inme.io', 'type' => 'redirect',
+            'is_active' => true, 'is_verified' => true, 'verified_at' => now(),
+            'verification_token' => Str::random(32), 'cname_target' => $cnameTarget,
+        ]);
+        $proDomain->plans()->sync([$proPlan->id, $businessPlan->id]);
+
+        $bizDomain = Domain::create([
+            'user_id' => null, 'domain' => 'biz.1inme.io', 'type' => 'redirect',
+            'is_active' => true, 'is_verified' => true, 'verified_at' => now(),
+            'verification_token' => Str::random(32), 'cname_target' => $cnameTarget,
+        ]);
+        $bizDomain->plans()->sync([$businessPlan->id]);
     }
 }

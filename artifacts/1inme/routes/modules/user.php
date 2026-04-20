@@ -259,6 +259,13 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::resource('pixels', PixelController::class)->except(['show', 'store']);
         Route::post('pixels', [PixelController::class, 'store'])->middleware(CheckPlanLimit::class . ':pixels')->name('pixels.store');
 
+        Route::prefix('domains')->name('domains.')->middleware(CheckPlanLimit::class . ':custom_domains')->group(function () {
+            Route::get('/', [\App\Modules\User\Controllers\DomainController::class, 'index'])->name('index');
+            Route::post('/', [\App\Modules\User\Controllers\DomainController::class, 'store'])->name('store');
+            Route::post('{domain}/verify', [\App\Modules\User\Controllers\DomainController::class, 'verify'])->name('verify');
+            Route::delete('{domain}', [\App\Modules\User\Controllers\DomainController::class, 'destroy'])->name('destroy');
+        });
+
         Route::prefix('social-proofs')->name('social-proofs.')->group(function () {
             Route::get('/',                            [\App\Modules\User\Controllers\SocialProofController::class, 'index'])->name('index');
             Route::get('create',                       [\App\Modules\User\Controllers\SocialProofController::class, 'create'])->name('create');

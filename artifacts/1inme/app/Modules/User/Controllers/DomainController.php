@@ -1,0 +1,81 @@
+<?php
+
+namespace App\Modules\User\Controllers;
+
+use App\Http\Controllers\Controller;
+use App\Modules\User\Models\Domain;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+
+class DomainController extends Controller
+{
+    public function index(Request $request)
+    {
+        $user = $request->user();
+
+        $myDomains     = $user->domains()->orderBy('domain')->get();
+        $globalDomains = Domain::whereNull('user_id')
+            ->where('is_active', true)
+            ->where(function ($q) use ($user) {
+                $q->whereDoesntHave('plans');
+                if ($user->plan_id) {
+                    $q->orWhereHas('plans', fn ($p) => $p->where('plans.id', $user->plan_id));
+                }
+            })
+            ->orderBy('domain')
+            ->get();
+
+        return view('user.domains.index', compact('myDomains', 'globalDomains'));
+    }
+
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'domain' => 'required|string|max:191|regex:/^[a-z0-9.\-]+\.[a-z]{2,}$/i|unique:domains,domain',
+        ]);
+
+        $domain = Domain::create([
+            'user_id'            => $request->user()->id,
+            'domain'             => strtolower($data['domain']),
+            'is_active'          => true,
+            'is_verified'        => false,
+            'verification_token' => Str::random(32),
+            'cname_target'       => parse_url(config('app.url'), PHP_URL_HOST),
+            'type'               => 'redirect',
+        ]);
+
+        return redirect()->route('user.domains.index')
+            ->with('success', "Domain {$domain->domain} added. Point a CNAME record to {$domain->cname_target}, then click Verify.");
+    }
+
+    public function verify(Request $request, Domain $domain)
+    {
+        abort_if($domain->user_id !== $request->user()->id, 403);
+
+        $expected = $domain->cname_target ?: parse_url(config('app.url'), PHP_URL_HOST);
+        $records  = @dns_get_record($domain->domain, DNS_CNAME);
+        $matched  = false;
+        if (is_array($records)) {
+            foreach ($records as $r) {
+                if (!empty($r['target']) && rtrim(strtolower($r['target']), '.') === strtolower($expected)) {
+                    $matched = true;
+                    break;
+                }
+            }
+        }
+
+        if (!$matched) {
+            return back()->with('error', "CNAME for {$domain->domain} does not point at {$expected} yet. DNS changes can take up to 24 hours to propagate.");
+        }
+
+        $domain->update(['is_verified' => true, 'verified_at' => now()]);
+        return back()->with('success', "Domain {$domain->domain} verified — short links can now use it.");
+    }
+
+    public function destroy(Request $request, Domain $domain)
+    {
+        abort_if($domain->user_id !== $request->user()->id, 403);
+        $domain->delete();
+        return back()->with('success', 'Domain removed.');
+    }
+}

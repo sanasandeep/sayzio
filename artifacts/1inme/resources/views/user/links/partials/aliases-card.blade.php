@@ -8,7 +8,7 @@
     $extras     = $link->aliases()->orderBy('created_at')->get();
     $usedExtras = $extras->count();
     $canAddMore = $maxExtras === -1 || $usedExtras < $maxExtras;
-    $aliasHost  = request()->getHost();
+    $aliasHost  = $link->domain?->domain ?: (parse_url(config('app.url'), PHP_URL_HOST) ?: request()->getHost());
 @endphp
 
 <div class="card-premium p-6" x-data="{ editing: false, alias: @js($link->alias) }">

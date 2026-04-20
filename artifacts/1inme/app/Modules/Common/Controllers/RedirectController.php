@@ -23,8 +23,19 @@ class RedirectController extends Controller
     public function handle(Request $request, string $alias)
     {
         // Resolve to the link via primary alias OR any of its additional aliases.
-        $link = Link::resolveByAlias($alias);
-        if (!$link) abort(404);
+        // Host-aware: requests on a known custom domain only match links bound to
+        // that domain; an unknown/disabled host gets a "domain not connected" notice.
+        $host = $request->getHost();
+        $link = Link::resolveByAlias($alias, $host);
+        if (!$link) {
+            $platformHost = parse_url(config('app.url'), PHP_URL_HOST);
+            if ($host && strcasecmp($host, (string) $platformHost) !== 0
+                && !\App\Modules\User\Models\Domain::where('domain', strtolower($host))
+                    ->where('is_active', true)->where('is_verified', true)->exists()) {
+                return response()->view('common.domain-not-connected', ['host' => $host], 404);
+            }
+            abort(404);
+        }
         $link->load('pixels');
         // Stash the alias the visitor actually used so views and tracking can
         // distinguish e.g. "/john" vs "/john-instagram" hits on the SAME page.
@@ -251,7 +262,7 @@ class RedirectController extends Controller
 
     public function manifest(Request $request, string $alias)
     {
-        $link = Link::resolveByAlias($alias);
+        $link = Link::resolveByAlias($alias, $request->getHost());
         if (!$link || $link->type !== 'biolink') abort(404);
 
         if (!$link->isAccessible()) {
@@ -300,7 +311,7 @@ class RedirectController extends Controller
 
     public function rawFileDownload(Request $request, string $alias)
     {
-        $link = Link::resolveByAlias($alias);
+        $link = Link::resolveByAlias($alias, $request->getHost());
         if (!$link || $link->type !== 'file') abort(404);
 
         if (!$link->isAccessible()) {
@@ -379,7 +390,7 @@ class RedirectController extends Controller
 
     public function handleBlockClick(Request $request, string $alias, int $blockId)
     {
-        $link = Link::resolveByAlias($alias);
+        $link = Link::resolveByAlias($alias, $request->getHost());
         if (!$link || $link->type !== 'biolink') abort(404);
 
         if (!$link->isAccessible()) {
@@ -452,7 +463,7 @@ class RedirectController extends Controller
 
     public function subscribe(Request $request, string $alias)
     {
-        $link = Link::resolveByAlias($alias);
+        $link = Link::resolveByAlias($alias, $request->getHost());
         if (!$link) abort(404);
 
         $data = $request->validate([
@@ -612,7 +623,7 @@ class RedirectController extends Controller
 
     public function rsvpForm(Request $request, string $alias)
     {
-        $link = Link::resolveByAlias($alias);
+        $link = Link::resolveByAlias($alias, $request->getHost());
         if (!$link || $link->type !== 'ics') abort(404);
         if (empty(($link->settings ?? [])['rsvp_enabled'])) abort(404);
         $link->load('icsData');
@@ -622,7 +633,7 @@ class RedirectController extends Controller
 
     public function rsvpSubmit(Request $request, string $alias)
     {
-        $link = Link::resolveByAlias($alias);
+        $link = Link::resolveByAlias($alias, $request->getHost());
         if (!$link || $link->type !== 'ics') abort(404);
         if (empty(($link->settings ?? [])['rsvp_enabled'])) abort(404);
 

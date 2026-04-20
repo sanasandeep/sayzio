@@ -82,6 +82,14 @@
             <span class="sidebar-tooltip">Referrals</span>
         </a>
 
+        <a href="{{ route('admin.domains.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.domains.*') ? 'active' : '' }}"
+           style="--nav-tint:#0ea5e9; --nav-tint-soft:rgba(14,165,233,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-globe"></i></div>
+            <span class="nav-label">Domains</span>
+            <span class="sidebar-tooltip">Domains</span>
+        </a>
+
         <a href="{{ route('admin.plans.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.plans.*') ? 'active' : '' }}"
            style="--nav-tint:#10b981; --nav-tint-soft:rgba(16,185,129,0.12);">

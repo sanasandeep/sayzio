@@ -14,7 +14,7 @@ class EngagementController extends Controller
 {
     public function startSession(Request $request, string $alias)
     {
-        $link = Link::resolveByAlias($alias);
+        $link = Link::resolveByAlias($alias, $request->getHost());
         if (!$link) abort(404);
         $sessionId = (string) Str::uuid();
 
@@ -55,7 +55,7 @@ class EngagementController extends Controller
             'block_views.*.impression_count' => 'nullable|integer|min:0',
         ]);
 
-        $link = Link::resolveByAlias($alias);
+        $link = Link::resolveByAlias($alias, $request->getHost());
         if (!$link) abort(404);
 
         $session = PageSession::where('session_id', $data['session_id'])

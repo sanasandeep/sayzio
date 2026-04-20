@@ -13,7 +13,7 @@ class PublicQrController extends Controller
     {
         // Resolve via primary or additional alias; QR codes for any alias should
         // point to the same underlying link.
-        $link = Link::resolveByAlias($alias);
+        $link = Link::resolveByAlias($alias, $request->getHost());
         if (!$link || !$link->is_active) abort(404);
 
         if (!$link->isAccessible()) {

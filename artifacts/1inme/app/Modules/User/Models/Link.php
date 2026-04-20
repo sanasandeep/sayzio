@@ -113,12 +113,46 @@ class Link extends Model
      * case), then falls back to the link_aliases table for additional aliases.
      * Returns null if no link matches.
      */
-    public static function resolveByAlias(string $alias): ?self
+    public static function resolveByAlias(string $alias, ?string $host = null): ?self
     {
-        $link = static::where('alias', $alias)->first();
+        // Host-aware resolution. When the visitor request comes in on a
+        // custom domain we MUST scope alias lookup to links bound to that
+        // domain so the same alias can live independently on different
+        // hosts. A null/missing/platform host falls back to "no domain" —
+        // i.e. links not bound to any custom domain.
+        $platformHost = parse_url(config('app.url'), PHP_URL_HOST);
+        $domainId = null;
+        $hostKnown = true;
+        if ($host && strcasecmp($host, (string) $platformHost) !== 0) {
+            $domain = Domain::where('domain', strtolower($host))
+                ->where('is_active', true)
+                ->where('is_verified', true)
+                ->first();
+            if (!$domain) {
+                // Visitor hit an unknown / unverified / disabled host — caller
+                // should serve a "domain not connected" notice rather than
+                // matching aliases on the platform host.
+                return null;
+            }
+            $domainId = $domain->id;
+        }
+
+        $query = static::where('alias', $alias);
+        if ($host !== null) {
+            $query->where(function ($q) use ($domainId) {
+                $domainId === null ? $q->whereNull('domain_id') : $q->where('domain_id', $domainId);
+            });
+        }
+        $link = $query->first();
         if ($link) return $link;
 
-        $extra = LinkAlias::where('alias', $alias)->first();
+        $extraQ = LinkAlias::where('alias', $alias);
+        if ($host !== null) {
+            $extraQ->whereHas('link', function ($q) use ($domainId) {
+                $domainId === null ? $q->whereNull('domain_id') : $q->where('domain_id', $domainId);
+            });
+        }
+        $extra = $extraQ->first();
         return $extra ? static::find($extra->link_id) : null;
     }
 

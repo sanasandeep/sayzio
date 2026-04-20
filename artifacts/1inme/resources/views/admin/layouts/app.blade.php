@@ -147,6 +147,7 @@
                     <a href="{{ route('admin.roles.index') }}" class="sidebar-link {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-key"></i></div><span>Roles</span></a>
                     <a href="{{ route('admin.links.index') }}" class="sidebar-link {{ request()->routeIs('admin.links.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-link"></i></div><span>All Links</span></a>
                     <a href="{{ route('admin.referrals.index') }}" class="sidebar-link {{ request()->routeIs('admin.referrals.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-gift"></i></div><span>Referrals</span></a>
+                    <a href="{{ route('admin.domains.index') }}" class="sidebar-link {{ request()->routeIs('admin.domains.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-globe"></i></div><span>Domains</span></a>
                     <a href="{{ route('admin.plans.index') }}" class="sidebar-link {{ request()->routeIs('admin.plans.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-tags"></i></div><span>Plans</span></a>
                     <a href="{{ route('admin.assets.index') }}" class="sidebar-link {{ request()->routeIs('admin.assets.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-folder-tree"></i></div><span>Asset Vault</span></a>
                 </nav>

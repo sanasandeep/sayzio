@@ -611,6 +611,13 @@
                     <span class="nav-label">Integrations</span>
                     <span class="sidebar-tooltip">Integrations</span>
                 </a>
+                <a href="{{ route('user.domains.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.domains.*') ? 'active' : '' }}"
+                   style="--nav-tint:#0ea5e9; --nav-tint-soft:rgba(14,165,233,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-globe"></i></div>
+                    <span class="nav-label">Domains</span>
+                    <span class="sidebar-tooltip">Custom Domains</span>
+                </a>
                 <a href="{{ route('user.referrals.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.referrals.*') ? 'active' : '' }}"
                    style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
@@ -857,6 +864,7 @@
                         <a href="{{ route('user.pixels.index') }}" class="sidebar-link {{ request()->routeIs('user.pixels.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bullseye"></i></div> <span>Tracking</span></a>
                         <a href="{{ route('user.social-accounts.index') }}" class="sidebar-link {{ request()->routeIs('user.social-accounts.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-share-nodes"></i></div> <span>Connected Accounts</span></a>
                         <a href="{{ route('user.integrations.index') }}" class="sidebar-link {{ request()->routeIs('user.integrations.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-plug"></i></div> <span>Integrations</span></a>
+                        <a href="{{ route('user.domains.index') }}" class="sidebar-link {{ request()->routeIs('user.domains.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-globe"></i></div> <span>Domains</span></a>
                         <a href="{{ route('user.referrals.index') }}" class="sidebar-link {{ request()->routeIs('user.referrals.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-gift"></i></div> <span>Referrals</span></a>
 
                         {{-- Calendar --}}
