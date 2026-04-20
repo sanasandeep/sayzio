@@ -39,7 +39,13 @@
             </p>
 
             <p style="color:#94a3b8; font-size:12px; line-height:1.6; margin:24px 0 0 0; border-top:1px solid #e2e8f0; padding-top:20px;">
-                You're receiving this because a social account you connected to 1INME stopped responding. We send at most one of these per connection per week. Manage your notification preferences in your profile settings.
+                You're receiving this because a social account you connected to 1INME stopped responding. We send at most one of these per connection per week.
+                @if(!empty($unsubscribeUrl))
+                    <a href="{{ $unsubscribeUrl }}" style="color:#64748b; text-decoration:underline;">Unsubscribe from broken-connection emails</a>
+                    in one click, or manage all notification preferences in your profile settings.
+                @else
+                    Manage your notification preferences in your profile settings.
+                @endif
             </p>
         </div>
     </div>

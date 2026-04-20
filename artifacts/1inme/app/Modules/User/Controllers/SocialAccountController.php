@@ -4,6 +4,7 @@ namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\SocialAccountConnection;
+use App\Modules\User\Models\User;
 use App\Modules\User\Services\SocialFollowers\FollowerFetcherRegistry;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -97,5 +98,43 @@ class SocialAccountController extends Controller
 
         return redirect()->route('user.social-accounts.index')
             ->with('success', "{$platform} account disconnected.");
+    }
+
+    /**
+     * Toggle the per-user "send me an email when a social connection
+     * breaks" preference. Posted from the toggle near the health badges
+     * on the Connected Accounts page.
+     */
+    public function updateBrokenEmailPreference(Request $request)
+    {
+        $request->validate(['enabled' => 'nullable|boolean']);
+        $enabled = $request->boolean('enabled');
+
+        $user = $request->user();
+        $user->forceFill(['social_connection_broken_emails' => $enabled])->save();
+
+        return redirect()->route('user.social-accounts.index')
+            ->with('success', $enabled
+                ? "We'll email you when a connection breaks."
+                : "Broken-connection emails turned off. The in-app alerts and badges will still appear.");
+    }
+
+    /**
+     * Public, signed one-click unsubscribe target linked from the
+     * broken-connection email. Does not require an authenticated session
+     * so creators can opt out from any device. The signed URL is
+     * unguessable and bound to a specific user id.
+     */
+    public function unsubscribeBrokenEmails(Request $request, User $user)
+    {
+        if (! $request->hasValidSignature()) {
+            abort(403, 'This unsubscribe link is invalid or has been tampered with.');
+        }
+
+        $user->forceFill(['social_connection_broken_emails' => false])->save();
+
+        return response()->view('user.social-accounts.broken-email-unsubscribed', [
+            'user' => $user,
+        ]);
     }
 }

@@ -8,6 +8,8 @@
     $failingConnections = $allConnections->filter(fn ($c) => $c->isFailing());
     $staleConnections   = $allConnections->filter(fn ($c) => ! $c->isFailing() && $c->isStuck(24));
     $needsAttention     = $failingConnections->count() + $staleConnections->count();
+    // Treat NULL as opted-in so accounts predating the toggle keep getting alerts.
+    $brokenEmailsOn     = auth()->user()->social_connection_broken_emails !== false;
     $hero_chips = [
         ['icon' => 'fa-link', 'text' => $totalConnections . ' connected'],
     ];
@@ -52,6 +54,36 @@
             </div>
         </div>
     @endif
+
+    {{-- Per-user opt-out for broken-connection emails. Sits next to the
+         health banners so it's right where creators look when the nudges
+         start feeling spammy. The in-app alerts above are unaffected. --}}
+    <div class="card-premium p-4 mb-4 flex items-start gap-3">
+        <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+             style="background: rgba(37,99,235,0.1); color:#2563eb;">
+            <i class="fas fa-envelope-circle-check"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+            <div class="text-sm font-semibold" style="color: var(--text-primary);">
+                Email me when a connection breaks
+            </div>
+            <div class="text-[11px] mt-0.5" style="color: var(--text-muted);">
+                One email per failure streak (max once per week per connection). The warning badges and in-app alerts above stay either way.
+            </div>
+        </div>
+        <form method="POST" action="{{ route('user.social-accounts.broken-emails.preference') }}" class="flex-shrink-0">
+            @csrf
+            <input type="hidden" name="enabled" value="{{ $brokenEmailsOn ? '0' : '1' }}">
+            <button type="submit"
+                    class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold"
+                    style="background: {{ $brokenEmailsOn ? 'rgba(16,185,129,0.12)' : 'var(--bg-glass-input)' }};
+                           color: {{ $brokenEmailsOn ? '#10b981' : 'var(--text-muted)' }};
+                           border: 1px solid {{ $brokenEmailsOn ? 'rgba(16,185,129,0.3)' : 'var(--border-glass)' }};">
+                <i class="fas {{ $brokenEmailsOn ? 'fa-toggle-on' : 'fa-toggle-off' }}"></i>
+                {{ $brokenEmailsOn ? 'On — turn off' : 'Off — turn on' }}
+            </button>
+        </form>
+    </div>
 
     @if(session('success'))
         <div class="mb-4 px-4 py-3 rounded-lg text-sm flex items-center gap-2"

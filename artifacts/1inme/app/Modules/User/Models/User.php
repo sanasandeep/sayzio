@@ -19,6 +19,7 @@ class User extends Authenticatable
         'digest_preferred_hour',
         'followers_count', 'allow_followers',
         'referral_code', 'referrer_id', 'referral_code_used',
+        'social_connection_broken_emails',
     ];
 
     protected $hidden = ['password', 'remember_token'];
@@ -37,6 +38,7 @@ class User extends Authenticatable
             'notify_follower_updates' => 'boolean',
             'follower_digest_last_sent_at' => 'datetime',
             'digest_preferred_hour' => 'integer',
+            'social_connection_broken_emails' => 'boolean',
         ];
     }
 

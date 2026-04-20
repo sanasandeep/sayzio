@@ -39,6 +39,12 @@ Route::prefix('user')->name('user.')->group(function () {
         ->middleware('throttle:60,1')
         ->name('referrals.check');
 
+    // Public, signed one-click unsubscribe target linked from the
+    // broken-social-connection email. Must live outside the auth
+    // middleware so users can opt out from any device or inbox client.
+    Route::get('social-accounts/broken-emails/unsubscribe/{user}', [\App\Modules\User\Controllers\SocialAccountController::class, 'unsubscribeBrokenEmails'])
+        ->name('social-accounts.broken-emails.unsubscribe');
+
     Route::get('verify-email', [AuthController::class, 'showVerifyEmail'])->middleware('auth')->name('verification.notice');
     Route::get('verify-email/{id}/{hash}', [AuthController::class, 'verifyEmail'])->middleware(['auth', 'signed'])->name('verification.verify');
     Route::post('verify-email/resend', [AuthController::class, 'resendVerification'])->middleware(['auth', 'throttle:6,1'])->name('verification.send');
@@ -157,6 +163,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('social-accounts',                         [\App\Modules\User\Controllers\SocialAccountController::class, 'store'])->name('social-accounts.store');
         Route::post('social-accounts/{connection}/refresh',    [\App\Modules\User\Controllers\SocialAccountController::class, 'refresh'])->name('social-accounts.refresh');
         Route::delete('social-accounts/{connection}',          [\App\Modules\User\Controllers\SocialAccountController::class, 'destroy'])->name('social-accounts.destroy');
+        Route::post('social-accounts/broken-emails/preference', [\App\Modules\User\Controllers\SocialAccountController::class, 'updateBrokenEmailPreference'])->name('social-accounts.broken-emails.preference');
 
         // OAuth connect / callback for providers that need a per-user token.
         // Each provider activates only when its CLIENT_ID + CLIENT_SECRET env
