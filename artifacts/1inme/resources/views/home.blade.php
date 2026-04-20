@@ -622,11 +622,9 @@
                  not chosen a country yet. Signed-in users with a country
                  see their country's currency (no toggle on the marketing
                  page); they can change it from profile settings. --}}
-            @auth
-                @php($showSwitcher = empty(auth()->user()->country))
-            @else
-                @php($showSwitcher = true)
-            @endauth
+            @php
+                $showSwitcher = !auth()->check() || empty(auth()->user()->country);
+            @endphp
             @if ($showSwitcher)
             <div class="flex items-center justify-center gap-2 mb-8">
                 <span class="text-xs uppercase tracking-wider text-gray-500">Show prices in:</span>
@@ -661,6 +659,9 @@
                         <div class="text-5xl font-bold text-white mb-1">
                             {{ $plan['monthly']['formatted'] }}@unless($plan['is_free'])<span class="text-lg font-medium {{ $featured ? 'text-white/50' : 'text-gray-500' }}">/mo</span>@endunless
                         </div>
+                        @unless($plan['is_free'])
+                            <div class="text-[11px] {{ $featured ? 'text-white/60' : 'text-gray-500' }} mb-1">+ taxes as applicable (GST/VAT shown at checkout once you add a billing address)</div>
+                        @endunless
                         <div class="text-sm {{ $featured ? 'text-white/50' : 'text-gray-500' }} mb-6">{{ $plan['description'] ?: ($plan['is_free'] ? 'Forever free' : 'Per user, billed monthly') }}</div>
                         <ul class="space-y-3 mb-8">
                             @foreach(['max_links' => 'links', 'max_biolinks' => 'bio pages', 'storage_limit_mb' => 'MB storage', 'contacts_max' => 'contacts'] as $key => $label)
