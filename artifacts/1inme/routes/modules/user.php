@@ -253,6 +253,18 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::get('/', [InboxController::class, 'index'])->name('index');
             Route::get('export', [InboxController::class, 'exportFiltered'])->name('export');
             Route::post('bulk', [InboxController::class, 'bulk'])->name('bulk');
+
+            // Account-level forwarding rules: send new inbox messages to
+            // an email address or webhook URL with optional source filter.
+            Route::prefix('forwards')->name('forwards.')->group(function () {
+                Route::get('/',                          [\App\Modules\User\Controllers\InboxForwardController::class, 'index'])->name('index');
+                Route::post('/',                         [\App\Modules\User\Controllers\InboxForwardController::class, 'store'])->name('store');
+                Route::put('{forward}',                  [\App\Modules\User\Controllers\InboxForwardController::class, 'update'])->name('update');
+                Route::post('{forward}/toggle',          [\App\Modules\User\Controllers\InboxForwardController::class, 'toggle'])->name('toggle');
+                Route::delete('{forward}',               [\App\Modules\User\Controllers\InboxForwardController::class, 'destroy'])->name('destroy');
+                Route::post('deliveries/{delivery}/retry', [\App\Modules\User\Controllers\InboxForwardController::class, 'retry'])->name('deliveries.retry');
+            });
+
             Route::get('{type}/{id}', [InboxController::class, 'show'])
                 ->where('type', 'form_submission|subscriber')->whereNumber('id')->name('show');
             Route::post('{type}/{id}', [InboxController::class, 'update'])

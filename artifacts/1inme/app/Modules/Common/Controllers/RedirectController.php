@@ -528,7 +528,7 @@ class RedirectController extends Controller
             'scope'    => 'subscribe:' . $link->id,
         ]);
 
-        Subscriber::create([
+        $subscriber = Subscriber::create([
             'user_id' => $link->user_id,
             'link_id' => $link->id,
             'block_id' => $block->id,
@@ -542,6 +542,19 @@ class RedirectController extends Controller
             'subscribed_at' => now(),
             'is_spam' => $spamCheck['is_spam'],
         ]);
+
+        // Account-level forwarding rules — fan out to the owner's email/webhook
+        // destinations whose source filter matches this subscriber's source.
+        if (! $spamCheck['is_spam']) {
+            try {
+                $subscriber->setRelation('block', $block);
+                $subscriber->setRelation('link', $link);
+                app(\App\Modules\User\Services\InboxForwarder::class)
+                    ->dispatchForSubscriber($link->user_id, $subscriber);
+            } catch (\Throwable $e) {
+                logger()->warning('Inbox forwarder (subscriber) failed: ' . $e->getMessage());
+            }
+        }
 
         return response()->json(['success' => true, 'message' => 'Subscribed successfully!']);
     }

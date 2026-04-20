@@ -590,6 +590,15 @@ class FormController extends Controller
         // the whole point of the Spam tab is to keep noise out of the inbox.
         if (! $spamCheck['is_spam']) {
             $this->fireNotifications($form, $submission);
+
+            // Account-level forwarding rules — fan out to user's email/webhook
+            // destinations whose source filter matches form_submission.
+            try {
+                app(\App\Modules\User\Services\InboxForwarder::class)
+                    ->dispatchForFormSubmission($form->user_id, $submission);
+            } catch (\Throwable $e) {
+                logger()->warning('Inbox forwarder (form) failed: ' . $e->getMessage());
+            }
         }
 
         return $this->successResponse($request, $form, $spamCheck['is_spam'], $submission);

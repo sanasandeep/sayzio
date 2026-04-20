@@ -39,6 +39,14 @@ Schedule::command('followers:send-digest')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Every 5 minutes: retry inbox-forward deliveries (email/webhook) that
+// failed transiently. Each delivery has its own exponential backoff window;
+// permanently failing deliveries get parked as 'dead' after MAX_ATTEMPTS.
+Schedule::command('inbox:retry-forwards')
+    ->everyFiveMinutes()
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Hourly: pre-emptively swap each connection's near-expiry access_token for a
 // fresh one using its stored refresh_token. Keeps long-lived OAuth links alive
 // without the user ever pasting a token, and flips truly broken connections

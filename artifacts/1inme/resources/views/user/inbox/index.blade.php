@@ -24,6 +24,7 @@
             ['icon' => 'fa-envelope text-violet-400', 'text' => number_format($unread) . ' unread'],
         ],
         'actions' => [
+            ['label' => 'Forwarding rules', 'url' => route('user.inbox.forwards.index'), 'icon' => 'fa-share-from-square', 'class' => 'btn-ghost'],
             ['label' => 'Export filtered (CSV)', 'url' => route('user.inbox.export') . ($exportQuery ? '?' . $exportQuery : ''), 'icon' => 'fa-file-csv', 'class' => 'btn-ghost'],
         ],
     ])
