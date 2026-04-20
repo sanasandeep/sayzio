@@ -129,7 +129,7 @@ class RazorpayAdapter extends AbstractAdapter
                     'invoice_number' => (string) $invoice->number,
                 ],
             ]);
-        $this->assertOk($res, 'create order');
+        $this->assertOk($res, 'create order', $invoice);
         $orderId = (string) $res->json('id');
         return [
             'kind'        => 'order',
@@ -166,7 +166,7 @@ class RazorpayAdapter extends AbstractAdapter
                     'cycle'          => $cycle,
                 ],
             ]);
-        $this->assertOk($res, 'create subscription');
+        $this->assertOk($res, 'create subscription', $invoice);
         $subId = (string) $res->json('id');
 
         return [
@@ -205,7 +205,7 @@ class RazorpayAdapter extends AbstractAdapter
                     'cycle'            => $cycle,
                 ],
             ]);
-        $this->assertOk($res, 'create plan');
+        $this->assertOk($res, 'create plan', null);
         $rzpPlanId = (string) $res->json('id');
 
         // Cache it so subsequent checkouts don't re-create.
@@ -418,7 +418,7 @@ class RazorpayAdapter extends AbstractAdapter
                     'reason'         => $reason,
                 ],
             ]);
-        $this->assertOk($res, 'create refund');
+        $this->assertOk($res, 'create refund', $invoice);
 
         $refundId = (string) $res->json('id');
         $status   = (string) $res->json('status'); // processed|pending|failed
@@ -486,11 +486,36 @@ class RazorpayAdapter extends AbstractAdapter
         return ['kind' => 'plan_upgrade', 'plan_id' => 0, 'cycle' => 'monthly'];
     }
 
-    protected function assertOk(Response $res, string $op): void
+    /**
+     * Shared error path. Failed Razorpay API responses ALWAYS get
+     * persisted to payment_attempts so admins can diagnose in the
+     * audit trail (requirement: "all API errors are logged ... the
+     * payment attempt row records the raw response").
+     */
+    protected function assertOk(Response $res, string $op, ?Invoice $invoice): void
     {
         if ($res->successful()) return;
         $body = $res->json() ?: ['body' => $res->body()];
         Log::warning("Razorpay {$op} failed", ['status' => $res->status(), 'body' => $body]);
+
+        if ($invoice) {
+            try {
+                PaymentAttempt::create([
+                    'invoice_id'  => $invoice->id,
+                    'gateway'     => 'razorpay',
+                    'gateway_ref' => 'failed:' . $op . ':' . substr(md5(json_encode($body) . microtime()), 0, 16),
+                    'status'      => 'failed',
+                    'raw_response' => [
+                        'op'     => $op,
+                        'status' => $res->status(),
+                        'body'   => $body,
+                    ],
+                ]);
+            } catch (\Throwable $ignore) {
+                // Never mask the user-facing error with an attempt-logging failure.
+            }
+        }
+
         $msg = $body['error']['description']
             ?? $body['error']['message']
             ?? ('Razorpay API error (HTTP ' . $res->status() . ')');

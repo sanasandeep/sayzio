@@ -127,6 +127,18 @@ class CheckoutController extends Controller
             $invoice->forceFill(['status' => 'cancelled'])->save();
             return redirect()->route('user.upgrade')
                 ->with('error', $adapter->displayName() . ' is not available yet. Please choose another payment method.');
+        } catch (\Throwable $e) {
+            // Gateway API failure (network, auth, validation): cancel the
+            // pending invoice, surface a friendly message, and let the
+            // attempt logging inside the adapter carry the raw cause.
+            \Illuminate\Support\Facades\Log::warning('Checkout handoff failed', [
+                'gateway' => $data['gateway'], 'invoice' => $invoice->number, 'error' => $e->getMessage(),
+            ]);
+            $invoice->forceFill(['status' => 'cancelled'])->save();
+            return redirect()->route('user.upgrade')
+                ->with('error', 'We couldn\'t start your payment with '
+                    . ($adapter?->displayName() ?? $data['gateway'])
+                    . '. Please try again or pick another payment method.');
         }
 
         if (($result['kind'] ?? null) === 'redirect') {

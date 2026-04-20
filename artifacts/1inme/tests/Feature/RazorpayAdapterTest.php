@@ -281,6 +281,51 @@ class RazorpayAdapterTest extends TestCase
         $this->assertSame('succeeded', $out['status']);
     }
 
+    public function test_first_cycle_activation_stamps_gateway_subscription_id(): void
+    {
+        // createSubscriptionHandoff writes an initiated PaymentAttempt
+        // with kind=subscription, ref_id=sub_XXX. The RazorpayServiceProvider
+        // Invoice::saved listener must stamp this onto the new
+        // internal Subscription when the invoice transitions to paid.
+        Http::fake([
+            'api.razorpay.com/v1/plans'         => Http::response(['id' => 'plan_XYZ'], 200),
+            'api.razorpay.com/v1/subscriptions' => Http::response(['id' => 'sub_FIRST'], 200),
+        ]);
+        $user    = $this->buyer();
+        $plan    = $this->plan();
+        $invoice = ActivateSubscription::issuePendingInvoice(
+            $user,
+            [[
+                'label' => 'Pro', 'amount_minor' => 49900, 'quantity' => 1,
+                'meta' => ['kind' => 'plan', 'plan_id' => $plan->id, 'cycle' => 'monthly'],
+            ]],
+            'INR',
+        );
+        // Handoff (logs the initiated attempt with ref_id=sub_FIRST).
+        app(GatewayManager::class)->for('razorpay')->createCheckout($invoice);
+
+        // Now simulate the payment.captured webhook.
+        $payload = [
+            'id'    => 'evt_first_1',
+            'event' => 'payment.captured',
+            'payload' => ['payment' => ['entity' => [
+                'id' => 'pay_FIRST', 'amount' => 49900, 'currency' => 'INR',
+                'notes' => ['invoice_id' => (string) $invoice->id],
+            ]]],
+        ];
+        $body = json_encode($payload);
+        $sig  = hash_hmac('sha256', $body, 'whsec_test');
+        $this->call('POST', '/webhooks/razorpay', [], [], [], [
+            'HTTP_X-Razorpay-Signature' => $sig,
+            'CONTENT_TYPE'              => 'application/json',
+        ], $body)->assertStatus(200);
+
+        $invoice->refresh();
+        $sub = Subscription::findOrFail($invoice->subscription_id);
+        $this->assertSame('sub_FIRST', $sub->gateway_subscription_id,
+            'listener must stamp Razorpay subscription id from the initiated PaymentAttempt');
+    }
+
     public function test_subscription_charged_issues_renewal_invoice(): void
     {
         $user    = $this->buyer();
