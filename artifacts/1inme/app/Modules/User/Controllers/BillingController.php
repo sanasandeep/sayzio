@@ -50,10 +50,15 @@ class BillingController extends Controller
             $graceDaysRemaining = max(0, (int) now()->diffInDays(Carbon::parse($subscription->grace_until), false));
         }
 
-        $refundableInvoices = $invoices->filter(function (Invoice $inv) use ($subscription) {
+        // Refund eligibility must be computed per-invoice using THAT
+        // invoice's subscription/plan window — not the user's current
+        // plan window. Historical invoices on a prior plan keep their
+        // own refund window.
+        $refundableInvoices = $invoices->filter(function (Invoice $inv) {
             if ($inv->status !== 'paid' || !$inv->paid_at) return false;
-            $plan = $subscription?->plan;
-            $window = (int) ($plan?->refund_window_days ?? 7);
+            $invSub  = $inv->subscription_id ? Subscription::find($inv->subscription_id) : null;
+            $invPlan = $invSub?->plan;
+            $window  = (int) ($invPlan?->refund_window_days ?? 7);
             return Carbon::parse($inv->paid_at)->addDays($window)->isFuture()
                 && (int) Refund::where('invoice_id', $inv->id)->where('status', 'succeeded')->sum('amount_minor') < (int) $inv->grand_total_minor;
         })->pluck('id')->all();

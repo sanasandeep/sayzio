@@ -13,12 +13,16 @@
         <div class="card-body">
           <h5>{{ $plan->name }}</h5>
           <p class="text-muted">{{ $plan->description }}</p>
+          @php
+            $priced = \App\Services\PricingResolver::priceForCurrency(
+                $plan,
+                (string) $current->currency,
+                $current->billing_cycle === 'annual' ? 'annual' : 'monthly'
+            );
+          @endphp
           <div class="h4 mb-3">
-            @if ($current->billing_cycle === 'annual')
-              {{ number_format($plan->annual_price, 2) }} /yr
-            @else
-              {{ number_format($plan->monthly_price, 2) }} /mo
-            @endif
+            {{ $priced['formatted'] }}
+            <span class="text-muted small">/{{ $current->billing_cycle === 'annual' ? 'yr' : 'mo' }}</span>
           </div>
           <form method="POST" action="{{ route('user.billing.upgrade.confirm') }}">
             @csrf

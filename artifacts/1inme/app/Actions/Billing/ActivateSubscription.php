@@ -105,6 +105,26 @@ class ActivateSubscription
                     'gateway'              => $gateway,
                     'currency'             => $fresh->currency,
                 ]);
+                // Carry active add-ons forward to the new subscription —
+                // the upgrade replaces the plan row, not the add-on
+                // portfolio. Add-ons purchased on the upgrade invoice
+                // itself are added by the $addons loop below (keyed by
+                // addon_id, so duplicates would collide — existing addons
+                // carried forward are merged with invoice addons, invoice
+                // qty wins on conflict).
+                $carried = [];
+                foreach ($old->addons()->get() as $sa) {
+                    $carried[(int) $sa->addon_id] = (int) $sa->qty;
+                }
+                foreach ($carried as $addonId => $qty) {
+                    if (!array_key_exists($addonId, $addons)) {
+                        SubscriptionAddon::create([
+                            'subscription_id' => $subscription->id,
+                            'addon_id'        => $addonId,
+                            'qty'             => max(1, $qty),
+                        ]);
+                    }
+                }
                 $old->forceFill([
                     'status'         => 'cancelled',
                     'replaced_by_id' => $subscription->id,
