@@ -17,7 +17,58 @@ class ProfileController extends Controller
     {
         $user = Auth::user();
         $timezones = \DateTimeZone::listIdentifiers();
-        return view('user.profile.edit', compact('user', 'timezones'));
+        $digestPreviewHtml = $this->renderDigestPreview($user);
+        return view('user.profile.edit', compact('user', 'timezones', 'digestPreviewHtml'));
+    }
+
+    /**
+     * Render the digest email Blade template with mock data so the user can
+     * preview what the daily digest will look like before opting in.
+     */
+    private function renderDigestPreview($user): string
+    {
+        $creators = [
+            [
+                'name'     => 'Ada Lovelace',
+                'avatar'   => null,
+                'url'      => null,
+                'messages' => [
+                    'posted a new update: "Just shipped a fresh design"',
+                    'added a new link: Behind the scenes',
+                ],
+                'extra'    => 0,
+            ],
+            [
+                'name'     => 'Marcus Chen',
+                'avatar'   => null,
+                'url'      => null,
+                'messages' => [
+                    'shared a new photo set from this week',
+                ],
+                'extra'    => 0,
+            ],
+            [
+                'name'     => 'Priya Patel',
+                'avatar'   => null,
+                'url'      => null,
+                'messages' => [
+                    'updated their profile',
+                    'posted a new update: "Q&A this Friday — bring questions!"',
+                ],
+                'extra'    => 2,
+            ],
+        ];
+
+        $totalUpdates = array_sum(array_map(fn ($c) => count($c['messages']) + $c['extra'], $creators));
+        $creatorCount = count($creators);
+
+        return view('emails.follower-digest', [
+            'userName'     => $user->name ?: 'there',
+            'subject'      => 'Your daily digest (preview)',
+            'creators'     => $creators,
+            'totalUpdates' => $totalUpdates,
+            'creatorCount' => $creatorCount,
+        ])->render();
     }
 
     public function update(Request $request)

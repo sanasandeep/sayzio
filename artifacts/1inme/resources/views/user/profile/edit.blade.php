@@ -125,6 +125,25 @@
                                 <p class="text-xs text-white/40 mt-1.5">Only applies when "Daily digest" is selected above.</p>
                             </div>
                         </div>
+
+                        <div class="mt-4 rounded-xl border border-white/10 bg-white/5 overflow-hidden">
+                            <div class="flex items-center justify-between px-4 py-2 border-b border-white/10 bg-white/5">
+                                <div class="flex items-center gap-2 text-xs text-white/70">
+                                    <i class="fas fa-envelope text-violet-400"></i>
+                                    <span>Daily digest preview</span>
+                                </div>
+                                <span class="text-[10px] uppercase tracking-wider text-violet-300/80 px-2 py-0.5 rounded-full bg-violet-500/15 border border-violet-500/30">
+                                    Sample · not a real email
+                                </span>
+                            </div>
+                            <iframe
+                                title="Digest email preview"
+                                sandbox=""
+                                class="block w-full bg-white"
+                                style="height: 520px; border: 0;"
+                                srcdoc="{{ $digestPreviewHtml }}"
+                            ></iframe>
+                        </div>
                     </div>
                 </div>
 
