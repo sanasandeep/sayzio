@@ -39,6 +39,7 @@ class User extends Authenticatable
             'follower_digest_last_sent_at' => 'datetime',
             'digest_preferred_hour' => 'integer',
             'social_connection_broken_emails' => 'boolean',
+            'last_handle_ban_email_sent_at' => 'datetime',
         ];
     }
 

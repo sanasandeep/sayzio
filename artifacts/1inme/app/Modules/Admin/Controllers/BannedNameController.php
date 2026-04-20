@@ -13,6 +13,8 @@ use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -264,9 +266,23 @@ class BannedNameController extends Controller
     }
 
     /**
+     * Minimum gap between two "your handle is banned" emails for the
+     * same user. The in-app notification is always created (an admin
+     * may legitimately want to re-issue it), but the email is
+     * suppressed inside this window so a button-mash can't spam the
+     * user's inbox.
+     */
+    public const HANDLE_BAN_EMAIL_COOLDOWN_HOURS = 24;
+
+    /**
      * Send the affected user a system notification asking them to
-     * change their handle. Idempotent enough — we don't dedupe across
-     * sends so an admin can re-prompt if the first nudge was ignored.
+     * change their handle, plus a transactional email with a deep link
+     * to profile settings. The in-app notification is created on every
+     * click (an admin can re-prompt) but the email is rate-limited per
+     * user — see HANDLE_BAN_EMAIL_COOLDOWN_HOURS — so accidental
+     * repeat clicks don't pile up in the user's inbox. Email failures
+     * are swallowed and logged; the in-app notification remains the
+     * source of truth.
      */
     public function notifyUser(Request $request, BannedName $bannedName, User $user)
     {
@@ -274,18 +290,61 @@ class BannedNameController extends Controller
             return back()->with('error', "That user's handle no longer matches '{$bannedName->name}'.");
         }
 
+        $profileUrl = route('user.profile.edit');
+
         UserNotification::create([
             'user_id'    => $user->id,
             'type'       => 'handle_rename_requested',
             'data'       => [
                 'message'      => "An admin has asked you to change your handle (@{$user->handle}). Please pick a new one in your profile settings.",
                 'banned_name'  => $bannedName->name,
-                'profile_url'  => route('user.profile.edit'),
+                'profile_url'  => $profileUrl,
             ],
             'created_at' => now(),
         ]);
 
-        return back()->with('success', "Notified @{$user->handle} to pick a new handle.");
+        $emailStatus = $this->sendHandleBanEmail($user, $profileUrl);
+
+        $msg = "Notified @{$user->handle} to pick a new handle.";
+        if ($emailStatus === 'sent')        $msg .= ' Email sent.';
+        elseif ($emailStatus === 'cooldown') $msg .= ' Email skipped (already emailed in the last ' . self::HANDLE_BAN_EMAIL_COOLDOWN_HOURS . 'h).';
+        elseif ($emailStatus === 'no_email') $msg .= ' No email on file — in-app only.';
+        elseif ($emailStatus === 'failed')   $msg .= ' Email failed to send (see logs).';
+
+        return back()->with('success', $msg);
+    }
+
+    /**
+     * Returns one of: 'sent', 'cooldown', 'no_email', 'failed'.
+     */
+    private function sendHandleBanEmail(User $user, string $profileUrl): string
+    {
+        if (! $user->email) return 'no_email';
+
+        if ($user->last_handle_ban_email_sent_at
+            && $user->last_handle_ban_email_sent_at->greaterThan(now()->subHours(self::HANDLE_BAN_EMAIL_COOLDOWN_HOURS))) {
+            return 'cooldown';
+        }
+
+        $subject  = 'Please pick a new 1INME handle';
+        $viewData = [
+            'subject'    => $subject,
+            'userName'   => $user->name ?: 'there',
+            'handle'     => $user->handle,
+            'profileUrl' => $profileUrl,
+        ];
+
+        try {
+            Mail::send('emails.handle-banned', $viewData, function ($m) use ($user, $subject) {
+                $m->to($user->email)->subject($subject);
+            });
+        } catch (\Throwable $e) {
+            Log::warning("handle-banned email failed for user {$user->id}: " . $e->getMessage());
+            return 'failed';
+        }
+
+        $user->forceFill(['last_handle_ban_email_sent_at' => now()])->save();
+        return 'sent';
     }
 
     /**
