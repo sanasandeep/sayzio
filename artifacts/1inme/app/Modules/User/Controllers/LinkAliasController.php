@@ -63,6 +63,12 @@ class LinkAliasController extends Controller
             return $this->respond($request, false, "'{$alias}' is a reserved name and cannot be used.", 422);
         }
 
+        // Admin-managed banned names list. Super admins bypass this check
+        // to mirror the existing super-admin bypass pattern elsewhere.
+        if (!($user->isSuperAdmin() ?? false) && \App\Modules\Admin\Services\BannedNameChecker::isBanned($alias)) {
+            return $this->respond($request, false, "This name is reserved and can't be used.", 422);
+        }
+
         // Globally unique across both `links.alias` and `link_aliases.alias`.
         $takenInPrimary = Link::where('alias', $alias)->exists();
         $takenInExtras  = LinkAlias::where('alias', $alias)->exists();

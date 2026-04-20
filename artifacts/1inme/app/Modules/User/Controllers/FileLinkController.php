@@ -31,6 +31,7 @@ class FileLinkController extends Controller
                 ['nullable', 'string', 'alpha_dash', 'unique:links,alias'],
                 ['min:' . $request->user()->getAliasLengthLimits()['min']],
                 ['max:' . $request->user()->getAliasLengthLimits()['max']],
+                [new \App\Modules\Admin\Rules\NotBannedName()],
             ),
             'project_id' => ['nullable', 'exists:projects,id', function ($attribute, $value, $fail) use ($request) {
                 if ($value && !\App\Modules\User\Models\Project::where('id', $value)->where('user_id', $request->user()->id)->exists()) {

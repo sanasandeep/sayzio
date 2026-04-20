@@ -141,6 +141,7 @@ class IcsLinkController extends Controller
         $aliasRule[] = $link
             ? Rule::unique('links', 'alias')->ignore($link->id)
             : Rule::unique('links', 'alias');
+        $aliasRule[] = new \App\Modules\Admin\Rules\NotBannedName();
 
         return $request->validate([
             'alias' => $aliasRule,

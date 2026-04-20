@@ -16,6 +16,7 @@ use App\Modules\Admin\Controllers\BrandingController;
 use App\Modules\Admin\Controllers\DomainController as AdminDomainController;
 use App\Modules\Admin\Controllers\SocialOAuthSettingsController;
 use App\Modules\Admin\Controllers\SpamRuleStatsController;
+use App\Modules\Admin\Controllers\BannedNameController;
 use App\Modules\Admin\Middleware\CheckPermission;
 
 Route::prefix('admin')->name('admin.')->group(function () {
@@ -117,6 +118,15 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::prefix('spam-rules')->name('spam-rules.')->group(function () {
             Route::get('/', [SpamRuleStatsController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+        });
+
+        Route::prefix('banned-names')->name('banned-names.')->group(function () {
+            Route::get('/', [BannedNameController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::get('create', [BannedNameController::class, 'create'])->middleware(CheckPermission::class . ':settings.manage')->name('create');
+            Route::post('/', [BannedNameController::class, 'store'])->middleware(CheckPermission::class . ':settings.manage')->name('store');
+            Route::get('{bannedName}/edit', [BannedNameController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
+            Route::put('{bannedName}', [BannedNameController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
+            Route::delete('{bannedName}', [BannedNameController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
         });
 
         Route::prefix('referrals')->name('referrals.')->group(function () {

@@ -124,7 +124,7 @@ class ProfileController extends Controller
             'phone' => 'nullable|string|max:20',
             'timezone' => 'required|string',
             'language' => 'required|string|in:en',
-            'handle' => ['nullable', 'string', 'max:60', 'regex:/^[a-z0-9_-]+$/i', Rule::unique('users')->ignore($user->id)],
+            'handle' => ['nullable', 'string', 'max:60', 'regex:/^[a-z0-9_-]+$/i', Rule::unique('users')->ignore($user->id), new \App\Modules\Admin\Rules\NotBannedName()],
             'bio' => 'nullable|string|max:500',
             'avatar' => 'nullable|image|max:2048',
         ]);

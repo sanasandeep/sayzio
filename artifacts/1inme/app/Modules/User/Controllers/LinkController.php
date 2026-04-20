@@ -112,6 +112,7 @@ class LinkController extends Controller
                 'min:' . $limits['min'],
                 'max:' . $limits['max'],
                 'unique:links,alias',
+                new \App\Modules\Admin\Rules\NotBannedName(),
             ],
         ]);
 
@@ -178,6 +179,7 @@ class LinkController extends Controller
                 ['nullable', 'string', 'alpha_dash', 'unique:links,alias'],
                 ['min:' . $request->user()->getAliasLengthLimits()['min']],
                 ['max:' . $request->user()->getAliasLengthLimits()['max']],
+                [new \App\Modules\Admin\Rules\NotBannedName()],
             ),
             'title' => 'nullable|string|max:255',
             'project_id' => "nullable|exists:projects,id,user_id,{$userId}",
@@ -2117,6 +2119,7 @@ class LinkController extends Controller
                         ->exists();
                     if ($exists) $fail('This alias is already taken. Please choose another.');
                 },
+                new \App\Modules\Admin\Rules\NotBannedName(),
             ],
         ], [
             'alias.regex' => 'Only letters, numbers, hyphens and underscores are allowed.',

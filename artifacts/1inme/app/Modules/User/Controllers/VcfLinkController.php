@@ -147,6 +147,7 @@ class VcfLinkController extends Controller
                 ['nullable', 'string', 'alpha_dash', $aliasUnique],
                 ['min:' . $aliasLimits['min']],
                 ['max:' . $aliasLimits['max']],
+                [new \App\Modules\Admin\Rules\NotBannedName()],
             ),
             'project_id' => ['nullable', 'exists:projects,id', function ($attribute, $value, $fail) use ($request) {
                 if ($value && !\App\Modules\User\Models\Project::where('id', $value)->where('user_id', $request->user()->id)->exists()) {

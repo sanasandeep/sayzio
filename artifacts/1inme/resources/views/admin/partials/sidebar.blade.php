@@ -145,6 +145,14 @@
             <span class="nav-label">Asset Vault</span>
             <span class="sidebar-tooltip">Asset Vault</span>
         </a>
+
+        <a href="{{ route('admin.banned-names.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.banned-names.*') ? 'active' : '' }}"
+           style="--nav-tint:#ef4444; --nav-tint-soft:rgba(239,68,68,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-ban"></i></div>
+            <span class="nav-label">Banned Names</span>
+            <span class="sidebar-tooltip">Banned Names</span>
+        </a>
     </nav>
 
     {{-- Footer / user --}}
