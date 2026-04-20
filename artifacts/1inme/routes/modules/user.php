@@ -108,6 +108,8 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::get('/digest/preview', [ProfileController::class, 'digestPreview'])->name('digest.preview');
         });
 
+        Route::get('invoices/{invoice}/pdf', [\App\Modules\User\Controllers\InvoiceController::class, 'pdf'])->name('invoices.pdf');
+
         Route::resource('projects', ProjectController::class)->except(['store']);
         Route::post('projects', [ProjectController::class, 'store'])->middleware(CheckPlanLimit::class . ':projects')->name('projects.store');
 

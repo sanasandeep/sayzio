@@ -92,6 +92,55 @@
                     @error('country')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
                 </div>
 
+                <div class="border-t border-white/10 pt-4">
+                    <h3 class="text-sm font-semibold text-white mb-1">Billing address &amp; tax ID</h3>
+                    <p class="text-[11px] text-white/40 mb-3">Used to calculate the right tax on your invoices and to print
+                        on your tax invoice PDF. GSTIN is for Indian businesses; VATIN is for EU/UK businesses claiming
+                        reverse-charge.</p>
+                    <div class="space-y-3" data-billing-address>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs text-white/50 mb-1">Country (ISO-2)</label>
+                                <input type="text" name="billing_country" maxlength="2" value="{{ old('billing_country', $billing->country ?? $user->country) }}"
+                                       class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white uppercase outline-none focus:ring-2 focus:ring-violet-500/40">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-white/50 mb-1">State / region</label>
+                                <select name="billing_region" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-violet-500/40">
+                                    <option value="" class="bg-[#0d0818]">— None / N/A —</option>
+                                    @foreach($inStates as $code => $label)
+                                        <option value="{{ $code }}" {{ old('billing_region', $billing->region) === $code ? 'selected' : '' }} class="bg-[#0d0818]">IN-{{ $code }} · {{ $label }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <input type="text" name="billing_postal_code" placeholder="Postal code" value="{{ old('billing_postal_code', $billing->postal_code) }}" maxlength="16"
+                                   class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-violet-500/40">
+                            <input type="text" name="billing_city" placeholder="City" value="{{ old('billing_city', $billing->city) }}" maxlength="100"
+                                   class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-violet-500/40">
+                        </div>
+                        <input type="text" name="billing_line1" placeholder="Address line 1" value="{{ old('billing_line1', $billing->line1) }}" maxlength="255"
+                               class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-violet-500/40">
+                        <input type="text" name="billing_line2" placeholder="Address line 2 (optional)" value="{{ old('billing_line2', $billing->line2) }}" maxlength="255"
+                               class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-violet-500/40">
+                        <input type="text" name="business_name" placeholder="Registered business name (optional)" value="{{ old('business_name', $billing->business_name) }}" maxlength="255"
+                               class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-violet-500/40">
+                        <div class="grid grid-cols-3 gap-3">
+                            <select name="tax_id_kind" data-tax-kind class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-violet-500/40">
+                                @php($currentKind = old('tax_id_kind', $billing->tax_id_kind ?: 'NONE'))
+                                <option value="NONE"  {{ $currentKind === 'NONE'  ? 'selected' : '' }} class="bg-[#0d0818]">No tax ID</option>
+                                <option value="GSTIN" {{ $currentKind === 'GSTIN' ? 'selected' : '' }} class="bg-[#0d0818]">GSTIN (India)</option>
+                                <option value="VATIN" {{ $currentKind === 'VATIN' ? 'selected' : '' }} class="bg-[#0d0818]">VATIN (EU / UK)</option>
+                            </select>
+                            <input type="text" name="tax_id" data-tax-id placeholder="Tax ID number" value="{{ old('tax_id', $billing->tax_id) }}" maxlength="32"
+                                   class="col-span-2 px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white uppercase outline-none focus:ring-2 focus:ring-violet-500/40">
+                        </div>
+                        <p class="text-[11px]" data-tax-feedback></p>
+                        @error('tax_id')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-white/60 mb-1.5">Timezone</label>
@@ -336,6 +385,34 @@
         if (document.hidden) stop(); else { start(); poll(); }
     });
     start();
+})();
+
+(function () {
+    // Live tax-id format feedback (PHP-only validation also runs on submit).
+    const root = document.querySelector('[data-billing-address]');
+    if (root) {
+        const kindEl = root.querySelector('[data-tax-kind]');
+        const idEl   = root.querySelector('[data-tax-id]');
+        const fb     = root.querySelector('[data-tax-feedback]');
+        function check() {
+            const kind = kindEl.value;
+            const v = (idEl.value || '').toUpperCase().trim();
+            if (!v || kind === 'NONE') { fb.textContent = ''; fb.className = 'text-[11px]'; return; }
+            let ok = false, msg = '';
+            if (kind === 'GSTIN') {
+                ok = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][0-9A-Z]Z[0-9A-Z]$/.test(v);
+                msg = ok ? 'GSTIN format looks valid (server will verify checksum on save).' : 'Expected 15 chars: 2 digits + 5 letters + 4 digits + 1 letter + 1 alphanum + Z + 1 alphanum.';
+            } else if (kind === 'VATIN') {
+                ok = /^[A-Z]{2}[A-Z0-9]{2,}$/.test(v);
+                msg = ok ? 'VAT number format looks valid (server checks per-country pattern on save).' : 'Expected 2-letter country prefix followed by the national number.';
+            }
+            fb.textContent = msg;
+            fb.className = 'text-[11px] ' + (ok ? 'text-emerald-300' : 'text-amber-300');
+        }
+        kindEl.addEventListener('change', check);
+        idEl.addEventListener('input', check);
+        check();
+    }
 })();
 
 (function () {

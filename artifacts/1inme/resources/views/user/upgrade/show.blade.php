@@ -42,6 +42,27 @@
                             vs {{ $row['monthly']['formatted'] }}/mo billed monthly
                         </div>
                     @endif
+                    @php $tax = $row['tax'] ?? null; @endphp
+                    @if($row['shown']['amount_minor'] > 0)
+                        @if($tax && !empty($tax['tax_breakdown']))
+                            <div class="mt-2 text-[11px] text-white/55 space-y-0.5 border-t border-white/5 pt-2">
+                                @foreach($tax['tax_breakdown'] as $line)
+                                    <div class="flex justify-between"><span>+ {{ $line['label'] }}</span><span>{{ \App\Services\PricingResolver::money((int) $line['amount_minor'], $currency) }}</span></div>
+                                @endforeach
+                                <div class="flex justify-between font-medium text-white/85 pt-1"><span>Total</span><span>{{ \App\Services\PricingResolver::money((int) $tax['grand_total_minor'], $currency) }}</span></div>
+                            </div>
+                            @if(!empty($tax['reverse_charge_note']))
+                                <div class="mt-1 text-[10px] uppercase tracking-wider text-amber-300/80">{{ $tax['reverse_charge_note'] }}</div>
+                            @endif
+                        @elseif($tax)
+                            <div class="mt-2 text-[11px] text-emerald-300/80">No tax applies for {{ $tax['place_of_supply'] ?? 'your region' }}.</div>
+                        @else
+                            <div class="mt-2 text-[11px] text-white/40">+ taxes as applicable —
+                                <a href="{{ route('user.profile.edit') }}" class="text-violet-400 hover:underline">add billing address</a>
+                                to see exact tax.
+                            </div>
+                        @endif
+                    @endif
                     <p class="text-sm text-white/50 mt-2 min-h-[2.5rem]">{{ $plan->description }}</p>
                 </div>
 
@@ -80,6 +101,17 @@
                         <div class="text-sm text-white/80 whitespace-nowrap">{{ $row['shown']['formatted'] }}<span class="text-xs text-white/40"> / {{ $cycle === 'annual' ? 'yr' : 'mo' }}</span></div>
                     </div>
                     @if($a->description)<p class="text-xs text-white/50 mt-1">{{ $a->description }}</p>@endif
+                    @php $atax = $row['tax'] ?? null; @endphp
+                    @if($row['shown']['amount_minor'] > 0 && $atax && !empty($atax['tax_breakdown']))
+                        <div class="mt-2 text-[11px] text-white/55 space-y-0.5 border-t border-white/5 pt-2">
+                            @foreach($atax['tax_breakdown'] as $line)
+                                <div class="flex justify-between"><span>+ {{ $line['label'] }}</span><span>{{ \App\Services\PricingResolver::money((int) $line['amount_minor'], $currency) }}</span></div>
+                            @endforeach
+                            <div class="flex justify-between font-medium text-white/85 pt-1"><span>Total</span><span>{{ \App\Services\PricingResolver::money((int) $atax['grand_total_minor'], $currency) }}</span></div>
+                        </div>
+                    @elseif($row['shown']['amount_minor'] > 0 && !$atax)
+                        <div class="mt-2 text-[10px] text-white/40">+ taxes as applicable</div>
+                    @endif
                     <div class="text-[10px] uppercase tracking-wider text-white/30 mt-2">{{ str_replace('_',' ',$a->type) }}</div>
                 </div>
             @endforeach

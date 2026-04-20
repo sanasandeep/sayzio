@@ -3,8 +3,12 @@
 namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Admin\Rules\Gstin;
+use App\Modules\Admin\Rules\Vatin;
+use App\Modules\User\Models\BillingAddress;
 use App\Modules\User\Models\UserNotification;
 use App\Modules\User\Services\FollowerDigestComposer;
+use App\Services\TaxCalculator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -25,7 +29,12 @@ class ProfileController extends Controller
         $handleSuggestions = session()->has('force_handle_rename')
             ? \App\Modules\User\Services\HandleSuggester::suggest($user)
             : [];
-        return view('user.profile.edit', compact('user', 'timezones', 'digestPreviewHtml', 'digestPreviewIsReal', 'digestPreviewCount', 'handleSuggestions'));
+        $billing = BillingAddress::firstOrNew(['user_id' => $user->id]);
+        $inStates = TaxCalculator::IN_STATES;
+        return view('user.profile.edit', compact(
+            'user', 'timezones', 'digestPreviewHtml', 'digestPreviewIsReal',
+            'digestPreviewCount', 'handleSuggestions', 'billing', 'inStates'
+        ));
     }
 
     /**
@@ -170,6 +179,62 @@ class ProfileController extends Controller
         $previousName   = $user->name;
         $previousHandle = $user->handle;
         $user->update($validated);
+
+        // Persist billing address + tax-id when the form sent any of
+        // those fields. We store an empty row when only the country is
+        // present so the Invoices PDF still has a snapshot.
+        $billingValidated = $request->validate([
+            'billing_country'      => ['nullable', 'string', 'size:2'],
+            'billing_region'       => ['nullable', 'string', 'max:8'],
+            'billing_postal_code'  => ['nullable', 'string', 'max:16'],
+            'billing_city'         => ['nullable', 'string', 'max:100'],
+            'billing_line1'        => ['nullable', 'string', 'max:255'],
+            'billing_line2'        => ['nullable', 'string', 'max:255'],
+            'business_name'        => ['nullable', 'string', 'max:255'],
+            'tax_id'               => ['nullable', 'string', 'max:32'],
+            'tax_id_kind'          => ['nullable', 'string', Rule::in(['GSTIN', 'VATIN', 'NONE'])],
+        ]);
+
+        $taxId = strtoupper(trim((string) ($billingValidated['tax_id'] ?? '')));
+        $taxIdKind = $billingValidated['tax_id_kind'] ?? null;
+        // If a tax-id is supplied the kind MUST be declared explicitly. We reject
+        // ambiguous combos so the tax engine can rely on `tax_id_kind` to decide
+        // reverse-charge eligibility — otherwise a buyer could paste a VATIN
+        // string and silently zero out their VAT.
+        if ($taxId !== '' && (!$taxIdKind || $taxIdKind === 'NONE')) {
+            return back()->withErrors(['tax_id_kind' => 'Select the tax-id type (GSTIN or VATIN) when providing a number.'])->withInput();
+        }
+        // Storing a billing address requires a country (taxes are jurisdiction-keyed).
+        $effectiveCountry = strtoupper((string) ($billingValidated['billing_country'] ?? $user->country ?? ''));
+        $sentBilling = !empty($billingValidated['billing_country']) || !empty($billingValidated['billing_postal_code'])
+            || !empty($billingValidated['billing_city']) || !empty($billingValidated['billing_line1'])
+            || !empty($billingValidated['business_name']) || $taxId !== '';
+        if ($sentBilling && $effectiveCountry === '') {
+            return back()->withErrors(['billing_country' => 'Please pick your billing country before saving tax details.'])->withInput();
+        }
+        if ($taxId !== '' && $taxIdKind === 'GSTIN' && !Gstin::isValid($taxId)) {
+            return back()->withErrors(['tax_id' => 'That GSTIN is not valid (15-char format + checksum).'])->withInput();
+        }
+        if ($taxId !== '' && $taxIdKind === 'VATIN' && !Vatin::isValid($taxId)) {
+            return back()->withErrors(['tax_id' => 'That VAT number is not in a recognised format.'])->withInput();
+        }
+
+        if (!empty($billingValidated['billing_country']) || $taxId !== '') {
+            BillingAddress::updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'country'       => strtoupper((string) ($billingValidated['billing_country'] ?? $user->country ?? '')) ?: null,
+                    'region'        => strtoupper((string) ($billingValidated['billing_region'] ?? '')) ?: null,
+                    'postal_code'   => $billingValidated['billing_postal_code'] ?? null,
+                    'city'          => $billingValidated['billing_city'] ?? null,
+                    'line1'         => $billingValidated['billing_line1'] ?? null,
+                    'line2'         => $billingValidated['billing_line2'] ?? null,
+                    'business_name' => $billingValidated['business_name'] ?? null,
+                    'tax_id'        => $taxId ?: null,
+                    'tax_id_kind'   => $taxId ? ($taxIdKind ?: 'NONE') : null,
+                ]
+            );
+        }
 
         // If we were forcing this user to rename their handle (admin
         // banned their previous handle and toggled "force rename on
