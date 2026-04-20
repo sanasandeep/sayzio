@@ -187,15 +187,37 @@ class TaxCalculator
 
     private static function activeRow(string $country, ?string $region, string $kind): ?TaxJurisdiction
     {
-        $q = TaxJurisdiction::where('country', $country)
-            ->where('kind', $kind)
-            ->where('is_active', true);
+        // Tax-rate applicability is window-bounded: a row only counts if today
+        // falls in [effective_from, effective_to]. NULL bounds mean "no
+        // start / no end". When multiple rows match (e.g. an admin schedules
+        // a future replacement), we pick the most recent `effective_from`,
+        // tie-broken by id desc so the choice is deterministic.
+        $today = now()->toDateString();
+        // We compare on DATE() so SQLite (where dates can be persisted as
+        // 'YYYY-MM-DD HH:MM:SS') and PostgreSQL agree. Without this,
+        // lexicographic '2026-04-20 00:00:00' <= '2026-04-20' is FALSE in
+        // SQLite and validly-active rows get silently filtered out.
+        $apply = function ($q) use ($today) {
+            return $q->where('is_active', true)
+                ->where(function ($w) use ($today) {
+                    $w->whereNull('effective_from')->orWhereRaw('DATE(effective_from) <= ?', [$today]);
+                })
+                ->where(function ($w) use ($today) {
+                    $w->whereNull('effective_to')->orWhereRaw('DATE(effective_to) >= ?', [$today]);
+                })
+                // COALESCE so NULL effective_from sorts as a very old date,
+                // making any explicitly-dated newer row win deterministically.
+                ->orderByRaw("COALESCE(DATE(effective_from), '1970-01-01') DESC")
+                ->orderByDesc('id');
+        };
+
+        $base = TaxJurisdiction::where('country', $country)->where('kind', $kind);
+
         if ($region !== null) {
-            // Prefer an exact-region row; fall back to country-wide row when none exists.
-            $exact = (clone $q)->where('region', $region)->first();
+            $exact = $apply((clone $base)->where('region', $region))->first();
             if ($exact) return $exact;
         }
-        return $q->whereNull('region')->first();
+        return $apply((clone $base)->whereNull('region'))->first();
     }
 
     /** Banker-friendly percentage of a minor amount, returned in minor units. */

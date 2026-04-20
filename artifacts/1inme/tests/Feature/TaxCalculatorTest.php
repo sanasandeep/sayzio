@@ -163,4 +163,61 @@ class TaxCalculatorTest extends TestCase
     {
         $this->assertGreaterThan(60, TaxJurisdiction::count());
     }
+
+    public function test_future_dated_rate_is_ignored_until_start_date(): void
+    {
+        // Park a future-dated row alongside the seeded one; today's calc
+        // should still use the seeded 19% German VAT, not the future 25%.
+        TaxJurisdiction::create([
+            'country' => 'DE', 'region' => null, 'kind' => 'VAT',
+            'label' => 'VAT 25%', 'rate_percent' => 25,
+            'b2b_reverse_charge' => true, 'is_active' => true,
+            'effective_from' => now()->addYear()->toDateString(),
+            'effective_to' => null,
+        ]);
+        $r = TaxCalculator::calculate($this->items(), [
+            'country' => 'DE', 'region' => null, 'tax_id' => null, 'tax_id_kind' => null,
+        ], 'EUR');
+        $this->assertSame(1900, $r['tax_breakdown'][0]['amount_minor']);
+    }
+
+    public function test_expired_rate_is_excluded(): void
+    {
+        // Mark the seeded German row as expired; calc should fall through to 0%.
+        TaxJurisdiction::where('country', 'DE')->where('kind', 'VAT')->whereNull('region')
+            ->update(['effective_to' => now()->subDay()->toDateString()]);
+        $r = TaxCalculator::calculate($this->items(), [
+            'country' => 'DE', 'region' => null, 'tax_id' => null, 'tax_id_kind' => null,
+        ], 'EUR');
+        $this->assertSame(0, $r['tax_total_minor']);
+    }
+
+    public function test_overlapping_rows_pick_most_recent_effective_from(): void
+    {
+        // A newer rate scheduled to start today should override the older row.
+        TaxJurisdiction::create([
+            'country' => 'DE', 'region' => null, 'kind' => 'VAT',
+            'label' => 'VAT 21%', 'rate_percent' => 21,
+            'b2b_reverse_charge' => true, 'is_active' => true,
+            'effective_from' => now()->toDateString(),
+            'effective_to' => null,
+        ]);
+        $rows = TaxJurisdiction::where('country','DE')->where('kind','VAT')->whereNull('region')->get();
+        $debug = $rows->map(fn($r) => $r->id.':'.$r->label.':from='.($r->getRawOriginal('effective_from') ?: 'NULL'))->all();
+        $r = TaxCalculator::calculate($this->items(), [
+            'country' => 'DE', 'region' => null, 'tax_id' => null, 'tax_id_kind' => null,
+        ], 'EUR');
+        $this->assertSame('VAT 21%', $r['tax_breakdown'][0]['label'], 'rows: '.json_encode($debug));
+    }
+
+    public function test_reverse_charge_requires_explicit_vatin_kind(): void
+    {
+        // Same VATIN string, but kind=NONE → must NOT trigger reverse charge.
+        $r = TaxCalculator::calculate($this->items(), [
+            'country' => 'DE', 'region' => null,
+            'tax_id' => 'DE123456789', 'tax_id_kind' => 'NONE',
+        ], 'EUR');
+        $this->assertSame(1900, $r['tax_total_minor']);
+        $this->assertNull($r['reverse_charge_note']);
+    }
 }
