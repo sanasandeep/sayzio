@@ -666,7 +666,7 @@ $catColors = [
                     <div class="flex items-center gap-1 mb-3 p-1 rounded-xl bg-white/5 border border-white/5 w-max">
                         <button @click="galleryMode = 'blocks'" :class="galleryMode === 'blocks' ? 'bg-violet-600 text-white' : 'text-white/50 hover:text-white'" class="px-3 py-1 text-[11px] font-semibold rounded-lg transition"><i class="fas fa-th-large mr-1"></i>Blocks</button>
                         <button @click="galleryMode = 'templates'; loadCardTemplates();" :class="galleryMode === 'templates' ? 'bg-violet-600 text-white' : 'text-white/50 hover:text-white'" class="px-3 py-1 text-[11px] font-semibold rounded-lg transition"><i class="fas fa-layer-group mr-1"></i>Card Templates</button>
-                        <button @click="galleryMode = 'forms'" :class="galleryMode === 'forms' ? 'bg-violet-600 text-white' : 'text-white/50 hover:text-white'" class="px-3 py-1 text-[11px] font-semibold rounded-lg transition"><i class="fas fa-wpforms mr-1"></i>Forms</button>
+                        <button @click="galleryMode = 'forms'" :class="galleryMode === 'forms' ? 'bg-violet-600 text-white' : 'text-white/50 hover:text-white'" class="px-3 py-1 text-[11px] font-semibold rounded-lg transition"><i class="fas fa-clipboard-list mr-1"></i>Forms</button>
                         <button @click="galleryMode = 'buzz'" :class="galleryMode === 'buzz' ? 'bg-violet-600 text-white' : 'text-white/50 hover:text-white'" class="px-3 py-1 text-[11px] font-semibold rounded-lg transition"><i class="fas fa-bell mr-1"></i>Buzz</button>
                     </div>
                     <div class="relative mb-4">
@@ -706,7 +706,7 @@ $catColors = [
                     <div x-show="galleryMode === 'forms'" x-cloak>
                         @if(empty($userForms) || count($userForms) === 0)
                             <div class="text-center py-10">
-                                <i class="fas fa-wpforms text-2xl mb-2" style="color: var(--text-faint);"></i>
+                                <i class="fas fa-clipboard-list text-2xl mb-2" style="color: var(--text-faint);"></i>
                                 <p class="text-sm mb-3" style="color: var(--text-muted);">You haven't created any forms yet.</p>
                                 <a href="{{ route('user.forms.index') }}" class="inline-block text-xs px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-semibold"><i class="fas fa-plus mr-1"></i>Create your first form</a>
                             </div>
@@ -717,7 +717,7 @@ $catColors = [
                                 <button type="button" class="gallery-block-card w-full text-left" onclick="ajaxAddBlockWithSettings('form', {form_id: {{ $f['id'] }}, height: 600}, '{{ route('user.links.blocks.store', $link) }}')">
                                     <div class="flex items-center gap-3">
                                         <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.20);">
-                                            <i class="fas fa-wpforms text-sm" style="color: #8b5cf6;"></i>
+                                            <i class="fas fa-clipboard-list text-sm" style="color: #8b5cf6;"></i>
                                         </div>
                                         <div class="min-w-0 flex-1">
                                             <div class="text-xs font-semibold truncate" style="color: var(--text-primary);">{{ $f['title'] }}</div>
@@ -1224,7 +1224,7 @@ function ajaxAddBlock(type, url, parentId) {
     if (_insertAfterId) fd.append('insert_after', _insertAfterId);
     fetch(url, {
         method: 'POST',
-        headers: { 'Accept': 'application/json' },
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': _csrfToken() },
         body: fd
     }).then(function(r) { return r.json(); }).then(function(data) {
         if (data.success) {
@@ -1247,7 +1247,7 @@ function ajaxAddBlockWithSettings(type, settings, url) {
     if (_insertAfterId) fd.append('insert_after', _insertAfterId);
     fetch(url, {
         method: 'POST',
-        headers: { 'Accept': 'application/json' },
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': _csrfToken() },
         body: fd
     }).then(function(r) { return r.json(); }).then(function(data) {
         if (data.success) {

@@ -114,7 +114,7 @@ class BiolinkBlock extends Model
         'socials'          => ['label' => 'Social Icons',        'icon' => 'fa-share-alt',                  'category' => 'social'],
         'socials_multi'    => ['label' => 'Social Hub',          'icon' => 'fa-users',                      'category' => 'social'],
         'socials_custom'   => ['label' => 'Custom Social Icons', 'icon' => 'fa-paint-brush',                'category' => 'social'],
-        'instagram_media'  => ['label' => 'Instagram Post',      'icon' => 'fa-instagram',                  'category' => 'social'],
+        'instagram_media'  => ['label' => 'Instagram Post',      'icon' => 'fa-camera-retro',               'category' => 'social'],
         'tiktok_video'     => ['label' => 'TikTok Video',        'icon' => 'fa-music',                      'category' => 'social'],
         'tiktok_profile'   => ['label' => 'TikTok Profile',      'icon' => 'fa-user',                       'category' => 'social'],
         'twitter_profile'  => ['label' => 'X / Twitter Profile', 'icon' => 'fa-user-circle',                'category' => 'social'],
@@ -126,7 +126,7 @@ class BiolinkBlock extends Model
 
         // ── Music & Audio ─────────────────────────────────────────────
         'spotify'          => ['label' => 'Spotify',             'icon' => 'fa-music',                      'category' => 'music'],
-        'apple_music'      => ['label' => 'Apple Music',         'icon' => 'fa-apple-alt',                  'category' => 'music'],
+        'apple_music'      => ['label' => 'Apple Music',         'icon' => 'fa-compact-disc',               'category' => 'music'],
         'soundcloud'       => ['label' => 'SoundCloud',          'icon' => 'fa-cloud',                      'category' => 'music'],
         'tidal'            => ['label' => 'Tidal',               'icon' => 'fa-water',                      'category' => 'music'],
         'mixcloud'         => ['label' => 'Mixcloud',            'icon' => 'fa-headphones',                 'category' => 'music'],
@@ -157,7 +157,7 @@ class BiolinkBlock extends Model
         'yandex_maps'      => ['label' => 'Yandex Map',          'icon' => 'fa-map',                        'category' => 'maps'],
 
         // ── Embeds & Integrations ─────────────────────────────────────
-        'form'             => ['label' => '1INME Form',          'icon' => 'fa-wpforms',                    'category' => 'integrations'],
+        'form'             => ['label' => '1INME Form',          'icon' => 'fa-clipboard-list',             'category' => 'integrations'],
         'typeform'         => ['label' => 'Typeform',            'icon' => 'fa-clipboard-list',             'category' => 'integrations'],
         'calendly'         => ['label' => 'Calendly',            'icon' => 'fa-calendar-check',             'category' => 'integrations'],
         'discord_server'   => ['label' => 'Discord Server',      'icon' => 'fa-hashtag',                    'category' => 'integrations'],
