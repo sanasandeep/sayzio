@@ -376,6 +376,86 @@
         .hp-profile-mini .hpm-t { font-size: 9px; opacity: .8; margin-top: 2px; }
         .hp-profile-mini .hpm-verified { color:#7dd3fc; font-size: 10px; margin-left: 2px; }
 
+        /* ===== Per-theme unique profile blocks ===== */
+        /* Shared base for all themed profile cards. */
+        .hp-prof {
+            position: relative; border-radius: 16px;
+            padding: 10px 11px;
+            background: rgba(255,255,255,.18);
+            border: 1px solid rgba(255,255,255,.28);
+            backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+            overflow: hidden;
+        }
+        .hp-prof .prow { display:flex; align-items:center; gap: 10px; }
+        .hp-prof .pav { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,.4); flex-shrink: 0; }
+        .hp-prof .ph  { font-size: 13px; font-weight: 800; line-height: 1.1; display:flex; align-items:center; gap:4px; }
+        .hp-prof .pt  { font-size: 10px; opacity: .85; margin-top: 2px; }
+        .hp-prof .pvd { color:#7dd3fc; font-size: 10px; }
+        /* Creator — neon ring + subscribers */
+        .hp-prof.var-creator .pav {
+            padding: 2px; background: conic-gradient(from 0deg,#ff0033,#ff8a3c,#ffc845,#ff0033);
+            border: 0; width: 48px; height: 48px;
+        }
+        .hp-prof.var-creator .pstats { display:flex; gap:10px; margin-top:9px; font-size:10px; }
+        .hp-prof.var-creator .pstats .ps { display:flex; flex-direction:column; }
+        .hp-prof.var-creator .pstats .sv { font-weight:800; font-size:12px; line-height:1; }
+        .hp-prof.var-creator .pstats .sl { opacity:.75; font-size:9px; }
+        /* Artist — color palette swatches */
+        .hp-prof.var-artist .pav { border-radius: 14px; width: 46px; height: 46px; }
+        .hp-prof.var-artist .swatch { display:flex; gap:3px; margin-top:8px; }
+        .hp-prof.var-artist .swatch i { width: 18px; height: 10px; border-radius: 3px; display:inline-block; }
+        /* Musician — now playing tag */
+        .hp-prof.var-music .pav { border: 2px solid #1ed760; }
+        .hp-prof.var-music .npill {
+            margin-top: 7px; display:inline-flex; align-items:center; gap:5px;
+            font-size: 9px; font-weight: 800; padding: 3px 7px; border-radius: 999px;
+            background: rgba(30,215,96,.22); color:#86efac; border:1px solid rgba(30,215,96,.35);
+        }
+        .hp-prof.var-music .npill i { animation: musicPulse 1.8s ease-in-out infinite; }
+        /* Business — LinkedIn-style + availability dot */
+        .hp-prof.var-business .pav { border-radius: 12px; }
+        .hp-prof.var-business .bbadges { display:flex; gap:4px; margin-top:7px; flex-wrap:wrap; }
+        .hp-prof.var-business .bbadge {
+            font-size: 9px; font-weight: 800; padding: 3px 7px; border-radius: 6px;
+            background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.3);
+        }
+        .hp-prof.var-business .online { width:10px; height:10px; border-radius:50%; background:#1ed760; border:2px solid rgba(255,255,255,.9); position:absolute; bottom:-1px; right:-1px; }
+        .hp-prof.var-business .avwrap { position:relative; }
+        /* Coach — stat chips inline */
+        .hp-prof.var-coach .pav {
+            padding: 2px; background: linear-gradient(135deg,#1bd4d9,#7c3aed);
+            border: 0;
+        }
+        .hp-prof.var-coach .chips { display:flex; gap:5px; margin-top:7px; }
+        .hp-prof.var-coach .chip {
+            font-size: 9px; font-weight: 800; padding: 3px 7px; border-radius: 999px;
+            background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.28);
+            display:flex; align-items:center; gap:4px;
+        }
+        .hp-prof.var-coach .chip i { color:#ffc845; font-size:8px; }
+        /* Photographer — location pin + camera gear row */
+        .hp-prof.var-photo .pav { border-radius: 10px; width: 46px; height: 46px; }
+        .hp-prof.var-photo .loc { display:flex; align-items:center; gap:4px; font-size:10px; margin-top:6px; }
+        .hp-prof.var-photo .loc i { color:#22d3ee; }
+        .hp-prof.var-photo .gear { display:flex; gap:4px; margin-top:6px; flex-wrap:wrap; }
+        .hp-prof.var-photo .gr { font-size: 9px; padding: 2px 6px; border-radius: 5px; background: rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.22); }
+        /* Social — follower counts strip */
+        .hp-prof.var-social .pav { padding: 2px; background: conic-gradient(from 0deg,#ffc845,#e94e8c,#7c3aed,#ffc845); border: 0; animation: spinSlow 14s linear infinite; }
+        .hp-prof.var-social .fgrid { display:grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 8px; }
+        .hp-prof.var-social .fg { text-align:center; padding: 4px 2px; border-radius: 8px; background: rgba(0,0,0,.32); }
+        .hp-prof.var-social .fg .fv { font-size: 11px; font-weight: 800; line-height: 1; }
+        .hp-prof.var-social .fg .fl { font-size: 8px; opacity: .8; margin-top: 2px; text-transform: uppercase; letter-spacing: .05em; }
+        /* Podcaster — on-air indicator */
+        .hp-prof.var-podcast .pav { border-radius: 12px; width: 46px; height: 46px; }
+        .hp-prof.var-podcast .air {
+            display:inline-flex; align-items:center; gap:5px;
+            margin-top: 7px; font-size: 9px; font-weight: 800;
+            padding: 3px 7px; border-radius: 999px;
+            background: rgba(239,68,68,.22); color:#fca5a5; border:1px solid rgba(239,68,68,.4);
+        }
+        .hp-prof.var-podcast .air i { width:6px; height:6px; border-radius:50%; background:#ef4444; animation: pulseDot 1.1s ease-in-out infinite; }
+        @keyframes pulseDot { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.5; transform:scale(1.35); } }
+
         /* --- MUSIC theme (Musician) --- */
         .hp-music-card {
             border-radius: 18px; overflow: hidden; position: relative;
@@ -507,6 +587,30 @@
         .hp-reel .play { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,.85); color:#0a0a14; display:flex; align-items:center; justify-content:center; }
         .hp-reel .lb { position:absolute; left: 8px; bottom: 7px; right: 8px; display:flex; gap:6px; align-items:center; font-size: 10px; font-weight: 800; }
         .hp-reel .lb span { background: rgba(0,0,0,.45); padding: 2px 5px; border-radius: 5px; }
+
+        /* Merch row (music theme) */
+        .hp-merch { display:flex; align-items:center; gap: 9px; padding: 7px 9px; border-radius: 14px;
+            background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.22); }
+        .hp-merch img { width: 40px; height: 40px; border-radius: 10px; object-fit: cover; flex-shrink:0; }
+        .hp-merch .mi { flex:1; min-width:0; }
+        .hp-merch .mt { font-size: 11px; font-weight: 800; line-height:1.1; }
+        .hp-merch .ms { font-size: 9px; opacity:.8; margin-top: 2px; }
+        .hp-merch .mp { font-size: 12px; font-weight: 900; padding: 4px 8px; border-radius: 8px; background: rgba(0,0,0,.5); flex-shrink:0; }
+
+        /* Episode row (podcast theme) */
+        .hp-ep { display:flex; align-items:center; gap: 8px; padding: 6px 9px; border-radius: 11px;
+            background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.22); font-size: 10px; }
+        .hp-ep .epn { font-weight:800; opacity:.8; width: 24px; }
+        .hp-ep .ept { flex:1; min-width:0; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .hp-ep .epd { opacity:.75; font-size: 9px; }
+
+        /* 4-up post grid (social theme) */
+        .hp-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+        .hp-grid-4 .gi { aspect-ratio: 1/1; border-radius: 8px; overflow: hidden; position: relative; border: 1px solid rgba(255,255,255,.2); }
+        .hp-grid-4 .gi img { width:100%; height:100%; object-fit: cover; }
+        .hp-grid-4 .gi .hrt { position:absolute; left:3px; bottom:3px; font-size: 7px; font-weight: 800;
+            padding: 2px 4px; border-radius: 4px; background: rgba(0,0,0,.6); display:inline-flex; align-items:center; gap:3px; }
+        .hp-grid-4 .gi .hrt i { color:#ef4444; font-size: 6px; }
 
         /* Theme entrance */
         .theme-block { opacity: 0; animation: cardIn .55s cubic-bezier(.34,1.56,.64,1) both; animation-delay: var(--d, 0ms); }
@@ -979,9 +1083,40 @@
                     </div>`).join('');
             }
 
+            // A pool of distinct wallpapers. Every role swap picks a
+            // fresh one at random (never repeats the previous one) so
+            // the phone feels alive — not locked to a single gradient
+            // per role. Role's own wallpaper is kept as the seed.
+            const WALLPAPERS = [
+                'linear-gradient(140deg,#7c3aed 0%,#e94e8c 60%,#ff8a3c 100%)',
+                'linear-gradient(140deg,#e94e8c 0%,#ff8a3c 55%,#ffc845 100%)',
+                'linear-gradient(140deg,#0f172a 0%,#1bd4d9 60%,#7c3aed 100%)',
+                'linear-gradient(140deg,#0f3a2a 0%,#1ed760 55%,#1bd4d9 100%)',
+                'linear-gradient(140deg,#1bd4d9 0%,#7c3aed 60%,#ffc845 100%)',
+                'linear-gradient(140deg,#0a2540 0%,#1bd4d9 55%,#7c3aed 100%)',
+                'linear-gradient(140deg,#e94e8c 0%,#7c3aed 50%,#ffc845 100%)',
+                'linear-gradient(140deg,#ff8a3c 0%,#e94e8c 50%,#7c3aed 100%)',
+                'linear-gradient(160deg,#0b132b 0%,#3a0ca3 45%,#f72585 100%)',
+                'linear-gradient(135deg,#06b6d4 0%,#3b82f6 55%,#9333ea 100%)',
+                'linear-gradient(150deg,#fde047 0%,#fb923c 45%,#ef4444 100%)',
+                'linear-gradient(135deg,#064e3b 0%,#10b981 50%,#fde047 100%)',
+                'linear-gradient(140deg,#312e81 0%,#ec4899 55%,#fbbf24 100%)',
+                'linear-gradient(160deg,#1e1b4b 0%,#7c3aed 45%,#22d3ee 100%)',
+            ];
+            let lastWallpaper = null;
             function applyWallpaper(role) {
                 if (!screen) return;
-                screen.style.background = role.wallpaper || '';
+                // Different wallpaper each call. Include the role's
+                // own wallpaper as an option but never pick the same
+                // value as the previous render. Dedupe by value so a
+                // role gradient that also appears in WALLPAPERS can't
+                // be re-selected under a different index.
+                const pool = Array.from(new Set([role.wallpaper, ...WALLPAPERS].filter(Boolean)));
+                let pick;
+                do { pick = pool[Math.floor(Math.random() * pool.length)]; }
+                while (pool.length > 1 && pick === lastWallpaper);
+                lastWallpaper = pick;
+                screen.style.background = pick;
             }
 
             function pickFromGallery(role, category, fallbackIndex) {
@@ -991,33 +1126,155 @@
                 return (g[fallbackIndex] || g[0] || {}).src || '';
             }
 
-            function profileDefault(p) {
-                const socials = (p.socials || []).map(s => `<span><i class="fab ${escapeHTML(s)}"></i></span>`).join('');
-                return `
-                    <div class="stack-card is-profile theme-block" style="--d:0ms">
-                        <div class="profile-row">
-                            <img class="profile-avatar" src="${escapeHTML(p.avatar)}" alt="" loading="lazy">
-                            <div class="min-w-0">
-                                <div class="profile-handle">${escapeHTML(p.handle)}</div>
-                                <div class="profile-tag">${escapeHTML(p.tag)}</div>
+            // Each theme supplies its own bespoke profile block so the
+            // profile never looks the same between role swaps. The shared
+            // .hp-prof skeleton supplies the glass card frame; per-theme
+            // `var-*` classes layer on the unique treatment.
+            function profFor(role) {
+                const p = role.profile;
+                const h = escapeHTML(p.handle);
+                const t = escapeHTML(p.tag);
+                const av = escapeHTML(p.avatar);
+                const verified = '<i class="fas fa-circle-check pvd"></i>';
+
+                switch (role.theme) {
+                    case 'creator':
+                        return `<div class="hp-prof var-creator theme-block" style="--d:0ms">
+                            <div class="prow">
+                              <img class="pav" src="${av}" alt="" loading="lazy">
+                              <div class="min-w-0 flex-1">
+                                <div class="ph">${h}${verified}</div>
+                                <div class="pt">${t}</div>
+                              </div>
+                              <i class="fab fa-youtube" style="color:#ff0033;font-size:18px"></i>
                             </div>
-                        </div>
-                        <div class="profile-socials">${socials}</div>
-                    </div>`;
+                            <div class="pstats">
+                              <div class="ps"><span class="sv">24.1k</span><span class="sl">Subscribers</span></div>
+                              <div class="ps"><span class="sv">486</span><span class="sl">Videos</span></div>
+                              <div class="ps"><span class="sv">1.2M</span><span class="sl">Views</span></div>
+                            </div>
+                          </div>`;
+                    case 'gallery': // Artist
+                        return `<div class="hp-prof var-artist theme-block" style="--d:0ms">
+                            <div class="prow">
+                              <img class="pav" src="${av}" alt="" loading="lazy">
+                              <div class="min-w-0 flex-1">
+                                <div class="ph">${h}${verified}</div>
+                                <div class="pt">${t}</div>
+                                <div class="swatch" aria-hidden="true">
+                                  <i style="background:#e94e8c"></i>
+                                  <i style="background:#ff8a3c"></i>
+                                  <i style="background:#ffc845"></i>
+                                  <i style="background:#1bd4d9"></i>
+                                  <i style="background:#7c3aed"></i>
+                                </div>
+                              </div>
+                              <i class="fas fa-palette" style="color:#ffc845;font-size:17px"></i>
+                            </div>
+                          </div>`;
+                    case 'music':
+                        return `<div class="hp-prof var-music theme-block" style="--d:0ms">
+                            <div class="prow">
+                              <img class="pav" src="${av}" alt="" loading="lazy">
+                              <div class="min-w-0 flex-1">
+                                <div class="ph">${h}${verified}</div>
+                                <div class="pt">${t}</div>
+                                <span class="npill"><i class="fas fa-music"></i>Now on tour · EP out</span>
+                              </div>
+                              <i class="fab fa-spotify" style="color:#1ed760;font-size:18px"></i>
+                            </div>
+                          </div>`;
+                    case 'business':
+                        return `<div class="hp-prof var-business theme-block" style="--d:0ms">
+                            <div class="prow">
+                              <div class="avwrap"><img class="pav" src="${av}" alt="" loading="lazy"><span class="online" aria-hidden="true"></span></div>
+                              <div class="min-w-0 flex-1">
+                                <div class="ph">${h}${verified}</div>
+                                <div class="pt">${t} · Accepting briefs</div>
+                                <div class="bbadges">
+                                  <span class="bbadge">Strategy</span>
+                                  <span class="bbadge">B2B</span>
+                                  <span class="bbadge">SaaS</span>
+                                </div>
+                              </div>
+                              <i class="fab fa-linkedin" style="color:#0ea5e9;font-size:18px"></i>
+                            </div>
+                          </div>`;
+                    case 'coach':
+                        return `<div class="hp-prof var-coach theme-block" style="--d:0ms">
+                            <div class="prow">
+                              <img class="pav" src="${av}" alt="" loading="lazy">
+                              <div class="min-w-0 flex-1">
+                                <div class="ph">${h}${verified}</div>
+                                <div class="pt">${t}</div>
+                                <div class="chips">
+                                  <span class="chip"><i class="fas fa-bolt"></i>NASM-CPT</span>
+                                  <span class="chip"><i class="fas fa-star"></i>4.9 · 140+</span>
+                                </div>
+                              </div>
+                              <i class="fas fa-dumbbell" style="color:#ffc845;font-size:17px"></i>
+                            </div>
+                          </div>`;
+                    case 'portfolio': // Photographer
+                        return `<div class="hp-prof var-photo theme-block" style="--d:0ms">
+                            <div class="prow">
+                              <img class="pav" src="${av}" alt="" loading="lazy">
+                              <div class="min-w-0 flex-1">
+                                <div class="ph">${h}${verified}</div>
+                                <div class="pt">${t}</div>
+                                <div class="loc"><i class="fas fa-location-dot"></i>Reykjavík · Available Jun</div>
+                                <div class="gear">
+                                  <span class="gr">Sony A7R V</span>
+                                  <span class="gr">24-70 GM</span>
+                                  <span class="gr">RAW</span>
+                                </div>
+                              </div>
+                              <i class="fas fa-camera-retro" style="color:#22d3ee;font-size:17px"></i>
+                            </div>
+                          </div>`;
+                    case 'social': // Influencer
+                        return `<div class="hp-prof var-social theme-block" style="--d:0ms">
+                            <div class="prow">
+                              <img class="pav" src="${av}" alt="" loading="lazy">
+                              <div class="min-w-0 flex-1">
+                                <div class="ph">${h}${verified}</div>
+                                <div class="pt">${t}</div>
+                              </div>
+                              <i class="fas fa-fire" style="color:#ef4444;font-size:17px"></i>
+                            </div>
+                            <div class="fgrid">
+                              <div class="fg"><div class="fv">312k</div><div class="fl"><i class="fab fa-instagram"></i> IG</div></div>
+                              <div class="fg"><div class="fv">180k</div><div class="fl"><i class="fab fa-tiktok"></i> TT</div></div>
+                              <div class="fg"><div class="fv">94k</div><div class="fl"><i class="fab fa-youtube"></i> YT</div></div>
+                            </div>
+                          </div>`;
+                    case 'podcast':
+                        return `<div class="hp-prof var-podcast theme-block" style="--d:0ms">
+                            <div class="prow">
+                              <img class="pav" src="${av}" alt="" loading="lazy">
+                              <div class="min-w-0 flex-1">
+                                <div class="ph">${h}${verified}</div>
+                                <div class="pt">${t}</div>
+                                <span class="air"><i aria-hidden="true"></i>On air · Ep 87 live</span>
+                              </div>
+                              <i class="fas fa-microphone-lines" style="color:#ff8a3c;font-size:17px"></i>
+                            </div>
+                          </div>`;
+                    default:
+                        return `<div class="hp-prof theme-block" style="--d:0ms">
+                            <div class="prow">
+                              <img class="pav" src="${av}" alt="" loading="lazy">
+                              <div class="min-w-0 flex-1">
+                                <div class="ph">${h}${verified}</div>
+                                <div class="pt">${t}</div>
+                              </div>
+                            </div>
+                          </div>`;
+                }
             }
 
-            function profileMini(p, extraTagHtml = '') {
-                return `
-                    <div class="hp-profile-mini theme-block" style="--d:0ms">
-                        <img src="${escapeHTML(p.avatar)}" alt="" loading="lazy">
-                        <div class="min-w-0 flex-1">
-                            <div class="hpm-h">${escapeHTML(p.handle)}<i class="fas fa-circle-check hpm-verified"></i></div>
-                            <div class="hpm-t">${escapeHTML(p.tag)}${extraTagHtml}</div>
-                        </div>
-                    </div>`;
-            }
-
-            // Original biolink list — used for the "creator" theme.
+            // Creator — full biolink list; blocks are bigger and there
+            // are more of them so the stack fills the phone screen.
             function renderCreator(role) {
                 const blocks = (role.blocks || []).map((b, i) => {
                     const delay = (i + 1) * 110;
@@ -1034,13 +1291,21 @@
                             <i class="fas fa-arrow-right card-cta"></i>
                         </div>`;
                 }).join('');
-                return profileDefault(role.profile) + blocks;
+                const last = (role.blocks || []).length * 110 + 120;
+                return profFor(role) + blocks
+                    + `<div class="hp-pill-row theme-block" style="--d:${last}ms">
+                           <div class="hp-pill"><i class="fab fa-youtube" style="color:#ff0033"></i>YouTube</div>
+                           <div class="hp-pill"><i class="fab fa-instagram" style="color:#e94e8c"></i>IG</div>
+                           <div class="hp-pill"><i class="fab fa-tiktok"></i>TikTok</div>
+                       </div>`
+                    + `<div class="hp-cta theme-block" style="--d:${last+60}ms"><i class="fas fa-hand-holding-heart"></i>Tip · Join members</div>`;
             }
 
             function renderMusic(role) {
-                const cover = pickFromGallery(role, 'Music', 0);
-                const b0 = (role.blocks || [])[0] || {};
-                return profileMini(role.profile)
+                const cover  = pickFromGallery(role, 'Music', 0);
+                const merch  = pickFromGallery(role, 'Merch', 1);
+                const b0     = (role.blocks || [])[0] || {};
+                return profFor(role)
                     + `<div class="hp-music-card theme-block" style="--d:110ms">
                             <img class="hp-music-cover" src="${escapeHTML(cover)}" alt="" loading="lazy">
                             <div class="hp-music-eq" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
@@ -1049,47 +1314,77 @@
                                 <div class="hp-music-play"><i class="fas fa-play" style="font-size:11px"></i></div>
                             </div>
                        </div>`
-                    + `<div class="theme-block" style="--d:220ms">
+                    + `<div class="theme-block" style="--d:200ms">
                             <div class="hp-track"><span class="num">1</span><span class="nm">Saltwater</span><span class="du">3:42</span></div>
                        </div>`
-                    + `<div class="theme-block" style="--d:280ms">
+                    + `<div class="theme-block" style="--d:250ms">
                             <div class="hp-track"><span class="num">2</span><span class="nm">Drift</span><span class="du">4:15</span></div>
                        </div>`
-                    + `<div class="hp-pill-row theme-block" style="--d:340ms">
+                    + `<div class="theme-block" style="--d:300ms">
+                            <div class="hp-track"><span class="num">3</span><span class="nm">Afterglow</span><span class="du">3:28</span></div>
+                       </div>`
+                    + `<div class="hp-biz-cta theme-block" style="--d:360ms">
+                            <div class="ic" style="background:#e94e8c22;color:#fff"><i class="fas fa-ticket-alt"></i></div>
+                            <div class="bd"><div class="bt">Tour 2026 · Tickets live</div><div class="bs">12 cities · Starts Jun 4</div></div>
+                            <i class="fas fa-arrow-right" style="opacity:.7"></i>
+                       </div>`
+                    + `<div class="hp-merch theme-block" style="--d:420ms">
+                            <img src="${escapeHTML(merch)}" alt="" loading="lazy">
+                            <div class="mi"><div class="mt">Vinyl + tee bundle</div><div class="ms">Limited · Ships worldwide</div></div>
+                            <span class="mp">$ 38</span>
+                       </div>`
+                    + `<div class="hp-pill-row theme-block" style="--d:480ms">
                             <div class="hp-pill"><i class="fab fa-spotify" style="color:#1ed760"></i>Spotify</div>
                             <div class="hp-pill"><i class="fab fa-apple"></i>Apple</div>
-                            <div class="hp-pill"><i class="fas fa-ticket-alt" style="color:#e94e8c"></i>Tour</div>
+                            <div class="hp-pill"><i class="fab fa-youtube" style="color:#ff5252"></i>YouTube</div>
                        </div>`;
             }
 
             function renderGallery(role) {
                 const g = role.gallery || [];
-                const cells = g.slice(0, 6).map((x, i) => `
+                const cells = g.slice(0, 6).map((x) => `
                     <div class="gi"><img src="${escapeHTML(x.src)}" alt="${escapeHTML(x.alt||'')}" loading="lazy">
                         <span class="badge">${escapeHTML(x.category)}</span>
                     </div>`).join('');
-                return profileMini(role.profile)
+                const more = g.slice(6, 9).map((x) => `
+                    <div class="gi"><img src="${escapeHTML(x.src)}" alt="${escapeHTML(x.alt||'')}" loading="lazy"></div>`).join('');
+                return profFor(role)
                     + `<div class="hp-grid-3 theme-block" style="--d:110ms">${cells}</div>`
-                    + `<div class="hp-cta theme-block" style="--d:240ms"><i class="fas fa-shopping-bag"></i>Shop the collection</div>`
-                    + `<div class="hp-cta dark theme-block" style="--d:300ms"><i class="fas fa-hand-holding-heart"></i>Tip jar</div>`;
+                    + (more ? `<div class="hp-grid-3 theme-block" style="--d:200ms">${more}</div>` : '')
+                    + `<div class="hp-stat-row theme-block" style="--d:260ms">
+                            <div class="hp-stat"><div class="sv">86</div><div class="sl">Works</div></div>
+                            <div class="hp-stat"><div class="sv">12</div><div class="sl">Shows</div></div>
+                            <div class="hp-stat"><div class="sv">4.9</div><div class="sl">Rating</div></div>
+                       </div>`
+                    + `<div class="hp-cta theme-block" style="--d:320ms"><i class="fas fa-shopping-bag"></i>Shop the collection</div>`
+                    + `<div class="hp-cta dark theme-block" style="--d:380ms"><i class="fas fa-hand-holding-heart"></i>Tip jar</div>`;
             }
 
             function renderPortfolio(role) {
                 const g = role.gallery || [];
                 const feature = pickFromGallery(role, 'Photo', 0);
-                const grid = g.filter(x => x.src !== feature).slice(0, 4).map(x => `
+                const rest = g.filter(x => x.src !== feature);
+                const grid4 = rest.slice(0, 4).map(x => `
                     <div class="gi"><img src="${escapeHTML(x.src)}" alt="${escapeHTML(x.alt||'')}" loading="lazy"></div>`).join('');
-                return profileMini(role.profile)
+                const grid2 = rest.slice(4, 6).map(x => `
+                    <div class="gi"><img src="${escapeHTML(x.src)}" alt="${escapeHTML(x.alt||'')}" loading="lazy"></div>`).join('');
+                return profFor(role)
                     + `<div class="hp-feature theme-block" style="--d:110ms">
                             <img src="${escapeHTML(feature)}" alt="" loading="lazy">
                             <div class="lbl"><span>Iceland · 2026</span><span><i class="fas fa-camera"></i> 48</span></div>
                        </div>`
-                    + `<div class="hp-grid-2 theme-block" style="--d:220ms">${grid}</div>`
-                    + `<div class="hp-cta theme-block" style="--d:300ms"><i class="fas fa-paper-plane"></i>Hire me · Weddings · Brand</div>`;
+                    + `<div class="hp-grid-2 theme-block" style="--d:200ms">${grid4}</div>`
+                    + (grid2 ? `<div class="hp-grid-2 theme-block" style="--d:260ms">${grid2}</div>` : '')
+                    + `<div class="hp-biz-cta theme-block" style="--d:320ms">
+                            <div class="ic"><i class="fas fa-print"></i></div>
+                            <div class="bd"><div class="bt">Fine-art print shop</div><div class="bs">A2 / A3 / canvas · Worldwide</div></div>
+                            <i class="fas fa-arrow-right" style="opacity:.7"></i>
+                       </div>`
+                    + `<div class="hp-cta theme-block" style="--d:380ms"><i class="fas fa-paper-plane"></i>Hire me · Weddings · Brand</div>`;
             }
 
             function renderBusiness(role) {
-                return profileMini(role.profile, ' · <i class="fas fa-circle" style="font-size:5px;color:#1ed760"></i> Available')
+                return profFor(role)
                     + `<div class="hp-biz-cta theme-block" style="--d:110ms">
                             <div class="ic"><i class="fas fa-calendar-check"></i></div>
                             <div class="bd"><div class="bt">Book a strategy call</div><div class="bs">30 min · Calendly · Free intro</div></div>
@@ -1099,34 +1394,55 @@
                             <div class="hp-svc"><div class="st">Audit</div><div class="sp">$ 1.2k</div></div>
                             <div class="hp-svc"><div class="st">Retainer</div><div class="sp">$ 4.5k/mo</div></div>
                        </div>`
-                    + `<div class="hp-stat-row theme-block" style="--d:280ms">
+                    + `<div class="hp-svc-list theme-block" style="--d:250ms">
+                            <div class="hp-svc"><div class="st">Sprint</div><div class="sp">$ 2.5k</div></div>
+                            <div class="hp-svc"><div class="st">Advisory</div><div class="sp">$ 600/hr</div></div>
+                       </div>`
+                    + `<div class="hp-stat-row theme-block" style="--d:320ms">
                             <div class="hp-stat"><div class="sv">120+</div><div class="sl">Clients</div></div>
                             <div class="hp-stat"><div class="sv">4.9</div><div class="sl">Rating</div></div>
                             <div class="hp-stat"><div class="sv">8 yr</div><div class="sl">Exp</div></div>
-                       </div>`;
+                       </div>`
+                    + `<div class="hp-quote theme-block" style="--d:380ms">
+                            Cut our CAC 38% in one quarter — Marcus is our unfair advantage.
+                            <div class="qa"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><span>· Priya, CEO</span></div>
+                       </div>`
+                    + `<div class="hp-cta theme-block" style="--d:440ms"><i class="fas fa-paper-plane"></i>Get a proposal</div>`;
             }
 
             function renderCoach(role) {
-                return profileMini(role.profile)
+                const reel = pickFromGallery(role, 'Video', 0);
+                return profFor(role)
                     + `<div class="hp-stat-row theme-block" style="--d:110ms">
                             <div class="hp-stat"><div class="sv">140+</div><div class="sl">Clients</div></div>
                             <div class="hp-stat"><div class="sv">4.9★</div><div class="sl">Rating</div></div>
                             <div class="hp-stat"><div class="sv">12wk</div><div class="sl">Programs</div></div>
                        </div>`
-                    + `<div class="hp-quote theme-block" style="--d:200ms">
+                    + `<div class="hp-reel theme-block" style="--d:180ms">
+                            <img src="${escapeHTML(reel)}" alt="" loading="lazy">
+                            <div class="ov"></div>
+                            <div class="play"><i class="fas fa-play" style="font-size:12px"></i></div>
+                            <div class="lb"><span><i class="fas fa-fire"></i> Form check</span><span><i class="fas fa-heart"></i> 12k</span></div>
+                       </div>`
+                    + `<div class="hp-quote theme-block" style="--d:260ms">
                             Lost 9 kg, deadlift up 40 kg in 12 weeks — Kai's plan just works.
                             <div class="qa"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><span>· Sara, client</span></div>
                        </div>`
-                    + `<div class="hp-biz-cta theme-block" style="--d:280ms">
+                    + `<div class="hp-svc-list theme-block" style="--d:320ms">
+                            <div class="hp-svc"><div class="st">1:1 Coach</div><div class="sp">$ 180/mo</div></div>
+                            <div class="hp-svc"><div class="st">Group</div><div class="sp">$ 65/mo</div></div>
+                       </div>`
+                    + `<div class="hp-biz-cta theme-block" style="--d:380ms">
                             <div class="ic"><i class="fas fa-calendar-check"></i></div>
                             <div class="bd"><div class="bt">Book a free consult</div><div class="bs">45 min · Zoom · Slots open</div></div>
                             <i class="fas fa-arrow-right" style="opacity:.7"></i>
-                       </div>`;
+                       </div>`
+                    + `<div class="hp-cta dark theme-block" style="--d:440ms"><i class="fas fa-clipboard-list"></i>Free intake form</div>`;
             }
 
             function renderPodcast(role) {
                 const cover = pickFromGallery(role, 'Podcast', 0);
-                return profileMini(role.profile)
+                return profFor(role)
                     + `<div class="hp-pod-card theme-block" style="--d:110ms">
                             <img src="${escapeHTML(cover)}" alt="" loading="lazy">
                             <div class="pm">
@@ -1141,34 +1457,55 @@
                             <svg viewBox="0 0 100 14" preserveAspectRatio="none"><polyline fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round" points="0,8 8,4 14,11 22,3 30,9 38,5 46,12 54,2 62,9 70,6 78,11 86,4 94,9 100,7"/></svg>
                             <span style="opacity:.75">42:00</span>
                        </div>`
-                    + `<div class="hp-pill-row theme-block" style="--d:260ms">
+                    + `<div class="hp-ep theme-block" style="--d:260ms">
+                            <span class="epn">#86</span><span class="ept">Shipping vs polishing</span><span class="epd">38m</span>
+                       </div>`
+                    + `<div class="hp-ep theme-block" style="--d:310ms">
+                            <span class="epn">#85</span><span class="ept">Pricing your side project</span><span class="epd">45m</span>
+                       </div>`
+                    + `<div class="hp-stat-row theme-block" style="--d:360ms">
+                            <div class="hp-stat"><div class="sv">87</div><div class="sl">Episodes</div></div>
+                            <div class="hp-stat"><div class="sv">18k</div><div class="sl">Listeners</div></div>
+                            <div class="hp-stat"><div class="sv">4.8</div><div class="sl">Rating</div></div>
+                       </div>`
+                    + `<div class="hp-pill-row theme-block" style="--d:420ms">
                             <div class="hp-pill"><i class="fab fa-apple"></i>Apple</div>
                             <div class="hp-pill"><i class="fab fa-spotify" style="color:#1ed760"></i>Spotify</div>
                             <div class="hp-pill"><i class="fab fa-youtube" style="color:#ff5252"></i>YouTube</div>
                        </div>`
-                    + `<div class="hp-cta dark theme-block" style="--d:320ms"><i class="fas fa-envelope-open-text"></i>Show notes &amp; newsletter</div>`;
+                    + `<div class="hp-cta dark theme-block" style="--d:480ms"><i class="fas fa-envelope-open-text"></i>Show notes &amp; newsletter</div>`;
             }
 
             function renderSocial(role) {
                 const g = role.gallery || [];
                 const reel = pickFromGallery(role, 'Video', 0);
-                const stories = ['Reels','Hauls','Travel','Q&amp;A'];
+                const stories = ['Reels','Hauls','Travel','Q&amp;A','BTS'];
                 const storyHTML = stories.map((nm, i) => {
                     const src = (g[i] || g[0] || {}).src || '';
                     return `<div class="hp-story"><div class="ring"><img src="${escapeHTML(src)}" alt=""></div><div class="nm">${nm}</div></div>`;
                 }).join('');
-                return profileMini(role.profile, ' · 480k')
+                const posts = g.slice(0, 4).map(x => `
+                    <div class="gi"><img src="${escapeHTML(x.src)}" alt="${escapeHTML(x.alt||'')}" loading="lazy">
+                        <span class="hrt"><i class="fas fa-heart"></i>${Math.floor(Math.random()*80)+20}k</span>
+                    </div>`).join('');
+                return profFor(role)
                     + `<div class="hp-stories theme-block" style="--d:110ms">${storyHTML}</div>`
-                    + `<div class="hp-reel theme-block" style="--d:200ms">
+                    + `<div class="hp-reel theme-block" style="--d:180ms">
                             <img src="${escapeHTML(reel)}" alt="" loading="lazy">
                             <div class="ov"></div>
                             <div class="play"><i class="fas fa-play" style="font-size:12px"></i></div>
                             <div class="lb"><span><i class="fab fa-instagram"></i> 312k</span><span><i class="fas fa-heart"></i> 28k</span></div>
                        </div>`
-                    + `<div class="hp-pill-row theme-block" style="--d:280ms">
+                    + `<div class="hp-grid-4 theme-block" style="--d:250ms">${posts}</div>`
+                    + `<div class="hp-biz-cta theme-block" style="--d:320ms">
+                            <div class="ic" style="background:#ffc84522;color:#fff"><i class="fas fa-handshake"></i></div>
+                            <div class="bd"><div class="bt">Brand deals · Press kit</div><div class="bs">Rates · Past campaigns · Reach</div></div>
+                            <i class="fas fa-arrow-right" style="opacity:.7"></i>
+                       </div>`
+                    + `<div class="hp-pill-row theme-block" style="--d:380ms">
                             <div class="hp-pill"><i class="fab fa-tiktok"></i>TikTok</div>
                             <div class="hp-pill"><i class="fab fa-youtube" style="color:#ff5252"></i>YouTube</div>
-                            <div class="hp-pill"><i class="fas fa-handshake" style="color:#ffc845"></i>Press kit</div>
+                            <div class="hp-pill"><i class="fab fa-snapchat" style="color:#fde047"></i>Snap</div>
                        </div>`;
             }
 
