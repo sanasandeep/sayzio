@@ -788,6 +788,11 @@
             animation: none !important;
         }
     }
+    /* Brand logo: show light variant in light mode, dark variant in dark mode. */
+    .brand-logo { display: none; }
+    .brand-logo--dark { display: inline-block; }
+    html.light-mode .brand-logo--dark { display: none; }
+    html.light-mode .brand-logo--light { display: inline-block; }
 </style>
 <script>
 (function(){

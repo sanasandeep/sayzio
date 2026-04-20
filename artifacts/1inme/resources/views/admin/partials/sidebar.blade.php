@@ -14,12 +14,7 @@
     <div class="flex items-center px-4" :class="sidebarMode === 'icons' ? 'justify-center' : 'justify-start'"
          style="height: 64px; border-bottom: 1px solid var(--border-strong);">
         <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2.5 group" :class="sidebarMode === 'icons' ? 'hidden' : ''">
-            <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background: var(--accent);">
-                <span class="text-white text-sm font-bold">1</span>
-            </div>
-            <span class="text-lg font-bold tracking-tight logo-text">
-                <span style="color: var(--text-primary);">1IN</span><span class="text-violet-400">ME</span>
-            </span>
+            @include('common.partials.brand-logo', ['height' => 'h-8'])
             <span class="ml-1 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded logo-text"
                   style="background: rgba(124,58,237,0.12); color: var(--accent-light); border: 1px solid rgba(124,58,237,0.2);">Admin</span>
         </a>
@@ -101,6 +96,14 @@
             <div class="nav-icon-wrap"><i class="fas fa-wand-magic-sparkles"></i></div>
             <span class="nav-label">Score Presets</span>
             <span class="sidebar-tooltip">Score Presets</span>
+        </a>
+
+        <a href="{{ route('admin.branding.edit') }}"
+           class="sidebar-link {{ request()->routeIs('admin.branding.*') ? 'active' : '' }}"
+           style="--nav-tint:#06b6d4; --nav-tint-soft:rgba(6,182,212,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-palette"></i></div>
+            <span class="nav-label">Branding</span>
+            <span class="sidebar-tooltip">Branding</span>
         </a>
 
         <a href="{{ route('admin.assets.index') }}"

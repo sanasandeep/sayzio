@@ -46,8 +46,8 @@
     <nav class="fixed top-0 left-0 right-0 z-50 bg-[#1e2330]/90 backdrop-blur-xl border-b border-white/5" x-data="{ mobileOpen: false }">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
-                <a href="{{ route('home') }}" class="text-2xl font-bold tracking-tight">
-                    <span class="text-white">1IN</span><span class="text-[#8b5cf6]">ME</span>
+                <a href="{{ route('home') }}" class="inline-flex items-center">
+                    @include('common.partials.brand-logo', ['height' => 'h-9'])
                 </a>
 
                 <div class="hidden md:flex items-center gap-8">
@@ -683,8 +683,8 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="grid md:grid-cols-4 gap-8 mb-12">
                 <div>
-                    <a href="{{ route('home') }}" class="text-2xl font-bold tracking-tight">
-                        <span class="text-white">1IN</span><span class="text-[#8b5cf6]">ME</span>
+                    <a href="{{ route('home') }}" class="inline-flex items-center">
+                        @include('common.partials.brand-logo', ['height' => 'h-9'])
                     </a>
                     <p class="text-sm text-gray-500 mt-3 leading-relaxed">Everything you are. In one simple link. The all-in-one link management platform.</p>
                 </div>

@@ -31,13 +31,8 @@
     <div class="min-h-screen flex relative z-10">
         <div class="hidden lg:flex flex-1 flex-col justify-center items-center p-12 xl:p-20 relative">
             <div class="max-w-md">
-                <a href="{{ route('home') }}" class="inline-flex items-center gap-2.5 mb-6 group">
-                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500 via-violet-500 to-violet-700 flex items-center justify-center shadow-xl group-hover:shadow-violet-500/30 transition-all duration-500" style="box-shadow: 0 8px 24px rgba(124,58,237,0.3);">
-                        <span class="text-white text-lg font-bold">1</span>
-                    </div>
-                    <span class="text-4xl font-bold tracking-tight">
-                        <span style="color: var(--text-primary);">1IN</span><span class="text-violet-400">ME</span>
-                    </span>
+                <a href="{{ route('home') }}" class="inline-flex items-center mb-6 group">
+                    @include('common.partials.brand-logo', ['height' => 'h-14'])
                 </a>
                 <p class="text-xl font-semibold mb-2" style="color: var(--text-secondary);">The link management platform<br><span class="gradient-text">built for growth.</span></p>
                 <p class="text-sm leading-relaxed mb-12" style="color: var(--text-dimmed);">Shorten URLs, build Link in Bio pages, generate QR codes, and track every click with powerful analytics.</p>
@@ -88,11 +83,8 @@
 
             <div class="w-full max-w-sm">
                 <div class="text-center mb-7 lg:hidden">
-                    <a href="{{ route('home') }}" class="inline-flex items-center gap-2 text-3xl font-bold tracking-tight">
-                        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 via-violet-500 to-violet-700 flex items-center justify-center shadow-lg">
-                            <span class="text-white text-sm font-bold">1</span>
-                        </div>
-                        <span><span style="color: var(--text-primary);">1IN</span><span class="text-violet-400">ME</span></span>
+                    <a href="{{ route('home') }}" class="inline-flex items-center justify-center">
+                        @include('common.partials.brand-logo', ['height' => 'h-10'])
                     </a>
                 </div>
 

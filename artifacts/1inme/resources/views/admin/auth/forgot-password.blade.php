@@ -27,9 +27,7 @@
     <div class="min-h-screen flex items-center justify-center p-6 relative z-10">
         <div class="w-full max-w-sm">
             <div class="text-center mb-7">
-                <a href="{{ route('home') }}" class="inline-block text-3xl font-bold tracking-tight">
-                    <span style="color: var(--text-primary);">1IN</span><span class="text-violet-400">ME</span>
-                </a>
+                <a href="{{ route('home') }}" class="inline-flex items-center justify-center">@include('common.partials.brand-logo', ['height' => 'h-12'])</a>
             </div>
 
             <div class="text-center mb-6">

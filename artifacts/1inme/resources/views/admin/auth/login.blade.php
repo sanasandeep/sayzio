@@ -27,9 +27,7 @@
     <div class="min-h-screen flex items-center justify-center p-6 relative z-10">
         <div class="w-full max-w-sm">
             <div class="text-center mb-7">
-                <a href="{{ route('home') }}" class="inline-block text-3xl font-bold tracking-tight">
-                    <span style="color: var(--text-primary);">1IN</span><span class="text-violet-400">ME</span>
-                </a>
+                <a href="{{ route('home') }}" class="inline-flex items-center justify-center">@include('common.partials.brand-logo', ['height' => 'h-12'])</a>
                 <div class="mt-2 inline-flex items-center gap-1.5">
                     <div class="w-5 h-5 rounded-md flex items-center justify-center" style="background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.15);">
                         <i class="fas fa-shield-alt text-violet-400 text-[8px]"></i>

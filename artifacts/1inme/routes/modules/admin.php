@@ -12,6 +12,7 @@ use App\Modules\Admin\Controllers\LinkManagementController;
 use App\Modules\Admin\Controllers\CoachDefaultsController;
 use App\Modules\Admin\Controllers\TemplateController;
 use App\Modules\Admin\Controllers\AdminAssetController;
+use App\Modules\Admin\Controllers\BrandingController;
 use App\Modules\Admin\Middleware\CheckPermission;
 
 Route::prefix('admin')->name('admin.')->group(function () {
@@ -75,6 +76,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::put('{kind}/{id}', [TemplateController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
             Route::post('{kind}/{id}/toggle', [TemplateController::class, 'toggle'])->middleware(CheckPermission::class . ':settings.manage')->name('toggle');
             Route::delete('{kind}/{id}', [TemplateController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
+        });
+
+        Route::prefix('branding')->name('branding.')->group(function () {
+            Route::get('/', [BrandingController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
+            Route::post('/', [BrandingController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
+            Route::post('reset', [BrandingController::class, 'reset'])->middleware(CheckPermission::class . ':settings.manage')->name('reset');
         });
 
         Route::prefix('coach-defaults')->name('coach-defaults.')->group(function () {

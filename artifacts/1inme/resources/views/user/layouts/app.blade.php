@@ -470,12 +470,7 @@
 
             <div class="flex items-center px-4" :class="sidebarMode === 'icons' ? 'justify-center' : 'justify-start'" style="height: 64px; border-bottom: 1px solid var(--border-strong);">
                 <a href="{{ route('user.dashboard') }}" class="flex items-center gap-2.5 group" :class="sidebarMode === 'icons' ? 'hidden' : ''">
-                    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background: var(--accent);">
-                        <span class="text-white text-sm font-bold">1</span>
-                    </div>
-                    <span class="text-lg font-bold tracking-tight logo-text">
-                        <span style="color: var(--text-primary);">1IN</span><span class="text-violet-400">ME</span>
-                    </span>
+                    @include('common.partials.brand-logo', ['height' => 'h-8'])
                 </a>
                 <template x-if="sidebarMode === 'icons'">
                     <a href="{{ route('user.dashboard') }}" class="group" title="1INME">
@@ -755,10 +750,7 @@
                 <div class="w-[280px] h-full flex flex-col" style="background: var(--bg-sidebar-mobile); backdrop-filter: none;">
                     <div class="h-[64px] flex items-center justify-between px-5" style="border-bottom: 1px solid var(--border-subtle);">
                         <div class="flex items-center gap-2.5">
-                            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: var(--accent);">
-                                <span class="text-white text-[10px] font-bold">1</span>
-                            </div>
-                            <span class="text-base font-bold"><span style="color: var(--text-primary);">1IN</span><span class="text-violet-400">ME</span></span>
+                            @include('common.partials.brand-logo', ['height' => 'h-7'])
                         </div>
                         <button @click="mobileMenu = false" class="p-1.5 rounded-lg" style="color: var(--text-muted);"><i class="fas fa-times text-sm"></i></button>
                     </div>
