@@ -15,6 +15,7 @@ class User extends Authenticatable
         'plan_id', 'billing_cycle', 'plan_expires_at', 'trial_ends_at',
         'timezone', 'language', 'settings', 'email_verified_at', 'last_login_at',
         'bio', 'handle', 'discoverable', 'notify_new_follower', 'notify_follower_updates',
+        'follower_updates_mode', 'follower_digest_last_sent_at',
         'followers_count', 'allow_followers',
     ];
 
@@ -32,6 +33,7 @@ class User extends Authenticatable
             'discoverable' => 'boolean',
             'notify_new_follower' => 'boolean',
             'notify_follower_updates' => 'boolean',
+            'follower_digest_last_sent_at' => 'datetime',
         ];
     }
 

@@ -83,10 +83,24 @@
                             <input type="checkbox" name="notify_new_follower" value="1" {{ $user->notify_new_follower ? 'checked' : '' }} class="w-4 h-4">
                             Email me when someone follows me
                         </label>
-                        <label class="flex items-center gap-2 text-sm text-white/70">
-                            <input type="checkbox" name="notify_follower_updates" value="1" {{ $user->notify_follower_updates ? 'checked' : '' }} class="w-4 h-4">
-                            Email me when creators I follow post updates
-                        </label>
+                        <div>
+                            <p class="text-sm text-white/70 mb-2">When creators I follow post updates:</p>
+                            @php($mode = old('follower_updates_mode', $user->follower_updates_mode ?: ($user->notify_follower_updates ? 'digest' : 'off')))
+                            <div class="space-y-2 pl-1">
+                                <label class="flex items-start gap-2 text-sm text-white/70">
+                                    <input type="radio" name="follower_updates_mode" value="instant" {{ $mode === 'instant' ? 'checked' : '' }} class="w-4 h-4 mt-0.5">
+                                    <span><span class="text-white">Instant</span> — email me as soon as something happens</span>
+                                </label>
+                                <label class="flex items-start gap-2 text-sm text-white/70">
+                                    <input type="radio" name="follower_updates_mode" value="digest" {{ $mode === 'digest' ? 'checked' : '' }} class="w-4 h-4 mt-0.5">
+                                    <span><span class="text-white">Daily digest</span> — one email per day with everything new (recommended)</span>
+                                </label>
+                                <label class="flex items-start gap-2 text-sm text-white/70">
+                                    <input type="radio" name="follower_updates_mode" value="off" {{ $mode === 'off' ? 'checked' : '' }} class="w-4 h-4 mt-0.5">
+                                    <span><span class="text-white">Off</span> — don't email me about creator updates</span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

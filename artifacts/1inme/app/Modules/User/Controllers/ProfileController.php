@@ -41,7 +41,14 @@ class ProfileController extends Controller
         $validated['discoverable'] = $request->boolean('discoverable');
         $validated['allow_followers'] = $request->boolean('allow_followers');
         $validated['notify_new_follower'] = $request->boolean('notify_new_follower');
-        $validated['notify_follower_updates'] = $request->boolean('notify_follower_updates');
+
+        // Three-way preference: instant | digest | off. Keep the legacy
+        // boolean in sync (true unless explicitly off) so any code still
+        // reading `notify_follower_updates` continues to behave sensibly.
+        $mode = $request->input('follower_updates_mode', 'digest');
+        if (!in_array($mode, ['instant', 'digest', 'off'], true)) $mode = 'digest';
+        $validated['follower_updates_mode'] = $mode;
+        $validated['notify_follower_updates'] = $mode !== 'off';
 
         $previousAvatar = $user->avatar;
         $previousName   = $user->name;

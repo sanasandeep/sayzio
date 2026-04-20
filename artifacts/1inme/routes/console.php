@@ -29,3 +29,11 @@ Schedule::command('socials:refresh-follower-counts')
     ->everyFourHours()
     ->withoutOverlapping()
     ->onOneServer();
+
+// Daily at 09:00: email each opted-in follower a single digest summarising
+// new posts/profile changes/published links from creators they follow,
+// instead of one email per creator update.
+Schedule::command('followers:send-digest')
+    ->dailyAt('09:00')
+    ->withoutOverlapping()
+    ->onOneServer();

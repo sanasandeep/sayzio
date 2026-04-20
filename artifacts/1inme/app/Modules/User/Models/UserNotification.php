@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 class UserNotification extends Model
 {
     public $timestamps = false;
-    protected $fillable = ['user_id', 'type', 'data', 'read_at', 'created_at'];
-    protected $casts = ['data' => 'array', 'read_at' => 'datetime', 'created_at' => 'datetime'];
+    protected $fillable = ['user_id', 'type', 'data', 'read_at', 'emailed_at', 'created_at'];
+    protected $casts = ['data' => 'array', 'read_at' => 'datetime', 'emailed_at' => 'datetime', 'created_at' => 'datetime'];
 
     public function user() { return $this->belongsTo(User::class); }
 }

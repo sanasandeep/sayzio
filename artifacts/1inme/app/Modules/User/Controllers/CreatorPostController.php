@@ -60,27 +60,33 @@ class CreatorPostController extends Controller
     }
 
     /**
-     * Notify followers about creator activity. Debounced: at most one
-     * "follower update" notification per creator per follower per day.
+     * Record creator activity for each follower. Per-follower delivery is
+     * controlled by their `follower_updates_mode` preference:
+     *   - 'instant' : email immediately (and create the in-app notification)
+     *   - 'digest'  : create the in-app notification; the daily
+     *                 `followers:send-digest` job batches one email per day
+     *   - 'off'     : create no in-app row and send no email
+     *
+     * The historical per-creator-per-day debounce was removed: the digest
+     * mode (which is now the default) gives the same "at most one email per
+     * day" behaviour without dropping in-app notifications.
+     *
+     * Method name kept for backwards compatibility with existing call sites
+     * (LinkController, ProfileController, etc.).
      */
     public static function notifyFollowersDebounced($creator, string $message): void
     {
         $followerIds = Follow::where('creator_id', $creator->id)->pluck('follower_id');
-        $cutoff = now()->subDay();
+        if ($followerIds->isEmpty()) return;
 
-        foreach ($followerIds as $fid) {
-            $recent = UserNotification::where('user_id', $fid)
-                ->where('type', 'follower_update')
-                ->whereJsonContains('data->creator_id', (int) $creator->id)
-                ->where('created_at', '>=', $cutoff)
-                ->exists();
-            if ($recent) continue;
+        $followers = \App\Modules\User\Models\User::whereIn('id', $followerIds)->get();
 
-            $follower = \App\Modules\User\Models\User::find($fid);
-            if (!$follower) continue;
+        foreach ($followers as $follower) {
+            $mode = self::resolveFollowerMode($follower);
+            if ($mode === 'off') continue;
 
-            UserNotification::create([
-                'user_id' => $fid,
+            $notif = UserNotification::create([
+                'user_id' => $follower->id,
                 'type'    => 'follower_update',
                 'data'    => [
                     'creator_id'     => (int) $creator->id,
@@ -89,15 +95,30 @@ class CreatorPostController extends Controller
                     'message'        => $message,
                 ],
                 'created_at' => now(),
+                'emailed_at' => null,
             ]);
 
-            if ($follower->notify_follower_updates) {
+            if ($mode === 'instant') {
                 try {
                     \Mail::raw("{$creator->name}: {$message}", function ($m) use ($follower) {
                         $m->to($follower->email)->subject('New activity from a creator you follow');
                     });
+                    $notif->emailed_at = now();
+                    $notif->save();
                 } catch (\Throwable $e) {}
             }
+            // 'digest' mode: leave emailed_at null so the daily job picks it up.
         }
+    }
+
+    /**
+     * Resolve the effective notification mode for a follower, with safe
+     * fallback for users on rows that pre-date the new column.
+     */
+    private static function resolveFollowerMode($follower): string
+    {
+        $mode = $follower->follower_updates_mode ?? null;
+        if (in_array($mode, ['instant', 'digest', 'off'], true)) return $mode;
+        return $follower->notify_follower_updates ? 'digest' : 'off';
     }
 }
