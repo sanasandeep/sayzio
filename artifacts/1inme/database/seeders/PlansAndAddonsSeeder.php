@@ -40,7 +40,24 @@ class PlansAndAddonsSeeder extends Seeder
             $appliesTo = $def['applies_to'] ?? [];
             unset($def['applies_to']);
 
-            $addon = Addon::firstOrCreate(['slug' => $def['slug']], $def);
+            $existing = Addon::where('slug', $def['slug'])->first();
+            if ($existing) {
+                // Overlay-only patch: only fill in fields that are clearly
+                // unset on the existing row. We never overwrite curator edits
+                // (mirrors the plan overlay behavior above).
+                $patch = [];
+                if (empty($existing->description)) $patch['description'] = $def['description'];
+                if (empty($existing->features))    $patch['features']    = $def['features'];
+                if ($existing->metadata === null && array_key_exists('metadata', $def)) {
+                    $patch['metadata'] = $def['metadata'];
+                }
+                if ($patch) {
+                    $existing->fill($patch)->save();
+                }
+                $addon = $existing;
+            } else {
+                $addon = Addon::create($def);
+            }
 
             // Always converge the default plan attachments so a partial or
             // manually-edited prior seed gets healed on rerun. We use
