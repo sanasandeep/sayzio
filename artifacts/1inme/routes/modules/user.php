@@ -18,6 +18,7 @@ use App\Modules\User\Controllers\RsvpController;
 use App\Modules\User\Controllers\UserFileController;
 use App\Modules\User\Controllers\PlanManagementController;
 use App\Modules\User\Controllers\SubscriberController;
+use App\Modules\User\Controllers\InboxController;
 use App\Modules\User\Controllers\VerificationController;
 use App\Modules\User\Middleware\CheckPlanLimit;
 use App\Modules\User\Middleware\SuperAdmin;
@@ -246,6 +247,16 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post('import-url', [UserFileController::class, 'importUrl'])->name('import-url');
             Route::delete('{file}', [UserFileController::class, 'destroy'])->name('destroy');
             Route::get('quota', [UserFileController::class, 'quota'])->name('quota');
+        });
+
+        Route::prefix('inbox')->name('inbox.')->group(function () {
+            Route::get('/', [InboxController::class, 'index'])->name('index');
+            Route::get('export', [InboxController::class, 'exportFiltered'])->name('export');
+            Route::post('bulk', [InboxController::class, 'bulk'])->name('bulk');
+            Route::get('{type}/{id}', [InboxController::class, 'show'])
+                ->where('type', 'form_submission|subscriber')->whereNumber('id')->name('show');
+            Route::post('{type}/{id}', [InboxController::class, 'update'])
+                ->where('type', 'form_submission|subscriber')->whereNumber('id')->name('update');
         });
 
         Route::prefix('subscribers')->name('subscribers.')->group(function () {

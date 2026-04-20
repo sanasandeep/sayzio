@@ -591,6 +591,16 @@
                     <span class="nav-label">Leads</span>
                     <span class="sidebar-tooltip">Leads</span>
                 </a>
+                <a href="{{ route('user.inbox.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.inbox.*') ? 'active' : '' }}"
+                   style="--nav-tint:#0ea5e9; --nav-tint-soft:rgba(14,165,233,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-inbox"></i></div>
+                    <span class="nav-label">Inbox
+                        @php $__inboxUnread = (new \App\Modules\User\Services\InboxAggregator(auth()->id()))->unreadCount(); @endphp
+                        @if($__inboxUnread)<span class="ml-1 inline-block px-1.5 rounded-full text-[10px] bg-violet-500 text-white">{{ $__inboxUnread > 99 ? '99+' : $__inboxUnread }}</span>@endif
+                    </span>
+                    <span class="sidebar-tooltip">Unified Inbox</span>
+                </a>
                 <a href="{{ route('user.verification.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.verification.*') ? 'active' : '' }}"
                    style="--nav-tint:#3b82f6; --nav-tint-soft:rgba(59,130,246,0.12);">
