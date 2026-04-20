@@ -77,6 +77,7 @@ class SocialProofController extends Controller
             'targeting'         => 'nullable|array',
             'schedule'          => 'nullable|array',
             'notifications_json'=> 'required|string',
+            'directory_badge_notification_id' => 'nullable|string|max:64',
         ]);
 
         // Decode + normalize the notifications array from the editor's hidden JSON field.
@@ -120,15 +121,45 @@ class SocialProofController extends Controller
             $targeting[$k] = array_values(array_filter(array_map('trim', (array)$val), fn($s) => $s !== ''));
         }
 
-        $socialProof->update([
-            'name'          => $validated['name'],
-            'is_active'     => (bool)($validated['is_active'] ?? $socialProof->is_active),
-            'design'        => $design,
-            'targeting'     => $targeting,
-            'schedule'      => (array)($validated['schedule'] ?? $socialProof->schedule ?? []),
-            'notifications' => $notifications,
-            'type'          => $notifications[0]['type'] ?? $socialProof->type, // keep legacy column in sync with first notification
-        ]);
+        // Directory badge: only persist when the supplied id matches one of the
+        // current notifications AND that notification's type is eligible to
+        // render in the Creators directory. Anything else is cleared so we
+        // never store a dangling reference.
+        $badgeId = $validated['directory_badge_notification_id'] ?? null;
+        if ($badgeId !== null && $badgeId !== '') {
+            $match = null;
+            foreach ($notifications as $n) {
+                if (($n['id'] ?? null) === $badgeId) { $match = $n; break; }
+            }
+            $badgeId = ($match && in_array($match['type'] ?? '', SocialProof::DIRECTORY_BADGE_TYPES, true))
+                ? $badgeId : null;
+        } else {
+            $badgeId = null;
+        }
+
+        // A creator can only have ONE pinned directory badge across all of
+        // their campaigns. When this campaign is being assigned the badge,
+        // clear it from every other campaign in a single transaction so the
+        // directory resolver never has to break a tie between two preferences.
+        DB::transaction(function () use ($socialProof, $request, $badgeId, $validated, $design, $targeting, $notifications) {
+            if ($badgeId !== null) {
+                SocialProof::where('user_id', $request->user()->id)
+                    ->where('id', '!=', $socialProof->id)
+                    ->whereNotNull('directory_badge_notification_id')
+                    ->update(['directory_badge_notification_id' => null]);
+            }
+
+            $socialProof->update([
+                'name'          => $validated['name'],
+                'is_active'     => (bool)($validated['is_active'] ?? $socialProof->is_active),
+                'design'        => $design,
+                'targeting'     => $targeting,
+                'schedule'      => (array)($validated['schedule'] ?? $socialProof->schedule ?? []),
+                'notifications' => $notifications,
+                'directory_badge_notification_id' => $badgeId,
+                'type'          => $notifications[0]['type'] ?? $socialProof->type, // keep legacy column in sync with first notification
+            ]);
+        });
 
         return redirect()->route('user.social-proofs.edit', $socialProof)->with('success', 'Saved.');
     }

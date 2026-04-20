@@ -10,7 +10,16 @@ class SocialProof extends Model
     protected $fillable = [
         'user_id', 'uuid', 'name', 'type', 'is_active',
         'settings', 'design', 'targeting', 'schedule', 'notifications',
+        'directory_badge_notification_id',
         'impressions', 'clicks', 'conversions',
+    ];
+
+    /**
+     * Notification types eligible to render as a creator's directory badge.
+     * Kept in the model so both the editor UI and the directory query agree.
+     */
+    public const DIRECTORY_BADGE_TYPES = [
+        'recent_activity', 'visitor_count', 'conversion_count', 'social_followers', 'trust_badge',
     ];
 
     protected $casts = [

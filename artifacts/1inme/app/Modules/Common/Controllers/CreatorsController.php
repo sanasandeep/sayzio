@@ -78,7 +78,7 @@ class CreatorsController extends Controller
     {
         if (empty($creatorIds)) return [];
 
-        $allowedTypes = ['recent_activity', 'visitor_count', 'conversion_count', 'social_followers', 'trust_badge'];
+        $allowedTypes = SocialProof::DIRECTORY_BADGE_TYPES;
 
         // Single batched query — pull every active campaign for the visible page
         // of creators. We filter to lightweight notification types in PHP since
@@ -87,21 +87,36 @@ class CreatorsController extends Controller
             ->where('is_active', true)
             ->orderByDesc('updated_at')
             ->orderByDesc('id')
-            ->get(['id', 'user_id', 'type', 'notifications', 'updated_at']);
+            ->get(['id', 'user_id', 'type', 'notifications', 'directory_badge_notification_id', 'updated_at']);
 
+        // First pass: honour explicit creator picks. A campaign with
+        // `directory_badge_notification_id` set wins over the auto-pick for
+        // that user, regardless of which campaign was most recently updated.
         $byUser = [];
         foreach ($proofs as $p) {
-            if (isset($byUser[$p->user_id])) continue; // first match wins — deterministic
+            if (isset($byUser[$p->user_id])) continue;
+            if (empty($p->directory_badge_notification_id)) continue;
+            $snippet = $this->snippetFromProof($p, $allowedTypes, $p->directory_badge_notification_id);
+            if ($snippet) $byUser[$p->user_id] = $snippet;
+        }
+
+        // Second pass: legacy auto-pick (most recently updated active campaign,
+        // first eligible notification) for any creator without an explicit pick.
+        foreach ($proofs as $p) {
+            if (isset($byUser[$p->user_id])) continue;
             $snippet = $this->snippetFromProof($p, $allowedTypes);
             if ($snippet) $byUser[$p->user_id] = $snippet;
         }
         return $byUser;
     }
 
-    private function snippetFromProof(SocialProof $proof, array $allowedTypes): ?array
+    private function snippetFromProof(SocialProof $proof, array $allowedTypes, ?string $preferredId = null): ?array
     {
         $notifications = is_array($proof->notifications) ? $proof->notifications : [];
-        // Pick the first active eligible notification (sorted by sort_order).
+        // Pick the first active eligible notification (sorted by sort_order),
+        // unless a specific id is preferred — in which case it must exist,
+        // be active, and be of an eligible type, otherwise we bail (so the
+        // outer fallback can try a different campaign).
         $eligible = [];
         foreach ($notifications as $n) {
             if (!is_array($n)) continue;
@@ -111,8 +126,18 @@ class CreatorsController extends Controller
             $eligible[] = $n;
         }
         if (empty($eligible)) return null;
-        usort($eligible, fn($a, $b) => ((int)($a['sort_order'] ?? 0)) <=> ((int)($b['sort_order'] ?? 0)));
-        $n = $eligible[0];
+
+        if ($preferredId !== null && $preferredId !== '') {
+            $picked = null;
+            foreach ($eligible as $n) {
+                if (($n['id'] ?? null) === $preferredId) { $picked = $n; break; }
+            }
+            if (!$picked) return null;
+            $n = $picked;
+        } else {
+            usort($eligible, fn($a, $b) => ((int)($a['sort_order'] ?? 0)) <=> ((int)($b['sort_order'] ?? 0)));
+            $n = $eligible[0];
+        }
         $s = is_array($n['settings'] ?? null) ? $n['settings'] : [];
 
         return match ($n['type']) {

@@ -110,6 +110,7 @@ html.light-mode .bz-tpl-desc{color:#64748b}
 <form method="POST" action="{{ route('user.social-proofs.update', $proof) }}" @submit="syncBeforeSubmit">
     @csrf @method('PUT')
     <input type="hidden" name="notifications_json" :value="JSON.stringify(notifications)">
+    <input type="hidden" name="directory_badge_notification_id" :value="directoryBadgeId || ''">
 
     {{-- Tab bar --}}
     <div class="flex gap-2 mb-5 border-b border-white/5 pb-3 overflow-x-auto">
@@ -211,6 +212,15 @@ html.light-mode .bz-tpl-desc{color:#64748b}
                     <input type="text" x-model="n.name" @input="livePreview()" class="bz-input flex-1" placeholder="Notification name">
                     <label class="inline-flex items-center gap-1.5 text-xs text-white/60 cursor-pointer">
                         <input type="checkbox" x-model="n.is_active" @change="livePreview()"> Active
+                    </label>
+                    <label class="inline-flex items-center gap-1.5 text-xs cursor-pointer"
+                           :class="isBadgeEligible(n.type) ? 'text-amber-300' : 'text-white/30 cursor-not-allowed'"
+                           :title="isBadgeEligible(n.type) ? 'Use this notification as your Creators directory badge' : 'This notification type can\'t be shown on the directory card'">
+                        <input type="checkbox"
+                               :disabled="!isBadgeEligible(n.type)"
+                               :checked="directoryBadgeId === n.id"
+                               @change="toggleDirectoryBadge(n)">
+                        <i class="fas fa-id-badge"></i> Directory badge
                     </label>
                     <button type="button" @click="moveUp(idx)" class="bz-btn-icon" title="Move up"><i class="fas fa-arrow-up"></i></button>
                     <button type="button" @click="moveDown(idx)" class="bz-btn-icon" title="Move down"><i class="fas fa-arrow-down"></i></button>
@@ -437,6 +447,8 @@ window.__BUZZ = {
     targeting: @json($targeting),
     uuid: @json($proof->uuid),
     types: @json(\App\Modules\User\Models\SocialProof::TYPES),
+    directoryBadgeTypes: @json(\App\Modules\User\Models\SocialProof::DIRECTORY_BADGE_TYPES),
+    directoryBadgeId: @json($proof->directory_badge_notification_id),
     defaultsForUrl: null,
     defaults: @json(collect(array_keys(\App\Modules\User\Models\SocialProof::TYPES))->mapWithKeys(fn($t) => [$t => \App\Modules\User\Models\SocialProof::defaultSettingsFor($t)])),
 };
@@ -456,6 +468,8 @@ function buzzEditor() {
         notifications: window.__BUZZ.notifications.map(n => ({...n, _open: false})),
         design: {...window.__BUZZ.design},
         targeting: {...window.__BUZZ.targeting},
+        directoryBadgeId: window.__BUZZ.directoryBadgeId || null,
+        directoryBadgeTypes: window.__BUZZ.directoryBadgeTypes || [],
 
         init() {
             // Open the first notification by default
@@ -484,6 +498,13 @@ function buzzEditor() {
         },
 
         typeLabel(t) { return this.types[t] || t; },
+
+        isBadgeEligible(t) { return this.directoryBadgeTypes.indexOf(t) !== -1; },
+
+        toggleDirectoryBadge(n) {
+            if (!this.isBadgeEligible(n.type)) return;
+            this.directoryBadgeId = (this.directoryBadgeId === n.id) ? null : n.id;
+        },
 
         matchesFilter(key, label) {
             var q = (this.typeFilter || '').trim().toLowerCase();
@@ -595,7 +616,9 @@ function buzzEditor() {
 
         remove(idx) {
             if (!confirm('Remove this notification?')) return;
-            this.notifications.splice(idx, 1);
+            var removed = this.notifications.splice(idx, 1)[0];
+            // Clear the directory-badge pointer if it referenced the deleted row.
+            if (removed && this.directoryBadgeId === removed.id) this.directoryBadgeId = null;
             this.livePreview();
         },
 
