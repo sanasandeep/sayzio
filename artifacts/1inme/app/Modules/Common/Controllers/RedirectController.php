@@ -457,11 +457,12 @@ class RedirectController extends Controller
 
         $data = $request->validate([
             'block_id' => 'required|integer',
-            'type' => 'required|in:email,whatsapp_channel,whatsapp_number',
+            'type' => 'required|in:email,whatsapp_channel,whatsapp_number,contact_form',
             'email' => 'nullable|email|max:200',
             'name' => 'nullable|string|max:100',
             'phone' => 'nullable|string|max:30',
             'channel_url' => 'nullable|url|max:500',
+            'message' => 'nullable|string|max:5000',
         ]);
 
         $block = BiolinkBlock::where('id', $data['block_id'])->where('link_id', $link->id)->first();
@@ -473,9 +474,55 @@ class RedirectController extends Controller
             'email_subscribe' => 'email',
             'whatsapp_channel_subscribe' => 'whatsapp_channel',
             'whatsapp_number_subscribe' => 'whatsapp_number',
+            'contact_form' => 'contact_form',
         ];
         if (($typeMap[$block->type] ?? null) !== $data['type']) {
             return response()->json(['success' => false, 'message' => 'Invalid subscription type.'], 400);
+        }
+
+        // Contact-form messages are inserted as fresh rows (no dedupe — the
+        // same visitor can send many messages). Honeypot + heuristics still
+        // apply, with the message body included in the spam scan text.
+        if ($data['type'] === 'contact_form') {
+            if (empty($data['email']) || empty($data['message'])) {
+                return response()->json(['success' => false, 'message' => 'Email and message are required.'], 422);
+            }
+
+            $spamCheck = app(SpamChecker::class)->check([
+                'honeypot' => $request->input('_hp'),
+                'ip'       => $request->ip(),
+                'text'     => trim(implode(' ', array_filter([
+                    $data['name'] ?? null, $data['email'] ?? null, $data['message'] ?? null,
+                ]))),
+                'scope'    => 'contact_form:' . $link->id,
+            ]);
+
+            $subscriber = Subscriber::create([
+                'user_id'       => $link->user_id,
+                'link_id'       => $link->id,
+                'block_id'      => $block->id,
+                'type'          => 'contact_form',
+                'email'         => $data['email'],
+                'name'          => $data['name'] ?? null,
+                'status'        => 'active',
+                'source'        => $alias,
+                'metadata'      => ['message' => $data['message']],
+                'subscribed_at' => now(),
+                'is_spam'       => $spamCheck['is_spam'],
+            ]);
+
+            if (! $spamCheck['is_spam']) {
+                try {
+                    $subscriber->setRelation('block', $block);
+                    $subscriber->setRelation('link', $link);
+                    app(\App\Modules\User\Services\InboxForwarder::class)
+                        ->dispatchForSubscriber($link->user_id, $subscriber);
+                } catch (\Throwable $e) {
+                    logger()->warning('Inbox forwarder (contact_form) failed: ' . $e->getMessage());
+                }
+            }
+
+            return response()->json(['success' => true, 'message' => 'Message sent — thanks for getting in touch!']);
         }
 
         if ($data['type'] === 'email') {

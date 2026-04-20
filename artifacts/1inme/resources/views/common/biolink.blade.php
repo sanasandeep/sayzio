@@ -1174,15 +1174,47 @@
                 </div>
 
             @elseif($block->type === 'contact_form')
-                <div class="mb-4 glass-block rounded-xl p-5">
+                <div class="mb-4 glass-block rounded-xl p-5" x-data="{ submitted: false, loading: false, error: '' }">
                     <p class="text-sm font-semibold mb-3 text-center">{{ $s['title'] ?? 'Contact Us' }}</p>
-                    <form class="space-y-3" onsubmit="event.preventDefault(); this.querySelector('button').textContent='Sent!'; this.querySelector('button').disabled=true;">
-                        <input type="text" name="_hp" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none;">
-                        <input type="text" placeholder="Name" required class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none" style="color:{{ $fontColor }}">
-                        <input type="email" placeholder="Email" required class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none" style="color:{{ $fontColor }}">
-                        <textarea placeholder="Message" rows="3" required class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none" style="color:{{ $fontColor }}"></textarea>
-                        <button type="submit" class="bio-btn w-full py-2.5 text-sm font-medium">{{ $s['button_text'] ?? 'Send' }}</button>
-                    </form>
+                    <template x-if="!submitted">
+                        <form @submit.prevent="
+                            loading = true; error = '';
+                            fetch('/{{ $link->alias }}/subscribe', {
+                                method: 'POST',
+                                headers: {'Content-Type':'application/json','X-CSRF-TOKEN':'{{ csrf_token() }}'},
+                                body: JSON.stringify({
+                                    block_id: {{ $block->id }},
+                                    type: 'contact_form',
+                                    name: $refs.cfName{{ $block->id }}.value,
+                                    email: $refs.cfEmail{{ $block->id }}.value,
+                                    message: $refs.cfMessage{{ $block->id }}.value,
+                                    _hp: $refs.cfHp{{ $block->id }}.value
+                                })
+                            }).then(r => r.json()).then(d => {
+                                loading = false;
+                                if(d.success) submitted = true;
+                                else error = d.message || 'Something went wrong';
+                            }).catch(() => { loading = false; error = 'Network error'; })
+                        " class="space-y-3">
+                            <input x-ref="cfHp{{ $block->id }}" type="text" name="_hp" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none;">
+                            <input x-ref="cfName{{ $block->id }}" type="text" placeholder="Name" required class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none" style="color:{{ $fontColor }}">
+                            <input x-ref="cfEmail{{ $block->id }}" type="email" placeholder="Email" required class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none" style="color:{{ $fontColor }}">
+                            <textarea x-ref="cfMessage{{ $block->id }}" placeholder="Message" rows="3" required maxlength="5000" class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none" style="color:{{ $fontColor }}"></textarea>
+                            <button type="submit" :disabled="loading" class="bio-btn w-full py-2.5 text-sm font-medium flex items-center justify-center gap-2">
+                                <template x-if="loading"><svg class="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg></template>
+                                <span x-text="loading ? 'Sending...' : '{{ $s['button_text'] ?? 'Send' }}'"></span>
+                            </button>
+                            <p x-show="error" x-text="error" class="text-xs text-red-400 text-center" x-cloak></p>
+                        </form>
+                    </template>
+                    <template x-if="submitted">
+                        <div class="text-center py-3">
+                            <div class="inline-flex items-center justify-center w-12 h-12 rounded-full mb-3" style="background: rgba(34,197,94,0.15);">
+                                <i class="fas fa-check text-green-400 text-xl"></i>
+                            </div>
+                            <p class="text-sm font-semibold text-green-400">{{ $s['success_message'] ?? 'Message sent — thanks!' }}</p>
+                        </div>
+                    </template>
                 </div>
 
             @elseif($block->type === 'whatsapp_widget')

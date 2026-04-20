@@ -135,9 +135,10 @@ class InboxAggregator
             }
             // Coarse subscriber-type filter mapped from source
             if ($sourceFilter === self::SOURCE_EMAIL_SUBSCRIBE
-                || $sourceFilter === self::SOURCE_EMAIL_COLLECTOR
-                || $sourceFilter === self::SOURCE_CONTACT_FORM) {
+                || $sourceFilter === self::SOURCE_EMAIL_COLLECTOR) {
                 $q->where('type', 'email');
+            } elseif ($sourceFilter === self::SOURCE_CONTACT_FORM) {
+                $q->where('type', 'contact_form');
             } elseif ($sourceFilter === self::SOURCE_PHONE_COLLECTOR) {
                 $q->where('type', 'phone');
             } elseif ($sourceFilter === self::SOURCE_WHATSAPP_CHANNEL) {
@@ -211,6 +212,10 @@ class InboxAggregator
             if (!$row) return null;
             $sourceType = $this->mapSubscriberSource($row->type, $row->block?->type);
             $linkLabel = $row->link?->alias ? ('/' . $row->link->alias) : ($row->source ?? 'biolink');
+            $message = is_array($row->metadata ?? null) ? trim((string)($row->metadata['message'] ?? '')) : '';
+            $preview = $message !== ''
+                ? \Illuminate\Support\Str::limit($message, 120)
+                : (trim(implode(' · ', array_filter([$row->email, $row->phone, $row->channel_url]))) ?: '—');
             return (object)[
                 'source_type'  => $sourceType,
                 'source_label' => self::sourceLabels()[$sourceType] . ' on ' . $linkLabel,
@@ -222,7 +227,7 @@ class InboxAggregator
                 'is_starred'   => (bool)$row->is_starred,
                 'is_spam'      => (bool)$row->is_spam,
                 'name'         => $row->name ?: ($row->email ?: ($row->phone ?: ('#' . $row->id))),
-                'preview'      => trim(implode(' · ', array_filter([$row->email, $row->phone, $row->channel_url]))) ?: '—',
+                'preview'      => $preview,
                 'raw'          => $row,
             ];
         })->filter()->values();
@@ -246,6 +251,7 @@ class InboxAggregator
             'whatsapp_channel' => self::SOURCE_WHATSAPP_CHANNEL,
             'whatsapp_number'  => self::SOURCE_WHATSAPP_NUMBER,
             'phone'            => self::SOURCE_PHONE_COLLECTOR,
+            'contact_form'     => self::SOURCE_CONTACT_FORM,
             default            => self::SOURCE_EMAIL_SUBSCRIBE,
         };
     }

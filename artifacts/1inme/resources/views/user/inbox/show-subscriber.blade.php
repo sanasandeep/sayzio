@@ -16,6 +16,21 @@
         ],
     ])
 
+    @php
+        $contactMessage = ($subscriber->type === 'contact_form' && is_array($subscriber->metadata ?? null))
+            ? trim((string)($subscriber->metadata['message'] ?? ''))
+            : '';
+    @endphp
+
+    @if($contactMessage !== '')
+        <div class="card-premium p-6 mb-4">
+            <h3 class="text-sm font-bold mb-3" style="color: var(--text-primary);">
+                <i class="fas fa-comment-dots mr-2 text-violet-400"></i>Message
+            </h3>
+            <div class="text-sm whitespace-pre-line p-4 rounded-lg" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">{{ $contactMessage }}</div>
+        </div>
+    @endif
+
     <div class="card-premium p-6 mb-4">
         <h3 class="text-sm font-bold mb-5" style="color: var(--text-primary);">Captured Information</h3>
         <dl class="space-y-3">
