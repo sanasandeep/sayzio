@@ -50,7 +50,14 @@
 
     <h2>Bill to</h2>
     <div>
-        {{ $address['business_name'] ?? '' }}<br>
+        @php
+            $buyerName = $address['buyer_name'] ?? optional($invoice->user)->name ?? '';
+            $businessName = $address['business_name'] ?? '';
+        @endphp
+        <strong>{{ $buyerName !== '' ? $buyerName : $businessName }}</strong><br>
+        @if($businessName !== '' && $businessName !== $buyerName)
+            {{ $businessName }}<br>
+        @endif
         {{ $address['line1'] ?? '' }} {{ $address['line2'] ?? '' }}<br>
         {{ $address['city'] ?? '' }} {{ $address['region'] ?? '' }} {{ $address['postal_code'] ?? '' }}<br>
         {{ $address['country'] ?? '' }}

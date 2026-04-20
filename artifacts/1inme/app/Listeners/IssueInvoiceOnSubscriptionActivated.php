@@ -10,24 +10,34 @@ use App\Services\TaxCalculator;
 
 class IssueInvoiceOnSubscriptionActivated
 {
-    public function handle(SubscriptionActivated $event): ?Invoice
+    public function handle(SubscriptionActivated $event): Invoice
     {
         $billing = BillingAddress::where('user_id', $event->user->id)->first();
-        if (!$billing || empty($billing->country)) {
-            return null;
-        }
+
+        $address = [
+            'country'       => $billing?->country ?? ($event->user->country ?? null),
+            'region'        => $billing?->region,
+            'postal_code'   => $billing?->postal_code,
+            'line1'         => $billing?->line1,
+            'line2'         => $billing?->line2,
+            'city'          => $billing?->city,
+            'tax_id'        => $billing?->tax_id,
+            'tax_id_kind'   => $billing?->tax_id_kind,
+            'business_name' => $billing?->business_name,
+            'buyer_name'    => $event->user->name,
+        ];
 
         $calc = TaxCalculator::calculate(
             $event->items,
             [
-                'country'     => $billing->country,
-                'region'      => $billing->region,
-                'tax_id'      => $billing->tax_id,
-                'tax_id_kind' => $billing->tax_id_kind,
+                'country'     => $address['country'],
+                'region'      => $address['region'],
+                'tax_id'      => $address['tax_id'],
+                'tax_id_kind' => $address['tax_id_kind'],
             ],
             $event->currency,
         );
 
-        return InvoiceService::issue($event->user, $calc, $billing->toArray());
+        return InvoiceService::issue($event->user, $calc, $address);
     }
 }

@@ -62,19 +62,20 @@ class SubscriptionActivationInvoiceTest extends TestCase
         $this->assertSame($invoice1->subtotal_minor + $invoice1->tax_total_minor, $invoice1->grand_total_minor);
     }
 
-    public function test_listener_skips_invoice_when_user_has_no_billing_address(): void
+    public function test_listener_still_issues_invoice_when_no_billing_address(): void
     {
         $user = $this->makeUser();
         $listener = new IssueInvoiceOnSubscriptionActivated();
 
-        $result = $listener->handle(new SubscriptionActivated(
+        $invoice = $listener->handle(new SubscriptionActivated(
             $user,
             [['label' => 'Pro (monthly)', 'amount_minor' => 99900, 'quantity' => 1]],
             'INR',
         ));
 
-        $this->assertNull($result);
-        $this->assertSame(0, Invoice::where('user_id', $user->id)->count());
+        $this->assertInstanceOf(Invoice::class, $invoice);
+        $this->assertSame(1, Invoice::where('user_id', $user->id)->count());
+        $this->assertSame($user->name, $invoice->billing_address_snapshot['buyer_name'] ?? null);
     }
 
     public function test_activate_endpoint_rejects_non_privileged_users(): void
