@@ -591,6 +591,7 @@ class RedirectController extends Controller
             'source' => $data['type'] === 'whatsapp_channel' ? ($data['_fingerprint'] ?? $alias) : $alias,
             'subscribed_at' => now(),
             'is_spam' => $spamCheck['is_spam'],
+            'spam_reason' => $spamCheck['is_spam'] ? $spamCheck['reason'] : null,
         ]);
 
         // Account-level forwarding rules — fan out to the owner's email/webhook

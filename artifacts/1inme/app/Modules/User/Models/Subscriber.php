@@ -10,7 +10,7 @@ class Subscriber extends Model
         'user_id', 'link_id', 'block_id', 'type', 'email', 'phone',
         'name', 'channel_url', 'status', 'source', 'metadata',
         'subscribed_at', 'unsubscribed_at',
-        'is_read', 'is_starred', 'is_spam', 'read_at',
+        'is_read', 'is_starred', 'is_spam', 'spam_reason', 'read_at',
     ];
 
     protected function casts(): array

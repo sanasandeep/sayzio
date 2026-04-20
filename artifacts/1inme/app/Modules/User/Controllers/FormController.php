@@ -612,6 +612,7 @@ class FormController extends Controller
             'user_agent' => substr((string) $request->userAgent(), 0, 500),
             'referrer' => substr((string) $request->headers->get('referer', ''), 0, 500),
             'is_spam' => $spamCheck['is_spam'],
+            'spam_reason' => $spamCheck['is_spam'] ? $spamCheck['reason'] : null,
         ]);
 
         $form->increment('total_submissions');

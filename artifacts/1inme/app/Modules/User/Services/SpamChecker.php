@@ -191,6 +191,35 @@ class SpamChecker
         return null;
     }
 
+    /**
+     * Parse a stored reason string into ['code' => string, 'detail' => ?string].
+     * Reason codes use 'code' or 'code:detail' shape (e.g. 'too_many_links',
+     * 'blocked_keyword:viagra'). Unknown / empty reasons return null.
+     */
+    public static function parseReason(?string $reason): ?array
+    {
+        if (!is_string($reason) || $reason === '') return null;
+        [$code, $detail] = array_pad(explode(':', $reason, 2), 2, null);
+        return ['code' => $code, 'detail' => $detail];
+    }
+
+    /**
+     * Render a stored reason as a short human-readable badge label, e.g.
+     * "Blocked: viagra", "Too many links", "Honeypot", "Rate limit".
+     */
+    public static function reasonLabel(?string $reason): ?string
+    {
+        $p = self::parseReason($reason);
+        if (!$p) return null;
+        return match ($p['code']) {
+            'blocked_keyword' => 'Blocked: ' . ($p['detail'] ?: 'keyword'),
+            'too_many_links'  => 'Too many links',
+            'rate_limit'      => 'Rate limit',
+            'honeypot'        => 'Honeypot',
+            default           => ucfirst(str_replace('_', ' ', (string) $p['code'])),
+        };
+    }
+
     protected function exceedsRateLimit(string $ip, string $scope): bool
     {
         $key = 'spamcheck:' . $scope . ':' . sha1($ip);

@@ -31,6 +31,70 @@
     </div>
     @endif
 
+    @php
+        $totalRuleHits = array_sum($ruleHits ?? []);
+        $customKeywordHits = array_filter($keywordHits ?? [], function ($_, $kw) {
+            return !in_array($kw, array_map('mb_strtolower', \App\Modules\User\Services\SpamChecker::BLOCKED_KEYWORDS), true);
+        }, ARRAY_FILTER_USE_BOTH);
+        $defaultKeywordHits = array_filter($keywordHits ?? [], function ($_, $kw) {
+            return in_array($kw, array_map('mb_strtolower', \App\Modules\User\Services\SpamChecker::BLOCKED_KEYWORDS), true);
+        }, ARRAY_FILTER_USE_BOTH);
+    @endphp
+
+    @if($totalRuleHits > 0)
+    <div class="glass rounded-2xl p-6 mb-6">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(59,130,246,0.15);">
+                <i class="fas fa-chart-bar text-sky-400"></i>
+            </div>
+            <div>
+                <h2 class="font-semibold" style="color: var(--text-primary);">Recent activity (last 30 days)</h2>
+                <p class="text-xs" style="color: var(--text-muted);">{{ $totalRuleHits }} {{ \Illuminate\Support\Str::plural('item', $totalRuleHits) }} were flagged. Use this to spot rules or keywords that are firing too often.</p>
+            </div>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+            @foreach([
+                'blocked_keyword' => ['Blocked keyword', 'fa-key'],
+                'too_many_links'  => ['Too many links',  'fa-link'],
+                'rate_limit'      => ['Rate limit',      'fa-gauge-high'],
+                'honeypot'        => ['Honeypot',        'fa-spider'],
+            ] as $code => $meta)
+                <div class="px-3 py-2 rounded-lg" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                    <div class="text-[10px] uppercase font-bold tracking-wider" style="color: var(--text-faint);"><i class="fas {{ $meta[1] }} mr-1"></i>{{ $meta[0] }}</div>
+                    <div class="text-lg font-bold" style="color: var(--text-primary);">{{ $ruleHits[$code] ?? 0 }}</div>
+                </div>
+            @endforeach
+        </div>
+
+        @if(!empty($customKeywordHits))
+        <div class="mb-3">
+            <div class="text-[10px] uppercase font-bold tracking-wider mb-2" style="color: var(--text-faint);">Your custom keywords that fired</div>
+            <div class="flex flex-wrap gap-1.5">
+                @foreach($customKeywordHits as $kw => $count)
+                    <span class="text-xs px-2 py-1 rounded-lg" style="background: rgba(124,58,237,0.15); color: #c4b5fd;" title="Hit {{ $count }} {{ \Illuminate\Support\Str::plural('time', $count) }} in the last 30 days.">
+                        <i class="fas fa-key text-[10px] mr-1 opacity-60"></i>{{ $kw }} <span class="opacity-70 ml-0.5">×{{ $count }}</span>
+                    </span>
+                @endforeach
+            </div>
+        </div>
+        @endif
+
+        @if(!empty($defaultKeywordHits))
+        <div>
+            <div class="text-[10px] uppercase font-bold tracking-wider mb-2" style="color: var(--text-faint);">Default keywords that fired</div>
+            <div class="flex flex-wrap gap-1.5">
+                @foreach($defaultKeywordHits as $kw => $count)
+                    <span class="text-xs px-2 py-1 rounded-lg" style="background: rgba(234,88,12,0.12); color: #fdba74;" title="Hit {{ $count }} {{ \Illuminate\Support\Str::plural('time', $count) }} in the last 30 days.">
+                        <i class="fas fa-shield-alt text-[10px] mr-1 opacity-60"></i>{{ $kw }} <span class="opacity-70 ml-0.5">×{{ $count }}</span>
+                    </span>
+                @endforeach
+            </div>
+            <p class="mt-2 text-[11px]" style="color: var(--text-faint);">If a default keyword keeps catching real submissions in your niche, uncheck it below.</p>
+        </div>
+        @endif
+    </div>
+    @endif
+
     @if($errors->any())
     <div class="mb-6 p-3 rounded-xl text-sm" style="background: rgba(239,68,68,0.1); color: #f87171; border: 1px solid rgba(239,68,68,0.2);">
         <i class="fas fa-exclamation-circle mr-1.5"></i>

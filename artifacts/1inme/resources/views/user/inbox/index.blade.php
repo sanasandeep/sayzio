@@ -173,6 +173,10 @@
                                             </span>
                                             @if($row->is_spam)
                                                 <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded" style="background: rgba(234,88,12,0.15); color: #fb923c;">Spam</span>
+                                                @php $reasonLabel = \App\Modules\User\Services\SpamChecker::reasonLabel($row->spam_reason ?? null); @endphp
+                                                @if($reasonLabel)
+                                                    <span class="text-[9px] font-semibold uppercase px-1.5 py-0.5 rounded" style="background: rgba(234,88,12,0.08); color: #fdba74;" title="The spam filter rule that flagged this message.">{{ $reasonLabel }}</span>
+                                                @endif
                                             @endif
                                         </div>
                                         <div class="text-[11px] truncate mt-0.5" style="color: var(--text-faint);">{{ $row->preview }}</div>

@@ -17,6 +17,20 @@
         ],
     ])
 
+    @if($submission->is_spam)
+        @php $reasonLabel = \App\Modules\User\Services\SpamChecker::reasonLabel($submission->spam_reason ?? null); @endphp
+        <div class="mb-6 px-4 py-3 rounded-xl text-xs flex items-center gap-2 flex-wrap" style="background: rgba(234,88,12,0.1); border: 1px solid rgba(234,88,12,0.2); color: #fb923c;">
+            <i class="fas fa-shield-alt"></i>
+            <span class="font-bold uppercase tracking-wider">Flagged as spam</span>
+            @if($reasonLabel)
+                <span class="px-1.5 py-0.5 rounded font-semibold" style="background: rgba(234,88,12,0.15);">{{ $reasonLabel }}</span>
+            @endif
+            @if(($submission->spam_reason ?? null) && str_starts_with($submission->spam_reason, 'blocked_keyword:'))
+                <a href="{{ route('user.inbox.spam-settings') }}" class="ml-auto underline opacity-80 hover:opacity-100">Manage keywords</a>
+            @endif
+        </div>
+    @endif
+
     <div class="card-premium p-6 mb-6">
         <h3 class="text-sm font-bold mb-5" style="color: var(--text-primary);">Submitted Data</h3>
         <dl class="space-y-3">

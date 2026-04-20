@@ -411,7 +411,50 @@ class InboxController
         $checker = app(SpamChecker::class);
         $spam = $checker->loadUserSpamSettings($user->id);
         $defaults = SpamChecker::BLOCKED_KEYWORDS;
-        return view('user.inbox.spam-settings', compact('spam', 'defaults'));
+
+        // Recent keyword-hit counts (last 30 days), broken down per keyword.
+        // Helps creators see which custom keywords are actually firing — and
+        // which defaults might be over-aggressive in their niche.
+        $since = now()->subDays(30);
+        $formIds = Form::where('user_id', $user->id)->pluck('id');
+        $reasons = collect();
+        if ($formIds->isNotEmpty()) {
+            $reasons = $reasons->concat(
+                FormSubmission::whereIn('form_id', $formIds)
+                    ->where('is_spam', true)
+                    ->whereNotNull('spam_reason')
+                    ->where('created_at', '>=', $since)
+                    ->pluck('spam_reason')
+            );
+        }
+        $reasons = $reasons->concat(
+            Subscriber::where('user_id', $user->id)
+                ->where('is_spam', true)
+                ->whereNotNull('spam_reason')
+                ->where('created_at', '>=', $since)
+                ->pluck('spam_reason')
+        );
+
+        $keywordHits = [];   // keyword (lowercased) => count
+        $ruleHits = [        // structured-rule counts for the summary strip
+            'blocked_keyword' => 0,
+            'too_many_links'  => 0,
+            'rate_limit'      => 0,
+            'honeypot'        => 0,
+        ];
+        foreach ($reasons as $r) {
+            $p = SpamChecker::parseReason($r);
+            if (!$p) continue;
+            $code = $p['code'];
+            if (isset($ruleHits[$code])) $ruleHits[$code]++;
+            if ($code === 'blocked_keyword' && $p['detail']) {
+                $k = mb_strtolower($p['detail']);
+                $keywordHits[$k] = ($keywordHits[$k] ?? 0) + 1;
+            }
+        }
+        arsort($keywordHits);
+
+        return view('user.inbox.spam-settings', compact('spam', 'defaults', 'keywordHits', 'ruleHits'));
     }
 
     public function updateSettings(Request $request)

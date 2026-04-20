@@ -8,7 +8,7 @@ class FormSubmission extends Model
 {
     protected $fillable = [
         'form_id', 'data', 'files', 'ip', 'user_agent', 'referrer',
-        'country', 'is_spam', 'is_read', 'is_starred',
+        'country', 'is_spam', 'spam_reason', 'is_read', 'is_starred',
     ];
 
     protected function casts(): array

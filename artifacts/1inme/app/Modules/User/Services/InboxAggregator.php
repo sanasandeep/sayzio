@@ -95,7 +95,7 @@ class InboxAggregator
                       ->orWhere('ip', 'ilike', $needle);
                 });
             }
-            $rows = $q->select(['id', 'form_id', 'created_at', 'is_read', 'is_starred', 'is_spam'])->get();
+            $rows = $q->select(['id', 'form_id', 'created_at', 'is_read', 'is_starred', 'is_spam', 'spam_reason'])->get();
             foreach ($rows as $r) {
                 $formProjection->push([
                     'source_type' => self::SOURCE_FORM,
@@ -148,7 +148,7 @@ class InboxAggregator
             } elseif ($sourceFilter === self::SOURCE_WHATSAPP_NUMBER) {
                 $q->where('type', 'whatsapp_number');
             }
-            $rows = $q->select(['id', 'link_id', 'block_id', 'type', 'created_at', 'subscribed_at', 'is_read', 'is_starred', 'is_spam'])->get();
+            $rows = $q->select(['id', 'link_id', 'block_id', 'type', 'created_at', 'subscribed_at', 'is_read', 'is_starred', 'is_spam', 'spam_reason'])->get();
             // Refine source mapping using block.type when available
             $blockTypes = $rows->pluck('block_id')->filter()->unique()->isNotEmpty()
                 ? BiolinkBlock::whereIn('id', $rows->pluck('block_id')->filter()->unique())->pluck('type', 'id')
@@ -205,6 +205,7 @@ class InboxAggregator
                     'is_read'      => (bool)$row->is_read,
                     'is_starred'   => (bool)$row->is_starred,
                     'is_spam'      => (bool)$row->is_spam,
+                    'spam_reason'  => $row->spam_reason,
                     'name'         => $name,
                     'preview'      => $preview ?: ($row->data['email'] ?? 'Submission'),
                     'raw'          => $row,
@@ -228,6 +229,7 @@ class InboxAggregator
                 'is_read'      => (bool)$row->is_read,
                 'is_starred'   => (bool)$row->is_starred,
                 'is_spam'      => (bool)$row->is_spam,
+                'spam_reason'  => $row->spam_reason,
                 'name'         => $row->name ?: ($row->email ?: ($row->phone ?: ('#' . $row->id))),
                 'preview'      => $preview,
                 'raw'          => $row,
