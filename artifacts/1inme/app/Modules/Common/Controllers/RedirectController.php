@@ -526,6 +526,9 @@ class RedirectController extends Controller
                 $data['phone'] ?? null, $data['channel_url'] ?? null,
             ]))),
             'scope'    => 'subscribe:' . $link->id,
+            'user_id'  => $link->user_id,
+            'email'    => $data['email'] ?? null,
+            'phone'    => $data['phone'] ?? null,
         ]);
 
         $subscriber = Subscriber::create([

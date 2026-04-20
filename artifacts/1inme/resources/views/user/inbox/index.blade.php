@@ -25,6 +25,7 @@
         ],
         'actions' => [
             ['label' => 'Forwarding rules', 'url' => route('user.inbox.forwards.index'), 'icon' => 'fa-share-from-square', 'class' => 'btn-ghost'],
+            ['label' => 'Spam settings', 'url' => route('user.inbox.spam-settings'), 'icon' => 'fa-shield-alt', 'class' => 'btn-ghost'],
             ['label' => 'Export filtered (CSV)', 'url' => route('user.inbox.export') . ($exportQuery ? '?' . $exportQuery : ''), 'icon' => 'fa-file-csv', 'class' => 'btn-ghost'],
         ],
     ])
@@ -130,6 +131,7 @@
                     <button name="action" value="unstar"   class="px-3 py-1.5 rounded-lg text-xs" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-secondary);"><i class="far fa-star mr-1"></i>Unstar</button>
                     <button name="action" value="spam"     class="px-3 py-1.5 rounded-lg text-xs" style="background: rgba(234,88,12,0.1); border: 1px solid rgba(234,88,12,0.2); color: #fb923c;"><i class="fas fa-ban mr-1"></i>Spam</button>
                     <button name="action" value="not_spam" class="px-3 py-1.5 rounded-lg text-xs" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-secondary);"><i class="fas fa-shield-alt mr-1"></i>Not spam</button>
+                    <button name="action" value="not_spam_trust" class="px-3 py-1.5 rounded-lg text-xs" style="background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.2); color: #4ade80;" title="Mark not spam and add the sender to your trusted list."><i class="fas fa-user-shield mr-1"></i>Not spam &amp; trust</button>
                     <button name="action" value="export"   class="px-3 py-1.5 rounded-lg text-xs" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-secondary);"><i class="fas fa-file-csv mr-1"></i>Export</button>
                     <button name="action" value="delete"   onclick="return confirm('Delete selected items?')" class="px-3 py-1.5 rounded-lg text-xs" style="background: rgba(239,68,68,0.1); color: #f87171;"><i class="fas fa-trash mr-1"></i>Delete</button>
                 </div>

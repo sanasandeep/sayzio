@@ -569,11 +569,40 @@ class FormController extends Controller
         // the default inbox view but reviewable in the Spam tab.
         $scanText = collect($data)->reject(fn ($v) => is_array($v) || is_bool($v))
             ->map(fn ($v) => (string) $v)->implode(' ');
+        // Sniff sender email/phone out of any free-form field so the trusted-
+        // sender bypass works even for forms with custom (non-standard) field
+        // IDs. Falls back to the well-known keys first for stability.
+        $senderEmail = null;
+        foreach (['email', 'Email', 'email_address', 'e_mail'] as $k) {
+            if (!empty($data[$k]) && is_string($data[$k]) && filter_var($data[$k], FILTER_VALIDATE_EMAIL)) {
+                $senderEmail = $data[$k]; break;
+            }
+        }
+        if ($senderEmail === null) {
+            foreach ($data as $v) {
+                if (is_string($v) && filter_var($v, FILTER_VALIDATE_EMAIL)) { $senderEmail = $v; break; }
+            }
+        }
+        $senderPhone = null;
+        foreach (['phone', 'Phone', 'tel', 'mobile', 'phone_number'] as $k) {
+            if (!empty($data[$k]) && is_string($data[$k])) { $senderPhone = $data[$k]; break; }
+        }
+        if ($senderPhone === null) {
+            foreach ($data as $key => $v) {
+                if (!is_string($v)) continue;
+                if (preg_match('/(phone|tel|mobile|whatsapp)/i', (string) $key)
+                    && preg_match('/[\d][\d\-\s().+]{6,}/', $v)) { $senderPhone = $v; break; }
+            }
+        }
+
         $spamCheck = app(SpamChecker::class)->check([
             'honeypot' => $request->input('_hp'),
             'ip'       => $request->ip(),
             'text'     => $scanText,
             'scope'    => 'form:' . $form->id,
+            'user_id'  => $form->user_id,
+            'email'    => $senderEmail,
+            'phone'    => $senderPhone,
         ]);
 
         $submission = $form->submissions()->create([

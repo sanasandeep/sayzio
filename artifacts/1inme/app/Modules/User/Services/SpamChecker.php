@@ -2,6 +2,7 @@
 
 namespace App\Modules\User\Services;
 
+use App\Modules\User\Models\User;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -14,6 +15,11 @@ use Illuminate\Support\Facades\Cache;
  *  - Per-IP rate limit on a sliding 60s window
  *  - Excess link count in free-text fields (>= LINK_THRESHOLD)
  *  - Blocked keyword match (case-insensitive substring)
+ *
+ * Per-user customization (read from User.settings['spam']):
+ *  - blocked_keywords:           extra keywords to add to the default list
+ *  - disabled_default_keywords:  default keywords the user opted out of
+ *  - trusted_emails / trusted_phones: senders whose payloads always pass
  */
 class SpamChecker
 {
@@ -39,6 +45,9 @@ class SpamChecker
      *  - ip:       ?string
      *  - text:     ?string  (concatenation of free-text fields to scan)
      *  - scope:    ?string  (rate-limit bucket; e.g. 'form:1' or 'subscribe')
+     *  - user_id:  ?int     (account owning the inbox; enables per-user tuning)
+     *  - email:    ?string  (sender email, for the trusted-senders bypass)
+     *  - phone:    ?string  (sender phone, for the trusted-senders bypass)
      */
     public function check(array $payload): array
     {
@@ -47,13 +56,27 @@ class SpamChecker
             return ['is_spam' => true, 'reason' => 'honeypot'];
         }
 
+        $userSpam = $this->loadUserSpamSettings($payload['user_id'] ?? null);
+
+        // Trusted-sender bypass: if the sender's email or phone is on the
+        // creator's allowlist, never flag the payload as spam.
+        $email = $this->normalizeEmail($payload['email'] ?? null);
+        $phone = $this->normalizePhone($payload['phone'] ?? null);
+        if ($email !== null && in_array($email, $userSpam['trusted_emails'], true)) {
+            return ['is_spam' => false, 'reason' => null];
+        }
+        if ($phone !== null && in_array($phone, $userSpam['trusted_phones'], true)) {
+            return ['is_spam' => false, 'reason' => null];
+        }
+
         $text = (string) ($payload['text'] ?? '');
 
         if ($this->countLinks($text) >= self::LINK_THRESHOLD) {
             return ['is_spam' => true, 'reason' => 'too_many_links'];
         }
 
-        if ($keyword = $this->matchedKeyword($text)) {
+        $keywords = $this->effectiveKeywords($userSpam);
+        if ($keyword = $this->matchedKeyword($text, $keywords)) {
             return ['is_spam' => true, 'reason' => 'blocked_keyword:' . $keyword];
         }
 
@@ -66,6 +89,86 @@ class SpamChecker
         return ['is_spam' => false, 'reason' => null];
     }
 
+    /**
+     * Build the effective blocked-keyword list for a user: defaults minus
+     * anything the user disabled, plus any extra keywords they added.
+     */
+    public function effectiveKeywords(array $userSpam): array
+    {
+        $disabled = array_map('mb_strtolower', $userSpam['disabled_default_keywords']);
+        $defaults = array_values(array_filter(
+            self::BLOCKED_KEYWORDS,
+            fn($kw) => !in_array(mb_strtolower($kw), $disabled, true)
+        ));
+        $extra = array_values(array_filter(array_map(
+            fn($kw) => trim((string) $kw),
+            $userSpam['blocked_keywords']
+        ), fn($kw) => $kw !== ''));
+
+        // Dedupe case-insensitively while preserving the user's preferred casing.
+        $seen = [];
+        $out = [];
+        foreach (array_merge($defaults, $extra) as $kw) {
+            $k = mb_strtolower($kw);
+            if (isset($seen[$k])) continue;
+            $seen[$k] = true;
+            $out[] = $kw;
+        }
+        return $out;
+    }
+
+    /**
+     * Normalize and load the user's spam settings, always returning the
+     * canonical shape (so callers don't have to null-check each key).
+     */
+    public function loadUserSpamSettings($userId): array
+    {
+        $blank = [
+            'blocked_keywords' => [],
+            'disabled_default_keywords' => [],
+            'trusted_emails' => [],
+            'trusted_phones' => [],
+        ];
+        if (!$userId) return $blank;
+
+        $user = User::find($userId);
+        if (!$user) return $blank;
+
+        $raw = ($user->settings ?? [])['spam'] ?? [];
+        return [
+            'blocked_keywords'          => $this->cleanList($raw['blocked_keywords'] ?? [], 'mb_strtolower'),
+            'disabled_default_keywords' => $this->cleanList($raw['disabled_default_keywords'] ?? [], 'mb_strtolower'),
+            'trusted_emails'            => $this->cleanList($raw['trusted_emails'] ?? [], [$this, 'normalizeEmail']),
+            'trusted_phones'            => $this->cleanList($raw['trusted_phones'] ?? [], [$this, 'normalizePhone']),
+        ];
+    }
+
+    protected function cleanList($list, $normalizer): array
+    {
+        if (!is_array($list)) return [];
+        $out = [];
+        foreach ($list as $item) {
+            if (!is_string($item) && !is_numeric($item)) continue;
+            $v = call_user_func($normalizer, (string) $item);
+            if ($v === null || $v === '') continue;
+            $out[] = $v;
+        }
+        return array_values(array_unique($out));
+    }
+
+    public function normalizeEmail($value): ?string
+    {
+        $v = trim((string) ($value ?? ''));
+        if ($v === '') return null;
+        return mb_strtolower($v);
+    }
+
+    public function normalizePhone($value): ?string
+    {
+        $v = preg_replace('/[^\d+]/', '', (string) ($value ?? ''));
+        return ($v === '' || $v === null) ? null : $v;
+    }
+
     protected function countLinks(string $text): int
     {
         if ($text === '') return 0;
@@ -75,12 +178,13 @@ class SpamChecker
         return (int) $count;
     }
 
-    protected function matchedKeyword(string $text): ?string
+    protected function matchedKeyword(string $text, array $keywords): ?string
     {
         if ($text === '') return null;
         $haystack = mb_strtolower($text);
-        foreach (self::BLOCKED_KEYWORDS as $kw) {
-            if ($kw !== '' && str_contains($haystack, $kw)) {
+        foreach ($keywords as $kw) {
+            $needle = mb_strtolower((string) $kw);
+            if ($needle !== '' && str_contains($haystack, $needle)) {
                 return $kw;
             }
         }

@@ -136,6 +136,13 @@
                 <i class="fas fa-ban mr-1"></i>{{ $subscriber->is_spam ? 'Not spam' : 'Mark spam' }}
             </button>
         </form>
+        @if($subscriber->is_spam)
+        <form method="POST" action="{{ route('user.inbox.update', ['subscriber', $subscriber->id]) }}">@csrf
+            <button name="action" value="not_spam_trust" class="px-3 py-1.5 rounded-lg text-xs" style="background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.2); color: #4ade80;" title="Mark not spam and add this sender to your trusted list.">
+                <i class="fas fa-user-shield mr-1"></i>Not spam &amp; trust sender
+            </button>
+        </form>
+        @endif
         <form method="POST" action="{{ route('user.inbox.update', ['subscriber', $subscriber->id]) }}" onsubmit="return confirm('Delete this item?')">@csrf
             <button name="action" value="delete" class="px-3 py-1.5 rounded-lg text-xs" style="background: rgba(239,68,68,0.1); color: #f87171;">
                 <i class="fas fa-trash mr-1"></i>Delete

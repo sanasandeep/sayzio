@@ -8,6 +8,7 @@ use App\Modules\User\Models\InboxReply;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\Subscriber;
 use App\Modules\User\Services\InboxAggregator;
+use App\Modules\User\Services\SpamChecker;
 use Illuminate\Http\Request;
 
 class InboxController
@@ -169,17 +170,24 @@ class InboxController
 
     public function update(Request $request, string $type, int $id)
     {
-        $userId = $request->user()->id;
+        $user = $request->user();
+        $userId = $user->id;
         $action = $request->input('action');
-        $valid = ['read', 'unread', 'star', 'unstar', 'spam', 'not_spam', 'delete'];
+        $valid = ['read', 'unread', 'star', 'unstar', 'spam', 'not_spam', 'not_spam_trust', 'delete'];
         abort_unless(in_array($action, $valid, true), 422);
 
         $model = $this->locate($type, $id, $userId);
         $this->applyAction($model, $action);
+        if ($action === 'not_spam_trust') {
+            $this->trustSender($user, $model);
+        }
         InboxAggregator::bustCache($userId);
 
         if ($action === 'delete') {
             return redirect()->route('user.inbox.index')->with('success', 'Item deleted.');
+        }
+        if ($action === 'not_spam_trust') {
+            return back()->with('success', 'Marked not spam and added sender to trusted list.');
         }
         return back()->with('success', 'Updated.');
     }
@@ -189,7 +197,7 @@ class InboxController
         $userId = $request->user()->id;
         $action = $request->input('action');
         $items = (array) $request->input('items', []);
-        $valid = ['read', 'unread', 'star', 'unstar', 'spam', 'not_spam', 'delete', 'export'];
+        $valid = ['read', 'unread', 'star', 'unstar', 'spam', 'not_spam', 'not_spam_trust', 'delete', 'export'];
         abort_unless(in_array($action, $valid, true), 422);
 
         if ($action === 'export') {
@@ -197,6 +205,7 @@ class InboxController
         }
 
         $skipped = 0;
+        $user = $request->user();
         foreach ($items as $token) {
             [$type, $id] = array_pad(explode(':', $token, 2), 2, null);
             if (!$type || !$id || !in_array($type, [InboxAggregator::SOURCE_FORM, 'subscriber'], true)) {
@@ -206,6 +215,9 @@ class InboxController
             $model = $this->tryLocate($type, (int)$id, $userId);
             if (!$model) { $skipped++; continue; }
             $this->applyAction($model, $action);
+            if ($action === 'not_spam_trust') {
+                $this->trustSender($user, $model);
+            }
         }
         InboxAggregator::bustCache($userId);
         $msg = 'Bulk action applied.';
@@ -341,8 +353,123 @@ class InboxController
             case 'star':     $model->update(['is_starred' => true]); break;
             case 'unstar':   $model->update(['is_starred' => false]); break;
             case 'spam':     $model->update(['is_spam' => true, 'is_read' => true]); break;
-            case 'not_spam': $model->update(['is_spam' => false]); break;
+            case 'not_spam':
+            case 'not_spam_trust':
+                $model->update(['is_spam' => false]); break;
             case 'delete':   $model->delete(); break;
         }
+    }
+
+    /**
+     * Add the sender's email/phone (whichever we can extract) to the user's
+     * trusted-senders list so future submissions from them skip the spam
+     * heuristics. Quietly no-ops when the sender has no usable identifier.
+     */
+    protected function trustSender($user, $model): void
+    {
+        $checker = app(SpamChecker::class);
+        $email = $checker->normalizeEmail($this->extractEmail($model));
+        $phone = $checker->normalizePhone($this->extractPhone($model));
+        if ($email === null && $phone === null) return;
+
+        $settings = $user->settings ?? [];
+        $spam = $settings['spam'] ?? [];
+        $trustedEmails = array_values(array_filter((array)($spam['trusted_emails'] ?? []), 'is_string'));
+        $trustedPhones = array_values(array_filter((array)($spam['trusted_phones'] ?? []), 'is_string'));
+
+        if ($email !== null && !in_array($email, $trustedEmails, true)) {
+            $trustedEmails[] = $email;
+        }
+        if ($phone !== null && !in_array($phone, $trustedPhones, true)) {
+            $trustedPhones[] = $phone;
+        }
+        $spam['trusted_emails'] = $trustedEmails;
+        $spam['trusted_phones'] = $trustedPhones;
+        $settings['spam'] = $spam;
+        $user->update(['settings' => $settings]);
+    }
+
+    protected function extractPhone($model): ?string
+    {
+        if ($model instanceof Subscriber) {
+            return $model->phone;
+        }
+        if ($model instanceof FormSubmission) {
+            $data = $model->data ?? [];
+            foreach (['phone', 'Phone', 'tel', 'mobile', 'phone_number'] as $k) {
+                if (!empty($data[$k]) && is_string($data[$k])) {
+                    return $data[$k];
+                }
+            }
+        }
+        return null;
+    }
+
+    public function settings(Request $request)
+    {
+        $user = $request->user();
+        $checker = app(SpamChecker::class);
+        $spam = $checker->loadUserSpamSettings($user->id);
+        $defaults = SpamChecker::BLOCKED_KEYWORDS;
+        return view('user.inbox.spam-settings', compact('spam', 'defaults'));
+    }
+
+    public function updateSettings(Request $request)
+    {
+        $user = $request->user();
+        $validated = $request->validate([
+            'blocked_keywords'          => 'nullable|string|max:5000',
+            'disabled_default_keywords' => 'nullable|array',
+            'disabled_default_keywords.*' => 'string|max:200',
+            'trusted_emails'            => 'nullable|string|max:5000',
+            'trusted_phones'            => 'nullable|string|max:5000',
+        ]);
+
+        $checker = app(SpamChecker::class);
+        $defaultLowerSet = array_map('mb_strtolower', SpamChecker::BLOCKED_KEYWORDS);
+
+        $blocked = $this->splitLines($validated['blocked_keywords'] ?? '');
+        // Drop user-added keywords that duplicate (case-insensitively) a
+        // default they didn't disable — defaults already cover them.
+        $disabledRaw = array_map('mb_strtolower', (array)($validated['disabled_default_keywords'] ?? []));
+        $disabled = array_values(array_intersect($disabledRaw, $defaultLowerSet));
+
+        $blocked = array_values(array_filter(
+            $blocked,
+            fn($kw) => !in_array(mb_strtolower($kw), $defaultLowerSet, true)
+                   || in_array(mb_strtolower($kw), $disabled, true)
+        ));
+
+        $emails = array_values(array_filter(array_map(
+            fn($e) => $checker->normalizeEmail($e),
+            $this->splitLines($validated['trusted_emails'] ?? '')
+        ), fn($e) => $e !== null && filter_var($e, FILTER_VALIDATE_EMAIL)));
+
+        $phones = array_values(array_filter(array_map(
+            fn($p) => $checker->normalizePhone($p),
+            $this->splitLines($validated['trusted_phones'] ?? '')
+        )));
+
+        $settings = $user->settings ?? [];
+        $settings['spam'] = [
+            'blocked_keywords'          => array_values(array_unique($blocked)),
+            'disabled_default_keywords' => array_values(array_unique($disabled)),
+            'trusted_emails'            => array_values(array_unique($emails)),
+            'trusted_phones'            => array_values(array_unique($phones)),
+        ];
+        $user->update(['settings' => $settings]);
+
+        return back()->with('success', 'Spam settings saved.');
+    }
+
+    protected function splitLines(string $raw): array
+    {
+        $parts = preg_split('/[\r\n,]+/', $raw) ?: [];
+        $out = [];
+        foreach ($parts as $p) {
+            $p = trim($p);
+            if ($p !== '') $out[] = $p;
+        }
+        return $out;
     }
 }

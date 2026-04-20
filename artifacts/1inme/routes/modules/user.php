@@ -252,6 +252,8 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::prefix('inbox')->name('inbox.')->group(function () {
             Route::get('/', [InboxController::class, 'index'])->name('index');
             Route::get('export', [InboxController::class, 'exportFiltered'])->name('export');
+            Route::get('spam-settings', [InboxController::class, 'settings'])->name('spam-settings');
+            Route::post('spam-settings', [InboxController::class, 'updateSettings'])->name('spam-settings.update');
             Route::post('bulk', [InboxController::class, 'bulk'])->name('bulk');
 
             // Account-level forwarding rules: send new inbox messages to
