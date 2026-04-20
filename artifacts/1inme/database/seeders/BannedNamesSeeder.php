@@ -20,7 +20,56 @@ class BannedNamesSeeder extends Seeder
 {
     public function run(): void
     {
-        $defaults = [
+        $inserted = self::applyDefaults();
+        $this->command?->info("BannedNamesSeeder: inserted {$inserted} of " . count(self::defaults()) . ' default reserved names.');
+    }
+
+    /**
+     * Insert any default reserved names that aren't already on the list.
+     * Returns the number of newly inserted entries. Safe to call from
+     * anywhere (including the admin "Restore defaults" action) — it
+     * never updates or deletes existing rows.
+     */
+    public static function applyDefaults(): int
+    {
+        $defaults = self::defaults();
+
+        // Snapshot existing names once (case-insensitive) so we can skip
+        // anything already on the list without an INSERT-per-row probe.
+        $existing = BannedName::pluck('name')
+            ->map(fn ($n) => mb_strtolower($n))
+            ->flip()
+            ->all();
+
+        $seen     = [];
+        $inserted = 0;
+
+        foreach ($defaults as $name) {
+            $lower = mb_strtolower($name);
+            if (isset($seen[$lower]) || isset($existing[$lower])) {
+                continue;
+            }
+            $seen[$lower] = true;
+
+            BannedName::create([
+                'name'       => $name,
+                'note'       => 'Reserved by default install.',
+                'created_by' => null,
+            ]);
+            BannedNameChecker::flush($name);
+            $inserted++;
+        }
+
+        return $inserted;
+    }
+
+    /**
+     * The curated default list. Extracted so the admin "Restore
+     * defaults" action and the seeder share one source of truth.
+     */
+    public static function defaults(): array
+    {
+        return [
             // Admin / staff surfaces
             'admin', 'administrator', 'root', 'superuser', 'sysadmin', 'staff',
             'moderator', 'mod', 'owner', 'webmaster',
@@ -66,33 +115,5 @@ class BannedNamesSeeder extends Seeder
             'user', 'users', 'guest', 'anonymous', 'system', 'official',
             'verified', 'test', 'demo', 'example', 'sample',
         ];
-
-        // Snapshot existing names once (case-insensitive) so we can skip
-        // anything already on the list without an INSERT-per-row probe.
-        $existing = BannedName::pluck('name')
-            ->map(fn ($n) => mb_strtolower($n))
-            ->flip()
-            ->all();
-
-        $seen     = [];
-        $inserted = 0;
-
-        foreach ($defaults as $name) {
-            $lower = mb_strtolower($name);
-            if (isset($seen[$lower]) || isset($existing[$lower])) {
-                continue;
-            }
-            $seen[$lower] = true;
-
-            BannedName::create([
-                'name'       => $name,
-                'note'       => 'Reserved by default install.',
-                'created_by' => null,
-            ]);
-            BannedNameChecker::flush($name);
-            $inserted++;
-        }
-
-        $this->command?->info("BannedNamesSeeder: inserted {$inserted} of " . count($defaults) . ' default reserved names.');
     }
 }

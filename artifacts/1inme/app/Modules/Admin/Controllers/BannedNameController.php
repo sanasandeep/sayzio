@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\BannedName;
 use App\Modules\Admin\Models\BannedNameAcknowledgement;
 use App\Modules\Admin\Services\BannedNameChecker;
+use Database\Seeders\BannedNamesSeeder;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\LinkAlias;
 use App\Modules\User\Models\User;
@@ -214,6 +215,26 @@ class BannedNameController extends Controller
             'Content-Type'        => 'text/csv; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="banned-names-' . $stamp . '.csv"',
         ]);
+    }
+
+    /**
+     * Re-run the curated default reserved-name list. The seeder is
+     * idempotent: existing entries (admin-added or already-seeded) are
+     * untouched, only missing defaults are inserted. Useful when we
+     * later expand the curated list and want existing installs to top
+     * up without dropping to the CLI.
+     */
+    public function restoreDefaults()
+    {
+        $inserted = BannedNamesSeeder::applyDefaults();
+
+        if ($inserted === 0) {
+            $msg = 'Default reserved list is already fully applied — nothing new to add.';
+        } else {
+            $msg = "Restored defaults: added {$inserted} new reserved name" . ($inserted === 1 ? '' : 's') . '.';
+        }
+
+        return redirect()->route('admin.banned-names.index')->with('success', $msg);
     }
 
     public function destroy(BannedName $bannedName)

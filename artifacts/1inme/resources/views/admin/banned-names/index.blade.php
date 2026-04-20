@@ -21,6 +21,16 @@
                    class="px-3 py-2 rounded-xl text-sm font-medium bg-white/5 hover:bg-white/10 text-white/80 border border-white/10 inline-flex items-center gap-2">
                     <i class="fas fa-file-import text-xs"></i> Bulk import
                 </a>
+                <form method="POST" action="{{ route('admin.banned-names.restore-defaults') }}"
+                      onsubmit="return confirm('Re-apply the curated default reserved list? Existing entries are kept untouched — only missing defaults will be added.');"
+                      class="inline">
+                    @csrf
+                    <button type="submit"
+                            title="Re-insert any default reserved names that aren't on the list yet. Existing entries are not modified."
+                            class="px-3 py-2 rounded-xl text-sm font-medium bg-white/5 hover:bg-white/10 text-white/80 border border-white/10 inline-flex items-center gap-2">
+                        <i class="fas fa-rotate-left text-xs"></i> Restore defaults
+                    </button>
+                </form>
                 <div class="relative" x-data="{ open: false }" @click.outside="open = false">
                     <button type="button" @click="open = !open"
                             class="px-3 py-2 rounded-xl text-sm font-medium bg-white/5 hover:bg-white/10 text-white/80 border border-white/10 inline-flex items-center gap-2">
