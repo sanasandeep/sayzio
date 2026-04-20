@@ -164,6 +164,33 @@
     @endif
 </div>
 
+{{-- ===================== COHORT RETENTION CHART ===================== --}}
+@php
+    $retFollowers = $retentionSeries['followers'];
+    $retNonFollowers = $retentionSeries['nonfollowers'];
+    $hasRetentionData = $retFollowers['week1_count'] > 0 || $retNonFollowers['week1_count'] > 0;
+@endphp
+<div class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#06b6d4,#8b5cf6); --sc-glow: rgba(6,182,212,0.35);">
+    <div class="section-title mb-4">
+        <div class="section-icon" style="background: linear-gradient(135deg,#06b6d4,#8b5cf6);"><i class="fas fa-arrows-rotate"></i></div>
+        Weekly Retention by Cohort
+        <span class="text-[11px] font-medium ml-1" style="color:var(--text-faint);">
+            (% of week-1 visitors who came back · {{ $retentionStart->format('M d') }} – {{ $retentionEnd->format('M d, Y') }})
+        </span>
+    </div>
+    @if(!$hasRetentionData)
+        <div class="text-sm py-10 text-center" style="color: var(--text-faint);">
+            Not enough visit history in the last 28 days to compute retention.
+        </div>
+    @else
+        <div style="height: 320px;"><canvas id="cohortRetentionChart"></canvas></div>
+        <div class="flex flex-wrap gap-4 mt-4 text-[11px]" style="color: var(--text-faint);">
+            <span><i class="fas fa-circle text-violet-400 mr-1"></i> Followers · {{ number_format($retFollowers['week1_count']) }} week-1 visitors</span>
+            <span><i class="fas fa-circle text-emerald-400 mr-1"></i> Non-followers · {{ number_format($retNonFollowers['week1_count']) }} week-1 visitors</span>
+        </div>
+    @endif
+</div>
+
 {{-- ===================== TOP FOLLOWERS TABLE ===================== --}}
 <div class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#8b5cf6,#d946ef); --sc-glow: rgba(139,92,246,0.35);">
     <div class="section-title mb-4">
@@ -234,8 +261,8 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    if (!window.Chart) return;
     const el = document.getElementById('followerTrendChart');
-    if (!el || !window.Chart) return;
 
     const isLight = document.documentElement.classList.contains('light-mode');
     const tickColor = isLight ? '#475569' : 'rgba(255,255,255,0.65)';
@@ -244,6 +271,7 @@ document.addEventListener('DOMContentLoaded', function () {
     Chart.defaults.borderColor = gridColor;
     Chart.defaults.font.family = "'Inter', system-ui, -apple-system, sans-serif";
 
+    if (el) {
     const ctx = el.getContext('2d');
     const g1 = ctx.createLinearGradient(0, 0, 0, 320);
     g1.addColorStop(0, 'rgba(139,92,246,0.45)');
@@ -289,6 +317,60 @@ document.addEventListener('DOMContentLoaded', function () {
             },
         },
     });
+    }
+
+    // ---- Cohort retention chart ----
+    const retEl = document.getElementById('cohortRetentionChart');
+    if (retEl) {
+        const rctx = retEl.getContext('2d');
+        const rg1 = rctx.createLinearGradient(0, 0, 0, 320);
+        rg1.addColorStop(0, 'rgba(139,92,246,0.35)');
+        rg1.addColorStop(1, 'rgba(139,92,246,0.0)');
+        const rg2 = rctx.createLinearGradient(0, 0, 0, 320);
+        rg2.addColorStop(0, 'rgba(52,211,153,0.30)');
+        rg2.addColorStop(1, 'rgba(52,211,153,0.0)');
+
+        new Chart(rctx, {
+            type: 'line',
+            data: {
+                labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                datasets: [
+                    {
+                        label: 'Followers',
+                        data: @json($retFollowers['pct'] ?? [0,0,0,0]),
+                        borderColor: '#8b5cf6',
+                        backgroundColor: rg1,
+                        tension: 0.4, fill: true, borderWidth: 2.5,
+                        pointRadius: 4, pointHoverRadius: 7,
+                        pointBackgroundColor: '#8b5cf6',
+                        pointBorderColor: '#fff', pointBorderWidth: 2,
+                    },
+                    {
+                        label: 'Non-followers',
+                        data: @json($retNonFollowers['pct'] ?? [0,0,0,0]),
+                        borderColor: '#34d399',
+                        backgroundColor: rg2,
+                        tension: 0.4, fill: true, borderWidth: 2.5,
+                        pointRadius: 4, pointHoverRadius: 7,
+                        pointBackgroundColor: '#34d399',
+                        pointBorderColor: '#fff', pointBorderWidth: 2,
+                    },
+                ],
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true, padding: 16 } },
+                    tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${c.parsed.y}%` } },
+                },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { beginAtZero: true, max: 100, ticks: { callback: (v) => v + '%' } },
+                },
+            },
+        });
+    }
 });
 </script>
 @endpush

@@ -819,11 +819,50 @@ class LinkController extends Controller
             ->limit(10)
             ->get();
 
+        // 4-week cohort retention: of the unique visitors (by IP) seen in
+        // week 1 of a fixed 28-day window ending today, what % returned in
+        // weeks 2/3/4? Computed per cohort (follower vs non-follower) so
+        // creators can compare how "sticky" each audience is.
+        $retentionEnd   = now();
+        $retentionStart = $retentionEnd->copy()->subDays(28)->startOfDay();
+        $retentionRows = $link->clicks()
+            ->whereBetween('clicked_at', [$retentionStart, $retentionEnd])
+            ->whereNotNull('ip_address')
+            ->selectRaw('ip_address, viewer_user_id, ' .
+                "FLOOR(EXTRACT(EPOCH FROM (clicked_at - ?::timestamp)) / 604800) as week_idx",
+                [$retentionStart->toDateTimeString()])
+            ->get();
+
+        $followerIdSet = $followerIds->flip();
+        $cohortVisitors = ['followers' => [[], [], [], []], 'nonfollowers' => [[], [], [], []]];
+        foreach ($retentionRows as $r) {
+            $w = (int) $r->week_idx;
+            if ($w < 0 || $w > 3) continue;
+            $isFollower = $r->viewer_user_id !== null && $followerIdSet->has($r->viewer_user_id);
+            $bucket = $isFollower ? 'followers' : 'nonfollowers';
+            $cohortVisitors[$bucket][$w][$r->ip_address] = true;
+        }
+
+        $retentionSeries = [];
+        foreach (['followers', 'nonfollowers'] as $cohort) {
+            $week1 = $cohortVisitors[$cohort][0];
+            $week1Count = count($week1);
+            $row = ['cohort' => $cohort, 'week1_count' => $week1Count, 'pct' => [100.0, 0.0, 0.0, 0.0]];
+            if ($week1Count > 0) {
+                for ($w = 1; $w <= 3; $w++) {
+                    $returners = count(array_intersect_key($cohortVisitors[$cohort][$w], $week1));
+                    $row['pct'][$w] = round(($returners / $week1Count) * 100, 1);
+                }
+            }
+            $retentionSeries[$cohort] = $row;
+        }
+
         return view('user.links.followers', compact(
             'link', 'period', 'groupBy', 'startDate', 'endDate',
             'totalFollowerCount', 'uniqueVisitors', 'uniqueFollowerVisitors',
             'followerVisitorPct', 'totalClicks', 'followerClicks',
-            'nonFollowerClicks', 'dailySeries', 'topFollowers'
+            'nonFollowerClicks', 'dailySeries', 'topFollowers',
+            'retentionSeries', 'retentionStart', 'retentionEnd'
         ));
     }
 
