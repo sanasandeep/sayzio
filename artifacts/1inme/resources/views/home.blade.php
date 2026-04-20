@@ -265,6 +265,353 @@
         .phone-screen { width:100%; height:100%; border-radius: 30px; overflow: hidden; position: relative; }
         .notch { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 78px; height: 18px; background: #08020f; border-radius: 12px; z-index: 10; }
 
+        /* ============ Hero phone mockup ============ */
+        .hero-phone-wrap {
+            position: relative;
+            width: 320px; max-width: 92%;
+            margin: 0 auto;
+            transform-style: preserve-3d;
+            transition: transform .25s cubic-bezier(.16,1,.3,1);
+            will-change: transform;
+        }
+        .hero-phone {
+            position: relative;
+            width: 100%; aspect-ratio: 10/20;
+            border-radius: 46px;
+            padding: 10px;
+            background: linear-gradient(160deg,#1a1024 0%,#08020f 60%,#1a1024 100%);
+            box-shadow:
+                0 50px 100px -30px rgba(124,58,237,.55),
+                0 0 0 1.5px rgba(255,255,255,.08),
+                inset 0 1px 0 rgba(255,255,255,.10);
+        }
+        .hero-phone::before {
+            /* Side power button */
+            content:""; position: absolute; right: -2px; top: 28%;
+            width: 3px; height: 56px; border-radius: 2px;
+            background: linear-gradient(180deg,#2a1640,#0d0518);
+        }
+        .hero-phone::after {
+            /* Side volume buttons (combined illusion) */
+            content:""; position: absolute; left: -2px; top: 22%;
+            width: 3px; height: 36px; border-radius: 2px;
+            background: linear-gradient(180deg,#2a1640,#0d0518);
+            box-shadow: 0 56px 0 0 #1a0c2c, 0 56px 0 0px #1a0c2c;
+        }
+        .hero-phone-screen {
+            position: relative;
+            width: 100%; height: 100%;
+            border-radius: 36px; overflow: hidden;
+            background: var(--phone-bg, linear-gradient(140deg,#7c3aed,#e94e8c));
+            transition: background 1.2s ease;
+        }
+        .hero-phone-screen::before {
+            /* Animated wallpaper sheen */
+            content:""; position: absolute; inset: -30%;
+            background: radial-gradient(closest-side, rgba(255,255,255,.22), transparent 70%);
+            animation: wallSheen 12s ease-in-out infinite;
+            pointer-events: none;
+        }
+        .hero-phone-screen::after {
+            /* Soft tint overlay matching role */
+            content:""; position: absolute; inset: 0;
+            background: linear-gradient(180deg, transparent 50%, rgba(0,0,0,.35));
+            pointer-events: none;
+        }
+        @keyframes wallSheen {
+            0%,100% { transform: translate(-12%,-8%) scale(1); opacity:.9; }
+            50%     { transform: translate(14%,12%) scale(1.15); opacity:.55; }
+        }
+        .hero-notch {
+            position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+            width: 92px; height: 22px; background: #050108;
+            border-radius: 14px; z-index: 20;
+            box-shadow: inset 0 -1px 0 rgba(255,255,255,.05);
+        }
+        .hero-notch::after {
+            content:""; position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+            width: 7px; height: 7px; border-radius: 50%;
+            background: #1a0a2a; box-shadow: inset 0 0 0 1px rgba(255,255,255,.18);
+        }
+        .hero-phone-content {
+            position: absolute; inset: 0;
+            padding: 44px 14px 18px;
+            display: flex; flex-direction: column; gap: 10px;
+            overflow: hidden;
+            z-index: 5;
+        }
+        .hero-phone-content .stack-card {
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            background: rgba(255,255,255,.18);
+            border-color: rgba(255,255,255,.28);
+            border-radius: 16px;
+            padding: 9px 11px;
+            gap: 10px;
+        }
+        .hero-phone-content .stack-card.is-profile { padding: 12px; gap: 8px; }
+        .hero-phone-content .stack-card .card-title { font-size: 12px; }
+        .hero-phone-content .stack-card .card-sub { font-size: 10px; }
+        .hero-phone-content .stack-card .card-icon { width: 30px; height: 30px; font-size: 12px; border-radius: 9px; }
+        .hero-phone-content .stack-card .card-thumb { width: 38px; height: 38px; border-radius: 9px; }
+        .hero-phone-content .profile-avatar { width: 42px; height: 42px; border-width: 2px; }
+        .hero-phone-content .profile-handle { font-size: 13px; }
+        .hero-phone-content .profile-tag { font-size: 10px; }
+        .hero-phone-content .profile-socials { margin-top: 8px; gap: 5px; }
+        .hero-phone-content .profile-socials span { width: 22px; height: 22px; font-size: 10px; }
+
+        @media (max-width: 1023px) {
+            .hero-phone-wrap { width: 260px; transform: none !important; }
+        }
+
+        /* ============ Per-theme phone layouts ============ */
+        .hp-profile-mini {
+            display: flex; align-items: center; gap: 9px;
+            padding: 8px 10px; border-radius: 14px;
+            background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.28);
+            backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+        }
+        .hp-profile-mini img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,.35); flex-shrink: 0; }
+        .hp-profile-mini .hpm-h { font-size: 12px; font-weight: 700; line-height: 1.1; }
+        .hp-profile-mini .hpm-t { font-size: 9px; opacity: .8; margin-top: 2px; }
+        .hp-profile-mini .hpm-verified { color:#7dd3fc; font-size: 10px; margin-left: 2px; }
+
+        /* --- MUSIC theme (Musician) --- */
+        .hp-music-card {
+            border-radius: 18px; overflow: hidden; position: relative;
+            background: rgba(0,0,0,.28); border: 1px solid rgba(255,255,255,.22);
+        }
+        .hp-music-cover { width: 100%; height: 110px; object-fit: cover; display: block; }
+        .hp-music-meta { padding: 8px 10px; display: flex; align-items: center; gap: 8px; }
+        .hp-music-meta .mt { flex: 1; min-width: 0; }
+        .hp-music-meta .mt-t { font-size: 12px; font-weight: 800; line-height: 1.1; }
+        .hp-music-meta .mt-s { font-size: 9px; opacity: .8; margin-top: 2px; }
+        .hp-music-play {
+            width: 30px; height: 30px; border-radius: 50%;
+            background: #fff; color:#0a0a14; display:flex; align-items:center; justify-content:center;
+            box-shadow: 0 6px 18px -4px rgba(0,0,0,.5);
+            animation: musicPulse 2.4s ease-in-out infinite;
+        }
+        @keyframes musicPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.07); } }
+        .hp-music-eq { position: absolute; left: 8px; bottom: 8px; display:flex; align-items:flex-end; gap:2px; height:14px; color:#fff; }
+        .hp-music-eq i { display:inline-block; width:3px; background: currentColor; border-radius:2px; animation: eq 1.1s ease-in-out infinite; }
+        .hp-music-eq i:nth-child(1){ height:35%; }
+        .hp-music-eq i:nth-child(2){ height:80%; animation-delay:.15s; }
+        .hp-music-eq i:nth-child(3){ height:55%; animation-delay:.3s; }
+        .hp-music-eq i:nth-child(4){ height:90%; animation-delay:.1s; }
+        .hp-track { display:flex; align-items:center; gap:8px; padding: 6px 9px; border-radius: 12px;
+            background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.22); font-size: 11px; }
+        .hp-track .num { width: 16px; text-align: center; font-weight: 800; opacity: .8; font-size: 10px; }
+        .hp-track .nm  { flex: 1; min-width: 0; font-weight: 700; }
+        .hp-track .du  { font-size: 10px; opacity: .75; }
+        .hp-pill-row { display: flex; gap: 6px; }
+        .hp-pill { flex:1; padding: 7px 8px; border-radius: 12px; font-size: 10px; font-weight: 800; text-align: center;
+            background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.28); display:flex; align-items:center; justify-content:center; gap:5px; }
+
+        /* --- GALLERY theme (Artist) --- */
+        .hp-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+        .hp-grid-3 .gi { aspect-ratio: 1/1; border-radius: 10px; overflow: hidden; position: relative;
+            border: 1px solid rgba(255,255,255,.2); }
+        .hp-grid-3 .gi img { width: 100%; height: 100%; object-fit: cover; transition: transform .6s; }
+        .hp-grid-3 .gi:hover img { transform: scale(1.1); }
+        .hp-grid-3 .gi .badge { position: absolute; top: 4px; left: 4px; font-size: 7px; font-weight: 800;
+            padding: 2px 4px; border-radius: 4px; background: rgba(0,0,0,.6); letter-spacing: .05em; text-transform: uppercase; }
+        .hp-cta {
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+            padding: 9px 12px; border-radius: 14px;
+            background: #fff; color: #0a0a14;
+            font-size: 12px; font-weight: 800;
+            box-shadow: 0 8px 22px -8px rgba(0,0,0,.55);
+        }
+        .hp-cta.dark { background: rgba(0,0,0,.55); color: #fff; border: 1px solid rgba(255,255,255,.25); }
+
+        /* --- BUSINESS theme --- */
+        .hp-biz-cta {
+            border-radius: 16px; padding: 11px 12px;
+            background: linear-gradient(135deg, rgba(0,0,0,.55), rgba(0,0,0,.28));
+            border: 1px solid rgba(255,255,255,.22);
+            display:flex; align-items:center; gap:10px;
+        }
+        .hp-biz-cta .ic { width: 34px; height: 34px; border-radius: 12px; display:flex; align-items:center; justify-content:center; background: rgba(255,255,255,.92); color:#0a0a14; flex-shrink:0; }
+        .hp-biz-cta .bd { flex:1; min-width:0; }
+        .hp-biz-cta .bt { font-size: 12px; font-weight: 800; }
+        .hp-biz-cta .bs { font-size: 10px; opacity: .85; margin-top: 2px; }
+        .hp-svc-list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        .hp-svc { padding: 8px 9px; border-radius: 12px; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.22); }
+        .hp-svc .st { font-size: 10px; font-weight: 800; }
+        .hp-svc .sp { font-size: 11px; font-weight: 800; margin-top: 2px; }
+        .hp-stat-row { display:flex; gap: 6px; }
+        .hp-stat { flex:1; text-align:center; padding: 7px 4px; border-radius: 11px; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.22); }
+        .hp-stat .sv { font-size: 13px; font-weight: 800; line-height:1; }
+        .hp-stat .sl { font-size: 8px; opacity: .8; margin-top: 3px; text-transform: uppercase; letter-spacing: .07em; }
+
+        /* --- COACH theme --- */
+        .hp-quote {
+            position: relative; padding: 11px 12px; padding-left: 26px;
+            border-radius: 14px;
+            background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.24);
+            font-size: 11px; font-style: italic; line-height: 1.35;
+        }
+        .hp-quote::before { content:"\201C"; position:absolute; left: 8px; top: 0; font-size: 28px; line-height: 1; opacity:.7; font-style: normal; }
+        .hp-quote .qa { display: flex; align-items: center; gap: 6px; margin-top: 7px; font-style: normal; font-size: 10px; opacity: .85; }
+        .hp-quote .qa i { color:#ffc845; }
+
+        /* --- PORTFOLIO theme (Photographer) --- */
+        .hp-feature {
+            position: relative; border-radius: 14px; overflow: hidden;
+            border: 1px solid rgba(255,255,255,.2); aspect-ratio: 16/10;
+        }
+        .hp-feature img { width:100%; height:100%; object-fit: cover; }
+        .hp-feature .lbl { position:absolute; left:8px; bottom: 8px; right: 8px; display:flex; justify-content:space-between; font-size: 10px; font-weight: 800; }
+        .hp-feature .lbl span { background: rgba(0,0,0,.55); padding: 3px 6px; border-radius: 6px; }
+        .hp-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+        .hp-grid-2 .gi { aspect-ratio: 4/3; border-radius: 10px; overflow: hidden; border: 1px solid rgba(255,255,255,.2); }
+        .hp-grid-2 .gi img { width:100%; height:100%; object-fit: cover; }
+
+        /* --- PODCAST theme --- */
+        .hp-pod-card {
+            border-radius: 16px; padding: 9px;
+            background: rgba(0,0,0,.32); border: 1px solid rgba(255,255,255,.22);
+            display:flex; gap: 9px; align-items: center;
+        }
+        .hp-pod-card img { width: 56px; height: 56px; border-radius: 10px; object-fit: cover; flex-shrink: 0; }
+        .hp-pod-card .pm { flex:1; min-width:0; }
+        .hp-pod-card .pe { font-size: 9px; font-weight: 800; opacity: .8; letter-spacing: .07em; text-transform: uppercase; }
+        .hp-pod-card .pt { font-size: 12px; font-weight: 800; line-height: 1.15; margin-top: 1px; }
+        .hp-pod-card .pd { font-size: 10px; opacity: .8; margin-top: 3px; }
+        .hp-pod-card .pp {
+            width: 32px; height: 32px; border-radius: 50%;
+            background: #fff; color:#0a0a14; display:flex; align-items:center; justify-content:center; flex-shrink:0;
+            animation: musicPulse 2.4s ease-in-out infinite;
+        }
+        .hp-wave { display:flex; align-items:center; gap: 6px; padding: 5px 8px; border-radius: 10px;
+            background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.22); font-size: 10px; }
+        .hp-wave svg { flex:1; height: 14px; }
+
+        /* --- SOCIAL theme (Influencer) --- */
+        .hp-stories { display:flex; gap: 8px; overflow: hidden; padding: 2px 0; }
+        .hp-story { flex-shrink: 0; }
+        .hp-story .ring {
+            width: 38px; height: 38px; border-radius: 50%; padding: 2px;
+            background: conic-gradient(from 0deg, #ffc845, #e94e8c, #7c3aed, #ffc845);
+            animation: spinSlow 14s linear infinite;
+        }
+        .hp-story .ring img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 2px solid rgba(0,0,0,.35); }
+        .hp-story .nm { font-size: 8px; text-align: center; margin-top: 3px; opacity: .9; }
+        .hp-reel {
+            position: relative; border-radius: 14px; overflow: hidden;
+            border: 1px solid rgba(255,255,255,.2); aspect-ratio: 16/9;
+        }
+        .hp-reel img { width:100%; height:100%; object-fit: cover; }
+        .hp-reel .ov { position: absolute; inset: 0; background: linear-gradient(180deg, transparent 50%, rgba(0,0,0,.55)); }
+        .hp-reel .play { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,.85); color:#0a0a14; display:flex; align-items:center; justify-content:center; }
+        .hp-reel .lb { position:absolute; left: 8px; bottom: 7px; right: 8px; display:flex; gap:6px; align-items:center; font-size: 10px; font-weight: 800; }
+        .hp-reel .lb span { background: rgba(0,0,0,.45); padding: 2px 5px; border-radius: 5px; }
+
+        /* Theme entrance */
+        .theme-block { opacity: 0; animation: cardIn .55s cubic-bezier(.34,1.56,.64,1) both; animation-delay: var(--d, 0ms); }
+
+        /* ============ Hero category gallery ============ */
+        .hero-gallery {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0,1fr));
+            gap: 6px;
+        }
+        .hero-gallery-item {
+            position: relative; aspect-ratio: 1/1;
+            border-radius: 12px; overflow: hidden;
+            background: rgba(255,255,255,.05);
+            border: 1px solid rgba(255,255,255,.08);
+            opacity: 0;
+            animation: galleryIn .55s cubic-bezier(.34,1.56,.64,1) both;
+            animation-delay: var(--gd, 0ms);
+        }
+        .hero-gallery-item img {
+            width: 100%; height: 100%; object-fit: cover;
+            transform: scale(1); transition: transform .6s cubic-bezier(.16,1,.3,1);
+        }
+        .hero-gallery-item:hover img { transform: scale(1.08); }
+        .hero-gallery-item .gallery-cat {
+            position: absolute; left: 4px; bottom: 4px;
+            font-size: 8px; font-weight: 800; letter-spacing: .08em;
+            text-transform: uppercase;
+            padding: 2px 5px; border-radius: 4px;
+            background: rgba(0,0,0,.55); color: #fff;
+        }
+        .hero-gallery-item.gallery-shimmer::after {
+            content:""; position: absolute; inset: 0;
+            background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,.35) 50%, transparent 70%);
+            animation: shimmer 1.1s ease-out;
+        }
+        @keyframes galleryIn {
+            0%   { opacity: 0; transform: translateY(10px) scale(.92); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes shimmer {
+            0%   { transform: translateX(-60%); opacity: 0; }
+            30%  { opacity: 1; }
+            100% { transform: translateX(60%); opacity: 0; }
+        }
+        @media (max-width: 1023px) {
+            .hero-gallery {
+                display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x mandatory;
+                padding-bottom: 4px;
+                scrollbar-width: none;
+            }
+            .hero-gallery::-webkit-scrollbar { display: none; }
+            .hero-gallery-item { flex: 0 0 84px; scroll-snap-align: start; }
+        }
+
+        /* ============ Hero block icons cluster ============ */
+        .hero-blocks {
+            display: flex; flex-wrap: wrap; gap: 8px;
+            justify-content: center;
+        }
+        .hero-block-chip {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 7px 11px;
+            border-radius: 999px;
+            background: rgba(255,255,255,.06);
+            border: 1px solid rgba(255,255,255,.12);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            font-size: 11px; font-weight: 700;
+            color: #fff;
+            animation: blockFloat var(--bdur, 5s) ease-in-out infinite;
+            animation-delay: var(--bdel, 0s);
+            transition: transform .25s, background .25s, border-color .25s;
+            will-change: transform;
+        }
+        .hero-block-chip:hover {
+            transform: translateY(-3px) scale(1.05);
+            background: rgba(255,255,255,.12);
+            border-color: rgba(255,255,255,.25);
+        }
+        .hero-block-chip i {
+            width: 18px; height: 18px;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 12px;
+        }
+        @keyframes blockFloat {
+            0%,100% { transform: translateY(0) rotate(0); }
+            50%     { transform: translateY(-6px) rotate(var(--brot, 0deg)); }
+        }
+
+        @media (max-width: 1023px) {
+            .hero-block-chip { animation: none; }
+        }
+
+        /* ============ Reduced motion for new hero pieces ============ */
+        @media (prefers-reduced-motion: reduce) {
+            .hero-phone-screen, .hero-phone-screen::before,
+            .hero-block-chip, .hero-gallery-item, .hero-gallery-item::after,
+            .hero-phone-wrap {
+                animation: none !important; transition: none !important;
+            }
+            .hero-phone-wrap { transform: none !important; }
+            .hero-gallery-item { opacity: 1 !important; }
+        }
+
         /* ============ Sticker ============ */
         .sticker { position: absolute; pointer-events: none; }
 
@@ -336,9 +683,24 @@
 
 {{-- ============================ HERO ============================ --}}
 @php
+    // Shared category-tagged thumbnail pool, reused across roles.
+    $galleryPool = [
+        ['src' => '/images/hero-roles/thumb_youtube.jpg', 'category' => 'Video',   'alt' => 'Latest video'],
+        ['src' => '/images/hero-roles/thumb_artwork.jpg', 'category' => 'Art',     'alt' => 'Artwork'],
+        ['src' => '/images/hero-roles/thumb_album.jpg',   'category' => 'Music',   'alt' => 'Album cover'],
+        ['src' => '/images/hero-roles/thumb_merch.jpg',   'category' => 'Merch',   'alt' => 'Merch drop'],
+        ['src' => '/images/hero-roles/thumb_photo.jpg',   'category' => 'Photo',   'alt' => 'Photo print'],
+        ['src' => '/images/hero-roles/thumb_podcast.jpg', 'category' => 'Podcast', 'alt' => 'Podcast cover'],
+    ];
+
     $heroRoles = [
         [
             'word' => 'Creator',
+            'theme' => 'creator',
+            'wallpaper' => 'linear-gradient(140deg,#7c3aed 0%,#e94e8c 60%,#ff8a3c 100%)',
+            'tint' => '#7c3aed',
+            'categories' => ['Video','Merch','Photo','Music','Art','Podcast'],
+            'gallery' => $galleryPool,
             'profile' => ['avatar' => '/images/hero-roles/role_creator.jpg', 'handle' => '@jamie.creates', 'tag' => 'Storyteller · 24.1k followers', 'socials' => ['fa-youtube','fa-instagram','fa-tiktok','fa-x-twitter']],
             'blocks' => [
                 ['icon' => 'fab fa-youtube',           'color' => '#ff0033', 'title' => 'Latest video',       'sub' => 'New drop · 2 days ago',   'thumb' => '/images/hero-roles/thumb_youtube.jpg'],
@@ -348,6 +710,11 @@
         ],
         [
             'word' => 'Artist',
+            'theme' => 'gallery',
+            'wallpaper' => 'linear-gradient(140deg,#e94e8c 0%,#ff8a3c 55%,#ffc845 100%)',
+            'tint' => '#e94e8c',
+            'categories' => ['Art','Photo','Merch','Music','Video','Podcast'],
+            'gallery' => $galleryPool,
             'profile' => ['avatar' => '/images/hero-roles/role_artist.jpg', 'handle' => '@aria.studio', 'tag' => 'Mixed-media artist · Berlin', 'socials' => ['fa-instagram','fa-pinterest','fa-behance','fa-tiktok']],
             'blocks' => [
                 ['icon' => 'fas fa-images',             'color' => '#e94e8c', 'title' => 'Latest collection', 'sub' => 'Petals & Concrete · 12 pcs', 'thumb' => '/images/hero-roles/thumb_artwork.jpg'],
@@ -357,6 +724,11 @@
         ],
         [
             'word' => 'Businessman',
+            'theme' => 'business',
+            'wallpaper' => 'linear-gradient(140deg,#0f172a 0%,#1bd4d9 60%,#7c3aed 100%)',
+            'tint' => '#1bd4d9',
+            'categories' => ['Photo','Video','Podcast','Merch','Art','Music'],
+            'gallery' => $galleryPool,
             'profile' => ['avatar' => '/images/hero-roles/role_business.jpg', 'handle' => '@marcus.solutions', 'tag' => 'Founder · B2B Consulting', 'socials' => ['fa-linkedin','fa-x-twitter','fa-medium','fa-youtube']],
             'blocks' => [
                 ['icon' => 'fas fa-concierge-bell', 'color' => '#7c3aed', 'title' => 'Services & pricing', 'sub' => 'Strategy · Audits · Retainers'],
@@ -366,6 +738,11 @@
         ],
         [
             'word' => 'Musician',
+            'theme' => 'music',
+            'wallpaper' => 'linear-gradient(140deg,#0f3a2a 0%,#1ed760 55%,#1bd4d9 100%)',
+            'tint' => '#1ed760',
+            'categories' => ['Music','Merch','Video','Podcast','Art','Photo'],
+            'gallery' => $galleryPool,
             'profile' => ['avatar' => '/images/hero-roles/role_musician.jpg', 'handle' => '@luna.live', 'tag' => 'Indie pop · New EP out now', 'socials' => ['fa-spotify','fa-apple','fa-youtube','fa-instagram']],
             'blocks' => [
                 ['icon' => 'fab fa-spotify',     'color' => '#1ed760', 'title' => 'New EP — Saltwater', 'sub' => '5 tracks · Listen now', 'thumb' => '/images/hero-roles/thumb_album.jpg'],
@@ -375,6 +752,11 @@
         ],
         [
             'word' => 'Coach',
+            'theme' => 'coach',
+            'wallpaper' => 'linear-gradient(140deg,#1bd4d9 0%,#7c3aed 60%,#ffc845 100%)',
+            'tint' => '#1bd4d9',
+            'categories' => ['Video','Photo','Podcast','Music','Merch','Art'],
+            'gallery' => $galleryPool,
             'profile' => ['avatar' => '/images/hero-roles/role_coach.jpg', 'handle' => '@coach.kai', 'tag' => 'Strength coach · 1:1 + group', 'socials' => ['fa-instagram','fa-tiktok','fa-youtube','fa-spotify']],
             'blocks' => [
                 ['icon' => 'fas fa-calendar-check',  'color' => '#1bd4d9', 'title' => 'Book a session',     'sub' => '45 min consult'],
@@ -384,6 +766,11 @@
         ],
         [
             'word' => 'Photographer',
+            'theme' => 'portfolio',
+            'wallpaper' => 'linear-gradient(140deg,#0a2540 0%,#1bd4d9 55%,#7c3aed 100%)',
+            'tint' => '#1bd4d9',
+            'categories' => ['Photo','Art','Merch','Video','Music','Podcast'],
+            'gallery' => $galleryPool,
             'profile' => ['avatar' => '/images/hero-roles/role_photographer.jpg', 'handle' => '@iris.frames', 'tag' => 'Travel & landscape · Iceland', 'socials' => ['fa-instagram','fa-pinterest','fa-flickr','fa-x-twitter']],
             'blocks' => [
                 ['icon' => 'fas fa-th',            'color' => '#1bd4d9', 'title' => 'Portfolio · 2026', 'sub' => '48 photos',         'thumb' => '/images/hero-roles/thumb_photo.jpg'],
@@ -393,6 +780,11 @@
         ],
         [
             'word' => 'Influencer',
+            'theme' => 'social',
+            'wallpaper' => 'linear-gradient(140deg,#e94e8c 0%,#7c3aed 50%,#ffc845 100%)',
+            'tint' => '#e94e8c',
+            'categories' => ['Video','Photo','Merch','Music','Art','Podcast'],
+            'gallery' => $galleryPool,
             'profile' => ['avatar' => '/images/hero-roles/role_influencer.jpg', 'handle' => '@maya.daily', 'tag' => 'Lifestyle · 480k across socials', 'socials' => ['fa-instagram','fa-tiktok','fa-youtube','fa-snapchat']],
             'blocks' => [
                 ['icon' => 'fab fa-instagram', 'color' => '#e94e8c', 'title' => 'Latest reel',     'sub' => 'Spring haul'],
@@ -402,6 +794,11 @@
         ],
         [
             'word' => 'Podcaster',
+            'theme' => 'podcast',
+            'wallpaper' => 'linear-gradient(140deg,#ff8a3c 0%,#e94e8c 50%,#7c3aed 100%)',
+            'tint' => '#ff8a3c',
+            'categories' => ['Podcast','Music','Video','Art','Merch','Photo'],
+            'gallery' => $galleryPool,
             'profile' => ['avatar' => '/images/hero-roles/role_podcaster.jpg', 'handle' => '@theo.talks', 'tag' => 'Weekly tech & culture', 'socials' => ['fa-spotify','fa-apple','fa-youtube','fa-x-twitter']],
             'blocks' => [
                 ['icon' => 'fab fa-apple',              'color' => '#ffffff', 'title' => 'Apple Podcasts',  'sub' => 'Ep. 87 · 42 min',     'thumb' => '/images/hero-roles/thumb_podcast.jpg'],
@@ -409,6 +806,20 @@
                 ['icon' => 'fas fa-envelope-open-text', 'color' => '#ff8a3c', 'title' => 'Show notes',      'sub' => 'Newsletter every Friday'],
             ],
         ],
+    ];
+
+    // Visible block-type icons cluster shown in the hero.
+    $heroBlockIcons = [
+        ['i' => 'fab fa-youtube',            'c' => '#ff0033', 'l' => 'YouTube'],
+        ['i' => 'fab fa-spotify',            'c' => '#1ed760', 'l' => 'Spotify'],
+        ['i' => 'fas fa-store',              'c' => '#ff8a3c', 'l' => 'Merch'],
+        ['i' => 'fas fa-link',               'c' => '#1bd4d9', 'l' => 'Link'],
+        ['i' => 'fas fa-qrcode',             'c' => '#7c3aed', 'l' => 'QR'],
+        ['i' => 'fas fa-music',              'c' => '#e94e8c', 'l' => 'Music'],
+        ['i' => 'fas fa-video',              'c' => '#ffc845', 'l' => 'Video'],
+        ['i' => 'fas fa-image',              'c' => '#1bd4d9', 'l' => 'Image'],
+        ['i' => 'fas fa-microphone',         'c' => '#ff8a3c', 'l' => 'Podcast'],
+        ['i' => 'fas fa-calendar-check',     'c' => '#7c3aed', 'l' => 'Calendar'],
     ];
 @endphp
 
@@ -462,45 +873,70 @@
                 </div>
             </div>
 
-            {{-- Hero 3D biolink stack --}}
-            <div class="reveal rd-2 relative h-[560px] sm:h-[600px] stack-scene">
+            {{-- Hero phone mockup + gallery + block icons --}}
+            <div class="reveal rd-2 relative stack-scene" id="hero-phone-scene">
                 {{-- Decorative stickers --}}
                 <div class="sticker top-2 left-4 w-10 h-10 rounded-full wiggle shake-hover opacity-80" style="background:var(--c4)"></div>
                 <div class="sticker top-12 right-2 w-8 h-8 rounded-lg spin-slow opacity-70" style="background:var(--c5)"></div>
-                <div class="sticker bottom-4 left-2 w-9 h-9 rounded-2xl wiggle opacity-80" style="background:var(--c1); animation-delay:-1s"></div>
-                <div class="sticker top-1/2 -right-3 w-6 h-6 rounded-full wiggle opacity-80" style="background:var(--c3); animation-delay:-2s"></div>
+                <div class="sticker bottom-32 left-0 w-9 h-9 rounded-2xl wiggle opacity-80" style="background:var(--c1); animation-delay:-1s"></div>
+                <div class="sticker top-1/3 -right-3 w-6 h-6 rounded-full wiggle opacity-80" style="background:var(--c3); animation-delay:-2s"></div>
 
-                {{-- 3D stack --}}
-                <div class="absolute inset-0 flex items-center justify-center">
-                    <div class="stack-3d">
-                        <div id="hero-stack" class="stack-inner" aria-hidden="true"></div>
-                    </div>
-                </div>
-
-                {{-- Live visitors card (compact) --}}
-                <div class="float-b absolute top-2 right-0 sm:top-4 sm:-right-2 glass-2 rounded-2xl p-2.5 w-[150px] shadow-2xl shadow-[#1bd4d9]/20 z-10 hidden sm:block">
-                    <div class="flex items-center justify-between mb-1">
-                        <span class="text-[9px] uppercase tracking-wider text-gray-400 font-bold">Live visitors</span>
-                        <span class="flex items-center gap-1 text-[9px] font-bold" style="color:var(--c1)"><span class="w-1.5 h-1.5 rounded-full pulse-dot" style="background:var(--c1)"></span>NOW</span>
-                    </div>
-                    <div class="text-xl font-bold">247</div>
-                    <svg class="w-full h-6" viewBox="0 0 100 30" preserveAspectRatio="none">
-                        <polyline class="spark-line" fill="none" stroke="url(#sl)" stroke-width="2.5" stroke-linecap="round" points="0,22 12,18 24,20 36,12 48,15 60,8 72,11 84,5 100,7"/>
-                        <defs><linearGradient id="sl"><stop offset="0%" stop-color="#1bd4d9"/><stop offset="100%" stop-color="#e94e8c"/></linearGradient></defs>
-                    </svg>
-                </div>
-
-                {{-- Performance Coach card (compact) --}}
-                <div class="float-c absolute bottom-4 -left-2 sm:bottom-8 sm:left-0 glass-2 rounded-2xl p-2.5 w-[180px] shadow-2xl shadow-[#7c3aed]/30 z-10 hidden sm:block" style="animation-delay:-2s">
-                    <div class="flex items-center gap-2 mb-1.5">
-                        <div class="w-8 h-8 rounded-xl flex items-center justify-center grad-bar"><i class="fas fa-bolt text-white text-xs"></i></div>
-                        <div>
-                            <div class="text-[9px] uppercase tracking-wider text-gray-400 font-bold">Performance Coach</div>
-                            <div class="text-xs font-bold">Health score 87</div>
+                {{-- Phone mockup --}}
+                <div class="relative flex items-center justify-center">
+                    <div id="hero-phone-wrap" class="hero-phone-wrap float-c">
+                        <div class="hero-phone">
+                            <div id="hero-phone-screen" class="hero-phone-screen">
+                                <div class="hero-notch"></div>
+                                <div id="hero-stack" class="hero-phone-content" aria-hidden="true"></div>
+                            </div>
                         </div>
                     </div>
-                    <div class="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                        <div class="h-full grad-bar rounded-full" style="width:87%"></div>
+
+                    {{-- Live visitors card (compact) --}}
+                    <div class="float-b absolute top-2 right-0 sm:top-4 sm:-right-2 glass-2 rounded-2xl p-2.5 w-[150px] shadow-2xl shadow-[#1bd4d9]/20 z-10 hidden sm:block">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-[9px] uppercase tracking-wider text-gray-400 font-bold">Live visitors</span>
+                            <span class="flex items-center gap-1 text-[9px] font-bold" style="color:var(--c1)"><span class="w-1.5 h-1.5 rounded-full pulse-dot" style="background:var(--c1)"></span>NOW</span>
+                        </div>
+                        <div class="text-xl font-bold">247</div>
+                        <svg class="w-full h-6" viewBox="0 0 100 30" preserveAspectRatio="none">
+                            <polyline class="spark-line" fill="none" stroke="url(#sl)" stroke-width="2.5" stroke-linecap="round" points="0,22 12,18 24,20 36,12 48,15 60,8 72,11 84,5 100,7"/>
+                            <defs><linearGradient id="sl"><stop offset="0%" stop-color="#1bd4d9"/><stop offset="100%" stop-color="#e94e8c"/></linearGradient></defs>
+                        </svg>
+                    </div>
+
+                    {{-- Performance Coach card (compact) --}}
+                    <div class="float-c absolute bottom-4 -left-2 sm:bottom-8 sm:left-0 glass-2 rounded-2xl p-2.5 w-[180px] shadow-2xl shadow-[#7c3aed]/30 z-10 hidden sm:block" style="animation-delay:-2s">
+                        <div class="flex items-center gap-2 mb-1.5">
+                            <div class="w-8 h-8 rounded-xl flex items-center justify-center grad-bar"><i class="fas fa-bolt text-white text-xs"></i></div>
+                            <div>
+                                <div class="text-[9px] uppercase tracking-wider text-gray-400 font-bold">Performance Coach</div>
+                                <div class="text-xs font-bold">Health score 87</div>
+                            </div>
+                        </div>
+                        <div class="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                            <div class="h-full grad-bar rounded-full" style="width:87%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Category gallery --}}
+                <div class="mt-6">
+                    <div class="flex items-center justify-between mb-2 px-1">
+                        <div class="text-[10px] font-bold uppercase tracking-[.18em] text-gray-400">Looks like a <span id="hero-gallery-label" class="grad-text">creator</span> page</div>
+                        <div class="text-[10px] text-gray-500 hidden sm:block">Drop in any block</div>
+                    </div>
+                    <div id="hero-gallery" class="hero-gallery" aria-hidden="true"></div>
+                </div>
+
+                {{-- Block-type icons cluster --}}
+                <div class="mt-5">
+                    <div class="hero-blocks">
+                        @foreach($heroBlockIcons as $idx => $bi)
+                            <span class="hero-block-chip" style="--bdur:{{ 4 + ($idx % 5) * 0.6 }}s; --bdel:{{ -1 * ($idx * 0.35) }}s; --brot:{{ ($idx % 2 ? 4 : -4) }}deg;">
+                                <i class="{{ $bi['i'] }}" style="color:{{ $bi['c'] }}"></i>{{ $bi['l'] }}
+                            </span>
+                        @endforeach
                     </div>
                 </div>
             </div>
@@ -509,20 +945,56 @@
 
     <script>
         (function () {
-            const ROLES = @json($heroRoles);
-            const word  = document.getElementById('hero-role-word');
-            const sr    = document.getElementById('hero-role-sr');
-            const stack = document.getElementById('hero-stack');
+            const ROLES   = @json($heroRoles);
+            const word    = document.getElementById('hero-role-word');
+            const sr      = document.getElementById('hero-role-sr');
+            const stack   = document.getElementById('hero-stack');
+            const screen  = document.getElementById('hero-phone-screen');
+            const gallery = document.getElementById('hero-gallery');
+            const galLbl  = document.getElementById('hero-gallery-label');
+            const phoneWrap = document.getElementById('hero-phone-wrap');
+            const phoneScene = document.getElementById('hero-phone-scene');
             if (!word || !stack) return;
 
             const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            const isDesktop = window.matchMedia && window.matchMedia('(min-width: 1024px)').matches;
             const escapeHTML = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-            function buildStackHTML(role) {
-                const p = role.profile;
+            function orderedGallery(role) {
+                const items = (role.gallery || []).slice();
+                const order = role.categories || [];
+                const rank = (cat) => {
+                    const i = order.indexOf(cat);
+                    return i === -1 ? 999 : i;
+                };
+                items.sort((a,b) => rank(a.category) - rank(b.category));
+                return items;
+            }
+
+            function buildGalleryHTML(role) {
+                return orderedGallery(role).map((g, i) => `
+                    <div class="hero-gallery-item gallery-shimmer" style="--gd:${i * 60}ms">
+                        <img src="${escapeHTML(g.src)}" alt="${escapeHTML(g.alt || '')}" loading="lazy">
+                        <span class="gallery-cat">${escapeHTML(g.category)}</span>
+                    </div>`).join('');
+            }
+
+            function applyWallpaper(role) {
+                if (!screen) return;
+                screen.style.background = role.wallpaper || '';
+            }
+
+            function pickFromGallery(role, category, fallbackIndex) {
+                const g = role.gallery || [];
+                const hit = g.find(x => x.category === category);
+                if (hit) return hit.src;
+                return (g[fallbackIndex] || g[0] || {}).src || '';
+            }
+
+            function profileDefault(p) {
                 const socials = (p.socials || []).map(s => `<span><i class="fab ${escapeHTML(s)}"></i></span>`).join('');
-                const profile = `
-                    <div class="stack-card is-profile" style="--d:0ms">
+                return `
+                    <div class="stack-card is-profile theme-block" style="--d:0ms">
                         <div class="profile-row">
                             <img class="profile-avatar" src="${escapeHTML(p.avatar)}" alt="" loading="lazy">
                             <div class="min-w-0">
@@ -532,13 +1004,28 @@
                         </div>
                         <div class="profile-socials">${socials}</div>
                     </div>`;
+            }
+
+            function profileMini(p, extraTagHtml = '') {
+                return `
+                    <div class="hp-profile-mini theme-block" style="--d:0ms">
+                        <img src="${escapeHTML(p.avatar)}" alt="" loading="lazy">
+                        <div class="min-w-0 flex-1">
+                            <div class="hpm-h">${escapeHTML(p.handle)}<i class="fas fa-circle-check hpm-verified"></i></div>
+                            <div class="hpm-t">${escapeHTML(p.tag)}${extraTagHtml}</div>
+                        </div>
+                    </div>`;
+            }
+
+            // Original biolink list — used for the "creator" theme.
+            function renderCreator(role) {
                 const blocks = (role.blocks || []).map((b, i) => {
                     const delay = (i + 1) * 110;
                     const thumb = b.thumb
                         ? `<img class="card-thumb" src="${escapeHTML(b.thumb)}" alt="" loading="lazy">`
                         : `<div class="card-icon" style="background:${escapeHTML(b.color)}33;color:${escapeHTML(b.color)}"><i class="${escapeHTML(b.icon)}"></i></div>`;
                     return `
-                        <div class="stack-card" style="--d:${delay}ms">
+                        <div class="stack-card theme-block" style="--d:${delay}ms">
                             ${thumb}
                             <div class="card-body">
                                 <div class="card-title">${escapeHTML(b.title)}</div>
@@ -547,7 +1034,164 @@
                             <i class="fas fa-arrow-right card-cta"></i>
                         </div>`;
                 }).join('');
-                return profile + blocks;
+                return profileDefault(role.profile) + blocks;
+            }
+
+            function renderMusic(role) {
+                const cover = pickFromGallery(role, 'Music', 0);
+                const b0 = (role.blocks || [])[0] || {};
+                return profileMini(role.profile)
+                    + `<div class="hp-music-card theme-block" style="--d:110ms">
+                            <img class="hp-music-cover" src="${escapeHTML(cover)}" alt="" loading="lazy">
+                            <div class="hp-music-eq" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+                            <div class="hp-music-meta">
+                                <div class="mt"><div class="mt-t">${escapeHTML(b0.title || 'New EP')}</div><div class="mt-s">${escapeHTML(b0.sub || 'Listen now')}</div></div>
+                                <div class="hp-music-play"><i class="fas fa-play" style="font-size:11px"></i></div>
+                            </div>
+                       </div>`
+                    + `<div class="theme-block" style="--d:220ms">
+                            <div class="hp-track"><span class="num">1</span><span class="nm">Saltwater</span><span class="du">3:42</span></div>
+                       </div>`
+                    + `<div class="theme-block" style="--d:280ms">
+                            <div class="hp-track"><span class="num">2</span><span class="nm">Drift</span><span class="du">4:15</span></div>
+                       </div>`
+                    + `<div class="hp-pill-row theme-block" style="--d:340ms">
+                            <div class="hp-pill"><i class="fab fa-spotify" style="color:#1ed760"></i>Spotify</div>
+                            <div class="hp-pill"><i class="fab fa-apple"></i>Apple</div>
+                            <div class="hp-pill"><i class="fas fa-ticket-alt" style="color:#e94e8c"></i>Tour</div>
+                       </div>`;
+            }
+
+            function renderGallery(role) {
+                const g = role.gallery || [];
+                const cells = g.slice(0, 6).map((x, i) => `
+                    <div class="gi"><img src="${escapeHTML(x.src)}" alt="${escapeHTML(x.alt||'')}" loading="lazy">
+                        <span class="badge">${escapeHTML(x.category)}</span>
+                    </div>`).join('');
+                return profileMini(role.profile)
+                    + `<div class="hp-grid-3 theme-block" style="--d:110ms">${cells}</div>`
+                    + `<div class="hp-cta theme-block" style="--d:240ms"><i class="fas fa-shopping-bag"></i>Shop the collection</div>`
+                    + `<div class="hp-cta dark theme-block" style="--d:300ms"><i class="fas fa-hand-holding-heart"></i>Tip jar</div>`;
+            }
+
+            function renderPortfolio(role) {
+                const g = role.gallery || [];
+                const feature = pickFromGallery(role, 'Photo', 0);
+                const grid = g.filter(x => x.src !== feature).slice(0, 4).map(x => `
+                    <div class="gi"><img src="${escapeHTML(x.src)}" alt="${escapeHTML(x.alt||'')}" loading="lazy"></div>`).join('');
+                return profileMini(role.profile)
+                    + `<div class="hp-feature theme-block" style="--d:110ms">
+                            <img src="${escapeHTML(feature)}" alt="" loading="lazy">
+                            <div class="lbl"><span>Iceland · 2026</span><span><i class="fas fa-camera"></i> 48</span></div>
+                       </div>`
+                    + `<div class="hp-grid-2 theme-block" style="--d:220ms">${grid}</div>`
+                    + `<div class="hp-cta theme-block" style="--d:300ms"><i class="fas fa-paper-plane"></i>Hire me · Weddings · Brand</div>`;
+            }
+
+            function renderBusiness(role) {
+                return profileMini(role.profile, ' · <i class="fas fa-circle" style="font-size:5px;color:#1ed760"></i> Available')
+                    + `<div class="hp-biz-cta theme-block" style="--d:110ms">
+                            <div class="ic"><i class="fas fa-calendar-check"></i></div>
+                            <div class="bd"><div class="bt">Book a strategy call</div><div class="bs">30 min · Calendly · Free intro</div></div>
+                            <i class="fas fa-arrow-right" style="opacity:.7"></i>
+                       </div>`
+                    + `<div class="hp-svc-list theme-block" style="--d:200ms">
+                            <div class="hp-svc"><div class="st">Audit</div><div class="sp">$ 1.2k</div></div>
+                            <div class="hp-svc"><div class="st">Retainer</div><div class="sp">$ 4.5k/mo</div></div>
+                       </div>`
+                    + `<div class="hp-stat-row theme-block" style="--d:280ms">
+                            <div class="hp-stat"><div class="sv">120+</div><div class="sl">Clients</div></div>
+                            <div class="hp-stat"><div class="sv">4.9</div><div class="sl">Rating</div></div>
+                            <div class="hp-stat"><div class="sv">8 yr</div><div class="sl">Exp</div></div>
+                       </div>`;
+            }
+
+            function renderCoach(role) {
+                return profileMini(role.profile)
+                    + `<div class="hp-stat-row theme-block" style="--d:110ms">
+                            <div class="hp-stat"><div class="sv">140+</div><div class="sl">Clients</div></div>
+                            <div class="hp-stat"><div class="sv">4.9★</div><div class="sl">Rating</div></div>
+                            <div class="hp-stat"><div class="sv">12wk</div><div class="sl">Programs</div></div>
+                       </div>`
+                    + `<div class="hp-quote theme-block" style="--d:200ms">
+                            Lost 9 kg, deadlift up 40 kg in 12 weeks — Kai's plan just works.
+                            <div class="qa"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><span>· Sara, client</span></div>
+                       </div>`
+                    + `<div class="hp-biz-cta theme-block" style="--d:280ms">
+                            <div class="ic"><i class="fas fa-calendar-check"></i></div>
+                            <div class="bd"><div class="bt">Book a free consult</div><div class="bs">45 min · Zoom · Slots open</div></div>
+                            <i class="fas fa-arrow-right" style="opacity:.7"></i>
+                       </div>`;
+            }
+
+            function renderPodcast(role) {
+                const cover = pickFromGallery(role, 'Podcast', 0);
+                return profileMini(role.profile)
+                    + `<div class="hp-pod-card theme-block" style="--d:110ms">
+                            <img src="${escapeHTML(cover)}" alt="" loading="lazy">
+                            <div class="pm">
+                                <div class="pe">Ep. 87 · New</div>
+                                <div class="pt">Building in public</div>
+                                <div class="pd">42 min · Tech &amp; culture</div>
+                            </div>
+                            <div class="pp"><i class="fas fa-play" style="font-size:11px"></i></div>
+                       </div>`
+                    + `<div class="hp-wave theme-block" style="--d:200ms">
+                            <span style="font-weight:800">2:14</span>
+                            <svg viewBox="0 0 100 14" preserveAspectRatio="none"><polyline fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round" points="0,8 8,4 14,11 22,3 30,9 38,5 46,12 54,2 62,9 70,6 78,11 86,4 94,9 100,7"/></svg>
+                            <span style="opacity:.75">42:00</span>
+                       </div>`
+                    + `<div class="hp-pill-row theme-block" style="--d:260ms">
+                            <div class="hp-pill"><i class="fab fa-apple"></i>Apple</div>
+                            <div class="hp-pill"><i class="fab fa-spotify" style="color:#1ed760"></i>Spotify</div>
+                            <div class="hp-pill"><i class="fab fa-youtube" style="color:#ff5252"></i>YouTube</div>
+                       </div>`
+                    + `<div class="hp-cta dark theme-block" style="--d:320ms"><i class="fas fa-envelope-open-text"></i>Show notes &amp; newsletter</div>`;
+            }
+
+            function renderSocial(role) {
+                const g = role.gallery || [];
+                const reel = pickFromGallery(role, 'Video', 0);
+                const stories = ['Reels','Hauls','Travel','Q&amp;A'];
+                const storyHTML = stories.map((nm, i) => {
+                    const src = (g[i] || g[0] || {}).src || '';
+                    return `<div class="hp-story"><div class="ring"><img src="${escapeHTML(src)}" alt=""></div><div class="nm">${nm}</div></div>`;
+                }).join('');
+                return profileMini(role.profile, ' · 480k')
+                    + `<div class="hp-stories theme-block" style="--d:110ms">${storyHTML}</div>`
+                    + `<div class="hp-reel theme-block" style="--d:200ms">
+                            <img src="${escapeHTML(reel)}" alt="" loading="lazy">
+                            <div class="ov"></div>
+                            <div class="play"><i class="fas fa-play" style="font-size:12px"></i></div>
+                            <div class="lb"><span><i class="fab fa-instagram"></i> 312k</span><span><i class="fas fa-heart"></i> 28k</span></div>
+                       </div>`
+                    + `<div class="hp-pill-row theme-block" style="--d:280ms">
+                            <div class="hp-pill"><i class="fab fa-tiktok"></i>TikTok</div>
+                            <div class="hp-pill"><i class="fab fa-youtube" style="color:#ff5252"></i>YouTube</div>
+                            <div class="hp-pill"><i class="fas fa-handshake" style="color:#ffc845"></i>Press kit</div>
+                       </div>`;
+            }
+
+            const THEMES = {
+                creator: renderCreator,
+                gallery: renderGallery,
+                portfolio: renderPortfolio,
+                business: renderBusiness,
+                coach: renderCoach,
+                music: renderMusic,
+                podcast: renderPodcast,
+                social: renderSocial,
+            };
+
+            function buildStackHTML(role) {
+                const fn = THEMES[role.theme] || renderCreator;
+                return fn(role);
+            }
+
+            function paintRoleVisuals(role) {
+                applyWallpaper(role);
+                if (gallery) gallery.innerHTML = buildGalleryHTML(role);
+                if (galLbl) galLbl.textContent = role.word.toLowerCase();
             }
 
             function setRole(role) {
@@ -559,6 +1203,7 @@
                     setTimeout(() => {
                         word.textContent = role.word;
                         stack.innerHTML = buildStackHTML(role);
+                        paintRoleVisuals(role);
                         word.classList.remove('rm-out');
                         stack.classList.remove('rm-out');
                     }, 350);
@@ -577,6 +1222,7 @@
                     word.classList.add('word-in');
                     stack.classList.remove('stack-out');
                     stack.innerHTML = buildStackHTML(role);
+                    paintRoleVisuals(role);
                 }, 360);
             }
 
@@ -584,12 +1230,32 @@
             // Initial paint (no out animation)
             stack.innerHTML = buildStackHTML(ROLES[0]);
             word.textContent = ROLES[0].word;
+            paintRoleVisuals(ROLES[0]);
             if (!reduce) word.classList.add('word-in');
 
             setInterval(() => {
                 i = (i + 1) % ROLES.length;
                 setRole(ROLES[i]);
             }, 4200);
+
+            // Cursor parallax tilt on the phone (desktop only, no reduced motion).
+            if (phoneWrap && phoneScene && isDesktop && !reduce) {
+                let raf = 0, tx = 0, ty = 0;
+                phoneScene.addEventListener('mousemove', (e) => {
+                    const r = phoneScene.getBoundingClientRect();
+                    const cx = (e.clientX - r.left) / r.width  - 0.5;
+                    const cy = (e.clientY - r.top)  / r.height - 0.5;
+                    tx = -cy * 8; // rotateX
+                    ty =  cx * 10; // rotateY
+                    if (!raf) raf = requestAnimationFrame(() => {
+                        phoneWrap.style.transform = `perspective(900px) rotateX(${tx}deg) rotateY(${ty}deg)`;
+                        raf = 0;
+                    });
+                });
+                phoneScene.addEventListener('mouseleave', () => {
+                    phoneWrap.style.transform = '';
+                });
+            }
         })();
     </script>
 </section>
