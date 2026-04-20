@@ -618,48 +618,42 @@
                 </p>
             </div>
 
-            <div class="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-                <div class="reveal reveal-delay-1 card-hover bg-white/5 rounded-3xl p-8 border border-white/10 backdrop-blur-sm">
-                    <div class="text-sm font-bold text-gray-400 uppercase tracking-wide mb-2">Free</div>
-                    <div class="text-5xl font-bold text-white mb-1">$0</div>
-                    <div class="text-sm text-gray-500 mb-6">Forever free</div>
-                    <ul class="space-y-3 mb-8">
-                        <li class="flex items-center gap-2 text-sm text-gray-300"><i class="fas fa-check text-[#8b5cf6] text-xs"></i>Up to 10 links</li>
-                        <li class="flex items-center gap-2 text-sm text-gray-300"><i class="fas fa-check text-[#8b5cf6] text-xs"></i>Basic analytics</li>
-                        <li class="flex items-center gap-2 text-sm text-gray-300"><i class="fas fa-check text-[#8b5cf6] text-xs"></i>QR code generation</li>
-                        <li class="flex items-center gap-2 text-sm text-gray-300"><i class="fas fa-check text-[#8b5cf6] text-xs"></i>5MB file uploads</li>
-                    </ul>
-                    <a href="{{ route('user.register') }}" class="block w-full py-3.5 text-center text-white rounded-full text-sm font-bold border-2 border-white/20 hover:border-white/40 hover:bg-white/5 transition-all">Get started</a>
-                </div>
+            {{-- Anonymous currency switcher (footer-style, but placed inline above the cards). --}}
+            <div class="flex items-center justify-center gap-2 mb-8">
+                <span class="text-xs uppercase tracking-wider text-gray-500">Show prices in:</span>
+                <form method="POST" action="{{ route('upgrade.public.switch-currency') }}" class="inline-flex">
+                    @csrf
+                    <button type="submit" name="currency" value="USD" class="px-3 py-1 text-xs rounded-l-full border border-white/10 {{ ($currency ?? 'USD') === 'USD' ? 'bg-[#7c3aed] text-white' : 'bg-white/5 text-gray-300 hover:bg-white/10' }}">USD&nbsp;($)</button>
+                    <button type="submit" name="currency" value="INR" class="px-3 py-1 text-xs rounded-r-full border border-white/10 border-l-0 {{ ($currency ?? 'USD') === 'INR' ? 'bg-[#7c3aed] text-white' : 'bg-white/5 text-gray-300 hover:bg-white/10' }}">INR&nbsp;(₹)</button>
+                </form>
+            </div>
 
-                <div class="reveal reveal-delay-2 card-hover bg-gradient-to-br from-[#7c3aed] to-[#8b5cf6] rounded-3xl p-8 relative overflow-hidden shadow-2xl shadow-[#7c3aed]/30 scale-105">
-                    <div class="absolute top-4 right-4 px-3 py-1 bg-[#7c3aed] text-white text-xs font-bold rounded-full">POPULAR</div>
-                    <div class="text-sm font-bold text-white/70 uppercase tracking-wide mb-2">Pro</div>
-                    <div class="text-5xl font-bold text-white mb-1">$9<span class="text-lg font-medium text-white/50">/mo</span></div>
-                    <div class="text-sm text-white/50 mb-6">For creators & pros</div>
-                    <ul class="space-y-3 mb-8">
-                        <li class="flex items-center gap-2 text-sm text-white"><i class="fas fa-check text-[#8b5cf6] text-xs"></i>Unlimited links</li>
-                        <li class="flex items-center gap-2 text-sm text-white"><i class="fas fa-check text-[#8b5cf6] text-xs"></i>Advanced analytics</li>
-                        <li class="flex items-center gap-2 text-sm text-white"><i class="fas fa-check text-[#8b5cf6] text-xs"></i>Custom domains</li>
-                        <li class="flex items-center gap-2 text-sm text-white"><i class="fas fa-check text-[#8b5cf6] text-xs"></i>50MB file uploads</li>
-                        <li class="flex items-center gap-2 text-sm text-white"><i class="fas fa-check text-[#8b5cf6] text-xs"></i>Tracking</li>
-                    </ul>
-                    <a href="{{ route('user.register') }}" class="block w-full py-3.5 text-center bg-[#7c3aed] text-white rounded-full text-sm font-bold hover:bg-[#6d28d9] transition-all">Start free trial</a>
-                </div>
-
-                <div class="reveal reveal-delay-3 card-hover bg-white/5 rounded-3xl p-8 border border-white/10 backdrop-blur-sm">
-                    <div class="text-sm font-bold text-gray-400 uppercase tracking-wide mb-2">Business</div>
-                    <div class="text-5xl font-bold text-white mb-1">$29<span class="text-lg font-medium text-gray-500">/mo</span></div>
-                    <div class="text-sm text-gray-500 mb-6">For teams & orgs</div>
-                    <ul class="space-y-3 mb-8">
-                        <li class="flex items-center gap-2 text-sm text-gray-300"><i class="fas fa-check text-[#8b5cf6] text-xs"></i>Everything in Pro</li>
-                        <li class="flex items-center gap-2 text-sm text-gray-300"><i class="fas fa-check text-[#8b5cf6] text-xs"></i>Team collaboration</li>
-                        <li class="flex items-center gap-2 text-sm text-gray-300"><i class="fas fa-check text-[#8b5cf6] text-xs"></i>200MB file uploads</li>
-                        <li class="flex items-center gap-2 text-sm text-gray-300"><i class="fas fa-check text-[#8b5cf6] text-xs"></i>API access</li>
-                        <li class="flex items-center gap-2 text-sm text-gray-300"><i class="fas fa-check text-[#8b5cf6] text-xs"></i>Priority support</li>
-                    </ul>
-                    <a href="{{ route('user.register') }}" class="block w-full py-3.5 text-center text-white rounded-full text-sm font-bold border-2 border-white/20 hover:border-white/40 hover:bg-white/5 transition-all">Get started</a>
-                </div>
+            <div class="grid md:grid-cols-{{ max(1, count($plans)) }} gap-6 max-w-5xl mx-auto">
+                @foreach($plans as $i => $plan)
+                    @php
+                        $featured = $i === 1;
+                        $f = $plan['features'];
+                    @endphp
+                    <div class="reveal reveal-delay-{{ $i + 1 }} card-hover {{ $featured ? 'bg-gradient-to-br from-[#7c3aed] to-[#8b5cf6] shadow-2xl shadow-[#7c3aed]/30 scale-105 relative overflow-hidden' : 'bg-white/5 border border-white/10 backdrop-blur-sm' }} rounded-3xl p-8">
+                        @if($featured)<div class="absolute top-4 right-4 px-3 py-1 bg-[#7c3aed] text-white text-xs font-bold rounded-full">POPULAR</div>@endif
+                        <div class="text-sm font-bold {{ $featured ? 'text-white/70' : 'text-gray-400' }} uppercase tracking-wide mb-2">{{ $plan['name'] }}</div>
+                        <div class="text-5xl font-bold text-white mb-1">
+                            {{ $plan['monthly']['formatted'] }}@unless($plan['is_free'])<span class="text-lg font-medium {{ $featured ? 'text-white/50' : 'text-gray-500' }}">/mo</span>@endunless
+                        </div>
+                        <div class="text-sm {{ $featured ? 'text-white/50' : 'text-gray-500' }} mb-6">{{ $plan['description'] ?: ($plan['is_free'] ? 'Forever free' : 'Per user, billed monthly') }}</div>
+                        <ul class="space-y-3 mb-8">
+                            @foreach(['max_links' => 'links', 'max_biolinks' => 'bio pages', 'storage_limit_mb' => 'MB storage', 'contacts_max' => 'contacts'] as $key => $label)
+                                @if(isset($f[$key]))
+                                    <li class="flex items-center gap-2 text-sm {{ $featured ? 'text-white' : 'text-gray-300' }}">
+                                        <i class="fas fa-check text-[#8b5cf6] text-xs"></i>
+                                        {{ (int) $f[$key] === -1 ? 'Unlimited' : number_format((int) $f[$key]) }} {{ $label }}
+                                    </li>
+                                @endif
+                            @endforeach
+                        </ul>
+                        <a href="{{ route('user.register') }}" class="block w-full py-3.5 text-center {{ $featured ? 'bg-[#7c3aed] text-white hover:bg-[#6d28d9]' : 'text-white border-2 border-white/20 hover:border-white/40 hover:bg-white/5' }} rounded-full text-sm font-bold transition-all">{{ $plan['is_free'] ? 'Get started' : 'Start free trial' }}</a>
+                    </div>
+                @endforeach
             </div>
         </div>
     </section>

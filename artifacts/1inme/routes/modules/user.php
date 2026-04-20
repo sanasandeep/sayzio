@@ -28,6 +28,13 @@ use App\Modules\User\Middleware\SuperAdmin;
 
 Route::get('/', [\App\Modules\Common\Controllers\HomeController::class, 'index'])->name('home');
 
+// Public anonymous currency switcher used by the marketing pricing section
+// (and any other public page that renders prices via PricingResolver).
+// Persists the choice in the session — country-bound users still see their
+// country's currency until they change it in profile settings.
+Route::post('/pricing/switch-currency', [\App\Modules\User\Controllers\UpgradeController::class, 'switchCurrency'])
+    ->name('upgrade.public.switch-currency');
+
 Route::prefix('user')->name('user.')->group(function () {
     Route::get('register', [AuthController::class, 'showRegister'])->name('register');
     Route::post('register', [AuthController::class, 'register'])->name('register.submit');

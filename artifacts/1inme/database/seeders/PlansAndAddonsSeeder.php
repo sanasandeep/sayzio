@@ -116,11 +116,15 @@ class PlansAndAddonsSeeder extends Seeder
         // opening the edit form would see INR blank, then save would
         // (per upsertFromMajor's "blank means clear") wipe the INR row.
         // Only fill when missing, never overwrite curator edits.
+        // Use strict null check (NOT empty()) so a curator-set 0 INR
+        // price is preserved on reseed instead of being overwritten with
+        // the derived default. empty(0) === true, which would clobber
+        // intentional zero pricing.
         $patch = [];
-        if (empty($model->monthly_price_secondary)) {
+        if ($model->monthly_price_secondary === null) {
             $patch['monthly_price_secondary'] = $rows[2][2]; // INR monthly
         }
-        if (empty($model->annual_price_secondary)) {
+        if ($model->annual_price_secondary === null) {
             $patch['annual_price_secondary'] = $rows[3][2]; // INR annual
         }
         if ($patch) {
