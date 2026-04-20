@@ -73,33 +73,33 @@
         @endphp
         <div class="card-premium p-5 mb-5">
             <h2 class="text-base font-bold mb-4" style="color: var(--text-primary);">Your connections</h2>
-            <div class="grid grid-cols-1 gap-3">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 @foreach($connections as $platform => $rows)
                     @foreach($rows as $c)
                         @php
-                            $meta       = $platforms[$platform] ?? ['label'=>ucfirst($platform), 'icon'=>'fas fa-link', 'color'=>'#7c3aed'];
+                            $meta       = $platforms[$platform] ?? ["label"=>ucfirst($platform), "icon"=>"fas fa-link", "color"=>"#7c3aed"];
                             $health     = $c->healthState();
                             $isOauth    = $c->isOauthPlatform();
                             $oauthReady = $isOauth && $oauthSvc->isConfigured($platform);
-                            $cardBorder = $health === 'error' ? 'rgba(239,68,68,0.45)'
-                                        : ($health === 'stale' ? 'rgba(245,158,11,0.4)' : 'var(--border-glass)');
+                            $cardBorder = $health === "error" ? "rgba(239,68,68,0.45)"
+                                        : ($health === "stale" ? "rgba(245,158,11,0.4)" : "var(--border-glass)");
                         @endphp
                         <div class="p-3 rounded-lg"
                              style="background: var(--bg-glass); border: 1px solid {{ $cardBorder }};">
                             <div class="flex items-center gap-3">
                                 <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                                     style="background: {{ $meta['color'] }}20;">
-                                    <i class="{{ $meta['icon'] }} text-base" style="color: {{ $meta['color'] }};"></i>
+                                     style="background: {{ $meta["color"] }}20;">
+                                    <i class="{{ $meta["icon"] }} text-base" style="color: {{ $meta["color"] }};"></i>
                                 </div>
                                 <div class="flex-1 min-w-0">
                                     <div class="flex items-center gap-2 flex-wrap">
                                         <div class="text-sm font-semibold truncate" style="color: var(--text-primary);">
-                                            {{ $meta['label'] }} · @{{ $c->handle }}
+                                            {{ $meta["label"] }} · @{{ $c->handle }}
                                         </div>
                                         {{-- Health pill: at-a-glance status of the most recent fetch. --}}
                                         <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold"
                                               style="background: {{ $c->healthColor() }}1a; color: {{ $c->healthColor() }};">
-                                            <i class="fas {{ $health === 'ok' ? 'fa-circle-check' : ($health === 'error' ? 'fa-circle-exclamation' : ($health === 'stale' ? 'fa-clock' : 'fa-circle-info')) }}"></i>
+                                            <i class="fas {{ $health === "ok" ? "fa-circle-check" : ($health === "error" ? "fa-circle-exclamation" : ($health === "stale" ? "fa-clock" : "fa-circle-info")) }}"></i>
                                             {{ $c->healthLabel() }}
                                         </span>
                                     </div>
@@ -115,7 +115,7 @@
                                             Awaiting first refresh
                                         @endif
                                     </div>
-                                    @if($health === 'error' && $c->last_refresh_error)
+                                    @if($health === "error" && $c->last_refresh_error)
                                         <div class="mt-2 text-[11px] px-2 py-1.5 rounded"
                                              style="background: rgba(239,68,68,0.08); color:#ef4444; border:1px solid rgba(239,68,68,0.2);">
                                             <i class="fas fa-circle-exclamation mr-1"></i>
@@ -125,44 +125,44 @@
                                             @endif
                                             : {{ $c->last_refresh_error }}
                                         </div>
-                                    @elseif($health === 'unsupported')
+                                    @elseif($health === "unsupported")
                                         <div class="mt-1 text-[11px]" style="color: var(--text-faint);">
-                                            Auto-refresh isn't wired up for this platform yet — paste an access token to enable.
+                                            Auto-refresh isn"t wired up for this platform yet — paste an access token to enable.
                                         </div>
                                     @endif
                                 </div>
 
                                 <div class="flex items-center gap-2 flex-shrink-0">
                                     {{-- Reconnect: shown for failing connections. Sends OAuth users
-                                         straight back through the provider's authorize flow; for handle/manual
+                                         straight back through the provider"s authorize flow; for handle/manual
                                          platforms, deep-links to the matching tab in the form below. --}}
-                                    @if($health === 'error')
+                                    @if($health === "error")
                                         @if($oauthReady)
-                                            <a href="{{ route('user.social-oauth.connect', ['provider' => $platform]) }}"
+                                            <a href="{{ route("user.social-oauth.connect", ["provider" => $platform]) }}"
                                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
-                                               style="background: {{ $meta['color'] }}; color: #fff;"
-                                               title="Re-authorize {{ $meta['label'] }}">
+                                               style="background: {{ $meta["color"] }}; color: #fff;"
+                                               title="Re-authorize {{ $meta["label"] }}">
                                                 <i class="fas fa-rotate-right"></i> Reconnect
                                             </a>
                                         @else
                                             @php
-                                                // Handle/API-key platforms can't OAuth-reconnect — send the user
+                                                // Handle/API-key platforms can"t OAuth-reconnect — send the user
                                                 // back to the matching tab so they can update the handle or token.
                                                 $isHandleOnly = ! $isOauth;
-                                                $fixLabel = $isHandleOnly ? 'Update handle' : 'Re-enter token';
-                                                $fixIcon  = $isHandleOnly ? 'fa-pen-to-square' : 'fa-key';
+                                                $fixLabel = $isHandleOnly ? "Update handle" : "Re-enter token";
+                                                $fixIcon  = $isHandleOnly ? "fa-pen-to-square" : "fa-key";
                                             @endphp
                                             <a href="#new-connection"
-                                               @click.prevent="tab='{{ $platform }}'; document.getElementById('new-connection')?.scrollIntoView({behavior:'smooth'});"
+                                               @click.prevent="tab="{{ $platform }}"; document.getElementById("new-connection")?.scrollIntoView({behavior:"smooth"});"
                                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
-                                               style="background: {{ $meta['color'] }}; color: #fff;"
-                                               title="Reconnect {{ $meta['label'] }}">
+                                               style="background: {{ $meta["color"] }}; color: #fff;"
+                                               title="Reconnect {{ $meta["label"] }}">
                                                 <i class="fas {{ $fixIcon }}"></i> {{ $fixLabel }}
                                             </a>
                                         @endif
                                     @endif
 
-                                    <form method="POST" action="{{ route('user.social-accounts.refresh', $c) }}">
+                                    <form method="POST" action="{{ route("user.social-accounts.refresh", $c) }}">
                                         @csrf
                                         <button type="submit" title="Refresh now"
                                                 class="w-8 h-8 rounded-lg flex items-center justify-center text-xs"
@@ -170,9 +170,9 @@
                                             <i class="fas fa-sync-alt"></i>
                                         </button>
                                     </form>
-                                    <form method="POST" action="{{ route('user.social-accounts.destroy', $c) }}"
-                                          onsubmit="return confirm('Disconnect this account? Follow buttons that reference it will fall back to icon style.');">
-                                        @csrf @method('DELETE')
+                                    <form method="POST" action="{{ route("user.social-accounts.destroy", $c) }}"
+                                          onsubmit="return confirm("Disconnect this account? Follow buttons that reference it will fall back to icon style.");">
+                                        @csrf @method("DELETE")
                                         <button type="submit" title="Disconnect"
                                                 class="w-8 h-8 rounded-lg flex items-center justify-center text-xs"
                                                 style="background: rgba(239,68,68,0.1); color: #ef4444;">

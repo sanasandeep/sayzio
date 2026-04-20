@@ -119,6 +119,137 @@ class SocialOAuthService
     }
 
     /**
+     * Whether a connection is eligible for automatic token renewal at all.
+     * Each provider defines its own renewal strategy:
+     *
+     *   - Meta (facebook, instagram): no refresh_token; long-lived user tokens
+     *     are extended via the `fb_exchange_token` grant on the existing
+     *     access_token. Eligible whenever an access_token is present.
+     *   - LinkedIn, Pinterest, X/Twitter, TikTok: standard OAuth 2 refresh-
+     *     token grant. Eligible whenever a refresh_token is present.
+     *
+     * Returns false for any connection whose provider isn't OAuth-configured
+     * on this server, or which lacks the credentials its strategy needs.
+     */
+    public function canRefreshToken(SocialAccountConnection $c): bool
+    {
+        if (! isset(self::PROVIDERS[$c->platform])) return false;
+        if (! $this->isConfigured($c->platform)) return false;
+
+        return match ($c->platform) {
+            'facebook', 'instagram' => ! empty($c->access_token),
+            default                 => ! empty($c->refresh_token),
+        };
+    }
+
+    /**
+     * Renew this connection's access_token in place using the per-provider
+     * strategy. Returns true if a fresh token was persisted, false if there
+     * was nothing to do (provider unconfigured, missing credentials), and
+     * throws on a real failure so the caller can mark the connection broken.
+     */
+    public function refreshAccessToken(SocialAccountConnection $c): bool
+    {
+        if (! $this->canRefreshToken($c)) return false;
+
+        return match ($c->platform) {
+            'facebook', 'instagram' => $this->refreshMeta($c),
+            'tiktok'                => $this->refreshTikTok($c),
+            'twitter'               => $this->refreshTwitter($c),
+            default                 => $this->refreshGenericOAuth2($c),
+        };
+    }
+
+    /**
+     * Meta long-lived token extension. Exchanges the current (still-valid)
+     * access_token for a new ~60-day token via fb_exchange_token. There is no
+     * refresh_token in this flow — it's a token-for-token swap.
+     */
+    private function refreshMeta(SocialAccountConnection $c): bool
+    {
+        $cfg = self::PROVIDERS[$c->platform];
+        $resp = Http::acceptJson()->get($cfg['token_url'], [
+            'grant_type'        => 'fb_exchange_token',
+            'client_id'         => env($cfg['client_id_env']),
+            'client_secret'     => env($cfg['client_secret_env']),
+            'fb_exchange_token' => $c->access_token,
+        ]);
+        return $this->persistRefreshedToken($c, $resp);
+    }
+
+    /**
+     * TikTok refresh — note the body uses `client_key` (TikTok's name for
+     * the OAuth client id) rather than `client_id`.
+     */
+    private function refreshTikTok(SocialAccountConnection $c): bool
+    {
+        $cfg = self::PROVIDERS['tiktok'];
+        $resp = Http::asForm()->acceptJson()->post($cfg['token_url'], [
+            'client_key'    => env($cfg['client_id_env']),
+            'client_secret' => env($cfg['client_secret_env']),
+            'grant_type'    => 'refresh_token',
+            'refresh_token' => $c->refresh_token,
+        ]);
+        return $this->persistRefreshedToken($c, $resp);
+    }
+
+    /**
+     * X (Twitter) v2 refresh — public OAuth2 client, body carries
+     * client_id; confidential clients additionally need HTTP Basic auth.
+     * We send both so it works regardless of how the developer app is
+     * registered.
+     */
+    private function refreshTwitter(SocialAccountConnection $c): bool
+    {
+        $cfg = self::PROVIDERS['twitter'];
+        $clientId     = (string) env($cfg['client_id_env']);
+        $clientSecret = (string) env($cfg['client_secret_env']);
+        $resp = Http::asForm()->acceptJson()
+            ->withBasicAuth($clientId, $clientSecret)
+            ->post($cfg['token_url'], [
+                'grant_type'    => 'refresh_token',
+                'refresh_token' => $c->refresh_token,
+                'client_id'     => $clientId,
+            ]);
+        return $this->persistRefreshedToken($c, $resp);
+    }
+
+    /** Standard OAuth2 refresh-token grant for LinkedIn / Pinterest. */
+    private function refreshGenericOAuth2(SocialAccountConnection $c): bool
+    {
+        $cfg = self::PROVIDERS[$c->platform];
+        $resp = Http::asForm()->acceptJson()->post($cfg['token_url'], [
+            'grant_type'    => 'refresh_token',
+            'refresh_token' => $c->refresh_token,
+            'client_id'     => env($cfg['client_id_env']),
+            'client_secret' => env($cfg['client_secret_env']),
+        ]);
+        return $this->persistRefreshedToken($c, $resp);
+    }
+
+    /** Shared response handler — extracts the token, persists, throws on error. */
+    private function persistRefreshedToken(SocialAccountConnection $c, $resp): bool
+    {
+        if (! $resp->ok()) {
+            throw new \RuntimeException("Token refresh failed for {$c->platform}: HTTP " . $resp->status());
+        }
+        $token = $resp->json();
+        $access = $token['access_token'] ?? null;
+        if (! $access) {
+            throw new \RuntimeException("Token refresh for {$c->platform} returned no access_token.");
+        }
+
+        $c->access_token = $access;
+        // Some providers (e.g. TikTok, sometimes LinkedIn) rotate refresh_token on every swap.
+        if (! empty($token['refresh_token'])) $c->refresh_token = $token['refresh_token'];
+        $c->token_expires_at = isset($token['expires_in'])
+            ? now()->addSeconds((int) $token['expires_in'])
+            : null;
+        $c->save();
+        return true;
+    }
+
+    /**
      * Exchange the authorization code for an access token and persist a
      * SocialAccountConnection for the user. Returns the connection on
      * success; throws on failure.

@@ -37,3 +37,12 @@ Schedule::command('followers:send-digest')
     ->dailyAt('09:00')
     ->withoutOverlapping()
     ->onOneServer();
+
+// Hourly: pre-emptively swap each connection's near-expiry access_token for a
+// fresh one using its stored refresh_token. Keeps long-lived OAuth links alive
+// without the user ever pasting a token, and flips truly broken connections
+// to status=error so the UI can surface a "Reconnect" button.
+Schedule::command('socials:refresh-oauth-tokens')
+    ->hourly()
+    ->withoutOverlapping()
+    ->onOneServer();
