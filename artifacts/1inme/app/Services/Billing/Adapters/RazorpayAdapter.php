@@ -270,6 +270,21 @@ class RazorpayAdapter extends AbstractAdapter
         if ($type === 'subscription.charged') {
             $sub     = $payload['payload']['subscription']['entity'] ?? [];
             $payment = $payload['payload']['payment']['entity'] ?? [];
+            // IDEMPOTENCY GUARD: the router dedupes on (gateway,
+            // gateway_ref) AFTER parseEvent() returns, so a retried
+            // delivery of the same event would otherwise create a
+            // duplicate renewal invoice here. Short-circuit before
+            // issuing the invoice if we've already seen this event.
+            if ($this->eventAlreadyProcessed($eventId)) {
+                return [
+                    'type'         => 'payment.requires_review',
+                    'invoice_id'   => null,
+                    'gateway_ref'  => $eventId,
+                    'amount_minor' => (int) ($payment['amount'] ?? 0),
+                    'currency'     => (string) ($payment['currency'] ?? ''),
+                    'raw'          => $raw,
+                ];
+            }
             $invId   = $this->resolveRenewalInvoiceId(
                 (string) ($sub['id'] ?? ''),
                 (int)    ($payment['amount']   ?? 0),
@@ -289,7 +304,9 @@ class RazorpayAdapter extends AbstractAdapter
         if ($type === 'refund.processed' || $type === 'refund.failed') {
             $refund = $payload['payload']['refund']['entity'] ?? [];
             $refundId = (string) ($refund['id'] ?? '');
-            $row = $refundId ? Refund::where('gateway', 'razorpay')
+            // IDEMPOTENCY GUARD — see subscription.charged comment above.
+            $alreadyProcessed = $this->eventAlreadyProcessed($eventId);
+            $row = (!$alreadyProcessed && $refundId) ? Refund::where('gateway', 'razorpay')
                 ->where('gateway_ref', $refundId)->first() : null;
             if ($row) {
                 $row->forceFill([
@@ -314,7 +331,8 @@ class RazorpayAdapter extends AbstractAdapter
         if ($type === 'subscription.cancelled') {
             $sub = $payload['payload']['subscription']['entity'] ?? [];
             $rzpSubId = (string) ($sub['id'] ?? '');
-            if ($rzpSubId) {
+            // IDEMPOTENCY GUARD — see subscription.charged comment above.
+            if ($rzpSubId && !$this->eventAlreadyProcessed($eventId)) {
                 $match = Subscription::where('gateway', 'razorpay')
                     ->where('gateway_subscription_id', $rzpSubId)->first();
                 if ($match && $match->status !== 'cancelled') {
@@ -352,6 +370,20 @@ class RazorpayAdapter extends AbstractAdapter
      * call can extend the period. Returns the new invoice id, or 0 if
      * we can't locate the internal subscription.
      */
+    /**
+     * Has the webhook router already recorded a PaymentAttempt for
+     * this Razorpay event.id? If so, any side effects we'd do below
+     * have already been applied on the first delivery and we must
+     * NOT repeat them (duplicate renewal invoices, double-close
+     * refunds, etc.). See parseEvent() side-effect branches.
+     */
+    protected function eventAlreadyProcessed(string $eventId): bool
+    {
+        if ($eventId === '') return false;
+        return PaymentAttempt::where('gateway', 'razorpay')
+            ->where('gateway_ref', $eventId)->exists();
+    }
+
     protected function resolveRenewalInvoiceId(string $rzpSubId, int $amountMinor, string $currency): int
     {
         if ($rzpSubId === '') return 0;

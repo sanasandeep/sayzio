@@ -110,13 +110,25 @@ class RazorpayServiceProvider extends ServiceProvider
             $rzpOldId = $old?->gateway_subscription_id;
             if ($rzpOldId) {
                 try {
-                    Http::withBasicAuth($keyId, $keySecret)
+                    $cancelRes = Http::withBasicAuth($keyId, $keySecret)
                         ->asJson()
                         ->post('https://api.razorpay.com/v1/subscriptions/' . $rzpOldId . '/cancel', [
                             'cancel_at_cycle_end' => 0,
                         ]);
+                    // Treat non-2xx as a failure. If Razorpay returns 4xx/5xx
+                    // we must NOT silently proceed — that risks double billing
+                    // on the next cycle. Log loudly so ops can reconcile from
+                    // the Razorpay dashboard; do not abort the new-sub create,
+                    // since the internal upgrade already happened.
+                    if (!$cancelRes->successful()) {
+                        Log::error('Razorpay old-subscription cancel returned non-success', [
+                            'rzp_sub_id' => $rzpOldId,
+                            'status'     => $cancelRes->status(),
+                            'body'       => $cancelRes->json() ?: $cancelRes->body(),
+                        ]);
+                    }
                 } catch (\Throwable $e) {
-                    Log::warning('Razorpay old-subscription cancel failed', [
+                    Log::error('Razorpay old-subscription cancel threw', [
                         'rzp_sub_id' => $rzpOldId, 'error' => $e->getMessage(),
                     ]);
                 }
