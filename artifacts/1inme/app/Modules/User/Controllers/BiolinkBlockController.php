@@ -131,11 +131,66 @@ class BiolinkBlockController extends Controller
             'parent_id' => $parentId,
         ]);
 
+        // Notify followers about new biolink content (daily debounce per creator).
+        $this->emitBlockAddedFeedEvent($link, $block);
+
         if ($request->ajax()) {
             return response()->json(['success' => true, 'block' => $block]);
         }
 
         return redirect()->route('user.links.blocks.editor', $link)->with('success', 'Block added.');
+    }
+
+    /**
+     * Emit a follower feed event + notifications for a newly-added biolink
+     * block. Debounced once-per-day per creator so editing sprees don't spam.
+     */
+    protected function emitBlockAddedFeedEvent(\App\Modules\User\Models\Link $link, BiolinkBlock $block): void
+    {
+        try {
+            $creatorId = $link->user_id;
+            $today     = now()->toDateString();
+
+            $alreadyEmittedToday = \App\Modules\User\Models\FeedEvent::where('user_id', $creatorId)
+                ->where('type', 'block_added')
+                ->whereDate('occurred_at', $today)
+                ->exists();
+            if ($alreadyEmittedToday) return;
+
+            $creator = $link->user;
+            \App\Modules\User\Models\FeedEvent::create([
+                'user_id'     => $creatorId,
+                'type'        => 'block_added',
+                'occurred_at' => now(),
+                'data'        => [
+                    'creator_name'   => $creator?->name,
+                    'creator_avatar' => $creator?->avatar,
+                    'link_alias'     => $link->alias,
+                    'block_type'     => $block->type,
+                    'block_label'    => BiolinkBlock::TYPES[$block->type] ?? $block->type,
+                ],
+            ]);
+
+            // Per-follower in-app notifications, only if creator opted in.
+            if ($creator && $creator->notify_follower_updates) {
+                $followerIds = \App\Modules\User\Models\Follow::where('creator_id', $creatorId)->pluck('follower_id');
+                foreach ($followerIds as $fid) {
+                    \App\Modules\User\Models\UserNotification::create([
+                        'user_id'    => $fid,
+                        'type'       => 'creator_update',
+                        'data'       => [
+                            'creator_id'   => $creatorId,
+                            'creator_name' => $creator->name,
+                            'message'      => "{$creator->name} added something new to their biolink.",
+                            'link_alias'   => $link->alias,
+                        ],
+                        'created_at' => now(),
+                    ]);
+                }
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('block_added feed event failed: ' . $e->getMessage());
+        }
     }
 
     public function update(Request $request, Link $link, BiolinkBlock $block)

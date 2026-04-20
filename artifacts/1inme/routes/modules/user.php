@@ -42,6 +42,17 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('logout', [AuthController::class, 'logout'])->name('logout');
         Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
+        // ===== Social: followers, posts, notifications (dashboard) =====
+        Route::get('followers', [\App\Modules\User\Controllers\FollowController::class, 'followers'])->name('followers.index');
+        Route::get('following', [\App\Modules\User\Controllers\FollowController::class, 'following'])->name('following.index');
+        Route::get('posts',  [\App\Modules\User\Controllers\CreatorPostController::class, 'index'])->name('posts.index');
+        Route::post('posts', [\App\Modules\User\Controllers\CreatorPostController::class, 'store'])->name('posts.store');
+        Route::delete('posts/{post}', [\App\Modules\User\Controllers\CreatorPostController::class, 'destroy'])->name('posts.destroy');
+        Route::get('notifications',  [\App\Modules\User\Controllers\NotificationController::class, 'index'])->name('notifications.index');
+        Route::post('notifications/read', [\App\Modules\User\Controllers\NotificationController::class, 'markRead'])->name('notifications.read');
+
+        Route::get('links/{link}/visitors', [\App\Modules\User\Controllers\VisitorAnalyticsController::class, 'index'])->name('links.visitors');
+
         Route::prefix('profile')->name('profile.')->group(function () {
             Route::get('/', [ProfileController::class, 'edit'])->name('edit');
             Route::put('/', [ProfileController::class, 'update'])->name('update');

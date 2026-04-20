@@ -251,6 +251,29 @@ class LinkController extends Controller
             $link->pixels()->sync($pixelIds);
         }
 
+        // Push a "link_published" feed event so followers see the new link.
+        if (($link->is_active ?? true) && in_array($link->type, ['biolink', 'short', 'file', 'splash', 'rsvp'])) {
+            try {
+                $u = auth()->user();
+                \App\Modules\User\Models\FeedEvent::create([
+                    'user_id'      => $link->user_id,
+                    'type'         => 'link_published',
+                    'subject_id'   => $link->id,
+                    'subject_type' => \App\Modules\User\Models\Link::class,
+                    'data'         => [
+                        'title'           => $link->title,
+                        'alias'           => $link->alias,
+                        'creator_name'    => $u?->name,
+                        'creator_avatar'  => $u?->avatar,
+                    ],
+                    'occurred_at'  => now(),
+                ]);
+                if ($u) {
+                    \App\Modules\User\Controllers\CreatorPostController::notifyFollowersDebounced($u, 'published a new link: ' . ($link->title ?: $link->alias));
+                }
+            } catch (\Throwable $e) { \Log::warning('feed event failed: ' . $e->getMessage()); }
+        }
+
         // For new biolinks, send the user to the template picker so they can
         // start from an admin-curated preset (or skip and start from scratch).
         // Always send new biolinks to the picker when any active templates

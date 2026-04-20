@@ -10,6 +10,20 @@ Route::get('/admin-assets/{id}/{filename}', [AdminAssetController::class, 'serve
     ->where('filename', '.*')
     ->name('admin.assets.serve');
 
+// ---- Public Creators directory ----
+Route::get('/creators', [\App\Modules\Common\Controllers\CreatorsController::class, 'index'])->name('creators.index');
+
+// Public viewer feed (works for ViewerSession OR dashboard auth).
+Route::get ('/feed',                  [\App\Modules\User\Controllers\FeedController::class, 'index'])->name('feed.index');
+Route::post('/feed/notifications/read',[\App\Modules\User\Controllers\FeedController::class, 'markAllRead'])->name('feed.notifications.read');
+
+// ---- Viewer (biolink visitor) AJAX auth + follow toggle ----
+Route::post  ('/viewer/otp/send',   [\App\Modules\Common\Controllers\ViewerAuthController::class, 'sendOtp'])->middleware('throttle:5,1')->name('viewer.otp.send');
+Route::post  ('/viewer/otp/verify', [\App\Modules\Common\Controllers\ViewerAuthController::class, 'verifyOtp'])->middleware('throttle:10,1')->name('viewer.otp.verify');
+Route::get   ('/viewer/me',         [\App\Modules\Common\Controllers\ViewerAuthController::class, 'me'])->name('viewer.me');
+Route::post  ('/viewer/logout',     [\App\Modules\Common\Controllers\ViewerAuthController::class, 'logout'])->name('viewer.logout');
+Route::post  ('/viewer/follow/{creator}', [\App\Modules\Common\Controllers\ViewerAuthController::class, 'toggleFollow'])->middleware('throttle:30,1')->name('viewer.follow.toggle')->where('creator', '[0-9]+');
+
 // ---- Public Social-Proof Widget ----
 Route::get   ('/sp/{uuid}.js',    [\App\Modules\Common\Controllers\SocialProofPublicController::class, 'loaderJs'])->name('sp.public.js')->where('uuid', '[a-f0-9-]{36}');
 Route::get   ('/sp/{uuid}.json',  [\App\Modules\Common\Controllers\SocialProofPublicController::class, 'config'])  ->name('sp.public.config')->where('uuid', '[a-f0-9-]{36}');

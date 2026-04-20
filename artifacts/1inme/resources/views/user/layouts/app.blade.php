@@ -613,6 +613,40 @@
                 </a>
                 @endif
 
+                <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Community</div>
+
+                <a href="{{ route('feed.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.feed.*') ? 'active' : '' }}"
+                   style="--nav-tint:#34d399; --nav-tint-soft:rgba(52,211,153,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-stream"></i></div>
+                    <span class="nav-label">Feed</span>
+                    <span class="sidebar-tooltip">Feed</span>
+                </a>
+                <a href="{{ route('user.notifications.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.notifications.*') ? 'active' : '' }}"
+                   style="--nav-tint:#fbbf24; --nav-tint-soft:rgba(251,191,36,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-bell"></i></div>
+                    <span class="nav-label">Notifications
+                        @php $__unread = \App\Modules\User\Models\UserNotification::where('user_id', auth()->id())->whereNull('read_at')->count(); @endphp
+                        @if($__unread)<span class="ml-1 inline-block px-1.5 rounded-full text-[10px] bg-rose-500 text-white">{{ $__unread }}</span>@endif
+                    </span>
+                    <span class="sidebar-tooltip">Notifications</span>
+                </a>
+                <a href="{{ route('user.posts.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.posts.*') ? 'active' : '' }}"
+                   style="--nav-tint:#60a5fa; --nav-tint-soft:rgba(96,165,250,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-pen-to-square"></i></div>
+                    <span class="nav-label">My Posts</span>
+                    <span class="sidebar-tooltip">My Posts</span>
+                </a>
+                <a href="{{ route('user.followers.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.followers.*') || request()->routeIs('user.following.*') ? 'active' : '' }}"
+                   style="--nav-tint:#f472b6; --nav-tint-soft:rgba(244,114,182,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-user-group"></i></div>
+                    <span class="nav-label">Followers</span>
+                    <span class="sidebar-tooltip">Followers</span>
+                </a>
+
                 <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Account</div>
 
                 <a href="{{ route('user.profile.edit') }}"

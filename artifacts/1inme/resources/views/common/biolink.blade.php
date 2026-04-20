@@ -1707,9 +1707,72 @@
             </div>
         @endforelse
 
-        @if(!($bs['branding_hidden'] ?? false))
+        @php
+            $__creator = $link->user ?? null;
+            $__viewer  = \App\Modules\Common\Services\ViewerSession::user();
+            $__isSelf  = ($__viewer && $__creator && (int)$__viewer->id === (int)$__creator->id);
+            $__isFollowing = ($__viewer && $__creator && !$__isSelf)
+                ? \App\Modules\User\Models\Follow::where('follower_id',$__viewer->id)->where('creator_id',$__creator->id)->exists()
+                : false;
+            $__brandingHidden = (bool)($bs['branding_hidden'] ?? false);
+            $__allowFollowers = $__creator ? (bool)($__creator->allow_followers ?? true) : false;
+        @endphp
+
+        @if(!$__brandingHidden)
+            {{-- Subtle viewer sign-in / follow entry in the branding strip. --}}
+            @if($__creator && !$__isSelf && $__allowFollowers)
+            <div class="text-center mt-8 mb-1">
+                @if(!$__viewer)
+                    <button type="button"
+                            @click="$dispatch('open-viewer-login', {creatorId: {{ (int)$__creator->id }} })"
+                            class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold transition-all hover:scale-105"
+                            style="background: {{ $fontColor }}15; color: {{ $fontColor }}cc; border: 1px solid {{ $fontColor }}25;">
+                        <i class="fas fa-user-plus text-[10px]"></i>
+                        Sign in to follow {{ $__creator->name }}
+                    </button>
+                @else
+                    <div class="inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs"
+                         style="background: {{ $fontColor }}10; color: {{ $fontColor }}cc; border: 1px solid {{ $fontColor }}20;"
+                         x-data="{busy:false, menu:false, following: {{ $__isFollowing ? 'true' : 'false' }} }">
+                        <button type="button" :disabled="busy"
+                                @click="busy=true; fetch('/viewer/follow/{{ (int)$__creator->id }}',{method:'POST', headers:{'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content, 'Accept':'application/json'}}).then(r=>r.json()).then(d=>{following=!!d.following; busy=false;}).catch(()=>busy=false)"
+                                class="font-bold underline-offset-2 hover:underline px-2"
+                                style="color: {{ $fontColor }};"
+                                x-text="following ? '✓ Following' : '+ Follow'"></button>
+                        <span style="color: {{ $fontColor }}33;">|</span>
+                        <div class="relative" @click.away="menu=false">
+                            <button type="button" @click="menu=!menu" class="flex items-center gap-1.5 pr-1 hover:opacity-90">
+                                @if($__viewer->avatar)
+                                    <img src="{{ $__viewer->avatar }}" class="w-5 h-5 rounded-full object-cover" alt=""/>
+                                @else
+                                    <span class="w-5 h-5 rounded-full inline-flex items-center justify-center text-[10px] font-bold"
+                                          style="background: {{ $fontColor }}30; color: {{ $fontColor }};">
+                                        {{ strtoupper(substr($__viewer->name, 0, 1)) }}
+                                    </span>
+                                @endif
+                                <span style="color: {{ $fontColor }}cc;">{{ $__viewer->name }}</span>
+                                <i class="fas fa-chevron-down text-[8px] opacity-60"></i>
+                            </button>
+                            <div x-show="menu" x-cloak x-transition
+                                 class="absolute right-0 mt-2 w-44 rounded-xl shadow-2xl text-left overflow-hidden z-[1000]"
+                                 style="background: #0f172a; color: #fff; border: 1px solid rgba(255,255,255,0.1);">
+                                <a href="{{ url('/feed') }}" class="block px-3 py-2 text-xs hover:bg-white/10"><i class="fas fa-stream w-4 opacity-70"></i> My feed</a>
+                                <a href="{{ url('/creators') }}" class="block px-3 py-2 text-xs hover:bg-white/10"><i class="fas fa-compass w-4 opacity-70"></i> Discover creators</a>
+                                <a href="{{ route('user.profile.edit') }}" class="block px-3 py-2 text-xs hover:bg-white/10"><i class="fas fa-user w-4 opacity-70"></i> My profile</a>
+                                <button type="button"
+                                        @click="fetch('{{ route('viewer.logout') }}',{method:'POST',headers:{'X-CSRF-TOKEN':document.querySelector('meta[name=csrf-token]').content}}).then(()=>location.reload())"
+                                        class="block w-full text-left px-3 py-2 text-xs hover:bg-white/10 border-t border-white/10">
+                                    <i class="fas fa-sign-out-alt w-4 opacity-70"></i> Sign out
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+            </div>
+            @endif
+
             @if(!empty($bs['custom_branding_text']))
-            <div class="text-center mt-10">
+            <div class="text-center mt-4">
                 @if(!empty($bs['custom_branding_url']))
                 <a href="{{ $bs['custom_branding_url'] }}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 hover:opacity-80 transition-opacity" style="color: {{ $fontColor }}55; text-decoration: none;">
                 @else
@@ -2217,5 +2280,13 @@
         else document.addEventListener('DOMContentLoaded', init);
     })();
     </script>
+
+    @php
+        $modalCreatorId = $__creator?->id;
+        $modalAccent    = $fontColor;
+        $modalBgPanel   = $bs['background_color'] ?? '#0f172a';
+        $viewerInitial  = $__viewer ? ['id'=>$__viewer->id,'name'=>$__viewer->name,'email'=>$__viewer->email,'avatar'=>$__viewer->avatar] : null;
+    @endphp
+    @include('common.partials.viewer-login-modal', compact('modalCreatorId','modalAccent','modalBgPanel','viewerInitial'))
 </body>
 </html>

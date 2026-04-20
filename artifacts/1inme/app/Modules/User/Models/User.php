@@ -14,6 +14,8 @@ class User extends Authenticatable
         'name', 'email', 'mobile', 'password', 'phone', 'avatar', 'status', 'role',
         'plan_id', 'billing_cycle', 'plan_expires_at', 'trial_ends_at',
         'timezone', 'language', 'settings', 'email_verified_at', 'last_login_at',
+        'bio', 'handle', 'discoverable', 'notify_new_follower', 'notify_follower_updates',
+        'followers_count', 'allow_followers',
     ];
 
     protected $hidden = ['password', 'remember_token'];
@@ -27,7 +29,42 @@ class User extends Authenticatable
             'last_login_at' => 'datetime',
             'password' => 'hashed',
             'settings' => 'array',
+            'discoverable' => 'boolean',
+            'notify_new_follower' => 'boolean',
+            'notify_follower_updates' => 'boolean',
         ];
+    }
+
+    public function followers()    { return $this->hasMany(Follow::class, 'creator_id'); }
+    public function following()    { return $this->hasMany(Follow::class, 'follower_id'); }
+    public function posts()        { return $this->hasMany(CreatorPost::class)->latest(); }
+    public function notifications() { return $this->hasMany(UserNotification::class)->latest('created_at'); }
+
+    public function isFollowing(int $creatorId): bool
+    {
+        return Follow::where('follower_id', $this->id)->where('creator_id', $creatorId)->exists();
+    }
+
+    public function getInitials(): string
+    {
+        $parts = preg_split('/\s+/', trim($this->name ?? '?'));
+        $a = mb_substr($parts[0] ?? '', 0, 1);
+        $b = mb_substr($parts[1] ?? '', 0, 1);
+        return mb_strtoupper($a . $b) ?: '?';
+    }
+
+    public function publicHandle(): string
+    {
+        return $this->handle ?: ('user' . $this->id);
+    }
+
+    public function primaryBiolink(): ?Link
+    {
+        return Link::where('user_id', $this->id)
+            ->where('type', 'biolink')
+            ->where('is_active', true)
+            ->orderByDesc('total_clicks')
+            ->first();
     }
 
     public function plan()

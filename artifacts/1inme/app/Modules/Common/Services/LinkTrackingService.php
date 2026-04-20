@@ -19,6 +19,7 @@ class LinkTrackingService
         $click = LinkClick::create([
             'link_id' => $link->id,
             'alias' => $usedAlias ?: $link->alias,
+            'viewer_user_id' => \App\Modules\Common\Services\ViewerSession::id() ?? auth()->id(),
             'ip_address' => $request->ip(),
             'browser' => $this->detectBrowser($userAgent),
             'os' => $this->detectOS($userAgent),
@@ -114,6 +115,7 @@ class LinkTrackingService
         $click = LinkClick::create([
             'link_id' => $link->id,
             'alias' => $usedAlias ?: $link->alias,
+            'viewer_user_id' => \App\Modules\Common\Services\ViewerSession::id() ?? auth()->id(),
             'block_id' => $block->id,
             'block_type' => $block->type,
             'destination_url' => substr($destinationUrl, 0, 2048),
