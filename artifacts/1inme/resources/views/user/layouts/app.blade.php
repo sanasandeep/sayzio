@@ -480,6 +480,7 @@
             </div>
 
             <nav class="flex-1 py-4 overflow-y-auto overflow-x-hidden sidebar-nav-scroll" :class="sidebarMode === 'icons' ? 'px-2' : 'px-3'">
+                {{-- ========== OVERVIEW ========== --}}
                 <a href="{{ route('user.dashboard') }}"
                    class="sidebar-link {{ request()->routeIs('user.dashboard') ? 'active' : '' }}"
                    style="--nav-tint:#7c3aed; --nav-tint-soft:rgba(124,58,237,0.12);">
@@ -487,8 +488,19 @@
                     <span class="nav-label">Dashboard</span>
                     <span class="sidebar-tooltip">Dashboard</span>
                 </a>
+                <a href="{{ route('user.notifications.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.notifications.*') ? 'active' : '' }}"
+                   style="--nav-tint:#fbbf24; --nav-tint-soft:rgba(251,191,36,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-bell"></i></div>
+                    <span class="nav-label">Notifications
+                        @php $__unread = \App\Modules\User\Models\UserNotification::where('user_id', auth()->id())->whereNull('read_at')->count(); @endphp
+                        @if($__unread)<span class="ml-1 inline-block px-1.5 rounded-full text-[10px] bg-rose-500 text-white">{{ $__unread }}</span>@endif
+                    </span>
+                    <span class="sidebar-tooltip">Notifications</span>
+                </a>
 
-                <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Links</div>
+                {{-- ========== LINKS & PAGES ========== --}}
+                <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Links &amp; Pages</div>
 
                 <a href="{{ route('user.links.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.links.index') || request()->routeIs('user.links.show') ? 'active' : '' }}"
@@ -525,6 +537,73 @@
                     <span class="nav-label">Intros</span>
                     <span class="sidebar-tooltip">Intros</span>
                 </a>
+
+                {{-- ========== AUDIENCE ========== --}}
+                <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Audience</div>
+
+                <a href="{{ route('user.inbox.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.inbox.*') ? 'active' : '' }}"
+                   style="--nav-tint:#0ea5e9; --nav-tint-soft:rgba(14,165,233,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-inbox"></i></div>
+                    <span class="nav-label">Inbox
+                        @php $__inboxUnread = (new \App\Modules\User\Services\InboxAggregator(auth()->id()))->unreadCount(); @endphp
+                        @if($__inboxUnread)<span class="ml-1 inline-block px-1.5 rounded-full text-[10px] bg-violet-500 text-white">{{ $__inboxUnread > 99 ? '99+' : $__inboxUnread }}</span>@endif
+                    </span>
+                    <span class="sidebar-tooltip">Unified Inbox</span>
+                </a>
+                <a href="{{ route('user.subscribers.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.subscribers.*') ? 'active' : '' }}"
+                   style="--nav-tint:#14b8a6; --nav-tint-soft:rgba(20,184,166,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-users"></i></div>
+                    <span class="nav-label">Leads</span>
+                    <span class="sidebar-tooltip">Leads</span>
+                </a>
+                <a href="{{ route('user.followers.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.followers.*') || request()->routeIs('user.following.*') ? 'active' : '' }}"
+                   style="--nav-tint:#f472b6; --nav-tint-soft:rgba(244,114,182,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-user-group"></i></div>
+                    <span class="nav-label">Followers</span>
+                    <span class="sidebar-tooltip">Followers</span>
+                </a>
+                <a href="{{ route('user.posts.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.posts.*') ? 'active' : '' }}"
+                   style="--nav-tint:#60a5fa; --nav-tint-soft:rgba(96,165,250,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-pen-to-square"></i></div>
+                    <span class="nav-label">My Posts</span>
+                    <span class="sidebar-tooltip">My Posts</span>
+                </a>
+                <a href="{{ route('feed.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.feed.*') ? 'active' : '' }}"
+                   style="--nav-tint:#34d399; --nav-tint-soft:rgba(52,211,153,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-stream"></i></div>
+                    <span class="nav-label">Feed</span>
+                    <span class="sidebar-tooltip">Feed</span>
+                </a>
+
+                {{-- ========== MARKETING ========== --}}
+                <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Marketing</div>
+
+                <a href="{{ route('user.social-proofs.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.social-proofs.*') ? 'active' : '' }}"
+                   style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-bell"></i></div>
+                    <span class="nav-label">Buzz</span>
+                    <span class="sidebar-tooltip">Buzz</span>
+                </a>
+                <a href="{{ route('user.pixels.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.pixels.*') ? 'active' : '' }}"
+                   style="--nav-tint:#ec4899; --nav-tint-soft:rgba(236,72,153,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-bullseye"></i></div>
+                    <span class="nav-label">Tracking</span>
+                    <span class="sidebar-tooltip">Tracking</span>
+                </a>
+                <a href="{{ route('user.social-accounts.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.social-accounts.*') ? 'active' : '' }}"
+                   style="--nav-tint:#ec4899; --nav-tint-soft:rgba(236,72,153,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-share-nodes"></i></div>
+                    <span class="nav-label">Connected Accounts</span>
+                    <span class="sidebar-tooltip">Connected Accounts</span>
+                </a>
                 <a href="{{ route('user.integrations.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.integrations.*') ? 'active' : '' }}"
                    style="--nav-tint:#10b981; --nav-tint-soft:rgba(16,185,129,0.12);">
@@ -532,13 +611,17 @@
                     <span class="nav-label">Integrations</span>
                     <span class="sidebar-tooltip">Integrations</span>
                 </a>
-                <a href="{{ route('user.social-accounts.index') }}"
-                   class="sidebar-link {{ request()->routeIs('user.social-accounts.*') ? 'active' : '' }}"
-                   style="--nav-tint:#ec4899; --nav-tint-soft:rgba(236,72,153,0.12);">
-                    <div class="nav-icon-wrap"><i class="fas fa-share-nodes"></i></div>
-                    <span class="nav-label">Connected accounts</span>
-                    <span class="sidebar-tooltip">Connected accounts</span>
+                <a href="{{ route('user.referrals.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.referrals.*') ? 'active' : '' }}"
+                   style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-gift"></i></div>
+                    <span class="nav-label">Referrals</span>
+                    <span class="sidebar-tooltip">Referrals</span>
                 </a>
+
+                {{-- ========== CALENDAR ========== --}}
+                <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Calendar</div>
+
                 <a href="{{ route('user.events.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.events.*') ? 'active' : '' }}"
                    style="--nav-tint:#a78bfa; --nav-tint-soft:rgba(167,139,250,0.12);">
@@ -554,7 +637,8 @@
                     <span class="sidebar-tooltip">Calendar Sync</span>
                 </a>
 
-                <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Manage</div>
+                {{-- ========== WORKSPACE ========== --}}
+                <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Workspace</div>
 
                 <a href="{{ route('user.projects.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.projects.*') ? 'active' : '' }}"
@@ -563,20 +647,6 @@
                     <span class="nav-label">Projects</span>
                     <span class="sidebar-tooltip">Projects</span>
                 </a>
-                <a href="{{ route('user.pixels.index') }}"
-                   class="sidebar-link {{ request()->routeIs('user.pixels.*') ? 'active' : '' }}"
-                   style="--nav-tint:#ec4899; --nav-tint-soft:rgba(236,72,153,0.12);">
-                    <div class="nav-icon-wrap"><i class="fas fa-bullseye"></i></div>
-                    <span class="nav-label">Tracking</span>
-                    <span class="sidebar-tooltip">Tracking</span>
-                </a>
-                <a href="{{ route('user.social-proofs.index') }}"
-                   class="sidebar-link {{ request()->routeIs('user.social-proofs.*') ? 'active' : '' }}"
-                   style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">
-                    <div class="nav-icon-wrap"><i class="fas fa-bell"></i></div>
-                    <span class="nav-label">Buzz</span>
-                    <span class="sidebar-tooltip">Buzz</span>
-                </a>
                 <a href="{{ route('user.files.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.files.*') ? 'active' : '' }}"
                    style="--nav-tint:#06b6d4; --nav-tint-soft:rgba(6,182,212,0.12);">
@@ -584,32 +654,27 @@
                     <span class="nav-label">My Files</span>
                     <span class="sidebar-tooltip">Files</span>
                 </a>
-                <a href="{{ route('user.subscribers.index') }}"
-                   class="sidebar-link {{ request()->routeIs('user.subscribers.*') ? 'active' : '' }}"
-                   style="--nav-tint:#14b8a6; --nav-tint-soft:rgba(20,184,166,0.12);">
-                    <div class="nav-icon-wrap"><i class="fas fa-users"></i></div>
-                    <span class="nav-label">Leads</span>
-                    <span class="sidebar-tooltip">Leads</span>
-                </a>
-                <a href="{{ route('user.inbox.index') }}"
-                   class="sidebar-link {{ request()->routeIs('user.inbox.*') ? 'active' : '' }}"
-                   style="--nav-tint:#0ea5e9; --nav-tint-soft:rgba(14,165,233,0.12);">
-                    <div class="nav-icon-wrap"><i class="fas fa-inbox"></i></div>
-                    <span class="nav-label">Inbox
-                        @php $__inboxUnread = (new \App\Modules\User\Services\InboxAggregator(auth()->id()))->unreadCount(); @endphp
-                        @if($__inboxUnread)<span class="ml-1 inline-block px-1.5 rounded-full text-[10px] bg-violet-500 text-white">{{ $__inboxUnread > 99 ? '99+' : $__inboxUnread }}</span>@endif
-                    </span>
-                    <span class="sidebar-tooltip">Unified Inbox</span>
-                </a>
+
+                {{-- ========== ACCOUNT ========== --}}
+                <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Account</div>
+
                 <a href="{{ route('user.verification.index') }}"
-                   class="sidebar-link {{ request()->routeIs('user.verification.*') ? 'active' : '' }}"
+                   class="sidebar-link {{ request()->routeIs('user.verification.*') && !request()->routeIs('user.verification.admin*') ? 'active' : '' }}"
                    style="--nav-tint:#3b82f6; --nav-tint-soft:rgba(59,130,246,0.12);">
                     <div class="nav-icon-wrap"><i class="fas fa-check-circle"></i></div>
                     <span class="nav-label">Verification</span>
                     <span class="sidebar-tooltip">Verification</span>
                 </a>
+                <a href="{{ route('user.profile.edit') }}"
+                   class="sidebar-link {{ request()->routeIs('user.profile.*') ? 'active' : '' }}"
+                   style="--nav-tint:#a78bfa; --nav-tint-soft:rgba(167,139,250,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-user-circle"></i></div>
+                    <span class="nav-label">Profile</span>
+                    <span class="sidebar-tooltip">Profile</span>
+                </a>
 
                 @if(auth()->user()->isSuperAdmin())
+                {{-- ========== SUPER ADMIN ========== --}}
                 <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Super Admin</div>
 
                 <a href="{{ route('user.plans.index') }}"
@@ -627,58 +692,6 @@
                     <span class="sidebar-tooltip">Verify Requests</span>
                 </a>
                 @endif
-
-                <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Community</div>
-
-                <a href="{{ route('feed.index') }}"
-                   class="sidebar-link {{ request()->routeIs('user.feed.*') ? 'active' : '' }}"
-                   style="--nav-tint:#34d399; --nav-tint-soft:rgba(52,211,153,0.12);">
-                    <div class="nav-icon-wrap"><i class="fas fa-stream"></i></div>
-                    <span class="nav-label">Feed</span>
-                    <span class="sidebar-tooltip">Feed</span>
-                </a>
-                <a href="{{ route('user.notifications.index') }}"
-                   class="sidebar-link {{ request()->routeIs('user.notifications.*') ? 'active' : '' }}"
-                   style="--nav-tint:#fbbf24; --nav-tint-soft:rgba(251,191,36,0.12);">
-                    <div class="nav-icon-wrap"><i class="fas fa-bell"></i></div>
-                    <span class="nav-label">Notifications
-                        @php $__unread = \App\Modules\User\Models\UserNotification::where('user_id', auth()->id())->whereNull('read_at')->count(); @endphp
-                        @if($__unread)<span class="ml-1 inline-block px-1.5 rounded-full text-[10px] bg-rose-500 text-white">{{ $__unread }}</span>@endif
-                    </span>
-                    <span class="sidebar-tooltip">Notifications</span>
-                </a>
-                <a href="{{ route('user.posts.index') }}"
-                   class="sidebar-link {{ request()->routeIs('user.posts.*') ? 'active' : '' }}"
-                   style="--nav-tint:#60a5fa; --nav-tint-soft:rgba(96,165,250,0.12);">
-                    <div class="nav-icon-wrap"><i class="fas fa-pen-to-square"></i></div>
-                    <span class="nav-label">My Posts</span>
-                    <span class="sidebar-tooltip">My Posts</span>
-                </a>
-                <a href="{{ route('user.followers.index') }}"
-                   class="sidebar-link {{ request()->routeIs('user.followers.*') || request()->routeIs('user.following.*') ? 'active' : '' }}"
-                   style="--nav-tint:#f472b6; --nav-tint-soft:rgba(244,114,182,0.12);">
-                    <div class="nav-icon-wrap"><i class="fas fa-user-group"></i></div>
-                    <span class="nav-label">Followers</span>
-                    <span class="sidebar-tooltip">Followers</span>
-                </a>
-
-                <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Account</div>
-
-                <a href="{{ route('user.referrals.index') }}"
-                   class="sidebar-link {{ request()->routeIs('user.referrals.*') ? 'active' : '' }}"
-                   style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
-                    <div class="nav-icon-wrap"><i class="fas fa-gift"></i></div>
-                    <span class="nav-label">Referrals</span>
-                    <span class="sidebar-tooltip">Referrals</span>
-                </a>
-
-                <a href="{{ route('user.profile.edit') }}"
-                   class="sidebar-link {{ request()->routeIs('user.profile.*') ? 'active' : '' }}"
-                   style="--nav-tint:#a78bfa; --nav-tint-soft:rgba(167,139,250,0.12);">
-                    <div class="nav-icon-wrap"><i class="fas fa-user-circle"></i></div>
-                    <span class="nav-label">Profile</span>
-                    <span class="sidebar-tooltip">Profile</span>
-                </a>
             </nav>
 
             <div class="mx-3 mb-3" x-show="sidebarMode === 'full'" x-cloak x-transition.opacity>
@@ -812,25 +825,60 @@
                         <button @click="mobileMenu = false" class="p-1.5 rounded-lg" style="color: var(--text-muted);"><i class="fas fa-times text-sm"></i></button>
                     </div>
                     <nav class="flex-1 py-4 px-3 space-y-0.5 overflow-y-auto">
+                        {{-- Overview --}}
                         <a href="{{ route('user.dashboard') }}" class="sidebar-link {{ request()->routeIs('user.dashboard') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-house"></i></div> <span>Dashboard</span></a>
-                        <a href="{{ route('user.links.index') }}" class="sidebar-link {{ request()->routeIs('user.links.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-link"></i></div> <span>All Links</span></a>
-                        <a href="{{ route('user.links.create') }}" class="sidebar-link"><div class="nav-icon-wrap"><i class="fas fa-plus-circle"></i></div> <span>Create Link</span></a>
-                        <a href="{{ route('user.qrcode') }}" class="sidebar-link {{ request()->routeIs('user.qrcode*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-qrcode"></i></div> <span>QR Codes</span></a>
-                        <a href="{{ route('user.projects.index') }}" class="sidebar-link {{ request()->routeIs('user.projects.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-folder"></i></div> <span>Projects</span></a>
-                        <a href="{{ route('user.pixels.index') }}" class="sidebar-link {{ request()->routeIs('user.pixels.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bullseye"></i></div> <span>Tracking</span></a>
-                        <a href="{{ route('user.social-proofs.index') }}" class="sidebar-link {{ request()->routeIs('user.social-proofs.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bell"></i></div> <span>Buzz</span></a>
-                        <a href="{{ route('user.files.index') }}" class="sidebar-link {{ request()->routeIs('user.files.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-cloud-upload-alt"></i></div> <span>My Files</span></a>
+                        <a href="{{ route('user.notifications.index') }}" class="sidebar-link {{ request()->routeIs('user.notifications.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bell"></i></div> <span>Notifications
+                            @php $__mUnread = \App\Modules\User\Models\UserNotification::where('user_id', auth()->id())->whereNull('read_at')->count(); @endphp
+                            @if($__mUnread)<span class="ml-1 inline-block px-1.5 rounded-full text-[10px] bg-rose-500 text-white">{{ $__mUnread }}</span>@endif
+                        </span></a>
+
+                        {{-- Links & Pages --}}
+                        <p class="pt-3 px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Links &amp; Pages</p>
+                        <a href="{{ route('user.links.index') }}" class="sidebar-link {{ request()->routeIs('user.links.index') || request()->routeIs('user.links.show') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-link"></i></div> <span>All Links</span></a>
+                        <a href="{{ route('user.links.create') }}" class="sidebar-link {{ request()->routeIs('user.links.create') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-plus-circle"></i></div> <span>Create Link</span></a>
+                        <a href="{{ route('user.qr-codes.index') }}" class="sidebar-link {{ request()->routeIs('user.qr-codes.*') || request()->routeIs('user.qrcode*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-qrcode"></i></div> <span>QR Codes</span></a>
+                        <a href="{{ route('user.forms.index') }}" class="sidebar-link {{ request()->routeIs('user.forms.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-clipboard-list"></i></div> <span>Forms</span></a>
+                        <a href="{{ route('user.splash-pages.index') }}" class="sidebar-link {{ request()->routeIs('user.splash-pages.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-rocket"></i></div> <span>Intros</span></a>
+
+                        {{-- Audience --}}
+                        <p class="pt-3 px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Audience</p>
+                        <a href="{{ route('user.inbox.index') }}" class="sidebar-link {{ request()->routeIs('user.inbox.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-inbox"></i></div> <span>Inbox
+                            @php $__mInbox = (new \App\Modules\User\Services\InboxAggregator(auth()->id()))->unreadCount(); @endphp
+                            @if($__mInbox)<span class="ml-1 inline-block px-1.5 rounded-full text-[10px] bg-violet-500 text-white">{{ $__mInbox > 99 ? '99+' : $__mInbox }}</span>@endif
+                        </span></a>
                         <a href="{{ route('user.subscribers.index') }}" class="sidebar-link {{ request()->routeIs('user.subscribers.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-users"></i></div> <span>Leads</span></a>
-                        <a href="{{ route('user.verification.index') }}" class="sidebar-link {{ request()->routeIs('user.verification.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-check-circle"></i></div> <span>Verification</span></a>
-                        @if(auth()->user()->isSuperAdmin())
-                        <div class="pt-3 mt-2" style="border-top: 1px solid var(--border-subtle);">
-                            <p class="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Super Admin</p>
-                            <a href="{{ route('user.plans.index') }}" class="sidebar-link {{ request()->routeIs('user.plans.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-layer-group"></i></div> <span>Plans</span></a>
-                            <a href="{{ route('user.verification.admin') }}" class="sidebar-link {{ request()->routeIs('user.verification.admin*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-check"></i></div> <span>Verify Requests</span></a>
-                        </div>
-                        @endif
+                        <a href="{{ route('user.followers.index') }}" class="sidebar-link {{ request()->routeIs('user.followers.*') || request()->routeIs('user.following.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-group"></i></div> <span>Followers</span></a>
+                        <a href="{{ route('user.posts.index') }}" class="sidebar-link {{ request()->routeIs('user.posts.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-pen-to-square"></i></div> <span>My Posts</span></a>
+                        <a href="{{ route('feed.index') }}" class="sidebar-link {{ request()->routeIs('user.feed.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-stream"></i></div> <span>Feed</span></a>
+
+                        {{-- Marketing --}}
+                        <p class="pt-3 px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Marketing</p>
+                        <a href="{{ route('user.social-proofs.index') }}" class="sidebar-link {{ request()->routeIs('user.social-proofs.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bell"></i></div> <span>Buzz</span></a>
+                        <a href="{{ route('user.pixels.index') }}" class="sidebar-link {{ request()->routeIs('user.pixels.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bullseye"></i></div> <span>Tracking</span></a>
+                        <a href="{{ route('user.social-accounts.index') }}" class="sidebar-link {{ request()->routeIs('user.social-accounts.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-share-nodes"></i></div> <span>Connected Accounts</span></a>
+                        <a href="{{ route('user.integrations.index') }}" class="sidebar-link {{ request()->routeIs('user.integrations.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-plug"></i></div> <span>Integrations</span></a>
                         <a href="{{ route('user.referrals.index') }}" class="sidebar-link {{ request()->routeIs('user.referrals.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-gift"></i></div> <span>Referrals</span></a>
+
+                        {{-- Calendar --}}
+                        <p class="pt-3 px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Calendar</p>
+                        <a href="{{ route('user.events.index') }}" class="sidebar-link {{ request()->routeIs('user.events.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-calendar-day"></i></div> <span>Events</span></a>
+                        <a href="{{ route('user.calendar.index') }}" class="sidebar-link {{ request()->routeIs('user.calendar.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-calendar-alt"></i></div> <span>Calendar Sync</span></a>
+
+                        {{-- Workspace --}}
+                        <p class="pt-3 px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Workspace</p>
+                        <a href="{{ route('user.projects.index') }}" class="sidebar-link {{ request()->routeIs('user.projects.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-folder"></i></div> <span>Projects</span></a>
+                        <a href="{{ route('user.files.index') }}" class="sidebar-link {{ request()->routeIs('user.files.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-cloud-upload-alt"></i></div> <span>My Files</span></a>
+
+                        {{-- Account --}}
+                        <p class="pt-3 px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Account</p>
+                        <a href="{{ route('user.verification.index') }}" class="sidebar-link {{ request()->routeIs('user.verification.*') && !request()->routeIs('user.verification.admin*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-check-circle"></i></div> <span>Verification</span></a>
                         <a href="{{ route('user.profile.edit') }}" class="sidebar-link {{ request()->routeIs('user.profile.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-circle"></i></div> <span>Profile</span></a>
+
+                        @if(auth()->user()->isSuperAdmin())
+                        <p class="pt-3 px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Super Admin</p>
+                        <a href="{{ route('user.plans.index') }}" class="sidebar-link {{ request()->routeIs('user.plans.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-layer-group"></i></div> <span>Plans</span></a>
+                        <a href="{{ route('user.verification.admin') }}" class="sidebar-link {{ request()->routeIs('user.verification.admin*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-check"></i></div> <span>Verify Requests</span></a>
+                        @endif
                     </nav>
                     <div class="p-3" style="border-top: 1px solid var(--border-subtle);">
                         <div class="flex items-center gap-2 mb-2">
