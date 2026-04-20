@@ -112,15 +112,10 @@ class PlansAndAddonsSeeder extends Seeder
             }
         }
 
-        // Mirror INR amounts into the legacy `*_secondary` columns so the
-        // admin dual-currency editor prefills correctly. Otherwise a curator
-        // opening the edit form would see INR blank, then save would
-        // (per upsertFromMajor's "blank means clear") wipe the INR row.
-        // Only fill when missing, never overwrite curator edits.
-        // Use strict null check (NOT empty()) so a curator-set 0 INR
-        // price is preserved on reseed instead of being overwritten with
-        // the derived default. empty(0) === true, which would clobber
-        // intentional zero pricing.
+        // Mirror INR amounts into the legacy `*_secondary` decimal columns
+        // so the admin edit form's prefill (which still reads those legacy
+        // columns) is correct on first open. Strict null check preserves a
+        // curator-set 0 INR price on reseed.
         $patch = [];
         if ($model->monthly_price_secondary === null) {
             $patch['monthly_price_secondary'] = $rows[2][2]; // INR monthly

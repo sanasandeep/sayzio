@@ -24,12 +24,17 @@ class HomeController extends Controller
             ->take(3)
             ->get()
             ->map(function ($p) use ($user) {
+                // Resolve once; derive "free" purely from the resolved
+                // amount in the visitor's currency, NOT the legacy USD
+                // column. Otherwise a plan priced ₹0 (free in INR) but
+                // $4.99 (paid in USD) would render inconsistently.
+                $monthly = PricingResolver::priceFor($p, $user, 'monthly');
                 return [
                     'name'        => $p->name,
                     'description' => $p->description,
                     'features'    => $p->features ?? [],
-                    'is_free'     => (float) $p->monthly_price <= 0,
-                    'monthly'     => PricingResolver::priceFor($p, $user, 'monthly'),
+                    'is_free'     => $monthly['amount_minor'] <= 0,
+                    'monthly'     => $monthly,
                 ];
             });
 
