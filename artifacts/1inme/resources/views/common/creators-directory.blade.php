@@ -82,13 +82,54 @@
                     @php($buzz = $buzzSnippets[$creator->id] ?? null)
                     @if($buzz)
                         <div class="mt-3 relative inline-block max-w-full"
-                             x-data="{ open: false, tapped: false }"
-                             @mouseenter="open = true"
-                             @mouseleave="open = false">
+                             x-data="{
+                                open: false,
+                                tapped: false,
+                                placement: 'top-left',
+                                _onWin: null,
+                                updatePlacement() {
+                                    this.$nextTick(() => {
+                                        const anchor = this.$refs.anchor;
+                                        if (!anchor) return;
+                                        const rect = anchor.getBoundingClientRect();
+                                        const tip = this.$refs.tooltip;
+                                        const tooltipW = tip ? tip.offsetWidth || 256 : 256;
+                                        const tooltipH = tip ? tip.offsetHeight || 110 : 110;
+                                        const margin = 8;
+                                        const vw = window.innerWidth || document.documentElement.clientWidth;
+                                        const vh = window.innerHeight || document.documentElement.clientHeight;
+                                        const spaceAbove = rect.top;
+                                        const spaceBelow = vh - rect.bottom;
+                                        const vertical = (spaceAbove < tooltipH + margin && spaceBelow > spaceAbove) ? 'bottom' : 'top';
+                                        const horizontal = (rect.left + tooltipW + margin > vw) ? 'right' : 'left';
+                                        this.placement = vertical + '-' + horizontal;
+                                    });
+                                },
+                                show() {
+                                    this.open = true;
+                                    this.updatePlacement();
+                                    if (!this._onWin) {
+                                        this._onWin = () => this.updatePlacement();
+                                        window.addEventListener('resize', this._onWin, { passive: true });
+                                        window.addEventListener('scroll', this._onWin, { passive: true, capture: true });
+                                    }
+                                },
+                                hide() {
+                                    this.open = false;
+                                    if (this._onWin) {
+                                        window.removeEventListener('resize', this._onWin);
+                                        window.removeEventListener('scroll', this._onWin, { capture: true });
+                                        this._onWin = null;
+                                    }
+                                }
+                             }"
+                             @mouseenter="show()"
+                             @mouseleave="hide()">
                             <a href="{{ $href }}"
-                               @focus="open = true"
-                               @blur="open = false"
-                               @click="if (!tapped && window.matchMedia && window.matchMedia('(hover: none)').matches) { $event.preventDefault(); open = true; tapped = true; setTimeout(() => { tapped = false; open = false; }, 4000); }"
+                               x-ref="anchor"
+                               @focus="show()"
+                               @blur="hide()"
+                               @click="if (!tapped && window.matchMedia && window.matchMedia('(hover: none)').matches) { $event.preventDefault(); show(); tapped = true; setTimeout(() => { tapped = false; hide(); }, 4000); }"
                                class="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-violet-50 text-violet-700 hover:bg-violet-100 text-[11px] font-semibold max-w-full transition-colors"
                                :aria-expanded="open ? 'true' : 'false'"
                                aria-describedby="buzz-preview-{{ $creator->id }}">
@@ -96,11 +137,18 @@
                                 <span class="truncate">{{ $buzz['text'] }}</span>
                             </a>
                             <div x-show="open"
+                                 x-ref="tooltip"
                                  x-transition.opacity.duration.150ms
                                  x-cloak
                                  id="buzz-preview-{{ $creator->id }}"
                                  role="tooltip"
-                                 class="absolute z-30 bottom-full left-0 mb-2 w-64 p-3 rounded-xl bg-white shadow-xl border border-slate-200 text-left pointer-events-none">
+                                 :class="{
+                                    'bottom-full mb-2': placement.startsWith('top'),
+                                    'top-full mt-2': placement.startsWith('bottom'),
+                                    'left-0': placement.endsWith('left'),
+                                    'right-0': placement.endsWith('right')
+                                 }"
+                                 class="absolute z-30 w-64 p-3 rounded-xl bg-white shadow-xl border border-slate-200 text-left pointer-events-none">
                                 <div class="flex items-start gap-2">
                                     <div class="w-8 h-8 rounded-lg bg-violet-100 text-violet-700 flex items-center justify-center flex-shrink-0">
                                         <i class="fas {{ $buzz['icon'] }} text-xs"></i>
