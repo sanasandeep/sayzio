@@ -39,42 +39,54 @@
                   class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">{{ old('description', $addon->description) }}</textarea>
     </div>
 
-    <div class="grid grid-cols-3 gap-4">
-        <div>
-            <label class="block text-sm font-medium text-white/80 mb-1">Type</label>
-            <select name="type" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
-                @foreach(\App\Modules\Admin\Models\Addon::TYPES as $t)
-                    <option value="{{ $t }}" {{ old('type', $addon->type) === $t ? 'selected' : '' }}>{{ ucfirst(str_replace('_',' ',$t)) }}</option>
-                @endforeach
-            </select>
-        </div>
-        <div>
-            <label class="block text-sm font-medium text-white/80 mb-1">Monthly Price (USD)</label>
-            <input type="number" name="monthly_price" step="0.01" min="0" required
-                   value="{{ old('monthly_price', $addon->monthly_price) }}"
-                   class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
-        </div>
-        <div>
-            <label class="block text-sm font-medium text-white/80 mb-1">Annual Price (USD)</label>
-            <input type="number" name="annual_price" step="0.01" min="0" required
-                   value="{{ old('annual_price', $addon->annual_price) }}"
-                   class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
-        </div>
+    <div>
+        <label class="block text-sm font-medium text-white/80 mb-1">Type</label>
+        <select name="type" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+            @foreach(\App\Modules\Admin\Models\Addon::TYPES as $t)
+                <option value="{{ $t }}" {{ old('type', $addon->type) === $t ? 'selected' : '' }}>{{ ucfirst(str_replace('_',' ',$t)) }}</option>
+            @endforeach
+        </select>
     </div>
 
-    <div class="grid grid-cols-2 gap-4">
-        <div>
-            <label class="block text-sm font-medium text-white/80 mb-1">Monthly Price (secondary, e.g. INR)</label>
-            <input type="number" name="monthly_price_secondary" step="0.01" min="0"
-                   value="{{ old('monthly_price_secondary', $addon->monthly_price_secondary) }}"
-                   class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
-            <p class="text-[11px] text-white/30 mt-1">Optional. Country-based selection lands in the next billing task.</p>
-        </div>
-        <div>
-            <label class="block text-sm font-medium text-white/80 mb-1">Annual Price (secondary)</label>
-            <input type="number" name="annual_price_secondary" step="0.01" min="0"
-                   value="{{ old('annual_price_secondary', $addon->annual_price_secondary) }}"
-                   class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+    <div class="border-t border-white/10 pt-5">
+        <h3 class="text-sm font-medium text-white/80 mb-1">Pricing per country</h3>
+        <p class="text-[11px] text-white/40 mb-3">USD is shown to everyone by default. INR is shown to users whose billing country is India. The two amounts are independent — no FX conversion.</p>
+        <div class="grid grid-cols-2 gap-6">
+            <div class="rounded-xl border border-white/10 p-4 bg-white/[0.02]">
+                <div class="text-xs uppercase tracking-wider text-white/50 mb-3">USD <span class="text-white/30 normal-case">— everyone outside India</span></div>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-xs text-white/40 mb-1">Monthly (USD)</label>
+                        <input type="number" name="monthly_price" step="0.01" min="0" required
+                               value="{{ old('monthly_price', $addon->monthly_price) }}"
+                               class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-white/40 mb-1">Annual (USD)</label>
+                        <input type="number" name="annual_price" step="0.01" min="0" required
+                               value="{{ old('annual_price', $addon->annual_price) }}"
+                               class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
+                    </div>
+                </div>
+            </div>
+            <div class="rounded-xl border border-white/10 p-4 bg-white/[0.02]">
+                <div class="text-xs uppercase tracking-wider text-white/50 mb-3">INR <span class="text-white/30 normal-case">— users in India</span></div>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-xs text-white/40 mb-1">Monthly (INR)</label>
+                        <input type="number" name="monthly_price_secondary" step="0.01" min="0"
+                               value="{{ old('monthly_price_secondary', $addon->monthly_price_secondary) }}"
+                               class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-white/40 mb-1">Annual (INR)</label>
+                        <input type="number" name="annual_price_secondary" step="0.01" min="0"
+                               value="{{ old('annual_price_secondary', $addon->annual_price_secondary) }}"
+                               class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
+                    </div>
+                </div>
+                <p class="text-[10px] text-white/30 mt-2">Leave blank to fall back to USD for Indian users.</p>
+            </div>
         </div>
     </div>
 

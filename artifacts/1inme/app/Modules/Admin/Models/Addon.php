@@ -2,6 +2,7 @@
 
 namespace App\Modules\Admin\Models;
 
+use App\Modules\Admin\Models\Price;
 use Illuminate\Database\Eloquent\Model;
 
 class Addon extends Model
@@ -27,6 +28,11 @@ class Addon extends Model
     }
 
     public const TYPES = ['recurring', 'one_time', 'metered'];
+
+    public function prices()
+    {
+        return $this->morphMany(Price::class, 'priceable');
+    }
 
     public function plans()
     {

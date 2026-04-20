@@ -59,6 +59,39 @@
                            class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500/40 outline-none transition-all">
                 </div>
 
+                <div>
+                    <label class="block text-sm font-medium text-white/60 mb-1.5">Billing country</label>
+                    @php
+                        $countries = [
+                            '' => '— Not set (defaults to USD pricing)',
+                            'IN' => 'India (₹ INR)',
+                            'US' => 'United States ($ USD)',
+                            'GB' => 'United Kingdom ($ USD)',
+                            'CA' => 'Canada ($ USD)',
+                            'AU' => 'Australia ($ USD)',
+                            'DE' => 'Germany ($ USD)',
+                            'FR' => 'France ($ USD)',
+                            'NL' => 'Netherlands ($ USD)',
+                            'SG' => 'Singapore ($ USD)',
+                            'AE' => 'United Arab Emirates ($ USD)',
+                            'BR' => 'Brazil ($ USD)',
+                            'MX' => 'Mexico ($ USD)',
+                            'JP' => 'Japan ($ USD)',
+                            'OTHER' => 'Other (everywhere else, $ USD)',
+                        ];
+                    @endphp
+                    <select name="country" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                        @foreach($countries as $code => $label)
+                            @if($code === 'OTHER')
+                                @continue
+                            @endif
+                            <option value="{{ $code }}" {{ old('country', $user->country) === $code ? 'selected' : '' }} class="bg-[#0d0818]">{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    <p class="text-[11px] text-white/30 mt-1">Used to determine which currency you'll be billed in. Switching country updates your next invoice's currency.</p>
+                    @error('country')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
+                </div>
+
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-white/60 mb-1.5">Timezone</label>

@@ -131,7 +131,16 @@ class ProfileController extends Controller
             'bio' => 'nullable|string|max:500',
             'avatar' => 'nullable|image|max:2048',
             'persona' => ['nullable', 'string', \Illuminate\Validation\Rule::in(\App\Modules\User\Services\PersonaCatalog::slugs())],
+            'country' => ['nullable', 'string', 'size:2', 'regex:/^[A-Za-z]{2}$/'],
         ]);
+
+        // Normalize ISO country code to uppercase for the
+        // country_currency lookup. Empty string means "no country set".
+        if (!empty($validated['country'])) {
+            $validated['country'] = strtoupper($validated['country']);
+        } else {
+            $validated['country'] = null;
+        }
 
         if ($request->hasFile('avatar')) {
             $validated['avatar'] = '/storage/' . $request->file('avatar')->store('avatars', 'public');

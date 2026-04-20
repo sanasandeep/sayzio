@@ -5,6 +5,7 @@ namespace App\Modules\Admin\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\Addon;
 use App\Modules\Admin\Models\Plan;
+use App\Services\PricingResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -31,6 +32,7 @@ class AddonController extends Controller
 
         $addon = Addon::create($data);
         $addon->plans()->sync($planIds);
+        $this->syncPriceTable($addon, $data);
 
         return redirect()->route('admin.addons.index')
             ->with('success', 'Addon created successfully.');
@@ -51,6 +53,7 @@ class AddonController extends Controller
 
         $addon->update($data);
         $addon->plans()->sync($planIds);
+        $this->syncPriceTable($addon, $data);
 
         return redirect()->route('admin.addons.index')
             ->with('success', 'Addon updated successfully.');
@@ -99,6 +102,15 @@ class AddonController extends Controller
             }
         }
         return $data;
+    }
+
+    /** Mirror legacy decimal columns into the polymorphic `prices` table. */
+    private function syncPriceTable(Addon $addon, array $v): void
+    {
+        PricingResolver::upsertFromMajor($addon, 'USD', 'monthly', $v['monthly_price'] ?? null);
+        PricingResolver::upsertFromMajor($addon, 'USD', 'annual',  $v['annual_price']  ?? null);
+        PricingResolver::upsertFromMajor($addon, 'INR', 'monthly', $v['monthly_price_secondary'] ?? null);
+        PricingResolver::upsertFromMajor($addon, 'INR', 'annual',  $v['annual_price_secondary']  ?? null);
     }
 
     private function uniqueSlug(string $name): string

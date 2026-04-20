@@ -20,6 +20,7 @@ class User extends Authenticatable
         'followers_count', 'allow_followers',
         'referral_code', 'referrer_id', 'referral_code_used',
         'social_connection_broken_emails',
+        'country',
     ];
 
     protected $hidden = ['password', 'remember_token'];

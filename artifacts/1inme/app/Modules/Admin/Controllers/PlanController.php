@@ -5,6 +5,7 @@ namespace App\Modules\Admin\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\Addon;
 use App\Modules\Admin\Models\Plan;
+use App\Services\PricingResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -50,6 +51,7 @@ class PlanController extends Controller
 
         $plan = Plan::create($validated);
         $plan->addons()->sync($addonIds);
+        $this->syncPriceTable($plan, $validated);
 
         return redirect()->route('admin.plans.index')->with('success', 'Plan created successfully.');
     }
@@ -69,6 +71,7 @@ class PlanController extends Controller
 
         $plan->update($validated);
         $plan->addons()->sync($addonIds);
+        $this->syncPriceTable($plan, $validated);
 
         return redirect()->route('admin.plans.index')->with('success', 'Plan updated successfully.');
     }
@@ -110,6 +113,20 @@ class PlanController extends Controller
 
         $plan->delete();
         return redirect()->route('admin.plans.index')->with('success', 'Plan deleted successfully.');
+    }
+
+    /**
+     * Mirror the legacy decimal price columns into the polymorphic
+     * `prices` table so the `PricingResolver` (Task #191) is the single
+     * source of truth going forward. The legacy columns stay populated
+     * for backward compatibility until the post-billing cleanup pass.
+     */
+    private function syncPriceTable(Plan $plan, array $v): void
+    {
+        PricingResolver::upsertFromMajor($plan, 'USD', 'monthly', $v['monthly_price'] ?? null);
+        PricingResolver::upsertFromMajor($plan, 'USD', 'annual',  $v['annual_price']  ?? null);
+        PricingResolver::upsertFromMajor($plan, 'INR', 'monthly', $v['monthly_price_secondary'] ?? null);
+        PricingResolver::upsertFromMajor($plan, 'INR', 'annual',  $v['annual_price_secondary']  ?? null);
     }
 
     private function defaultFeatures(): array

@@ -4,6 +4,8 @@ namespace Database\Seeders;
 
 use App\Modules\Admin\Models\Addon;
 use App\Modules\Admin\Models\Plan;
+use App\Modules\Admin\Models\Price;
+use App\Services\PricingResolver;
 use Illuminate\Database\Seeder;
 
 /**
@@ -34,6 +36,12 @@ class PlansAndAddonsSeeder extends Seeder
             } else {
                 Plan::create($def);
             }
+
+            // Make sure the polymorphic `prices` table has rows for both
+            // currencies. Seeder only fills missing rows so curator edits
+            // in /admin/plans are never overwritten.
+            $plan = Plan::where('slug', $def['slug'])->first();
+            $this->seedPrices($plan, (float) $def['monthly_price'], (float) $def['annual_price']);
         }
 
         foreach ($this->addonDefinitions() as $def) {
@@ -69,6 +77,54 @@ class PlansAndAddonsSeeder extends Seeder
                     $addon->plans()->syncWithoutDetaching($planIds);
                 }
             }
+
+            $this->seedPrices($addon, (float) $def['monthly_price'], (float) $def['annual_price']);
+        }
+    }
+
+    /**
+     * Idempotently fill USD + INR rows in the polymorphic `prices` table.
+     * INR defaults are derived from USD using a flat multiplier — admins
+     * can override per-row via the dual-currency editor in the admin UI.
+     * Existing rows (curator edits) are never overwritten.
+     */
+    private function seedPrices($model, float $usdMonthly, float $usdAnnual): void
+    {
+        if (!$model) return;
+        $inrPerUsd = 83.0;
+
+        $rows = [
+            ['USD', 'monthly', $usdMonthly],
+            ['USD', 'annual',  $usdAnnual],
+            ['INR', 'monthly', $usdMonthly > 0 ? round($usdMonthly * $inrPerUsd) : 0],
+            ['INR', 'annual',  $usdAnnual  > 0 ? round($usdAnnual  * $inrPerUsd) : 0],
+        ];
+
+        foreach ($rows as [$currency, $cycle, $major]) {
+            $exists = Price::where('priceable_type', get_class($model))
+                ->where('priceable_id', $model->getKey())
+                ->where('currency', $currency)
+                ->where('billing_cycle', $cycle)
+                ->exists();
+            if (!$exists) {
+                PricingResolver::upsertFromMajor($model, $currency, $cycle, $major);
+            }
+        }
+
+        // Mirror INR amounts into the legacy `*_secondary` columns so the
+        // admin dual-currency editor prefills correctly. Otherwise a curator
+        // opening the edit form would see INR blank, then save would
+        // (per upsertFromMajor's "blank means clear") wipe the INR row.
+        // Only fill when missing, never overwrite curator edits.
+        $patch = [];
+        if (empty($model->monthly_price_secondary)) {
+            $patch['monthly_price_secondary'] = $rows[2][2]; // INR monthly
+        }
+        if (empty($model->annual_price_secondary)) {
+            $patch['annual_price_secondary'] = $rows[3][2]; // INR annual
+        }
+        if ($patch) {
+            $model->fill($patch)->save();
         }
     }
 

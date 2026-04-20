@@ -168,10 +168,9 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('links/{link}/blocks/{block}/move', [BiolinkBlockController::class, 'moveBlock'])->name('links.blocks.move');
         Route::post('links/{link}/page-settings', [BiolinkBlockController::class, 'updatePageSettings'])->name('links.page-settings');
 
-        // Plan upgrade prompt destination (used by template lock badges).
-        Route::get('upgrade', function () {
-            return redirect()->route('user.dashboard')->with('info', 'Upgrade your plan to unlock premium templates and features. Contact support to change plans.');
-        })->name('upgrade');
+        // Plan upgrade & pricing — uses PricingResolver for country-based currency.
+        Route::get('upgrade', [\App\Modules\User\Controllers\UpgradeController::class, 'show'])->name('upgrade');
+        Route::post('upgrade/switch-currency', [\App\Modules\User\Controllers\UpgradeController::class, 'switchCurrency'])->name('upgrade.switch-currency');
 
         // Page & card templates (admin-curated presets)
         Route::get('links/{link}/templates', [\App\Modules\User\Controllers\LinkTemplateController::class, 'picker'])->name('links.templates.picker');

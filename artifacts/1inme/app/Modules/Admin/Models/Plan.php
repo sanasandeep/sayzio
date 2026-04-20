@@ -43,6 +43,11 @@ class Plan extends Model
         return $this->belongsToMany(Addon::class, 'addon_plan');
     }
 
+    public function prices()
+    {
+        return $this->morphMany(Price::class, 'priceable');
+    }
+
     public function scopeActive($query)
     {
         return $query->where('status', 'active')->where('is_archived', false);

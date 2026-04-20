@@ -53,6 +53,28 @@
                     </div>
 
                     <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Country</label>
+                        <select name="country" class="theme-input w-full">
+                            <option value="">— Select your country —</option>
+                            <option value="IN" {{ old('country') === 'IN' ? 'selected' : '' }}>India (billed in ₹ INR)</option>
+                            <option value="US" {{ old('country') === 'US' ? 'selected' : '' }}>United States</option>
+                            <option value="GB" {{ old('country') === 'GB' ? 'selected' : '' }}>United Kingdom</option>
+                            <option value="CA" {{ old('country') === 'CA' ? 'selected' : '' }}>Canada</option>
+                            <option value="AU" {{ old('country') === 'AU' ? 'selected' : '' }}>Australia</option>
+                            <option value="DE" {{ old('country') === 'DE' ? 'selected' : '' }}>Germany</option>
+                            <option value="FR" {{ old('country') === 'FR' ? 'selected' : '' }}>France</option>
+                            <option value="NL" {{ old('country') === 'NL' ? 'selected' : '' }}>Netherlands</option>
+                            <option value="SG" {{ old('country') === 'SG' ? 'selected' : '' }}>Singapore</option>
+                            <option value="AE" {{ old('country') === 'AE' ? 'selected' : '' }}>United Arab Emirates</option>
+                            <option value="BR" {{ old('country') === 'BR' ? 'selected' : '' }}>Brazil</option>
+                            <option value="MX" {{ old('country') === 'MX' ? 'selected' : '' }}>Mexico</option>
+                            <option value="JP" {{ old('country') === 'JP' ? 'selected' : '' }}>Japan</option>
+                        </select>
+                        <p class="mt-1 text-[11px]" style="color: var(--text-faint);">Determines your billing currency. India = ₹ INR, everywhere else = $ USD. You can change this later.</p>
+                        @error('country')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                    </div>
+
+                    <div>
                         <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Referral code <span style="color: var(--text-faint);">(optional)</span></label>
                         <input type="text" name="referral_code" id="referral_code_input" value="{{ old('referral_code', $prefilledRef ?? '') }}" maxlength="32" placeholder="friend's code" class="theme-input w-full" autocomplete="off">
                         <p class="mt-1 text-[11px]" id="referral_code_feedback" style="color: var(--text-faint);">If a friend referred you, paste their code to give them credit.</p>

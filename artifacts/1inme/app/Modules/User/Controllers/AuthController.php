@@ -31,8 +31,12 @@ class AuthController extends Controller
             'email' => 'required|email|unique:users,email',
             'mobile' => 'nullable|string|max:20',
             'referral_code' => 'nullable|string|max:32',
+            'country' => ['nullable', 'string', 'size:2', 'regex:/^[A-Za-z]{2}$/'],
         ];
         $validated = $request->validate($rules);
+        if (!empty($validated['country'])) {
+            $validated['country'] = strtoupper($validated['country']);
+        }
 
         // If a referral code was submitted, ensure it resolves to a real user;
         // otherwise drop it silently and fall back to the cookie attribution.
@@ -53,6 +57,7 @@ class AuthController extends Controller
             'plan_id' => $freePlan?->id,
             'status' => 'active',
             'referral_code' => $referrals->generateUniqueCode(),
+            'country' => $validated['country'] ?? null,
         ]);
 
         $cookieCode = $request->cookie(ReferralService::COOKIE_NAME);
