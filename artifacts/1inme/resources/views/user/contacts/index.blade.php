@@ -74,6 +74,50 @@
 
         {{-- Main: list with tabs + search --}}
         <div class="lg:col-span-3">
+            @php
+                // Usage badge colour reflects how close the user is to the
+                // plan cap so the warning stands out without a separate alert.
+                $usageBarColor = $usage['at_cap']
+                    ? 'linear-gradient(135deg,#ef4444,#f97316)'
+                    : ($usage['near_cap']
+                        ? 'linear-gradient(135deg,#f59e0b,#ec4899)'
+                        : 'linear-gradient(135deg,#22d3ee,#7c3aed)');
+            @endphp
+            <div class="card-premium p-4 mb-4">
+                <div class="flex items-center justify-between gap-3 mb-2 flex-wrap">
+                    <div class="text-xs font-semibold flex items-center gap-2" style="color:var(--text-primary);">
+                        <i class="fas fa-database text-cyan-400"></i>
+                        Contacts used
+                        @if($usage['unlimited'])
+                            <span class="ml-1 font-mono" style="color:var(--text-muted);">Unlimited</span>
+                            <span class="ml-1" style="color:var(--text-faint);">({{ number_format($usage['count']) }} contacts)</span>
+                        @else
+                            <span class="ml-1 font-mono" style="color:var(--text-muted);">{{ number_format($usage['count']) }} / {{ number_format($usage['cap']) }} contacts</span>
+                        @endif
+                    </div>
+                    @if(!$usage['unlimited'] && ($usage['near_cap'] || $usage['at_cap']))
+                        <a href="{{ route('user.upgrade') }}" class="px-3 py-1 rounded-lg text-[11px] font-bold text-white" style="background:linear-gradient(135deg,#f59e0b,#ec4899);">
+                            <i class="fas fa-arrow-up mr-1"></i> Upgrade plan
+                        </a>
+                    @endif
+                </div>
+                @if(!$usage['unlimited'])
+                    <div class="w-full h-1.5 rounded-full overflow-hidden" style="background:rgba(255,255,255,.06);">
+                        <div class="h-full rounded-full transition-all" style="width: {{ max(2, $usage['percent']) }}%; background: {{ $usageBarColor }};"></div>
+                    </div>
+                    @if($usage['at_cap'])
+                        <p class="mt-2 text-[11px]" style="color:#fca5a5;">
+                            <i class="fas fa-exclamation-circle mr-1"></i>
+                            You've hit your plan's contact limit. New contacts and imports will be blocked until you upgrade or remove some.
+                        </p>
+                    @elseif($usage['near_cap'])
+                        <p class="mt-2 text-[11px]" style="color:#fcd34d;">
+                            <i class="fas fa-exclamation-triangle mr-1"></i>
+                            You're at {{ $usage['percent'] }}% of your plan's contact limit ({{ number_format($usage['cap'] - $usage['count']) }} left). Consider upgrading before you run out of room.
+                        </p>
+                    @endif
+                @endif
+            </div>
             <div class="card-premium p-5">
                 <div class="flex flex-wrap items-center gap-3 mb-4">
                     <div class="inline-flex rounded-xl p-1" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);">

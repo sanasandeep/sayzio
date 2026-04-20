@@ -54,12 +54,25 @@ class ContactController extends Controller
         $contacts = $query->orderBy('display_name')->paginate(40)->withQueryString();
         $googleAccount = GoogleContactsAccount::where('user_id', $user->id)->first();
 
+        $totalContacts = Contact::where('user_id', $user->id)->count();
         $stats = [
-            'total'   => Contact::where('user_id', $user->id)->count(),
+            'total'   => $totalContacts,
             'biolink' => Contact::where('user_id', $user->id)->whereNotNull('biolink_user_id')->count(),
         ];
 
-        return view('user.contacts.index', compact('contacts', 'tab', 'search', 'googleAccount', 'stats'));
+        $cap = $this->planContactsCap($user);
+        $usage = [
+            'count'     => $totalContacts,
+            'cap'       => $cap === -1 ? null : $cap,
+            'unlimited' => $cap === -1,
+            // Soft-warn at 90% of the cap so users get a heads-up before the
+            // import or create flow blocks them outright.
+            'percent'   => ($cap === -1 || $cap === 0) ? 0 : min(100, (int) floor(($totalContacts / $cap) * 100)),
+        ];
+        $usage['near_cap'] = !$usage['unlimited'] && $usage['percent'] >= 90 && $totalContacts < ($cap ?? 0);
+        $usage['at_cap']   = !$usage['unlimited'] && $cap !== null && $totalContacts >= $cap;
+
+        return view('user.contacts.index', compact('contacts', 'tab', 'search', 'googleAccount', 'stats', 'usage'));
     }
 
     public function create(Request $request)
