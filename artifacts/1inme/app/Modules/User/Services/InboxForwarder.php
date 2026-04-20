@@ -5,6 +5,7 @@ namespace App\Modules\User\Services;
 use App\Modules\User\Models\FormSubmission;
 use App\Modules\User\Models\InboxForwardDelivery;
 use App\Modules\User\Models\InboxForwardDestination;
+use App\Modules\User\Models\Rsvp;
 use App\Modules\User\Models\Subscriber;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
@@ -82,6 +83,12 @@ class InboxForwarder
         $sourceType = (new InboxAggregator($userId))->mapSubscriberSource($subscriber->type, $blockType);
         $payload = $this->buildSubscriberPayload($subscriber, $sourceType);
         $this->dispatchAll($userId, $sourceType, $subscriber->id, $payload);
+    }
+
+    public function dispatchForRsvp(int $userId, Rsvp $rsvp): void
+    {
+        $payload = $this->buildRsvpPayload($rsvp);
+        $this->dispatchAll($userId, InboxAggregator::SOURCE_RSVP, $rsvp->id, $payload);
     }
 
     /** Walk all destinations matching $sourceType for $userId and try to deliver. */
@@ -244,6 +251,31 @@ class InboxForwarder
                 'email'       => $sub->email,
                 'phone'       => $sub->phone,
                 'channel_url' => $sub->channel_url,
+            ], fn ($v) => $v !== null && $v !== ''),
+        ];
+    }
+
+    protected function buildRsvpPayload(Rsvp $rsvp): array
+    {
+        $link = $rsvp->link;
+        return [
+            'event'       => 'rsvp',
+            'source_type' => InboxAggregator::SOURCE_RSVP,
+            'occurred_at' => optional($rsvp->created_at)->toIso8601String(),
+            'link'        => $link ? ['id' => $link->id, 'alias' => $link->alias] : null,
+            'rsvp'        => [
+                'id'        => $rsvp->id,
+                'response'  => $rsvp->response,
+                'plus_ones' => (int) $rsvp->plus_ones,
+                'source'    => $rsvp->source,
+            ],
+            'fields'      => array_filter([
+                'name'      => $rsvp->name,
+                'email'     => $rsvp->email,
+                'phone'     => $rsvp->phone,
+                'response'  => $rsvp->response,
+                'plus_ones' => $rsvp->plus_ones,
+                'message'   => $rsvp->message,
             ], fn ($v) => $v !== null && $v !== ''),
         ];
     }

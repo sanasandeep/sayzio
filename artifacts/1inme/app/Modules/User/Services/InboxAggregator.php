@@ -20,6 +20,7 @@ class InboxAggregator
     public const SOURCE_CONTACT_FORM = 'contact_form';
     public const SOURCE_WHATSAPP_CHANNEL = 'whatsapp_channel';
     public const SOURCE_WHATSAPP_NUMBER = 'whatsapp_number';
+    public const SOURCE_RSVP = 'rsvp';
 
     public static function sourceLabels(): array
     {
@@ -31,6 +32,7 @@ class InboxAggregator
             self::SOURCE_CONTACT_FORM => 'Contact Form',
             self::SOURCE_WHATSAPP_CHANNEL => 'WhatsApp Channel',
             self::SOURCE_WHATSAPP_NUMBER => 'WhatsApp Number',
+            self::SOURCE_RSVP => 'Event RSVP',
         ];
     }
 

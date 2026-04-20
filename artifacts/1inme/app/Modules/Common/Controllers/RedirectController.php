@@ -638,7 +638,7 @@ class RedirectController extends Controller
         if ($collectPhone) $rules['phone'] = ['nullable', 'string', 'max:40'];
         $data = $request->validate($rules);
 
-        \App\Modules\User\Models\Rsvp::create([
+        $rsvp = \App\Modules\User\Models\Rsvp::create([
             'link_id'         => $link->id,
             'source_block_id' => null,
             'name'            => $data['name'],
@@ -650,6 +650,16 @@ class RedirectController extends Controller
             'source'          => $request->input('_source', 'event_page'),
             'meta'            => ['ip' => $request->ip(), 'ua' => substr((string)$request->userAgent(), 0, 250)],
         ]);
+
+        // Account-level forwarding rules — fan out to the owner's email/webhook
+        // destinations whose source filter matches RSVPs.
+        try {
+            $rsvp->setRelation('link', $link);
+            app(\App\Modules\User\Services\InboxForwarder::class)
+                ->dispatchForRsvp($link->user_id, $rsvp);
+        } catch (\Throwable $e) {
+            logger()->warning('Inbox forwarder (rsvp) failed: ' . $e->getMessage());
+        }
 
         $request->session()->put('rsvp_submitted_' . $link->id, true);
 
