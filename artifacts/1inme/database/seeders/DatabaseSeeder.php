@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
         $this->call(PlansAndAddonsSeeder::class);
         $this->call(TaxJurisdictionsSeeder::class);
         $this->call(GatewaySettingsSeeder::class);
+        $this->call(SitePagesSeeder::class);
 
         $superAdminRole = Role::create([
             'name' => 'Super Admin',

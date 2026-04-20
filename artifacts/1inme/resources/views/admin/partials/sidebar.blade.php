@@ -146,6 +146,22 @@
             <span class="sidebar-tooltip">Asset Vault</span>
         </a>
 
+        <a href="{{ route('admin.site-pages.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.site-pages.*') ? 'active' : '' }}"
+           style="--nav-tint:#22c55e; --nav-tint-soft:rgba(34,197,94,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-file-lines"></i></div>
+            <span class="nav-label">Site Pages</span>
+            <span class="sidebar-tooltip">Site Pages</span>
+        </a>
+
+        <a href="{{ route('admin.contact-inbox.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.contact-inbox.*') ? 'active' : '' }}"
+           style="--nav-tint:#f97316; --nav-tint-soft:rgba(249,115,22,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-inbox"></i></div>
+            <span class="nav-label">Contact Inbox</span>
+            <span class="sidebar-tooltip">Contact Inbox</span>
+        </a>
+
         <a href="{{ route('admin.banned-names.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.banned-names.*') ? 'active' : '' }}"
            style="--nav-tint:#ef4444; --nav-tint-soft:rgba(239,68,68,0.12);">

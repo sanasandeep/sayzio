@@ -194,6 +194,25 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('toggle', [\App\Modules\Admin\Controllers\ReferralController::class, 'toggle'])->middleware(CheckPermission::class . ':settings.manage')->name('toggle');
         });
 
+        Route::prefix('site-pages')->name('site-pages.')->group(function () {
+            Route::get('/', [\App\Modules\Admin\Controllers\SitePageController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::post('contact-recipient', [\App\Modules\Admin\Controllers\SitePageController::class, 'updateContactRecipient'])->middleware(CheckPermission::class . ':settings.manage')->name('contact-recipient');
+            Route::post('discovery-settings', [\App\Modules\Admin\Controllers\SitePageController::class, 'updateDiscoverySettings'])->middleware(CheckPermission::class . ':settings.manage')->name('discovery-settings');
+            Route::post('creators-feed-settings', [\App\Modules\Admin\Controllers\SitePageController::class, 'updateCreatorsFeedSettings'])->middleware(CheckPermission::class . ':settings.manage')->name('creators-feed-settings');
+            Route::post('faqs', [\App\Modules\Admin\Controllers\SitePageController::class, 'storeFaq'])->middleware(CheckPermission::class . ':settings.manage')->name('faqs.store');
+            Route::put('faqs/{faq}', [\App\Modules\Admin\Controllers\SitePageController::class, 'updateFaq'])->middleware(CheckPermission::class . ':settings.manage')->name('faqs.update');
+            Route::delete('faqs/{faq}', [\App\Modules\Admin\Controllers\SitePageController::class, 'destroyFaq'])->middleware(CheckPermission::class . ':settings.manage')->name('faqs.destroy');
+            Route::get('{slug}', [\App\Modules\Admin\Controllers\SitePageController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
+            Route::put('{slug}', [\App\Modules\Admin\Controllers\SitePageController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
+        });
+
+        Route::prefix('contact-inbox')->name('contact-inbox.')->group(function () {
+            Route::get('/', [\App\Modules\Admin\Controllers\ContactInboxController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::post('{message}/read', [\App\Modules\Admin\Controllers\ContactInboxController::class, 'markRead'])->middleware(CheckPermission::class . ':settings.manage')->name('read');
+            Route::post('{message}/archive', [\App\Modules\Admin\Controllers\ContactInboxController::class, 'archive'])->middleware(CheckPermission::class . ':settings.manage')->name('archive');
+            Route::delete('{message}', [\App\Modules\Admin\Controllers\ContactInboxController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
+        });
+
         Route::prefix('users')->name('users.')->group(function () {
             Route::get('/', [UserManagementController::class, 'index'])->middleware(CheckPermission::class . ':users.view')->name('index');
             Route::get('{user}', [UserManagementController::class, 'show'])->middleware(CheckPermission::class . ':users.view')->name('show');

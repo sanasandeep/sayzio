@@ -41,13 +41,34 @@ Route::get('/f/{slug}/iframe',   [\App\Modules\User\Controllers\FormController::
 Route::get('/f/{slug}/embed.js', [\App\Modules\User\Controllers\FormController::class, 'publicEmbedJs'])->name('forms.public.embed')->where('slug', '[a-z0-9-]+');
 Route::post('/f/{slug}',         [\App\Modules\User\Controllers\FormController::class, 'publicSubmit'])->name('forms.public.submit')->where('slug', '[a-z0-9-]+')->middleware('throttle:10,1');
 
+// ---- Public marketing & legal pages (must precede the catch-all /{alias} routes) ----
+Route::get('/login',    fn () => redirect()->route('user.login'))->name('login.page');
+Route::get('/register', fn () => redirect()->route('user.register'))->name('register.page');
+
+Route::controller(\App\Modules\Common\Controllers\SitePageController::class)->group(function () {
+    Route::get('/features',     fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('features'))->name('site.features');
+    Route::get('/how-it-works', fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('how-it-works'))->name('site.how-it-works');
+    Route::get('/about',        fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('about'))->name('site.about');
+    Route::get('/contact',      fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('contact'))->name('site.contact');
+    Route::get('/faqs',         fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('faqs'))->name('site.faqs');
+    Route::get('/terms',        fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('terms'))->name('site.terms');
+    Route::get('/refunds',      fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('refunds'))->name('site.refunds');
+    Route::get('/privacy',      fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('privacy'))->name('site.privacy');
+    Route::get('/gdpr',         fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('gdpr'))->name('site.gdpr');
+    Route::get('/cookies',      fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('cookies'))->name('site.cookies');
+    Route::get('/discovery',     fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('discovery'))->name('site.discovery');
+    Route::get('/creators-feed', fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('creators-feed'))->name('site.creators-feed');
+});
+Route::post('/contact', [\App\Modules\Common\Controllers\SitePageController::class, 'submitContact'])
+    ->name('site.contact.submit')->middleware('throttle:10,10');
+
 // Public referral tracking — must precede the catch-all /{alias} routes.
 Route::get('/r/{code}', [\App\Modules\User\Controllers\ReferralController::class, 'track'])
     ->name('referrals.track')
     ->where('code', '[a-z0-9_\-]{3,32}');
 
-Route::get('/{alias}/manifest.json', [RedirectController::class, 'manifest'])->name('redirect.manifest')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$');
-Route::get('/{alias}', [RedirectController::class, 'handle'])->name('redirect.handle')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$');
+Route::get('/{alias}/manifest.json', [RedirectController::class, 'manifest'])->name('redirect.manifest')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed).*$');
+Route::get('/{alias}', [RedirectController::class, 'handle'])->name('redirect.handle')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed).*$');
 Route::post('/{alias}/track/session', [\App\Modules\Common\Controllers\EngagementController::class, 'startSession'])->name('track.session.start')->where('alias', '[^/]+')->middleware('throttle:60,1');
 Route::post('/{alias}/track/heartbeat', [\App\Modules\Common\Controllers\EngagementController::class, 'heartbeat'])->name('track.heartbeat')->where('alias', '[^/]+')->middleware('throttle:120,1');
 Route::post('/{alias}/subscribe', [RedirectController::class, 'subscribe'])->name('redirect.subscribe')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|webhooks).*$')->middleware('throttle:10,1');
