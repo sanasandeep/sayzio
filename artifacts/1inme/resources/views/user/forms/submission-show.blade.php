@@ -26,10 +26,27 @@
                 <span class="px-1.5 py-0.5 rounded font-semibold" style="background: rgba(234,88,12,0.15);">{{ $reasonLabel }}</span>
             @endif
             @if(($submission->spam_reason ?? null) && str_starts_with($submission->spam_reason, 'blocked_keyword:'))
-                @php $blockedKw = trim(substr($submission->spam_reason, strlen('blocked_keyword:'))); @endphp
+                @php
+                    $blockedKw = trim(substr($submission->spam_reason, strlen('blocked_keyword:')));
+                    $kwHits = $blockedKw !== ''
+                        ? \App\Modules\User\Services\SpamChecker::countKeywordHits(auth()->id(), $blockedKw, 30)
+                        : 0;
+                    $kwHitsLabel = $kwHits === 1
+                        ? 'This keyword has flagged 1 message in the last 30 days.'
+                        : 'This keyword has flagged ' . $kwHits . ' messages in the last 30 days.';
+                @endphp
+                @if($blockedKw !== '')
+                    <span class="px-1.5 py-0.5 rounded font-semibold" style="background: rgba(234,88,12,0.15);" title="Past inbox items flagged by this same keyword">
+                        <i class="fas fa-history mr-1"></i>{{ $kwHitsLabel }}
+                    </span>
+                @endif
                 <div class="ml-auto flex items-center gap-2">
                     @if($blockedKw !== '')
-                        <form method="POST" action="{{ route('user.inbox.spam-settings.disable-keyword') }}" onsubmit="return confirm(@js('Stop blocking “' . $blockedKw . '”? Future submissions matching it won’t be flagged.'))">
+                        @php
+                            $confirmMsg = 'Stop blocking “' . $blockedKw . '”? Future submissions matching it won’t be flagged.'
+                                . ($kwHits > 0 ? ' Heads up: ' . $kwHitsLabel . ' Those would have landed in your inbox.' : '');
+                        @endphp
+                        <form method="POST" action="{{ route('user.inbox.spam-settings.disable-keyword') }}" onsubmit="return confirm(@js($confirmMsg))">
                             @csrf
                             <input type="hidden" name="keyword" value="{{ $blockedKw }}">
                             <button type="submit" class="px-2 py-0.5 rounded font-semibold underline" style="background: rgba(234,88,12,0.15);" title="Stop blocking this keyword for all future submissions">

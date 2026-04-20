@@ -220,6 +220,37 @@ class SpamChecker
         };
     }
 
+    /**
+     * Count past spam hits attributed to a given blocked keyword across both
+     * the user's form submissions and biolink subscribers within the last
+     * $days days. Matching on spam_reason is case-insensitive to mirror how
+     * the keyword check itself runs at intake time.
+     */
+    public static function countKeywordHits(int $userId, string $keyword, int $days = 30): int
+    {
+        $kw = trim($keyword);
+        if ($kw === '') return 0;
+        $needle = 'blocked_keyword:' . mb_strtolower($kw);
+        $since = now()->subDays($days);
+
+        $formIds = \App\Modules\User\Models\Form::where('user_id', $userId)->pluck('id');
+        $formCount = 0;
+        if ($formIds->isNotEmpty()) {
+            $formCount = \App\Modules\User\Models\FormSubmission::whereIn('form_id', $formIds)
+                ->where('is_spam', true)
+                ->where('created_at', '>=', $since)
+                ->whereRaw('LOWER(spam_reason) = ?', [$needle])
+                ->count();
+        }
+        $subCount = \App\Modules\User\Models\Subscriber::where('user_id', $userId)
+            ->where('is_spam', true)
+            ->where('created_at', '>=', $since)
+            ->whereRaw('LOWER(spam_reason) = ?', [$needle])
+            ->count();
+
+        return $formCount + $subCount;
+    }
+
     protected function exceedsRateLimit(string $ip, string $scope): bool
     {
         $key = 'spamcheck:' . $scope . ':' . sha1($ip);
