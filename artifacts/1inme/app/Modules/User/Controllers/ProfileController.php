@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\Rule;
 
 class ProfileController extends Controller
@@ -138,6 +139,15 @@ class ProfileController extends Controller
     public function sendSample(Request $request)
     {
         $user = Auth::user();
+
+        // Rate-limit to prevent abuse: max 5 sample digests per user per hour.
+        $rateKey = 'digest-sample:' . $user->id;
+        if (RateLimiter::tooManyAttempts($rateKey, 5)) {
+            $seconds = RateLimiter::availableIn($rateKey);
+            $minutes = max(1, (int) ceil($seconds / 60));
+            return back()->with('error', "You've sent a few sample digests recently — please try again in about {$minutes} minute" . ($minutes === 1 ? '' : 's') . '.');
+        }
+        RateLimiter::hit($rateKey, 3600);
 
         $pending = UserNotification::where('user_id', $user->id)
             ->where('type', 'follower_update')
