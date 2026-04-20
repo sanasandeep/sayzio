@@ -308,6 +308,74 @@ class ContactController extends Controller
         ]);
     }
 
+    public function importRowUpdate(Request $request, string $token, int $index)
+    {
+        $user = $request->user();
+        $stash = $this->loadStash($user->id, $token);
+        if (!$stash) {
+            return redirect()->route('user.contacts.import')
+                ->with('error', 'That preview is no longer available. Please re-upload the file.');
+        }
+
+        $rows = $stash['rows'] ?? [];
+        if (!isset($rows[$index]) || !is_array($rows[$index])) {
+            abort(404);
+        }
+
+        // Use string rules for phone/email values here so the user can save
+        // their fix even if it's still malformed; the row warnings will flag
+        // it and importConfirm validates strictly before creating contacts.
+        $v = $request->validate([
+            'display_name' => 'nullable|string|max:191',
+            'given_name'   => 'nullable|string|max:191',
+            'family_name'  => 'nullable|string|max:191',
+            'organization' => 'nullable|string|max:191',
+            'phones'                 => 'nullable|array|max:10',
+            'phones.*.label'         => 'nullable|string|max:50',
+            'phones.*.value'         => 'nullable|string|max:80',
+            'emails'                 => 'nullable|array|max:10',
+            'emails.*.label'         => 'nullable|string|max:50',
+            'emails.*.value'         => 'nullable|string|max:191',
+        ]);
+
+        $clean = function (array $items, string $valKey = 'value'): array {
+            $out = [];
+            foreach ($items as $it) {
+                $val = trim((string) ($it[$valKey] ?? ''));
+                if ($val === '') continue;
+                $out[] = [
+                    'label' => trim((string) ($it['label'] ?? '')) ?: null,
+                    'value' => $val,
+                ];
+            }
+            return $out;
+        };
+
+        $existing = $rows[$index];
+        $updated = array_merge($existing, [
+            'display_name' => trim((string) ($v['display_name'] ?? '')) ?: null,
+            'given_name'   => trim((string) ($v['given_name'] ?? '')) ?: null,
+            'family_name'  => trim((string) ($v['family_name'] ?? '')) ?: null,
+            'organization' => trim((string) ($v['organization'] ?? '')) ?: null,
+            'phones'       => $clean($v['phones'] ?? []),
+            'emails'       => $clean($v['emails'] ?? []),
+        ]);
+        // Re-run per-row warnings so the preview updates immediately and the
+        // "warnings" stat at the top reflects the user's fixes.
+        $updated['warnings'] = $this->rowWarnings($updated);
+
+        $rows[$index] = $updated;
+        Storage::disk('local')->put($this->stashPath($user->id, $token), json_encode([
+            'original_name' => $stash['original_name'] ?? null,
+            'created_at'    => $stash['created_at'] ?? now()->toIso8601String(),
+            'rows'          => $rows,
+        ]));
+
+        $page = max(1, (int) $request->query('page', 1));
+        return redirect()->route('user.contacts.import.preview', ['token' => $token, 'page' => $page])
+            ->with('success', 'Row updated.');
+    }
+
     public function importCancel(Request $request, string $token)
     {
         $this->discardStash($request->user()->id, $token);
