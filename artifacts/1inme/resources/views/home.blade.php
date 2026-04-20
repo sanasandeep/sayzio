@@ -660,7 +660,17 @@
                             {{ $plan['monthly']['formatted'] }}@unless($plan['is_free'])<span class="text-lg font-medium {{ $featured ? 'text-white/50' : 'text-gray-500' }}">/mo</span>@endunless
                         </div>
                         @unless($plan['is_free'])
-                            <div class="text-[11px] {{ $featured ? 'text-white/60' : 'text-gray-500' }} mb-1">+ taxes as applicable (GST/VAT shown at checkout once you add a billing address)</div>
+                            @if(!empty($plan['tax']))
+                                @foreach($plan['tax']['tax_breakdown'] as $line)
+                                    <div class="text-[11px] {{ $featured ? 'text-white/70' : 'text-gray-500' }}">+ {{ $line['label'] }} {{ \App\Services\PricingResolver::money((int) $line['amount_minor'], $plan['monthly']['currency']) }}</div>
+                                @endforeach
+                                <div class="text-[11px] font-semibold {{ $featured ? 'text-white' : 'text-gray-300' }} mb-1">Total {{ \App\Services\PricingResolver::money((int) $plan['tax']['grand_total_minor'], $plan['monthly']['currency']) }}/mo</div>
+                                @if(!empty($plan['tax']['note']))
+                                    <div class="text-[10px] italic {{ $featured ? 'text-white/60' : 'text-gray-500' }} mb-1">{{ $plan['tax']['note'] }}</div>
+                                @endif
+                            @else
+                                <div class="text-[11px] {{ $featured ? 'text-white/60' : 'text-gray-500' }} mb-1">+ taxes as applicable (GST/VAT shown at checkout once you add a billing address)</div>
+                            @endif
                         @endunless
                         <div class="text-sm {{ $featured ? 'text-white/50' : 'text-gray-500' }} mb-6">{{ $plan['description'] ?: ($plan['is_free'] ? 'Forever free' : 'Per user, billed monthly') }}</div>
                         <ul class="space-y-3 mb-8">
