@@ -188,12 +188,47 @@ class RedirectController extends Controller
                 redirect()->away($finalUrl, $link->redirect_type ?: 301),
                 fn ($r) => $smartCookie && $r->withCookie($smartCookie)
             ),
-            'biolink' => view('common.biolink', compact('link')),
+            'biolink' => tap(
+                response()->view('common.biolink', compact('link')),
+                fn () => $this->scheduleLazySocialRefresh()
+            ),
             'file' => $this->handleFileDownload($link),
             'ics' => $this->handleIcsDownload($link),
             'vcf' => $this->handleVcfDownload($link),
             default => abort(404),
         };
+    }
+
+    /**
+     * Lazy refresh of cached social-account follower counts referenced by
+     * a biolink view. Fires AFTER the response has been sent so it never
+     * blocks the page render — counts always serve from the cached value.
+     */
+    protected function scheduleLazySocialRefresh(): void
+    {
+        app()->terminating(function () {
+            if (! app()->bound('biolink.referenced_social_connections')) return;
+            $ids = (array) app('biolink.referenced_social_connections');
+            if (empty($ids)) return;
+
+            try {
+                $stale = \App\Modules\User\Models\SocialAccountConnection::whereIn('id', $ids)
+                    ->where(function ($w) {
+                        $w->whereNull('last_refreshed_at')
+                          ->orWhere('last_refreshed_at', '<', now()->subHours(4));
+                    })
+                    ->limit(10) // safety cap
+                    ->get();
+                if ($stale->isEmpty()) return;
+
+                $registry = app(\App\Modules\User\Services\SocialFollowers\FollowerFetcherRegistry::class);
+                foreach ($stale as $conn) {
+                    $registry->refresh($conn);
+                }
+            } catch (\Throwable $e) {
+                \Log::warning('Lazy social refresh failed', ['err' => $e->getMessage()]);
+            }
+        });
     }
 
     protected function handleFileDownload(Link $link)

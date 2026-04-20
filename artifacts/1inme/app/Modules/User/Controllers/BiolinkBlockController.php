@@ -768,12 +768,65 @@ class BiolinkBlockController extends Controller
             }
         }
 
+        // Pre-load this user's connection IDs once, keyed by platform, so we can
+        // validate that any referenced connection_id (a) belongs to the current
+        // user and (b) matches the entry's platform. Anything that fails either
+        // check is silently dropped rather than persisted.
+        $userId = optional(auth()->user())->id;
+        $userConnByPlatform = [];
+        if ($userId) {
+            $userConnByPlatform = \App\Modules\User\Models\SocialAccountConnection::query()
+                ->where('user_id', $userId)
+                ->get(['id', 'platform'])
+                ->groupBy('platform')
+                ->map(fn ($g) => $g->pluck('id')->all())
+                ->all();
+        }
+
+        $sanitizeConnRef = function (array $entry) use ($userConnByPlatform) {
+            if (! array_key_exists('connection_id', $entry)) return $entry;
+            $raw = $entry['connection_id'];
+            if ($raw === '' || $raw === null) {
+                $entry['connection_id'] = null;
+                return $entry;
+            }
+            $cid = (int) $raw;
+            $name = $entry['name'] ?? null;
+            $allowed = $name && isset($userConnByPlatform[$name])
+                ? $userConnByPlatform[$name] : [];
+            $entry['connection_id'] = in_array($cid, $allowed, true) ? $cid : null;
+            return $entry;
+        };
+
         if (isset($settings['platforms']) && is_array($settings['platforms'])) {
             foreach ($settings['platforms'] as &$platform) {
                 if (isset($platform['url'])) {
                     $platform['url'] = $this->sanitizeUrl($platform['url']);
                 }
+                // New per-entry follow-button settings (Task #48).
+                if (isset($platform['display'])) {
+                    $platform['display'] = in_array($platform['display'], ['icon','follow','follow_count'], true)
+                        ? $platform['display'] : 'icon';
+                }
+                $platform = $sanitizeConnRef($platform);
             }
+            unset($platform);
+        }
+
+        if (isset($settings['groups']) && is_array($settings['groups'])) {
+            foreach ($settings['groups'] as &$grp) {
+                if (isset($grp['platforms']) && is_array($grp['platforms'])) {
+                    foreach ($grp['platforms'] as &$gp) {
+                        if (isset($gp['display'])) {
+                            $gp['display'] = in_array($gp['display'], ['icon','follow','follow_count'], true)
+                                ? $gp['display'] : 'icon';
+                        }
+                        $gp = $sanitizeConnRef($gp);
+                    }
+                    unset($gp);
+                }
+            }
+            unset($grp);
         }
 
         if (isset($settings['images']) && is_array($settings['images'])) {

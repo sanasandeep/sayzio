@@ -1,23 +1,100 @@
 @php
-$inputClass = 'w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:ring-2 focus:ring-violet-500/40 outline-none';
-$labelClass = 'block text-xs text-white/40 mb-1';
-$socialOptions = ['instagram','twitter','facebook','tiktok','youtube','linkedin','github','discord','telegram','whatsapp','snapchat','pinterest','twitch','dribbble','spotify','soundcloud','apple','reddit','medium','behance','website','email'];
+    $inputClass = 'w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:ring-2 focus:ring-violet-500/40 outline-none';
+    $labelClass = 'block text-xs text-white/40 mb-1';
+    $socialOptions = ['instagram','twitter','facebook','tiktok','youtube','linkedin','github','discord','telegram','whatsapp','snapchat','pinterest','twitch','dribbble','spotify','soundcloud','apple','reddit','medium','behance','website','email'];
+
+    // The user's connected accounts — used as an optional source for each
+    // entry's follower count and canonical profile URL.
+    $myConnections = collect();
+    if (auth()->check()) {
+        $myConnections = \App\Modules\User\Models\SocialAccountConnection::where('user_id', auth()->id())
+            ->orderBy('platform')->orderBy('handle')->get();
+    }
+    $connByPlatform = $myConnections->groupBy('platform');
+    $connectedRoute = route('user.social-accounts.index');
+    // Map of platform => count of user's connections, exposed to Alpine so the
+    // editor can warn inline when "Follow with count" is chosen for a platform
+    // with no matching connected account.
+    $connCounts = $myConnections->groupBy('platform')->map->count()->toArray();
 @endphp
-<div x-data="{ platforms: {{ json_encode($s['platforms'] ?? []) }} }">
-    <label class="{{ $labelClass }}">Social Platforms</label>
+<div x-data="{ platforms: {{ json_encode($s['platforms'] ?? []) }}, connCounts: {{ json_encode($connCounts) }} }">
+    <div class="flex items-center justify-between mb-2">
+        <label class="{{ $labelClass }} mb-0">Social Platforms</label>
+        <a href="{{ $connectedRoute }}" target="_blank" class="text-[10px] text-violet-400 hover:text-violet-300">
+            <i class="fas fa-share-nodes mr-1"></i>Manage connected accounts
+        </a>
+    </div>
+
     <template x-for="(p, i) in platforms" :key="i">
-        <div class="glass rounded-lg p-3 mb-2">
-            <div class="grid grid-cols-2 gap-2 mb-2">
+        <div class="glass rounded-lg p-3 mb-2 space-y-2">
+            <div class="grid grid-cols-2 gap-2">
                 <select x-model="platforms[i].name" :name="'settings[platforms]['+i+'][name]'" class="{{ $inputClass }}">
-                    <option value="" class="bg-[#0d0818]">Select...</option>
+                    <option value="" class="bg-[#0d0818]">Select…</option>
                     @foreach($socialOptions as $opt)
-                    <option value="{{ $opt }}" class="bg-[#0d0818]">{{ ucfirst($opt) }}</option>
+                        <option value="{{ $opt }}" class="bg-[#0d0818]">{{ ucfirst($opt) }}</option>
                     @endforeach
                 </select>
-                <input type="url" x-model="platforms[i].url" :name="'settings[platforms]['+i+'][url]'" placeholder="https://..." class="{{ $inputClass }}">
+                <input type="url" x-model="platforms[i].url" :name="'settings[platforms]['+i+'][url]'" placeholder="https://… (or leave blank if using a connected account)" class="{{ $inputClass }}">
             </div>
-            <button type="button" @click="platforms.splice(i,1)" class="text-xs text-red-400/60 hover:text-red-400"><i class="fas fa-times mr-1"></i>Remove</button>
+
+            {{-- Display style: icon · follow button · follow + count --}}
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="text-[10px] text-white/30 block mb-1">Display</label>
+                    <select x-model="platforms[i].display" :name="'settings[platforms]['+i+'][display]'" class="{{ $inputClass }}">
+                        <option value="icon"        class="bg-[#0d0818]">Icon</option>
+                        <option value="follow"      class="bg-[#0d0818]">Follow button</option>
+                        <option value="follow_count" class="bg-[#0d0818]">Follow button with count</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-[10px] text-white/30 block mb-1">Follower source</label>
+                    {{-- Each option is hidden when its data-platform doesn't match
+                         the entry's selected platform; this prevents creators
+                         from accidentally pairing, say, a GitHub connection
+                         with a TikTok entry. --}}
+                    <select x-model="platforms[i].connection_id" :name="'settings[platforms]['+i+'][connection_id]'"
+                            @change="if (platforms[i].connection_id) { let opt = $event.target.selectedOptions[0]; if (opt && opt.dataset.platform && opt.dataset.platform !== platforms[i].name) platforms[i].connection_id = ''; }"
+                            class="{{ $inputClass }}">
+                        <option value=""  class="bg-[#0d0818]">— Manual URL only —</option>
+                        @foreach($myConnections as $conn)
+                            <option value="{{ $conn->id }}" data-platform="{{ $conn->platform }}"
+                                    x-show="!platforms[i].name || platforms[i].name === '{{ $conn->platform }}'"
+                                    class="bg-[#0d0818]">
+                                {{ \App\Modules\User\Models\SocialAccountConnection::platformLabel($conn->platform) }} · @{{ $conn->handle }}
+                                @if($conn->follower_count !== null)
+                                    ({{ \App\Modules\User\Models\SocialAccountConnection::formatCount($conn->follower_count) }})
+                                @endif
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+
+            {{-- Inline warning when "Follow with count" is selected for a
+                 platform that has no matching connected account. The count
+                 will silently be hidden at render time, so we tell the
+                 creator up front and link them to the connect page. --}}
+            <p x-show="platforms[i].display === 'follow_count' && platforms[i].name && (!connCounts[platforms[i].name] || connCounts[platforms[i].name] === 0)"
+               class="text-[11px] text-amber-300/80 bg-amber-500/10 border border-amber-500/20 rounded px-2 py-1.5"
+               style="display: none;">
+                <i class="fas fa-circle-exclamation mr-1"></i>
+                You don't have a connected <span x-text="platforms[i].name || ''"></span> account yet, so the count won't show.
+                <a href="{{ $connectedRoute }}" target="_blank" class="underline hover:text-amber-200">Connect one</a>.
+            </p>
+
+            <div class="flex items-center justify-between">
+                <p class="text-[10px] text-white/30">
+                    Follower counts come from <a href="{{ $connectedRoute }}" target="_blank" class="text-violet-400 hover:underline">your connected accounts</a> and refresh every few hours.
+                </p>
+                <button type="button" @click="platforms.splice(i,1)" class="text-xs text-red-400/60 hover:text-red-400">
+                    <i class="fas fa-times mr-1"></i>Remove
+                </button>
+            </div>
         </div>
     </template>
-    <button type="button" @click="platforms.push({name:'',url:''})" class="text-xs text-violet-400 hover:text-violet-300"><i class="fas fa-plus mr-1"></i>Add Platform</button>
+
+    <button type="button" @click="platforms.push({name:'',url:'',display:'icon',connection_id:''})" class="text-xs text-violet-400 hover:text-violet-300">
+        <i class="fas fa-plus mr-1"></i>Add Platform
+    </button>
 </div>

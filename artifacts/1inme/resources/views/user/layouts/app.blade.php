@@ -534,6 +534,13 @@
                     <span class="nav-label">Integrations</span>
                     <span class="sidebar-tooltip">Integrations</span>
                 </a>
+                <a href="{{ route('user.social-accounts.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.social-accounts.*') ? 'active' : '' }}"
+                   style="--nav-tint:#ec4899; --nav-tint-soft:rgba(236,72,153,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-share-nodes"></i></div>
+                    <span class="nav-label">Connected accounts</span>
+                    <span class="sidebar-tooltip">Connected accounts</span>
+                </a>
                 <a href="{{ route('user.events.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.events.*') ? 'active' : '' }}"
                    style="--nav-tint:#a78bfa; --nav-tint-soft:rgba(167,139,250,0.12);">

@@ -141,6 +141,18 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('splash-pages/{splash_page}/preview', [\App\Modules\User\Controllers\SplashPageController::class, 'preview'])->name('splash-pages.preview');
 
         // Reusable third-party integration configurations (payment / sms / email)
+        // ---- Connected social accounts (follower count source for biolink Follow buttons) ----
+        Route::get('social-accounts',                          [\App\Modules\User\Controllers\SocialAccountController::class, 'index'])->name('social-accounts.index');
+        Route::post('social-accounts',                         [\App\Modules\User\Controllers\SocialAccountController::class, 'store'])->name('social-accounts.store');
+        Route::post('social-accounts/{connection}/refresh',    [\App\Modules\User\Controllers\SocialAccountController::class, 'refresh'])->name('social-accounts.refresh');
+        Route::delete('social-accounts/{connection}',          [\App\Modules\User\Controllers\SocialAccountController::class, 'destroy'])->name('social-accounts.destroy');
+
+        // OAuth connect / callback for providers that need a per-user token.
+        // Each provider activates only when its CLIENT_ID + CLIENT_SECRET env
+        // vars are set; otherwise the UI falls back to manual token paste.
+        Route::get('social-oauth/{provider}/connect',  [\App\Modules\User\Controllers\SocialOAuthController::class, 'connect'])->name('social-oauth.connect');
+        Route::get('social-oauth/{provider}/callback', [\App\Modules\User\Controllers\SocialOAuthController::class, 'callback'])->name('social-oauth.callback');
+
         Route::get('integrations',                       [\App\Modules\User\Controllers\IntegrationConfigController::class, 'index'])->name('integrations.index');
         Route::get('integrations/{kind}/create',         [\App\Modules\User\Controllers\IntegrationConfigController::class, 'create'])->name('integrations.create')->where('kind', 'payment|sms|email');
         Route::post('integrations/{kind}',               [\App\Modules\User\Controllers\IntegrationConfigController::class, 'store'])->name('integrations.store')->where('kind', 'payment|sms|email');
