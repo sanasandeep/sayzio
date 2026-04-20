@@ -15,6 +15,15 @@
             {{ session('error') }}
         </div>
     @endif
+    @if($errors->any())
+        <div class="rounded-xl px-4 py-3 bg-rose-500/10 border border-rose-500/30 text-rose-200 text-sm">
+            <ul class="list-disc pl-5 space-y-1">
+                @foreach($errors->all() as $err)
+                    <li>{{ $err }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 
     <div class="glass rounded-2xl border border-white/10 p-6">
         <div class="flex items-start justify-between gap-4 flex-wrap">
@@ -29,7 +38,8 @@
                 <p class="text-xs text-white/50 mt-1 max-w-2xl">
                     These users and link aliases were created before <span class="font-mono">{{ $item->name }}</span>
                     was added to the banned list. New signups can no longer claim it, but existing values
-                    aren't renamed automatically — review them below.
+                    aren't renamed automatically — review them below. You can acknowledge each row to clear
+                    it from the badge, nudge the owner, or rename / remove it directly.
                 </p>
             </div>
             <form method="POST" action="{{ route('admin.banned-names.toggle-force-rename', $item) }}">
@@ -70,7 +80,7 @@
                 </thead>
                 <tbody>
                 @foreach($rows as $row)
-                    <tr class="border-t border-white/5 {{ $row['acknowledged'] ? 'opacity-60' : '' }}">
+                    <tr class="border-t border-white/5 align-top {{ $row['acknowledged'] ? 'opacity-60' : '' }}">
                         <td class="px-5 py-3">
                             @if($row['kind'] === 'user')
                                 <span class="text-xs px-2 py-0.5 rounded bg-violet-500/15 text-violet-200 border border-violet-500/30">handle</span>
@@ -90,41 +100,50 @@
                                 <span class="text-white/30">—</span>
                             @endif
                         </td>
-                        <td class="px-5 py-3 text-right">
-                            <div class="inline-flex items-center gap-2 flex-wrap justify-end">
-                                @if($row['kind'] === 'user' && $row['owner'])
-                                    <form method="POST" action="{{ route('admin.banned-names.notify-user', [$item, $row['owner']->id]) }}" class="inline"
-                                          onsubmit="return confirm('Send a system notification asking {{ $row['owner']->name ?: $row['label'] }} to change their handle?');">
-                                        @csrf
-                                        <button type="submit"
-                                                class="px-2.5 py-1.5 rounded-lg text-xs bg-violet-500/15 hover:bg-violet-500/25 text-violet-200 border border-violet-500/30">
-                                            <i class="fas fa-bell text-[10px]"></i> Notify user
-                                        </button>
-                                    </form>
-                                @endif
+                        <td class="px-5 py-3">
+                            <div class="flex flex-col items-end gap-2">
+                                <div class="inline-flex items-center gap-2 flex-wrap justify-end">
+                                    @if($row['kind'] === 'user' && $row['owner'])
+                                        <form method="POST" action="{{ route('admin.banned-names.notify-user', [$item, $row['owner']->id]) }}" class="inline"
+                                              onsubmit="return confirm('Send a system notification asking {{ $row['owner']->name ?: $row['label'] }} to change their handle?');">
+                                            @csrf
+                                            <button type="submit"
+                                                    class="px-2.5 py-1.5 rounded-lg text-xs bg-violet-500/15 hover:bg-violet-500/25 text-violet-200 border border-violet-500/30">
+                                                <i class="fas fa-bell text-[10px]"></i> Notify user
+                                            </button>
+                                        </form>
+                                    @endif
 
-                                @if($row['acknowledged'])
-                                    <form method="POST" action="{{ route('admin.banned-names.unacknowledge', $item) }}" class="inline">
-                                        @csrf
-                                        <input type="hidden" name="conflict_type" value="{{ $row['kind'] }}">
-                                        <input type="hidden" name="conflict_id" value="{{ $row['id'] }}">
-                                        <button type="submit"
-                                                class="px-2.5 py-1.5 rounded-lg text-xs bg-white/5 hover:bg-white/10 text-white/60 border border-white/10"
-                                                title="Acknowledged {{ $row['acknowledged']->diffForHumans() }} — click to re-open.">
-                                            <i class="fas fa-rotate-left text-[10px]"></i> Re-open
-                                        </button>
-                                    </form>
-                                @else
-                                    <form method="POST" action="{{ route('admin.banned-names.acknowledge', $item) }}" class="inline">
-                                        @csrf
-                                        <input type="hidden" name="conflict_type" value="{{ $row['kind'] }}">
-                                        <input type="hidden" name="conflict_id" value="{{ $row['id'] }}">
-                                        <button type="submit"
-                                                class="px-2.5 py-1.5 rounded-lg text-xs bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 border border-emerald-500/30">
-                                            <i class="fas fa-check text-[10px]"></i> Acknowledge
-                                        </button>
-                                    </form>
-                                @endif
+                                    @if($row['acknowledged'])
+                                        <form method="POST" action="{{ route('admin.banned-names.unacknowledge', $item) }}" class="inline">
+                                            @csrf
+                                            <input type="hidden" name="conflict_type" value="{{ $row['kind'] }}">
+                                            <input type="hidden" name="conflict_id" value="{{ $row['id'] }}">
+                                            <button type="submit"
+                                                    class="px-2.5 py-1.5 rounded-lg text-xs bg-white/5 hover:bg-white/10 text-white/60 border border-white/10"
+                                                    title="Acknowledged {{ $row['acknowledged']->diffForHumans() }} — click to re-open.">
+                                                <i class="fas fa-rotate-left text-[10px]"></i> Re-open
+                                            </button>
+                                        </form>
+                                    @else
+                                        <form method="POST" action="{{ route('admin.banned-names.acknowledge', $item) }}" class="inline">
+                                            @csrf
+                                            <input type="hidden" name="conflict_type" value="{{ $row['kind'] }}">
+                                            <input type="hidden" name="conflict_id" value="{{ $row['id'] }}">
+                                            <button type="submit"
+                                                    class="px-2.5 py-1.5 rounded-lg text-xs bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 border border-emerald-500/30">
+                                                <i class="fas fa-check text-[10px]"></i> Acknowledge
+                                            </button>
+                                        </form>
+                                    @endif
+                                </div>
+
+                                @include('admin.banned-names._resolve_form', [
+                                    'type'        => $row['kind'],
+                                    'id'          => $row['id'],
+                                    'allowRemove' => $row['kind'] !== 'link',
+                                    'removeLabel' => $row['kind'] === 'user' ? 'Clear handle' : 'Delete alias',
+                                ])
                             </div>
                         </td>
                     </tr>

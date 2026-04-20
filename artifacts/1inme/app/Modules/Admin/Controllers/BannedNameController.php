@@ -13,6 +13,8 @@ use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -459,5 +461,105 @@ class BannedNameController extends Controller
             })->all();
 
         return array_merge($users, $links, $extras);
+    }
+
+    /**
+     * Resolve a single conflicting row: rename it to a value that's
+     * NOT on the banned list, or remove it. The kind of "remove" depends
+     * on the row type — a user has its handle cleared, an extra alias
+     * is deleted, and a link's primary alias can only be renamed (the
+     * link itself is not destroyed from this screen).
+     */
+    public function resolveConflict(Request $request, BannedName $bannedName)
+    {
+        $data = $request->validate([
+            'type'      => ['required', Rule::in(['user', 'link', 'extra'])],
+            'id'        => ['required', 'integer'],
+            'action'    => ['required', Rule::in(['rename', 'remove'])],
+            'new_value' => ['nullable', 'string', 'max:100'],
+        ]);
+
+        $bannedLc = mb_strtolower($bannedName->name);
+
+        if ($data['action'] === 'rename') {
+            $new = trim((string) ($data['new_value'] ?? ''));
+            if ($new === '') {
+                throw ValidationException::withMessages(['new_value' => 'Enter a new name.']);
+            }
+            if (!preg_match('/^[A-Za-z0-9_-]+$/', $new)) {
+                throw ValidationException::withMessages(['new_value' => 'Only letters, numbers, hyphens and underscores are allowed.']);
+            }
+            if (BannedNameChecker::isBanned($new)) {
+                throw ValidationException::withMessages(['new_value' => 'That name is also on the banned list — pick another.']);
+            }
+            if (mb_strtolower($new) === $bannedLc) {
+                throw ValidationException::withMessages(['new_value' => 'The new name still matches the banned entry.']);
+            }
+        }
+
+        switch ($data['type']) {
+            case 'user':
+                $user = User::findOrFail($data['id']);
+                if (mb_strtolower((string) $user->handle) !== $bannedLc) {
+                    return redirect()->route('admin.banned-names.conflicts', $bannedName)
+                        ->with('success', 'That handle no longer matches — nothing to do.');
+                }
+                if ($data['action'] === 'remove') {
+                    $user->update(['handle' => null]);
+                    $msg = "Cleared handle for user #{$user->id}.";
+                } else {
+                    $exists = User::whereRaw('LOWER(handle) = ?', [mb_strtolower($new)])
+                        ->where('id', '!=', $user->id)->exists();
+                    if ($exists) {
+                        throw ValidationException::withMessages(['new_value' => 'Another user already has that handle.']);
+                    }
+                    $user->update(['handle' => $new]);
+                    $msg = "Renamed user #{$user->id} handle to '{$new}'.";
+                }
+                break;
+
+            case 'link':
+                $link = Link::findOrFail($data['id']);
+                if (mb_strtolower((string) $link->alias) !== $bannedLc) {
+                    return redirect()->route('admin.banned-names.conflicts', $bannedName)
+                        ->with('success', 'That alias no longer matches — nothing to do.');
+                }
+                if ($data['action'] === 'remove') {
+                    throw ValidationException::withMessages(['action' => 'A primary link alias can only be renamed, not removed.']);
+                }
+                $taken = Link::whereRaw('LOWER(alias) = ?', [mb_strtolower($new)])
+                    ->where('id', '!=', $link->id)->exists()
+                    || LinkAlias::whereRaw('LOWER(alias) = ?', [mb_strtolower($new)])->exists();
+                if ($taken) {
+                    throw ValidationException::withMessages(['new_value' => 'That alias is already in use.']);
+                }
+                $link->update(['alias' => $new]);
+                $msg = "Renamed link #{$link->id} alias to '{$new}'.";
+                break;
+
+            case 'extra':
+                $extra = LinkAlias::findOrFail($data['id']);
+                if (mb_strtolower((string) $extra->alias) !== $bannedLc) {
+                    return redirect()->route('admin.banned-names.conflicts', $bannedName)
+                        ->with('success', 'That alias no longer matches — nothing to do.');
+                }
+                if ($data['action'] === 'remove') {
+                    $extra->delete();
+                    $msg = "Removed extra alias #{$extra->id}.";
+                } else {
+                    $taken = Link::whereRaw('LOWER(alias) = ?', [mb_strtolower($new)])->exists()
+                        || LinkAlias::whereRaw('LOWER(alias) = ?', [mb_strtolower($new)])
+                            ->where('id', '!=', $extra->id)->exists();
+                    if ($taken) {
+                        throw ValidationException::withMessages(['new_value' => 'That alias is already in use.']);
+                    }
+                    $extra->update(['alias' => $new]);
+                    $msg = "Renamed extra alias #{$extra->id} to '{$new}'.";
+                }
+                break;
+        }
+
+        return redirect()->route('admin.banned-names.conflicts', $bannedName)
+            ->with('success', $msg);
     }
 }

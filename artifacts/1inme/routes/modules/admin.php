@@ -128,11 +128,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('restore-defaults', [BannedNameController::class, 'restoreDefaults'])->middleware(CheckPermission::class . ':settings.manage')->name('restore-defaults');
             Route::get('create', [BannedNameController::class, 'create'])->middleware(CheckPermission::class . ':settings.manage')->name('create');
             Route::post('/', [BannedNameController::class, 'store'])->middleware(CheckPermission::class . ':settings.manage')->name('store');
+            Route::get('{bannedName}/conflicts', [BannedNameController::class, 'conflicts'])->middleware(CheckPermission::class . ':settings.manage')->name('conflicts');
+            Route::post('{bannedName}/conflicts/resolve', [BannedNameController::class, 'resolveConflict'])->middleware(CheckPermission::class . ':settings.manage')->name('conflicts.resolve');
             Route::get('{bannedName}/edit', [BannedNameController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
             Route::put('{bannedName}', [BannedNameController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
             Route::delete('{bannedName}', [BannedNameController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
 
-            Route::get('{bannedName}/conflicts', [BannedNameController::class, 'conflicts'])->middleware(CheckPermission::class . ':settings.manage')->name('conflicts');
             Route::post('{bannedName}/notify-user/{user}', [BannedNameController::class, 'notifyUser'])->middleware(CheckPermission::class . ':settings.manage')->name('notify-user');
             Route::post('{bannedName}/acknowledge', [BannedNameController::class, 'acknowledge'])->middleware(CheckPermission::class . ':settings.manage')->name('acknowledge');
             Route::post('{bannedName}/unacknowledge', [BannedNameController::class, 'unacknowledge'])->middleware(CheckPermission::class . ':settings.manage')->name('unacknowledge');
