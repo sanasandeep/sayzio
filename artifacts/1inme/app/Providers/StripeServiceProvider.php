@@ -142,12 +142,14 @@ class StripeServiceProvider extends ServiceProvider
             $currency    = strtolower((string) $sub->currency);
             $interval    = $sub->billing_cycle === 'annual' ? 'year' : 'month';
 
+            // Base price (pre-tax plan amount for the upgraded plan).
             $priceRes = Http::withToken($secretKey)->asForm()->post(self::API . '/prices', [
                 'currency'              => $currency,
                 'unit_amount'           => $amountMinor,
                 'recurring[interval]'   => $interval,
                 'product_data[name]'    => $plan->name . ' (' . $sub->billing_cycle . ', upgrade)',
                 'metadata[internal_plan_id]' => (string) $plan->id,
+                'metadata[component]'   => 'base',
                 'metadata[upgraded]'    => '1',
             ]);
             if (!$priceRes->successful()) {
@@ -155,6 +157,36 @@ class StripeServiceProvider extends ServiceProvider
                 return;
             }
             $priceId = (string) $priceRes->json('id');
+
+            // Tax price (separate line, task constraint: never fold
+            // tax into the recurring base). We derive the full-cycle
+            // tax by applying the just-paid invoice's effective tax
+            // ratio (tax_total_minor / subtotal_minor) to the new
+            // cycle's base amount. This preserves the user's
+            // jurisdiction/rate without re-invoking the tax engine
+            // from inside an Invoice::saved listener.
+            $invSub = max(0, (int) $invoice->subtotal_minor);
+            $invTax = max(0, (int) $invoice->tax_total_minor);
+            $taxPriceId = null;
+            if ($invSub > 0 && $invTax > 0) {
+                $cycleTaxMinor = (int) round($amountMinor * ($invTax / $invSub));
+                if ($cycleTaxMinor > 0) {
+                    $taxRes = Http::withToken($secretKey)->asForm()->post(self::API . '/prices', [
+                        'currency'              => $currency,
+                        'unit_amount'           => $cycleTaxMinor,
+                        'recurring[interval]'   => $interval,
+                        'product_data[name]'    => 'Tax (GST/VAT)',
+                        'metadata[internal_plan_id]' => (string) $plan->id,
+                        'metadata[component]'   => 'tax',
+                        'metadata[upgraded]'    => '1',
+                    ]);
+                    if ($taxRes->successful()) {
+                        $taxPriceId = (string) $taxRes->json('id');
+                    } else {
+                        Log::warning('Stripe upgrade tax-price-create failed', ['body' => $taxRes->body()]);
+                    }
+                }
+            }
 
             // CRITICAL: defer Stripe's first charge to the end of the
             // current period. The one-time Checkout Session has already
@@ -172,6 +204,9 @@ class StripeServiceProvider extends ServiceProvider
                 'metadata[user_id]'                  => (string) $sub->user_id,
                 'metadata[intent]'                   => 'upgrade_new_sub',
             ];
+            if ($taxPriceId) {
+                $subForm['items[1][price]'] = $taxPriceId;
+            }
             if ($anchor && $anchor > time()) {
                 $subForm['trial_end'] = (string) $anchor;
             }

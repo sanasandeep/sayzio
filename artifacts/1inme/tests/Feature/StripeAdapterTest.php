@@ -117,6 +117,68 @@ class StripeAdapterTest extends TestCase
         ]);
     }
 
+    public function test_subscription_checkout_sends_tax_as_separate_line_item(): void
+    {
+        $priceIds = ['price_BASE', 'price_TAX'];
+        Http::fake([
+            'api.stripe.com/v1/prices' => Http::sequence()
+                ->push(['id' => 'price_BASE'], 200)
+                ->push(['id' => 'price_TAX'],  200),
+            'api.stripe.com/v1/checkout/sessions' => Http::response([
+                'id' => 'cs_test_TAX', 'url' => 'https://checkout.stripe.com/c/pay/cs_test_TAX',
+            ], 200),
+        ]);
+
+        $user    = $this->buyer();
+        $plan    = $this->plan();
+        $invoice = ActivateSubscription::issuePendingInvoice(
+            $user,
+            [[
+                'label' => 'Pro', 'amount_minor' => 999, 'quantity' => 1,
+                'meta' => ['kind' => 'plan', 'plan_id' => $plan->id, 'cycle' => 'monthly'],
+            ]],
+            'USD',
+        );
+        // Simulate a jurisdiction with tax (e.g. 10% GST) without
+        // depending on the full tax engine flow.
+        $invoice->forceFill([
+            'subtotal_minor'     => 999,
+            'tax_total_minor'    => 100,
+            'grand_total_minor'  => 1099,
+        ])->save();
+
+        app(GatewayManager::class)->for('stripe')->createCheckout($invoice);
+
+        // Two /v1/prices calls, tax separate from base — neither is
+        // the tax-inclusive grand total.
+        $priceBodies = [];
+        Http::assertSent(function ($req) use (&$priceBodies) {
+            if (str_contains($req->url(), '/v1/prices')) {
+                $priceBodies[] = $req->body();
+                return true;
+            }
+            return false;
+        });
+        $this->assertCount(2, $priceBodies, 'expected one base + one tax Price call');
+        $hasBase = false; $hasTax = false;
+        foreach ($priceBodies as $body) {
+            if (str_contains($body, 'unit_amount=999')) $hasBase = true;
+            if (str_contains($body, 'unit_amount=100')) $hasTax  = true;
+            $this->assertStringNotContainsString('unit_amount=1099', $body,
+                'grand total must NEVER be the recurring price (tax folded in)');
+        }
+        $this->assertTrue($hasBase, 'missing base Price with subtotal_minor');
+        $this->assertTrue($hasTax,  'missing tax Price with tax_total_minor');
+
+        // Checkout Session request references both prices as separate line_items.
+        Http::assertSent(function ($req) {
+            if (!str_contains($req->url(), '/v1/checkout/sessions')) return false;
+            $body = $req->body();
+            return str_contains($body, 'line_items%5B0%5D%5Bprice%5D=price_BASE')
+                && str_contains($body, 'line_items%5B1%5D%5Bprice%5D=price_TAX');
+        });
+    }
+
     public function test_create_checkout_for_upgrade_uses_payment_session(): void
     {
         Http::fake([

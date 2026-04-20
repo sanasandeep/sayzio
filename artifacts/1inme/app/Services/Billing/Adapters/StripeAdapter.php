@@ -159,15 +159,33 @@ class StripeAdapter extends AbstractAdapter
         $plan  = Plan::findOrFail($intent['plan_id']);
         $cycle = $intent['cycle'];
 
-        // Charge the INVOICE's grand total (tax-inclusive, addons
-        // included) so the captured amount matches what the user
-        // actually owes. Stripe Subscriptions charge the Price amount
-        // per cycle, so pricing the Stripe Price at the invoice total
-        // keeps renewals consistent. Each tax-variant customer gets
-        // its own Price (cache key includes amount + currency).
-        $amountMinor = (int) $invoice->grand_total_minor;
+        // Task constraint: pass our GST/VAT as a SEPARATE line item —
+        // do not let Stripe Tax recalculate, and do not fold tax into
+        // the recurring base price. We build two Stripe Prices (base
+        // + tax) when tax > 0 and add them as two line_items on the
+        // subscription checkout. Both Prices share the same
+        // `recurring[interval]` so Stripe treats them as one billing
+        // cycle. Both renew together; the Stripe-side invoice always
+        // renders tax as its own line.
+        //
+        // Known caveat: if the user's tax rate changes later (address
+        // change, jurisdiction rule change), renewals continue to bill
+        // the tax amount captured at signup. A future task can swap
+        // the tax Price at each renewal via a recomputed amount.
+        $baseMinor = max(0, (int) $invoice->subtotal_minor);
+        $taxMinor  = max(0, (int) $invoice->tax_total_minor);
+        // If subtotal isn't populated for this flow, fall back to the
+        // grand total minus tax so we never overcharge.
+        if ($baseMinor === 0) {
+            $baseMinor = max(0, (int) $invoice->grand_total_minor - $taxMinor);
+        }
 
-        $priceId = $this->ensureStripePrice($plan, $cycle, $currency, $amountMinor, $secretKey, $invoice);
+        $basePriceId = $this->ensureRecurringPrice(
+            $secretKey, $currency, $cycle, $baseMinor,
+            'base', $plan->name . ' (' . $cycle . ')',
+            ['internal_plan_id' => (string) $plan->id, 'cycle' => $cycle, 'component' => 'base'],
+            ['plan_id' => $plan->id], $invoice,
+        );
 
         $form = [
             'mode'                 => 'subscription',
@@ -176,12 +194,22 @@ class StripeAdapter extends AbstractAdapter
             'client_reference_id'  => (string) $invoice->id,
             'metadata[invoice_id]' => (string) $invoice->id,
             'metadata[invoice_number]' => (string) $invoice->number,
-            'line_items[0][price]'     => $priceId,
+            'line_items[0][price]'     => $basePriceId,
             'line_items[0][quantity]'  => 1,
             'subscription_data[metadata][invoice_id]'     => (string) $invoice->id,
             'subscription_data[metadata][internal_plan]'  => (string) $plan->id,
             'subscription_data[metadata][cycle]'          => $cycle,
         ];
+        if ($taxMinor > 0) {
+            $taxPriceId = $this->ensureRecurringPrice(
+                $secretKey, $currency, $cycle, $taxMinor,
+                'tax', 'Tax (GST/VAT)',
+                ['internal_plan_id' => (string) $plan->id, 'cycle' => $cycle, 'component' => 'tax'],
+                ['plan_id' => $plan->id], $invoice,
+            );
+            $form['line_items[1][price]']    = $taxPriceId;
+            $form['line_items[1][quantity]'] = 1;
+        }
         if ($invoice->user?->email) $form['customer_email'] = $invoice->user->email;
 
         $res = Http::withToken($secretKey)->asForm()->post(self::API . '/checkout/sessions', $form);
@@ -195,27 +223,38 @@ class StripeAdapter extends AbstractAdapter
     }
 
     /**
-     * Reuse or create a Stripe Price for (internal plan, cycle, amount,
-     * currency). Stripe Prices are effectively immutable; we cache the
-     * id in the gateway_settings credentials blob so repeat checkouts
-     * don't spam the dashboard.
+     * Create (or fetch-cached) a Stripe Price for a recurring
+     * subscription line. Stripe Prices are immutable, so we cache
+     * by (scope_id, cycle, currency, amount, component) in the
+     * gateway_settings credentials blob to avoid dashboard spam.
+     *
+     * @param array<string,mixed> $extraMeta  metadata stamped on the Price
+     * @param array<string,int>   $scope      e.g. ['plan_id'=>42]; contributes to cache key
      */
-    protected function ensureStripePrice(Plan $plan, string $cycle, string $currency, int $amountMinor, string $secretKey, ?Invoice $invoice = null): string
-    {
-        $cacheKey = sprintf('stripe_price:%d:%s:%s:%d', $plan->id, $cycle, $currency, $amountMinor);
-        $cached   = $this->cred($cacheKey);
+    protected function ensureRecurringPrice(
+        string $secretKey, string $currency, string $cycle, int $amountMinor,
+        string $component, string $productName, array $extraMeta, array $scope, ?Invoice $invoice = null
+    ): string {
+        $scopeKey = '';
+        foreach ($scope as $k => $v) $scopeKey .= $k . '=' . $v . ';';
+        $cacheKey = sprintf(
+            'stripe_price:%s:%s:%s:%s:%d',
+            md5($scopeKey), $component, $cycle, $currency, $amountMinor
+        );
+        $cached = $this->cred($cacheKey);
         if (is_string($cached) && $cached !== '') return $cached;
 
         $interval = $cycle === 'annual' ? 'year' : 'month';
-        $res = Http::withToken($secretKey)->asForm()->post(self::API . '/prices', [
-            'currency'              => $currency,
-            'unit_amount'           => $amountMinor,
-            'recurring[interval]'   => $interval,
-            'product_data[name]'    => $plan->name . ' (' . $cycle . ')',
-            'metadata[internal_plan_id]' => (string) $plan->id,
-            'metadata[cycle]'       => $cycle,
-        ]);
-        $this->assertOk($res, 'create price', $invoice);
+        $form = [
+            'currency'            => $currency,
+            'unit_amount'         => $amountMinor,
+            'recurring[interval]' => $interval,
+            'product_data[name]'  => $productName,
+        ];
+        foreach ($extraMeta as $k => $v) $form["metadata[{$k}]"] = (string) $v;
+
+        $res = Http::withToken($secretKey)->asForm()->post(self::API . '/prices', $form);
+        $this->assertOk($res, 'create price (' . $component . ')', $invoice);
         $priceId = (string) $res->json('id');
 
         if ($this->settings) {
