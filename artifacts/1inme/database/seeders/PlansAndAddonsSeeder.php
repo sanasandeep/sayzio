@@ -107,7 +107,8 @@ class PlansAndAddonsSeeder extends Seeder
                 ->where('billing_cycle', $cycle)
                 ->exists();
             if (!$exists) {
-                PricingResolver::upsertFromMajor($model, $currency, $cycle, $major);
+                $minor = (int) round(((float) $major) * 100);
+                PricingResolver::upsertFromMinor($model, $currency, $cycle, $minor);
             }
         }
 

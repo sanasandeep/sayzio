@@ -22,17 +22,28 @@
 ])
 
 <div class="grid grid-cols-2 md:grid-cols-5 gap-5 mb-8">
-    <div class="stat-card group shimmer" style="--stat-accent: linear-gradient(90deg, #8b5cf6, #a78bfa); --stat-glow: rgba(124,58,237,0.12); --stat-border-color: rgba(124,58,237,0.2);">
+    {{-- Plan widget: name + price resolved via PricingResolver so the
+         user sees their billing-country currency (₹ for IN, $ otherwise).
+         Falls back to "Free" with no price line if the user has no plan. --}}
+    @php
+        $planPrice = $user->plan
+            ? \App\Services\PricingResolver::priceFor($user->plan, $user, 'monthly')
+            : null;
+    @endphp
+    <a href="{{ route('user.upgrade') }}" class="stat-card group shimmer block" style="--stat-accent: linear-gradient(90deg, #8b5cf6, #a78bfa); --stat-glow: rgba(124,58,237,0.12); --stat-border-color: rgba(124,58,237,0.2);">
         <div class="flex items-center justify-between relative z-10">
             <div>
                 <p class="text-[10px] uppercase tracking-wider font-bold mb-1.5" style="color: var(--text-faint);">Plan</p>
                 <p class="text-xl font-bold gradient-text">{{ $user->plan->name ?? 'Free' }}</p>
+                @if ($planPrice)
+                    <p class="text-[11px] mt-0.5" style="color: var(--text-faint);">{{ $planPrice['formatted'] }}<span class="opacity-60">/mo</span></p>
+                @endif
             </div>
             <div class="w-10 h-10 rounded-xl flex items-center justify-center glow-icon group-hover:scale-110 transition-all duration-500" style="background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.15);">
                 <i class="fas fa-crown text-violet-400 text-sm"></i>
             </div>
         </div>
-    </div>
+    </a>
 
     <div class="stat-card group shimmer" style="--stat-accent: linear-gradient(90deg, #10b981, #34d399); --stat-glow: rgba(16,185,129,0.12); --stat-border-color: rgba(16,185,129,0.2);">
         <div class="flex items-center justify-between relative z-10">

@@ -30,9 +30,12 @@ class AddonController extends Controller
         $planIds = $data['plan_ids'] ?? [];
         unset($data['plan_ids']);
 
+        $minor = $this->extractMinor($data);
+        foreach ($minor as $k => $v) { $data[$k] = $v / 100; }
+
         $addon = Addon::create($data);
         $addon->plans()->sync($planIds);
-        $this->syncPriceTable($addon, $data);
+        $this->syncPriceTable($addon, $minor);
 
         return redirect()->route('admin.addons.index')
             ->with('success', 'Addon created successfully.');
@@ -51,12 +54,26 @@ class AddonController extends Controller
         $planIds = $data['plan_ids'] ?? [];
         unset($data['plan_ids']);
 
+        $minor = $this->extractMinor($data);
+        foreach ($minor as $k => $v) { $data[$k] = $v / 100; }
+
         $addon->update($data);
         $addon->plans()->sync($planIds);
-        $this->syncPriceTable($addon, $data);
+        $this->syncPriceTable($addon, $minor);
 
         return redirect()->route('admin.addons.index')
             ->with('success', 'Addon updated successfully.');
+    }
+
+    /** Pull the four MINOR-unit price values out of validated input. */
+    private function extractMinor(array $data): array
+    {
+        return [
+            'monthly_price'           => (int) $data['monthly_price'],
+            'annual_price'            => (int) $data['annual_price'],
+            'monthly_price_secondary' => (int) $data['monthly_price_secondary'],
+            'annual_price_secondary'  => (int) $data['annual_price_secondary'],
+        ];
     }
 
     public function archive(Addon $addon)
@@ -77,14 +94,17 @@ class AddonController extends Controller
 
     private function validated(Request $request): array
     {
+        // Pricing fields are MINOR units (cents/paise). All four are
+        // required (USD/INR × monthly/annual) so every addon has
+        // explicit per-currency pricing.
         $rules = [
             'name'          => 'required|string|max:255',
             'description'   => 'nullable|string',
             'type'          => 'required|in:' . implode(',', Addon::TYPES),
-            'monthly_price' => 'required|numeric|min:0',
-            'annual_price'  => 'required|numeric|min:0',
-            'monthly_price_secondary' => 'nullable|numeric|min:0',
-            'annual_price_secondary'  => 'nullable|numeric|min:0',
+            'monthly_price' => 'required|integer|min:0',
+            'annual_price'  => 'required|integer|min:0',
+            'monthly_price_secondary' => 'required|integer|min:0',
+            'annual_price_secondary'  => 'required|integer|min:0',
             'status'        => 'required|in:active,inactive',
             'sort_order'    => 'integer|min:0',
             'features'      => 'nullable|array',
@@ -104,13 +124,16 @@ class AddonController extends Controller
         return $data;
     }
 
-    /** Mirror legacy decimal columns into the polymorphic `prices` table. */
-    private function syncPriceTable(Addon $addon, array $v): void
+    /**
+     * Persist all four required price rows (USD/INR × monthly/annual)
+     * into the polymorphic `prices` table from MINOR-unit input.
+     */
+    private function syncPriceTable(Addon $addon, array $minor): void
     {
-        PricingResolver::upsertFromMajor($addon, 'USD', 'monthly', $v['monthly_price'] ?? null);
-        PricingResolver::upsertFromMajor($addon, 'USD', 'annual',  $v['annual_price']  ?? null);
-        PricingResolver::upsertFromMajor($addon, 'INR', 'monthly', $v['monthly_price_secondary'] ?? null);
-        PricingResolver::upsertFromMajor($addon, 'INR', 'annual',  $v['annual_price_secondary']  ?? null);
+        PricingResolver::upsertFromMinor($addon, 'USD', 'monthly', $minor['monthly_price']);
+        PricingResolver::upsertFromMinor($addon, 'USD', 'annual',  $minor['annual_price']);
+        PricingResolver::upsertFromMinor($addon, 'INR', 'monthly', $minor['monthly_price_secondary']);
+        PricingResolver::upsertFromMinor($addon, 'INR', 'annual',  $minor['annual_price_secondary']);
     }
 
     private function uniqueSlug(string $name): string

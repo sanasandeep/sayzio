@@ -49,9 +49,23 @@ class PlanController extends Controller
             $validated['features'] = $this->defaultFeatures();
         }
 
+        // The form posts MINOR units; the legacy decimal columns on the
+        // model still expect MAJOR units, so down-convert before persist.
+        // The polymorphic prices table is then synced from the original
+        // minor-unit values via syncPriceTable().
+        $minor = [
+            'monthly_price'           => (int) $validated['monthly_price'],
+            'annual_price'            => (int) $validated['annual_price'],
+            'monthly_price_secondary' => (int) $validated['monthly_price_secondary'],
+            'annual_price_secondary'  => (int) $validated['annual_price_secondary'],
+        ];
+        foreach ($minor as $k => $v) {
+            $validated[$k] = $v / 100;
+        }
+
         $plan = Plan::create($validated);
         $plan->addons()->sync($addonIds);
-        $this->syncPriceTable($plan, $validated);
+        $this->syncPriceTable($plan, $minor);
 
         return redirect()->route('admin.plans.index')->with('success', 'Plan created successfully.');
     }
@@ -69,22 +83,38 @@ class PlanController extends Controller
         $addonIds = $validated['addon_ids'] ?? [];
         unset($validated['addon_ids']);
 
+        // Convert MINOR-unit form input → MAJOR for legacy decimal columns,
+        // keep the minor values for the prices-table sync.
+        $minor = [
+            'monthly_price'           => (int) $validated['monthly_price'],
+            'annual_price'            => (int) $validated['annual_price'],
+            'monthly_price_secondary' => (int) $validated['monthly_price_secondary'],
+            'annual_price_secondary'  => (int) $validated['annual_price_secondary'],
+        ];
+        foreach ($minor as $k => $v) {
+            $validated[$k] = $v / 100;
+        }
+
         $plan->update($validated);
         $plan->addons()->sync($addonIds);
-        $this->syncPriceTable($plan, $validated);
+        $this->syncPriceTable($plan, $minor);
 
         return redirect()->route('admin.plans.index')->with('success', 'Plan updated successfully.');
     }
 
     private function rules(): array
     {
+        // Pricing fields are stored in MINOR units (cents/paise) per the
+        // country-pricing contract. All four (USD/INR × monthly/annual)
+        // are required so every plan has explicit per-currency pricing —
+        // no implicit FX, no silent USD fallback.
         return [
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'monthly_price' => 'required|numeric|min:0',
-            'annual_price' => 'required|numeric|min:0',
-            'monthly_price_secondary' => 'nullable|numeric|min:0',
-            'annual_price_secondary' => 'nullable|numeric|min:0',
+            'monthly_price' => 'required|integer|min:0',
+            'annual_price' => 'required|integer|min:0',
+            'monthly_price_secondary' => 'required|integer|min:0',
+            'annual_price_secondary' => 'required|integer|min:0',
             'trial_days' => 'required|integer|min:0',
             'status' => 'required|in:active,inactive',
             'sort_order' => 'integer|min:0',
@@ -116,17 +146,17 @@ class PlanController extends Controller
     }
 
     /**
-     * Mirror the legacy decimal price columns into the polymorphic
-     * `prices` table so the `PricingResolver` (Task #191) is the single
-     * source of truth going forward. The legacy columns stay populated
-     * for backward compatibility until the post-billing cleanup pass.
+     * Persist the four required price rows (USD/INR × monthly/annual)
+     * into the polymorphic `prices` table — the authoritative source.
+     * Values are MINOR units; admin validation guarantees all four are
+     * present, so no row is ever deleted here.
      */
-    private function syncPriceTable(Plan $plan, array $v): void
+    private function syncPriceTable(Plan $plan, array $minor): void
     {
-        PricingResolver::upsertFromMajor($plan, 'USD', 'monthly', $v['monthly_price'] ?? null);
-        PricingResolver::upsertFromMajor($plan, 'USD', 'annual',  $v['annual_price']  ?? null);
-        PricingResolver::upsertFromMajor($plan, 'INR', 'monthly', $v['monthly_price_secondary'] ?? null);
-        PricingResolver::upsertFromMajor($plan, 'INR', 'annual',  $v['annual_price_secondary']  ?? null);
+        PricingResolver::upsertFromMinor($plan, 'USD', 'monthly', $minor['monthly_price']);
+        PricingResolver::upsertFromMinor($plan, 'USD', 'annual',  $minor['annual_price']);
+        PricingResolver::upsertFromMinor($plan, 'INR', 'monthly', $minor['monthly_price_secondary']);
+        PricingResolver::upsertFromMinor($plan, 'INR', 'annual',  $minor['annual_price_secondary']);
     }
 
     private function defaultFeatures(): array

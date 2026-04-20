@@ -22,19 +22,19 @@
 
                 <div class="border-t border-white/10 pt-5">
                     <h3 class="text-sm font-medium text-white/80 mb-1">Pricing per country</h3>
-                    <p class="text-[11px] text-white/40 mb-3">USD is shown to everyone by default. INR is shown to users whose billing country is India. The two amounts are independent — no FX conversion. <span class="text-white/30">Enter amounts in major units (e.g. <code>9.99</code> for USD $9.99 / ₹9.99) — they're stored internally in minor units (cents/paise).</span></p>
+                    <p class="text-[11px] text-white/40 mb-3">USD is shown to everyone by default. INR is shown to users whose billing country is India. The two amounts are independent — no FX conversion. <span class="text-white/30">Enter amounts as <strong>integer minor units</strong> — e.g. <code>999</code> = $9.99 / ₹9.99, <code>82900</code> = ₹829.</span></p>
                     <div class="grid grid-cols-2 gap-6">
                         <div class="rounded-xl border border-white/10 p-4 bg-white/[0.02]">
                             <div class="text-xs uppercase tracking-wider text-white/50 mb-3">USD <span class="text-white/30 normal-case">— shown to everyone outside India</span></div>
                             <div class="space-y-3">
                                 <div>
-                                    <label class="block text-xs text-white/40 mb-1">Monthly (USD)</label>
-                                    <input type="number" name="monthly_price" value="{{ old('monthly_price', $plan->monthly_price) }}" step="0.01" min="0" required
+                                    <label class="block text-xs text-white/40 mb-1">Monthly (USD, cents)</label>
+                                    <input type="number" name="monthly_price" value="{{ old('monthly_price', (int) round(((float) $plan->monthly_price) * 100)) }}" step="1" min="0" required
                                            class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
                                 </div>
                                 <div>
-                                    <label class="block text-xs text-white/40 mb-1">Annual (USD)</label>
-                                    <input type="number" name="annual_price" value="{{ old('annual_price', $plan->annual_price) }}" step="0.01" min="0" required
+                                    <label class="block text-xs text-white/40 mb-1">Annual (USD, cents)</label>
+                                    <input type="number" name="annual_price" value="{{ old('annual_price', (int) round(((float) $plan->annual_price) * 100)) }}" step="1" min="0" required
                                            class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
                                 </div>
                             </div>
@@ -43,17 +43,17 @@
                             <div class="text-xs uppercase tracking-wider text-white/50 mb-3">INR <span class="text-white/30 normal-case">— shown to users in India</span></div>
                             <div class="space-y-3">
                                 <div>
-                                    <label class="block text-xs text-white/40 mb-1">Monthly (INR)</label>
-                                    <input type="number" name="monthly_price_secondary" value="{{ old('monthly_price_secondary', $plan->monthly_price_secondary) }}" step="0.01" min="0"
+                                    <label class="block text-xs text-white/40 mb-1">Monthly (INR, paise)</label>
+                                    <input type="number" name="monthly_price_secondary" value="{{ old('monthly_price_secondary', (int) round(((float) $plan->monthly_price_secondary) * 100)) }}" step="1" min="0" required
                                            class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
                                 </div>
                                 <div>
-                                    <label class="block text-xs text-white/40 mb-1">Annual (INR)</label>
-                                    <input type="number" name="annual_price_secondary" value="{{ old('annual_price_secondary', $plan->annual_price_secondary) }}" step="0.01" min="0"
+                                    <label class="block text-xs text-white/40 mb-1">Annual (INR, paise)</label>
+                                    <input type="number" name="annual_price_secondary" value="{{ old('annual_price_secondary', (int) round(((float) $plan->annual_price_secondary) * 100)) }}" step="1" min="0" required
                                            class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-violet-500/40 outline-none">
                                 </div>
                             </div>
-                            <p class="text-[10px] text-white/30 mt-2">Leave blank to fall back to USD for Indian users.</p>
+                            <p class="text-[10px] text-white/30 mt-2">INR is required — every plan has explicit USD <em>and</em> INR pricing.</p>
                         </div>
                     </div>
                 </div>

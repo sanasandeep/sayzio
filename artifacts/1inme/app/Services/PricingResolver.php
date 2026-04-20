@@ -9,11 +9,13 @@ use App\Modules\User\Models\User;
 
 /**
  * Resolves the right price + currency for a plan/addon based on the
- * user's billing country. Falls back through:
- *   1. The polymorphic `prices` row matching (currency, cycle).
- *   2. The legacy `monthly_price` / `annual_price` (USD) and
- *      `*_secondary` (INR) decimal columns on the model itself.
- *   3. Zero, in USD, as a last-ditch safety net so views never blow up.
+ * user's billing country.
+ *
+ * Authoritative source: the polymorphic `prices` table (one row per
+ * priceable + currency + cycle, amount stored in MINOR units —
+ * cents/paise). The legacy `monthly_price` / `annual_price` (USD) and
+ * `*_secondary` (INR) decimal columns on the model are still written
+ * in major units for legacy compatibility but are NEVER read here.
  *
  * Currency selection rules:
  *   - Logged-in user with `country` set → look up
@@ -23,6 +25,12 @@ use App\Modules\User\Models\User;
  *   - Anonymous → respect the `billing_currency` session flag; default USD.
  *
  * No FX conversion is ever done — admins set INR and USD independently.
+ *
+ * Read-path semantics: if the requested (currency, cycle) row is
+ * missing, this returns zero IN THAT SAME CURRENCY rather than
+ * silently falling back to USD. That makes missing prices visible
+ * (₹0.00 / $0.00) instead of masking them and is consistent with the
+ * "explicit per-currency pricing" requirement.
  */
 class PricingResolver
 {
@@ -55,19 +63,24 @@ class PricingResolver
      */
     public static function priceFor($priceable, ?User $user, string $cycle = 'monthly'): array
     {
+        return self::buildPrice($priceable, self::currencyForUser($user), $cycle);
+    }
+
+    /**
+     * Country-code overload of `priceFor()` — useful for admin previews,
+     * cron jobs, and any caller that has a country but not a User
+     * instance. Resolves country → currency, then renders.
+     */
+    public static function priceForCountry($priceable, ?string $countryCode, string $cycle = 'monthly'): array
+    {
+        return self::buildPrice($priceable, self::currencyForCountry($countryCode), $cycle);
+    }
+
+    private static function buildPrice($priceable, string $currency, string $cycle): array
+    {
         $cycle = $cycle === 'annual' ? 'annual' : 'monthly';
-        $currency = self::currencyForUser($user);
-
-        $minor = self::lookupMinor($priceable, $currency, $cycle);
-
-        // If the requested currency has no row AND no legacy column, fall
-        // back to USD so we never render an empty price.
-        if ($minor === null && $currency !== 'USD') {
-            $currency = 'USD';
-            $minor = self::lookupMinor($priceable, 'USD', $cycle);
-        }
-        $minor = $minor ?? 0;
-
+        // Explicit, no silent USD fallback: missing INR row → ₹0.00.
+        $minor = self::lookupMinor($priceable, $currency, $cycle) ?? 0;
         return [
             'amount_minor' => $minor,
             'currency'     => $currency,
@@ -79,10 +92,10 @@ class PricingResolver
     {
         if (!$priceable) return null;
 
-        // 1) Authoritative source: polymorphic prices table. If the
-        // `prices` relation is already eager-loaded (e.g. the upgrade page
+        // Authoritative source: the polymorphic prices table. If the
+        // `prices` relation is already eager-loaded (e.g. UpgradeController
         // does `with('prices')` to avoid N+1), filter that collection
-        // in-memory; otherwise fall back to a single targeted query.
+        // in-memory; otherwise issue a single targeted query.
         if (method_exists($priceable, 'relationLoaded') && $priceable->relationLoaded('prices')) {
             $row = $priceable->prices->first(function ($p) use ($currency, $cycle) {
                 return $p->currency === $currency
@@ -97,24 +110,7 @@ class PricingResolver
                 ->where('is_active', true)
                 ->first();
         }
-        if ($row) {
-            return (int) $row->amount_minor_units;
-        }
-
-        // 2) Compatibility shim: the legacy decimal columns on Plan/Addon.
-        $col = $cycle === 'annual' ? 'annual_price' : 'monthly_price';
-        if ($currency === 'INR') {
-            $secondary = $col . '_secondary';
-            if (isset($priceable->{$secondary}) && $priceable->{$secondary} !== null) {
-                return (int) round(((float) $priceable->{$secondary}) * 100);
-            }
-            // No INR shim available.
-            return null;
-        }
-        if (isset($priceable->{$col}) && $priceable->{$col} !== null) {
-            return (int) round(((float) $priceable->{$col}) * 100);
-        }
-        return null;
+        return $row ? (int) $row->amount_minor_units : null;
     }
 
     /**
@@ -133,20 +129,13 @@ class PricingResolver
     }
 
     /**
-     * Convenience for upsert from admin forms (where input is in major units).
+     * Upsert from the admin form, which now submits MINOR units directly
+     * (cents/paise) per the task's pricing contract. Always creates the
+     * row — admin validation requires all four (USD/INR × monthly/annual)
+     * to be present, so blank-means-delete is intentionally not supported.
      */
-    public static function upsertFromMajor($priceable, string $currency, string $cycle, $majorOrNull): void
+    public static function upsertFromMinor($priceable, string $currency, string $cycle, int $minor): void
     {
-        if ($majorOrNull === null || $majorOrNull === '') {
-            // Allow admins to clear an INR price by leaving it blank.
-            Price::where('priceable_type', get_class($priceable))
-                ->where('priceable_id', $priceable->getKey())
-                ->where('currency', $currency)
-                ->where('billing_cycle', $cycle)
-                ->delete();
-            return;
-        }
-        $minor = (int) round(((float) $majorOrNull) * 100);
         Price::updateOrCreate(
             [
                 'priceable_type' => get_class($priceable),
