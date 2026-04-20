@@ -176,6 +176,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('{invoice}/mark-paid', [PendingPaymentController::class, 'markPaid'])->middleware(CheckPermission::class . ':settings.manage')->name('mark-paid');
         });
 
+        Route::prefix('invoices')->name('invoices.')->group(function () {
+            Route::get('{invoice}', [\App\Modules\Admin\Controllers\RefundController::class, 'show'])->middleware(CheckPermission::class . ':settings.manage')->name('show');
+            Route::post('{invoice}/refund', [\App\Modules\Admin\Controllers\RefundController::class, 'store'])->middleware(CheckPermission::class . ':settings.manage')->name('refund');
+        });
+
         Route::prefix('referrals')->name('referrals.')->group(function () {
             Route::get('/', [\App\Modules\Admin\Controllers\ReferralController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
             Route::post('toggle', [\App\Modules\Admin\Controllers\ReferralController::class, 'toggle'])->middleware(CheckPermission::class . ':settings.manage')->name('toggle');

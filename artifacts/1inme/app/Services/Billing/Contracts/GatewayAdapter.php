@@ -45,4 +45,20 @@ interface GatewayAdapter
 
     /** @return array<string,mixed> */
     public function parseEvent(Request $request): array;
+
+    /**
+     * Refund (partial or full) a previously-paid invoice via the gateway.
+     * Returns ['gateway_ref' => string, 'status' => 'succeeded'|'pending'].
+     * Implementations should throw NotImplementedException until live.
+     */
+    public function refund(Invoice $invoice, int $amountMinor, string $reason = ''): array;
+
+    /**
+     * Charge the gateway's stored payment method for a subscription
+     * renewal. `$subscription` is the subscription due for renewal;
+     * adapter is responsible for issuing/paying the renewal invoice.
+     * Returns ['kind' => 'succeeded'|'pending_offline', 'invoice_id' => int].
+     * Implementations should throw NotImplementedException until live.
+     */
+    public function chargeRecurring(\App\Modules\User\Models\Subscription $subscription): array;
 }

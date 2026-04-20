@@ -45,4 +45,14 @@ class Invoice extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function refunds()
+    {
+        return $this->hasMany(Refund::class);
+    }
+
+    public function creditNotes()
+    {
+        return $this->hasMany(CreditNote::class);
+    }
 }

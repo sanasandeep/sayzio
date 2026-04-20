@@ -79,3 +79,10 @@ Schedule::command('socials:refresh-oauth-tokens')
     ->hourly()
     ->withoutOverlapping()
     ->onOneServer();
+
+// Hourly: charge gateways for subscriptions whose renewal is within 24h,
+// and expire any subscription whose grace window has elapsed.
+Schedule::command('subscriptions:renew-due')
+    ->hourly()
+    ->withoutOverlapping()
+    ->onOneServer();

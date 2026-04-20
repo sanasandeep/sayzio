@@ -192,6 +192,16 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('checkout', [\App\Modules\User\Controllers\CheckoutController::class, 'show'])->name('checkout.show');
         Route::post('checkout/handoff', [\App\Modules\User\Controllers\CheckoutController::class, 'handoff'])->name('checkout.handoff');
 
+        // Billing dashboard (subscription lifecycle, invoices, refunds, credit notes).
+        Route::get('billing', [\App\Modules\User\Controllers\BillingController::class, 'show'])->name('billing.show');
+        Route::get('billing/upgrade', [\App\Modules\User\Controllers\BillingController::class, 'upgrade'])->name('billing.upgrade');
+        Route::post('billing/upgrade/confirm', [\App\Modules\User\Controllers\BillingController::class, 'upgradeConfirm'])->name('billing.upgrade.confirm');
+        Route::post('billing/upgrade/handoff', [\App\Modules\User\Controllers\BillingController::class, 'upgradeHandoff'])->name('billing.upgrade.handoff');
+        Route::post('billing/cancel', [\App\Modules\User\Controllers\BillingController::class, 'cancel'])->name('billing.cancel');
+        Route::post('billing/resume', [\App\Modules\User\Controllers\BillingController::class, 'resume'])->name('billing.resume');
+        Route::post('billing/invoices/{invoice}/refund', [\App\Modules\User\Controllers\BillingController::class, 'refundInvoice'])->name('billing.refund');
+        Route::get('billing/credit-notes/{creditNote}.pdf', [\App\Modules\User\Controllers\BillingController::class, 'creditNotePdf'])->name('billing.credit-note.pdf');
+
         // Page & card templates (admin-curated presets)
         Route::get('links/{link}/templates', [\App\Modules\User\Controllers\LinkTemplateController::class, 'picker'])->name('links.templates.picker');
         Route::post('links/{link}/templates/apply-page', [\App\Modules\User\Controllers\LinkTemplateController::class, 'applyPage'])->name('links.templates.apply-page');

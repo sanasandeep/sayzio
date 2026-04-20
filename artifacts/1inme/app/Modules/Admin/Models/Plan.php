@@ -10,7 +10,8 @@ class Plan extends Model
         'name', 'slug', 'description',
         'monthly_price', 'annual_price',
         'monthly_price_secondary', 'annual_price_secondary',
-        'trial_days', 'features', 'metadata', 'is_default', 'status',
+        'trial_days', 'grace_days', 'refund_window_days',
+        'features', 'metadata', 'is_default', 'status',
         'is_archived', 'sort_order',
     ];
 

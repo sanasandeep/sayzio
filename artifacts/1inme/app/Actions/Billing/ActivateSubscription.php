@@ -52,12 +52,19 @@ class ActivateSubscription
             $planId  = null;
             $cycle   = 'monthly';
             $addons  = [];
+            $intent  = 'plan'; // plan | plan_renewal | plan_upgrade
+            $renewSubId   = null;
+            $upgradeFromSubId = null;
             foreach ($items as $item) {
                 $meta = $item['meta'] ?? [];
-                if (($meta['kind'] ?? null) === 'plan') {
-                    $planId = (int) ($meta['plan_id'] ?? 0);
-                    $cycle  = (string) ($meta['cycle'] ?? 'monthly');
-                } elseif (($meta['kind'] ?? null) === 'addon') {
+                $kind = $meta['kind'] ?? null;
+                if (in_array($kind, ['plan', 'plan_renewal', 'plan_upgrade'], true)) {
+                    $planId = (int) ($meta['plan_id'] ?? $planId);
+                    $cycle  = (string) ($meta['cycle'] ?? $cycle);
+                    $intent = $kind;
+                    $renewSubId       = (int) ($meta['renew_subscription_id'] ?? 0) ?: $renewSubId;
+                    $upgradeFromSubId = (int) ($meta['upgrade_from_subscription_id'] ?? 0) ?: $upgradeFromSubId;
+                } elseif ($kind === 'addon') {
                     $addons[(int) $meta['addon_id']] = (int) ($meta['qty'] ?? 1);
                 }
             }
@@ -69,18 +76,53 @@ class ActivateSubscription
 
             $months = $cycle === 'annual' ? 12 : 1;
             $now    = now();
-            $end    = $now->copy()->addMonths($months);
 
-            $subscription = Subscription::create([
-                'user_id'              => $user->id,
-                'plan_id'              => $plan->id,
-                'status'               => 'active',
-                'billing_cycle'        => $cycle,
-                'current_period_start' => $now,
-                'current_period_end'   => $end,
-                'gateway'              => $gateway,
-                'currency'             => $fresh->currency,
-            ]);
+            // Renewal: extend the existing subscription's period_end instead
+            // of creating a new row.
+            if ($intent === 'plan_renewal' && $renewSubId && ($existing = Subscription::find($renewSubId))) {
+                $base = \Carbon\Carbon::parse($existing->current_period_end);
+                if ($base->isPast()) $base = $now->copy();
+                $existing->forceFill([
+                    'status'               => 'active',
+                    'current_period_start' => $existing->current_period_end,
+                    'current_period_end'   => $base->copy()->addMonths($months),
+                    'grace_until'          => null,
+                    'gateway'              => $gateway,
+                ])->save();
+                $subscription = $existing;
+            }
+            // Upgrade: create a new subscription row with the SAME
+            // current_period_end as the one being replaced. Mark the old
+            // row cancelled + replaced_by so the timeline walks cleanly.
+            elseif ($intent === 'plan_upgrade' && $upgradeFromSubId && ($old = Subscription::find($upgradeFromSubId))) {
+                $subscription = Subscription::create([
+                    'user_id'              => $user->id,
+                    'plan_id'              => $plan->id,
+                    'status'               => 'active',
+                    'billing_cycle'        => $cycle,
+                    'current_period_start' => $now,
+                    'current_period_end'   => $old->current_period_end,
+                    'gateway'              => $gateway,
+                    'currency'             => $fresh->currency,
+                ]);
+                $old->forceFill([
+                    'status'         => 'cancelled',
+                    'replaced_by_id' => $subscription->id,
+                    'cancel_at'      => $now,
+                ])->save();
+            } else {
+                $end = $now->copy()->addMonths($months);
+                $subscription = Subscription::create([
+                    'user_id'              => $user->id,
+                    'plan_id'              => $plan->id,
+                    'status'               => 'active',
+                    'billing_cycle'        => $cycle,
+                    'current_period_start' => $now,
+                    'current_period_end'   => $end,
+                    'gateway'              => $gateway,
+                    'currency'             => $fresh->currency,
+                ]);
+            }
 
             foreach ($addons as $addonId => $qty) {
                 SubscriptionAddon::create([
@@ -93,7 +135,7 @@ class ActivateSubscription
             $user->forceFill([
                 'plan_id'         => $plan->id,
                 'billing_cycle'   => $cycle,
-                'plan_expires_at' => $end,
+                'plan_expires_at' => $subscription->current_period_end,
             ])->save();
 
             $fresh->forceFill([

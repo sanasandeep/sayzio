@@ -2,9 +2,13 @@
 
 namespace App\Services\Billing\Adapters;
 
+use App\Actions\Billing\ActivateSubscription;
 use App\Modules\User\Models\Invoice;
 use App\Modules\User\Models\PaymentAttempt;
+use App\Modules\User\Models\Subscription;
+use App\Services\PricingResolver;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 /**
  * Offline / manual-payment gateway.
@@ -19,9 +23,16 @@ use Illuminate\Http\Request;
  *   4. Admin opens /admin/payments/pending, clicks "Mark as paid" with
  *      an optional reference number → ActivateSubscription runs.
  *
- * There is no webhook for this gateway — its approval is the admin
- * action — so verifyWebhook() always returns false and parseEvent()
- * throws.
+ * refund(): admin records the refund as a manual action; status stays
+ * 'pending' until the admin separately confirms it's been paid out (the
+ * /admin refund detail page flips the switch). For the purposes of the
+ * credit-note pipeline we return status=succeeded immediately so the
+ * credit note is generated and the user can see it; a real bank-side
+ * reversal is tracked out-of-band.
+ *
+ * chargeRecurring(): issues an awaiting-approval renewal invoice for
+ * the subscription's next period. The cron task picks this up and
+ * emails the user payment instructions.
  */
 class OfflineAdapter extends AbstractAdapter
 {
@@ -64,5 +75,53 @@ class OfflineAdapter extends AbstractAdapter
     public function parseEvent(Request $request): array
     {
         abort(404);
+    }
+
+    public function refund(Invoice $invoice, int $amountMinor, string $reason = ''): array
+    {
+        return [
+            'gateway_ref' => 'offline-refund-' . $invoice->number . '-' . Str::random(6),
+            'status'      => 'succeeded',
+        ];
+    }
+
+    public function chargeRecurring(Subscription $subscription): array
+    {
+        $user = $subscription->user;
+        $plan = $subscription->plan;
+
+        $price = PricingResolver::priceFor($plan, $user, $subscription->billing_cycle);
+        $items = [[
+            'label'        => $plan->name . ' (' . $subscription->billing_cycle . ' renewal)',
+            'amount_minor' => (int) $price['amount_minor'],
+            'quantity'     => 1,
+            'meta'         => [
+                'kind'                    => 'plan_renewal',
+                'plan_id'                 => $plan->id,
+                'cycle'                   => $subscription->billing_cycle,
+                'renew_subscription_id'   => $subscription->id,
+            ],
+        ]];
+
+        $invoice = ActivateSubscription::issuePendingInvoice(
+            $user,
+            $items,
+            $subscription->currency
+        );
+        $invoice->forceFill([
+            'status'          => 'awaiting_admin_approval',
+            'gateway'         => $this->slug(),
+            'subscription_id' => $subscription->id,
+        ])->save();
+
+        PaymentAttempt::create([
+            'invoice_id'  => $invoice->id,
+            'gateway'     => $this->slug(),
+            'gateway_ref' => 'offline-renewal-' . $invoice->number,
+            'status'      => 'requires_review',
+            'raw_response' => ['note' => 'Offline renewal awaiting manual payment.'],
+        ]);
+
+        return ['kind' => 'pending_offline', 'invoice_id' => $invoice->id];
     }
 }
