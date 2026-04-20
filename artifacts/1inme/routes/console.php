@@ -62,6 +62,15 @@ Schedule::command('inbox:retry-forwards')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Daily: delete contact-import preview stash files (storage/app/imports/*/*.json)
+// that are older than 24h. These are written when a user uploads a CSV and
+// shown for confirm/cancel; if the user closes the tab they would otherwise
+// linger forever and slowly fill the disk.
+Schedule::command('imports:prune-abandoned')
+    ->dailyAt('03:30')
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Hourly: pre-emptively swap each connection's near-expiry access_token for a
 // fresh one using its stored refresh_token. Keeps long-lived OAuth links alive
 // without the user ever pasting a token, and flips truly broken connections
