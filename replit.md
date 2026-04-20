@@ -38,6 +38,7 @@ The platform offers advanced biolink customization, including:
 - **Digital Cards (VCF)**: Full vCard 3.0 editor expanding beyond basic contact info to include multiple emails, phones, URLs, addresses, and social profiles, with RFC-compliant vCard generation.
 - **QR Studio**: A dedicated QR code builder supporting 16 content types with extensive design customization, live preview, and download options.
 - **Social Proof System**: A standalone, embeddable notification widget engine with 7 types (e.g., recent activity, visitor count), customizable design, targeting rules, and biolink integration.
+- **Contacts & Dialer**: Per-user address book with two-way Google Contacts sync (People API v1, incremental via syncToken), a number-pad Dialer with search and recent lookups, a Dialer Profile page that resolves a phone number to a 1INME biolink via `linked_identifiers`, and silent auto-attach of biolinks to contacts whose E.164 phone matches a verified user. Detached biolinks are remembered in `contacts.detached_biolink_user_ids` so subsequent syncs don't re-attach them. Scheduled `contacts:sync` runs every 30 min. Calls/email use `tel:` / `mailto:` only (no VOIP).
 
 # External Dependencies
 

@@ -27,6 +27,11 @@ return [
         'client_secret' => env('GOOGLE_CALENDAR_CLIENT_SECRET'),
     ],
 
+    'google_contacts' => [
+        'client_id'     => env('GOOGLE_CONTACTS_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CONTACTS_CLIENT_SECRET'),
+    ],
+
     'microsoft_calendar' => [
         'client_id'     => env('MICROSOFT_CALENDAR_CLIENT_ID'),
         'client_secret' => env('MICROSOFT_CALENDAR_CLIENT_SECRET'),

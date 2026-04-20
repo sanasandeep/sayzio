@@ -626,6 +626,24 @@
                     <span class="sidebar-tooltip">Referrals</span>
                 </a>
 
+                {{-- ========== CONTACTS ========== --}}
+                <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Contacts</div>
+
+                <a href="{{ route('user.contacts.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.contacts.*') ? 'active' : '' }}"
+                   style="--nav-tint:#22d3ee; --nav-tint-soft:rgba(34,211,238,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-address-book"></i></div>
+                    <span class="nav-label">Contacts</span>
+                    <span class="sidebar-tooltip">Contacts</span>
+                </a>
+                <a href="{{ route('user.dialer.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.dialer.*') ? 'active' : '' }}"
+                   style="--nav-tint:#34d399; --nav-tint-soft:rgba(52,211,153,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-phone"></i></div>
+                    <span class="nav-label">Dialer</span>
+                    <span class="sidebar-tooltip">Dialer</span>
+                </a>
+
                 {{-- ========== CALENDAR ========== --}}
                 <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Calendar</div>
 
@@ -866,6 +884,11 @@
                         <a href="{{ route('user.integrations.index') }}" class="sidebar-link {{ request()->routeIs('user.integrations.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-plug"></i></div> <span>Integrations</span></a>
                         <a href="{{ route('user.domains.index') }}" class="sidebar-link {{ request()->routeIs('user.domains.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-globe"></i></div> <span>Domains</span></a>
                         <a href="{{ route('user.referrals.index') }}" class="sidebar-link {{ request()->routeIs('user.referrals.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-gift"></i></div> <span>Referrals</span></a>
+
+                        {{-- Contacts --}}
+                        <p class="pt-3 px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Contacts</p>
+                        <a href="{{ route('user.contacts.index') }}" class="sidebar-link {{ request()->routeIs('user.contacts.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-address-book"></i></div> <span>Contacts</span></a>
+                        <a href="{{ route('user.dialer.index') }}" class="sidebar-link {{ request()->routeIs('user.dialer.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-phone"></i></div> <span>Dialer</span></a>
 
                         {{-- Calendar --}}
                         <p class="pt-3 px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Calendar</p>

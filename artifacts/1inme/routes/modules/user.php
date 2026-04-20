@@ -19,6 +19,9 @@ use App\Modules\User\Controllers\UserFileController;
 use App\Modules\User\Controllers\PlanManagementController;
 use App\Modules\User\Controllers\SubscriberController;
 use App\Modules\User\Controllers\InboxController;
+use App\Modules\User\Controllers\ContactController;
+use App\Modules\User\Controllers\GoogleContactsAccountController;
+use App\Modules\User\Controllers\DialerController;
 use App\Modules\User\Controllers\VerificationController;
 use App\Modules\User\Middleware\CheckPlanLimit;
 use App\Modules\User\Middleware\SuperAdmin;
@@ -226,6 +229,27 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('links/{link}/qrcode/preview', [QrCodeController::class, 'preview'])->name('links.qrcode.preview');
 
         Route::get('qrcode', [QrCodeController::class, 'standalone'])->name('qrcode');
+
+        // ===== Contacts & Dialer =====
+        Route::get('contacts',                              [ContactController::class, 'index'])->name('contacts.index');
+        Route::get('contacts/create',                       [ContactController::class, 'create'])->name('contacts.create');
+        Route::post('contacts',                             [ContactController::class, 'store'])->name('contacts.store');
+        Route::get('contacts/{contact}',                    [ContactController::class, 'show'])->name('contacts.show');
+        Route::get('contacts/{contact}/edit',               [ContactController::class, 'edit'])->name('contacts.edit');
+        Route::put('contacts/{contact}',                    [ContactController::class, 'update'])->name('contacts.update');
+        Route::delete('contacts/{contact}',                 [ContactController::class, 'destroy'])->name('contacts.destroy');
+        Route::post('contacts/{contact}/biolink/detach',    [ContactController::class, 'detachBiolink'])->name('contacts.biolink.detach');
+        Route::post('contacts/{contact}/biolink/attach',    [ContactController::class, 'attachBiolink'])->name('contacts.biolink.attach');
+
+        // Google Contacts OAuth + sync.
+        Route::get('contacts/google/connect',               [GoogleContactsAccountController::class, 'connect'])->name('contacts.google.connect');
+        Route::get('contacts/google/callback',              [GoogleContactsAccountController::class, 'callback'])->name('contacts.google.callback');
+        Route::post('contacts/google/{account}/sync',       [GoogleContactsAccountController::class, 'syncNow'])->name('contacts.google.sync');
+        Route::delete('contacts/google/{account}',          [GoogleContactsAccountController::class, 'destroy'])->name('contacts.google.destroy');
+
+        // Dialer.
+        Route::get('dialer',                                [DialerController::class, 'index'])->name('dialer.index');
+        Route::get('dialer/profile',                        [DialerController::class, 'profile'])->name('dialer.profile');
 
         // ===== Events calendar (month / week / day / list views) =====
         Route::get('events',                                [CalendarAccountController::class, 'events'])->name('events.index');

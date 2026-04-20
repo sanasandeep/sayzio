@@ -15,12 +15,12 @@ return new class extends Migration
     public function up(): void
     {
         $driver = DB::connection()->getDriverName();
-        if ($driver === 'pgsql') {
-            DB::statement('CREATE UNIQUE INDEX IF NOT EXISTS linked_identifiers_one_primary_per_user
-                           ON linked_identifiers (user_id) WHERE is_primary = true');
-        } elseif ($driver === 'sqlite') {
+        if ($driver === 'sqlite') {
             DB::statement('CREATE UNIQUE INDEX IF NOT EXISTS linked_identifiers_one_primary_per_user
                            ON linked_identifiers (user_id) WHERE is_primary = 1');
+        } elseif ($driver === 'pgsql') {
+            DB::statement('CREATE UNIQUE INDEX IF NOT EXISTS linked_identifiers_one_primary_per_user
+                           ON linked_identifiers (user_id) WHERE is_primary = true');
         } elseif ($driver === 'mysql' || $driver === 'mariadb') {
             // MySQL partial-index workaround: a generated column that is
             // NULL when not primary, so the unique constraint only

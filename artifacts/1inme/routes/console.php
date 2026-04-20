@@ -22,6 +22,12 @@ Schedule::command('calendars:sync')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Every 30 minutes: pull/push Google Contacts for all connected accounts.
+Schedule::command('contacts:sync')
+    ->everyThirtyMinutes()
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Every 4 hours: refresh cached follower counts for every connected social
 // account so biolink Follow buttons show fresh numbers without ever blocking
 // the public page render (renderer always serves the cached value).
