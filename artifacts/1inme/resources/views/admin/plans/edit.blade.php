@@ -22,18 +22,32 @@
 
                 <div class="grid grid-cols-3 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-white/80 mb-1">Monthly Price ($)</label>
+                        <label class="block text-sm font-medium text-white/80 mb-1">Monthly Price (USD)</label>
                         <input type="number" name="monthly_price" value="{{ old('monthly_price', $plan->monthly_price) }}" step="0.01" min="0" required
                                class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-white/80 mb-1">Annual Price ($)</label>
+                        <label class="block text-sm font-medium text-white/80 mb-1">Annual Price (USD)</label>
                         <input type="number" name="annual_price" value="{{ old('annual_price', $plan->annual_price) }}" step="0.01" min="0" required
                                class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-white/80 mb-1">Trial Days</label>
                         <input type="number" name="trial_days" value="{{ old('trial_days', $plan->trial_days) }}" min="0" required
+                               class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-white/80 mb-1">Monthly Price (secondary, e.g. INR)</label>
+                        <input type="number" name="monthly_price_secondary" value="{{ old('monthly_price_secondary', $plan->monthly_price_secondary) }}" step="0.01" min="0"
+                               class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+                        <p class="text-[11px] text-white/30 mt-1">Optional. Country-based selection lands in the next billing task.</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-white/80 mb-1">Annual Price (secondary)</label>
+                        <input type="number" name="annual_price_secondary" value="{{ old('annual_price_secondary', $plan->annual_price_secondary) }}" step="0.01" min="0"
                                class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
                     </div>
                 </div>

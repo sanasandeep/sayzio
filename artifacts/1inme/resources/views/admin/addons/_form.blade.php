@@ -49,15 +49,31 @@
             </select>
         </div>
         <div>
-            <label class="block text-sm font-medium text-white/80 mb-1">Monthly Price ($)</label>
+            <label class="block text-sm font-medium text-white/80 mb-1">Monthly Price (USD)</label>
             <input type="number" name="monthly_price" step="0.01" min="0" required
                    value="{{ old('monthly_price', $addon->monthly_price) }}"
                    class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
         </div>
         <div>
-            <label class="block text-sm font-medium text-white/80 mb-1">Annual Price ($)</label>
+            <label class="block text-sm font-medium text-white/80 mb-1">Annual Price (USD)</label>
             <input type="number" name="annual_price" step="0.01" min="0" required
                    value="{{ old('annual_price', $addon->annual_price) }}"
+                   class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+        </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label class="block text-sm font-medium text-white/80 mb-1">Monthly Price (secondary, e.g. INR)</label>
+            <input type="number" name="monthly_price_secondary" step="0.01" min="0"
+                   value="{{ old('monthly_price_secondary', $addon->monthly_price_secondary) }}"
+                   class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+            <p class="text-[11px] text-white/30 mt-1">Optional. Country-based selection lands in the next billing task.</p>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-white/80 mb-1">Annual Price (secondary)</label>
+            <input type="number" name="annual_price_secondary" step="0.01" min="0"
+                   value="{{ old('annual_price_secondary', $addon->annual_price_secondary) }}"
                    class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
         </div>
     </div>

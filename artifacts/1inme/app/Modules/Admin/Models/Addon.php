@@ -9,6 +9,7 @@ class Addon extends Model
     protected $fillable = [
         'name', 'slug', 'description', 'type',
         'monthly_price', 'annual_price',
+        'monthly_price_secondary', 'annual_price_secondary',
         'features', 'metadata', 'status', 'is_archived', 'sort_order',
     ];
 
@@ -19,6 +20,8 @@ class Addon extends Model
             'metadata' => 'array',
             'monthly_price' => 'decimal:2',
             'annual_price' => 'decimal:2',
+            'monthly_price_secondary' => 'decimal:2',
+            'annual_price_secondary' => 'decimal:2',
             'is_archived' => 'boolean',
         ];
     }

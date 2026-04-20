@@ -7,7 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 class Plan extends Model
 {
     protected $fillable = [
-        'name', 'slug', 'description', 'monthly_price', 'annual_price',
+        'name', 'slug', 'description',
+        'monthly_price', 'annual_price',
+        'monthly_price_secondary', 'annual_price_secondary',
         'trial_days', 'features', 'metadata', 'is_default', 'status',
         'is_archived', 'sort_order',
     ];
@@ -19,6 +21,8 @@ class Plan extends Model
             'metadata' => 'array',
             'monthly_price' => 'decimal:2',
             'annual_price' => 'decimal:2',
+            'monthly_price_secondary' => 'decimal:2',
+            'annual_price_secondary' => 'decimal:2',
             'is_default' => 'boolean',
             'is_archived' => 'boolean',
         ];

@@ -12,12 +12,12 @@
 
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
     @foreach($plans as $plan)
-    <div class="glass rounded-2xl border border-white/10  p-6">
+    <div class="glass rounded-2xl border border-white/10  p-6 {{ $plan->is_archived ? 'opacity-60' : '' }}">
         <div class="flex items-center justify-between mb-2">
             <h3 class="font-semibold text-white">{{ $plan->name }}</h3>
             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-                {{ $plan->status === 'active' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-white/10 text-white/60' }}">
-                {{ ucfirst($plan->status) }}
+                {{ $plan->status === 'active' && !$plan->is_archived ? 'bg-emerald-500/10 text-emerald-400' : 'bg-white/10 text-white/60' }}">
+                {{ $plan->is_archived ? 'Archived' : ucfirst($plan->status) }}
             </span>
         </div>
         <p class="text-sm text-white/40 mb-4">{{ $plan->description ?? 'No description' }}</p>
@@ -42,11 +42,17 @@
         </div>
 
         <div class="flex items-center justify-end gap-2 pt-4 border-t border-white/5">
-            <a href="{{ route('admin.plans.edit', $plan) }}" class="text-white/30 hover:text-violet-400"><i class="fas fa-edit"></i></a>
+            <a href="{{ route('admin.plans.edit', $plan) }}" class="text-white/30 hover:text-violet-400" title="Edit"><i class="fas fa-edit"></i></a>
+            <form action="{{ route('admin.plans.archive', $plan) }}" method="POST" class="inline">
+                @csrf
+                <button type="submit" class="text-white/30 hover:text-amber-400" title="{{ $plan->is_archived ? 'Restore' : 'Archive (existing subscribers keep their plan)' }}">
+                    <i class="fas {{ $plan->is_archived ? 'fa-box-open' : 'fa-box-archive' }}"></i>
+                </button>
+            </form>
             @if($plan->users_count === 0)
             <form action="{{ route('admin.plans.destroy', $plan) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure?')">
                 @csrf @method('DELETE')
-                <button type="submit" class="text-white/30 hover:text-red-400"><i class="fas fa-trash"></i></button>
+                <button type="submit" class="text-white/30 hover:text-red-400" title="Delete"><i class="fas fa-trash"></i></button>
             </form>
             @endif
         </div>

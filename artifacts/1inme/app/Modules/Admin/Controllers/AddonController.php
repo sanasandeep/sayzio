@@ -80,6 +80,8 @@ class AddonController extends Controller
             'type'          => 'required|in:' . implode(',', Addon::TYPES),
             'monthly_price' => 'required|numeric|min:0',
             'annual_price'  => 'required|numeric|min:0',
+            'monthly_price_secondary' => 'nullable|numeric|min:0',
+            'annual_price_secondary'  => 'nullable|numeric|min:0',
             'status'        => 'required|in:active,inactive',
             'sort_order'    => 'integer|min:0',
             'features'      => 'nullable|array',

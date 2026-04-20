@@ -24,7 +24,17 @@ class PlanController extends Controller
 
     public function create()
     {
-        return view('admin.plans.create');
+        $addons = Addon::ordered()->get();
+        $attachedAddonIds = [];
+        return view('admin.plans.create', compact('addons', 'attachedAddonIds'));
+    }
+
+    public function archive(Plan $plan)
+    {
+        $plan->update(['is_archived' => !$plan->is_archived]);
+        return back()->with('success', $plan->is_archived
+            ? 'Plan archived. Existing subscribers continue, but new signups can no longer pick it.'
+            : 'Plan restored.');
     }
 
     public function store(Request $request)
@@ -70,6 +80,8 @@ class PlanController extends Controller
             'description' => 'nullable|string',
             'monthly_price' => 'required|numeric|min:0',
             'annual_price' => 'required|numeric|min:0',
+            'monthly_price_secondary' => 'nullable|numeric|min:0',
+            'annual_price_secondary' => 'nullable|numeric|min:0',
             'trial_days' => 'required|integer|min:0',
             'status' => 'required|in:active,inactive',
             'sort_order' => 'integer|min:0',

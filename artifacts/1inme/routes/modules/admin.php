@@ -61,6 +61,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('{plan}', [PlanController::class, 'show'])->middleware(CheckPermission::class . ':plans.view')->name('show');
             Route::get('{plan}/edit', [PlanController::class, 'edit'])->middleware(CheckPermission::class . ':plans.manage')->name('edit');
             Route::put('{plan}', [PlanController::class, 'update'])->middleware(CheckPermission::class . ':plans.manage')->name('update');
+            Route::post('{plan}/archive', [PlanController::class, 'archive'])->middleware(CheckPermission::class . ':plans.manage')->name('archive');
             Route::delete('{plan}', [PlanController::class, 'destroy'])->middleware(CheckPermission::class . ':plans.manage')->name('destroy');
         });
 
