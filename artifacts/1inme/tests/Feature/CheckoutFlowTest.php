@@ -190,13 +190,20 @@ class CheckoutFlowTest extends TestCase
         $this->post('/webhooks/nope', [])->assertStatus(404);
     }
 
-    public function test_webhook_stubbed_gateway_returns_202(): void
+    public function test_webhook_uncredentialed_gateway_rejects_with_400(): void
     {
-        // Switched from stripe → paypal after task-196 activated the
-        // Stripe adapter. Paypal/Cashfree are still stubbed and exercise
-        // the router's accept-and-ignore path for NotImplementedException.
-        GatewaySetting::where('gateway_slug', 'paypal')->update(['is_enabled' => true]);
+        // After task-197 all four gateways (razorpay, stripe, paypal,
+        // cashfree) have real adapters; none throw NotImplementedException
+        // from verifyWebhook. Instead, a webhook to an enabled gateway
+        // whose credentials are missing must be rejected with
+        // `invalid signature` (400), not silently accepted. This guards
+        // against a regression where a missing webhook_id/client_secret
+        // accidentally permits any payload to activate invoices.
+        $row = GatewaySetting::where('gateway_slug', 'paypal')->first();
+        $row->is_enabled = true;
+        $row->credentials_encrypted = []; // intentionally blank
+        $row->save();
         $r = $this->post('/webhooks/paypal', ['anything' => 1]);
-        $r->assertStatus(202);
+        $r->assertStatus(400);
     }
 }
