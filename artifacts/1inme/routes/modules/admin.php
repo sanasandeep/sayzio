@@ -8,6 +8,7 @@ use App\Modules\Admin\Controllers\StaffController;
 use App\Modules\Admin\Controllers\UserManagementController;
 use App\Modules\Admin\Controllers\RoleController;
 use App\Modules\Admin\Controllers\PlanController;
+use App\Modules\Admin\Controllers\AddonController;
 use App\Modules\Admin\Controllers\LinkManagementController;
 use App\Modules\Admin\Controllers\CoachDefaultsController;
 use App\Modules\Admin\Controllers\TemplateController;
@@ -61,6 +62,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('{plan}/edit', [PlanController::class, 'edit'])->middleware(CheckPermission::class . ':plans.manage')->name('edit');
             Route::put('{plan}', [PlanController::class, 'update'])->middleware(CheckPermission::class . ':plans.manage')->name('update');
             Route::delete('{plan}', [PlanController::class, 'destroy'])->middleware(CheckPermission::class . ':plans.manage')->name('destroy');
+        });
+
+        Route::prefix('addons')->name('addons.')->group(function () {
+            Route::get('/', [AddonController::class, 'index'])->middleware(CheckPermission::class . ':plans.manage')->name('index');
+            Route::get('create', [AddonController::class, 'create'])->middleware(CheckPermission::class . ':plans.manage')->name('create');
+            Route::post('/', [AddonController::class, 'store'])->middleware(CheckPermission::class . ':plans.manage')->name('store');
+            Route::get('{addon}/edit', [AddonController::class, 'edit'])->middleware(CheckPermission::class . ':plans.manage')->name('edit');
+            Route::put('{addon}', [AddonController::class, 'update'])->middleware(CheckPermission::class . ':plans.manage')->name('update');
+            Route::post('{addon}/archive', [AddonController::class, 'archive'])->middleware(CheckPermission::class . ':plans.manage')->name('archive');
+            Route::delete('{addon}', [AddonController::class, 'destroy'])->middleware(CheckPermission::class . ':plans.manage')->name('destroy');
         });
 
         Route::prefix('links')->name('links.')->group(function () {

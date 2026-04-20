@@ -8,16 +8,19 @@ class Plan extends Model
 {
     protected $fillable = [
         'name', 'slug', 'description', 'monthly_price', 'annual_price',
-        'trial_days', 'features', 'is_default', 'status', 'sort_order',
+        'trial_days', 'features', 'metadata', 'is_default', 'status',
+        'is_archived', 'sort_order',
     ];
 
     protected function casts(): array
     {
         return [
             'features' => 'array',
+            'metadata' => 'array',
             'monthly_price' => 'decimal:2',
             'annual_price' => 'decimal:2',
             'is_default' => 'boolean',
+            'is_archived' => 'boolean',
         ];
     }
 
@@ -31,9 +34,14 @@ class Plan extends Model
         return $this->belongsToMany(\App\Modules\User\Models\Domain::class, 'domain_plan');
     }
 
+    public function addons()
+    {
+        return $this->belongsToMany(Addon::class, 'addon_plan');
+    }
+
     public function scopeActive($query)
     {
-        return $query->where('status', 'active');
+        return $query->where('status', 'active')->where('is_archived', false);
     }
 
     public function scopeOrdered($query)

@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
         $this->call(CitiesTableSeeder::class);
         $this->call(BannedNamesSeeder::class);
         $this->call(PageTemplatePersonaSeeder::class);
+        $this->call(PlansAndAddonsSeeder::class);
 
         $superAdminRole = Role::create([
             'name' => 'Super Admin',
@@ -106,93 +107,12 @@ class DatabaseSeeder extends Seeder
             'status' => 'active',
         ]);
 
-        Plan::create([
-            'name' => 'Free',
-            'slug' => 'free',
-            'description' => 'Get started with basic features',
-            'monthly_price' => 0,
-            'annual_price' => 0,
-            'trial_days' => 0,
-            'is_default' => true,
-            'status' => 'active',
-            'sort_order' => 0,
-            'features' => [
-                'max_links' => 5,
-                'max_biolinks' => 1,
-                'max_file_size_mb' => 5,
-                'max_projects' => 1,
-                'contacts_max' => 100,
-                'contacts_google_sync' => false,
-                'custom_domains' => false,
-                'qr_customization' => false,
-                'analytics' => 'basic',
-                'pixels' => false,
-                'utm_params' => false,
-                'link_protection' => false,
-                'seo_settings' => false,
-                'teams' => false,
-                'ecommerce' => false,
-                'custom_forms' => false,
-            ],
-        ]);
-
-        $proPlan = Plan::create([
-            'name' => 'Pro',
-            'slug' => 'pro',
-            'description' => 'Everything you need to grow',
-            'monthly_price' => 9.99,
-            'annual_price' => 99.99,
-            'trial_days' => 14,
-            'status' => 'active',
-            'sort_order' => 1,
-            'features' => [
-                'max_links' => 100,
-                'max_biolinks' => 10,
-                'max_file_size_mb' => 50,
-                'max_projects' => 10,
-                'contacts_max' => 5000,
-                'contacts_google_sync' => true,
-                'custom_domains' => true,
-                'qr_customization' => true,
-                'analytics' => 'advanced',
-                'pixels' => true,
-                'utm_params' => true,
-                'link_protection' => true,
-                'seo_settings' => true,
-                'teams' => true,
-                'ecommerce' => false,
-                'custom_forms' => true,
-            ],
-        ]);
-
-        $businessPlan = Plan::create([
-            'name' => 'Business',
-            'slug' => 'business',
-            'description' => 'For teams and businesses',
-            'monthly_price' => 29.99,
-            'annual_price' => 299.99,
-            'trial_days' => 14,
-            'status' => 'active',
-            'sort_order' => 2,
-            'features' => [
-                'max_links' => -1,
-                'max_biolinks' => -1,
-                'max_file_size_mb' => 200,
-                'max_projects' => -1,
-                'contacts_max' => -1,
-                'contacts_google_sync' => true,
-                'custom_domains' => true,
-                'qr_customization' => true,
-                'analytics' => 'advanced',
-                'pixels' => true,
-                'utm_params' => true,
-                'link_protection' => true,
-                'seo_settings' => true,
-                'teams' => true,
-                'ecommerce' => true,
-                'custom_forms' => true,
-            ],
-        ]);
+        // Plans (Free / Starter / Pro / Business / Enterprise) and the
+        // default addon catalog are seeded idempotently by
+        // PlansAndAddonsSeeder above. We just resolve the named plans
+        // here so the domain seeding below can attach them.
+        $proPlan = Plan::where('slug', 'pro')->firstOrFail();
+        $businessPlan = Plan::where('slug', 'business')->firstOrFail();
 
         // Example admin-global domains. `short.1inme.io` is open to every
         // plan (no plan tags); `pro.1inme.io` is gated to Pro+Business;

@@ -189,6 +189,28 @@
                     </div>
                 </div>
 
+                <div class="border-t border-white/10 pt-5">
+                    <h3 class="text-sm font-medium text-white/80 mb-3">Eligible Addons</h3>
+                    <p class="text-[11px] text-white/40 mb-3">Addons that customers on this plan may purchase. Manage the addon catalog from <a href="{{ route('admin.addons.index') }}" class="text-violet-400 hover:underline">Addons</a>.</p>
+                    @if(($addons ?? collect())->isEmpty())
+                        <p class="text-sm text-white/40">No addons yet. <a href="{{ route('admin.addons.create') }}" class="text-violet-400 hover:underline">Create one</a>.</p>
+                    @else
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        @foreach($addons as $addon)
+                            <label class="flex items-start gap-2 text-sm text-white/70 p-2 rounded hover:bg-white/5 {{ $addon->is_archived ? 'opacity-60' : '' }}">
+                                <input type="checkbox" name="addon_ids[]" value="{{ $addon->id }}"
+                                       {{ in_array($addon->id, $attachedAddonIds ?? []) ? 'checked' : '' }}
+                                       class="mt-1 rounded border-white/10 text-violet-400">
+                                <span>
+                                    <span class="block">{{ $addon->name }} @if($addon->is_archived)<span class="text-[10px] text-white/40">(archived)</span>@endif</span>
+                                    <span class="block text-[11px] text-white/40">${{ number_format($addon->monthly_price, 2) }}/mo · ${{ number_format($addon->annual_price, 2) }}/yr · {{ str_replace('_',' ',$addon->type) }}</span>
+                                </span>
+                            </label>
+                        @endforeach
+                    </div>
+                    @endif
+                </div>
+
                 <div class="flex items-center gap-3 pt-4">
                     <button type="submit" class="px-6 py-2.5 bg-violet-600 text-white rounded-xl font-medium hover:bg-violet-700 transition">Update Plan</button>
                     <a href="{{ route('admin.plans.index') }}" class="px-6 py-2.5 bg-white/10 text-white/80 rounded-xl font-medium hover:bg-white/[0.06] transition">Cancel</a>
