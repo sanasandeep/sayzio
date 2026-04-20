@@ -30,8 +30,8 @@
                 </p>
             @else
                 <p style="font-size:14px; color:#64748b; line-height:1.6; margin:0 0 24px 0;">
-                    @if(!empty($isSample))This is a preview using your @endif{{ $totalUpdates }} update{{ $totalUpdates === 1 ? '' : 's' }} from
-                    {{ $creatorCount }} creator{{ $creatorCount === 1 ? '' : 's' }}@if(empty($isSample)) you follow since your last digest@else currently waiting in your queue@endif.
+                    {{ !empty($isSample) ? 'This is a preview using your ' : '' }}{{ $totalUpdates }} update{{ $totalUpdates === 1 ? '' : 's' }} from
+                    {{ $creatorCount }} creator{{ $creatorCount === 1 ? '' : 's' }} {{ empty($isSample) ? 'you follow since your last digest' : 'currently waiting in your queue' }}.
                 </p>
             @endif
 

@@ -11,7 +11,6 @@ use App\Modules\User\Models\Link;
 use App\Modules\User\Models\LinkAlias;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserNotification;
-use Database\Seeders\BannedNamesSeeder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;

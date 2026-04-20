@@ -114,7 +114,9 @@
                         </label>
                         <div>
                             <p class="text-sm text-white/70 mb-2">When creators I follow post updates:</p>
-                            @php($mode = old('follower_updates_mode', $user->follower_updates_mode ?: ($user->notify_follower_updates ? 'digest' : 'off')))
+                            @php
+                                $mode = old('follower_updates_mode', $user->follower_updates_mode ?: ($user->notify_follower_updates ? 'digest' : 'off'));
+                            @endphp
                             <div class="space-y-2 pl-1">
                                 <label class="flex items-start gap-2 text-sm text-white/70">
                                     <input type="radio" name="follower_updates_mode" value="instant" {{ $mode === 'instant' ? 'checked' : '' }} class="w-4 h-4 mt-0.5">
@@ -130,7 +132,9 @@
                                 </label>
                             </div>
 
-                            @php($prefHour = (int) old('digest_preferred_hour', $user->digest_preferred_hour ?? 9))
+                            @php
+                                $prefHour = (int) old('digest_preferred_hour', $user->digest_preferred_hour ?? 9);
+                            @endphp
                             <div class="mt-4 pl-1">
                                 <label class="block text-sm font-medium text-white/60 mb-1.5">
                                     Send my daily digest at
