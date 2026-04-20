@@ -54,6 +54,19 @@ class InboxForwardController
         return redirect()->route('user.inbox.forwards.index')->with('success', 'Forwarding rule deleted.');
     }
 
+    public function test(Request $request, InboxForwardDestination $forward)
+    {
+        $this->authorize($request, $forward);
+        if (!$forward->is_active) {
+            return back()->with('success', 'Enable the rule before sending a test.');
+        }
+        $delivery = app(InboxForwarder::class)->sendTest($forward);
+        $msg = $delivery && $delivery->status === 'success'
+            ? 'Test sent — check your destination.'
+            : 'Test attempted — see the deliveries log for details.';
+        return back()->with('success', $msg);
+    }
+
     public function retry(Request $request, InboxForwardDelivery $delivery)
     {
         abort_unless($delivery->user_id === $request->user()->id, 403);

@@ -58,6 +58,11 @@
                                 <button type="submit" form="toggle-{{ $d->id }}" class="px-4 py-2 text-xs rounded-lg font-semibold" style="background: rgba(148,163,184,0.15); color: var(--text-secondary);">
                                     {{ $d->is_active ? 'Pause' : 'Enable' }}
                                 </button>
+                                <button type="submit" form="test-{{ $d->id }}" class="px-4 py-2 text-xs rounded-lg font-semibold"
+                                        @if(!$d->is_active) disabled title="Enable this rule to send a test" @endif
+                                        style="background: rgba(56,189,248,0.15); color:#7dd3fc; {{ $d->is_active ? '' : 'opacity:0.5;cursor:not-allowed;' }}">
+                                    <i class="fas fa-paper-plane mr-1"></i>Send test
+                                </button>
                                 <button type="submit" form="del-{{ $d->id }}" class="px-4 py-2 text-xs rounded-lg font-semibold ml-auto"
                                         onclick="return confirm('Delete this forwarding rule?')"
                                         style="background: rgba(239,68,68,0.15); color: #fca5a5;">
@@ -67,6 +72,7 @@
                         </form>
 
                         <form id="toggle-{{ $d->id }}" method="POST" action="{{ route('user.inbox.forwards.toggle', $d) }}">@csrf</form>
+                        <form id="test-{{ $d->id }}" method="POST" action="{{ route('user.inbox.forwards.test', $d) }}">@csrf</form>
                         <form id="del-{{ $d->id }}" method="POST" action="{{ route('user.inbox.forwards.destroy', $d) }}">@csrf @method('DELETE')</form>
                     </details>
                 @endforeach
@@ -120,7 +126,12 @@
                             <tr style="border-top: 1px solid var(--border-glass); color: var(--text-secondary);">
                                 <td class="py-2 pr-3 whitespace-nowrap">{{ $del->created_at?->diffForHumans() }}</td>
                                 <td class="py-2 pr-3">{{ $del->destination?->label ?? '—' }}</td>
-                                <td class="py-2 pr-3">{{ $sourceLabels[$del->source_type] ?? $del->source_type }}</td>
+                                <td class="py-2 pr-3">
+                                    {{ $sourceLabels[$del->source_type] ?? $del->source_type }}
+                                    @if($del->is_test)
+                                        <span class="ml-1 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wide" style="background:rgba(56,189,248,0.15);color:#7dd3fc;">test</span>
+                                    @endif
+                                </td>
                                 <td class="py-2 pr-3"><span class="px-2 py-0.5 rounded-full" style="{{ $color }}">{{ $del->status }}</span></td>
                                 <td class="py-2 pr-3">{{ $del->attempts }}</td>
                                 <td class="py-2 pr-3">

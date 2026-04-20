@@ -10,12 +10,13 @@ class InboxForwardDelivery extends Model
     protected $table = 'inbox_forward_deliveries';
 
     protected $fillable = [
-        'destination_id', 'user_id', 'source_type', 'source_id',
+        'destination_id', 'user_id', 'source_type', 'source_id', 'is_test',
         'status', 'attempts', 'last_error', 'last_response_code',
         'last_attempt_at', 'next_retry_at', 'delivered_at', 'payload_snapshot',
     ];
 
     protected $casts = [
+        'is_test'            => 'boolean',
         'last_attempt_at'    => 'datetime',
         'next_retry_at'      => 'datetime',
         'delivered_at'       => 'datetime',

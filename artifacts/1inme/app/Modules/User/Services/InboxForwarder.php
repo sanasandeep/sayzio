@@ -17,6 +17,59 @@ class InboxForwarder
     /** Backoff (in minutes) per attempt index. */
     protected const BACKOFF_MIN = [1, 5, 15, 60, 240];
 
+    /**
+     * Send a synthetic, but realistic, form_submission payload to a single
+     * destination so the creator can verify their inbox/webhook setup
+     * without waiting for a real submission. The attempt is logged like a
+     * normal delivery, flagged with is_test=true.
+     */
+    public function sendTest(InboxForwardDestination $dest): InboxForwardDelivery
+    {
+        $payload = $this->buildTestPayload();
+
+        $delivery = InboxForwardDelivery::create([
+            'destination_id'   => $dest->id,
+            'user_id'          => $dest->user_id,
+            'source_type'      => InboxAggregator::SOURCE_FORM,
+            'source_id'        => 0,
+            'is_test'          => true,
+            'status'           => 'pending',
+            'payload_snapshot' => $payload,
+        ]);
+
+        try {
+            $this->deliver($delivery);
+        } catch (\Throwable $e) {
+            logger()->warning('Inbox forwarder test dispatch error: ' . $e->getMessage());
+        }
+
+        return $delivery->fresh();
+    }
+
+    protected function buildTestPayload(): array
+    {
+        return [
+            'event'       => 'form_submission',
+            'test'        => true,
+            'occurred_at' => now()->toIso8601String(),
+            'form'        => [
+                'id'    => 0,
+                'slug'  => 'test-form',
+                'title' => 'Test form',
+            ],
+            'submission'  => [
+                'id' => 0,
+                'ip' => '127.0.0.1',
+            ],
+            'fields'      => [
+                'name'    => 'Test Sender',
+                'email'   => 'test@example.com',
+                'message' => 'This is a test forward from your 1INME inbox forwarding rule.',
+            ],
+            'files'       => [],
+        ];
+    }
+
     public function dispatchForFormSubmission(int $userId, FormSubmission $submission): void
     {
         $payload = $this->buildFormPayload($submission);

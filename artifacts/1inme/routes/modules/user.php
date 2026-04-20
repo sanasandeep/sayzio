@@ -263,6 +263,7 @@ Route::prefix('user')->name('user.')->group(function () {
                 Route::post('/',                         [\App\Modules\User\Controllers\InboxForwardController::class, 'store'])->name('store');
                 Route::put('{forward}',                  [\App\Modules\User\Controllers\InboxForwardController::class, 'update'])->name('update');
                 Route::post('{forward}/toggle',          [\App\Modules\User\Controllers\InboxForwardController::class, 'toggle'])->name('toggle');
+                Route::post('{forward}/test',            [\App\Modules\User\Controllers\InboxForwardController::class, 'test'])->middleware('throttle:10,1')->name('test');
                 Route::delete('{forward}',               [\App\Modules\User\Controllers\InboxForwardController::class, 'destroy'])->name('destroy');
                 Route::post('deliveries/{delivery}/retry', [\App\Modules\User\Controllers\InboxForwardController::class, 'retry'])->name('deliveries.retry');
             });
