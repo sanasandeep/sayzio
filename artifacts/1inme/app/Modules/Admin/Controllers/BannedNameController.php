@@ -11,6 +11,7 @@ use App\Modules\User\Models\Link;
 use App\Modules\User\Models\LinkAlias;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserNotification;
+use Database\Seeders\BannedNamesSeeder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -38,7 +39,70 @@ class BannedNameController extends Controller
             $conflicts[$item->id] = $this->countConflicts($item);
         }
 
-        return view('admin.banned-names.index', compact('items', 'conflicts'));
+        $defaultConflicts = $this->collectDefaultListConflicts();
+
+        return view('admin.banned-names.index', compact('items', 'conflicts', 'defaultConflicts'));
+    }
+
+    /**
+     * Scan the seeder's default reserved-handle list against the current
+     * users / link aliases / extra aliases tables and return one row per
+     * default name that already collides with real data. Used to power
+     * the "Default-list conflicts" panel on the index page so admins on
+     * an existing install can see which seeded entries would otherwise
+     * silently coexist with already-claimed handles.
+     *
+     * @return array<int, array{name: string, users: array, links: array, extras: array}>
+     */
+    private function collectDefaultListConflicts(): array
+    {
+        $defaults = array_values(array_unique(array_map(
+            fn ($n) => mb_strtolower($n),
+            BannedNamesSeeder::defaults()
+        )));
+
+        if (empty($defaults)) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($defaults), '?'));
+
+        // Bulk-fetch matches in three queries instead of N*3 lookups.
+        $users = User::select('id', 'name', 'email', 'handle')
+            ->whereRaw("LOWER(handle) IN ($placeholders)", $defaults)
+            ->get()
+            ->groupBy(fn ($u) => mb_strtolower((string) $u->handle));
+
+        $links = Link::select('id', 'user_id', 'alias', 'title', 'type')
+            ->with('user:id,name,handle')
+            ->whereRaw("LOWER(alias) IN ($placeholders)", $defaults)
+            ->get()
+            ->groupBy(fn ($l) => mb_strtolower((string) $l->alias));
+
+        $extras = LinkAlias::with(['link:id,user_id,alias,title', 'link.user:id,name,handle'])
+            ->whereRaw("LOWER(alias) IN ($placeholders)", $defaults)
+            ->get()
+            ->groupBy(fn ($a) => mb_strtolower((string) $a->alias));
+
+        $rows = [];
+        foreach ($defaults as $lc) {
+            $u = $users->get($lc, collect());
+            $l = $links->get($lc, collect());
+            $e = $extras->get($lc, collect());
+
+            if ($u->isEmpty() && $l->isEmpty() && $e->isEmpty()) {
+                continue;
+            }
+
+            $rows[] = [
+                'name'   => $lc,
+                'users'  => $u->values()->all(),
+                'links'  => $l->values()->all(),
+                'extras' => $e->values()->all(),
+            ];
+        }
+
+        return $rows;
     }
 
     public function create()

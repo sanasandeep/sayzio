@@ -101,6 +101,99 @@
         </div>
     @endif
 
+    @if(!empty($defaultConflicts))
+        <div class="glass rounded-2xl border border-amber-500/20 p-5 space-y-3">
+            <div class="flex items-start justify-between gap-3 flex-wrap">
+                <div>
+                    <div class="text-sm font-semibold text-amber-200 inline-flex items-center gap-2">
+                        <i class="fas fa-triangle-exclamation"></i>
+                        Default-list conflicts
+                    </div>
+                    <p class="text-xs text-white/50 mt-1 max-w-2xl">
+                        These names ship in the default reserved-handle list but are already
+                        claimed on this install. They are <em>not</em> retroactively renamed —
+                        review each one and decide whether to rename, contact, or grandfather
+                        the existing owner.
+                    </p>
+                </div>
+                <span class="text-[11px] px-2 py-1 rounded-full bg-amber-500/15 text-amber-200 border border-amber-500/30">
+                    {{ count($defaultConflicts) }} name{{ count($defaultConflicts) === 1 ? '' : 's' }} conflict
+                </span>
+            </div>
+
+            <div class="overflow-hidden rounded-xl border border-white/5">
+                <table class="w-full text-sm">
+                    <thead class="text-[11px] uppercase tracking-wider text-white/40 bg-white/[0.02]">
+                        <tr>
+                            <th class="px-4 py-2 text-left">Default name</th>
+                            <th class="px-4 py-2 text-left">Conflicting record(s)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach($defaultConflicts as $row)
+                        <tr class="border-t border-white/5 align-top">
+                            <td class="px-4 py-3 font-mono text-white/90 whitespace-nowrap">
+                                {{ $row['name'] }}
+                            </td>
+                            <td class="px-4 py-3">
+                                <ul class="space-y-1.5">
+                                    @foreach($row['users'] as $u)
+                                        <li class="text-xs text-white/70 flex items-center gap-2 flex-wrap">
+                                            <span class="px-1.5 py-0.5 rounded bg-violet-500/15 border border-violet-500/30 text-violet-200 text-[10px] uppercase tracking-wide">user</span>
+                                            <a href="{{ route('admin.users.show', $u) }}"
+                                               class="font-mono text-white/90 hover:text-violet-200 underline-offset-2 hover:underline">
+                                                {{ '@' . $u->handle }}
+                                            </a>
+                                            <span class="text-white/40">·</span>
+                                            <span class="text-white/60">{{ $u->name ?: 'Unnamed user' }}</span>
+                                            @if($u->email)
+                                                <span class="text-white/30">{{ $u->email }}</span>
+                                            @endif
+                                        </li>
+                                    @endforeach
+                                    @foreach($row['links'] as $l)
+                                        <li class="text-xs text-white/70 flex items-center gap-2 flex-wrap">
+                                            <span class="px-1.5 py-0.5 rounded bg-sky-500/15 border border-sky-500/30 text-sky-200 text-[10px] uppercase tracking-wide">link</span>
+                                            <a href="{{ route('admin.links.show', $l) }}"
+                                               class="font-mono text-white/90 hover:text-sky-200 underline-offset-2 hover:underline">
+                                                /{{ $l->alias }}
+                                            </a>
+                                            <span class="text-white/40">·</span>
+                                            <span class="text-white/60">{{ $l->title ?: ucfirst((string) $l->type) . ' link' }}</span>
+                                            @if($l->user)
+                                                <span class="text-white/30">owned by {{ '@' . $l->user->handle }}</span>
+                                            @endif
+                                        </li>
+                                    @endforeach
+                                    @foreach($row['extras'] as $a)
+                                        <li class="text-xs text-white/70 flex items-center gap-2 flex-wrap">
+                                            <span class="px-1.5 py-0.5 rounded bg-teal-500/15 border border-teal-500/30 text-teal-200 text-[10px] uppercase tracking-wide">extra alias</span>
+                                            @if($a->link)
+                                                <a href="{{ route('admin.links.show', $a->link) }}"
+                                                   class="font-mono text-white/90 hover:text-teal-200 underline-offset-2 hover:underline">
+                                                    /{{ $a->alias }}
+                                                </a>
+                                                <span class="text-white/40">·</span>
+                                                <span class="text-white/60">on {{ $a->link->title ?: ('/' . $a->link->alias) }}</span>
+                                                @if($a->link->user)
+                                                    <span class="text-white/30">owned by {{ '@' . $a->link->user->handle }}</span>
+                                                @endif
+                                            @else
+                                                <span class="font-mono text-white/90">/{{ $a->alias }}</span>
+                                                <span class="text-white/40">(orphaned)</span>
+                                            @endif
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </td>
+                        </tr>
+                    @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    @endif
+
     <div class="glass rounded-2xl border border-white/10 overflow-hidden">
         @if($items->isEmpty())
             <div class="px-6 py-12 text-center text-sm text-white/40">

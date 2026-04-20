@@ -66,6 +66,11 @@ class BannedNamesSeeder extends Seeder
     /**
      * The curated default list. Extracted so the admin "Restore
      * defaults" action and the seeder share one source of truth.
+     * Also used by the admin UI to scan for conflicts against
+     * existing user handles / link aliases without invoking the
+     * seeder itself.
+     *
+     * @return string[]
      */
     public static function defaults(): array
     {
