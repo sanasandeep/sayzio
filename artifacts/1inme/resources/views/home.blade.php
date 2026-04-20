@@ -253,6 +253,9 @@
             .role-word.rm-out, #hero-stack.rm-out { opacity: 0 !important; }
         }
 
+        /* Make <picture> transparent to layout so existing img selectors / flex / grid rules still apply. */
+        picture { display: contents; }
+
         /* ============ Focus ============ */
         a:focus-visible, button:focus-visible { outline: 2px solid var(--c2); outline-offset: 3px; border-radius: 8px; }
 
@@ -1078,7 +1081,7 @@
             function buildGalleryHTML(role) {
                 return orderedGallery(role).map((g, i) => `
                     <div class="hero-gallery-item gallery-shimmer" style="--gd:${i * 60}ms">
-                        <img src="${escapeHTML(g.src)}" alt="${escapeHTML(g.alt || '')}" loading="lazy">
+                        ${pictureThumb(g.src, '', 120, 120, '(max-width: 1023px) 84px, 120px', g.alt || '')}
                         <span class="gallery-cat">${escapeHTML(g.category)}</span>
                     </div>`).join('');
             }
@@ -1126,6 +1129,33 @@
                 return (g[fallbackIndex] || g[0] || {}).src || '';
             }
 
+            // ---- Responsive image helpers (WebP + JPEG fallback) ----
+            function heroImgBase(src) {
+                // strip leading slash-safe extension; works for /images/hero-roles/foo.jpg
+                return (src || '').replace(/\.jpe?g$/i, '');
+            }
+            // Avatar / role headshot — only ever displayed up to ~120px wide.
+            function pictureAvatar(src, cls, w, h) {
+                const base = heroImgBase(src);
+                const webp = `${base}-200.webp`;
+                const jpg  = `${base}-200.jpg`;
+                return `<picture>`
+                    + `<source type="image/webp" srcset="${escapeHTML(webp)}">`
+                    + `<img class="${escapeHTML(cls)}" src="${escapeHTML(jpg)}" alt="" loading="lazy" decoding="async" width="${w}" height="${h}">`
+                    + `</picture>`;
+            }
+            // Thumb / cover / gallery image — displayed anywhere from ~50px to ~280px.
+            function pictureThumb(src, cls, w, h, sizes, alt) {
+                const base = heroImgBase(src);
+                const altA = escapeHTML(alt || '');
+                const sz   = escapeHTML(sizes || '(max-width: 640px) 50vw, 320px');
+                return `<picture>`
+                    + `<source type="image/webp" srcset="${escapeHTML(base)}-320.webp 320w, ${escapeHTML(base)}-640.webp 640w" sizes="${sz}">`
+                    + `<source type="image/jpeg" srcset="${escapeHTML(base)}-320.jpg 320w, ${escapeHTML(base)}-640.jpg 640w" sizes="${sz}">`
+                    + `<img class="${escapeHTML(cls)}" src="${escapeHTML(base)}-320.jpg" alt="${altA}" loading="lazy" decoding="async" width="${w}" height="${h}">`
+                    + `</picture>`;
+            }
+
             // Each theme supplies its own bespoke profile block so the
             // profile never looks the same between role swaps. The shared
             // .hp-prof skeleton supplies the glass card frame; per-theme
@@ -1134,14 +1164,15 @@
                 const p = role.profile;
                 const h = escapeHTML(p.handle);
                 const t = escapeHTML(p.tag);
-                const av = escapeHTML(p.avatar);
+                const av = p.avatar;
                 const verified = '<i class="fas fa-circle-check pvd"></i>';
+                const avatarImg = pictureAvatar(av, 'pav', 56, 56);
 
                 switch (role.theme) {
                     case 'creator':
                         return `<div class="hp-prof var-creator theme-block" style="--d:0ms">
                             <div class="prow">
-                              <img class="pav" src="${av}" alt="" loading="lazy">
+                              ${avatarImg}
                               <div class="min-w-0 flex-1">
                                 <div class="ph">${h}${verified}</div>
                                 <div class="pt">${t}</div>
@@ -1157,7 +1188,7 @@
                     case 'gallery': // Artist
                         return `<div class="hp-prof var-artist theme-block" style="--d:0ms">
                             <div class="prow">
-                              <img class="pav" src="${av}" alt="" loading="lazy">
+                              ${avatarImg}
                               <div class="min-w-0 flex-1">
                                 <div class="ph">${h}${verified}</div>
                                 <div class="pt">${t}</div>
@@ -1175,7 +1206,7 @@
                     case 'music':
                         return `<div class="hp-prof var-music theme-block" style="--d:0ms">
                             <div class="prow">
-                              <img class="pav" src="${av}" alt="" loading="lazy">
+                              ${avatarImg}
                               <div class="min-w-0 flex-1">
                                 <div class="ph">${h}${verified}</div>
                                 <div class="pt">${t}</div>
@@ -1187,7 +1218,7 @@
                     case 'business':
                         return `<div class="hp-prof var-business theme-block" style="--d:0ms">
                             <div class="prow">
-                              <div class="avwrap"><img class="pav" src="${av}" alt="" loading="lazy"><span class="online" aria-hidden="true"></span></div>
+                              <div class="avwrap">${avatarImg}<span class="online" aria-hidden="true"></span></div>
                               <div class="min-w-0 flex-1">
                                 <div class="ph">${h}${verified}</div>
                                 <div class="pt">${t} · Accepting briefs</div>
@@ -1203,7 +1234,7 @@
                     case 'coach':
                         return `<div class="hp-prof var-coach theme-block" style="--d:0ms">
                             <div class="prow">
-                              <img class="pav" src="${av}" alt="" loading="lazy">
+                              ${avatarImg}
                               <div class="min-w-0 flex-1">
                                 <div class="ph">${h}${verified}</div>
                                 <div class="pt">${t}</div>
@@ -1218,7 +1249,7 @@
                     case 'portfolio': // Photographer
                         return `<div class="hp-prof var-photo theme-block" style="--d:0ms">
                             <div class="prow">
-                              <img class="pav" src="${av}" alt="" loading="lazy">
+                              ${avatarImg}
                               <div class="min-w-0 flex-1">
                                 <div class="ph">${h}${verified}</div>
                                 <div class="pt">${t}</div>
@@ -1235,7 +1266,7 @@
                     case 'social': // Influencer
                         return `<div class="hp-prof var-social theme-block" style="--d:0ms">
                             <div class="prow">
-                              <img class="pav" src="${av}" alt="" loading="lazy">
+                              ${avatarImg}
                               <div class="min-w-0 flex-1">
                                 <div class="ph">${h}${verified}</div>
                                 <div class="pt">${t}</div>
@@ -1251,7 +1282,7 @@
                     case 'podcast':
                         return `<div class="hp-prof var-podcast theme-block" style="--d:0ms">
                             <div class="prow">
-                              <img class="pav" src="${av}" alt="" loading="lazy">
+                              ${avatarImg}
                               <div class="min-w-0 flex-1">
                                 <div class="ph">${h}${verified}</div>
                                 <div class="pt">${t}</div>
@@ -1263,7 +1294,7 @@
                     default:
                         return `<div class="hp-prof theme-block" style="--d:0ms">
                             <div class="prow">
-                              <img class="pav" src="${av}" alt="" loading="lazy">
+                              ${avatarImg}
                               <div class="min-w-0 flex-1">
                                 <div class="ph">${h}${verified}</div>
                                 <div class="pt">${t}</div>
@@ -1279,7 +1310,7 @@
                 const blocks = (role.blocks || []).map((b, i) => {
                     const delay = (i + 1) * 110;
                     const thumb = b.thumb
-                        ? `<img class="card-thumb" src="${escapeHTML(b.thumb)}" alt="" loading="lazy">`
+                        ? pictureThumb(b.thumb, 'card-thumb', 50, 50, '50px', '')
                         : `<div class="card-icon" style="background:${escapeHTML(b.color)}33;color:${escapeHTML(b.color)}"><i class="${escapeHTML(b.icon)}"></i></div>`;
                     return `
                         <div class="stack-card theme-block" style="--d:${delay}ms">
@@ -1307,7 +1338,7 @@
                 const b0     = (role.blocks || [])[0] || {};
                 return profFor(role)
                     + `<div class="hp-music-card theme-block" style="--d:110ms">
-                            <img class="hp-music-cover" src="${escapeHTML(cover)}" alt="" loading="lazy">
+                            ${pictureThumb(cover, 'hp-music-cover', 280, 110, '(max-width: 1023px) 260px, 320px', '')}
                             <div class="hp-music-eq" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
                             <div class="hp-music-meta">
                                 <div class="mt"><div class="mt-t">${escapeHTML(b0.title || 'New EP')}</div><div class="mt-s">${escapeHTML(b0.sub || 'Listen now')}</div></div>
@@ -1329,7 +1360,7 @@
                             <i class="fas fa-arrow-right" style="opacity:.7"></i>
                        </div>`
                     + `<div class="hp-merch theme-block" style="--d:420ms">
-                            <img src="${escapeHTML(merch)}" alt="" loading="lazy">
+                            ${pictureThumb(merch, '', 80, 80, '80px', '')}
                             <div class="mi"><div class="mt">Vinyl + tee bundle</div><div class="ms">Limited · Ships worldwide</div></div>
                             <span class="mp">$ 38</span>
                        </div>`
@@ -1343,11 +1374,11 @@
             function renderGallery(role) {
                 const g = role.gallery || [];
                 const cells = g.slice(0, 6).map((x) => `
-                    <div class="gi"><img src="${escapeHTML(x.src)}" alt="${escapeHTML(x.alt||'')}" loading="lazy">
+                    <div class="gi">${pictureThumb(x.src, '', 100, 100, '100px', x.alt || '')}
                         <span class="badge">${escapeHTML(x.category)}</span>
                     </div>`).join('');
                 const more = g.slice(6, 9).map((x) => `
-                    <div class="gi"><img src="${escapeHTML(x.src)}" alt="${escapeHTML(x.alt||'')}" loading="lazy"></div>`).join('');
+                    <div class="gi">${pictureThumb(x.src, '', 100, 100, '100px', x.alt || '')}</div>`).join('');
                 return profFor(role)
                     + `<div class="hp-grid-3 theme-block" style="--d:110ms">${cells}</div>`
                     + (more ? `<div class="hp-grid-3 theme-block" style="--d:200ms">${more}</div>` : '')
@@ -1365,12 +1396,12 @@
                 const feature = pickFromGallery(role, 'Photo', 0);
                 const rest = g.filter(x => x.src !== feature);
                 const grid4 = rest.slice(0, 4).map(x => `
-                    <div class="gi"><img src="${escapeHTML(x.src)}" alt="${escapeHTML(x.alt||'')}" loading="lazy"></div>`).join('');
+                    <div class="gi">${pictureThumb(x.src, '', 140, 140, '140px', x.alt || '')}</div>`).join('');
                 const grid2 = rest.slice(4, 6).map(x => `
-                    <div class="gi"><img src="${escapeHTML(x.src)}" alt="${escapeHTML(x.alt||'')}" loading="lazy"></div>`).join('');
+                    <div class="gi">${pictureThumb(x.src, '', 140, 140, '140px', x.alt || '')}</div>`).join('');
                 return profFor(role)
                     + `<div class="hp-feature theme-block" style="--d:110ms">
-                            <img src="${escapeHTML(feature)}" alt="" loading="lazy">
+                            ${pictureThumb(feature, '', 280, 180, '(max-width: 1023px) 260px, 320px', '')}
                             <div class="lbl"><span>Iceland · 2026</span><span><i class="fas fa-camera"></i> 48</span></div>
                        </div>`
                     + `<div class="hp-grid-2 theme-block" style="--d:200ms">${grid4}</div>`
@@ -1419,7 +1450,7 @@
                             <div class="hp-stat"><div class="sv">12wk</div><div class="sl">Programs</div></div>
                        </div>`
                     + `<div class="hp-reel theme-block" style="--d:180ms">
-                            <img src="${escapeHTML(reel)}" alt="" loading="lazy">
+                            ${pictureThumb(reel, '', 280, 360, '(max-width: 1023px) 260px, 320px', '')}
                             <div class="ov"></div>
                             <div class="play"><i class="fas fa-play" style="font-size:12px"></i></div>
                             <div class="lb"><span><i class="fas fa-fire"></i> Form check</span><span><i class="fas fa-heart"></i> 12k</span></div>
@@ -1444,7 +1475,7 @@
                 const cover = pickFromGallery(role, 'Podcast', 0);
                 return profFor(role)
                     + `<div class="hp-pod-card theme-block" style="--d:110ms">
-                            <img src="${escapeHTML(cover)}" alt="" loading="lazy">
+                            ${pictureThumb(cover, '', 280, 160, '(max-width: 1023px) 260px, 320px', '')}
                             <div class="pm">
                                 <div class="pe">Ep. 87 · New</div>
                                 <div class="pt">Building in public</div>
@@ -1482,16 +1513,16 @@
                 const stories = ['Reels','Hauls','Travel','Q&amp;A','BTS'];
                 const storyHTML = stories.map((nm, i) => {
                     const src = (g[i] || g[0] || {}).src || '';
-                    return `<div class="hp-story"><div class="ring"><img src="${escapeHTML(src)}" alt=""></div><div class="nm">${nm}</div></div>`;
+                    return `<div class="hp-story"><div class="ring">${pictureThumb(src, '', 56, 56, '56px', '')}</div><div class="nm">${nm}</div></div>`;
                 }).join('');
                 const posts = g.slice(0, 4).map(x => `
-                    <div class="gi"><img src="${escapeHTML(x.src)}" alt="${escapeHTML(x.alt||'')}" loading="lazy">
+                    <div class="gi">${pictureThumb(x.src, '', 140, 140, '140px', x.alt || '')}
                         <span class="hrt"><i class="fas fa-heart"></i>${Math.floor(Math.random()*80)+20}k</span>
                     </div>`).join('');
                 return profFor(role)
                     + `<div class="hp-stories theme-block" style="--d:110ms">${storyHTML}</div>`
                     + `<div class="hp-reel theme-block" style="--d:180ms">
-                            <img src="${escapeHTML(reel)}" alt="" loading="lazy">
+                            ${pictureThumb(reel, '', 280, 360, '(max-width: 1023px) 260px, 320px', '')}
                             <div class="ov"></div>
                             <div class="play"><i class="fas fa-play" style="font-size:12px"></i></div>
                             <div class="lb"><span><i class="fab fa-instagram"></i> 312k</span><span><i class="fas fa-heart"></i> 28k</span></div>
