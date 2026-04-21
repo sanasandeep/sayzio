@@ -7,6 +7,8 @@ use App\Modules\User\Models\Link;
 use App\Modules\User\Models\LinkClick;
 use Illuminate\Http\Request;
 
+use App\Modules\Common\Services\ChannelClassifier;
+
 class LinkTrackingService
 {
     public function track(Link $link, Request $request, ?string $usedAlias = null, ?string $source = null): LinkClick
@@ -27,6 +29,7 @@ class LinkTrackingService
             'referrer' => $request->header('referer'),
             'source' => $source,
             'user_agent' => $userAgent ? mb_substr($userAgent, 0, 512) : null,
+            'channel' => ChannelClassifier::classify($userAgent),
             'language' => $this->detectLanguage($request),
             'country_code' => $geo['country_code'] ?? null,
             'city' => $geo['city'] ?? null,
@@ -128,6 +131,7 @@ class LinkTrackingService
             'referrer' => $request->header('referer'),
             'source' => $source,
             'user_agent' => $userAgent ? mb_substr($userAgent, 0, 512) : null,
+            'channel' => ChannelClassifier::classify($userAgent),
             'language' => $this->detectLanguage($request),
             'country_code' => $geo['country_code'] ?? null,
             'city' => $geo['city'] ?? null,

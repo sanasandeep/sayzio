@@ -382,6 +382,16 @@ class LinkController extends Controller
         $osFilter       = $sanitizeUaFilter($request->query('os'));
         $languageFilter = $sanitizeUaFilter($request->query('language'));
 
+        // Optional channel filter — narrow analytics to clicks classified
+        // into a specific in-app webview / browser bucket (1INME app,
+        // Instagram, generic webview, regular browser, bot, …). Like the
+        // other dimension filters this is intentionally NOT applied to its
+        // own breakdown card so users always see the full split.
+        $channelFilter = $request->query('channel');
+        if (!is_string($channelFilter) || !in_array($channelFilter, \App\Modules\Common\Services\ChannelClassifier::validKeys(), true)) {
+            $channelFilter = null;
+        }
+
         // Optional base-language filter — narrow analytics to clicks whose
         // browser locale shares this base language (e.g. "en" matches en-US,
         // en-GB, en_CA, …). Lets users drill into the rolled-up "By language"
@@ -409,6 +419,7 @@ class LinkController extends Controller
             ->when($browserFilter, fn ($q) => $q->where('browser', $browserFilter))
             ->when($osFilter, fn ($q) => $q->where('os', $osFilter))
             ->when($languageFilter, fn ($q) => $q->where('language', $languageFilter))
+            ->when($channelFilter, fn ($q) => $q->where('channel', $channelFilter))
             ->when($baseLanguageFilter, $applyBaseLanguage);
 
         $totalInRange = (clone $clicksQuery)->count();
@@ -512,6 +523,25 @@ class LinkController extends Controller
             ->selectRaw("COALESCE(source, 'unknown') as source, COUNT(*) as count")
             ->groupBy('source')->orderByDesc('count')->get();
 
+        // Channel breakdown — derived from the user-agent classifier so
+        // creators can tell genuine in-app traffic (Instagram, TikTok,
+        // Facebook, our own native shell, …) apart from real browsers and
+        // bots. Older rows that pre-date the column show under 'unknown'.
+        // Intentionally NOT filtered by $channelFilter so the breakdown
+        // always shows the full split (and lets users switch buckets).
+        $channelStats = $link->clicks()
+            ->whereBetween('clicked_at', [$startDate, $endDate])
+            ->when($aliasFilter, fn ($q) => $q->where('alias', $aliasFilter))
+            ->when($sourceFilter, fn ($q) => $q->where('source', $sourceFilter))
+            ->when($countryFilter, fn ($q) => $q->where('country_code', $countryFilter))
+            ->when($deviceFilter, fn ($q) => $q->where('device_type', $deviceFilter))
+            ->when($browserFilter, fn ($q) => $q->where('browser', $browserFilter))
+            ->when($osFilter, fn ($q) => $q->where('os', $osFilter))
+            ->when($languageFilter, fn ($q) => $q->where('language', $languageFilter))
+            ->when($baseLanguageFilter, $applyBaseLanguage)
+            ->selectRaw("COALESCE(channel, 'unknown') as channel, COUNT(*) as count")
+            ->groupBy('channel')->orderByDesc('count')->get();
+
         // Intentionally NOT filtered by $languageFilter so the card always
         // shows the full split (and lets users switch between languages).
         $languageStats = $link->clicks()
@@ -549,6 +579,7 @@ class LinkController extends Controller
             ->when($browserFilter, fn ($q) => $q->where('browser', $browserFilter))
             ->when($osFilter, fn ($q) => $q->where('os', $osFilter))
             ->when($languageFilter, fn ($q) => $q->where('language', $languageFilter))
+            ->when($channelFilter, fn ($q) => $q->where('channel', $channelFilter))
             ->when($baseLanguageFilter, $applyBaseLanguage);
 
         $totalInRangePrev         = (clone $prevClicksQuery)->count();
@@ -798,7 +829,7 @@ class LinkController extends Controller
         return view('user.links.show', compact(
             'link', 'clicksOverTime', 'topReferrers',
             'browserStats', 'osStats', 'countryStats', 'cityStats',
-            'deviceStats', 'sourceStats', 'languageStats', 'blockStats', 'utmStats',
+            'deviceStats', 'sourceStats', 'channelStats', 'languageStats', 'blockStats', 'utmStats',
             'recentClicks', 'totalInRange', 'uniqueInRange',
             'blockClicksInRange', 'pageVisitsInRange',
             'period', 'groupBy', 'startDate', 'endDate',
@@ -810,6 +841,7 @@ class LinkController extends Controller
             'aliasBreakdown', 'aliasFilter', 'availableAliases', 'sourceFilter',
             'countryFilter', 'deviceFilter',
             'browserFilter', 'osFilter', 'languageFilter', 'baseLanguageFilter',
+            'channelFilter',
             'performance', 'performanceHistory'
         ));
     }
@@ -1684,7 +1716,7 @@ class LinkController extends Controller
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ];
 
-        $columns = ['Clicked At', 'Link Type', 'Link Type Slug', 'IP', 'Country', 'City', 'Browser', 'OS', 'Device', 'Language', 'Referrer', 'Block ID', 'Block Type', 'Block Type Slug', 'Destination URL', 'UTM Source', 'UTM Medium', 'UTM Campaign'];
+        $columns = ['Clicked At', 'Link Type', 'Link Type Slug', 'IP', 'Country', 'City', 'Channel', 'Channel Key', 'Browser', 'OS', 'Device', 'Language', 'Referrer', 'Block ID', 'Block Type', 'Block Type Slug', 'Destination URL', 'UTM Source', 'UTM Medium', 'UTM Campaign'];
 
         $linkTypeLabel = \App\Modules\User\Models\Link::typeLabel($link->type);
         $linkTypeSlug = (string) $link->type;
@@ -1706,6 +1738,8 @@ class LinkController extends Controller
                             optional($r->clicked_at)->format('Y-m-d H:i:s'),
                             $linkTypeLabel, $linkTypeSlug,
                             $r->ip_address, $r->country_code, $r->city,
+                            $r->channel ? \App\Modules\Common\Services\ChannelClassifier::labelFor($r->channel) : '',
+                            $r->channel ?? '',
                             $r->browser, $r->os, $r->device_type, $r->language,
                             $r->referrer, $r->block_id, $blockTypeLabel, $blockTypeSlug, $r->destination_url,
                             $u['utm_source'] ?? '', $u['utm_medium'] ?? '', $u['utm_campaign'] ?? '',

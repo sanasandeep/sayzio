@@ -555,7 +555,10 @@
         $blfValue = $blf['name'] . ' (all variants)';
         $activeFilters[] = ['key' => 'lang_base', 'label' => 'Language', 'value' => $blfValue, 'icon' => 'fa-layer-group', 'clearUrl' => $buildUrl(['lang_base' => null]), 'title' => 'Remove base-language filter (' . $baseLanguageFilter . ' — rollup of all regional variants)', 'iconTitle' => 'Rollup of all regional variants'];
     }
-    $clearAllUrl = $buildUrl(['alias' => null, 'source' => null, 'country' => null, 'device' => null, 'language' => null, 'lang_base' => null]);
+    if (!empty($channelFilter)) {
+        $activeFilters[] = ['key' => 'channel', 'label' => 'Channel', 'value' => \App\Modules\Common\Services\ChannelClassifier::labelFor($channelFilter), 'icon' => 'fa-window-restore', 'clearUrl' => $buildUrl(['channel' => null])];
+    }
+    $clearAllUrl = $buildUrl(['alias' => null, 'source' => null, 'country' => null, 'device' => null, 'language' => null, 'lang_base' => null, 'channel' => null]);
 @endphp
 
 @if(!empty($activeFilters))
@@ -793,6 +796,68 @@
                     </div>
                 @endforeach
             </div>
+        </div>
+    @endif
+</div>
+
+{{-- ===================== CHANNEL (in-app webview vs browser vs bot) ===================== --}}
+@php
+    $channelLabelMap = \App\Modules\Common\Services\ChannelClassifier::LABELS;
+    $channelTotal = (int) $channelStats->sum('count');
+    $channelIcon = function (string $key): string {
+        return [
+            \App\Modules\Common\Services\ChannelClassifier::KEY_1INME_APP       => 'fa-mobile-screen-button',
+            \App\Modules\Common\Services\ChannelClassifier::KEY_INSTAGRAM       => 'fa-brands fa-instagram',
+            \App\Modules\Common\Services\ChannelClassifier::KEY_TIKTOK          => 'fa-brands fa-tiktok',
+            \App\Modules\Common\Services\ChannelClassifier::KEY_FACEBOOK        => 'fa-brands fa-facebook',
+            \App\Modules\Common\Services\ChannelClassifier::KEY_MESSENGER       => 'fa-brands fa-facebook-messenger',
+            \App\Modules\Common\Services\ChannelClassifier::KEY_SNAPCHAT        => 'fa-brands fa-snapchat',
+            \App\Modules\Common\Services\ChannelClassifier::KEY_LINKEDIN        => 'fa-brands fa-linkedin',
+            \App\Modules\Common\Services\ChannelClassifier::KEY_TWITTER         => 'fa-brands fa-x-twitter',
+            \App\Modules\Common\Services\ChannelClassifier::KEY_PINTEREST       => 'fa-brands fa-pinterest',
+            \App\Modules\Common\Services\ChannelClassifier::KEY_YOUTUBE         => 'fa-brands fa-youtube',
+            \App\Modules\Common\Services\ChannelClassifier::KEY_WHATSAPP        => 'fa-brands fa-whatsapp',
+            \App\Modules\Common\Services\ChannelClassifier::KEY_TELEGRAM        => 'fa-brands fa-telegram',
+            \App\Modules\Common\Services\ChannelClassifier::KEY_GENERIC_WEBVIEW => 'fa-window-maximize',
+            \App\Modules\Common\Services\ChannelClassifier::KEY_BROWSER         => 'fa-globe',
+            \App\Modules\Common\Services\ChannelClassifier::KEY_BOT             => 'fa-robot',
+            \App\Modules\Common\Services\ChannelClassifier::KEY_UNKNOWN         => 'fa-circle-question',
+        ][$key] ?? 'fa-circle-question';
+    };
+@endphp
+<div class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#a855f7,#ec4899); --sc-glow: rgba(168,85,247,0.35); --sc-color: #f0abfc; --sc-border: rgba(168,85,247,0.3);">
+    <div class="section-head">
+        <div class="section-title"><div class="section-icon"><i class="fas fa-window-restore"></i></div> Channel <span class="text-[11px] font-medium ml-1" style="color:var(--text-faint);">(detected from user-agent)</span></div>
+        <div class="text-xs" style="color: var(--text-faint);">Distinguishes in-app webviews (Instagram, TikTok, Facebook, …) from real browsers and bots.</div>
+    </div>
+    @if($channelStats->isEmpty() || $channelTotal === 0)
+        <p class="text-sm text-center py-8" style="color: var(--text-faint);">No data yet. Channel detection began once user-agents started being recorded; older clicks show as Unknown.</p>
+    @else
+        <div class="space-y-2 mb-3">
+            @foreach($channelStats as $row)
+                @php
+                    $key   = $row->channel ?: 'unknown';
+                    $label = $channelLabelMap[$key] ?? ucfirst(str_replace('_', ' ', $key));
+                    $pct   = $channelTotal > 0 ? round(($row->count / $channelTotal) * 100, 1) : 0;
+                @endphp
+                <div class="flex items-center justify-between text-sm" style="color: var(--text-faint);">
+                    <span class="inline-flex items-center gap-2">
+                        <i class="fas {{ $channelIcon($key) }} text-[12px] opacity-80"></i>{{ $label }}
+                    </span>
+                    <span><strong style="color: var(--text);">{{ number_format($row->count) }}</strong> &middot; {{ $pct }}%</span>
+                </div>
+            @endforeach
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <a href="{{ $buildUrl(['channel' => null]) }}" class="pill {{ empty($channelFilter) ? 'pill-active' : '' }}">All</a>
+            @foreach($channelStats as $row)
+                @php $key = $row->channel ?: 'unknown'; @endphp
+                @continue($key === \App\Modules\Common\Services\ChannelClassifier::KEY_UNKNOWN)
+                <a href="{{ $buildUrl(['channel' => $key]) }}" class="pill {{ ($channelFilter ?? '') === $key ? 'pill-active' : '' }}">
+                    <i class="fas {{ $channelIcon($key) }} text-[10px] mr-1 opacity-80"></i>
+                    {{ $channelLabelMap[$key] ?? $key }} <span class="ml-1 opacity-60">({{ number_format($row->count) }})</span>
+                </a>
+            @endforeach
         </div>
     @endif
 </div>

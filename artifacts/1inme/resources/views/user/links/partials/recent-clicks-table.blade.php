@@ -8,6 +8,7 @@
             <th class="text-left py-2 px-2 font-bold">IP</th>
             <th class="text-left py-2 px-2 font-bold">Location</th>
             <th class="text-left py-2 px-2 font-bold">Device</th>
+            <th class="text-left py-2 px-2 font-bold">Channel</th>
             <th class="text-left py-2 px-2 font-bold">Browser</th>
             <th class="text-left py-2 px-2 font-bold">OS</th>
             <th class="text-left py-2 px-2 font-bold">Lang</th>
@@ -21,6 +22,7 @@
             <td class="py-2 px-2 font-mono" style="color: var(--text-muted);">{{ $c->ip_address }}</td>
             <td class="py-2 px-2" style="color: var(--text-muted);">{{ $c->city ? $c->city.', ' : '' }}{{ $c->country_code ?? '—' }}</td>
             <td class="py-2 px-2 capitalize" style="color: var(--text-muted);">{{ $c->device_type ?? '—' }}</td>
+            <td class="py-2 px-2" style="color: var(--text-muted);">{{ $c->channel ? \App\Modules\Common\Services\ChannelClassifier::labelFor($c->channel) : '—' }}</td>
             <td class="py-2 px-2" style="color: var(--text-muted);">{{ $c->browser ?? '—' }}</td>
             <td class="py-2 px-2" style="color: var(--text-muted);">{{ $c->os ?? '—' }}</td>
             <td class="py-2 px-2" style="color: var(--text-muted);">{{ $c->language ?? '—' }}</td>
