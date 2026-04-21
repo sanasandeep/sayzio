@@ -25,7 +25,7 @@ class CloudProviderApp extends Model
 
     protected $fillable = [
         'workspace_id', 'provider', 'client_id',
-        'client_secret_encrypted', 'enabled',
+        'client_secret_encrypted', 'redirect_uri', 'enabled',
     ];
 
     protected $casts = [

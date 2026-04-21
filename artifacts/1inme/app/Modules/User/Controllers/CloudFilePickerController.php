@@ -26,12 +26,12 @@ class CloudFilePickerController extends Controller
             return response()->json(['error' => 'reconnect_required', 'message' => $connection->last_error], 422);
         }
 
+        $provider = $this->registry->get($connection->provider);
+        $search = trim((string) $request->query('search', ''));
         try {
-            $listing = $this->registry->get($connection->provider)->listFolder(
-                $connection,
-                $request->query('folder') ?: null,
-                $request->query('cursor') ?: null,
-            );
+            $listing = $search !== ''
+                ? $provider->search($connection, $search, $request->query('cursor') ?: null)
+                : $provider->listFolder($connection, $request->query('folder') ?: null, $request->query('cursor') ?: null);
         } catch (\RuntimeException $e) {
             $connection->update(['last_error' => substr($e->getMessage(), 0, 240)]);
             return response()->json(['error' => 'list_failed', 'message' => $e->getMessage()], 422);

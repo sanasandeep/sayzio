@@ -16,6 +16,9 @@ return new class extends Migration
             $table->string('client_id')->nullable();
             // Encrypted via Laravel Crypt cast on the model.
             $table->text('client_secret_encrypted')->nullable();
+            // Optional override for the OAuth redirect URI registered with
+            // the provider. When null we build it from url() at runtime.
+            $table->string('redirect_uri', 1024)->nullable();
             $table->boolean('enabled')->default(true);
             $table->timestamps();
 

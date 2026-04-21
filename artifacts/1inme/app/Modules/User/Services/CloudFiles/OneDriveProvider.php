@@ -110,4 +110,35 @@ class OneDriveProvider implements CloudProvider
         }
         return ['folders' => $folders, 'files' => $files, 'cursor' => $j['@odata.nextLink'] ?? null];
     }
+
+    public function search(CloudConnection $conn, string $query, ?string $cursor = null): array
+    {
+        if ($cursor) {
+            $host = parse_url($cursor, PHP_URL_HOST);
+            $scheme = parse_url($cursor, PHP_URL_SCHEME);
+            if ($scheme !== 'https' || $host !== 'graph.microsoft.com') {
+                throw new RuntimeException('Refusing untrusted OneDrive cursor URL.');
+            }
+            $url = $cursor;
+        } else {
+            $escaped = str_replace("'", "''", $query);
+            $url = 'https://graph.microsoft.com/v1.0/me/drive/root/search(q=\'' . rawurlencode($escaped) . '\')?$top=100';
+        }
+        $r = Http::withToken((string) $conn->access_token_encrypted)->get($url);
+        if (!$r->ok()) throw new RuntimeException('OneDrive search failed: ' . $r->body());
+        $j = $r->json();
+        $files = [];
+        foreach (($j['value'] ?? []) as $e) {
+            if (!isset($e['file'])) continue;
+            $files[] = [
+                'id'            => $e['id'],
+                'name'          => $e['name'],
+                'mime'          => $e['file']['mimeType'] ?? null,
+                'size'          => (int) ($e['size'] ?? 0),
+                'link'          => $e['webUrl'] ?? '',
+                'thumbnail_url' => $e['thumbnails'][0]['medium']['url'] ?? null,
+            ];
+        }
+        return ['folders' => [], 'files' => $files, 'cursor' => $j['@odata.nextLink'] ?? null];
+    }
 }

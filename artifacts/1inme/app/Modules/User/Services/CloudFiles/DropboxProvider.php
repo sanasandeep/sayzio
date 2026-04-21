@@ -108,4 +108,29 @@ class DropboxProvider implements CloudProvider
         }
         return ['folders' => $folders, 'files' => $files, 'cursor' => ($j['has_more'] ?? false) ? ($j['cursor'] ?? null) : null];
     }
+
+    public function search(CloudConnection $conn, string $query, ?string $cursor = null): array
+    {
+        $r = Http::withToken((string) $conn->access_token_encrypted)
+            ->post('https://api.dropboxapi.com/2/files/search_v2', [
+                'query'   => $query,
+                'options' => ['file_status' => 'active', 'max_results' => 100, 'filename_only' => true],
+            ]);
+        if (!$r->ok()) throw new RuntimeException('Dropbox search failed: ' . $r->body());
+        $j = $r->json();
+        $files = [];
+        foreach (($j['matches'] ?? []) as $m) {
+            $md = $m['metadata']['metadata'] ?? null;
+            if (!$md || ($md['.tag'] ?? '') !== 'file') continue;
+            $files[] = [
+                'id'            => $md['id'],
+                'name'          => $md['name'],
+                'mime'          => null,
+                'size'          => (int) ($md['size'] ?? 0),
+                'link'          => 'https://www.dropbox.com/preview' . ($md['path_display'] ?? ''),
+                'thumbnail_url' => null,
+            ];
+        }
+        return ['folders' => [], 'files' => $files, 'cursor' => null];
+    }
 }

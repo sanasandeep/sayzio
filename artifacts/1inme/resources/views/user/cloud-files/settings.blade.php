@@ -47,10 +47,31 @@
                     <input type="password" name="client_secret" value=""
                            class="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm" autocomplete="off">
                 </div>
+                <div class="md:col-span-2">
+                    <label class="block text-xs text-gray-400 mb-1">Custom redirect URI <span class="text-gray-500">(optional — leave blank to use the default above)</span></label>
+                    <input type="url" name="redirect_uri" value="{{ old('redirect_uri', $row?->redirect_uri) }}"
+                           placeholder="{{ str_replace('__provider__', $provider, $callback) }}"
+                           class="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm" autocomplete="off">
+                </div>
             </div>
 
-            <div class="mt-4 flex items-center justify-end gap-2">
+            <div class="mt-4 flex items-center justify-end gap-2"
+                 x-data="{ testing: false, result: null }">
+                <span x-show="result" x-text="result?.message"
+                      :class="result?.ok ? 'text-emerald-300 text-sm' : 'text-rose-300 text-sm'"></span>
                 @if($row)
+                    <button type="button" :disabled="testing"
+                            @click="
+                                testing = true; result = null;
+                                fetch('{{ route('user.cloud-files.settings.test', $provider) }}', {
+                                    method: 'POST',
+                                    headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content }
+                                }).then(r => r.json()).then(j => result = j).finally(() => testing = false);
+                            "
+                            class="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-sm">
+                        <span x-show="!testing"><i class="fas fa-stethoscope mr-1"></i> Test connection</span>
+                        <span x-show="testing"><i class="fas fa-spinner fa-spin"></i> Testing…</span>
+                    </button>
                     <button type="submit" formaction="{{ route('user.cloud-files.settings.destroy', $provider) }}"
                             formmethod="POST"
                             onclick="return confirm('Remove {{ $label }} OAuth app from this workspace? All connections will stop working.')"

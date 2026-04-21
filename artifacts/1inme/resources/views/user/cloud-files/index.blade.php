@@ -27,6 +27,13 @@
                 <option value="{{ $p }}" @selected(request('provider') === $p)>{{ CloudProviderApp::PROVIDER_LABELS[$p] }}</option>
             @endforeach
         </select>
+        <select name="owner" class="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm"
+                onchange="this.form.submit()">
+            <option value="">All teammates</option>
+            @foreach($contributors as $u)
+                <option value="{{ $u->id }}" @selected((int) request('owner') === (int) $u->id)>{{ $u->name }}</option>
+            @endforeach
+        </select>
         <button class="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-sm">Filter</button>
 
         @if($canCreate)
@@ -107,19 +114,32 @@
     @if($canCreate && $usableConnections->isNotEmpty())
     <div x-show="visible" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" @keydown.escape.window="close()">
         <div class="w-full max-w-2xl rounded-xl border border-white/10 max-h-[80vh] flex flex-col" style="background: var(--bg-card);">
-            <div class="px-5 py-3 border-b border-white/10 flex items-center justify-between">
-                <div>
+            <div class="px-5 py-3 border-b border-white/10">
+                <div class="flex items-center justify-between mb-2">
                     <div class="font-semibold">Pick files</div>
-                    <div class="text-xs text-gray-400">
-                        <template x-for="(crumb, i) in breadcrumbs" :key="i">
-                            <span>
-                                <a href="#" @click.prevent="goBackTo(i)" class="hover:text-cyan-300" x-text="crumb.name"></a>
-                                <span class="mx-1 text-gray-600">/</span>
-                            </span>
-                        </template>
-                    </div>
+                    <button @click="close()" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
                 </div>
-                <button @click="close()" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
+                <div class="flex items-center gap-2">
+                    <div class="relative flex-1">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                        <input type="text" x-model="searchTerm" @keydown.enter.prevent="runSearch()"
+                               placeholder="Search files in this account…"
+                               class="w-full pl-9 pr-3 py-1.5 rounded bg-white/5 border border-white/10 text-sm">
+                    </div>
+                    <button type="button" @click="runSearch()" class="px-3 py-1.5 rounded bg-white/5 hover:bg-white/10 text-sm">Search</button>
+                    <button type="button" x-show="searching" @click="clearSearch()" class="px-3 py-1.5 rounded bg-white/5 hover:bg-white/10 text-sm">Clear</button>
+                </div>
+                <div class="text-xs text-gray-400 mt-2" x-show="!searching">
+                    <template x-for="(crumb, i) in breadcrumbs" :key="i">
+                        <span>
+                            <a href="#" @click.prevent="goBackTo(i)" class="hover:text-cyan-300" x-text="crumb.name"></a>
+                            <span class="mx-1 text-gray-600">/</span>
+                        </span>
+                    </template>
+                </div>
+                <div class="text-xs text-gray-400 mt-2" x-show="searching">
+                    <i class="fas fa-magnifying-glass mr-1"></i> Search results for "<span x-text="searchTerm"></span>"
+                </div>
             </div>
 
             <div class="flex-1 overflow-y-auto p-3" x-ref="list">
@@ -171,18 +191,23 @@ function cloudPicker() {
         connectionId: @json($usableConnections->first()?->id),
         loading: false,
         saving: false,
+        searching: false,
+        searchTerm: '',
         error: '',
         folders: [],
         files: [],
         selected: [],
         breadcrumbs: [{ id: null, name: 'Home' }],
 
-        open() { this.visible = true; this.selected = []; this.breadcrumbs = [{ id: null, name: 'Home' }]; this.load(null); },
+        open() {
+            this.visible = true; this.selected = []; this.searching = false; this.searchTerm = '';
+            this.breadcrumbs = [{ id: null, name: 'Home' }]; this.load(null);
+        },
         close() { this.visible = false; },
-        async load(folderId) {
+        async fetchPicker(params) {
             this.loading = true; this.error = ''; this.folders = []; this.files = [];
             try {
-                const r = await fetch(`/user/cloud-files/picker/${this.connectionId}?` + new URLSearchParams(folderId ? { folder: folderId } : {}), {
+                const r = await fetch(`/user/cloud-files/picker/${this.connectionId}?` + new URLSearchParams(params), {
                     headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }
                 });
                 const j = await r.json();
@@ -192,6 +217,14 @@ function cloudPicker() {
             } catch (e) { this.error = 'Network error.'; }
             finally { this.loading = false; }
         },
+        load(folderId) { this.searching = false; this.fetchPicker(folderId ? { folder: folderId } : {}); },
+        runSearch() {
+            const q = this.searchTerm.trim();
+            if (!q) return;
+            this.searching = true;
+            this.fetchPicker({ search: q });
+        },
+        clearSearch() { this.searchTerm = ''; this.searching = false; this.load(this.breadcrumbs.at(-1).id); },
         enter(folder) { this.breadcrumbs.push({ id: folder.id, name: folder.name }); this.load(folder.id); },
         goBackTo(i) { this.breadcrumbs = this.breadcrumbs.slice(0, i + 1); this.load(this.breadcrumbs[i].id); },
         toggle(file, on) {

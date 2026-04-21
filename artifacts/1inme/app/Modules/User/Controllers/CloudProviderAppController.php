@@ -5,7 +5,7 @@ namespace App\Modules\User\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\CloudProviderApp;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Http;
 
 class CloudProviderAppController extends Controller
 {
@@ -27,6 +27,7 @@ class CloudProviderAppController extends Controller
         $data = $request->validate([
             'client_id'     => ['nullable', 'string', 'max:255'],
             'client_secret' => ['nullable', 'string', 'max:1000'],
+            'redirect_uri'  => ['nullable', 'url', 'max:1024'],
             'enabled'       => ['nullable', 'boolean'],
         ]);
 
@@ -39,6 +40,7 @@ class CloudProviderAppController extends Controller
         if (!empty($data['client_secret'])) {
             $row->client_secret_encrypted = $data['client_secret'];
         }
+        $row->redirect_uri = $data['redirect_uri'] ?? null;
         $row->enabled = (bool) ($data['enabled'] ?? false);
         $row->save();
 
@@ -51,5 +53,54 @@ class CloudProviderAppController extends Controller
         abort_unless(CloudProviderApp::isKnownProvider($provider), 404);
         CloudProviderApp::where('provider', $provider)->delete();
         return back()->with('success', 'Removed.');
+    }
+
+    /**
+     * Lightweight credential sanity check. Posts a deliberately invalid auth
+     * code to the provider's token endpoint and inspects the OAuth error
+     * response. The provider rejects "invalid_client" before it ever looks at
+     * the code, so we can tell apart "bad client_id/secret" (fail) vs.
+     * "credentials accepted, code rejected" (pass) without a real OAuth round
+     * trip.
+     */
+    public function test(string $provider)
+    {
+        abort_unless(CloudProviderApp::isKnownProvider($provider), 404);
+        $row = CloudProviderApp::where('provider', $provider)->first();
+        if (!$row || !$row->isConfigured()) {
+            return response()->json(['ok' => false, 'message' => 'Not configured.'], 422);
+        }
+
+        $endpoints = [
+            'google_drive' => 'https://oauth2.googleapis.com/token',
+            'dropbox'      => 'https://api.dropboxapi.com/oauth2/token',
+            'onedrive'     => 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
+        ];
+        $redirect = $row->redirect_uri ?: url('/user/cloud-oauth/' . $provider . '/callback');
+
+        $r = Http::asForm()->post($endpoints[$provider], [
+            'grant_type'    => 'authorization_code',
+            'code'          => '__1inme_credential_probe__',
+            'client_id'     => $row->client_id,
+            'client_secret' => (string) $row->client_secret_encrypted,
+            'redirect_uri'  => $redirect,
+        ]);
+
+        $err = $r->json('error');
+        // Anything other than invalid_client/unauthorized_client means the
+        // provider got past credential validation and choked on the dummy
+        // code — exactly what we want to confirm.
+        $clientCredsBad = in_array($err, ['invalid_client', 'unauthorized_client'], true);
+        if ($clientCredsBad) {
+            return response()->json([
+                'ok'      => false,
+                'message' => 'Provider rejected the client ID/secret (' . $err . ').',
+            ]);
+        }
+
+        return response()->json([
+            'ok'      => true,
+            'message' => 'Credentials accepted by ' . $row->label() . '. Ready to connect.',
+        ]);
     }
 }

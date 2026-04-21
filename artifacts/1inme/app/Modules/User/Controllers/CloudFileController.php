@@ -29,7 +29,13 @@ class CloudFileController extends Controller
         $myConnections = CloudConnection::where('user_id', $request->user()->id)->get();
         $apps = CloudProviderApp::query()->get()->keyBy('provider');
 
-        return view('user.cloud-files.index', compact('files', 'myConnections', 'apps'));
+        // Build the owner-filter dropdown from members who have actually
+        // contributed at least one file — keeps the list short and useful.
+        $contributorIds = CloudFile::query()->distinct()->pluck('added_by_user_id');
+        $contributors = \App\Modules\User\Models\User::whereIn('id', $contributorIds)
+            ->orderBy('name')->get(['id', 'name']);
+
+        return view('user.cloud-files.index', compact('files', 'myConnections', 'apps', 'contributors'));
     }
 
     public function store(Request $request)

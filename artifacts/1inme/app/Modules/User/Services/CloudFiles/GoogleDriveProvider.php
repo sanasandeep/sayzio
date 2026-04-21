@@ -101,4 +101,32 @@ class GoogleDriveProvider implements CloudProvider
         }
         return ['folders' => $folders, 'files' => $files, 'cursor' => $j['nextPageToken'] ?? null];
     }
+
+    public function search(CloudConnection $conn, string $query, ?string $cursor = null): array
+    {
+        $q = "name contains '" . str_replace("'", "\\'", $query) . "' and trashed=false and mimeType != 'application/vnd.google-apps.folder'";
+        $params = [
+            'q'        => $q,
+            'fields'   => 'nextPageToken,files(id,name,mimeType,size,webViewLink,thumbnailLink,iconLink)',
+            'pageSize' => 100,
+        ];
+        if ($cursor) $params['pageToken'] = $cursor;
+
+        $r = Http::withToken((string) $conn->access_token_encrypted)
+            ->get('https://www.googleapis.com/drive/v3/files', $params);
+        if (!$r->ok()) throw new RuntimeException('Google search failed: ' . $r->body());
+        $j = $r->json();
+        $files = [];
+        foreach (($j['files'] ?? []) as $f) {
+            $files[] = [
+                'id'            => $f['id'],
+                'name'          => $f['name'],
+                'mime'          => $f['mimeType'] ?? null,
+                'size'          => (int) ($f['size'] ?? 0),
+                'link'          => $f['webViewLink'] ?? ('https://drive.google.com/file/d/' . $f['id'] . '/view'),
+                'thumbnail_url' => $f['thumbnailLink'] ?? ($f['iconLink'] ?? null),
+            ];
+        }
+        return ['folders' => [], 'files' => $files, 'cursor' => $j['nextPageToken'] ?? null];
+    }
 }

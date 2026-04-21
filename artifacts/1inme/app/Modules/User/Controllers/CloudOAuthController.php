@@ -32,7 +32,7 @@ class CloudOAuthController extends Controller
             'cloud_oauth_ws_'    . $provider => $ws->id,
         ]);
 
-        $url = $this->registry->get($provider)->authorizeUrl($app, $state, $this->redirectUri($provider));
+        $url = $this->registry->get($provider)->authorizeUrl($app, $state, $this->redirectUriFor($app, $provider));
         return redirect()->away($url);
     }
 
@@ -72,7 +72,7 @@ class CloudOAuthController extends Controller
 
         try {
             [$access, $refresh, $expires, $email, $label, $scopes] =
-                $this->registry->get($provider)->exchangeCode($app, $code, $this->redirectUri($provider));
+                $this->registry->get($provider)->exchangeCode($app, $code, $this->redirectUriFor($app, $provider));
         } catch (\RuntimeException $e) {
             return redirect()->route('user.cloud-files.connections')
                 ->with('error', 'Connect failed: ' . $e->getMessage());
@@ -106,8 +106,8 @@ class CloudOAuthController extends Controller
             ->with('success', CloudProviderApp::PROVIDER_LABELS[$provider] . ' connected.');
     }
 
-    private function redirectUri(string $provider): string
+    private function redirectUriFor(CloudProviderApp $app, string $provider): string
     {
-        return url('/user/cloud-oauth/' . $provider . '/callback');
+        return $app->redirect_uri ?: url('/user/cloud-oauth/' . $provider . '/callback');
     }
 }

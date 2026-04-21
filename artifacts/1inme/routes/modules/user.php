@@ -644,6 +644,7 @@ Route::prefix('user')->name('user.')->group(function () {
             // Owner-only OAuth-app credential management.
             Route::get('settings',                         [\App\Modules\User\Controllers\CloudProviderAppController::class, 'index'])->middleware('workspace.owner')->name('settings.index');
             Route::put('settings/{provider}',              [\App\Modules\User\Controllers\CloudProviderAppController::class, 'update'])->middleware('workspace.owner')->name('settings.update');
+            Route::post('settings/{provider}/test',        [\App\Modules\User\Controllers\CloudProviderAppController::class, 'test'])->middleware('workspace.owner')->name('settings.test');
             Route::delete('settings/{provider}',           [\App\Modules\User\Controllers\CloudProviderAppController::class, 'destroy'])->middleware('workspace.owner')->name('settings.destroy');
         });
 

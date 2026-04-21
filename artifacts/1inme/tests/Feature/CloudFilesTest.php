@@ -161,6 +161,100 @@ class CloudFilesTest extends TestCase
              ->assertJsonPath('files.0.name', 'Doc.pdf');
     }
 
+    public function test_picker_search_calls_provider_search(): void
+    {
+        $owner = $this->makeUser('o');
+        $this->bindWorkspace($owner);
+        CloudProviderApp::create([
+            'provider'                => 'google_drive',
+            'client_id'               => 'gid', 'client_secret_encrypted' => 'sec', 'enabled' => true,
+        ]);
+        $conn = CloudConnection::create([
+            'user_id' => $owner->id, 'provider' => 'google_drive',
+            'access_token_encrypted' => 'AT', 'expires_at' => now()->addHour(),
+        ]);
+
+        Http::fake([
+            'googleapis.com/drive/v3/files*' => Http::response([
+                'files' => [
+                    ['id' => 'f9', 'name' => 'budget.xlsx', 'mimeType' => 'application/vnd.ms-excel', 'size' => '50', 'webViewLink' => 'https://drive.google.com/x'],
+                ],
+            ]),
+        ]);
+
+        $this->actingAs($owner)
+            ->getJson('/user/cloud-files/picker/' . $conn->id . '?search=' . urlencode('budget'))
+            ->assertOk()
+            ->assertJsonPath('files.0.name', 'budget.xlsx')
+            ->assertJsonPath('folders', []);
+
+        Http::assertSent(function ($req) {
+            return str_contains($req->url(), 'name+contains') || str_contains(urldecode($req->url()), "name contains 'budget'");
+        });
+    }
+
+    public function test_settings_test_endpoint_reports_bad_client_id(): void
+    {
+        $owner = $this->makeUser('o');
+        $this->bindWorkspace($owner);
+        CloudProviderApp::create([
+            'provider' => 'google_drive', 'client_id' => 'wrong', 'client_secret_encrypted' => 'wrong', 'enabled' => true,
+        ]);
+
+        Http::fake([
+            'oauth2.googleapis.com/token' => Http::response(['error' => 'invalid_client'], 401),
+        ]);
+
+        $this->actingAs($owner)
+            ->postJson('/user/cloud-files/settings/google_drive/test')
+            ->assertOk()
+            ->assertJson(['ok' => false]);
+    }
+
+    public function test_settings_test_endpoint_reports_credentials_ok(): void
+    {
+        $owner = $this->makeUser('o');
+        $this->bindWorkspace($owner);
+        CloudProviderApp::create([
+            'provider' => 'google_drive', 'client_id' => 'good', 'client_secret_encrypted' => 'good', 'enabled' => true,
+        ]);
+
+        // invalid_grant → server got past credential check.
+        Http::fake([
+            'oauth2.googleapis.com/token' => Http::response(['error' => 'invalid_grant'], 400),
+        ]);
+
+        $this->actingAs($owner)
+            ->postJson('/user/cloud-files/settings/google_drive/test')
+            ->assertOk()
+            ->assertJson(['ok' => true]);
+    }
+
+    public function test_owner_filter_narrows_library_to_one_member(): void
+    {
+        $owner = $this->makeUser('o');
+        $member = $this->makeUser('m');
+        $ws = $this->bindWorkspace($owner);
+        \App\Modules\User\Models\WorkspaceMember::create([
+            'workspace_id' => $ws->id, 'user_id' => $member->id, 'role' => 'editor', 'status' => 'active',
+        ]);
+        $conn = CloudConnection::create(['user_id' => $owner->id, 'provider' => 'dropbox', 'access_token_encrypted' => 'x']);
+        CloudFile::create([
+            'added_by_user_id' => $owner->id, 'connection_id' => $conn->id, 'provider' => 'dropbox',
+            'remote_id' => 'r-owner', 'name' => 'OwnerFile', 'link' => 'https://x', 'added_at' => now(),
+        ]);
+        CloudFile::create([
+            'added_by_user_id' => $member->id, 'connection_id' => $conn->id, 'provider' => 'dropbox',
+            'remote_id' => 'r-member', 'name' => 'MemberFile', 'link' => 'https://x', 'added_at' => now(),
+        ]);
+
+        $this->actingAs($owner)
+            ->get('/user/cloud-files?owner=' . $member->id)
+            ->assertOk()
+            ->assertSee('MemberFile')
+            ->assertDontSee('OwnerFile');
+    }
+
     public function test_picker_blocks_other_users_connection(): void
     {
         $alice = $this->makeUser('a');

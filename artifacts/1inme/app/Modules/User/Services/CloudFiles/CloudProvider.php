@@ -34,4 +34,10 @@ interface CloudProvider
      *   ['folders' => [['id','name']], 'files' => [['id','name','mime','size','link','thumbnail_url']], 'cursor' => string|null]
      */
     public function listFolder(CloudConnection $conn, ?string $folderId, ?string $cursor = null): array;
+
+    /**
+     * Search files by name across the connected account. Returns the same
+     * shape as listFolder() but folders may be empty.
+     */
+    public function search(CloudConnection $conn, string $query, ?string $cursor = null): array;
 }
