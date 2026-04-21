@@ -26,11 +26,22 @@
                 <i class="fas fa-plus mr-1"></i> Add category
             </button>
         </div>
+        <p class="text-[11px] text-white/40 mb-3"><i class="fas fa-grip-vertical mr-1"></i> Tip: drag the handle on the left of any category or feature row to reorder. Arrow buttons still work too.</p>
 
-        <template x-for="(cat, ci) in categories" :key="ci">
-            <div class="bg-white/5 border border-white/10 rounded-xl p-4 mb-4 space-y-3">
+        <template x-for="(cat, ci) in categories" :key="cat._key">
+            <div class="bg-white/5 border border-white/10 rounded-xl p-4 mb-4 space-y-3 transition-opacity"
+                 :class="dragCat.from === ci ? 'opacity-50' : ''"
+                 @dragover.prevent="onCategoryDragOver(ci, $event)"
+                 @drop.prevent="onCategoryDrop(ci)">
                 <div class="flex items-center justify-between">
-                    <span class="text-[10px] uppercase tracking-wider text-white/40">Category <span x-text="ci+1"></span></span>
+                    <div class="flex items-center gap-2">
+                        <span draggable="true"
+                              @dragstart="onCategoryDragStart(ci, $event)"
+                              @dragend="onCategoryDragEnd()"
+                              class="cursor-grab active:cursor-grabbing text-white/40 hover:text-white/80 px-1 select-none"
+                              title="Drag to reorder category"><i class="fas fa-grip-vertical"></i></span>
+                        <span class="text-[10px] uppercase tracking-wider text-white/40">Category <span x-text="ci+1"></span></span>
+                    </div>
                     <div class="flex items-center gap-1">
                         <button type="button" @click="moveCategory(ci, -1)" :disabled="ci===0" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-2 py-1" title="Move up"><i class="fas fa-arrow-up"></i></button>
                         <button type="button" @click="moveCategory(ci, 1)" :disabled="ci===categories.length-1" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-2 py-1" title="Move down"><i class="fas fa-arrow-down"></i></button>
@@ -83,9 +94,17 @@
                             <i class="fas fa-plus mr-1"></i> Add feature
                         </button>
                     </div>
-                    <template x-for="(feat, fi) in cat.features" :key="fi">
-                        <div class="bg-black/20 border border-white/5 rounded-lg p-3 mb-2 space-y-2">
+                    <template x-for="(feat, fi) in cat.features" :key="feat._key">
+                        <div class="bg-black/20 border border-white/5 rounded-lg p-3 mb-2 space-y-2 transition-opacity"
+                             :class="dragFeat.fromCi === ci && dragFeat.fromFi === fi ? 'opacity-50' : ''"
+                             @dragover.prevent="onFeatureDragOver(ci, fi, $event)"
+                             @drop.prevent="onFeatureDrop(ci, fi)">
                             <div class="flex items-start gap-2">
+                                <span draggable="true"
+                                      @dragstart="onFeatureDragStart(ci, fi, $event)"
+                                      @dragend="onFeatureDragEnd()"
+                                      class="cursor-grab active:cursor-grabbing text-white/40 hover:text-white/80 pt-1.5 select-none"
+                                      title="Drag to reorder feature"><i class="fas fa-grip-vertical text-[11px]"></i></span>
                                 <div class="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2">
                                     <input type="text" :name="'categories['+ci+'][features]['+fi+'][name]'" x-model="feat.name" placeholder="Feature name"
                                            class="md:col-span-1 px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white">
@@ -306,20 +325,26 @@
     ];
 
     function featuresEditor(initial) {
+        let _uid = 0;
+        const nextKey = () => `k${++_uid}_${Date.now()}`;
         return {
             categories: (initial || []).map(c => ({
+                _key: nextKey(),
                 id: c.id || '',
                 icon: c.icon || 'fa-circle',
                 heading: c.heading || '',
                 intro: c.intro || '',
                 features: (c.features || []).map(f => ({
+                    _key: nextKey(),
                     name: f.name || '',
                     description: f.description || '',
                 })),
             })),
             picker: { open: false, ci: null, query: '' },
+            dragCat: { from: null },
+            dragFeat: { fromCi: null, fromFi: null },
             addCategory() {
-                this.categories.push({ id: '', icon: 'fa-circle', heading: '', intro: '', features: [] });
+                this.categories.push({ _key: nextKey(), id: '', icon: 'fa-circle', heading: '', intro: '', features: [] });
             },
             removeCategory(i) {
                 if (!confirm('Delete this category and all its features?')) return;
@@ -328,12 +353,11 @@
             moveCategory(i, dir) {
                 const j = i + dir;
                 if (j < 0 || j >= this.categories.length) return;
-                const tmp = this.categories[i];
-                this.categories[i] = this.categories[j];
-                this.categories[j] = tmp;
+                const [item] = this.categories.splice(i, 1);
+                this.categories.splice(j, 0, item);
             },
             addFeature(ci) {
-                this.categories[ci].features.push({ name: '', description: '' });
+                this.categories[ci].features.push({ _key: nextKey(), name: '', description: '' });
             },
             removeFeature(ci, fi) {
                 this.categories[ci].features.splice(fi, 1);
@@ -342,9 +366,59 @@
                 const list = this.categories[ci].features;
                 const j = fi + dir;
                 if (j < 0 || j >= list.length) return;
-                const tmp = list[fi];
-                list[fi] = list[j];
-                list[j] = tmp;
+                const [item] = list.splice(fi, 1);
+                list.splice(j, 0, item);
+            },
+            onCategoryDragStart(ci, e) {
+                this.dragCat.from = ci;
+                if (e.dataTransfer) {
+                    e.dataTransfer.effectAllowed = 'move';
+                    try { e.dataTransfer.setData('text/plain', 'cat:' + ci); } catch (_) {}
+                }
+            },
+            onCategoryDragOver(ci, e) {
+                if (this.dragCat.from === null) return;
+                if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+            },
+            onCategoryDrop(ci) {
+                const from = this.dragCat.from;
+                this.dragCat.from = null;
+                if (from === null || from === ci) return;
+                const [item] = this.categories.splice(from, 1);
+                this.categories.splice(ci, 0, item);
+            },
+            onCategoryDragEnd() {
+                this.dragCat.from = null;
+            },
+            onFeatureDragStart(ci, fi, e) {
+                this.dragFeat.fromCi = ci;
+                this.dragFeat.fromFi = fi;
+                if (e.dataTransfer) {
+                    e.dataTransfer.effectAllowed = 'move';
+                    try { e.dataTransfer.setData('text/plain', 'feat:' + ci + ':' + fi); } catch (_) {}
+                }
+                e.stopPropagation();
+            },
+            onFeatureDragOver(ci, fi, e) {
+                if (this.dragFeat.fromCi === null) return;
+                if (this.dragFeat.fromCi !== ci) return;
+                if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+                e.stopPropagation();
+            },
+            onFeatureDrop(ci, fi) {
+                const fromCi = this.dragFeat.fromCi;
+                const fromFi = this.dragFeat.fromFi;
+                this.dragFeat.fromCi = null;
+                this.dragFeat.fromFi = null;
+                if (fromCi === null || fromCi !== ci) return;
+                if (fromFi === fi) return;
+                const list = this.categories[ci].features;
+                const [item] = list.splice(fromFi, 1);
+                list.splice(fi, 0, item);
+            },
+            onFeatureDragEnd() {
+                this.dragFeat.fromCi = null;
+                this.dragFeat.fromFi = null;
             },
             openPicker(ci) {
                 this.picker.open = true;
