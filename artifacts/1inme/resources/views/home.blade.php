@@ -49,13 +49,44 @@
             66%     { transform: translate(-5%,5%) scale(.95); }
         }
 
-        /* ============ Reveal-on-scroll (bouncy) ============ */
-        .reveal { opacity: 1; transform: none; transition: opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.34,1.56,.64,1); }
-        .js .reveal:not(.visible) { opacity: 0; transform: translateY(40px) scale(.94); }
-        .reveal.visible { opacity: 1; transform: none; }
-        .rd-1 { transition-delay: .08s }  .rd-2 { transition-delay: .18s }
-        .rd-3 { transition-delay: .28s }  .rd-4 { transition-delay: .38s }
-        .rd-5 { transition-delay: .48s }  .rd-6 { transition-delay: .58s }
+        /* ============ Reveal-on-scroll (bouncy) ============
+           Reveals run as a pure CSS animation so the content always
+           paints — even if the JS reveal observer is slow, fails, or
+           never fires (which used to leave the hero blank on
+           phones/tablets). The .js / .visible classes still gate the
+           transition so reduced-motion users get the calm fallback. */
+        .reveal {
+            opacity: 1;
+            transform: none;
+            transition: opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.34,1.56,.64,1);
+        }
+        @media (min-width: 1024px) {
+            .reveal { animation: revealAuto .8s cubic-bezier(.34,1.56,.64,1) both; }
+            @keyframes revealAuto {
+                from { opacity: 0; transform: translateY(40px) scale(.94); }
+                to   { opacity: 1; transform: none; }
+            }
+            .rd-1 { animation-delay: .08s }  .rd-2 { animation-delay: .18s }
+            .rd-3 { animation-delay: .28s }  .rd-4 { animation-delay: .38s }
+            .rd-5 { animation-delay: .48s }  .rd-6 { animation-delay: .58s }
+        }
+
+        /* ============ Hero grid safety net ============
+           Below the lg breakpoint, force the hero grid into a single
+           column with each item sized to its own content. This protects
+           the hero from any quirk in Tailwind CDN parsing the arbitrary
+           `lg:grid-cols-[5fr_7fr]` value, and it stops the right column
+           (which has `min-height: 560px` from `.hero-phone-stage`) from
+           dragging the left column with `align-items: center`, which was
+           pushing the headline / paragraph / CTAs off the visible area
+           on phones and tablets. */
+        @media (max-width: 1023px) {
+            .hero-grid {
+                grid-template-columns: minmax(0, 1fr) !important;
+                align-items: start !important;
+            }
+            .hero-grid > * { min-width: 0; }
+        }
 
         /* ============ Floats ============ */
         .float-a { animation: floatA 6s ease-in-out infinite; }
@@ -1459,7 +1490,7 @@
     <div class="confetti drift-b" style="left:88%; bottom:-15vh; animation-delay:-9s"><div class="w-3 h-3 rotate-45" style="background:var(--c5)"></div></div>
 
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 xl:px-12">
-        <div class="grid grid-cols-1 lg:grid-cols-[1.05fr_1fr] gap-y-12 lg:gap-x-12 xl:gap-x-16 items-center">
+        <div class="hero-grid grid grid-cols-1 gap-y-12 lg:grid-cols-[1.05fr_1fr] lg:gap-x-12 xl:gap-x-16 lg:items-center">
             <div class="text-center lg:text-left lg:max-w-[600px]">
                 <div class="reveal inline-flex items-center gap-2 px-4 py-1.5 glass rounded-full text-xs font-semibold mb-8">
                     <span class="relative flex h-2 w-2">
@@ -2189,10 +2220,24 @@
                     el.classList.toggle('is-active', active);
                     el.setAttribute('aria-pressed', active ? 'true' : 'false');
                 });
-                if (idx >= 0 && tiles[idx] && typeof tiles[idx].scrollIntoView === 'function') {
+                if (idx >= 0 && tiles[idx]) {
+                    // Centre the active tile *within the rail's own horizontal
+                    // scroll* — never use scrollIntoView, because on mobile the
+                    // tile rail sits below the fold and scrollIntoView would
+                    // also scroll the page vertically, pushing the hero
+                    // headline / CTAs off-screen. We compute scrollLeft
+                    // manually so only the rail moves.
                     try {
-                        tiles[idx].scrollIntoView({ block: 'nearest', inline: 'center', behavior: reduce ? 'auto' : 'smooth' });
-                    } catch (_) { tiles[idx].scrollIntoView(); }
+                        const tile = tiles[idx];
+                        const target = tile.offsetLeft - (tileRail.clientWidth / 2) + (tile.offsetWidth / 2);
+                        const max = Math.max(0, tileRail.scrollWidth - tileRail.clientWidth);
+                        const left = Math.max(0, Math.min(max, target));
+                        if (typeof tileRail.scrollTo === 'function') {
+                            tileRail.scrollTo({ left, behavior: reduce ? 'auto' : 'smooth' });
+                        } else {
+                            tileRail.scrollLeft = left;
+                        }
+                    } catch (_) { /* no-op */ }
                 }
             }
 
