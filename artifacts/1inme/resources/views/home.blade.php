@@ -925,50 +925,39 @@
             .hero-gallery-item .gallery-cat { font-size: 9px; padding: 3px 6px; }
         }
 
-        /* ============ Hero vertical tile rail (lg+) ============ */
-        .hero-rail-col {
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            align-self: stretch;
-            justify-content: center;
-        }
+        /* ============ Hero compact horizontal tile strip ============ */
         .hero-rail-label {
             line-height: 1.1;
-            text-align: center;
             white-space: nowrap;
         }
-        .hero-tile-rail { display: none; }
-        @media (min-width: 1024px) {
-            .hero-tile-rail {
-                display: flex;
-                flex-direction: column;
-                gap: 8px;
-                align-self: stretch;
-                width: 116px;
-                max-height: 600px;
-                overflow-y: auto;
-                overscroll-behavior: contain;
-                scroll-snap-type: y proximity;
-                scrollbar-width: none;
-                padding: 6px 4px;
-                -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%);
-                        mask-image: linear-gradient(to bottom, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%);
-                z-index: 6;
-            }
-            .hero-tile-rail::-webkit-scrollbar { display: none; }
+        .hero-tile-rail {
+            display: flex;
+            flex-direction: row;
+            gap: 8px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            overscroll-behavior-x: contain;
+            -webkit-overflow-scrolling: touch;
+            scroll-snap-type: x proximity;
+            scrollbar-width: none;
+            padding: 4px 2px 6px;
+            -webkit-mask-image: linear-gradient(to right, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%);
+                    mask-image: linear-gradient(to right, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%);
+            z-index: 6;
         }
+        .hero-tile-rail::-webkit-scrollbar { display: none; }
         .hero-tile {
             appearance: none; -webkit-appearance: none;
             background: rgba(255,255,255,.05);
             border: 1px solid rgba(255,255,255,.10);
-            border-radius: 14px;
-            padding: 6px 6px 7px;
+            border-radius: 12px;
+            padding: 5px 5px 6px;
             color: #fff;
             cursor: pointer;
             display: flex; flex-direction: column; align-items: stretch;
-            gap: 6px;
+            gap: 5px;
             flex-shrink: 0;
+            width: 78px;
             scroll-snap-align: start;
             transition: transform .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease;
             text-align: center;
@@ -989,8 +978,8 @@
         }
         .hero-tile-thumb {
             position: relative;
-            aspect-ratio: 1/1;
-            border-radius: 10px;
+            aspect-ratio: 4/3;
+            border-radius: 9px;
             overflow: hidden;
             background: rgba(255,255,255,.04);
         }
@@ -1177,7 +1166,7 @@
             'gallery' => $galleryPool,
             'profile' => ['avatar' => '/images/hero-roles/role_creator.jpg', 'handle' => '@jamie.creates', 'tag' => 'Storyteller · 24.1k followers', 'socials' => ['fa-youtube','fa-instagram','fa-tiktok','fa-x-twitter']],
             'blocks' => [
-                ['icon' => 'fab fa-youtube',           'color' => '#ff0033', 'title' => 'Latest video',       'sub' => 'New drop · 2 days ago',   'thumb' => '/images/hero-roles/thumb_youtube.jpg'],
+                ['icon' => 'fas fa-video',             'color' => '#ff5252', 'title' => 'Latest video',       'sub' => 'New drop · 2 days ago',   'thumb' => '/images/hero-roles/thumb_youtube.jpg'],
                 ['icon' => 'fas fa-envelope-open-text','color' => '#7c3aed', 'title' => 'Join the newsletter','sub' => 'Weekly · 12k subs'],
                 ['icon' => 'fas fa-store',             'color' => '#ff8a3c', 'title' => 'Shop merch',         'sub' => 'New tees in stock',       'thumb' => '/images/hero-roles/thumb_merch.jpg'],
             ],
@@ -1345,7 +1334,7 @@
             'gallery' => $galleryPool,
             'profile' => ['avatar' => '/images/hero-roles/role_developer.jpg', 'handle' => '@dev.with.kai', 'tag' => 'Open source · Indie hacker', 'socials' => ['fa-github','fa-x-twitter','fa-youtube','fa-linkedin']],
             'blocks' => [
-                ['icon' => 'fab fa-github',             'color' => '#ffffff', 'title' => 'Open source',       'sub' => '8.4k ★ · TypeScript',     'thumb' => '/images/hero-roles/thumb_code.jpg'],
+                ['icon' => 'fas fa-code',               'color' => '#ffffff', 'title' => 'Open source',       'sub' => '8.4k ★ · TypeScript',     'thumb' => '/images/hero-roles/thumb_code.jpg'],
                 ['icon' => 'fas fa-graduation-cap',     'color' => '#1bd4d9', 'title' => 'Build with me',     'sub' => 'Course · 24 lessons',     'thumb' => '/images/hero-roles/thumb_course.jpg'],
                 ['icon' => 'fas fa-feather',            'color' => '#7c3aed', 'title' => 'Engineering blog',  'sub' => 'Weekly deep dives',       'thumb' => '/images/hero-roles/thumb_writing.jpg'],
             ],
@@ -1438,8 +1427,6 @@
 
     // Visible block-type icons cluster shown in the hero.
     $heroBlockIcons = [
-        ['i' => 'fab fa-youtube',            'c' => '#ff0033', 'l' => 'YouTube'],
-        ['i' => 'fab fa-spotify',            'c' => '#1ed760', 'l' => 'Spotify'],
         ['i' => 'fas fa-store',              'c' => '#ff8a3c', 'l' => 'Merch'],
         ['i' => 'fas fa-link',               'c' => '#1bd4d9', 'l' => 'Link'],
         ['i' => 'fas fa-qrcode',             'c' => '#7c3aed', 'l' => 'QR'],
@@ -1450,10 +1437,9 @@
         ['i' => 'fas fa-calendar-check',     'c' => '#7c3aed', 'l' => 'Calendar'],
         ['i' => 'fas fa-book-open',          'c' => '#f59e0b', 'l' => 'Book'],
         ['i' => 'fas fa-graduation-cap',     'c' => '#38bdf8', 'l' => 'Course'],
-        ['i' => 'fab fa-twitch',             'c' => '#a855f7', 'l' => 'Stream'],
         ['i' => 'fas fa-utensils',           'c' => '#fb923c', 'l' => 'Recipe'],
         ['i' => 'fas fa-feather',            'c' => '#a855f7', 'l' => 'Writing'],
-        ['i' => 'fab fa-github',             'c' => '#ffffff', 'l' => 'Code'],
+        ['i' => 'fas fa-code',               'c' => '#ffffff', 'l' => 'Code'],
         ['i' => 'fas fa-dumbbell',           'c' => '#10b981', 'l' => 'Fitness'],
         ['i' => 'fas fa-plane',              'c' => '#06b6d4', 'l' => 'Travel'],
         ['i' => 'fas fa-house',              'c' => '#1bd4d9', 'l' => 'Listing'],
@@ -1563,9 +1549,9 @@
                             <span class="text-[9px] font-bold" style="color:#1ed760">+18%</span>
                         </div>
                         <div class="flex items-center gap-2">
-                            <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:rgba(255,0,51,.18);color:#ff5252"><i class="fab fa-youtube text-xs"></i></div>
+                            <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:rgba(124,58,237,.2);color:#a78bfa"><i class="fas fa-link text-xs"></i></div>
                             <div class="min-w-0">
-                                <div class="text-[11px] font-bold truncate">Latest video</div>
+                                <div class="text-[11px] font-bold truncate">Latest drop</div>
                                 <div class="text-[9px] text-gray-400">1,284 clicks</div>
                             </div>
                         </div>
@@ -1600,7 +1586,7 @@
                             <div class="min-w-0">
                                 <span class="float-card-label">New follower</span>
                                 <div class="text-[11px] font-bold truncate">@maya.daily</div>
-                                <div class="text-[9px] text-gray-400">just now · IG</div>
+                                <div class="text-[9px] text-gray-400">just now</div>
                             </div>
                         </div>
                     </div>
@@ -1616,14 +1602,14 @@
                         </div>
                     </div>
                     </div>{{-- /hero-phone-frame --}}
+                </div>
 
-                    {{-- Vertical interactive tile rail (lg+) --}}
-                    <div class="hero-rail-col hidden lg:flex">
-                        <div class="hero-rail-label text-[10px] font-bold uppercase tracking-[.18em] text-gray-400">
-                            Looks like a <span id="hero-rail-role-label" class="grad-text">creator</span> page
-                        </div>
-                        <div id="hero-tile-rail" class="hero-tile-rail" role="group" aria-label="Choose a profile preview"></div>
+                {{-- Compact horizontal interactive tile strip (all breakpoints) --}}
+                <div class="mt-6">
+                    <div class="hero-rail-label text-[10px] font-bold uppercase tracking-[.18em] text-gray-400 text-center lg:text-left mb-2 px-1">
+                        Looks like a <span id="hero-rail-role-label" class="grad-text">creator</span> page
                     </div>
+                    <div id="hero-tile-rail" class="hero-tile-rail" role="group" aria-label="Choose a profile preview"></div>
                 </div>
 
                 {{-- Mobile-only stacked stats row (replaces floating cards on small screens) --}}
@@ -1648,15 +1634,6 @@
                         <span class="val">$412</span>
                         <span class="sub">revenue</span>
                     </div>
-                </div>
-
-                {{-- Category gallery (mobile/tablet only — replaced by vertical rail on lg+) --}}
-                <div class="mt-6 lg:hidden">
-                    <div class="flex items-center justify-between mb-2 px-1">
-                        <div class="text-[10px] font-bold uppercase tracking-[.18em] text-gray-400">Looks like a <span id="hero-gallery-label" class="grad-text">creator</span> page</div>
-                        <div class="text-[10px] text-gray-500 hidden sm:block">Drop in any block</div>
-                    </div>
-                    <div id="hero-gallery" class="hero-gallery" aria-hidden="true"></div>
                 </div>
 
                 {{-- Block-type icons cluster --}}
@@ -1829,7 +1806,7 @@
                                 <div class="ph">${h}${verified}</div>
                                 <div class="pt">${t}</div>
                               </div>
-                              <i class="fab fa-youtube" style="color:#ff0033;font-size:18px"></i>
+                              <i class="fas fa-video" style="color:#ff5252;font-size:17px"></i>
                             </div>
                             <div class="pstats">
                               <div class="ps"><span class="sv">24.1k</span><span class="sl">Subscribers</span></div>
@@ -1864,7 +1841,7 @@
                                 <div class="pt">${t}</div>
                                 <span class="npill"><i class="fas fa-music"></i>Now on tour · EP out</span>
                               </div>
-                              <i class="fab fa-spotify" style="color:#1ed760;font-size:18px"></i>
+                              <i class="fas fa-music" style="color:#1ed760;font-size:17px"></i>
                             </div>
                           </div>`;
                     case 'business':
@@ -1880,7 +1857,7 @@
                                   <span class="bbadge">SaaS</span>
                                 </div>
                               </div>
-                              <i class="fab fa-linkedin" style="color:#0ea5e9;font-size:18px"></i>
+                              <i class="fas fa-briefcase" style="color:#0ea5e9;font-size:17px"></i>
                             </div>
                           </div>`;
                     case 'coach':
@@ -1926,9 +1903,9 @@
                               <i class="fas fa-fire" style="color:#ef4444;font-size:17px"></i>
                             </div>
                             <div class="fgrid">
-                              <div class="fg"><div class="fv">312k</div><div class="fl"><i class="fab fa-instagram"></i> IG</div></div>
-                              <div class="fg"><div class="fv">180k</div><div class="fl"><i class="fab fa-tiktok"></i> TT</div></div>
-                              <div class="fg"><div class="fv">94k</div><div class="fl"><i class="fab fa-youtube"></i> YT</div></div>
+                              <div class="fg"><div class="fv">312k</div><div class="fl"><i class="fas fa-users"></i> Followers</div></div>
+                              <div class="fg"><div class="fv">180k</div><div class="fl"><i class="fas fa-eye"></i> Reach</div></div>
+                              <div class="fg"><div class="fv">94k</div><div class="fl"><i class="fas fa-heart"></i> Likes</div></div>
                             </div>
                           </div>`;
                     case 'podcast':
@@ -1976,12 +1953,7 @@
                 }).join('');
                 const last = (role.blocks || []).length * 110 + 120;
                 return profFor(role) + blocks
-                    + `<div class="hp-pill-row theme-block" style="--d:${last}ms">
-                           <div class="hp-pill"><i class="fab fa-youtube" style="color:#ff0033"></i>YouTube</div>
-                           <div class="hp-pill"><i class="fab fa-instagram" style="color:#e94e8c"></i>IG</div>
-                           <div class="hp-pill"><i class="fab fa-tiktok"></i>TikTok</div>
-                       </div>`
-                    + `<div class="hp-cta theme-block" style="--d:${last+60}ms"><i class="fas fa-hand-holding-heart"></i>Tip · Join members</div>`;
+                    + `<div class="hp-cta theme-block" style="--d:${last}ms"><i class="fas fa-hand-holding-heart"></i>Tip · Join members</div>`;
             }
 
             function renderMusic(role) {
@@ -2016,11 +1988,7 @@
                             <div class="mi"><div class="mt">Vinyl + tee bundle</div><div class="ms">Limited · Ships worldwide</div></div>
                             <span class="mp">$ 38</span>
                        </div>`
-                    + `<div class="hp-pill-row theme-block" style="--d:480ms">
-                            <div class="hp-pill"><i class="fab fa-spotify" style="color:#1ed760"></i>Spotify</div>
-                            <div class="hp-pill"><i class="fab fa-apple"></i>Apple</div>
-                            <div class="hp-pill"><i class="fab fa-youtube" style="color:#ff5252"></i>YouTube</div>
-                       </div>`;
+                    + `<div class="hp-cta theme-block" style="--d:480ms"><i class="fas fa-headphones"></i>Stream · Save · Share</div>`;
             }
 
             function renderGallery(role) {
@@ -2151,12 +2119,7 @@
                             <div class="hp-stat"><div class="sv">18k</div><div class="sl">Listeners</div></div>
                             <div class="hp-stat"><div class="sv">4.8</div><div class="sl">Rating</div></div>
                        </div>`
-                    + `<div class="hp-pill-row theme-block" style="--d:420ms">
-                            <div class="hp-pill"><i class="fab fa-apple"></i>Apple</div>
-                            <div class="hp-pill"><i class="fab fa-spotify" style="color:#1ed760"></i>Spotify</div>
-                            <div class="hp-pill"><i class="fab fa-youtube" style="color:#ff5252"></i>YouTube</div>
-                       </div>`
-                    + `<div class="hp-cta dark theme-block" style="--d:480ms"><i class="fas fa-envelope-open-text"></i>Show notes &amp; newsletter</div>`;
+                    + `<div class="hp-cta dark theme-block" style="--d:420ms"><i class="fas fa-envelope-open-text"></i>Show notes &amp; newsletter</div>`;
             }
 
             function renderSocial(role) {
@@ -2177,18 +2140,13 @@
                             ${pictureThumb(reel, '', 280, 360, '(max-width: 1023px) 260px, 320px', '')}
                             <div class="ov"></div>
                             <div class="play"><i class="fas fa-play" style="font-size:12px"></i></div>
-                            <div class="lb"><span><i class="fab fa-instagram"></i> 312k</span><span><i class="fas fa-heart"></i> 28k</span></div>
+                            <div class="lb"><span><i class="fas fa-eye"></i> 312k</span><span><i class="fas fa-heart"></i> 28k</span></div>
                        </div>`
                     + `<div class="hp-grid-4 theme-block" style="--d:250ms">${posts}</div>`
                     + `<div class="hp-biz-cta theme-block" style="--d:320ms">
                             <div class="ic" style="background:#ffc84522;color:#fff"><i class="fas fa-handshake"></i></div>
                             <div class="bd"><div class="bt">Brand deals · Press kit</div><div class="bs">Rates · Past campaigns · Reach</div></div>
                             <i class="fas fa-arrow-right" style="opacity:.7"></i>
-                       </div>`
-                    + `<div class="hp-pill-row theme-block" style="--d:380ms">
-                            <div class="hp-pill"><i class="fab fa-tiktok"></i>TikTok</div>
-                            <div class="hp-pill"><i class="fab fa-youtube" style="color:#ff5252"></i>YouTube</div>
-                            <div class="hp-pill"><i class="fab fa-snapchat" style="color:#fde047"></i>Snap</div>
                        </div>`;
             }
 
@@ -2208,18 +2166,15 @@
                 return fn(role);
             }
 
-            // ---- Vertical interactive tile rail (lg+) ----
+            // ---- Compact horizontal interactive tile strip (all breakpoints) ----
             function buildTileRailHTML() {
                 if (!tileRail) return;
-                // Rail is display:none below lg; skip building on small screens
-                // so we don't fetch any tile imagery for hidden UI.
-                if (!isDesktop) return;
                 const html = ROLES.map((role, i) => {
                     const cat = (role.categories || [])[0];
                     const src = pickFromGallery(role, cat, 0);
-                    const eager = i < 6; // first ~6 above-the-fold (lg+ only)
+                    const eager = i < 6;
                     const cover = src
-                        ? pictureThumb(src, 'hero-tile-img', 110, 110, '116px', role.word + ' preview', { eager })
+                        ? pictureThumb(src, 'hero-tile-img', 80, 60, '80px', role.word + ' preview', { eager })
                         : fallbackTileCover(role);
                     return `<button type="button" class="hero-tile${i===0?' is-active':''}" `
                          + `data-role-i="${i}" aria-pressed="${i===0?'true':'false'}" `
@@ -2242,7 +2197,7 @@
                 });
                 if (idx >= 0 && tiles[idx] && typeof tiles[idx].scrollIntoView === 'function') {
                     try {
-                        tiles[idx].scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' });
+                        tiles[idx].scrollIntoView({ block: 'nearest', inline: 'center', behavior: reduce ? 'auto' : 'smooth' });
                     } catch (_) { tiles[idx].scrollIntoView(); }
                 }
             }
@@ -2330,12 +2285,14 @@
                 });
                 // Keyboard: arrow keys to move focus along the rail; Enter/Space activate via native button.
                 tileRail.addEventListener('keydown', (e) => {
-                    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+                    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft' &&
+                        e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
                     const tile = e.target.closest('.hero-tile');
                     if (!tile) return;
                     e.preventDefault();
                     const idx = parseInt(tile.dataset.roleI, 10);
-                    const next = e.key === 'ArrowDown'
+                    const fwd = (e.key === 'ArrowRight' || e.key === 'ArrowDown');
+                    const next = fwd
                         ? Math.min(ROLES.length - 1, idx + 1)
                         : Math.max(0, idx - 1);
                     const tiles = tileRail.querySelectorAll('.hero-tile');
