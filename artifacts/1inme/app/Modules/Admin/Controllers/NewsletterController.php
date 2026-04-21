@@ -41,7 +41,7 @@ class NewsletterController extends Controller
         $filename = 'newsletter-subscribers-' . date('Ymd-His') . '.csv';
         return new StreamedResponse(function () {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['email', 'source', 'subscribed_at', 'unsubscribed_at']);
+            fputcsv($out, ['email', 'source', 'subscribed_at', 'unsubscribed_at', 'unsubscribe_source']);
             NewsletterSubscriber::orderBy('id')->chunk(500, function ($rows) use ($out) {
                 foreach ($rows as $r) {
                     fputcsv($out, [
@@ -49,6 +49,7 @@ class NewsletterController extends Controller
                         $r->source,
                         optional($r->created_at)->toIso8601String(),
                         optional($r->unsubscribed_at)->toIso8601String(),
+                        $r->unsubscribe_source,
                     ]);
                 }
             });
