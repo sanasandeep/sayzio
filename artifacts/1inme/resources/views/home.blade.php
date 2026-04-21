@@ -421,13 +421,16 @@
            the right side stays clean for the vertical interactive tile rail.
            Three loose lanes (close / mid / far) keep them from crowding. */
         @media (min-width: 1024px) {
-            .float-card--follower  { top: -16px;   left: -28px;  width: 178px; box-shadow: 0 22px 50px -18px rgba(236,72,153,.4); }
+            /* Left lane (further-out cards) */
             .float-card--visitors  { top: 36px;    left: -158px; width: 158px; box-shadow: 0 22px 50px -18px rgba(27,212,217,.45); }
-            .float-card--toplink   { top: 168px;   left: -168px; width: 180px; box-shadow: 0 22px 50px -18px rgba(255,0,51,.35); }
-            .float-card--qr        { top: 296px;   left: -30px;  width: 178px; box-shadow: 0 22px 50px -18px rgba(124,58,237,.4); }
-            .float-card--coach     { top: 412px;   left: -178px; width: 200px; box-shadow: 0 22px 50px -18px rgba(124,58,237,.5); }
-            .float-card--conv      { bottom: 92px; left: -30px;  width: 168px; box-shadow: 0 22px 50px -18px rgba(27,212,217,.35); }
+            .float-card--toplink   { top: 188px;   left: -168px; width: 180px; box-shadow: 0 22px 50px -18px rgba(255,0,51,.35); }
+            .float-card--coach     { top: 360px;   left: -178px; width: 200px; box-shadow: 0 22px 50px -18px rgba(124,58,237,.5); }
             .float-card--revenue   { bottom: -8px; left: -158px; width: 168px; box-shadow: 0 22px 50px -18px rgba(255,138,60,.4); }
+            /* Right lane (sit just outside the phone, only the inner edge brushes the bezel
+               — never overlaps the screen content). Mirrors the left lane offsets. */
+            .float-card--follower  { top: -16px;   right: -160px; left: auto; width: 188px; box-shadow: 0 22px 50px -18px rgba(236,72,153,.4); }
+            .float-card--qr        { top: 240px;   right: -150px; left: auto; width: 178px; box-shadow: 0 22px 50px -18px rgba(124,58,237,.4); }
+            .float-card--conv      { bottom: 92px; right: -150px; left: auto; width: 178px; box-shadow: 0 22px 50px -18px rgba(27,212,217,.35); }
         }
 
         /* ============ Mobile-only condensed stats row ============ */
@@ -1455,8 +1458,8 @@
     <div class="confetti drift-b" style="left:88%; bottom:-15vh; animation-delay:-9s"><div class="w-3 h-3 rotate-45" style="background:var(--c5)"></div></div>
 
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 xl:px-12">
-        <div class="grid lg:grid-cols-[5fr_7fr] gap-y-12 lg:gap-x-20 xl:gap-x-28 items-center">
-            <div class="text-center lg:text-left">
+        <div class="grid lg:grid-cols-[1.05fr_1fr] gap-y-12 lg:gap-x-12 xl:gap-x-16 items-center">
+            <div class="text-center lg:text-left lg:max-w-[600px]">
                 <div class="reveal inline-flex items-center gap-2 px-4 py-1.5 glass rounded-full text-xs font-semibold mb-8">
                     <span class="relative flex h-2 w-2">
                         <span class="absolute inline-flex h-full w-full rounded-full" style="background:var(--c1)"></span>
@@ -1482,10 +1485,10 @@
                 </p>
 
                 <div class="reveal rd-3 flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
-                    <button type="button" @click="authTab='register'; authOpen=true" class="btn-bounce btn-glow inline-flex items-center justify-center gap-2 px-8 py-4 grad-bar text-white rounded-full text-base font-bold">
+                    <button type="button" @click="authTab='register'; authOpen=true" class="btn-bounce btn-glow inline-flex items-center justify-center gap-2 px-8 py-4 grad-bar text-white rounded-full text-base font-bold whitespace-nowrap shrink-0">
                         Make mine free <i class="fas fa-arrow-right text-sm"></i>
                     </button>
-                    <a href="#features" class="btn-bounce inline-flex items-center justify-center gap-2 px-8 py-4 glass-2 text-white rounded-full text-base font-semibold">
+                    <a href="#features" class="btn-bounce inline-flex items-center justify-center gap-2 px-8 py-4 glass-2 text-white rounded-full text-base font-semibold whitespace-nowrap shrink-0">
                         See it live
                     </a>
                 </div>
@@ -1498,11 +1501,11 @@
             </div>
 
             {{-- Hero phone mockup + gallery + block icons --}}
-            <div class="reveal rd-2 relative stack-scene" id="hero-phone-scene">
-                {{-- Decorative stickers --}}
-                <div class="sticker top-2 left-4 w-10 h-10 rounded-full wiggle shake-hover opacity-80" style="background:var(--c4)"></div>
+            <div class="reveal rd-2 relative stack-scene lg:justify-self-end w-full max-w-[560px] mx-auto" id="hero-phone-scene">
+                {{-- Decorative stickers (kept inside the phone column on lg+ so they don't float into the headline area) --}}
+                <div class="sticker hidden lg:block top-4 right-6 w-10 h-10 rounded-full wiggle shake-hover opacity-80" style="background:var(--c4)"></div>
                 <div class="sticker top-12 right-2 w-8 h-8 rounded-lg spin-slow opacity-70" style="background:var(--c5)"></div>
-                <div class="sticker bottom-32 left-0 w-9 h-9 rounded-2xl wiggle opacity-80" style="background:var(--c1); animation-delay:-1s"></div>
+                <div class="sticker hidden lg:block bottom-32 right-0 w-9 h-9 rounded-2xl wiggle opacity-80" style="background:var(--c1); animation-delay:-1s"></div>
                 <div class="sticker top-1/3 -right-3 w-6 h-6 rounded-full wiggle opacity-80" style="background:var(--c3); animation-delay:-2s"></div>
 
                 {{-- Phone mockup --}}
