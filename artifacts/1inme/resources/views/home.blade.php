@@ -378,7 +378,10 @@
            other. */
         .hero-phone-stage { min-height: 560px; }
         @media (min-width: 1024px) {
-            .hero-phone-stage { min-height: 640px; padding: 28px 0; gap: 22px; }
+            .hero-phone-stage { min-height: 700px; padding: 36px 0; gap: 32px; }
+        }
+        @media (min-width: 1280px) {
+            .hero-phone-stage { gap: 44px; }
         }
 
         /* Phone "frame" — wraps the phone + its absolutely-positioned float
@@ -418,13 +421,13 @@
            the right side stays clean for the vertical interactive tile rail.
            Three loose lanes (close / mid / far) keep them from crowding. */
         @media (min-width: 1024px) {
-            .float-card--follower  { top: -8px;    left: -36px;  width: 178px; box-shadow: 0 22px 50px -18px rgba(236,72,153,.4); }
-            .float-card--visitors  { top: 30px;    left: -200px; width: 158px; box-shadow: 0 22px 50px -18px rgba(27,212,217,.45); }
-            .float-card--toplink   { top: 150px;   left: -210px; width: 180px; box-shadow: 0 22px 50px -18px rgba(255,0,51,.35); }
-            .float-card--qr        { top: 270px;   left: -38px;  width: 178px; box-shadow: 0 22px 50px -18px rgba(124,58,237,.4); }
-            .float-card--coach     { top: 380px;   left: -220px; width: 200px; box-shadow: 0 22px 50px -18px rgba(124,58,237,.5); }
-            .float-card--conv      { bottom: 80px; left: -38px;  width: 168px; box-shadow: 0 22px 50px -18px rgba(27,212,217,.35); }
-            .float-card--revenue   { bottom: 4px;  left: -200px; width: 168px; box-shadow: 0 22px 50px -18px rgba(255,138,60,.4); }
+            .float-card--follower  { top: -16px;   left: -28px;  width: 178px; box-shadow: 0 22px 50px -18px rgba(236,72,153,.4); }
+            .float-card--visitors  { top: 36px;    left: -158px; width: 158px; box-shadow: 0 22px 50px -18px rgba(27,212,217,.45); }
+            .float-card--toplink   { top: 168px;   left: -168px; width: 180px; box-shadow: 0 22px 50px -18px rgba(255,0,51,.35); }
+            .float-card--qr        { top: 296px;   left: -30px;  width: 178px; box-shadow: 0 22px 50px -18px rgba(124,58,237,.4); }
+            .float-card--coach     { top: 412px;   left: -178px; width: 200px; box-shadow: 0 22px 50px -18px rgba(124,58,237,.5); }
+            .float-card--conv      { bottom: 92px; left: -30px;  width: 168px; box-shadow: 0 22px 50px -18px rgba(27,212,217,.35); }
+            .float-card--revenue   { bottom: -8px; left: -158px; width: 168px; box-shadow: 0 22px 50px -18px rgba(255,138,60,.4); }
         }
 
         /* ============ Mobile-only condensed stats row ============ */
@@ -1458,17 +1461,17 @@
     ];
 @endphp
 
-<section class="relative pt-28 pb-20 lg:pt-36 lg:pb-28 overflow-hidden" aria-labelledby="hero-h">
+<section class="relative pt-28 pb-20 lg:pt-44 lg:pb-32 xl:pt-52 xl:pb-40 overflow-hidden" aria-labelledby="hero-h">
     {{-- Drifting confetti --}}
     <div class="confetti drift-a" style="left:8%;  bottom:-20vh;"><div class="w-3 h-3 rounded-sm" style="background:var(--c1)"></div></div>
     <div class="confetti drift-b" style="left:18%; bottom:-30vh; animation-delay:-3s"><div class="w-2 h-6 rounded-full" style="background:var(--c3)"></div></div>
     <div class="confetti drift-a" style="left:78%; bottom:-25vh; animation-delay:-6s"><div class="w-4 h-4 rounded-full" style="background:var(--c4)"></div></div>
     <div class="confetti drift-b" style="left:88%; bottom:-15vh; animation-delay:-9s"><div class="w-3 h-3 rotate-45" style="background:var(--c5)"></div></div>
 
-    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid lg:grid-cols-2 gap-14 items-center">
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 xl:px-12">
+        <div class="grid lg:grid-cols-[5fr_7fr] gap-y-12 lg:gap-x-20 xl:gap-x-28 items-center">
             <div class="text-center lg:text-left">
-                <div class="reveal inline-flex items-center gap-2 px-4 py-1.5 glass rounded-full text-xs font-semibold mb-6">
+                <div class="reveal inline-flex items-center gap-2 px-4 py-1.5 glass rounded-full text-xs font-semibold mb-8">
                     <span class="relative flex h-2 w-2">
                         <span class="absolute inline-flex h-full w-full rounded-full" style="background:var(--c1)"></span>
                         <span class="ring-pulse" style="inset:0;background:var(--c1);"></span>
@@ -1476,7 +1479,7 @@
                     <span class="grad-text">Built for every kind of you · Live analytics · QR codes</span>
                 </div>
 
-                <h1 id="hero-h" class="reveal rd-1 text-5xl sm:text-6xl lg:text-7xl font-bold leading-[1.05] tracking-tight mb-6">
+                <h1 id="hero-h" class="reveal rd-1 text-5xl sm:text-6xl lg:text-7xl font-bold leading-[1.05] tracking-tight mb-8">
                     <span class="block">I am a</span>
                     <span class="relative inline-block min-h-[1.1em]">
                         <span id="hero-role-word" class="grad-text role-word">Creator</span>
@@ -1488,7 +1491,7 @@
                     <span class="sr-only" aria-live="polite" aria-atomic="true" id="hero-role-sr">Creator</span>
                 </h1>
 
-                <p class="reveal rd-2 text-lg sm:text-xl text-gray-400 max-w-xl mx-auto lg:mx-0 mb-8 leading-relaxed">
+                <p class="reveal rd-2 text-lg sm:text-xl text-gray-400 max-w-xl mx-auto lg:mx-0 mb-10 leading-relaxed">
                     Whoever you are, 1INME gives you <strong class="text-white">one link</strong> for everything: drag-and-drop biolink pages, branded short links, dynamic QR codes, plus live analytics and an AI-style Performance Coach.
                 </p>
 
@@ -1501,7 +1504,7 @@
                     </a>
                 </div>
 
-                <div class="reveal rd-4 flex flex-wrap items-center gap-x-6 gap-y-2 mt-8 justify-center lg:justify-start text-sm text-gray-500">
+                <div class="reveal rd-4 flex flex-wrap items-center gap-x-6 gap-y-2 mt-12 justify-center lg:justify-start text-sm text-gray-500">
                     <span class="flex items-center gap-1.5"><i class="fas fa-check" style="color:var(--c1)"></i> Free forever plan</span>
                     <span class="flex items-center gap-1.5"><i class="fas fa-check" style="color:var(--c3)"></i> No credit card</span>
                     <span class="flex items-center gap-1.5"><i class="fas fa-check" style="color:var(--c5)"></i> Set up in minutes</span>
