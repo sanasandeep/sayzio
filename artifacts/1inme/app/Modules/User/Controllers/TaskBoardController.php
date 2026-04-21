@@ -231,12 +231,13 @@ class TaskBoardController extends Controller
 
     /**
      * Soft-archive a board (sets archived_at). Hidden from the default
-     * boards list but recoverable via unarchiveBoard(). Authz mirrors the
-     * destructive board delete: owner / admin only.
+     * boards list but recoverable via unarchiveBoard(). Per spec, team
+     * mutations (create / edit / delete / archive) are open to admin and
+     * editor roles; viewers are still rejected by authorizeCardDelete().
      */
     public function archiveBoard(TaskBoard $board)
     {
-        $this->authorizeDelete($board);
+        $this->authorizeCardDelete($board);
         if (!$board->archived_at) {
             $board->update(['archived_at' => now()]);
         }
@@ -246,7 +247,7 @@ class TaskBoardController extends Controller
     /** Restore a soft-archived board so it shows up in the index again. */
     public function unarchiveBoard(TaskBoard $board)
     {
-        $this->authorizeDelete($board);
+        $this->authorizeCardDelete($board);
         if ($board->archived_at) {
             $board->update(['archived_at' => null]);
         }
@@ -255,7 +256,8 @@ class TaskBoardController extends Controller
 
     public function destroyBoard(TaskBoard $board)
     {
-        $this->authorizeDelete($board);
+        // Spec: admin AND editor may delete team boards; viewers cannot.
+        $this->authorizeCardDelete($board);
         DB::transaction(function () use ($board) {
             $cardIds = $board->cards()->pluck('id');
             DB::table('task_card_assignees')->whereIn('card_id', $cardIds)->delete();
@@ -551,6 +553,38 @@ class TaskBoardController extends Controller
         $this->authorizeEdit($card->board);
         $subtask->update(['completed' => !$subtask->completed]);
         return response()->json(['ok' => true, 'completed' => $subtask->completed]);
+    }
+
+    /**
+     * Persist a new subtask ordering for a card. The client posts the
+     * subtask IDs in the desired display order; we re-number `position`
+     * 1..N after validating every id belongs to the card. Cross-card or
+     * cross-workspace IDs are silently dropped — never mass-updated.
+     */
+    public function reorderSubtasks(Request $request, TaskCard $card)
+    {
+        $card = $this->resolveScopedCard($card->id);
+        if (!$card) abort(404);
+        $this->authorizeEdit($card->board);
+
+        $ids = $request->input('order', []);
+        if (!is_array($ids)) abort(422, 'order must be an array');
+
+        // Constrain to subtasks that actually belong to this card so a
+        // crafted payload cannot reorder another card's checklist.
+        $owned = $card->subtasks()->pluck('id')->all();
+        $clean = array_values(array_intersect(array_map('intval', $ids), $owned));
+        if (!$clean) return response()->json(['ok' => true, 'updated' => 0]);
+
+        DB::transaction(function () use ($clean, $card) {
+            foreach ($clean as $i => $id) {
+                DB::table('task_subtasks')
+                    ->where('id', $id)
+                    ->where('card_id', $card->id)
+                    ->update(['position' => $i + 1, 'updated_at' => now()]);
+            }
+        });
+        return response()->json(['ok' => true, 'updated' => count($clean)]);
     }
 
     public function destroySubtask(TaskSubtask $subtask)

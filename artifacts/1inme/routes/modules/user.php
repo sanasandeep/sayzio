@@ -575,6 +575,7 @@ Route::prefix('user')->name('user.')->group(function () {
 
             Route::post('cards/{card}/subtasks',           [\App\Modules\User\Controllers\TaskBoardController::class, 'storeSubtask'])->name('subtasks.store');
             Route::post('subtasks/{subtask}/toggle',       [\App\Modules\User\Controllers\TaskBoardController::class, 'toggleSubtask'])->name('subtasks.toggle');
+            Route::post('cards/{card}/subtasks/reorder',   [\App\Modules\User\Controllers\TaskBoardController::class, 'reorderSubtasks'])->name('subtasks.reorder');
             Route::delete('subtasks/{subtask}',            [\App\Modules\User\Controllers\TaskBoardController::class, 'destroySubtask'])->name('subtasks.destroy');
 
             Route::post('cards/{card}/comments',           [\App\Modules\User\Controllers\TaskBoardController::class, 'storeComment'])->name('comments.store');

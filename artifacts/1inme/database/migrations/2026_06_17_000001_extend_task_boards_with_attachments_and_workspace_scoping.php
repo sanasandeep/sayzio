@@ -97,10 +97,9 @@ return new class extends Migration
                 'updated_at'    => $now,
             ]);
             $cols = [
-                ['name' => 'Backlog',     'color' => '#64748b', 'is_done' => false],
-                ['name' => 'In Progress', 'color' => '#3b82f6', 'is_done' => false],
-                ['name' => 'Review',      'color' => '#a855f7', 'is_done' => false],
-                ['name' => 'Done',        'color' => '#10b981', 'is_done' => true ],
+                ['name' => 'Todo',  'color' => '#64748b', 'is_done' => false],
+                ['name' => 'Doing', 'color' => '#3b82f6', 'is_done' => false],
+                ['name' => 'Done',  'color' => '#10b981', 'is_done' => true ],
             ];
             foreach ($cols as $i => $col) {
                 DB::table('task_columns')->insert([

@@ -318,12 +318,16 @@ class TaskBoardTest extends TestCase
         $this->assertSame(1, $count, 'reminder should fire once per day per card per assignee');
     }
 
-    public function test_editor_can_delete_card_but_not_board(): void
+    public function test_editor_can_delete_card_and_board_but_viewer_cannot(): void
     {
+        // Spec: team mutations (create / edit / delete) are open to admin
+        // and editor; viewers are rejected.
         $owner  = $this->makeUser('owner');
         $editor = $this->makeUser('ed');
+        $viewer = $this->makeUser('vw');
         $ws     = $owner->ensureDefaultWorkspace();
         WorkspaceMember::create(['workspace_id' => $ws->id, 'user_id' => $editor->id, 'role' => 'editor']);
+        WorkspaceMember::create(['workspace_id' => $ws->id, 'user_id' => $viewer->id, 'role' => 'viewer']);
 
         session(['active_workspace_id' => $ws->id]);
         $this->actingAs($owner)->post('/user/tasks/boards', ['name' => 'EdBoard', 'scope' => 'team']);
@@ -332,13 +336,66 @@ class TaskBoardTest extends TestCase
         $this->actingAs($owner)->post("/user/tasks/boards/{$board->id}/cards", ['column_id' => $col->id, 'title' => 'Killable']);
         $card = TaskCard::query()->withoutGlobalScope('workspace')->where('title', 'Killable')->first();
 
-        // Editor SHOULD be able to delete a card (per-feature override).
+        // Viewer cannot delete a card or a board.
+        $this->actingAs($viewer)->delete("/user/tasks/cards/{$card->id}")->assertStatus(403);
+
+        // Editor can delete a card.
         $this->actingAs($editor)->delete("/user/tasks/cards/{$card->id}")->assertOk();
         $this->assertDatabaseMissing('task_cards', ['id' => $card->id]);
 
-        // Editor SHOULD NOT be able to delete the entire board.
-        $this->actingAs($editor)->delete("/user/tasks/boards/{$board->id}")->assertStatus(403);
-        $this->assertDatabaseHas('task_boards', ['id' => $board->id]);
+        // Editor can also delete the entire team board (controller redirects
+        // back to the boards index on success).
+        $this->actingAs($editor)->delete("/user/tasks/boards/{$board->id}")->assertRedirect();
+        $this->assertDatabaseMissing('task_boards', ['id' => $board->id]);
+    }
+
+    public function test_subtask_reorder_persists_new_positions(): void
+    {
+        $alice = $this->makeUser('reord');
+        $ws    = $alice->ensureDefaultWorkspace();
+        session(['active_workspace_id' => $ws->id]);
+        $this->actingAs($alice)->post('/user/tasks/boards', ['name' => 'ReordB', 'scope' => 'team']);
+        $board = TaskBoard::query()->withoutGlobalScope('workspace')->where('name', 'ReordB')->first();
+        $col   = $board->columns()->orderBy('position')->first();
+        $this->actingAs($alice)->post("/user/tasks/boards/{$board->id}/cards", ['column_id' => $col->id, 'title' => 'Reord']);
+        $card  = TaskCard::query()->withoutGlobalScope('workspace')->where('title', 'Reord')->first();
+
+        // Seed three subtasks in order A, B, C.
+        $ids = [];
+        foreach (['A', 'B', 'C'] as $t) {
+            $r = $this->actingAs($alice)->post("/user/tasks/cards/{$card->id}/subtasks", ['title' => $t])->json();
+            $ids[$t] = $r['subtask']['id'];
+        }
+        // Reverse to C, B, A.
+        $this->actingAs($alice)
+            ->post("/user/tasks/cards/{$card->id}/subtasks/reorder", ['order' => [$ids['C'], $ids['B'], $ids['A']]])
+            ->assertOk()->assertJson(['ok' => true, 'updated' => 3]);
+
+        $titles = $card->subtasks()->orderBy('position')->pluck('title')->all();
+        $this->assertSame(['C', 'B', 'A'], $titles);
+
+        // Foreign subtask IDs (not belonging to this card) must be silently
+        // dropped — the controller intersects against the card's own ids,
+        // so a crafted payload cannot reorder another card's checklist.
+        $foreignFakeId = 999999;
+        $this->actingAs($alice)
+            ->post("/user/tasks/cards/{$card->id}/subtasks/reorder",
+                  ['order' => [$foreignFakeId, $ids['A'], $ids['B'], $ids['C']]])
+            ->assertOk()->assertJson(['ok' => true, 'updated' => 3]);
+        // Order is now A, B, C again.
+        $this->assertSame(['A', 'B', 'C'],
+            $card->subtasks()->orderBy('position')->pluck('title')->all());
+    }
+
+    public function test_personal_board_provisioner_uses_todo_doing_done(): void
+    {
+        $u = $this->makeUser('newprov');
+        // ensureDefaultWorkspace runs the provisioner inside makeUser.
+        $board = TaskBoard::query()->withoutGlobalScope('workspace')
+            ->where('owner_user_id', $u->id)->where('scope', 'personal')->first();
+        $this->assertNotNull($board);
+        $this->assertSame(['Todo', 'Doing', 'Done'],
+            $board->columns()->orderBy('position')->pluck('name')->all());
     }
 
     public function test_due_reminder_dedupe_is_workspace_timezone_safe(): void
@@ -403,25 +460,29 @@ class TaskBoardTest extends TestCase
         $this->assertSame('commented', $resp['activities'][0]['type']);
     }
 
-    public function test_archive_and_unarchive_board_owner_only(): void
+    public function test_archive_and_unarchive_board_authz(): void
     {
+        // Spec: editors are part of "team mutations" — they can archive
+        // and unarchive. Viewers must still be rejected.
         $owner  = $this->makeUser('arc');
         $editor = $this->makeUser('arced');
+        $viewer = $this->makeUser('arcvw');
         $ws     = $owner->ensureDefaultWorkspace();
         WorkspaceMember::create(['workspace_id' => $ws->id, 'user_id' => $editor->id, 'role' => 'editor']);
+        WorkspaceMember::create(['workspace_id' => $ws->id, 'user_id' => $viewer->id, 'role' => 'viewer']);
 
         session(['active_workspace_id' => $ws->id]);
         $this->actingAs($owner)->post('/user/tasks/boards', ['name' => 'Arc1', 'scope' => 'team']);
         $board = TaskBoard::query()->withoutGlobalScope('workspace')->where('name', 'Arc1')->first();
 
-        // Editor cannot archive a board (owner/admin only).
-        $this->actingAs($editor)->post("/user/tasks/boards/{$board->id}/archive")->assertStatus(403);
+        // Viewer is rejected.
+        $this->actingAs($viewer)->post("/user/tasks/boards/{$board->id}/archive")->assertStatus(403);
         $this->assertNull($board->fresh()->archived_at);
 
-        // Owner can archive and then unarchive.
-        $this->actingAs($owner)->post("/user/tasks/boards/{$board->id}/archive")->assertRedirect();
+        // Editor can archive and unarchive.
+        $this->actingAs($editor)->post("/user/tasks/boards/{$board->id}/archive")->assertRedirect();
         $this->assertNotNull($board->fresh()->archived_at);
-        $this->actingAs($owner)->post("/user/tasks/boards/{$board->id}/unarchive")->assertRedirect();
+        $this->actingAs($editor)->post("/user/tasks/boards/{$board->id}/unarchive")->assertRedirect();
         $this->assertNull($board->fresh()->archived_at);
     }
 

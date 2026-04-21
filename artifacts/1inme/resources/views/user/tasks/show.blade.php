@@ -316,13 +316,20 @@
 
                 <div class="mt-5">
                     <h3 class="text-xs font-bold uppercase mb-2" style="color: var(--text-faint);">Subtasks</h3>
-                    <template x-for="s in card.subtasks" :key="s.id">
-                        <div class="flex items-center gap-2 mb-1">
-                            <input type="checkbox" :checked="s.completed" @change="toggleSubtask(s)">
-                            <span :class="s.completed ? 'line-through opacity-60' : ''" x-text="s.title" class="text-sm flex-1" style="color: var(--text-primary);"></span>
-                            <button @click="destroySubtask(s)" class="text-xs" style="color: var(--text-faint);"><i class="fas fa-times"></i></button>
-                        </div>
-                    </template>
+                    {{-- The wrapper is the SortableJS handle. Each child is
+                         tagged with data-id so we can read the new ordering
+                         straight off the DOM after a drag completes. --}}
+                    <div x-ref="subtaskList" data-subtask-list>
+                        <template x-for="s in card.subtasks" :key="s.id">
+                            <div class="flex items-center gap-2 mb-1 px-1 py-0.5 rounded" :data-id="s.id"
+                                 style="background: var(--bg-glass-input);">
+                                <i class="fas fa-grip-vertical text-[10px] opacity-50 cursor-grab subtask-handle"></i>
+                                <input type="checkbox" :checked="s.completed" @change="toggleSubtask(s)">
+                                <span :class="s.completed ? 'line-through opacity-60' : ''" x-text="s.title" class="text-sm flex-1" style="color: var(--text-primary);"></span>
+                                <button @click="destroySubtask(s)" class="text-xs" style="color: var(--text-faint);"><i class="fas fa-times"></i></button>
+                            </div>
+                        </template>
+                    </div>
                     <form @submit.prevent="addSubtask($event)">
                         <input name="title" placeholder="+ Add subtask" maxlength="240"
                                class="w-full mt-1 px-2 py-1 text-sm rounded border"
@@ -539,6 +546,39 @@ function kanbanBoard(boardId) {
             this.card = data.card;
             this.card.due_date = this.card.due_date ? this.card.due_date.substring(0, 10) : null;
             this.drawerOpen = true;
+            // Defer until Alpine paints the new subtask DOM nodes.
+            this.$nextTick(() => this.initSubtaskSortable());
+        },
+
+        // Bind Sortable to the subtask list each time the drawer renders.
+        // We replace the previous instance to avoid leaks across re-opens.
+        initSubtaskSortable() {
+            const el = this.$refs.subtaskList;
+            if (!el || typeof Sortable === 'undefined') return;
+            if (el._sortable) { try { el._sortable.destroy(); } catch (_) {} }
+            const self = this;
+            el._sortable = Sortable.create(el, {
+                animation: 150,
+                handle: '.subtask-handle',
+                ghostClass: 'sortable-ghost',
+                onEnd: () => self.persistSubtaskOrder(),
+            });
+        },
+
+        async persistSubtaskOrder() {
+            if (!this.card) return;
+            const el = this.$refs.subtaskList;
+            if (!el) return;
+            const order = Array.from(el.querySelectorAll('[data-id]'))
+                .map(n => parseInt(n.dataset.id, 10))
+                .filter(Boolean);
+            if (!order.length) return;
+            // Re-sync local state so any subsequent toggle/delete uses the
+            // post-drag ordering even before the server round-trip lands.
+            const byId = Object.fromEntries(this.card.subtasks.map(s => [s.id, s]));
+            this.card.subtasks = order.map(id => byId[id]).filter(Boolean);
+            await this.fetchJson(`/user/tasks/cards/${this.card.id}/subtasks/reorder`,
+                { method: 'POST', body: { order } });
         },
 
         async saveCard(payload) {
