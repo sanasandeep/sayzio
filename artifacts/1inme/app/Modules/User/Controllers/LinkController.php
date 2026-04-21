@@ -341,9 +341,18 @@ class LinkController extends Controller
             ->orderByDesc('total')
             ->get();
 
+        // Optional traffic-source filter — narrow analytics to clicks logged
+        // from a particular surface (mobile_app vs web). Kept un-applied to
+        // $sourceStats below so the breakdown card always shows the full split.
+        $sourceFilter = $request->query('source');
+        if (!in_array($sourceFilter, ['mobile_app', 'web'], true)) {
+            $sourceFilter = null;
+        }
+
         $clicksQuery = $link->clicks()
             ->whereBetween('clicked_at', [$startDate, $endDate])
-            ->when($aliasFilter, fn ($q) => $q->where('alias', $aliasFilter));
+            ->when($aliasFilter, fn ($q) => $q->where('alias', $aliasFilter))
+            ->when($sourceFilter, fn ($q) => $q->where('source', $sourceFilter));
 
         $totalInRange = (clone $clicksQuery)->count();
         $uniqueInRange = (clone $clicksQuery)->distinct('ip_address')->count('ip_address');
@@ -392,7 +401,11 @@ class LinkController extends Controller
 
         // Mobile-app vs web traffic split. Rows logged before this column
         // existed are surfaced under "Unknown" so totals always reconcile.
-        $sourceStats = (clone $clicksQuery)
+        // Intentionally NOT filtered by $sourceFilter so users can always see
+        // the full split (and switch between sources) on the breakdown card.
+        $sourceStats = $link->clicks()
+            ->whereBetween('clicked_at', [$startDate, $endDate])
+            ->when($aliasFilter, fn ($q) => $q->where('alias', $aliasFilter))
             ->selectRaw("COALESCE(source, 'unknown') as source, COUNT(*) as count")
             ->groupBy('source')->orderByDesc('count')->get();
 
@@ -417,7 +430,8 @@ class LinkController extends Controller
             ->whereBetween('clicked_at', [$prevStartDate, $prevEndDate])
             // Mirror the alias filter onto the previous-period query so vs-prev
             // deltas (KPI tiles, per-platform comparisons) are apples-to-apples.
-            ->when($aliasFilter, fn ($q) => $q->where('alias', $aliasFilter));
+            ->when($aliasFilter, fn ($q) => $q->where('alias', $aliasFilter))
+            ->when($sourceFilter, fn ($q) => $q->where('source', $sourceFilter));
 
         $totalInRangePrev         = (clone $prevClicksQuery)->count();
         $blockClicksInRangePrev   = (clone $prevClicksQuery)->whereNotNull('block_id')->count();
@@ -675,7 +689,7 @@ class LinkController extends Controller
             'blockStatsPrev', 'blockStatsPrevByDest', 'blockClicksInRangePrev',
             'totalInRangePrev',
             'uniqueBlockClicksInRange', 'uniqueBlockClicksPrev',
-            'aliasBreakdown', 'aliasFilter', 'availableAliases',
+            'aliasBreakdown', 'aliasFilter', 'availableAliases', 'sourceFilter',
             'performance', 'performanceHistory'
         ));
     }

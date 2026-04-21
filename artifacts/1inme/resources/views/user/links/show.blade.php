@@ -445,6 +445,11 @@
         @foreach(['day'=>'Day','week'=>'Week','month'=>'Month','year'=>'Year'] as $k=>$lbl)
             <a href="{{ $buildUrl(['group'=>$k]) }}" class="pill {{ ($groupBy ?? 'day')===$k ? 'pill-active-soft' : '' }}">{{ $lbl }}</a>
         @endforeach
+        <span class="mx-3 h-5 w-px" style="background: var(--border-glass);"></span>
+        <span class="text-[10px] uppercase tracking-wider font-bold mr-1" style="color: var(--text-faint);"><i class="fas fa-mobile-screen text-violet-400"></i> Source</span>
+        @foreach(['' => 'All', 'mobile_app' => 'Mobile app', 'web' => 'Web'] as $sk => $slbl)
+            <a href="{{ $buildUrl(['source' => $sk === '' ? null : $sk]) }}" class="pill {{ (($sourceFilter ?? '') === $sk) ? 'pill-active' : '' }}">{{ $slbl }}</a>
+        @endforeach
         <span class="mx-3 h-5 w-px hidden md:inline-block" style="background: var(--border-glass);"></span>
         <form method="GET" class="flex items-center gap-2 ml-auto">
             <input type="hidden" name="period" value="custom">
