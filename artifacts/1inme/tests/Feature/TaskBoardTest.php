@@ -387,6 +387,33 @@ class TaskBoardTest extends TestCase
             $card->subtasks()->orderBy('position')->pluck('title')->all());
     }
 
+    public function test_personal_board_cannot_be_created_in_team_workspace(): void
+    {
+        $owner = $this->makeUser('teamown');
+        $other = $this->makeUser('other');
+        // Owner creates a non-personal team workspace and adds `other`.
+        $teamWs = \App\Modules\User\Models\Workspace::create([
+            'owner_user_id' => $owner->id, 'name' => 'TeamWS',
+            'slug' => 'teamws-' . $owner->id, 'is_personal' => false,
+        ]);
+        WorkspaceMember::create(['workspace_id' => $teamWs->id, 'user_id' => $other->id, 'role' => 'editor']);
+
+        // `other` activates the team workspace and tries to create a
+        // personal board there: must be rejected.
+        session(['active_workspace_id' => $teamWs->id]);
+        $this->actingAs($other)->post('/user/tasks/boards',
+            ['name' => 'StealthMine', 'scope' => 'personal'])->assertStatus(422);
+        $this->assertDatabaseMissing('task_boards', [
+            'workspace_id' => $teamWs->id, 'name' => 'StealthMine',
+        ]);
+
+        // The team-workspace index must NOT have auto-seeded a personal board.
+        $this->actingAs($other)->get('/user/tasks')->assertOk();
+        $this->assertDatabaseMissing('task_boards', [
+            'workspace_id' => $teamWs->id, 'scope' => 'personal',
+        ]);
+    }
+
     public function test_personal_board_provisioner_uses_todo_doing_done(): void
     {
         $u = $this->makeUser('newprov');

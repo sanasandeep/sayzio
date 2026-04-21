@@ -85,13 +85,14 @@ class TaskBoardController extends Controller
             'color' => 'nullable|string|max:16',
         ]);
         $scope = $data['scope'] ?? 'team';
+        $ws    = app('current_workspace');
 
-        // Personal boards are private to the creator, so any signed-in member
-        // can spin one up regardless of role. Team boards spend workspace
-        // state visible to others, so they require the standard tasks.create
-        // permission (owner/admin/editor by default).
-        if ($scope === 'team'
-            && !auth()->user()->canInWorkspace(app('current_workspace'), 'tasks.create')) {
+        if ($scope === 'personal') {
+            // Personal boards live in the user's personal workspace only.
+            if (!$ws || !$ws->is_personal || (int) $ws->owner_user_id !== (int) auth()->id()) {
+                abort(422, 'Personal boards can only be created in your personal workspace.');
+            }
+        } elseif (!auth()->user()->canInWorkspace($ws, 'tasks.create')) {
             abort(403);
         }
 
@@ -235,7 +236,7 @@ class TaskBoardController extends Controller
     /** Soft-archive a board (sets archived_at). Editors and above only. */
     public function archiveBoard(TaskBoard $board)
     {
-        $this->authorizeCardDelete($board);
+        $this->authorizeDelete($board);
         if (!$board->archived_at) {
             $board->update(['archived_at' => now()]);
         }
@@ -245,7 +246,7 @@ class TaskBoardController extends Controller
     /** Restore a soft-archived board so it shows up in the index again. */
     public function unarchiveBoard(TaskBoard $board)
     {
-        $this->authorizeCardDelete($board);
+        $this->authorizeDelete($board);
         if ($board->archived_at) {
             $board->update(['archived_at' => null]);
         }
@@ -254,7 +255,7 @@ class TaskBoardController extends Controller
 
     public function destroyBoard(TaskBoard $board)
     {
-        $this->authorizeCardDelete($board);
+        $this->authorizeDelete($board);
         DB::transaction(function () use ($board) {
             $cardIds = $board->cards()->pluck('id');
             DB::table('task_card_assignees')->whereIn('card_id', $cardIds)->delete();
@@ -482,7 +483,7 @@ class TaskBoardController extends Controller
 
     public function destroyCard(TaskCard $card)
     {
-        $this->authorizeCardDelete($card->board);
+        $this->authorizeDelete($card->board);
         DB::transaction(function () use ($card) {
             DB::table('task_card_assignees')->where('card_id', $card->id)->delete();
             DB::table('task_card_labels')->where('card_id', $card->id)->delete();
@@ -819,34 +820,14 @@ class TaskBoardController extends Controller
         if (!$user->canInWorkspace(app('current_workspace'), 'tasks.edit')) abort(403);
     }
 
-    /**
-     * Strict delete gate used for destructive *board-level* operations
-     * (deleting an entire board). Only owner/admin pass; editors do not.
-     */
+    /** Delete gate for boards, cards, columns, comments, attachments. */
     private function authorizeDelete(TaskBoard $board): void
     {
         $user = auth()->user();
         if (!$board->visibleTo($user)) abort(404);
         if ($board->scope === 'personal' && (int) $board->owner_user_id === (int) $user->id) return;
-        if (!$user->canInWorkspace(app('current_workspace'), 'tasks.delete')) abort(403);
-    }
-
-    /**
-     * Looser delete gate used for *task-entity* deletions (cards, columns
-     * via fallback move, comments, attachments). Per the task spec editors
-     * are explicitly allowed to remove their own work, so this gate also
-     * accepts `tasks.edit`. Replier/analyst/viewer still 403. We do NOT
-     * widen the global role matrix; this is a per-feature override and is
-     * deliberately *not* used for full-board deletion.
-     */
-    private function authorizeCardDelete(TaskBoard $board): void
-    {
-        $user = auth()->user();
-        if (!$board->visibleTo($user)) abort(404);
-        if ($board->scope === 'personal' && (int) $board->owner_user_id === (int) $user->id) return;
         $ws = app('current_workspace');
-        if ($user->canInWorkspace($ws, 'tasks.delete')) return;
-        if ($user->canInWorkspace($ws, 'tasks.edit'))   return;
+        if ($user->canInWorkspace($ws, 'tasks.delete') || $user->canInWorkspace($ws, 'tasks.edit')) return;
         abort(403);
     }
 

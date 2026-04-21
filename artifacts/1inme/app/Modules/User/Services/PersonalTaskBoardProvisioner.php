@@ -28,7 +28,7 @@ class PersonalTaskBoardProvisioner
             ->orderBy('id')
             ->first();
         if (!$ws && method_exists($user, 'ensureDefaultWorkspace')) {
-            try { $ws = $user->ensureDefaultWorkspace(); } catch (\Throwable $e) { return null; }
+            $ws = $user->ensureDefaultWorkspace();
         }
         if (!$ws) return null;
 
