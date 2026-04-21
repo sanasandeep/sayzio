@@ -32,6 +32,7 @@ use App\Modules\Api\Controllers\CalendarController;
 use App\Modules\Api\Controllers\VaultController;
 use App\Modules\Api\Controllers\VerificationController;
 use App\Modules\Api\Controllers\BillingController;
+use App\Modules\Api\Controllers\RevenueCatBillingController;
 use App\Modules\Api\Controllers\DialerController;
 use Illuminate\Support\Facades\Route;
 
@@ -217,6 +218,13 @@ Route::prefix('v1')->group(function () {
         // Billing
         Route::get   ('/billing/subscription', [BillingController::class, 'subscription']);
         Route::get   ('/billing/invoices',     [BillingController::class, 'invoices']);
+
+        // Plan + addon catalogue priced for the signed-in user, plus
+        // the RevenueCat receipt-verification hook used by the mobile
+        // app after a successful Purchases.purchasePackage / restore.
+        Route::get ('/billing/plans',                [RevenueCatBillingController::class, 'plans']);
+        Route::post('/billing/revenuecat/activate',  [RevenueCatBillingController::class, 'activate'])
+            ->middleware('throttle:30,1');
 
         // Dialer
         Route::post  ('/dialer/lookup',  [DialerController::class, 'lookup'])->middleware('throttle:60,1');

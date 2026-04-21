@@ -33,6 +33,7 @@ type AuthState = {
 type Ctx = AuthState & {
   signOut: () => Promise<void>;
   applySession: (token: string, user: AuthUser) => Promise<void>;
+  refresh: () => Promise<void>;
   sendOtp: (input: {
     channel: "email" | "mobile";
     identifier: string;
@@ -72,6 +73,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const applySession = useCallback(async (token: string, user: AuthUser) => {
     await Promise.all([setToken(token), setStoredUser(user)]);
     setState({ ready: true, token, user });
+  }, []);
+
+  // Re-pull the signed-in user from the API and persist it locally.
+  // Called after server-side state changes (e.g. RevenueCat activation
+  // bumps the plan) so any cached `user.plan_id` reflects reality.
+  const refresh = useCallback(async () => {
+    try {
+      const res = await apiFetch<{ user: AuthUser }>("/auth/me");
+      if (res?.user) {
+        await setStoredUser(res.user);
+        setState((s) => ({ ...s, ready: true, user: res.user }));
+      }
+    } catch {
+      /* swallow — refresh is best-effort */
+    }
   }, []);
 
   const signOut = useCallback(async () => {
@@ -151,12 +167,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ...state,
       signOut,
       applySession,
+      refresh,
       sendOtp,
       verifyOtp,
       demoLogin,
       socialLogin,
     }),
-    [state, signOut, applySession, sendOtp, verifyOtp, demoLogin, socialLogin],
+    [state, signOut, applySession, refresh, sendOtp, verifyOtp, demoLogin, socialLogin],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

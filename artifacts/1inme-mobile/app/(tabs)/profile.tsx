@@ -299,6 +299,27 @@ export default function Profile() {
                 color={colors.mutedForeground}
               />
             </Pressable>
+            <Pressable
+              onPress={() => router.push("/plans" as never)}
+              style={({ pressed }) => [
+                styles.listItem,
+                {
+                  borderTopWidth: StyleSheet.hairlineWidth,
+                  borderTopColor: colors.border,
+                  opacity: pressed ? 0.7 : 1,
+                },
+              ]}
+            >
+              <Feather name="zap" size={18} color={colors.primary} />
+              <Text style={[styles.listLabel, { color: colors.foreground }]}>
+                Plans & billing
+              </Text>
+              <Feather
+                name="chevron-right"
+                size={18}
+                color={colors.mutedForeground}
+              />
+            </Pressable>
           </View>
         </View>
 

@@ -22,10 +22,20 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { useColors } from "@/hooks/useColors";
 import { getBaseUrl } from "@/lib/api";
+import { initializeRevenueCat, SubscriptionProvider } from "@/lib/revenuecat";
 import { getToken } from "@/lib/secure";
 
 setBaseUrl(getBaseUrl());
 setAuthTokenGetter(async () => (await getToken()) ?? null);
+
+// In-app purchases are optional — if the public RevenueCat keys haven't
+// been set yet (early development, fresh repl), this is a silent no-op
+// and the plans screen will surface a friendly message at use time.
+try {
+  initializeRevenueCat();
+} catch {
+  /* swallow — see lib/revenuecat.tsx for messaging fallback */
+}
 
 SplashScreen.preventAutoHideAsync();
 
@@ -53,6 +63,7 @@ function RootLayoutNav() {
       <Stack.Screen name="info" options={{ headerShown: false }} />
       <Stack.Screen name="biolink/[handle]" options={{ headerShown: false }} />
       <Stack.Screen name="oauth-callback" options={{ headerShown: false }} />
+      <Stack.Screen name="plans" options={{ title: "Plans & billing" }} />
     </Stack>
   );
 }
@@ -79,11 +90,13 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <ThemeProvider>
             <AuthProvider>
-              <GestureHandlerRootView>
-                <KeyboardProvider>
-                  <RootLayoutNav />
-                </KeyboardProvider>
-              </GestureHandlerRootView>
+              <SubscriptionProvider>
+                <GestureHandlerRootView>
+                  <KeyboardProvider>
+                    <RootLayoutNav />
+                  </KeyboardProvider>
+                </GestureHandlerRootView>
+              </SubscriptionProvider>
             </AuthProvider>
           </ThemeProvider>
         </QueryClientProvider>
