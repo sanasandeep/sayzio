@@ -45,12 +45,32 @@ function isSafeUrl(u: string): boolean {
     return false;
   }
 }
-function openSafe(u: string) {
-  if (isSafeUrl(u)) void Linking.openURL(u);
+function openSafe(u: string, router: ReturnType<typeof useRouter>) {
+  if (!isSafeUrl(u)) return;
+  // `tel:` links open the in-app dialer (and onward to the active-call
+  // screen) instead of handing off to the device's native phone app —
+  // see task #395. Other safe schemes keep their default OS behaviour.
+  if (u.toLowerCase().startsWith("tel:")) {
+    let raw = u.slice(4);
+    try {
+      raw = decodeURIComponent(raw);
+    } catch {
+      /* leave as-is — the dialer accepts any string */
+    }
+    const number = raw.trim();
+    if (!number) return;
+    router.push({
+      pathname: "/dialer",
+      params: { prefill: number, autoDial: "1" },
+    });
+    return;
+  }
+  void Linking.openURL(u);
 }
 
 function BlockView({ block, alias }: { block: BiolinkBlock; alias: string }) {
   const colors = useColors();
+  const router = useRouter();
   const s = block.settings ?? {};
   const t = block.type;
 
@@ -59,7 +79,7 @@ function BlockView({ block, alias }: { block: BiolinkBlock; alias: string }) {
   // immediately.
   const handleTap = (url: string) => {
     trackBiolinkBlockTap(alias, block.id, url);
-    openSafe(url);
+    openSafe(url, router);
   };
 
   // Generic link/button block

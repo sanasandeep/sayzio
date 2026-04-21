@@ -2,8 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Feather } from "@expo/vector-icons";
 import * as Contacts from "expo-contacts";
 import * as Haptics from "expo-haptics";
-import * as Linking from "expo-linking";
-import { Stack } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -102,9 +101,19 @@ function formatRelative(at: number | string | null): string {
 export default function DialerScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+  // Other screens (e.g. a biolink `tel:` block) deep-link into the dialer
+  // with a number to pre-fill, optionally auto-dialing on mount.
+  const params = useLocalSearchParams<{
+    prefill?: string;
+    name?: string;
+    autoDial?: string;
+  }>();
 
   const [tab, setTab] = useState<Tab>("keypad");
-  const [number, setNumber] = useState("");
+  const [number, setNumber] = useState(
+    typeof params.prefill === "string" ? params.prefill : "",
+  );
 
   const [localRecent, setLocalRecent] = useState<LocalRecent[]>([]);
   const [serverHistory, setServerHistory] = useState<DialerHistoryItem[]>([]);
@@ -294,24 +303,39 @@ export default function DialerScreen() {
         });
       }
 
-      // Hand off to the platform dialer. `tel:` is supported on iOS,
-      // Android and most desktop platforms; web browsers will prompt.
-      const url = `tel:${encodeURIComponent(trimmed)}`;
-      try {
-        const ok = await Linking.canOpenURL(url);
-        if (!ok) throw new Error("Dialer not available on this device");
-        await Linking.openURL(url);
-      } catch (e) {
-        Alert.alert(
-          "Couldn't start the call",
-          e instanceof Error
-            ? e.message
-            : "Your device couldn't open the dialer.",
-        );
-      }
+      // Open the in-app active-call screen instead of the device's
+      // native phone dialer — see task #395. Real telephony is wired
+      // separately; this screen is the UI shell with mute/end controls.
+      router.push({
+        pathname: "/call/active",
+        params: {
+          number: trimmed,
+          ...(cleanedLabel ? { name: cleanedLabel } : {}),
+        },
+      });
     },
-    [localRecent],
+    [localRecent, router],
   );
+
+  // Auto-dial when navigated here with `?prefill=…&autoDial=1` (e.g. a
+  // biolink `tel:` block). Guarded by a ref so re-renders / param echo
+  // can't trigger a second dial.
+  const autoDialedRef = useRef(false);
+  useEffect(() => {
+    if (autoDialedRef.current) return;
+    const prefill =
+      typeof params.prefill === "string" ? params.prefill.trim() : "";
+    const autoDial =
+      typeof params.autoDial === "string" &&
+      params.autoDial !== "" &&
+      params.autoDial !== "0" &&
+      params.autoDial !== "false";
+    if (!prefill || !autoDial) return;
+    autoDialedRef.current = true;
+    const name = typeof params.name === "string" ? params.name : null;
+    void dial(prefill, name);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.prefill, params.autoDial]);
 
   const removeRecent = useCallback(
     async (n: string) => {

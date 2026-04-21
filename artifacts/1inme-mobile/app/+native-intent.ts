@@ -9,6 +9,7 @@ const RESERVED = new Set([
   "oauth-callback",
   "info",
   "biolink",
+  "call",
   "auth",
   "tabs",
   "_sitemap",
