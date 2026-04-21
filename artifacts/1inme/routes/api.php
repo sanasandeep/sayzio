@@ -87,6 +87,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/links/{id}',    [LinkController::class, 'show'])->whereNumber('id');
         Route::patch('/links/{id}',  [LinkController::class, 'update'])->whereNumber('id');
         Route::delete('/links/{id}', [LinkController::class, 'destroy'])->whereNumber('id');
+        Route::get   ('/links/{id}/analytics', [LinkController::class, 'analytics'])->whereNumber('id');
 
         // Biolink blocks (authoring)
         Route::get   ('/links/{id}/blocks',                 [BiolinkBlockController::class, 'index'])->whereNumber('id');

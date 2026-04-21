@@ -174,13 +174,34 @@ components:
     Contact:
       type: object
       properties:
-        id:         { type: integer }
-        name:       { type: string }
-        email:      { type: string, nullable: true }
-        phone:      { type: string, nullable: true }
-        notes:      { type: string, nullable: true }
-        tags:       { type: array, items: { type: string } }
-        created_at: { type: string, format: date-time }
+        id:           { type: integer }
+        display_name: { type: string, nullable: true }
+        given_name:   { type: string, nullable: true }
+        family_name:  { type: string, nullable: true }
+        organization: { type: string, nullable: true }
+        job_title:    { type: string, nullable: true }
+        notes:        { type: string, nullable: true }
+        photo_url:    { type: string, nullable: true }
+        emails:
+          type: array
+          items:
+            type: object
+            properties:
+              id:         { type: integer }
+              label:      { type: string, nullable: true }
+              value:      { type: string }
+              is_primary: { type: boolean }
+        phones:
+          type: array
+          items:
+            type: object
+            properties:
+              id:         { type: integer }
+              label:      { type: string, nullable: true }
+              value:      { type: string }
+              value_e164: { type: string, nullable: true }
+              is_primary: { type: boolean }
+        created_at:   { type: string, format: date-time }
     Form:
       type: object
       properties:
@@ -578,6 +599,17 @@ paths:
       responses:
         '204': { description: deleted }
 
+  /links/{id}/analytics:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: integer } }
+      - { in: query, name: from, schema: { type: string, format: date-time } }
+      - { in: query, name: to,   schema: { type: string, format: date-time } }
+    get:
+      summary: Per-link analytics summary (clicks by day/country/referrer/device)
+      responses:
+        '200': { description: ok }
+        '404': { description: not found }
+
   /links/{id}/blocks:
     parameters:
       - { in: path, name: id, required: true, schema: { type: integer } }
@@ -820,7 +852,24 @@ paths:
     delete: { summary: Delete a post, responses: { '204': { description: deleted } } }
 
   /contacts:
-    get:  { summary: List contacts, responses: { '200': { description: ok } } }
+    get:
+      summary: List contacts
+      parameters:
+        - { in: query, name: q,        schema: { type: string } }
+        - { in: query, name: per_page, schema: { type: integer } }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      items: { type: array, items: { $ref: '#/components/schemas/Contact' } }
+                      meta:  { $ref: '#/components/schemas/PaginationMeta' }
     post:
       summary: Create a contact
       requestBody:
@@ -829,18 +878,43 @@ paths:
           application/json:
             schema:
               type: object
-              required: [name]
               properties:
-                name:  { type: string }
-                email: { type: string, nullable: true }
-                phone: { type: string, nullable: true }
-                notes: { type: string, nullable: true }
-                tags:  { type: array, items: { type: string } }
+                display_name: { type: string, nullable: true }
+                given_name:   { type: string, nullable: true }
+                family_name:  { type: string, nullable: true }
+                organization: { type: string, nullable: true }
+                job_title:    { type: string, nullable: true }
+                notes:        { type: string, nullable: true }
+                emails:
+                  type: array
+                  items:
+                    type: object
+                    required: [value]
+                    properties:
+                      label:      { type: string, nullable: true }
+                      value:      { type: string }
+                      is_primary: { type: boolean }
+                phones:
+                  type: array
+                  items:
+                    type: object
+                    required: [value]
+                    properties:
+                      label:      { type: string, nullable: true }
+                      value:      { type: string }
+                      value_e164: { type: string, nullable: true }
+                      is_primary: { type: boolean }
       responses: { '201': { description: created } }
   /contacts/{id}:
     parameters:
       - { in: path, name: id, required: true, schema: { type: integer } }
-    patch:  { summary: Update a contact, responses: { '200': { description: ok } } }
+    patch:
+      summary: Update a contact (partial; emails/phones replace the set when supplied)
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Contact' }
+      responses: { '200': { description: ok } }
     delete: { summary: Delete a contact, responses: { '204': { description: deleted } } }
 
   /forms:

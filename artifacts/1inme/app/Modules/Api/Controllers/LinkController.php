@@ -54,6 +54,7 @@ class LinkController extends Controller
             'seo_title'  => ['nullable', 'string', 'max:200'],
             'seo_description' => ['nullable', 'string', 'max:500'],
             'expires_at' => ['nullable', 'date'],
+            'settings'   => ['nullable', 'array'],
         ]);
 
         $alias = $data['alias'] ?? Str::lower(Str::random(7));
@@ -72,6 +73,7 @@ class LinkController extends Controller
             'seo_title'  => $data['seo_title'] ?? null,
             'seo_description' => $data['seo_description'] ?? null,
             'expires_at' => $data['expires_at'] ?? null,
+            'settings'   => $data['settings'] ?? [],
         ]);
 
         return $this->created(['link' => LinkResource::toArray($link)]);
@@ -98,7 +100,17 @@ class LinkController extends Controller
             'seo_title'  => ['sometimes', 'nullable', 'string', 'max:200'],
             'seo_description' => ['sometimes', 'nullable', 'string', 'max:500'],
             'expires_at' => ['sometimes', 'nullable', 'date'],
+            'settings'   => ['sometimes', 'nullable', 'array'],
         ]);
+
+        if (array_key_exists('settings', $data)) {
+            // Deep-merge supplied keys into the existing settings JSON so
+            // mobile clients can patch a single sub-key (e.g. just
+            // `appearance.theme`) without clobbering the rest.
+            $existing = (array) ($link->settings ?? []);
+            $patch    = (array) ($data['settings'] ?? []);
+            $data['settings'] = array_replace_recursive($existing, $patch);
+        }
 
         $link->fill($data)->save();
         return $this->ok(['link' => LinkResource::toArray($link->fresh())]);
@@ -110,5 +122,58 @@ class LinkController extends Controller
         if (!$link) return $this->notFound('Link not found');
         $link->delete();
         return $this->noContent();
+    }
+
+    /**
+     * Per-link analytics summary for the mobile dashboard. Aggregates
+     * the click_events table over an optional [from, to] window and
+     * groups by day, country, referrer, and device. Falls back to the
+     * Link model's denormalised counters when the click_events table is
+     * unavailable (older installs / read-replica latency) so the mobile
+     * client always gets a usable response.
+     */
+    public function analytics(Request $request, int $id)
+    {
+        $link = Link::where('user_id', $request->user()->id)->find($id);
+        if (!$link) return $this->notFound('Link not found');
+
+        $from = $request->date('from') ?? now()->subDays(30);
+        $to   = $request->date('to')   ?? now();
+
+        $payload = [
+            'link_id'       => $link->id,
+            'alias'         => $link->alias,
+            'total_clicks'  => (int) ($link->total_clicks ?? 0),
+            'unique_clicks' => (int) ($link->unique_clicks ?? 0),
+            'window'        => [
+                'from' => $from->toIso8601String(),
+                'to'   => $to->toIso8601String(),
+            ],
+            'by_day'      => [],
+            'by_country'  => [],
+            'by_referrer' => [],
+            'by_device'   => [],
+        ];
+
+        if (\Schema::hasTable('click_events')) {
+            $base = \DB::table('click_events')
+                ->where('link_id', $link->id)
+                ->whereBetween('created_at', [$from, $to]);
+
+            $payload['by_day'] = (clone $base)
+                ->selectRaw("to_char(created_at, 'YYYY-MM-DD') as day, count(*) as clicks")
+                ->groupBy('day')->orderBy('day')->get()->all();
+            $payload['by_country'] = (clone $base)
+                ->selectRaw('country, count(*) as clicks')
+                ->groupBy('country')->orderByDesc('clicks')->limit(50)->get()->all();
+            $payload['by_referrer'] = (clone $base)
+                ->selectRaw('referrer_host, count(*) as clicks')
+                ->groupBy('referrer_host')->orderByDesc('clicks')->limit(50)->get()->all();
+            $payload['by_device'] = (clone $base)
+                ->selectRaw('device_type, count(*) as clicks')
+                ->groupBy('device_type')->orderByDesc('clicks')->get()->all();
+        }
+
+        return $this->ok(['analytics' => $payload]);
     }
 }
