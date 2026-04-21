@@ -196,7 +196,7 @@ components:
         name:         { type: string }
         slug:         { type: string, nullable: true }
         is_personal:  { type: boolean }
-        owner_user_id:{ type: integer }
+        owner_user_id: { type: integer }
         created_at:   { type: string, format: date-time }
     Plan:
       type: object
