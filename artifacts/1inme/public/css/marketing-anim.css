@@ -151,3 +151,190 @@
     [data-anim], [data-anim].in-view { opacity:1!important; transform:none!important; filter:none!important; transition:none!important; }
     .marquee, .float-y, .mesh-bg::before, .mesh-bg::after, .pulse-dot::before { animation: none !important; }
 }
+
+/* =====================================================================
+   LIGHT MODE OVERRIDES (marketing pages)
+   Activated by `html.light-mode` (toggled via theme button + Cmd/Ctrl+I).
+   Goal: every marketing page is fully readable when light mode is on.
+   Strategy: convert dark surfaces to white/light, dim white text to
+   dark, but PRESERVE white text on saturated/gradient surfaces (so
+   purple buttons keep white labels).
+   ===================================================================== */
+
+html.light-mode { color-scheme: light; }
+html.light-mode body { background:#f8fafc !important; color:#111827 !important; }
+
+/* ---- Page surfaces & nav ---- */
+html.light-mode nav.bg-\[\#1e2330\]\/90 {
+    background-color: rgba(255,255,255,0.92) !important;
+    border-color: rgba(15,23,42,0.10) !important;
+}
+html.light-mode .bg-\[\#1e2330\],
+html.light-mode .bg-\[\#11101c\],
+html.light-mode .bg-\[\#161b26\],
+html.light-mode .bg-\[\#0a0a14\],
+html.light-mode .bg-\[\#14091f\],
+html.light-mode .bg-\[\#1c0e2e\] {
+    background-color: #ffffff !important;
+}
+html.light-mode footer.bg-\[\#161b26\] {
+    background-color: #f9fafb !important;
+}
+
+/* ---- Translucent white surfaces become subtle dark tints ---- */
+html.light-mode .bg-white\/5,
+html.light-mode .bg-white\/10,
+html.light-mode .bg-white\/20,
+html.light-mode .bg-white\/\[0\.03\],
+html.light-mode .bg-white\/\[0\.05\],
+html.light-mode .bg-white\/\[0\.07\] {
+    background-color: rgba(15,23,42,0.04) !important;
+}
+html.light-mode .hover\:bg-white\/5:hover,
+html.light-mode .hover\:bg-white\/10:hover,
+html.light-mode .hover\:bg-white\/\[0\.05\]:hover {
+    background-color: rgba(15,23,42,0.07) !important;
+}
+
+/* ---- Borders ---- */
+html.light-mode .border-white\/5,
+html.light-mode .border-white\/10,
+html.light-mode .border-white\/15,
+html.light-mode .border-white\/20,
+html.light-mode .border-white\/\[0\.07\] {
+    border-color: rgba(15,23,42,0.12) !important;
+}
+html.light-mode .divide-white\/5 > * + *,
+html.light-mode .divide-white\/10 > * + * {
+    border-color: rgba(15,23,42,0.10) !important;
+}
+
+/* ---- Text: white & light grays become dark ---- */
+html.light-mode .text-white,
+html.light-mode .text-gray-100,
+html.light-mode .text-gray-200,
+html.light-mode .text-gray-300 {
+    color: #1f2937 !important;
+}
+html.light-mode .text-gray-400 { color: #4b5563 !important; }
+html.light-mode .text-gray-500 { color: #6b7280 !important; }
+html.light-mode .text-gray-600 { color: #4b5563 !important; }
+html.light-mode .placeholder-gray-400::placeholder,
+html.light-mode .placeholder-gray-500::placeholder { color: #9ca3af !important; }
+
+/* Translucent white text variants (text-white/40, /60, /80) */
+html.light-mode [class*="text-white\\/"] { color: rgba(15,23,42,0.55) !important; }
+
+/* ---- Brighten muted accent colors so they show on white ---- */
+html.light-mode .text-violet-200,
+html.light-mode .text-violet-300 { color: #6d28d9 !important; }
+html.light-mode .text-fuchsia-300 { color: #a21caf !important; }
+html.light-mode .text-pink-300    { color: #be185d !important; }
+html.light-mode .text-emerald-300 { color: #047857 !important; }
+html.light-mode .text-amber-300   { color: #b45309 !important; }
+html.light-mode .text-sky-300     { color: #0369a1 !important; }
+html.light-mode .text-rose-300    { color: #be123c !important; }
+
+/* ---- Preserve white text on saturated/gradient surfaces ---- */
+html.light-mode .bg-violet-500.text-white,
+html.light-mode .bg-violet-600.text-white,
+html.light-mode .bg-violet-700.text-white,
+html.light-mode .bg-fuchsia-500.text-white,
+html.light-mode .bg-fuchsia-600.text-white,
+html.light-mode .bg-pink-500.text-white,
+html.light-mode .bg-pink-600.text-white,
+html.light-mode .bg-rose-600.text-white,
+html.light-mode .bg-emerald-500.text-white,
+html.light-mode .bg-emerald-600.text-white,
+html.light-mode .bg-sky-500.text-white,
+html.light-mode .bg-sky-600.text-white,
+html.light-mode .bg-amber-500.text-white,
+html.light-mode .bg-\[\#7c3aed\].text-white,
+html.light-mode .bg-\[\#6d28d9\].text-white,
+html.light-mode [class*="bg-gradient"].text-white,
+html.light-mode .bg-violet-600 .text-white,
+html.light-mode .bg-violet-500 .text-white,
+html.light-mode .bg-\[\#7c3aed\] .text-white,
+html.light-mode [class*="bg-gradient"] .text-white {
+    color: #ffffff !important;
+}
+
+/* Hero phone screen has its own dark wallpaper (--phone-bg) — keep white text */
+html.light-mode .hero-phone-screen,
+html.light-mode .hero-phone-screen .text-white,
+html.light-mode .hero-phone-screen [class*="text-white\\/"],
+html.light-mode .hero-phone-content,
+html.light-mode .hero-phone-content .text-white,
+html.light-mode .hero-phone-content [class*="text-white\\/"],
+html.light-mode .stack-card,
+html.light-mode .stack-card .text-white,
+html.light-mode .stack-card .card-title,
+html.light-mode .stack-card .card-sub,
+html.light-mode .stack-card .card-cta {
+    color: #ffffff !important;
+}
+html.light-mode .stack-card .card-sub,
+html.light-mode .stack-card .card-cta { color: rgba(255,255,255,0.75) !important; }
+
+/* ---- prose-light (about + policy bodies) ---- */
+html.light-mode .prose-light,
+html.light-mode .prose-light p,
+html.light-mode .prose-light ul,
+html.light-mode .prose-light ol,
+html.light-mode .prose-light li { color: #374151 !important; }
+html.light-mode .prose-light strong,
+html.light-mode .prose-light h3,
+html.light-mode .prose-light h4 { color: #111827 !important; }
+html.light-mode .prose-light blockquote { color: #4b5563 !important; border-color: rgba(124,58,237,0.45) !important; }
+html.light-mode .prose-light code { background: rgba(15,23,42,0.08) !important; color: #1f2937 !important; }
+html.light-mode .prose-light a { color: #6d28d9 !important; }
+
+/* ---- Mesh / aurora background blobs are softer in light mode ---- */
+html.light-mode .mesh-bg::before,
+html.light-mode .mesh-bg::after { opacity: 0.18 !important; }
+html.light-mode .grid-bg {
+    background-image:
+      linear-gradient(rgba(15,23,42,.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(15,23,42,.06) 1px, transparent 1px) !important;
+}
+html.light-mode .aurora { opacity: 0.25 !important; }
+
+/* ---- img-frame keeps a subtle border in light mode ---- */
+html.light-mode .img-frame {
+    border-color: rgba(15,23,42,0.10) !important;
+    background: rgba(15,23,42,0.03) !important;
+    box-shadow: 0 18px 50px -28px rgba(124,58,237,0.30),
+                0 6px 20px -10px rgba(15,23,42,0.18) !important;
+}
+html.light-mode .img-frame::after { background: linear-gradient(180deg, transparent 65%, rgba(0,0,0,0.18) 100%) !important; }
+
+/* ---- gradient-text and grad-text remain colorful (untouched). grad-border container ---- */
+html.light-mode .grad-border {
+    background: linear-gradient(#ffffff,#ffffff) padding-box,
+                linear-gradient(135deg, rgba(124,58,237,.55), rgba(236,72,153,.45), rgba(34,211,238,.45)) border-box !important;
+}
+
+/* ---- shadow-2xl shadow-black/40 (dropdowns) ---- */
+html.light-mode .shadow-black\/40 {
+    --tw-shadow-color: rgba(15,23,42,0.18) !important;
+}
+
+/* ---- Marketing theme toggle button (in header) ---- */
+.mkt-theme-toggle {
+    width: 40px; height: 40px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 9999px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: #e5e7eb;
+    transition: background .15s ease, color .15s ease, border-color .15s ease, transform .15s ease;
+}
+.mkt-theme-toggle:hover { background: rgba(255,255,255,0.12); color: #fff; transform: translateY(-1px); }
+html.light-mode .mkt-theme-toggle {
+    background: rgba(15,23,42,0.05);
+    border-color: rgba(15,23,42,0.12);
+    color: #1f2937;
+}
+html.light-mode .mkt-theme-toggle:hover { background: rgba(15,23,42,0.08); color: #111827; }
+
+/* ---- Reduced motion already handled above ---- */

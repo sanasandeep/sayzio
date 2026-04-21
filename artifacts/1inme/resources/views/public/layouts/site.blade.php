@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="{{ (($_COOKIE['1inme_theme'] ?? null) === 'light') ? 'light-mode' : '' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,12 +13,37 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <link rel="stylesheet" href="{{ asset('css/marketing-anim.css') }}?v=1">
+    <link rel="stylesheet" href="{{ asset('css/marketing-anim.css') }}?v=2">
     <script>
-        tailwind.config = { theme: { extend: { fontFamily: { sans: ['Space Grotesk','sans-serif'] } } } }
+        // Theme preference: apply ASAP and expose toggle helper.
+        // Kept in its own <script> tag so a Tailwind CDN error can't kill it.
+        (function(){
+            var pref = null;
+            try { pref = localStorage.getItem('1inme_theme'); } catch(e) {}
+            if (!pref) {
+                var m = document.cookie.match(/(?:^|; )1inme_theme=([^;]+)/);
+                if (m) pref = decodeURIComponent(m[1]);
+            }
+            if (pref === 'light') document.documentElement.classList.add('light-mode');
+        })();
+        window.inmeToggleTheme = function(){
+            var html = document.documentElement;
+            var light = !html.classList.contains('light-mode');
+            html.classList.toggle('light-mode', light);
+            var val = light ? 'light' : 'dark';
+            try { localStorage.setItem('1inme_theme', val); } catch(e) {}
+            try { document.cookie = '1inme_theme=' + val + '; path=/; max-age=31536000; SameSite=Lax'; } catch(e) {}
+            try { window.dispatchEvent(new CustomEvent('inme-theme-changed', { detail: { light: light } })); } catch(e) {}
+            return light;
+        };
+    </script>
+    <script>
+        try { tailwind.config = { theme: { extend: { fontFamily: { sans: ['Space Grotesk','sans-serif'] } } } } } catch(e) {}
     </script>
     <style>
-        body { background:#1e2330; color:#fff; font-family:'Space Grotesk', sans-serif; }
+        html, body { background:#1e2330; }
+        body { color:#fff; font-family:'Space Grotesk', sans-serif; }
+        html.light-mode, html.light-mode body { background:#f8fafc; color:#111827; }
         [x-cloak]{display:none!important}
         .prose-light p { margin-bottom:.75rem; line-height:1.65; color:#d1d5db; }
         .prose-light a { color:#a78bfa; text-decoration:underline; }

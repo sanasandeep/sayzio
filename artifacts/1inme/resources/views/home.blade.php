@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="{{ (($_COOKIE['1inme_theme'] ?? null) === 'light') ? 'light-mode' : '' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,26 +12,40 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('css/marketing-anim.css') }}?v=1">
+    <link rel="stylesheet" href="{{ asset('css/marketing-anim.css') }}?v=2">
     <script>
-        tailwind.config = {
-            theme: { extend: { fontFamily: { sans: ['Space Grotesk', 'sans-serif'] } } }
-        }
+        try {
+            tailwind.config = {
+                theme: { extend: { fontFamily: { sans: ['Space Grotesk', 'sans-serif'] } } }
+            }
+        } catch(e) {}
+    </script>
+    <script>
         // Sync with site-wide theme preference (also toggled via Cmd/Ctrl+I).
         (function(){
-            try {
-                var t = localStorage.getItem('1inme_theme');
-                if (t === 'light') document.documentElement.classList.add('light-mode');
-            } catch(e) {}
+            var pref = null;
+            try { pref = localStorage.getItem('1inme_theme'); } catch(e) {}
+            if (!pref) {
+                var m = document.cookie.match(/(?:^|; )1inme_theme=([^;]+)/);
+                if (m) pref = decodeURIComponent(m[1]);
+            }
+            if (pref === 'light') document.documentElement.classList.add('light-mode');
         })();
+        window.inmeToggleTheme = function(){
+            var html = document.documentElement;
+            var light = !html.classList.contains('light-mode');
+            html.classList.toggle('light-mode', light);
+            var val = light ? 'light' : 'dark';
+            try { localStorage.setItem('1inme_theme', val); } catch(e) {}
+            try { document.cookie = '1inme_theme=' + val + '; path=/; max-age=31536000; SameSite=Lax'; } catch(e) {}
+            window.dispatchEvent(new CustomEvent('inme-theme-changed', { detail: { light: light } }));
+            return light;
+        };
         function homeThemeToggle(){
             return {
                 light: document.documentElement.classList.contains('light-mode'),
-                toggle(){
-                    this.light = !this.light;
-                    document.documentElement.classList.toggle('light-mode', this.light);
-                    try { localStorage.setItem('1inme_theme', this.light ? 'light' : 'dark'); } catch(e){}
-                }
+                init(){ window.addEventListener('inme-theme-changed', e => this.light = e.detail.light); },
+                toggle(){ this.light = window.inmeToggleTheme(); }
             }
         }
     </script>
@@ -52,6 +66,21 @@
         html { overflow-x: clip; }
         body { font-family: 'Space Grotesk', sans-serif; color: #fff; overflow-x: clip; }
         [x-cloak] { display: none !important; }
+
+        /* ===== Light mode overrides for the home page ===== */
+        html.light-mode {
+            --bg:   #f8fafc;
+            --bg-2: #ffffff;
+            --bg-3: #f3f4f6;
+            --ink:  #111827;
+        }
+        html.light-mode body { background: #f8fafc; color: #111827; }
+        html.light-mode .aurora { opacity: 0.18; }
+        html.light-mode .stack-card {
+            background: rgba(15,23,42,0.85);
+            border-color: rgba(15,23,42,0.30);
+            color: #fff;
+        }
 
         /* ============ Aurora background ============ */
         .aurora { position: fixed; inset: -10%; z-index: -1; pointer-events: none; opacity: .6; filter: blur(80px); }

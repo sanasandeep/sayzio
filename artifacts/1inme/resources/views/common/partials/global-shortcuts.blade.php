@@ -293,8 +293,14 @@ function globalShortcuts() {
             const a = document.activeElement;
             if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.isContentEditable)) return;
 
-            const isLight = document.documentElement.classList.toggle('light-mode');
-            try { localStorage.setItem('1inme_theme', isLight ? 'light' : 'dark'); } catch (e) {}
+            var isLight;
+            if (typeof window.inmeToggleTheme === 'function') {
+                isLight = window.inmeToggleTheme();
+            } else {
+                isLight = document.documentElement.classList.toggle('light-mode');
+                try { localStorage.setItem('1inme_theme', isLight ? 'light' : 'dark'); } catch (e) {}
+                try { document.cookie = '1inme_theme=' + (isLight ? 'light' : 'dark') + '; path=/; max-age=31536000; SameSite=Lax'; } catch (e) {}
+            }
             this.isDarkNow = !isLight;
 
             // Sync any existing themeToggle() Alpine component

@@ -80,6 +80,15 @@
 
             {{-- Auth CTAs --}}
             <div class="hidden lg:flex items-center gap-3">
+                <button type="button"
+                        x-data="{ light: document.documentElement.classList.contains('light-mode') }"
+                        x-init="window.addEventListener('inme-theme-changed', e => light = e.detail.light)"
+                        @click="light = (window.inmeToggleTheme ? window.inmeToggleTheme() : !light)"
+                        class="mkt-theme-toggle"
+                        :title="light ? 'Switch to dark mode' : 'Switch to light mode'"
+                        :aria-label="light ? 'Switch to dark mode' : 'Switch to light mode'">
+                    <i :class="light ? 'fas fa-sun' : 'fas fa-moon'" class="text-sm"></i>
+                </button>
                 @auth
                     <a href="{{ route('user.dashboard') }}" class="px-6 py-2.5 bg-[#7c3aed] text-white rounded-full text-sm font-bold hover:bg-[#6d28d9]">Dashboard</a>
                 @else
@@ -93,10 +102,21 @@
                 @endauth
             </div>
 
-            <button @click="mobileOpen=!mobileOpen" class="lg:hidden p-2 text-gray-300" aria-label="Toggle menu" :aria-expanded="mobileOpen">
-                <i class="fas fa-bars" x-show="!mobileOpen"></i>
-                <i class="fas fa-times" x-show="mobileOpen" x-cloak></i>
-            </button>
+            <div class="lg:hidden flex items-center gap-2">
+                <button type="button"
+                        x-data="{ light: document.documentElement.classList.contains('light-mode') }"
+                        x-init="window.addEventListener('inme-theme-changed', e => light = e.detail.light)"
+                        @click="light = (window.inmeToggleTheme ? window.inmeToggleTheme() : !light)"
+                        class="mkt-theme-toggle"
+                        style="width:36px;height:36px;"
+                        :aria-label="light ? 'Switch to dark mode' : 'Switch to light mode'">
+                    <i :class="light ? 'fas fa-sun' : 'fas fa-moon'" class="text-xs"></i>
+                </button>
+                <button @click="mobileOpen=!mobileOpen" class="p-2 text-gray-300" aria-label="Toggle menu" :aria-expanded="mobileOpen">
+                    <i class="fas fa-bars" x-show="!mobileOpen"></i>
+                    <i class="fas fa-times" x-show="mobileOpen" x-cloak></i>
+                </button>
+            </div>
         </div>
 
         {{-- Mobile menu --}}
