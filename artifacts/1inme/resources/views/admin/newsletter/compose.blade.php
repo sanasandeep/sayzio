@@ -202,7 +202,11 @@
                                     $isHigh = $rate !== null && $rate >= $highRateThreshold;
                                 @endphp
                                 @if($unsubs > 0)
-                                    <span class="text-amber-200">{{ number_format($unsubs) }}</span>
+                                    <a href="{{ route('admin.newsletter.issues.unsubscribes', $issue) }}"
+                                       class="text-amber-200 hover:text-amber-100 underline decoration-dotted underline-offset-2"
+                                       title="See who unsubscribed from this issue">
+                                        {{ number_format($unsubs) }}
+                                    </a>
                                     @if($rate !== null)
                                         @if($isHigh)
                                             <span class="ml-1 px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-200 border border-red-400/40"

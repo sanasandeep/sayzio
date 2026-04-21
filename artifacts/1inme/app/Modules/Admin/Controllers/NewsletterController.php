@@ -5,6 +5,7 @@ namespace App\Modules\Admin\Controllers;
 use App\Http\Controllers\Controller;
 use App\Jobs\SendNewsletterIssueJob;
 use App\Modules\Common\Models\NewsletterIssue;
+use App\Modules\Common\Models\NewsletterIssueUnsubscribe;
 use App\Modules\Common\Models\NewsletterSubscriber;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -87,6 +88,25 @@ class NewsletterController extends Controller
             'Content-Type'        => 'text/csv',
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ]);
+    }
+
+    /**
+     * Drill into an individual issue and list every subscriber who used the
+     * unsubscribe link in that issue. Backed by the per-issue audit table
+     * (`newsletter_issue_unsubscribes`) so the list survives even if the
+     * subscriber later resubscribes — making the recorded `unsubscribed_count`
+     * on the issue auditable and recoverable.
+     */
+    public function issueUnsubscribes(Request $request, NewsletterIssue $issue)
+    {
+        $rows = NewsletterIssueUnsubscribe::query()
+            ->where('issue_id', $issue->id)
+            ->with('subscriber')
+            ->orderByDesc('unsubscribed_at')
+            ->paginate(50)
+            ->withQueryString();
+
+        return view('admin.newsletter.issue-unsubscribes', compact('issue', 'rows'));
     }
 
     public function compose(Request $request)

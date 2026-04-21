@@ -4,6 +4,7 @@ namespace App\Modules\Common\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Common\Models\NewsletterIssue;
+use App\Modules\Common\Models\NewsletterIssueUnsubscribe;
 use App\Modules\Common\Models\NewsletterSubscriber;
 use App\Modules\Common\Services\NewsletterWelcomeMail;
 use Illuminate\Http\Request;
@@ -94,9 +95,18 @@ class NewsletterController extends Controller
             // admins can see which issues drive churn. We only count it on
             // the first valid click (not on idempotent re-clicks) and we
             // ignore unknown/missing issue ids defensively.
+            //
+            // We also persist the (subscriber, issue) pair in a small audit
+            // table so admins can drill into a specific issue and see which
+            // subscribers opted out from it — and so the per-issue counter
+            // remains recoverable if it ever drifts.
             $issueId = (int) $request->query('issue', 0);
-            if ($issueId > 0) {
+            if ($issueId > 0 && NewsletterIssue::where('id', $issueId)->exists()) {
                 NewsletterIssue::where('id', $issueId)->increment('unsubscribed_count');
+                NewsletterIssueUnsubscribe::firstOrCreate(
+                    ['subscriber_id' => $subscriber->id, 'issue_id' => $issueId],
+                    ['unsubscribed_at' => $subscriber->unsubscribed_at],
+                );
             }
         }
 
