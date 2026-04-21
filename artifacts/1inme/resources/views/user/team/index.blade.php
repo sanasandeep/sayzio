@@ -51,16 +51,19 @@
                     <td class="px-4 py-3"></td>
                 </tr>
                 @foreach($members as $m)
+                    @php
+                        $editPayload = [
+                            'id'   => $m->id,
+                            'name' => $m->user->name ?? '',
+                            'role' => $m->role,
+                        ];
+                    @endphp
                     <tr class="border-t" style="border-color: var(--border-strong);">
                         <td class="px-4 py-3">{{ $m->user->name ?? '—' }}</td>
                         <td class="px-4 py-3">{{ $m->user->email ?? '—' }}</td>
                         <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-700">{{ ucfirst($m->role) }}</span></td>
                         <td class="px-4 py-3 text-right">
-                            <button type="button" @click='openEdit(@json([
-                                "id"   => $m->id,
-                                "name" => $m->user->name ?? "",
-                                "role" => $m->role,
-                            ]))' class="text-xs text-primary-600 hover:underline mr-3">Edit</button>
+                            <button type="button" @click="openEdit({{ Js::from($editPayload) }})" class="text-xs text-primary-600 hover:underline mr-3">Edit</button>
                             <form method="POST" action="{{ route('user.team.members.remove', $m) }}" class="inline"
                                   onsubmit="return confirm('Remove this member from the workspace?')">
                                 @csrf @method('DELETE')
