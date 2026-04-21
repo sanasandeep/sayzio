@@ -211,6 +211,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/export', [\App\Modules\Admin\Controllers\NewsletterController::class, 'export'])->middleware(CheckPermission::class . ':settings.manage')->name('export');
             Route::get('/compose', [\App\Modules\Admin\Controllers\NewsletterController::class, 'compose'])->middleware(CheckPermission::class . ':settings.manage')->name('compose');
             Route::post('/send', [\App\Modules\Admin\Controllers\NewsletterController::class, 'send'])->middleware(CheckPermission::class . ':settings.manage')->name('send');
+            Route::post('/send-test', [\App\Modules\Admin\Controllers\NewsletterController::class, 'sendTest'])->middleware(CheckPermission::class . ':settings.manage')->name('send-test');
             Route::delete('/{subscriber}', [\App\Modules\Admin\Controllers\NewsletterController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
         });
         Route::prefix('marketing-settings')->name('marketing-settings.')->group(function () {

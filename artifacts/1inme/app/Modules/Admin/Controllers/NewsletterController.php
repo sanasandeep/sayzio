@@ -7,6 +7,10 @@ use App\Jobs\SendNewsletterIssueJob;
 use App\Modules\Common\Models\NewsletterIssue;
 use App\Modules\Common\Models\NewsletterSubscriber;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\RateLimiter;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class NewsletterController extends Controller
@@ -91,5 +95,61 @@ class NewsletterController extends Controller
         return redirect()
             ->route('admin.newsletter.compose')
             ->with('success', "Issue queued for {$activeCount} subscriber(s). Delivery runs in the background.");
+    }
+
+    /**
+     * Email the current draft to the logged-in admin only, so they can
+     * preview how it renders in a real client before broadcasting.
+     * No NewsletterIssue row is created — this never appears in past issues.
+     * Rate-limited to prevent the button being spammed.
+     */
+    public function sendTest(Request $request)
+    {
+        $validated = $request->validate([
+            'subject'   => 'required|string|max:255',
+            'body_html' => 'required|string|max:200000',
+        ]);
+
+        $admin = Auth::guard('admin')->user() ?: $request->user();
+        if (!$admin || empty($admin->email)) {
+            return back()
+                ->withInput()
+                ->withErrors(['body_html' => 'We could not find an email address on your admin account to send the test to.']);
+        }
+
+        $rateKey = 'newsletter-test:' . $admin->id;
+        if (RateLimiter::tooManyAttempts($rateKey, 5)) {
+            $seconds = RateLimiter::availableIn($rateKey);
+            $minutes = max(1, (int) ceil($seconds / 60));
+            return back()
+                ->withInput()
+                ->with('error', "You've sent a few test emails recently — please try again in about {$minutes} minute" . ($minutes === 1 ? '' : 's') . '.');
+        }
+        RateLimiter::hit($rateKey, 600);
+
+        $fromAddress = config('mail.from.address', 'noreply@1inme.com');
+        $fromName    = config('mail.from.name', config('app.name'));
+        $subject     = '[TEST] ' . $validated['subject'];
+        $bodyHtml    = $validated['body_html'];
+
+        try {
+            Mail::html($bodyHtml, function ($m) use ($admin, $subject, $fromAddress, $fromName) {
+                $m->to($admin->email)
+                  ->subject($subject)
+                  ->from($fromAddress, $fromName);
+            });
+        } catch (\Throwable $e) {
+            Log::warning('Newsletter test send failed', [
+                'admin_id' => $admin->id,
+                'error'    => $e->getMessage(),
+            ]);
+            return back()
+                ->withInput()
+                ->with('error', 'Could not send the test email. Please try again or check the mail settings.');
+        }
+
+        return back()
+            ->withInput()
+            ->with('success', "Test email sent to {$admin->email}.");
     }
 }
