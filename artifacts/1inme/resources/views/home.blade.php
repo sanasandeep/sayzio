@@ -1814,6 +1814,135 @@
             .coach-ring .fill { stroke-dashoffset: 32.66; }
             .geo-stat .bar { width: 60%; }
         }
+
+        /* ============ Buzz section · diverse event cards ============ */
+        .buzz-feed { position: relative; display: flex; flex-direction: column; gap: 10px; }
+        .buzz-card {
+            position: relative;
+            background: rgba(255,255,255,.06);
+            border: 1px solid rgba(255,255,255,.1);
+            border-radius: 18px;
+            padding: 12px 14px;
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            transition: transform .25s ease, box-shadow .25s ease;
+            opacity: 0;
+            transform: translateY(8px);
+            animation: buzzIn .55s cubic-bezier(.16,1,.3,1) forwards;
+        }
+        @keyframes buzzIn { to { opacity: 1; transform: none; } }
+        .buzz-card:hover { transform: translateY(-2px); box-shadow: 0 14px 30px -14px rgba(0,0,0,.5); }
+        .buzz-card:nth-child(1){ animation-delay: .05s; }
+        .buzz-card:nth-child(2){ animation-delay: .18s; }
+        .buzz-card:nth-child(3){ animation-delay: .31s; }
+        .buzz-card:nth-child(4){ animation-delay: .44s; }
+        .buzz-card:nth-child(5){ animation-delay: .57s; }
+        .buzz-card:nth-child(6){ animation-delay: .70s; }
+        .buzz-card:nth-child(7){ animation-delay: .83s; }
+
+        .buzz-card.fresh {
+            border-color: rgba(27,212,217,.45);
+            box-shadow: 0 0 0 1px rgba(27,212,217,.25), 0 14px 36px -14px rgba(27,212,217,.4);
+            background: linear-gradient(135deg, rgba(27,212,217,.10), rgba(124,58,237,.06));
+        }
+        .buzz-card .fresh-tag {
+            position: absolute; top: -10px; left: 14px;
+            font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+            background: linear-gradient(90deg, var(--c2), var(--c3));
+            color: #fff; padding: 3px 8px; border-radius: 999px;
+            animation: buzzFresh 2.4s ease-in-out infinite;
+        }
+        @keyframes buzzFresh { 50% { transform: translateY(-2px); } }
+
+        /* FOLLOW */
+        .bz-follow { display: grid; grid-template-columns: 44px 1fr auto; gap: 12px; align-items: center; }
+        .bz-avatar { position: relative; width: 44px; height: 44px; border-radius: 50%; overflow: hidden; border: 2px solid rgba(27,212,217,.5); }
+        .bz-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .bz-avatar .on { position: absolute; right: -2px; bottom: -2px; width: 12px; height: 12px; border-radius: 50%; background: #1bd4d9; border: 2px solid #0d0d12; box-shadow: 0 0 0 0 rgba(27,212,217,.6); animation: wsPing 2s infinite; }
+        .bz-follow .name { font-weight: 700; font-size: 13px; }
+        .bz-follow .meta { font-size: 11px; color: #9ca3af; margin-top: 1px; }
+        .bz-follow .btn { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; background: linear-gradient(90deg, var(--c1), var(--c2)); color: #fff; padding: 6px 11px; border-radius: 999px; white-space: nowrap; }
+
+        /* PURCHASE */
+        .bz-buy { display: grid; grid-template-columns: 56px 1fr auto; gap: 12px; align-items: center; }
+        .bz-thumb { width: 56px; height: 56px; border-radius: 12px; overflow: hidden; position: relative; flex-shrink: 0; }
+        .bz-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .bz-thumb .tag { position: absolute; top: 4px; left: 4px; background: rgba(0,0,0,.65); color: #fff; font-size: 8px; font-weight: 800; padding: 2px 5px; border-radius: 4px; letter-spacing: .04em; text-transform: uppercase; }
+        .bz-buy .product { font-size: 12px; font-weight: 700; }
+        .bz-buy .who { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+        .bz-buy .price { background: rgba(34,197,94,.15); color: #4ade80; font-weight: 800; font-size: 12px; padding: 7px 10px; border-radius: 10px; white-space: nowrap; display: inline-flex; align-items: center; gap: 5px; border: 1px solid rgba(74,222,128,.25); }
+        .bz-buy .price .d { width: 5px; height: 5px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 6px #4ade80; animation: wsDot 1.5s ease-in-out infinite; }
+
+        /* LIVE VIEWS */
+        .bz-views { display: grid; grid-template-columns: 40px 1fr; gap: 12px; align-items: center; }
+        .bz-views .ic { width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(135deg, #7c3aed, #a78bfa); display: flex; align-items: center; justify-content: center; color: #fff; position: relative; flex-shrink: 0; }
+        .bz-views .ic::after { content: ""; position: absolute; inset: -4px; border-radius: 14px; border: 2px solid rgba(124,58,237,.5); animation: geoPulse 2.2s ease-out infinite; }
+        .bz-views .row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 12px; }
+        .bz-views .row b { font-weight: 700; }
+        .bz-views .num { font-size: 15px; font-weight: 800; background: linear-gradient(90deg, var(--c1), var(--c2)); -webkit-background-clip: text; background-clip: text; color: transparent; font-variant-numeric: tabular-nums; }
+        .bz-views .track { height: 4px; border-radius: 999px; background: rgba(255,255,255,.1); overflow: hidden; margin-top: 7px; }
+        .bz-views .fill { height: 100%; width: 0; background: linear-gradient(90deg, var(--c1), var(--c2)); border-radius: 999px; animation: bzBar 2.5s cubic-bezier(.16,1,.3,1) forwards 1s; }
+        @keyframes bzBar { to { width: 72%; } }
+
+        /* FORM */
+        .bz-form { display: grid; grid-template-columns: 40px 1fr auto; gap: 12px; align-items: center; }
+        .bz-form .ic { width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(135deg, #ff8a3c, #ffc845); display: flex; align-items: center; justify-content: center; color: #fff; flex-shrink: 0; }
+        .bz-form .who { font-size: 12px; font-weight: 700; }
+        .bz-form .subj { font-size: 11px; color: #9ca3af; margin-top: 2px; font-style: italic; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .bz-form .pri { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; padding: 5px 9px; border-radius: 999px; background: rgba(255,138,60,.18); color: #ff8a3c; border: 1px solid rgba(255,138,60,.3); white-space: nowrap; }
+
+        /* TIP */
+        .bz-tip { display: grid; grid-template-columns: 44px 1fr auto; gap: 12px; align-items: center; }
+        .bz-coin {
+            width: 44px; height: 44px; border-radius: 50%;
+            background: radial-gradient(circle at 35% 30%, #fef08a, #f59e0b 70%, #b45309);
+            display: flex; align-items: center; justify-content: center;
+            color: #78350f; font-weight: 900; font-size: 18px; flex-shrink: 0;
+            box-shadow: 0 8px 20px -6px rgba(245,158,11,.5), inset 0 -3px 6px rgba(120,53,15,.3);
+            animation: coinFlip 4s ease-in-out infinite;
+        }
+        @keyframes coinFlip { 0%,75% { transform: rotateY(0); } 88% { transform: rotateY(180deg); } 100% { transform: rotateY(360deg); } }
+        .bz-tip .who { font-size: 12px; }
+        .bz-tip .who b { font-weight: 700; }
+        .bz-tip .msg { font-size: 11px; color: #9ca3af; margin-top: 1px; font-style: italic; }
+        .bz-tip .amt { font-size: 16px; font-weight: 900; color: #fde047; white-space: nowrap; text-shadow: 0 0 12px rgba(253,224,71,.4); }
+        .bz-tip .amt small { font-size: 10px; opacity: .8; font-weight: 700; }
+
+        /* QR scan */
+        .bz-qr { display: grid; grid-template-columns: 40px 1fr auto; gap: 12px; align-items: center; }
+        .bz-qr .ic { width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(135deg, #1bd4d9, #06b6d4); display: flex; align-items: center; justify-content: center; color: #fff; flex-shrink: 0; }
+        .bz-qr .label { font-size: 12px; font-weight: 700; }
+        .bz-qr .meta { font-size: 11px; color: #9ca3af; margin-top: 1px; }
+        .bz-qr .spark { display: inline-flex; gap: 2px; align-items: end; height: 22px; }
+        .bz-qr .spark i { width: 3px; background: linear-gradient(180deg, var(--c1), var(--c2)); border-radius: 1.5px; animation: sparkPulse 1.4s ease-in-out infinite; transform-origin: bottom; }
+        .bz-qr .spark i:nth-child(1){ height: 30%; }
+        .bz-qr .spark i:nth-child(2){ height: 50%; animation-delay: .15s; }
+        .bz-qr .spark i:nth-child(3){ height: 75%; animation-delay: .3s; }
+        .bz-qr .spark i:nth-child(4){ height: 90%; animation-delay: .45s; }
+        .bz-qr .spark i:nth-child(5){ height: 60%; animation-delay: .6s; }
+        @keyframes sparkPulse { 50% { opacity: .45; transform: scaleY(.65); } }
+
+        /* GOAL */
+        .bz-goal { padding: 10px 14px 12px; }
+        .bz-goal .top { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .bz-goal .trophy { width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(135deg, #f59e0b, #ef4444); display: flex; align-items: center; justify-content: center; color: #fff; flex-shrink: 0; box-shadow: 0 8px 18px -8px rgba(239,68,68,.6); }
+        .bz-goal .title { font-size: 12px; font-weight: 800; flex: 1; }
+        .bz-goal .pct { font-size: 11px; font-weight: 800; color: #4ade80; font-variant-numeric: tabular-nums; }
+        .bz-goal .track { height: 6px; background: rgba(255,255,255,.08); border-radius: 999px; overflow: hidden; position: relative; }
+        .bz-goal .fill { height: 100%; width: 100%; background: linear-gradient(90deg, var(--c2), var(--c3), var(--c4), var(--c5)); border-radius: 999px; box-shadow: 0 0 12px rgba(124,58,237,.5); transform-origin: left; transform: scaleX(0); animation: goalFill 2.4s cubic-bezier(.16,1,.3,1) forwards .3s; }
+        @keyframes goalFill { to { transform: scaleX(1); } }
+        .bz-goal .conf { position: absolute; top: -2px; right: 0; font-size: 14px; animation: bzConfetti 2.6s ease-in-out infinite; pointer-events: none; }
+        @keyframes bzConfetti { 0%,80% { transform: translate(0,0) rotate(0); opacity: 1; } 90% { transform: translate(2px,-6px) rotate(15deg); } 100% { transform: translate(0,0) rotate(0); opacity: 1; } }
+
+        @media (prefers-reduced-motion: reduce) {
+            .buzz-card, .buzz-card.fresh .fresh-tag, .bz-avatar .on,
+            .bz-views .ic::after, .bz-views .fill, .bz-coin,
+            .bz-buy .price .d, .bz-qr .spark i, .bz-goal .fill, .bz-goal .conf
+            { animation: none !important; }
+            .buzz-card { opacity: 1; transform: none; }
+            .bz-views .fill { width: 72%; }
+            .bz-goal .fill { transform: scaleX(1); }
+        }
     </style>
 </head>
 <body class="overflow-x-hidden">
@@ -3862,25 +3991,111 @@
                 <div class="relative glass rounded-3xl p-6 sm:p-8 tilt overflow-hidden" style="min-height: 360px;">
                     <div class="absolute -bottom-20 -left-20 w-64 h-64 rounded-full opacity-30" style="background:radial-gradient(circle,var(--c3),transparent 70%);"></div>
                     <div class="relative">
-                        <div class="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-4">Live on your biolink</div>
-                        <div class="space-y-3">
-                            @foreach([
-                                ['fa-user-plus','#1bd4d9','Sara from Berlin','just followed you','12s ago'],
-                                ['fa-cart-shopping','#e94e8c','Anonymous visitor','bought "Lightroom Pack"','42s ago'],
-                                ['fa-eye','#7c3aed','Someone in Lagos','is viewing your page','1m ago'],
-                                ['fa-envelope-open-text','#ff8a3c','Marco from Madrid','submitted your contact form','3m ago'],
-                            ] as $i => $b)
-                                <div class="flex items-center gap-3 bg-white/[0.06] border border-white/10 rounded-2xl px-4 py-3 lift" style="backdrop-filter: blur(14px);">
-                                    <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background:linear-gradient(135deg,{{ $b[1] }},var(--c2)); box-shadow: 0 10px 24px -10px {{ $b[1] }};">
-                                        <i class="fas {{ $b[0] }} text-white text-sm"></i>
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Live on your biolink</div>
+                            <span class="flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full" style="background:rgba(74,222,128,.15);color:#4ade80">
+                                <span class="w-1.5 h-1.5 rounded-full pulse-dot" style="background:#4ade80"></span>7 events · last min
+                            </span>
+                        </div>
+
+                        <div class="buzz-feed">
+                            {{-- 1 · NEW FOLLOW with real avatar --}}
+                            <div class="buzz-card fresh">
+                                <span class="fresh-tag">✨ Just now</span>
+                                <div class="bz-follow">
+                                    <div class="bz-avatar">
+                                        <img src="/images/hero-roles/role_designer-200.jpg" alt="Sara">
+                                        <span class="on" aria-hidden="true"></span>
                                     </div>
-                                    <div class="min-w-0 flex-1">
-                                        <div class="text-sm"><span class="font-bold">{{ $b[2] }}</span> <span class="text-gray-300">{{ $b[3] }}</span></div>
-                                        <div class="text-[11px] text-gray-500 mt-0.5">{{ $b[4] }}</div>
+                                    <div class="min-w-0">
+                                        <div class="name">Sara from Berlin</div>
+                                        <div class="meta"><i class="fas fa-user-plus text-[9px] mr-1" style="color:var(--c1)"></i>just followed you · 12s ago</div>
                                     </div>
-                                    <span class="pulse-dot w-2 h-2 rounded-full flex-shrink-0" style="background:{{ $b[1] }};"></span>
+                                    <a href="#" class="btn">Follow back</a>
                                 </div>
-                            @endforeach
+                            </div>
+
+                            {{-- 2 · PURCHASE with product thumb + price --}}
+                            <div class="buzz-card">
+                                <div class="bz-buy">
+                                    <div class="bz-thumb">
+                                        <img src="/images/hero-roles/thumb_design-320.jpg" alt="Lightroom Pack">
+                                        <span class="tag">Preset</span>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="product">🛒 Lightroom Pack · Vol II</div>
+                                        <div class="who">bought by <b class="text-white">@nora.cph</b> · 42s ago</div>
+                                    </div>
+                                    <span class="price"><span class="d"></span>+$24.00</span>
+                                </div>
+                            </div>
+
+                            {{-- 3 · LIVE VIEWERS with bar --}}
+                            <div class="buzz-card">
+                                <div class="bz-views">
+                                    <div class="ic"><i class="fas fa-eye"></i></div>
+                                    <div class="min-w-0 w-full">
+                                        <div class="row">
+                                            <span><b>🇳🇬 Lagos</b> &amp; 5 cities viewing now</span>
+                                            <span class="num">+18</span>
+                                        </div>
+                                        <div class="track"><div class="fill"></div></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- 4 · TIP with spinning coin --}}
+                            <div class="buzz-card">
+                                <div class="bz-tip">
+                                    <div class="bz-coin">$</div>
+                                    <div class="min-w-0">
+                                        <div class="who"><b>@yuki.draws</b> sent you a tip</div>
+                                        <div class="msg">“Loved your latest pack — keep going!”</div>
+                                    </div>
+                                    <div class="amt">$5<small>.00</small></div>
+                                </div>
+                            </div>
+
+                            {{-- 5 · FORM submission --}}
+                            <div class="buzz-card">
+                                <div class="bz-form">
+                                    <div class="ic"><i class="fas fa-envelope-open-text"></i></div>
+                                    <div class="min-w-0">
+                                        <div class="who">Marco from Madrid · contact form</div>
+                                        <div class="subj">“Hi! Available for a wedding shoot in June?”</div>
+                                    </div>
+                                    <span class="pri">High</span>
+                                </div>
+                            </div>
+
+                            {{-- 6 · QR scan with sparkline --}}
+                            <div class="buzz-card">
+                                <div class="bz-qr">
+                                    <div class="ic"><i class="fas fa-qrcode"></i></div>
+                                    <div class="min-w-0">
+                                        <div class="label">QR · Studio poster scanned</div>
+                                        <div class="meta">+127 scans today · peak 4:20 pm</div>
+                                    </div>
+                                    <span class="spark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+                                </div>
+                            </div>
+
+                            {{-- 7 · GOAL hit (full-width progress) --}}
+                            <div class="buzz-card bz-goal">
+                                <div class="top">
+                                    <div class="trophy"><i class="fas fa-trophy text-sm"></i></div>
+                                    <div class="title">🎉 Monthly goal hit · 1,000 followers</div>
+                                    <div class="pct">100%</div>
+                                </div>
+                                <div class="track">
+                                    <div class="fill"></div>
+                                    <span class="conf" aria-hidden="true">🎊</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-center mt-4 text-[10px] text-gray-500 uppercase tracking-wider font-semibold">
+                            <i class="fas fa-circle-down mr-1 opacity-60"></i> 12 more events today
                         </div>
                     </div>
                 </div>
