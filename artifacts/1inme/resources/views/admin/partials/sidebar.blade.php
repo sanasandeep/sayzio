@@ -178,6 +178,14 @@
             <span class="sidebar-tooltip">Newsletter</span>
         </a>
 
+        <a href="{{ route('admin.notifications.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.notifications.*') ? 'active' : '' }}"
+           style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-bullhorn"></i></div>
+            <span class="nav-label">Notifications</span>
+            <span class="sidebar-tooltip">Notifications</span>
+        </a>
+
         <a href="{{ route('admin.contact-inbox.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.contact-inbox.*') ? 'active' : '' }}"
            style="--nav-tint:#f97316; --nav-tint-soft:rgba(249,115,22,0.12);">

@@ -4,9 +4,16 @@
 <div class="max-w-3xl mx-auto px-4 py-8">
     <div class="flex items-center justify-between mb-6">
         <h1 class="text-2xl font-bold" style="color: var(--text-primary);">Notifications</h1>
-        <form action="{{ route('user.notifications.read') }}" method="POST">@csrf
-            <button class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-violet-600 text-white">Mark all read</button>
-        </form>
+        <div class="flex items-center gap-2">
+            <a href="{{ route('user.notifications.preferences') }}"
+               class="px-3 py-1.5 rounded-lg text-xs font-semibold border"
+               style="border-color: var(--border-soft); color: var(--text-primary);">
+                <i class="fas fa-sliders-h mr-1"></i> Preferences
+            </a>
+            <form action="{{ route('user.notifications.read') }}" method="POST">@csrf
+                <button class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-violet-600 text-white">Mark all read</button>
+            </form>
+        </div>
     </div>
 
     @if(session('success'))<div class="mb-4 p-3 rounded-lg bg-emerald-50 text-emerald-700 text-sm">{{ session('success') }}</div>@endif

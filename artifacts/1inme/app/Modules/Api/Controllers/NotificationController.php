@@ -3,6 +3,8 @@
 namespace App\Modules\Api\Controllers;
 
 use App\Modules\Api\Controllers\Concerns\ApiResponses;
+use App\Modules\Common\Services\NotificationService;
+use App\Modules\User\Models\NotificationPreference;
 use App\Modules\User\Models\UserNotification;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -52,5 +54,53 @@ class NotificationController extends Controller
         if (!$n) return $this->notFound('Notification not found');
         if (!$n->read_at) $n->forceFill(['read_at' => now()])->save();
         return $this->ok(['marked_read' => true]);
+    }
+
+    /**
+     * Return the catalog of notification types alongside the user's
+     * stored preferences (or the catalog defaults when no row exists).
+     * Powers the mobile preference toggle screen.
+     */
+    public function preferences(Request $request)
+    {
+        $catalog = NotificationService::catalog();
+        $stored  = NotificationPreference::where('user_id', $request->user()->id)
+            ->get()
+            ->keyBy('type');
+
+        $items = [];
+        foreach ($catalog as $type => $meta) {
+            $row = $stored->get($type);
+            $items[] = [
+                'type'        => $type,
+                'label'       => $meta['label'],
+                'description' => $meta['description'],
+                'in_app'      => $row ? (bool) $row->in_app : (bool) $meta['default_in_app'],
+                'email'       => $row ? (bool) $row->email  : (bool) $meta['default_email'],
+                'push'        => $row ? (bool) $row->push   : (bool) $meta['default_push'],
+            ];
+        }
+
+        return $this->ok(['items' => $items]);
+    }
+
+    public function updatePreferences(Request $request)
+    {
+        $catalog = NotificationService::catalog();
+        $input   = (array) $request->input('prefs', []);
+
+        foreach ($input as $type => $row) {
+            if (!isset($catalog[$type])) continue;
+            NotificationPreference::updateOrCreate(
+                ['user_id' => $request->user()->id, 'type' => $type],
+                [
+                    'in_app' => (bool) ($row['in_app'] ?? false),
+                    'email'  => (bool) ($row['email']  ?? false),
+                    'push'   => (bool) ($row['push']   ?? false),
+                ],
+            );
+        }
+
+        return $this->preferences($request);
     }
 }

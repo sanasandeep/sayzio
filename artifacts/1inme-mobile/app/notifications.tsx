@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Stack } from "expo-router";
+import { Stack, router } from "expo-router";
 import {
   ActivityIndicator,
   FlatList,
@@ -49,24 +49,29 @@ export default function NotificationsScreen() {
             color: colors.foreground,
           },
           headerTintColor: colors.primary,
-          headerRight: () =>
-            (q.data?.unreadCount ?? 0) > 0 ? (
+          headerRight: () => (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 14, paddingRight: 12 }}>
+              {(q.data?.unreadCount ?? 0) > 0 ? (
+                <Pressable onPress={() => markAll.mutate()} hitSlop={8}>
+                  <Text
+                    style={{
+                      color: colors.primary,
+                      fontFamily: "SpaceGrotesk_600SemiBold",
+                      fontSize: 13,
+                    }}
+                  >
+                    Mark all
+                  </Text>
+                </Pressable>
+              ) : null}
               <Pressable
-                onPress={() => markAll.mutate()}
+                onPress={() => router.push("/notification-preferences")}
                 hitSlop={8}
-                style={{ paddingRight: 12 }}
               >
-                <Text
-                  style={{
-                    color: colors.primary,
-                    fontFamily: "SpaceGrotesk_600SemiBold",
-                    fontSize: 13,
-                  }}
-                >
-                  Mark all
-                </Text>
+                <Feather name="settings" size={18} color={colors.primary} />
               </Pressable>
-            ) : null,
+            </View>
+          ),
         }}
       />
 

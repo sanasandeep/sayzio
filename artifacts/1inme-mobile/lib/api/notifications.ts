@@ -11,6 +11,15 @@ export type Notification = {
   created_at: string | null;
 };
 
+export type NotificationPreference = {
+  type: string;
+  label: string;
+  description: string;
+  in_app: boolean;
+  email: boolean;
+  push: boolean;
+};
+
 export async function listNotifications(): Promise<{
   items: Notification[];
   unreadCount: number;
@@ -27,4 +36,21 @@ export async function markAllRead(): Promise<void> {
 
 export async function markRead(id: number): Promise<void> {
   await apiFetch(`/notifications/${id}/read`, { method: "POST" });
+}
+
+export async function getNotificationPreferences(): Promise<NotificationPreference[]> {
+  const res = await apiFetch<{ data: { items: NotificationPreference[] } }>(
+    `/me/notification-preferences`,
+  );
+  return res.data.items;
+}
+
+export async function updateNotificationPreferences(
+  prefs: Record<string, { in_app: boolean; email: boolean; push: boolean }>,
+): Promise<NotificationPreference[]> {
+  const res = await apiFetch<{ data: { items: NotificationPreference[] } }>(
+    `/me/notification-preferences`,
+    { method: "PUT", body: JSON.stringify({ prefs }) },
+  );
+  return res.data.items;
 }
