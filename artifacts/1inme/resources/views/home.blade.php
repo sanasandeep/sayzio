@@ -14,6 +14,23 @@
         tailwind.config = {
             theme: { extend: { fontFamily: { sans: ['Space Grotesk', 'sans-serif'] } } }
         }
+        // Sync with site-wide theme preference (also toggled via Cmd/Ctrl+I).
+        (function(){
+            try {
+                var t = localStorage.getItem('1inme_theme');
+                if (t === 'light') document.documentElement.classList.add('light-mode');
+            } catch(e) {}
+        })();
+        function homeThemeToggle(){
+            return {
+                light: document.documentElement.classList.contains('light-mode'),
+                toggle(){
+                    this.light = !this.light;
+                    document.documentElement.classList.toggle('light-mode', this.light);
+                    try { localStorage.setItem('1inme_theme', this.light ? 'light' : 'dark'); } catch(e){}
+                }
+            }
+        }
     </script>
     <style>
         :root {
@@ -1943,6 +1960,95 @@
             .bz-views .fill { width: 72%; }
             .bz-goal .fill { transform: scaleX(1); }
         }
+
+        /* ========================================================
+           LIGHT MODE — overrides for the marketing homepage.
+           Toggled by adding `light-mode` to <html> (Cmd/Ctrl+I or
+           the sun/moon button in the nav). The page heavily uses
+           Tailwind's dark utilities so we re-skin them here rather
+           than rewriting 4000+ lines of markup.
+           ======================================================== */
+        html.light-mode {
+            --ink: #0f172a;
+            --bg:  #f8fafc;
+            --bg-2:#eef2ff;
+            --bg-3:#f5f3ff;
+            color-scheme: light;
+        }
+        html.light-mode body { background: var(--bg); color: #0f172a; }
+
+        /* Aurora softened to a faint pastel wash */
+        html.light-mode .aurora { opacity: .22; filter: blur(110px); }
+
+        /* ---- Generic dark utilities → light equivalents ---- */
+        html.light-mode .text-white                       { color: #0f172a; }
+        html.light-mode .text-white\/80                   { color: rgba(15,23,42,.78); }
+        html.light-mode .text-white\/70                   { color: rgba(15,23,42,.70); }
+        html.light-mode .text-white\/60                   { color: rgba(15,23,42,.58); }
+        html.live, /* sentinel — keeps the file parseable */
+        html.light-mode .text-gray-200                    { color: #1f2937; }
+        html.light-mode .text-gray-300                    { color: #334155; }
+        html.light-mode .text-gray-400                    { color: #475569; }
+        html.light-mode .text-gray-500                    { color: #64748b; }
+        html.light-mode .text-gray-600                    { color: #475569; }
+
+        html.light-mode .bg-white\/5                      { background-color: rgba(15,23,42,.04); }
+        html.light-mode .bg-white\/10                     { background-color: rgba(15,23,42,.06); }
+        html.light-mode .border-white\/5                  { border-color: rgba(15,23,42,.08); }
+        html.light-mode .border-white\/10                 { border-color: rgba(15,23,42,.10); }
+        html.light-mode .border-white\/20                 { border-color: rgba(15,23,42,.14); }
+        html.light-mode .bg-white                         { background-color: #ffffff; }
+        html.light-mode .bg-gray-100                      { background-color: #f1f5f9; }
+
+        /* ---- Hero / nav surfaces with hardcoded hex ---- */
+        html.light-mode .bg-\[\#0a0a14\]                  { background-color: #ffffff; }
+        html.light-mode .bg-\[\#0a0a14\]\/80              { background-color: rgba(255,255,255,.85); }
+        html.light-mode .bg-\[\#08020f\]                  { background-color: #f8fafc; }
+
+        /* Hover variants on the nav links */
+        html.light-mode .hover\:text-white:hover          { color: #0f172a; }
+        html.light-mode .hover\:bg-white\/5:hover         { background-color: rgba(15,23,42,.05); }
+
+        /* Anything still using a near-black inline background */
+        html.light-mode [style*="background:#0a0a14"],
+        html.light-mode [style*="background-color:#0a0a14"],
+        html.light-mode [style*="background:#14091f"],
+        html.light-mode [style*="background:#1c0e2e"] { background: #ffffff !important; color: #0f172a; }
+
+        /* Headings that are gradient-clipped stay vibrant; plain ones flip */
+        html.light-mode h1:not(.grad-text),
+        html.light-mode h2:not(.grad-text),
+        html.light-mode h3:not(.grad-text),
+        html.light-mode h4:not(.grad-text) { color: #0f172a; }
+
+        /* Cards built from translucent white surfaces — give a real card look */
+        html.light-mode .glass-card,
+        html.light-mode .feature-card,
+        html.light-mode .pricing-card,
+        html.light-mode .step-card {
+            background: #ffffff;
+            border-color: #e2e8f0;
+            box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 4px 14px -8px rgba(15,23,42,.10);
+        }
+
+        /* Inputs / placeholders */
+        html.light-mode input::placeholder,
+        html.light-mode textarea::placeholder { color: #94a3b8; }
+
+        /* Theme toggle button */
+        .theme-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 38px; height: 38px; border-radius: 999px;
+            background: rgba(255,255,255,.06);
+            border: 1px solid rgba(255,255,255,.10);
+            color: #e2e8f0; cursor: pointer;
+            transition: background .2s ease, color .2s ease, transform .2s ease;
+        }
+        .theme-btn:hover { background: rgba(255,255,255,.12); color: #fff; transform: rotate(15deg); }
+        html.light-mode .theme-btn {
+            background: #f1f5f9; border-color: #e2e8f0; color: #334155;
+        }
+        html.light-mode .theme-btn:hover { background: #e2e8f0; color: #0f172a; }
     </style>
 </head>
 <body class="overflow-x-hidden">
@@ -1967,7 +2073,14 @@
                 <a href="#pricing" class="text-sm font-medium text-gray-300 hover:text-white">Pricing</a>
                 <a href="{{ route('site.api-docs') }}" class="text-sm font-medium text-gray-300 hover:text-white">API</a>
             </div>
-            <div class="hidden md:flex items-center gap-3">
+            <div class="hidden md:flex items-center gap-3" x-data="homeThemeToggle()">
+                <button type="button"
+                        @click="toggle()"
+                        class="theme-btn"
+                        :aria-label="light ? 'Switch to dark mode' : 'Switch to light mode'"
+                        :title="light ? 'Switch to dark mode' : 'Switch to light mode'">
+                    <i class="fa-solid" :class="light ? 'fa-moon' : 'fa-sun'"></i>
+                </button>
                 @auth
                     <a href="{{ route('user.dashboard') }}" class="btn-bounce px-5 py-2.5 grad-bar text-white rounded-full text-sm font-bold">Dashboard</a>
                 @else
