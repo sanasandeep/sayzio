@@ -41,6 +41,11 @@ class CloudOAuthController extends Controller
         abort_unless(CloudProviderApp::isKnownProvider($provider), 404);
 
         $expected = session()->pull('cloud_oauth_state_' . $provider);
+        // The workspace ID captured at /start time is the source of truth
+        // for which workspace this connection belongs to. We deliberately
+        // ignore the user's currently-active workspace here so a workspace
+        // switch mid-OAuth-flow cannot land the connection in the wrong
+        // workspace.
         $wsId     = session()->pull('cloud_oauth_ws_' . $provider);
         $state    = (string) $request->query('state', '');
         $code     = (string) $request->query('code', '');
@@ -59,6 +64,11 @@ class CloudOAuthController extends Controller
         }
 
         $ws = app('current_workspace');
+        // Defense-in-depth: if the user switched workspaces between
+        // /start and /callback, refuse to land the connection in either
+        // workspace. We deliberately abort the flow instead of silently
+        // binding to the start-time workspace so the user explicitly
+        // re-confirms which workspace this credential belongs in.
         if ($wsId && (int) $wsId !== (int) $ws->id) {
             return redirect()->route('user.cloud-files.connections')
                 ->with('error', 'Workspace changed during the OAuth flow. Please reconnect.');

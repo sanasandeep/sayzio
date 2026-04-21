@@ -94,13 +94,23 @@
                             <td class="px-4 py-3 text-gray-400">{{ $f->addedBy?->name ?: '—' }}</td>
                             <td class="px-4 py-3 text-gray-400">{{ $f->added_at?->diffForHumans() }}</td>
                             <td class="px-4 py-3 text-right">
-                                @if($canDelete)
-                                    <form method="POST" action="{{ route('user.cloud-files.destroy', $f) }}"
-                                          onsubmit="return confirm('Remove this file from the workspace library? The original file in the cloud is not touched.')">
-                                        @csrf @method('DELETE')
-                                        <button class="text-rose-300 hover:text-rose-200 text-xs"><i class="fas fa-trash"></i></button>
-                                    </form>
-                                @endif
+                                <div class="inline-flex items-center gap-3">
+                                    <button type="button"
+                                            x-data="{ copied: false }"
+                                            @click="navigator.clipboard.writeText(@js($f->link)).then(() => { copied = true; setTimeout(() => copied = false, 1500); })"
+                                            class="text-gray-400 hover:text-cyan-300 text-xs"
+                                            :title="copied ? 'Copied!' : 'Copy share link'">
+                                        <i class="fas fa-link" x-show="!copied"></i>
+                                        <i class="fas fa-check text-emerald-400" x-show="copied"></i>
+                                    </button>
+                                    @if($canDelete)
+                                        <form method="POST" action="{{ route('user.cloud-files.destroy', $f) }}"
+                                              onsubmit="return confirm('Remove this file from the workspace library? The original file in the cloud is not touched.')">
+                                            @csrf @method('DELETE')
+                                            <button class="text-rose-300 hover:text-rose-200 text-xs"><i class="fas fa-trash"></i></button>
+                                        </form>
+                                    @endif
+                                </div>
                             </td>
                         </tr>
                     @endforeach

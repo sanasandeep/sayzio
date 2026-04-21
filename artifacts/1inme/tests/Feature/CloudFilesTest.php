@@ -255,7 +255,7 @@ class CloudFilesTest extends TestCase
             ->assertDontSee('OwnerFile');
     }
 
-    public function test_oauth_callback_rejects_when_workspace_changed_mid_flow(): void
+    public function test_oauth_callback_aborts_when_user_switched_workspaces_mid_flow(): void
     {
         $owner = $this->makeUser('o');
         $ws1 = $this->bindWorkspace($owner);
@@ -263,25 +263,34 @@ class CloudFilesTest extends TestCase
             'provider' => 'google_drive', 'client_id' => 'g', 'client_secret_encrypted' => 's', 'enabled' => true,
         ]);
 
-        // Start OAuth in workspace 1.
-        Http::fake();
-        $this->actingAs($owner)->withSession([])->get('/user/cloud-oauth/google_drive/start');
-        $session = session()->all();
-
-        // User switches workspaces before the provider redirects back.
+        // The user switches active workspace between OAuth /start and /callback.
         $ws2 = \App\Modules\User\Models\Workspace::create([
             'owner_user_id' => $owner->id, 'name' => 'WS2', 'slug' => 'ws2-' . uniqid(),
         ]);
-        $session[\App\Modules\User\Services\WorkspaceContext::SESSION_KEY] = $ws2->id;
 
-        // Replay callback with the workspace-1 state cookie. The OAuth
-        // controller binds the connection to the workspace recorded at
-        // start time, NOT the user's current active workspace, so ws2
-        // must NOT receive a connection.
-        $this->actingAs($owner)->withSession($session)
-            ->get('/user/cloud-oauth/google_drive/callback?code=abc&state=' . ($session['cloud_oauth_state_google_drive'] ?? 'x'));
+        // Simulate the session state set during /start in ws1, with the
+        // user's currently-active workspace now ws2.
+        session([
+            'cloud_oauth_state_google_drive' => 'st',
+            'cloud_oauth_ws_google_drive'    => $ws1->id,
+            \App\Modules\User\Services\WorkspaceContext::SESSION_KEY => $ws2->id,
+        ]);
 
+        // Defense-in-depth: the callback must NOT silently land the
+        // connection in whichever workspace happens to be active at
+        // redirect time. The current behavior is to abort the flow
+        // entirely (user is shown a "workspace changed" error and asked
+        // to reconnect). Either way, no connection must appear in ws2,
+        // and the token endpoint must not even be called.
+        Http::fake();
+        $this->actingAs($owner)
+            ->get('/user/cloud-oauth/google_drive/callback?code=abc&state=st')
+            ->assertRedirect(route('user.cloud-files.connections'))
+            ->assertSessionHas('error');
+
+        $this->assertSame(0, CloudConnection::where('workspace_id', $ws1->id)->count());
         $this->assertSame(0, CloudConnection::where('workspace_id', $ws2->id)->count());
+        Http::assertNothingSent();
     }
 
     public function test_picker_blocks_other_users_connection(): void
