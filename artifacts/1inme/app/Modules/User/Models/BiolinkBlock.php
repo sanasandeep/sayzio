@@ -105,6 +105,7 @@ class BiolinkBlock extends Model
         'email_subscribe'           => ['label' => 'Newsletter Signup',     'icon' => 'fa-envelope-open-text', 'category' => 'contact'],
         'phone_collector'           => ['label' => 'Phone Collector',       'icon' => 'fa-phone',              'category' => 'contact'],
         'contact_form'              => ['label' => 'Contact Form',          'icon' => 'fa-paper-plane',        'category' => 'contact'],
+        'direct_message'            => ['label' => 'Direct Message',        'icon' => 'fa-comments',           'category' => 'contact'],
         'whatsapp_widget'           => ['label' => 'WhatsApp Chat',         'icon' => 'fa-comment-dots',       'category' => 'contact'],
         'whatsapp_item'             => ['label' => 'WhatsApp Button',       'icon' => 'fa-comments',           'category' => 'contact'],
         'whatsapp_channel_subscribe'=> ['label' => 'WhatsApp Channel',      'icon' => 'fa-bullhorn',           'category' => 'contact'],

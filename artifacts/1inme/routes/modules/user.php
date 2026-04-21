@@ -380,6 +380,17 @@ Route::prefix('user')->name('user.')->group(function () {
                 Route::post('deliveries/{delivery}/retry', [\App\Modules\User\Controllers\InboxForwardController::class, 'retry'])->name('deliveries.retry');
             });
 
+            // Direct messages from biolink viewers (separate stream from
+            // form-submission/subscriber items). Anti-spam + blocking lives in
+            // the dedicated InboxDirectMessageController.
+            Route::prefix('dms')->name('dms.')->group(function () {
+                Route::get('/',                              [\App\Modules\User\Controllers\InboxDirectMessageController::class, 'index'])->name('index');
+                Route::get('{conversation}',                 [\App\Modules\User\Controllers\InboxDirectMessageController::class, 'thread'])->whereNumber('conversation')->name('thread');
+                Route::post('{conversation}/reply',          [\App\Modules\User\Controllers\InboxDirectMessageController::class, 'reply'])->whereNumber('conversation')->name('reply');
+                Route::post('{conversation}/block',          [\App\Modules\User\Controllers\InboxDirectMessageController::class, 'block'])->whereNumber('conversation')->name('block');
+                Route::post('{conversation}/unblock',        [\App\Modules\User\Controllers\InboxDirectMessageController::class, 'unblock'])->whereNumber('conversation')->name('unblock');
+            });
+
             Route::get('{type}/{id}', [InboxController::class, 'show'])
                 ->where('type', 'form_submission|subscriber')->whereNumber('id')->name('show');
             Route::post('{type}/{id}', [InboxController::class, 'update'])
