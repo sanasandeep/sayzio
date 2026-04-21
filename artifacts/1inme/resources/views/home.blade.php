@@ -29,7 +29,8 @@
             --bg-3:   #1c0e2e;
         }
         html, body { background: var(--bg); }
-        body { font-family: 'Space Grotesk', sans-serif; color: #fff; }
+        html { overflow-x: clip; }
+        body { font-family: 'Space Grotesk', sans-serif; color: #fff; overflow-x: clip; }
         [x-cloak] { display: none !important; }
 
         /* ============ Aurora background ============ */
@@ -428,9 +429,9 @@
             .float-card--revenue   { bottom: -8px; left: -158px; width: 168px; box-shadow: 0 22px 50px -18px rgba(255,138,60,.4); }
             /* Right lane (sit just outside the phone, only the inner edge brushes the bezel
                — never overlaps the screen content). Mirrors the left lane offsets. */
-            .float-card--follower  { top: -16px;   right: -160px; left: auto; width: 188px; box-shadow: 0 22px 50px -18px rgba(236,72,153,.4); }
-            .float-card--qr        { top: 240px;   right: -150px; left: auto; width: 178px; box-shadow: 0 22px 50px -18px rgba(124,58,237,.4); }
-            .float-card--conv      { bottom: 92px; right: -150px; left: auto; width: 178px; box-shadow: 0 22px 50px -18px rgba(27,212,217,.35); }
+            .float-card--follower  { top: -16px;   right: -120px; left: auto; width: 188px; box-shadow: 0 22px 50px -18px rgba(236,72,153,.4); }
+            .float-card--qr        { top: 240px;   right: -110px; left: auto; width: 178px; box-shadow: 0 22px 50px -18px rgba(124,58,237,.4); }
+            .float-card--conv      { bottom: 92px; right: -110px; left: auto; width: 178px; box-shadow: 0 22px 50px -18px rgba(27,212,217,.35); }
         }
 
         /* ============ Mobile-only condensed stats row ============ */
@@ -1458,7 +1459,7 @@
     <div class="confetti drift-b" style="left:88%; bottom:-15vh; animation-delay:-9s"><div class="w-3 h-3 rotate-45" style="background:var(--c5)"></div></div>
 
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 xl:px-12">
-        <div class="grid lg:grid-cols-[1.05fr_1fr] gap-y-12 lg:gap-x-12 xl:gap-x-16 items-center">
+        <div class="grid grid-cols-1 lg:grid-cols-[1.05fr_1fr] gap-y-12 lg:gap-x-12 xl:gap-x-16 items-center">
             <div class="text-center lg:text-left lg:max-w-[600px]">
                 <div class="reveal inline-flex items-center gap-2 px-4 py-1.5 glass rounded-full text-xs font-semibold mb-8">
                     <span class="relative flex h-2 w-2">
