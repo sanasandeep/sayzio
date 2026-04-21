@@ -23,20 +23,36 @@
                             <th class="py-2 pr-4">URL written</th>
                             <th class="py-2 pr-4">Tag</th>
                             <th class="py-2 pr-4">Device</th>
+                            <th class="py-2 pr-4">Source</th>
+                            <th class="py-2 pr-4">Location</th>
                             <th class="py-2">Platform</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach($writes as $w)
                             <tr class="border-t" style="border-color: var(--border-soft);">
-                                <td class="py-2 pr-4 text-xs" style="color: var(--text-faint);">{{ $w->created_at?->diffForHumans() }}</td>
+                                <td class="py-2 pr-4 text-xs" style="color: var(--text-faint);" title="{{ ($w->written_at ?? $w->created_at)?->toIso8601String() }}">
+                                    {{ ($w->written_at ?? $w->created_at)?->diffForHumans() }}
+                                </td>
                                 <td class="py-2 pr-4" style="color: var(--text-primary);">{{ $w->label ?: '—' }}</td>
                                 <td class="py-2 pr-4 truncate max-w-xs" style="color: var(--text-muted);" title="{{ $w->written_url }}">{{ $w->written_url }}</td>
                                 <td class="py-2 pr-4 text-xs" style="color: var(--text-muted);">
                                     @if($w->tag_type) {{ $w->tag_type }}@endif
                                     @if($w->locked) <span class="ml-1 px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 text-[10px] font-bold">LOCKED</span>@endif
                                 </td>
-                                <td class="py-2 pr-4 text-xs" style="color: var(--text-muted);">{{ $w->device ?: '—' }}</td>
+                                <td class="py-2 pr-4 text-xs" style="color: var(--text-muted);">{{ $w->device_label ?: $w->device ?: '—' }}</td>
+                                <td class="py-2 pr-4 text-xs" style="color: var(--text-muted);">{{ ucfirst($w->source ?? 'mobile') }}</td>
+                                <td class="py-2 pr-4 text-xs" style="color: var(--text-muted);">
+                                    @if($w->lat !== null && $w->lng !== null)
+                                        <a class="underline" target="_blank" rel="noopener"
+                                           href="https://maps.google.com/?q={{ $w->lat }},{{ $w->lng }}"
+                                           title="{{ $w->lat }}, {{ $w->lng }}">
+                                            {{ number_format((float) $w->lat, 3) }}, {{ number_format((float) $w->lng, 3) }}
+                                        </a>
+                                    @else
+                                        —
+                                    @endif
+                                </td>
                                 <td class="py-2 text-xs" style="color: var(--text-muted);">{{ ucfirst($w->platform ?? '—') }}</td>
                             </tr>
                         @endforeach

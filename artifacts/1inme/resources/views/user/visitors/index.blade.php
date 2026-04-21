@@ -29,7 +29,7 @@
                     <li class="py-2 flex items-center justify-between text-xs" style="color: var(--text-muted);">
                         <span class="truncate" title="{{ $w->written_url }}">{{ $w->label ?: $w->written_url }}</span>
                         <span class="ml-3 whitespace-nowrap" style="color: var(--text-faint);">
-                            {{ ucfirst($w->platform ?? 'mobile') }} · {{ $w->created_at?->diffForHumans() }}
+                            {{ ucfirst($w->platform ?? $w->source ?? 'mobile') }} · {{ ($w->written_at ?? $w->created_at)?->diffForHumans() }}
                         </span>
                     </li>
                 @endforeach

@@ -14,7 +14,7 @@ class QrCode extends Model
 protected $table = 'qr_codes';
 
     protected $fillable = [
-        'project_id', 'link_id', 'name', 'type',
+        'user_id', 'project_id', 'link_id', 'name', 'type',
         'payload', 'design', 'preview_url',
     ];
 

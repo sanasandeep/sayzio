@@ -26,22 +26,41 @@ class UniversalLinksController extends Controller
         // a few legal / marketing pages — those should always open in the
         // browser even when the app is installed.
         // Modern AASA shape (iOS 13+): use `components` exclusively.
-        // Mixing the legacy `paths` array on the same details object can
-        // confuse some parsers, so we omit it.
+        //
+        // The mobile app should ONLY claim biolink alias URLs (single-segment
+        // paths like `https://1inme.com/{alias}`). Everything else — the
+        // dashboard, admin, well-known, marketing pages, sub-paths of an
+        // alias such as `/{alias}/rsvp` — must keep opening in the browser.
+        // First-match-wins, so excludes come first, then the catch-all
+        // single-segment match.
+        $reservedSegments = [
+            '/', // homepage
+            '/user/*', '/admin/*', '/.well-known/*', '/sanctum/*', '/api/*',
+            '/webhooks/*', '/storage/*', '/qr/*', '/sp/*', '/f/*', '/viewer/*',
+            '/admin-assets/*', '/feed', '/discovery', '/discovery/*',
+            '/creators', '/creators/*',
+            '/login', '/register', '/logout',
+            '/features', '/how-it-works', '/about', '/contact', '/faqs',
+            '/terms', '/refunds', '/privacy', '/gdpr', '/cookies',
+            '/creators-feed', '/workspace-team', '/buzz', '/docs', '/newsletter',
+        ];
+        $components = array_map(
+            fn ($p) => ['/' => $p, 'exclude' => true],
+            $reservedSegments
+        );
+        // Exclude every multi-segment path: `/foo/bar`, `/foo/bar/baz`, etc.
+        // This prevents `/{alias}/rsvp`, `/{alias}/download`, etc. from
+        // opening in the app while still allowing the bare alias to.
+        $components[] = ['/' => '/*/*', 'exclude' => true];
+        // Final catch-all: claim any remaining single-segment path — these
+        // are the biolink aliases the mobile app should open natively.
+        $components[] = ['/' => '/*'];
+
         $payload = [
             'applinks' => [
                 'details' => [[
-                    'appIDs' => [$appId],
-                    'components' => [
-                        ['/' => '/user/*',         'exclude' => true],
-                        ['/' => '/admin/*',        'exclude' => true],
-                        ['/' => '/.well-known/*', 'exclude' => true],
-                        ['/' => '/sanctum/*',     'exclude' => true],
-                        ['/' => '/api/*',         'exclude' => true],
-                        ['/' => '/webhooks/*',    'exclude' => true],
-                        ['/' => '/storage/*',     'exclude' => true],
-                        ['/' => '*'],
-                    ],
+                    'appIDs'     => [$appId],
+                    'components' => $components,
                 ]],
             ],
             'webcredentials' => [

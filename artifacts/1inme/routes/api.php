@@ -21,6 +21,16 @@ use App\Modules\Api\Controllers\ProjectController;
 use App\Modules\Api\Controllers\SocialAuthController;
 use App\Modules\Api\Controllers\SubscriberController;
 use App\Modules\Api\Controllers\WorkspaceController;
+use App\Modules\Api\Controllers\DomainController;
+use App\Modules\Api\Controllers\SplashPageController;
+use App\Modules\Api\Controllers\QrCodeController;
+use App\Modules\Api\Controllers\SocialAccountController;
+use App\Modules\Api\Controllers\IntegrationController;
+use App\Modules\Api\Controllers\CalendarController;
+use App\Modules\Api\Controllers\VaultController;
+use App\Modules\Api\Controllers\VerificationController;
+use App\Modules\Api\Controllers\BillingController;
+use App\Modules\Api\Controllers\DialerController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -135,5 +145,53 @@ Route::prefix('v1')->group(function () {
         // Workspaces
         Route::get('/workspaces',                 [WorkspaceController::class, 'index']);
         Route::get('/workspaces/{id}/members',    [WorkspaceController::class, 'members'])->whereNumber('id');
+
+        // Custom domains
+        Route::get   ('/domains',        [DomainController::class, 'index']);
+        Route::post  ('/domains',        [DomainController::class, 'store']);
+        Route::delete('/domains/{id}',   [DomainController::class, 'destroy'])->whereNumber('id');
+
+        // Splash pages
+        Route::get   ('/splash-pages',        [SplashPageController::class, 'index']);
+        Route::post  ('/splash-pages',        [SplashPageController::class, 'store']);
+        Route::get   ('/splash-pages/{id}',   [SplashPageController::class, 'show'])->whereNumber('id');
+        Route::patch ('/splash-pages/{id}',   [SplashPageController::class, 'update'])->whereNumber('id');
+        Route::delete('/splash-pages/{id}',   [SplashPageController::class, 'destroy'])->whereNumber('id');
+
+        // QR codes
+        Route::get   ('/qr-codes',       [QrCodeController::class, 'index']);
+        Route::post  ('/qr-codes',       [QrCodeController::class, 'store']);
+        Route::get   ('/qr-codes/{id}',  [QrCodeController::class, 'show'])->whereNumber('id');
+        Route::delete('/qr-codes/{id}',  [QrCodeController::class, 'destroy'])->whereNumber('id');
+
+        // Social accounts + social proof
+        Route::get   ('/social/connections',        [SocialAccountController::class, 'connections']);
+        Route::delete('/social/connections/{id}',   [SocialAccountController::class, 'disconnect'])->whereNumber('id');
+        Route::get   ('/social/proofs',             [SocialAccountController::class, 'socialProofs']);
+
+        // Integrations
+        Route::get   ('/integrations',        [IntegrationController::class, 'index']);
+        Route::delete('/integrations/{id}',   [IntegrationController::class, 'destroy'])->whereNumber('id');
+
+        // Calendar accounts + RSVP responses
+        Route::get   ('/calendar/accounts',        [CalendarController::class, 'accounts']);
+        Route::delete('/calendar/accounts/{id}',   [CalendarController::class, 'disconnectAccount'])->whereNumber('id');
+        Route::get   ('/links/{id}/rsvps',         [CalendarController::class, 'rsvps'])->whereNumber('id');
+
+        // Vault (read-only on mobile; secret reveal stays on web)
+        Route::get   ('/vault/clients',     [VaultController::class, 'clients']);
+        Route::get   ('/vault/credentials', [VaultController::class, 'credentials']);
+
+        // Verification (creator badge)
+        Route::get   ('/verifications',     [VerificationController::class, 'index']);
+        Route::post  ('/verifications',     [VerificationController::class, 'store']);
+
+        // Billing
+        Route::get   ('/billing/subscription', [BillingController::class, 'subscription']);
+        Route::get   ('/billing/invoices',     [BillingController::class, 'invoices']);
+
+        // Dialer
+        Route::post  ('/dialer/lookup',  [DialerController::class, 'lookup'])->middleware('throttle:60,1');
+        Route::get   ('/dialer/history', [DialerController::class, 'history']);
     });
 });

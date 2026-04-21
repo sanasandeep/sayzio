@@ -47,7 +47,11 @@ class SocialAuthController extends Controller
                 'facebook' => $this->verifyFacebook($data['access_token'] ?? null),
             };
         } catch (\Throwable $e) {
-            return $this->fail('Could not verify ' . $data['provider'] . ' credentials: ' . $e->getMessage(), 401, 'social_verify_failed');
+            \Log::warning('social_verify_failed', [
+                'provider' => $data['provider'],
+                'reason'   => $e->getMessage(),
+            ]);
+            return $this->fail('We could not verify your sign-in. Please try again.', 401, 'social_verify_failed');
         }
 
         if (empty($verified['external_id'])) {

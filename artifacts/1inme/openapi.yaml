@@ -126,12 +126,17 @@ components:
         id:                 { type: integer }
         link_id:            { type: integer }
         written_url:        { type: string }
+        written_at:         { type: string, format: date-time }
         tag_uid:            { type: string, nullable: true }
         tag_type:           { type: string, nullable: true }
         tag_capacity_bytes: { type: integer, nullable: true }
         locked:             { type: boolean }
         device:             { type: string, nullable: true }
+        device_label:       { type: string, nullable: true }
         platform:           { type: string, enum: [ios, android], nullable: true }
+        source:             { type: string, enum: [mobile, web, import, api] }
+        lat:                { type: number, format: float, nullable: true, minimum: -90,  maximum: 90 }
+        lng:                { type: number, format: float, nullable: true, minimum: -180, maximum: 180 }
         label:              { type: string, nullable: true }
         meta:               { type: object, nullable: true }
         created_at:         { type: string, format: date-time }
@@ -347,7 +352,21 @@ paths:
 
   /auth/social:
     post:
-      summary: Native social sign-in (Apple, Google, Facebook, etc.)
+      summary: Native social sign-in (Apple, Google, Facebook)
+      description: |
+        The mobile client performs the native sign-in dance with the provider's
+        SDK and forwards the resulting **signed credential** to this endpoint:
+
+        | provider  | required field |
+        |-----------|----------------|
+        | apple     | `id_token`     |
+        | google    | `id_token`     |
+        | facebook  | `access_token` |
+
+        The server verifies the credential against the provider (Apple JWKS,
+        Google `tokeninfo`, Facebook `debug_token` + `/me`) and extracts the
+        verified `sub` / email. Client-supplied `external_id` or `email` are
+        **not** trusted.
       security: []
       requestBody:
         required: true
@@ -355,15 +374,14 @@ paths:
           application/json:
             schema:
               type: object
-              required: [provider, external_id]
+              required: [provider]
               properties:
-                provider:    { type: string, example: apple }
-                external_id: { type: string, description: 'Stable provider user id' }
-                handle:      { type: string, nullable: true }
-                email:       { type: string, nullable: true }
-                name:        { type: string, nullable: true }
-                avatar:      { type: string, nullable: true }
-                device:      { type: string, nullable: true }
+                provider:     { type: string, enum: [apple, google, facebook] }
+                id_token:     { type: string, nullable: true, description: 'Apple/Google identity token (required for those providers)' }
+                access_token: { type: string, nullable: true, description: 'Facebook user-access-token (required for facebook)' }
+                name:         { type: string, nullable: true, description: 'Optional fallback display name when the provider does not return one' }
+                avatar:       { type: string, nullable: true }
+                device:       { type: string, nullable: true }
       responses:
         '200':
           description: signed in (or created)
@@ -378,7 +396,9 @@ paths:
                         type: object
                         properties:
                           created: { type: boolean }
-        '409': { description: identity already linked elsewhere, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '401': { description: 'token verification failed', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: 'identity already linked elsewhere', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { description: 'validation error (Laravel default shape)' }
 
   /auth/demo:
     post:
@@ -613,12 +633,17 @@ paths:
               required: [written_url]
               properties:
                 written_url:        { type: string, format: uri }
+                written_at:         { type: string, format: date-time, nullable: true }
                 tag_uid:            { type: string, nullable: true }
                 tag_type:           { type: string, nullable: true }
                 tag_capacity_bytes: { type: integer, nullable: true }
                 locked:             { type: boolean }
-                device:             { type: string, nullable: true }
+                device:             { type: string, nullable: true, description: 'Free-form device model (e.g. "iPhone 15 Pro")' }
+                device_label:       { type: string, nullable: true, description: 'User-friendly nickname for the writer device (e.g. "Office reader")' }
                 platform:           { type: string, enum: [ios, android], nullable: true }
+                source:             { type: string, enum: [mobile, web, import, api], default: mobile }
+                lat:                { type: number, format: float, nullable: true, minimum: -90,  maximum: 90 }
+                lng:                { type: number, format: float, nullable: true, minimum: -180, maximum: 180 }
                 label:              { type: string, nullable: true }
                 meta:               { type: object, nullable: true }
       responses:
@@ -872,3 +897,149 @@ paths:
       summary: Single creator's feed
       security: []
       responses: { '200': { description: ok } }
+
+  /domains:
+    get:  { summary: List custom domains, responses: { '200': { description: ok } } }
+    post:
+      summary: Add a custom domain (returns CNAME + verification token)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [domain]
+              properties:
+                domain: { type: string }
+                type:   { type: string, enum: [custom, subdomain] }
+      responses: { '201': { description: created } }
+  /domains/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: integer } }
+    delete: { summary: Remove a domain, responses: { '204': { description: deleted } } }
+
+  /splash-pages:
+    get:  { summary: List splash pages, responses: { '200': { description: ok } } }
+    post:
+      summary: Create a splash page
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:          { type: string }
+                title:         { type: string, nullable: true }
+                description:   { type: string, nullable: true }
+                cta_label:     { type: string, nullable: true }
+                cta_url:       { type: string, nullable: true }
+                auto_redirect: { type: boolean }
+                countdown:     { type: integer, minimum: 0, maximum: 60 }
+                project_id:    { type: integer, nullable: true }
+      responses: { '201': { description: created } }
+  /splash-pages/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: integer } }
+    get:    { summary: Read a splash page,    responses: { '200': { description: ok } } }
+    patch:  { summary: Update a splash page,  responses: { '200': { description: ok } } }
+    delete: { summary: Delete a splash page,  responses: { '204': { description: deleted } } }
+
+  /qr-codes:
+    get:  { summary: List QR codes, responses: { '200': { description: ok } } }
+    post:
+      summary: Create a QR code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, type]
+              properties:
+                name:       { type: string }
+                type:       { type: string }
+                link_id:    { type: integer, nullable: true }
+                project_id: { type: integer, nullable: true }
+                payload:    { type: object,  nullable: true }
+                design:     { type: object,  nullable: true }
+      responses: { '201': { description: created } }
+  /qr-codes/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: integer } }
+    get:    { summary: Read a QR code,    responses: { '200': { description: ok } } }
+    delete: { summary: Delete a QR code,  responses: { '204': { description: deleted } } }
+
+  /social/connections:
+    get:  { summary: List connected social accounts (read-only), responses: { '200': { description: ok } } }
+  /social/connections/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: integer } }
+    delete: { summary: Disconnect a social account, responses: { '204': { description: deleted } } }
+  /social/proofs:
+    get: { summary: List social-proof widgets, responses: { '200': { description: ok } } }
+
+  /integrations:
+    get: { summary: List configured integrations, responses: { '200': { description: ok } } }
+  /integrations/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: integer } }
+    delete: { summary: Disconnect an integration, responses: { '204': { description: deleted } } }
+
+  /calendar/accounts:
+    get: { summary: List connected calendar accounts, responses: { '200': { description: ok } } }
+  /calendar/accounts/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: integer } }
+    delete: { summary: Disconnect a calendar account, responses: { '204': { description: deleted } } }
+
+  /links/{id}/rsvps:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: integer } }
+    get: { summary: List RSVPs collected on this event biolink, responses: { '200': { description: ok } } }
+
+  /vault/clients:
+    get: { summary: List vault clients (visibility-filtered), responses: { '200': { description: ok } } }
+  /vault/credentials:
+    get: { summary: List vault credentials (no decrypted secrets), responses: { '200': { description: ok } } }
+
+  /verifications:
+    get: { summary: List my verification requests, responses: { '200': { description: ok } } }
+    post:
+      summary: Submit a verification request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [link_id, category]
+              properties:
+                link_id:       { type: integer }
+                category:      { type: string, enum: [individual, business, org, creator] }
+                business_name: { type: string, nullable: true }
+                display_name:  { type: string, nullable: true }
+                purpose:       { type: string, nullable: true }
+      responses: { '201': { description: submitted } }
+
+  /billing/subscription:
+    get: { summary: Current subscription summary, responses: { '200': { description: ok } } }
+  /billing/invoices:
+    get: { summary: List invoices, responses: { '200': { description: ok } } }
+
+  /dialer/lookup:
+    post:
+      summary: Resolve a dialed E.164 number against the user's contacts and record the call
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [number_e164]
+              properties:
+                number_e164: { type: string, pattern: '^\+[1-9]\d{6,14}$' }
+      responses: { '200': { description: ok } }
+  /dialer/history:
+    get: { summary: Recent dialer lookups (most-recent 100), responses: { '200': { description: ok } } }

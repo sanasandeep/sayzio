@@ -11,7 +11,7 @@ class SplashPage extends Model
     
     use BelongsToWorkspace;
 protected $fillable = [
-        'project_id', 'name', 'title', 'description',
+        'user_id', 'project_id', 'name', 'title', 'description',
         'cta_label', 'cta_url', 'auto_redirect', 'countdown',
         'logo', 'favicon', 'og_image', 'custom_css', 'custom_js',
     ];
