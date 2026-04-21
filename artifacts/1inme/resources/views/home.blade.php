@@ -1278,6 +1278,270 @@
             .ws-cursor { animation: none !important; }
             .ws-row { opacity: 1; transform: none; }
         }
+
+        /* ============ Share section · animated cards ============ */
+        .share-card { position: relative; overflow: hidden; }
+        .share-card::before {
+            content: ""; position: absolute; inset: 0;
+            background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,.06) 50%, transparent 70%);
+            transform: translateX(-100%);
+            pointer-events: none;
+            transition: transform .9s ease;
+        }
+        .share-card:hover::before { transform: translateX(100%); }
+
+        /* Branded short link · typing slug */
+        .sl-pill {
+            display: flex; align-items: center; gap: 8px;
+            background: #0a0a14;
+            border: 1px solid rgba(255,255,255,.1);
+            border-radius: 12px;
+            padding: 9px 12px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+        .sl-pill .host { color: #fff; opacity: .85; }
+        .sl-pill .slug {
+            color: var(--c1);
+            display: inline-block;
+            white-space: nowrap;
+            overflow: hidden;
+            border-right: 2px solid var(--c1);
+            width: 0;
+            animation: slType 8s steps(11) infinite, slCaret .8s steps(2) infinite;
+            vertical-align: bottom;
+        }
+        @keyframes slType {
+            0%   { width: 0; }
+            22%  { width: 11ch; }
+            55%  { width: 11ch; }
+            60%  { width: 0; }
+            100% { width: 0; }
+        }
+        @keyframes slCaret { 50% { border-color: transparent; } }
+        .sl-counter {
+            margin-top: 10px;
+            display: flex; align-items: center; justify-content: space-between;
+            font-size: 10px; color: #9ca3af;
+        }
+        .sl-counter .num {
+            color: var(--c1);
+            font-weight: 700; font-variant-numeric: tabular-nums;
+        }
+        .sl-spark {
+            display: inline-flex; gap: 2px; align-items: end; height: 14px;
+        }
+        .sl-spark i {
+            width: 3px; background: var(--c1); border-radius: 1px;
+            opacity: .7;
+            animation: slSpark 1.6s ease-in-out infinite;
+        }
+        .sl-spark i:nth-child(1) { height: 30%; animation-delay: 0s; }
+        .sl-spark i:nth-child(2) { height: 60%; animation-delay: .15s; }
+        .sl-spark i:nth-child(3) { height: 45%; animation-delay: .3s; }
+        .sl-spark i:nth-child(4) { height: 80%; animation-delay: .45s; }
+        .sl-spark i:nth-child(5) { height: 50%; animation-delay: .6s; }
+        .sl-spark i:nth-child(6) { height: 95%; animation-delay: .75s; }
+        @keyframes slSpark { 50% { transform: scaleY(.5); opacity: 1; } }
+
+        /* QR · scanning beam */
+        .qr-stage {
+            position: relative;
+            width: 132px; height: 132px;
+            border-radius: 14px;
+            background: #fff;
+            padding: 8px;
+            box-shadow: 0 20px 50px -25px rgba(233,78,140,.6);
+            animation: qrFloat 4s ease-in-out infinite;
+        }
+        @keyframes qrFloat { 0%,100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-6px) rotate(2deg); } }
+        .qr-dots {
+            width: 100%; height: 100%;
+            background-image: radial-gradient(#0e0e10 1.5px, transparent 1.5px);
+            background-size: 7px 7px;
+            border-radius: 4px;
+        }
+        .qr-stage::after {
+            content: ""; position: absolute;
+            left: 8px; right: 8px; top: 8px;
+            height: 14px;
+            background: linear-gradient(180deg, rgba(233,78,140,.0) 0%, rgba(233,78,140,.55) 60%, rgba(255,255,255,.7) 100%);
+            border-radius: 4px;
+            box-shadow: 0 0 18px rgba(233,78,140,.7);
+            animation: qrScan 2.4s ease-in-out infinite;
+            pointer-events: none;
+            mix-blend-mode: screen;
+        }
+        @keyframes qrScan {
+            0%   { top: 8px; opacity: 0; }
+            10%  { opacity: .9; }
+            90%  { opacity: .9; }
+            100% { top: calc(100% - 22px); opacity: 0; }
+        }
+        .qr-corner {
+            position: absolute; width: 14px; height: 14px;
+            border: 2px solid var(--c3);
+        }
+        .qr-corner.tl { top: -3px; left: -3px; border-right: none; border-bottom: none; border-radius: 4px 0 0 0; }
+        .qr-corner.tr { top: -3px; right: -3px; border-left: none; border-bottom: none; border-radius: 0 4px 0 0; }
+        .qr-corner.bl { bottom: -3px; left: -3px; border-right: none; border-top: none; border-radius: 0 0 0 4px; }
+        .qr-corner.br { bottom: -3px; right: -3px; border-left: none; border-top: none; border-radius: 0 0 4px 0; }
+        .qr-scans-pill {
+            position: absolute; top: -10px; right: -10px;
+            background: linear-gradient(135deg, var(--c3), var(--c4));
+            color: #fff; font-size: 9px; font-weight: 800;
+            padding: 4px 8px; border-radius: 999px;
+            text-transform: uppercase; letter-spacing: .08em;
+            box-shadow: 0 8px 20px -8px rgba(233,78,140,.7);
+            animation: qrPulse 1.8s ease-in-out infinite;
+        }
+        @keyframes qrPulse { 50% { transform: scale(1.08); } }
+
+        /* Channel-ready · orbit pulses */
+        .ch-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+        .ch-icon {
+            position: relative;
+            width: 38px; height: 38px;
+            border-radius: 12px;
+            background: rgba(255,255,255,.05);
+            border: 1px solid rgba(255,255,255,.1);
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 15px;
+            transition: transform .25s ease, background .25s ease;
+        }
+        .ch-icon::after {
+            content: ""; position: absolute; inset: 0;
+            border-radius: 12px;
+            border: 2px solid currentColor;
+            opacity: 0;
+            animation: chRing 2.4s ease-out infinite;
+        }
+        .ch-icon:nth-child(1)::after { animation-delay: 0s; }
+        .ch-icon:nth-child(2)::after { animation-delay: .3s; }
+        .ch-icon:nth-child(3)::after { animation-delay: .6s; }
+        .ch-icon:nth-child(4)::after { animation-delay: .9s; }
+        .ch-icon:nth-child(5)::after { animation-delay: 1.2s; }
+        .ch-icon:nth-child(6)::after { animation-delay: 1.5s; }
+        @keyframes chRing {
+            0%   { transform: scale(1); opacity: .55; }
+            70%  { transform: scale(1.5); opacity: 0; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+        .ch-icon:hover { transform: translateY(-3px) scale(1.08); background: rgba(255,255,255,.1); }
+        .ch-tags {
+            display:flex; flex-wrap:wrap; gap:5px; margin-top: 12px;
+        }
+        .ch-tags span {
+            font-size: 9px; font-weight: 700; letter-spacing: .06em;
+            padding: 3px 7px; border-radius: 999px;
+            background: rgba(255,138,60,.15); color: #fed7aa;
+            text-transform: uppercase;
+        }
+
+        /* Custom domain card */
+        .cd-stage {
+            background: #0a0a14;
+            border: 1px solid rgba(255,255,255,.1);
+            border-radius: 14px;
+            padding: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+        .cd-bar {
+            display: flex; align-items: center; gap: 8px;
+            background: rgba(255,255,255,.04);
+            border-radius: 8px;
+            padding: 6px 9px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 11px;
+            position: relative;
+            overflow: hidden;
+        }
+        .cd-bar .lock {
+            color: #22c55e; font-size: 10px;
+            display: inline-flex; align-items: center;
+            animation: cdLock 3s ease-in-out infinite;
+        }
+        @keyframes cdLock {
+            0%,80%,100% { transform: scale(1); color: #22c55e; }
+            85% { transform: scale(1.2); color: #86efac; }
+        }
+        .cd-bar .sub { color: #9ca3af; }
+        .cd-bar .brand { color: #fff; font-weight: 600; }
+        .cd-bar .tld { color: #a78bfa; }
+        .cd-bar .path { color: #67e8f9; }
+        .cd-bar::after {
+            content: ""; position: absolute; left: -30%; top: 0; bottom: 0; width: 30%;
+            background: linear-gradient(90deg, transparent, rgba(124,58,237,.25), transparent);
+            animation: cdSweep 4s ease-in-out infinite;
+        }
+        @keyframes cdSweep { 0% { left: -30%; } 100% { left: 130%; } }
+
+        .cd-rows {
+            margin-top: 10px;
+            display: grid; gap: 5px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 10px;
+        }
+        .cd-rec {
+            display: grid;
+            grid-template-columns: 36px 1fr auto;
+            align-items: center;
+            gap: 8px;
+            color: #9ca3af;
+            opacity: 0;
+            animation: cdRecIn .5s ease forwards;
+        }
+        .cd-rec .ty {
+            font-weight: 800; color: #a78bfa;
+            background: rgba(124,58,237,.15);
+            padding: 2px 5px;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 9px;
+        }
+        .cd-rec .val { color: #d1d5db; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .cd-rec .ok {
+            color: #22c55e; font-size: 11px;
+            opacity: 0;
+            animation: cdOk .4s ease .1s forwards;
+        }
+        .cd-rec:nth-child(1) { animation-delay: .2s; }
+        .cd-rec:nth-child(1) .ok { animation-delay: .9s; }
+        .cd-rec:nth-child(2) { animation-delay: .9s; }
+        .cd-rec:nth-child(2) .ok { animation-delay: 1.6s; }
+        .cd-rec:nth-child(3) { animation-delay: 1.6s; }
+        .cd-rec:nth-child(3) .ok { animation-delay: 2.3s; }
+        @keyframes cdRecIn { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: none; } }
+        @keyframes cdOk { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: scale(1); } }
+
+        .cd-status {
+            margin-top: 10px;
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 10px; font-weight: 700;
+            padding: 4px 9px;
+            border-radius: 999px;
+            background: rgba(34,197,94,.15);
+            color: #86efac;
+            text-transform: uppercase; letter-spacing: .08em;
+        }
+        .cd-status .pulse {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: #22c55e;
+            box-shadow: 0 0 0 0 rgba(34,197,94,.6);
+            animation: wsPing 2s infinite;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .sl-pill .slug, .sl-spark i, .qr-stage, .qr-stage::after,
+            .qr-scans-pill, .ch-icon::after, .cd-bar .lock, .cd-bar::after,
+            .cd-rec, .cd-rec .ok, .cd-status .pulse,
+            .share-card::before { animation: none !important; }
+            .sl-pill .slug { width: 11ch; border-right: none; }
+            .cd-rec, .cd-rec .ok { opacity: 1; transform: none; }
+        }
     </style>
 </head>
 <body class="overflow-x-hidden">
@@ -2779,7 +3043,7 @@
 </section>
 
 {{-- ============================ 2 · SHARE ============================ --}}
-<section class="py-24 lg:py-32 relative overflow-hidden">
+<section id="share" class="py-24 lg:py-32 relative overflow-hidden">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-16 max-w-3xl mx-auto">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c3)">02 · Share</div>
@@ -2789,42 +3053,91 @@
             <p class="reveal rd-2 text-lg text-gray-400">Branded short links and dynamic QR codes you can repoint at any time. Add your link to bios, posters, business cards, packaging — anywhere.</p>
         </div>
 
-        <div class="grid md:grid-cols-3 gap-6">
-            <div class="reveal rd-1 glass rounded-3xl p-7 tilt relative overflow-hidden">
+        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {{-- 1 · Branded short links --}}
+            <div class="reveal rd-1 glass rounded-3xl p-7 tilt share-card">
                 <div class="absolute -top-10 -right-10 w-40 h-40 rounded-full opacity-30" style="background:var(--c1)"></div>
                 <div class="relative">
                     <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style="background:rgba(27,212,217,.2)"><i class="fas fa-link text-xl" style="color:var(--c1)"></i></div>
                     <h3 class="text-xl font-bold mb-2">Branded short links</h3>
                     <p class="text-sm text-gray-400 mb-5">Custom slugs, UTM-ready, click tracking. Looks like you, not a random shortener.</p>
-                    <div class="bg-[#0a0a14]/60 border border-white/10 rounded-xl px-3 py-2 font-mono text-xs flex items-center gap-2">
+                    <div class="sl-pill">
                         <i class="fas fa-link text-[10px]" style="color:var(--c1)"></i>
-                        <span class="text-white">1inme.co/<span style="color:var(--c1)">spring-drop</span></span>
+                        <span class="host">1inme.co/</span><span class="slug">spring-drop</span>
+                    </div>
+                    <div class="sl-counter">
+                        <span><span class="num">1,284</span> clicks today</span>
+                        <span class="sl-spark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span>
                     </div>
                 </div>
             </div>
 
-            <div class="reveal rd-2 glass rounded-3xl p-7 tilt relative overflow-hidden">
+            {{-- 2 · Custom domain (NEW) --}}
+            <div class="reveal rd-2 glass rounded-3xl p-7 tilt share-card">
+                <div class="absolute -top-10 -right-10 w-40 h-40 rounded-full opacity-30" style="background:var(--c2)"></div>
+                <div class="relative">
+                    <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style="background:rgba(124,58,237,.22)"><i class="fas fa-globe text-xl" style="color:var(--c2)"></i></div>
+                    <h3 class="text-xl font-bold mb-2">Custom domain</h3>
+                    <p class="text-sm text-gray-400 mb-5">Bring your own domain like <span class="text-white">links.yourbrand.com</span> — auto-SSL, zero DNS headaches.</p>
+                    <div class="cd-stage">
+                        <div class="cd-bar">
+                            <span class="lock"><i class="fas fa-lock"></i></span>
+                            <span class="sub">https://</span><span class="brand">links.</span><span class="brand">yourbrand</span><span class="tld">.com</span><span class="path">/launch</span>
+                        </div>
+                        <div class="cd-rows" aria-hidden="true">
+                            <div class="cd-rec">
+                                <span class="ty">CNAME</span>
+                                <span class="val">links → cname.1inme.co</span>
+                                <span class="ok"><i class="fas fa-circle-check"></i></span>
+                            </div>
+                            <div class="cd-rec">
+                                <span class="ty">TXT</span>
+                                <span class="val">_1inme-verify=ok-91a2</span>
+                                <span class="ok"><i class="fas fa-circle-check"></i></span>
+                            </div>
+                            <div class="cd-rec">
+                                <span class="ty">SSL</span>
+                                <span class="val">Let's Encrypt · auto-renew</span>
+                                <span class="ok"><i class="fas fa-circle-check"></i></span>
+                            </div>
+                        </div>
+                        <span class="cd-status"><span class="pulse"></span>Live · secured</span>
+                    </div>
+                </div>
+            </div>
+
+            {{-- 3 · Dynamic QR codes --}}
+            <div class="reveal rd-3 glass rounded-3xl p-7 tilt share-card">
                 <div class="absolute -top-10 -right-10 w-40 h-40 rounded-full opacity-30" style="background:var(--c3)"></div>
                 <div class="relative flex flex-col items-center text-center">
                     <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style="background:rgba(233,78,140,.2)"><i class="fas fa-qrcode text-xl" style="color:var(--c3)"></i></div>
                     <h3 class="text-xl font-bold mb-2">Dynamic QR codes</h3>
                     <p class="text-sm text-gray-400 mb-5">Print once, redirect forever. Change the destination without reprinting.</p>
-                    <div class="w-32 h-32 bg-white rounded-xl p-2 wiggle">
-                        <div class="w-full h-full" style="background-image:radial-gradient(#0e0e10 1.5px,transparent 1.5px);background-size:7px 7px;"></div>
+                    <div class="qr-stage" aria-hidden="true">
+                        <span class="qr-corner tl"></span>
+                        <span class="qr-corner tr"></span>
+                        <span class="qr-corner bl"></span>
+                        <span class="qr-corner br"></span>
+                        <span class="qr-scans-pill">+128 scans · today</span>
+                        <div class="qr-dots"></div>
                     </div>
                 </div>
             </div>
 
-            <div class="reveal rd-3 glass rounded-3xl p-7 tilt relative overflow-hidden">
+            {{-- 4 · Channel-ready --}}
+            <div class="reveal rd-4 glass rounded-3xl p-7 tilt share-card">
                 <div class="absolute -top-10 -right-10 w-40 h-40 rounded-full opacity-30" style="background:var(--c4)"></div>
                 <div class="relative">
                     <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style="background:rgba(255,138,60,.2)"><i class="fas fa-share-nodes text-xl" style="color:var(--c4)"></i></div>
                     <h3 class="text-xl font-bold mb-2">Channel-ready</h3>
                     <p class="text-sm text-gray-400 mb-5">Pre-made share cards for every channel. Pixels, UTM and OG ready out of the box.</p>
-                    <div class="flex flex-wrap gap-2">
+                    <div class="ch-grid">
                         @foreach(['fa-instagram'=>'#e94e8c','fa-tiktok'=>'#1bd4d9','fa-youtube'=>'#e94e8c','fa-x-twitter'=>'#7c3aed','fa-linkedin'=>'#1bd4d9','fa-facebook'=>'#7c3aed'] as $ic => $col)
-                            <span class="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-sm shake-hover" style="color:{{ $col }}"><i class="fab {{ $ic }}"></i></span>
+                            <span class="ch-icon" style="color:{{ $col }}"><i class="fab {{ $ic }}"></i></span>
                         @endforeach
+                    </div>
+                    <div class="ch-tags" aria-hidden="true">
+                        <span>OG</span><span>Pixels</span><span>UTM</span><span>UTM-A/B</span>
                     </div>
                 </div>
             </div>
