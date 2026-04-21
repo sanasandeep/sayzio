@@ -36,6 +36,32 @@
             </ul>
         </div>
     </div>
+    @php
+        $__socialNetworks = \App\Modules\Common\Support\SitePagesContent::socialNetworks();
+        $__socialLinks = [];
+        foreach ($__socialNetworks as $__sKey => $__sMeta) {
+            $__sUrl = trim((string) \App\Modules\Admin\Models\AppSetting::get($__sKey, ''));
+            if ($__sUrl !== '') {
+                $__socialLinks[] = ['url' => $__sUrl, 'label' => $__sMeta['label'], 'icon' => $__sMeta['icon']];
+            }
+        }
+    @endphp
+    @if(!empty($__socialLinks))
+        <div class="border-t border-white/5 py-5">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-wrap items-center justify-center gap-3">
+                @foreach($__socialLinks as $__sLink)
+                    <a href="{{ $__sLink['url'] }}"
+                       target="_blank"
+                       rel="noopener noreferrer nofollow"
+                       aria-label="{{ $__sLink['label'] }}"
+                       title="{{ $__sLink['label'] }}"
+                       class="w-9 h-9 rounded-full flex items-center justify-center bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:bg-white/10 transition">
+                        <i class="fa-brands {{ $__sLink['icon'] }} text-sm"></i>
+                    </a>
+                @endforeach
+            </div>
+        </div>
+    @endif
     <div class="border-t border-white/5 py-5 text-center text-xs text-gray-500">
         © {{ date('Y') }} {{ config('app.name', '1INME') }}. All rights reserved.
     </div>

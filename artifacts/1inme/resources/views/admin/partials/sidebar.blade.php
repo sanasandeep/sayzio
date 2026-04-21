@@ -146,6 +146,14 @@
             <span class="sidebar-tooltip">Asset Vault</span>
         </a>
 
+        <a href="{{ route('admin.social-links.edit') }}"
+           class="sidebar-link {{ request()->routeIs('admin.social-links.*') ? 'active' : '' }}"
+           style="--nav-tint:#ec4899; --nav-tint-soft:rgba(236,72,153,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-share-nodes"></i></div>
+            <span class="nav-label">Social Links</span>
+            <span class="sidebar-tooltip">Social Links</span>
+        </a>
+
         <a href="{{ route('admin.site-pages.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.site-pages.*') ? 'active' : '' }}"
            style="--nav-tint:#22c55e; --nav-tint-soft:rgba(34,197,94,0.12);">
