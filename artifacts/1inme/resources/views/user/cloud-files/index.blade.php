@@ -13,8 +13,19 @@
 
 <div x-data="cloudPicker()" class="space-y-4">
 
+    @php
+        $viewMode = in_array(request('view'), ['grid','list']) ? request('view') : (session('cloud_files_view', 'list'));
+        session(['cloud_files_view' => $viewMode]);
+        $isGrid = $viewMode === 'grid';
+        $previewable = function($f) {
+            $m = strtolower((string) $f->mime);
+            return str_starts_with($m, 'image/') || $m === 'application/pdf';
+        };
+    @endphp
+
     {{-- Filter / search bar --}}
     <form method="get" class="flex flex-wrap items-center gap-2">
+        <input type="hidden" name="view" value="{{ $viewMode }}">
         <div class="relative flex-1 min-w-[220px]">
             <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
             <input type="text" name="q" value="{{ request('q') }}" placeholder="Search by file name…"
@@ -35,6 +46,15 @@
             @endforeach
         </select>
         <button class="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-sm">Filter</button>
+
+        <div class="inline-flex rounded-lg border border-white/10 overflow-hidden" role="group" aria-label="View mode">
+            <a href="{{ request()->fullUrlWithQuery(['view' => 'list']) }}"
+               class="px-3 py-2 text-sm {{ $isGrid ? 'bg-white/5 text-gray-300 hover:bg-white/10' : 'bg-cyan-500 text-white' }}"
+               title="List view"><i class="fas fa-list"></i></a>
+            <a href="{{ request()->fullUrlWithQuery(['view' => 'grid']) }}"
+               class="px-3 py-2 text-sm {{ $isGrid ? 'bg-cyan-500 text-white' : 'bg-white/5 text-gray-300 hover:bg-white/10' }}"
+               title="Grid view"><i class="fas fa-grip"></i></a>
+        </div>
 
         @if($canCreate)
             @if($usableConnections->isEmpty())
@@ -68,36 +88,50 @@
             </a>
         </div>
     @else
-        <div class="rounded-xl border border-white/10 overflow-hidden" style="background: var(--bg-card);">
-            <table class="min-w-full text-sm">
-                <thead class="bg-white/5 text-xs uppercase tracking-wide text-gray-400">
-                    <tr>
-                        <th class="px-4 py-3 text-left">Name</th>
-                        <th class="px-4 py-3 text-left">Provider</th>
-                        <th class="px-4 py-3 text-left">Size</th>
-                        <th class="px-4 py-3 text-left">Added by</th>
-                        <th class="px-4 py-3 text-left">Added</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-white/5">
-                    @foreach($files as $f)
-                        <tr class="hover:bg-white/5">
-                            <td class="px-4 py-3">
-                                <a href="{{ $f->link }}" target="_blank" rel="noopener noreferrer" class="font-medium hover:text-cyan-300">
-                                    <i class="far fa-file mr-1 text-gray-400"></i> {{ $f->name }}
-                                    <i class="fas fa-arrow-up-right-from-square ml-1 text-[10px] text-gray-500"></i>
-                                </a>
-                            </td>
-                            <td class="px-4 py-3 text-gray-300"><i class="{{ $f->providerIcon() }} mr-1"></i> {{ $f->providerLabel() }}</td>
-                            <td class="px-4 py-3 text-gray-400">{{ $f->humanSize() }}</td>
-                            <td class="px-4 py-3 text-gray-400">{{ $f->addedBy?->name ?: '—' }}</td>
-                            <td class="px-4 py-3 text-gray-400">{{ $f->added_at?->diffForHumans() }}</td>
-                            <td class="px-4 py-3 text-right">
-                                <div class="inline-flex items-center gap-3">
+        @if($isGrid)
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                @foreach($files as $f)
+                    @php $canPreview = $previewable($f); @endphp
+                    <div class="rounded-xl border border-white/10 overflow-hidden flex flex-col" style="background: var(--bg-card);">
+                        <button type="button"
+                                @if($canPreview) @click="openPreview(@js(['name'=>$f->name,'mime'=>$f->mime,'link'=>$f->link,'thumb'=>$f->thumbnail_url]))" @else onclick="window.open(@js($f->link), '_blank', 'noopener')" @endif
+                                class="relative block w-full aspect-square bg-black/30 hover:bg-black/40 group">
+                            @if($f->thumbnail_url)
+                                <img src="{{ $f->thumbnail_url }}" alt="" loading="lazy"
+                                     class="w-full h-full object-cover"
+                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <div class="hidden absolute inset-0 items-center justify-center text-3xl text-gray-500"><i class="far fa-file"></i></div>
+                            @else
+                                <div class="absolute inset-0 flex items-center justify-center text-3xl text-gray-500"><i class="far fa-file"></i></div>
+                            @endif
+                            @if($canPreview)
+                                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-sm">
+                                    <i class="fas fa-eye mr-1"></i> Preview
+                                </div>
+                            @endif
+                            <div class="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-black/60 text-[10px] text-gray-200">
+                                <i class="{{ $f->providerIcon() }}"></i>
+                            </div>
+                        </button>
+                        <div class="p-2 flex-1 flex flex-col gap-1">
+                            @if($canPreview)
+                                <button type="button"
+                                        @click="openPreview(@js(['name'=>$f->name,'mime'=>$f->mime,'link'=>$f->link,'thumb'=>$f->thumbnail_url]))"
+                                        class="text-xs font-medium hover:text-cyan-300 line-clamp-2 break-words text-left" title="{{ $f->name }}">{{ $f->name }}</button>
+                            @else
+                                <a href="{{ $f->link }}" target="_blank" rel="noopener noreferrer"
+                                   class="text-xs font-medium hover:text-cyan-300 line-clamp-2 break-words" title="{{ $f->name }}">{{ $f->name }}</a>
+                            @endif
+                            <div class="text-[10px] text-gray-400 flex items-center justify-between">
+                                <span>{{ $f->humanSize() }}</span>
+                                <span>{{ $f->added_at?->diffForHumans() }}</span>
+                            </div>
+                            <div class="flex items-center justify-between pt-1">
+                                <span class="text-[10px] text-gray-500 truncate">{{ $f->addedBy?->name ?: '—' }}</span>
+                                <div class="inline-flex items-center gap-2">
                                     <button type="button"
                                             x-data="{ copied: false }"
-                                            @click="navigator.clipboard.writeText(@js($f->link)).then(() => { copied = true; setTimeout(() => copied = false, 1500); })"
+                                            @click.stop="navigator.clipboard.writeText(@js($f->link)).then(() => { copied = true; setTimeout(() => copied = false, 1500); })"
                                             class="text-gray-400 hover:text-cyan-300 text-xs"
                                             :title="copied ? 'Copied!' : 'Copy share link'">
                                         <i class="fas fa-link" x-show="!copied"></i>
@@ -111,14 +145,122 @@
                                         </form>
                                     @endif
                                 </div>
-                            </td>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @else
+            <div class="rounded-xl border border-white/10 overflow-hidden" style="background: var(--bg-card);">
+                <table class="min-w-full text-sm">
+                    <thead class="bg-white/5 text-xs uppercase tracking-wide text-gray-400">
+                        <tr>
+                            <th class="px-4 py-3 text-left">Name</th>
+                            <th class="px-4 py-3 text-left">Provider</th>
+                            <th class="px-4 py-3 text-left">Size</th>
+                            <th class="px-4 py-3 text-left">Added by</th>
+                            <th class="px-4 py-3 text-left">Added</th>
+                            <th></th>
                         </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
+                    </thead>
+                    <tbody class="divide-y divide-white/5">
+                        @foreach($files as $f)
+                            @php $canPreview = $previewable($f); @endphp
+                            <tr class="hover:bg-white/5">
+                                <td class="px-4 py-3">
+                                    <div class="flex items-center gap-3">
+                                        @if($f->thumbnail_url)
+                                            <button type="button"
+                                                    @if($canPreview) @click="openPreview(@js(['name'=>$f->name,'mime'=>$f->mime,'link'=>$f->link,'thumb'=>$f->thumbnail_url]))" @else onclick="window.open(@js($f->link), '_blank', 'noopener')" @endif
+                                                    class="shrink-0 w-10 h-10 rounded bg-black/30 overflow-hidden flex items-center justify-center"
+                                                    title="{{ $canPreview ? 'Preview' : 'Open' }}">
+                                                <img src="{{ $f->thumbnail_url }}" alt="" loading="lazy" class="w-full h-full object-cover"
+                                                     onerror="this.replaceWith(Object.assign(document.createElement('i'),{className:'far fa-file text-gray-400'}))">
+                                            </button>
+                                        @else
+                                            <div class="shrink-0 w-10 h-10 rounded bg-black/20 flex items-center justify-center text-gray-400">
+                                                <i class="far fa-file"></i>
+                                            </div>
+                                        @endif
+                                        @if($canPreview)
+                                            <button type="button"
+                                                    @click="openPreview(@js(['name'=>$f->name,'mime'=>$f->mime,'link'=>$f->link,'thumb'=>$f->thumbnail_url]))"
+                                                    class="font-medium hover:text-cyan-300 text-left">
+                                                {{ $f->name }}
+                                                <i class="fas fa-eye ml-1 text-[10px] text-gray-500"></i>
+                                            </button>
+                                        @else
+                                            <a href="{{ $f->link }}" target="_blank" rel="noopener noreferrer" class="font-medium hover:text-cyan-300">
+                                                {{ $f->name }}
+                                                <i class="fas fa-arrow-up-right-from-square ml-1 text-[10px] text-gray-500"></i>
+                                            </a>
+                                        @endif
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3 text-gray-300"><i class="{{ $f->providerIcon() }} mr-1"></i> {{ $f->providerLabel() }}</td>
+                                <td class="px-4 py-3 text-gray-400">{{ $f->humanSize() }}</td>
+                                <td class="px-4 py-3 text-gray-400">{{ $f->addedBy?->name ?: '—' }}</td>
+                                <td class="px-4 py-3 text-gray-400">{{ $f->added_at?->diffForHumans() }}</td>
+                                <td class="px-4 py-3 text-right">
+                                    <div class="inline-flex items-center gap-3">
+                                        <a href="{{ $f->link }}" target="_blank" rel="noopener noreferrer"
+                                           class="text-gray-400 hover:text-cyan-300 text-xs" title="Open in provider">
+                                            <i class="fas fa-arrow-up-right-from-square"></i>
+                                        </a>
+                                        <button type="button"
+                                                x-data="{ copied: false }"
+                                                @click="navigator.clipboard.writeText(@js($f->link)).then(() => { copied = true; setTimeout(() => copied = false, 1500); })"
+                                                class="text-gray-400 hover:text-cyan-300 text-xs"
+                                                :title="copied ? 'Copied!' : 'Copy share link'">
+                                            <i class="fas fa-link" x-show="!copied"></i>
+                                            <i class="fas fa-check text-emerald-400" x-show="copied"></i>
+                                        </button>
+                                        @if($canDelete)
+                                            <form method="POST" action="{{ route('user.cloud-files.destroy', $f) }}"
+                                                  onsubmit="return confirm('Remove this file from the workspace library? The original file in the cloud is not touched.')">
+                                                @csrf @method('DELETE')
+                                                <button class="text-rose-300 hover:text-rose-200 text-xs"><i class="fas fa-trash"></i></button>
+                                            </form>
+                                        @endif
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
         <div>{{ $files->links() }}</div>
     @endif
+
+    {{-- In-app preview modal (images & PDFs) --}}
+    <div x-show="preview.open" x-cloak
+         class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+         @keydown.escape.window="closePreview()" @click.self="closePreview()">
+        <div class="w-full max-w-4xl rounded-xl border border-white/10 max-h-[90vh] flex flex-col" style="background: var(--bg-card);">
+            <div class="px-5 py-3 border-b border-white/10 flex items-center justify-between gap-3">
+                <div class="font-semibold truncate" x-text="preview.name"></div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <a :href="preview.link" target="_blank" rel="noopener noreferrer"
+                       class="px-3 py-1.5 rounded bg-white/5 hover:bg-white/10 text-xs">
+                        <i class="fas fa-arrow-up-right-from-square mr-1"></i> Open in provider
+                    </a>
+                    <button type="button" @click="closePreview()" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
+                </div>
+            </div>
+            <div class="flex-1 overflow-auto bg-black/40 flex items-center justify-center">
+                <template x-if="preview.kind === 'image'">
+                    <img :src="preview.thumb || preview.link" :alt="preview.name" class="max-w-full max-h-[75vh] object-contain">
+                </template>
+                <template x-if="preview.kind === 'pdf'">
+                    <iframe :src="preview.link" class="w-full h-[75vh]" title="PDF preview"></iframe>
+                </template>
+                <template x-if="!preview.kind">
+                    <div class="text-gray-400 text-sm p-8">No preview available.</div>
+                </template>
+            </div>
+        </div>
+    </div>
 
     {{-- Picker modal --}}
     @if($canCreate && $usableConnections->isNotEmpty())
@@ -218,6 +360,16 @@ function cloudPicker() {
         files: [],
         selected: [],
         breadcrumbs: [{ id: null, name: 'Home' }],
+        preview: { open: false, name: '', link: '', thumb: '', mime: '', kind: '' },
+
+        openPreview(f) {
+            const mime = (f.mime || '').toLowerCase();
+            let kind = '';
+            if (mime.startsWith('image/')) kind = 'image';
+            else if (mime === 'application/pdf') kind = 'pdf';
+            this.preview = { open: true, name: f.name || '', link: f.link || '', thumb: f.thumb || '', mime, kind };
+        },
+        closePreview() { this.preview.open = false; },
 
         open() {
             this.visible = true; this.selected = []; this.searching = false; this.searchTerm = '';
