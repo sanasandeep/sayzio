@@ -4,8 +4,10 @@ namespace App\Modules\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\Admin;
+use App\Modules\Admin\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
@@ -42,7 +44,17 @@ class AuthController extends Controller
         $admin = Admin::where('email', 'admin@1inme.com')->first();
 
         if (!$admin) {
-            return redirect()->route('admin.login')->with('error', 'Demo admin account not found.');
+            $role = Role::firstOrCreate(
+                ['slug' => 'super-admin'],
+                ['name' => 'Super Admin', 'guard' => 'admin']
+            );
+            $admin = Admin::create([
+                'name' => 'Admin',
+                'email' => 'admin@1inme.com',
+                'password' => Hash::make('password'),
+                'role_id' => $role->id,
+                'status' => 'active',
+            ]);
         }
 
         Auth::guard('admin')->login($admin);
