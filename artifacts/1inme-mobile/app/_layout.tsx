@@ -17,6 +17,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import { DeepLinkRouter } from "@/components/DeepLinkRouter";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
@@ -94,6 +95,7 @@ export default function RootLayout() {
               <SubscriptionProvider>
                 <GestureHandlerRootView>
                   <KeyboardProvider>
+                    <DeepLinkRouter />
                     <RootLayoutNav />
                   </KeyboardProvider>
                 </GestureHandlerRootView>

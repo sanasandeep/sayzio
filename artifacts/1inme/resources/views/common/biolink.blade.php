@@ -2576,5 +2576,47 @@
         $viewerInitial  = $__viewer ? ['id'=>$__viewer->id,'name'=>$__viewer->name,'email'=>$__viewer->email,'avatar'=>$__viewer->avatar] : null;
     @endphp
     @include('common.partials.viewer-login-modal', compact('modalCreatorId','modalAccent','modalBgPanel','viewerInitial'))
+
+    {{-- Opt-in "Open in app" button. We deliberately do NOT auto-redirect:
+         on Android the Custom Tabs handoff causes a visible flicker, and on
+         iOS an unprompted scheme attempt looks like a malware prompt. The
+         button is only useful for users who already have the app installed
+         and somehow ended up on the web page; everyone else just ignores it. --}}
+    <button type="button" id="oneinmeOpenInAppBtn"
+            style="position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:120;
+                   display:none;background:rgba(15,15,25,0.85);color:#fff;border:1px solid rgba(255,255,255,0.18);
+                   backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+                   padding:9px 16px;border-radius:9999px;font:500 13px/1 'Space Grotesk',sans-serif;
+                   cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,0.4);"
+            onclick="(function(){
+                var alias = @json($link->alias);
+                var fallback = window.location.href;
+                var t = Date.now();
+                window.location.href = '1inme://biolink/' + encodeURIComponent(alias);
+                setTimeout(function(){
+                  // If we're still here after 1.5s the scheme didn't resolve;
+                  // hide the button so we don't pester the user further.
+                  if (Date.now() - t < 2500 && !document.hidden) {
+                    var b = document.getElementById('oneinmeOpenInAppBtn');
+                    if (b) b.style.display = 'none';
+                    try { localStorage.setItem('1inme.no_app', '1'); } catch(_){}
+                  }
+                }, 1500);
+            })()">
+        Open in 1INME app
+    </button>
+    <script>
+        (function(){
+            // Mobile-only and only when the user hasn't previously dismissed.
+            var ua = navigator.userAgent || '';
+            var isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
+            var dismissed = false;
+            try { dismissed = localStorage.getItem('1inme.no_app') === '1'; } catch(_){}
+            if (isMobile && !dismissed) {
+                var b = document.getElementById('oneinmeOpenInAppBtn');
+                if (b) b.style.display = 'inline-block';
+            }
+        })();
+    </script>
 </body>
 </html>

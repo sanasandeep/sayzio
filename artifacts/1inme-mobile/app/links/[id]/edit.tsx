@@ -16,6 +16,7 @@ import {
 } from "react-native";
 
 import { Button } from "@/components/Button";
+import { NfcWriteSheet } from "@/components/NfcWriteSheet";
 import { TextField } from "@/components/TextField";
 import { useColors } from "@/hooks/useColors";
 import {
@@ -26,6 +27,7 @@ import {
   updateLink,
   type Link,
 } from "@/lib/api/links";
+import { listNfcWrites } from "@/lib/api/nfc";
 import { metaForApiType } from "@/lib/linkKinds";
 
 const VISIBILITIES: Link["visibility"][] = [
@@ -60,6 +62,14 @@ export default function EditLinkScreen() {
     queryFn: () => getLink(id),
     enabled: Number.isFinite(id),
   });
+
+  const [nfcOpen, setNfcOpen] = useState(false);
+  const nfcQ = useQuery({
+    queryKey: ["nfc-writes", id],
+    queryFn: () => listNfcWrites(id, 1, 1),
+    enabled: Number.isFinite(id),
+  });
+  const nfcCount = nfcQ.data?.meta.total ?? 0;
 
   const [title, setTitle] = useState("");
   const [alias, setAlias] = useState("");
@@ -218,7 +228,21 @@ export default function EditLinkScreen() {
               )
             }
           />
+          <ActionTile
+            icon="wifi"
+            label={nfcCount > 0 ? `NFC · ${nfcCount}` : "Write NFC"}
+            onPress={() => setNfcOpen(true)}
+          />
         </View>
+        <NfcWriteSheet
+          visible={nfcOpen}
+          onClose={() => setNfcOpen(false)}
+          linkId={id}
+          url={l.short_url}
+          onWritten={() => {
+            qc.invalidateQueries({ queryKey: ["nfc-writes", id] });
+          }}
+        />
 
         {meta.kind === "biolink" ? (
           <View style={styles.actionsRow}>

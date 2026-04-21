@@ -59,7 +59,9 @@
     "@expo-google-fonts/space-grotesk": "^0.4.1",
     "expo-auth-session": "~7.0.10",
     "expo-contacts": "^15.0.11",
+    "expo-device": "~8.0.10",
     "expo-secure-store": "~15.0.8",
+    "react-native-nfc-manager": "^3.17.2",
     "react-native-purchases": "^10.0.1"
   }
 }
