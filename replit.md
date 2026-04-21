@@ -13,7 +13,10 @@ The project utilizes a pnpm workspace monorepo. The architecture is composed of 
 ## 1INME Laravel App (`artifacts/1inme/`)
 
 ### Core Architecture
-The Laravel application follows a HMVC pattern with `Admin`, `User`, and `Common` modules. Authentication uses `admin` and `web` guards, supporting both password and OTP logins. A `super_admin` role provides access to a dedicated "Super Admin" section for plan management.
+The Laravel application follows a HMVC pattern with `Admin`, `User`, `Common`, and `Api` modules. Authentication uses `admin` and `web` guards (session-based, supporting both password and OTP logins) plus a `sanctum` guard for the bearer-token REST API. A `super_admin` role provides access to a dedicated "Super Admin" section for plan management.
+
+### REST API (`/api/v1`)
+Bearer-token REST API powered by Laravel Sanctum, mounted at `/api/v1`. Covers authentication (register/login/logout/me), profile, link CRUD, public biolink resolution with full visibility-tier enforcement (public/registered/followers/subscribers), feed (anon and authed, with follow/subscribe-aware filtering), follow/unfollow, subscriber management, public discovery, and biolink subscribe. Rate-limited on auth and subscribe endpoints. All responses use a unified envelope: `{data: ...}` on success and `{error: {message, code, details?}}` on failure (including validation 422). Optional-auth middleware (`api.optional_auth`) honors a bearer token on public endpoints to apply visibility filtering. Documentation: `artifacts/1inme/docs/api.md`.
 
 ### UI/UX Design
 The UI features a glassmorphism design with dark/light modes, a purple color palette, Space Grotesk typography, and animated elements. Navigation includes a 3-mode collapsible sidebar, a glassmorphic header with breadcrumbs, live search, and notifications.
