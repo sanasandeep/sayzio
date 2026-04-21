@@ -270,6 +270,40 @@ export default function Profile() {
 
         <View style={styles.section}>
           <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+            Account
+          </Text>
+          <View
+            style={[
+              styles.list,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                borderRadius: colors.radius,
+              },
+            ]}
+          >
+            <Pressable
+              onPress={() => router.push("/wallet" as never)}
+              style={({ pressed }) => [
+                styles.listItem,
+                { opacity: pressed ? 0.7 : 1 },
+              ]}
+            >
+              <Feather name="credit-card" size={18} color={colors.primary} />
+              <Text style={[styles.listLabel, { color: colors.foreground }]}>
+                Wallet & coins
+              </Text>
+              <Feather
+                name="chevron-right"
+                size={18}
+                color={colors.mutedForeground}
+              />
+            </Pressable>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
             Learn
           </Text>
           <View

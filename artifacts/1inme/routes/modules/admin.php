@@ -9,6 +9,8 @@ use App\Modules\Admin\Controllers\UserManagementController;
 use App\Modules\Admin\Controllers\RoleController;
 use App\Modules\Admin\Controllers\PlanController;
 use App\Modules\Admin\Controllers\AddonController;
+use App\Modules\Admin\Controllers\CoinPackageController;
+use App\Modules\Admin\Controllers\WalletSettingsController;
 use App\Modules\Admin\Controllers\LinkManagementController;
 use App\Modules\Admin\Controllers\CoachDefaultsController;
 use App\Modules\Admin\Controllers\TemplateController;
@@ -241,6 +243,21 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::delete('{message}', [\App\Modules\Admin\Controllers\ContactInboxController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
         });
 
+        Route::prefix('coin-packages')->name('coin-packages.')->group(function () {
+            Route::get('/',           [CoinPackageController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::get('create',      [CoinPackageController::class, 'create'])->middleware(CheckPermission::class . ':settings.manage')->name('create');
+            Route::post('/',          [CoinPackageController::class, 'store'])->middleware(CheckPermission::class . ':settings.manage')->name('store');
+            Route::get('{coinPackage}/edit',  [CoinPackageController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
+            Route::put('{coinPackage}',       [CoinPackageController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
+            Route::post('{coinPackage}/archive', [CoinPackageController::class, 'archive'])->middleware(CheckPermission::class . ':settings.manage')->name('archive');
+            Route::delete('{coinPackage}',    [CoinPackageController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
+        });
+
+        Route::prefix('wallet-settings')->name('wallet-settings.')->group(function () {
+            Route::get('/',  [WalletSettingsController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
+            Route::put('/',  [WalletSettingsController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
+        });
+
         Route::prefix('users')->name('users.')->group(function () {
             Route::get('/', [UserManagementController::class, 'index'])->middleware(CheckPermission::class . ':users.view')->name('index');
             Route::get('{user}', [UserManagementController::class, 'show'])->middleware(CheckPermission::class . ':users.view')->name('show');
@@ -248,6 +265,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::delete('{user}', [UserManagementController::class, 'destroy'])->middleware(CheckPermission::class . ':users.delete')->name('destroy');
             Route::post('{user}/impersonate', [UserManagementController::class, 'impersonate'])->middleware(CheckPermission::class . ':users.impersonate')->name('impersonate');
             Route::post('stop-impersonation', [UserManagementController::class, 'stopImpersonation'])->name('stop-impersonation');
+            Route::post('{user}/wallet/adjust', [UserManagementController::class, 'adjustWallet'])->middleware(CheckPermission::class . ':users.edit')->name('wallet.adjust');
         });
     });
 });

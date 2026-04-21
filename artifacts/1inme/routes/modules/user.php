@@ -302,6 +302,13 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('billing/invoices/{invoice}/refund', [\App\Modules\User\Controllers\BillingController::class, 'refundInvoice'])->middleware('workspace.owner')->name('billing.refund');
         Route::get('billing/credit-notes/{creditNote}.pdf', [\App\Modules\User\Controllers\BillingController::class, 'creditNotePdf'])->middleware('workspace.owner')->name('billing.credit-note.pdf');
 
+        // Wallet & coins (customer-facing).
+        Route::get ('wallet',                [\App\Modules\User\Controllers\WalletController::class, 'show'])->name('wallet.show');
+        Route::get ('wallet/transactions',   [\App\Modules\User\Controllers\WalletController::class, 'transactions'])->name('wallet.transactions');
+        Route::get ('wallet/buy',            [\App\Modules\User\Controllers\WalletController::class, 'buy'])->name('wallet.buy');
+        Route::post('wallet/buy',            [\App\Modules\User\Controllers\WalletController::class, 'buyHandoff'])->name('wallet.buy.handoff');
+        Route::post('addons/{addon}/activate-with-coins', [\App\Modules\User\Controllers\WalletController::class, 'activateAddon'])->name('addons.activate-with-coins');
+
         // Page & card templates (admin-curated presets) — picker reads
         // require links.view; apply mutates the link so requires links.edit.
         Route::get('links/{link}/templates', [\App\Modules\User\Controllers\LinkTemplateController::class, 'picker'])->middleware('workspace.can:links.view')->name('links.templates.picker');

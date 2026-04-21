@@ -79,5 +79,51 @@
             </form>
         </div>
     </div>
+
+    @if($walletEnabled)
+    <div class="glass rounded-2xl border border-white/10 p-6 mt-6">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h3 class="text-white font-semibold">Wallet</h3>
+                <p class="text-xs text-white/40">Coin balance and recent transactions.</p>
+            </div>
+            <div class="text-2xl font-bold text-amber-300">{{ number_format($wallet->balance) }} 🪙</div>
+        </div>
+
+        <form method="POST" action="{{ route('admin.users.wallet.adjust', $user) }}" class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+            @csrf
+            <input type="number" name="delta" placeholder="Δ coins (use - to debit)" required
+                   class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm">
+            <input type="text" name="reason" placeholder="Reason (required)" required
+                   class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm md:col-span-1">
+            <button class="px-4 py-2 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700">Apply adjustment</button>
+        </form>
+
+        @if($walletTransactions->isEmpty())
+            <p class="text-sm text-white/40">No transactions yet.</p>
+        @else
+        <table class="w-full text-sm">
+            <thead><tr class="text-white/40 text-xs uppercase tracking-wider">
+                <th class="text-left py-2">When</th><th class="text-left">Type</th>
+                <th class="text-right">Δ Coins</th><th class="text-right">Balance</th>
+                <th class="text-left pl-3">Reason</th>
+            </tr></thead>
+            <tbody>
+            @foreach($walletTransactions as $tx)
+                <tr class="border-t border-white/5">
+                    <td class="py-2 text-white/60">{{ $tx->created_at->diffForHumans() }}</td>
+                    <td><span class="px-2 py-0.5 rounded-full text-xs bg-white/10 text-white/70">{{ $tx->type }}</span></td>
+                    <td class="text-right font-semibold {{ $tx->delta_coins >= 0 ? 'text-emerald-300' : 'text-red-300' }}">
+                        {{ $tx->delta_coins >= 0 ? '+' : '' }}{{ number_format($tx->delta_coins) }}
+                    </td>
+                    <td class="text-right text-white/80">{{ number_format($tx->balance_after) }}</td>
+                    <td class="pl-3 text-white/50">{{ $tx->reason ?? '—' }}</td>
+                </tr>
+            @endforeach
+            </tbody>
+        </table>
+        @endif
+    </div>
+    @endif
 </div>
 @endsection

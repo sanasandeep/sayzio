@@ -167,6 +167,35 @@ class RefundService
     {
         CreditNoteService::issue($refund);
         $invoice = $refund->invoice;
+
+        // Coin-pack invoice: reverse the grant so the user can't keep
+        // the coins after getting their money back. Per spec, this
+        // hard-fails (and the refund is rolled back to failed) if the
+        // user already spent the coins — admin must intervene.
+        if ($invoice && self::isCoinPackInvoice($invoice)) {
+            $coins = self::coinsFromInvoice($invoice);
+            if ($coins > 0) {
+                try {
+                    app(WalletService::class)->reverseGrant($invoice->user, $coins, [
+                        'reason'          => 'Refund for invoice ' . $invoice->number,
+                        'invoice_id'      => $invoice->id,
+                        'idempotency_key' => 'refund:' . $refund->id,
+                    ]);
+                } catch (InsufficientCoinsException $e) {
+                    $refund->forceFill(['status' => 'failed'])->save();
+                    Log::error('Coin-pack refund blocked: insufficient balance', [
+                        'refund_id' => $refund->id,
+                        'invoice'   => $invoice->number,
+                        'required'  => $e->required,
+                        'balance'   => $e->balance,
+                    ]);
+                    throw $e;
+                }
+            }
+            $this->notifyRefundSucceeded($refund);
+            return;
+        }
+
         if ($refund->downgrade_on_success && $invoice && $invoice->subscription_id) {
             $sub = Subscription::find($invoice->subscription_id);
             if ($sub && in_array($sub->status, ['active', 'past_due', 'grace'], true)) {
@@ -174,6 +203,24 @@ class RefundService
             }
         }
         $this->notifyRefundSucceeded($refund);
+    }
+
+    public static function isCoinPackInvoice(Invoice $invoice): bool
+    {
+        foreach ((array) ($invoice->line_items ?? []) as $li) {
+            if (($li['meta']['kind'] ?? null) === 'coin_package') return true;
+        }
+        return false;
+    }
+
+    public static function coinsFromInvoice(Invoice $invoice): int
+    {
+        $sum = 0;
+        foreach ((array) ($invoice->line_items ?? []) as $li) {
+            if (($li['meta']['kind'] ?? null) !== 'coin_package') continue;
+            $sum += (int) ($li['meta']['coins'] ?? 0) + (int) ($li['meta']['bonus'] ?? 0);
+        }
+        return $sum;
     }
 
     protected function notifyRefundSucceeded(Refund $refund): void

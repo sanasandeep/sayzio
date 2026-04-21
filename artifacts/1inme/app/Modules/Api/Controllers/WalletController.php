@@ -1,0 +1,137 @@
+<?php
+
+namespace App\Modules\Api\Controllers;
+
+use App\Actions\Billing\ActivateSubscription;
+use App\Modules\Admin\Models\CoinPackage;
+use App\Modules\Api\Controllers\Concerns\ApiResponses;
+use App\Services\Billing\GatewayManager;
+use App\Services\Billing\NotImplementedException;
+use App\Services\Billing\WalletService;
+use App\Services\PricingResolver;
+use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
+
+/**
+ * Mobile parity for the customer wallet:
+ *   GET  /api/v1/wallet           balance + low-balance threshold
+ *   GET  /api/v1/wallet/transactions[?type=&limit=]
+ *   GET  /api/v1/wallet/packages  active coin packages priced for the user
+ *   POST /api/v1/wallet/purchase  start a coin-pack checkout, returns gateway handoff
+ */
+class WalletController extends Controller
+{
+    use ApiResponses;
+
+    public function __construct(protected WalletService $wallets) {}
+
+    public function balance(Request $request)
+    {
+        if (!WalletService::isEnabled()) return $this->err('Wallet is disabled.', 404);
+        $user = $request->user();
+        $w = $this->wallets->walletFor($user);
+        $currency = PricingResolver::currencyForUser($user);
+        return $this->ok([
+            'enabled'                 => true,
+            'balance'                 => (int) $w->balance,
+            'low_balance_threshold'   => (int) ($w->low_balance_threshold ?? 0),
+            'currency'                => $currency,
+            'rate_coins_per_unit'     => WalletService::rateFor($currency),
+        ]);
+    }
+
+    public function transactions(Request $request)
+    {
+        if (!WalletService::isEnabled()) return $this->err('Wallet is disabled.', 404);
+        $user = $request->user();
+        $w = $this->wallets->walletFor($user);
+        $limit = max(1, min(100, (int) $request->query('limit', 25)));
+        $q = $w->transactions();
+        if ($t = $request->query('type')) {
+            if (in_array($t, \App\Modules\User\Models\WalletTransaction::TYPES, true)) {
+                $q->where('type', $t);
+            }
+        }
+        $items = $q->limit($limit)->get()->map(fn($tx) => [
+            'id'            => $tx->id,
+            'type'          => $tx->type,
+            'delta_coins'   => (int) $tx->delta_coins,
+            'balance_after' => (int) $tx->balance_after,
+            'reason'        => $tx->reason,
+            'created_at'    => optional($tx->created_at)->toIso8601String(),
+        ])->all();
+        return $this->ok(['items' => $items]);
+    }
+
+    public function packages(Request $request)
+    {
+        if (!WalletService::isEnabled()) return $this->err('Wallet is disabled.', 404);
+        $user = $request->user();
+        $currency = PricingResolver::currencyForUser($user);
+        $items = CoinPackage::active()->ordered()->with('prices')->get()
+            ->map(function ($p) use ($currency) {
+                $priced = PricingResolver::priceForCurrency($p, $currency, 'monthly');
+                return [
+                    'id'           => $p->id,
+                    'slug'         => $p->slug,
+                    'name'         => $p->name,
+                    'description'  => $p->description,
+                    'coin_amount'  => (int) $p->coin_amount,
+                    'bonus_coins'  => (int) $p->bonus_coins,
+                    'total_coins'  => $p->totalCoins(),
+                    'currency'     => $currency,
+                    'amount_minor' => (int) ($priced['amount_minor'] ?? 0),
+                    'formatted'    => $priced['formatted'] ?? null,
+                ];
+            })->all();
+        return $this->ok(['items' => $items, 'currency' => $currency]);
+    }
+
+    public function purchase(Request $request, GatewayManager $gm)
+    {
+        if (!WalletService::isEnabled()) return $this->err('Wallet is disabled.', 404);
+        $data = $request->validate([
+            'coin_package_id' => 'required|integer|exists:coin_packages,id',
+            'gateway' => 'required|string|in:razorpay,stripe,paypal,cashfree,offline',
+        ]);
+        $user = $request->user();
+        $package = CoinPackage::active()->findOrFail($data['coin_package_id']);
+        $currency = PricingResolver::currencyForUser($user);
+        $priced = PricingResolver::priceForCurrency($package, $currency, 'monthly');
+        if ((int) $priced['amount_minor'] <= 0) {
+            return $this->err('Package is not priced in your currency.', 422);
+        }
+        $enabledSlugs = array_map(fn($a) => $a->slug(), $gm->enabledAdapters());
+        if (!in_array($data['gateway'], $enabledSlugs, true)) {
+            return $this->err('Gateway not enabled.', 422);
+        }
+        $items = [[
+            'label'        => $package->name . ' (' . $package->totalCoins() . ' coins)',
+            'amount_minor' => (int) $priced['amount_minor'],
+            'quantity'     => 1,
+            'meta'         => [
+                'kind'            => 'coin_package',
+                'coin_package_id' => $package->id,
+                'coins'           => (int) $package->coin_amount,
+                'bonus'           => (int) $package->bonus_coins,
+            ],
+        ]];
+        $invoice = ActivateSubscription::issuePendingInvoice($user, $items, $currency);
+        try {
+            $result = $gm->for($data['gateway'])->createCheckout($invoice);
+        } catch (NotImplementedException $e) {
+            $invoice->forceFill(['status' => 'cancelled'])->save();
+            return $this->err('Gateway not available.', 503);
+        } catch (\Throwable $e) {
+            $invoice->forceFill(['status' => 'cancelled'])->save();
+            return $this->err('Could not initiate checkout.', 500);
+        }
+        return $this->ok([
+            'invoice_id'   => $invoice->id,
+            'invoice_no'   => $invoice->number,
+            'amount_minor' => (int) $invoice->grand_total_minor,
+            'currency'     => $invoice->currency,
+            'handoff'      => $result,
+        ]);
+    }
+}

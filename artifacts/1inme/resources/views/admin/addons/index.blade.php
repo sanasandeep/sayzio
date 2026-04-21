@@ -35,6 +35,9 @@
         <div class="space-y-1 mb-4 text-sm">
             <div class="flex justify-between"><span class="text-white/40">Monthly</span><span class="font-semibold text-white">${{ number_format($addon->monthly_price, 2) }}</span></div>
             <div class="flex justify-between"><span class="text-white/40">Annual</span><span class="font-semibold text-white">${{ number_format($addon->annual_price, 2) }}</span></div>
+            @if(!is_null($addon->coin_cost))
+                <div class="flex justify-between"><span class="text-white/40">Coin price</span><span class="font-semibold text-amber-300">{{ number_format($addon->coin_cost) }} 🪙</span></div>
+            @endif
         </div>
 
         @if($addon->plans->isNotEmpty())

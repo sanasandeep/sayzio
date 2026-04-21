@@ -17,6 +17,7 @@ use App\Modules\Api\Controllers\NotificationController;
 use App\Modules\Api\Controllers\OnboardingController;
 use App\Modules\Api\Controllers\OtpController;
 use App\Modules\Api\Controllers\PlanController;
+use App\Modules\Api\Controllers\WalletController;
 use App\Modules\Api\Controllers\ProfileController;
 use App\Modules\Api\Controllers\ProjectController;
 use App\Modules\Api\Controllers\SocialAuthController;
@@ -77,6 +78,12 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/profile',   [ProfileController::class, 'show']);
         Route::patch('/profile', [ProfileController::class, 'update']);
+
+        // Wallet & coins (mobile parity).
+        Route::get ('/wallet',              [WalletController::class, 'balance']);
+        Route::get ('/wallet/transactions', [WalletController::class, 'transactions']);
+        Route::get ('/wallet/packages',     [WalletController::class, 'packages']);
+        Route::post('/wallet/purchase',     [WalletController::class, 'purchase']);
 
         // Onboarding
         Route::get('/onboarding',          [OnboardingController::class, 'status']);

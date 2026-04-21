@@ -12,6 +12,7 @@ class Addon extends Model
         'monthly_price', 'annual_price',
         'monthly_price_secondary', 'annual_price_secondary',
         'features', 'metadata', 'status', 'is_archived', 'sort_order',
+        'coin_cost',
     ];
 
     protected function casts(): array
@@ -24,6 +25,7 @@ class Addon extends Model
             'monthly_price_secondary' => 'decimal:2',
             'annual_price_secondary' => 'decimal:2',
             'is_archived' => 'boolean',
+            'coin_cost' => 'integer',
         ];
     }
 

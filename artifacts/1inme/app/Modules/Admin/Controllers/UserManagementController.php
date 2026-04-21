@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\User\Models\User;
 use App\Modules\Admin\Models\Plan;
 use App\Modules\User\Services\ReferralService;
+use App\Services\Billing\WalletService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -41,7 +42,26 @@ class UserManagementController extends Controller
     {
         $user->load('plan');
         $plans = Plan::active()->ordered()->get();
-        return view('admin.users.show', compact('user', 'plans'));
+        $wallet = app(WalletService::class)->walletFor($user);
+        $walletEnabled = WalletService::isEnabled();
+        $walletTransactions = $wallet->transactions()->limit(10)->get();
+        return view('admin.users.show', compact('user', 'plans', 'wallet', 'walletEnabled', 'walletTransactions'));
+    }
+
+    public function adjustWallet(Request $request, User $user, WalletService $wallets)
+    {
+        $data = $request->validate([
+            'delta'  => 'required|integer|not_in:0',
+            'reason' => 'required|string|max:255',
+        ]);
+        try {
+            $wallets->adjust($user, (int) $data['delta'], $data['reason'], optional(Auth::user())->id);
+            return back()->with('success', 'Wallet adjusted.');
+        } catch (\App\Services\Billing\InsufficientCoinsException $e) {
+            return back()->with('error', "Adjustment would overdraw the wallet (balance {$e->balance}, needs {$e->required}).");
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Could not adjust wallet: ' . $e->getMessage());
+        }
     }
 
     public function update(Request $request, User $user, ReferralService $referrals)

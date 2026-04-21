@@ -7,6 +7,7 @@ use App\Modules\User\Models\BillingAddress;
 use App\Modules\User\Models\Invoice;
 use App\Modules\User\Models\Subscription;
 use App\Modules\User\Models\SubscriptionAddon;
+use App\Services\Billing\WalletService;
 use App\Services\InvoiceService;
 use App\Services\TaxCalculator;
 use Illuminate\Support\Facades\DB;
@@ -49,6 +50,45 @@ class ActivateSubscription
             }
 
             $items   = is_array($fresh->line_items) ? $fresh->line_items : [];
+
+            // Coin-package invoices don't create a Subscription. Credit
+            // the user's wallet using the invoice id as the idempotency
+            // key (so a re-delivered webhook is a no-op), mark the
+            // invoice paid, and email a receipt. We return the user's
+            // most recent active subscription if any (callers that only
+            // need a return value won't blow up); webhook routing
+            // doesn't actually use the return value.
+            $coinItems = array_filter($items, fn($i) => (($i['meta']['kind'] ?? null) === 'coin_package'));
+            if (!empty($coinItems)) {
+                if ($fresh->status === 'paid') {
+                    return Subscription::where('user_id', $fresh->user_id)->latest('id')->first()
+                        ?? new Subscription(['user_id' => $fresh->user_id]);
+                }
+                $totalCoins = 0;
+                $packageId  = null;
+                foreach ($coinItems as $ci) {
+                    $m = $ci['meta'] ?? [];
+                    $totalCoins += (int) ($m['coins'] ?? 0) + (int) ($m['bonus'] ?? 0);
+                    $packageId = $packageId ?? (int) ($m['coin_package_id'] ?? 0) ?: null;
+                }
+                if ($totalCoins > 0) {
+                    app(WalletService::class)->credit($fresh->user, $totalCoins, [
+                        'reason'          => 'Coin pack purchase (invoice ' . $fresh->number . ')',
+                        'invoice_id'      => $fresh->id,
+                        'coin_package_id' => $packageId,
+                        'idempotency_key' => 'invoice:' . $fresh->id,
+                    ]);
+                }
+                $fresh->forceFill([
+                    'gateway' => $gateway,
+                    'status'  => 'paid',
+                    'paid_at' => now(),
+                ])->save();
+                $this->sendReceipt($fresh);
+                return Subscription::where('user_id', $fresh->user_id)->latest('id')->first()
+                    ?? new Subscription(['user_id' => $fresh->user_id]);
+            }
+
             $planId  = null;
             $cycle   = 'monthly';
             $addons  = [];

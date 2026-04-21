@@ -110,6 +110,8 @@ class AddonController extends Controller
             'features'      => 'nullable|array',
             'plan_ids'      => 'nullable|array',
             'plan_ids.*'    => 'integer|exists:plans,id',
+            // Coin-cost is optional — null means not coin-redeemable.
+            'coin_cost'     => 'nullable|integer|min:0',
         ];
         $data = $request->validate($rules);
 

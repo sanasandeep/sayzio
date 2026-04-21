@@ -90,6 +90,9 @@ class User extends Authenticatable
     public function pinnedPost()    { return $this->hasOne(CreatorPost::class)->whereNotNull('pinned_at')->whereNotNull('published_at')->latest('pinned_at'); }
     public function notifications() { return $this->hasMany(UserNotification::class)->latest('created_at'); }
 
+    public function wallet() { return $this->hasOne(Wallet::class); }
+    public function walletTransactions() { return $this->hasMany(WalletTransaction::class)->orderByDesc('id'); }
+
     public function linkedIdentifiers()
     {
         return $this->hasMany(LinkedIdentifier::class)->orderByDesc('is_primary')->orderBy('kind')->orderBy('id');

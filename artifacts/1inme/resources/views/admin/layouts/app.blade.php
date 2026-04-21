@@ -151,6 +151,8 @@
                     <a href="{{ route('admin.domains.index') }}" class="sidebar-link {{ request()->routeIs('admin.domains.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-globe"></i></div><span>Domains</span></a>
                     <a href="{{ route('admin.plans.index') }}" class="sidebar-link {{ request()->routeIs('admin.plans.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-tags"></i></div><span>Plans</span></a>
                     <a href="{{ route('admin.addons.index') }}" class="sidebar-link {{ request()->routeIs('admin.addons.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-puzzle-piece"></i></div><span>Addons</span></a>
+                    <a href="{{ route('admin.coin-packages.index') }}" class="sidebar-link {{ request()->routeIs('admin.coin-packages.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-coins"></i></div><span>Coin Packages</span></a>
+                    <a href="{{ route('admin.wallet-settings.edit') }}" class="sidebar-link {{ request()->routeIs('admin.wallet-settings.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-wallet"></i></div><span>Wallet Settings</span></a>
                     <a href="{{ route('admin.assets.index') }}" class="sidebar-link {{ request()->routeIs('admin.assets.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-folder-tree"></i></div><span>Asset Vault</span></a>
                 </nav>
             </div>

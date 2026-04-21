@@ -4,6 +4,28 @@
 <div class="container py-4">
   <h1 class="h3 mb-4">Billing</h1>
 
+  @if(\App\Services\Billing\WalletService::isEnabled())
+    @php
+      $__wallet = app(\App\Services\Billing\WalletService::class)->walletFor(auth()->user());
+      $__low = (int) ($__wallet->low_balance_threshold ?? 100);
+    @endphp
+    <div class="card mb-4 border-0" style="background:linear-gradient(135deg,#7c3aed20,#f59e0b20);">
+      <div class="card-body d-flex align-items-center justify-content-between">
+        <div>
+          <div class="text-muted small text-uppercase">Coin wallet</div>
+          <div class="h4 mb-0">{{ number_format($__wallet->balance) }} 🪙</div>
+          @if($__low > 0 && $__wallet->balance < $__low)
+            <div class="small text-warning mt-1"><i class="fas fa-exclamation-triangle"></i> Balance below {{ number_format($__low) }} coins — top up to keep using coin add-ons.</div>
+          @endif
+        </div>
+        <div class="d-flex gap-2">
+          <a href="{{ route('user.wallet.show') }}" class="btn btn-outline-secondary btn-sm">View wallet</a>
+          <a href="{{ route('user.wallet.buy') }}" class="btn btn-primary btn-sm">Buy coins</a>
+        </div>
+      </div>
+    </div>
+  @endif
+
   @if (session('status'))<div class="alert alert-success">{{ session('status') }}</div>@endif
   @if (session('error'))<div class="alert alert-danger">{{ session('error') }}</div>@endif
 

@@ -51,6 +51,61 @@ export async function apiFetch<T = unknown>(
   return body as T;
 }
 
+// ── Wallet & coins ────────────────────────────────────────────────
+export type WalletBalance = {
+  enabled: boolean;
+  balance: number;
+  low_balance_threshold: number;
+  currency: string;
+  rate_coins_per_unit: number;
+};
+export type WalletTransaction = {
+  id: number;
+  type: "purchase" | "spend" | "adjustment" | "refund";
+  delta_coins: number;
+  balance_after: number;
+  reason: string | null;
+  created_at: string | null;
+};
+export type CoinPackage = {
+  id: number;
+  slug: string;
+  name: string;
+  description: string | null;
+  coin_amount: number;
+  bonus_coins: number;
+  total_coins: number;
+  currency: string;
+  amount_minor: number;
+  formatted: string | null;
+};
+export type WalletPurchaseResponse = {
+  invoice_id: number;
+  invoice_no: string;
+  amount_minor: number;
+  currency: string;
+  handoff: { kind: "redirect"; url: string } | { kind: "view"; view: string; data: unknown } | unknown;
+};
+
+export const wallet = {
+  balance: () => apiFetch<WalletBalance>("/wallet"),
+  transactions: (params: { type?: string; limit?: number } = {}) => {
+    const q = new URLSearchParams();
+    if (params.type) q.set("type", params.type);
+    if (params.limit) q.set("limit", String(params.limit));
+    const qs = q.toString();
+    return apiFetch<{ items: WalletTransaction[] }>(
+      `/wallet/transactions${qs ? `?${qs}` : ""}`,
+    );
+  },
+  packages: () => apiFetch<{ items: CoinPackage[]; currency: string }>("/wallet/packages"),
+  purchase: (coin_package_id: number, gateway: string) =>
+    apiFetch<WalletPurchaseResponse>("/wallet/purchase", {
+      method: "POST",
+      body: JSON.stringify({ coin_package_id, gateway }),
+    }),
+};
+
 function safeJson(text: string): any {
   try {
     return JSON.parse(text);

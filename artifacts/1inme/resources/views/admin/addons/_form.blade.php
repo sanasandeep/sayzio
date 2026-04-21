@@ -90,6 +90,15 @@
         </div>
     </div>
 
+    <div class="border-t border-white/10 pt-5">
+        <h3 class="text-sm font-medium text-white/80 mb-1">Coin price (optional)</h3>
+        <p class="text-[11px] text-white/40 mb-3">If set, customers can pay for this add-on with coins from their wallet. Leave blank to keep this add-on currency-only.</p>
+        <input type="number" name="coin_cost" min="0" step="1"
+               value="{{ old('coin_cost', $addon->coin_cost) }}"
+               placeholder="e.g. 500"
+               class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-violet-500/40 outline-none">
+    </div>
+
     <div class="grid grid-cols-2 gap-4">
         <div>
             <label class="block text-sm font-medium text-white/80 mb-1">Status</label>
