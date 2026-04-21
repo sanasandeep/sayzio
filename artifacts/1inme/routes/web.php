@@ -74,6 +74,8 @@ Route::post('/contact', [\App\Modules\Common\Controllers\SitePageController::cla
     ->name('site.contact.submit')->middleware('throttle:10,10');
 Route::post('/newsletter/subscribe', [\App\Modules\Common\Controllers\NewsletterController::class, 'subscribe'])
     ->name('site.newsletter.subscribe')->middleware('throttle:10,10');
+Route::get('/newsletter/unsubscribe/{subscriber}', [\App\Modules\Common\Controllers\NewsletterController::class, 'unsubscribe'])
+    ->name('site.newsletter.unsubscribe')->middleware('throttle:30,10');
 
 // Public referral tracking — must precede the catch-all /{alias} routes.
 Route::get('/r/{code}', [\App\Modules\User\Controllers\ReferralController::class, 'track'])
