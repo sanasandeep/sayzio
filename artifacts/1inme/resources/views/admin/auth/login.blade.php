@@ -78,12 +78,20 @@
 
             <div class="mt-6 pt-6" style="border-top: 1px solid var(--border-glass);">
                 <p class="text-center text-[10px] uppercase tracking-wider font-semibold mb-3" style="color: var(--text-faint);">Quick access</p>
-                <form method="POST" action="{{ route('admin.demo.login') }}">
-                    @csrf
-                    <button type="submit" class="btn-ghost w-full justify-center text-xs py-2">
-                        <i class="fas fa-shield-alt text-[10px]"></i> Demo Admin Login
-                    </button>
-                </form>
+                <div class="grid grid-cols-2 gap-2">
+                    <form method="POST" action="{{ route('user.demo.login') }}">
+                        @csrf
+                        <button type="submit" class="btn-ghost w-full justify-center text-xs py-2">
+                            <i class="fas fa-user text-[10px]"></i> Demo User
+                        </button>
+                    </form>
+                    <form method="POST" action="{{ route('admin.demo.login') }}">
+                        @csrf
+                        <button type="submit" class="btn-ghost w-full justify-center text-xs py-2">
+                            <i class="fas fa-shield-alt text-[10px]"></i> Demo Admin
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>

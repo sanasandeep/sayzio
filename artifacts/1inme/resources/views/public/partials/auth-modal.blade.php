@@ -86,6 +86,24 @@
                         @foreach($errors->all() as $err)<div>{{ $err }}</div>@endforeach
                     </div>
                 @endif
+
+                <div class="mt-5 pt-4 border-t border-white/10">
+                    <p class="text-center text-[10px] uppercase tracking-wider font-bold mb-3 text-gray-500">Quick access</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <form method="POST" action="{{ route('user.demo.login') }}">
+                            @csrf
+                            <button type="submit" class="w-full py-2 text-xs font-medium rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition">
+                                <i class="fas fa-user mr-1 text-[10px]"></i> Demo User
+                            </button>
+                        </form>
+                        <form method="POST" action="{{ route('admin.demo.login') }}">
+                            @csrf
+                            <button type="submit" class="w-full py-2 text-xs font-medium rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition">
+                                <i class="fas fa-shield-alt mr-1 text-[10px]"></i> Demo Admin
+                            </button>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
