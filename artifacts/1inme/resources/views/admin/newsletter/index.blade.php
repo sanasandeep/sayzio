@@ -22,6 +22,61 @@
             </div>
         </div>
 
+        <div class="mb-4 p-4 bg-white/[0.02] border border-white/10 rounded-xl">
+            <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+                <div>
+                    <h3 class="text-sm font-semibold text-white">Opt-out sources</h3>
+                    <p class="text-[11px] text-white/40">Last {{ $optOutBreakdown['window_days'] }} days · {{ number_format($optOutBreakdown['total']) }} unsubscribe{{ $optOutBreakdown['total'] === 1 ? '' : 's' }}</p>
+                </div>
+                <div class="flex items-center gap-3 text-[11px] text-white/60">
+                    <span class="flex items-center gap-1.5"><span class="inline-block w-2 h-2 rounded-full bg-sky-400"></span>Inbox one-click</span>
+                    <span class="flex items-center gap-1.5"><span class="inline-block w-2 h-2 rounded-full bg-amber-400"></span>Footer link</span>
+                    @if($optOutBreakdown['unknown']['count'] > 0)
+                        <span class="flex items-center gap-1.5"><span class="inline-block w-2 h-2 rounded-full bg-white/30"></span>Unknown</span>
+                    @endif
+                </div>
+            </div>
+
+            @if($optOutBreakdown['total'] > 0)
+                <div class="flex w-full h-2 rounded-full overflow-hidden bg-white/5 mb-3" role="img"
+                     aria-label="Opt-out sources: {{ $optOutBreakdown['inbox']['pct'] }}% inbox one-click, {{ $optOutBreakdown['footer']['pct'] }}% footer link@if($optOutBreakdown['unknown']['count'] > 0), {{ $optOutBreakdown['unknown']['pct'] }}% unknown@endif">
+                    @if($optOutBreakdown['inbox']['count'] > 0)
+                        <div class="bg-sky-400 h-full" style="width: {{ $optOutBreakdown['inbox']['pct'] }}%"></div>
+                    @endif
+                    @if($optOutBreakdown['footer']['count'] > 0)
+                        <div class="bg-amber-400 h-full" style="width: {{ $optOutBreakdown['footer']['pct'] }}%"></div>
+                    @endif
+                    @if($optOutBreakdown['unknown']['count'] > 0)
+                        <div class="bg-white/30 h-full" style="width: {{ $optOutBreakdown['unknown']['pct'] }}%"></div>
+                    @endif
+                </div>
+                <div class="grid grid-cols-2 @if($optOutBreakdown['unknown']['count'] > 0) sm:grid-cols-3 @endif gap-3">
+                    <div class="px-3 py-2 bg-white/[0.03] border border-white/5 rounded-lg">
+                        <div class="text-xs text-white/50">Inbox one-click</div>
+                        <div class="text-base font-semibold text-white">{{ $optOutBreakdown['inbox']['pct'] }}%
+                            <span class="text-xs font-normal text-white/40">· {{ number_format($optOutBreakdown['inbox']['count']) }}</span>
+                        </div>
+                    </div>
+                    <div class="px-3 py-2 bg-white/[0.03] border border-white/5 rounded-lg">
+                        <div class="text-xs text-white/50">Footer link</div>
+                        <div class="text-base font-semibold text-white">{{ $optOutBreakdown['footer']['pct'] }}%
+                            <span class="text-xs font-normal text-white/40">· {{ number_format($optOutBreakdown['footer']['count']) }}</span>
+                        </div>
+                    </div>
+                    @if($optOutBreakdown['unknown']['count'] > 0)
+                        <div class="px-3 py-2 bg-white/[0.03] border border-white/5 rounded-lg">
+                            <div class="text-xs text-white/50">Unknown</div>
+                            <div class="text-base font-semibold text-white">{{ $optOutBreakdown['unknown']['pct'] }}%
+                                <span class="text-xs font-normal text-white/40">· {{ number_format($optOutBreakdown['unknown']['count']) }}</span>
+                            </div>
+                        </div>
+                    @endif
+                </div>
+            @else
+                <p class="text-xs text-white/40">No opt-outs in the last {{ $optOutBreakdown['window_days'] }} days.</p>
+            @endif
+        </div>
+
         @if(session('success'))
             <div class="mb-4 px-3 py-2 bg-emerald-500/10 border border-emerald-400/30 text-emerald-200 rounded-lg text-sm">
                 {{ session('success') }}

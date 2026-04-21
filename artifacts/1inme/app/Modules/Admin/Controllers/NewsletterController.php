@@ -27,7 +27,36 @@ class NewsletterController extends Controller
             'all'    => NewsletterSubscriber::count(),
             'active' => NewsletterSubscriber::whereNull('unsubscribed_at')->count(),
         ];
-        return view('admin.newsletter.index', compact('subscribers', 'q', 'totals'));
+
+        $optOutWindowDays = 30;
+        $windowStart = now()->subDays($optOutWindowDays);
+        $sourceCounts = NewsletterSubscriber::query()
+            ->whereNotNull('unsubscribed_at')
+            ->where('unsubscribed_at', '>=', $windowStart)
+            ->selectRaw("COALESCE(NULLIF(unsubscribe_source, ''), 'unknown') AS src, COUNT(*) AS c")
+            ->groupBy('src')
+            ->pluck('c', 'src')
+            ->all();
+
+        $inboxCount   = (int) ($sourceCounts['inbox'] ?? 0);
+        $footerCount  = (int) ($sourceCounts['footer'] ?? 0);
+        $knownOther   = array_sum(array_map('intval', array_diff_key($sourceCounts, array_flip(['inbox', 'footer']))));
+        $unknownCount = $knownOther;
+        $optOutTotal  = array_sum(array_map('intval', $sourceCounts));
+
+        $pct = function (int $n) use ($optOutTotal) {
+            return $optOutTotal > 0 ? round(($n / $optOutTotal) * 100) : 0;
+        };
+
+        $optOutBreakdown = [
+            'window_days' => $optOutWindowDays,
+            'total'       => $optOutTotal,
+            'inbox'       => ['count' => $inboxCount,   'pct' => $pct($inboxCount)],
+            'footer'      => ['count' => $footerCount,  'pct' => $pct($footerCount)],
+            'unknown'     => ['count' => $unknownCount, 'pct' => $pct($unknownCount)],
+        ];
+
+        return view('admin.newsletter.index', compact('subscribers', 'q', 'totals', 'optOutBreakdown'));
     }
 
     public function destroy(NewsletterSubscriber $subscriber)
