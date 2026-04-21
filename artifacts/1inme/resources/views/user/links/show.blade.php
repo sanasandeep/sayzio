@@ -553,7 +553,7 @@
         // Show "(all variants)" so creators understand this rolls up regional
         // locales (en-US + en-GB + en_CA → English) rather than matching one.
         $blfValue = $blf['name'] . ' (all variants)';
-        $activeFilters[] = ['key' => 'lang_base', 'label' => 'Language', 'value' => $blfValue, 'icon' => 'fa-language', 'clearUrl' => $buildUrl(['lang_base' => null]), 'title' => 'Remove base-language filter (' . $baseLanguageFilter . ')'];
+        $activeFilters[] = ['key' => 'lang_base', 'label' => 'Language', 'value' => $blfValue, 'icon' => 'fa-layer-group', 'clearUrl' => $buildUrl(['lang_base' => null]), 'title' => 'Remove base-language filter (' . $baseLanguageFilter . ' — rollup of all regional variants)', 'iconTitle' => 'Rollup of all regional variants'];
     }
     $clearAllUrl = $buildUrl(['alias' => null, 'source' => null, 'country' => null, 'device' => null, 'language' => null, 'lang_base' => null]);
 @endphp
@@ -568,7 +568,7 @@
         <a href="{{ $f['clearUrl'] }}"
            class="pill pill-active-soft inline-flex items-center gap-1.5"
            title="{{ $f['title'] ?? ('Remove ' . $f['label'] . ' filter') }}">
-            <i class="fas {{ $f['icon'] }} text-[9px] opacity-70"></i>
+            <i class="fas {{ $f['icon'] }} text-[9px] opacity-70" @if(!empty($f['iconTitle'])) title="{{ $f['iconTitle'] }}" @endif></i>
             <span class="opacity-70">{{ $f['label'] }}:</span>
             <span class="font-bold">{{ $f['value'] }}</span>
             <i class="fas fa-times text-[9px] ml-0.5 opacity-80"></i>
