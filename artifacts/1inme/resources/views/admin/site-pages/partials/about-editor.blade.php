@@ -295,9 +295,15 @@
                 <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Photo <span class="normal-case tracking-normal text-white/40">(upload an image or paste a URL)</span></label>
                 <div x-data="aboutPhotoUploader({ get: () => photo, set: (v) => photo = v })" class="space-y-2">
                     <div class="flex items-start gap-3">
-                        <template x-if="photo">
-                            <img :src="photo" alt="" class="w-16 h-16 rounded-lg object-cover border border-white/10 bg-white/5" @error="$el.style.display='none'">
-                        </template>
+                        <div class="shrink-0 text-center">
+                            <template x-if="photo">
+                                <img :src="photo" alt="" class="w-32 h-32 rounded-full object-cover border-2 border-violet-400/40 bg-white/5" @error="$el.style.display='none'">
+                            </template>
+                            <template x-if="!photo">
+                                <div class="w-32 h-32 rounded-full border-2 border-dashed border-white/15 bg-white/5 flex items-center justify-center text-[10px] text-white/40 text-center px-2">As shown on /about</div>
+                            </template>
+                            <div class="text-[10px] text-white/40 mt-1">Live /about preview</div>
+                        </div>
                         <div class="flex-1 space-y-2">
                             <input type="url" name="extra[founder][photo]" x-model="photo" placeholder="https://… or upload below" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
                             <div class="flex items-center gap-2 flex-wrap">
@@ -354,9 +360,15 @@
                 </div>
                 <div x-data="aboutPhotoUploader({ get: () => p.photo, set: (v) => p.photo = v })" class="space-y-2">
                     <div class="flex items-start gap-3">
-                        <template x-if="p.photo">
-                            <img :src="p.photo" alt="" class="w-14 h-14 rounded-lg object-cover border border-white/10 bg-white/5" @error="$el.style.display='none'">
-                        </template>
+                        <div class="shrink-0 text-center">
+                            <template x-if="p.photo">
+                                <img :src="p.photo" alt="" class="w-24 h-24 rounded-full object-cover border-2 border-white/10 bg-white/5" @error="$el.style.display='none'">
+                            </template>
+                            <template x-if="!p.photo">
+                                <div class="w-24 h-24 rounded-full border-2 border-dashed border-white/15 bg-white/5 flex items-center justify-center text-[10px] text-white/40 text-center px-2">As shown on /about</div>
+                            </template>
+                            <div class="text-[10px] text-white/40 mt-1">Live /about preview</div>
+                        </div>
                         <div class="flex-1 space-y-2">
                             <input type="url" :name="'extra[co_founders]['+i+'][photo]'" x-model="p.photo" placeholder="Photo URL or upload below" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
                             <div class="flex items-center gap-2 flex-wrap">
@@ -407,9 +419,15 @@
                 </div>
                 <div x-data="aboutPhotoUploader({ get: () => p.photo, set: (v) => p.photo = v })" class="space-y-2">
                     <div class="flex items-start gap-3">
-                        <template x-if="p.photo">
-                            <img :src="p.photo" alt="" class="w-14 h-14 rounded-lg object-cover border border-white/10 bg-white/5" @error="$el.style.display='none'">
-                        </template>
+                        <div class="shrink-0 text-center">
+                            <template x-if="p.photo">
+                                <img :src="p.photo" alt="" class="w-16 h-16 rounded-full object-cover bg-white/5" @error="$el.style.display='none'">
+                            </template>
+                            <template x-if="!p.photo">
+                                <div class="w-16 h-16 rounded-full border-2 border-dashed border-white/15 bg-white/5 flex items-center justify-center text-[9px] text-white/40 text-center px-1">/about</div>
+                            </template>
+                            <div class="text-[10px] text-white/40 mt-1">Live preview</div>
+                        </div>
                         <div class="flex-1 space-y-2">
                             <input type="url" :name="'extra[team]['+i+'][photo]'" x-model="p.photo" placeholder="Photo URL or upload below" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
                             <div class="flex items-center gap-2 flex-wrap">
