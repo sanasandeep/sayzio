@@ -52,7 +52,22 @@
                             <td class="py-2 pr-3 text-xs text-white/60">{{ optional($s->created_at)->format('Y-m-d H:i') }}</td>
                             <td class="py-2 pr-3 text-xs">
                                 @if($s->unsubscribed_at)
-                                    <span class="px-2 py-0.5 rounded-full bg-white/5 text-white/50">unsubscribed</span>
+                                    <div class="flex flex-col gap-0.5">
+                                        <span class="px-2 py-0.5 rounded-full bg-white/5 text-white/50 inline-block w-fit">
+                                            unsubscribed {{ $s->unsubscribed_at->format('Y-m-d') }}
+                                        </span>
+                                        @if($s->unsubscribe_source === 'inbox')
+                                            <span class="text-[10px] text-white/40" title="One-click unsubscribe from the inbox provider (Gmail/Apple Mail) per RFC 8058">
+                                                via inbox one-click
+                                            </span>
+                                        @elseif($s->unsubscribe_source === 'footer')
+                                            <span class="text-[10px] text-white/40" title="Recipient clicked the unsubscribe link in the email footer">
+                                                via footer link
+                                            </span>
+                                        @else
+                                            <span class="text-[10px] text-white/30">source unknown</span>
+                                        @endif
+                                    </div>
                                 @else
                                     <span class="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-200">active</span>
                                 @endif

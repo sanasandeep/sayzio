@@ -43,6 +43,7 @@ class NewsletterController extends Controller
             // from someone double-submitting the form.
             if ($existing->unsubscribed_at) {
                 $existing->unsubscribed_at = null;
+                $existing->unsubscribe_source = null;
                 $existing->save();
                 NewsletterWelcomeMail::dispatchFor($existing);
             }
@@ -83,6 +84,10 @@ class NewsletterController extends Controller
 
         if (! $subscriber->unsubscribed_at) {
             $subscriber->unsubscribed_at = now();
+            // Distinguish footer-link clicks (GET, opened in a browser) from
+            // inbox-provider one-click pings (POST per RFC 8058) so admins
+            // can tell at a glance which channel drove the opt-out.
+            $subscriber->unsubscribe_source = $request->isMethod('post') ? 'inbox' : 'footer';
             $subscriber->save();
 
             // Attribute this opt-out to the issue that carried the link, so
