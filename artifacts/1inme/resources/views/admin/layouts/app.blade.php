@@ -177,6 +177,16 @@
                 @endif
 
                 @yield('content')
+
+                <footer class="mt-10 pt-5 pb-2 text-[11px] flex flex-col sm:flex-row items-center justify-between gap-3"
+                        style="border-top: 1px solid var(--border-glass); color: var(--text-dimmed);">
+                    <div class="flex items-center gap-2">
+                        <span>&copy; {{ date('Y') }} <span style="color: var(--text-muted); font-weight: 600;">1INME</span></span>
+                        <span style="color: var(--border-glass-light);">•</span>
+                        <span>Admin</span>
+                    </div>
+                    @include('common.partials.social-links-row', ['justify' => 'justify-end'])
+                </footer>
             </main>
         </div>
     </div>
