@@ -862,6 +862,97 @@
         html.light-mode [class*="hover:text-white"]:hover {
             color: var(--text-primary) !important;
         }
+        /* ----- Translucent BLACK backgrounds (used for overlays, dropdowns,
+           and dim scrims) become subtle dark tints over light surfaces so
+           content stays readable instead of producing near-black panels. */
+        html.light-mode [class*="bg-black/5"],
+        html.light-mode [class*="bg-black/[0.0"] {
+            background-color: var(--bg-glass-input) !important;
+        }
+        html.light-mode [class*="bg-black/1"],
+        html.light-mode [class*="bg-black/2"],
+        html.light-mode [class*="bg-black/3"] {
+            background-color: rgba(15,23,42,0.06) !important;
+        }
+        html.light-mode [class*="bg-black/4"],
+        html.light-mode [class*="bg-black/5"]:not([class*="bg-black/50"]) {
+            background-color: rgba(15,23,42,0.10) !important;
+        }
+        html.light-mode [class*="bg-black/50"],
+        html.light-mode [class*="bg-black/6"],
+        html.light-mode [class*="bg-black/7"],
+        html.light-mode [class*="bg-black/8"] {
+            background-color: var(--overlay-bg) !important;
+        }
+        html.light-mode [class*="hover:bg-black"]:hover {
+            background-color: var(--bg-glass-hover) !important;
+        }
+        html.light-mode [class*="border-black/"] {
+            border-color: var(--border-glass) !important;
+        }
+        /* ----- Tailwind palette text colors (zinc/slate/neutral/stone)
+           sometimes used in dashboard widgets — map them onto our muted
+           tokens so they read on the light surface. */
+        html.light-mode [class*="text-zinc-1"],
+        html.light-mode [class*="text-zinc-2"],
+        html.light-mode [class*="text-slate-1"],
+        html.light-mode [class*="text-slate-2"],
+        html.light-mode [class*="text-neutral-1"],
+        html.light-mode [class*="text-neutral-2"],
+        html.light-mode [class*="text-stone-1"],
+        html.light-mode [class*="text-stone-2"] {
+            color: var(--text-faint) !important;
+        }
+        html.light-mode [class*="text-zinc-3"],
+        html.light-mode [class*="text-zinc-4"],
+        html.light-mode [class*="text-slate-3"],
+        html.light-mode [class*="text-slate-4"],
+        html.light-mode [class*="text-neutral-3"],
+        html.light-mode [class*="text-neutral-4"],
+        html.light-mode [class*="text-stone-3"],
+        html.light-mode [class*="text-stone-4"] {
+            color: var(--text-muted) !important;
+        }
+        html.light-mode [class*="text-zinc-5"],
+        html.light-mode [class*="text-zinc-6"],
+        html.light-mode [class*="text-slate-5"],
+        html.light-mode [class*="text-slate-6"],
+        html.light-mode [class*="text-neutral-5"],
+        html.light-mode [class*="text-neutral-6"],
+        html.light-mode [class*="text-stone-5"],
+        html.light-mode [class*="text-stone-6"] {
+            color: var(--text-dimmed) !important;
+        }
+        /* ----- Dark Tailwind backgrounds (slate/zinc/gray/neutral/stone 7xx-9xx)
+           lift to white so light dashboards don't get heavy dark slabs. */
+        html.light-mode [class*="bg-slate-7"],
+        html.light-mode [class*="bg-slate-8"],
+        html.light-mode [class*="bg-slate-9"],
+        html.light-mode [class*="bg-zinc-7"],
+        html.light-mode [class*="bg-zinc-8"],
+        html.light-mode [class*="bg-zinc-9"],
+        html.light-mode [class*="bg-gray-7"],
+        html.light-mode [class*="bg-gray-8"],
+        html.light-mode [class*="bg-gray-9"],
+        html.light-mode [class*="bg-neutral-7"],
+        html.light-mode [class*="bg-neutral-8"],
+        html.light-mode [class*="bg-neutral-9"],
+        html.light-mode [class*="bg-stone-7"],
+        html.light-mode [class*="bg-stone-8"],
+        html.light-mode [class*="bg-stone-9"] {
+            background-color: var(--bg-card) !important;
+            color: var(--text-primary) !important;
+        }
+        /* ----- Inline ad-hoc dark surface (rgba near-black popovers) becomes
+           an elevated white card. Targets the common dropdown/popover pattern
+           background: rgba(20,20,32,0.95). */
+        html.light-mode [style*="rgba(20,20,32"],
+        html.light-mode [style*="rgba(14,15,21"],
+        html.light-mode [style*="rgba(10,10,15"] {
+            background: var(--bg-card) !important;
+            color: var(--text-primary) !important;
+            border-color: var(--border-glass) !important;
+        }
         html.light-mode input:not([type="color"]):not([type="checkbox"]):not([type="radio"]),
         html.light-mode textarea,
         html.light-mode select {
