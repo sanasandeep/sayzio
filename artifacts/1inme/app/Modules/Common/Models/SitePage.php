@@ -6,11 +6,26 @@ use Illuminate\Database\Eloquent\Model;
 
 class SitePage extends Model
 {
-    protected $fillable = ['slug', 'title', 'meta_description', 'sections', 'cta_label', 'cta_url'];
+    protected $fillable = ['slug', 'title', 'meta_description', 'intro', 'last_updated_at', 'show_toc', 'sections', 'cta_label', 'cta_url'];
 
     protected function casts(): array
     {
-        return ['sections' => 'array'];
+        return [
+            'sections'        => 'array',
+            'last_updated_at' => 'date',
+            'show_toc'        => 'boolean',
+        ];
+    }
+
+    /**
+     * Sections that should be rendered on the public page (visible only).
+     */
+    public function visibleSections(): array
+    {
+        $sections = is_array($this->sections) ? $this->sections : [];
+        return array_values(array_filter($sections, function ($s) {
+            return !array_key_exists('visible', $s) || (bool) $s['visible'];
+        }));
     }
 
     public function faqs()

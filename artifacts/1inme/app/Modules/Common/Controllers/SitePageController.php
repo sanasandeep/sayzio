@@ -58,6 +58,9 @@ class SitePageController extends Controller
                 'useCases' => $this->normaliseServicesSections($page->sections ?? []),
             ]);
         }
+        if (in_array($slug, SitePagesContent::policySlugs(), true)) {
+            return view('public.policy', ['page' => $page]);
+        }
         return view('public.page', ['page' => $page]);
     }
 

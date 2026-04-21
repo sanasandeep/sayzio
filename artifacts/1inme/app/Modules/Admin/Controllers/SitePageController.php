@@ -55,9 +55,14 @@ class SitePageController extends Controller
         $rules = [
             'title' => 'required|string|max:200',
             'meta_description' => 'nullable|string|max:500',
+            'intro' => 'nullable|string|max:2000',
+            'last_updated_at' => 'nullable|date',
+            'show_toc' => 'nullable|boolean',
             'sections' => 'array',
+            'sections.*.id' => 'nullable|string|max:80',
             'sections.*.heading' => 'nullable|string|max:200',
             'sections.*.body' => 'nullable|string|max:20000',
+            'sections.*.visible' => 'nullable|boolean',
             'cta_label' => 'nullable|string|max:120',
             'cta_url' => ['nullable', 'string', 'max:500', 'regex:#^(/|https?://)#i'],
             'error_404_suggestions_enabled' => 'nullable|boolean',
@@ -77,33 +82,52 @@ class SitePageController extends Controller
         $sections = collect($data['sections'] ?? [])
             ->filter(fn($s) => trim($s['heading'] ?? '') !== '' || trim($s['body'] ?? '') !== '')
             ->map(function ($s) use ($slug) {
-                if ($slug !== 'services') {
-                    return ['heading' => $s['heading'] ?? '', 'body' => $s['body'] ?? ''];
+                if ($slug === 'services') {
+                    $bulletsRaw = (string) ($s['bullets'] ?? '');
+                    $bullets = array_values(array_filter(
+                        array_map('trim', preg_split('/\r?\n/', $bulletsRaw)),
+                        fn($b) => $b !== ''
+                    ));
+                    return [
+                        'heading'   => trim((string) ($s['heading'] ?? '')),
+                        'tagline'   => trim((string) ($s['tagline'] ?? '')),
+                        'body'      => (string) ($s['body'] ?? ''),
+                        'icon'      => trim((string) ($s['icon'] ?? '')),
+                        'tint'      => trim((string) ($s['tint'] ?? '')),
+                        'bullets'   => $bullets,
+                        'cta_label' => trim((string) ($s['cta_label'] ?? '')),
+                        'cta_url'   => trim((string) ($s['cta_url'] ?? '')),
+                    ];
                 }
-                $bulletsRaw = (string) ($s['bullets'] ?? '');
-                $bullets = array_values(array_filter(
-                    array_map('trim', preg_split('/\r?\n/', $bulletsRaw)),
-                    fn($b) => $b !== ''
-                ));
                 return [
-                    'heading'   => trim((string) ($s['heading'] ?? '')),
-                    'tagline'   => trim((string) ($s['tagline'] ?? '')),
-                    'body'      => (string) ($s['body'] ?? ''),
-                    'icon'      => trim((string) ($s['icon'] ?? '')),
-                    'tint'      => trim((string) ($s['tint'] ?? '')),
-                    'bullets'   => $bullets,
-                    'cta_label' => trim((string) ($s['cta_label'] ?? '')),
-                    'cta_url'   => trim((string) ($s['cta_url'] ?? '')),
+                    'id'      => trim((string) ($s['id'] ?? '')),
+                    'heading' => (string) ($s['heading'] ?? ''),
+                    'body'    => (string) ($s['body'] ?? ''),
+                    'visible' => array_key_exists('visible', $s) ? (bool) $s['visible'] : true,
                 ];
             })
             ->values()->all();
-        $page->update([
+        // The services page uses a specialized section schema (tagline, icon,
+        // bullets, CTA, etc.) that normalizeSections would strip — only
+        // normalize for the generic/policy editor.
+        if ($slug !== 'services') {
+            $sections = SitePagesContent::normalizeSections($sections);
+        }
+
+        $isPolicy = in_array($slug, SitePagesContent::policySlugs(), true);
+        $payload = [
             'title' => $data['title'],
             'meta_description' => $data['meta_description'] ?? null,
             'sections' => $sections,
             'cta_label' => $data['cta_label'] ?? null,
             'cta_url' => $data['cta_url'] ?? null,
-        ]);
+        ];
+        if ($isPolicy) {
+            $payload['intro'] = $data['intro'] ?? null;
+            $payload['last_updated_at'] = $data['last_updated_at'] ?? null;
+            $payload['show_toc'] = (bool) $request->input('show_toc', false);
+        }
+        $page->update($payload);
         return redirect()->route('admin.site-pages.edit', $slug)->with('success', 'Page updated.');
     }
 

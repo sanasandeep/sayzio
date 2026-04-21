@@ -6,6 +6,8 @@
 
     @php
         $isServices = $page->slug === 'services';
+        $policySlugs = \App\Modules\Common\Support\SitePagesContent::policySlugs();
+        $isPolicy = in_array($page->slug, $policySlugs, true);
         $iconChoices = [
             'fa-bullhorn','fa-store','fa-shop','fa-cart-shopping','fa-bag-shopping','fa-tag','fa-tags','fa-gift','fa-percent',
             'fa-rocket','fa-bolt','fa-fire','fa-star','fa-heart','fa-thumbs-up','fa-trophy','fa-award','fa-medal','fa-crown','fa-gem',
@@ -27,12 +29,12 @@
             'fa-circle-dot','fa-puzzle-piece','fa-cube','fa-layer-group','fa-shapes','fa-infinity','fa-recycle',
         ];
         $iconChoices = array_values(array_unique($iconChoices));
-        $servicesSeed = [];
         if ($isServices) {
+            $sectionsForJs = [];
             foreach (array_values($page->sections ?? []) as $s) {
                 $bullets = $s['bullets'] ?? [];
                 if (is_array($bullets)) { $bullets = implode("\n", $bullets); }
-                $servicesSeed[] = [
+                $sectionsForJs[] = [
                     'heading'   => (string) ($s['heading'] ?? ''),
                     'tagline'   => (string) ($s['tagline'] ?? ''),
                     'body'      => (string) ($s['body'] ?? ''),
@@ -43,6 +45,15 @@
                     'cta_url'   => (string) ($s['cta_url'] ?? ''),
                 ];
             }
+        } else {
+            $sectionsForJs = array_map(function ($s) {
+                return [
+                    'id'      => $s['id'] ?? '',
+                    'heading' => $s['heading'] ?? '',
+                    'body'    => $s['body'] ?? '',
+                    'visible' => array_key_exists('visible', $s) ? (bool) $s['visible'] : true,
+                ];
+            }, array_values($page->sections ?? []));
         }
     @endphp
 
@@ -51,9 +62,15 @@
     @else
     <form method="POST" action="{{ route('admin.site-pages.update', $page->slug) }}"
           @if($isServices)
-          x-data="{ sections: {{ json_encode($servicesSeed) }}, iconChoices: {{ json_encode($iconChoices) }}, pickerOpen: null, pickerQuery: '', filteredIcons() { const q = (this.pickerQuery || '').toLowerCase().trim(); return q ? this.iconChoices.filter(n => n.toLowerCase().includes(q)) : this.iconChoices; } }"
+          x-data="{ sections: {{ json_encode($sectionsForJs) }},
+                    iconChoices: {{ json_encode($iconChoices) }}, pickerOpen: null, pickerQuery: '',
+                    filteredIcons() { const q = (this.pickerQuery || '').toLowerCase().trim(); return q ? this.iconChoices.filter(n => n.toLowerCase().includes(q)) : this.iconChoices; },
+                    moveUp(i){ if(i>0){ const a=this.sections; [a[i-1],a[i]]=[a[i],a[i-1]]; } },
+                    moveDown(i){ const a=this.sections; if(i<a.length-1){ [a[i+1],a[i]]=[a[i],a[i+1]]; } } }"
           @else
-          x-data="{ sections: {{ json_encode(array_values($page->sections ?? [])) }} }"
+          x-data="{ sections: {{ json_encode($sectionsForJs) }},
+                    moveUp(i){ if(i>0){ const a=this.sections; [a[i-1],a[i]]=[a[i],a[i-1]]; } },
+                    moveDown(i){ const a=this.sections; if(i<a.length-1){ [a[i+1],a[i]]=[a[i],a[i+1]]; } } }"
           @endif
           class="glass rounded-2xl p-6 space-y-5">
         @csrf
@@ -75,6 +92,28 @@
                 <p class="mt-1 text-[11px] text-white/40">Doubles as the hero subtitle on the public /services page.</p>
             @endif
         </div>
+
+        @if($isPolicy)
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Intro paragraph</label>
+                <textarea name="intro" rows="3" placeholder="Short intro shown under the page title." class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">{{ old('intro', $page->intro) }}</textarea>
+                @error('intro')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+            </div>
+            <div class="grid sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Last updated</label>
+                    <input type="date" name="last_updated_at" value="{{ old('last_updated_at', optional($page->last_updated_at)->format('Y-m-d')) }}" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                    @error('last_updated_at')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                </div>
+                <div class="flex items-end">
+                    <label class="inline-flex items-center gap-2 text-sm text-white">
+                        <input type="hidden" name="show_toc" value="0">
+                        <input type="checkbox" name="show_toc" value="1" {{ old('show_toc', $page->show_toc ?? true) ? 'checked' : '' }} class="rounded border-white/20 bg-white/5">
+                        Show table of contents
+                    </label>
+                </div>
+            </div>
+        @endif
 
         @if($isServices)
             <div>
@@ -185,16 +224,27 @@
             <div>
                 <div class="flex items-center justify-between mb-2">
                     <label class="text-xs font-semibold uppercase tracking-wider text-white/60">Content sections</label>
-                    <button type="button" @click="sections.push({heading:'',body:''})" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 rounded-lg text-white">
+                    <button type="button" @click="sections.push({id:'',heading:'',body:'',visible:true})" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 rounded-lg text-white">
                         <i class="fas fa-plus mr-1"></i> Add section
                     </button>
                 </div>
                 <template x-for="(s, i) in sections" :key="i">
-                    <div class="bg-white/5 border border-white/10 rounded-xl p-4 mb-3 space-y-2">
-                        <div class="flex items-center justify-between">
+                    <div class="bg-white/5 border border-white/10 rounded-xl p-4 mb-3 space-y-2"
+                         :class="{ 'opacity-60': !s.visible }">
+                        <div class="flex items-center justify-between gap-2 flex-wrap">
                             <span class="text-[10px] uppercase tracking-wider text-white/40">Section <span x-text="i+1"></span></span>
-                            <button type="button" @click="sections.splice(i,1)" class="text-xs text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button>
+                            <div class="flex items-center gap-2">
+                                <label class="inline-flex items-center gap-1.5 text-[11px] text-white/70 cursor-pointer select-none">
+                                    <input type="hidden" :name="'sections['+i+'][visible]'" value="0">
+                                    <input type="checkbox" :name="'sections['+i+'][visible]'" value="1" x-model="s.visible" class="rounded border-white/20 bg-white/5">
+                                    <span x-text="s.visible ? 'Visible' : 'Hidden'"></span>
+                                </label>
+                                <button type="button" @click="moveUp(i)" :disabled="i===0" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1" title="Move up"><i class="fas fa-arrow-up"></i></button>
+                                <button type="button" @click="moveDown(i)" :disabled="i===sections.length-1" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1" title="Move down"><i class="fas fa-arrow-down"></i></button>
+                                <button type="button" @click="if(confirm('Delete this section?')) sections.splice(i,1)" class="text-xs text-red-400 hover:text-red-300 px-1.5 py-1" title="Delete"><i class="fas fa-trash"></i></button>
+                            </div>
                         </div>
+                        <input type="hidden" :name="'sections['+i+'][id]'" :value="s.id">
                         <input type="text" :name="'sections['+i+'][heading]'" x-model="s.heading" placeholder="Section heading"
                                class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
                         <label class="block text-[10px] uppercase tracking-wider text-white/40">Body <span class="normal-case tracking-normal text-white/40">(Markdown or basic HTML)</span></label>

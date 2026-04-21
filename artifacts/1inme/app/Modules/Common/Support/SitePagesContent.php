@@ -269,6 +269,201 @@ class SitePagesContent
     }
 
     /**
+     * Slugs handled by the dedicated policy renderer (richer layout with
+     * a sticky table of contents, anchored sections, intro, last-updated
+     * date, and a footer contact block).
+     */
+    public static function policySlugs(): array
+    {
+        return ['terms', 'privacy', 'refunds', 'cookies', 'gdpr'];
+    }
+
+    /**
+     * Lawyer-style default copy for the five long-form policy pages.
+     * Each section ships with a stable `id` (used as the anchor and as
+     * the merge key when backfilling), `heading`, `body`, and `visible`
+     * flag (admins can hide a section without deleting it).
+     */
+    public static function policyDefaults(): array
+    {
+        $today = date('Y-m-d');
+
+        return [
+            'terms' => [
+                'title' => 'Terms of Service',
+                'meta_description' => 'The terms governing your use of 1INME — your account, what you can publish, billing, intellectual property and how the relationship can end.',
+                'intro' => 'These Terms of Service ("Terms") govern your access to and use of the 1INME website, dashboard, APIs and related services (the "Service"). Please read them carefully — by creating an account or using the Service you agree to be bound by them.',
+                'last_updated_at' => $today,
+                'sections' => [
+                    ['id' => 'acceptance', 'heading' => '1. Acceptance of these terms', 'body' => "By creating an account, accessing or otherwise using the Service you confirm that you have read, understood and agree to be bound by these Terms and our Privacy Policy. If you are entering into these Terms on behalf of a company or other legal entity, you represent that you have the authority to bind that entity, in which case \"you\" and \"your\" refer to that entity. If you do not agree, you must not use the Service."],
+                    ['id' => 'eligibility-accounts', 'heading' => '2. Eligibility and accounts', 'body' => "You must be at least 16 years old (or the age of digital consent in your jurisdiction, whichever is higher) to create an account. You agree to provide accurate, current and complete information during registration and to keep it up to date. You are responsible for safeguarding your credentials, for all activity under your account, and for any actions taken by teammates or collaborators you invite. Notify us immediately of any unauthorised access."],
+                    ['id' => 'description-of-service', 'heading' => '3. Description of the service', 'body' => "1INME is a link-in-bio and short-link platform that lets you publish public profile pages, shorten URLs, generate dynamic QR codes, capture leads through forms, manage contacts, send broadcasts, view analytics and run related workflows. Features evolve over time and we may add, change or remove functionality. Material changes are announced inside the dashboard or by email."],
+                    ['id' => 'acceptable-use', 'heading' => '4. Acceptable use', 'body' => "You agree not to use the Service to: (a) violate any law, regulation or third-party right; (b) host, link to or distribute illegal, harmful, defamatory, obscene, hateful, fraudulent, deceptive or infringing content; (c) operate phishing, malware, scams, pyramid or unauthorised affiliate schemes; (d) send unsolicited bulk messages or spam through any channel; (e) interfere with, disrupt or attempt to gain unauthorised access to the Service, other accounts or our infrastructure; (f) reverse engineer, scrape or rate-abuse the Service; or (g) impersonate any person or misrepresent your affiliation. We may remove content and suspend or terminate accounts that breach this section."],
+                    ['id' => 'user-content', 'heading' => '5. Your content and licence to us', 'body' => "You retain all ownership of the content you upload, publish or transmit through the Service (\"User Content\"). You grant 1INME a worldwide, non-exclusive, royalty-free licence to host, store, reproduce, modify (for technical purposes such as resizing or formatting), display and distribute your User Content solely as needed to operate, provide, improve and promote the Service. You represent and warrant that you have all rights necessary to grant this licence and that your User Content does not infringe any third-party rights."],
+                    ['id' => 'intellectual-property', 'heading' => '6. Intellectual property', 'body' => "The Service, including its software, design, templates, logos, trademarks and documentation, is owned by 1INME or its licensors and is protected by intellectual property laws. Subject to your compliance with these Terms, we grant you a limited, non-exclusive, non-transferable, revocable licence to access and use the Service for its intended purpose. You may not copy, modify, distribute, sell or create derivative works of the Service except as expressly permitted."],
+                    ['id' => 'paid-plans-billing', 'heading' => '7. Paid plans, billing and renewals', 'body' => "Paid plans are billed in advance on a monthly or yearly cycle and renew automatically using the payment method on file until cancelled. Prices are listed on our pricing page and may change with at least 30 days' notice for new billing periods. Taxes may apply based on your billing address. You authorise us (and our payment processors) to charge the applicable fees, taxes and any usage-based add-ons to your payment method. Failed payments may result in downgrade or suspension after a grace period."],
+                    ['id' => 'free-trials', 'heading' => '8. Free trials and promotional offers', 'body' => "We may from time to time offer free trials or promotional pricing. Unless explicitly stated otherwise, at the end of any trial your account will automatically convert to the relevant paid plan and the payment method on file will be charged. You can cancel before the trial ends to avoid being billed. Promotional offers are limited to one per customer and may not be combined with other offers."],
+                    ['id' => 'cancellation', 'heading' => '9. Cancellation and downgrade', 'body' => "You can cancel or downgrade your paid plan at any time from your account settings. Cancellation takes effect at the end of the current billing period — you keep paid features until then and are not billed again. Downgrades may reduce limits and disable certain features immediately or at renewal. See the Refunds Policy for refund eligibility."],
+                    ['id' => 'third-party-services', 'heading' => '10. Third-party services and integrations', 'body' => "The Service may integrate with third-party platforms (e.g. payment processors, email providers, analytics, social networks, CRMs). Your use of those services is governed by their own terms and privacy policies, and we are not responsible for their availability, accuracy or actions. You are responsible for the configuration of any integrations you enable."],
+                    ['id' => 'disclaimers', 'heading' => '11. Disclaimers', 'body' => "The Service is provided \"as is\" and \"as available\" without warranties of any kind, express or implied, including warranties of merchantability, fitness for a particular purpose, non-infringement and accuracy. We do not warrant that the Service will be uninterrupted, error-free, secure or that defects will be corrected. Some jurisdictions do not allow the exclusion of certain warranties, in which case those exclusions may not apply to you."],
+                    ['id' => 'limitation-of-liability', 'heading' => '12. Limitation of liability', 'body' => "To the maximum extent permitted by law, in no event will 1INME, its affiliates, officers, directors, employees or agents be liable for any indirect, incidental, special, consequential, exemplary or punitive damages, or for any loss of profits, revenue, data, goodwill or other intangible losses, arising out of or in connection with your use of the Service. Our aggregate liability for any direct damages will not exceed the greater of (a) the amounts you paid us for the Service in the twelve months preceding the event giving rise to liability, or (b) USD 100."],
+                    ['id' => 'indemnification', 'heading' => '13. Indemnification', 'body' => "You agree to defend, indemnify and hold harmless 1INME and its affiliates from and against any claims, liabilities, damages, losses and expenses (including reasonable attorneys' fees) arising out of or in any way connected with: (a) your User Content; (b) your use of the Service; (c) your violation of these Terms; or (d) your violation of any third-party right, including intellectual property or privacy rights."],
+                    ['id' => 'termination', 'heading' => '14. Termination', 'body' => "You may close your account at any time from your settings. We may suspend or terminate your access to the Service, in whole or in part, if you breach these Terms, if required by law, or to protect the security or integrity of the Service or other users. We will give reasonable notice where appropriate. Upon termination, your right to use the Service stops, your published pages will no longer resolve, and your data will be deleted in accordance with our Privacy Policy and retention schedule."],
+                    ['id' => 'governing-law', 'heading' => '15. Governing law', 'body' => "These Terms and any dispute arising out of or in connection with them are governed by the laws of the jurisdiction in which 1INME is established, without regard to its conflict-of-law principles. Mandatory consumer protection laws of your country of residence are not affected."],
+                    ['id' => 'dispute-resolution', 'heading' => '16. Dispute resolution', 'body' => "Before filing any formal claim, you agree to first contact us at the address in Section 18 and try to resolve the dispute informally for at least 30 days. If we cannot resolve it, the dispute will be submitted to the exclusive jurisdiction of the courts of the place where 1INME is established, except where mandatory law assigns jurisdiction to another court (such as your local consumer court)."],
+                    ['id' => 'changes-to-terms', 'heading' => '17. Changes to these terms', 'body' => "We may update these Terms from time to time. When we make material changes, we will notify you by email or inside the dashboard at least 14 days before they take effect, and we will update the \"Last updated\" date above. Your continued use of the Service after the changes take effect constitutes your acceptance of the updated Terms."],
+                    ['id' => 'contact', 'heading' => '18. Contact us', 'body' => "If you have any questions about these Terms, please contact us through the [contact page](/contact)."],
+                ],
+            ],
+            'privacy' => [
+                'title' => 'Privacy Policy',
+                'meta_description' => 'How 1INME collects, uses, shares, retains and protects your personal data — and the rights you have over it.',
+                'intro' => 'This Privacy Policy explains what personal data 1INME collects when you use our website, dashboard, APIs and related services, why we collect it, how we use and share it, how long we keep it, and the rights you have. We are committed to handling your data lawfully, transparently and with care.',
+                'last_updated_at' => $today,
+                'sections' => [
+                    ['id' => 'data-we-collect', 'heading' => '1. What data we collect', 'body' => "We collect data in three broad categories:\n\n- **Account data** you give us — name, email address, phone number, password (hashed), billing address, profile handle and avatar.\n- **Profile and content data** — pages, blocks, links, files, images, forms, messages, contacts, posts and other content you create or upload.\n- **Payment data** — billing details handled by our payment processors. We never see or store full card numbers; we only retain the last four digits, brand and expiry for receipts.\n- **Usage and analytics data** — pages visited inside the dashboard, features used, clicks on your public pages, referrers and conversion events.\n- **Device, log and cookie data** — IP address, browser, operating system, language, time zone, device identifiers, and cookies/local storage entries necessary to keep you signed in and to remember preferences."],
+                    ['id' => 'how-we-use', 'heading' => '2. How we use your data', 'body' => "We use your personal data to: (a) provide, maintain and improve the Service; (b) authenticate you and protect accounts; (c) process payments and prevent fraud; (d) send essential service emails (receipts, security alerts, important changes); (e) provide customer support; (f) understand how the product is used so we can improve it; (g) comply with legal obligations; and (h) with your consent where required, send product updates or marketing."],
+                    ['id' => 'legal-bases', 'heading' => '3. Legal bases for processing', 'body' => "We rely on the following legal bases under the GDPR and similar laws:\n\n- **Performance of a contract** — to provide the Service you signed up for.\n- **Legitimate interests** — to secure the Service, prevent abuse, and improve our product.\n- **Legal obligation** — to keep records required for tax, accounting and law-enforcement purposes.\n- **Consent** — for optional marketing communications and any non-essential cookies, where required by law. You can withdraw consent at any time."],
+                    ['id' => 'sharing', 'heading' => '4. Who we share data with', 'body' => "We share personal data only with the categories of recipient strictly required to run the Service:\n\n- **Sub-processors** — cloud hosting, transactional email, SMS gateways, payment processors, analytics, customer support tooling and error monitoring. Each is bound by a written data-processing agreement.\n- **Professional advisers** — lawyers, accountants and auditors when needed.\n- **Authorities** — when required by valid legal process or to protect our rights, users or the public.\n- **Acquirers** — in the event of a merger, acquisition or sale, in which case we will notify you before your data is transferred and becomes subject to a different privacy policy.\n\nWe do not sell your personal data and we do not run third-party advertising trackers on the public pages you publish."],
+                    ['id' => 'international-transfers', 'heading' => '5. International data transfers', 'body' => "Your data may be processed in countries other than the one you live in, including outside the EU/EEA or the UK. Where we transfer personal data internationally, we rely on appropriate safeguards such as the European Commission's Standard Contractual Clauses (and the UK addendum where relevant) with each sub-processor."],
+                    ['id' => 'retention', 'heading' => '6. How long we keep your data', 'body' => "We keep your account data for as long as your account is open. When you delete your account or close it, we remove personal data from active systems within 30 days and from backups within 90 days, except where we are required to keep certain records for longer (for example, invoices and tax records, typically 6–10 years depending on jurisdiction). Anonymised, aggregated statistics may be retained indefinitely."],
+                    ['id' => 'security', 'heading' => '7. Security', 'body' => "We use industry-standard measures to protect personal data, including encryption in transit (TLS) and at rest, network isolation, role-based access controls, multi-factor authentication for privileged accounts, audit logging, regular backups and routine security reviews. No system is perfectly secure — please use a strong unique password and enable any additional security features available to you."],
+                    ['id' => 'your-rights', 'heading' => '8. Your rights', 'body' => "Depending on where you live, you have the right to: access your personal data; correct inaccurate or incomplete data; delete your data (right to be forgotten); restrict or object to certain processing; receive your data in a portable format; and withdraw any consent you previously gave. You can exercise most of these directly from your account settings or by contacting us. We will respond to verified requests within 30 days. You also have the right to lodge a complaint with your local data-protection authority."],
+                    ['id' => 'childrens-privacy', 'heading' => "9. Children's privacy", 'body' => "The Service is not directed to children under 16, and we do not knowingly collect personal data from children. If you believe we have collected data from a child, please contact us so we can delete it."],
+                    ['id' => 'do-not-track', 'heading' => '10. Do Not Track', 'body' => "Some browsers can transmit a \"Do Not Track\" (DNT) signal. There is currently no industry standard for how to respond to DNT signals, so we do not respond to them. You can still control non-essential cookies via your browser settings — see our Cookie Policy for details."],
+                    ['id' => 'changes', 'heading' => '11. Changes to this policy', 'body' => "We may update this Privacy Policy from time to time. When we make material changes we will notify you by email or inside the dashboard, and we will update the \"Last updated\" date above."],
+                    ['id' => 'contact', 'heading' => '12. Contact us / Data Protection Officer', 'body' => "If you have any questions, requests or complaints about this Privacy Policy or how we handle your data, please contact us through the [contact page](/contact). For data-protection enquiries you can address your message to our Data Protection Officer at the same address."],
+                ],
+            ],
+            'refunds' => [
+                'title' => 'Refunds Policy',
+                'meta_description' => 'How refunds work for 1INME paid plans and add-ons — eligibility, timing, exceptions and how to request one.',
+                'intro' => 'We want you to be happy with 1INME. This Refunds Policy explains when you can get a refund on a paid plan or add-on, how to request one, and how long the process takes.',
+                'last_updated_at' => $today,
+                'sections' => [
+                    ['id' => 'eligibility-window', 'heading' => '1. Eligibility window', 'body' => "You may request a full refund within **7 days** of the original purchase of any new paid plan, no questions asked. The 7-day window starts on the date of the first successful charge for the plan. The refund covers the most recent charge only — earlier billing periods are not refundable. Renewals are governed by Section 3 below."],
+                    ['id' => 'how-to-request', 'heading' => '2. How to request a refund', 'body' => "To request a refund, contact us from the email address on your account through the [contact page](/contact) or by replying to your invoice email. Please include:\n\n- the invoice number,\n- the email address on the account,\n- and a brief note about what didn't work for you (this helps us improve the product).\n\nWe will confirm receipt within one business day."],
+                    ['id' => 'processing-time', 'heading' => '3. Processing time', 'body' => "Approved refunds are issued back to the original payment method within **5 business days** of approval. The time it takes for the funds to appear on your statement depends on your bank or card issuer and may take an additional 3–10 business days."],
+                    ['id' => 'non-refundable', 'heading' => '4. Non-refundable items', 'body' => "The following are not eligible for a refund:\n\n- usage-based add-ons (extra short links, broadcasts, storage, message credits) once they have been consumed;\n- one-off services such as setup, migration or custom design work that has already been delivered;\n- accounts terminated by us for breach of our Terms of Service.\n\nUnused, prepaid add-on capacity within the 7-day window can be refunded on request."],
+                    ['id' => 'prorated-downgrades', 'heading' => '5. Downgrades and prorated credits', 'body' => "When you downgrade a paid plan mid-cycle, we do not issue a cash refund for the unused portion. Instead, the unused value is converted into account credit that is automatically applied to your next invoice."],
+                    ['id' => 'renewals', 'heading' => '6. Renewals', 'body' => "Recurring renewals (monthly or yearly) are not automatically refundable. We send a renewal reminder by email before each renewal so you can cancel or downgrade beforehand. If a renewal slipped past you and you did not use the Service in the renewed period, contact us — we review these requests on a case-by-case basis."],
+                    ['id' => 'chargebacks', 'heading' => '7. Chargebacks', 'body' => "Please contact us before opening a chargeback with your bank or card issuer — we can almost always resolve the issue faster and more flexibly than a chargeback can. Accounts with unresolved chargebacks may be suspended pending review, and any related fees passed on to us may be charged back to the account."],
+                    ['id' => 'contact', 'heading' => '8. Contact us', 'body' => "Questions about this policy or about a specific charge? Get in touch via the [contact page](/contact)."],
+                ],
+            ],
+            'cookies' => [
+                'title' => 'Cookie Policy',
+                'meta_description' => 'What cookies and similar technologies 1INME uses, why we use them, and how you can control them.',
+                'intro' => 'This Cookie Policy explains what cookies and similar technologies 1INME uses on its website and dashboard, why we use them, and the choices you have. It complements our Privacy Policy.',
+                'last_updated_at' => $today,
+                'sections' => [
+                    ['id' => 'what-are-cookies', 'heading' => '1. What cookies are', 'body' => "Cookies are small text files that a website places on your device to remember information about you between visits. We also use comparable technologies — local storage, session storage, web beacons and pixel tags — for similar purposes. In this policy we refer to all of these collectively as \"cookies\"."],
+                    ['id' => 'categories', 'heading' => '2. Categories of cookies we use', 'body' => "We group cookies into the following categories:\n\n- **Strictly necessary** — required to operate the Service (sign-in, security, load balancing).\n- **Functional** — remember your preferences (theme, sidebar state, language) so the Service feels familiar.\n- **Analytics** — help us understand how the product is used so we can improve it. The data is aggregated and not used for advertising.\n- **Marketing** — used only on our marketing pages, and only with your consent where required, to measure the effectiveness of campaigns and to show relevant content."],
+                    ['id' => 'cookies-table', 'heading' => '3. Specific cookies we set', 'body' => "The list below describes the main cookies we use. The exact set may vary slightly over time as the product evolves. Format: **name** — purpose — duration — provider.\n\n- **XSRF-TOKEN** — protects forms against cross-site request forgery — session — 1INME.\n- **1inme_session** — keeps you signed in and remembers your workspace — 2 weeks — 1INME.\n- **theme** — remembers your light/dark theme preference — 1 year — 1INME.\n- **sidebar** — remembers whether the dashboard sidebar is collapsed — 1 year — 1INME.\n- **_pa** — first-party product analytics — 13 months — 1INME.\n- **cookie_consent** — remembers your cookie consent choice — 1 year — 1INME."],
+                    ['id' => 'pages-you-publish', 'heading' => '4. Cookies on the pages you publish', 'body' => "Pages you publish on 1INME set only the strictly necessary cookies needed to run them. We do not inject third-party advertising or marketing cookies into your visitors' browsers."],
+                    ['id' => 'how-to-control', 'heading' => '5. How to control cookies', 'body' => "You can clear and block cookies at any time from your browser's settings. Most browsers also let you block third-party cookies by default. Disabling **strictly necessary** cookies will sign you out and break parts of the dashboard; disabling **functional** or **analytics** cookies is safe but may make the experience less convenient.\n\nUseful links for the most common browsers: [Chrome](https://support.google.com/chrome/answer/95647), [Firefox](https://support.mozilla.org/kb/cookies-information-websites-store-on-your-computer), [Safari](https://support.apple.com/guide/safari/manage-cookies-sfri11471/), [Edge](https://support.microsoft.com/microsoft-edge)."],
+                    ['id' => 'changes', 'heading' => '6. Changes to this policy', 'body' => "We may update this Cookie Policy when we add or remove cookies, or when the law requires. We will update the \"Last updated\" date above when we do."],
+                    ['id' => 'contact', 'heading' => '7. Contact us', 'body' => "Questions about cookies on 1INME? Get in touch via the [contact page](/contact)."],
+                ],
+            ],
+            'gdpr' => [
+                'title' => 'GDPR Statement',
+                'meta_description' => 'Our compliance with the EU General Data Protection Regulation, including lawful bases, your rights, sub-processors and international data transfers.',
+                'intro' => 'This GDPR Statement explains how 1INME complies with the EU General Data Protection Regulation (GDPR) and the UK GDPR, including the lawful bases on which we process personal data, the rights you have as a data subject, our sub-processor arrangements and how you can contact us with any concerns.',
+                'last_updated_at' => $today,
+                'sections' => [
+                    ['id' => 'who-we-are', 'heading' => '1. Who we are (controller information)', 'body' => "1INME is the legal entity operating the Service described in our Terms. For your account information, you are the data subject and 1INME is the data controller. For personal data of your visitors and contacts that you collect through 1INME (e.g. form submissions, leads, followers), you are the data controller and 1INME acts as your data processor under a Data Processing Agreement (\"DPA\")."],
+                    ['id' => 'lawful-bases', 'heading' => '2. Lawful bases', 'body' => "We process personal data on the following lawful bases under Article 6 GDPR:\n\n- **Performance of a contract (Art. 6(1)(b))** — to provide the Service to you.\n- **Legitimate interests (Art. 6(1)(f))** — to secure the Service, prevent abuse and improve our product, balanced against your rights and interests.\n- **Legal obligation (Art. 6(1)(c))** — to keep records required by tax, accounting and abuse-reporting laws.\n- **Consent (Art. 6(1)(a))** — for optional marketing communications and non-essential cookies, which you can withdraw at any time."],
+                    ['id' => 'data-subjects', 'heading' => '3. Data subjects and categories of data', 'body' => "We process personal data of:\n\n- 1INME account holders and the teammates they invite;\n- visitors to our marketing site and to public pages published on 1INME;\n- contacts captured by account holders through forms, follows and other engagement features.\n\nThe categories of personal data processed are described in our Privacy Policy."],
+                    ['id' => 'your-rights', 'heading' => '4. Your rights as a data subject', 'body' => "Under the GDPR you have the right to:\n\n- **Access** — request a copy of the personal data we hold about you (Art. 15).\n- **Rectification** — request that we correct inaccurate or incomplete data (Art. 16).\n- **Erasure** — request that we delete your data, subject to legal exceptions (Art. 17).\n- **Restriction** — request that we limit how we process your data (Art. 18).\n- **Portability** — receive your data in a structured, commonly used, machine-readable format (Art. 20).\n- **Objection** — object to processing based on legitimate interest, including profiling (Art. 21).\n- **Withdraw consent** — at any time, where consent is the lawful basis (Art. 7(3)).\n- **Lodge a complaint** with your supervisory authority (Art. 77)."],
+                    ['id' => 'how-to-exercise', 'heading' => '5. How to exercise your rights', 'body' => "Most rights are self-service from your account settings (export, delete, correct). For the rest, contact us through the [contact page](/contact) from the email address on your account, or — if the data we hold about you was collected by another 1INME customer (e.g. you submitted their form) — contact that customer directly. We respond to verified requests within 30 days, extendable by a further two months for complex requests."],
+                    ['id' => 'transfers', 'heading' => '6. International transfers and SCCs', 'body' => "Where personal data is transferred outside the EU/EEA or the UK, we rely on the European Commission's Standard Contractual Clauses (Module 2 or 3 as applicable) and the UK International Data Transfer Addendum with each sub-processor. Where additional supplementary measures are required by local law, we apply them."],
+                    ['id' => 'sub-processors', 'heading' => '7. Sub-processors', 'body' => "We engage trusted sub-processors to help us deliver the Service (cloud hosting, transactional email, SMS, payments, analytics, support tooling, error monitoring). Each sub-processor is bound by a written data-processing agreement that imposes obligations equivalent to those we accept under our DPA. The current list of sub-processors is available on request."],
+                    ['id' => 'breach-notification', 'heading' => '8. Personal data breach notification', 'body' => "In the unlikely event of a personal data breach that is likely to result in a risk to the rights and freedoms of natural persons, we will notify the competent supervisory authority within **72 hours** of becoming aware of it, in accordance with Article 33 GDPR, and we will inform affected users without undue delay where required by Article 34."],
+                    ['id' => 'dpo', 'heading' => '9. Data Protection Officer', 'body' => "You can contact our Data Protection Officer at the address on the [contact page](/contact). Please mark your message clearly so it can be routed to the DPO."],
+                    ['id' => 'supervisory-authority', 'heading' => '10. Supervisory authority', 'body' => "If you live in the EU/EEA or the UK and believe that we have not handled your personal data in accordance with the law, you have the right to lodge a complaint with your local data-protection supervisory authority. We would, however, appreciate the opportunity to address your concerns first — please contact us before going to the authority."],
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * Ensure every section has a stable id and a visibility flag. Used
+     * both when seeding fresh installs and when migrating existing rows
+     * so the renderer and the editor can rely on these fields.
+     */
+    public static function normalizeSections(array $sections): array
+    {
+        $usedIds = [];
+        $out = [];
+        foreach (array_values($sections) as $i => $s) {
+            $heading = trim((string) ($s['heading'] ?? ''));
+            $body    = (string) ($s['body'] ?? '');
+            $id      = trim((string) ($s['id'] ?? ''));
+            if ($id === '') {
+                $id = \Illuminate\Support\Str::slug($heading) ?: ('section-' . ($i + 1));
+            }
+            $base = $id;
+            $n = 2;
+            while (isset($usedIds[$id])) {
+                $id = $base . '-' . $n;
+                $n++;
+            }
+            $usedIds[$id] = true;
+            $out[] = [
+                'id'      => $id,
+                'heading' => $heading,
+                'body'    => $body,
+                'visible' => array_key_exists('visible', $s) ? (bool) $s['visible'] : true,
+            ];
+        }
+        return $out;
+    }
+
+    /**
+     * True when the current sections still match a previously-seeded set
+     * exactly (heading + body, in order), meaning no admin has edited them
+     * yet and we can safely replace them wholesale with newer defaults.
+     */
+    public static function sectionsMatchExactly(array $current, array $previous): bool
+    {
+        $current = array_values($current);
+        $previous = array_values($previous);
+        if (count($current) !== count($previous)) {
+            return false;
+        }
+        foreach ($current as $i => $s) {
+            $h1 = trim((string) ($s['heading'] ?? ''));
+            $b1 = trim((string) ($s['body'] ?? ''));
+            $h2 = trim((string) ($previous[$i]['heading'] ?? ''));
+            $b2 = trim((string) ($previous[$i]['body'] ?? ''));
+            if ($h1 !== $h2 || $b1 !== $b2) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Append any default sections that are missing from the current page
+     * (matched by stable id) without touching admin-edited bodies. Used
+     * by both the seeder and the migration to backfill richer policy
+     * defaults idempotently.
+     */
+    public static function mergeMissingSections(array $current, array $defaults): array
+    {
+        $current = self::normalizeSections($current);
+        $existingIds = array_flip(array_column($current, 'id'));
+        $defaults = self::normalizeSections($defaults);
+        foreach ($defaults as $section) {
+            if (!isset($existingIds[$section['id']])) {
+                $current[] = $section;
+            }
+        }
+        return $current;
+    }
+
+    /**
      * Slugs that the public footer links to and which therefore must
      * resolve to a real page after the migration runs.
      */

@@ -125,8 +125,16 @@ class SitePagesSeeder extends Seeder
             ],
         ];
 
+        $policyDefaults = SitePagesContent::policyDefaults();
+        $policySlugs = SitePagesContent::policySlugs();
+
         $pages = $extra;
         foreach ($rich as $slug => $data) {
+            // Policy slugs are seeded from policyDefaults below with the
+            // richer schema (intro, last_updated, stable section ids).
+            if (in_array($slug, $policySlugs, true) && isset($policyDefaults[$slug])) {
+                continue;
+            }
             // The /features page uses a category-structured sections shape
             // (id/icon/heading/intro/features) instead of the plain
             // heading/body shape used by every other rich page.
@@ -151,6 +159,55 @@ class SitePagesSeeder extends Seeder
                 'cta_label' => $p['cta_label'] ?? null,
                 'cta_url' => $p['cta_url'] ?? null,
             ]);
+        }
+
+        // Policy pages: insert if missing; otherwise only append default
+        // sections that don't already exist (matched by stable id), so we
+        // never overwrite an admin-edited body.
+        foreach ($policySlugs as $slug) {
+            if (!isset($policyDefaults[$slug])) continue;
+            $data = $policyDefaults[$slug];
+            $existing = SitePage::where('slug', $slug)->first();
+            if (!$existing) {
+                SitePage::create([
+                    'slug'             => $slug,
+                    'title'            => $data['title'],
+                    'meta_description' => $data['meta_description'] ?? null,
+                    'intro'            => $data['intro'] ?? null,
+                    'last_updated_at'  => $data['last_updated_at'] ?? null,
+                    'show_toc'         => true,
+                    'sections'         => SitePagesContent::normalizeSections($data['sections']),
+                ]);
+                continue;
+            }
+            $previousRich = $rich[$slug] ?? null;
+            $current = is_array($existing->sections) ? $existing->sections : [];
+            // If the page still holds the previously-seeded rich defaults
+            // wholesale, replace them. Otherwise, only append missing
+            // sections so admin edits are preserved.
+            if ($previousRich && SitePagesContent::sectionsMatchExactly($current, $previousRich['sections'] ?? [])) {
+                $merged = SitePagesContent::normalizeSections($data['sections']);
+            } else {
+                $merged = SitePagesContent::mergeMissingSections($current, $data['sections']);
+            }
+            // Only refresh title/meta if they still hold a previously-seeded
+            // default, so admin-edited values are preserved.
+            $newTitle = $existing->title;
+            $newMeta = $existing->meta_description;
+            if ($previousRich && trim((string) $existing->title) === trim((string) ($previousRich['title'] ?? ''))) {
+                $newTitle = $data['title'];
+            }
+            if ($previousRich && trim((string) $existing->meta_description) === trim((string) ($previousRich['meta_description'] ?? ''))) {
+                $newMeta = $data['meta_description'] ?? $existing->meta_description;
+            }
+            $existing->fill([
+                'title'            => $newTitle,
+                'meta_description' => $newMeta,
+                'sections'         => $merged,
+                'intro'            => $existing->intro ?: ($data['intro'] ?? null),
+                'last_updated_at'  => $existing->last_updated_at ?: ($data['last_updated_at'] ?? null),
+            ]);
+            $existing->save();
         }
 
         $faqs = [
