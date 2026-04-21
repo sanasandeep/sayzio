@@ -33,6 +33,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $p['title'] }} - 1INME</title>
+    @include('common.partials.default-icons')
     @if(isset($link) && $link->favicon)
         <link rel="icon" type="image/png" href="{{ $link->favicon }}">
     @endif

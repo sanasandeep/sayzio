@@ -16,6 +16,7 @@
     @endphp
     <title>{{ $title }}</title>
     @if($description)<meta name="description" content="{{ $description }}">@endif
+    @include('common.partials.default-icons')
     @if($favicon)<link rel="icon" href="{{ $favicon }}">@endif
     <meta property="og:title" content="{{ $title }}">
     @if($description)<meta property="og:description" content="{{ $description }}">@endif

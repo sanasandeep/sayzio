@@ -12,6 +12,7 @@
     @if($link->seo_description)
         <meta name="description" content="{{ $link->seo_description }}">
     @endif
+    @include('common.partials.default-icons')
     @if($link->favicon)
         <link rel="icon" type="image/png" href="{{ $link->favicon }}">
     @endif

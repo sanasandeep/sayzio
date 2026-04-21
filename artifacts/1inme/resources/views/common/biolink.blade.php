@@ -68,6 +68,7 @@
         <meta name="twitter:image" content="{{ $pageImage }}">
     @endif
 
+    @include('common.partials.default-icons')
     @if($link->favicon)
         <link rel="icon" type="image/png" href="{{ $link->favicon }}">
     @endif
