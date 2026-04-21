@@ -9,6 +9,17 @@
     if ($__canCreateLink) {
         $__heroActions[] = ['label' => 'Create Link', 'url' => route('user.links.create'), 'icon' => 'fa-plus', 'class' => 'btn-primary'];
     }
+    // Move-to-workspace: only the workspace owner can move links, and only
+    // makes sense if they own more than one workspace.
+    $__moveTargets = collect();
+    if ($__ws && auth()->check() && (int) $__ws->owner_user_id === auth()->id()) {
+        $__moveTargets = auth()->user()->ownedWorkspaces()
+            ->where('id', '!=', $__ws->id)
+            ->orderBy('is_personal', 'desc')
+            ->orderBy('name')
+            ->get();
+    }
+    $__canMove = $__moveTargets->isNotEmpty();
 @endphp
 @include('user.partials.page-hero', [
     'title'    => 'My Links',
@@ -83,6 +94,43 @@
     @endcanInWorkspace
 </div>
 @else
+<div x-data="{
+        selected: [],
+        moveOpen: false,
+        moveTarget: '',
+        toggleAll(e) {
+            const ids = Array.from(document.querySelectorAll('[data-link-id]')).map(el => parseInt(el.dataset.linkId, 10));
+            this.selected = e.target.checked ? ids : [];
+        },
+    }">
+
+@if($__canMove)
+<div x-show="selected.length > 0" x-cloak
+     class="card-premium p-3 mb-3 flex flex-wrap items-center gap-3">
+    <span class="text-sm font-semibold" style="color: var(--text-primary);">
+        <span x-text="selected.length"></span> selected
+    </span>
+    <form method="POST" action="{{ route('user.links.move-bulk') }}" class="flex items-center gap-2 ml-auto">
+        @csrf
+        <template x-for="id in selected" :key="id">
+            <input type="hidden" name="link_ids[]" :value="id">
+        </template>
+        <select name="workspace_id" required class="theme-input text-xs py-1.5">
+            <option value="" class="bg-[#0a0612]">Move to workspace…</option>
+            @foreach($__moveTargets as $t)
+                <option value="{{ $t->id }}" class="bg-[#0a0612]">
+                    {{ $t->name }} ({{ $t->is_personal ? 'Personal' : 'Team' }})
+                </option>
+            @endforeach
+        </select>
+        <button type="submit" class="btn-primary text-xs py-1.5">
+            <i class="fas fa-arrow-right text-[10px]"></i> Move
+        </button>
+        <button type="button" @click="selected = []" class="btn-ghost text-xs py-1.5">Clear</button>
+    </form>
+</div>
+@endif
+
 <div class="space-y-2.5">
     @foreach($links as $link)
     @php
@@ -135,9 +183,15 @@
             }
         }
     @endphp
-    <div class="card-premium p-4 group">
+    <div class="card-premium p-4 group" data-link-id="{{ $link->id }}">
         <div class="flex items-start justify-between">
             <div class="flex items-start gap-3.5 flex-1 min-w-0">
+                @if($__canMove)
+                <label class="flex-shrink-0 pt-1.5 cursor-pointer" title="Select to move">
+                    <input type="checkbox" :value="{{ $link->id }}" x-model.number="selected"
+                           class="rounded border-white/20 bg-white/5 text-violet-500 focus:ring-violet-500/40">
+                </label>
+                @endif
                 <div class="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center" style="background: {{ $ts['bg'] }}; border: 1px solid {{ $ts['border'] }};">
                     <i class="fas {{ $ts['icon'] }} text-sm" style="color: {{ $ts['color'] }};"></i>
                 </div>
@@ -211,6 +265,31 @@
                         </button>
                     </form>
                     @endcanInWorkspace
+                    @if($__canMove)
+                    <div class="relative" x-data="{ open: false }">
+                        <button type="button" @click="open = !open" @click.outside="open = false"
+                                class="p-1.5 rounded-md transition-all hover:bg-amber-500/10"
+                                style="color: var(--text-faint);" title="Move to another workspace">
+                            <i class="fas fa-arrow-right-arrow-left text-xs hover:text-amber-400"></i>
+                        </button>
+                        <div x-show="open" x-cloak
+                             class="absolute right-0 top-full mt-1 w-56 rounded-lg border shadow-lg z-20 overflow-hidden"
+                             style="background: var(--bg-card); border-color: var(--border-strong);">
+                            <div class="px-3 py-2 text-[10px] uppercase tracking-wider font-bold border-b" style="color: var(--text-faint); border-color: var(--border-strong);">Move to workspace</div>
+                            @foreach($__moveTargets as $t)
+                                <form method="POST" action="{{ route('user.links.move', $link) }}">
+                                    @csrf
+                                    <input type="hidden" name="workspace_id" value="{{ $t->id }}">
+                                    <button type="submit" class="w-full text-left px-3 py-2 text-sm hover:bg-black/5 flex items-center gap-2" style="color: var(--text-primary);">
+                                        <i class="fas {{ $t->is_personal ? 'fa-user' : 'fa-users' }} text-[10px] opacity-60"></i>
+                                        <span class="truncate">{{ $t->name }}</span>
+                                        <span class="ml-auto text-[9px] opacity-60 uppercase">{{ $t->is_personal ? 'Personal' : 'Team' }}</span>
+                                    </button>
+                                </form>
+                            @endforeach
+                        </div>
+                    </div>
+                    @endif
                     @canInWorkspace('links.delete')
                     <form action="{{ route('user.links.destroy', $link) }}" method="POST" onsubmit="return confirm('Delete this link?')">
                         @csrf @method('DELETE')
@@ -231,5 +310,6 @@
 </div>
 
 <div class="mt-5">{{ $links->links() }}</div>
+</div>{{-- /x-data wrapper --}}
 @endif
 @endsection

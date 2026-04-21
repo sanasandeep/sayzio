@@ -14,11 +14,18 @@
             :class="sidebarMode === 'icons' ? 'justify-center' : ''">
         <div class="flex items-center gap-2 min-w-0">
             <div class="w-7 h-7 rounded-md flex items-center justify-center text-xs font-semibold"
-                 style="background:#7c3aed; color:#fff;">
-                {{ mb_strtoupper(mb_substr($currentWs->name, 0, 1)) }}
+                 style="background:{{ $currentWs->is_personal ? '#7c3aed' : '#10b981' }}; color:#fff;"
+                 title="{{ $currentWs->is_personal ? 'Personal workspace' : 'Team workspace' }}">
+                <i class="fas {{ $currentWs->is_personal ? 'fa-user' : 'fa-users' }} text-[10px]"></i>
             </div>
             <div class="user-info min-w-0 text-left">
-                <div class="truncate text-sm font-semibold">{{ $currentWs->name }}</div>
+                <div class="truncate text-sm font-semibold flex items-center gap-1.5">
+                    <span class="truncate">{{ $currentWs->name }}</span>
+                    <span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider flex-shrink-0"
+                          style="{{ $currentWs->is_personal ? 'background:rgba(124,58,237,.12);color:#a78bfa;' : 'background:rgba(16,185,129,.12);color:#34d399;' }}">
+                        {{ $currentWs->is_personal ? 'Personal' : 'Team' }}
+                    </span>
+                </div>
                 <div class="truncate text-[11px] opacity-70">
                     @if((int)$currentWs->owner_user_id === auth()->id())
                         Owner
@@ -41,11 +48,15 @@
                         class="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm hover:bg-black/5"
                         style="color: var(--text-primary);">
                     <span class="flex items-center gap-2 min-w-0">
-                        <span class="w-5 h-5 rounded flex items-center justify-center text-[10px] font-semibold"
-                              style="background:#a78bfa; color:#fff;">
-                            {{ mb_strtoupper(mb_substr($ws->name, 0, 1)) }}
+                        <span class="w-5 h-5 rounded flex items-center justify-center text-[10px] font-semibold flex-shrink-0"
+                              style="background:{{ $ws->is_personal ? '#7c3aed' : '#10b981' }}; color:#fff;">
+                            <i class="fas {{ $ws->is_personal ? 'fa-user' : 'fa-users' }} text-[8px]"></i>
                         </span>
                         <span class="truncate">{{ $ws->name }}</span>
+                        <span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider flex-shrink-0"
+                              style="{{ $ws->is_personal ? 'background:rgba(124,58,237,.12);color:#a78bfa;' : 'background:rgba(16,185,129,.12);color:#34d399;' }}">
+                            {{ $ws->is_personal ? 'Personal' : 'Team' }}
+                        </span>
                     </span>
                     <span class="text-[11px] opacity-70 whitespace-nowrap">
                         {{ (int)$ws->owner_user_id === auth()->id() ? 'Owner' : (ucfirst(auth()->user()->membershipFor($ws)?->role ?? 'Member')) }}

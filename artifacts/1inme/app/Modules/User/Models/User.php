@@ -191,15 +191,37 @@ class User extends Authenticatable
         return $membership->can($permission);
     }
 
-    /** Lazily ensure this user owns at least one workspace, returning their default. */
+    /**
+     * Lazily ensure this user owns at least one workspace, returning their
+     * personal one. Auto-creation marks the new row as `is_personal=true`
+     * so it can never be deleted from the UI (every user keeps a personal
+     * space; team workspaces are added on top via WorkspaceController::store).
+     */
     public function ensureDefaultWorkspace(): Workspace
     {
-        $existing = $this->ownedWorkspaces()->orderBy('id')->first();
-        if ($existing) return $existing;
-        return $this->ownedWorkspaces()->create([
-            'name' => ($this->name ?: ('User ' . $this->id)) . "'s workspace",
-            'slug' => 'ws-' . $this->id,
-        ]);
+        // Wrap in a transaction with a row-level lock on the user so two
+        // concurrent registration / login flows cannot race to create
+        // duplicate personal workspaces. The DB also has a partial unique
+        // index (workspaces_one_personal_per_owner_unique) as a hard
+        // backstop, but the lock keeps the happy path single-creator.
+        return \DB::transaction(function () {
+            \DB::table('users')->where('id', $this->id)->lockForUpdate()->first();
+
+            $personal = $this->ownedWorkspaces()->where('is_personal', true)->first();
+            if ($personal) return $personal;
+
+            $existing = $this->ownedWorkspaces()->orderBy('id')->first();
+            if ($existing) {
+                $existing->update(['is_personal' => true]);
+                return $existing->fresh();
+            }
+
+            return $this->ownedWorkspaces()->create([
+                'name'        => ($this->name ?: ('User ' . $this->id)) . "'s workspace",
+                'slug'        => 'ws-' . $this->id,
+                'is_personal' => true,
+            ]);
+        });
     }
 
     public function projects()

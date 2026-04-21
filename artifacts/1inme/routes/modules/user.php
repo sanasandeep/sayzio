@@ -215,6 +215,9 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('links', [LinkController::class, 'store'])->middleware(['workspace.can:links.create', CheckPlanLimit::class . ':links'])->name('links.store');
         Route::post('links/{link}/toggle-active', [LinkController::class, 'toggleActive'])->middleware('workspace.can:links.edit')->name('links.toggle-active');
         Route::post('links/{link}/duplicate', [LinkController::class, 'duplicate'])->middleware(['workspace.can:links.create', CheckPlanLimit::class . ':links'])->name('links.duplicate');
+        // Cross-workspace move (owner-only — see LinkController::move).
+        Route::post('links/{link}/move',  [LinkController::class, 'move'])->middleware('workspace.can:links.edit')->name('links.move');
+        Route::post('links/move-bulk',    [LinkController::class, 'moveBulk'])->middleware('workspace.can:links.edit')->name('links.move-bulk');
         Route::post('links/{link}/coach-action', [LinkController::class, 'coachAction'])->middleware('workspace.can:links.edit')->name('links.coach-action');
         Route::post('links/{link}/performance-coach/settings', [LinkController::class, 'updatePerformanceCoachSettings'])->middleware('workspace.can:links.edit')->name('links.performance-coach.settings');
         Route::post('links/coach-undo', [LinkController::class, 'coachUndo'])->middleware('workspace.can:links.edit')->name('links.coach-undo');

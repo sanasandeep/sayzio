@@ -35,9 +35,13 @@ class WorkspaceController extends Controller
             return back()->with('error', "Your plan allows at most {$max} workspace(s). Upgrade to add more.");
         }
 
+        // New workspaces created from the switcher are team workspaces.
+        // The user's personal workspace is auto-created at registration and
+        // is the only `is_personal=true` row they own.
         $ws = $user->ownedWorkspaces()->create([
-            'name' => $data['name'],
-            'slug' => Str::slug($data['name']) . '-' . Str::random(4),
+            'name'        => $data['name'],
+            'slug'        => Str::slug($data['name']) . '-' . Str::random(4),
+            'is_personal' => false,
         ]);
 
         $this->ctx->set($ws);
@@ -62,6 +66,9 @@ class WorkspaceController extends Controller
     {
         $user = $request->user();
         abort_unless((int) $workspace->owner_user_id === $user->id, 403);
+        if ($workspace->is_personal) {
+            return back()->with('error', 'Your personal workspace cannot be deleted.');
+        }
         $owned = $user->ownedWorkspaces()->count();
         if ($owned <= 1) {
             return back()->with('error', 'You cannot delete your only workspace.');

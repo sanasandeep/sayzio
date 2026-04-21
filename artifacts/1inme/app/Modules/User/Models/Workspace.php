@@ -6,7 +6,17 @@ use Illuminate\Database\Eloquent\Model;
 
 class Workspace extends Model
 {
-    protected $fillable = ['owner_user_id', 'name', 'slug'];
+    protected $fillable = ['owner_user_id', 'name', 'slug', 'is_personal'];
+
+    protected $casts = [
+        'is_personal' => 'boolean',
+    ];
+
+    /** Display label: "Personal" for the user's auto-created workspace, "Team" otherwise. */
+    public function kindLabel(): string
+    {
+        return $this->is_personal ? 'Personal' : 'Team';
+    }
 
     public function owner()
     {

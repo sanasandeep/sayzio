@@ -9,6 +9,7 @@ use App\Modules\User\Models\Follow;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserFile;
+use App\Modules\User\Models\Workspace;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Crypt;
@@ -1772,6 +1773,67 @@ class LinkController extends Controller
 
         return redirect()->route('user.links.index')
             ->with('success', 'Link deleted successfully.');
+    }
+
+    /**
+     * Move a single link to another workspace the signed-in user owns.
+     *
+     * Only the workspace owner can move resources between their workspaces
+     * (members must not be able to ferry an owner's data into a workspace
+     * they happen to belong to). Both the source link and the target
+     * workspace must be owned by the signed-in user. Per-link plan limits
+     * for the destination owner are not re-checked here because the
+     * destination owner is the same user — total link count is unchanged.
+     */
+    public function move(Request $request, Link $link)
+    {
+        $user = $request->user();
+        abort_if((int) $link->user_id !== $user->id, 403,
+            'Only the workspace owner can move links.');
+
+        $data = $request->validate([
+            'workspace_id' => 'required|integer|exists:workspaces,id',
+        ]);
+        $target = Workspace::findOrFail($data['workspace_id']);
+        abort_if((int) $target->owner_user_id !== $user->id, 403,
+            'You can only move links into a workspace you own.');
+
+        if ((int) $link->workspace_id === (int) $target->id) {
+            return back()->with('info', 'That link is already in this workspace.');
+        }
+
+        $link->forceFill(['workspace_id' => $target->id])->save();
+
+        return back()->with('success', "Moved to '{$target->name}'.");
+    }
+
+    /**
+     * Bulk-move many links to another workspace in one shot. Filters down
+     * to the rows the signed-in user owns so a tampered POST cannot move
+     * someone else's links.
+     */
+    public function moveBulk(Request $request)
+    {
+        $user = $request->user();
+        $data = $request->validate([
+            'workspace_id' => 'required|integer|exists:workspaces,id',
+            'link_ids'     => 'required|array|min:1',
+            'link_ids.*'   => 'integer',
+        ]);
+        $target = Workspace::findOrFail($data['workspace_id']);
+        abort_if((int) $target->owner_user_id !== $user->id, 403,
+            'You can only move links into a workspace you own.');
+
+        $moved = Link::whereIn('id', $data['link_ids'])
+            ->where('user_id', $user->id)
+            ->where('workspace_id', '!=', $target->id)
+            ->update(['workspace_id' => $target->id]);
+
+        if ($moved === 0) {
+            return back()->with('info', 'Nothing to move.');
+        }
+        return back()->with('success',
+            $moved . ' link' . ($moved === 1 ? '' : 's') . " moved to '{$target->name}'.");
     }
 
     /**

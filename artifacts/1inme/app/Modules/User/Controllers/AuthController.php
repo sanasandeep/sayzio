@@ -63,6 +63,10 @@ class AuthController extends Controller
         $cookieCode = $request->cookie(ReferralService::COOKIE_NAME);
         $referrals->attributeSignup($user, $submittedCode, $cookieCode, $request->ip(), $request->userAgent());
 
+        // Every new user starts with a personal workspace. Team workspaces
+        // (if their plan allows) can be created later from the switcher.
+        $user->ensureDefaultWorkspace();
+
         // Send a login OTP and route the new user through verification.
         $otpService = new OtpService();
         $code = $otpService->generate($user->email, 'email', 'login', 'web');
