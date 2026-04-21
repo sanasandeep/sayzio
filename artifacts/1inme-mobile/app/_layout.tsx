@@ -6,6 +6,10 @@ import {
   useFonts,
 } from "@expo-google-fonts/space-grotesk";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  setAuthTokenGetter,
+  setBaseUrl,
+} from "@workspace/api-client-react";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
@@ -17,6 +21,11 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { useColors } from "@/hooks/useColors";
+import { getBaseUrl } from "@/lib/api";
+import { getToken } from "@/lib/secure";
+
+setBaseUrl(getBaseUrl());
+setAuthTokenGetter(async () => (await getToken()) ?? null);
 
 SplashScreen.preventAutoHideAsync();
 

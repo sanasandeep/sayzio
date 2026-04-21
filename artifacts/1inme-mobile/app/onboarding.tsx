@@ -26,6 +26,21 @@ type Slide = {
   body: string;
 };
 
+type InfoHref =
+  | "/info/about"
+  | "/info/nfc"
+  | "/info/help"
+  | "/info/privacy"
+  | "/info/terms";
+
+const INFO_LINKS: { href: InfoHref; label: string }[] = [
+  { href: "/info/about", label: "About" },
+  { href: "/info/nfc", label: "NFC" },
+  { href: "/info/help", label: "Help" },
+  { href: "/info/privacy", label: "Privacy" },
+  { href: "/info/terms", label: "Terms" },
+];
+
 const SLIDES: Slide[] = [
   {
     icon: "link-2",
@@ -177,17 +192,11 @@ export default function Onboarding() {
           onPress={next}
         />
         <View style={styles.infoLinks}>
-          {[
-            { href: "/info/about", label: "About" },
-            { href: "/info/nfc", label: "NFC" },
-            { href: "/info/help", label: "Help" },
-            { href: "/info/privacy", label: "Privacy" },
-            { href: "/info/terms", label: "Terms" },
-          ].map((l, i, arr) => (
+          {INFO_LINKS.map((l, i, arr) => (
             <View key={l.href} style={styles.infoLinkRow}>
               <Text
                 accessibilityRole="link"
-                onPress={() => router.push(l.href as any)}
+                onPress={() => router.push(l.href)}
                 style={[styles.infoLink, { color: colors.mutedForeground }]}
               >
                 {l.label}

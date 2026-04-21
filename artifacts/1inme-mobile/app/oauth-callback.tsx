@@ -5,6 +5,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { Button } from "@/components/Button";
 import { useAuth, type AuthUser } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { apiFetch } from "@/lib/api";
 
 export default function OAuthCallback() {
   const colors = useColors();
@@ -16,6 +17,8 @@ export default function OAuthCallback() {
     provider?: string | string[];
     id_token?: string | string[];
     access_token?: string | string[];
+    code?: string | string[];
+    state?: string | string[];
     error?: string | string[];
   }>();
 
@@ -53,15 +56,29 @@ export default function OAuthCallback() {
     const provider = first(params.provider);
     const idToken = first(params.id_token);
     const accessToken = first(params.access_token);
-    if (
-      (provider === "google" || provider === "apple") &&
-      (idToken || accessToken)
-    ) {
+    const code = first(params.code);
+    const state = first(params.state);
+
+    if (provider && (idToken || accessToken)) {
       socialLogin({
         provider: provider as "google" | "apple",
         id_token: idToken,
         access_token: accessToken,
       })
+        .then(() => router.replace("/(tabs)"))
+        .catch((e) => setError(e?.message ?? "Sign-in failed"));
+      return;
+    }
+
+    if (provider && code) {
+      apiFetch<{ token: string; user: AuthUser }>(
+        "/auth/social/exchange",
+        {
+          method: "POST",
+          body: JSON.stringify({ provider, code, state }),
+        },
+      )
+        .then((res) => applySession(res.token, res.user))
         .then(() => router.replace("/(tabs)"))
         .catch((e) => setError(e?.message ?? "Sign-in failed"));
       return;
