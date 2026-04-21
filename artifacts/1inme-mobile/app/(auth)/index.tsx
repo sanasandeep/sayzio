@@ -1,4 +1,4 @@
-import { Feather } from "@expo/vector-icons";
+import { FontAwesome5, Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -24,6 +24,30 @@ import type { ApiError } from "@/lib/api";
 
 type Channel = "email" | "mobile";
 
+type SocialProvider =
+  | "google"
+  | "instagram"
+  | "facebook"
+  | "twitter"
+  | "linkedin"
+  | "pinterest"
+  | "tiktok";
+
+const SOCIALS: {
+  id: SocialProvider;
+  label: string;
+  icon: keyof typeof FontAwesome5.glyphMap;
+  color: string;
+}[] = [
+  { id: "google", label: "Google", icon: "google", color: "#ea4335" },
+  { id: "instagram", label: "Instagram", icon: "instagram", color: "#e1306c" },
+  { id: "facebook", label: "Facebook", icon: "facebook", color: "#1877f2" },
+  { id: "twitter", label: "X", icon: "twitter", color: "#0f1419" },
+  { id: "linkedin", label: "LinkedIn", icon: "linkedin", color: "#0a66c2" },
+  { id: "pinterest", label: "Pinterest", icon: "pinterest", color: "#e60023" },
+  { id: "tiktok", label: "TikTok", icon: "tiktok", color: "#010101" },
+];
+
 export default function AuthLanding() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -32,7 +56,7 @@ export default function AuthLanding() {
 
   const [channel, setChannel] = useState<Channel>("email");
   const [identifier, setIdentifier] = useState("");
-  const [busy, setBusy] = useState<null | "otp" | "demo-user" | "demo-admin" | "google">(null);
+  const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const onSendOtp = async () => {
@@ -67,19 +91,18 @@ export default function AuthLanding() {
     }
   };
 
-  const onGoogle = async () => {
-    setBusy("google");
+  const onSocial = async (provider: SocialProvider) => {
+    setBusy(`social-${provider}`);
     try {
-      const url = `${getBaseUrl()}/auth/google?source=mobile&return=1inme%3A%2F%2Foauth-callback`;
+      const ret = encodeURIComponent("1inme://oauth-callback");
+      const url = `${getBaseUrl()}/auth/${provider}/redirect?source=mobile&return=${ret}`;
       const result = await WebBrowser.openAuthSessionAsync(url, "1inme://oauth-callback");
       if (result.type !== "success") {
-        if (result.type === "cancel" || result.type === "dismiss") {
-          return;
-        }
+        if (result.type === "cancel" || result.type === "dismiss") return;
         throw new Error("Sign-in was cancelled");
       }
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Google sign-in is not configured yet";
+      const msg = e instanceof Error ? e.message : `${provider} sign-in is not configured yet`;
       if (Platform.OS === "web") setError(msg);
       else Alert.alert("Sign in", msg);
     } finally {
@@ -148,9 +171,7 @@ export default function AuthLanding() {
                 <Text
                   style={[
                     styles.tabText,
-                    {
-                      color: active ? colors.primary : colors.mutedForeground,
-                    },
+                    { color: active ? colors.primary : colors.mutedForeground },
                   ]}
                 >
                   {c === "email" ? "Email" : "Mobile"}
@@ -183,18 +204,42 @@ export default function AuthLanding() {
 
         <View style={styles.divider}>
           <View style={[styles.line, { backgroundColor: colors.border }]} />
-          <Text style={[styles.dividerText, { color: colors.mutedForeground }]}>or</Text>
+          <Text style={[styles.dividerText, { color: colors.mutedForeground }]}>
+            or continue with
+          </Text>
           <View style={[styles.line, { backgroundColor: colors.border }]} />
         </View>
 
-        <Button
-          label="Continue with Google"
-          variant="outline"
-          onPress={onGoogle}
-          loading={busy === "google"}
-          disabled={!!busy && busy !== "google"}
-          leading={<Feather name="globe" size={18} color={colors.foreground} />}
-        />
+        <View style={styles.socialGrid}>
+          {SOCIALS.map((s) => {
+            const isBusy = busy === `social-${s.id}`;
+            const disabled = !!busy && !isBusy;
+            return (
+              <Pressable
+                key={s.id}
+                onPress={() => onSocial(s.id)}
+                disabled={disabled || isBusy}
+                style={({ pressed }) => [
+                  styles.socialBtn,
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: colors.border,
+                    borderRadius: colors.radius,
+                    opacity: disabled ? 0.4 : pressed ? 0.7 : 1,
+                  },
+                ]}
+                accessibilityLabel={`Continue with ${s.label}`}
+              >
+                <FontAwesome5
+                  name={s.icon}
+                  size={22}
+                  color={colors.scheme === "dark" ? colors.foreground : s.color}
+                  brand
+                />
+              </Pressable>
+            );
+          })}
+        </View>
 
         <View style={{ height: 28 }} />
 
@@ -221,22 +266,35 @@ export default function AuthLanding() {
         </View>
 
         <View style={{ height: 24 }} />
+        <View style={styles.infoLinks}>
+          <Pressable onPress={() => router.push("/info/about")} hitSlop={8}>
+            <Text style={[styles.infoLink, { color: colors.mutedForeground }]}>
+              About
+            </Text>
+          </Pressable>
+          <Text style={[styles.infoDot, { color: colors.border }]}>·</Text>
+          <Pressable onPress={() => router.push("/info/help")} hitSlop={8}>
+            <Text style={[styles.infoLink, { color: colors.mutedForeground }]}>
+              Help
+            </Text>
+          </Pressable>
+          <Text style={[styles.infoDot, { color: colors.border }]}>·</Text>
+          <Pressable onPress={() => router.push("/info/privacy")} hitSlop={8}>
+            <Text style={[styles.infoLink, { color: colors.mutedForeground }]}>
+              Privacy
+            </Text>
+          </Pressable>
+          <Text style={[styles.infoDot, { color: colors.border }]}>·</Text>
+          <Pressable onPress={() => router.push("/info/terms")} hitSlop={8}>
+            <Text style={[styles.infoLink, { color: colors.mutedForeground }]}>
+              Terms
+            </Text>
+          </Pressable>
+        </View>
+
+        <View style={{ height: 12 }} />
         <Text style={[styles.fineprint, { color: colors.mutedForeground }]}>
-          By continuing you agree to our{" "}
-          <Text
-            style={{ color: colors.primary }}
-            onPress={() => router.push("/info/terms")}
-          >
-            Terms
-          </Text>{" "}
-          and{" "}
-          <Text
-            style={{ color: colors.primary }}
-            onPress={() => router.push("/info/privacy")}
-          >
-            Privacy Policy
-          </Text>
-          .
+          By continuing you agree to our Terms and Privacy Policy.
         </Text>
       </ScrollView>
     </View>
@@ -252,16 +310,8 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   sub: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 16, marginBottom: 24 },
-  tabs: {
-    flexDirection: "row",
-    padding: 4,
-    borderWidth: 1,
-  },
-  tab: {
-    flex: 1,
-    alignItems: "center",
-    paddingVertical: 10,
-  },
+  tabs: { flexDirection: "row", padding: 4, borderWidth: 1 },
+  tab: { flex: 1, alignItems: "center", paddingVertical: 10 },
   tabText: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 14 },
   divider: {
     flexDirection: "row",
@@ -271,6 +321,20 @@ const styles = StyleSheet.create({
   },
   line: { flex: 1, height: StyleSheet.hairlineWidth },
   dividerText: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 12 },
+  socialGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    justifyContent: "space-between",
+  },
+  socialBtn: {
+    width: "22%",
+    minWidth: 56,
+    aspectRatio: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+  },
   section: {
     fontFamily: "SpaceGrotesk_500Medium",
     fontSize: 13,
@@ -279,6 +343,19 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   demoRow: { flexDirection: "row", gap: 12 },
+  infoLinks: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
+  },
+  infoLink: {
+    fontFamily: "SpaceGrotesk_500Medium",
+    fontSize: 13,
+    paddingVertical: 4,
+  },
+  infoDot: { fontSize: 13 },
   fineprint: {
     fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 12,

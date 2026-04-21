@@ -176,6 +176,28 @@ export default function Onboarding() {
           label={index === SLIDES.length - 1 ? "Get started" : "Continue"}
           onPress={next}
         />
+        <View style={styles.infoLinks}>
+          {[
+            { href: "/info/about", label: "About" },
+            { href: "/info/nfc", label: "NFC" },
+            { href: "/info/help", label: "Help" },
+            { href: "/info/privacy", label: "Privacy" },
+            { href: "/info/terms", label: "Terms" },
+          ].map((l, i, arr) => (
+            <View key={l.href} style={styles.infoLinkRow}>
+              <Text
+                accessibilityRole="link"
+                onPress={() => router.push(l.href as any)}
+                style={[styles.infoLink, { color: colors.mutedForeground }]}
+              >
+                {l.label}
+              </Text>
+              {i < arr.length - 1 ? (
+                <Text style={[styles.infoDot, { color: colors.border }]}>·</Text>
+              ) : null}
+            </View>
+          ))}
+        </View>
       </View>
     </View>
   );
@@ -225,4 +247,15 @@ const styles = StyleSheet.create({
   },
   dot: { height: 8, borderRadius: 4 },
   cta: { gap: 12 },
+  infoLinks: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 4,
+    paddingTop: 8,
+  },
+  infoLinkRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  infoLink: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 13, padding: 4 },
+  infoDot: { fontSize: 13 },
 });
