@@ -26,6 +26,11 @@
                              style="background: rgba(239,68,68,0.12); color:#ef4444;">
                             <i class="fas fa-triangle-exclamation"></i>
                         </div>
+                    @elseif($n->type === 'workspace_access_request')
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center"
+                             style="background: rgba(139,92,246,0.12); color:#7c3aed;">
+                            <i class="fas fa-user-shield"></i>
+                        </div>
                     @elseif(!empty($d['follower_avatar']) || !empty($d['creator_avatar']))
                         <img src="{{ $d['follower_avatar'] ?? $d['creator_avatar'] }}" class="w-10 h-10 rounded-full object-cover" alt=""/>
                     @else
@@ -45,6 +50,15 @@
                                     <i class="fas fa-rotate-right"></i> Fix it on Connected Accounts
                                 </a>
                             @endif
+                        @elseif($n->type === 'workspace_access_request')
+                            <p class="text-sm" style="color: var(--text-primary);">
+                                <span class="font-semibold">{{ $d['requester_name'] ?? 'A teammate' }}</span>
+                                is asking for access to
+                                <span class="font-semibold">{{ $d['workspace_name'] ?? 'a workspace' }}</span>@if(!empty($d['path'])) — they tried to open <code class="text-xs px-1 rounded" style="background: var(--bg-subtle);">/{{ ltrim($d['path'], '/') }}</code>@endif.
+                            </p>
+                            <a href="{{ route('user.team.index') }}" class="inline-flex items-center gap-1 mt-1 text-xs font-semibold text-violet-600 hover:underline">
+                                <i class="fas fa-users-gear"></i> Manage team access
+                            </a>
                         @else
                             <p class="text-sm" style="color: var(--text-primary);">{{ $d['message'] ?? $n->type }}</p>
                         @endif

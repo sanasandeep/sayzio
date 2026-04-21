@@ -93,6 +93,9 @@ Route::prefix('user')->name('user.')->group(function () {
 
         // ---- Workspaces ----
         Route::post('workspaces',                              [\App\Modules\User\Controllers\WorkspaceController::class, 'store'])  ->name('workspaces.store');
+        Route::post('workspaces/access-request',               [\App\Modules\User\Controllers\WorkspaceController::class, 'requestAccess'])
+            ->middleware('throttle:6,60')
+            ->name('workspaces.request-access');
         Route::post('workspaces/{workspace}/switch',           [\App\Modules\User\Controllers\WorkspaceController::class, 'switch']) ->name('workspaces.switch');
         Route::put ('workspaces/{workspace}',                  [\App\Modules\User\Controllers\WorkspaceController::class, 'update']) ->name('workspaces.update');
         Route::delete('workspaces/{workspace}',                [\App\Modules\User\Controllers\WorkspaceController::class, 'destroy'])->name('workspaces.destroy');

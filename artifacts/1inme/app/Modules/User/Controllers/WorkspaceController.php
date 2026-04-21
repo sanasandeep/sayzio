@@ -3,6 +3,7 @@
 namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\User\Models\UserNotification;
 use App\Modules\User\Models\Workspace;
 use App\Modules\User\Services\WorkspaceContext;
 use Illuminate\Http\Request;
@@ -78,5 +79,55 @@ class WorkspaceController extends Controller
         $workspace->delete();
         $this->ctx->clear();
         return redirect()->route('user.dashboard')->with('success', 'Workspace deleted.');
+    }
+
+    /**
+     * Member-initiated "ask an admin for access" — fired from the branded
+     * 403 page when a member hits a route their role can't see. Drops an
+     * in-app notification on the workspace owner and bounces back with a
+     * confirmation flash. Throttled at the route level to prevent spam.
+     */
+    public function requestAccess(Request $request)
+    {
+        $data = $request->validate([
+            'workspace_id' => 'required|integer',
+            'path'         => 'nullable|string|max:255',
+            'permissions'  => 'nullable|array',
+            'permissions.*'=> 'string|max:64',
+        ]);
+
+        $user = $request->user();
+        $ws   = Workspace::find($data['workspace_id']);
+
+        if (!$ws || !$user->membershipFor($ws)) {
+            return redirect()->route('user.dashboard')
+                ->with('access_request_error', "We couldn't find that workspace.");
+        }
+
+        // Don't pester the owner more than once an hour for the same path.
+        $cacheKey = "access_request:{$user->id}:{$ws->id}:" . md5((string) ($data['path'] ?? ''));
+        if (\Cache::has($cacheKey)) {
+            return back()->with('access_request_sent', true);
+        }
+        \Cache::put($cacheKey, 1, now()->addHour());
+
+        UserNotification::create([
+            'user_id'    => (int) $ws->owner_user_id,
+            'type'       => 'workspace_access_request',
+            'data'       => [
+                'requester_id'   => $user->id,
+                'requester_name' => $user->name,
+                'requester_email'=> $user->email,
+                'workspace_id'   => $ws->id,
+                'workspace_name' => $ws->name,
+                'path'           => $data['path'] ?? null,
+                'permissions'    => $data['permissions'] ?? [],
+                'message'        => "{$user->name} is asking for access in {$ws->name}.",
+            ],
+            'created_at' => now(),
+            'emailed_at' => null,
+        ]);
+
+        return back()->with('access_request_sent', true);
     }
 }

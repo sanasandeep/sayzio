@@ -15,7 +15,10 @@ use Illuminate\Http\Request;
  *
  * If multiple permissions are listed, ANY one of them grants access.
  * Returns 403 with a structured JSON payload on AJAX/JSON requests so the
- * UI can show a friendly explanation instead of a raw error page.
+ * UI can show a friendly explanation instead of a raw error page. For
+ * normal browser requests, renders a branded "no access" page that shows
+ * the user's current role, the workspace name, and a button to ask the
+ * workspace owner for access.
  */
 class RequireWorkspacePermission
 {
@@ -30,7 +33,7 @@ class RequireWorkspacePermission
         $ws = app()->bound('current_workspace') ? app('current_workspace') : null;
         if (!$ws) {
             // No workspace context — usually a misconfigured route. Deny.
-            return $this->deny($request, 'no_workspace');
+            return $this->deny($request, 'no_workspace', null, null);
         }
 
         if ($user->isSuperAdmin() || (int) $ws->owner_user_id === $user->id) {
@@ -39,7 +42,7 @@ class RequireWorkspacePermission
 
         $membership = $user->membershipFor($ws);
         if (!$membership) {
-            return $this->deny($request, 'not_a_member');
+            return $this->deny($request, 'not_a_member', $ws, null);
         }
 
         foreach ($permissions as $perm) {
@@ -47,10 +50,10 @@ class RequireWorkspacePermission
                 return $next($request);
             }
         }
-        return $this->deny($request, 'missing_permission', $permissions);
+        return $this->deny($request, 'missing_permission', $ws, $membership->role, $permissions);
     }
 
-    protected function deny(Request $request, string $reason, array $permissions = [])
+    protected function deny(Request $request, string $reason, ?Workspace $workspace, ?string $role, array $permissions = [])
     {
         if ($request->expectsJson() || $request->wantsJson()) {
             return response()->json([
@@ -59,6 +62,26 @@ class RequireWorkspacePermission
                 'permissions' => $permissions,
             ], 403);
         }
-        abort(403, 'You do not have permission to perform this action in this workspace.');
+
+        return response()->view('user.errors.no-workspace-permission', [
+            'reason'      => $reason,
+            'workspace'   => $workspace,
+            'role'        => $role,
+            'roleLabel'   => $role ? self::roleLabel($role) : null,
+            'permissions' => $permissions,
+        ], 403);
+    }
+
+    protected static function roleLabel(string $role): string
+    {
+        $known = [
+            'admin'   => 'Admin',
+            'editor'  => 'Editor',
+            'replier' => 'Replier',
+            'analyst' => 'Analyst',
+            'viewer'  => 'Viewer',
+            'custom'  => 'Custom role',
+        ];
+        return $known[$role] ?? ucfirst(str_replace('_', ' ', $role));
     }
 }

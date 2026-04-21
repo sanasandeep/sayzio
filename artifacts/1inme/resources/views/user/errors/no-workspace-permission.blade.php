@@ -1,0 +1,69 @@
+@extends('user.layouts.app')
+
+@section('title', 'No access')
+
+@section('content')
+@php
+    $reasonText = [
+        'no_workspace'       => "We couldn't find an active workspace for this page.",
+        'not_a_member'       => "You're not a member of this workspace anymore.",
+        'missing_permission' => "Your role in this workspace doesn't include access to this page.",
+    ][$reason] ?? "You don't have access to this page in this workspace.";
+@endphp
+<div class="max-w-lg mx-auto px-4 py-12">
+    <div class="rounded-2xl border p-8 text-center"
+         style="border-color: var(--border-strong); background: var(--bg-card);">
+        <div class="w-14 h-14 mx-auto rounded-full flex items-center justify-center mb-4"
+             style="background: rgba(139,92,246,0.12); color:#7c3aed;">
+            <i class="fas fa-lock text-2xl"></i>
+        </div>
+        <h1 class="text-xl font-bold mb-2" style="color: var(--text-primary);">You don't have access</h1>
+        <p class="text-sm mb-5" style="color: var(--text-muted);">{{ $reasonText }}</p>
+
+        @if($workspace)
+            <div class="rounded-lg border p-4 mb-5 text-left"
+                 style="border-color: var(--border-soft); background: var(--bg-subtle);">
+                <p class="text-xs uppercase tracking-wide mb-1" style="color: var(--text-faint);">Workspace</p>
+                <p class="text-sm font-semibold mb-3" style="color: var(--text-primary);">{{ $workspace->name }}</p>
+                <p class="text-xs uppercase tracking-wide mb-1" style="color: var(--text-faint);">Your role</p>
+                <p class="text-sm font-semibold" style="color: var(--text-primary);">
+                    {{ $roleLabel ?? 'Not a member' }}
+                </p>
+            </div>
+        @endif
+
+        @if(session('access_request_sent'))
+            <div class="mb-4 p-3 rounded-lg bg-emerald-50 text-emerald-700 text-sm">
+                <i class="fas fa-check-circle mr-1"></i>
+                We let the workspace owner know you'd like access.
+            </div>
+        @elseif(session('access_request_error'))
+            <div class="mb-4 p-3 rounded-lg bg-amber-50 text-amber-800 text-sm">
+                {{ session('access_request_error') }}
+            </div>
+        @endif
+
+        <div class="flex flex-col sm:flex-row gap-2 justify-center">
+            <a href="{{ route('user.dashboard') }}"
+               class="px-4 py-2 rounded-lg text-sm font-semibold border"
+               style="border-color: var(--border-strong); color: var(--text-primary);">
+                <i class="fas fa-arrow-left mr-1"></i> Back to dashboard
+            </a>
+            @if($workspace && $reason === 'missing_permission' && !session('access_request_sent'))
+                <form action="{{ route('user.workspaces.request-access') }}" method="POST">
+                    @csrf
+                    <input type="hidden" name="workspace_id" value="{{ $workspace->id }}">
+                    <input type="hidden" name="path" value="{{ request()->path() }}">
+                    @foreach(($permissions ?? []) as $perm)
+                        <input type="hidden" name="permissions[]" value="{{ $perm }}">
+                    @endforeach
+                    <button type="submit"
+                            class="w-full px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-semibold hover:bg-primary-700">
+                        <i class="fas fa-paper-plane mr-1"></i> Ask an admin for access
+                    </button>
+                </form>
+            @endif
+        </div>
+    </div>
+</div>
+@endsection
