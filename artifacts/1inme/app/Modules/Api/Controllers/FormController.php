@@ -51,6 +51,39 @@ class FormController extends Controller
         ]);
     }
 
+    public function exportSubmissions(Request $request, int $id)
+    {
+        $f = Form::where('user_id', $request->user()->id)->find($id);
+        if (!$f) return $this->notFound('Form not found');
+
+        $rows = FormSubmission::where('form_id', $f->id)->orderByDesc('id')->get();
+
+        $columns = collect($f->fields ?? [])
+            ->filter(fn ($x) => !in_array($x['type'] ?? '', ['heading', 'paragraph', 'divider', 'page_break', 'section'], true))
+            ->pluck('id')->all();
+
+        $output = fopen('php://temp', 'r+');
+        fputcsv($output, array_merge(['#', 'submitted_at', 'ip'], $columns));
+        foreach ($rows as $s) {
+            $data = (array) ($s->data ?? $s->payload ?? []);
+            $line = [$s->id, optional($s->created_at)->toIso8601String(), $s->ip ?? ''];
+            foreach ($columns as $c) {
+                $v = $data[$c] ?? '';
+                if (is_array($v)) $v = implode(', ', $v);
+                $line[] = (string) $v;
+            }
+            fputcsv($output, $line);
+        }
+        rewind($output);
+        $csv = stream_get_contents($output);
+        fclose($output);
+
+        return response($csv, 200, [
+            'Content-Type'        => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="form-' . $f->id . '-submissions.csv"',
+        ]);
+    }
+
     protected function transform(Form $f): array
     {
         return [

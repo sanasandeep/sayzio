@@ -129,24 +129,34 @@ Route::prefix('v1')->group(function () {
         Route::delete('/projects/{id}',   [ProjectController::class, 'destroy'])->whereNumber('id');
 
         // Posts (creator feed)
-        Route::get   ('/posts',           [CreatorPostController::class, 'index']);
-        Route::post  ('/posts',           [CreatorPostController::class, 'store']);
-        Route::patch ('/posts/{id}',      [CreatorPostController::class, 'update'])->whereNumber('id');
-        Route::delete('/posts/{id}',      [CreatorPostController::class, 'destroy'])->whereNumber('id');
+        Route::get   ('/posts',            [CreatorPostController::class, 'index']);
+        Route::post  ('/posts',            [CreatorPostController::class, 'store']);
+        Route::patch ('/posts/{id}',       [CreatorPostController::class, 'update'])->whereNumber('id');
+        Route::delete('/posts/{id}',       [CreatorPostController::class, 'destroy'])->whereNumber('id');
+        Route::post  ('/posts/{id}/pin',   [CreatorPostController::class, 'pin'])->whereNumber('id');
+        Route::post  ('/posts/{id}/unpin', [CreatorPostController::class, 'unpin'])->whereNumber('id');
 
         // Contacts
-        Route::get   ('/contacts',        [ContactController::class, 'index']);
-        Route::post  ('/contacts',        [ContactController::class, 'store']);
-        Route::patch ('/contacts/{id}',   [ContactController::class, 'update'])->whereNumber('id');
-        Route::delete('/contacts/{id}',   [ContactController::class, 'destroy'])->whereNumber('id');
+        Route::get   ('/contacts',         [ContactController::class, 'index']);
+        Route::post  ('/contacts',         [ContactController::class, 'store']);
+        Route::post  ('/contacts/bulk',    [ContactController::class, 'bulkImport']);
+        Route::get   ('/contacts/{id}',    [ContactController::class, 'show'])->whereNumber('id');
+        Route::patch ('/contacts/{id}',    [ContactController::class, 'update'])->whereNumber('id');
+        Route::delete('/contacts/{id}',    [ContactController::class, 'destroy'])->whereNumber('id');
 
         // Forms (read-only for mobile; full CRUD lives on web)
-        Route::get('/forms',                        [FormController::class, 'index']);
-        Route::get('/forms/{id}',                   [FormController::class, 'show'])->whereNumber('id');
-        Route::get('/forms/{id}/submissions',       [FormController::class, 'submissions'])->whereNumber('id');
+        Route::get('/forms',                              [FormController::class, 'index']);
+        Route::get('/forms/{id}',                         [FormController::class, 'show'])->whereNumber('id');
+        Route::get('/forms/{id}/submissions',             [FormController::class, 'submissions'])->whereNumber('id');
+        Route::get('/forms/{id}/submissions.csv',         [FormController::class, 'exportSubmissions'])->whereNumber('id');
 
         // Inbox (DM threads on owned biolinks)
-        Route::get('/inbox/threads', [InboxController::class, 'threads']);
+        Route::get   ('/inbox/threads',                   [InboxController::class, 'threads']);
+        Route::get   ('/inbox/conversations',             [InboxController::class, 'conversations']);
+        Route::get   ('/inbox/conversations/{id}',        [InboxController::class, 'show'])->whereNumber('id');
+        Route::post  ('/inbox/conversations/{id}/reply',  [InboxController::class, 'reply'])->whereNumber('id');
+        Route::patch ('/inbox/conversations/{id}/status', [InboxController::class, 'setStatus'])->whereNumber('id');
+        Route::delete('/inbox/conversations/{id}',        [InboxController::class, 'destroy'])->whereNumber('id');
 
         // Workspaces
         Route::get('/workspaces',                 [WorkspaceController::class, 'index']);
@@ -171,9 +181,14 @@ Route::prefix('v1')->group(function () {
         Route::delete('/qr-codes/{id}',  [QrCodeController::class, 'destroy'])->whereNumber('id');
 
         // Social accounts + social proof
-        Route::get   ('/social/connections',        [SocialAccountController::class, 'connections']);
-        Route::delete('/social/connections/{id}',   [SocialAccountController::class, 'disconnect'])->whereNumber('id');
-        Route::get   ('/social/proofs',             [SocialAccountController::class, 'socialProofs']);
+        Route::get   ('/social/connections',                 [SocialAccountController::class, 'connections']);
+        Route::post  ('/social/connections',                 [SocialAccountController::class, 'connect']);
+        Route::post  ('/social/connections/{id}/refresh',    [SocialAccountController::class, 'refresh'])->whereNumber('id');
+        Route::delete('/social/connections/{id}',            [SocialAccountController::class, 'disconnect'])->whereNumber('id');
+        Route::get   ('/social/proofs',                      [SocialAccountController::class, 'socialProofs']);
+        Route::post  ('/social/proofs',                      [SocialAccountController::class, 'storeProof']);
+        Route::patch ('/social/proofs/{id}',                 [SocialAccountController::class, 'updateProof'])->whereNumber('id');
+        Route::delete('/social/proofs/{id}',                 [SocialAccountController::class, 'destroyProof'])->whereNumber('id');
 
         // Integrations
         Route::get   ('/integrations',        [IntegrationController::class, 'index']);

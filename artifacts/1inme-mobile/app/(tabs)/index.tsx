@@ -58,7 +58,7 @@ export default function Home() {
         <View style={styles.headerRow}>
           <BrandWordmark size={26} />
           <Pressable
-            onPress={() => router.push("/(tabs)/notifications")}
+            onPress={() => router.push("/notifications")}
             hitSlop={8}
           >
             <Feather name="bell" size={22} color={colors.foreground} />

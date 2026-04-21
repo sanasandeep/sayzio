@@ -74,11 +74,11 @@ export default function SignedInTabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="notifications"
+        name="inbox"
         options={{
           title: "Inbox",
           tabBarIcon: ({ color, size }) => (
-            <Feather name="bell" size={size} color={color} />
+            <Feather name="message-circle" size={size} color={color} />
           ),
         }}
       />
@@ -90,6 +90,10 @@ export default function SignedInTabsLayout() {
             <Feather name="user" size={size} color={color} />
           ),
         }}
+      />
+      <Tabs.Screen
+        name="notifications"
+        options={{ href: null }}
       />
     </Tabs>
   );

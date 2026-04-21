@@ -30,6 +30,19 @@ const INFO_PAGES: {
   { href: "/info/terms", label: "Terms of service", icon: "file-text" },
 ];
 
+const TOOL_PAGES: {
+  href: "/posts" | "/contacts" | "/forms" | "/followers" | "/social" | "/notifications";
+  label: string;
+  icon: keyof typeof Feather.glyphMap;
+}[] = [
+  { href: "/posts", label: "Posts", icon: "message-square" },
+  { href: "/contacts", label: "Contacts", icon: "users" },
+  { href: "/forms", label: "Forms", icon: "file-text" },
+  { href: "/followers", label: "Followers & Following", icon: "user-check" },
+  { href: "/social", label: "Social accounts", icon: "share-2" },
+  { href: "/notifications", label: "Notifications", icon: "bell" },
+];
+
 const THEME_OPTIONS: {
   value: ThemePref;
   label: string;
@@ -141,6 +154,47 @@ export default function Profile() {
                 </Pressable>
               );
             })}
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+            Manage
+          </Text>
+          <View
+            style={[
+              styles.list,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                borderRadius: colors.radius,
+              },
+            ]}
+          >
+            {TOOL_PAGES.map((p, i) => (
+              <Pressable
+                key={p.href}
+                onPress={() => router.push(p.href)}
+                style={({ pressed }) => [
+                  styles.listItem,
+                  {
+                    borderTopWidth: i === 0 ? 0 : StyleSheet.hairlineWidth,
+                    borderTopColor: colors.border,
+                    opacity: pressed ? 0.7 : 1,
+                  },
+                ]}
+              >
+                <Feather name={p.icon} size={18} color={colors.primary} />
+                <Text style={[styles.listLabel, { color: colors.foreground }]}>
+                  {p.label}
+                </Text>
+                <Feather
+                  name="chevron-right"
+                  size={18}
+                  color={colors.mutedForeground}
+                />
+              </Pressable>
+            ))}
           </View>
         </View>
 

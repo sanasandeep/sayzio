@@ -1,16 +1,15 @@
 import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Stack } from "expo-router";
 import {
   ActivityIndicator,
   FlatList,
-  Platform,
   Pressable,
   RefreshControl,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { EmptyState } from "@/components/EmptyState";
 import { useColors } from "@/hooks/useColors";
@@ -20,11 +19,9 @@ import {
   markRead,
 } from "@/lib/api/notifications";
 
-export default function NotificationsTab() {
+export default function NotificationsScreen() {
   const colors = useColors();
-  const insets = useSafeAreaInsets();
   const qc = useQueryClient();
-  const webTop = Platform.OS === "web" ? 67 : 0;
 
   const q = useQuery({
     queryKey: ["notifications"],
@@ -41,33 +38,37 @@ export default function NotificationsTab() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["notifications"] }),
   });
 
-  const refreshing = q.isFetching && !q.isLoading;
-
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <View
-        style={{
-          paddingTop: insets.top + 12 + webTop,
-          paddingHorizontal: 20,
-          paddingBottom: 12,
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
+      <Stack.Screen
+        options={{
+          title: "Notifications",
+          headerStyle: { backgroundColor: colors.card },
+          headerTitleStyle: {
+            fontFamily: "SpaceGrotesk_600SemiBold",
+            color: colors.foreground,
+          },
+          headerTintColor: colors.primary,
+          headerRight: () =>
+            (q.data?.unreadCount ?? 0) > 0 ? (
+              <Pressable
+                onPress={() => markAll.mutate()}
+                hitSlop={8}
+                style={{ paddingRight: 12 }}
+              >
+                <Text
+                  style={{
+                    color: colors.primary,
+                    fontFamily: "SpaceGrotesk_600SemiBold",
+                    fontSize: 13,
+                  }}
+                >
+                  Mark all
+                </Text>
+              </Pressable>
+            ) : null,
         }}
-      >
-        <Text style={[styles.title, { color: colors.foreground }]}>Inbox</Text>
-        {(q.data?.unreadCount ?? 0) > 0 ? (
-          <Pressable
-            onPress={() => markAll.mutate()}
-            hitSlop={8}
-            style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-          >
-            <Text style={[styles.action, { color: colors.primary }]}>
-              Mark all read
-            </Text>
-          </Pressable>
-        ) : null}
-      </View>
+      />
 
       {q.isLoading ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
@@ -77,11 +78,7 @@ export default function NotificationsTab() {
         <FlatList
           data={q.data?.items ?? []}
           keyExtractor={(n) => String(n.id)}
-          contentContainerStyle={{
-            paddingHorizontal: 20,
-            paddingBottom: 32,
-            gap: 8,
-          }}
+          contentContainerStyle={{ padding: 20, gap: 8 }}
           renderItem={({ item }) => {
             const unread = !item.read_at;
             return (
@@ -114,7 +111,10 @@ export default function NotificationsTab() {
                   {item.body ? (
                     <Text
                       numberOfLines={2}
-                      style={[styles.rowBody, { color: colors.mutedForeground }]}
+                      style={[
+                        styles.rowBody,
+                        { color: colors.mutedForeground },
+                      ]}
                     >
                       {item.body}
                     </Text>
@@ -135,12 +135,12 @@ export default function NotificationsTab() {
             <EmptyState
               icon="bell"
               title="No notifications yet"
-              body="Updates about your links and followers will appear here."
+              body="Updates about your links and followers appear here."
             />
           }
           refreshControl={
             <RefreshControl
-              refreshing={refreshing}
+              refreshing={q.isFetching && !q.isLoading}
               onRefresh={() => q.refetch()}
               tintColor={colors.primary}
             />
@@ -152,8 +152,6 @@ export default function NotificationsTab() {
 }
 
 const styles = StyleSheet.create({
-  title: { fontFamily: "SpaceGrotesk_700Bold", fontSize: 28 },
-  action: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 13 },
   row: {
     flexDirection: "row",
     alignItems: "center",

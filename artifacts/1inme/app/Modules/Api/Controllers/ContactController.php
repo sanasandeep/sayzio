@@ -46,6 +46,15 @@ class ContactController extends Controller
         ]);
     }
 
+    public function show(Request $request, int $id)
+    {
+        $c = Contact::with(['phones', 'emails'])
+            ->where('user_id', $request->user()->id)
+            ->find($id);
+        if (!$c) return $this->notFound('Contact not found');
+        return $this->ok(['contact' => $this->transform($c)]);
+    }
+
     public function store(Request $request)
     {
         $data = $this->validatePayload($request);
@@ -103,6 +112,118 @@ class ContactController extends Controller
         if (!$c) return $this->notFound('Contact not found');
         $c->delete();
         return $this->noContent();
+    }
+
+    /**
+     * Bulk-import contacts from a device address book. Each row is matched
+     * against the user's existing contacts by primary email or phone (case-
+     * insensitive) and updated in place, otherwise created.
+     */
+    public function bulkImport(Request $request)
+    {
+        $data = $request->validate([
+            'contacts'                       => 'required|array|min:1|max:500',
+            'contacts.*.display_name'        => 'nullable|string|max:191',
+            'contacts.*.given_name'          => 'nullable|string|max:191',
+            'contacts.*.family_name'         => 'nullable|string|max:191',
+            'contacts.*.organization'        => 'nullable|string|max:191',
+            'contacts.*.emails'              => 'nullable|array',
+            'contacts.*.emails.*.value'      => 'required_with:contacts.*.emails.*|email|max:191',
+            'contacts.*.emails.*.label'      => 'nullable|string|max:50',
+            'contacts.*.phones'              => 'nullable|array',
+            'contacts.*.phones.*.value'      => 'required_with:contacts.*.phones.*|string|max:80',
+            'contacts.*.phones.*.label'      => 'nullable|string|max:50',
+        ]);
+
+        $userId = $request->user()->id;
+        $created = 0; $updated = 0; $skipped = 0;
+
+        DB::transaction(function () use ($data, $userId, &$created, &$updated, &$skipped) {
+            foreach ($data['contacts'] as $row) {
+                $emails = $row['emails'] ?? [];
+                $phones = $row['phones'] ?? [];
+                $name   = $row['display_name'] ?? trim(($row['given_name'] ?? '') . ' ' . ($row['family_name'] ?? ''));
+
+                if (empty($emails) && empty($phones) && trim((string) $name) === '') {
+                    $skipped++; continue;
+                }
+
+                // Try to find an existing contact by primary email or phone.
+                $existing = null;
+                foreach ($emails as $e) {
+                    $existing = Contact::where('user_id', $userId)
+                        ->whereHas('emails', fn ($q) => $q->whereRaw('LOWER(value) = ?', [strtolower($e['value'])]))
+                        ->first();
+                    if ($existing) break;
+                }
+                if (!$existing) {
+                    foreach ($phones as $p) {
+                        $existing = Contact::where('user_id', $userId)
+                            ->whereHas('phones', fn ($q) => $q->where('value', $p['value']))
+                            ->first();
+                        if ($existing) break;
+                    }
+                }
+
+                if ($existing) {
+                    $existing->fill(array_filter([
+                        'display_name' => $name ?: $existing->display_name,
+                        'given_name'   => $row['given_name']   ?? $existing->given_name,
+                        'family_name'  => $row['family_name']  ?? $existing->family_name,
+                        'organization' => $row['organization'] ?? $existing->organization,
+                    ]))->save();
+                    $this->mergeEmails($existing, $emails);
+                    $this->mergePhones($existing, $phones);
+                    $updated++;
+                } else {
+                    $c = Contact::create([
+                        'user_id'      => $userId,
+                        'display_name' => $name ?: null,
+                        'given_name'   => $row['given_name']   ?? null,
+                        'family_name'  => $row['family_name']  ?? null,
+                        'organization' => $row['organization'] ?? null,
+                    ]);
+                    $this->mergeEmails($c, $emails);
+                    $this->mergePhones($c, $phones);
+                    $created++;
+                }
+            }
+        });
+
+        return $this->ok(compact('created', 'updated', 'skipped'));
+    }
+
+    protected function mergeEmails(Contact $c, array $emails): void
+    {
+        foreach ($emails as $i => $e) {
+            $val = strtolower(trim($e['value']));
+            if ($val === '') continue;
+            $exists = $c->emails()->whereRaw('LOWER(value) = ?', [$val])->exists();
+            if ($exists) continue;
+            ContactEmail::create([
+                'contact_id' => $c->id,
+                'label'      => $e['label'] ?? null,
+                'value'      => $e['value'],
+                'is_primary' => ($i === 0 && $c->emails()->count() === 0),
+            ]);
+        }
+    }
+
+    protected function mergePhones(Contact $c, array $phones): void
+    {
+        foreach ($phones as $i => $p) {
+            $val = preg_replace('/\s+/', '', $p['value']);
+            if ($val === '') continue;
+            $exists = $c->phones()->where('value', $p['value'])->exists();
+            if ($exists) continue;
+            ContactPhone::create([
+                'contact_id' => $c->id,
+                'label'      => $p['label'] ?? null,
+                'value'      => $p['value'],
+                'value_e164' => $p['value_e164'] ?? null,
+                'is_primary' => ($i === 0 && $c->phones()->count() === 0),
+            ]);
+        }
     }
 
     protected function validatePayload(Request $request, bool $partial = false): array
