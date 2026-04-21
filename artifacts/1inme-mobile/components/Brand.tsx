@@ -1,52 +1,27 @@
-import { LinearGradient } from "expo-linear-gradient";
-import { StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, View } from "react-native";
 
-import { useColors } from "@/hooks/useColors";
+import { useColorScheme } from "react-native";
+
+const wordmarkLight = require("../assets/images/wordmark-dark-text.png");
+const wordmarkDark = require("../assets/images/wordmark-white-text.png");
 
 export function BrandWordmark({ size = 36 }: { size?: number }) {
-  const colors = useColors();
+  const scheme = useColorScheme();
+  const source = scheme === "dark" ? wordmarkDark : wordmarkLight;
+  const height = size;
+  const width = size * 3.4;
   return (
     <View style={styles.row}>
-      <LinearGradient
-        colors={[colors.primary, colors.accent]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[
-          styles.badge,
-          { width: size * 1.05, height: size * 1.05, borderRadius: size * 0.28 },
-        ]}
-      >
-        <Text
-          style={[
-            styles.badgeText,
-            { fontSize: size * 0.62, color: colors.primaryForeground },
-          ]}
-        >
-          1
-        </Text>
-      </LinearGradient>
-      <Text
-        style={[
-          styles.word,
-          { color: colors.foreground, fontSize: size * 0.7 },
-        ]}
-      >
-        INME
-      </Text>
+      <Image
+        source={source}
+        style={{ width, height }}
+        resizeMode="contain"
+        accessibilityLabel="1INME"
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: "row", alignItems: "center", gap: 10 },
-  badge: { alignItems: "center", justifyContent: "center" },
-  badgeText: {
-    fontFamily: "SpaceGrotesk_700Bold",
-    includeFontPadding: false,
-    marginTop: -2,
-  },
-  word: {
-    fontFamily: "SpaceGrotesk_700Bold",
-    letterSpacing: 4,
-  },
+  row: { flexDirection: "row", alignItems: "center" },
 });
