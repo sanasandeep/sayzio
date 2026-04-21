@@ -6,6 +6,27 @@
 
     @php
         $isServices = $page->slug === 'services';
+        $iconChoices = [
+            'fa-bullhorn','fa-store','fa-shop','fa-cart-shopping','fa-bag-shopping','fa-tag','fa-tags','fa-gift','fa-percent',
+            'fa-rocket','fa-bolt','fa-fire','fa-star','fa-heart','fa-thumbs-up','fa-trophy','fa-award','fa-medal','fa-crown','fa-gem',
+            'fa-user','fa-users','fa-user-group','fa-user-plus','fa-user-tie','fa-people-group','fa-handshake','fa-id-badge','fa-id-card',
+            'fa-link','fa-share-nodes','fa-paper-plane','fa-envelope','fa-comments','fa-comment-dots','fa-message','fa-phone','fa-headset',
+            'fa-globe','fa-earth-americas','fa-map-location-dot','fa-location-dot','fa-compass','fa-sitemap','fa-network-wired',
+            'fa-camera','fa-image','fa-images','fa-video','fa-film','fa-music','fa-microphone','fa-podcast','fa-headphones',
+            'fa-palette','fa-paintbrush','fa-pen-nib','fa-pencil','fa-wand-magic-sparkles','fa-sparkles','fa-lightbulb','fa-flask',
+            'fa-chart-line','fa-chart-bar','fa-chart-pie','fa-chart-column','fa-magnifying-glass-chart','fa-bullseye','fa-arrow-trend-up',
+            'fa-briefcase','fa-building','fa-building-user','fa-suitcase','fa-clipboard-list','fa-list-check','fa-folder-open','fa-file-lines',
+            'fa-calendar','fa-calendar-day','fa-calendar-check','fa-clock','fa-hourglass-half','fa-bell','fa-flag','fa-thumbtack',
+            'fa-graduation-cap','fa-book','fa-book-open','fa-school','fa-chalkboard-user','fa-user-graduate','fa-pen-to-square',
+            'fa-cog','fa-gear','fa-gears','fa-sliders','fa-screwdriver-wrench','fa-toolbox','fa-wrench','fa-hammer','fa-cube','fa-cubes',
+            'fa-credit-card','fa-money-bill','fa-money-bill-wave','fa-coins','fa-piggy-bank','fa-wallet','fa-receipt','fa-cash-register',
+            'fa-circle-check','fa-circle-info','fa-shield-halved','fa-lock','fa-key','fa-fingerprint',
+            'fa-utensils','fa-mug-hot','fa-cake-candles','fa-pizza-slice','fa-leaf','fa-seedling','fa-tree','fa-paw','fa-dog','fa-cat',
+            'fa-plane','fa-car','fa-truck','fa-bicycle','fa-ship','fa-train','fa-house','fa-bed','fa-couch',
+            'fa-dumbbell','fa-heart-pulse','fa-spa','fa-stethoscope','fa-pills','fa-droplet','fa-sun','fa-moon','fa-cloud',
+            'fa-circle-dot','fa-puzzle-piece','fa-cube','fa-layer-group','fa-shapes','fa-infinity','fa-recycle',
+        ];
+        $iconChoices = array_values(array_unique($iconChoices));
         $servicesSeed = [];
         if ($isServices) {
             foreach (array_values($page->sections ?? []) as $s) {
@@ -26,7 +47,7 @@
     @endphp
     <form method="POST" action="{{ route('admin.site-pages.update', $page->slug) }}"
           @if($isServices)
-          x-data="{ sections: {{ json_encode($servicesSeed) }} }"
+          x-data="{ sections: {{ json_encode($servicesSeed) }}, iconChoices: {{ json_encode($iconChoices) }}, pickerOpen: null, pickerQuery: '', filteredIcons() { const q = (this.pickerQuery || '').toLowerCase().trim(); return q ? this.iconChoices.filter(n => n.toLowerCase().includes(q)) : this.iconChoices; } }"
           @else
           x-data="{ sections: {{ json_encode(array_values($page->sections ?? [])) }} }"
           @endif
@@ -88,11 +109,50 @@
                                       class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white font-mono"></textarea>
                         </div>
                         <div class="grid sm:grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Icon (FontAwesome class)</label>
-                                <input type="text" :name="'sections['+i+'][icon]'" x-model="s.icon" placeholder="fa-bullhorn"
-                                       class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white font-mono">
-                                <p class="mt-1 text-[11px] text-white/40">e.g. <code class="text-white/60">fa-bullhorn</code>, <code class="text-white/60">fa-store</code>. See FontAwesome solid icons.</p>
+                            <div class="relative">
+                                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Icon</label>
+                                <input type="hidden" :name="'sections['+i+'][icon]'" x-model="s.icon">
+                                <button type="button"
+                                        @click="pickerOpen = (pickerOpen === i ? null : i); pickerQuery = ''"
+                                        class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white flex items-center justify-between gap-3 hover:bg-white/10">
+                                    <span class="flex items-center gap-3 min-w-0">
+                                        <span class="w-8 h-8 rounded-md bg-white/10 border border-white/10 flex items-center justify-center text-violet-200">
+                                            <i class="fas" :class="s.icon || 'fa-circle-dot'"></i>
+                                        </span>
+                                        <span class="font-mono text-xs text-white/70 truncate" x-text="s.icon || 'Choose an icon'"></span>
+                                    </span>
+                                    <i class="fas fa-chevron-down text-[10px] text-white/40"></i>
+                                </button>
+                                <div x-show="pickerOpen === i" x-cloak
+                                     @click.outside="pickerOpen = null"
+                                     @keydown.escape.window="pickerOpen = null"
+                                     class="absolute z-30 mt-2 left-0 right-0 bg-zinc-900 border border-white/15 rounded-xl shadow-2xl p-3"
+                                     style="display:none;">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <i class="fas fa-magnifying-glass text-xs text-white/40"></i>
+                                        <input type="text" x-model="pickerQuery" placeholder="Search icons (e.g. cart, chart, rocket)"
+                                               class="flex-1 px-2 py-1.5 bg-white/5 border border-white/10 rounded-md text-xs text-white">
+                                    </div>
+                                    <div class="grid grid-cols-8 gap-1.5 max-h-64 overflow-y-auto p-0.5">
+                                        <template x-for="name in filteredIcons()" :key="name">
+                                            <button type="button"
+                                                    @click="s.icon = name; pickerOpen = null"
+                                                    :title="name"
+                                                    :class="s.icon === name ? 'bg-violet-600/40 border-violet-400/60 text-white' : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white'"
+                                                    class="aspect-square flex items-center justify-center rounded-md border text-base">
+                                                <i class="fas" :class="name"></i>
+                                            </button>
+                                        </template>
+                                        <div x-show="filteredIcons().length === 0" class="col-span-8 text-center text-[11px] text-white/40 py-4">
+                                            No icons match "<span x-text="pickerQuery"></span>".
+                                        </div>
+                                    </div>
+                                    <div class="mt-2 pt-2 border-t border-white/10 flex items-center gap-2">
+                                        <span class="text-[10px] uppercase tracking-wider text-white/40">Custom class</span>
+                                        <input type="text" x-model="s.icon" placeholder="fa-bullhorn"
+                                               class="flex-1 px-2 py-1 bg-white/5 border border-white/10 rounded text-xs text-white font-mono">
+                                    </div>
+                                </div>
                             </div>
                             <div>
                                 <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Tint (Tailwind gradient classes)</label>
