@@ -69,6 +69,11 @@
                 <i class="fas fa-check-circle mr-1"></i>
                 We let the workspace owner know you'd like access.
             </div>
+        @elseif(session('access_request_pending'))
+            <div class="mb-4 p-3 rounded-lg bg-sky-50 text-sky-700 text-sm">
+                <i class="fas fa-hourglass-half mr-1"></i>
+                {{ session('access_request_pending') }}
+            </div>
         @elseif(session('access_request_error'))
             <div class="mb-4 p-3 rounded-lg bg-amber-50 text-amber-800 text-sm">
                 {{ session('access_request_error') }}

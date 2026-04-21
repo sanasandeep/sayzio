@@ -122,8 +122,22 @@ class WorkspaceController extends Controller
         // Cache::add is atomic (write-if-absent) — closes the race where
         // two near-simultaneous submissions could both pass a has()
         // check before either wrote the cooldown marker.
-        if (! \Cache::add($cacheKey, 1, now()->addHour())) {
-            return back()->with('access_request_sent', true);
+        $expiresAt = now()->addHour();
+        if (! \Cache::add($cacheKey, $expiresAt->getTimestamp(), $expiresAt)) {
+            // Already pinged within the cooldown window — tell the
+            // teammate how long until they can try again so they
+            // stop mashing the button.
+            $storedExpiry = (int) \Cache::get($cacheKey, 0);
+            $secondsLeft  = max(0, $storedExpiry - now()->getTimestamp());
+            $minutesLeft  = (int) ceil($secondsLeft / 60);
+            if ($minutesLeft < 1) {
+                $minutesLeft = 1;
+            }
+            $unit = $minutesLeft === 1 ? 'minute' : 'minutes';
+            return back()->with(
+                'access_request_pending',
+                "You already pinged the owner — you can ask again in {$minutesLeft} {$unit}."
+            );
         }
 
         UserNotification::create([
