@@ -56,6 +56,12 @@
                                 is asking for access to
                                 <span class="font-semibold">{{ $d['workspace_name'] ?? 'a workspace' }}</span>@if(!empty($d['path'])) — they tried to open <code class="text-xs px-1 rounded" style="background: var(--bg-subtle);">/{{ ltrim($d['path'], '/') }}</code>@endif.
                             </p>
+                            @if(!empty($d['note']))
+                                <blockquote class="mt-2 text-sm italic border-l-2 pl-3 py-1"
+                                            style="border-color:#7c3aed; color: var(--text-primary); background: rgba(139,92,246,0.06);">
+                                    &ldquo;{{ $d['note'] }}&rdquo;
+                                </blockquote>
+                            @endif
                             <a href="{{ route('user.team.index') }}" class="inline-flex items-center gap-1 mt-1 text-xs font-semibold text-violet-600 hover:underline">
                                 <i class="fas fa-users-gear"></i> Manage team access
                             </a>

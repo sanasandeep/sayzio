@@ -94,7 +94,11 @@ class WorkspaceController extends Controller
             'path'         => 'nullable|string|max:255',
             'permissions'  => 'nullable|array',
             'permissions.*'=> 'string|max:64',
+            'note'         => 'nullable|string|max:280',
         ]);
+
+        $note = trim((string) ($data['note'] ?? ''));
+        $note = $note === '' ? null : $note;
 
         $user = $request->user();
         $ws   = Workspace::find($data['workspace_id']);
@@ -133,7 +137,9 @@ class WorkspaceController extends Controller
                 'workspace_name' => $ws->name,
                 'path'           => $data['path'] ?? null,
                 'permissions'    => $data['permissions'] ?? [],
-                'message'        => "{$user->name} is asking for access in {$ws->name}.",
+                'note'           => $note,
+                'message'        => "{$user->name} is asking for access in {$ws->name}."
+                                    . ($note ? " Note: {$note}" : ''),
             ],
             'created_at' => now(),
             'emailed_at' => null,

@@ -82,13 +82,28 @@
                 <i class="fas fa-arrow-left mr-1"></i> Back to dashboard
             </a>
             @if($workspace && $reason === 'missing_permission' && !session('access_request_sent'))
-                <form action="{{ route('user.workspaces.request-access') }}" method="POST">
+                <form action="{{ route('user.workspaces.request-access') }}" method="POST" class="w-full sm:w-auto">
                     @csrf
                     <input type="hidden" name="workspace_id" value="{{ $workspace->id }}">
                     <input type="hidden" name="path" value="{{ request()->path() }}">
                     @foreach(($permissions ?? []) as $perm)
                         <input type="hidden" name="permissions[]" value="{{ $perm }}">
                     @endforeach
+                    <div class="text-left mb-2">
+                        <label for="access_request_note"
+                               class="block text-xs font-medium mb-1"
+                               style="color: var(--text-muted);">
+                            Add a short note (optional)
+                        </label>
+                        <textarea id="access_request_note"
+                                  name="note"
+                                  rows="2"
+                                  maxlength="280"
+                                  placeholder="e.g. I need this to reply to support tickets today"
+                                  class="w-full text-sm rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-400"
+                                  style="border-color: var(--border-soft); background: var(--bg-card); color: var(--text-primary);"></textarea>
+                        <p class="text-xs mt-1" style="color: var(--text-faint);">Up to 280 characters.</p>
+                    </div>
                     <button type="submit"
                             class="w-full px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-semibold hover:bg-primary-700">
                         <i class="fas fa-paper-plane mr-1"></i> Ask an admin for access
