@@ -76,6 +76,126 @@ class AdminAsset extends Model
         return $this->delete();
     }
 
+    /**
+     * If the upload is a raster image (jpeg/png/webp), resize it to fit within
+     * a max width and re-encode at a sensible quality. Returns a path to a
+     * temp file with the processed bytes, or null if no processing happened.
+     * Falls back to null on any failure (caller stores the original).
+     */
+    protected static function maybeCompressImage(UploadedFile $file, string $type, string $mime, array $options): ?string
+    {
+        if ($type !== 'image') return null;
+        if (($options['compress'] ?? true) === false) return null;
+        if (!function_exists('imagecreatefromstring')) return null;
+
+        $mime = strtolower($mime);
+        if (!in_array($mime, ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'], true)) {
+            return null;
+        }
+
+        $maxWidth  = (int) ($options['resize_max_width']  ?? 1200);
+        $maxHeight = (int) ($options['resize_max_height'] ?? 1200);
+        $quality   = (int) ($options['resize_quality']    ?? 82);
+        if ($maxWidth <= 0 || $maxHeight <= 0) return null;
+
+        $sourcePath = $file->getRealPath();
+        if (!$sourcePath || !is_readable($sourcePath)) return null;
+        $originalSize = (int) (@filesize($sourcePath) ?: 0);
+
+        try {
+            $data = @file_get_contents($sourcePath);
+            if ($data === false) return null;
+            $img = @imagecreatefromstring($data);
+            unset($data);
+            if ($img === false) return null;
+
+            // Honor EXIF orientation so phone photos don't end up sideways
+            // after re-encoding. Only JPEGs carry meaningful orientation.
+            if (($mime === 'image/jpeg' || $mime === 'image/jpg') && function_exists('exif_read_data')) {
+                $exif = @exif_read_data($sourcePath);
+                $orientation = is_array($exif) ? (int) ($exif['Orientation'] ?? 0) : 0;
+                if ($orientation > 1 && $orientation <= 8) {
+                    switch ($orientation) {
+                        case 2: imageflip($img, IMG_FLIP_HORIZONTAL); break;
+                        case 3: $img = imagerotate($img, 180, 0); break;
+                        case 4: imageflip($img, IMG_FLIP_VERTICAL); break;
+                        case 5: imageflip($img, IMG_FLIP_VERTICAL); $img = imagerotate($img, -90, 0); break;
+                        case 6: $img = imagerotate($img, -90, 0); break;
+                        case 7: imageflip($img, IMG_FLIP_HORIZONTAL); $img = imagerotate($img, -90, 0); break;
+                        case 8: $img = imagerotate($img, 90, 0); break;
+                    }
+                }
+            }
+
+            $w = imagesx($img);
+            $h = imagesy($img);
+            if ($w <= 0 || $h <= 0) {
+                imagedestroy($img);
+                return null;
+            }
+
+            $scale = min(1.0, $maxWidth / $w, $maxHeight / $h);
+            $newW = max(1, (int) floor($w * $scale));
+            $newH = max(1, (int) floor($h * $scale));
+
+            if ($scale < 1.0) {
+                $resized = imagecreatetruecolor($newW, $newH);
+                if ($mime === 'image/png' || $mime === 'image/webp') {
+                    imagealphablending($resized, false);
+                    imagesavealpha($resized, true);
+                    $transparent = imagecolorallocatealpha($resized, 0, 0, 0, 127);
+                    imagefilledrectangle($resized, 0, 0, $newW, $newH, $transparent);
+                }
+                imagecopyresampled($resized, $img, 0, 0, 0, 0, $newW, $newH, $w, $h);
+                imagedestroy($img);
+                $img = $resized;
+            }
+
+            $tmp = tempnam(sys_get_temp_dir(), 'adimg_');
+            if ($tmp === false) {
+                imagedestroy($img);
+                return null;
+            }
+
+            $ok = false;
+            switch ($mime) {
+                case 'image/jpeg':
+                case 'image/jpg':
+                    $ok = imagejpeg($img, $tmp, max(1, min(100, $quality)));
+                    break;
+                case 'image/png':
+                    imagealphablending($img, false);
+                    imagesavealpha($img, true);
+                    $pngLevel = (int) max(0, min(9, round((100 - $quality) / 11)));
+                    $ok = imagepng($img, $tmp, $pngLevel);
+                    break;
+                case 'image/webp':
+                    if (function_exists('imagewebp')) {
+                        $ok = imagewebp($img, $tmp, max(1, min(100, $quality)));
+                    }
+                    break;
+            }
+            imagedestroy($img);
+
+            if (!$ok) {
+                @unlink($tmp);
+                return null;
+            }
+
+            $newSize = (int) (@filesize($tmp) ?: 0);
+            // Only keep the processed version if it's actually smaller or we
+            // resized. Re-encoded files that grew are discarded.
+            if ($scale >= 1.0 && $originalSize > 0 && $newSize >= $originalSize) {
+                @unlink($tmp);
+                return null;
+            }
+
+            return $tmp;
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
     public static function createFromUpload(UploadedFile $file, $admin = null, array $options = []): self
     {
         $mime = $file->getMimeType() ?: 'application/octet-stream';
@@ -93,7 +213,20 @@ class AdminAsset extends Model
         $folderSegment = $folder !== '' ? Str::slug($folder, '-') : '';
         $base = 'admin-assets/' . $type . 's' . ($folderSegment !== '' ? '/' . $folderSegment : '');
         $filename = (string) Str::uuid() . '.' . $ext;
-        $storedPath = $file->storeAs($base, $filename, $disk);
+
+        $processed = self::maybeCompressImage($file, $type, $mime, $options);
+        if ($processed !== null) {
+            $stream = fopen($processed, 'rb');
+            Storage::disk($disk)->put($base . '/' . $filename, $stream);
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+            $size = (int) (@filesize($processed) ?: $size);
+            @unlink($processed);
+            $storedPath = $base . '/' . $filename;
+        } else {
+            $storedPath = $file->storeAs($base, $filename, $disk);
+        }
 
         return self::create([
             'admin_id'      => $admin?->id,
