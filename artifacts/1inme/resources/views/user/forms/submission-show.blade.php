@@ -2,6 +2,11 @@
 @section('title', 'Submission #' . $submission->id)
 
 @section('content')
+@php
+    $__user = auth()->user();
+    $__ws = app()->bound('current_workspace') ? app('current_workspace') : null;
+    $__can = fn($p) => $__user && $__ws ? $__user->canInWorkspace($__ws, $p) : false;
+@endphp
 <div class="max-w-3xl mx-auto">
     @include('user.partials.page-hero', [
         'title' => 'Submission #' . $submission->id,
@@ -41,7 +46,7 @@
                     </span>
                 @endif
                 <div class="ml-auto flex items-center gap-2">
-                    @if($blockedKw !== '')
+                    @if($blockedKw !== '' && $__can('inbox.edit'))
                         @php
                             $confirmMsg = 'Stop blocking “' . $blockedKw . '”? Future submissions matching it won’t be flagged.'
                                 . ($kwHits > 0 ? ' Heads up: ' . $kwHitsLabel . ' Those would have landed in your inbox.' : '');
@@ -95,7 +100,7 @@
         @endif
     </div>
 
-    @if(!empty($replyTo))
+    @if(!empty($replyTo) && $__can('inbox.reply'))
         <div class="card-premium p-6 mb-6">
             <h3 class="text-sm font-bold mb-1" style="color: var(--text-primary);">
                 <i class="fas fa-reply mr-2 text-violet-400"></i>Reply by email

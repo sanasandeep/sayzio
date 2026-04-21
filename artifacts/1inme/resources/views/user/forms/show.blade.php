@@ -2,6 +2,17 @@
 @section('title', $form->title . ' · Form')
 
 @section('content')
+@php
+    $__user = auth()->user();
+    $__ws = app()->bound('current_workspace') ? app('current_workspace') : null;
+    $__can = fn($p) => $__user && $__ws ? $__user->canInWorkspace($__ws, $p) : false;
+    $__showActions = [
+        ['label' => 'View Public', 'url' => $form->getPublicUrl(), 'icon' => 'fa-external-link-alt', 'class' => 'btn-ghost', 'target' => '_blank'],
+    ];
+    if ($__can('inbox.edit')) {
+        array_unshift($__showActions, ['label' => 'Edit Fields', 'url' => route('user.forms.builder', $form), 'icon' => 'fa-pen', 'class' => 'btn-primary']);
+    }
+@endphp
 <div class="max-w-6xl mx-auto" x-data="{ copied: false }">
     @include('user.partials.page-hero', [
         'title' => $form->title,
@@ -14,11 +25,15 @@
             ['icon' => 'fa-database text-pink-400', 'text' => number_format($form->total_submissions) . ' submissions'],
             ['icon' => 'fa-eye text-violet-400', 'text' => number_format($form->total_views) . ' views'],
         ],
-        'actions' => [
-            ['label' => 'Edit Fields', 'url' => route('user.forms.builder', $form), 'icon' => 'fa-pen', 'class' => 'btn-primary'],
-            ['label' => 'View Public', 'url' => $form->getPublicUrl(), 'icon' => 'fa-external-link-alt', 'class' => 'btn-ghost', 'target' => '_blank'],
-        ],
+        'actions' => $__showActions,
     ])
+
+    @if(!$__can('inbox.edit') && !$__can('inbox.delete'))
+    <div class="mb-4 px-4 py-3 rounded-xl text-sm flex items-center gap-2" style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); color: #b45309;">
+        <i class="fas fa-lock"></i>
+        <span>Your role is view-only on forms in this workspace. Editing, enabling/disabling and deleting are reserved for admins.</span>
+    </div>
+    @endif
 
     @if(session('success'))
     <div class="mb-6 px-4 py-3 rounded-xl text-sm font-medium" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); color: #10b981;">
@@ -106,18 +121,30 @@
                     <a href="{{ route('user.forms.notifications', $form) }}" class="flex items-center gap-2.5 p-2.5 rounded-lg text-sm hover:translate-x-1 transition-all" style="background: var(--bg-glass-input); color: var(--text-secondary);">
                         <i class="fas fa-bell text-xs text-amber-400"></i> Configure notifications
                     </a>
+                    @if($__can('inbox.edit'))
                     <form method="POST" action="{{ route('user.forms.toggle-active', $form) }}">@csrf
                         <button class="w-full text-left flex items-center gap-2.5 p-2.5 rounded-lg text-sm hover:translate-x-1 transition-all" style="background: var(--bg-glass-input); color: var(--text-secondary);">
                             <i class="fas fa-power-off text-xs {{ $form->is_active ? 'text-amber-400' : 'text-emerald-400' }}"></i>
                             {{ $form->is_active ? 'Disable form' : 'Enable form' }}
                         </button>
                     </form>
+                    @else
+                    <button type="button" disabled class="w-full text-left flex items-center gap-2.5 p-2.5 rounded-lg text-sm cursor-not-allowed opacity-60" style="background: var(--bg-glass-input); color: var(--text-faint);" title="Your role doesn't allow editing forms — ask a workspace admin">
+                        <i class="fas fa-lock text-xs"></i> {{ $form->is_active ? 'Disable form' : 'Enable form' }}
+                    </button>
+                    @endif
+                    @if($__can('inbox.delete'))
                     <form method="POST" action="{{ route('user.forms.destroy', $form) }}" onsubmit="return confirm('Delete this form and all its submissions? This cannot be undone.');">
                         @csrf @method('DELETE')
                         <button class="w-full text-left flex items-center gap-2.5 p-2.5 rounded-lg text-sm hover:translate-x-1 transition-all" style="background: rgba(239,68,68,0.08); color: #f87171;">
                             <i class="fas fa-trash text-xs"></i> Delete form
                         </button>
                     </form>
+                    @else
+                    <button type="button" disabled class="w-full text-left flex items-center gap-2.5 p-2.5 rounded-lg text-sm cursor-not-allowed opacity-60" style="background: var(--bg-glass-input); color: var(--text-faint);" title="Your role doesn't allow deleting forms — ask a workspace admin">
+                        <i class="fas fa-lock text-xs"></i> Delete form
+                    </button>
+                    @endif
                 </div>
             </div>
         </div>

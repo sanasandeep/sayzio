@@ -246,9 +246,16 @@
                         </div>{{-- /relative inner --}}
                     </div>
                 </div>
+                @canInWorkspace('inbox.edit')
                 <button type="submit" class="btn-primary w-full mt-4 px-6 py-3 text-sm font-semibold inline-flex items-center justify-center gap-2">
                     <i class="fas fa-save text-xs"></i> Save Design
                 </button>
+                @else
+                <button type="button" disabled class="btn-primary w-full mt-4 px-6 py-3 text-sm font-semibold inline-flex items-center justify-center gap-2 opacity-60 cursor-not-allowed" title="Your role doesn't allow editing forms — ask a workspace admin">
+                    <i class="fas fa-lock text-xs"></i> Save Design
+                </button>
+                <p class="text-xs mt-2 text-center" style="color:#b45309;"><i class="fas fa-lock"></i> View-only — saving is reserved for admins.</p>
+                @endcanInWorkspace
             </div>
         </aside>
     </form>

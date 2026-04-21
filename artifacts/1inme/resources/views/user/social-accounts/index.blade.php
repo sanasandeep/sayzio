@@ -3,6 +3,10 @@
 
 @section('content')
 @php
+    $__user = auth()->user();
+    $__ws = app()->bound('current_workspace') ? app('current_workspace') : null;
+    $__can = fn($p) => $__user && $__ws ? $__user->canInWorkspace($__ws, $p) : false;
+    $__canEdit = $__can('settings.edit');
     $allConnections    = collect($connections)->flatten();
     $totalConnections  = $allConnections->count();
     $failingConnections = $allConnections->filter(fn ($c) => $c->isFailing());
@@ -168,7 +172,7 @@
                                     {{-- Reconnect: shown for failing connections. Sends OAuth users
                                          straight back through the provider"s authorize flow; for handle/manual
                                          platforms, deep-links to the matching tab in the form below. --}}
-                                    @if($health === "error")
+                                    @if($health === "error" && $__canEdit)
                                         @if($oauthReady)
                                             <a href="{{ route("user.social-oauth.connect", ["provider" => $platform]) }}"
                                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
@@ -194,6 +198,7 @@
                                         @endif
                                     @endif
 
+                                    @if($__canEdit)
                                     <form method="POST" action="{{ route("user.social-accounts.refresh", $c) }}">
                                         @csrf
                                         <button type="submit" title="Refresh now"
@@ -211,6 +216,18 @@
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </form>
+                                    @else
+                                    <span title="Your role doesn't allow refreshing connections — ask a workspace admin"
+                                          class="w-8 h-8 rounded-lg flex items-center justify-center text-xs cursor-not-allowed opacity-60"
+                                          style="background: var(--bg-glass-input); color: var(--text-faint);">
+                                        <i class="fas fa-lock"></i>
+                                    </span>
+                                    <span title="Your role doesn't allow disconnecting accounts — ask a workspace admin"
+                                          class="w-8 h-8 rounded-lg flex items-center justify-center text-xs cursor-not-allowed opacity-60"
+                                          style="background: rgba(239,68,68,0.05); color: var(--text-faint);">
+                                        <i class="fas fa-lock"></i>
+                                    </span>
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -221,6 +238,17 @@
     @endif
 
     {{-- Add new connection --}}
+    @if(!$__canEdit)
+    <div class="card-premium p-5" id="new-connection">
+        <div class="flex items-start gap-3" style="color:#b45309;">
+            <i class="fas fa-lock mt-0.5"></i>
+            <div class="text-xs">
+                <div class="font-semibold mb-0.5" style="color:#b45309;">View-only access</div>
+                <span style="color: var(--text-muted);">Your role doesn't allow connecting new social accounts. Ask a workspace admin to connect them for you.</span>
+            </div>
+        </div>
+    </div>
+    @else
     <div class="card-premium p-5" id="new-connection">
         <h2 class="text-base font-bold mb-1" style="color: var(--text-primary);">Connect a new account</h2>
         <p class="text-xs mb-4" style="color: var(--text-muted);">Pick a platform and enter your handle. For OAuth platforms, use one-click connect when available, or paste a long-lived access token if your admin hasn't enabled it yet.</p>
@@ -332,6 +360,7 @@
             </div>
         @endforeach
     </div>
+    @endif
 </div>
 
 <style>

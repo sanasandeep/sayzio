@@ -2,6 +2,12 @@
 @section('title', 'Intros')
 
 @section('content')
+@php
+    $__user = auth()->user();
+    $__ws = app()->bound('current_workspace') ? app('current_workspace') : null;
+    $__can = fn($p) => $__user && $__ws ? $__user->canInWorkspace($__ws, $p) : false;
+    $__canEdit = $__can('links.edit');
+@endphp
 <div class="max-w-7xl mx-auto">
     @include('user.partials.page-hero', [
         'title'    => 'Intros',
@@ -10,9 +16,9 @@
         'chips'    => [
             ['icon' => 'fa-layer-group', 'text' => $splashPages->total() . ' total'],
         ],
-        'actions'  => [
+        'actions'  => $__canEdit ? [
             ['url' => route('user.splash-pages.create'), 'label' => 'New Intro', 'icon' => 'fa-plus', 'class' => 'btn-primary'],
-        ],
+        ] : [],
     ])
 
     <div class="card-premium p-4 mb-4 flex flex-wrap items-center gap-3">
@@ -44,12 +50,19 @@
                 <i class="fas fa-rocket text-2xl" style="color: var(--c-primary);"></i>
             </div>
             <h3 class="text-lg font-bold mb-2" style="color: var(--text-primary);">No intros yet</h3>
-            <p class="text-sm mb-5" style="color: var(--text-muted);">Create a reusable transition page that visitors see before reaching their destination.</p>
-            <a href="{{ route('user.splash-pages.create') }}"
-               class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold"
-               style="background: var(--accent); color: #fff;">
-                <i class="fas fa-plus"></i> Create your first
-            </a>
+            @if($__canEdit)
+                <p class="text-sm mb-5" style="color: var(--text-muted);">Create a reusable transition page that visitors see before reaching their destination.</p>
+                <a href="{{ route('user.splash-pages.create') }}"
+                   class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold"
+                   style="background: var(--accent); color: #fff;">
+                    <i class="fas fa-plus"></i> Create your first
+                </a>
+            @else
+                <p class="text-sm mb-3" style="color: var(--text-muted);">No intros have been set up in this workspace yet.</p>
+                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold" style="background: rgba(245,158,11,0.08); color: #b45309;">
+                    <i class="fas fa-lock"></i> Ask a workspace admin to create one for you.
+                </div>
+            @endif
         </div>
     @else
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -64,7 +77,11 @@
                             @endif
                         </div>
                         <div class="flex-1 min-w-0">
-                            <a href="{{ route('user.splash-pages.edit', $sp) }}" class="font-bold text-base hover:underline truncate block" style="color: var(--text-primary);">{{ $sp->name }}</a>
+                            @if($__canEdit)
+                                <a href="{{ route('user.splash-pages.edit', $sp) }}" class="font-bold text-base hover:underline truncate block" style="color: var(--text-primary);">{{ $sp->name }}</a>
+                            @else
+                                <span class="font-bold text-base truncate block" style="color: var(--text-primary);">{{ $sp->name }}</span>
+                            @endif
                             @if($sp->title && $sp->title !== $sp->name)
                                 <div class="text-xs truncate" style="color: var(--text-muted);">{{ $sp->title }}</div>
                             @endif
@@ -80,12 +97,20 @@
                         @endif
                     </div>
                     <div class="flex items-center gap-2 pt-3 border-t" style="border-color: var(--border-subtle);">
-                        <a href="{{ route('user.splash-pages.edit', $sp) }}" class="flex-1 text-center px-3 py-1.5 text-xs rounded-lg font-semibold" style="background: var(--bg-glass-hover); color: var(--text-primary);"><i class="fas fa-pen mr-1"></i> Edit</a>
+                        @if($__canEdit)
+                            <a href="{{ route('user.splash-pages.edit', $sp) }}" class="flex-1 text-center px-3 py-1.5 text-xs rounded-lg font-semibold" style="background: var(--bg-glass-hover); color: var(--text-primary);"><i class="fas fa-pen mr-1"></i> Edit</a>
+                        @else
+                            <span class="flex-1 text-center px-3 py-1.5 text-xs rounded-lg font-semibold cursor-not-allowed opacity-60" style="background: var(--bg-glass-hover); color: var(--text-faint);" title="Your role doesn't allow editing intros — ask a workspace admin"><i class="fas fa-lock mr-1"></i> Edit</span>
+                        @endif
                         <a href="{{ route('user.splash-pages.preview', $sp) }}" target="_blank" class="px-3 py-1.5 text-xs rounded-lg" style="background: var(--bg-glass-hover); color: var(--text-secondary);" title="Preview"><i class="fas fa-eye"></i></a>
-                        <form method="POST" action="{{ route('user.splash-pages.destroy', $sp) }}" onsubmit="return confirm('Delete this intro? Links using it will lose their intro.');">
-                            @csrf @method('DELETE')
-                            <button type="submit" class="px-3 py-1.5 text-xs rounded-lg" style="background: var(--bg-glass-hover); color: var(--c-danger);" title="Delete"><i class="fas fa-trash"></i></button>
-                        </form>
+                        @if($__canEdit)
+                            <form method="POST" action="{{ route('user.splash-pages.destroy', $sp) }}" onsubmit="return confirm('Delete this intro? Links using it will lose their intro.');">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="px-3 py-1.5 text-xs rounded-lg" style="background: var(--bg-glass-hover); color: var(--c-danger);" title="Delete"><i class="fas fa-trash"></i></button>
+                            </form>
+                        @else
+                            <span class="px-3 py-1.5 text-xs rounded-lg cursor-not-allowed opacity-60" style="background: var(--bg-glass-hover); color: var(--text-faint);" title="Your role doesn't allow deleting intros — ask a workspace admin"><i class="fas fa-lock"></i></span>
+                        @endif
                     </div>
                 </div>
             @endforeach

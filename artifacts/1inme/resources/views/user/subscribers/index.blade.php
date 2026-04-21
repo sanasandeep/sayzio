@@ -2,6 +2,14 @@
 @section('title', 'Leads')
 
 @section('content')
+@php
+    $__user = auth()->user();
+    $__ws = app()->bound('current_workspace') ? app('current_workspace') : null;
+    $__can = fn($p) => $__user && $__ws ? $__user->canInWorkspace($__ws, $p) : false;
+    $__canCreate = $__can('inbox.create');
+    $__canEdit = $__can('inbox.edit');
+    $__canDelete = $__can('inbox.delete');
+@endphp
 <div class="max-w-7xl mx-auto" x-data="{ deleteId: null }">
     <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
@@ -9,12 +17,24 @@
             <p class="text-sm mt-1" style="color: var(--text-muted);">Manage your email & WhatsApp leads</p>
         </div>
         <div class="flex items-center gap-2">
+            @if($__canCreate)
             <a href="{{ route('user.subscribers.compose') }}" class="px-4 py-2 rounded-xl text-sm font-medium text-white transition-all hover:-translate-y-0.5" style="background: linear-gradient(135deg, #7c3aed, #8b5cf6);">
                 <i class="fas fa-paper-plane mr-1.5"></i>Compose
             </a>
+            @else
+            <span class="px-4 py-2 rounded-xl text-sm font-medium text-white cursor-not-allowed opacity-60" style="background: linear-gradient(135deg, rgba(124,58,237,0.4), rgba(139,92,246,0.4));" title="Your role doesn't allow composing campaigns — ask a workspace admin">
+                <i class="fas fa-lock mr-1.5"></i>Compose
+            </span>
+            @endif
+            @if($__canEdit)
             <a href="{{ route('user.subscribers.settings') }}" class="px-4 py-2 rounded-xl text-sm font-medium transition-all hover:-translate-y-0.5 glass" style="color: var(--text-secondary);">
                 <i class="fas fa-cog mr-1.5"></i>Settings
             </a>
+            @else
+            <span class="px-4 py-2 rounded-xl text-sm font-medium glass cursor-not-allowed opacity-60" style="color: var(--text-faint);" title="Your role doesn't allow editing leads settings — ask a workspace admin">
+                <i class="fas fa-lock mr-1.5"></i>Settings
+            </span>
+            @endif
             <a href="{{ route('user.subscribers.export') }}{{ request()->getQueryString() ? '?' . request()->getQueryString() : '' }}" class="px-4 py-2 rounded-xl text-sm font-medium transition-all hover:-translate-y-0.5 glass" style="color: var(--text-secondary);">
                 <i class="fas fa-download mr-1.5"></i>Export
             </a>
@@ -137,18 +157,30 @@
                         <td class="px-4 py-3 text-xs" style="color: var(--text-muted);">{{ $sub->subscribed_at?->format('M d, Y') }}</td>
                         <td class="px-4 py-3 text-right">
                             <div class="flex items-center justify-end gap-1">
+                                @if($__canEdit)
                                 <form method="POST" action="{{ route('user.subscribers.toggle', $sub) }}">
                                     @csrf
                                     <button type="submit" class="p-1.5 rounded-lg transition hover:bg-white/5" title="{{ $sub->status === 'active' ? 'Unsubscribe' : 'Reactivate' }}" style="color: var(--text-muted);">
                                         <i class="fas {{ $sub->status === 'active' ? 'fa-pause' : 'fa-play' }} text-xs"></i>
                                     </button>
                                 </form>
+                                @else
+                                <span class="p-1.5 rounded-lg cursor-not-allowed opacity-60" style="color: var(--text-faint);" title="Your role doesn't allow changing lead status — ask a workspace admin">
+                                    <i class="fas fa-lock text-xs"></i>
+                                </span>
+                                @endif
+                                @if($__canDelete)
                                 <form method="POST" action="{{ route('user.subscribers.destroy', $sub) }}" onsubmit="return confirm('Remove this lead?')">
                                     @csrf @method('DELETE')
                                     <button type="submit" class="p-1.5 rounded-lg transition hover:bg-red-500/10" style="color: var(--text-muted);" title="Delete">
                                         <i class="fas fa-trash text-xs"></i>
                                     </button>
                                 </form>
+                                @else
+                                <span class="p-1.5 rounded-lg cursor-not-allowed opacity-60" style="color: var(--text-faint);" title="Your role doesn't allow deleting leads — ask a workspace admin">
+                                    <i class="fas fa-lock text-xs"></i>
+                                </span>
+                                @endif
                             </div>
                         </td>
                     </tr>

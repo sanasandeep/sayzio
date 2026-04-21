@@ -2,6 +2,11 @@
 @section('title', 'Submissions · ' . $form->title)
 
 @section('content')
+@php
+    $__user = auth()->user();
+    $__ws = app()->bound('current_workspace') ? app('current_workspace') : null;
+    $__can = fn($p) => $__user && $__ws ? $__user->canInWorkspace($__ws, $p) : false;
+@endphp
 <div class="max-w-7xl mx-auto">
     @include('user.partials.page-hero', [
         'title' => 'Submissions',
@@ -43,11 +48,17 @@
                 @foreach($submissions as $s)
                     @php $name = $s->data['name'] ?? $s->data['email'] ?? '#' . $s->id; @endphp
                     <div class="flex items-center gap-3 p-4 hover:bg-violet-500/5 transition-colors {{ !$s->is_read ? 'bg-violet-500/5' : '' }}">
+                        @if($__can('inbox.edit'))
                         <form method="POST" action="{{ route('user.forms.submissions.star', [$form, $s]) }}">@csrf
                             <button class="text-base {{ $s->is_starred ? 'text-amber-400' : '' }}" style="color: {{ $s->is_starred ? '' : 'var(--text-faint)' }};" title="Star">
                                 <i class="fa{{ $s->is_starred ? 's' : 'r' }} fa-star"></i>
                             </button>
                         </form>
+                        @else
+                        <span class="text-base cursor-not-allowed opacity-50" style="color: var(--text-faint);" title="Your role doesn't allow starring submissions — ask a workspace admin">
+                            <i class="fa{{ $s->is_starred ? 's' : 'r' }} fa-star"></i>
+                        </span>
+                        @endif
                         <a href="{{ route('user.forms.submissions.show', [$form, $s]) }}" class="flex items-center gap-3 flex-1 min-w-0">
                             <div class="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style="background: linear-gradient(135deg, #8b5cf6, #ec4899); color: white;">
                                 {{ strtoupper(substr($name, 0, 1)) }}
@@ -67,10 +78,14 @@
                             {{ $s->created_at->diffForHumans() }}<br>
                             <span class="font-mono">{{ $s->ip ?? '' }}</span>
                         </div>
+                        @if($__can('inbox.delete'))
                         <form method="POST" action="{{ route('user.forms.submissions.destroy', [$form, $s]) }}" onsubmit="return confirm('Delete this submission?');">
                             @csrf @method('DELETE')
                             <button class="w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" style="background: rgba(239,68,68,0.1); color: #f87171;"><i class="fas fa-trash"></i></button>
                         </form>
+                        @else
+                        <span class="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] cursor-not-allowed opacity-60" style="background: var(--bg-glass-input); color: var(--text-faint);" title="Your role doesn't allow deleting submissions — ask a workspace admin"><i class="fas fa-lock"></i></span>
+                        @endif
                     </div>
                 @endforeach
             </div>

@@ -208,9 +208,16 @@
         </div>
 
         <div class="sticky bottom-0 py-4 flex items-center gap-3" style="background: var(--bg-body); z-index: 10;">
+            @canInWorkspace('inbox.edit')
             <button type="submit" class="btn-primary px-8 py-3 text-sm font-semibold inline-flex items-center gap-2 shadow-lg">
                 <i class="fas fa-save text-xs"></i> Save Notifications
             </button>
+            @else
+            <button type="button" disabled class="btn-primary px-8 py-3 text-sm font-semibold inline-flex items-center gap-2 shadow-lg opacity-60 cursor-not-allowed" title="Your role doesn't allow editing forms — ask a workspace admin">
+                <i class="fas fa-lock text-xs"></i> Save Notifications
+            </button>
+            <span class="text-xs" style="color:#b45309;"><i class="fas fa-lock"></i> View-only — saving is reserved for admins.</span>
+            @endcanInWorkspace
         </div>
     </form>
 </div>

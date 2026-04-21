@@ -2,6 +2,12 @@
 @section('title', 'Custom Domains')
 
 @section('content')
+@php
+    $__user = auth()->user();
+    $__ws = app()->bound('current_workspace') ? app('current_workspace') : null;
+    $__can = fn($p) => $__user && $__ws ? $__user->canInWorkspace($__ws, $p) : false;
+    $__canEdit = $__can('settings.edit');
+@endphp
 <div class="max-w-4xl mx-auto">
     <div class="flex items-center justify-between mb-6">
         <div>
@@ -17,6 +23,7 @@
     @endif
 
     {{-- Add new --}}
+    @if($__canEdit)
     <div class="glass rounded-2xl p-6 mb-6">
         <h2 class="text-base font-semibold text-white mb-4">Add Domain</h2>
         <form method="POST" action="{{ route('user.domains.store') }}" class="flex gap-3">
@@ -27,6 +34,15 @@
         </form>
         <p class="text-[11px] text-white/40 mt-2">After adding, you'll get the exact CNAME record (name + target + TTL) to paste into your DNS provider — then click Verify here.</p>
     </div>
+    @else
+    <div class="rounded-2xl p-4 mb-6 flex items-start gap-3" style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.3); color:#b45309;">
+        <i class="fas fa-lock mt-0.5"></i>
+        <div class="text-xs">
+            <div class="font-semibold mb-0.5">View-only access</div>
+            Your role doesn't allow adding or removing custom domains. Ask a workspace admin to add a domain for you.
+        </div>
+    </div>
+    @endif
 
     {{-- My domains --}}
     <div class="glass rounded-2xl p-6 mb-6">
@@ -51,14 +67,20 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
-                    @if(!$d->is_verified)
+                    @if(!$d->is_verified && $__canEdit)
                         <form method="POST" action="{{ route('user.domains.verify', $d) }}">@csrf
                             <button type="submit" class="px-3 py-1.5 rounded-lg text-xs bg-violet-600 hover:bg-violet-700 text-white">Verify now</button>
                         </form>
+                    @elseif(!$d->is_verified)
+                        <span class="px-3 py-1.5 rounded-lg text-xs cursor-not-allowed opacity-60 bg-violet-600/40 text-white" title="Your role doesn't allow verifying domains — ask a workspace admin"><i class="fas fa-lock mr-1"></i>Verify</span>
                     @endif
+                    @if($__canEdit)
                     <form method="POST" action="{{ route('user.domains.destroy', $d) }}" onsubmit="return confirm('Remove {{ $d->domain }}? Existing links bound to it will lose their custom host.');">@csrf @method('DELETE')
                         <button type="submit" class="px-3 py-1.5 rounded-lg text-xs bg-red-600/20 text-red-400 hover:bg-red-600/30">Remove</button>
                     </form>
+                    @else
+                    <span class="px-3 py-1.5 rounded-lg text-xs cursor-not-allowed opacity-60 bg-white/5 text-white/40" title="Your role doesn't allow removing domains — ask a workspace admin"><i class="fas fa-lock mr-1"></i>Remove</span>
+                    @endif
                 </div>
             </div>
         @empty

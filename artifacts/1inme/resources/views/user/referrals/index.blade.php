@@ -2,6 +2,12 @@
 @section('title', 'Referrals')
 
 @section('content')
+@php
+    $__user = auth()->user();
+    $__ws = app()->bound('current_workspace') ? app('current_workspace') : null;
+    $__can = fn($p) => $__user && $__ws ? $__user->canInWorkspace($__ws, $p) : false;
+    $__canEdit = $__can('referrals.edit');
+@endphp
 <div class="max-w-4xl">
     <h1 class="text-2xl font-bold text-white mb-1">Refer friends, earn free days</h1>
     <p class="text-sm text-white/50 mb-6">Share your link or code. When a friend signs up and activates a paid plan, you both get free subscription days.</p>
@@ -35,6 +41,7 @@
     </div>
 
     {{-- Edit code --}}
+    @if($__canEdit)
     <div class="glass rounded-2xl p-5 mb-6">
         <h2 class="text-sm font-semibold text-white/80 mb-3">Customize your code</h2>
         <form method="POST" action="{{ route('user.referrals.code.update') }}" class="flex flex-col sm:flex-row gap-2 items-start" id="ref-code-form">
@@ -48,6 +55,15 @@
             <button type="submit" class="px-5 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700">Save code</button>
         </form>
     </div>
+    @else
+    <div class="rounded-2xl p-4 mb-6 flex items-start gap-3" style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.3); color:#b45309;">
+        <i class="fas fa-lock mt-0.5"></i>
+        <div class="text-xs">
+            <div class="font-semibold mb-0.5">Customizing your code is view-only</div>
+            <span style="color: var(--text-muted);">Your role doesn't allow changing the workspace referral code. Ask a workspace admin to update it for you.</span>
+        </div>
+    </div>
+    @endif
 
     {{-- Stats --}}
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
