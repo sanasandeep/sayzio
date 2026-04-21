@@ -793,12 +793,49 @@
 {{-- ===================== LANGUAGES ===================== --}}
 @php
     $languageTotal = (int) $languageStats->sum('count');
+    // Toggle between per-locale view (default, current behaviour) and a
+    // rolled-up "by base language" view that sums all regional variants
+    // (en-US + en-GB + en-CA → English). Filter pills are only clickable
+    // in locale mode because the click log stores the full locale string.
+    $languageMode = request()->query('lang_mode') === 'base' ? 'base' : 'locale';
+    $languageGroups = [];
+    if ($languageMode === 'base') {
+        foreach ($languageStats as $row) {
+            // Normalize separators — some clients send `en_US` instead of the
+            // BCP-47 `en-US`, and we want both to bucket into the same base.
+            $raw = str_replace('_', '-', (string) $row->language);
+            $parts = explode('-', $raw);
+            $base = strtolower($parts[0] ?? $raw);
+            if (!preg_match('/^[a-z]{2,3}$/', $base)) {
+                $base = $raw; // fall back to raw value when it isn't a parseable language tag
+            }
+            if (!isset($languageGroups[$base])) {
+                $languageGroups[$base] = ['count' => 0, 'locales' => []];
+            }
+            $languageGroups[$base]['count'] += (int) $row->count;
+            $languageGroups[$base]['locales'][] = ['language' => $raw, 'count' => (int) $row->count];
+        }
+        uasort($languageGroups, fn($a, $b) => $b['count'] <=> $a['count']);
+        foreach ($languageGroups as &$g) {
+            usort($g['locales'], fn($a, $b) => $b['count'] <=> $a['count']);
+        }
+        unset($g);
+    }
 @endphp
 <div class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#8b5cf6,#ec4899); --sc-glow: rgba(139,92,246,0.35); --sc-color: #d8b4fe; --sc-border: rgba(139,92,246,0.3);">
     <div class="section-head">
         <div class="section-title"><div class="section-icon"><i class="fas fa-language"></i></div> Languages</div>
         <div class="flex items-center gap-2 flex-wrap">
             <div class="text-xs" style="color: var(--text-faint);">Browser language sent by each visitor</div>
+            <div class="inline-flex items-center gap-1 p-0.5 rounded-lg" role="group" aria-label="Languages grouping"
+                 style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                <a href="{{ $buildUrl(['lang_mode' => null]) }}"
+                   class="pill {{ $languageMode === 'locale' ? 'pill-active' : '' }}"
+                   title="Show every browser locale separately (en-US, en-GB, …)">By locale</a>
+                <a href="{{ $buildUrl(['lang_mode' => 'base']) }}"
+                   class="pill {{ $languageMode === 'base' ? 'pill-active' : '' }}"
+                   title="Roll regional variants up to the base language (English, Spanish, …)">By language</a>
+            </div>
             @if(!empty($languageFilter))
                 @php $lf = $languageLabel($languageFilter); @endphp
                 <a href="{{ $buildUrl(['language' => null]) }}" class="section-pill" title="Clear language filter ({{ $languageFilter }})"><i class="fas fa-times mr-1"></i>@if($lf['flag'])<span class="mr-1">{{ $lf['flag'] }}</span>@endif{{ $lf['name'] }}</a>
@@ -807,6 +844,39 @@
     </div>
     @if($languageStats->isEmpty() || $languageTotal === 0)
         <p class="text-sm text-center py-8" style="color: var(--text-faint);">No data</p>
+    @elseif($languageMode === 'base')
+        <div class="flex flex-wrap items-center gap-2">
+            @foreach($languageGroups as $base => $group)
+                @php
+                    $pct = $languageTotal > 0 ? round(($group['count'] / $languageTotal) * 100, 1) : 0;
+                    $bl = $languageLabel($base);
+                    $topLocales = array_slice($group['locales'], 0, 5);
+                    $tooltipParts = [];
+                    foreach ($topLocales as $loc) {
+                        $ll = $languageLabel($loc['language']);
+                        // Prefer the human region name (e.g. "United States")
+                        // over the raw tag (e.g. "en-US") so the tooltip reads
+                        // as a list of regions, per the spec.
+                        $regionLabel = null;
+                        if (!empty($ll['region'])) {
+                            $regionLabel = $regionNames[$ll['region']] ?? $ll['region'];
+                        }
+                        $label = $regionLabel ?: ($loc['language'] !== '' ? $loc['language'] : 'Unknown');
+                        $tooltipParts[] = $label . ' · ' . number_format($loc['count']);
+                    }
+                    $extra = count($group['locales']) - count($topLocales);
+                    if ($extra > 0) $tooltipParts[] = '+' . $extra . ' more';
+                    $tooltip = $bl['name'] . ' · ' . $pct . '% of clicks · ' . implode(', ', $tooltipParts);
+                @endphp
+                <span class="pill" title="{{ $tooltip }}" style="cursor: default;">
+                    {{ $bl['name'] }}
+                    <span class="ml-1 opacity-60">({{ number_format($group['count']) }})</span>
+                    @if(count($group['locales']) > 1)
+                        <span class="ml-1 opacity-50 text-[10px]">{{ count($group['locales']) }} variants</span>
+                    @endif
+                </span>
+            @endforeach
+        </div>
     @else
         <div class="flex flex-wrap items-center gap-2">
             <a href="{{ $buildUrl(['language' => null]) }}" class="pill {{ empty($languageFilter) ? 'pill-active' : '' }}">All</a>
