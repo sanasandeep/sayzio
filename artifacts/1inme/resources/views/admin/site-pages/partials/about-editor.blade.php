@@ -9,6 +9,75 @@
     $milestoneRows = array_values((array)($aboutExtra['milestones'] ?? []));
 @endphp
 
+{{--
+    Reusable Alpine helper that powers the "upload or paste URL" photo
+    control rendered next to every photo field below. It POSTs the
+    chosen file to the existing admin asset uploader and writes the
+    returned public URL back into the bound model so the URL text input
+    and the live preview stay in sync.
+--}}
+@once
+    <script>
+        window.aboutPhotoUploader = function (config) {
+            return {
+                uploading: false,
+                progress: 0,
+                error: '',
+                get model() { return config.get(); },
+                set model(v) { config.set(v); },
+                pickFile() { this.$refs.fileInput.click(); },
+                async handleFile(e) {
+                    const file = (e.target.files || [])[0];
+                    e.target.value = '';
+                    if (!file) return;
+                    if (!/^image\//.test(file.type)) {
+                        this.error = 'Please choose an image file.';
+                        return;
+                    }
+                    if (file.size > 10 * 1024 * 1024) {
+                        this.error = 'Image must be 10 MB or smaller.';
+                        return;
+                    }
+                    this.error = '';
+                    this.uploading = true;
+                    this.progress = 0;
+                    try {
+                        const fd = new FormData();
+                        fd.append('file', file);
+                        fd.append('folder', 'about-page');
+                        const url = await new Promise((resolve, reject) => {
+                            const xhr = new XMLHttpRequest();
+                            xhr.open('POST', @json(route('admin.assets.upload')));
+                            xhr.setRequestHeader('X-CSRF-TOKEN', @json(csrf_token()));
+                            xhr.setRequestHeader('Accept', 'application/json');
+                            xhr.upload.onprogress = (ev) => {
+                                if (ev.lengthComputable) this.progress = Math.round((ev.loaded / ev.total) * 100);
+                            };
+                            xhr.onload = () => {
+                                let data = {};
+                                try { data = JSON.parse(xhr.responseText); } catch (_) {}
+                                if (xhr.status >= 200 && xhr.status < 300 && data.success && data.asset) {
+                                    resolve(data.asset.url || data.asset.url_path);
+                                } else {
+                                    reject(new Error(data.error || ('Upload failed (' + xhr.status + ')')));
+                                }
+                            };
+                            xhr.onerror = () => reject(new Error('Network error during upload.'));
+                            xhr.send(fd);
+                        });
+                        this.model = url;
+                    } catch (err) {
+                        this.error = err.message || 'Upload failed.';
+                    } finally {
+                        this.uploading = false;
+                    }
+                },
+                clear() { this.model = ''; this.error = ''; },
+            };
+        };
+    </script>
+@endonce
+
 <div class="pt-2 border-t border-white/10 space-y-6">
     <div>
         <h3 class="text-sm font-semibold text-white">Founder</h3>
@@ -22,9 +91,27 @@
                 <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Role / title</label>
                 <input type="text" name="extra[founder][role]" value="{{ $founder['role'] ?? '' }}" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
             </div>
-            <div class="sm:col-span-2">
-                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Photo URL <span class="normal-case tracking-normal text-white/40">(optional)</span></label>
-                <input type="url" name="extra[founder][photo]" value="{{ $founder['photo'] ?? '' }}" placeholder="https://…" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+            <div class="sm:col-span-2" x-data="{ photo: @js((string)($founder['photo'] ?? '')) }">
+                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Photo <span class="normal-case tracking-normal text-white/40">(upload an image or paste a URL)</span></label>
+                <div x-data="aboutPhotoUploader({ get: () => photo, set: (v) => photo = v })" class="space-y-2">
+                    <div class="flex items-start gap-3">
+                        <template x-if="photo">
+                            <img :src="photo" alt="" class="w-16 h-16 rounded-lg object-cover border border-white/10 bg-white/5" @error="$el.style.display='none'">
+                        </template>
+                        <div class="flex-1 space-y-2">
+                            <input type="url" name="extra[founder][photo]" x-model="photo" placeholder="https://… or upload below" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                            <div class="flex items-center gap-2">
+                                <button type="button" @click="pickFile()" :disabled="uploading" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1">
+                                    <i class="fas fa-upload"></i>
+                                    <span x-text="uploading ? ('Uploading… ' + progress + '%') : 'Upload image'"></span>
+                                </button>
+                                <button type="button" x-show="photo" @click="clear()" class="text-xs px-2 py-1.5 text-white/60 hover:text-white"><i class="fas fa-times mr-1"></i>Remove</button>
+                            </div>
+                            <p x-show="error" x-text="error" class="text-xs text-red-400"></p>
+                        </div>
+                    </div>
+                    <input type="file" x-ref="fileInput" @change="handleFile($event)" accept="image/*" class="hidden">
+                </div>
             </div>
             <div class="sm:col-span-2">
                 <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Short bio</label>
@@ -63,7 +150,25 @@
                     <input type="text" :name="'extra[co_founders]['+i+'][name]'" x-model="p.name" placeholder="Name" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
                     <input type="text" :name="'extra[co_founders]['+i+'][role]'" x-model="p.role" placeholder="Role" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
                 </div>
-                <input type="url" :name="'extra[co_founders]['+i+'][photo]'" x-model="p.photo" placeholder="Photo URL (optional)" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                <div x-data="aboutPhotoUploader({ get: () => p.photo, set: (v) => p.photo = v })" class="space-y-2">
+                    <div class="flex items-start gap-3">
+                        <template x-if="p.photo">
+                            <img :src="p.photo" alt="" class="w-14 h-14 rounded-lg object-cover border border-white/10 bg-white/5" @error="$el.style.display='none'">
+                        </template>
+                        <div class="flex-1 space-y-2">
+                            <input type="url" :name="'extra[co_founders]['+i+'][photo]'" x-model="p.photo" placeholder="Photo URL or upload below" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                            <div class="flex items-center gap-2">
+                                <button type="button" @click="pickFile()" :disabled="uploading" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1">
+                                    <i class="fas fa-upload"></i>
+                                    <span x-text="uploading ? ('Uploading… ' + progress + '%') : 'Upload image'"></span>
+                                </button>
+                                <button type="button" x-show="p.photo" @click="clear()" class="text-xs px-2 py-1.5 text-white/60 hover:text-white"><i class="fas fa-times mr-1"></i>Remove</button>
+                            </div>
+                            <p x-show="error" x-text="error" class="text-xs text-red-400"></p>
+                        </div>
+                    </div>
+                    <input type="file" x-ref="fileInput" @change="handleFile($event)" accept="image/*" class="hidden">
+                </div>
                 <textarea :name="'extra[co_founders]['+i+'][bio]'" x-model="p.bio" rows="2" placeholder="Short bio" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white"></textarea>
                 <div class="grid sm:grid-cols-2 gap-3">
                     <input type="url" :name="'extra[co_founders]['+i+'][links][twitter]'" x-model="p.links.twitter" placeholder="Twitter / X URL" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
@@ -96,7 +201,25 @@
                     <input type="text" :name="'extra[team]['+i+'][name]'" x-model="p.name" placeholder="Name" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
                     <input type="text" :name="'extra[team]['+i+'][role]'" x-model="p.role" placeholder="Role" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
                 </div>
-                <input type="url" :name="'extra[team]['+i+'][photo]'" x-model="p.photo" placeholder="Photo URL (optional)" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                <div x-data="aboutPhotoUploader({ get: () => p.photo, set: (v) => p.photo = v })" class="space-y-2">
+                    <div class="flex items-start gap-3">
+                        <template x-if="p.photo">
+                            <img :src="p.photo" alt="" class="w-14 h-14 rounded-lg object-cover border border-white/10 bg-white/5" @error="$el.style.display='none'">
+                        </template>
+                        <div class="flex-1 space-y-2">
+                            <input type="url" :name="'extra[team]['+i+'][photo]'" x-model="p.photo" placeholder="Photo URL or upload below" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                            <div class="flex items-center gap-2">
+                                <button type="button" @click="pickFile()" :disabled="uploading" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1">
+                                    <i class="fas fa-upload"></i>
+                                    <span x-text="uploading ? ('Uploading… ' + progress + '%') : 'Upload image'"></span>
+                                </button>
+                                <button type="button" x-show="p.photo" @click="clear()" class="text-xs px-2 py-1.5 text-white/60 hover:text-white"><i class="fas fa-times mr-1"></i>Remove</button>
+                            </div>
+                            <p x-show="error" x-text="error" class="text-xs text-red-400"></p>
+                        </div>
+                    </div>
+                    <input type="file" x-ref="fileInput" @change="handleFile($event)" accept="image/*" class="hidden">
+                </div>
                 <textarea :name="'extra[team]['+i+'][bio]'" x-model="p.bio" rows="2" placeholder="One-line bio" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white"></textarea>
             </div>
         </template>
