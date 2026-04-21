@@ -447,7 +447,7 @@ class TaskBoardController extends Controller
 
     public function destroyCard(TaskCard $card)
     {
-        $this->authorizeDelete($card->board);
+        $this->authorizeCardDelete($card->board);
         DB::transaction(function () use ($card) {
             DB::table('task_card_assignees')->where('card_id', $card->id)->delete();
             DB::table('task_card_labels')->where('card_id', $card->id)->delete();
@@ -616,16 +616,20 @@ class TaskBoardController extends Controller
         if (in_array($ext, ['html','htm','svg','xhtml','xml','js','mjs','php','phtml','phar','exe','sh','bat','cmd'], true)) {
             return response()->json(['ok' => false, 'error' => 'File type not allowed.'], 422);
         }
-        // Store on private 'local' disk so URLs never leak — downloads must
-        // go through downloadAttachment() which re-checks workspace authz.
-        $path = $file->store('task-attachments/' . $card->workspace_id, 'local');
+        // Use the project's configured default disk (FILESYSTEM_DISK env)
+        // so production can switch between local / S3 / etc. without code
+        // changes. The default 'local' disk is rooted at storage/app/private
+        // (not web-accessible). Downloads always go through the controlled
+        // downloadAttachment() route below so we keep auth + safe headers.
+        $disk = config('filesystems.default');
+        $path = $file->store('task-attachments/' . $card->workspace_id, $disk);
         $att = TaskAttachment::create([
             'card_id'             => $card->id,
             'uploaded_by_user_id' => auth()->id(),
             'original_name'       => $file->getClientOriginalName(),
             'mime'                => $file->getClientMimeType(),
             'size_bytes'          => $file->getSize(),
-            'disk'                => 'local',
+            'disk'                => $disk,
             'path'                => $path,
         ]);
         TaskActivity::log($card->id, auth()->id(), 'attached', ['name' => $att->original_name]);
@@ -661,7 +665,13 @@ class TaskBoardController extends Controller
     {
         $card = $this->resolveScopedCard($attachment->card_id);
         $this->authorizeEdit($card->board);
-        try { \Storage::disk($attachment->disk)->delete($attachment->path); } catch (\Throwable $e) {}
+        try {
+            \Storage::disk($attachment->disk)->delete($attachment->path);
+        } catch (\Throwable $e) {
+            // Disk may already be missing the file (manual cleanup, S3 race);
+            // we still want to remove the DB row so the UI stays consistent.
+            report($e);
+        }
         TaskActivity::log($card->id, auth()->id(), 'attachment_removed', ['name' => $attachment->original_name]);
         $attachment->delete();
         return response()->json(['ok' => true]);
@@ -755,12 +765,35 @@ class TaskBoardController extends Controller
         if (!$user->canInWorkspace(app('current_workspace'), 'tasks.edit')) abort(403);
     }
 
+    /**
+     * Strict delete gate used for destructive *board-level* operations
+     * (deleting an entire board). Only owner/admin pass; editors do not.
+     */
     private function authorizeDelete(TaskBoard $board): void
     {
         $user = auth()->user();
         if (!$board->visibleTo($user)) abort(404);
         if ($board->scope === 'personal' && (int) $board->owner_user_id === (int) $user->id) return;
         if (!$user->canInWorkspace(app('current_workspace'), 'tasks.delete')) abort(403);
+    }
+
+    /**
+     * Looser delete gate used for *task-entity* deletions (cards, columns
+     * via fallback move, comments, attachments). Per the task spec editors
+     * are explicitly allowed to remove their own work, so this gate also
+     * accepts `tasks.edit`. Replier/analyst/viewer still 403. We do NOT
+     * widen the global role matrix; this is a per-feature override and is
+     * deliberately *not* used for full-board deletion.
+     */
+    private function authorizeCardDelete(TaskBoard $board): void
+    {
+        $user = auth()->user();
+        if (!$board->visibleTo($user)) abort(404);
+        if ($board->scope === 'personal' && (int) $board->owner_user_id === (int) $user->id) return;
+        $ws = app('current_workspace');
+        if ($user->canInWorkspace($ws, 'tasks.delete')) return;
+        if ($user->canInWorkspace($ws, 'tasks.edit'))   return;
+        abort(403);
     }
 
     /** All members visible for assignment in the current workspace (owner + members). */

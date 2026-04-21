@@ -36,6 +36,21 @@
                              style="background: rgba(34,197,94,0.12); color:#16a34a;">
                             <i class="fas fa-list-check"></i>
                         </div>
+                    @elseif($n->type === 'task_mention')
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center"
+                             style="background: rgba(59,130,246,0.12); color:#2563eb;">
+                            <i class="fas fa-at"></i>
+                        </div>
+                    @elseif($n->type === 'task_due')
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center"
+                             style="background: rgba(234,179,8,0.12); color:#ca8a04;">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                    @elseif($n->type === 'task_overdue')
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center"
+                             style="background: rgba(239,68,68,0.12); color:#dc2626;">
+                            <i class="fas fa-fire"></i>
+                        </div>
                     @elseif(!empty($d['follower_avatar']) || !empty($d['creator_avatar']))
                         <img src="{{ $d['follower_avatar'] ?? $d['creator_avatar'] }}" class="w-10 h-10 rounded-full object-cover" alt=""/>
                     @else
@@ -80,6 +95,45 @@
                             @if(!empty($d['url']))
                                 <a href="{{ $d['url'] }}" class="inline-flex items-center gap-1 mt-1 text-xs font-semibold text-emerald-600 hover:underline">
                                     <i class="fas fa-arrow-right"></i> Open task
+                                </a>
+                            @endif
+                        @elseif($n->type === 'task_mention')
+                            <p class="text-sm" style="color: var(--text-primary);">
+                                <span class="font-semibold">{{ $d['mentioner'] ?? 'Someone' }}</span>
+                                mentioned you in
+                                <span class="font-semibold">{{ $d['board_name'] ?? 'a board' }}</span>:
+                                <span class="italic">{{ \Illuminate\Support\Str::limit($d['snippet'] ?? $d['message'] ?? '', 100) }}</span>
+                            </p>
+                            @if(!empty($d['url']))
+                                <a href="{{ $d['url'] }}" class="inline-flex items-center gap-1 mt-1 text-xs font-semibold text-blue-600 hover:underline">
+                                    <i class="fas fa-arrow-right"></i> Jump to comment
+                                </a>
+                            @endif
+                        @elseif($n->type === 'task_due')
+                            <p class="text-sm" style="color: var(--text-primary);">
+                                <i class="fas fa-clock mr-1" style="color:#ca8a04;"></i>
+                                A card you're assigned to is
+                                <span class="font-semibold">due today</span>
+                                in <span class="font-semibold">{{ $d['board_name'] ?? 'a board' }}</span>:
+                                <span class="italic">{{ \Illuminate\Support\Str::limit($d['message'] ?? '', 80) }}</span>
+                            </p>
+                            @if(!empty($d['url']))
+                                <a href="{{ $d['url'] }}" class="inline-flex items-center gap-1 mt-1 text-xs font-semibold text-yellow-700 hover:underline">
+                                    <i class="fas fa-arrow-right"></i> Open card
+                                </a>
+                            @endif
+                        @elseif($n->type === 'task_overdue')
+                            <p class="text-sm" style="color: var(--text-primary);">
+                                <i class="fas fa-fire mr-1" style="color:#dc2626;"></i>
+                                <span class="font-semibold text-red-600">Overdue:</span>
+                                a card you're assigned to in
+                                <span class="font-semibold">{{ $d['board_name'] ?? 'a board' }}</span>
+                                — <span class="italic">{{ \Illuminate\Support\Str::limit($d['message'] ?? '', 80) }}</span>
+                                @if(!empty($d['due_date'])) <span class="text-xs" style="color: var(--text-faint);">(was due {{ $d['due_date'] }})</span>@endif
+                            </p>
+                            @if(!empty($d['url']))
+                                <a href="{{ $d['url'] }}" class="inline-flex items-center gap-1 mt-1 text-xs font-semibold text-red-600 hover:underline">
+                                    <i class="fas fa-arrow-right"></i> Resolve now
                                 </a>
                             @endif
                         @else

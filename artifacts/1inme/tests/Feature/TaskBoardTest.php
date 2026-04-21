@@ -304,13 +304,73 @@ class TaskBoardTest extends TestCase
         app()->forgetInstance('current_workspace');
         session()->forget('active_workspace_id');
 
-        $this->artisan('tasks:send-due-reminders')->assertSuccessful();
-        $this->artisan('tasks:send-due-reminders')->assertSuccessful(); // dedupe
+        // The scheduler is now hourly + workspace-tz gated (only fires at
+        // local 8 AM); --force bypasses the gate for ad-hoc CLI runs and
+        // for this test, which only cares about the dedupe contract.
+        $this->artisan('tasks:send-due-reminders', ['--force' => true])->assertSuccessful();
+        $this->artisan('tasks:send-due-reminders', ['--force' => true])->assertSuccessful(); // dedupe
 
         $count = UserNotification::where('user_id', $bob->id)
             ->where('type', 'task_overdue')
             ->count();
         $this->assertSame(1, $count, 'reminder should fire once per day per card per assignee');
+    }
+
+    public function test_editor_can_delete_card_but_not_board(): void
+    {
+        $owner  = $this->makeUser('owner');
+        $editor = $this->makeUser('ed');
+        $ws     = $owner->ensureDefaultWorkspace();
+        WorkspaceMember::create(['workspace_id' => $ws->id, 'user_id' => $editor->id, 'role' => 'editor']);
+
+        session(['active_workspace_id' => $ws->id]);
+        $this->actingAs($owner)->post('/user/tasks/boards', ['name' => 'EdBoard', 'scope' => 'team']);
+        $board = TaskBoard::query()->withoutGlobalScope('workspace')->where('name', 'EdBoard')->first();
+        $col   = $board->columns()->orderBy('position')->first();
+        $this->actingAs($owner)->post("/user/tasks/boards/{$board->id}/cards", ['column_id' => $col->id, 'title' => 'Killable']);
+        $card = TaskCard::query()->withoutGlobalScope('workspace')->where('title', 'Killable')->first();
+
+        // Editor SHOULD be able to delete a card (per-feature override).
+        $this->actingAs($editor)->delete("/user/tasks/cards/{$card->id}")->assertOk();
+        $this->assertDatabaseMissing('task_cards', ['id' => $card->id]);
+
+        // Editor SHOULD NOT be able to delete the entire board.
+        $this->actingAs($editor)->delete("/user/tasks/boards/{$board->id}")->assertStatus(403);
+        $this->assertDatabaseHas('task_boards', ['id' => $board->id]);
+    }
+
+    public function test_due_reminder_dedupe_is_workspace_timezone_safe(): void
+    {
+        // Owner in UTC+14 (Pacific/Kiritimati); a single local day spans
+        // two UTC days, so a server-day-keyed dedupe would let this run
+        // twice. The UTC-window dedupe must collapse it to one notification.
+        $owner = $this->makeUser('tzowner');
+        $owner->forceFill(['timezone' => 'Pacific/Kiritimati'])->save();
+        $assignee = $this->makeUser('tzbob');
+        $ws       = $owner->ensureDefaultWorkspace();
+        WorkspaceMember::create(['workspace_id' => $ws->id, 'user_id' => $assignee->id, 'role' => 'editor']);
+
+        session(['active_workspace_id' => $ws->id]);
+        $this->actingAs($owner)->post('/user/tasks/boards', ['name' => 'TzBoard', 'scope' => 'team']);
+        $board = TaskBoard::query()->withoutGlobalScope('workspace')->where('name', 'TzBoard')->first();
+        $col   = $board->columns()->orderBy('position')->first();
+        $this->actingAs($owner)->post("/user/tasks/boards/{$board->id}/cards", ['column_id' => $col->id, 'title' => 'TzLate']);
+        $card  = TaskCard::query()->withoutGlobalScope('workspace')->where('title', 'TzLate')->first();
+        $card->update(['due_date' => now()->subDays(2), 'completed_at' => null]);
+        $card->assignees()->attach($assignee->id);
+
+        app()->forgetInstance('current_workspace');
+        session()->forget('active_workspace_id');
+
+        // Two forced runs in quick succession must produce exactly one row.
+        $this->artisan('tasks:send-due-reminders', ['--force' => true])->assertSuccessful();
+        $this->artisan('tasks:send-due-reminders', ['--force' => true])->assertSuccessful();
+
+        $count = UserNotification::where('user_id', $assignee->id)
+            ->where('type', 'task_overdue')
+            ->where('data->card_id', $card->id)
+            ->count();
+        $this->assertSame(1, $count, 'tz-window dedupe must collapse repeated runs');
     }
 
     public function test_attachment_blocks_disallowed_mime_and_extension(): void

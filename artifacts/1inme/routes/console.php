@@ -8,10 +8,13 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-// Daily 8am local server time: notify assignees of cards that are due today
-// or already overdue. Dedup-protected so reruns in the same day are no-ops.
+// Hourly: notify assignees of cards due today / overdue. The command itself
+// only fires for workspaces whose **local** time (taken from the workspace
+// owner's User.timezone) is currently 8 AM, so a UTC server still delivers
+// 8-AM reminders in every workspace's own timezone. Dedup-protected so
+// reruns in the same local day are no-ops.
 Schedule::command('tasks:send-due-reminders')
-    ->dailyAt('08:00')
+    ->hourlyAt(0)
     ->withoutOverlapping()
     ->onOneServer();
 
