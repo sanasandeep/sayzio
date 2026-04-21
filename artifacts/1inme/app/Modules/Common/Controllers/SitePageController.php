@@ -18,6 +18,19 @@ class SitePageController extends Controller
     public function show(string $slug, ?Request $request = null)
     {
         $request = $request ?? request();
+
+        if ($slug === 'features') {
+            $page = SitePage::firstOrCreate(
+                ['slug' => 'features'],
+                [
+                    'title' => 'Features',
+                    'meta_description' => 'A complete tour of every capability inside 1INME — biolinks, short links, QR codes, analytics, inboxes, teams, billing, and more.',
+                    'sections' => [],
+                ]
+            );
+            return view('public.features', ['page' => $page]);
+        }
+
         $page = SitePage::where('slug', $slug)->firstOrFail();
 
         if ($slug === 'faqs') {
