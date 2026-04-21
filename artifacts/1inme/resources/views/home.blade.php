@@ -1542,6 +1542,278 @@
             .sl-pill .slug { width: 11ch; border-right: none; }
             .cd-rec, .cd-rec .ok { opacity: 1; transform: none; }
         }
+
+        /* ============ Grow section · Live geo + Coach ============ */
+        .geo-map {
+            position: relative;
+            aspect-ratio: 16/9;
+            border-radius: 18px;
+            background: radial-gradient(ellipse at center, #14142a 0%, #0a0a14 75%);
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,.06);
+        }
+        .geo-map .grid {
+            position: absolute; inset: 0;
+            background-image:
+                linear-gradient(rgba(124,58,237,.08) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(124,58,237,.08) 1px, transparent 1px);
+            background-size: 22px 22px;
+            mask-image: radial-gradient(ellipse at center, #000 30%, transparent 80%);
+            -webkit-mask-image: radial-gradient(ellipse at center, #000 30%, transparent 80%);
+        }
+        .geo-map .continents { position: absolute; inset: 0; }
+        .geo-map .continents path {
+            fill: rgba(124,58,237,.18);
+            stroke: rgba(124,58,237,.3);
+            stroke-width: .5;
+        }
+        .geo-map .meridian {
+            position: absolute; top: 0; bottom: 0;
+            width: 1px;
+            background: linear-gradient(180deg, transparent, rgba(27,212,217,.45), transparent);
+            box-shadow: 0 0 12px rgba(27,212,217,.5);
+            animation: geoMeridian 6s linear infinite;
+        }
+        @keyframes geoMeridian {
+            0%   { left: -2%; opacity: 0; }
+            8%   { opacity: .9; }
+            92%  { opacity: .9; }
+            100% { left: 102%; opacity: 0; }
+        }
+
+        .geo-pin { position: absolute; width: 12px; height: 12px; }
+        .geo-pin .core {
+            position: absolute; inset: 3px;
+            border-radius: 50%;
+            background: var(--c, #1bd4d9);
+            box-shadow: 0 0 14px var(--c, #1bd4d9);
+        }
+        .geo-pin .ring {
+            position: absolute; inset: 0;
+            border-radius: 50%;
+            border: 2px solid var(--c, #1bd4d9);
+            opacity: 0;
+            animation: geoPulse 2.4s ease-out infinite;
+        }
+        .geo-pin .ring.r2 { animation-delay: .8s; }
+        .geo-pin .ring.r3 { animation-delay: 1.6s; }
+        @keyframes geoPulse {
+            0%   { transform: scale(.6); opacity: .9; }
+            80%  { transform: scale(3.6); opacity: 0; }
+            100% { transform: scale(3.6); opacity: 0; }
+        }
+
+        .geo-stream {
+            fill: none;
+            stroke-width: 1.3;
+            stroke-dasharray: 4 4;
+            opacity: .55;
+            animation: geoFlow 1.4s linear infinite;
+        }
+        @keyframes geoFlow { to { stroke-dashoffset: -16; } }
+
+        .geo-ticker {
+            position: absolute; top: 12px; left: 12px; right: 12px;
+            background: rgba(10,10,20,.78);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,.08);
+            border-radius: 10px;
+            padding: 7px 10px;
+            font-size: 10px;
+            color: #e5e7eb;
+            display: flex; align-items: center; gap: 8px;
+            max-width: 320px;
+        }
+        .geo-ticker .live {
+            color: var(--c1); font-weight: 800; font-size: 9px;
+            text-transform: uppercase; letter-spacing: .08em;
+            display: inline-flex; align-items: center; gap: 4px;
+            white-space: nowrap;
+        }
+        .geo-ticker .live::before {
+            content: ""; width: 6px; height: 6px; border-radius: 50%;
+            background: var(--c1); box-shadow: 0 0 8px var(--c1);
+            animation: wsDot 1.2s ease-in-out infinite;
+        }
+        .geo-ticker .feed {
+            position: relative; height: 14px; flex: 1; min-width: 0; overflow: hidden;
+        }
+        .geo-ticker .feed > div {
+            position: absolute; left: 0; right: 0; top: 0;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            opacity: 0;
+            animation: tickerCycle 12s ease-in-out infinite;
+        }
+        .geo-ticker .feed > div:nth-child(1) { animation-delay: 0s; }
+        .geo-ticker .feed > div:nth-child(2) { animation-delay: 3s; }
+        .geo-ticker .feed > div:nth-child(3) { animation-delay: 6s; }
+        .geo-ticker .feed > div:nth-child(4) { animation-delay: 9s; }
+        .geo-ticker .feed em { font-style: normal; color: var(--c1); font-weight: 700; }
+        @keyframes tickerCycle {
+            0%       { transform: translateY(100%); opacity: 0; }
+            4%, 21%  { transform: translateY(0);    opacity: 1; }
+            25%,100% { transform: translateY(-100%); opacity: 0; }
+        }
+
+        .geo-stat .num {
+            font-size: 26px; font-weight: 800;
+            background: linear-gradient(90deg, var(--c2), var(--c3));
+            -webkit-background-clip: text; background-clip: text; color: transparent;
+            font-variant-numeric: tabular-nums;
+        }
+        .geo-stat .bar {
+            height: 3px; border-radius: 999px; margin-top: 6px;
+            background: linear-gradient(90deg, var(--c1), var(--c3));
+            width: 0;
+            animation: statBarFill 1.8s cubic-bezier(.16,1,.3,1) forwards;
+        }
+        .geo-stat:nth-child(1) .bar { animation-delay: .2s; --to: 78%; }
+        .geo-stat:nth-child(2) .bar { animation-delay: .4s; --to: 60%; }
+        .geo-stat:nth-child(3) .bar { animation-delay: .6s; --to: 42%; }
+        @keyframes statBarFill { to { width: var(--to, 60%); } }
+
+        .geo-flags {
+            margin-top: 12px;
+            background: rgba(255,255,255,.03);
+            border: 1px solid rgba(255,255,255,.06);
+            border-radius: 12px;
+            padding: 9px 0;
+            overflow: hidden;
+            position: relative;
+        }
+        .geo-flags::before, .geo-flags::after {
+            content: ""; position: absolute; top: 0; bottom: 0; width: 32px; z-index: 2;
+            pointer-events: none;
+        }
+        .geo-flags::before { left: 0; background: linear-gradient(90deg, #0d0d12, transparent); }
+        .geo-flags::after  { right: 0; background: linear-gradient(-90deg, #0d0d12, transparent); }
+        .geo-flags .marquee {
+            display: flex; gap: 22px; width: max-content;
+            animation: flagsScroll 28s linear infinite;
+            padding-left: 22px;
+        }
+        .geo-flag {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 11px; color: #d1d5db; white-space: nowrap;
+        }
+        .geo-flag .em { font-size: 15px; line-height: 1; }
+        .geo-flag .n  { color: var(--c1); font-weight: 700; font-variant-numeric: tabular-nums; }
+        @keyframes flagsScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+        /* Coach */
+        .coach-ring { position: relative; width: 140px; height: 140px; margin: 0 auto 12px; }
+        .coach-ring > svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+        .coach-ring .track { stroke: rgba(255,255,255,.18); }
+        .coach-ring .fill {
+            stroke: #fff; stroke-linecap: round;
+            stroke-dasharray: 251.2;
+            stroke-dashoffset: 251.2;
+            filter: drop-shadow(0 0 8px rgba(255,255,255,.6));
+            animation: coachFill 2.6s cubic-bezier(.16,1,.3,1) forwards;
+        }
+        @keyframes coachFill { to { stroke-dashoffset: 32.66; } } /* 87 / 100 */
+        .coach-ring .num {
+            position: absolute; inset: 0;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: #fff;
+        }
+        .coach-ring .num .big {
+            font-size: 38px; font-weight: 800; line-height: 1;
+            font-variant-numeric: tabular-nums;
+        }
+        .coach-ring .num .lbl {
+            font-size: 9px; opacity: .85;
+            text-transform: uppercase; letter-spacing: .12em;
+            margin-top: 4px;
+        }
+        .coach-ring .glow {
+            position: absolute; inset: -8px; border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,.25), transparent 60%);
+            animation: coachGlow 3s ease-in-out infinite;
+            pointer-events: none;
+        }
+        @keyframes coachGlow { 50% { transform: scale(1.06); opacity: .7; } }
+
+        .coach-analyzing {
+            display: inline-flex; align-items: center; gap: 7px;
+            font-size: 10px; color: rgba(255,255,255,.9);
+            margin-bottom: 10px;
+            font-weight: 700;
+            text-transform: uppercase; letter-spacing: .12em;
+            background: rgba(255,255,255,.12);
+            padding: 4px 9px; border-radius: 999px;
+        }
+        .coach-analyzing .dots { display: inline-flex; gap: 3px; }
+        .coach-analyzing .dots span {
+            width: 4px; height: 4px; border-radius: 50%; background: #fff;
+            animation: wsType 1.1s infinite ease-in-out;
+        }
+        .coach-analyzing .dots span:nth-child(2) { animation-delay: .15s; }
+        .coach-analyzing .dots span:nth-child(3) { animation-delay: .3s; }
+
+        .coach-tip {
+            display: grid; grid-template-columns: 32px 1fr auto;
+            align-items: center; gap: 10px;
+            background: rgba(255,255,255,.15);
+            border: 1px solid rgba(255,255,255,.18);
+            border-radius: 14px;
+            padding: 10px 12px;
+            position: relative;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(8px);
+            animation: tipIn .55s cubic-bezier(.16,1,.3,1) forwards;
+        }
+        @keyframes tipIn { to { opacity: 1; transform: none; } }
+        .coach-tip:nth-child(1) { animation-delay: .9s; }
+        .coach-tip:nth-child(2) { animation-delay: 1.5s; }
+        .coach-tip:nth-child(3) { animation-delay: 2.1s; }
+        .coach-tip .ic {
+            width: 32px; height: 32px; border-radius: 10px;
+            display: inline-flex; align-items: center; justify-content: center;
+            background: rgba(255,255,255,.2);
+            color: #fff; font-size: 13px;
+        }
+        .coach-tip .body { font-size: 12px; color: #fff; line-height: 1.4; min-width: 0; }
+        .coach-tip .body b { font-weight: 800; }
+        .coach-tip .body small {
+            display: flex; align-items: center; gap: 6px;
+            font-size: 10px; opacity: .85;
+            margin-top: 3px; font-variant-numeric: tabular-nums;
+        }
+        .coach-tip .cta {
+            font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em;
+            background: rgba(255,255,255,.95); color: #7c3aed;
+            padding: 6px 10px; border-radius: 999px;
+            white-space: nowrap;
+            transition: transform .2s ease, box-shadow .2s ease;
+        }
+        .coach-tip .cta:hover { transform: translateY(-1px); box-shadow: 0 8px 20px -8px rgba(0,0,0,.4); }
+        .coach-tip .spark { display: inline-flex; gap: 1.5px; align-items: end; height: 10px; }
+        .coach-tip .spark i {
+            width: 2px; background: rgba(255,255,255,.85); border-radius: 1px;
+        }
+        .coach-tip .spark.up i:nth-child(1){ height: 30%; }
+        .coach-tip .spark.up i:nth-child(2){ height: 45%; }
+        .coach-tip .spark.up i:nth-child(3){ height: 60%; }
+        .coach-tip .spark.up i:nth-child(4){ height: 80%; }
+        .coach-tip .spark.up i:nth-child(5){ height: 100%; }
+        .coach-tip .spark.dn i:nth-child(1){ height: 100%; }
+        .coach-tip .spark.dn i:nth-child(2){ height: 75%; }
+        .coach-tip .spark.dn i:nth-child(3){ height: 55%; }
+        .coach-tip .spark.dn i:nth-child(4){ height: 40%; }
+        .coach-tip .spark.dn i:nth-child(5){ height: 25%; }
+
+        @media (prefers-reduced-motion: reduce) {
+            .geo-pin .ring, .geo-stream, .geo-ticker .feed > div,
+            .geo-stat .bar, .geo-flags .marquee, .geo-map .meridian,
+            .coach-ring .fill, .coach-ring .glow,
+            .coach-tip, .coach-analyzing .dots span { animation: none !important; }
+            .coach-tip { opacity: 1; transform: none; }
+            .coach-ring .fill { stroke-dashoffset: 32.66; }
+            .geo-stat .bar { width: 60%; }
+        }
     </style>
 </head>
 <body class="overflow-x-hidden">
@@ -3159,41 +3431,113 @@
         <div class="grid lg:grid-cols-12 gap-6">
             {{-- Live geo card --}}
             <div class="reveal rd-1 lg:col-span-7 glass rounded-3xl p-7 tilt">
-                <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
                     <div>
                         <div class="text-xs font-bold uppercase tracking-wider mb-1" style="color:var(--c1)">Live geo heatmap</div>
                         <h3 class="text-xl font-bold">247 visitors right now in 14 countries</h3>
                     </div>
                     <span class="flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full" style="background:rgba(27,212,217,.15);color:var(--c1)"><span class="w-1.5 h-1.5 rounded-full pulse-dot" style="background:var(--c1)"></span>LIVE</span>
                 </div>
-                <div class="relative aspect-[16/9] rounded-2xl overflow-hidden bg-[#0a0a14] border border-white/5">
-                    <svg viewBox="0 0 320 180" class="w-full h-full opacity-40">
-                        <ellipse cx="60" cy="70" rx="32" ry="20" fill="#7c3aed"/>
-                        <ellipse cx="155" cy="55" rx="42" ry="22" fill="#7c3aed"/>
-                        <ellipse cx="245" cy="78" rx="32" ry="18" fill="#7c3aed"/>
-                        <ellipse cx="90" cy="120" rx="26" ry="14" fill="#7c3aed"/>
-                        <ellipse cx="210" cy="125" rx="34" ry="18" fill="#7c3aed"/>
+
+                <div class="geo-map">
+                    <div class="grid"></div>
+                    {{-- Continents (simplified silhouettes) --}}
+                    <svg class="continents" viewBox="0 0 320 180" preserveAspectRatio="none" aria-hidden="true">
+                        {{-- North America --}}
+                        <path d="M22,42 L48,32 L72,38 L80,52 L72,70 L86,82 L78,98 L60,108 L42,102 L30,86 L22,68 Z"/>
+                        {{-- South America --}}
+                        <path d="M82,108 L96,108 L102,124 L96,148 L86,160 L78,148 L76,128 Z"/>
+                        {{-- Europe --}}
+                        <path d="M138,38 L160,34 L172,42 L168,56 L156,62 L142,58 L134,48 Z"/>
+                        {{-- Africa --}}
+                        <path d="M150,68 L172,66 L184,82 L186,108 L172,132 L158,134 L144,118 L142,92 Z"/>
+                        {{-- Asia --}}
+                        <path d="M178,30 L228,26 L264,38 L274,56 L256,72 L228,72 L196,68 L182,52 Z"/>
+                        {{-- SE Asia --}}
+                        <path d="M242,78 L260,74 L266,86 L256,98 L246,94 Z"/>
+                        {{-- Australia --}}
+                        <path d="M256,118 L284,116 L292,128 L282,140 L262,138 L256,128 Z"/>
                     </svg>
-                    {{-- Pulsing pins --}}
-                    @foreach([['18%','35%','#1bd4d9'],['42%','22%','#e94e8c'],['68%','40%','#ffc845'],['28%','62%','#ff8a3c'],['72%','68%','#7c3aed'],['52%','55%','#1bd4d9']] as $i => $p)
-                        <span class="absolute" style="left:{{ $p[0] }};top:{{ $p[1] }};">
-                            <span class="ring-pulse" style="inset:0;width:14px;height:14px;background:{{ $p[2] }};animation-delay:{{ -$i*0.4 }}s"></span>
-                            <span class="block w-2.5 h-2.5 rounded-full pulse-dot" style="background:{{ $p[2] }};animation-delay:{{ -$i*0.3 }}s"></span>
+
+                    {{-- Animated streams between visitor pins --}}
+                    <svg class="absolute inset-0 w-full h-full" viewBox="0 0 320 180" preserveAspectRatio="none" aria-hidden="true">
+                        <path class="geo-stream" stroke="#1bd4d9" d="M58,68 Q120,40 156,52"/>
+                        <path class="geo-stream" stroke="#e94e8c" d="M156,52 Q210,30 252,52" style="animation-delay:-.5s"/>
+                        <path class="geo-stream" stroke="#ffc845" d="M168,98 Q220,108 274,124" style="animation-delay:-1s"/>
+                        <path class="geo-stream" stroke="#7c3aed" d="M58,68 Q70,90 88,112" style="animation-delay:-.7s"/>
+                    </svg>
+
+                    {{-- Sweeping meridian line --}}
+                    <span class="meridian" aria-hidden="true"></span>
+
+                    {{-- Live ticker overlay --}}
+                    <div class="geo-ticker" aria-hidden="true">
+                        <span class="live">Live</span>
+                        <div class="feed">
+                            <div>👤 <em>Sara</em> · Tokyo · clicked <em>/spring-drop</em></div>
+                            <div>👤 <em>Liam</em> · London · scanned <em>QR · merch</em></div>
+                            <div>👤 <em>Amara</em> · Lagos · followed <em>@jamie</em></div>
+                            <div>👤 <em>Diego</em> · Mexico City · viewed <em>biolink</em></div>
+                        </div>
+                    </div>
+
+                    {{-- Pulsing visitor pins --}}
+                    @foreach([
+                        ['18%','38%','#1bd4d9'],
+                        ['48%','29%','#e94e8c'],
+                        ['76%','29%','#ffc845'],
+                        ['28%','62%','#ff8a3c'],
+                        ['83%','72%','#7c3aed'],
+                        ['52%','58%','#1bd4d9'],
+                        ['58%','78%','#e94e8c'],
+                    ] as $i => $p)
+                        <span class="geo-pin" style="left:{{ $p[0] }};top:{{ $p[1] }};--c:{{ $p[2] }}; animation-delay:{{ -$i*0.4 }}s">
+                            <span class="ring r1" style="animation-delay:{{ -$i*0.4 }}s"></span>
+                            <span class="ring r2"></span>
+                            <span class="ring r3"></span>
+                            <span class="core"></span>
                         </span>
                     @endforeach
                 </div>
-                <div class="grid grid-cols-3 gap-3 mt-5">
-                    <div class="text-center">
-                        <div class="text-2xl font-bold grad-text">38.4k</div>
-                        <div class="text-[10px] uppercase tracking-wider text-gray-500">7-day visits</div>
+
+                {{-- Stat trio with animated bars --}}
+                <div class="grid grid-cols-3 gap-4 mt-5">
+                    <div class="geo-stat">
+                        <div class="num">38.4k</div>
+                        <div class="text-[10px] uppercase tracking-wider text-gray-500 mt-0.5">7-day visits</div>
+                        <div class="bar" style="--to:78%"></div>
                     </div>
-                    <div class="text-center">
-                        <div class="text-2xl font-bold grad-text">9.1k</div>
-                        <div class="text-[10px] uppercase tracking-wider text-gray-500">QR scans</div>
+                    <div class="geo-stat">
+                        <div class="num">9.1k</div>
+                        <div class="text-[10px] uppercase tracking-wider text-gray-500 mt-0.5">QR scans</div>
+                        <div class="bar" style="--to:60%"></div>
                     </div>
-                    <div class="text-center">
-                        <div class="text-2xl font-bold grad-text">2.4k</div>
-                        <div class="text-[10px] uppercase tracking-wider text-gray-500">New followers</div>
+                    <div class="geo-stat">
+                        <div class="num">2.4k</div>
+                        <div class="text-[10px] uppercase tracking-wider text-gray-500 mt-0.5">New followers</div>
+                        <div class="bar" style="--to:42%"></div>
+                    </div>
+                </div>
+
+                {{-- Country flags marquee --}}
+                <div class="geo-flags" aria-hidden="true">
+                    <div class="marquee">
+                        @foreach([
+                            ['🇺🇸','US','58'],['🇬🇧','UK','41'],['🇯🇵','JP','37'],['🇩🇪','DE','29'],
+                            ['🇫🇷','FR','24'],['🇧🇷','BR','22'],['🇮🇳','IN','19'],['🇨🇦','CA','14'],
+                            ['🇲🇽','MX','11'],['🇦🇺','AU','9'],['🇳🇬','NG','7'],['🇰🇷','KR','6'],
+                            ['🇪🇸','ES','5'],['🇮🇹','IT','4'],
+                        ] as $f)
+                            <span class="geo-flag"><span class="em">{{ $f[0] }}</span>{{ $f[1] }}<span class="n">{{ $f[2] }}</span></span>
+                        @endforeach
+                        @foreach([
+                            ['🇺🇸','US','58'],['🇬🇧','UK','41'],['🇯🇵','JP','37'],['🇩🇪','DE','29'],
+                            ['🇫🇷','FR','24'],['🇧🇷','BR','22'],['🇮🇳','IN','19'],['🇨🇦','CA','14'],
+                            ['🇲🇽','MX','11'],['🇦🇺','AU','9'],['🇳🇬','NG','7'],['🇰🇷','KR','6'],
+                            ['🇪🇸','ES','5'],['🇮🇹','IT','4'],
+                        ] as $f)
+                            <span class="geo-flag"><span class="em">{{ $f[0] }}</span>{{ $f[1] }}<span class="n">{{ $f[2] }}</span></span>
+                        @endforeach
                     </div>
                 </div>
             </div>
@@ -3201,20 +3545,64 @@
             {{-- Coach card --}}
             <div class="reveal rd-2 lg:col-span-5 rounded-3xl p-7 tilt relative overflow-hidden text-white" style="background: linear-gradient(140deg, var(--c2), var(--c3) 70%, var(--c4));">
                 <div class="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-white/10"></div>
+                <div class="absolute -bottom-16 -left-16 w-56 h-56 rounded-full bg-white/5"></div>
                 <div class="relative">
                     <div class="text-xs font-bold uppercase tracking-wider mb-1 text-white/80">Performance Coach</div>
-                    <h3 class="text-2xl font-bold mb-5">Health score 87 <span class="text-white/70 text-base font-normal">/ 100</span></h3>
-                    <div class="flex justify-center mb-5">
-                        <svg viewBox="0 0 100 100" class="w-32 h-32">
-                            <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="9"/>
-                            <circle class="gauge-arc" cx="50" cy="50" r="40" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" transform="rotate(-90 50 50)"/>
-                            <text x="50" y="56" text-anchor="middle" font-size="22" font-weight="700" fill="#fff">87</text>
+                    <h3 class="text-2xl font-bold mb-4">Health score <span class="font-extrabold">87</span> <span class="text-white/70 text-base font-normal">/ 100</span></h3>
+
+                    <div class="coach-ring">
+                        <span class="glow" aria-hidden="true"></span>
+                        <svg viewBox="0 0 100 100">
+                            <circle class="track" cx="50" cy="50" r="40" fill="none" stroke-width="9"/>
+                            <circle class="fill"  cx="50" cy="50" r="40" fill="none" stroke-width="9"/>
                         </svg>
+                        <div class="num">
+                            <span class="big">87</span>
+                            <span class="lbl">Health</span>
+                        </div>
                     </div>
-                    <ul class="space-y-2 text-sm">
-                        <li class="flex items-start gap-2 bg-white/15 rounded-xl p-3"><i class="fas fa-bolt mt-0.5"></i><span><b>Swap your top block.</b> "Free Templates" CTR drop -12%.</span></li>
-                        <li class="flex items-start gap-2 bg-white/15 rounded-xl p-3"><i class="fas fa-bolt mt-0.5"></i><span><b>Add social proof.</b> Pages with reviews convert 1.7×.</span></li>
-                    </ul>
+
+                    <div class="coach-analyzing" aria-hidden="true">
+                        <i class="fas fa-wand-magic-sparkles"></i>
+                        <span>Coach is analyzing</span>
+                        <span class="dots"><span></span><span></span><span></span></span>
+                    </div>
+
+                    <div class="space-y-2.5">
+                        <div class="coach-tip">
+                            <span class="ic"><i class="fas fa-arrows-rotate"></i></span>
+                            <div class="body">
+                                <b>Swap your top block.</b> “Free Templates” CTR
+                                <small>
+                                    <span class="spark dn" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+                                    <span>−12% · last 7d</span>
+                                </small>
+                            </div>
+                            <a href="#" class="cta">Try fix</a>
+                        </div>
+                        <div class="coach-tip">
+                            <span class="ic"><i class="fas fa-star"></i></span>
+                            <div class="body">
+                                <b>Add social proof.</b> Pages with reviews convert
+                                <small>
+                                    <span class="spark up" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+                                    <span>1.7× higher</span>
+                                </small>
+                            </div>
+                            <a href="#" class="cta">Add now</a>
+                        </div>
+                        <div class="coach-tip">
+                            <span class="ic"><i class="fas fa-flask"></i></span>
+                            <div class="body">
+                                <b>A/B test the hero.</b> 2 variants, auto-pick winner
+                                <small>
+                                    <span class="spark up" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+                                    <span>+8% projected lift</span>
+                                </small>
+                            </div>
+                            <a href="#" class="cta">Run test</a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
