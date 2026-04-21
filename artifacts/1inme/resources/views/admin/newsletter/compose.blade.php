@@ -92,17 +92,78 @@
     </div>
 
     <div class="glass rounded-2xl p-6">
-        <h3 class="text-sm font-semibold text-white mb-3">Past issues</h3>
+        @php
+            $sort     = $sort     ?? 'recent';
+            $dir      = $dir      ?? 'desc';
+            $highOnly = $highOnly ?? false;
+            $highRateThreshold = $highRateThreshold ?? 1.0;
+
+            // Toggle direction when re-clicking the active sort column; otherwise default to desc.
+            $rateNextDir = ($sort === 'unsub_rate' && $dir === 'desc') ? 'asc' : 'desc';
+            $recentNextDir = 'desc';
+
+            $rateSortUrl = request()->fullUrlWithQuery([
+                'sort' => 'unsub_rate', 'dir' => $rateNextDir, 'page' => null,
+            ]);
+            $recentSortUrl = request()->fullUrlWithQuery([
+                'sort' => 'recent', 'dir' => $recentNextDir, 'page' => null,
+            ]);
+            $toggleHighUrl = request()->fullUrlWithQuery([
+                'high_only' => $highOnly ? null : 1, 'page' => null,
+            ]);
+            $clearUrl = request()->fullUrlWithQuery([
+                'sort' => null, 'dir' => null, 'high_only' => null, 'page' => null,
+            ]);
+
+            $rateActive   = $sort === 'unsub_rate';
+            $recentActive = $sort === 'recent';
+            $rateArrow   = $rateActive ? ($dir === 'asc' ? 'fa-arrow-up' : 'fa-arrow-down') : 'fa-sort';
+            // "Recent" only ever sorts descending on the server, so always show the down arrow when active
+            // regardless of any leftover dir param in the URL — keeps the indicator honest.
+            $recentArrow = $recentActive ? 'fa-arrow-down' : 'fa-sort';
+        @endphp
+
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <h3 class="text-sm font-semibold text-white">Past issues</h3>
+            <div class="flex flex-wrap items-center gap-2 text-xs">
+                <a href="{{ $toggleHighUrl }}"
+                   class="px-2 py-1 rounded-lg border {{ $highOnly ? 'bg-red-500/20 border-red-400/40 text-red-100' : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10' }}"
+                   title="Show only issues with an unsubscribe rate at or above {{ number_format($highRateThreshold, 2) }}%">
+                    <i class="fas {{ $highOnly ? 'fa-check-square' : 'fa-square' }} mr-1"></i>
+                    High unsubscribe rate only (≥ {{ number_format($highRateThreshold, 2) }}%)
+                </a>
+                @if($highOnly || $sort !== 'recent')
+                    <a href="{{ $clearUrl }}"
+                       class="px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:bg-white/10">
+                        <i class="fas fa-xmark mr-1"></i> Clear
+                    </a>
+                @endif
+            </div>
+        </div>
+
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
                 <thead>
                     <tr class="text-left text-[11px] uppercase tracking-wider text-white/40 border-b border-white/10">
                         <th class="py-2 pr-3">Subject</th>
-                        <th class="py-2 pr-3">Started</th>
+                        <th class="py-2 pr-3">
+                            <a href="{{ $recentSortUrl }}"
+                               class="inline-flex items-center gap-1 hover:text-white {{ $recentActive ? 'text-white' : '' }}">
+                                Started
+                                <i class="fas {{ $recentArrow }} text-[10px]"></i>
+                            </a>
+                        </th>
                         <th class="py-2 pr-3">Finished</th>
                         <th class="py-2 pr-3">Status</th>
                         <th class="py-2 pr-3">Delivered</th>
-                        <th class="py-2 pr-3">Unsubscribed</th>
+                        <th class="py-2 pr-3">
+                            <a href="{{ $rateSortUrl }}"
+                               class="inline-flex items-center gap-1 hover:text-white {{ $rateActive ? 'text-white' : '' }}"
+                               title="Sort by unsubscribe rate">
+                                Unsubscribed
+                                <i class="fas {{ $rateArrow }} text-[10px]"></i>
+                            </a>
+                        </th>
                         <th class="py-2 pr-3">Sent by</th>
                     </tr>
                 </thead>
@@ -138,7 +199,7 @@
                                     $unsubs = (int) ($issue->unsubscribed_count ?? 0);
                                     $delivered = (int) ($issue->sent_count ?? 0);
                                     $rate = $delivered > 0 ? ($unsubs / $delivered) * 100 : null;
-                                    $isHigh = $rate !== null && $rate >= 1.0;
+                                    $isHigh = $rate !== null && $rate >= $highRateThreshold;
                                 @endphp
                                 @if($unsubs > 0)
                                     <span class="text-amber-200">{{ number_format($unsubs) }}</span>

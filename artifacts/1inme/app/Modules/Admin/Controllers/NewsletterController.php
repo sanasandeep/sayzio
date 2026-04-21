@@ -92,8 +92,43 @@ class NewsletterController extends Controller
     public function compose(Request $request)
     {
         $activeCount = NewsletterSubscriber::whereNull('unsubscribed_at')->count();
-        $issues = NewsletterIssue::orderByDesc('id')->paginate(20);
-        return view('admin.newsletter.compose', compact('activeCount', 'issues'));
+
+        // Sorting + filtering for the past-issues table.
+        // The "warning" threshold here must match the one used in the view (>= 1% of delivered).
+        $highRateThreshold = 1.0;
+
+        $sort = $request->query('sort', 'recent');
+        $dir  = strtolower((string) $request->query('dir', 'desc')) === 'asc' ? 'asc' : 'desc';
+        if (!in_array($sort, ['recent', 'unsub_rate'], true)) {
+            $sort = 'recent';
+        }
+        $highOnly = $request->boolean('high_only');
+
+        $query = NewsletterIssue::query();
+
+        if ($highOnly) {
+            // Only issues whose unsubscribe rate is at or above the warning threshold.
+            // Requires at least one delivered recipient so the rate is meaningful.
+            $query->where('sent_count', '>', 0)
+                  ->whereRaw('(unsubscribed_count::float / NULLIF(sent_count, 0)) * 100 >= ?', [$highRateThreshold]);
+        }
+
+        if ($sort === 'unsub_rate') {
+            // Sort by unsubscribe rate. Issues with no delivered recipients
+            // have no defined rate and are always pushed to the bottom.
+            $query->orderByRaw(
+                '(CASE WHEN sent_count > 0 THEN unsubscribed_count::float / sent_count ELSE NULL END) '
+                . ($dir === 'asc' ? 'ASC NULLS LAST' : 'DESC NULLS LAST')
+            )->orderByDesc('id');
+        } else {
+            $query->orderByDesc('id');
+        }
+
+        $issues = $query->paginate(20)->withQueryString();
+
+        return view('admin.newsletter.compose', compact(
+            'activeCount', 'issues', 'sort', 'dir', 'highOnly', 'highRateThreshold'
+        ));
     }
 
     public function send(Request $request)
