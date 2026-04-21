@@ -689,6 +689,10 @@
         <div class="kpi-cell-head"><i class="fas fa-percentage"></i> Conversion</div>
         <div class="kpi-cell-value">{{ $totalInRange > 0 ? round(($uniqueInRange / $totalInRange) * 100) : 0 }}%</div>
     </div>
+    <div class="kpi-cell" title="We exclude obvious crawlers like Googlebot, AhrefsBot, headless Chrome, etc. from your totals so your numbers reflect real humans. This is how many bot/scraper hits we filtered out in this period.">
+        <div class="kpi-cell-head"><i class="fas fa-robot"></i> Bot hits filtered</div>
+        <div class="kpi-cell-value">{{ number_format($botClicksInRange) }}</div>
+    </div>
 </div>
 
 {{-- ===================== CLICKS OVER TIME ===================== --}}

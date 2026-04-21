@@ -427,6 +427,26 @@ class LinkController extends Controller
         $blockClicksInRange = (clone $clicksQuery)->whereNotNull('block_id')->count();
         $pageVisitsInRange = (clone $clicksQuery)->whereNull('block_id')->count();
 
+        // Count of bot/scraper clicks that the global scope filtered out of the
+        // numbers above. Surfaced on the analytics page as a small "X bot hits
+        // filtered" badge so creators understand drops in popular-link traffic
+        // aren't missing data — they're crawlers we deliberately exclude.
+        // Mirrors the same dimension filters as $clicksQuery for consistency.
+        $botClicksInRange = \App\Modules\User\Models\LinkClick::withBots()
+            ->where('link_id', $link->id)
+            ->where('is_bot', true)
+            ->whereBetween('clicked_at', [$startDate, $endDate])
+            ->when($aliasFilter, fn ($q) => $q->where('alias', $aliasFilter))
+            ->when($sourceFilter, fn ($q) => $q->where('source', $sourceFilter))
+            ->when($countryFilter, fn ($q) => $q->where('country_code', $countryFilter))
+            ->when($deviceFilter, fn ($q) => $q->where('device_type', $deviceFilter))
+            ->when($browserFilter, fn ($q) => $q->where('browser', $browserFilter))
+            ->when($osFilter, fn ($q) => $q->where('os', $osFilter))
+            ->when($languageFilter, fn ($q) => $q->where('language', $languageFilter))
+            ->when($channelFilter, fn ($q) => $q->where('channel', $channelFilter))
+            ->when($baseLanguageFilter, $applyBaseLanguage)
+            ->count();
+
         $dateExpr = match ($groupBy) {
             'week' => "TO_CHAR(DATE_TRUNC('week', clicked_at), 'YYYY-MM-DD')",
             'month' => "TO_CHAR(DATE_TRUNC('month', clicked_at), 'YYYY-MM')",
@@ -831,7 +851,7 @@ class LinkController extends Controller
             'browserStats', 'osStats', 'countryStats', 'cityStats',
             'deviceStats', 'sourceStats', 'channelStats', 'languageStats', 'blockStats', 'utmStats',
             'recentClicks', 'totalInRange', 'uniqueInRange',
-            'blockClicksInRange', 'pageVisitsInRange',
+            'blockClicksInRange', 'pageVisitsInRange', 'botClicksInRange',
             'period', 'groupBy', 'startDate', 'endDate',
             'totalSessions', 'avgSessionSeconds', 'totalEngagedSeconds',
             'bounceRate', 'blockEngagement', 'blockClickMap', 'blockMeta',
