@@ -462,6 +462,46 @@
     </div>
 </div>
 
+@php
+    $sourceLabels = ['mobile_app' => 'Mobile app', 'web' => 'Web'];
+    $activeFilters = [];
+    if (!empty($aliasFilter)) {
+        $activeFilters[] = ['key' => 'alias', 'label' => 'Alias', 'value' => '/' . $aliasFilter, 'icon' => 'fa-link', 'clearUrl' => $buildUrl(['alias' => null])];
+    }
+    if (!empty($sourceFilter)) {
+        $activeFilters[] = ['key' => 'source', 'label' => 'Source', 'value' => $sourceLabels[$sourceFilter] ?? $sourceFilter, 'icon' => 'fa-mobile-screen', 'clearUrl' => $buildUrl(['source' => null])];
+    }
+    if (!empty($countryFilter)) {
+        $activeFilters[] = ['key' => 'country', 'label' => 'Country', 'value' => ($flag($countryFilter) . ' ' . ($countryNames[$countryFilter] ?? $countryFilter)), 'icon' => 'fa-globe', 'clearUrl' => $buildUrl(['country' => null])];
+    }
+    if (!empty($deviceFilter)) {
+        $activeFilters[] = ['key' => 'device', 'label' => 'Device', 'value' => ucfirst($deviceFilter), 'icon' => 'fa-display', 'clearUrl' => $buildUrl(['device' => null])];
+    }
+    $clearAllUrl = $buildUrl(['alias' => null, 'source' => null, 'country' => null, 'device' => null]);
+@endphp
+
+@if(!empty($activeFilters))
+{{-- ===================== ACTIVE FILTERS SUMMARY ===================== --}}
+<div class="glass rounded-2xl px-4 py-3 mb-3 flex flex-wrap items-center gap-2">
+    <span class="text-[10px] uppercase tracking-wider font-bold mr-1" style="color: var(--text-faint);">
+        <i class="fas fa-filter text-violet-400"></i> Active filters
+    </span>
+    @foreach($activeFilters as $f)
+        <a href="{{ $f['clearUrl'] }}"
+           class="pill pill-active-soft inline-flex items-center gap-1.5"
+           title="Remove {{ $f['label'] }} filter">
+            <i class="fas {{ $f['icon'] }} text-[9px] opacity-70"></i>
+            <span class="opacity-70">{{ $f['label'] }}:</span>
+            <span class="font-bold">{{ $f['value'] }}</span>
+            <i class="fas fa-times text-[9px] ml-0.5 opacity-80"></i>
+        </a>
+    @endforeach
+    <a href="{{ $clearAllUrl }}" class="pill ml-auto inline-flex items-center gap-1.5" style="color: var(--text-muted);" title="Clear all filters">
+        <i class="fas fa-xmark text-[10px]"></i> Clear all
+    </a>
+</div>
+@endif
+
 @if(count($availableAliases ?? []) > 1)
 {{-- ===================== ALIAS FILTER ===================== --}}
 <div class="glass rounded-2xl px-4 py-3 mb-3 flex flex-wrap items-center gap-2">
