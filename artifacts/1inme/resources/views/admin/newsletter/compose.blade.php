@@ -102,6 +102,7 @@
                         <th class="py-2 pr-3">Finished</th>
                         <th class="py-2 pr-3">Status</th>
                         <th class="py-2 pr-3">Delivered</th>
+                        <th class="py-2 pr-3">Unsubscribed</th>
                         <th class="py-2 pr-3">Sent by</th>
                     </tr>
                 </thead>
@@ -132,10 +133,17 @@
                                     <span class="text-red-300 ml-1">({{ number_format($issue->failed_count) }} failed)</span>
                                 @endif
                             </td>
+                            <td class="py-2 pr-3 text-xs">
+                                @if(($issue->unsubscribed_count ?? 0) > 0)
+                                    <span class="text-amber-200">{{ number_format($issue->unsubscribed_count) }}</span>
+                                @else
+                                    <span class="text-white/40">0</span>
+                                @endif
+                            </td>
                             <td class="py-2 pr-3 text-xs text-white/60">{{ $issue->sender_email ?: '—' }}</td>
                         </tr>
                     @empty
-                        <tr><td colspan="6" class="py-6 text-center text-white/40 text-sm">No issues sent yet.</td></tr>
+                        <tr><td colspan="7" class="py-6 text-center text-white/40 text-sm">No issues sent yet.</td></tr>
                     @endforelse
                 </tbody>
             </table>

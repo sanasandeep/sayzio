@@ -13,6 +13,7 @@ class NewsletterIssue extends Model
         'recipients_count',
         'sent_count',
         'failed_count',
+        'unsubscribed_count',
         'sender_id',
         'sender_email',
         'sent_at',

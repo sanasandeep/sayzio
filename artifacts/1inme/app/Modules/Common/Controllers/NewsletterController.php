@@ -3,6 +3,7 @@
 namespace App\Modules\Common\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Common\Models\NewsletterIssue;
 use App\Modules\Common\Models\NewsletterSubscriber;
 use App\Modules\Common\Services\NewsletterWelcomeMail;
 use Illuminate\Http\Request;
@@ -83,6 +84,15 @@ class NewsletterController extends Controller
         if (! $subscriber->unsubscribed_at) {
             $subscriber->unsubscribed_at = now();
             $subscriber->save();
+
+            // Attribute this opt-out to the issue that carried the link, so
+            // admins can see which issues drive churn. We only count it on
+            // the first valid click (not on idempotent re-clicks) and we
+            // ignore unknown/missing issue ids defensively.
+            $issueId = (int) $request->query('issue', 0);
+            if ($issueId > 0) {
+                NewsletterIssue::where('id', $issueId)->increment('unsubscribed_count');
+            }
         }
 
         if ($request->isMethod('post')) {

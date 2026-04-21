@@ -127,7 +127,7 @@ class SendNewsletterIssueJob implements ShouldQueue
     {
         $url = URL::signedRoute(
             'site.newsletter.unsubscribe',
-            ['subscriber' => $sub->id]
+            ['subscriber' => $sub->id, 'issue' => $this->issueId]
         );
 
         $footer = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
