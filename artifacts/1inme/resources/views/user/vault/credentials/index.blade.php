@@ -44,7 +44,17 @@
                             <span class="ml-1 px-2 py-0.5 text-[10px] rounded-full bg-white/5">{{ $t }}</span>
                         @endforeach
                     </td>
-                    <td class="px-4 py-3">{{ $c->username }}</td>
+                    <td class="px-4 py-3">
+                        <span x-data="{ copied: false }" class="inline-flex items-center gap-2">
+                            <span class="font-mono text-xs">{{ $c->username }}</span>
+                            @if($c->username)
+                                <button type="button" @click="vaultCopy('{{ addslashes($c->username) }}'); copied = true; setTimeout(()=>copied=false, 1500)" class="text-gray-500 hover:text-amber-300 text-xs" title="Copy username (auto-clears in 30s)">
+                                    <i class="fas fa-copy" x-show="!copied"></i>
+                                    <i class="fas fa-check text-emerald-400" x-show="copied"></i>
+                                </button>
+                            @endif
+                        </span>
+                    </td>
                     <td class="px-4 py-3 truncate max-w-[260px]">
                         @if($c->url)<a href="{{ $c->url }}" target="_blank" rel="noopener" class="text-blue-400 hover:underline">{{ $c->url }}</a>@endif
                     </td>
@@ -57,7 +67,16 @@
                     </td>
                     <td class="px-4 py-3 text-gray-400 text-xs">{{ $c->updated_at?->diffForHumans() }}</td>
                     <td class="px-4 py-3 text-right">
-                        <a href="{{ route('user.vault.credentials.show', $c) }}" class="text-gray-400 hover:text-white"><i class="fas fa-eye"></i></a>
+                        <span x-data="vaultInlineReveal({{ $c->id }})" class="inline-flex items-center gap-3">
+                            <span x-show="shown" class="font-mono text-xs text-amber-200" x-text="value"></span>
+                            <button type="button" @click="reveal()" class="text-gray-400 hover:text-amber-300 text-xs" :title="shown ? 'Hide' : 'Reveal password (logged)'">
+                                <i :class="shown ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+                            </button>
+                            <button type="button" x-show="shown" @click="vaultCopy(value)" class="text-gray-400 hover:text-amber-300 text-xs" title="Copy password (auto-clears in 30s)">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                            <a href="{{ route('user.vault.credentials.show', $c) }}" class="text-gray-400 hover:text-white text-xs"><i class="fas fa-arrow-right"></i></a>
+                        </span>
                     </td>
                 </tr>
             @empty
@@ -82,4 +101,33 @@
         </div>
     </div>
 @endif
+
+<script>
+function vaultCopy(text) {
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+        // Best-effort clipboard wipe after 30s — overwriting only succeeds
+        // while the page has focus, but matches the credential reveal SLA.
+        setTimeout(() => { navigator.clipboard.writeText('').catch(() => {}); }, 30000);
+    }).catch(() => {});
+}
+function vaultInlineReveal(id) {
+    return {
+        shown: false, value: '', clearTimer: null,
+        async reveal() {
+            if (this.shown) { this.shown = false; this.value = ''; if (this.clearTimer) clearTimeout(this.clearTimer); return; }
+            if (!window.confirm('Reveal this password? This action is logged in the workspace audit trail.')) return;
+            const r = await fetch(`/user/vault/credentials/${id}/reveal`, {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content, 'Accept': 'application/json' },
+            });
+            if (!r.ok) return;
+            const data = await r.json();
+            this.value = data.password ?? '';
+            this.shown = true;
+            this.clearTimer = setTimeout(() => { this.shown = false; this.value = ''; }, 30000);
+        },
+    };
+}
+</script>
 @endsection

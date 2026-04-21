@@ -39,7 +39,7 @@
             <div class="rounded-lg p-3 bg-white/5">
                 <dt class="text-xs uppercase text-gray-400 flex items-center justify-between">
                     <span>Username</span>
-                    <button type="button" onclick="navigator.clipboard.writeText(this.dataset.v)" data-v="{{ $item->username }}" class="text-xs text-gray-400 hover:text-white"><i class="fas fa-copy"></i></button>
+                    <button type="button" onclick="vaultCopyClear(this.dataset.v)" data-v="{{ $item->username }}" class="text-xs text-gray-400 hover:text-white" title="Copy (auto-clears in 30s)"><i class="fas fa-copy"></i></button>
                 </dt>
                 <dd class="mt-1 font-mono text-sm">{{ $item->username }}</dd>
             </div>
@@ -106,9 +106,15 @@ function vaultCredentialView(id) {
             this.clearTimer = setTimeout(() => { this.shown = false; this.value = ''; }, 30000);
         },
         async copy() {
-            await navigator.clipboard.writeText(this.value);
+            await vaultCopyClear(this.value);
         }
     }
+}
+function vaultCopyClear(text) {
+    if (!text) return Promise.resolve();
+    return navigator.clipboard.writeText(text).then(() => {
+        setTimeout(() => { navigator.clipboard.writeText('').catch(() => {}); }, 30000);
+    }).catch(() => {});
 }
 </script>
 @endsection
