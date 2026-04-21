@@ -141,8 +141,20 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::prefix('profile')->name('profile.')->middleware('workspace.can:settings.view')->group(function () {
             Route::get('/', [ProfileController::class, 'edit'])->name('edit');
             Route::put('/', [ProfileController::class, 'update'])->name('update');
-            Route::post('/digest/sample', [ProfileController::class, 'sendSample'])->name('digest.sample');
-            Route::get('/digest/preview', [ProfileController::class, 'digestPreview'])->name('digest.preview');
+            // Follower-digest preview & sample are gated under the dedicated
+            // `digests` feature (Editor preset gets digests.view by design)
+            // rather than the broader `settings` feature, so editors can
+            // QA the digest without unlocking billing/integrations. We
+            // strip the parent `settings.view` middleware and re-apply the
+            // matching digests permission.
+            Route::post('/digest/sample', [ProfileController::class, 'sendSample'])
+                ->withoutMiddleware('workspace.can:settings.view')
+                ->middleware('workspace.can:digests.edit')
+                ->name('digest.sample');
+            Route::get('/digest/preview', [ProfileController::class, 'digestPreview'])
+                ->withoutMiddleware('workspace.can:settings.view')
+                ->middleware('workspace.can:digests.view')
+                ->name('digest.preview');
         });
 
         Route::get('invoices/{invoice}/pdf', [\App\Modules\User\Controllers\InvoiceController::class, 'pdf'])->middleware('workspace.can:settings.view')->name('invoices.pdf');

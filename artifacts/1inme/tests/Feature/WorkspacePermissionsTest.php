@@ -503,6 +503,53 @@ class WorkspacePermissionsTest extends TestCase
             'Public subscriber write should inherit workspace_id from parent link.');
     }
 
+    public function test_digest_preview_uses_digests_feature_not_settings(): void
+    {
+        // Editor preset has digests.view but NOT settings.view, so the
+        // follower-digest preview must still load (proving the route is
+        // gated under the dedicated digests feature, not settings).
+        $owner  = $this->makeUser();
+        $ws     = $owner->ownedWorkspaces()->first();
+        $member = $this->makeUser();
+        WorkspaceMember::create([
+            'workspace_id' => $ws->id,
+            'user_id'      => $member->id,
+            'role'         => 'editor',
+            'permissions'  => WorkspacePermissions::preset('editor'),
+        ]);
+
+        $this->actingAs($member);
+        $this->withSession([WorkspaceContext::SESSION_KEY => $ws->id]);
+
+        // Editor (digests.view present) — allowed.
+        $resp = $this->get('/user/profile/digest/preview');
+        $this->assertNotEquals(403, $resp->status());
+
+        // Editor lacks digests.edit — sending a sample must 403.
+        $this->post('/user/profile/digest/sample')->assertForbidden();
+    }
+
+    public function test_digest_routes_block_member_without_digests_view(): void
+    {
+        // Replier preset has neither digests.view nor settings.view —
+        // both digest routes must 403.
+        $owner  = $this->makeUser();
+        $ws     = $owner->ownedWorkspaces()->first();
+        $member = $this->makeUser();
+        WorkspaceMember::create([
+            'workspace_id' => $ws->id,
+            'user_id'      => $member->id,
+            'role'         => 'replier',
+            'permissions'  => WorkspacePermissions::preset('replier'),
+        ]);
+
+        $this->actingAs($member);
+        $this->withSession([WorkspaceContext::SESSION_KEY => $ws->id]);
+
+        $this->get('/user/profile/digest/preview')->assertForbidden();
+        $this->post('/user/profile/digest/sample')->assertForbidden();
+    }
+
     public function test_permissions_presets_are_stable(): void
     {
         $editor = WorkspacePermissions::preset('editor');
