@@ -548,7 +548,14 @@
         $langValue = ($lf['flag'] ? $lf['flag'] . ' ' : '') . $lf['name'];
         $activeFilters[] = ['key' => 'language', 'label' => 'Language', 'value' => $langValue, 'icon' => 'fa-language', 'clearUrl' => $buildUrl(['language' => null]), 'title' => 'Remove Language filter (' . $languageFilter . ')'];
     }
-    $clearAllUrl = $buildUrl(['alias' => null, 'source' => null, 'country' => null, 'device' => null, 'language' => null]);
+    if (!empty($baseLanguageFilter)) {
+        $blf = $languageLabel($baseLanguageFilter);
+        // Show "(all variants)" so creators understand this rolls up regional
+        // locales (en-US + en-GB + en_CA → English) rather than matching one.
+        $blfValue = $blf['name'] . ' (all variants)';
+        $activeFilters[] = ['key' => 'lang_base', 'label' => 'Language', 'value' => $blfValue, 'icon' => 'fa-language', 'clearUrl' => $buildUrl(['lang_base' => null]), 'title' => 'Remove base-language filter (' . $baseLanguageFilter . ')'];
+    }
+    $clearAllUrl = $buildUrl(['alias' => null, 'source' => null, 'country' => null, 'device' => null, 'language' => null, 'lang_base' => null]);
 @endphp
 
 @if(!empty($activeFilters))
@@ -840,6 +847,10 @@
                 @php $lf = $languageLabel($languageFilter); @endphp
                 <a href="{{ $buildUrl(['language' => null]) }}" class="section-pill" title="Clear language filter ({{ $languageFilter }})"><i class="fas fa-times mr-1"></i>@if($lf['flag'])<span class="mr-1">{{ $lf['flag'] }}</span>@endif{{ $lf['name'] }}</a>
             @endif
+            @if(!empty($baseLanguageFilter))
+                @php $blf = $languageLabel($baseLanguageFilter); @endphp
+                <a href="{{ $buildUrl(['lang_base' => null]) }}" class="section-pill" title="Clear base-language filter ({{ $baseLanguageFilter }} — all variants)"><i class="fas fa-times mr-1"></i>{{ $blf['name'] }} (all variants)</a>
+            @endif
         </div>
     </div>
     @if($languageStats->isEmpty() || $languageTotal === 0)
@@ -876,13 +887,36 @@
                     if ($extra > 0) $tooltipParts[] = '+' . $extra . ' more';
                     $tooltip = $bl['name'] . ' · ' . $pct . '% of clicks · ' . implode(', ', $tooltipParts);
                 @endphp
-                <span class="pill" title="{{ $tooltip }}" style="cursor: default;">
-                    @if(!empty($flagList))<span class="mr-1">{{ implode(' ', $flagList) }}</span>@endif{{ $bl['name'] }}
-                    <span class="ml-1 opacity-60">({{ number_format($group['count']) }})</span>
-                    @if(count($group['locales']) > 1)
-                        <span class="ml-1 opacity-50 text-[10px]">{{ count($group['locales']) }} variants</span>
-                    @endif
-                </span>
+                @php
+                    // Only base codes that look like a real language tag are
+                    // accepted by the controller's filter (2- or 3-letter
+                    // lowercase). Anything else (e.g. an unparseable raw
+                    // locale string used as fallback) renders as a non-clickable
+                    // pill so we don't generate a filter URL the controller
+                    // would silently ignore.
+                    $baseFilterable = is_string($base) && preg_match('/^[a-z]{2,3}$/', strtolower($base));
+                    $baseLower = $baseFilterable ? strtolower($base) : null;
+                    $isActiveBase = $baseFilterable && ($baseLanguageFilter ?? '') === $baseLower;
+                @endphp
+                @if($baseFilterable)
+                    <a href="{{ $buildUrl(['lang_base' => $baseLower, 'language' => null]) }}"
+                       class="pill {{ $isActiveBase ? 'pill-active' : '' }}"
+                       title="{{ $tooltip }} · Click to filter by all {{ $bl['name'] }} variants">
+                        @if(!empty($flagList))<span class="mr-1">{{ implode(' ', $flagList) }}</span>@endif{{ $bl['name'] }}
+                        <span class="ml-1 opacity-60">({{ number_format($group['count']) }})</span>
+                        @if(count($group['locales']) > 1)
+                            <span class="ml-1 opacity-50 text-[10px]">{{ count($group['locales']) }} variants</span>
+                        @endif
+                    </a>
+                @else
+                    <span class="pill" title="{{ $tooltip }}" style="cursor: default;">
+                        @if(!empty($flagList))<span class="mr-1">{{ implode(' ', $flagList) }}</span>@endif{{ $bl['name'] }}
+                        <span class="ml-1 opacity-60">({{ number_format($group['count']) }})</span>
+                        @if(count($group['locales']) > 1)
+                            <span class="ml-1 opacity-50 text-[10px]">{{ count($group['locales']) }} variants</span>
+                        @endif
+                    </span>
+                @endif
             @endforeach
         </div>
     @else

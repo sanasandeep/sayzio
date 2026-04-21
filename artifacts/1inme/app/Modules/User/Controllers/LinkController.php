@@ -382,6 +382,24 @@ class LinkController extends Controller
         $osFilter       = $sanitizeUaFilter($request->query('os'));
         $languageFilter = $sanitizeUaFilter($request->query('language'));
 
+        // Optional base-language filter — narrow analytics to clicks whose
+        // browser locale shares this base language (e.g. "en" matches en-US,
+        // en-GB, en_CA, …). Lets users drill into the rolled-up "By language"
+        // pills in the Languages card. Stored locales are free-form strings
+        // (BCP-47 tags, sometimes with `_` separators), so we normalize at
+        // query time. Only valid 2- or 3-letter base codes are accepted.
+        $baseLanguageFilter = $sanitizeUaFilter($request->query('lang_base'));
+        if ($baseLanguageFilter !== null) {
+            $baseLanguageFilter = strtolower($baseLanguageFilter);
+            if (!preg_match('/^[a-z]{2,3}$/', $baseLanguageFilter)) {
+                $baseLanguageFilter = null;
+            }
+        }
+        $applyBaseLanguage = fn ($q) => $q->whereRaw(
+            "LOWER(SPLIT_PART(REPLACE(language, '_', '-'), '-', 1)) = ?",
+            [$baseLanguageFilter]
+        );
+
         $clicksQuery = $link->clicks()
             ->whereBetween('clicked_at', [$startDate, $endDate])
             ->when($aliasFilter, fn ($q) => $q->where('alias', $aliasFilter))
@@ -390,7 +408,8 @@ class LinkController extends Controller
             ->when($deviceFilter, fn ($q) => $q->where('device_type', $deviceFilter))
             ->when($browserFilter, fn ($q) => $q->where('browser', $browserFilter))
             ->when($osFilter, fn ($q) => $q->where('os', $osFilter))
-            ->when($languageFilter, fn ($q) => $q->where('language', $languageFilter));
+            ->when($languageFilter, fn ($q) => $q->where('language', $languageFilter))
+            ->when($baseLanguageFilter, $applyBaseLanguage);
 
         $totalInRange = (clone $clicksQuery)->count();
         $uniqueInRange = (clone $clicksQuery)->distinct('ip_address')->count('ip_address');
@@ -425,6 +444,7 @@ class LinkController extends Controller
             ->when($deviceFilter, fn ($q) => $q->where('device_type', $deviceFilter))
             ->when($osFilter, fn ($q) => $q->where('os', $osFilter))
             ->when($languageFilter, fn ($q) => $q->where('language', $languageFilter))
+            ->when($baseLanguageFilter, $applyBaseLanguage)
             ->selectRaw("browser, COUNT(*) as count")
             ->whereNotNull('browser')->groupBy('browser')->orderByDesc('count')->get();
 
@@ -438,6 +458,7 @@ class LinkController extends Controller
             ->when($deviceFilter, fn ($q) => $q->where('device_type', $deviceFilter))
             ->when($browserFilter, fn ($q) => $q->where('browser', $browserFilter))
             ->when($languageFilter, fn ($q) => $q->where('language', $languageFilter))
+            ->when($baseLanguageFilter, $applyBaseLanguage)
             ->selectRaw("os, COUNT(*) as count")
             ->whereNotNull('os')->groupBy('os')->orderByDesc('count')->get();
 
@@ -451,6 +472,7 @@ class LinkController extends Controller
             ->when($browserFilter, fn ($q) => $q->where('browser', $browserFilter))
             ->when($osFilter, fn ($q) => $q->where('os', $osFilter))
             ->when($languageFilter, fn ($q) => $q->where('language', $languageFilter))
+            ->when($baseLanguageFilter, $applyBaseLanguage)
             ->selectRaw("country_code, COUNT(*) as count")
             ->whereNotNull('country_code')->groupBy('country_code')
             ->orderByDesc('count')->limit(20)->get();
@@ -470,6 +492,7 @@ class LinkController extends Controller
             ->when($browserFilter, fn ($q) => $q->where('browser', $browserFilter))
             ->when($osFilter, fn ($q) => $q->where('os', $osFilter))
             ->when($languageFilter, fn ($q) => $q->where('language', $languageFilter))
+            ->when($baseLanguageFilter, $applyBaseLanguage)
             ->selectRaw("device_type, COUNT(*) as count")
             ->whereNotNull('device_type')->groupBy('device_type')->orderByDesc('count')->get();
 
@@ -485,6 +508,7 @@ class LinkController extends Controller
             ->when($browserFilter, fn ($q) => $q->where('browser', $browserFilter))
             ->when($osFilter, fn ($q) => $q->where('os', $osFilter))
             ->when($languageFilter, fn ($q) => $q->where('language', $languageFilter))
+            ->when($baseLanguageFilter, $applyBaseLanguage)
             ->selectRaw("COALESCE(source, 'unknown') as source, COUNT(*) as count")
             ->groupBy('source')->orderByDesc('count')->get();
 
@@ -524,7 +548,8 @@ class LinkController extends Controller
             ->when($deviceFilter, fn ($q) => $q->where('device_type', $deviceFilter))
             ->when($browserFilter, fn ($q) => $q->where('browser', $browserFilter))
             ->when($osFilter, fn ($q) => $q->where('os', $osFilter))
-            ->when($languageFilter, fn ($q) => $q->where('language', $languageFilter));
+            ->when($languageFilter, fn ($q) => $q->where('language', $languageFilter))
+            ->when($baseLanguageFilter, $applyBaseLanguage);
 
         $totalInRangePrev         = (clone $prevClicksQuery)->count();
         $blockClicksInRangePrev   = (clone $prevClicksQuery)->whereNotNull('block_id')->count();
@@ -784,7 +809,7 @@ class LinkController extends Controller
             'uniqueBlockClicksInRange', 'uniqueBlockClicksPrev',
             'aliasBreakdown', 'aliasFilter', 'availableAliases', 'sourceFilter',
             'countryFilter', 'deviceFilter',
-            'browserFilter', 'osFilter', 'languageFilter',
+            'browserFilter', 'osFilter', 'languageFilter', 'baseLanguageFilter',
             'performance', 'performanceHistory'
         ));
     }
