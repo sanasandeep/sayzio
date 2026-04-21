@@ -40,7 +40,10 @@ return new class extends Migration
             $table->timestamp('last_synced_at')->nullable();
             $table->timestamps();
 
-            $table->index(['workspace_id', 'user_id', 'provider']);
+            // A given user can only hold one connection per provider in a
+            // workspace; the unique key enforces this in the DB so concurrent
+            // OAuth callbacks can't race in duplicates.
+            $table->unique(['workspace_id', 'user_id', 'provider']);
         });
 
         Schema::create('cloud_files', function (Blueprint $table) {

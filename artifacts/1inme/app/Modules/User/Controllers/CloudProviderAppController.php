@@ -78,24 +78,49 @@ class CloudProviderAppController extends Controller
         ];
         $redirect = $row->redirect_uri ?: url('/user/cloud-oauth/' . $provider . '/callback');
 
-        $r = Http::asForm()->post($endpoints[$provider], [
-            'grant_type'    => 'authorization_code',
-            'code'          => '__1inme_credential_probe__',
-            'client_id'     => $row->client_id,
-            'client_secret' => (string) $row->client_secret_encrypted,
-            'redirect_uri'  => $redirect,
-        ]);
+        try {
+            $r = Http::asForm()->timeout(8)->post($endpoints[$provider], [
+                'grant_type'    => 'authorization_code',
+                'code'          => '__1inme_credential_probe__',
+                'client_id'     => $row->client_id,
+                'client_secret' => (string) $row->client_secret_encrypted,
+                'redirect_uri'  => $redirect,
+            ]);
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            return response()->json([
+                'ok'      => null,
+                'message' => 'Could not reach ' . $row->label() . ' to test (network or DNS error). Try again.',
+            ], 200);
+        }
 
         $err = $r->json('error');
-        // Anything other than invalid_client/unauthorized_client means the
-        // provider got past credential validation and choked on the dummy
-        // code — exactly what we want to confirm.
-        $clientCredsBad = in_array($err, ['invalid_client', 'unauthorized_client'], true);
-        if ($clientCredsBad) {
+
+        // 5xx or unparseable response → inconclusive, not a credential verdict.
+        if ($r->status() >= 500 || ($err === null && !$r->ok())) {
+            return response()->json([
+                'ok'      => null,
+                'message' => 'Provider returned an unexpected response (HTTP ' . $r->status() . '). Try again later.',
+            ], 200);
+        }
+
+        // The OAuth providers reject invalid_client BEFORE evaluating the
+        // code, so any other error code means the credentials were accepted.
+        if (in_array($err, ['invalid_client', 'unauthorized_client'], true)) {
             return response()->json([
                 'ok'      => false,
                 'message' => 'Provider rejected the client ID/secret (' . $err . ').',
             ]);
+        }
+
+        // Only declare success when the provider returned a recognized
+        // credential-good signal: invalid_grant / invalid_request on the
+        // dummy code, or (unexpectedly) a 2xx with no error.
+        $credentialAccepted = in_array($err, ['invalid_grant', 'invalid_request'], true) || ($r->ok() && $err === null);
+        if (!$credentialAccepted) {
+            return response()->json([
+                'ok'      => null,
+                'message' => 'Could not interpret provider response (error="' . ($err ?: 'none') . '"). Try connecting to confirm.',
+            ], 200);
         }
 
         return response()->json([
