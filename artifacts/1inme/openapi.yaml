@@ -20,8 +20,11 @@ info:
     1. **Email/SMS OTP** — `POST /auth/otp/send` then `POST /auth/otp/verify`
        to receive a Sanctum token.
     2. **Native social** — handle the auth dance via the platform SDK
-       (Apple, Google, Facebook, etc.) then `POST /auth/social` with the
-       resolved `external_id` to receive a Sanctum token.
+       (Apple, Google, Facebook) then `POST /auth/social` with the
+       provider-issued **signed credential** (`id_token` for
+       Apple/Google, `access_token` for Facebook). The server verifies
+       the credential against the provider before issuing a Sanctum
+       token; client-supplied `external_id` is no longer trusted.
     3. **Email + password** — `POST /auth/login` for compatibility with the
        web account password (where set).
     4. **Demo** — `POST /auth/demo` returns a token for the shared demo
@@ -488,6 +491,24 @@ paths:
                       meta:  { $ref: '#/components/schemas/PaginationMeta' }
     post:
       summary: Create a link or biolink
+      description: |
+        Single endpoint for every link type. The `type` discriminator
+        selects what `long_url` / `payload` / `settings` mean:
+
+        | type      | long_url           | settings (selected keys) |
+        |-----------|--------------------|--------------------------|
+        | short     | required, target URL | tracking, expiry, password |
+        | biolink   | optional fallback  | appearance{ theme, font, button_style, bg, accent }, layout{ stack, columns, sections }, seo |
+        | file/pdf  | optional CDN URL   | file{ name, size, mime, storage_disk } |
+        | vcard     | optional v-card URL| vcard{ name, phone, email, org, title, avatar } |
+        | event     | optional ICS URL   | event{ start, end, tz, location, rsvp } |
+        | qr / wifi | n/a                | qr/wifi config payload   |
+        | social    | optional profile   | social{ platform, handle } |
+        | sms       | n/a                | sms{ to, body }          |
+
+        The full surface — appearance, layout, settings, blocks — lives
+        under this `/links` resource and the `/links/{id}/blocks`
+        sub-resource. There is no separate per-type endpoint.
       requestBody:
         required: true
         content:
@@ -505,6 +526,17 @@ paths:
                 seo_title:       { type: string, nullable: true }
                 seo_description: { type: string, nullable: true }
                 expires_at:      { type: string, nullable: true, format: date-time }
+                settings:
+                  type: object
+                  additionalProperties: true
+                  description: |
+                    Type-specific configuration bag. Common sub-keys:
+                    `appearance` (theme/colors/font/button style),
+                    `layout` (block ordering/columns/section grouping),
+                    `file` / `vcard` / `event` / `qr` / `wifi` / `sms`
+                    payloads matching the discriminator above,
+                    `tracking`, `password`, `country_blocklist`,
+                    `expiry_url`, `seo`.
       responses:
         '201': { description: created }
 
@@ -517,7 +549,7 @@ paths:
         '200': { description: ok }
         '404': { description: not found }
     patch:
-      summary: Update a link
+      summary: Update a link (incl. appearance / layout / type-specific settings)
       requestBody:
         content:
           application/json:
@@ -532,6 +564,13 @@ paths:
                 seo_title:       { type: string, nullable: true }
                 seo_description: { type: string, nullable: true }
                 expires_at:      { type: string, nullable: true, format: date-time }
+                settings:
+                  type: object
+                  additionalProperties: true
+                  description: |
+                    Same shape as `POST /links`. PATCHing `settings`
+                    deep-merges the supplied keys; pass `null` for a
+                    sub-key to clear it.
       responses:
         '200': { description: ok }
     delete:
