@@ -27,6 +27,13 @@
               landing: @json($landingForJs),
               features: @json($featuresForJs),
               why: @json($whyForJs),
+              trustDefaults: @json($defaultsTrust),
+              testDefaults: @json($defaultsTest),
+              whyDefaults: @json($defaultsWhy),
+              resetTo(key, defaults) {
+                  if (!confirm("Reset this section to the shipped defaults? Your current rows will be replaced. You still need to click Save to keep the change.")) return;
+                  this[key] = JSON.parse(JSON.stringify(defaults));
+              },
           }'
           class="space-y-6">
         @csrf
@@ -69,10 +76,16 @@
                     <h2 class="text-lg font-semibold text-white">Hero trust strip</h2>
                     <p class="text-xs text-white/50">Shown under the landing-page hero. Up to 6 items.</p>
                 </div>
-                <button type="button" @click="if(trust.length<6) trust.push({value:'',label:'',icon:'fa-circle-check'})"
-                        class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 rounded-lg text-white">
-                    <i class="fas fa-plus mr-1"></i> Add metric
-                </button>
+                <div class="flex items-center gap-2">
+                    <button type="button" @click="resetTo('trust', trustDefaults)"
+                            class="text-xs px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/10 rounded-lg text-white/80">
+                        <i class="fas fa-rotate-left mr-1"></i> Reset to defaults
+                    </button>
+                    <button type="button" @click="if(trust.length<6) trust.push({value:'',label:'',icon:'fa-circle-check'})"
+                            class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 rounded-lg text-white">
+                        <i class="fas fa-plus mr-1"></i> Add metric
+                    </button>
+                </div>
             </div>
             <template x-for="(t,i) in trust" :key="i">
                 <div class="bg-white/5 border border-white/10 rounded-xl p-3 grid sm:grid-cols-[1fr_2fr_1fr_auto] gap-2 items-center">
@@ -95,10 +108,16 @@
                     <h2 class="text-lg font-semibold text-white">Why 1INME comparison</h2>
                     <p class="text-xs text-white/50">Rows in the comparison table on the landing page (just before pricing). Up to 12 rows. If the "1INME" column is left as <span class="font-mono">Yes</span> it renders as the green check pill; any other text is shown verbatim.</p>
                 </div>
-                <button type="button" @click="if(why.length<12) why.push({feature:'',ours:'Yes',theirs:''})"
-                        class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 rounded-lg text-white">
-                    <i class="fas fa-plus mr-1"></i> Add row
-                </button>
+                <div class="flex items-center gap-2">
+                    <button type="button" @click="resetTo('why', whyDefaults)"
+                            class="text-xs px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/10 rounded-lg text-white/80">
+                        <i class="fas fa-rotate-left mr-1"></i> Reset to defaults
+                    </button>
+                    <button type="button" @click="if(why.length<12) why.push({feature:'',ours:'Yes',theirs:''})"
+                            class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 rounded-lg text-white">
+                        <i class="fas fa-plus mr-1"></i> Add row
+                    </button>
+                </div>
             </div>
             <div class="hidden sm:grid grid-cols-[2fr_1fr_1fr_auto] gap-2 px-1 text-[11px] font-bold uppercase tracking-wider text-white/40">
                 <div>Feature</div>

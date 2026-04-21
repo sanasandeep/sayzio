@@ -2,17 +2,25 @@
     Re-usable testimonial repeater. Inputs:
       $fieldName (e.g. 'landing_testimonials'), $modelKey (e.g. 'landing'),
       $title, $helper
+      $defaultsKey (Alpine var name holding the defaults, e.g. 'testDefaults')
 --}}
+@php($defaultsKey = $defaultsKey ?? 'testDefaults')
 <div class="glass rounded-2xl p-6 space-y-3">
     <div class="flex items-center justify-between">
         <div>
             <h2 class="text-lg font-semibold text-white">{{ $title }}</h2>
             <p class="text-xs text-white/50">{{ $helper }}</p>
         </div>
-        <button type="button" @click="if({{ $modelKey }}.length<24) {{ $modelKey }}.push({quote:'',name:'',role:'',photo:''})"
-                class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 rounded-lg text-white">
-            <i class="fas fa-plus mr-1"></i> Add testimonial
-        </button>
+        <div class="flex items-center gap-2">
+            <button type="button" @click="resetTo('{{ $modelKey }}', {{ $defaultsKey }})"
+                    class="text-xs px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/10 rounded-lg text-white/80">
+                <i class="fas fa-rotate-left mr-1"></i> Reset to defaults
+            </button>
+            <button type="button" @click="if({{ $modelKey }}.length<24) {{ $modelKey }}.push({quote:'',name:'',role:'',photo:''})"
+                    class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 rounded-lg text-white">
+                <i class="fas fa-plus mr-1"></i> Add testimonial
+            </button>
+        </div>
     </div>
     <template x-for="(t,i) in {{ $modelKey }}" :key="i">
         <div class="bg-white/5 border border-white/10 rounded-xl p-4 space-y-2">
