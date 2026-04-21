@@ -596,9 +596,25 @@
         @else<div style="height: 240px;"><canvas id="osChart"></canvas></div>@endif
     </div>
     <div class="section-card" style="--sc-accent: linear-gradient(90deg,#f59e0b,#fbbf24); --sc-glow: rgba(245,158,11,0.35); --sc-color: #fcd34d; --sc-border: rgba(245,158,11,0.3);">
-        <div class="section-head"><div class="section-title"><div class="section-icon"><i class="fas fa-mobile-alt"></i></div> Devices</div></div>
+        <div class="section-head">
+            <div class="section-title"><div class="section-icon"><i class="fas fa-mobile-alt"></i></div> Devices</div>
+            @if(!empty($deviceFilter))
+                <a href="{{ $buildUrl(['device' => null]) }}" class="section-pill" title="Clear device filter"><i class="fas fa-times mr-1"></i>{{ ucfirst($deviceFilter) }}</a>
+            @endif
+        </div>
         @if($deviceStats->isEmpty())<p class="text-sm text-center py-8" style="color: var(--text-faint);">No data</p>
-        @else<div style="height: 240px;"><canvas id="deviceChart"></canvas></div>@endif
+        @else
+            <div style="height: 220px;"><canvas id="deviceChart"></canvas></div>
+            <div class="flex flex-wrap items-center gap-2 mt-3">
+                <a href="{{ $buildUrl(['device' => null]) }}" class="pill {{ empty($deviceFilter) ? 'pill-active' : '' }}">All</a>
+                @foreach($deviceStats as $row)
+                    @continue(!in_array($row->device_type, ['mobile', 'desktop', 'tablet'], true))
+                    <a href="{{ $buildUrl(['device' => $row->device_type]) }}" class="pill {{ ($deviceFilter ?? '') === $row->device_type ? 'pill-active' : '' }}">
+                        {{ ucfirst($row->device_type) }} <span class="ml-1 opacity-60">({{ number_format($row->count) }})</span>
+                    </a>
+                @endforeach
+            </div>
+        @endif
     </div>
 </div>
 
@@ -735,7 +751,11 @@
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-7">
     <div class="section-card" style="--sc-accent: linear-gradient(90deg,#3b82f6,#a78bfa); --sc-glow: rgba(59,130,246,0.35); --sc-color: #c4b5fd; --sc-border: rgba(59,130,246,0.3);">
         <div class="section-head"><div class="section-title"><div class="section-icon"><i class="fas fa-flag"></i></div> Top Countries</div>
-            @if(!$countryStats->isEmpty())<span class="section-pill">{{ $countryStats->count() }} regions</span>@endif
+            @if(!empty($countryFilter))
+                <a href="{{ $buildUrl(['country' => null]) }}" class="section-pill" title="Clear country filter"><i class="fas fa-times mr-1"></i>{{ $countryNames[$countryFilter] ?? $countryFilter }}</a>
+            @elseif(!$countryStats->isEmpty())
+                <span class="section-pill">{{ $countryStats->count() }} regions</span>
+            @endif
         </div>
         @if($countryStats->isEmpty())<p class="text-sm text-center py-8" style="color: var(--text-faint);">No data</p>
         @else
@@ -745,13 +765,19 @@
                 <tbody>
                 @php $totalC = $countryStats->sum('count') ?: 1; $maxC = $countryStats->max('count') ?: 1; @endphp
                 @foreach($countryStats as $i => $stat)
-                @php $pct = round(($stat->count / $totalC) * 100, 1); $w = round(($stat->count / $maxC) * 100, 1); @endphp
-                <tr>
+                @php
+                    $pct = round(($stat->count / $totalC) * 100, 1);
+                    $w = round(($stat->count / $maxC) * 100, 1);
+                    $isActiveCountry = ($countryFilter ?? '') === $stat->country_code;
+                    $rowHref = $buildUrl(['country' => $isActiveCountry ? null : $stat->country_code]);
+                @endphp
+                <tr onclick="window.location='{{ $rowHref }}'" style="cursor:pointer; {{ $isActiveCountry ? 'background: rgba(59,130,246,0.08);' : '' }}" title="{{ $isActiveCountry ? 'Click to clear filter' : 'Click to filter analytics by this country' }}">
                     <td style="width:38px;"><span class="rank-badge {{ $i<3 ? 'rank-'.($i+1) : '' }}">{{ $i+1 }}</span></td>
                     <td style="color: var(--text-primary);">
                         <span class="text-lg mr-2 align-middle">{{ $flag($stat->country_code) }}</span>
                         <span class="font-medium">{{ $countryNames[$stat->country_code] ?? $stat->country_code }}</span>
                         <span class="text-[10px] ml-1" style="color: var(--text-faint);">{{ $stat->country_code }}</span>
+                        @if($isActiveCountry)<i class="fas fa-filter text-[9px] ml-1 text-blue-400"></i>@endif
                     </td>
                     <td class="text-right font-bold" style="color: var(--text-primary);">{{ number_format($stat->count) }}</td>
                     <td class="bar-cell" style="width: 38%;">

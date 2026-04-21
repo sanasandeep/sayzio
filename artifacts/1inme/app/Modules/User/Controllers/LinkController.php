@@ -349,10 +349,29 @@ class LinkController extends Controller
             $sourceFilter = null;
         }
 
+        // Optional country filter — narrow analytics to clicks from a specific
+        // country code (ISO 3166-1 alpha-2). Kept un-applied to $countryStats
+        // below so the breakdown card always shows the full split.
+        $countryFilter = $request->query('country');
+        if (is_string($countryFilter) && preg_match('/^[A-Za-z]{2}$/', $countryFilter)) {
+            $countryFilter = strtoupper($countryFilter);
+        } else {
+            $countryFilter = null;
+        }
+
+        // Optional device filter — narrow analytics to a specific device type.
+        // Kept un-applied to $deviceStats below so users see the full split.
+        $deviceFilter = $request->query('device');
+        if (!in_array($deviceFilter, ['mobile', 'desktop', 'tablet'], true)) {
+            $deviceFilter = null;
+        }
+
         $clicksQuery = $link->clicks()
             ->whereBetween('clicked_at', [$startDate, $endDate])
             ->when($aliasFilter, fn ($q) => $q->where('alias', $aliasFilter))
-            ->when($sourceFilter, fn ($q) => $q->where('source', $sourceFilter));
+            ->when($sourceFilter, fn ($q) => $q->where('source', $sourceFilter))
+            ->when($countryFilter, fn ($q) => $q->where('country_code', $countryFilter))
+            ->when($deviceFilter, fn ($q) => $q->where('device_type', $deviceFilter));
 
         $totalInRange = (clone $clicksQuery)->count();
         $uniqueInRange = (clone $clicksQuery)->distinct('ip_address')->count('ip_address');
@@ -385,7 +404,13 @@ class LinkController extends Controller
             ->selectRaw("os, COUNT(*) as count")
             ->whereNotNull('os')->groupBy('os')->orderByDesc('count')->get();
 
-        $countryStats = (clone $clicksQuery)
+        // Intentionally NOT filtered by $countryFilter so users can always see
+        // the full country split (and switch between countries) on the card.
+        $countryStats = $link->clicks()
+            ->whereBetween('clicked_at', [$startDate, $endDate])
+            ->when($aliasFilter, fn ($q) => $q->where('alias', $aliasFilter))
+            ->when($sourceFilter, fn ($q) => $q->where('source', $sourceFilter))
+            ->when($deviceFilter, fn ($q) => $q->where('device_type', $deviceFilter))
             ->selectRaw("country_code, COUNT(*) as count")
             ->whereNotNull('country_code')->groupBy('country_code')
             ->orderByDesc('count')->limit(20)->get();
@@ -395,7 +420,13 @@ class LinkController extends Controller
             ->whereNotNull('city')->groupBy('city', 'country_code')
             ->orderByDesc('count')->limit(20)->get();
 
-        $deviceStats = (clone $clicksQuery)
+        // Intentionally NOT filtered by $deviceFilter so users can always see
+        // the full device split (and switch between devices) on the card.
+        $deviceStats = $link->clicks()
+            ->whereBetween('clicked_at', [$startDate, $endDate])
+            ->when($aliasFilter, fn ($q) => $q->where('alias', $aliasFilter))
+            ->when($sourceFilter, fn ($q) => $q->where('source', $sourceFilter))
+            ->when($countryFilter, fn ($q) => $q->where('country_code', $countryFilter))
             ->selectRaw("device_type, COUNT(*) as count")
             ->whereNotNull('device_type')->groupBy('device_type')->orderByDesc('count')->get();
 
@@ -406,6 +437,8 @@ class LinkController extends Controller
         $sourceStats = $link->clicks()
             ->whereBetween('clicked_at', [$startDate, $endDate])
             ->when($aliasFilter, fn ($q) => $q->where('alias', $aliasFilter))
+            ->when($countryFilter, fn ($q) => $q->where('country_code', $countryFilter))
+            ->when($deviceFilter, fn ($q) => $q->where('device_type', $deviceFilter))
             ->selectRaw("COALESCE(source, 'unknown') as source, COUNT(*) as count")
             ->groupBy('source')->orderByDesc('count')->get();
 
@@ -431,7 +464,9 @@ class LinkController extends Controller
             // Mirror the alias filter onto the previous-period query so vs-prev
             // deltas (KPI tiles, per-platform comparisons) are apples-to-apples.
             ->when($aliasFilter, fn ($q) => $q->where('alias', $aliasFilter))
-            ->when($sourceFilter, fn ($q) => $q->where('source', $sourceFilter));
+            ->when($sourceFilter, fn ($q) => $q->where('source', $sourceFilter))
+            ->when($countryFilter, fn ($q) => $q->where('country_code', $countryFilter))
+            ->when($deviceFilter, fn ($q) => $q->where('device_type', $deviceFilter));
 
         $totalInRangePrev         = (clone $prevClicksQuery)->count();
         $blockClicksInRangePrev   = (clone $prevClicksQuery)->whereNotNull('block_id')->count();
@@ -690,6 +725,7 @@ class LinkController extends Controller
             'totalInRangePrev',
             'uniqueBlockClicksInRange', 'uniqueBlockClicksPrev',
             'aliasBreakdown', 'aliasFilter', 'availableAliases', 'sourceFilter',
+            'countryFilter', 'deviceFilter',
             'performance', 'performanceHistory'
         ));
     }
