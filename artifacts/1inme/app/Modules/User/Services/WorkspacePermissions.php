@@ -89,6 +89,88 @@ class WorkspacePermissions
         return $user->canInWorkspace($ws, $permission);
     }
 
+    /** Friendly singular noun for each resource prefix used in permission slugs. */
+    protected static function featureLabels(): array
+    {
+        return [
+            'links'           => 'links',
+            'biolinks'        => 'bio links',
+            'posts'           => 'posts',
+            'forms'           => 'forms',
+            'subscribers'     => 'subscribers',
+            'contacts'        => 'contacts',
+            'qr'              => 'QR codes',
+            'qr-codes'        => 'QR codes',
+            'qrcodes'         => 'QR codes',
+            'projects'        => 'projects',
+            'pixels'          => 'tracking pixels',
+            'domains'         => 'custom domains',
+            'splash-pages'    => 'splash pages',
+            'splash_pages'    => 'splash pages',
+            'social-accounts' => 'social accounts',
+            'social_accounts' => 'social accounts',
+            'social-proofs'   => 'social proofs',
+            'integrations'    => 'integrations',
+            'inbox'           => 'the inbox',
+            'followers'       => 'followers',
+            'visitors'        => 'visitors',
+            'feed'            => 'the activity feed',
+            'files'           => 'files',
+            'identifiers'     => 'identifiers',
+            'invoices'        => 'invoices',
+            'dialer'          => 'the dialer',
+            'events'          => 'events',
+            'notifications'   => 'notifications',
+        ];
+    }
+
+    /** Friendly verb for each action used in permission slugs. */
+    protected static function actionLabels(): array
+    {
+        return [
+            'view'   => 'View',
+            'create' => 'Create',
+            'edit'   => 'Edit',
+            'delete' => 'Delete',
+            'reply'  => 'Reply to',
+        ];
+    }
+
+    /**
+     * Translate a permission slug like `posts.create` or `links.edit` into a
+     * human sentence like "Create posts" / "Edit links". A bare action like
+     * `edit` becomes "Edit content".
+     */
+    public static function permissionLabel(string $permission): string
+    {
+        $feature = null;
+        $action = $permission;
+        if (str_contains($permission, '.')) {
+            [$feature, $action] = explode('.', $permission, 2);
+        }
+        $verb = self::actionLabels()[$action] ?? ucfirst(str_replace(['_', '-'], ' ', $action));
+        if (!$feature) {
+            return $verb . ' content';
+        }
+        $noun = self::featureLabels()[$feature] ?? str_replace(['_', '-'], ' ', $feature);
+        return $verb . ' ' . $noun;
+    }
+
+    /**
+     * Lowest role that grants the given permission (so we can tell members
+     * "ask an Editor or Admin"). Returns null if no preset role grants it
+     * (in which case only the workspace owner / a super-admin can).
+     */
+    public static function lowestRoleFor(string $permission): ?string
+    {
+        foreach (self::ROLES as $role) {
+            if (self::roleCan($role, $permission)) {
+                return $role;
+            }
+        }
+        return null;
+    }
+
     /** True if the active user is the owner (or super-admin) of the active workspace. */
     public static function userIsOwner(): bool
     {

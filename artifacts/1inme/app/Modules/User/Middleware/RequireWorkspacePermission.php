@@ -3,6 +3,7 @@
 namespace App\Modules\User\Middleware;
 
 use App\Modules\User\Models\Workspace;
+use App\Modules\User\Services\WorkspacePermissions;
 use Closure;
 use Illuminate\Http\Request;
 
@@ -63,12 +64,35 @@ class RequireWorkspacePermission
             ], 403);
         }
 
+        $permissionLabels = array_map(
+            fn ($p) => WorkspacePermissions::permissionLabel($p),
+            $permissions
+        );
+
+        $grantorRoles = [];
+        foreach ($permissions as $perm) {
+            $lowest = WorkspacePermissions::lowestRoleFor($perm);
+            if ($lowest) {
+                $grantorRoles[] = self::roleLabel($lowest);
+            }
+        }
+        $grantorRoles = array_values(array_unique($grantorRoles));
+
+        // Only show the owner contact block when a teammate is missing a
+        // permission they could plausibly be granted. For "not a member" /
+        // "no workspace" denials we omit it to avoid leaking owner email
+        // to people who aren't part of the workspace.
+        $owner = ($workspace && $reason === 'missing_permission') ? $workspace->owner : null;
+
         return response()->view('user.errors.no-workspace-permission', [
-            'reason'      => $reason,
-            'workspace'   => $workspace,
-            'role'        => $role,
-            'roleLabel'   => $role ? self::roleLabel($role) : null,
-            'permissions' => $permissions,
+            'reason'           => $reason,
+            'workspace'        => $workspace,
+            'role'             => $role,
+            'roleLabel'        => $role ? self::roleLabel($role) : null,
+            'permissions'      => $permissions,
+            'permissionLabels' => $permissionLabels,
+            'grantorRoles'     => $grantorRoles,
+            'owner'            => $owner,
         ], 403);
     }
 

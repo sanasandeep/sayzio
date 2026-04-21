@@ -20,15 +20,47 @@
         <h1 class="text-xl font-bold mb-2" style="color: var(--text-primary);">You don't have access</h1>
         <p class="text-sm mb-5" style="color: var(--text-muted);">{{ $reasonText }}</p>
 
+        @if(!empty($permissionLabels ?? []))
+            <div class="rounded-lg p-4 mb-5 text-left"
+                 style="background: rgba(139,92,246,0.08);">
+                <p class="text-xs uppercase tracking-wide mb-2" style="color: var(--text-faint);">
+                    This page needs permission to
+                </p>
+                <ul class="text-sm font-medium space-y-1" style="color: var(--text-primary);">
+                    @foreach($permissionLabels as $label)
+                        <li><i class="fas fa-key text-xs mr-2" style="color:#7c3aed;"></i>{{ $label }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         @if($workspace)
             <div class="rounded-lg border p-4 mb-5 text-left"
                  style="border-color: var(--border-soft); background: var(--bg-subtle);">
                 <p class="text-xs uppercase tracking-wide mb-1" style="color: var(--text-faint);">Workspace</p>
                 <p class="text-sm font-semibold mb-3" style="color: var(--text-primary);">{{ $workspace->name }}</p>
                 <p class="text-xs uppercase tracking-wide mb-1" style="color: var(--text-faint);">Your role</p>
-                <p class="text-sm font-semibold" style="color: var(--text-primary);">
+                <p class="text-sm font-semibold @if(!empty($owner)) mb-3 @endif" style="color: var(--text-primary);">
                     {{ $roleLabel ?? 'Not a member' }}
                 </p>
+                @if(!empty($owner))
+                    <p class="text-xs uppercase tracking-wide mb-1" style="color: var(--text-faint);">Who can grant access</p>
+                    <p class="text-sm font-semibold" style="color: var(--text-primary);">
+                        {{ $owner->name }} <span class="font-normal" style="color: var(--text-muted);">(workspace owner)</span>
+                    </p>
+                    @if(!empty($owner->email))
+                        <a href="mailto:{{ $owner->email }}" class="text-xs hover:underline" style="color:#7c3aed;">
+                            <i class="fas fa-envelope mr-1"></i>{{ $owner->email }}
+                        </a>
+                    @endif
+                    @if(!empty($grantorRoles ?? []))
+                        <p class="text-xs mt-2" style="color: var(--text-muted);">
+                            This page needs at least the
+                            <span class="font-semibold" style="color: var(--text-primary);">{{ implode(' / ', $grantorRoles) }}</span>
+                            role — only the workspace owner can change your role.
+                        </p>
+                    @endif
+                @endif
             </div>
         @endif
 
