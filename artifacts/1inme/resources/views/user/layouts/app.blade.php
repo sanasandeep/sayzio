@@ -1049,6 +1049,7 @@
             </div>
 
             <main class="flex-1 p-5 lg:p-6 overflow-y-auto">
+                @include('user.partials.cloud-connections-banner')
                 @if(session('success'))
                     <div class="mb-4 p-3.5 rounded-xl text-emerald-400 text-xs font-medium flex items-center gap-2.5 shimmer" style="border: 1px solid rgba(16,185,129,0.15); background: rgba(16,185,129,0.06);">
                         <i class="fas fa-check-circle"></i>

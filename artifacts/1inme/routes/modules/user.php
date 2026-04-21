@@ -648,6 +648,7 @@ Route::prefix('user')->name('user.')->group(function () {
 
             Route::get('connections',                      [\App\Modules\User\Controllers\CloudConnectionController::class, 'index'])->name('connections');
             Route::delete('connections/{connection}',      [\App\Modules\User\Controllers\CloudConnectionController::class, 'destroy'])->name('connections.destroy');
+            Route::post('connections/{connection}/dismiss-banner', [\App\Modules\User\Controllers\CloudConnectionController::class, 'dismissBanner'])->name('connections.dismiss-banner');
 
             Route::get('picker/{connection}',              [\App\Modules\User\Controllers\CloudFilePickerController::class, 'browse'])->name('picker.browse');
 

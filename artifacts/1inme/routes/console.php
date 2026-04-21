@@ -96,3 +96,11 @@ Schedule::command('subscriptions:renew-due')
     ->hourly()
     ->withoutOverlapping()
     ->onOneServer();
+
+// Daily: refresh near-expiry tokens AND ping every cloud_connection so
+// connections whose OAuth was revoked / expired past refresh get flagged
+// (last_error populated, sidebar banner appears, owner emailed once).
+Schedule::command('cloud-connections:check')
+    ->dailyAt('04:15')
+    ->withoutOverlapping()
+    ->onOneServer();

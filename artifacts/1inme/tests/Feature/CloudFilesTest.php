@@ -11,6 +11,7 @@ use App\Modules\User\Services\WorkspaceContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -407,6 +408,137 @@ class CloudFilesTest extends TestCase
         $this->actingAs($owner)
             ->getJson('/user/cloud-files/picker/' . $conn->id . '?cursor=' . urlencode('https://graph.microsoft.com/v1.0/me/drive/root/children?$skiptoken=abc'))
             ->assertOk();
+    }
+
+    public function test_check_command_marks_failing_connection_broken_and_emails_owner_once(): void
+    {
+        // Mail::fake() swallows mail with a string view (Mail::send($view,
+        // …)) without recording it, so we can't use Mail::assertSentCount
+        // here. We assert via the cooldown timestamp the mailer writes after
+        // a successful send instead, which is the same signal the production
+        // dedup logic relies on.
+        Mail::fake();
+        $owner = $this->makeUser('o');
+        // Verified email — required by the broken-connection mailer.
+        $owner->forceFill(['email_verified_at' => now()])->save();
+        $ws = $this->bindWorkspace($owner);
+
+        CloudProviderApp::create([
+            'workspace_id'            => $ws->id,
+            'provider'                => 'google_drive',
+            'client_id'               => 'gid',
+            'client_secret_encrypted' => 'sec',
+            'enabled'                 => true,
+        ]);
+        $conn = CloudConnection::create([
+            'workspace_id'           => $ws->id,
+            'user_id'                => $owner->id,
+            'provider'               => 'google_drive',
+            'access_token_encrypted' => 'AT',
+            'expires_at'             => now()->addHour(),
+        ]);
+
+        // Provider rejects the listing call (revoked/expired token).
+        Http::fake([
+            'googleapis.com/drive/v3/files*' => Http::response(['error' => 'invalid_grant'], 401),
+        ]);
+
+        $this->artisan('cloud-connections:check')->assertExitCode(0);
+
+        $conn->refresh();
+        $this->assertNotNull($conn->last_error);
+        $this->assertNotNull($conn->last_error_at);
+        $this->assertNotNull($conn->last_checked_at);
+        $this->assertNotNull($conn->last_broken_email_sent_at);
+
+        // Second sweep with the same failure must NOT touch the cooldown
+        // timestamp again (transition guard catches it before the mailer).
+        $sentAt = $conn->last_broken_email_sent_at;
+        $this->artisan('cloud-connections:check')->assertExitCode(0);
+        $conn->refresh();
+        $this->assertEquals($sentAt->timestamp, $conn->last_broken_email_sent_at->timestamp);
+    }
+
+    public function test_check_command_clears_error_when_connection_recovers(): void
+    {
+        $owner = $this->makeUser('o');
+        $ws = $this->bindWorkspace($owner);
+
+        CloudProviderApp::create([
+            'workspace_id'            => $ws->id,
+            'provider'                => 'google_drive',
+            'client_id'               => 'gid',
+            'client_secret_encrypted' => 'sec',
+            'enabled'                 => true,
+        ]);
+        $conn = CloudConnection::create([
+            'workspace_id'           => $ws->id,
+            'user_id'                => $owner->id,
+            'provider'               => 'google_drive',
+            'access_token_encrypted' => 'AT',
+            'expires_at'             => now()->addHour(),
+            'last_error'             => 'previously broken',
+            'last_error_at'          => now()->subDay(),
+        ]);
+
+        Http::fake([
+            'googleapis.com/drive/v3/files*' => Http::response(['files' => []]),
+        ]);
+
+        $this->artisan('cloud-connections:check')->assertExitCode(0);
+
+        $conn->refresh();
+        $this->assertNull($conn->last_error);
+        $this->assertNull($conn->last_error_at);
+        $this->assertNotNull($conn->last_checked_at);
+        $this->assertNotNull($conn->last_synced_at);
+    }
+
+    public function test_dismiss_banner_hides_until_next_breakage(): void
+    {
+        $owner = $this->makeUser('o');
+        $ws = $this->bindWorkspace($owner);
+        $conn = CloudConnection::create([
+            'workspace_id'           => $ws->id,
+            'user_id'                => $owner->id,
+            'provider'               => 'google_drive',
+            'access_token_encrypted' => 'AT',
+            'last_error'             => 'token revoked',
+            'last_error_at'          => now()->subHour(),
+        ]);
+
+        $this->assertTrue($conn->fresh()->shouldShowBanner());
+
+        $this->actingAs($owner)
+            ->post(route('user.cloud-files.connections.dismiss-banner', $conn))
+            ->assertRedirect();
+
+        $this->assertNotNull($conn->fresh()->banner_dismissed_at);
+        $this->assertFalse($conn->fresh()->shouldShowBanner());
+
+        // A NEW failure (last_error_at advances) re-arms the banner so the
+        // user is alerted again rather than silently staying broken.
+        $conn->forceFill(['last_error_at' => now()->addMinute()])->save();
+        $this->assertTrue($conn->fresh()->shouldShowBanner());
+    }
+
+    public function test_dismiss_banner_blocks_other_users(): void
+    {
+        $alice = $this->makeUser('a');
+        $bob   = $this->makeUser('b');
+        $ws = $this->bindWorkspace($alice);
+        $conn = CloudConnection::create([
+            'workspace_id'           => $ws->id,
+            'user_id'                => $bob->id,
+            'provider'               => 'dropbox',
+            'access_token_encrypted' => 'AT',
+            'last_error'             => 'broke',
+            'last_error_at'          => now(),
+        ]);
+
+        $this->actingAs($alice)
+            ->post(route('user.cloud-files.connections.dismiss-banner', $conn))
+            ->assertForbidden();
     }
 
     public function test_settings_page_requires_owner(): void
