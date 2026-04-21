@@ -30,6 +30,17 @@ class WorkspacePermissionsTest extends TestCase
         return $user->fresh();
     }
 
+    /** Stamp a member with a role; the permissions blob is now informational only. */
+    private function memberOf(Workspace $ws, User $user, string $role): WorkspaceMember
+    {
+        return WorkspaceMember::create([
+            'workspace_id' => $ws->id,
+            'user_id'      => $user->id,
+            'role'         => $role,
+            'permissions'  => WorkspacePermissions::roleActions()[$role] ?? [],
+        ]);
+    }
+
     public function test_each_user_gets_a_default_workspace(): void
     {
         $user = $this->makeUser();
@@ -40,10 +51,8 @@ class WorkspacePermissionsTest extends TestCase
     public function test_plan_max_workspaces_enforced(): void
     {
         $user = $this->makeUser();
-        // Default plan (free) typically caps at 1.
         $this->actingAs($user);
         $resp = $this->post('/user/workspaces', ['name' => 'Second WS']);
-        // Should fail (limit reached) and redirect back with an error flash.
         $resp->assertRedirect();
         $this->assertEquals(1, $user->ownedWorkspaces()->count());
     }
@@ -53,7 +62,6 @@ class WorkspacePermissionsTest extends TestCase
         $owner = $this->makeUser(['email' => 'owner@example.com']);
         $ws = $owner->ownedWorkspaces()->first();
 
-        // Bump owner's plan so seats are allowed (free defaults to 1 seat).
         $plan = Plan::firstOrCreate(
             ['slug' => 'test-team'],
             ['name' => 'Test Team', 'price' => 0, 'currency' => 'USD', 'is_active' => true,
@@ -82,7 +90,6 @@ class WorkspacePermissionsTest extends TestCase
             'role'         => 'editor',
         ]);
 
-        // New user signs up and accepts.
         $invite = WorkspaceInvite::where('email', 'invitee@example.com')->first();
         $member = $this->makeUser(['email' => 'invitee@example.com']);
 
@@ -97,44 +104,105 @@ class WorkspacePermissionsTest extends TestCase
         ]);
     }
 
-    public function test_permission_gate_blocks_member_without_permission(): void
+    public function test_invite_rejects_legacy_custom_role(): void
     {
-        $owner  = $this->makeUser();
-        $ws     = $owner->ownedWorkspaces()->first();
-        $member = $this->makeUser();
+        // The old per-feature checkbox 'custom' role is gone — validation
+        // must reject it now that the role drives all gating.
+        $owner = $this->makeUser();
+        $ws = $owner->ownedWorkspaces()->first();
+        $plan = Plan::firstOrCreate(['slug' => 'test-team'],
+            ['name' => 'Test Team', 'price' => 0, 'currency' => 'USD', 'is_active' => true,
+             'features' => ['max_workspaces' => 5, 'max_seats_per_workspace' => 10]]);
+        $owner->plan_id = $plan->id; $owner->save();
 
-        // Add as analyst (stats.view only).
-        WorkspaceMember::create([
-            'workspace_id' => $ws->id,
-            'user_id'      => $member->id,
-            'role'         => 'analyst',
-            'permissions'  => WorkspacePermissions::preset('analyst'),
-        ]);
-
-        $this->actingAs($member);
+        $this->actingAs($owner);
         $this->withSession([WorkspaceContext::SESSION_KEY => $ws->id]);
 
-        // posts.view is not in analyst preset → 403
-        $this->get('/user/posts')->assertForbidden();
+        $resp = $this->post('/user/team/invite', [
+            'email' => 'foo@example.com',
+            'role'  => 'custom',
+        ]);
+        $resp->assertSessionHasErrors('role');
     }
 
-    public function test_permission_gate_allows_member_with_permission(): void
+    public function test_role_grants_apply_uniformly_across_workspace_resources(): void
     {
+        // The whole point of the new model: a member's role gives the
+        // SAME action set on every resource in the workspace. An editor
+        // can create/edit links, posts, forms, subscribers, etc., but
+        // never delete (delete is admin-only).
+        foreach (['links', 'posts', 'inbox', 'subscribers', 'forms', 'qr', 'projects'] as $f) {
+            $this->assertTrue(WorkspacePermissions::roleCan('editor', $f . '.view'));
+            $this->assertTrue(WorkspacePermissions::roleCan('editor', $f . '.create'));
+            $this->assertTrue(WorkspacePermissions::roleCan('editor', $f . '.edit'));
+            $this->assertFalse(WorkspacePermissions::roleCan('editor', $f . '.delete'),
+                "editor must not have delete on {$f}");
+            $this->assertTrue(WorkspacePermissions::roleCan('admin', $f . '.delete'),
+                "admin must have delete on {$f}");
+            $this->assertTrue(WorkspacePermissions::roleCan('viewer', $f . '.view'),
+                "viewer must have view on {$f}");
+            $this->assertFalse(WorkspacePermissions::roleCan('viewer', $f . '.edit'),
+                "viewer must not have edit on {$f}");
+        }
+    }
+
+    public function test_legacy_feature_prefix_is_ignored_in_role_can(): void
+    {
+        // Both 'edit' and 'links.edit' must resolve identically — the
+        // feature prefix is stripped because role permissions are universal.
+        $this->assertSame(
+            WorkspacePermissions::roleCan('editor', 'edit'),
+            WorkspacePermissions::roleCan('editor', 'links.edit'),
+        );
+        $this->assertSame(
+            WorkspacePermissions::roleCan('replier', 'reply'),
+            WorkspacePermissions::roleCan('replier', 'inbox.reply'),
+        );
+        $this->assertSame(
+            WorkspacePermissions::roleCan('viewer', 'view'),
+            WorkspacePermissions::roleCan('viewer', 'subscribers.view'),
+        );
+    }
+
+    public function test_unknown_role_falls_back_to_viewer_semantics(): void
+    {
+        // Old rows with role='custom' (or any unrecognised role) must
+        // safely degrade to view-only — never silently grant elevated
+        // access.
+        $this->assertTrue(WorkspacePermissions::roleCan('custom', 'view'));
+        $this->assertFalse(WorkspacePermissions::roleCan('custom', 'edit'));
+        $this->assertFalse(WorkspacePermissions::roleCan('custom', 'delete'));
+        $this->assertFalse(WorkspacePermissions::roleCan('custom', 'reply'));
+    }
+
+    public function test_permission_gate_blocks_role_without_action(): void
+    {
+        // analyst has only 'view' across the workspace — POST/DELETE
+        // routes that require create/edit/delete must 403.
         $owner  = $this->makeUser();
         $ws     = $owner->ownedWorkspaces()->first();
         $member = $this->makeUser();
-
-        WorkspaceMember::create([
-            'workspace_id' => $ws->id,
-            'user_id'      => $member->id,
-            'role'         => 'editor',
-            'permissions'  => WorkspacePermissions::preset('editor'),
-        ]);
+        $this->memberOf($ws, $member, 'analyst');
 
         $this->actingAs($member);
         $this->withSession([WorkspaceContext::SESSION_KEY => $ws->id]);
 
-        // posts.view IS in the editor preset → not forbidden
+        // analyst can VIEW posts (universal view)…
+        $this->get('/user/posts')->assertOk();
+        // …but cannot mutate them.
+        $this->post('/user/inbox/bulk', ['ids' => [], 'action' => 'mark_read'])->assertForbidden();
+    }
+
+    public function test_permission_gate_allows_member_with_role_action(): void
+    {
+        $owner  = $this->makeUser();
+        $ws     = $owner->ownedWorkspaces()->first();
+        $member = $this->makeUser();
+        $this->memberOf($ws, $member, 'editor');
+
+        $this->actingAs($member);
+        $this->withSession([WorkspaceContext::SESSION_KEY => $ws->id]);
+
         $resp = $this->get('/user/posts');
         $this->assertNotEquals(403, $resp->status());
     }
@@ -159,7 +227,6 @@ class WorkspacePermissionsTest extends TestCase
 
         $this->actingAs($owner);
         $resp = $this->post('/user/workspaces/' . $ws2->id . '/switch');
-        // Should not be allowed (not a member, not owner).
         $this->assertContains($resp->status(), [403, 404]);
     }
 
@@ -173,7 +240,7 @@ class WorkspacePermissionsTest extends TestCase
             'inviter_user_id' => $owner->id,
             'email'           => 'foo@example.com',
             'role'            => 'viewer',
-            'permissions'     => WorkspacePermissions::preset('viewer'),
+            'permissions'     => WorkspacePermissions::roleActions()['viewer'] ?? [],
             'token'           => WorkspaceInvite::newToken(),
             'expires_at'      => now()->addDays(7),
         ]);
@@ -193,7 +260,6 @@ class WorkspacePermissionsTest extends TestCase
         $ownerB = $this->makeUser();
         $wsB    = $ownerB->ownedWorkspaces()->first();
 
-        // Create one CreatorPost in each workspace, bypassing the active scope.
         $a = (new \App\Modules\User\Models\CreatorPost)->forceFill([
             'user_id' => $ownerA->id, 'workspace_id' => $wsA->id, 'body' => 'A-post',
         ]);
@@ -203,7 +269,6 @@ class WorkspacePermissionsTest extends TestCase
         ]);
         $b->saveQuietly();
 
-        // Bind workspace A as active and verify the global scope hides B's row.
         app()->instance('current_workspace', $wsA);
         $rows = \App\Modules\User\Models\CreatorPost::all();
         $this->assertCount(1, $rows);
@@ -218,19 +283,13 @@ class WorkspacePermissionsTest extends TestCase
         $wsA    = $ownerA->ownedWorkspaces()->first();
         $ownerB = $this->makeUser();
 
-        // ownerA invites a member as editor.
         $member = $this->makeUser();
-        WorkspaceMember::create([
-            'workspace_id' => $wsA->id, 'user_id' => $member->id,
-            'role' => 'editor', 'permissions' => WorkspacePermissions::preset('editor'),
-        ]);
+        $this->memberOf($wsA, $member, 'editor');
 
-        // While member is scoped to wsA, posts.view is allowed (gate passes).
         $this->actingAs($member);
         $this->withSession([WorkspaceContext::SESSION_KEY => $wsA->id]);
         $this->get('/user/posts')->assertOk();
 
-        // Member tries to switch into ownerB's workspace — disallowed.
         $resp = $this->post('/user/workspaces/' . $ownerB->ownedWorkspaces()->first()->id . '/switch');
         $this->assertContains($resp->status(), [403, 404]);
     }
@@ -245,37 +304,23 @@ class WorkspacePermissionsTest extends TestCase
             'inviter_user_id' => $owner->id,
             'email'           => 'newbie@example.com',
             'role'            => 'viewer',
-            'permissions'     => WorkspacePermissions::preset('viewer'),
+            'permissions'     => WorkspacePermissions::roleActions()['viewer'] ?? [],
             'token'           => WorkspaceInvite::newToken(),
             'expires_at'      => now()->addDays(7),
         ]);
 
-        // Hit the accept endpoint as a guest — should redirect to register
-        // and stash the invite token in session for post-OTP attachment.
         $resp = $this->post('/user/workspaces/invites/' . $invite->token . '/accept');
         $resp->assertRedirect();
         $this->assertSame($invite->token, session('pending_workspace_invite'));
     }
 
-    public function test_member_with_admin_can_pin_and_delete_owners_posts(): void
+    public function test_admin_member_can_pin_and_delete_owners_posts(): void
     {
-        // The whole point of workspace scoping: a team member must be able
-        // to operate on resources the OWNER created. This regression-tests
-        // the previous bug where controllers used `where('user_id', auth()->id())`
-        // and `abort_unless($post->user_id === auth()->id())`, which silently
-        // hid the owner's posts from members and 403'd any mutation.
         $owner  = $this->makeUser();
         $ws     = $owner->ownedWorkspaces()->first();
         $member = $this->makeUser();
+        $this->memberOf($ws, $member, 'admin');
 
-        WorkspaceMember::create([
-            'workspace_id' => $ws->id,
-            'user_id'      => $member->id,
-            'role'         => 'admin',
-            'permissions'  => WorkspacePermissions::preset('admin'),
-        ]);
-
-        // Owner-authored post in the workspace.
         $post = (new \App\Modules\User\Models\CreatorPost)->forceFill([
             'user_id'             => $owner->id,
             'workspace_id'        => $ws->id,
@@ -288,101 +333,53 @@ class WorkspacePermissionsTest extends TestCase
         $this->actingAs($member);
         $this->withSession([WorkspaceContext::SESSION_KEY => $ws->id]);
 
-        // Member sees owner's post in the listing.
         $this->get('/user/posts')->assertOk()->assertSee('Owner post body');
 
-        // Member pins the owner's post.
         $this->post('/user/posts/' . $post->id . '/pin')->assertRedirect();
         $this->assertNotNull(
             \App\Modules\User\Models\CreatorPost::withoutGlobalScope('workspace')->find($post->id)->pinned_at,
-            'Member with admin should be able to pin owner-authored posts.'
         );
 
-        // Member unpins.
         $this->post('/user/posts/' . $post->id . '/unpin')->assertRedirect();
         $this->assertNull(
             \App\Modules\User\Models\CreatorPost::withoutGlobalScope('workspace')->find($post->id)->pinned_at
         );
 
-        // Member deletes the owner's post.
         $this->delete('/user/posts/' . $post->id)->assertRedirect();
         $this->assertNull(
             \App\Modules\User\Models\CreatorPost::withoutGlobalScope('workspace')->find($post->id),
-            'Member with admin should be able to delete owner-authored posts.'
         );
     }
 
-    public function test_inbox_view_only_member_cannot_perform_mutations(): void
+    public function test_replier_can_view_and_reply_but_not_mutate_inbox(): void
     {
-        // Replier preset has inbox.view + inbox.reply but NOT inbox.edit/delete.
-        // Action-level gating must reject bulk/spam-settings/destroy attempts
-        // even though the parent prefix is reachable via inbox.view.
+        // Replier role: view + reply across the whole workspace, no edit/delete.
         $owner  = $this->makeUser();
         $ws     = $owner->ownedWorkspaces()->first();
         $member = $this->makeUser();
-
-        WorkspaceMember::create([
-            'workspace_id' => $ws->id,
-            'user_id'      => $member->id,
-            'role'         => 'replier',
-            'permissions'  => WorkspacePermissions::preset('replier'),
-        ]);
+        $this->memberOf($ws, $member, 'replier');
 
         $this->actingAs($member);
         $this->withSession([WorkspaceContext::SESSION_KEY => $ws->id]);
 
-        // Read endpoints allowed (inbox.view).
         $this->get('/user/inbox')->assertOk();
-        // Bulk mutation requires inbox.edit — must 403.
         $this->post('/user/inbox/bulk', ['ids' => [], 'action' => 'mark_read'])->assertForbidden();
-        // Spam settings update requires inbox.edit — must 403.
         $this->post('/user/inbox/spam-settings', [])->assertForbidden();
     }
 
-    public function test_referrals_view_only_member_cannot_change_code(): void
-    {
-        // Editor preset doesn't include referrals.edit; the prefix is gated by
-        // referrals.view but the mutation must additionally require edit.
-        $owner  = $this->makeUser();
-        $ws     = $owner->ownedWorkspaces()->first();
-        $member = $this->makeUser();
-
-        // Hand-roll permissions: only referrals.view, no edit.
-        WorkspaceMember::create([
-            'workspace_id' => $ws->id,
-            'user_id'      => $member->id,
-            'role'         => 'custom',
-            'permissions'  => ['referrals.view' => true],
-        ]);
-
-        $this->actingAs($member);
-        $this->withSession([WorkspaceContext::SESSION_KEY => $ws->id]);
-
-        $this->get('/user/referrals')->assertOk();
-        $this->put('/user/referrals/code', ['code' => 'NEWCODE'])->assertForbidden();
-    }
-
-    public function test_links_view_only_member_cannot_create_or_delete(): void
+    public function test_viewer_cannot_create_or_delete_links(): void
     {
         $owner  = $this->makeUser();
         $ws     = $owner->ownedWorkspaces()->first();
         $member = $this->makeUser();
+        $this->memberOf($ws, $member, 'viewer');
 
-        // links.view only, no create/edit/delete.
-        WorkspaceMember::create([
-            'workspace_id' => $ws->id,
-            'user_id'      => $member->id,
-            'role'         => 'custom',
-            'permissions'  => ['links.view' => true],
-        ]);
-
-        // Owner-authored link in this workspace.
         $link = (new \App\Modules\User\Models\Link)->forceFill([
             'user_id'            => $owner->id,
             'workspace_id'       => $ws->id,
             'created_by_user_id' => $owner->id,
             'type'               => 'url',
-            'alias'              => 'demo-' . \Illuminate\Support\Str::random(6),
+            'alias'              => 'demo-' . Str::random(6),
             'long_url'           => 'https://example.com',
             'title'              => 'Owner link',
         ]);
@@ -391,34 +388,24 @@ class WorkspacePermissionsTest extends TestCase
         $this->actingAs($member);
         $this->withSession([WorkspaceContext::SESSION_KEY => $ws->id]);
 
-        // Listing/show allowed.
         $this->get('/user/links')->assertOk();
-        // Mutation must be forbidden.
         $this->delete('/user/links/' . $link->id)->assertForbidden();
         $this->post('/user/links/' . $link->id . '/toggle-active')->assertForbidden();
     }
 
-    public function test_member_with_links_edit_can_modify_owner_link(): void
+    public function test_editor_can_modify_owner_link(): void
     {
-        // Proves the workspace_owner_id() refactor: a member with links.edit
-        // can list and toggle an owner-authored link without 403.
         $owner  = $this->makeUser();
         $ws     = $owner->ownedWorkspaces()->first();
         $member = $this->makeUser();
-
-        WorkspaceMember::create([
-            'workspace_id' => $ws->id,
-            'user_id'      => $member->id,
-            'role'         => 'editor',
-            'permissions'  => WorkspacePermissions::preset('editor'),
-        ]);
+        $this->memberOf($ws, $member, 'editor');
 
         $link = (new \App\Modules\User\Models\Link)->forceFill([
             'user_id'            => $owner->id,
             'workspace_id'       => $ws->id,
             'created_by_user_id' => $owner->id,
             'type'               => 'url',
-            'alias'              => 'demo-' . \Illuminate\Support\Str::random(6),
+            'alias'              => 'demo-' . Str::random(6),
             'long_url'           => 'https://example.com',
             'title'              => 'Owner link',
             'is_active'          => true,
@@ -428,51 +415,77 @@ class WorkspacePermissionsTest extends TestCase
         $this->actingAs($member);
         $this->withSession([WorkspaceContext::SESSION_KEY => $ws->id]);
 
-        // Member can reach the listing without a 403.
         $this->get('/user/links')->assertOk();
-        // The owner's link is visible to the member through the workspace
-        // global scope (i.e. workspace_owner_id() / global scope work end-to-end).
         $this->assertNotNull(\App\Modules\User\Models\Link::find($link->id));
-        // Member can toggle it without a 403 from the legacy ownership check.
         $resp = $this->post('/user/links/' . $link->id . '/toggle-active');
         $this->assertNotEquals(403, $resp->status());
     }
 
-    public function test_settings_gates_block_editor_from_billing_and_contacts(): void
+    public function test_billing_remains_owner_only_under_role_model(): void
     {
-        // Editor preset includes links/posts/inbox/followers/digests but NOT
-        // settings — so contacts, billing, integrations and verification must
-        // all 403 even though the routes used to be ungated.
+        // Even an admin member must NOT reach billing — that's owner-only
+        // and is gated by the `workspace.owner` middleware.
         $owner  = $this->makeUser();
         $ws     = $owner->ownedWorkspaces()->first();
         $member = $this->makeUser();
-        WorkspaceMember::create([
-            'workspace_id' => $ws->id,
-            'user_id'      => $member->id,
-            'role'         => 'editor',
-            'permissions'  => WorkspacePermissions::preset('editor'),
-        ]);
+        $this->memberOf($ws, $member, 'admin');
 
         $this->actingAs($member);
         $this->withSession([WorkspaceContext::SESSION_KEY => $ws->id]);
 
-        $this->get('/user/contacts')->assertForbidden();
         $this->get('/user/billing')->assertForbidden();
-        $this->get('/user/integrations')->assertForbidden();
-        $this->get('/user/calendar')->assertForbidden();
-        $this->get('/user/verification')->assertForbidden();
-        // Owner with implicit bypass should still reach the same pages.
+        $this->get('/user/upgrade')->assertForbidden();
+        $this->get('/user/checkout')->assertForbidden();
+
+        // The owner can reach those.
         $this->actingAs($owner);
         $this->withSession([WorkspaceContext::SESSION_KEY => $ws->id]);
-        $this->get('/user/contacts')->assertOk();
+        $this->get('/user/billing')->assertOk();
+    }
+
+    public function test_team_management_remains_owner_only(): void
+    {
+        // Admin member cannot manage members — only the owner can.
+        $owner  = $this->makeUser();
+        $ws     = $owner->ownedWorkspaces()->first();
+        $member = $this->makeUser();
+        $this->memberOf($ws, $member, 'admin');
+
+        $this->actingAs($member);
+        $this->withSession([WorkspaceContext::SESSION_KEY => $ws->id]);
+        $this->post('/user/team/invite', ['email' => 'x@y.z', 'role' => 'viewer'])->assertForbidden();
+    }
+
+    public function test_role_actions_table_is_stable(): void
+    {
+        $actions = WorkspacePermissions::roleActions();
+
+        // Expected role table — single source of truth that the team UI,
+        // middleware, and tests all rely on.
+        $this->assertSame(
+            ['view' => true, 'create' => true, 'edit' => true, 'delete' => true, 'reply' => true],
+            $actions['admin'],
+        );
+        $this->assertSame(
+            ['view' => true, 'create' => true, 'edit' => true, 'delete' => false, 'reply' => true],
+            $actions['editor'],
+        );
+        $this->assertSame(
+            ['view' => true, 'create' => false, 'edit' => false, 'delete' => false, 'reply' => true],
+            $actions['replier'],
+        );
+        $this->assertSame(
+            ['view' => true, 'create' => false, 'edit' => false, 'delete' => false, 'reply' => false],
+            $actions['analyst'],
+        );
+        $this->assertSame(
+            ['view' => true, 'create' => false, 'edit' => false, 'delete' => false, 'reply' => false],
+            $actions['viewer'],
+        );
     }
 
     public function test_public_subscriber_write_inherits_workspace_id_from_link(): void
     {
-        // Visitor-origin write (no current_workspace bound) — Subscriber
-        // creation must still receive a workspace_id derived from the parent
-        // link, otherwise the global scope would hide it from the owner's
-        // inbox after we render the workspace context.
         $owner = $this->makeUser();
         $ws    = $owner->ownedWorkspaces()->first();
 
@@ -481,15 +494,13 @@ class WorkspacePermissionsTest extends TestCase
             'workspace_id'       => $ws->id,
             'created_by_user_id' => $owner->id,
             'type'               => 'biolink',
-            'alias'              => 'pubsub-' . \Illuminate\Support\Str::random(6),
+            'alias'              => 'pubsub-' . Str::random(6),
             'long_url'           => 'https://example.com',
             'title'              => 'Public link',
             'is_active'          => true,
         ]);
         $link->saveQuietly();
 
-        // Simulate a public-origin Subscriber write — like RedirectController
-        // does — without binding `current_workspace`.
         $sub = new \App\Modules\User\Models\Subscriber;
         $sub->user_id = $owner->id;
         $sub->link_id = $link->id;
@@ -501,70 +512,5 @@ class WorkspacePermissionsTest extends TestCase
 
         $this->assertEquals($ws->id, $sub->fresh()->workspace_id,
             'Public subscriber write should inherit workspace_id from parent link.');
-    }
-
-    public function test_digest_preview_uses_digests_feature_not_settings(): void
-    {
-        // Editor preset has digests.view but NOT settings.view, so the
-        // follower-digest preview must still load (proving the route is
-        // gated under the dedicated digests feature, not settings).
-        $owner  = $this->makeUser();
-        $ws     = $owner->ownedWorkspaces()->first();
-        $member = $this->makeUser();
-        WorkspaceMember::create([
-            'workspace_id' => $ws->id,
-            'user_id'      => $member->id,
-            'role'         => 'editor',
-            'permissions'  => WorkspacePermissions::preset('editor'),
-        ]);
-
-        $this->actingAs($member);
-        $this->withSession([WorkspaceContext::SESSION_KEY => $ws->id]);
-
-        // Editor (digests.view present) — allowed.
-        $resp = $this->get('/user/profile/digest/preview');
-        $this->assertNotEquals(403, $resp->status());
-
-        // Editor (digests.view present) — sending a sample to themselves
-        // is also allowed, since the action only emails the signed-in
-        // user and is therefore a QA/preview action gated under view.
-        $sample = $this->post('/user/profile/digest/sample');
-        $this->assertNotEquals(403, $sample->status());
-    }
-
-    public function test_digest_routes_block_member_without_digests_view(): void
-    {
-        // Replier preset has neither digests.view nor settings.view —
-        // both digest routes must 403.
-        $owner  = $this->makeUser();
-        $ws     = $owner->ownedWorkspaces()->first();
-        $member = $this->makeUser();
-        WorkspaceMember::create([
-            'workspace_id' => $ws->id,
-            'user_id'      => $member->id,
-            'role'         => 'replier',
-            'permissions'  => WorkspacePermissions::preset('replier'),
-        ]);
-
-        $this->actingAs($member);
-        $this->withSession([WorkspaceContext::SESSION_KEY => $ws->id]);
-
-        $this->get('/user/profile/digest/preview')->assertForbidden();
-        $this->post('/user/profile/digest/sample')->assertForbidden();
-    }
-
-    public function test_permissions_presets_are_stable(): void
-    {
-        $editor = WorkspacePermissions::preset('editor');
-        $this->assertTrue($editor['posts.view'] ?? false);
-        $this->assertTrue($editor['posts.create'] ?? false);
-        $this->assertFalse($editor['posts.delete'] ?? false);
-
-        $analyst = WorkspacePermissions::preset('analyst');
-        $this->assertSame(['stats.view' => true], $analyst);
-
-        $viewer = WorkspacePermissions::preset('viewer');
-        $this->assertTrue($viewer['posts.view'] ?? false);
-        $this->assertFalse($viewer['posts.create'] ?? false);
     }
 }

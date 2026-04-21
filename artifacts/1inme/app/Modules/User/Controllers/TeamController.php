@@ -38,13 +38,12 @@ class TeamController extends Controller
         $usedSeats = $ws->seatCount();
 
         return view('user.team.index', [
-            'workspace'      => $ws,
-            'members'        => $members,
-            'pendingInvites' => $pendingInvites,
-            'maxSeats'       => $maxSeats,
-            'usedSeats'      => $usedSeats,
-            'presets'        => array_keys(WorkspacePermissions::presets()),
-            'matrix'         => WorkspacePermissions::matrix(),
+            'workspace'         => $ws,
+            'members'           => $members,
+            'pendingInvites'    => $pendingInvites,
+            'maxSeats'          => $maxSeats,
+            'usedSeats'         => $usedSeats,
+            'roleDescriptions'  => WorkspacePermissions::roleDescriptions(),
         ]);
     }
 
@@ -54,10 +53,8 @@ class TeamController extends Controller
         $owner = $request->user();
 
         $data = $request->validate([
-            'email'         => 'required|email|max:255',
-            'role'          => 'required|in:admin,editor,replier,analyst,viewer,custom',
-            'permissions'   => 'nullable|array',
-            'permissions.*' => 'boolean',
+            'email' => 'required|email|max:255',
+            'role'  => 'required|in:admin,editor,replier,analyst,viewer',
         ]);
 
         $maxSeats = (int) $owner->getPlanFeature('max_seats_per_workspace', 1);
@@ -72,15 +69,14 @@ class TeamController extends Controller
             return back()->with('error', 'That user is already a member of this workspace.');
         }
 
-        // Resolve permissions: preset baseline OR explicit checkbox matrix.
-        $permissions = $this->resolvePermissions($data['role'], $data['permissions'] ?? null);
-
         $invite = WorkspaceInvite::create([
             'workspace_id'    => $ws->id,
             'inviter_user_id' => $owner->id,
             'email'           => strtolower(trim($data['email'])),
             'role'            => $data['role'],
-            'permissions'     => $permissions,
+            // permissions blob no longer drives gating — role does. Stored
+            // as the role's action map for historical inspection.
+            'permissions'     => WorkspacePermissions::roleActions()[$data['role']] ?? [],
             'token'           => WorkspaceInvite::newToken(),
             'expires_at'      => now()->addDays(14),
         ]);
@@ -113,16 +109,14 @@ class TeamController extends Controller
         abort_unless($member->workspace_id === $ws->id, 404);
 
         $data = $request->validate([
-            'role'          => 'required|in:admin,editor,replier,analyst,viewer,custom',
-            'permissions'   => 'nullable|array',
-            'permissions.*' => 'boolean',
+            'role' => 'required|in:admin,editor,replier,analyst,viewer',
         ]);
 
         $member->update([
             'role'        => $data['role'],
-            'permissions' => $this->resolvePermissions($data['role'], $data['permissions'] ?? null),
+            'permissions' => WorkspacePermissions::roleActions()[$data['role']] ?? [],
         ]);
-        return back()->with('success', 'Member permissions updated.');
+        return back()->with('success', 'Member role updated.');
     }
 
     public function removeMember(Request $request, WorkspaceMember $member)
@@ -140,23 +134,6 @@ class TeamController extends Controller
         } catch (\Throwable $e) { /* best effort */ }
 
         return back()->with('success', 'Member removed.');
-    }
-
-    /**
-     * Resolve a permissions blob from a role + optional matrix.
-     * - Non-custom roles always use the preset (matrix is ignored).
-     * - 'custom' role requires the matrix and stores it verbatim (only true keys).
-     */
-    protected function resolvePermissions(string $role, ?array $matrix): array
-    {
-        if ($role !== 'custom') {
-            return WorkspacePermissions::preset($role);
-        }
-        $clean = [];
-        foreach (($matrix ?? []) as $k => $v) {
-            if ($v) $clean[$k] = true;
-        }
-        return $clean;
     }
 
     protected function sendInviteEmail(WorkspaceInvite $invite): void

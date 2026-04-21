@@ -31,6 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'api.optional_auth' => \App\Modules\Api\Middleware\OptionalSanctum::class,
             'workspace.scope'   => \App\Modules\User\Middleware\SetActiveWorkspace::class,
             'workspace.can'     => \App\Modules\User\Middleware\RequireWorkspacePermission::class,
+            'workspace.owner'   => \App\Modules\User\Middleware\RequireWorkspaceOwner::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

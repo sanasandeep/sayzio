@@ -57,10 +57,9 @@
                         <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-700">{{ ucfirst($m->role) }}</span></td>
                         <td class="px-4 py-3 text-right">
                             <button type="button" @click='openEdit(@json([
-                                "id"          => $m->id,
-                                "name"        => $m->user->name ?? "",
-                                "role"        => $m->role,
-                                "permissions" => $m->effectivePermissions(),
+                                "id"   => $m->id,
+                                "name" => $m->user->name ?? "",
+                                "role" => $m->role,
                             ]))' class="text-xs text-primary-600 hover:underline mr-3">Edit</button>
                             <form method="POST" action="{{ route('user.team.members.remove', $m) }}" class="inline"
                                   onsubmit="return confirm('Remove this member from the workspace?')">
@@ -126,56 +125,50 @@
 
                 <div class="mb-4">
                     <label class="block text-sm font-medium mb-1">Role</label>
-                    <select name="role" x-model="form.role" @change="applyPreset()"
+                    <select name="role" x-model="form.role"
                             class="w-full px-3 py-2 border rounded"
                             style="background: var(--bg-card); border-color: var(--border-strong); color: var(--text-primary);">
-                        <option value="admin">Admin — everything except billing & member management</option>
-                        <option value="editor">Editor — view + edit on Links / Posts / Inbox / Followers</option>
-                        <option value="replier">Replier — Inbox view + reply</option>
-                        <option value="analyst">Analyst — Stats only</option>
-                        <option value="viewer">Viewer — view-only across the board</option>
-                        <option value="custom">Custom</option>
+                        @foreach($roleDescriptions as $slug => $desc)
+                            <option value="{{ $slug }}">{{ $desc }}</option>
+                        @endforeach
                     </select>
+                    <p class="mt-2 text-xs opacity-70">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Roles apply to <strong>everything in this workspace</strong> — links, biolinks, forms,
+                        subscribers, posts, QR codes and more. Workspace-level admin actions
+                        (delete workspace, manage members, billing) stay owner-only.
+                    </p>
                 </div>
 
-                <div class="mb-4">
-                    <button type="button" @click="advanced = !advanced"
-                            class="text-xs text-primary-600 hover:underline">
-                        <i class="fas" :class="advanced ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
-                        Advanced permissions
-                    </button>
-                    <div x-show="advanced" x-cloak class="mt-3 border rounded p-3 overflow-x-auto" style="border-color: var(--border-strong);">
-                        <table class="w-full text-xs">
-                            <thead>
-                                <tr>
-                                    <th class="text-left">Feature</th>
-                                    @foreach(['view','create','edit','delete','reply'] as $a)
-                                        <th class="px-2 capitalize">{{ $a }}</th>
+                {{-- Quick reference: what each role can do, generated from the role table. --}}
+                <div class="mb-4 border rounded p-3 overflow-x-auto" style="border-color: var(--border-strong);">
+                    <table class="w-full text-xs">
+                        <thead>
+                            <tr class="text-left opacity-70">
+                                <th class="py-1">Role</th>
+                                @foreach(\App\Modules\User\Services\WorkspacePermissions::ACTIONS as $a)
+                                    <th class="px-2 capitalize text-center">{{ $a }}</th>
+                                @endforeach
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach(\App\Modules\User\Services\WorkspacePermissions::roleActions() as $roleSlug => $row)
+                                <tr class="border-t" style="border-color: var(--border-strong);"
+                                    :class="form.role === '{{ $roleSlug }}' ? 'bg-purple-50/40' : ''">
+                                    <td class="py-1.5 capitalize font-medium">{{ $roleSlug }}</td>
+                                    @foreach(\App\Modules\User\Services\WorkspacePermissions::ACTIONS as $a)
+                                        <td class="px-2 text-center">
+                                            @if($row[$a] ?? false)
+                                                <i class="fas fa-check text-green-500"></i>
+                                            @else
+                                                <span class="opacity-30">—</span>
+                                            @endif
+                                        </td>
                                     @endforeach
                                 </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($matrix as $feature => $actions)
-                                    <tr class="border-t" style="border-color: var(--border-strong);">
-                                        <td class="py-2 capitalize">{{ $feature }}</td>
-                                        @foreach(['view','create','edit','delete','reply'] as $a)
-                                            <td class="px-2 text-center">
-                                                @if(in_array($a, $actions, true))
-                                                    <input type="checkbox"
-                                                           :name="'permissions[{{ $feature }}.{{ $a }}]'"
-                                                           x-model="form.permissions['{{ $feature }}.{{ $a }}']"
-                                                           value="1"
-                                                           @change="form.role='custom'">
-                                                @else
-                                                    <span class="opacity-30">—</span>
-                                                @endif
-                                            </td>
-                                        @endforeach
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
+                            @endforeach
+                        </tbody>
+                    </table>
                 </div>
 
                 <div class="flex justify-end gap-2">
@@ -194,38 +187,17 @@
 function teamPage() {
     return {
         modal: { open: false, action: '', method: '', title: '' },
-        form: { role: 'viewer', permissions: {} },
-        advanced: false,
-        presets: @json(\App\Modules\User\Services\WorkspacePermissions::presets()),
-        emptyPerms: (() => {
-            const m = @json($matrix);
-            const out = {};
-            for (const [f, acts] of Object.entries(m)) {
-                for (const a of acts) out[`${f}.${a}`] = false;
-            }
-            return out;
-        })(),
+        form: { role: 'viewer' },
+        validRoles: ['admin','editor','replier','analyst','viewer'],
         openInvite() {
             this.modal = { open: true, action: '{{ route("user.team.invite") }}', method: 'POST', title: 'Invite teammate' };
-            this.form = { role: 'viewer', permissions: { ...this.emptyPerms } };
-            this.applyPreset();
-            this.advanced = false;
+            this.form = { role: 'editor' };
         },
         openEdit(member) {
             this.modal = { open: true, action: '{{ url("user/team/members") }}/' + member.id, method: 'PUT', title: 'Edit ' + member.name };
-            const perms = { ...this.emptyPerms };
-            for (const k of Object.keys(member.permissions || {})) {
-                if (member.permissions[k]) perms[k] = true;
-            }
-            this.form = { role: member.role, permissions: perms };
-            this.advanced = (member.role === 'custom');
-        },
-        applyPreset() {
-            if (this.form.role === 'custom') return;
-            const preset = this.presets[this.form.role] || {};
-            const perms = { ...this.emptyPerms };
-            for (const k of Object.keys(preset)) perms[k] = !!preset[k];
-            this.form.permissions = perms;
+            // Legacy "custom" rows fall back to viewer (safest default).
+            const role = this.validRoles.includes(member.role) ? member.role : 'viewer';
+            this.form = { role };
         },
     };
 }

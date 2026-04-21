@@ -3,150 +3,73 @@
 namespace App\Modules\User\Services;
 
 /**
- * Canonical vocabulary for workspace permissions and the preset-role →
- * permission-matrix mapping. Single source of truth for both the API gate
- * and the Team-settings UI.
+ * Canonical role → action mapping for workspace members.
  *
- * Permissions are stored on each `workspace_members.permissions` row as
- * a flat associative array keyed by "{feature}.{action}" with boolean
- * values, e.g. ['links.view' => true, 'links.edit' => false, ...].
+ * Permissions are NOT stored per feature — a member's role on a workspace
+ * grants the same action set across every resource in that workspace
+ * (links, biolinks, posts, forms, subscribers, QR codes, projects, …).
+ *
+ * Owner of the workspace and super-admins bypass these checks entirely
+ * (handled in `User::canInWorkspace()`). Workspace-level admin actions
+ * (delete workspace, invite/remove members, change plan/billing) remain
+ * owner-only and are enforced separately in their respective controllers.
+ *
+ * The legacy `workspace.can:links.edit` / `@canInWorkspace('links.edit')`
+ * syntax keeps working — the trailing `.edit` is what matters; the
+ * feature prefix is ignored. A bare key like `'edit'` works the same way.
  */
 class WorkspacePermissions
 {
-    /** Feature areas surfaced in the Team settings matrix. */
-    public const FEATURES = [
-        'links', 'posts', 'inbox', 'stats', 'followers', 'digests', 'referrals', 'settings',
-    ];
+    /** Recognised role slugs (lower priority → higher). */
+    public const ROLES = ['viewer', 'analyst', 'replier', 'editor', 'admin'];
 
-    /** Actions per feature. Reply only applies where it's meaningful. */
+    /** Universal actions a member can perform on any resource. */
     public const ACTIONS = ['view', 'create', 'edit', 'delete', 'reply'];
 
-    /** Subset of (feature, action) pairs that are *meaningful*. */
-    public static function matrix(): array
+    /**
+     * Source-of-truth: which actions each role can perform on every
+     * resource inside the workspace. Owner is implicit (always allowed).
+     */
+    public static function roleActions(): array
     {
-        // Default: every feature supports view/create/edit/delete; reply is
-        // limited to inbox + posts (comment replies, future).
-        $m = [];
-        foreach (self::FEATURES as $f) {
-            $m[$f] = ['view', 'create', 'edit', 'delete'];
-        }
-        $m['inbox'][] = 'reply';
-        $m['posts'][] = 'reply';
-        // Stats only has view (no creation/edit semantics).
-        $m['stats'] = ['view'];
-        // Settings (workspace-level) — view + edit only; create/delete is
-        // owner-only and not exposed to members.
-        $m['settings'] = ['view', 'edit'];
-        // Referrals — view + edit (toggle on/off, set rewards). No replies.
-        $m['referrals'] = ['view', 'edit'];
-        // Digests — view + edit only.
-        $m['digests'] = ['view', 'edit'];
-        return $m;
+        return [
+            'admin'   => ['view' => true,  'create' => true,  'edit' => true,  'delete' => true,  'reply' => true],
+            'editor'  => ['view' => true,  'create' => true,  'edit' => true,  'delete' => false, 'reply' => true],
+            'replier' => ['view' => true,  'create' => false, 'edit' => false, 'delete' => false, 'reply' => true],
+            'analyst' => ['view' => true,  'create' => false, 'edit' => false, 'delete' => false, 'reply' => false],
+            'viewer'  => ['view' => true,  'create' => false, 'edit' => false, 'delete' => false, 'reply' => false],
+        ];
+    }
+
+    /** Friendly one-line description of each role for the team UI. */
+    public static function roleDescriptions(): array
+    {
+        return [
+            'admin'   => 'Admin — full access to everything in this workspace',
+            'editor'  => 'Editor — view, create and edit (cannot delete)',
+            'replier' => 'Replier — view and reply only (great for support)',
+            'analyst' => 'Analyst — view-only, focused on analytics',
+            'viewer'  => 'Viewer — view-only across the workspace',
+        ];
     }
 
     /**
-     * Preset role → permissions matrix. Owner is implicit and always allowed
-     * (handled in the gate, not here).
+     * Does $role allow $action? Accepts either a bare action like 'edit'
+     * or the legacy 'feature.action' form like 'links.edit' (the prefix
+     * is ignored).
      */
+    public static function roleCan(string $role, string $action): bool
+    {
+        if (str_contains($action, '.')) {
+            [, $action] = explode('.', $action, 2);
+        }
+        $row = self::roleActions()[$role] ?? self::roleActions()['viewer'];
+        return (bool) ($row[$action] ?? false);
+    }
+
+    /** Names of roles in priority order — used by the role dropdown. */
     public static function presets(): array
     {
-        return [
-            'admin'   => self::buildAdmin(),
-            'editor'  => self::buildEditor(),
-            'replier' => self::buildReplier(),
-            'analyst' => self::buildAnalyst(),
-            'viewer'  => self::buildViewer(),
-        ];
-    }
-
-    /** Resolve a preset by slug into its permission matrix. */
-    public static function preset(string $slug): array
-    {
-        return self::presets()[$slug] ?? [];
-    }
-
-    /** Build a flat permissions array from a feature→actions map. */
-    public static function flatten(array $matrix): array
-    {
-        $out = [];
-        foreach ($matrix as $feature => $actions) {
-            foreach ($actions as $action) {
-                $out[$feature . '.' . $action] = true;
-            }
-        }
-        return $out;
-    }
-
-    /** Compare a permissions blob against every preset; return matching slug or 'custom'. */
-    public static function detectRole(array $permissions): string
-    {
-        $normalized = self::normalize($permissions);
-        foreach (self::presets() as $slug => $preset) {
-            if ($normalized === self::normalize($preset)) return $slug;
-        }
-        return 'custom';
-    }
-
-    /** Sort+strip-false for stable comparison. */
-    public static function normalize(array $perms): array
-    {
-        $clean = [];
-        foreach ($perms as $k => $v) {
-            if ($v) $clean[$k] = true;
-        }
-        ksort($clean);
-        return $clean;
-    }
-
-    private static function buildAdmin(): array
-    {
-        // Everything except billing/delete-workspace/manage-members which
-        // are owner-only and never exposed in the matrix.
-        $out = [];
-        foreach (self::matrix() as $feature => $actions) {
-            foreach ($actions as $action) $out[$feature . '.' . $action] = true;
-        }
-        return $out;
-    }
-
-    private static function buildEditor(): array
-    {
-        $out = [];
-        foreach (['links', 'posts', 'inbox', 'followers'] as $f) {
-            foreach (['view', 'create', 'edit'] as $a) {
-                $out[$f . '.' . $a] = true;
-            }
-            if (in_array('reply', self::matrix()[$f] ?? [], true)) {
-                $out[$f . '.reply'] = true;
-            }
-        }
-        $out['stats.view'] = true;
-        $out['digests.view'] = true;
-        return $out;
-    }
-
-    private static function buildReplier(): array
-    {
-        return [
-            'inbox.view' => true,
-            'inbox.reply' => true,
-            'posts.view' => true,
-        ];
-    }
-
-    private static function buildAnalyst(): array
-    {
-        return ['stats.view' => true];
-    }
-
-    private static function buildViewer(): array
-    {
-        $out = [];
-        foreach (self::matrix() as $feature => $actions) {
-            if (in_array('view', $actions, true)) {
-                $out[$feature . '.view'] = true;
-            }
-        }
-        return $out;
+        return self::ROLES;
     }
 }

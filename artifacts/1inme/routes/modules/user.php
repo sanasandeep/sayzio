@@ -167,7 +167,7 @@ Route::prefix('user')->name('user.')->group(function () {
                 ->name('digest.preview');
         });
 
-        Route::get('invoices/{invoice}/pdf', [\App\Modules\User\Controllers\InvoiceController::class, 'pdf'])->middleware('workspace.can:settings.view')->name('invoices.pdf');
+        Route::get('invoices/{invoice}/pdf', [\App\Modules\User\Controllers\InvoiceController::class, 'pdf'])->middleware('workspace.owner')->name('invoices.pdf');
 
         // Projects are link-organisation buckets — gate under the links
         // feature so any role with links access can place links into one.
@@ -256,26 +256,26 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('links/{link}/blocks/{block}/move', [BiolinkBlockController::class, 'moveBlock'])->middleware('workspace.can:links.edit')->name('links.blocks.move');
         Route::post('links/{link}/page-settings', [BiolinkBlockController::class, 'updatePageSettings'])->middleware('workspace.can:links.edit')->name('links.page-settings');
 
-        // Plan upgrade & pricing — billing actions touch the workspace
-        // owner's subscription, so require the `settings.edit` permission
-        // (Admin-only by default).
-        Route::get('upgrade', [\App\Modules\User\Controllers\UpgradeController::class, 'show'])->middleware('workspace.can:settings.view')->name('upgrade');
-        Route::post('upgrade/switch-currency', [\App\Modules\User\Controllers\UpgradeController::class, 'switchCurrency'])->middleware('workspace.can:settings.edit')->name('upgrade.switch-currency');
-        Route::post('upgrade/activate', [\App\Modules\User\Controllers\UpgradeController::class, 'activate'])->middleware('workspace.can:settings.edit')->name('upgrade.activate');
+        // Plan upgrade, checkout & billing — these touch the workspace
+        // owner's subscription/wallet/invoices, so they remain owner-only
+        // regardless of any member's role inside the workspace.
+        Route::get('upgrade', [\App\Modules\User\Controllers\UpgradeController::class, 'show'])->middleware('workspace.owner')->name('upgrade');
+        Route::post('upgrade/switch-currency', [\App\Modules\User\Controllers\UpgradeController::class, 'switchCurrency'])->middleware('workspace.owner')->name('upgrade.switch-currency');
+        Route::post('upgrade/activate', [\App\Modules\User\Controllers\UpgradeController::class, 'activate'])->middleware('workspace.owner')->name('upgrade.activate');
 
         // Checkout: plan+addons cart, tax preview, gateway picker, handoff.
-        Route::get('checkout', [\App\Modules\User\Controllers\CheckoutController::class, 'show'])->middleware('workspace.can:settings.edit')->name('checkout.show');
-        Route::post('checkout/handoff', [\App\Modules\User\Controllers\CheckoutController::class, 'handoff'])->middleware('workspace.can:settings.edit')->name('checkout.handoff');
+        Route::get('checkout', [\App\Modules\User\Controllers\CheckoutController::class, 'show'])->middleware('workspace.owner')->name('checkout.show');
+        Route::post('checkout/handoff', [\App\Modules\User\Controllers\CheckoutController::class, 'handoff'])->middleware('workspace.owner')->name('checkout.handoff');
 
         // Billing dashboard (subscription lifecycle, invoices, refunds, credit notes).
-        Route::get('billing', [\App\Modules\User\Controllers\BillingController::class, 'show'])->middleware('workspace.can:settings.view')->name('billing.show');
-        Route::get('billing/upgrade', [\App\Modules\User\Controllers\BillingController::class, 'upgrade'])->middleware('workspace.can:settings.edit')->name('billing.upgrade');
-        Route::post('billing/upgrade/confirm', [\App\Modules\User\Controllers\BillingController::class, 'upgradeConfirm'])->middleware('workspace.can:settings.edit')->name('billing.upgrade.confirm');
-        Route::post('billing/upgrade/handoff', [\App\Modules\User\Controllers\BillingController::class, 'upgradeHandoff'])->middleware('workspace.can:settings.edit')->name('billing.upgrade.handoff');
-        Route::post('billing/cancel', [\App\Modules\User\Controllers\BillingController::class, 'cancel'])->middleware('workspace.can:settings.edit')->name('billing.cancel');
-        Route::post('billing/resume', [\App\Modules\User\Controllers\BillingController::class, 'resume'])->middleware('workspace.can:settings.edit')->name('billing.resume');
-        Route::post('billing/invoices/{invoice}/refund', [\App\Modules\User\Controllers\BillingController::class, 'refundInvoice'])->middleware('workspace.can:settings.edit')->name('billing.refund');
-        Route::get('billing/credit-notes/{creditNote}.pdf', [\App\Modules\User\Controllers\BillingController::class, 'creditNotePdf'])->middleware('workspace.can:settings.view')->name('billing.credit-note.pdf');
+        Route::get('billing', [\App\Modules\User\Controllers\BillingController::class, 'show'])->middleware('workspace.owner')->name('billing.show');
+        Route::get('billing/upgrade', [\App\Modules\User\Controllers\BillingController::class, 'upgrade'])->middleware('workspace.owner')->name('billing.upgrade');
+        Route::post('billing/upgrade/confirm', [\App\Modules\User\Controllers\BillingController::class, 'upgradeConfirm'])->middleware('workspace.owner')->name('billing.upgrade.confirm');
+        Route::post('billing/upgrade/handoff', [\App\Modules\User\Controllers\BillingController::class, 'upgradeHandoff'])->middleware('workspace.owner')->name('billing.upgrade.handoff');
+        Route::post('billing/cancel', [\App\Modules\User\Controllers\BillingController::class, 'cancel'])->middleware('workspace.owner')->name('billing.cancel');
+        Route::post('billing/resume', [\App\Modules\User\Controllers\BillingController::class, 'resume'])->middleware('workspace.owner')->name('billing.resume');
+        Route::post('billing/invoices/{invoice}/refund', [\App\Modules\User\Controllers\BillingController::class, 'refundInvoice'])->middleware('workspace.owner')->name('billing.refund');
+        Route::get('billing/credit-notes/{creditNote}.pdf', [\App\Modules\User\Controllers\BillingController::class, 'creditNotePdf'])->middleware('workspace.owner')->name('billing.credit-note.pdf');
 
         // Page & card templates (admin-curated presets) — picker reads
         // require links.view; apply mutates the link so requires links.edit.

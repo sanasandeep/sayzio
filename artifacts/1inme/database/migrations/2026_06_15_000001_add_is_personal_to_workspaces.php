@@ -17,11 +17,11 @@ return new class extends Migration
 
         // Index creation is guarded separately so a re-run after a failed
         // partial deploy (column present, index missing) still backfills it.
+        // The existence check uses pg_indexes on Postgres; SQLite (test env)
+        // uses sqlite_master.
+        $driver = DB::connection()->getDriverName();
         $indexName = 'workspaces_owner_user_id_is_personal_index';
-        $exists = collect(DB::select(
-            "SELECT 1 FROM pg_indexes WHERE schemaname = current_schema() AND indexname = ?",
-            [$indexName]
-        ))->isNotEmpty();
+        $exists = $this->indexExists($driver, $indexName);
         if (!$exists) {
             Schema::table('workspaces', function (Blueprint $table) {
                 $table->index(['owner_user_id', 'is_personal']);
@@ -30,14 +30,15 @@ return new class extends Migration
 
         // Enforce "at most one personal workspace per owner" at the DB level
         // so concurrent ensureDefaultWorkspace() calls cannot create dupes.
-        // Postgres partial unique index — created idempotently.
+        // Postgres supports partial unique indexes; SQLite supports the same
+        // syntax. Other drivers fall back to a regular unique index (best-effort).
         $uniqName = 'workspaces_one_personal_per_owner_unique';
-        $uniqExists = collect(DB::select(
-            "SELECT 1 FROM pg_indexes WHERE schemaname = current_schema() AND indexname = ?",
-            [$uniqName]
-        ))->isNotEmpty();
-        if (!$uniqExists) {
-            DB::statement("CREATE UNIQUE INDEX {$uniqName} ON workspaces (owner_user_id) WHERE is_personal = true");
+        if (!$this->indexExists($driver, $uniqName)) {
+            if (in_array($driver, ['pgsql', 'sqlite'], true)) {
+                DB::statement("CREATE UNIQUE INDEX {$uniqName} ON workspaces (owner_user_id) WHERE is_personal = true");
+            } else {
+                DB::statement("CREATE UNIQUE INDEX {$uniqName} ON workspaces (owner_user_id, is_personal)");
+            }
         }
 
         // Mark every user's earliest-owned workspace as their personal one.
@@ -75,6 +76,28 @@ return new class extends Migration
                 'created_at'    => $now,
                 'updated_at'    => $now,
             ]);
+        }
+    }
+
+    private function indexExists(string $driver, string $indexName): bool
+    {
+        try {
+            if ($driver === 'pgsql') {
+                return collect(DB::select(
+                    "SELECT 1 FROM pg_indexes WHERE schemaname = current_schema() AND indexname = ?",
+                    [$indexName]
+                ))->isNotEmpty();
+            }
+            if ($driver === 'sqlite') {
+                return collect(DB::select(
+                    "SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = ?",
+                    [$indexName]
+                ))->isNotEmpty();
+            }
+            // Generic fallback — assume not present and let CREATE handle uniqueness.
+            return false;
+        } catch (\Throwable $e) {
+            return false;
         }
     }
 
