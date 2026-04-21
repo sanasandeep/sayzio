@@ -363,8 +363,82 @@
         .hero-phone-content .profile-socials { margin-top: 8px; gap: 5px; }
         .hero-phone-content .profile-socials span { width: 22px; height: 22px; font-size: 10px; }
 
+        /* On mobile and tablet, beef up the hero so it fills the viewport
+           and never leaves a sparse gap below the phone, no matter which
+           role is currently rotating. */
         @media (max-width: 1023px) {
-            .hero-phone-wrap { width: 260px; transform: none !important; }
+            .hero-phone-wrap { width: 300px; max-width: 88vw; transform: none !important; }
+        }
+        @media (max-width: 640px) {
+            .hero-phone-wrap { width: 320px; max-width: 86vw; }
+        }
+
+        /* Phone stage gets enough breathing room on desktop so the floating
+           cards have somewhere to live without overlapping the phone or each
+           other. */
+        .hero-phone-stage { min-height: 560px; }
+        @media (min-width: 1024px) {
+            .hero-phone-stage { min-height: 640px; padding: 28px 60px; }
+        }
+
+        /* ============ Hero floating info cards ============ */
+        .float-card {
+            position: absolute;
+            background: rgba(255,255,255,.06);
+            border: 1px solid rgba(255,255,255,.12);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border-radius: 16px;
+            padding: 10px 12px;
+            box-shadow: 0 18px 40px -16px rgba(0,0,0,.55);
+            z-index: 11;
+            color: #fff;
+        }
+        .float-card-label {
+            display: block;
+            font-size: 9px;
+            font-weight: 800;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            color: #9ca3af;
+            line-height: 1.1;
+        }
+        /* Desktop placement — spread around the phone so cards don't crowd. */
+        @media (min-width: 1024px) {
+            .float-card--visitors  { top: 10px;   right: -12px; width: 158px; box-shadow: 0 22px 50px -18px rgba(27,212,217,.45); }
+            .float-card--coach     { bottom: 60px; left: -16px; width: 200px; box-shadow: 0 22px 50px -18px rgba(124,58,237,.5); }
+            .float-card--toplink   { top: 110px;  right: -34px; width: 180px; box-shadow: 0 22px 50px -18px rgba(255,0,51,.35); }
+            .float-card--conv      { bottom: 200px; right: -30px; width: 168px; box-shadow: 0 22px 50px -18px rgba(27,212,217,.35); }
+            .float-card--qr        { top: 230px;  left: -36px; width: 178px; box-shadow: 0 22px 50px -18px rgba(124,58,237,.4); }
+            .float-card--follower  { top: 0px;    left: -10px; width: 178px; box-shadow: 0 22px 50px -18px rgba(236,72,153,.4); }
+            .float-card--revenue   { bottom: 8px; right: -8px; width: 168px; box-shadow: 0 22px 50px -18px rgba(255,138,60,.4); }
+        }
+
+        /* ============ Mobile-only condensed stats row ============ */
+        .hero-mobile-stats {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0,1fr));
+            gap: 8px;
+        }
+        .hero-mstat {
+            display: flex; flex-direction: column; align-items: flex-start;
+            gap: 2px;
+            padding: 10px 10px;
+            border-radius: 14px;
+            background: rgba(255,255,255,.06);
+            border: 1px solid rgba(255,255,255,.12);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+        }
+        .hero-mstat .lbl {
+            font-size: 9px; font-weight: 800; letter-spacing: .1em;
+            text-transform: uppercase; color: #9ca3af;
+            display: inline-flex; align-items: center; gap: 4px;
+        }
+        .hero-mstat .val { font-size: 15px; font-weight: 800; line-height: 1; color: #fff; }
+        .hero-mstat .sub { font-size: 9px; color: #9ca3af; }
+        @media (max-width: 380px) {
+            .hero-mobile-stats { grid-template-columns: repeat(2, minmax(0,1fr)); }
         }
 
         /* ============ Per-theme phone layouts ============ */
@@ -826,12 +900,13 @@
         }
         @media (max-width: 1023px) {
             .hero-gallery {
-                display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x mandatory;
+                display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory;
                 padding-bottom: 4px;
                 scrollbar-width: none;
             }
             .hero-gallery::-webkit-scrollbar { display: none; }
-            .hero-gallery-item { flex: 0 0 84px; scroll-snap-align: start; }
+            .hero-gallery-item { flex: 0 0 110px; scroll-snap-align: start; }
+            .hero-gallery-item .gallery-cat { font-size: 9px; padding: 3px 6px; }
         }
 
         /* ============ Hero block icons cluster ============ */
@@ -965,6 +1040,15 @@
         ['src' => '/images/hero-roles/thumb_merch.jpg',   'category' => 'Merch',   'alt' => 'Merch drop'],
         ['src' => '/images/hero-roles/thumb_photo.jpg',   'category' => 'Photo',   'alt' => 'Photo print'],
         ['src' => '/images/hero-roles/thumb_podcast.jpg', 'category' => 'Podcast', 'alt' => 'Podcast cover'],
+        ['src' => '/images/hero-roles/thumb_writing.jpg', 'category' => 'Writing', 'alt' => 'Latest essay'],
+        ['src' => '/images/hero-roles/thumb_food.jpg',    'category' => 'Food',    'alt' => 'Recipe of the week'],
+        ['src' => '/images/hero-roles/thumb_fitness.jpg', 'category' => 'Fitness', 'alt' => 'Workout plan'],
+        ['src' => '/images/hero-roles/thumb_design.jpg',  'category' => 'Design',  'alt' => 'Design case study'],
+        ['src' => '/images/hero-roles/thumb_code.jpg',    'category' => 'Code',    'alt' => 'Open source project'],
+        ['src' => '/images/hero-roles/thumb_stream.jpg',  'category' => 'Stream',  'alt' => 'Live stream'],
+        ['src' => '/images/hero-roles/thumb_course.jpg',  'category' => 'Course',  'alt' => 'Online course'],
+        ['src' => '/images/hero-roles/thumb_book.jpg',    'category' => 'Book',    'alt' => 'Latest book'],
+        ['src' => '/images/hero-roles/thumb_travel.jpg',  'category' => 'Travel',  'alt' => 'Travel guide'],
     ];
 
     $heroRoles = [
@@ -1080,6 +1164,160 @@
                 ['icon' => 'fas fa-envelope-open-text', 'color' => '#ff8a3c', 'title' => 'Show notes',      'sub' => 'Newsletter every Friday'],
             ],
         ],
+        [
+            'word' => 'Writer',
+            'theme' => 'creator',
+            'wallpaper' => 'linear-gradient(140deg,#1e1b4b 0%,#7c3aed 55%,#ec4899 100%)',
+            'tint' => '#a855f7',
+            'categories' => ['Writing','Book','Podcast','Video','Art','Photo'],
+            'gallery' => $galleryPool,
+            'profile' => ['avatar' => '/images/hero-roles/role_writer.jpg', 'handle' => '@nora.writes', 'tag' => 'Essayist · Substack 18k', 'socials' => ['fa-substack','fa-medium','fa-x-twitter','fa-instagram']],
+            'blocks' => [
+                ['icon' => 'fas fa-feather',            'color' => '#a855f7', 'title' => 'New essay',         'sub' => 'On slow internet · 12 min', 'thumb' => '/images/hero-roles/thumb_writing.jpg'],
+                ['icon' => 'fas fa-envelope-open-text', 'color' => '#7c3aed', 'title' => 'Subscribe free',    'sub' => 'Weekly long reads'],
+                ['icon' => 'fas fa-book-open',          'color' => '#ffc845', 'title' => 'Buy the book',      'sub' => 'Quiet Signals · paperback', 'thumb' => '/images/hero-roles/thumb_book.jpg'],
+            ],
+        ],
+        [
+            'word' => 'Chef',
+            'theme' => 'creator',
+            'wallpaper' => 'linear-gradient(140deg,#7c2d12 0%,#fb923c 55%,#fde047 100%)',
+            'tint' => '#fb923c',
+            'categories' => ['Food','Video','Photo','Course','Merch','Podcast'],
+            'gallery' => $galleryPool,
+            'profile' => ['avatar' => '/images/hero-roles/role_chef.jpg', 'handle' => '@chef.remi', 'tag' => 'Recipes · Pop-ups · Cookbook', 'socials' => ['fa-youtube','fa-instagram','fa-tiktok','fa-pinterest']],
+            'blocks' => [
+                ['icon' => 'fas fa-utensils',           'color' => '#fb923c', 'title' => 'Recipe of the week', 'sub' => '20-min weeknight pasta',  'thumb' => '/images/hero-roles/thumb_food.jpg'],
+                ['icon' => 'fas fa-graduation-cap',     'color' => '#7c3aed', 'title' => 'Knife skills course','sub' => '6 lessons · self-paced',  'thumb' => '/images/hero-roles/thumb_course.jpg'],
+                ['icon' => 'fas fa-store',              'color' => '#ff8a3c', 'title' => 'Shop the spice kit', 'sub' => 'Limited drop',           'thumb' => '/images/hero-roles/thumb_merch.jpg'],
+            ],
+        ],
+        [
+            'word' => 'Yogi',
+            'theme' => 'coach',
+            'wallpaper' => 'linear-gradient(140deg,#064e3b 0%,#10b981 55%,#fde047 100%)',
+            'tint' => '#10b981',
+            'categories' => ['Fitness','Video','Course','Podcast','Photo','Music'],
+            'gallery' => $galleryPool,
+            'profile' => ['avatar' => '/images/hero-roles/role_fitness.jpg', 'handle' => '@yoga.with.sage', 'tag' => 'Yoga & breathwork · Online + Bali', 'socials' => ['fa-youtube','fa-instagram','fa-spotify','fa-tiktok']],
+            'blocks' => [
+                ['icon' => 'fas fa-dumbbell',           'color' => '#10b981', 'title' => '30-day flow',        'sub' => 'Daily 20-min sessions',   'thumb' => '/images/hero-roles/thumb_fitness.jpg'],
+                ['icon' => 'fas fa-calendar-check',     'color' => '#1bd4d9', 'title' => 'Book a 1:1',         'sub' => '60 min · Zoom or Bali'],
+                ['icon' => 'fas fa-graduation-cap',     'color' => '#7c3aed', 'title' => 'Teacher training',   'sub' => '200hr · Cohort 6 open',   'thumb' => '/images/hero-roles/thumb_course.jpg'],
+            ],
+        ],
+        [
+            'word' => 'Designer',
+            'theme' => 'gallery',
+            'wallpaper' => 'linear-gradient(140deg,#312e81 0%,#ec4899 55%,#fbbf24 100%)',
+            'tint' => '#ec4899',
+            'categories' => ['Design','Art','Photo','Merch','Video','Course'],
+            'gallery' => $galleryPool,
+            'profile' => ['avatar' => '/images/hero-roles/role_designer.jpg', 'handle' => '@studio.kova', 'tag' => 'Brand & product designer · Lisbon', 'socials' => ['fa-dribbble','fa-behance','fa-instagram','fa-linkedin']],
+            'blocks' => [
+                ['icon' => 'fas fa-pen-ruler',          'color' => '#ec4899', 'title' => 'Selected work',     'sub' => '14 case studies',         'thumb' => '/images/hero-roles/thumb_design.jpg'],
+                ['icon' => 'fas fa-paper-plane',        'color' => '#7c3aed', 'title' => 'Hire the studio',   'sub' => 'Brand · Web · Product'],
+                ['icon' => 'fas fa-store',              'color' => '#ffc845', 'title' => 'Template shop',     'sub' => 'Figma kits · ready to ship'],
+            ],
+        ],
+        [
+            'word' => 'Developer',
+            'theme' => 'creator',
+            'wallpaper' => 'linear-gradient(140deg,#0f172a 0%,#1bd4d9 55%,#7c3aed 100%)',
+            'tint' => '#1bd4d9',
+            'categories' => ['Code','Video','Course','Podcast','Writing','Design'],
+            'gallery' => $galleryPool,
+            'profile' => ['avatar' => '/images/hero-roles/role_developer.jpg', 'handle' => '@dev.with.kai', 'tag' => 'Open source · Indie hacker', 'socials' => ['fa-github','fa-x-twitter','fa-youtube','fa-linkedin']],
+            'blocks' => [
+                ['icon' => 'fab fa-github',             'color' => '#ffffff', 'title' => 'Open source',       'sub' => '8.4k ★ · TypeScript',     'thumb' => '/images/hero-roles/thumb_code.jpg'],
+                ['icon' => 'fas fa-graduation-cap',     'color' => '#1bd4d9', 'title' => 'Build with me',     'sub' => 'Course · 24 lessons',     'thumb' => '/images/hero-roles/thumb_course.jpg'],
+                ['icon' => 'fas fa-feather',            'color' => '#7c3aed', 'title' => 'Engineering blog',  'sub' => 'Weekly deep dives',       'thumb' => '/images/hero-roles/thumb_writing.jpg'],
+            ],
+        ],
+        [
+            'word' => 'Streamer',
+            'theme' => 'social',
+            'wallpaper' => 'linear-gradient(140deg,#3b0764 0%,#a855f7 55%,#ec4899 100%)',
+            'tint' => '#a855f7',
+            'categories' => ['Stream','Video','Merch','Music','Podcast','Photo'],
+            'gallery' => $galleryPool,
+            'profile' => ['avatar' => '/images/hero-roles/role_streamer.jpg', 'handle' => '@nyx.plays', 'tag' => 'Variety streamer · 92k Twitch', 'socials' => ['fa-twitch','fa-youtube','fa-discord','fa-x-twitter']],
+            'blocks' => [
+                ['icon' => 'fab fa-twitch',             'color' => '#a855f7', 'title' => 'Live now',          'sub' => 'Speedrun night · 1.2k watching', 'thumb' => '/images/hero-roles/thumb_stream.jpg'],
+                ['icon' => 'fab fa-discord',            'color' => '#5865f2', 'title' => 'Join the Discord',  'sub' => '14k members'],
+                ['icon' => 'fas fa-store',              'color' => '#ffc845', 'title' => 'Merch · Hoodies',   'sub' => 'New season drop',         'thumb' => '/images/hero-roles/thumb_merch.jpg'],
+            ],
+        ],
+        [
+            'word' => 'Educator',
+            'theme' => 'coach',
+            'wallpaper' => 'linear-gradient(140deg,#0c4a6e 0%,#38bdf8 55%,#7c3aed 100%)',
+            'tint' => '#38bdf8',
+            'categories' => ['Course','Video','Writing','Podcast','Book','Photo'],
+            'gallery' => $galleryPool,
+            'profile' => ['avatar' => '/images/hero-roles/role_educator.jpg', 'handle' => '@ms.alvarez', 'tag' => 'Tutor · SAT · Calculus · 1:1', 'socials' => ['fa-youtube','fa-instagram','fa-tiktok','fa-linkedin']],
+            'blocks' => [
+                ['icon' => 'fas fa-graduation-cap',     'color' => '#38bdf8', 'title' => 'Live cohort',       'sub' => 'Spring intake open',      'thumb' => '/images/hero-roles/thumb_course.jpg'],
+                ['icon' => 'fas fa-calendar-check',     'color' => '#7c3aed', 'title' => 'Book a session',    'sub' => '50 min · Zoom'],
+                ['icon' => 'fas fa-clipboard-list',     'color' => '#ff8a3c', 'title' => 'Free practice pack','sub' => 'PDFs · Drills · Keys'],
+            ],
+        ],
+        [
+            'word' => 'Author',
+            'theme' => 'gallery',
+            'wallpaper' => 'linear-gradient(140deg,#451a03 0%,#f59e0b 55%,#ec4899 100%)',
+            'tint' => '#f59e0b',
+            'categories' => ['Book','Writing','Podcast','Video','Photo','Art'],
+            'gallery' => $galleryPool,
+            'profile' => ['avatar' => '/images/hero-roles/role_author.jpg', 'handle' => '@iain.morrow', 'tag' => 'Novelist · Quiet Signals out now', 'socials' => ['fa-goodreads','fa-instagram','fa-x-twitter','fa-medium']],
+            'blocks' => [
+                ['icon' => 'fas fa-book-open',          'color' => '#f59e0b', 'title' => 'Buy Quiet Signals', 'sub' => 'Hardcover · audiobook',   'thumb' => '/images/hero-roles/thumb_book.jpg'],
+                ['icon' => 'fas fa-feather',            'color' => '#7c3aed', 'title' => 'Read a chapter',    'sub' => 'Free preview'],
+                ['icon' => 'fas fa-calendar-check',     'color' => '#1bd4d9', 'title' => 'Tour & signings',   'sub' => '8 cities · Spring'],
+            ],
+        ],
+        [
+            'word' => 'Nonprofit',
+            'theme' => 'business',
+            'wallpaper' => 'linear-gradient(140deg,#064e3b 0%,#22c55e 55%,#1bd4d9 100%)',
+            'tint' => '#22c55e',
+            'categories' => ['Video','Photo','Writing','Podcast','Merch','Music'],
+            'gallery' => $galleryPool,
+            'profile' => ['avatar' => '/images/hero-roles/role_nonprofit.jpg', 'handle' => '@cleanwave.org', 'tag' => 'Ocean cleanup · 501(c)(3)', 'socials' => ['fa-instagram','fa-youtube','fa-linkedin','fa-x-twitter']],
+            'blocks' => [
+                ['icon' => 'fas fa-hand-holding-heart', 'color' => '#22c55e', 'title' => 'Donate today',      'sub' => 'Every $5 = 20 lbs cleaned'],
+                ['icon' => 'fas fa-people-group',       'color' => '#1bd4d9', 'title' => 'Volunteer',         'sub' => 'Beach cleanups · monthly'],
+                ['icon' => 'fas fa-chart-line',         'color' => '#7c3aed', 'title' => 'Impact report',     'sub' => '2025 · 8.4M lbs removed'],
+            ],
+        ],
+        [
+            'word' => 'Realtor',
+            'theme' => 'business',
+            'wallpaper' => 'linear-gradient(140deg,#0a2540 0%,#1bd4d9 55%,#ffc845 100%)',
+            'tint' => '#1bd4d9',
+            'categories' => ['Photo','Video','Writing','Podcast','Art','Merch'],
+            'gallery' => $galleryPool,
+            'profile' => ['avatar' => '/images/hero-roles/role_realtor.jpg', 'handle' => '@home.with.eli', 'tag' => 'Realtor® · Austin TX · 9 yrs', 'socials' => ['fa-instagram','fa-youtube','fa-linkedin','fa-tiktok']],
+            'blocks' => [
+                ['icon' => 'fas fa-house',              'color' => '#1bd4d9', 'title' => 'Featured listings', 'sub' => '12 active · Austin metro', 'thumb' => '/images/hero-roles/thumb_photo.jpg'],
+                ['icon' => 'fas fa-calendar-check',     'color' => '#7c3aed', 'title' => 'Book a tour',       'sub' => 'In-person or virtual'],
+                ['icon' => 'fas fa-calculator',         'color' => '#ff8a3c', 'title' => 'Free home valuation','sub' => '60-second estimate'],
+            ],
+        ],
+        [
+            'word' => 'Traveler',
+            'theme' => 'social',
+            'wallpaper' => 'linear-gradient(140deg,#0c4a6e 0%,#06b6d4 55%,#fde047 100%)',
+            'tint' => '#06b6d4',
+            'categories' => ['Travel','Photo','Video','Writing','Podcast','Course'],
+            'gallery' => $galleryPool,
+            'profile' => ['avatar' => '/images/hero-roles/role_travel.jpg', 'handle' => '@wander.with.io', 'tag' => 'Travel · 38 countries · Maps & guides', 'socials' => ['fa-instagram','fa-youtube','fa-tiktok','fa-pinterest']],
+            'blocks' => [
+                ['icon' => 'fas fa-plane',              'color' => '#06b6d4', 'title' => 'City guides',       'sub' => '12 cities · live maps',   'thumb' => '/images/hero-roles/thumb_travel.jpg'],
+                ['icon' => 'fas fa-camera',             'color' => '#ec4899', 'title' => 'Lightroom presets', 'sub' => 'Sun-soaked · Misty pack'],
+                ['icon' => 'fas fa-envelope-open-text', 'color' => '#ffc845', 'title' => 'Trip newsletter',   'sub' => 'Monthly · 24k readers'],
+            ],
+        ],
     ];
 
     // Visible block-type icons cluster shown in the hero.
@@ -1094,6 +1332,16 @@
         ['i' => 'fas fa-image',              'c' => '#1bd4d9', 'l' => 'Image'],
         ['i' => 'fas fa-microphone',         'c' => '#ff8a3c', 'l' => 'Podcast'],
         ['i' => 'fas fa-calendar-check',     'c' => '#7c3aed', 'l' => 'Calendar'],
+        ['i' => 'fas fa-book-open',          'c' => '#f59e0b', 'l' => 'Book'],
+        ['i' => 'fas fa-graduation-cap',     'c' => '#38bdf8', 'l' => 'Course'],
+        ['i' => 'fab fa-twitch',             'c' => '#a855f7', 'l' => 'Stream'],
+        ['i' => 'fas fa-utensils',           'c' => '#fb923c', 'l' => 'Recipe'],
+        ['i' => 'fas fa-feather',            'c' => '#a855f7', 'l' => 'Writing'],
+        ['i' => 'fab fa-github',             'c' => '#ffffff', 'l' => 'Code'],
+        ['i' => 'fas fa-dumbbell',           'c' => '#10b981', 'l' => 'Fitness'],
+        ['i' => 'fas fa-plane',              'c' => '#06b6d4', 'l' => 'Travel'],
+        ['i' => 'fas fa-house',              'c' => '#1bd4d9', 'l' => 'Listing'],
+        ['i' => 'fas fa-hand-holding-heart', 'c' => '#22c55e', 'l' => 'Donate'],
     ];
 @endphp
 
@@ -1156,7 +1404,7 @@
                 <div class="sticker top-1/3 -right-3 w-6 h-6 rounded-full wiggle opacity-80" style="background:var(--c3); animation-delay:-2s"></div>
 
                 {{-- Phone mockup --}}
-                <div class="relative flex items-center justify-center">
+                <div class="relative flex items-center justify-center hero-phone-stage">
                     <div id="hero-phone-wrap" class="hero-phone-wrap float-c">
                         <div class="hero-phone">
                             <div id="hero-phone-screen" class="hero-phone-screen">
@@ -1166,10 +1414,10 @@
                         </div>
                     </div>
 
-                    {{-- Live visitors card (compact) --}}
-                    <div class="float-b absolute top-2 right-0 sm:top-4 sm:-right-2 glass-2 rounded-2xl p-2.5 w-[150px] shadow-2xl shadow-[#1bd4d9]/20 z-10 hidden sm:block">
+                    {{-- Floating info cards (desktop only) --}}
+                    <div class="float-b float-card float-card--visitors hidden lg:block" aria-hidden="true">
                         <div class="flex items-center justify-between mb-1">
-                            <span class="text-[9px] uppercase tracking-wider text-gray-400 font-bold">Live visitors</span>
+                            <span class="float-card-label">Live visitors</span>
                             <span class="flex items-center gap-1 text-[9px] font-bold" style="color:var(--c1)"><span class="w-1.5 h-1.5 rounded-full pulse-dot" style="background:var(--c1)"></span>NOW</span>
                         </div>
                         <div class="text-xl font-bold">247</div>
@@ -1179,18 +1427,100 @@
                         </svg>
                     </div>
 
-                    {{-- Performance Coach card (compact) --}}
-                    <div class="float-c absolute bottom-4 -left-2 sm:bottom-8 sm:left-0 glass-2 rounded-2xl p-2.5 w-[180px] shadow-2xl shadow-[#7c3aed]/30 z-10 hidden sm:block" style="animation-delay:-2s">
+                    <div class="float-c float-card float-card--coach hidden lg:block" style="animation-delay:-2s" aria-hidden="true">
                         <div class="flex items-center gap-2 mb-1.5">
                             <div class="w-8 h-8 rounded-xl flex items-center justify-center grad-bar"><i class="fas fa-bolt text-white text-xs"></i></div>
                             <div>
-                                <div class="text-[9px] uppercase tracking-wider text-gray-400 font-bold">Performance Coach</div>
+                                <span class="float-card-label">Performance Coach</span>
                                 <div class="text-xs font-bold">Health score 87</div>
                             </div>
                         </div>
                         <div class="h-1.5 bg-white/10 rounded-full overflow-hidden">
                             <div class="h-full grad-bar rounded-full" style="width:87%"></div>
                         </div>
+                    </div>
+
+                    <div class="float-a float-card float-card--toplink hidden lg:block" style="animation-delay:-1s" aria-hidden="true">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="float-card-label">Top link</span>
+                            <span class="text-[9px] font-bold" style="color:#1ed760">+18%</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:rgba(255,0,51,.18);color:#ff5252"><i class="fab fa-youtube text-xs"></i></div>
+                            <div class="min-w-0">
+                                <div class="text-[11px] font-bold truncate">Latest video</div>
+                                <div class="text-[9px] text-gray-400">1,284 clicks</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="float-b float-card float-card--conv hidden lg:block" style="animation-delay:-3.5s" aria-hidden="true">
+                        <span class="float-card-label">Conversions today</span>
+                        <div class="flex items-baseline gap-2 mt-0.5">
+                            <div class="text-xl font-bold">38</div>
+                            <span class="text-[10px] font-bold" style="color:#1ed760">+12%</span>
+                        </div>
+                        <div class="flex items-end gap-0.5 h-5 mt-1">
+                            @foreach([6,9,5,11,8,14,10,16,13,18] as $h)
+                                <span class="flex-1 rounded-sm" style="height:{{ $h * 5 }}%;background:linear-gradient(180deg,#1bd4d9,#7c3aed)"></span>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <div class="float-c float-card float-card--qr hidden lg:block" style="animation-delay:-1.5s" aria-hidden="true">
+                        <div class="flex items-center gap-2">
+                            <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:rgba(124,58,237,.2);color:#a78bfa"><i class="fas fa-qrcode text-base"></i></div>
+                            <div>
+                                <span class="float-card-label">QR scans</span>
+                                <div class="text-sm font-bold leading-tight">1,420 <span class="text-[10px] text-gray-400 font-normal">/ 7d</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="float-a float-card float-card--follower hidden lg:block" style="animation-delay:-2.5s" aria-hidden="true">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-[11px] font-bold" style="background:linear-gradient(135deg,#ec4899,#7c3aed)">M</div>
+                            <div class="min-w-0">
+                                <span class="float-card-label">New follower</span>
+                                <div class="text-[11px] font-bold truncate">@maya.daily</div>
+                                <div class="text-[9px] text-gray-400">just now · IG</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="float-b float-card float-card--revenue hidden lg:block" style="animation-delay:-4s" aria-hidden="true">
+                        <span class="float-card-label">Revenue today</span>
+                        <div class="flex items-baseline gap-2 mt-0.5">
+                            <div class="text-xl font-bold">$ 412</div>
+                            <span class="text-[10px] font-bold" style="color:#1ed760">▲ 9%</span>
+                        </div>
+                        <div class="flex items-center gap-1 mt-1 text-[9px] text-gray-400">
+                            <i class="fas fa-store" style="color:#ff8a3c"></i> 6 orders · 2 tips
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Mobile-only stacked stats row (replaces floating cards on small screens) --}}
+                <div class="hero-mobile-stats lg:hidden mt-5" aria-hidden="true">
+                    <div class="hero-mstat">
+                        <span class="lbl"><span class="w-1.5 h-1.5 rounded-full pulse-dot inline-block mr-1" style="background:var(--c1)"></span>Live</span>
+                        <span class="val">247</span>
+                        <span class="sub">visitors</span>
+                    </div>
+                    <div class="hero-mstat">
+                        <span class="lbl"><i class="fas fa-bolt" style="color:#ffc845"></i> Coach</span>
+                        <span class="val">87</span>
+                        <span class="sub">health</span>
+                    </div>
+                    <div class="hero-mstat">
+                        <span class="lbl"><i class="fas fa-qrcode" style="color:#a78bfa"></i> QR</span>
+                        <span class="val">1.4k</span>
+                        <span class="sub">scans</span>
+                    </div>
+                    <div class="hero-mstat">
+                        <span class="lbl"><i class="fas fa-store" style="color:#ff8a3c"></i> Today</span>
+                        <span class="val">$412</span>
+                        <span class="sub">revenue</span>
                     </div>
                 </div>
 
@@ -1248,7 +1578,7 @@
             function buildGalleryHTML(role) {
                 return orderedGallery(role).map((g, i) => `
                     <div class="hero-gallery-item gallery-shimmer" style="--gd:${i * 60}ms">
-                        ${pictureThumb(g.src, '', 120, 120, '(max-width: 1023px) 84px, 120px', g.alt || '')}
+                        ${pictureThumb(g.src, '', 120, 120, '(max-width: 1023px) 110px, 120px', g.alt || '')}
                         <span class="gallery-cat">${escapeHTML(g.category)}</span>
                     </div>`).join('');
             }
