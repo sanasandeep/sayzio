@@ -19,12 +19,11 @@ use Illuminate\Support\Facades\DB;
 
 class TaskBoardController extends Controller
 {
-    /** Default columns seeded into every new board. */
+    /** Default columns seeded into every new board (per the v1 task spec). */
     private const STARTER_COLUMNS = [
-        ['name' => 'Backlog',     'color' => '#64748b', 'is_done' => false],
-        ['name' => 'In Progress', 'color' => '#3b82f6', 'is_done' => false],
-        ['name' => 'Review',      'color' => '#a855f7', 'is_done' => false],
-        ['name' => 'Done',        'color' => '#10b981', 'is_done' => true ],
+        ['name' => 'Todo',  'color' => '#64748b', 'is_done' => false],
+        ['name' => 'Doing', 'color' => '#3b82f6', 'is_done' => false],
+        ['name' => 'Done',  'color' => '#10b981', 'is_done' => true ],
     ];
 
     /** Boards listing — separates personal and team boards for the current user. */
@@ -59,7 +58,20 @@ class TaskBoardController extends Controller
                 }]);
         }
 
-        return view('user.tasks.index', compact('personal', 'team'));
+        // Archived boards (both scopes) — only fetched when the user opens
+        // the "Archived" panel. Owner/admin can restore or hard-delete from
+        // here; readers see them as a read-only audit trail.
+        $archived = TaskBoard::query()
+            ->whereNotNull('archived_at')
+            ->where(function ($q) use ($userId) {
+                $q->where(function ($q2) use ($userId) {
+                    $q2->where('scope', 'personal')->where('owner_user_id', $userId);
+                })->orWhere('scope', 'team');
+            })
+            ->orderByDesc('archived_at')
+            ->get();
+
+        return view('user.tasks.index', compact('personal', 'team', 'archived'));
     }
 
     public function store(Request $request)
@@ -215,6 +227,30 @@ class TaskBoardController extends Controller
         ]);
         $board->update($data);
         return back()->with('success', 'Board updated.');
+    }
+
+    /**
+     * Soft-archive a board (sets archived_at). Hidden from the default
+     * boards list but recoverable via unarchiveBoard(). Authz mirrors the
+     * destructive board delete: owner / admin only.
+     */
+    public function archiveBoard(TaskBoard $board)
+    {
+        $this->authorizeDelete($board);
+        if (!$board->archived_at) {
+            $board->update(['archived_at' => now()]);
+        }
+        return back()->with('success', 'Board archived.');
+    }
+
+    /** Restore a soft-archived board so it shows up in the index again. */
+    public function unarchiveBoard(TaskBoard $board)
+    {
+        $this->authorizeDelete($board);
+        if ($board->archived_at) {
+            $board->update(['archived_at' => null]);
+        }
+        return back()->with('success', 'Board restored.');
     }
 
     public function destroyBoard(TaskBoard $board)

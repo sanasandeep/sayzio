@@ -68,11 +68,55 @@
         @include('user.tasks.partials.board-grid', ['boards' => $personal, 'emptyMsg' => 'No personal boards yet.'])
     </section>
 
-    <section>
+    <section class="mb-8">
         <h2 class="text-sm font-bold uppercase tracking-widest mb-3" style="color: var(--text-faint);">
             <i class="fas fa-users mr-1"></i> Team Boards
         </h2>
         @include('user.tasks.partials.board-grid', ['boards' => $team, 'emptyMsg' => 'No team boards yet — create one to share work with your workspace.'])
     </section>
+
+    @if(($archived ?? collect())->isNotEmpty())
+        <section x-data="{ open: false }" class="mt-10">
+            <button type="button" @click="open = !open"
+                    class="text-sm font-bold uppercase tracking-widest mb-3 flex items-center gap-2"
+                    style="color: var(--text-faint);">
+                <i class="fas" :class="open ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+                <i class="fas fa-box-archive"></i>
+                Archived Boards ({{ $archived->count() }})
+            </button>
+            <div x-show="open" x-cloak class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                @foreach($archived as $b)
+                    <div class="rounded-2xl border p-5 opacity-80"
+                         style="background: var(--bg-card); border-color: var(--border-soft); border-left: 4px solid {{ $b->color ?: '#94a3b8' }};">
+                        <div class="flex items-start justify-between gap-2">
+                            <h3 class="text-base font-bold" style="color: var(--text-primary);">{{ $b->name }}</h3>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                                  style="background: rgba(100,116,139,0.18); color:#475569;">ARCHIVED</span>
+                        </div>
+                        <p class="text-xs mt-2" style="color: var(--text-faint);">
+                            Archived {{ $b->archived_at->diffForHumans() }}
+                        </p>
+                        <div class="mt-3 flex items-center gap-2">
+                            <form method="POST" action="{{ route('user.tasks.boards.unarchive', $b) }}">
+                                @csrf
+                                <button class="px-3 py-1.5 rounded-lg text-xs font-semibold border"
+                                        style="border-color: var(--border-strong); color: var(--text-primary);">
+                                    <i class="fas fa-rotate-left mr-1"></i> Restore
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ route('user.tasks.boards.destroy', $b) }}"
+                                  onsubmit="return confirm('Permanently delete this board and all its cards?');">
+                                @csrf @method('DELETE')
+                                <button class="px-3 py-1.5 rounded-lg text-xs font-semibold"
+                                        style="color:#ef4444;">
+                                    <i class="fas fa-trash mr-1"></i> Delete forever
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </section>
+    @endif
 </div>
 @endsection

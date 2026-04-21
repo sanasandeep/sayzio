@@ -552,6 +552,8 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post('boards',                 [\App\Modules\User\Controllers\TaskBoardController::class, 'store'])->name('boards.store');
             Route::get('boards/{board}',          [\App\Modules\User\Controllers\TaskBoardController::class, 'show'])->name('show');
             Route::put('boards/{board}',          [\App\Modules\User\Controllers\TaskBoardController::class, 'updateBoard'])->name('boards.update');
+            Route::post('boards/{board}/archive',   [\App\Modules\User\Controllers\TaskBoardController::class, 'archiveBoard'])->name('boards.archive');
+            Route::post('boards/{board}/unarchive', [\App\Modules\User\Controllers\TaskBoardController::class, 'unarchiveBoard'])->name('boards.unarchive');
             Route::delete('boards/{board}',       [\App\Modules\User\Controllers\TaskBoardController::class, 'destroyBoard'])->name('boards.destroy');
 
             Route::post('boards/{board}/columns',          [\App\Modules\User\Controllers\TaskBoardController::class, 'storeColumn'])->name('columns.store');

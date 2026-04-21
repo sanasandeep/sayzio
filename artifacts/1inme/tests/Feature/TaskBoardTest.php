@@ -65,7 +65,9 @@ class TaskBoardTest extends TestCase
         $board = TaskBoard::where('name', 'Sprint 1')->first();
         $this->assertNotNull($board);
         $this->assertSame('team', $board->scope);
-        $this->assertSame(4, $board->columns()->count());
+        // Spec calls for the canonical Todo / Doing / Done starter set.
+        $names = $board->columns()->orderBy('position')->pluck('name')->all();
+        $this->assertSame(['Todo', 'Doing', 'Done'], $names);
         $this->assertTrue($board->columns()->where('is_done', true)->exists());
     }
 
@@ -371,6 +373,56 @@ class TaskBoardTest extends TestCase
             ->where('data->card_id', $card->id)
             ->count();
         $this->assertSame(1, $count, 'tz-window dedupe must collapse repeated runs');
+    }
+
+    public function test_show_card_returns_activities_with_ui_contract_keys(): void
+    {
+        // Locks the wire format the drawer's Activity tab depends on:
+        // each row must expose `type`, `data`, and `created_at` (with the
+        // user relation eager-loaded), ordered newest-first.
+        $alice = $this->makeUser('alice');
+        $ws    = $alice->ensureDefaultWorkspace();
+        session(['active_workspace_id' => $ws->id]);
+        $this->actingAs($alice)->post('/user/tasks/boards', ['name' => 'ActB', 'scope' => 'team']);
+        $board = TaskBoard::query()->withoutGlobalScope('workspace')->where('name', 'ActB')->first();
+        $col   = $board->columns()->orderBy('position')->first();
+        $this->actingAs($alice)->post("/user/tasks/boards/{$board->id}/cards", ['column_id' => $col->id, 'title' => 'Activated']);
+        $card  = TaskCard::query()->withoutGlobalScope('workspace')->where('title', 'Activated')->first();
+        // Add a comment so we get a second activity row to test ordering.
+        $this->actingAs($alice)->post("/user/tasks/cards/{$card->id}/comments", ['body' => 'first note']);
+
+        $resp = $this->actingAs($alice)->get("/user/tasks/cards/{$card->id}")->assertOk()->json('card');
+        $this->assertIsArray($resp['activities'] ?? null);
+        $this->assertGreaterThanOrEqual(2, count($resp['activities']));
+        foreach ($resp['activities'] as $row) {
+            $this->assertArrayHasKey('type', $row,       'activity must expose `type` for the UI');
+            $this->assertArrayHasKey('data', $row,       'activity must expose `data` for the UI');
+            $this->assertArrayHasKey('created_at', $row, 'activity must expose `created_at` for the UI');
+        }
+        // Newest-first ordering (commented row should precede created row).
+        $this->assertSame('commented', $resp['activities'][0]['type']);
+    }
+
+    public function test_archive_and_unarchive_board_owner_only(): void
+    {
+        $owner  = $this->makeUser('arc');
+        $editor = $this->makeUser('arced');
+        $ws     = $owner->ensureDefaultWorkspace();
+        WorkspaceMember::create(['workspace_id' => $ws->id, 'user_id' => $editor->id, 'role' => 'editor']);
+
+        session(['active_workspace_id' => $ws->id]);
+        $this->actingAs($owner)->post('/user/tasks/boards', ['name' => 'Arc1', 'scope' => 'team']);
+        $board = TaskBoard::query()->withoutGlobalScope('workspace')->where('name', 'Arc1')->first();
+
+        // Editor cannot archive a board (owner/admin only).
+        $this->actingAs($editor)->post("/user/tasks/boards/{$board->id}/archive")->assertStatus(403);
+        $this->assertNull($board->fresh()->archived_at);
+
+        // Owner can archive and then unarchive.
+        $this->actingAs($owner)->post("/user/tasks/boards/{$board->id}/archive")->assertRedirect();
+        $this->assertNotNull($board->fresh()->archived_at);
+        $this->actingAs($owner)->post("/user/tasks/boards/{$board->id}/unarchive")->assertRedirect();
+        $this->assertNull($board->fresh()->archived_at);
     }
 
     public function test_attachment_blocks_disallowed_mime_and_extension(): void

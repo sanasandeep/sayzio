@@ -62,11 +62,21 @@
                     style="border-color: var(--border-strong); color: var(--text-primary);">
                 <i class="fas fa-plus mr-1"></i> Add Column
             </button>
+            <form action="{{ route('user.tasks.boards.archive', $board) }}" method="POST"
+                  onsubmit="return confirm('Archive this board? You can restore it later from the boards list.')">
+                @csrf
+                <button class="px-3 py-2 rounded-lg text-sm font-semibold border"
+                        style="border-color: var(--border-strong); color: var(--text-primary);"
+                        title="Archive board (recoverable)">
+                    <i class="fas fa-box-archive"></i>
+                </button>
+            </form>
             <form action="{{ route('user.tasks.boards.destroy', $board) }}" method="POST"
-                  onsubmit="return confirm('Delete this board and all its cards?')">
+                  onsubmit="return confirm('Permanently delete this board and all its cards?')">
                 @csrf @method('DELETE')
                 <button class="px-3 py-2 rounded-lg text-sm font-semibold"
-                        style="color: #ef4444;">
+                        style="color: #ef4444;"
+                        title="Delete board permanently">
                     <i class="fas fa-trash"></i>
                 </button>
             </form>
@@ -340,19 +350,93 @@
                 </div>
 
                 <div class="mt-5">
-                    <h3 class="text-xs font-bold uppercase mb-2" style="color: var(--text-faint);">Comments</h3>
-                    <template x-for="c in card.comments" :key="c.id">
-                        <div class="mb-2 p-2 rounded" style="background: var(--bg-glass-input);">
-                            <div class="text-xs font-semibold" style="color: var(--text-primary);" x-text="c.user?.name || 'Someone'"></div>
-                            <div class="text-sm whitespace-pre-line" style="color: var(--text-primary);" x-text="c.body"></div>
-                        </div>
-                    </template>
-                    <form @submit.prevent="addComment($event)">
-                        <textarea name="body" rows="2" placeholder="Write a comment…" maxlength="5000"
-                                  class="w-full px-2 py-1 text-sm rounded border"
-                                  style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);"></textarea>
-                        <button class="mt-1 px-3 py-1 rounded text-xs font-semibold text-white" style="background: #7c3aed;">Post</button>
-                    </form>
+                    {{-- Tabbed footer: Comments + Activity log. Activity rows
+                         come from card.activities (server already eager-loads
+                         them in showCard()). --}}
+                    <div class="flex items-center gap-1 mb-2 border-b" style="border-color: var(--border-soft);">
+                        <button type="button" @click="cardTab = 'comments'"
+                                class="px-3 py-1.5 text-xs font-bold uppercase tracking-wide"
+                                :style="cardTab === 'comments'
+                                    ? 'color: var(--text-primary); border-bottom: 2px solid #7c3aed;'
+                                    : 'color: var(--text-faint);'">
+                            <i class="fas fa-comment mr-1"></i> Comments
+                            <span class="ml-1 opacity-70" x-text="(card.comments || []).length"></span>
+                        </button>
+                        <button type="button" @click="cardTab = 'activity'"
+                                class="px-3 py-1.5 text-xs font-bold uppercase tracking-wide"
+                                :style="cardTab === 'activity'
+                                    ? 'color: var(--text-primary); border-bottom: 2px solid #7c3aed;'
+                                    : 'color: var(--text-faint);'">
+                            <i class="fas fa-clock-rotate-left mr-1"></i> Activity
+                            <span class="ml-1 opacity-70" x-text="(card.activities || []).length"></span>
+                        </button>
+                    </div>
+
+                    {{-- Comments pane --}}
+                    <div x-show="cardTab === 'comments'">
+                        <template x-for="c in card.comments" :key="c.id">
+                            <div class="mb-2 p-2 rounded" style="background: var(--bg-glass-input);">
+                                <div class="text-xs font-semibold" style="color: var(--text-primary);" x-text="c.user?.name || 'Someone'"></div>
+                                <div class="text-sm whitespace-pre-line" style="color: var(--text-primary);" x-text="c.body"></div>
+                            </div>
+                        </template>
+
+                        {{-- Composer with @-mention autocomplete against workspace members --}}
+                        <form @submit.prevent="addComment($event)" class="relative">
+                            <textarea name="body" rows="2" placeholder="Write a comment… use @name to mention" maxlength="5000"
+                                      x-ref="commentBody"
+                                      @input="onCommentInput($event)"
+                                      @keydown.escape.prevent="mentionOpen = false"
+                                      @keydown.arrow-down.prevent="mentionMove(1)"
+                                      @keydown.arrow-up.prevent="mentionMove(-1)"
+                                      @keydown.enter="mentionOpen && (mentionPick(mentionMatches[mentionIndex]), $event.preventDefault())"
+                                      class="w-full px-2 py-1 text-sm rounded border"
+                                      style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);"></textarea>
+
+                            <div x-show="mentionOpen && mentionMatches.length > 0"
+                                 x-cloak
+                                 class="absolute left-0 right-0 mt-1 rounded-lg border shadow-lg z-50 max-h-56 overflow-y-auto"
+                                 style="background: var(--bg-card); border-color: var(--border-strong);">
+                                <template x-for="(m, i) in mentionMatches" :key="m.id">
+                                    <button type="button" @click.prevent="mentionPick(m)"
+                                            @mouseenter="mentionIndex = i"
+                                            class="w-full text-left px-3 py-1.5 text-sm flex items-center gap-2"
+                                            :style="i === mentionIndex
+                                                ? 'background: rgba(124,58,237,0.12); color: var(--text-primary);'
+                                                : 'color: var(--text-primary);'">
+                                        <span class="w-5 h-5 rounded-full bg-violet-500/30 text-[10px] flex items-center justify-center font-bold uppercase"
+                                              x-text="(m.name || '?').charAt(0)"></span>
+                                        <span x-text="m.name"></span>
+                                        <span class="ml-auto text-[10px] opacity-60">@<span x-text="m.mention_token"></span></span>
+                                    </button>
+                                </template>
+                            </div>
+
+                            <button class="mt-1 px-3 py-1 rounded text-xs font-semibold text-white" style="background: #7c3aed;">Post</button>
+                        </form>
+                    </div>
+
+                    {{-- Activity pane --}}
+                    <div x-show="cardTab === 'activity'" x-cloak>
+                        <template x-if="!card.activities || card.activities.length === 0">
+                            <p class="text-xs italic" style="color: var(--text-faint);">No activity yet.</p>
+                        </template>
+                        <ol class="space-y-2">
+                            {{-- The activities() relation already orders by
+                                 created_at DESC server-side, so we render in
+                                 the array order (newest first). --}}
+                            <template x-for="a in (card.activities || [])" :key="a.id">
+                                <li class="flex items-start gap-2 text-xs" style="color: var(--text-muted);">
+                                    <i class="fas fa-circle text-[6px] mt-1.5" style="color:#7c3aed;"></i>
+                                    <div class="flex-1">
+                                        <span class="font-semibold" style="color: var(--text-primary);" x-text="a.user?.name || 'Someone'"></span>
+                                        <span x-text="' ' + activityLabel(a)"></span>
+                                        <div class="opacity-60 text-[11px] mt-0.5" x-text="formatActivityTime(a.created_at)"></div>
+                                    </div>
+                                </li>
+                            </template>
+                        </ol>
+                    </div>
                 </div>
 
                 <div class="mt-6 pt-4 border-t flex justify-between" style="border-color: var(--border-soft);">
@@ -374,8 +458,23 @@ function kanbanBoard(boardId) {
         showAddColumn: false,
         newLabelOpen: false,
         boardLabels: @json($board->labels->map(fn($l) => ['id'=>$l->id,'name'=>$l->name,'color'=>$l->color])),
+        // Workspace members reachable from this board, with the same mention
+        // token format the server's notifyMentions() expects (lowercased, no
+        // whitespace) so the autocomplete inserts text the parser will hit.
+        boardMembers: @json($members->map(fn($m) => [
+            'id' => $m->id,
+            'name' => $m->name,
+            'mention_token' => mb_strtolower(preg_replace('/\s+/', '', (string) $m->name)),
+        ])),
         filters: { search: '', assignee: '', label: '', due: '' },
         card: null,
+        cardTab: 'comments',
+        // Mention autocomplete state.
+        mentionOpen: false,
+        mentionQuery: '',
+        mentionStart: 0,
+        mentionMatches: [],
+        mentionIndex: 0,
         csrf: document.querySelector('meta[name="csrf-token"]').content,
 
         init() {
@@ -484,6 +583,88 @@ function kanbanBoard(boardId) {
             const r = await this.fetchJson(`/user/tasks/cards/${this.card.id}/comments`, { method: 'POST', body: { body } });
             this.card.comments.push(r.comment);
             ta.value = '';
+            this.mentionOpen = false;
+            // A new comment writes an activity row server-side; refresh the
+            // card so the Activity tab stays in sync without a full reload.
+            this.refreshActivities();
+        },
+
+        // ---- @-mention autocomplete -------------------------------------
+        // Detect "@token" being typed at the caret. Filter workspace members
+        // by name / mention_token (case-insensitive prefix or substring).
+        onCommentInput(e) {
+            const ta = e.target;
+            const pos = ta.selectionStart;
+            const upto = ta.value.slice(0, pos);
+            const m = upto.match(/(^|\s)@([A-Za-z0-9._\-]{0,32})$/);
+            if (!m) { this.mentionOpen = false; return; }
+            const q = m[2].toLowerCase();
+            this.mentionStart = pos - m[2].length - 1; // position of '@'
+            this.mentionQuery = q;
+            this.mentionMatches = (this.boardMembers || [])
+                .filter(u => {
+                    if (!q) return true;
+                    return u.mention_token.startsWith(q)
+                        || (u.name || '').toLowerCase().includes(q);
+                })
+                .slice(0, 6);
+            this.mentionIndex = 0;
+            this.mentionOpen = this.mentionMatches.length > 0;
+        },
+        mentionMove(delta) {
+            if (!this.mentionOpen || !this.mentionMatches.length) return;
+            const n = this.mentionMatches.length;
+            this.mentionIndex = (this.mentionIndex + delta + n) % n;
+        },
+        mentionPick(member) {
+            if (!member) return;
+            const ta = this.$refs.commentBody;
+            const before = ta.value.slice(0, this.mentionStart);
+            const after  = ta.value.slice(ta.selectionStart);
+            const insert = '@' + member.mention_token + ' ';
+            ta.value = before + insert + after;
+            const caret = (before + insert).length;
+            ta.setSelectionRange(caret, caret);
+            ta.focus();
+            this.mentionOpen = false;
+        },
+
+        // ---- Activity tab helpers ---------------------------------------
+        async refreshActivities() {
+            if (!this.card) return;
+            try {
+                const data = await this.fetchJson(`/user/tasks/cards/${this.card.id}`);
+                this.card.activities = data.card.activities || [];
+            } catch (_) { /* non-fatal */ }
+        },
+        activityLabel(a) {
+            // Backend stores rows as { type, data }; normalise so older
+            // payloads or future renames still display something sensible.
+            const t = a.type || a.action || 'updated';
+            const d = a.data || a.meta || {};
+            switch (t) {
+                case 'created':            return 'created this card';
+                case 'moved':              return 'moved the card';
+                case 'assigned':           return 'assigned a teammate';
+                case 'unassigned':         return 'unassigned a teammate';
+                case 'attached':           return `attached "${d.name || 'a file'}"`;
+                case 'attachment_removed': return `removed attachment "${d.name || ''}"`;
+                case 'commented':          return 'left a comment';
+                case 'completed':          return 'marked it complete';
+                case 'reopened':           return 'reopened the card';
+                case 'title':
+                case 'description':
+                case 'description_html':
+                case 'due_date':
+                case 'priority':
+                case 'progress':
+                case 'updated':            return `updated ${String(t).replace(/_/g, ' ')}`;
+                default:                   return String(t).replace(/_/g, ' ');
+            }
+        },
+        formatActivityTime(iso) {
+            if (!iso) return '';
+            try { return new Date(iso).toLocaleString(); } catch (_) { return iso; }
         },
 
         async attachLabel(labelId) {
