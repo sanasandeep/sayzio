@@ -99,6 +99,23 @@
                 </div>
             </template>
             <p x-show="trust.length===0" class="text-xs text-white/40">No metrics yet — add at least one to show the strip.</p>
+
+            {{-- Live preview --}}
+            <div x-show="trust.length>0" class="mt-2 pt-4 border-t border-white/5">
+                <div class="text-[10px] uppercase tracking-wider text-white/40 mb-3">Live preview</div>
+                <div class="rounded-xl bg-gradient-to-br from-slate-900 to-slate-950 border border-white/10 px-4 py-4">
+                    <div class="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+                        <template x-for="(t,i) in trust" :key="'tp'+i">
+                            <span class="flex items-center gap-2 text-gray-400">
+                                <i class="fas text-[13px] text-violet-300"
+                                   :class="(t.icon || 'fa-check').replace(/^fas?\s+/, '')"></i>
+                                <span class="font-bold text-white" x-text="t.value || '—'"></span>
+                                <span class="text-gray-500" x-text="t.label || ''"></span>
+                            </span>
+                        </template>
+                    </div>
+                </div>
+            </div>
         </div>
 
         {{-- Why 1INME comparison --}}
@@ -137,6 +154,32 @@
                 </div>
             </template>
             <p x-show="why.length===0" class="text-xs text-white/40">No rows yet — the comparison section will be hidden on the landing page.</p>
+
+            {{-- Live preview --}}
+            <div x-show="why.length>0" class="mt-2 pt-4 border-t border-white/5">
+                <div class="text-[10px] uppercase tracking-wider text-white/40 mb-3">Live preview</div>
+                <div class="rounded-2xl overflow-hidden border border-white/10 bg-gradient-to-br from-slate-900 to-slate-950">
+                    <div class="grid grid-cols-12 px-4 py-3 bg-white/[.04] text-[11px] font-bold uppercase tracking-wider text-gray-400">
+                        <div class="col-span-6">Feature</div>
+                        <div class="col-span-3 text-center text-white">1INME</div>
+                        <div class="col-span-3 text-center">Typical bio-link tool</div>
+                    </div>
+                    <template x-for="(r,i) in why" :key="'wp'+i">
+                        <div class="grid grid-cols-12 items-center px-4 py-3 border-t border-white/5 text-sm">
+                            <div class="col-span-6 text-gray-200" x-text="r.feature || '—'"></div>
+                            <div class="col-span-3 text-center">
+                                <template x-if="(r.ours || '').trim().toLowerCase() === 'yes'">
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-300 text-xs font-semibold"><i class="fas fa-check"></i> Yes</span>
+                                </template>
+                                <template x-if="(r.ours || '').trim().toLowerCase() !== 'yes'">
+                                    <span class="text-white text-xs font-semibold" x-text="r.ours || ''"></span>
+                                </template>
+                            </div>
+                            <div class="col-span-3 text-center text-gray-400 text-xs" x-text="r.theirs || ''"></div>
+                        </div>
+                    </template>
+                </div>
+            </div>
         </div>
 
         {{-- Landing testimonials --}}
