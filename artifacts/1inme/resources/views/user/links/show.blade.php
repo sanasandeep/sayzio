@@ -850,8 +850,12 @@
                 @php
                     $pct = $languageTotal > 0 ? round(($group['count'] / $languageTotal) * 100, 1) : 0;
                     $bl = $languageLabel($base);
-                    $topLocales = array_slice($group['locales'], 0, 5);
+                    $sortedLocales = $group['locales'];
+                    usort($sortedLocales, fn($a, $b) => $b['count'] <=> $a['count']);
+                    $topLocales = array_slice($sortedLocales, 0, 5);
                     $tooltipParts = [];
+                    $flagList = [];
+                    $seenFlags = [];
                     foreach ($topLocales as $loc) {
                         $ll = $languageLabel($loc['language']);
                         // Prefer the human region name (e.g. "United States")
@@ -863,13 +867,17 @@
                         }
                         $label = $regionLabel ?: ($loc['language'] !== '' ? $loc['language'] : 'Unknown');
                         $tooltipParts[] = $label . ' · ' . number_format($loc['count']);
+                        if (!empty($ll['flag']) && !isset($seenFlags[$ll['flag']]) && count($flagList) < 3) {
+                            $flagList[] = $ll['flag'];
+                            $seenFlags[$ll['flag']] = true;
+                        }
                     }
                     $extra = count($group['locales']) - count($topLocales);
                     if ($extra > 0) $tooltipParts[] = '+' . $extra . ' more';
                     $tooltip = $bl['name'] . ' · ' . $pct . '% of clicks · ' . implode(', ', $tooltipParts);
                 @endphp
                 <span class="pill" title="{{ $tooltip }}" style="cursor: default;">
-                    {{ $bl['name'] }}
+                    @if(!empty($flagList))<span class="mr-1">{{ implode(' ', $flagList) }}</span>@endif{{ $bl['name'] }}
                     <span class="ml-1 opacity-60">({{ number_format($group['count']) }})</span>
                     @if(count($group['locales']) > 1)
                         <span class="ml-1 opacity-50 text-[10px]">{{ count($group['locales']) }} variants</span>
