@@ -131,7 +131,10 @@ class VaultTest extends TestCase
         $this->bindWorkspace($owner); // ensure ws is the same
         $this->actingAs($stranger)->get('/user/vault/credentials/' . $cred->id)->assertStatus(404);
 
-        // The owner can see it.
+        // The creator (admin who posted it) can see their own private record.
+        $this->actingAs($admin)->get('/user/vault/credentials/' . $cred->id)->assertStatus(200);
+
+        // The workspace owner can see it.
         $this->actingAs($owner)->get('/user/vault/credentials/' . $cred->id)->assertStatus(200);
     }
 
