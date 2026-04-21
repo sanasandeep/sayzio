@@ -124,12 +124,18 @@ class BiolinkPageRecipes
         return [
             'type' => 'profile_card_v1',
             'settings' => [
-                'avatar'   => $avatar,
-                'name'     => $name,
-                'headline' => $headline,
-                'bio'      => $bio,
-                'name_color' => '#ffffff',
+                // Canonical profile_card_v1 keys: name, title, avatar, bio,
+                // socials. We emit `title` (the live key used by the
+                // renderer) and keep `headline` as a backwards-compatible
+                // alias for any older sanitizers that still read it.
+                'avatar'       => $avatar,
+                'name'         => $name,
+                'title'        => $headline,
+                'headline'     => $headline,
+                'bio'          => $bio,
+                'name_color'   => '#ffffff',
                 'accent_color' => $brand,
+                'socials'      => [],
             ],
             'is_active' => true,
         ];
@@ -161,21 +167,22 @@ class BiolinkPageRecipes
             $val = (string) $a[$key];
             $url = self::socialUrl($platform, $val);
             if (!$url) continue;
+            // Canonical socials sanitizer expects `platforms[*].{name,url}`
+            // with `display = icon|follow|follow_count`.
             $items[] = [
-                'name'   => $platform,
-                'url'    => $url,
-                'label'  => '',
-                'is_active' => true,
+                'name'    => $platform,
+                'url'     => $url,
+                'display' => 'icon',
             ];
         }
         if (count($items) < 1) return null;
         return [
             'type' => 'socials',
             'settings' => [
-                'items'  => $items,
-                'shape'  => 'circle',
-                'size'   => 'md',
-                'align'  => 'center',
+                'platforms' => $items,
+                'shape'     => 'circle',
+                'size'      => 'md',
+                'align'     => 'center',
             ],
             'is_active' => true,
         ];
@@ -552,17 +559,23 @@ class BiolinkPageRecipes
      *  Block builders
      * ────────────────────────────────────────────────────────────── */
 
+    // ───────────────────────────────────────────────────────────────
+    // Block setting keys mirror the canonical defaults in
+    // BiolinkBlockController::getDefaultSettingsForType() so that
+    // TemplateService::applyPageToLink → BiolinkBlock::sanitizeSettings
+    // accepts our payload without falling back to placeholder defaults.
+    // ───────────────────────────────────────────────────────────────
+
     protected static function ctaBlock(string $label, string $url, string $color): array
     {
         return [
             'type' => 'cta_button',
             'settings' => [
-                'label' => $label,
-                'url'   => $url,
-                'bg_color'   => $color,
+                'text'       => $label,
+                'url'        => $url,
+                'color'      => $color,
                 'text_color' => '#ffffff',
-                'size' => 'lg',
-                'align' => 'center',
+                'size'       => 'lg',
             ],
             'is_active' => true,
         ];
@@ -573,8 +586,10 @@ class BiolinkPageRecipes
         return [
             'type' => 'link',
             'settings' => [
-                'label' => $label,
-                'url'   => $url,
+                'text'      => $label,
+                'url'       => $url,
+                'icon'      => '',
+                'thumbnail' => '',
             ],
             'is_active' => true,
         ];
@@ -586,7 +601,7 @@ class BiolinkPageRecipes
               . '<p>' . nl2br(htmlspecialchars($body)) . '</p>';
         return [
             'type' => 'paragraph_rich',
-            'settings' => ['content' => $html],
+            'settings' => ['html' => $html],
             'is_active' => true,
         ];
     }
@@ -595,7 +610,7 @@ class BiolinkPageRecipes
     {
         return [
             'type' => 'alert',
-            'settings' => ['message' => $msg, 'variant' => 'info'],
+            'settings' => ['text' => $msg, 'type' => 'info', 'icon' => 'fa-info-circle'],
             'is_active' => true,
         ];
     }
@@ -604,7 +619,7 @@ class BiolinkPageRecipes
     {
         return [
             'type' => 'badge',
-            'settings' => ['label' => $msg, 'variant' => 'soft'],
+            'settings' => ['text' => $msg, 'color' => '#7c3aed', 'text_color' => '#ffffff'],
             'is_active' => true,
         ];
     }

@@ -374,10 +374,15 @@ SVG;
 
     protected function loadDraft(Request $request): ?BiolinkWizardDraft
     {
-        $ownerId = workspace_owner_id();
+        // Key drafts by the actor (the human at the keyboard) so each team
+        // member resumes *their own* in-progress wizard inside the same
+        // workspace — never another member's. The workspace_owner_id is
+        // still recorded on the row for audit + the eventual link's owner.
+        $actorId = Auth::id();
+        if (!$actorId) return null;
         $wsId = optional(app()->bound('current_workspace') ? app('current_workspace') : null)->id;
         return BiolinkWizardDraft::query()
-            ->where('user_id', $ownerId)
+            ->where('actor_user_id', $actorId)
             ->when($wsId, fn ($q) => $q->where('workspace_id', $wsId), fn ($q) => $q->whereNull('workspace_id'))
             ->latest('id')
             ->first();
