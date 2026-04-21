@@ -11,6 +11,10 @@
                 </p>
             </div>
             <div class="flex items-center gap-2">
+                <a href="{{ route('admin.newsletter.compose') }}"
+                   class="px-3 py-2 bg-emerald-500/15 border border-emerald-400/30 hover:bg-emerald-500/25 rounded-lg text-xs text-emerald-100">
+                    <i class="fas fa-paper-plane mr-1"></i> Compose &amp; send
+                </a>
                 <a href="{{ route('admin.newsletter.export') }}"
                    class="px-3 py-2 bg-white/5 border border-white/10 hover:bg-white/10 rounded-lg text-xs text-white">
                     <i class="fas fa-download mr-1"></i> Export CSV

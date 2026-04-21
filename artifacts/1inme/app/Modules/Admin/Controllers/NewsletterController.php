@@ -3,6 +3,8 @@
 namespace App\Modules\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SendNewsletterIssueJob;
+use App\Modules\Common\Models\NewsletterIssue;
 use App\Modules\Common\Models\NewsletterSubscriber;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -51,5 +53,43 @@ class NewsletterController extends Controller
             'Content-Type'        => 'text/csv',
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ]);
+    }
+
+    public function compose(Request $request)
+    {
+        $activeCount = NewsletterSubscriber::whereNull('unsubscribed_at')->count();
+        $issues = NewsletterIssue::orderByDesc('id')->paginate(20);
+        return view('admin.newsletter.compose', compact('activeCount', 'issues'));
+    }
+
+    public function send(Request $request)
+    {
+        $validated = $request->validate([
+            'subject'   => 'required|string|max:255',
+            'body_html' => 'required|string|max:200000',
+        ]);
+
+        $activeCount = NewsletterSubscriber::whereNull('unsubscribed_at')->count();
+        if ($activeCount === 0) {
+            return back()
+                ->withInput()
+                ->withErrors(['body_html' => 'There are no active subscribers to send to yet.']);
+        }
+
+        $admin = $request->user();
+        $issue = NewsletterIssue::create([
+            'subject'          => $validated['subject'],
+            'body_html'        => $validated['body_html'],
+            'status'           => 'queued',
+            'recipients_count' => $activeCount,
+            'sender_id'        => optional($admin)->id,
+            'sender_email'     => optional($admin)->email,
+        ]);
+
+        SendNewsletterIssueJob::dispatch($issue->id);
+
+        return redirect()
+            ->route('admin.newsletter.compose')
+            ->with('success', "Issue queued for {$activeCount} subscriber(s). Delivery runs in the background.");
     }
 }
