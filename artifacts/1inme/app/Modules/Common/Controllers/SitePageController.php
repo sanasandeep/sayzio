@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\AppSetting;
 use App\Modules\Common\Models\ContactMessage;
 use App\Modules\Common\Models\SitePage;
+use App\Modules\Common\Support\SitePagesContent;
 use App\Modules\User\Models\CreatorPost;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\User;
@@ -25,10 +26,16 @@ class SitePageController extends Controller
                 [
                     'title' => 'Features',
                     'meta_description' => 'A complete tour of every capability inside 1INME — biolinks, short links, QR codes, analytics, inboxes, teams, billing, and more.',
-                    'sections' => [],
+                    'sections' => SitePagesContent::featuresCategoriesDefault(),
                 ]
             );
-            return view('public.features', ['page' => $page]);
+            $categories = SitePagesContent::normalizeFeaturesCategories(
+                is_array($page->sections) ? $page->sections : []
+            );
+            if (empty($categories)) {
+                $categories = SitePagesContent::featuresCategoriesDefault();
+            }
+            return view('public.features', ['page' => $page, 'categories' => $categories]);
         }
 
         $page = SitePage::where('slug', $slug)->firstOrFail();

@@ -127,11 +127,17 @@ class SitePagesSeeder extends Seeder
 
         $pages = $extra;
         foreach ($rich as $slug => $data) {
+            // The /features page uses a category-structured sections shape
+            // (id/icon/heading/intro/features) instead of the plain
+            // heading/body shape used by every other rich page.
+            $sections = $slug === 'features'
+                ? SitePagesContent::featuresCategoriesDefault()
+                : $data['sections'];
             $pages[] = [
                 'slug' => $slug,
                 'title' => $data['title'],
                 'meta_description' => $data['meta_description'] ?? null,
-                'sections' => $data['sections'],
+                'sections' => $sections,
                 'cta_label' => $data['cta_label'] ?? null,
                 'cta_url' => $data['cta_url'] ?? null,
             ];

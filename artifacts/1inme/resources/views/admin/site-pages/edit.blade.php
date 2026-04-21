@@ -45,6 +45,10 @@
             }
         }
     @endphp
+
+    @if($page->slug === 'features')
+        @include('admin.site-pages.partials.features-editor', ['page' => $page, 'categories' => $featuresCategories])
+    @else
     <form method="POST" action="{{ route('admin.site-pages.update', $page->slug) }}"
           @if($isServices)
           x-data="{ sections: {{ json_encode($servicesSeed) }}, iconChoices: {{ json_encode($iconChoices) }}, pickerOpen: null, pickerQuery: '', filteredIcons() { const q = (this.pickerQuery || '').toLowerCase().trim(); return q ? this.iconChoices.filter(n => n.toLowerCase().includes(q)) : this.iconChoices; } }"
@@ -258,6 +262,7 @@
             <button type="submit" class="px-6 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-medium">Save changes</button>
         </div>
     </form>
+    @endif
 
     @if($page->slug === 'discovery')
         <div class="glass rounded-2xl p-6">

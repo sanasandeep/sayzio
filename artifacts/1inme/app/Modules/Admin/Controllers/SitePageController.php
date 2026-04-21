@@ -7,6 +7,7 @@ use App\Modules\Admin\Models\AppSetting;
 use App\Modules\Common\Models\FaqItem;
 use App\Modules\Common\Models\SitePage;
 use App\Modules\Common\Services\PathSuggester;
+use App\Modules\Common\Support\SitePagesContent;
 use Illuminate\Http\Request;
 
 class SitePageController extends Controller
@@ -24,6 +25,15 @@ class SitePageController extends Controller
     {
         $page = SitePage::where('slug', $slug)->firstOrFail();
         $faqs = $slug === 'faqs' ? FaqItem::where('page_slug', 'faqs')->orderBy('sort_order')->orderBy('id')->get() : collect();
+        if ($slug === 'features') {
+            $current = is_array($page->sections) ? $page->sections : [];
+            $featuresCategories = SitePagesContent::normalizeFeaturesCategories($current);
+            if (empty($featuresCategories)) {
+                $featuresCategories = SitePagesContent::featuresCategoriesDefault();
+            }
+        } else {
+            $featuresCategories = [];
+        }
         $settings = [
             'discovery_per_page'        => (int) AppSetting::get('discovery_per_page', 24),
             'discovery_show_search'     => (bool) AppSetting::get('discovery_show_search', true),
@@ -31,12 +41,17 @@ class SitePageController extends Controller
             'creators_feed_show_pinned' => (bool) AppSetting::get('creators_feed_show_pinned', true),
             'error_404_suggestions_enabled' => (bool) AppSetting::get(PathSuggester::SETTING_KEY, true),
         ];
-        return view('admin.site-pages.edit', compact('page', 'faqs', 'settings'));
+        return view('admin.site-pages.edit', compact('page', 'faqs', 'settings', 'featuresCategories'));
     }
 
     public function update(Request $request, string $slug)
     {
         $page = SitePage::where('slug', $slug)->firstOrFail();
+
+        if ($slug === 'features') {
+            return $this->updateFeatures($request, $page);
+        }
+
         $rules = [
             'title' => 'required|string|max:200',
             'meta_description' => 'nullable|string|max:500',
@@ -90,6 +105,40 @@ class SitePageController extends Controller
             'cta_url' => $data['cta_url'] ?? null,
         ]);
         return redirect()->route('admin.site-pages.edit', $slug)->with('success', 'Page updated.');
+    }
+
+    /**
+     * Save the /features page using its category-structured sections
+     * (id/icon/heading/intro/features). Each category keeps its own
+     * ordered list of feature rows, preserving the "no merging / no
+     * collapsing" rule the public page relies on.
+     */
+    private function updateFeatures(Request $request, SitePage $page)
+    {
+        $data = $request->validate([
+            'title' => 'required|string|max:200',
+            'meta_description' => 'nullable|string|max:500',
+            'categories' => 'array',
+            'categories.*.id' => 'nullable|string|max:80|regex:/^[a-z0-9\-]*$/i',
+            'categories.*.icon' => 'nullable|string|max:80',
+            'categories.*.heading' => 'nullable|string|max:200',
+            'categories.*.intro' => 'nullable|string|max:2000',
+            'categories.*.features' => 'array',
+            'categories.*.features.*.name' => 'nullable|string|max:200',
+            'categories.*.features.*.description' => 'nullable|string|max:2000',
+        ]);
+
+        $sections = SitePagesContent::normalizeFeaturesCategories(
+            (array) ($data['categories'] ?? [])
+        );
+
+        $page->update([
+            'title' => $data['title'],
+            'meta_description' => $data['meta_description'] ?? null,
+            'sections' => $sections,
+        ]);
+
+        return redirect()->route('admin.site-pages.edit', $page->slug)->with('success', 'Features page updated.');
     }
 
     public function updateDiscoverySettings(Request $request)
