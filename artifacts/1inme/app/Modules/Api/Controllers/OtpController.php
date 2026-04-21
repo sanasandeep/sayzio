@@ -35,7 +35,7 @@ class OtpController extends Controller
         // Always issue + try to send when a real user exists. Generic
         // success either way to avoid enumeration.
         if ($user) {
-            $code = $otp->generate($data['identifier'], $data['type'], 'login', 'mobile');
+            $code = $otp->generate($data['identifier'], $data['type'], 'login', 'web');
             try {
                 $data['type'] === 'email'
                     ? $otp->sendEmail($data['identifier'], $code)
@@ -60,7 +60,7 @@ class OtpController extends Controller
             'device'     => ['nullable', 'string', 'max:60'],
         ]);
 
-        if (!$otp->verify($data['identifier'], $data['code'], $data['type'], 'login', 'mobile')) {
+        if (!$otp->verify($data['identifier'], $data['code'], $data['type'], 'login', 'web')) {
             return $this->fail('Invalid or expired code', 400, 'invalid_otp');
         }
 
@@ -109,7 +109,7 @@ class OtpController extends Controller
             $user->ensureDefaultWorkspace();
         }
 
-        $code = $otp->generate($data['identifier'], $data['type'], 'login', 'mobile');
+        $code = $otp->generate($data['identifier'], $data['type'], 'login', 'web');
         try {
             $data['type'] === 'email'
                 ? $otp->sendEmail($data['identifier'], $code)
