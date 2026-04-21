@@ -1319,7 +1319,7 @@ class LinkController extends Controller
             ->whereNotNull('longitude')
             ->orderByDesc('clicked_at')
             ->limit(200)
-            ->get(['id', 'latitude', 'longitude', 'city', 'country_code', 'clicked_at', 'ip_address']);
+            ->get(['id', 'latitude', 'longitude', 'city', 'country_code', 'channel', 'clicked_at', 'ip_address']);
 
         $points = $this->formatLivePoints($rows);
 
@@ -1391,7 +1391,7 @@ class LinkController extends Controller
                 ->whereNotNull('longitude')
                 ->orderBy('id')
                 ->limit(200)
-                ->get(['id', 'latitude', 'longitude', 'city', 'country_code', 'clicked_at', 'ip_address']);
+                ->get(['id', 'latitude', 'longitude', 'city', 'country_code', 'channel', 'clicked_at', 'ip_address']);
 
             foreach ($initialRows as $r) {
                 if ((int) $r->id > $lastId) $lastId = (int) $r->id;
@@ -1431,7 +1431,7 @@ class LinkController extends Controller
                     ->whereNotNull('longitude')
                     ->orderBy('id')
                     ->limit(100)
-                    ->get(['id', 'latitude', 'longitude', 'city', 'country_code', 'clicked_at', 'ip_address']);
+                    ->get(['id', 'latitude', 'longitude', 'city', 'country_code', 'channel', 'clicked_at', 'ip_address']);
 
                 if ($newRows->isNotEmpty()) {
                     foreach ($newRows as $r) {
@@ -1694,12 +1694,17 @@ class LinkController extends Controller
     {
         $points = [];
         foreach ($rows as $r) {
+            $channelKey = $r->channel ?: null;
             $points[] = [
                 'id'           => (int) $r->id,
                 'lat'          => (float) $r->latitude,
                 'lng'          => (float) $r->longitude,
                 'city'         => $r->city,
                 'country_code' => $r->country_code,
+                'channel'      => $channelKey,
+                'channel_label' => $channelKey
+                    ? \App\Modules\Common\Services\ChannelClassifier::labelFor($channelKey)
+                    : null,
                 'clicked_at'   => optional($r->clicked_at)->toIso8601String(),
                 'ts'           => optional($r->clicked_at)->getTimestamp(),
             ];

@@ -2029,7 +2029,9 @@
         const flag = (cc.length === 2 && /^[A-Z]{2}$/.test(cc))
             ? String.fromCodePoint(0x1F1E6 + cc.charCodeAt(0) - 65, 0x1F1E6 + cc.charCodeAt(1) - 65) + ' '
             : '';
-        el.title = (flag + (point.city || 'Unknown city') + (cc ? ', ' + cc : '')).trim();
+        const locTitle = (flag + (point.city || 'Unknown city') + (cc ? ', ' + cc : '')).trim();
+        const chTitle = point.channel_label ? ' · ' + point.channel_label : '';
+        el.title = locTitle + chTitle;
         const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
             .setLngLat([point.lng, point.lat])
             .addTo(map);
