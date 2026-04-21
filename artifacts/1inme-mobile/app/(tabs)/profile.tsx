@@ -31,7 +31,18 @@ const INFO_PAGES: {
 ];
 
 const TOOL_PAGES: {
-  href: "/posts" | "/contacts" | "/forms" | "/followers" | "/social" | "/notifications";
+  href:
+    | "/posts"
+    | "/contacts"
+    | "/forms"
+    | "/followers"
+    | "/social"
+    | "/notifications"
+    | "/subscribers"
+    | "/projects"
+    | "/qr"
+    | "/splash"
+    | "/calendar";
   label: string;
   icon: keyof typeof Feather.glyphMap;
 }[] = [
@@ -39,8 +50,26 @@ const TOOL_PAGES: {
   { href: "/contacts", label: "Contacts", icon: "users" },
   { href: "/forms", label: "Forms", icon: "file-text" },
   { href: "/followers", label: "Followers & Following", icon: "user-check" },
+  { href: "/subscribers", label: "Subscribers", icon: "user-plus" },
   { href: "/social", label: "Social accounts", icon: "share-2" },
+  { href: "/projects", label: "Projects", icon: "folder" },
+  { href: "/qr", label: "QR codes", icon: "grid" },
+  { href: "/splash", label: "Splash pages", icon: "layout" },
+  { href: "/calendar", label: "Calendars", icon: "calendar" },
   { href: "/notifications", label: "Notifications", icon: "bell" },
+];
+
+const SETTINGS_PAGES: {
+  href: "/profile-edit" | "/workspaces" | "/domains" | "/integrations" | "/vault" | "/verification";
+  label: string;
+  icon: keyof typeof Feather.glyphMap;
+}[] = [
+  { href: "/profile-edit", label: "Edit profile", icon: "edit-3" },
+  { href: "/workspaces", label: "Workspaces", icon: "briefcase" },
+  { href: "/domains", label: "Custom domains", icon: "globe" },
+  { href: "/integrations", label: "Integrations", icon: "link" },
+  { href: "/vault", label: "Vault", icon: "lock" },
+  { href: "/verification", label: "Verification", icon: "award" },
 ];
 
 const THEME_OPTIONS: {
@@ -172,6 +201,47 @@ export default function Profile() {
             ]}
           >
             {TOOL_PAGES.map((p, i) => (
+              <Pressable
+                key={p.href}
+                onPress={() => router.push(p.href)}
+                style={({ pressed }) => [
+                  styles.listItem,
+                  {
+                    borderTopWidth: i === 0 ? 0 : StyleSheet.hairlineWidth,
+                    borderTopColor: colors.border,
+                    opacity: pressed ? 0.7 : 1,
+                  },
+                ]}
+              >
+                <Feather name={p.icon} size={18} color={colors.primary} />
+                <Text style={[styles.listLabel, { color: colors.foreground }]}>
+                  {p.label}
+                </Text>
+                <Feather
+                  name="chevron-right"
+                  size={18}
+                  color={colors.mutedForeground}
+                />
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+            Settings
+          </Text>
+          <View
+            style={[
+              styles.list,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                borderRadius: colors.radius,
+              },
+            ]}
+          >
+            {SETTINGS_PAGES.map((p, i) => (
               <Pressable
                 key={p.href}
                 onPress={() => router.push(p.href)}
