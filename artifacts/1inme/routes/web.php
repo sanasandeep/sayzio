@@ -76,6 +76,15 @@ Route::post('/newsletter/subscribe', [\App\Modules\Common\Controllers\Newsletter
     ->name('site.newsletter.subscribe')->middleware('throttle:10,10');
 Route::get('/newsletter/unsubscribe/{subscriber}', [\App\Modules\Common\Controllers\NewsletterController::class, 'unsubscribe'])
     ->name('site.newsletter.unsubscribe')->middleware('throttle:30,10');
+// RFC 8058 one-click POST target. Inbox providers (Gmail, Apple Mail) hit
+// this same signed URL with POST when the recipient taps the native
+// "Unsubscribe" chip. CSRF is exempted in VerifyCsrfToken.
+// Provider one-click POSTs typically arrive from a small pool of mailbox-
+// provider egress IPs (Gmail/Apple), so a tight per-IP throttle would cause
+// false 429s and silently lose opt-outs across a campaign. The signed URL
+// already bounds abuse, so we use a much more generous bucket here.
+Route::post('/newsletter/unsubscribe/{subscriber}', [\App\Modules\Common\Controllers\NewsletterController::class, 'unsubscribe'])
+    ->name('site.newsletter.unsubscribe.post')->middleware('throttle:600,1');
 
 // Public referral tracking — must precede the catch-all /{alias} routes.
 Route::get('/r/{code}', [\App\Modules\User\Controllers\ReferralController::class, 'track'])

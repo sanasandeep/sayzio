@@ -61,11 +61,18 @@ class NewsletterController extends Controller
     }
 
     /**
-     * One-click unsubscribe target linked from the welcome email. The link
-     * is a Laravel signed URL bound to the subscriber id, so possession of
-     * the email is enough to opt out — no login required. Idempotent: a
-     * second click on the same link just reflects the already-unsubscribed
-     * state.
+     * One-click unsubscribe target linked from the welcome email and from
+     * the RFC 2369/8058 `List-Unsubscribe` header on every newsletter
+     * issue. The link is a Laravel signed URL bound to the subscriber id,
+     * so possession of the email is enough to opt out — no login required.
+     * Idempotent: a second click on the same link just reflects the
+     * already-unsubscribed state.
+     *
+     * Accepts both GET (recipient clicks the footer link in their browser)
+     * and POST (inbox provider performs a one-click opt-out per RFC 8058
+     * after the user taps the native "Unsubscribe" chip). For POST we
+     * return a bare 200 with no HTML body — that is what Gmail/Apple Mail
+     * expect from the one-click endpoint.
      */
     public function unsubscribe(Request $request, NewsletterSubscriber $subscriber)
     {
@@ -76,6 +83,10 @@ class NewsletterController extends Controller
         if (! $subscriber->unsubscribed_at) {
             $subscriber->unsubscribed_at = now();
             $subscriber->save();
+        }
+
+        if ($request->isMethod('post')) {
+            return response('', 200, ['Content-Type' => 'text/plain; charset=utf-8']);
         }
 
         return response(

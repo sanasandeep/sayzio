@@ -66,10 +66,21 @@ class SendNewsletterIssueJob implements ShouldQueue
                         }
                         try {
                             $html = $this->renderForSubscriber($issue->body_html, $sub);
-                            Mail::html($html, function ($m) use ($sub, $issue, $fromAddress, $fromName) {
+                            $unsubUrl = URL::signedRoute(
+                                'site.newsletter.unsubscribe',
+                                ['subscriber' => $sub->id]
+                            );
+                            Mail::html($html, function ($m) use ($sub, $issue, $fromAddress, $fromName, $unsubUrl) {
                                 $m->to($sub->email)
                                   ->subject($issue->subject)
                                   ->from($fromAddress, $fromName);
+                                // RFC 2369 / RFC 8058 headers so Gmail, Apple
+                                // Mail and Outlook render their native
+                                // "Unsubscribe" chip next to the sender name
+                                // and can perform a one-click POST opt-out
+                                // without the recipient ever opening the mail.
+                                $m->getHeaders()->addTextHeader('List-Unsubscribe', '<' . $unsubUrl . '>');
+                                $m->getHeaders()->addTextHeader('List-Unsubscribe-Post', 'List-Unsubscribe=One-Click');
                             });
                             $sent++;
                         } catch (\Throwable $e) {

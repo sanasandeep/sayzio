@@ -25,6 +25,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'sp/*/track',
             'webhooks/*',
             'api/*',
+            // RFC 8058 one-click unsubscribe POST originates from inbox
+            // providers (Gmail, Apple Mail), not a browser session, so
+            // it cannot present a CSRF token. The signed URL itself is
+            // the authenticator.
+            'newsletter/unsubscribe/*',
         ]);
         $middleware->alias([
             'onboarding.gate'   => \App\Modules\User\Middleware\RedirectToOnboarding::class,
