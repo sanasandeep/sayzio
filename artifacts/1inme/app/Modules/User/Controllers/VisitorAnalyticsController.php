@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\User\Models\Follow;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\LinkClick;
+use App\Modules\User\Models\NfcWrite;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -105,6 +106,15 @@ class VisitorAnalyticsController extends Controller
             ->pluck('follower_id')
             ->flip();
 
+        // NFC writes for this link — counter + recent rows for the
+        // history strip on the analytics page. Full history is on the
+        // dedicated NFC history page (links/{link}/nfc-writes).
+        $nfcCount  = NfcWrite::where('link_id', $link->id)->count();
+        $nfcRecent = NfcWrite::where('link_id', $link->id)
+            ->orderByDesc('id')
+            ->limit(5)
+            ->get();
+
         return view('user.visitors.index', [
             'link'           => $link,
             'period'         => $period,
@@ -114,6 +124,23 @@ class VisitorAnalyticsController extends Controller
             'dailySeries'    => $dailySeries,
             'identified'     => $identified,
             'followerSet'    => $followerSet,
+            'nfcCount'       => $nfcCount,
+            'nfcRecent'      => $nfcRecent,
+        ]);
+    }
+
+    public function nfcHistory(Request $request, Link $link)
+    {
+        abort_unless($link->user_id === auth()->id() || auth()->user()->isSuperAdmin(), 403);
+
+        $writes = NfcWrite::where('link_id', $link->id)
+            ->orderByDesc('id')
+            ->paginate(50);
+
+        return view('user.visitors.nfc-history', [
+            'link'   => $link,
+            'writes' => $writes,
+            'total'  => NfcWrite::where('link_id', $link->id)->count(),
         ]);
     }
 }

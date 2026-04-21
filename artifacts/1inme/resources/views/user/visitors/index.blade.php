@@ -14,6 +14,29 @@
         </form>
     </div>
 
+    <div class="rounded-2xl border p-5 mb-6" style="background: var(--bg-card); border-color: var(--border-soft);">
+        <div class="flex items-center justify-between mb-3">
+            <div>
+                <p class="text-xs uppercase tracking-wide" style="color: var(--text-faint);">Times written to NFC</p>
+                <p class="text-3xl font-extrabold mt-1" style="color: var(--text-primary);">{{ number_format($nfcCount ?? 0) }}</p>
+                <p class="text-xs mt-1" style="color: var(--text-muted);">From the 1INME mobile app's NFC writer.</p>
+            </div>
+            <a href="{{ route('user.links.nfc-writes', $link) }}" class="text-sm px-3 py-1.5 rounded-lg border font-semibold" style="border-color: var(--border-soft); color: var(--text-primary);">View full history →</a>
+        </div>
+        @if(($nfcRecent ?? collect())->isNotEmpty())
+            <ul class="divide-y mt-3" style="border-color: var(--border-soft);">
+                @foreach($nfcRecent as $w)
+                    <li class="py-2 flex items-center justify-between text-xs" style="color: var(--text-muted);">
+                        <span class="truncate" title="{{ $w->written_url }}">{{ $w->label ?: $w->written_url }}</span>
+                        <span class="ml-3 whitespace-nowrap" style="color: var(--text-faint);">
+                            {{ ucfirst($w->platform ?? 'mobile') }} · {{ $w->created_at?->diffForHumans() }}
+                        </span>
+                    </li>
+                @endforeach
+            </ul>
+        @endif
+    </div>
+
     <div class="grid grid-cols-3 gap-3 mb-6">
         <div class="rounded-xl p-4 border" style="background: var(--bg-card); border-color: var(--border-soft);">
             <p class="text-xs uppercase tracking-wide" style="color: var(--text-faint);">Unique visitors</p>

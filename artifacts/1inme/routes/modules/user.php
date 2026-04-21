@@ -139,6 +139,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('notifications/read', [\App\Modules\User\Controllers\NotificationController::class, 'markRead'])->name('notifications.read');
 
         Route::get('links/{link}/visitors', [\App\Modules\User\Controllers\VisitorAnalyticsController::class, 'index'])->middleware('workspace.can:stats.view')->name('links.visitors');
+        Route::get('links/{link}/nfc-writes', [\App\Modules\User\Controllers\VisitorAnalyticsController::class, 'nfcHistory'])->middleware('workspace.can:stats.view')->name('links.nfc-writes');
         Route::get('links/{link}/followers', [\App\Modules\User\Controllers\LinkController::class, 'followers'])->middleware('workspace.can:followers.view')->name('links.followers');
         Route::get('links/{link}/followers/export', [\App\Modules\User\Controllers\LinkController::class, 'followersExport'])->middleware('workspace.can:followers.view')->name('links.followers.export');
         Route::get('links/{link}/followers/{follower}', [\App\Modules\User\Controllers\LinkController::class, 'followerHistory'])->middleware('workspace.can:followers.view')->name('links.followers.history');

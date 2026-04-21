@@ -1,0 +1,874 @@
+openapi: 3.0.3
+info:
+  title: 1INME Mobile API
+  version: '1.0.0'
+  description: |
+    JSON HTTP API used by the 1INME Expo mobile app (iOS + Android) and any
+    third-party integrations. All endpoints are under `/api/v1` and use
+    Laravel Sanctum bearer tokens for authentication unless explicitly marked
+    as public.
+
+    ### Conventions
+    - Responses are always JSON with either `{"data": ...}` (success) or
+      `{"error": {"message": ..., "code": ..., "details": ...}}` (failure).
+    - List endpoints support `?per_page=N` (default 25, max 100) and return
+      an additional `meta` block with pagination cursor info.
+    - Mutating endpoints accept JSON bodies; CSRF protection is bypassed for
+      bearer-token requests.
+
+    ### Auth flows
+    1. **Email/SMS OTP** — `POST /auth/otp/send` then `POST /auth/otp/verify`
+       to receive a Sanctum token.
+    2. **Native social** — handle the auth dance via the platform SDK
+       (Apple, Google, Facebook, etc.) then `POST /auth/social` with the
+       resolved `external_id` to receive a Sanctum token.
+    3. **Email + password** — `POST /auth/login` for compatibility with the
+       web account password (where set).
+    4. **Demo** — `POST /auth/demo` returns a token for the shared demo
+       account; disabled in production.
+
+servers:
+  - url: https://1inme.com/api/v1
+  - url: '{base}/api/v1'
+    variables:
+      base:
+        default: http://localhost:5000
+        description: Replace with your environment's base URL.
+
+security:
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: Sanctum
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            message: { type: string }
+            code:    { type: string, nullable: true }
+            details: { nullable: true }
+    PaginationMeta:
+      type: object
+      properties:
+        current_page: { type: integer }
+        per_page:     { type: integer }
+        total:        { type: integer }
+        last_page:    { type: integer }
+    User:
+      type: object
+      properties:
+        id:              { type: integer }
+        name:            { type: string }
+        handle:          { type: string, nullable: true }
+        avatar:          { type: string, nullable: true }
+        bio:             { type: string, nullable: true }
+        followers_count: { type: integer }
+        email:           { type: string, nullable: true }
+        phone:           { type: string, nullable: true }
+        plan_id:         { type: integer, nullable: true }
+        plan_expires_at: { type: string, nullable: true, format: date-time }
+        trial_ends_at:   { type: string, nullable: true, format: date-time }
+        role:            { type: string }
+        status:          { type: string }
+        onboarded_at:    { type: string, nullable: true, format: date-time }
+        created_at:      { type: string, format: date-time }
+    AuthSuccess:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            user:  { $ref: '#/components/schemas/User' }
+            token: { type: string }
+    Link:
+      type: object
+      properties:
+        id:                    { type: integer }
+        type:                  { type: string }
+        alias:                 { type: string }
+        title:                 { type: string, nullable: true }
+        long_url:              { type: string, nullable: true }
+        visibility:            { type: string }
+        is_active:             { type: boolean }
+        is_verified:           { type: boolean }
+        is_password_protected: { type: boolean }
+        expires_at:            { type: string, nullable: true, format: date-time }
+        total_clicks:          { type: integer }
+        unique_clicks:         { type: integer }
+        seo_title:             { type: string, nullable: true }
+        seo_description:       { type: string, nullable: true }
+        seo_image:             { type: string, nullable: true }
+        short_url:             { type: string }
+        created_at:            { type: string, format: date-time }
+        updated_at:            { type: string, format: date-time }
+    BiolinkBlock:
+      type: object
+      properties:
+        id:         { type: integer }
+        link_id:    { type: integer }
+        type:       { type: string }
+        sort_order: { type: integer }
+        parent_id:  { type: integer, nullable: true }
+        is_active:  { type: boolean }
+        settings:   { type: object, nullable: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    NfcWrite:
+      type: object
+      properties:
+        id:                 { type: integer }
+        link_id:            { type: integer }
+        written_url:        { type: string }
+        tag_uid:            { type: string, nullable: true }
+        tag_type:           { type: string, nullable: true }
+        tag_capacity_bytes: { type: integer, nullable: true }
+        locked:             { type: boolean }
+        device:             { type: string, nullable: true }
+        platform:           { type: string, enum: [ios, android], nullable: true }
+        label:              { type: string, nullable: true }
+        meta:               { type: object, nullable: true }
+        created_at:         { type: string, format: date-time }
+    Notification:
+      type: object
+      properties:
+        id:         { type: integer }
+        type:       { type: string, nullable: true }
+        title:      { type: string, nullable: true }
+        body:       { type: string, nullable: true }
+        data:       { nullable: true }
+        url:        { type: string, nullable: true }
+        read_at:    { type: string, nullable: true, format: date-time }
+        created_at: { type: string, format: date-time }
+    Project:
+      type: object
+      properties:
+        id:          { type: integer }
+        name:        { type: string }
+        description: { type: string, nullable: true }
+        color:       { type: string, nullable: true }
+        created_at:  { type: string, format: date-time }
+    Post:
+      type: object
+      properties:
+        id:         { type: integer }
+        title:      { type: string, nullable: true }
+        body:       { type: string }
+        media:      { nullable: true }
+        visibility: { type: string }
+        created_at: { type: string, format: date-time }
+    Contact:
+      type: object
+      properties:
+        id:         { type: integer }
+        name:       { type: string }
+        email:      { type: string, nullable: true }
+        phone:      { type: string, nullable: true }
+        notes:      { type: string, nullable: true }
+        tags:       { type: array, items: { type: string } }
+        created_at: { type: string, format: date-time }
+    Form:
+      type: object
+      properties:
+        id:                 { type: integer }
+        title:              { type: string }
+        slug:               { type: string }
+        fields:             { type: array, items: { type: object } }
+        is_active:          { type: boolean }
+        submissions_count:  { type: integer }
+        public_url:         { type: string, nullable: true }
+        created_at:         { type: string, format: date-time }
+    Workspace:
+      type: object
+      properties:
+        id:           { type: integer }
+        name:         { type: string }
+        slug:         { type: string, nullable: true }
+        is_personal:  { type: boolean }
+        owner_user_id:{ type: integer }
+        created_at:   { type: string, format: date-time }
+    Plan:
+      type: object
+      properties:
+        id:            { type: integer }
+        slug:          { type: string }
+        name:          { type: string }
+        price_monthly: { type: number, nullable: true }
+        price_yearly:  { type: number, nullable: true }
+        currency:      { type: string }
+        features:      { type: array, items: { type: string } }
+        is_active:     { type: boolean }
+        sort_order:    { type: integer }
+
+paths:
+  /health:
+    get:
+      summary: Healthcheck
+      security: []
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      status: { type: string }
+                      time:   { type: string, format: date-time }
+
+  /auth/register:
+    post:
+      summary: Register with email + password (web parity)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name:     { type: string }
+                email:    { type: string }
+                password: { type: string, minLength: 8 }
+                handle:   { type: string, nullable: true }
+      responses:
+        '201': { description: created, content: { application/json: { schema: { $ref: '#/components/schemas/AuthSuccess' } } } }
+        '422': { description: validation error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /auth/login:
+    post:
+      summary: Email + password login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:    { type: string }
+                password: { type: string }
+                device:   { type: string, nullable: true }
+      responses:
+        '200': { description: ok, content: { application/json: { schema: { $ref: '#/components/schemas/AuthSuccess' } } } }
+        '401': { description: invalid credentials, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /auth/otp/send:
+    post:
+      summary: Send a one-time login code by email or SMS
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [identifier, type]
+              properties:
+                identifier: { type: string, description: 'Email address or mobile number' }
+                type:       { type: string, enum: [email, mobile] }
+      responses:
+        '200':
+          description: Generic success (no enumeration)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      sent:    { type: boolean }
+                      message: { type: string }
+
+  /auth/otp/verify:
+    post:
+      summary: Verify a one-time code and receive a Sanctum token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [identifier, type, code]
+              properties:
+                identifier: { type: string }
+                type:       { type: string, enum: [email, mobile] }
+                code:       { type: string, minLength: 6, maxLength: 6 }
+                device:     { type: string, nullable: true }
+      responses:
+        '200': { description: ok, content: { application/json: { schema: { $ref: '#/components/schemas/AuthSuccess' } } } }
+        '400': { description: invalid code, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '404': { description: user not found, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /auth/otp/register:
+    post:
+      summary: Mobile signup (creates account + sends OTP for verification)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, identifier, type]
+              properties:
+                name:       { type: string }
+                identifier: { type: string }
+                type:       { type: string, enum: [email, mobile] }
+                country:    { type: string, nullable: true, minLength: 2, maxLength: 2 }
+      responses:
+        '201':
+          description: account created, OTP sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      sent:    { type: boolean }
+                      user_id: { type: integer }
+                      message: { type: string }
+        '409': { description: already registered, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /auth/social:
+    post:
+      summary: Native social sign-in (Apple, Google, Facebook, etc.)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [provider, external_id]
+              properties:
+                provider:    { type: string, example: apple }
+                external_id: { type: string, description: 'Stable provider user id' }
+                handle:      { type: string, nullable: true }
+                email:       { type: string, nullable: true }
+                name:        { type: string, nullable: true }
+                avatar:      { type: string, nullable: true }
+                device:      { type: string, nullable: true }
+      responses:
+        '200':
+          description: signed in (or created)
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/AuthSuccess'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          created: { type: boolean }
+        '409': { description: identity already linked elsewhere, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /auth/demo:
+    post:
+      summary: Demo account login (non-production only)
+      security: []
+      responses:
+        '200': { description: ok, content: { application/json: { schema: { $ref: '#/components/schemas/AuthSuccess' } } } }
+        '404': { description: disabled in production, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /auth/me:
+    get:
+      summary: Current authenticated user
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      user: { $ref: '#/components/schemas/User' }
+
+  /auth/logout:
+    post:
+      summary: Revoke the current bearer token
+      responses:
+        '204': { description: revoked }
+
+  /profile:
+    get:
+      summary: Get current profile
+      responses:
+        '200': { description: ok }
+    patch:
+      summary: Update current profile
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:            { type: string }
+                bio:             { type: string, nullable: true }
+                handle:          { type: string, nullable: true }
+                avatar:          { type: string, nullable: true }
+                phone:           { type: string, nullable: true }
+                timezone:        { type: string, nullable: true }
+                language:        { type: string, nullable: true }
+                discoverable:    { type: boolean }
+                allow_followers: { type: boolean }
+      responses:
+        '200': { description: ok }
+
+  /onboarding:
+    get:
+      summary: Onboarding status snapshot
+      responses:
+        '200': { description: ok }
+  /onboarding/complete:
+    post:
+      summary: Mark onboarding complete
+      responses:
+        '200': { description: ok }
+
+  /links:
+    get:
+      summary: List the user's links
+      parameters:
+        - { in: query, name: type,     schema: { type: string } }
+        - { in: query, name: q,        schema: { type: string } }
+        - { in: query, name: per_page, schema: { type: integer } }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      items: { type: array, items: { $ref: '#/components/schemas/Link' } }
+                      meta:  { $ref: '#/components/schemas/PaginationMeta' }
+    post:
+      summary: Create a link or biolink
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type]
+              properties:
+                type:            { type: string, enum: [short, biolink, file, qr, event, vcard, social, sms, wifi, pdf] }
+                alias:           { type: string, nullable: true }
+                title:           { type: string, nullable: true }
+                long_url:        { type: string, nullable: true }
+                visibility:      { type: string, enum: [public, registered, followers, subscribers] }
+                is_active:       { type: boolean }
+                seo_title:       { type: string, nullable: true }
+                seo_description: { type: string, nullable: true }
+                expires_at:      { type: string, nullable: true, format: date-time }
+      responses:
+        '201': { description: created }
+
+  /links/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: integer } }
+    get:
+      summary: Read a single link
+      responses:
+        '200': { description: ok }
+        '404': { description: not found }
+    patch:
+      summary: Update a link
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:           { type: string, nullable: true }
+                long_url:        { type: string, nullable: true }
+                alias:           { type: string }
+                visibility:      { type: string, enum: [public, registered, followers, subscribers] }
+                is_active:       { type: boolean }
+                seo_title:       { type: string, nullable: true }
+                seo_description: { type: string, nullable: true }
+                expires_at:      { type: string, nullable: true, format: date-time }
+      responses:
+        '200': { description: ok }
+    delete:
+      summary: Delete a link
+      responses:
+        '204': { description: deleted }
+
+  /links/{id}/blocks:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: integer } }
+    get:
+      summary: List biolink blocks
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      items: { type: array, items: { $ref: '#/components/schemas/BiolinkBlock' } }
+    post:
+      summary: Create a biolink block
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type]
+              properties:
+                type:       { type: string }
+                sort_order: { type: integer }
+                parent_id:  { type: integer, nullable: true }
+                is_active:  { type: boolean }
+                settings:   { type: object }
+      responses:
+        '201': { description: created }
+
+  /links/{id}/blocks/{blockId}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: integer } }
+      - { in: path, name: blockId, required: true, schema: { type: integer } }
+    patch:
+      summary: Update a biolink block
+      responses: { '200': { description: ok } }
+    delete:
+      summary: Delete a biolink block
+      responses: { '204': { description: deleted } }
+
+  /links/{id}/blocks/reorder:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: integer } }
+    post:
+      summary: Reorder all blocks of a biolink in one shot
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [order]
+              properties:
+                order:
+                  type: array
+                  items: { type: integer }
+                  description: 'Block IDs in the new desired order'
+      responses: { '200': { description: ok } }
+
+  /links/{id}/nfc-writes:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: integer } }
+    get:
+      summary: List NFC writes performed for this link
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      items: { type: array, items: { $ref: '#/components/schemas/NfcWrite' } }
+                      meta:  { $ref: '#/components/schemas/PaginationMeta' }
+    post:
+      summary: Record an NFC write performed in the mobile app
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [written_url]
+              properties:
+                written_url:        { type: string, format: uri }
+                tag_uid:            { type: string, nullable: true }
+                tag_type:           { type: string, nullable: true }
+                tag_capacity_bytes: { type: integer, nullable: true }
+                locked:             { type: boolean }
+                device:             { type: string, nullable: true }
+                platform:           { type: string, enum: [ios, android], nullable: true }
+                label:              { type: string, nullable: true }
+                meta:               { type: object, nullable: true }
+      responses:
+        '201':
+          description: recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      nfc_write: { $ref: '#/components/schemas/NfcWrite' }
+
+  /links/{id}/nfc-writes/{writeId}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: integer } }
+      - { in: path, name: writeId, required: true, schema: { type: integer } }
+    delete:
+      summary: Delete a single NFC write record
+      responses: { '204': { description: deleted } }
+
+  /nfc-writes/summary:
+    get:
+      summary: Per-link write counts (for the Times-written-to-NFC counter)
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      total: { type: integer }
+                      by_link:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            link_id:         { type: integer }
+                            writes_count:    { type: integer }
+                            last_written_at: { type: string, format: date-time, nullable: true }
+
+  /follows/{userId}:
+    parameters:
+      - { in: path, name: userId, required: true, schema: { type: integer } }
+    post:    { summary: Follow a creator,    responses: { '200': { description: ok } } }
+    delete:  { summary: Unfollow a creator,  responses: { '204': { description: unfollowed } } }
+
+  /follows/following: { get: { summary: List creators you follow, responses: { '200': { description: ok } } } }
+  /follows/followers: { get: { summary: List your followers,      responses: { '200': { description: ok } } } }
+
+  /subscribers:
+    get: { summary: List your email subscribers, responses: { '200': { description: ok } } }
+  /subscribers/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: integer } }
+    delete: { summary: Remove a subscriber, responses: { '204': { description: deleted } } }
+
+  /notifications:
+    get:
+      summary: List notifications
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      items: { type: array, items: { $ref: '#/components/schemas/Notification' } }
+                      meta:
+                        allOf:
+                          - $ref: '#/components/schemas/PaginationMeta'
+                          - type: object
+                            properties:
+                              unread_count: { type: integer }
+  /notifications/read-all:
+    post: { summary: Mark all as read, responses: { '200': { description: ok } } }
+  /notifications/{id}/read:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: integer } }
+    post: { summary: Mark a single notification as read, responses: { '200': { description: ok } } }
+
+  /projects:
+    get:  { summary: List projects, responses: { '200': { description: ok } } }
+    post:
+      summary: Create a project
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:        { type: string }
+                description: { type: string, nullable: true }
+                color:       { type: string, nullable: true }
+      responses: { '201': { description: created } }
+  /projects/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: integer } }
+    patch:  { summary: Update a project, responses: { '200': { description: ok } } }
+    delete: { summary: Delete a project, responses: { '204': { description: deleted } } }
+
+  /posts:
+    get:  { summary: List your creator posts, responses: { '200': { description: ok } } }
+    post:
+      summary: Create a creator post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                title:      { type: string, nullable: true }
+                body:       { type: string }
+                media:      { type: array, items: { type: object }, nullable: true }
+                visibility: { type: string, enum: [public, followers, subscribers] }
+      responses: { '201': { description: created } }
+  /posts/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: integer } }
+    patch:  { summary: Update a post, responses: { '200': { description: ok } } }
+    delete: { summary: Delete a post, responses: { '204': { description: deleted } } }
+
+  /contacts:
+    get:  { summary: List contacts, responses: { '200': { description: ok } } }
+    post:
+      summary: Create a contact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:  { type: string }
+                email: { type: string, nullable: true }
+                phone: { type: string, nullable: true }
+                notes: { type: string, nullable: true }
+                tags:  { type: array, items: { type: string } }
+      responses: { '201': { description: created } }
+  /contacts/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: integer } }
+    patch:  { summary: Update a contact, responses: { '200': { description: ok } } }
+    delete: { summary: Delete a contact, responses: { '204': { description: deleted } } }
+
+  /forms:
+    get: { summary: List forms, responses: { '200': { description: ok } } }
+  /forms/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: integer } }
+    get: { summary: Read a form, responses: { '200': { description: ok } } }
+  /forms/{id}/submissions:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: integer } }
+    get: { summary: List form submissions, responses: { '200': { description: ok } } }
+
+  /inbox/threads:
+    get: { summary: DM thread summaries on owned biolinks, responses: { '200': { description: ok } } }
+
+  /workspaces:
+    get: { summary: List workspaces I belong to, responses: { '200': { description: ok } } }
+  /workspaces/{id}/members:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: integer } }
+    get: { summary: List workspace members, responses: { '200': { description: ok } } }
+
+  /plans:
+    get:
+      summary: Public plan catalog
+      security: []
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      items: { type: array, items: { $ref: '#/components/schemas/Plan' } }
+
+  /biolinks/{alias}:
+    parameters:
+      - { in: path, name: alias, required: true, schema: { type: string } }
+    get:
+      summary: Public biolink (visibility-aware; viewer-token optional)
+      security: []
+      responses:
+        '200': { description: ok }
+        '401': { description: sign-in required for this biolink }
+        '403': { description: must follow / subscribe }
+        '404': { description: not found }
+
+  /biolinks/{alias}/subscribe:
+    parameters:
+      - { in: path, name: alias, required: true, schema: { type: string } }
+    post:
+      summary: Subscribe (email opt-in) to a creator from a biolink
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+                name:  { type: string, nullable: true }
+      responses: { '201': { description: subscribed } }
+
+  /discovery/creators:
+    get:
+      summary: Browse public creators
+      security: []
+      responses: { '200': { description: ok } }
+  /discovery/creators/{handle}:
+    parameters:
+      - { in: path, name: handle, required: true, schema: { type: string } }
+    get:
+      summary: Public creator profile
+      security: []
+      responses: { '200': { description: ok } }
+
+  /feed:
+    get:
+      summary: Aggregated public creator feed
+      security: []
+      responses: { '200': { description: ok } }
+  /creators/{handle}/feed:
+    parameters:
+      - { in: path, name: handle, required: true, schema: { type: string } }
+    get:
+      summary: Single creator's feed
+      security: []
+      responses: { '200': { description: ok } }

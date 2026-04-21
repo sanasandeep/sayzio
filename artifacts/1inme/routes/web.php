@@ -10,6 +10,14 @@ Route::get('/admin-assets/{id}/{filename}', [AdminAssetController::class, 'serve
     ->where('filename', '.*')
     ->name('admin.assets.serve');
 
+// ---- Universal Links / App Links manifests for the iOS + Android apps ----
+Route::get('/.well-known/apple-app-site-association',
+    [\App\Modules\Common\Controllers\UniversalLinksController::class, 'appleAppSiteAssociation'])
+    ->name('well-known.aasa');
+Route::get('/.well-known/assetlinks.json',
+    [\App\Modules\Common\Controllers\UniversalLinksController::class, 'androidAssetLinks'])
+    ->name('well-known.assetlinks');
+
 // ---- Public Creators directory ----
 Route::get('/creators', [\App\Modules\Common\Controllers\CreatorsController::class, 'index'])->name('creators.index');
 
