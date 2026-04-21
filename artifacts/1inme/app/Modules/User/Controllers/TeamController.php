@@ -3,6 +3,7 @@
 namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Mail\WorkspaceInviteMailable;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\Workspace;
 use App\Modules\User\Models\WorkspaceInvite;
@@ -160,17 +161,8 @@ class TeamController extends Controller
 
     protected function sendInviteEmail(WorkspaceInvite $invite): void
     {
-        $url = route('user.workspaces.invite.show', ['token' => $invite->token]);
-        $wsName = optional($invite->workspace)->name ?? 'a workspace';
         try {
-            Mail::raw(
-                "You've been invited to join the '{$wsName}' workspace on " . config('app.name') . ".\n\n"
-                . "Accept your invite here: {$url}\n\n"
-                . "This link expires on " . optional($invite->expires_at)->toDayDateTimeString() . '.',
-                function ($m) use ($invite, $wsName) {
-                    $m->to($invite->email)->subject("You've been invited to {$wsName}");
-                }
-            );
+            Mail::to($invite->email)->send(new WorkspaceInviteMailable($invite));
         } catch (\Throwable $e) { /* best effort — surface in invites list */ }
     }
 }
