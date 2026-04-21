@@ -387,6 +387,37 @@ class TaskBoardTest extends TestCase
             $card->subtasks()->orderBy('position')->pluck('title')->all());
     }
 
+    public function test_destroy_card_and_board_purge_attachments(): void
+    {
+        $disk = Storage::fake('local');
+        $alice = $this->makeUser('alice');
+        session(['active_workspace_id' => $alice->ensureDefaultWorkspace()->id]);
+        $this->actingAs($alice)->post('/user/tasks/boards', ['name' => 'Purge', 'scope' => 'team']);
+        $board = TaskBoard::query()->withoutGlobalScope('workspace')->where('name', 'Purge')->first();
+        $col = $board->columns()->orderBy('position')->first();
+        $this->actingAs($alice)->post("/user/tasks/boards/{$board->id}/cards", ['column_id' => $col->id, 'title' => 'C1']);
+        $this->actingAs($alice)->post("/user/tasks/boards/{$board->id}/cards", ['column_id' => $col->id, 'title' => 'C2']);
+        $c1 = TaskCard::query()->withoutGlobalScope('workspace')->where('title', 'C1')->first();
+        $c2 = TaskCard::query()->withoutGlobalScope('workspace')->where('title', 'C2')->first();
+        $this->actingAs($alice)->post("/user/tasks/cards/{$c1->id}/attachments",
+            ['file' => UploadedFile::fake()->create('a.pdf', 10, 'application/pdf')])->assertOk();
+        $this->actingAs($alice)->post("/user/tasks/cards/{$c2->id}/attachments",
+            ['file' => UploadedFile::fake()->create('b.pdf', 10, 'application/pdf')])->assertOk();
+        $a1 = TaskAttachment::query()->withoutGlobalScope('workspace')->where('card_id', $c1->id)->first();
+        $a2 = TaskAttachment::query()->withoutGlobalScope('workspace')->where('card_id', $c2->id)->first();
+        $disk->assertExists($a1->path);
+        $disk->assertExists($a2->path);
+
+        $this->actingAs($alice)->delete("/user/tasks/cards/{$c1->id}")->assertOk();
+        $this->assertSame(0, TaskAttachment::query()->withoutGlobalScope('workspace')->where('card_id', $c1->id)->count());
+        $disk->assertMissing($a1->path);
+        $disk->assertExists($a2->path);
+
+        $this->actingAs($alice)->delete("/user/tasks/boards/{$board->id}")->assertRedirect();
+        $this->assertSame(0, TaskAttachment::query()->withoutGlobalScope('workspace')->where('card_id', $c2->id)->count());
+        $disk->assertMissing($a2->path);
+    }
+
     public function test_personal_board_cannot_be_created_in_team_workspace(): void
     {
         $owner = $this->makeUser('teamown');

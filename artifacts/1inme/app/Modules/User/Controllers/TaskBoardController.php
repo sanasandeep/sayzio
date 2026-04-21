@@ -50,9 +50,7 @@ class TaskBoardController extends Controller
             }])
             ->get();
 
-        // Auto-seed a personal board only inside the user's own personal
-        // workspace (per spec). Inside team workspaces we never silently
-        // create personal boards — that would leak private state.
+        // Auto-seed a personal board only inside the user's own personal workspace.
         $ws = app('current_workspace');
         if ($personal->isEmpty() && $ws && $ws->is_personal && (int) $ws->owner_user_id === (int) $userId) {
             $personal = collect([$this->createBoard('My Tasks', 'personal', '#8b5cf6')])
@@ -61,9 +59,7 @@ class TaskBoardController extends Controller
                 }]);
         }
 
-        // Archived boards (both scopes) — only fetched when the user opens
-        // the "Archived" panel. Owner/admin can restore or hard-delete from
-        // here; readers see them as a read-only audit trail.
+        // Archived boards: shown in the "Archived" panel for restore / hard-delete.
         $archived = TaskBoard::query()
             ->whereNotNull('archived_at')
             ->where(function ($q) use ($userId) {
@@ -125,14 +121,7 @@ class TaskBoardController extends Controller
         ]);
     }
 
-    /** Sanitize description HTML to a safe allow-list of inline + block tags. */
-    /**
-     * Allow-list HTML sanitizer built on DOMDocument. Anything not on the
-     * tag/attribute whitelist (or any href whose scheme isn't http/https/
-     * mailto) is stripped. This defeats event-handler injection (`onclick=`
-     * with or without quotes), `javascript:` URLs (including encoded
-     * variants), and unknown elements like `<script>` / `<iframe>`.
-     */
+    /** Allow-list HTML sanitizer: strips unknown tags/attrs and non-(http|https|mailto) hrefs. */
     private function sanitizeHtml(?string $html): ?string
     {
         if ($html === null) return null;
@@ -148,10 +137,7 @@ class TaskBoardController extends Controller
         ];
 
         $doc = new \DOMDocument('1.0', 'UTF-8');
-        // Suppress libxml warnings about HTML5 tags / loose markup.
         libxml_use_internal_errors(true);
-        // Wrap so DOMDocument doesn't auto-add <html><body> entities and so
-        // we can encode incoming UTF-8 correctly.
         $wrapped = '<?xml encoding="UTF-8"?><div id="__rt_root">' . $html . '</div>';
         if (!$doc->loadHTML($wrapped, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD | LIBXML_NONET)) {
             libxml_clear_errors();
@@ -160,26 +146,18 @@ class TaskBoardController extends Controller
         libxml_clear_errors();
 
         $root = $doc->getElementById('__rt_root');
-        if (!$root) {
-            // Fallback: nothing parsed cleanly.
-            return '';
-        }
+        if (!$root) return '';
 
-        // Walk depth-first; collect disallowed nodes for replacement, but
-        // never touch the root wrapper itself.
         $walk = function (\DOMNode $node) use (&$walk, $allowedTags, $allowedAttrs, $root) {
-            // Snapshot children before mutating.
             $children = iterator_to_array($node->childNodes);
             foreach ($children as $child) {
                 if ($child instanceof \DOMElement) {
                     $tag = strtolower($child->tagName);
                     if (!in_array($tag, $allowedTags, true)) {
-                        // Unwrap: replace element with its text content.
                         $text = $node->ownerDocument->createTextNode($child->textContent);
                         $node->replaceChild($text, $child);
                         continue;
                     }
-                    // Strip every attribute not on the per-tag allowlist.
                     $allowedForTag = $allowedAttrs[$tag] ?? [];
                     foreach (iterator_to_array($child->attributes) as $attr) {
                         $name = strtolower($attr->name);
@@ -188,19 +166,15 @@ class TaskBoardController extends Controller
                             continue;
                         }
                         if ($name === 'href') {
-                            // Normalize: lowercase, decode hex/decimal entities,
-                            // strip whitespace inside the scheme prefix.
                             $val = trim($attr->value);
                             $decoded = html_entity_decode($val, ENT_QUOTES | ENT_HTML5, 'UTF-8');
                             $stripped = preg_replace('/\s+/', '', $decoded);
                             if (!preg_match('#^(https?:|mailto:|/|\#)#i', $stripped)) {
-                                // Anything that isn't a safe scheme/path is killed.
                                 $child->removeAttribute('href');
                                 continue;
                             }
                         }
                         if ($name === 'target') {
-                            // Hard-pin target=_blank with safe rel.
                             $child->setAttribute('target', '_blank');
                             $child->setAttribute('rel', 'noopener noreferrer nofollow');
                         }
@@ -213,7 +187,6 @@ class TaskBoardController extends Controller
         };
         $walk($root);
 
-        // Serialize the inner HTML of the wrapper.
         $out = '';
         foreach ($root->childNodes as $c) {
             $out .= $doc->saveHTML($c);
@@ -258,6 +231,7 @@ class TaskBoardController extends Controller
         $this->authorizeDelete($board);
         DB::transaction(function () use ($board) {
             $cardIds = $board->cards()->pluck('id');
+            $this->purgeCardAttachments($cardIds);
             DB::table('task_card_assignees')->whereIn('card_id', $cardIds)->delete();
             DB::table('task_card_labels')->whereIn('card_id', $cardIds)->delete();
             DB::table('task_subtasks')->whereIn('card_id', $cardIds)->delete();
@@ -269,6 +243,16 @@ class TaskBoardController extends Controller
             $board->delete();
         });
         return redirect()->route('user.tasks.index')->with('success', 'Board deleted.');
+    }
+
+    /** Delete attachment rows and their underlying files for the given cards. */
+    private function purgeCardAttachments($cardIds): void
+    {
+        $atts = TaskAttachment::whereIn('card_id', $cardIds)->get(['id', 'disk', 'path']);
+        foreach ($atts as $att) {
+            \Storage::disk($att->disk)->delete($att->path);
+        }
+        TaskAttachment::whereIn('card_id', $cardIds)->delete();
     }
 
     // ----- Columns ----------------------------------------------------------
@@ -317,9 +301,7 @@ class TaskBoardController extends Controller
     {
         $board = $column->board;
         $this->authorizeEdit($board);
-        // Move cards in this column to the first remaining column instead of
-        // silently deleting them — losing user work on a misclick is worse
-        // than an extra step to delete cards explicitly.
+        // Move cards to the first remaining column; if none, archive instead of delete.
         $fallback = $board->columns()->where('id', '!=', $column->id)->orderBy('position')->first();
         if ($fallback) {
             $start = (int) ($fallback->cards()->max('position') ?? 0) + 1;
@@ -327,8 +309,6 @@ class TaskBoardController extends Controller
                 $card->update(['column_id' => $fallback->id, 'position' => $start + $i]);
             }
         } else {
-            // No other column to move cards to — archive them so they remain
-            // recoverable from the board's archived list rather than deleted.
             $column->cards()->update(['archived_at' => now()]);
         }
         $column->delete();
@@ -437,7 +417,6 @@ class TaskBoardController extends Controller
         $fromColumnId = $card->column_id;
 
         DB::transaction(function () use ($card, $targetColumn, $data, $fromColumnId) {
-            // Pull card out of its current column to avoid double-counting positions.
             if ($fromColumnId === $targetColumn->id) {
                 $siblings = TaskCard::where('column_id', $targetColumn->id)
                     ->where('id', '!=', $card->id)
@@ -447,7 +426,6 @@ class TaskBoardController extends Controller
                     ->orderBy('position')->get();
             }
 
-            // Reinsert at the requested position.
             $newOrder = $siblings->values()->all();
             $insertAt = max(0, min((int) $data['position'], count($newOrder)));
             array_splice($newOrder, $insertAt, 0, [$card]);
@@ -459,7 +437,6 @@ class TaskBoardController extends Controller
                 ]);
             }
 
-            // Auto-complete on drop into a "done" column; reopen otherwise.
             $card->refresh();
             if ($targetColumn->is_done && !$card->completed_at) {
                 $card->update(['completed_at' => now()]);
@@ -485,6 +462,7 @@ class TaskBoardController extends Controller
     {
         $this->authorizeDelete($card->board);
         DB::transaction(function () use ($card) {
+            $this->purgeCardAttachments([$card->id]);
             DB::table('task_card_assignees')->where('card_id', $card->id)->delete();
             DB::table('task_card_labels')->where('card_id', $card->id)->delete();
             DB::table('task_subtasks')->where('card_id', $card->id)->delete();
@@ -503,12 +481,11 @@ class TaskBoardController extends Controller
         ]);
         $userId = (int) $data['user_id'];
 
-        // For team boards we must validate the user is a member of THIS workspace
-        // (or its owner) — otherwise an editor could assign cards to anyone.
+        // Team boards: assignee must belong to the workspace.
         if ($card->board->scope === 'team' && !$this->isWorkspaceMember($userId, $card->workspace_id)) {
             return response()->json(['ok' => false, 'error' => 'User is not a member of this workspace.'], 422);
         }
-        // Personal boards: only the owner can be assigned (it's their private board).
+        // Personal boards: only the owner is assignable.
         if ($card->board->scope === 'personal' && $userId !== (int) $card->board->owner_user_id) {
             return response()->json(['ok' => false, 'error' => 'Personal boards only support the owner as assignee.'], 422);
         }
@@ -562,7 +539,6 @@ class TaskBoardController extends Controller
         $ids = $request->input('order', []);
         if (!is_array($ids)) abort(422, 'order must be an array');
 
-        // Drop foreign IDs so a crafted payload can only renumber this card.
         $owned = $card->subtasks()->pluck('id')->all();
         $clean = array_values(array_intersect(array_map('intval', $ids), $owned));
         if (!$clean) return response()->json(['ok' => true, 'updated' => 0]);
@@ -586,12 +562,7 @@ class TaskBoardController extends Controller
         return response()->json(['ok' => true]);
     }
 
-    /**
-     * Resolve a card through the workspace global scope so cross-workspace
-     * subtask IDs cleanly 404 instead of triggering a server error when the
-     * controller dereferences `$subtask->card->board` for a card the active
-     * workspace cannot see.
-     */
+    /** Resolve a card honouring the workspace global scope (404 instead of 500 on cross-ws). */
     private function resolveScopedCard(int $cardId): TaskCard
     {
         $card = TaskCard::query()->find($cardId);
@@ -603,7 +574,6 @@ class TaskBoardController extends Controller
 
     public function storeComment(Request $request, TaskCard $card)
     {
-        // Replier role: can comment on cards (replies are their job).
         if (!auth()->user()->canInWorkspace(app('current_workspace'), 'tasks.reply')) {
             abort(403, 'You do not have permission to comment.');
         }
@@ -619,11 +589,7 @@ class TaskBoardController extends Controller
         return response()->json(['ok' => true, 'comment' => $comment]);
     }
 
-    /**
-     * Find @name / @email mentions in a comment body and ping each matched
-     * workspace member with a task_mention notification. Mentions only fire
-     * for users who are members of the card's workspace (or its owner).
-     */
+    /** Notify @name / @email mentions found in a comment to workspace members. */
     private function notifyMentions(TaskCard $card, string $body): void
     {
         if (!preg_match_all('/@([a-z0-9._\-]{2,64})/i', $body, $m)) return;
@@ -661,27 +627,16 @@ class TaskBoardController extends Controller
     {
         $this->authorizeEdit($card->board);
         $request->validate([
-            // 10 MB cap per the v1 spec.
             'file' => [
                 'required', 'file', 'max:10240',
-                // Allowlist common doc / image / archive types. We forbid
-                // active content (html, svg, js, php, exe) so attachments
-                // can't be served as same-origin script/markup.
                 'mimes:jpg,jpeg,png,gif,webp,bmp,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv,md,rtf,zip,tar,gz,mp3,mp4,mov,wav,ogg',
             ],
         ]);
         $file = $request->file('file');
-        // Defense-in-depth: also reject by extension since `mimes` derives
-        // its check from server-side type detection only.
         $ext = strtolower($file->getClientOriginalExtension());
         if (in_array($ext, ['html','htm','svg','xhtml','xml','js','mjs','php','phtml','phar','exe','sh','bat','cmd'], true)) {
             return response()->json(['ok' => false, 'error' => 'File type not allowed.'], 422);
         }
-        // Use the project's configured default disk (FILESYSTEM_DISK env)
-        // so production can switch between local / S3 / etc. without code
-        // changes. The default 'local' disk is rooted at storage/app/private
-        // (not web-accessible). Downloads always go through the controlled
-        // downloadAttachment() route below so we keep auth + safe headers.
         $disk = config('filesystems.default');
         $path = $file->store('task-attachments/' . $card->workspace_id, $disk);
         $att = TaskAttachment::create([
@@ -705,16 +660,12 @@ class TaskBoardController extends Controller
 
     public function downloadAttachment(TaskAttachment $attachment)
     {
-        // resolveScopedCard 404s if the card isn't in the current workspace,
-        // which transitively gates the attachment.
         $card = $this->resolveScopedCard($attachment->card_id);
         $this->authorizeView($card->board);
         $disk = \Storage::disk($attachment->disk);
         if (!$disk->exists($attachment->path)) {
             abort(404);
         }
-        // Force `Content-Disposition: attachment` so browsers download rather
-        // than render — even if the upload allowlist were bypassed.
         return $disk->download($attachment->path, $attachment->original_name, [
             'Content-Type'              => 'application/octet-stream',
             'X-Content-Type-Options'    => 'nosniff',
@@ -806,8 +757,7 @@ class TaskBoardController extends Controller
     {
         $user = auth()->user();
         if (!$board->visibleTo($user)) abort(404);
-        // Personal-board owner can always create cards on their own board even
-        // if their workspace role is below 'create'.
+        // Personal-board owner may always create cards on their own board.
         if ($board->scope === 'personal' && (int) $board->owner_user_id === (int) $user->id) return;
         if (!$user->canInWorkspace(app('current_workspace'), 'tasks.create')) abort(403);
     }
