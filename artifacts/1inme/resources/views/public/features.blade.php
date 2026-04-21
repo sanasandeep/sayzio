@@ -143,8 +143,20 @@
     @endforeach
 </div>
 
+@php
+    $__featuresTestimonials = (array) \App\Modules\Admin\Models\AppSetting::get('marketing_features_testimonials', []);
+    if (empty($__featuresTestimonials)) {
+        $__featuresTestimonials = \App\Modules\Common\Support\SitePagesContent::testimonialsDefault();
+    }
+@endphp
+@include('public.partials.testimonials', [
+    'testimonials' => $__featuresTestimonials,
+    'eyebrow' => 'What people say',
+    'heading' => 'Teams and creators ship faster with 1INME.',
+])
+
 {{-- CTA --}}
-<section class="pb-24">
+<section class="pb-12">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grad-border rounded-3xl p-8 sm:p-12 text-center relative overflow-hidden" data-anim="fade-up">
             <div class="mesh-bg opacity-50"></div>
@@ -163,4 +175,10 @@
         </div>
     </div>
 </section>
+
+@include('public.partials.newsletter-cta', [
+    'heading' => 'Want a heads-up when we ship new features?',
+    'subtext' => 'Join the 1INME newsletter for product updates, growth playbooks for creators, and the occasional template — once a month.',
+    'source'  => 'features-cta',
+])
 @endsection

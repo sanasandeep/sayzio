@@ -45,7 +45,11 @@
         </div>
         <div data-anim="fade-left" data-tilt="5" class="relative">
             <div class="img-frame img-tilt aspect-[16/10]">
+<<<<<<< HEAD
                 <img src="{{ asset('images/marketing/buzz/hero.png') }}" alt="Press coverage and editorial features">
+=======
+                <img src="{{ asset('images/marketing/buzz/hero.png') }}" alt="">
+>>>>>>> 60d7746 (Saved your changes before starting work)
             </div>
             <div class="absolute -bottom-5 -right-5 bg-[#11101c] border border-white/10 rounded-2xl p-3 pr-4 flex items-center gap-3 shadow-2xl float-y">
                 <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-pink-500 flex items-center justify-center text-white"><i class="fas fa-trophy"></i></div>
@@ -83,7 +87,11 @@
             @foreach($press as $p)
                 <a href="{{ $p['href'] }}" class="group bg-white/[0.03] hover:bg-white/[0.05] border border-white/10 hover:border-violet-400/40 rounded-2xl overflow-hidden transition flex flex-col sm:flex-row">
                     <div class="img-frame rounded-none border-0 aspect-[16/10] sm:aspect-auto sm:w-44 shrink-0">
+<<<<<<< HEAD
                         <img src="{{ asset('images/marketing/buzz/press.png') }}" alt="Press article preview">
+=======
+                        <img src="{{ asset('images/marketing/buzz/press.png') }}" alt="">
+>>>>>>> 60d7746 (Saved your changes before starting work)
                     </div>
                     <div class="p-5 flex-1 flex flex-col">
                         <div class="text-xs font-semibold uppercase tracking-wider text-violet-300">{{ $p['outlet'] }} · {{ $p['date'] }}</div>

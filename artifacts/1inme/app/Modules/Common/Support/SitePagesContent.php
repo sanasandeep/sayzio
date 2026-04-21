@@ -946,6 +946,91 @@ class SitePagesContent
     }
 
     /**
+     * Default trust-strip metrics shown under the landing hero.
+     */
+    public static function trustStripDefault(): array
+    {
+        return [
+            ['value' => '12,000+', 'label' => 'Active creators',  'icon' => 'fa-users'],
+            ['value' => '99.9%',   'label' => 'Uptime SLA',       'icon' => 'fa-bolt'],
+            ['value' => '4.8/5',   'label' => 'Average rating',   'icon' => 'fa-star'],
+            ['value' => '< 60s',   'label' => 'Time to first link','icon' => 'fa-stopwatch'],
+        ];
+    }
+
+    /**
+     * Coerce admin input into a sane trust-strip array (drops empty rows,
+     * trims, caps lengths). Returns at most 6 items.
+     */
+    public static function normalizeTrustStrip(array $input): array
+    {
+        $out = [];
+        foreach (array_values($input) as $row) {
+            if (!is_array($row)) continue;
+            $value = trim((string) ($row['value'] ?? ''));
+            $label = trim((string) ($row['label'] ?? ''));
+            if ($value === '' && $label === '') continue;
+            $out[] = [
+                'value' => mb_substr($value, 0, 60),
+                'label' => mb_substr($label, 0, 120),
+                'icon'  => trim((string) ($row['icon'] ?? '')) ?: 'fa-circle-check',
+            ];
+            if (count($out) >= 6) break;
+        }
+        return $out;
+    }
+
+    /**
+     * Default testimonials shown on the landing & Features pages.
+     */
+    public static function testimonialsDefault(): array
+    {
+        return [
+            [
+                'quote' => '1INME replaced three different tools for me. The drag-and-drop biolink and the live analytics map are honestly addictive.',
+                'name'  => 'Maya R.',
+                'role'  => 'Content creator · 240k followers',
+                'photo' => '',
+            ],
+            [
+                'quote' => 'We onboarded the whole team in an afternoon. Workspaces and per-link analytics make client reporting trivial.',
+                'name'  => 'Daniel K.',
+                'role'  => 'Founder, indie agency',
+                'photo' => '',
+            ],
+            [
+                'quote' => 'The Performance Coach actually finds the weak links. Conversions on my biolink went up 32% in two weeks.',
+                'name'  => 'Priya S.',
+                'role'  => 'Coach & podcaster',
+                'photo' => '',
+            ],
+        ];
+    }
+
+    /**
+     * Coerce admin input into a sane testimonials array (drops empty rows,
+     * trims, caps lengths). Returns at most 24 items.
+     */
+    public static function normalizeTestimonials(array $input): array
+    {
+        $out = [];
+        foreach (array_values($input) as $row) {
+            if (!is_array($row)) continue;
+            $quote = trim((string) ($row['quote'] ?? ''));
+            $name  = trim((string) ($row['name']  ?? ''));
+            if ($quote === '' && $name === '') continue;
+            $out[] = [
+                'quote' => mb_substr($quote, 0, 1000),
+                'name'  => mb_substr($name, 0, 120),
+                'role'  => mb_substr(trim((string) ($row['role']  ?? '')), 0, 160),
+                'photo' => trim((string) ($row['photo'] ?? '')),
+            ];
+            if (count($out) >= 24) break;
+        }
+        return $out;
+    }
+
+    /**
      * Definition of the supported social networks: app-setting key,
      * human label, and the FontAwesome brand icon class to render in the
      * public footer.

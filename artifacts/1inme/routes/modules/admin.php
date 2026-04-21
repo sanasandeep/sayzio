@@ -206,6 +206,15 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('toggle', [\App\Modules\Admin\Controllers\ReferralController::class, 'toggle'])->middleware(CheckPermission::class . ':settings.manage')->name('toggle');
         });
 
+        Route::prefix('newsletter')->name('newsletter.')->group(function () {
+            Route::get('/', [\App\Modules\Admin\Controllers\NewsletterController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::get('/export', [\App\Modules\Admin\Controllers\NewsletterController::class, 'export'])->middleware(CheckPermission::class . ':settings.manage')->name('export');
+            Route::delete('/{subscriber}', [\App\Modules\Admin\Controllers\NewsletterController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
+        });
+        Route::prefix('marketing-settings')->name('marketing-settings.')->group(function () {
+            Route::get('/', [\App\Modules\Admin\Controllers\MarketingSettingsController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::put('/', [\App\Modules\Admin\Controllers\MarketingSettingsController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
+        });
         Route::prefix('site-pages')->name('site-pages.')->group(function () {
             Route::get('/', [\App\Modules\Admin\Controllers\SitePageController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
             Route::post('contact-recipient', [\App\Modules\Admin\Controllers\SitePageController::class, 'updateContactRecipient'])->middleware(CheckPermission::class . ':settings.manage')->name('contact-recipient');

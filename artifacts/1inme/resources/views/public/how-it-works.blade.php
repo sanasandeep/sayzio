@@ -82,7 +82,11 @@
             </div>
             <div data-anim="fade-left" data-tilt="6" class="relative">
                 <div class="img-frame img-tilt aspect-[16/10]">
+<<<<<<< HEAD
                     <img src="{{ asset('images/marketing/how-it-works/hero.png') }}" alt="Diagram of the 1INME setup flow">
+=======
+                    <img src="{{ asset('images/marketing/how-it-works/hero.png') }}" alt="">
+>>>>>>> 60d7746 (Saved your changes before starting work)
                 </div>
                 <div class="absolute -bottom-6 -left-6 bg-[#11101c] border border-white/10 rounded-2xl p-4 flex items-center gap-3 shadow-2xl float-y">
                     <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white">
@@ -150,4 +154,10 @@
         </div>
     </div>
 </section>
+
+@include('public.partials.newsletter-cta', [
+    'heading' => 'Get tips and templates straight to your inbox.',
+    'subtext' => 'Once-a-month notes on what is working for creators on 1INME — actionable, no fluff, unsubscribe any time.',
+    'source'  => 'how-it-works-cta',
+])
 @endsection

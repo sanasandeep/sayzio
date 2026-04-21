@@ -75,7 +75,11 @@
                 </div>
                 <div class="{{ $reverse ? 'lg:order-1' : '' }}" data-anim="{{ $reverse ? 'fade-right' : 'fade-left' }}" data-tilt="5">
                     <div class="img-frame img-tilt aspect-[4/3]">
+<<<<<<< HEAD
                         <img src="{{ $f['img'] }}" alt="{{ strip_tags($f['title']) }} preview">
+=======
+                        <img src="{{ $f['img'] }}" alt="">
+>>>>>>> 60d7746 (Saved your changes before starting work)
                     </div>
                 </div>
             </div>

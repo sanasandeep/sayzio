@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>1INME — One link to everything.</title>
     <meta name="description" content="1INME is the all-in-one link platform: drag-and-drop biolinks, short links, dynamic QR codes, live geographic analytics, a Performance Coach, follower system, forms, social proof and more.">
+    @include('public.partials.marketing-share-meta')
+    @include('public.partials.marketing-tracking')
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
@@ -2526,19 +2528,31 @@
                     Whoever you are, 1INME gives you <strong class="text-white">one link</strong> for everything: drag-and-drop biolink pages, branded short links, dynamic QR codes, plus live analytics and an AI-style Performance Coach.
                 </p>
 
-                <div class="reveal rd-3 flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
+                <div class="reveal rd-3 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5 justify-center lg:justify-start">
                     <button type="button" @click="authTab='register'; authOpen=true" class="btn-bounce btn-glow inline-flex items-center justify-center gap-2 px-8 py-4 grad-bar text-white rounded-full text-base font-bold whitespace-nowrap shrink-0">
                         Make mine free <i class="fas fa-arrow-right text-sm"></i>
                     </button>
-                    <a href="#features" class="btn-bounce inline-flex items-center justify-center gap-2 px-8 py-4 glass-2 text-white rounded-full text-base font-semibold whitespace-nowrap shrink-0">
-                        See it live
+                    <a href="#features" class="inline-flex items-center justify-center gap-1.5 text-sm font-semibold text-gray-300 hover:text-white">
+                        See it live <i class="fas fa-arrow-right text-[11px]"></i>
                     </a>
                 </div>
 
-                <div class="reveal rd-4 flex flex-wrap items-center gap-x-6 gap-y-2 mt-12 justify-center lg:justify-start text-sm text-gray-500">
-                    <span class="flex items-center gap-1.5"><i class="fas fa-check" style="color:var(--c1)"></i> Free forever plan</span>
-                    <span class="flex items-center gap-1.5"><i class="fas fa-check" style="color:var(--c3)"></i> No credit card</span>
-                    <span class="flex items-center gap-1.5"><i class="fas fa-check" style="color:var(--c5)"></i> Set up in minutes</span>
+                @php
+                    $__trustStripRaw = (array) \App\Modules\Admin\Models\AppSetting::get('marketing_trust_strip', []);
+                    $__trustStrip = \App\Modules\Common\Support\SitePagesContent::normalizeTrustStrip($__trustStripRaw);
+                    if (empty($__trustStrip)) {
+                        $__trustStrip = \App\Modules\Common\Support\SitePagesContent::trustStripDefault();
+                    }
+                    $__trustColors = ['var(--c1)', 'var(--c3)', 'var(--c5)', 'var(--c2)', 'var(--c4)'];
+                @endphp
+                <div class="reveal rd-4 flex flex-wrap items-center gap-x-6 gap-y-3 mt-12 justify-center lg:justify-start text-sm">
+                    @foreach($__trustStrip as $i => $__t)
+                        <span class="flex items-center gap-2 text-gray-400">
+                            <i class="fas {{ $__t['icon'] ?? 'fa-check' }} text-[13px]" style="color: {{ $__trustColors[$i % count($__trustColors)] }}"></i>
+                            <span class="font-bold text-white">{{ $__t['value'] ?? '' }}</span>
+                            <span class="text-gray-500">{{ $__t['label'] ?? '' }}</span>
+                        </span>
+                    @endforeach
                 </div>
             </div>
 
@@ -4402,6 +4416,43 @@
     </div>
 </section>
 
+{{-- ============================ WHY 1INME (comparison) ============================ --}}
+<section id="why" class="py-20 lg:py-28 relative overflow-hidden">
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-10 max-w-2xl mx-auto">
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c4)">Why 1INME</div>
+            <h2 class="reveal rd-1 text-4xl sm:text-5xl font-bold tracking-tight mb-4">One link. <span class="grad-text">Everything you need.</span></h2>
+            <p class="reveal rd-2 text-gray-400">Most “link in bio” tools stop at a list of links. 1INME gives you the whole growth stack.</p>
+        </div>
+        @php
+            $__rows = [
+                ['Drag-and-drop biolink page', true, 'Limited'],
+                ['Branded short links + dynamic QR', true, 'Add-on / no'],
+                ['Live analytics with map of clicks', true, 'Basic charts'],
+                ['Built-in Performance Coach (AI-style tips)', true, 'No'],
+                ['Free forever plan, no credit card', true, 'Trial only'],
+                ['Unlimited blocks on the free tier', true, 'Capped'],
+            ];
+        @endphp
+        <div class="reveal rd-3 grad-border rounded-3xl overflow-hidden">
+            <div class="grid grid-cols-12 px-4 sm:px-6 py-4 bg-white/[.04] text-xs font-bold uppercase tracking-wider text-gray-400">
+                <div class="col-span-6">Feature</div>
+                <div class="col-span-3 text-center text-white">1INME</div>
+                <div class="col-span-3 text-center">Typical bio-link tool</div>
+            </div>
+            @foreach($__rows as $r)
+                <div class="grid grid-cols-12 items-center px-4 sm:px-6 py-4 border-t border-white/5 text-sm">
+                    <div class="col-span-6 text-gray-200">{{ $r[0] }}</div>
+                    <div class="col-span-3 text-center">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-300 text-xs font-semibold"><i class="fas fa-check"></i> Yes</span>
+                    </div>
+                    <div class="col-span-3 text-center text-gray-400 text-xs">{{ $r[2] }}</div>
+                </div>
+            @endforeach
+        </div>
+    </div>
+</section>
+
 {{-- ============================ PRICING ============================ --}}
 <section id="pricing" class="py-24 lg:py-32 relative overflow-hidden">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -4475,6 +4526,19 @@
         </div>
     </div>
 </section>
+
+{{-- ============================ TESTIMONIALS ============================ --}}
+@php
+    $__landingTestimonials = (array) \App\Modules\Admin\Models\AppSetting::get('marketing_landing_testimonials', []);
+    if (empty($__landingTestimonials)) {
+        $__landingTestimonials = \App\Modules\Common\Support\SitePagesContent::testimonialsDefault();
+    }
+@endphp
+@include('public.partials.testimonials', [
+    'testimonials' => $__landingTestimonials,
+    'eyebrow' => 'Loved by creators',
+    'heading' => 'People are shipping their best link with 1INME.',
+])
 
 {{-- ============================ FINAL CTA ============================ --}}
 <section class="py-24 lg:py-32 relative overflow-hidden">

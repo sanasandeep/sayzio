@@ -72,14 +72,16 @@ Route::controller(\App\Modules\Common\Controllers\SitePageController::class)->gr
 });
 Route::post('/contact', [\App\Modules\Common\Controllers\SitePageController::class, 'submitContact'])
     ->name('site.contact.submit')->middleware('throttle:10,10');
+Route::post('/newsletter/subscribe', [\App\Modules\Common\Controllers\NewsletterController::class, 'subscribe'])
+    ->name('site.newsletter.subscribe')->middleware('throttle:10,10');
 
 // Public referral tracking — must precede the catch-all /{alias} routes.
 Route::get('/r/{code}', [\App\Modules\User\Controllers\ReferralController::class, 'track'])
     ->name('referrals.track')
     ->where('code', '[a-z0-9_\-]{3,32}');
 
-Route::get('/{alias}/manifest.json', [RedirectController::class, 'manifest'])->name('redirect.manifest')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|docs).*$');
-Route::get('/{alias}', [RedirectController::class, 'handle'])->name('redirect.handle')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|docs).*$');
+Route::get('/{alias}/manifest.json', [RedirectController::class, 'manifest'])->name('redirect.manifest')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|docs|newsletter).*$');
+Route::get('/{alias}', [RedirectController::class, 'handle'])->name('redirect.handle')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|docs|newsletter).*$');
 Route::post('/{alias}/track/session', [\App\Modules\Common\Controllers\EngagementController::class, 'startSession'])->name('track.session.start')->where('alias', '[^/]+')->middleware('throttle:60,1');
 Route::post('/{alias}/track/heartbeat', [\App\Modules\Common\Controllers\EngagementController::class, 'heartbeat'])->name('track.heartbeat')->where('alias', '[^/]+')->middleware('throttle:120,1');
 Route::post('/{alias}/subscribe', [RedirectController::class, 'subscribe'])->name('redirect.subscribe')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|webhooks).*$')->middleware('throttle:10,1');

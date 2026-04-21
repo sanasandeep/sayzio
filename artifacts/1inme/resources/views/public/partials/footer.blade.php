@@ -1,4 +1,41 @@
 <footer class="border-t border-white/10 bg-[#161b26] mt-16">
+    {{-- Newsletter signup --}}
+    <div class="border-b border-white/5">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 grid md:grid-cols-[1.1fr_1fr] gap-6 items-center">
+            <div>
+                <div class="text-[11px] font-bold uppercase tracking-[.2em] text-violet-300 mb-2">Newsletter</div>
+                <h3 class="text-xl sm:text-2xl font-bold text-white">Stay in the loop with 1INME.</h3>
+                <p class="mt-1.5 text-sm text-gray-400">Monthly product updates, growth playbooks, templates. No spam.</p>
+            </div>
+            <div>
+                @if(session('newsletter_success'))
+                    <div class="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-emerald-500/10 border border-emerald-400/30 text-emerald-200 text-sm mb-2">
+                        <i class="fas fa-circle-check"></i> {{ session('newsletter_success') }}
+                    </div>
+                @endif
+                <form method="POST" action="{{ route('site.newsletter.subscribe') }}"
+                      class="flex flex-col sm:flex-row items-stretch gap-2"
+                      novalidate>
+                    @csrf
+                    <input type="hidden" name="source" value="footer">
+                    <input type="text" name="website" value="" tabindex="-1" autocomplete="off"
+                           class="hidden" aria-hidden="true">
+                    <label class="sr-only" for="footer-newsletter-email">Email address</label>
+                    <input type="email" id="footer-newsletter-email" name="email" required
+                           placeholder="you@example.com"
+                           value="{{ old('email') }}"
+                           class="flex-1 min-w-0 px-4 py-2.5 rounded-full bg-white/5 border border-white/15 text-white placeholder-white/40 text-sm focus:outline-none focus:border-violet-400/60">
+                    <button type="submit"
+                            class="shrink-0 px-5 py-2.5 rounded-full bg-violet-600 hover:bg-violet-700 text-white text-sm font-bold">
+                        Subscribe
+                    </button>
+                </form>
+                @error('email')
+                    <p class="mt-1.5 text-xs text-red-300">{{ $message }}</p>
+                @enderror
+            </div>
+        </div>
+    </div>
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 grid grid-cols-2 md:grid-cols-5 gap-8 text-sm">
         <div class="col-span-2 md:col-span-1">
             @include('common.partials.brand-logo', ['height' => 'h-8'])

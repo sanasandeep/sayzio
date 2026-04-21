@@ -7,6 +7,8 @@
     <title>@yield('title', $page->title ?? '1INME') — {{ config('app.name', '1INME') }}</title>
     <meta name="description" content="{{ $page->meta_description ?? '' }}">
     @include('common.partials.default-icons')
+    @include('public.partials.marketing-share-meta')
+    @include('public.partials.marketing-tracking')
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">

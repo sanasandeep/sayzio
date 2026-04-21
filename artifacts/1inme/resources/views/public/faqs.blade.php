@@ -1,4 +1,30 @@
 @extends('public.layouts.site')
+
+@push('head')
+@php
+    $__faqsForSchema = collect($faqs ?? [])
+        ->filter(fn ($f) => trim((string) $f->question) !== '' && trim((string) $f->answer) !== '')
+        ->map(fn ($f) => [
+            '@type' => 'Question',
+            'name' => (string) $f->question,
+            'acceptedAnswer' => [
+                '@type' => 'Answer',
+                'text' => (string) $f->answer,
+            ],
+        ])
+        ->values();
+@endphp
+@if($__faqsForSchema->isNotEmpty())
+<script type="application/ld+json">
+{!! json_encode([
+    '@context' => 'https://schema.org',
+    '@type'    => 'FAQPage',
+    'mainEntity' => $__faqsForSchema,
+], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}
+</script>
+@endif
+@endpush
+
 @section('content')
 <section class="pt-16 pb-12 lg:pt-24 lg:pb-16 text-center">
     <div class="max-w-3xl mx-auto px-4">

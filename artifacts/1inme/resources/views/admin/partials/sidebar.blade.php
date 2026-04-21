@@ -162,6 +162,22 @@
             <span class="sidebar-tooltip">Site Pages</span>
         </a>
 
+        <a href="{{ route('admin.marketing-settings.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.marketing-settings.*') ? 'active' : '' }}"
+           style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-bullhorn"></i></div>
+            <span class="nav-label">Marketing</span>
+            <span class="sidebar-tooltip">Marketing</span>
+        </a>
+
+        <a href="{{ route('admin.newsletter.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.newsletter.*') ? 'active' : '' }}"
+           style="--nav-tint:#06b6d4; --nav-tint-soft:rgba(6,182,212,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-envelope-open-text"></i></div>
+            <span class="nav-label">Newsletter</span>
+            <span class="sidebar-tooltip">Newsletter</span>
+        </a>
+
         <a href="{{ route('admin.contact-inbox.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.contact-inbox.*') ? 'active' : '' }}"
            style="--nav-tint:#f97316; --nav-tint-soft:rgba(249,115,22,0.12);">
