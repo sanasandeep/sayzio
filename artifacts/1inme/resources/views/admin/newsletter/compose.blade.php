@@ -155,7 +155,14 @@
         </div>
 
         <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
-            <h3 class="text-sm font-semibold text-white">Past issues</h3>
+            <div class="flex items-center gap-2">
+                <h3 class="text-sm font-semibold text-white">Past issues</h3>
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/10 border border-red-400/30 text-[11px] text-red-200"
+                      title="Issues at or above this unsubscribe rate are flagged with a warning badge.">
+                    <i class="fas fa-triangle-exclamation text-[10px]"></i>
+                    warns at ≥ {{ number_format($unsubWarningPct, 2) }}%
+                </span>
+            </div>
             <div class="flex flex-wrap items-center gap-2 text-xs">
                 <a href="{{ $toggleHighUrl }}"
                    class="px-2 py-1 rounded-lg border {{ $highOnly ? 'bg-red-500/20 border-red-400/40 text-red-100' : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10' }}"
