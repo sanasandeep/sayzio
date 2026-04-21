@@ -84,6 +84,7 @@ export default function AuthLanding() {
     setError(null);
     try {
       await demoLogin(role === "user" ? "user" : "super_admin");
+      router.replace("/(tabs)");
     } catch (e) {
       setError((e as ApiError)?.message ?? "Demo unavailable");
     } finally {
