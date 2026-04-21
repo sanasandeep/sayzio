@@ -540,6 +540,48 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::put('code', [\App\Modules\User\Controllers\ReferralController::class, 'updateCode'])->middleware('workspace.can:referrals.edit')->name('code.update');
         });
 
+        // ---- Tasks: workspace kanban boards (personal + team) ----
+        // Reads gated by tasks.view, mutations escalate to create/edit/delete.
+        // Personal-board owners always pass even when their workspace role is
+        // below those actions (enforced inside the controller).
+        Route::prefix('tasks')->name('tasks.')->middleware('workspace.can:tasks.view')->group(function () {
+            Route::get('/',                       [\App\Modules\User\Controllers\TaskBoardController::class, 'index'])->name('index');
+            // Board creation is NOT gated by tasks.create at the route level so
+            // that a viewer-role member can still maintain a private personal
+            // board. The controller enforces tasks.create for team boards.
+            Route::post('boards',                 [\App\Modules\User\Controllers\TaskBoardController::class, 'store'])->name('boards.store');
+            Route::get('boards/{board}',          [\App\Modules\User\Controllers\TaskBoardController::class, 'show'])->name('show');
+            Route::put('boards/{board}',          [\App\Modules\User\Controllers\TaskBoardController::class, 'updateBoard'])->name('boards.update');
+            Route::delete('boards/{board}',       [\App\Modules\User\Controllers\TaskBoardController::class, 'destroyBoard'])->name('boards.destroy');
+
+            Route::post('boards/{board}/columns',          [\App\Modules\User\Controllers\TaskBoardController::class, 'storeColumn'])->name('columns.store');
+            Route::put('columns/{column}',                 [\App\Modules\User\Controllers\TaskBoardController::class, 'updateColumn'])->name('columns.update');
+            Route::delete('columns/{column}',              [\App\Modules\User\Controllers\TaskBoardController::class, 'destroyColumn'])->name('columns.destroy');
+            Route::post('boards/{board}/columns/reorder',  [\App\Modules\User\Controllers\TaskBoardController::class, 'reorderColumns'])->name('columns.reorder');
+
+            // Card mutations are gated inside the controller via authorize*()
+            // so personal-board owners can manage their own cards regardless
+            // of workspace role; team-board cards still require the matching
+            // tasks.create / tasks.edit / tasks.delete action.
+            Route::post('boards/{board}/cards',   [\App\Modules\User\Controllers\TaskBoardController::class, 'storeCard'])->name('cards.store');
+            Route::get('cards/{card}',            [\App\Modules\User\Controllers\TaskBoardController::class, 'showCard'])->name('cards.show');
+            Route::patch('cards/{card}',          [\App\Modules\User\Controllers\TaskBoardController::class, 'updateCard'])->name('cards.update');
+            Route::post('cards/{card}/move',      [\App\Modules\User\Controllers\TaskBoardController::class, 'moveCard'])->name('cards.move');
+            Route::delete('cards/{card}',         [\App\Modules\User\Controllers\TaskBoardController::class, 'destroyCard'])->name('cards.destroy');
+            Route::post('cards/{card}/assign',    [\App\Modules\User\Controllers\TaskBoardController::class, 'assign'])->name('cards.assign');
+            Route::delete('cards/{card}/assignees/{user}', [\App\Modules\User\Controllers\TaskBoardController::class, 'unassign'])->name('cards.unassign');
+
+            Route::post('cards/{card}/subtasks',           [\App\Modules\User\Controllers\TaskBoardController::class, 'storeSubtask'])->name('subtasks.store');
+            Route::post('subtasks/{subtask}/toggle',       [\App\Modules\User\Controllers\TaskBoardController::class, 'toggleSubtask'])->name('subtasks.toggle');
+            Route::delete('subtasks/{subtask}',            [\App\Modules\User\Controllers\TaskBoardController::class, 'destroySubtask'])->name('subtasks.destroy');
+
+            Route::post('cards/{card}/comments',           [\App\Modules\User\Controllers\TaskBoardController::class, 'storeComment'])->name('comments.store');
+
+            Route::post('boards/{board}/labels',           [\App\Modules\User\Controllers\TaskBoardController::class, 'storeLabel'])->name('labels.store');
+            Route::post('cards/{card}/labels',             [\App\Modules\User\Controllers\TaskBoardController::class, 'attachLabel'])->name('cards.labels.attach');
+            Route::delete('cards/{card}/labels/{label}',   [\App\Modules\User\Controllers\TaskBoardController::class, 'detachLabel'])->name('cards.labels.detach');
+        });
+
         // Account verification (blue-tick request) — workspace-account-level.
         Route::prefix('verification')->name('verification.')->middleware('workspace.can:settings.view')->group(function () {
             Route::get('/', [VerificationController::class, 'index'])->name('index');

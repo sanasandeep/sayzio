@@ -112,6 +112,7 @@ class WorkspacePermissions
             'social-proofs'   => 'social proofs',
             'integrations'    => 'integrations',
             'inbox'           => 'the inbox',
+            'tasks'           => 'task boards',
             'followers'       => 'followers',
             'visitors'        => 'visitors',
             'feed'            => 'the activity feed',

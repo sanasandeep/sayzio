@@ -31,6 +31,11 @@
                              style="background: rgba(139,92,246,0.12); color:#7c3aed;">
                             <i class="fas fa-user-shield"></i>
                         </div>
+                    @elseif($n->type === 'task_assigned')
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center"
+                             style="background: rgba(34,197,94,0.12); color:#16a34a;">
+                            <i class="fas fa-list-check"></i>
+                        </div>
                     @elseif(!empty($d['follower_avatar']) || !empty($d['creator_avatar']))
                         <img src="{{ $d['follower_avatar'] ?? $d['creator_avatar'] }}" class="w-10 h-10 rounded-full object-cover" alt=""/>
                     @else
@@ -65,6 +70,18 @@
                             <a href="{{ route('user.team.index') }}" class="inline-flex items-center gap-1 mt-1 text-xs font-semibold text-violet-600 hover:underline">
                                 <i class="fas fa-users-gear"></i> Manage team access
                             </a>
+                        @elseif($n->type === 'task_assigned')
+                            <p class="text-sm" style="color: var(--text-primary);">
+                                <span class="font-semibold">{{ $d['assigner'] ?? 'Someone' }}</span>
+                                assigned you to a task in
+                                <span class="font-semibold">{{ $d['board_name'] ?? 'a board' }}</span>:
+                                <span class="italic">{{ \Illuminate\Support\Str::limit($d['message'] ?? '', 80) }}</span>
+                            </p>
+                            @if(!empty($d['url']))
+                                <a href="{{ $d['url'] }}" class="inline-flex items-center gap-1 mt-1 text-xs font-semibold text-emerald-600 hover:underline">
+                                    <i class="fas fa-arrow-right"></i> Open task
+                                </a>
+                            @endif
                         @else
                             <p class="text-sm" style="color: var(--text-primary);">{{ $d['message'] ?? $n->type }}</p>
                         @endif

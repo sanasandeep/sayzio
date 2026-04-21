@@ -487,6 +487,7 @@
                 // Resolve once: hide menu entries the active member's role can't reach.
                 // Owners and super-admins always pass these checks.
                 $__can = [
+                    'tasks_view'     => WP::userCan('tasks.view'),
                     'links_view'     => WP::userCan('links.view'),
                     'links_create'   => WP::userCan('links.create'),
                     'inbox_view'     => WP::userCan('inbox.view'),
@@ -566,6 +567,16 @@
                     <span class="sidebar-tooltip">Intros</span>
                 </a>
                 @endif
+                @endif
+
+                @if($__can['tasks_view'])
+                <a href="{{ route('user.tasks.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.tasks.*') ? 'active' : '' }}"
+                   style="--nav-tint:#22c55e; --nav-tint-soft:rgba(34,197,94,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-list-check"></i></div>
+                    <span class="nav-label">Tasks</span>
+                    <span class="sidebar-tooltip">Task Boards</span>
+                </a>
                 @endif
 
                 {{-- ========== AUDIENCE ========== --}}
