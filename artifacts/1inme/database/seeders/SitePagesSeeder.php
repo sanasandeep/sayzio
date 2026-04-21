@@ -120,6 +120,26 @@ class SitePagesSeeder extends Seeder
                 ],
             ],
             [
+                'slug' => 'error-404',
+                'title' => 'Page not found',
+                'meta_description' => 'The page you were looking for does not exist or has been moved.',
+                'sections' => [
+                    ['heading' => "We can't find that page", 'body' => "The link you followed may be broken, or the page may have been removed. Try heading back to the homepage to find what you were looking for."],
+                ],
+                'cta_label' => 'Back to home',
+                'cta_url' => '/',
+            ],
+            [
+                'slug' => 'error-403',
+                'title' => 'No access',
+                'meta_description' => "You don't have permission to view this page.",
+                'sections' => [
+                    ['heading' => "You don't have access to this page", 'body' => "You may need to sign in with a different account, or ask the page owner for permission. If you think this is a mistake, please get in touch."],
+                ],
+                'cta_label' => 'Back to home',
+                'cta_url' => '/',
+            ],
+            [
                 'slug' => 'cookies',
                 'title' => 'Cookie Policy',
                 'meta_description' => 'How 1INME uses cookies and similar technologies.',
@@ -135,6 +155,8 @@ class SitePagesSeeder extends Seeder
                 'title' => $p['title'],
                 'meta_description' => $p['meta_description'],
                 'sections' => $p['sections'],
+                'cta_label' => $p['cta_label'] ?? null,
+                'cta_url' => $p['cta_url'] ?? null,
             ]);
         }
 

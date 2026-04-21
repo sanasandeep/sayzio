@@ -10,7 +10,13 @@
                 <div class="flex items-center justify-between py-3">
                     <div>
                         <div class="text-sm font-semibold text-white">{{ $p->title }}</div>
-                        <div class="text-[11px] text-white/40">/{{ $p->slug === 'home' ? '' : $p->slug }}</div>
+                        <div class="text-[11px] text-white/40">
+                            @if(in_array($p->slug, ['error-403', 'error-404']))
+                                Error page · {{ $p->slug === 'error-403' ? '403 No access' : '404 Not found' }}
+                            @else
+                                /{{ $p->slug === 'home' ? '' : $p->slug }}
+                            @endif
+                        </div>
                     </div>
                     <a href="{{ route('admin.site-pages.edit', $p->slug) }}" class="px-4 py-2 rounded-xl text-xs font-medium bg-violet-600 hover:bg-violet-700 text-white">Edit</a>
                 </div>

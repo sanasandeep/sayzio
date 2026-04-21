@@ -45,8 +45,27 @@
             <div x-show="sections.length===0" class="text-xs text-white/40 text-center py-4">No sections yet — click "Add section".</div>
         </div>
 
+        @if(in_array($page->slug, ['error-403', 'error-404']))
+            <div class="grid sm:grid-cols-2 gap-4 pt-2">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Call-to-action label</label>
+                    <input type="text" name="cta_label" value="{{ old('cta_label', $page->cta_label) }}" placeholder="Back to home" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                    @error('cta_label')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Call-to-action URL</label>
+                    <input type="text" name="cta_url" value="{{ old('cta_url', $page->cta_url) }}" placeholder="/" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                    @error('cta_url')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                </div>
+            </div>
+        @endif
+
         <div class="pt-4 border-t border-white/10 flex items-center justify-between">
-            <a href="/{{ $page->slug === 'home' ? '' : $page->slug }}" target="_blank" class="text-xs text-violet-400 hover:underline">View live page <i class="fas fa-external-link-alt ml-1 text-[10px]"></i></a>
+            @if(in_array($page->slug, ['error-403', 'error-404']))
+                <span class="text-xs text-white/40">Shown automatically when visitors hit a {{ $page->slug === 'error-403' ? '403 (no access)' : '404 (not found)' }} response.</span>
+            @else
+                <a href="/{{ $page->slug === 'home' ? '' : $page->slug }}" target="_blank" class="text-xs text-violet-400 hover:underline">View live page <i class="fas fa-external-link-alt ml-1 text-[10px]"></i></a>
+            @endif
             <button type="submit" class="px-6 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-medium">Save changes</button>
         </div>
     </form>

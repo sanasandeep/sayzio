@@ -41,6 +41,8 @@ class SitePageController extends Controller
             'sections' => 'array',
             'sections.*.heading' => 'nullable|string|max:200',
             'sections.*.body' => 'nullable|string|max:20000',
+            'cta_label' => 'nullable|string|max:120',
+            'cta_url' => ['nullable', 'string', 'max:500', 'regex:#^(/|https?://)#i'],
         ]);
         $sections = collect($data['sections'] ?? [])
             ->filter(fn($s) => trim($s['heading'] ?? '') !== '' || trim($s['body'] ?? '') !== '')
@@ -49,6 +51,8 @@ class SitePageController extends Controller
             'title' => $data['title'],
             'meta_description' => $data['meta_description'] ?? null,
             'sections' => $sections,
+            'cta_label' => $data['cta_label'] ?? null,
+            'cta_url' => $data['cta_url'] ?? null,
         ]);
         return redirect()->route('admin.site-pages.edit', $slug)->with('success', 'Page updated.');
     }
