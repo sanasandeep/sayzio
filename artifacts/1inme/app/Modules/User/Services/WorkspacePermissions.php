@@ -113,6 +113,7 @@ class WorkspacePermissions
             'integrations'    => 'integrations',
             'inbox'           => 'the inbox',
             'tasks'           => 'task boards',
+            'vault'           => 'the vault',
             'followers'       => 'followers',
             'visitors'        => 'visitors',
             'feed'            => 'the activity feed',

@@ -488,6 +488,7 @@
                 // Owners and super-admins always pass these checks.
                 $__can = [
                     'tasks_view'     => WP::userCan('tasks.view'),
+                    'vault_view'     => WP::userCan('vault.view'),
                     'links_view'     => WP::userCan('links.view'),
                     'links_create'   => WP::userCan('links.create'),
                     'inbox_view'     => WP::userCan('inbox.view'),
@@ -576,6 +577,16 @@
                     <div class="nav-icon-wrap"><i class="fas fa-list-check"></i></div>
                     <span class="nav-label">Tasks</span>
                     <span class="sidebar-tooltip">Task Boards</span>
+                </a>
+                @endif
+
+                @if($__can['vault_view'])
+                <a href="{{ route('user.vault.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.vault.*') ? 'active' : '' }}"
+                   style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-vault"></i></div>
+                    <span class="nav-label">Vault</span>
+                    <span class="sidebar-tooltip">Workspace Vault</span>
                 </a>
                 @endif
 

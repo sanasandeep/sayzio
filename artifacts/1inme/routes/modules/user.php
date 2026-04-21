@@ -590,6 +590,41 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::delete('attachments/{attachment}',      [\App\Modules\User\Controllers\TaskBoardController::class, 'destroyAttachment'])->name('attachments.destroy');
         });
 
+        // ---- Workspace Vault: encrypted credentials + client records ----
+        // Reads gated by vault.view; mutations escalate to vault.create/edit/delete.
+        // Reveal/decrypt and export endpoints sit under the same gate but write
+        // an audit row inside the controller. Export is workspace-owner-only.
+        Route::prefix('vault')->name('vault.')->middleware('workspace.can:vault.view')->group(function () {
+            Route::get('/', function () { return redirect()->route('user.vault.credentials.index'); })->name('index');
+
+            Route::get('credentials',                              [\App\Modules\User\Controllers\VaultCredentialController::class, 'index'])->name('credentials.index');
+            Route::get('credentials/create',                       [\App\Modules\User\Controllers\VaultCredentialController::class, 'create'])->middleware('workspace.can:vault.create')->name('credentials.create');
+            Route::post('credentials',                             [\App\Modules\User\Controllers\VaultCredentialController::class, 'store'])->middleware('workspace.can:vault.create')->name('credentials.store');
+            Route::get('credentials/{credential}',                 [\App\Modules\User\Controllers\VaultCredentialController::class, 'show'])->name('credentials.show');
+            Route::get('credentials/{credential}/edit',            [\App\Modules\User\Controllers\VaultCredentialController::class, 'edit'])->middleware('workspace.can:vault.edit')->name('credentials.edit');
+            Route::put('credentials/{credential}',                 [\App\Modules\User\Controllers\VaultCredentialController::class, 'update'])->middleware('workspace.can:vault.edit')->name('credentials.update');
+            Route::delete('credentials/{credential}',              [\App\Modules\User\Controllers\VaultCredentialController::class, 'destroy'])->middleware('workspace.can:vault.delete')->name('credentials.destroy');
+            Route::post('credentials/{credential}/reveal',         [\App\Modules\User\Controllers\VaultCredentialController::class, 'reveal'])->name('credentials.reveal');
+
+            Route::get('clients',                                  [\App\Modules\User\Controllers\VaultClientController::class, 'index'])->name('clients.index');
+            Route::get('clients/create',                           [\App\Modules\User\Controllers\VaultClientController::class, 'create'])->middleware('workspace.can:vault.create')->name('clients.create');
+            Route::post('clients',                                 [\App\Modules\User\Controllers\VaultClientController::class, 'store'])->middleware('workspace.can:vault.create')->name('clients.store');
+            Route::get('clients/{client}',                         [\App\Modules\User\Controllers\VaultClientController::class, 'show'])->name('clients.show');
+            Route::get('clients/{client}/edit',                    [\App\Modules\User\Controllers\VaultClientController::class, 'edit'])->middleware('workspace.can:vault.edit')->name('clients.edit');
+            Route::put('clients/{client}',                         [\App\Modules\User\Controllers\VaultClientController::class, 'update'])->middleware('workspace.can:vault.edit')->name('clients.update');
+            Route::delete('clients/{client}',                      [\App\Modules\User\Controllers\VaultClientController::class, 'destroy'])->middleware('workspace.can:vault.delete')->name('clients.destroy');
+            Route::post('clients/{client}/reveal-notes',           [\App\Modules\User\Controllers\VaultClientController::class, 'revealNotes'])->name('clients.reveal-notes');
+
+            Route::post('clients/{client}/attachments',            [\App\Modules\User\Controllers\VaultAttachmentController::class, 'storeForClient'])->middleware('workspace.can:vault.edit')->name('attachments.store');
+            Route::get('attachments/{attachment}/download',        [\App\Modules\User\Controllers\VaultAttachmentController::class, 'download'])->name('attachments.download');
+            Route::delete('attachments/{attachment}',              [\App\Modules\User\Controllers\VaultAttachmentController::class, 'destroy'])->middleware('workspace.can:vault.delete')->name('attachments.destroy');
+
+            Route::get('audit',                                    [\App\Modules\User\Controllers\VaultAuditController::class, 'index'])->name('audit.index');
+
+            Route::get('export',                                   [\App\Modules\User\Controllers\VaultExportController::class, 'show'])->middleware('workspace.owner')->name('export.show');
+            Route::post('export',                                  [\App\Modules\User\Controllers\VaultExportController::class, 'download'])->middleware('workspace.owner')->name('export.download');
+        });
+
         // Account verification (blue-tick request) — workspace-account-level.
         Route::prefix('verification')->name('verification.')->middleware('workspace.can:settings.view')->group(function () {
             Route::get('/', [VerificationController::class, 'index'])->name('index');
