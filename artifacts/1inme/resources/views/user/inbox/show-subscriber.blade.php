@@ -122,29 +122,52 @@
                     {{ session('error') }}
                 </div>
             @endif
-            <form method="POST" action="{{ route('user.inbox.reply', ['subscriber', $subscriber->id]) }}" class="space-y-3">
-                @csrf
-                <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider mb-1" style="color: var(--text-faint);">Subject</label>
-                    <input type="text" name="subject" required maxlength="300"
-                        value="{{ old('subject', 'Re: ' . ($subscriber->name ?: 'Hello')) }}"
-                        class="w-full px-3 py-2 rounded-lg text-sm"
-                        style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
-                    @error('subject')<p class="text-xs text-rose-400 mt-1">{{ $message }}</p>@enderror
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider mb-1" style="color: var(--text-faint);">Message</label>
-                    <textarea name="body" rows="6" required maxlength="20000"
-                        class="w-full px-3 py-2 rounded-lg text-sm font-mono"
-                        style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">{{ old('body') }}</textarea>
-                    @error('body')<p class="text-xs text-rose-400 mt-1">{{ $message }}</p>@enderror
-                </div>
-                <div class="flex justify-end">
-                    <button type="submit" class="px-4 py-2 rounded-lg text-xs font-semibold" style="background: linear-gradient(135deg,#8b5cf6,#6366f1); color: #fff;">
-                        <i class="fas fa-paper-plane mr-1"></i>Send reply
-                    </button>
-                </div>
-            </form>
+            @include('user.cloud-files._attach-picker')
+            <div x-data="cloudAttachPicker({ mode: 'form' })">
+                <form method="POST" action="{{ route('user.inbox.reply', ['subscriber', $subscriber->id]) }}" class="space-y-3">
+                    @csrf
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider mb-1" style="color: var(--text-faint);">Subject</label>
+                        <input type="text" name="subject" required maxlength="300"
+                            value="{{ old('subject', 'Re: ' . ($subscriber->name ?: 'Hello')) }}"
+                            class="w-full px-3 py-2 rounded-lg text-sm"
+                            style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
+                        @error('subject')<p class="text-xs text-rose-400 mt-1">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider mb-1" style="color: var(--text-faint);">Message</label>
+                        <textarea name="body" rows="6" required maxlength="20000"
+                            class="w-full px-3 py-2 rounded-lg text-sm font-mono"
+                            style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">{{ old('body') }}</textarea>
+                        @error('body')<p class="text-xs text-rose-400 mt-1">{{ $message }}</p>@enderror
+                    </div>
+
+                    <template x-for="f in picked" :key="f.id">
+                        <input type="hidden" name="cloud_file_ids[]" :value="f.id">
+                    </template>
+                    <div x-show="picked.length > 0" class="flex flex-wrap gap-2">
+                        <template x-for="f in picked" :key="'rchip' + f.id">
+                            <span class="inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-full"
+                                  style="background: rgba(139,92,246,0.15); color: var(--text-primary);">
+                                <i :class="f.provider_icon" class="text-[11px]" style="color: var(--text-muted);"></i>
+                                <span x-text="f.name" class="max-w-[200px] truncate"></span>
+                                <button type="button" @click="remove(f.id)" class="text-[11px]" style="color: var(--text-faint);"><i class="fas fa-times"></i></button>
+                            </span>
+                        </template>
+                    </div>
+
+                    <div class="flex justify-between items-center">
+                        <button type="button" @click="show()" class="px-3 py-1.5 rounded-lg text-xs font-semibold border"
+                                style="border-color: var(--border-glass); color: var(--text-secondary);">
+                            <i class="fas fa-cloud mr-1"></i> Attach from Cloud Files
+                        </button>
+                        <button type="submit" class="px-4 py-2 rounded-lg text-xs font-semibold" style="background: linear-gradient(135deg,#8b5cf6,#6366f1); color: #fff;">
+                            <i class="fas fa-paper-plane mr-1"></i>Send reply
+                        </button>
+                    </div>
+                </form>
+                @include('user.cloud-files._attach-modal', ['confirmLabel' => 'Add to reply'])
+            </div>
         </div>
 
         @if($replies->isNotEmpty())
@@ -168,6 +191,23 @@
                             </div>
                             <div class="text-sm font-semibold mb-1" style="color: var(--text-primary);">{{ $r->subject }}</div>
                             <div class="text-sm whitespace-pre-line" style="color: var(--text-secondary);">{{ $r->body }}</div>
+                            @if($r->cloudAttachments->isNotEmpty())
+                                <div class="mt-2 flex flex-wrap gap-2">
+                                    @foreach($r->cloudAttachments as $att)
+                                        @php($cf = $att->cloudFile)
+                                        @if($cf)
+                                            <a href="{{ $cf->link }}" target="_blank" rel="noopener noreferrer"
+                                               class="inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-full border hover:underline"
+                                               style="background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-primary);"
+                                               title="{{ $cf->providerLabel() }} · {{ $cf->humanSize() }}">
+                                                <i class="{{ $cf->providerIcon() }}" style="color: var(--text-muted);"></i>
+                                                <span class="max-w-[200px] truncate">{{ $cf->name }}</span>
+                                                <i class="fas fa-arrow-up-right-from-square text-[10px]" style="color: var(--text-faint);"></i>
+                                            </a>
+                                        @endif
+                                    @endforeach
+                                </div>
+                            @endif
                             @if($r->error)
                                 <div class="mt-2 text-xs text-rose-400 font-mono">{{ $r->error }}</div>
                             @endif

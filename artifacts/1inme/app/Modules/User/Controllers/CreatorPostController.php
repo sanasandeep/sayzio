@@ -3,6 +3,8 @@
 namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\User\Models\CloudFile;
+use App\Modules\User\Models\CloudFileAttachment;
 use App\Modules\User\Models\CreatorPost;
 use App\Modules\User\Models\FeedEvent;
 use App\Modules\User\Models\Follow;
@@ -19,6 +21,7 @@ class CreatorPostController extends Controller
         CreatorPost::publishDuePosts($ownerId);
 
         $posts = CreatorPost::query()
+            ->with('cloudAttachments.cloudFile')
             ->orderByDesc('pinned_at')
             ->orderByDesc('created_at')
             ->paginate(20);
@@ -33,6 +36,8 @@ class CreatorPostController extends Controller
             'image'        => 'nullable|image|max:5120',
             'scheduled_at' => 'nullable|date|after:now',
             'is_pinned'    => 'nullable|boolean',
+            'cloud_file_ids'   => 'nullable|array|max:20',
+            'cloud_file_ids.*' => 'integer',
         ]);
 
         $imagePath = null;
@@ -55,6 +60,8 @@ class CreatorPostController extends Controller
             'scheduled_at' => $scheduledAt,
             'published_at' => $isFuture ? null : now(),
         ]);
+
+        $this->syncCloudAttachments($post, (array) $request->input('cloud_file_ids', []));
 
         $me = app()->bound('workspace_owner') ? app('workspace_owner') : auth()->user();
 
@@ -120,6 +127,27 @@ class CreatorPostController extends Controller
         // Auth handled by route middleware + global workspace scope.
         $post->delete();
         return back()->with('success', 'Post deleted.');
+    }
+
+    /**
+     * Attach selected cloud-library files to the given post. Only files in
+     * the active workspace (and therefore visible via the workspace global
+     * scope on CloudFile) end up attached.
+     */
+    protected function syncCloudAttachments(CreatorPost $post, array $cloudFileIds): void
+    {
+        $cloudFileIds = array_values(array_unique(array_filter(array_map('intval', $cloudFileIds))));
+        if (empty($cloudFileIds)) return;
+        $valid = CloudFile::query()->whereIn('id', $cloudFileIds)->pluck('id');
+        foreach ($valid as $cfId) {
+            CloudFileAttachment::firstOrCreate([
+                'cloud_file_id'   => $cfId,
+                'attachable_type' => CreatorPost::class,
+                'attachable_id'   => $post->id,
+            ], [
+                'attached_by_user_id' => auth()->id(),
+            ]);
+        }
     }
 
     /**

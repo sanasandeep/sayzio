@@ -20,6 +20,18 @@ protected $fillable = ['user_id', 'title', 'body', 'image', 'scheduled_at', 'pub
 
     public function user() { return $this->belongsTo(User::class); }
 
+    public function cloudAttachments()
+    {
+        return $this->morphMany(CloudFileAttachment::class, 'attachable');
+    }
+
+    protected static function booted(): void
+    {
+        static::deleting(function (CreatorPost $post) {
+            $post->cloudAttachments()->delete();
+        });
+    }
+
     public function isScheduled(): bool
     {
         return $this->published_at === null

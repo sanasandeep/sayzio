@@ -355,12 +355,13 @@ class TaskBoardController extends Controller
     public function showCard(TaskCard $card)
     {
         $this->authorizeView($card->board);
-        $card->load(['assignees:id,name,avatar', 'labels', 'subtasks', 'comments.user:id,name,avatar', 'activities.user:id,name,avatar', 'column', 'attachments.uploader:id,name']);
+        $card->load(['assignees:id,name,avatar', 'labels', 'subtasks', 'comments.user:id,name,avatar', 'activities.user:id,name,avatar', 'column', 'attachments.uploader:id,name', 'cloudAttachments.cloudFile']);
         $cardArr = $card->toArray();
         $cardArr['attachments'] = $card->attachments->map(fn ($a) => array_merge($a->toArray(), [
             'url' => $a->url(),
             'human_size' => $a->humanSize(),
         ]))->all();
+        $cardArr['cloud_attachments'] = $card->cloudAttachments->map(fn ($a) => \App\Modules\User\Controllers\CloudFileAttachmentController::serialize($a))->all();
         return response()->json([
             'card'    => $cardArr,
             'members' => $this->workspaceMembers(),

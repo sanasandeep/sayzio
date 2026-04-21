@@ -29,6 +29,18 @@ class TaskCard extends Model
     public function activities() { return $this->hasMany(TaskActivity::class, 'card_id')->orderByDesc('created_at'); }
     public function attachments(){ return $this->hasMany(TaskAttachment::class, 'card_id')->orderByDesc('id'); }
 
+    public function cloudAttachments()
+    {
+        return $this->morphMany(CloudFileAttachment::class, 'attachable');
+    }
+
+    protected static function booted(): void
+    {
+        static::deleting(function (TaskCard $card) {
+            $card->cloudAttachments()->delete();
+        });
+    }
+
     public function assignees()
     {
         return $this->belongsToMany(User::class, 'task_card_assignees', 'card_id', 'user_id')

@@ -67,6 +67,7 @@ class InboxController
         $replies = InboxReply::where('user_id', $userId)
             ->where('item_type', 'subscriber')
             ->where('item_id', $subscriber->id)
+            ->with('cloudAttachments.cloudFile')
             ->orderByDesc('created_at')
             ->get();
         return view('user.inbox.show-subscriber', compact('subscriber', 'replyTo', 'replies'));
@@ -80,6 +81,8 @@ class InboxController
         $validated = $request->validate([
             'subject' => 'required|string|max:300',
             'body' => 'required|string|max:20000',
+            'cloud_file_ids'   => 'nullable|array|max:20',
+            'cloud_file_ids.*' => 'integer',
         ]);
 
         $model = $this->locate($type, $id, $userId);
@@ -127,7 +130,7 @@ class InboxController
             $error = $e->getMessage();
         }
 
-        InboxReply::create([
+        $reply = InboxReply::create([
             'user_id' => $userId,
             'item_type' => $type === InboxAggregator::SOURCE_FORM ? 'form_submission' : 'subscriber',
             'item_id' => $id,
@@ -140,6 +143,24 @@ class InboxController
             'error' => $error,
             'sent_at' => $status === 'sent' ? now() : null,
         ]);
+
+        $cloudFileIds = array_values(array_unique(array_filter(array_map(
+            'intval',
+            (array) $request->input('cloud_file_ids', [])
+        ))));
+        if (!empty($cloudFileIds)) {
+            $valid = \App\Modules\User\Models\CloudFile::query()
+                ->whereIn('id', $cloudFileIds)->pluck('id');
+            foreach ($valid as $cfId) {
+                \App\Modules\User\Models\CloudFileAttachment::firstOrCreate([
+                    'cloud_file_id'   => $cfId,
+                    'attachable_type' => InboxReply::class,
+                    'attachable_id'   => $reply->id,
+                ], [
+                    'attached_by_user_id' => auth()->id(),
+                ]);
+            }
+        }
 
         if ($status === 'failed') {
             return back()->withInput()->with('error', 'Reply failed: ' . $error);

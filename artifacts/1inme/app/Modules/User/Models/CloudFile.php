@@ -40,6 +40,19 @@ class CloudFile extends Model
         return CloudProviderApp::PROVIDER_ICONS[$this->provider] ?? 'fa-cloud';
     }
 
+    public function attachments()
+    {
+        return $this->hasMany(CloudFileAttachment::class);
+    }
+
+    protected static function booted(): void
+    {
+        static::deleting(function (CloudFile $file) {
+            // Cascade-remove any attachment rows pointing at this library entry.
+            $file->attachments()->delete();
+        });
+    }
+
     public function humanSize(): string
     {
         $b = (int) $this->size;

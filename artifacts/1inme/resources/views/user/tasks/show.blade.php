@@ -41,6 +41,7 @@
 </style>
 @endpush
 @section('content')
+@include('user.cloud-files._attach-picker')
 <div x-data="kanbanBoard({{ $board->id }})" x-init="init()" class="px-6 py-6">
     <div class="page-hero mb-5 flex items-center justify-between gap-4 flex-wrap">
         <div class="flex items-center gap-3">
@@ -373,6 +374,33 @@
                         <i class="fas fa-upload"></i> Upload file (max 10MB)
                         <input type="file" class="hidden" @change="uploadAttachment($event)">
                     </label>
+
+                    {{-- Cloud-library attachments for this card. Shares the
+                         workspace cloud file picker; bytes stay in the
+                         provider, we just store a reference. --}}
+                    <div class="mt-3" x-data="cloudAttachPicker({
+                            mode: 'ajax',
+                            targetType: 'task_card',
+                            targetId: card.id,
+                            onAttached: (atts) => { card.cloud_attachments = (card.cloud_attachments || []).concat(atts); },
+                        })">
+                        <template x-for="a in (card.cloud_attachments || [])" :key="'cf' + a.id">
+                            <div class="flex items-center justify-between gap-2 mb-1 p-2 rounded text-sm" style="background: var(--bg-glass-input);">
+                                <a :href="a.link" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 flex-1 truncate" style="color: var(--text-primary);">
+                                    <i :class="a.provider_icon" style="color: var(--text-muted);"></i>
+                                    <span class="truncate" x-text="a.name"></span>
+                                    <span class="text-xs" style="color: var(--text-faint);" x-text="a.provider_label + ' · ' + a.human_size"></span>
+                                </a>
+                                <button type="button" @click="$root.detachCloudFile(a.id)" class="text-xs" style="color: var(--text-faint);"><i class="fas fa-times"></i></button>
+                            </div>
+                        </template>
+                        <button type="button" @click="show()"
+                                class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold border"
+                                style="border-color: var(--border-strong); color: var(--text-primary);">
+                            <i class="fas fa-cloud"></i> Attach from Cloud Files
+                        </button>
+                        @include('user.cloud-files._attach-modal', ['confirmLabel' => 'Attach to card'])
+                    </div>
                 </div>
 
                 <div class="mt-5">
@@ -758,6 +786,11 @@ function kanbanBoard(boardId) {
         async destroyAttachment(id) {
             await this.fetchJson(`/user/tasks/attachments/${id}`, { method: 'DELETE' });
             this.card.attachments = (this.card.attachments || []).filter(a => a.id !== id);
+        },
+
+        async detachCloudFile(id) {
+            await this.fetchJson(`/user/cloud-files/attach/${id}`, { method: 'DELETE' });
+            this.card.cloud_attachments = (this.card.cloud_attachments || []).filter(a => a.id !== id);
         },
 
         applyFilters() {

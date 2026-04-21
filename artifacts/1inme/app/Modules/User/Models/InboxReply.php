@@ -27,4 +27,16 @@ protected $fillable = [
     {
         return $this->belongsTo(\App\Modules\User\Models\User::class);
     }
+
+    public function cloudAttachments()
+    {
+        return $this->morphMany(CloudFileAttachment::class, 'attachable');
+    }
+
+    protected static function booted(): void
+    {
+        static::deleting(function (InboxReply $reply) {
+            $reply->cloudAttachments()->delete();
+        });
+    }
 }

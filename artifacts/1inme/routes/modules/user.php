@@ -651,6 +651,12 @@ Route::prefix('user')->name('user.')->group(function () {
 
             Route::get('picker/{connection}',              [\App\Modules\User\Controllers\CloudFilePickerController::class, 'browse'])->name('picker.browse');
 
+            // Library picker for composers (post / task / inbox-reply).
+            // Read access mirrors the rest of the cloud-files group.
+            Route::get('library',                          [\App\Modules\User\Controllers\CloudFileAttachmentController::class, 'library'])->name('library');
+            Route::post('attach',                          [\App\Modules\User\Controllers\CloudFileAttachmentController::class, 'attach'])->name('attach');
+            Route::delete('attach/{attachment}',           [\App\Modules\User\Controllers\CloudFileAttachmentController::class, 'destroy'])->name('attach.destroy');
+
             // Owner-only OAuth-app credential management.
             Route::get('settings',                         [\App\Modules\User\Controllers\CloudProviderAppController::class, 'index'])->middleware('workspace.owner')->name('settings.index');
             Route::put('settings/{provider}',              [\App\Modules\User\Controllers\CloudProviderAppController::class, 'update'])->middleware('workspace.owner')->name('settings.update');
