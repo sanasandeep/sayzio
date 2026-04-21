@@ -11,7 +11,7 @@ class LinkTrackingService
 {
     public function track(Link $link, Request $request, ?string $usedAlias = null, ?string $source = null): LinkClick
     {
-        $userAgent = $request->userAgent();
+        $userAgent = $this->resolveUserAgent($request);
 
         $geoService = app(GeoIpService::class);
         $geo = $geoService->detectGeo($request->ip());
@@ -26,6 +26,7 @@ class LinkTrackingService
             'device_type' => $this->detectDeviceType($userAgent),
             'referrer' => $request->header('referer'),
             'source' => $source,
+            'user_agent' => $userAgent ? mb_substr($userAgent, 0, 512) : null,
             'language' => $this->detectLanguage($request),
             'country_code' => $geo['country_code'] ?? null,
             'city' => $geo['city'] ?? null,
@@ -109,7 +110,7 @@ class LinkTrackingService
 
     public function trackBlockClick(Link $link, BiolinkBlock $block, string $destinationUrl, Request $request, ?string $usedAlias = null, ?string $source = null): LinkClick
     {
-        $userAgent = $request->userAgent();
+        $userAgent = $this->resolveUserAgent($request);
         $geoService = app(GeoIpService::class);
         $geo = $geoService->detectGeo($request->ip());
 
@@ -126,6 +127,7 @@ class LinkTrackingService
             'device_type' => $this->detectDeviceType($userAgent),
             'referrer' => $request->header('referer'),
             'source' => $source,
+            'user_agent' => $userAgent ? mb_substr($userAgent, 0, 512) : null,
             'language' => $this->detectLanguage($request),
             'country_code' => $geo['country_code'] ?? null,
             'city' => $geo['city'] ?? null,
@@ -148,6 +150,15 @@ class LinkTrackingService
         }
 
         return $click;
+    }
+
+    protected function resolveUserAgent(Request $request): ?string
+    {
+        $ua = $request->userAgent();
+        if ($ua) return $ua;
+
+        $client = $request->header('X-1INME-Client');
+        return $client ?: null;
     }
 
     protected function extractUtmParams(Request $request): ?array

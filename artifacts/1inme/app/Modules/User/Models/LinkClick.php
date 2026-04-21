@@ -11,7 +11,7 @@ class LinkClick extends Model
     protected $fillable = [
         'link_id', 'alias', 'viewer_user_id', 'block_id', 'block_type', 'destination_url',
         'ip_address', 'country_code', 'city', 'latitude', 'longitude',
-        'browser', 'os', 'device_type', 'referrer', 'source',
+        'browser', 'os', 'device_type', 'referrer', 'source', 'user_agent',
         'language', 'utm_params', 'clicked_at',
     ];
 

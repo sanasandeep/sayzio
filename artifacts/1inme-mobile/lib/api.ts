@@ -1,8 +1,14 @@
 import { Platform } from "react-native";
+import Constants from "expo-constants";
 
 import { getToken } from "@/lib/secure";
 
 const FALLBACK_HOST = "1inme.com";
+
+const APP_VERSION =
+  (Constants?.expoConfig?.version as string | undefined) ?? "1.0.0";
+
+export const MOBILE_USER_AGENT = `1INMEMobileApp/${APP_VERSION} (${Platform.OS}; expo)`;
 
 export function getBaseUrl(): string {
   const fromEnv = process.env.EXPO_PUBLIC_API_BASE_URL;
@@ -30,6 +36,8 @@ export async function apiFetch<T = unknown>(
   const headers: Record<string, string> = {
     Accept: "application/json",
     "Content-Type": "application/json",
+    "User-Agent": MOBILE_USER_AGENT,
+    "X-1INME-Client": MOBILE_USER_AGENT,
     ...((init.headers as Record<string, string>) ?? {}),
   };
   if (token) headers.Authorization = `Bearer ${token}`;
