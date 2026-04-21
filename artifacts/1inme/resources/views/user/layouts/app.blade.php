@@ -1116,6 +1116,7 @@
         }
     })();
     </script>
+    @include('common.partials.global-shortcuts')
     @stack('scripts')
 </body>
 </html>

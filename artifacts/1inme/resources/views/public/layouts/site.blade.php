@@ -46,6 +46,8 @@
 
 @include('public.partials.footer')
 
+@include('common.partials.global-shortcuts')
+
 @stack('scripts')
 </body>
 </html>

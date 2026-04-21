@@ -63,6 +63,11 @@
             </div>
         </div>
     @endif
+    <div class="border-t border-white/5 py-4">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            @include('common.partials.shortcut-hint')
+        </div>
+    </div>
     <div class="border-t border-white/5 py-5 text-center text-xs text-gray-500">
         © {{ date('Y') }} {{ config('app.name', '1INME') }}. All rights reserved.
     </div>

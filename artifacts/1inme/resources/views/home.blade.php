@@ -4357,12 +4357,20 @@
                 </ul>
             </div>
         </div>
-        <div class="border-t border-white/5 pt-8 flex flex-col sm:flex-row justify-between items-center gap-3">
+        <div class="border-t border-white/5 pt-6 pb-6">
+            @include('common.partials.social-row')
+        </div>
+        <div class="border-t border-white/5 pt-5 pb-5">
+            @include('common.partials.shortcut-hint')
+        </div>
+        <div class="border-t border-white/5 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3">
             <p class="text-sm text-gray-600">&copy; {{ date('Y') }} 1INME. All rights reserved.</p>
             <p class="text-xs text-gray-600">One link to everything.</p>
         </div>
     </div>
 </footer>
+
+@include('common.partials.global-shortcuts')
 
 <script>
     document.documentElement.classList.add('js');
