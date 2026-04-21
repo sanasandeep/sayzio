@@ -8,6 +8,7 @@
             <div class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">Product</div>
             <ul class="space-y-2 text-gray-400">
                 <li><a href="{{ route('site.features') }}" class="hover:text-white">Features</a></li>
+                <li><a href="{{ route('site.services') }}" class="hover:text-white">Use cases</a></li>
                 <li><a href="{{ route('site.how-it-works') }}" class="hover:text-white">How it works</a></li>
                 <li><a href="{{ route('site.workspace-team') }}" class="hover:text-white">Workspace &amp; Team</a></li>
                 <li><a href="{{ route('site.buzz') }}" class="hover:text-white">Buzz</a></li>

@@ -9,6 +9,7 @@
             <div class="hidden lg:flex items-center gap-x-4 xl:gap-x-6 min-w-0 flex-1 justify-center px-4">
                 <a href="{{ route('home') }}" class="text-sm text-gray-300 hover:text-violet-400 whitespace-nowrap">Home</a>
                 <a href="{{ route('site.features') }}" class="text-sm text-gray-300 hover:text-violet-400 whitespace-nowrap">Features</a>
+                <a href="{{ route('site.services') }}" class="text-sm text-gray-300 hover:text-violet-400 whitespace-nowrap">Use cases</a>
                 <a href="{{ route('site.how-it-works') }}" class="text-sm text-gray-300 hover:text-violet-400 whitespace-nowrap">How it works</a>
                 <a href="{{ route('site.workspace-team') }}" class="text-sm text-gray-300 hover:text-violet-400 whitespace-nowrap">Teams</a>
                 <a href="{{ route('site.buzz') }}" class="text-sm text-gray-300 hover:text-violet-400 whitespace-nowrap">Buzz</a>
@@ -38,6 +39,7 @@
         <div x-show="mobileOpen" x-cloak class="lg:hidden pb-4 border-t border-white/10 mt-2 pt-3 space-y-1">
             <a href="{{ route('home') }}" class="block px-3 py-2 text-sm text-gray-300">Home</a>
             <a href="{{ route('site.features') }}" class="block px-3 py-2 text-sm text-gray-300">Features</a>
+            <a href="{{ route('site.services') }}" class="block px-3 py-2 text-sm text-gray-300">Use cases</a>
             <a href="{{ route('site.how-it-works') }}" class="block px-3 py-2 text-sm text-gray-300">How it works</a>
             <a href="{{ route('site.workspace-team') }}" class="block px-3 py-2 text-sm text-gray-300">Workspace &amp; Team</a>
             <a href="{{ route('site.buzz') }}" class="block px-3 py-2 text-sm text-gray-300">Buzz</a>
