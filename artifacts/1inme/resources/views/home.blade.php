@@ -157,7 +157,7 @@
             55%  { opacity: 1; filter: blur(0); }
             100% { opacity: 1; transform: translateY(0) rotateX(0); filter: blur(0); }
         }
-        .role-word.word-out { animation: wordOut .35s ease both; }
+        .role-word.word-out { animation: wordOut .22s ease both; }
         @keyframes wordOut {
             0%   { opacity: 1; transform: translateY(0) rotateX(0); filter: blur(0); }
             100% { opacity: 0; transform: translateY(-50%) rotateX(60deg); filter: blur(6px); }
@@ -226,7 +226,7 @@
             0%   { opacity: 0; transform: translateY(40px) rotateX(-25deg) scale(.88); }
             100% { opacity: 1; transform: translateY(0) rotateX(0) scale(1); }
         }
-        .stack-out .stack-card { animation: cardOut .35s ease forwards; animation-delay: 0ms; }
+        .stack-out .stack-card { animation: cardOut .22s ease forwards; animation-delay: 0ms; }
         @keyframes cardOut {
             0%   { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
             100% { opacity: 0; transform: translateY(-24px) scale(.92); filter: blur(4px); }
@@ -378,7 +378,18 @@
            other. */
         .hero-phone-stage { min-height: 560px; }
         @media (min-width: 1024px) {
-            .hero-phone-stage { min-height: 640px; padding: 28px 60px; }
+            .hero-phone-stage { min-height: 640px; padding: 28px 0; gap: 22px; }
+        }
+
+        /* Phone "frame" — wraps the phone + its absolutely-positioned float
+           cards so the cards anchor to the phone (not the wider stage). This
+           leaves the right side of the stage clean for the vertical tile rail. */
+        .hero-phone-frame {
+            position: relative;
+            display: flex; align-items: center; justify-content: center;
+        }
+        @media (min-width: 1024px) {
+            .hero-phone-frame { width: 320px; flex: 0 0 320px; }
         }
 
         /* ============ Hero floating info cards ============ */
@@ -403,15 +414,17 @@
             color: #9ca3af;
             line-height: 1.1;
         }
-        /* Desktop placement — spread around the phone so cards don't crowd. */
+        /* Desktop placement — all cards live on the left side of the phone so
+           the right side stays clean for the vertical interactive tile rail.
+           Three loose lanes (close / mid / far) keep them from crowding. */
         @media (min-width: 1024px) {
-            .float-card--visitors  { top: 10px;   right: -12px; width: 158px; box-shadow: 0 22px 50px -18px rgba(27,212,217,.45); }
-            .float-card--coach     { bottom: 60px; left: -16px; width: 200px; box-shadow: 0 22px 50px -18px rgba(124,58,237,.5); }
-            .float-card--toplink   { top: 110px;  right: -34px; width: 180px; box-shadow: 0 22px 50px -18px rgba(255,0,51,.35); }
-            .float-card--conv      { bottom: 200px; right: -30px; width: 168px; box-shadow: 0 22px 50px -18px rgba(27,212,217,.35); }
-            .float-card--qr        { top: 230px;  left: -36px; width: 178px; box-shadow: 0 22px 50px -18px rgba(124,58,237,.4); }
-            .float-card--follower  { top: 0px;    left: -10px; width: 178px; box-shadow: 0 22px 50px -18px rgba(236,72,153,.4); }
-            .float-card--revenue   { bottom: 8px; right: -8px; width: 168px; box-shadow: 0 22px 50px -18px rgba(255,138,60,.4); }
+            .float-card--follower  { top: -8px;    left: -36px;  width: 178px; box-shadow: 0 22px 50px -18px rgba(236,72,153,.4); }
+            .float-card--visitors  { top: 30px;    left: -200px; width: 158px; box-shadow: 0 22px 50px -18px rgba(27,212,217,.45); }
+            .float-card--toplink   { top: 150px;   left: -210px; width: 180px; box-shadow: 0 22px 50px -18px rgba(255,0,51,.35); }
+            .float-card--qr        { top: 270px;   left: -38px;  width: 178px; box-shadow: 0 22px 50px -18px rgba(124,58,237,.4); }
+            .float-card--coach     { top: 380px;   left: -220px; width: 200px; box-shadow: 0 22px 50px -18px rgba(124,58,237,.5); }
+            .float-card--conv      { bottom: 80px; left: -38px;  width: 168px; box-shadow: 0 22px 50px -18px rgba(27,212,217,.35); }
+            .float-card--revenue   { bottom: 4px;  left: -200px; width: 168px; box-shadow: 0 22px 50px -18px rgba(255,138,60,.4); }
         }
 
         /* ============ Mobile-only condensed stats row ============ */
@@ -907,6 +920,106 @@
             .hero-gallery::-webkit-scrollbar { display: none; }
             .hero-gallery-item { flex: 0 0 110px; scroll-snap-align: start; }
             .hero-gallery-item .gallery-cat { font-size: 9px; padding: 3px 6px; }
+        }
+
+        /* ============ Hero vertical tile rail (lg+) ============ */
+        .hero-rail-col {
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            align-self: stretch;
+            justify-content: center;
+        }
+        .hero-rail-label {
+            line-height: 1.1;
+            text-align: center;
+            white-space: nowrap;
+        }
+        .hero-tile-rail { display: none; }
+        @media (min-width: 1024px) {
+            .hero-tile-rail {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                align-self: stretch;
+                width: 116px;
+                max-height: 600px;
+                overflow-y: auto;
+                overscroll-behavior: contain;
+                scroll-snap-type: y proximity;
+                scrollbar-width: none;
+                padding: 6px 4px;
+                -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%);
+                        mask-image: linear-gradient(to bottom, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%);
+                z-index: 6;
+            }
+            .hero-tile-rail::-webkit-scrollbar { display: none; }
+        }
+        .hero-tile {
+            appearance: none; -webkit-appearance: none;
+            background: rgba(255,255,255,.05);
+            border: 1px solid rgba(255,255,255,.10);
+            border-radius: 14px;
+            padding: 6px 6px 7px;
+            color: #fff;
+            cursor: pointer;
+            display: flex; flex-direction: column; align-items: stretch;
+            gap: 6px;
+            flex-shrink: 0;
+            scroll-snap-align: start;
+            transition: transform .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease;
+            text-align: center;
+        }
+        .hero-tile:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255,255,255,.24);
+            background: rgba(255,255,255,.09);
+        }
+        .hero-tile:focus-visible {
+            outline: 2px solid #1bd4d9;
+            outline-offset: 2px;
+        }
+        .hero-tile.is-active {
+            border-color: rgba(124,58,237,.6);
+            background: rgba(124,58,237,.14);
+            box-shadow: 0 10px 24px -12px rgba(124,58,237,.7);
+        }
+        .hero-tile-thumb {
+            position: relative;
+            aspect-ratio: 1/1;
+            border-radius: 10px;
+            overflow: hidden;
+            background: rgba(255,255,255,.04);
+        }
+        .hero-tile-thumb picture,
+        .hero-tile-thumb img {
+            display: block; width: 100%; height: 100%; object-fit: cover;
+        }
+        .hero-tile-fallback {
+            display: flex; align-items: center; justify-content: center;
+            width: 100%; height: 100%;
+            color: #fff;
+            position: relative;
+        }
+        .hero-tile-fallback i {
+            font-size: 22px;
+            opacity: .9;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,.35));
+        }
+        .hero-tile-fallback .ftl {
+            position: absolute; left: 4px; right: 4px; bottom: 4px;
+            font-size: 8px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: .06em;
+            color: rgba(255,255,255,.95);
+            text-shadow: 0 1px 2px rgba(0,0,0,.4);
+        }
+        .hero-tile-label {
+            font-size: 10px; font-weight: 700; letter-spacing: .04em;
+            color: #e5e7eb;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .hero-tile, .hero-tile:hover { transition: none; transform: none; }
         }
 
         /* ============ Hero block icons cluster ============ */
@@ -1405,6 +1518,7 @@
 
                 {{-- Phone mockup --}}
                 <div class="relative flex items-center justify-center hero-phone-stage">
+                    <div class="hero-phone-frame">
                     <div id="hero-phone-wrap" class="hero-phone-wrap float-c">
                         <div class="hero-phone">
                             <div id="hero-phone-screen" class="hero-phone-screen">
@@ -1498,6 +1612,15 @@
                             <i class="fas fa-store" style="color:#ff8a3c"></i> 6 orders · 2 tips
                         </div>
                     </div>
+                    </div>{{-- /hero-phone-frame --}}
+
+                    {{-- Vertical interactive tile rail (lg+) --}}
+                    <div class="hero-rail-col hidden lg:flex">
+                        <div class="hero-rail-label text-[10px] font-bold uppercase tracking-[.18em] text-gray-400">
+                            Looks like a <span id="hero-rail-role-label" class="grad-text">creator</span> page
+                        </div>
+                        <div id="hero-tile-rail" class="hero-tile-rail" role="group" aria-label="Choose a profile preview"></div>
+                    </div>
                 </div>
 
                 {{-- Mobile-only stacked stats row (replaces floating cards on small screens) --}}
@@ -1524,8 +1647,8 @@
                     </div>
                 </div>
 
-                {{-- Category gallery --}}
-                <div class="mt-6">
+                {{-- Category gallery (mobile/tablet only — replaced by vertical rail on lg+) --}}
+                <div class="mt-6 lg:hidden">
                     <div class="flex items-center justify-between mb-2 px-1">
                         <div class="text-[10px] font-bold uppercase tracking-[.18em] text-gray-400">Looks like a <span id="hero-gallery-label" class="grad-text">creator</span> page</div>
                         <div class="text-[10px] text-gray-500 hidden sm:block">Drop in any block</div>
@@ -1556,9 +1679,16 @@
             const screen  = document.getElementById('hero-phone-screen');
             const gallery = document.getElementById('hero-gallery');
             const galLbl  = document.getElementById('hero-gallery-label');
+            const railLbl = document.getElementById('hero-rail-role-label');
             const phoneWrap = document.getElementById('hero-phone-wrap');
             const phoneScene = document.getElementById('hero-phone-scene');
+            const tileRail = document.getElementById('hero-tile-rail');
             if (!word || !stack) return;
+
+            const AUTO_ROTATE_MS = 3000;
+            const SWAP_MS        = 220;
+            const USER_PAUSE_MS  = 6000;
+            let pauseUntil = 0;
 
             const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
             const isDesktop = window.matchMedia && window.matchMedia('(min-width: 1024px)').matches;
@@ -1642,15 +1772,37 @@
                     + `</picture>`;
             }
             // Thumb / cover / gallery image — displayed anywhere from ~50px to ~280px.
-            function pictureThumb(src, cls, w, h, sizes, alt) {
+            // opts: { eager: bool } — when true, marks above-the-fold image as eager + high priority.
+            function pictureThumb(src, cls, w, h, sizes, alt, opts) {
                 const base = heroImgBase(src);
                 const altA = escapeHTML(alt || '');
                 const sz   = escapeHTML(sizes || '(max-width: 640px) 50vw, 320px');
+                const eager = !!(opts && opts.eager);
+                const loadAttr = eager ? 'eager' : 'lazy';
+                const fpAttr   = eager ? ' fetchpriority="high"' : '';
                 return `<picture>`
                     + `<source type="image/webp" srcset="${escapeHTML(base)}-320.webp 320w, ${escapeHTML(base)}-640.webp 640w" sizes="${sz}">`
                     + `<source type="image/jpeg" srcset="${escapeHTML(base)}-320.jpg 320w, ${escapeHTML(base)}-640.jpg 640w" sizes="${sz}">`
-                    + `<img class="${escapeHTML(cls)}" src="${escapeHTML(base)}-320.jpg" alt="${altA}" loading="lazy" decoding="async" width="${w}" height="${h}">`
+                    + `<img class="${escapeHTML(cls)}" src="${escapeHTML(base)}-320.jpg" alt="${altA}" loading="${loadAttr}"${fpAttr} decoding="async" width="${w}" height="${h}">`
                     + `</picture>`;
+            }
+
+            // Map category -> Font Awesome icon for tile fallback covers.
+            const CAT_ICONS = {
+                Video:'fas fa-video', Art:'fas fa-palette', Music:'fas fa-music',
+                Merch:'fas fa-store', Photo:'fas fa-camera', Podcast:'fas fa-microphone',
+                Writing:'fas fa-feather', Food:'fas fa-utensils', Fitness:'fas fa-dumbbell',
+                Design:'fas fa-pen-ruler', Code:'fab fa-github', Stream:'fab fa-twitch',
+                Course:'fas fa-graduation-cap', Book:'fas fa-book-open', Travel:'fas fa-plane',
+            };
+            function fallbackTileCover(role) {
+                const cat = (role.categories || [])[0] || '';
+                const ico = CAT_ICONS[cat] || 'fas fa-shapes';
+                const bg  = role.wallpaper || 'linear-gradient(140deg,#7c3aed,#1bd4d9)';
+                return `<span class="hero-tile-fallback" style="background:${bg}">`
+                     + `<i class="${ico}" aria-hidden="true"></i>`
+                     + `<span class="ftl">${escapeHTML(cat || role.word)}</span>`
+                     + `</span>`;
             }
 
             // Each theme supplies its own bespoke profile block so the
@@ -2053,16 +2205,59 @@
                 return fn(role);
             }
 
+            // ---- Vertical interactive tile rail (lg+) ----
+            function buildTileRailHTML() {
+                if (!tileRail) return;
+                // Rail is display:none below lg; skip building on small screens
+                // so we don't fetch any tile imagery for hidden UI.
+                if (!isDesktop) return;
+                const html = ROLES.map((role, i) => {
+                    const cat = (role.categories || [])[0];
+                    const src = pickFromGallery(role, cat, 0);
+                    const eager = i < 6; // first ~6 above-the-fold (lg+ only)
+                    const cover = src
+                        ? pictureThumb(src, 'hero-tile-img', 110, 110, '116px', role.word + ' preview', { eager })
+                        : fallbackTileCover(role);
+                    return `<button type="button" class="hero-tile${i===0?' is-active':''}" `
+                         + `data-role-i="${i}" aria-pressed="${i===0?'true':'false'}" `
+                         + `aria-label="Show ${escapeHTML(role.word)} preview" tabindex="0">`
+                         + `<span class="hero-tile-thumb">${cover}</span>`
+                         + `<span class="hero-tile-label">${escapeHTML(role.word)}</span>`
+                         + `</button>`;
+                }).join('');
+                tileRail.innerHTML = html;
+            }
+
+            function syncActiveTile(role) {
+                if (!tileRail) return;
+                const idx = ROLES.indexOf(role);
+                const tiles = tileRail.querySelectorAll('.hero-tile');
+                tiles.forEach((el, i) => {
+                    const active = i === idx;
+                    el.classList.toggle('is-active', active);
+                    el.setAttribute('aria-pressed', active ? 'true' : 'false');
+                });
+                if (idx >= 0 && tiles[idx] && typeof tiles[idx].scrollIntoView === 'function') {
+                    try {
+                        tiles[idx].scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' });
+                    } catch (_) { tiles[idx].scrollIntoView(); }
+                }
+            }
+
             function paintRoleVisuals(role) {
                 applyWallpaper(role);
                 if (gallery) gallery.innerHTML = buildGalleryHTML(role);
                 if (galLbl) galLbl.textContent = role.word.toLowerCase();
+                if (railLbl) railLbl.textContent = role.word.toLowerCase();
+                syncActiveTile(role);
             }
 
-            function setRole(role) {
+            function setRole(role, opts) {
+                opts = opts || {};
+                if (opts.fromUser) pauseUntil = Date.now() + USER_PAUSE_MS;
                 if (sr) sr.textContent = role.word;
                 if (reduce) {
-                    // Simple opacity crossfade fallback
+                    // Simple opacity crossfade fallback (no shimmer / animation)
                     word.classList.add('rm-out');
                     stack.classList.add('rm-out');
                     setTimeout(() => {
@@ -2071,7 +2266,7 @@
                         paintRoleVisuals(role);
                         word.classList.remove('rm-out');
                         stack.classList.remove('rm-out');
-                    }, 350);
+                    }, 0);
                     return;
                 }
                 // Animate word out, swap text, animate in
@@ -2088,20 +2283,68 @@
                     stack.classList.remove('stack-out');
                     stack.innerHTML = buildStackHTML(role);
                     paintRoleVisuals(role);
-                }, 360);
+                }, SWAP_MS);
             }
 
             let i = 0;
+            // Build interactive rail before initial paint so syncActiveTile finds tiles.
+            buildTileRailHTML();
             // Initial paint (no out animation)
             stack.innerHTML = buildStackHTML(ROLES[0]);
             word.textContent = ROLES[0].word;
             paintRoleVisuals(ROLES[0]);
             if (!reduce) word.classList.add('word-in');
 
+            // Tile interactions: click pins (pauses auto-rotate), hover previews
+            // without pinning (auto-rotate keeps running underneath).
+            if (tileRail) {
+                let hoverTimer = 0;
+                const previewByIndex = (idx) => {
+                    if (idx < 0 || idx >= ROLES.length) return;
+                    i = idx; // keep auto-rotate counter in sync after preview
+                    setRole(ROLES[idx]); // no fromUser → no pause
+                };
+                const pinByIndex = (idx) => {
+                    if (idx < 0 || idx >= ROLES.length) return;
+                    i = idx;
+                    setRole(ROLES[idx], { fromUser: true }); // pauses rotate
+                };
+                tileRail.addEventListener('click', (e) => {
+                    const tile = e.target.closest('.hero-tile');
+                    if (!tile) return;
+                    clearTimeout(hoverTimer);
+                    pinByIndex(parseInt(tile.dataset.roleI, 10));
+                });
+                tileRail.addEventListener('mouseover', (e) => {
+                    const tile = e.target.closest('.hero-tile');
+                    if (!tile) return;
+                    clearTimeout(hoverTimer);
+                    const idx = parseInt(tile.dataset.roleI, 10);
+                    hoverTimer = setTimeout(() => previewByIndex(idx), 140);
+                });
+                tileRail.addEventListener('mouseleave', () => {
+                    clearTimeout(hoverTimer);
+                });
+                // Keyboard: arrow keys to move focus along the rail; Enter/Space activate via native button.
+                tileRail.addEventListener('keydown', (e) => {
+                    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+                    const tile = e.target.closest('.hero-tile');
+                    if (!tile) return;
+                    e.preventDefault();
+                    const idx = parseInt(tile.dataset.roleI, 10);
+                    const next = e.key === 'ArrowDown'
+                        ? Math.min(ROLES.length - 1, idx + 1)
+                        : Math.max(0, idx - 1);
+                    const tiles = tileRail.querySelectorAll('.hero-tile');
+                    if (tiles[next]) tiles[next].focus();
+                });
+            }
+
             setInterval(() => {
+                if (Date.now() < pauseUntil) return;
                 i = (i + 1) % ROLES.length;
                 setRole(ROLES[i]);
-            }, 4200);
+            }, AUTO_ROTATE_MS);
 
             // Cursor parallax tilt on the phone (desktop only, no reduced motion).
             if (phoneWrap && phoneScene && isDesktop && !reduce) {
