@@ -3,6 +3,7 @@
     $phones = old('phones', $item ? $item->phones->map(fn($p)=>['phone'=>$p->phone,'label'=>$p->label])->all() : [['phone'=>'','label'=>'']]);
     $addresses = old('addresses', $item ? $item->addresses->map(fn($a)=>$a->only(['label','line1','line2','city','region','postal_code','country']))->all() : []);
     $fields = $item?->getEncrypted('fields', true) ?? [];
+    $socials = $item?->getEncrypted('social_handles', true) ?? [];
 @endphp
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
     <label class="block">
@@ -73,6 +74,21 @@
         </div>
     </template>
     <button type="button" @click="rows.push({label:'',line1:'',line2:'',city:'',region:'',postal_code:'',country:''})" class="text-xs text-amber-400">+ Add address</button>
+</div>
+
+<div class="mt-6" x-data='{ rows: @json(array_values(array_map(fn($r)=>["network"=>$r["network"]??"","handle"=>$r["handle"]??"","url"=>$r["url"]??""], $socials ?: []))) }'>
+    <div class="flex items-center justify-between mb-2">
+        <h3 class="text-sm font-semibold text-gray-300">Social handles (encrypted)</h3>
+        <button type="button" @click="rows.push({network:'',handle:'',url:''})" class="text-xs text-amber-400">+ Add</button>
+    </div>
+    <template x-for="(row, i) in rows" :key="i">
+        <div class="grid grid-cols-12 gap-2 mb-2">
+            <input type="text" :name="'social_handles['+i+'][network]'" x-model="row.network" placeholder="Network (twitter, instagram…)" class="col-span-3 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
+            <input type="text" :name="'social_handles['+i+'][handle]'" x-model="row.handle" placeholder="@handle" class="col-span-3 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
+            <input type="text" :name="'social_handles['+i+'][url]'" x-model="row.url" placeholder="https://…" class="col-span-5 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
+            <button type="button" @click="rows.splice(i,1)" class="col-span-1 text-red-400"><i class="fas fa-trash"></i></button>
+        </div>
+    </template>
 </div>
 
 <div class="mt-6" x-data='{ rows: @json(array_values(array_map(fn($r)=>["key"=>$r["key"]??"","value"=>$r["value"]??""], $fields ?: []))) }'>

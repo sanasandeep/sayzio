@@ -24,8 +24,9 @@ class VaultClient extends Model
     ];
 
     public array $encryptedFields = [
-        'notes'  => 'notes_encrypted',
-        'fields' => 'fields_encrypted',
+        'notes'          => 'notes_encrypted',
+        'fields'         => 'fields_encrypted',
+        'social_handles' => 'social_handles_encrypted',
     ];
 
     public function creator()

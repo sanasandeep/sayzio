@@ -54,6 +54,7 @@ class VaultClientController extends Controller
             $client->fill($this->basicAttrs($data));
             $client->setEncrypted('notes', $data['notes'] ?? null);
             $client->setEncrypted('fields', $this->parseKv($data['fields'] ?? null));
+            $client->setEncrypted('social_handles', $this->parseSocials($data['social_handles'] ?? null));
             $client->save();
             $this->syncMultiValues($client, $request);
             $this->refreshPrimaries($client);
@@ -90,6 +91,7 @@ class VaultClientController extends Controller
             $client->fill($this->basicAttrs($data));
             $client->setEncrypted('notes', $data['notes'] ?? null);
             $client->setEncrypted('fields', $this->parseKv($data['fields'] ?? null));
+            $client->setEncrypted('social_handles', $this->parseSocials($data['social_handles'] ?? null));
             $client->save();
             // Replace child rows so the form is the source of truth.
             $client->emails()->delete();
@@ -167,9 +169,27 @@ class VaultClientController extends Controller
             'phones'     => ['nullable', 'array'],
             'phones.*.phone' => ['nullable', 'string', 'max:64'],
             'phones.*.label' => ['nullable', 'string', 'max:32'],
-            'addresses'  => ['nullable', 'array'],
-            'fields'     => ['nullable', 'array'],
+            'addresses'      => ['nullable', 'array'],
+            'fields'         => ['nullable', 'array'],
+            'social_handles' => ['nullable', 'array'],
+            'social_handles.*.network' => ['nullable', 'string', 'max:64'],
+            'social_handles.*.handle'  => ['nullable', 'string', 'max:128'],
+            'social_handles.*.url'     => ['nullable', 'string', 'max:500'],
         ]);
+    }
+
+    protected function parseSocials($raw): array
+    {
+        if (!is_array($raw)) return [];
+        $out = [];
+        foreach ($raw as $row) {
+            $network = trim((string) ($row['network'] ?? ''));
+            $handle  = trim((string) ($row['handle']  ?? ''));
+            $url     = trim((string) ($row['url']     ?? ''));
+            if ($network === '' && $handle === '' && $url === '') continue;
+            $out[] = ['network' => $network, 'handle' => $handle, 'url' => $url];
+        }
+        return $out;
     }
 
     protected function syncMultiValues(VaultClient $client, Request $request): void

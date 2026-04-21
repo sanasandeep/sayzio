@@ -4,9 +4,12 @@ namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\VaultAudit;
+use App\Modules\User\Models\VaultAttachment;
 use App\Modules\User\Models\VaultClient;
 use App\Modules\User\Models\VaultCredential;
+use App\Modules\User\Services\WorkspaceEncryption;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -68,17 +71,18 @@ class VaultExportController extends Controller
 
         $clients = VaultClient::with(['emails', 'phones', 'addresses'])->get()->map(function ($c) {
             return [
-                'id'        => $c->id,
-                'name'      => $c->name,
-                'company'   => $c->company,
-                'website'   => $c->website,
-                'emails'    => $c->emails->map(fn ($e) => ['email' => $e->email, 'label' => $e->label, 'is_primary' => $e->is_primary]),
-                'phones'    => $c->phones->map(fn ($p) => ['phone' => $p->phone, 'label' => $p->label, 'is_primary' => $p->is_primary]),
-                'addresses' => $c->addresses->map(fn ($a) => $a->only(['label','line1','line2','city','region','postal_code','country'])),
-                'fields'    => $c->getEncrypted('fields', true),
-                'notes'     => $c->getEncrypted('notes'),
-                'tags'      => $c->tags,
-                'visibility'=> $c->visibility,
+                'id'             => $c->id,
+                'name'           => $c->name,
+                'company'        => $c->company,
+                'website'        => $c->website,
+                'emails'         => $c->emails->map(fn ($e) => ['email' => $e->email, 'label' => $e->label, 'is_primary' => $e->is_primary]),
+                'phones'         => $c->phones->map(fn ($p) => ['phone' => $p->phone, 'label' => $p->label, 'is_primary' => $p->is_primary]),
+                'addresses'      => $c->addresses->map(fn ($a) => $a->only(['label','line1','line2','city','region','postal_code','country'])),
+                'fields'         => $c->getEncrypted('fields', true),
+                'social_handles' => $c->getEncrypted('social_handles', true),
+                'notes'          => $c->getEncrypted('notes'),
+                'tags'           => $c->tags,
+                'visibility'     => $c->visibility,
             ];
         });
 
@@ -87,7 +91,41 @@ class VaultExportController extends Controller
             'exported_at'  => now()->toIso8601String(),
             'credentials'  => $credentials,
             'clients'      => $clients,
+            'attachments'  => $this->collectAttachments(),
         ];
+    }
+
+    /**
+     * Decrypt every attachment under the active workspace and emit it inline
+     * as base64 plaintext. The whole payload is then re-encrypted under the
+     * passphrase envelope, so the export is "complete" but never written to
+     * disk in plaintext.
+     */
+    protected function collectAttachments(): array
+    {
+        $svc = app(WorkspaceEncryption::class);
+        $out = [];
+        foreach (VaultAttachment::query()->get() as $att) {
+            $bytes = null;
+            if (Storage::disk($att->disk)->exists($att->path)) {
+                $raw = Storage::disk($att->disk)->get($att->path);
+                if ($att->encrypted) {
+                    try { $raw = $svc->decrypt((int) $att->workspace_id, $raw); }
+                    catch (\Throwable $e) { $raw = null; }
+                }
+                $bytes = $raw === null ? null : base64_encode($raw);
+            }
+            $out[] = [
+                'id'          => $att->id,
+                'parent_type' => $att->parent_type,
+                'parent_id'   => $att->parent_id,
+                'filename'    => $att->filename,
+                'mime'        => $att->mime,
+                'size'        => $att->size,
+                'content_b64' => $bytes,
+            ];
+        }
+        return $out;
     }
 
     protected function encryptWithPassphrase(string $plaintext, string $passphrase): array

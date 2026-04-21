@@ -41,6 +41,8 @@ return new class extends Migration
             $table->string('primary_phone', 64)->nullable();
             $table->text('notes_encrypted')->nullable();
             $table->text('fields_encrypted')->nullable();
+            // Workspace-scoped encrypted JSON list of { network, handle, url }.
+            $table->text('social_handles_encrypted')->nullable();
             $table->json('tags')->nullable();
             $table->string('visibility', 16)->default('shared');
             $table->timestamps();
@@ -102,6 +104,10 @@ return new class extends Migration
             $table->string('path');
             $table->unsignedInteger('size')->default(0);
             $table->string('mime', 128)->nullable();
+            // True when the bytes on disk are workspace-encrypted ciphertext.
+            // All new uploads set this; the column exists so future imports
+            // (or a key-rotation migration) can mark legacy plaintext blobs.
+            $table->boolean('encrypted')->default(true);
             $table->timestamps();
             $table->index(['parent_type', 'parent_id']);
             $table->index('workspace_id');

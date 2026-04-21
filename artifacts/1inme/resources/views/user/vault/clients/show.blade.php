@@ -8,6 +8,7 @@
     $canEdit = WP::userCan('vault.edit');
     $canDelete = WP::userCan('vault.delete');
     $fields = $item->getEncrypted('fields', true) ?? [];
+    $socials = $item->getEncrypted('social_handles', true) ?? [];
 @endphp
 
 <div class="max-w-3xl" x-data="vaultClientView({{ $item->id }})">
@@ -65,6 +66,21 @@
         <p x-show="!shown" class="text-sm text-gray-500">Hidden — click reveal to view (logged).</p>
         <p x-show="error" class="text-red-300 text-xs mt-2" x-text="error"></p>
     </div>
+
+    @if(!empty($socials))
+        <div class="rounded-lg p-3 bg-white/5 mb-6">
+            <h3 class="text-xs uppercase text-gray-400 mb-2">Social handles</h3>
+            <ul class="text-sm space-y-1">
+                @foreach($socials as $s)
+                    <li>
+                        <span class="text-gray-400 text-xs uppercase mr-2">{{ $s['network'] ?? '' }}</span>
+                        <span class="font-mono">{{ $s['handle'] ?? '' }}</span>
+                        @if(!empty($s['url']))<a href="{{ $s['url'] }}" target="_blank" class="ml-2 text-blue-400 hover:underline text-xs">{{ $s['url'] }}</a>@endif
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 
     @if(!empty($fields))
         <div class="rounded-lg p-3 bg-white/5 mb-6">

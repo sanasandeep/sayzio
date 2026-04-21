@@ -243,6 +243,72 @@ class VaultTest extends TestCase
         $this->assertSame([['key' => 'Account #', 'value' => 'A-12345']], $client->getEncrypted('fields', true));
     }
 
+    public function test_attachment_bytes_are_encrypted_at_rest_and_decrypt_on_download(): void
+    {
+        Storage::fake('local');
+        config(['filesystems.default' => 'local']);
+        $owner = $this->makeUser('owner');
+        $this->bindWorkspace($owner);
+        $client = VaultClient::create(['name' => 'Acme']);
+
+        $payload = "PLAINTEXT-MARKER-" . str_repeat('x', 100);
+        $upload = \Illuminate\Http\UploadedFile::fake()->createWithContent('contract.txt', $payload);
+
+        $this->actingAs($owner)
+            ->post('/user/vault/clients/' . $client->id . '/attachments', ['file' => $upload])
+            ->assertRedirect();
+
+        $att = VaultAttachment::first();
+        $this->assertNotNull($att);
+        $this->assertTrue((bool) $att->encrypted);
+
+        // Bytes on disk must NOT contain the plaintext marker.
+        $onDisk = Storage::disk('local')->get($att->path);
+        $this->assertStringNotContainsString('PLAINTEXT-MARKER-', $onDisk);
+
+        // Download decrypts and returns the original bytes.
+        $resp = $this->actingAs($owner)->get('/user/vault/attachments/' . $att->id . '/download');
+        $resp->assertOk();
+        $this->assertSame($payload, $resp->getContent());
+    }
+
+    public function test_export_includes_attachments_and_social_handles(): void
+    {
+        Storage::fake('local');
+        config(['filesystems.default' => 'local']);
+        $owner = $this->makeUser('owner');
+        $ws = $this->bindWorkspace($owner);
+
+        $client = VaultClient::create(['name' => 'Acme']);
+        $client->setEncrypted('social_handles', [['network' => 'twitter', 'handle' => '@acme', 'url' => 'https://t/acme']]);
+        $client->save();
+
+        $this->actingAs($owner)->post('/user/vault/clients/' . $client->id . '/attachments', [
+            'file' => \Illuminate\Http\UploadedFile::fake()->createWithContent('doc.txt', 'EXPORT-CONTENT'),
+        ])->assertRedirect();
+
+        $resp = $this->actingAs($owner)->post('/user/vault/export', ['passphrase' => 'corr3cthorse']);
+        $resp->assertOk();
+        $env = json_decode($resp->streamedContent(), true);
+
+        // Decrypt the envelope and confirm both attachments and social handles round-trip.
+        $salt = base64_decode($env['kdf']['salt']);
+        $iv   = base64_decode($env['iv']);
+        $ct   = base64_decode($env['ct']);
+        $tag  = base64_decode($env['tag']);
+        $key  = hash_pbkdf2('sha256', 'corr3cthorse', $salt, $env['kdf']['iters'], 32, true);
+        $plain = openssl_decrypt($ct, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag);
+        $this->assertNotFalse($plain);
+
+        $payload = json_decode($plain, true);
+        $this->assertArrayHasKey('attachments', $payload);
+        $this->assertCount(1, $payload['attachments']);
+        $this->assertSame('doc.txt', $payload['attachments'][0]['filename']);
+        $this->assertSame('EXPORT-CONTENT', base64_decode($payload['attachments'][0]['content_b64']));
+
+        $this->assertSame('@acme', $payload['clients'][0]['social_handles'][0]['handle']);
+    }
+
     public function test_credential_delete_cascades_attachments_on_disk(): void
     {
         Storage::fake('local');

@@ -13,6 +13,10 @@ class VaultAttachment extends Model
     protected $fillable = [
         'workspace_id', 'uploaded_by_user_id',
         'parent_type', 'parent_id',
-        'filename', 'disk', 'path', 'size', 'mime',
+        'filename', 'disk', 'path', 'size', 'mime', 'encrypted',
+    ];
+
+    protected $casts = [
+        'encrypted' => 'boolean',
     ];
 }
