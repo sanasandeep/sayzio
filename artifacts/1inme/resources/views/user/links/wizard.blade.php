@@ -285,6 +285,79 @@
                     target.appendChild(clone);
                 });
             }
+
+            // ─── Autosave (browser + server) ──────────────────────────────────
+            // Persist answers locally on every change so refreshes / accidental
+            // tab closes don't lose work, and push the same payload to the
+            // server every 5 seconds when there are unsaved edits.
+            (function () {
+                const main = document.getElementById('wizardFinishForm');
+                if (!main) return;
+
+                const STORAGE_KEY = 'biolink-wizard-draft:v1';
+                const DRAFT_URL   = @json(route('user.links.wizard.draft'));
+                const CSRF        = @json(csrf_token());
+
+                function readForm() {
+                    const out = {};
+                    main.querySelectorAll('input, textarea, select').forEach(el => {
+                        if (!el.name || !el.name.startsWith('a[')) return;
+                        if (el.type === 'file') return;
+                        // a[key] / a[key][i][sub] — flatten to dotted path for
+                        // localStorage; server-side patch uses the top-level
+                        // bracket form already so we just ship label-keyed
+                        // scalar fields (a[key]) for autosave.
+                        const m = el.name.match(/^a\[([^\]]+)\](?:\[|$)/);
+                        if (!m) return;
+                        const k = m[1];
+                        if (el.name === `a[${k}]`) {
+                            out[k] = el.value || '';
+                        }
+                    });
+                    return out;
+                }
+
+                // Restore from localStorage if the server didn't already
+                // persist these fields (the server's saved value wins).
+                try {
+                    const cached = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+                    Object.entries(cached).forEach(([k, v]) => {
+                        const el = main.querySelector(`[name="a[${k}]"]`);
+                        if (el && el.type !== 'file' && !el.value) el.value = v;
+                    });
+                } catch (e) { /* ignore corrupt cache */ }
+
+                let dirty = false;
+                main.addEventListener('input', () => {
+                    dirty = true;
+                    try {
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(readForm()));
+                    } catch (e) { /* quota or private mode */ }
+                });
+
+                // Periodic server autosave — only fires when there's something
+                // new since the last successful flush.
+                setInterval(() => {
+                    if (!dirty) return;
+                    const answers = readForm();
+                    dirty = false;
+                    fetch(DRAFT_URL, {
+                        method: 'PATCH',
+                        credentials: 'same-origin',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': CSRF,
+                            'Accept': 'application/json',
+                        },
+                        body: JSON.stringify({ answers }),
+                    }).catch(() => { dirty = true; /* retry next tick */ });
+                }, 5000);
+
+                // Clear cache once we've successfully generated.
+                main.addEventListener('submit', () => {
+                    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+                });
+            })();
         </script>
     @endif
 

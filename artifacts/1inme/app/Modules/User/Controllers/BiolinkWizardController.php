@@ -37,6 +37,63 @@ class BiolinkWizardController extends Controller
 {
     public function __construct(private TemplateService $templates) {}
 
+    /**
+     * Discard any in-flight draft and land on the first step. Useful for the
+     * "Start over" entry point — the wizard auto-resumes by default.
+     */
+    public function start(Request $request)
+    {
+        $draft = $this->loadDraft($request);
+        $draft?->delete();
+        return redirect()->route('user.links.wizard');
+    }
+
+    /**
+     * Explicit resume entry point. The wizard's index() already auto-resumes
+     * the latest draft for this (user, workspace), so this is just a named
+     * alias for deep links / emails.
+     */
+    public function resume(Request $request)
+    {
+        return redirect()->route('user.links.wizard');
+    }
+
+    /**
+     * Background autosave — accepts a JSON `answers` patch and merges it into
+     * the current draft without changing the step. Returns 204 on success so
+     * the browser fetch() never has to parse a body.
+     */
+    public function draft(Request $request)
+    {
+        $draft = $this->loadDraft($request);
+        if (!$draft) {
+            // No draft yet — nothing to autosave. Return 204 anyway so the
+            // client doesn't surface a spurious error.
+            return response()->noContent();
+        }
+
+        $patch = $request->input('answers');
+        if (!is_array($patch)) {
+            return response()->json(['error' => 'invalid_payload'], 422);
+        }
+
+        // Drop anything that isn't scalar/array — defensive against junk
+        // accidentally serialised from the page (e.g. File objects).
+        $clean = [];
+        foreach ($patch as $k => $v) {
+            if (!is_string($k) || strlen($k) > 64) continue;
+            if (is_scalar($v) || is_array($v) || $v === null) {
+                $clean[$k] = $v;
+            }
+        }
+
+        $existing = $draft->answers ?? [];
+        $draft->answers = array_merge($existing, $clean);
+        $draft->save();
+
+        return response()->noContent();
+    }
+
     /** Land on the wizard — show category step or resume an existing draft. */
     public function index(Request $request)
     {

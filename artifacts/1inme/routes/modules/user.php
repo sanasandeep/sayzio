@@ -219,9 +219,15 @@ Route::prefix('user')->name('user.')->group(function () {
         // Guided biolink creation wizard. Registered BEFORE the
         // `Route::resource('links', ...)` so `links/wizard` is matched as a
         // literal path and not as the `links/{link}` show-route.
-        Route::get('links/wizard',         [BiolinkWizardController::class, 'index'])->middleware('workspace.can:links.create')->name('links.wizard');
-        Route::post('links/wizard',        [BiolinkWizardController::class, 'save'])->middleware('workspace.can:links.create')->name('links.wizard.save');
-        Route::post('links/wizard/finish', [BiolinkWizardController::class, 'finish'])->middleware(['workspace.can:links.create', CheckPlanLimit::class . ':links'])->name('links.wizard.finish');
+        Route::get('links/wizard',          [BiolinkWizardController::class, 'index'])->middleware('workspace.can:links.create')->name('links.wizard');
+        // POST so destructive draft-reset is CSRF-guarded — never allow a GET
+        // to delete state (a third-party prefetch could trigger draft loss).
+        Route::post('links/wizard/start',   [BiolinkWizardController::class, 'start'])->middleware('workspace.can:links.create')->name('links.wizard.start');
+        Route::get('links/wizard/resume',   [BiolinkWizardController::class, 'resume'])->middleware('workspace.can:links.create')->name('links.wizard.resume');
+        Route::post('links/wizard/step',    [BiolinkWizardController::class, 'save'])->middleware('workspace.can:links.create')->name('links.wizard.step');
+        Route::post('links/wizard',         [BiolinkWizardController::class, 'save'])->middleware('workspace.can:links.create')->name('links.wizard.save');
+        Route::patch('links/wizard/draft',  [BiolinkWizardController::class, 'draft'])->middleware('workspace.can:links.create')->name('links.wizard.draft');
+        Route::post('links/wizard/finish',  [BiolinkWizardController::class, 'finish'])->middleware(['workspace.can:links.create', CheckPlanLimit::class . ':links'])->name('links.wizard.finish');
 
         Route::resource('links', LinkController::class)->except(['store', 'update', 'destroy'])->middleware('workspace.can:links.view');
         Route::put('links/{link}',  [LinkController::class, 'update'])->middleware('workspace.can:links.edit')->name('links.update');
