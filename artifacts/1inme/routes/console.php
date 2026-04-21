@@ -97,6 +97,17 @@ Schedule::command('subscriptions:renew-due')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Daily (off-peak): re-run the idempotent click-source backfill so any
+// link_clicks rows written without a `source` (seeders, imports, future
+// third-party integrations) get tagged mobile_app/web instead of falling
+// through to "Unknown" on the Traffic Source card. The one-shot in #381
+// cleaned up history; this keeps stragglers from sneaking back in. Chunked
+// + capped so a runaway batch can't swamp the DB at night.
+Schedule::command('clicks:backfill-source --chunk=1000 --limit=50000')
+    ->dailyAt('02:30')
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Daily: refresh near-expiry tokens AND ping every cloud_connection so
 // connections whose OAuth was revoked / expired past refresh get flagged
 // (last_error populated, sidebar banner appears, owner emailed once).
