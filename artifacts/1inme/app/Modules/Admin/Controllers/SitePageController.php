@@ -37,7 +37,7 @@ class SitePageController extends Controller
     public function update(Request $request, string $slug)
     {
         $page = SitePage::where('slug', $slug)->firstOrFail();
-        $data = $request->validate([
+        $rules = [
             'title' => 'required|string|max:200',
             'meta_description' => 'nullable|string|max:500',
             'sections' => 'array',
@@ -46,12 +46,41 @@ class SitePageController extends Controller
             'cta_label' => 'nullable|string|max:120',
             'cta_url' => ['nullable', 'string', 'max:500', 'regex:#^(/|https?://)#i'],
             'error_404_suggestions_enabled' => 'nullable|boolean',
-        ]);
+        ];
+        if ($slug === 'services') {
+            $rules['sections.*.tagline']   = 'nullable|string|max:200';
+            $rules['sections.*.icon']      = 'nullable|string|max:60';
+            $rules['sections.*.tint']      = 'nullable|string|max:120';
+            $rules['sections.*.bullets']   = 'nullable|string|max:4000';
+            $rules['sections.*.cta_label'] = 'nullable|string|max:120';
+            $rules['sections.*.cta_url']   = ['nullable', 'string', 'max:500', 'regex:#^(/|https?://)#i'];
+        }
+        $data = $request->validate($rules);
         if ($slug === 'error-404') {
             AppSetting::put(PathSuggester::SETTING_KEY, (bool) $request->input('error_404_suggestions_enabled', false));
         }
         $sections = collect($data['sections'] ?? [])
             ->filter(fn($s) => trim($s['heading'] ?? '') !== '' || trim($s['body'] ?? '') !== '')
+            ->map(function ($s) use ($slug) {
+                if ($slug !== 'services') {
+                    return ['heading' => $s['heading'] ?? '', 'body' => $s['body'] ?? ''];
+                }
+                $bulletsRaw = (string) ($s['bullets'] ?? '');
+                $bullets = array_values(array_filter(
+                    array_map('trim', preg_split('/\r?\n/', $bulletsRaw)),
+                    fn($b) => $b !== ''
+                ));
+                return [
+                    'heading'   => trim((string) ($s['heading'] ?? '')),
+                    'tagline'   => trim((string) ($s['tagline'] ?? '')),
+                    'body'      => (string) ($s['body'] ?? ''),
+                    'icon'      => trim((string) ($s['icon'] ?? '')),
+                    'tint'      => trim((string) ($s['tint'] ?? '')),
+                    'bullets'   => $bullets,
+                    'cta_label' => trim((string) ($s['cta_label'] ?? '')),
+                    'cta_url'   => trim((string) ($s['cta_url'] ?? '')),
+                ];
+            })
             ->values()->all();
         $page->update([
             'title' => $data['title'],

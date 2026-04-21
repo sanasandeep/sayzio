@@ -56,6 +56,14 @@ class SitePagesSeeder extends Seeder
                 'cta_url' => '/register',
             ],
             [
+                'slug' => 'services',
+                'title' => 'What you can do with 1INME',
+                'meta_description' => 'See how marketers, creators, agencies, small businesses and event organizers use 1INME as their link-in-bio, portfolio, and audience hub.',
+                'sections' => self::servicesDefaultSections(),
+                'cta_label' => 'Create your 1INME',
+                'cta_url' => '/register',
+            ],
+            [
                 'slug' => 'error-404',
                 'title' => 'Page not found',
                 'meta_description' => 'The page you were looking for does not exist or has been moved.',
@@ -152,5 +160,101 @@ class SitePagesSeeder extends Seeder
                 ['answer' => $a, 'sort_order' => $i]
             );
         }
+    }
+
+    public static function servicesDefaultSections(): array
+    {
+        return [
+            [
+                'heading' => 'Marketing channel',
+                'tagline' => 'Run campaigns from a single, trackable hub.',
+                'body' => 'Turn every social bio, ad and QR code into a measurable funnel. Spin up campaign landing pages in minutes and watch what converts.',
+                'icon' => 'fa-bullhorn',
+                'tint' => 'from-violet-500/30 to-fuchsia-500/10',
+                'bullets' => [
+                    'Branded link-in-bio with UTM-friendly short links',
+                    'Per-link click analytics and traffic sources',
+                    'Lead-capture forms wired to your audience list',
+                    'A/B-able CTAs and pinned promo blocks',
+                ],
+                'cta_label' => 'Get started',
+                'cta_url' => '/register',
+            ],
+            [
+                'heading' => 'Personal portfolio',
+                'tagline' => 'A polished one-page intro that travels with you.',
+                'body' => 'Showcase work, link your socials and let people reach you — without paying for a custom site or worrying about hosting.',
+                'icon' => 'fa-id-badge',
+                'tint' => 'from-sky-500/30 to-violet-500/10',
+                'bullets' => [
+                    'Bio, avatar, headline and contact in one place',
+                    'Featured projects with images and external links',
+                    'All your social profiles in a single tap-friendly stack',
+                    'Custom alias like 1inme.co/yourname',
+                ],
+                'cta_label' => 'Get started',
+                'cta_url' => '/register',
+            ],
+            [
+                'heading' => 'Agency / multi-client',
+                'tagline' => 'Manage every client from one workspace.',
+                'body' => 'Built for teams who ship for many brands. Keep client assets, links and access cleanly separated without juggling logins.',
+                'icon' => 'fa-people-group',
+                'tint' => 'from-fuchsia-500/30 to-pink-500/10',
+                'bullets' => [
+                    'Workspaces per client with isolated content',
+                    'Invite teammates with role-based permissions',
+                    'Shared client vault for credentials and assets',
+                    'Per-client analytics for white-label reporting',
+                ],
+                'cta_label' => 'Get started',
+                'cta_url' => '/register',
+            ],
+            [
+                'heading' => 'Creator / influencer',
+                'tagline' => 'Grow, post and monetize from one biolink.',
+                'body' => 'Replace half a dozen tools with a single creator hub — biolink, posts, follower digests and tip jars all under your handle.',
+                'icon' => 'fa-star',
+                'tint' => 'from-amber-500/30 to-violet-500/10',
+                'bullets' => [
+                    'Biolink that doubles as a posting feed',
+                    'Email digests to bring fans back',
+                    'Tip jar, paid links and product blocks',
+                    'Discoverable in the public creator feed',
+                ],
+                'cta_label' => 'Get started',
+                'cta_url' => '/register',
+            ],
+            [
+                'heading' => 'Small business',
+                'tagline' => 'A lightweight site for shops and services.',
+                'body' => 'Get a clean public page with your services, contact info and booking link — no developers, no monthly maintenance.',
+                'icon' => 'fa-store',
+                'tint' => 'from-emerald-500/30 to-sky-500/10',
+                'bullets' => [
+                    'Services / products list with pricing blocks',
+                    'Click-to-call, WhatsApp and map directions',
+                    'Inquiry forms that land straight in your inbox',
+                    'Embed your scheduling or booking link',
+                ],
+                'cta_label' => 'Get started',
+                'cta_url' => '/register',
+            ],
+            [
+                'heading' => 'Events',
+                'tagline' => 'One link for everything attendees need.',
+                'body' => "Share schedule, venue, RSVP and updates from a single page that's easy to forward, print to a QR code, or pin in a bio.",
+                'icon' => 'fa-calendar-days',
+                'tint' => 'from-rose-500/30 to-violet-500/10',
+                'bullets' => [
+                    'Event hero with date, location and countdown',
+                    'RSVP / signup form with capacity tracking',
+                    'Schedule and speakers in tap-friendly cards',
+                    'Share-ready QR code for posters and tickets',
+                ],
+                'cta_label' => 'Get started',
+                'cta_url' => '/register',
+            ],
+        ];
     }
 }

@@ -45,7 +45,54 @@ class SitePageController extends Controller
         if ($slug === 'creators-feed') {
             return $this->showCreatorsFeed($page, $request);
         }
+        if ($slug === 'services') {
+            return view('public.services', [
+                'page' => $page,
+                'useCases' => $this->normaliseServicesSections($page->sections ?? []),
+            ]);
+        }
         return view('public.page', ['page' => $page]);
+    }
+
+    /**
+     * Coerce the editable JSON sections for the /services page into the
+     * shape the public Blade view expects, supplying safe defaults for
+     * any missing optional fields.
+     */
+    private function normaliseServicesSections(array $sections): array
+    {
+        $defaultTints = [
+            'from-violet-500/30 to-fuchsia-500/10',
+            'from-sky-500/30 to-violet-500/10',
+            'from-fuchsia-500/30 to-pink-500/10',
+            'from-amber-500/30 to-violet-500/10',
+            'from-emerald-500/30 to-sky-500/10',
+            'from-rose-500/30 to-violet-500/10',
+        ];
+
+        $out = [];
+        foreach (array_values($sections) as $i => $s) {
+            $title = trim((string) ($s['heading'] ?? ''));
+            if ($title === '') {
+                continue;
+            }
+            $bullets = $s['bullets'] ?? [];
+            if (is_string($bullets)) {
+                $bullets = array_values(array_filter(array_map('trim', preg_split('/\r?\n/', $bullets))));
+            }
+            $bullets = array_values(array_filter(array_map(fn($b) => trim((string) $b), (array) $bullets), fn($b) => $b !== ''));
+            $out[] = [
+                'title'     => $title,
+                'tagline'   => trim((string) ($s['tagline'] ?? '')),
+                'desc'      => trim((string) ($s['body'] ?? '')),
+                'icon'      => trim((string) ($s['icon'] ?? '')) ?: 'fa-circle-dot',
+                'tint'      => trim((string) ($s['tint'] ?? '')) ?: $defaultTints[$i % count($defaultTints)],
+                'bullets'   => $bullets,
+                'cta_label' => trim((string) ($s['cta_label'] ?? '')) ?: 'Get started',
+                'cta_url'   => trim((string) ($s['cta_url'] ?? '')) ?: '/register',
+            ];
+        }
+        return $out;
     }
 
     private function showDiscovery(SitePage $page, Request $request)

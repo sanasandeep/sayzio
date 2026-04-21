@@ -65,12 +65,7 @@ Route::controller(\App\Modules\Common\Controllers\SitePageController::class)->gr
     Route::get('/workspace-team', fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('workspace-team'))->name('site.workspace-team');
     Route::get('/buzz',           fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('buzz'))->name('site.buzz');
     Route::view('/docs/api', 'public.api-docs')->name('site.api-docs');
-    Route::view('/services', 'public.services', [
-        'page' => (object) [
-            'title' => 'What you can do with 1INME',
-            'meta_description' => 'See how marketers, creators, agencies, small businesses and event organizers use 1INME as their link-in-bio, portfolio, and audience hub.',
-        ],
-    ])->name('site.services');
+    Route::get('/services', fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('services'))->name('site.services');
 });
 Route::post('/contact', [\App\Modules\Common\Controllers\SitePageController::class, 'submitContact'])
     ->name('site.contact.submit')->middleware('throttle:10,10');

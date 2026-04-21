@@ -4,10 +4,35 @@
 <div class="max-w-4xl mx-auto space-y-6">
     <a href="{{ route('admin.site-pages.index') }}" class="text-xs text-violet-400 hover:underline"><i class="fas fa-arrow-left mr-1"></i>Back to all pages</a>
 
+    @php
+        $isServices = $page->slug === 'services';
+        $servicesSeed = [];
+        if ($isServices) {
+            foreach (array_values($page->sections ?? []) as $s) {
+                $bullets = $s['bullets'] ?? [];
+                if (is_array($bullets)) { $bullets = implode("\n", $bullets); }
+                $servicesSeed[] = [
+                    'heading'   => (string) ($s['heading'] ?? ''),
+                    'tagline'   => (string) ($s['tagline'] ?? ''),
+                    'body'      => (string) ($s['body'] ?? ''),
+                    'icon'      => (string) ($s['icon'] ?? ''),
+                    'tint'      => (string) ($s['tint'] ?? ''),
+                    'bullets'   => (string) $bullets,
+                    'cta_label' => (string) ($s['cta_label'] ?? ''),
+                    'cta_url'   => (string) ($s['cta_url'] ?? ''),
+                ];
+            }
+        }
+    @endphp
     <form method="POST" action="{{ route('admin.site-pages.update', $page->slug) }}"
+          @if($isServices)
+          x-data="{ sections: {{ json_encode($servicesSeed) }} }"
+          @else
           x-data="{ sections: {{ json_encode(array_values($page->sections ?? [])) }} }"
+          @endif
           class="glass rounded-2xl p-6 space-y-5">
         @csrf
+        @method('PUT')
         <div>
             <h2 class="text-lg font-semibold text-white">{{ $page->title }} <span class="text-xs text-white/40 ml-2">/{{ $page->slug === 'home' ? '' : $page->slug }}</span></h2>
         </div>
@@ -21,38 +46,109 @@
         <div>
             <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Meta description</label>
             <textarea name="meta_description" rows="2" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">{{ old('meta_description', $page->meta_description) }}</textarea>
+            @if($isServices)
+                <p class="mt-1 text-[11px] text-white/40">Doubles as the hero subtitle on the public /services page.</p>
+            @endif
         </div>
 
-        <div>
-            <div class="flex items-center justify-between mb-2">
-                <label class="text-xs font-semibold uppercase tracking-wider text-white/60">Content sections</label>
-                <button type="button" @click="sections.push({heading:'',body:''})" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 rounded-lg text-white">
-                    <i class="fas fa-plus mr-1"></i> Add section
-                </button>
-            </div>
-            <template x-for="(s, i) in sections" :key="i">
-                <div class="bg-white/5 border border-white/10 rounded-xl p-4 mb-3 space-y-2">
-                    <div class="flex items-center justify-between">
-                        <span class="text-[10px] uppercase tracking-wider text-white/40">Section <span x-text="i+1"></span></span>
-                        <button type="button" @click="sections.splice(i,1)" class="text-xs text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button>
-                    </div>
-                    <input type="text" :name="'sections['+i+'][heading]'" x-model="s.heading" placeholder="Section heading"
-                           class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                    <label class="block text-[10px] uppercase tracking-wider text-white/40">Body <span class="normal-case tracking-normal text-white/40">(Markdown or basic HTML)</span></label>
-                    <textarea :name="'sections['+i+'][body]'" x-model="s.body" rows="6" placeholder="Body — line breaks are preserved."
-                              class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white font-mono"></textarea>
-                    <p class="text-[11px] text-white/40 leading-relaxed">
-                        Formatting: <code class="text-white/60">**bold**</code>,
-                        <code class="text-white/60">*italic*</code>,
-                        <code class="text-white/60">[text](https://url)</code>,
-                        lines starting with <code class="text-white/60">-</code> become bullet lists,
-                        <code class="text-white/60">1.</code> become numbered lists.
-                        Safe HTML tags (<code class="text-white/60">a, strong, em, ul, ol, li, p, br, h3, h4, blockquote, code</code>) are allowed; anything else (including scripts, inline event handlers, and unsafe link protocols) is filtered out.
-                    </p>
+        @if($isServices)
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <label class="text-xs font-semibold uppercase tracking-wider text-white/60">Use-case blocks</label>
+                    <button type="button" @click="sections.push({heading:'',tagline:'',body:'',icon:'fa-circle-dot',tint:'',bullets:'',cta_label:'Get started',cta_url:'/register'})" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 rounded-lg text-white">
+                        <i class="fas fa-plus mr-1"></i> Add use case
+                    </button>
                 </div>
-            </template>
-            <div x-show="sections.length===0" class="text-xs text-white/40 text-center py-4">No sections yet — click "Add section".</div>
-        </div>
+                <template x-for="(s, i) in sections" :key="i">
+                    <div class="bg-white/5 border border-white/10 rounded-xl p-4 mb-3 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] uppercase tracking-wider text-white/40">Use case <span x-text="i+1"></span></span>
+                            <button type="button" @click="sections.splice(i,1)" class="text-xs text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button>
+                        </div>
+                        <div class="grid sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Title</label>
+                                <input type="text" :name="'sections['+i+'][heading]'" x-model="s.heading" placeholder="Marketing channel"
+                                       class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Tagline</label>
+                                <input type="text" :name="'sections['+i+'][tagline]'" x-model="s.tagline" placeholder="Run campaigns from a single, trackable hub."
+                                       class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Description</label>
+                            <textarea :name="'sections['+i+'][body]'" x-model="s.body" rows="3" placeholder="Short paragraph that pitches this use case."
+                                      class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Bullets <span class="normal-case tracking-normal text-white/40">(one per line)</span></label>
+                            <textarea :name="'sections['+i+'][bullets]'" x-model="s.bullets" rows="4" placeholder="Branded link-in-bio with UTM-friendly short links&#10;Per-link click analytics and traffic sources"
+                                      class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white font-mono"></textarea>
+                        </div>
+                        <div class="grid sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Icon (FontAwesome class)</label>
+                                <input type="text" :name="'sections['+i+'][icon]'" x-model="s.icon" placeholder="fa-bullhorn"
+                                       class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white font-mono">
+                                <p class="mt-1 text-[11px] text-white/40">e.g. <code class="text-white/60">fa-bullhorn</code>, <code class="text-white/60">fa-store</code>. See FontAwesome solid icons.</p>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Tint (Tailwind gradient classes)</label>
+                                <input type="text" :name="'sections['+i+'][tint]'" x-model="s.tint" placeholder="from-violet-500/30 to-fuchsia-500/10"
+                                       class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white font-mono">
+                                <p class="mt-1 text-[11px] text-white/40">Leave empty to use a built-in default.</p>
+                            </div>
+                        </div>
+                        <div class="grid sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">CTA label</label>
+                                <input type="text" :name="'sections['+i+'][cta_label]'" x-model="s.cta_label" placeholder="Get started"
+                                       class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">CTA URL</label>
+                                <input type="text" :name="'sections['+i+'][cta_url]'" x-model="s.cta_url" placeholder="/register"
+                                       class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                            </div>
+                        </div>
+                    </div>
+                </template>
+                <div x-show="sections.length===0" class="text-xs text-white/40 text-center py-4">No use cases yet — click "Add use case".</div>
+            </div>
+        @else
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <label class="text-xs font-semibold uppercase tracking-wider text-white/60">Content sections</label>
+                    <button type="button" @click="sections.push({heading:'',body:''})" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 rounded-lg text-white">
+                        <i class="fas fa-plus mr-1"></i> Add section
+                    </button>
+                </div>
+                <template x-for="(s, i) in sections" :key="i">
+                    <div class="bg-white/5 border border-white/10 rounded-xl p-4 mb-3 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] uppercase tracking-wider text-white/40">Section <span x-text="i+1"></span></span>
+                            <button type="button" @click="sections.splice(i,1)" class="text-xs text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button>
+                        </div>
+                        <input type="text" :name="'sections['+i+'][heading]'" x-model="s.heading" placeholder="Section heading"
+                               class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                        <label class="block text-[10px] uppercase tracking-wider text-white/40">Body <span class="normal-case tracking-normal text-white/40">(Markdown or basic HTML)</span></label>
+                        <textarea :name="'sections['+i+'][body]'" x-model="s.body" rows="6" placeholder="Body — line breaks are preserved."
+                                  class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white font-mono"></textarea>
+                        <p class="text-[11px] text-white/40 leading-relaxed">
+                            Formatting: <code class="text-white/60">**bold**</code>,
+                            <code class="text-white/60">*italic*</code>,
+                            <code class="text-white/60">[text](https://url)</code>,
+                            lines starting with <code class="text-white/60">-</code> become bullet lists,
+                            <code class="text-white/60">1.</code> become numbered lists.
+                            Safe HTML tags (<code class="text-white/60">a, strong, em, ul, ol, li, p, br, h3, h4, blockquote, code</code>) are allowed; anything else (including scripts, inline event handlers, and unsafe link protocols) is filtered out.
+                        </p>
+                    </div>
+                </template>
+                <div x-show="sections.length===0" class="text-xs text-white/40 text-center py-4">No sections yet — click "Add section".</div>
+            </div>
+        @endif
 
         @php
             $errorSlugs = ['error-403', 'error-404', 'error-500', 'error-503', 'error-419', 'error-429'];
