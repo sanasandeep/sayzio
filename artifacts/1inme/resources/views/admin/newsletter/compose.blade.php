@@ -96,7 +96,8 @@
             $sort     = $sort     ?? 'recent';
             $dir      = $dir      ?? 'desc';
             $highOnly = $highOnly ?? false;
-            $highRateThreshold = $highRateThreshold ?? 1.0;
+            $unsubWarningPct = $unsubWarningPct ?? 1.0;
+            $highRateThreshold = $highRateThreshold ?? $unsubWarningPct;
 
             // Toggle direction when re-clicking the active sort column; otherwise default to desc.
             $rateNextDir = ($sort === 'unsub_rate' && $dir === 'desc') ? 'asc' : 'desc';
@@ -122,6 +123,36 @@
             // regardless of any leftover dir param in the URL — keeps the indicator honest.
             $recentArrow = $recentActive ? 'fa-arrow-down' : 'fa-sort';
         @endphp
+
+        <div class="flex items-start justify-between gap-4 flex-wrap mb-3">
+            <div>
+                <h3 class="text-sm font-semibold text-white">Newsletter settings</h3>
+                <p class="text-xs text-white/50 mt-1">
+                    Past issues with an unsubscribe rate at or above this threshold are flagged as unusually high.
+                </p>
+            </div>
+            <form method="POST" action="{{ route('admin.newsletter.settings.update') }}"
+                  class="flex items-end gap-2">
+                @csrf
+                <div>
+                    <label for="nl-unsub-threshold" class="block text-[11px] uppercase tracking-wider text-white/40 mb-1">
+                        Unsubscribe-rate warning threshold (%)
+                    </label>
+                    <input type="number" step="0.01" min="0" max="100"
+                           id="nl-unsub-threshold" name="unsub_warning_pct"
+                           value="{{ old('unsub_warning_pct', number_format($unsubWarningPct, 2, '.', '')) }}"
+                           placeholder="1.00"
+                           class="w-32 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                    @error('unsub_warning_pct')
+                        <p class="mt-1 text-xs text-red-300">{{ $message }}</p>
+                    @enderror
+                </div>
+                <button type="submit"
+                        class="px-3 py-2 bg-white/5 border border-white/10 hover:bg-white/10 rounded-lg text-xs text-white">
+                    Save
+                </button>
+            </form>
+        </div>
 
         <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
             <h3 class="text-sm font-semibold text-white">Past issues</h3>
@@ -199,7 +230,7 @@
                                     $unsubs = (int) ($issue->unsubscribed_count ?? 0);
                                     $delivered = (int) ($issue->sent_count ?? 0);
                                     $rate = $delivered > 0 ? ($unsubs / $delivered) * 100 : null;
-                                    $isHigh = $rate !== null && $rate >= $highRateThreshold;
+                                    $isHigh = $rate !== null && $rate >= $unsubWarningPct;
                                 @endphp
                                 @if($unsubs > 0)
                                     <a href="{{ route('admin.newsletter.issues.unsubscribes', $issue) }}"
@@ -210,7 +241,7 @@
                                     @if($rate !== null)
                                         @if($isHigh)
                                             <span class="ml-1 px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-200 border border-red-400/40"
-                                                  title="Unsubscribe rate is unusually high (≥ 1% of delivered)">
+                                                  title="Unsubscribe rate is unusually high (≥ {{ number_format($unsubWarningPct, 2) }}% of delivered)">
                                                 {{ number_format($rate, 2) }}%
                                                 <i class="fas fa-triangle-exclamation ml-0.5"></i>
                                             </span>

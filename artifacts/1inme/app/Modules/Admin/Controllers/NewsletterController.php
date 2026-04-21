@@ -4,6 +4,7 @@ namespace App\Modules\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\SendNewsletterIssueJob;
+use App\Modules\Admin\Models\AppSetting;
 use App\Modules\Common\Models\NewsletterIssue;
 use App\Modules\Common\Models\NewsletterIssueUnsubscribe;
 use App\Modules\Common\Models\NewsletterSubscriber;
@@ -114,8 +115,11 @@ class NewsletterController extends Controller
         $activeCount = NewsletterSubscriber::whereNull('unsubscribed_at')->count();
 
         // Sorting + filtering for the past-issues table.
-        // The "warning" threshold here must match the one used in the view (>= 1% of delivered).
-        $highRateThreshold = 1.0;
+        // The "warning" threshold is admin-configurable; both the SQL filter
+        // here and the view's row-level highlight read the same value so they
+        // never disagree.
+        $unsubWarningPct = self::unsubWarningPct();
+        $highRateThreshold = $unsubWarningPct;
 
         $sort = $request->query('sort', 'recent');
         $dir  = strtolower((string) $request->query('dir', 'desc')) === 'asc' ? 'asc' : 'desc';
@@ -147,8 +151,49 @@ class NewsletterController extends Controller
         $issues = $query->paginate(20)->withQueryString();
 
         return view('admin.newsletter.compose', compact(
-            'activeCount', 'issues', 'sort', 'dir', 'highOnly', 'highRateThreshold'
+            'activeCount', 'issues', 'sort', 'dir', 'highOnly', 'highRateThreshold', 'unsubWarningPct'
         ));
+    }
+
+    /**
+     * Persist the admin-configurable unsubscribe-rate warning threshold (in
+     * percent of delivered) used to flag past issues as abnormally high.
+     * Stored as a float; clamped to a sensible 0–100 range. Empty input
+     * resets to the default (1.0%).
+     */
+    public function updateSettings(Request $request)
+    {
+        $validated = $request->validate([
+            'unsub_warning_pct' => 'nullable|numeric|min:0|max:100',
+        ]);
+
+        $raw = $validated['unsub_warning_pct'] ?? null;
+        if ($raw === null || $raw === '') {
+            AppSetting::put('newsletter_unsub_warning_pct', null);
+            $msg = 'Unsubscribe-rate warning threshold reset to the default (1.00%).';
+        } else {
+            $pct = round((float) $raw, 2);
+            AppSetting::put('newsletter_unsub_warning_pct', $pct);
+            $msg = 'Unsubscribe-rate warning threshold set to ' . number_format($pct, 2) . '%.';
+        }
+
+        return redirect()->route('admin.newsletter.compose')->with('success', $msg);
+    }
+
+    /**
+     * The current warning threshold (in percent of delivered). Defaults to
+     * 1.0% when nothing has been configured.
+     */
+    public static function unsubWarningPct(): float
+    {
+        $v = AppSetting::get('newsletter_unsub_warning_pct', null);
+        if ($v === null || $v === '') {
+            return 1.0;
+        }
+        $f = (float) $v;
+        if ($f < 0) $f = 0.0;
+        if ($f > 100) $f = 100.0;
+        return $f;
     }
 
     public function send(Request $request)
