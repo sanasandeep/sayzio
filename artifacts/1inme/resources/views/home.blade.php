@@ -2796,6 +2796,159 @@
     </div>
 </section>
 
+{{-- ============================ WORKSPACE & TEAM ============================ --}}
+<section id="workspace-team" class="py-24 lg:py-32 relative overflow-hidden">
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-14 max-w-3xl mx-auto">
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c1)">Workspace &amp; Team</div>
+            <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
+                Run 1INME with <span class="grad-text">your whole team.</span>
+            </h2>
+            <p class="reveal rd-2 text-lg text-gray-400">
+                Multiple workspaces, real teammates with real roles, fine-grained permissions and per-workspace billing — built for agencies, founders and busy creators.
+            </p>
+        </div>
+
+        <div class="grid lg:grid-cols-2 gap-10 items-center">
+            <div class="reveal rd-2">
+                <div class="grid sm:grid-cols-2 gap-4">
+                    @foreach([
+                        ['fa-layer-group','#1bd4d9','Multiple workspaces','One per brand, client or side project — fully isolated.'],
+                        ['fa-user-plus','#7c3aed','Invite teammates','Add members by email. They get their own login.'],
+                        ['fa-user-shield','#e94e8c','Roles &amp; permissions','Owner, Admin, Editor, Viewer — locked down where it counts.'],
+                        ['fa-credit-card','#ff8a3c','Billing per workspace','Separate plans &amp; invoices for each workspace.'],
+                    ] as $i => $f)
+                        <div class="reveal rd-{{ $i+1 }} glass rounded-2xl p-5 lift">
+                            <div class="w-11 h-11 rounded-xl flex items-center justify-center mb-3" style="background: linear-gradient(135deg, {{ $f[1] }}, var(--c2)); box-shadow: 0 12px 30px -12px {{ $f[1] }};">
+                                <i class="fas {{ $f[0] }} text-white"></i>
+                            </div>
+                            <h3 class="text-base font-bold mb-1">{!! $f[2] !!}</h3>
+                            <p class="text-xs text-gray-400 leading-relaxed">{!! $f[3] !!}</p>
+                        </div>
+                    @endforeach
+                </div>
+                <div class="reveal rd-5 mt-8">
+                    <a href="{{ route('site.workspace-team') }}" class="btn-bounce btn-glow inline-flex items-center justify-center gap-2 px-7 py-3.5 grad-bar text-white rounded-full text-sm font-bold">
+                        Explore Workspace &amp; Team <i class="fas fa-arrow-right text-xs"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div class="reveal rd-3">
+                <div class="glass rounded-3xl p-6 sm:p-8 tilt relative overflow-hidden">
+                    <div class="absolute -top-16 -right-16 w-56 h-56 rounded-full opacity-30" style="background:radial-gradient(circle,var(--c2),transparent 70%);"></div>
+                    <div class="relative">
+                        <div class="flex items-center justify-between mb-5">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl grad-bar flex items-center justify-center text-white font-bold">A</div>
+                                <div>
+                                    <div class="text-sm font-bold">Acme Studio</div>
+                                    <div class="text-[11px] text-gray-400">Pro workspace · 6 members</div>
+                                </div>
+                            </div>
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full" style="background:rgba(27,212,217,.15); color:var(--c1);">Active</span>
+                        </div>
+                        <div class="space-y-2.5">
+                            @foreach([
+                                ['JD','Jane Doe','jane@acme.co','Owner','#7c3aed'],
+                                ['MP','Marco Perez','marco@acme.co','Admin','#1bd4d9'],
+                                ['AK','Aisha Khan','aisha@acme.co','Editor','#e94e8c'],
+                                ['DS','Devon Smith','devon@acme.co','Editor','#ff8a3c'],
+                                ['PN','Priya Nair','priya@acme.co','Viewer','#ffc845'],
+                            ] as $m)
+                                <div class="flex items-center justify-between bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5">
+                                    <div class="flex items-center gap-3 min-w-0">
+                                        <div class="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0" style="background:linear-gradient(135deg,{{ $m[4] }},var(--c2));">{{ $m[0] }}</div>
+                                        <div class="min-w-0">
+                                            <div class="text-xs font-bold truncate">{{ $m[1] }}</div>
+                                            <div class="text-[10px] text-gray-500 truncate">{{ $m[2] }}</div>
+                                        </div>
+                                    </div>
+                                    <span class="text-[10px] font-bold uppercase tracking-wider text-gray-300 ml-3 flex-shrink-0">{{ $m[3] }}</span>
+                                </div>
+                            @endforeach
+                        </div>
+                        <div class="mt-5 flex items-center justify-between text-xs text-gray-400">
+                            <span><i class="fas fa-arrow-right-arrow-left mr-1.5"></i> Switch workspace</span>
+                            <span><i class="fas fa-receipt mr-1.5"></i> Workspace billing</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{{-- ============================ BUZZ ============================ --}}
+<section id="buzz" class="py-24 lg:py-32 relative overflow-hidden">
+    <div class="absolute inset-0 -z-10" style="background:radial-gradient(60% 50% at 80% 30%, rgba(233,78,140,.15), transparent 70%);"></div>
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-14 max-w-3xl mx-auto">
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c3)">Buzz</div>
+            <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
+                Show visitors <span class="grad-text">real momentum.</span>
+            </h2>
+            <p class="reveal rd-2 text-lg text-gray-400">
+                Buzz is the social-proof widget already wired into every 1INME biolink. Live signups, visits and purchases pop up right on your page so visitors see the room is busy — and act.
+            </p>
+        </div>
+
+        <div class="grid lg:grid-cols-2 gap-10 items-center">
+            <div class="reveal rd-3 order-2 lg:order-1">
+                <div class="relative glass rounded-3xl p-6 sm:p-8 tilt overflow-hidden" style="min-height: 360px;">
+                    <div class="absolute -bottom-20 -left-20 w-64 h-64 rounded-full opacity-30" style="background:radial-gradient(circle,var(--c3),transparent 70%);"></div>
+                    <div class="relative">
+                        <div class="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-4">Live on your biolink</div>
+                        <div class="space-y-3">
+                            @foreach([
+                                ['fa-user-plus','#1bd4d9','Sara from Berlin','just followed you','12s ago'],
+                                ['fa-cart-shopping','#e94e8c','Anonymous visitor','bought "Lightroom Pack"','42s ago'],
+                                ['fa-eye','#7c3aed','Someone in Lagos','is viewing your page','1m ago'],
+                                ['fa-envelope-open-text','#ff8a3c','Marco from Madrid','submitted your contact form','3m ago'],
+                            ] as $i => $b)
+                                <div class="flex items-center gap-3 bg-white/[0.06] border border-white/10 rounded-2xl px-4 py-3 lift" style="backdrop-filter: blur(14px);">
+                                    <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background:linear-gradient(135deg,{{ $b[1] }},var(--c2)); box-shadow: 0 10px 24px -10px {{ $b[1] }};">
+                                        <i class="fas {{ $b[0] }} text-white text-sm"></i>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="text-sm"><span class="font-bold">{{ $b[2] }}</span> <span class="text-gray-300">{{ $b[3] }}</span></div>
+                                        <div class="text-[11px] text-gray-500 mt-0.5">{{ $b[4] }}</div>
+                                    </div>
+                                    <span class="pulse-dot w-2 h-2 rounded-full flex-shrink-0" style="background:{{ $b[1] }};"></span>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="reveal rd-2 order-1 lg:order-2">
+                <div class="grid sm:grid-cols-2 gap-4">
+                    @foreach([
+                        ['fa-bolt','#ffc845','Real-time activity','Live signups, visits, purchases &amp; form fills.'],
+                        ['fa-toggle-on','#1bd4d9','Zero setup','Already integrated with your biolink — flip it on.'],
+                        ['fa-sliders','#e94e8c','Pick what shows','Choose events &amp; priorities; hide the rest.'],
+                        ['fa-user-secret','#7c3aed','Privacy-first','Names masked, locations coarse, dismissible.'],
+                    ] as $i => $f)
+                        <div class="reveal rd-{{ $i+1 }} glass rounded-2xl p-5 lift">
+                            <div class="w-11 h-11 rounded-xl flex items-center justify-center mb-3" style="background: linear-gradient(135deg, {{ $f[1] }}, var(--c3)); box-shadow: 0 12px 30px -12px {{ $f[1] }};">
+                                <i class="fas {{ $f[0] }} text-white"></i>
+                            </div>
+                            <h3 class="text-base font-bold mb-1">{!! $f[2] !!}</h3>
+                            <p class="text-xs text-gray-400 leading-relaxed">{!! $f[3] !!}</p>
+                        </div>
+                    @endforeach
+                </div>
+                <div class="reveal rd-5 mt-8">
+                    <a href="{{ route('site.buzz') }}" class="btn-bounce btn-glow inline-flex items-center justify-center gap-2 px-7 py-3.5 grad-bar text-white rounded-full text-sm font-bold">
+                        See how Buzz works <i class="fas fa-arrow-right text-xs"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
 {{-- ============================ TESTIMONIAL MARQUEE ============================ --}}
 <section class="py-20 lg:py-24 relative overflow-hidden">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

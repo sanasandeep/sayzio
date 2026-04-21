@@ -10,6 +10,8 @@
                 <a href="{{ route('home') }}" class="text-sm text-gray-300 hover:text-violet-400">Home</a>
                 <a href="{{ route('site.features') }}" class="text-sm text-gray-300 hover:text-violet-400">Features</a>
                 <a href="{{ route('site.how-it-works') }}" class="text-sm text-gray-300 hover:text-violet-400">How it works</a>
+                <a href="{{ route('site.workspace-team') }}" class="text-sm text-gray-300 hover:text-violet-400">Teams</a>
+                <a href="{{ route('site.buzz') }}" class="text-sm text-gray-300 hover:text-violet-400">Buzz</a>
                 <a href="{{ route('site.discovery') }}" class="text-sm text-gray-300 hover:text-violet-400">Discover</a>
                 <a href="{{ route('site.creators-feed') }}" class="text-sm text-gray-300 hover:text-violet-400">Feed</a>
                 <a href="{{ route('site.api-docs') }}" class="text-sm text-gray-300 hover:text-violet-400">API</a>
@@ -37,6 +39,8 @@
             <a href="{{ route('home') }}" class="block px-3 py-2 text-sm text-gray-300">Home</a>
             <a href="{{ route('site.features') }}" class="block px-3 py-2 text-sm text-gray-300">Features</a>
             <a href="{{ route('site.how-it-works') }}" class="block px-3 py-2 text-sm text-gray-300">How it works</a>
+            <a href="{{ route('site.workspace-team') }}" class="block px-3 py-2 text-sm text-gray-300">Workspace &amp; Team</a>
+            <a href="{{ route('site.buzz') }}" class="block px-3 py-2 text-sm text-gray-300">Buzz</a>
             <a href="{{ route('site.discovery') }}" class="block px-3 py-2 text-sm text-gray-300">Discover</a>
             <a href="{{ route('site.creators-feed') }}" class="block px-3 py-2 text-sm text-gray-300">Creators feed</a>
             <a href="{{ route('site.api-docs') }}" class="block px-3 py-2 text-sm text-gray-300">API</a>
