@@ -132,18 +132,24 @@ class VaultCredentialController extends Controller
         return redirect()->route('user.vault.credentials.index')->with('status', 'Credential deleted.');
     }
 
-    /** Reveal the encrypted password — writes an audit row on every call. */
+    /** Reveal all encrypted fields (password, notes, custom_fields) — writes a single audit row. */
     public function reveal(Request $request, VaultCredential $credential)
     {
         $this->ensureVisible($request, $credential);
 
         $password = $credential->getEncrypted('password');
+        $notes = $credential->getEncrypted('notes');
+        $custom = $credential->getEncrypted('custom_fields', true) ?? [];
         VaultAudit::record('reveal', 'credential', $credential->id, $credential->label);
 
-        if ($password === null) {
+        if ($password === null && $notes === null && empty($custom)) {
             return response()->json(['error' => 'could_not_decrypt'], 422);
         }
-        return response()->json(['password' => $password]);
+        return response()->json([
+            'password'      => $password,
+            'notes'         => $notes,
+            'custom_fields' => $custom,
+        ]);
     }
 
     protected function validateCredential(Request $request): array

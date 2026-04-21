@@ -61,19 +61,27 @@
 
     @if(!empty($notes))
         <div class="rounded-lg p-3 bg-white/5 mb-6">
-            <h3 class="text-xs uppercase text-gray-400 mb-2">Notes</h3>
-            <pre class="whitespace-pre-wrap text-sm">{{ $notes }}</pre>
+            <h3 class="text-xs uppercase text-gray-400 mb-2 flex items-center justify-between">
+                <span>Notes</span>
+                <span x-show="!shown" class="text-[11px] text-gray-500 normal-case">(hidden — reveal to view)</span>
+            </h3>
+            <pre x-show="shown" class="whitespace-pre-wrap text-sm" x-text="revealedNotes"></pre>
+            <p x-show="!shown" class="text-xs text-gray-500">Click <em>Reveal</em> above to display notes.</p>
         </div>
     @endif
 
     @if(!empty($cfs))
         <div class="rounded-lg p-3 bg-white/5 mb-6">
-            <h3 class="text-xs uppercase text-gray-400 mb-2">Custom fields</h3>
-            <dl class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                @foreach($cfs as $row)
-                    <div class="flex"><dt class="w-1/3 text-xs text-gray-400">{{ $row['key'] ?? '' }}</dt><dd class="text-sm font-mono">{{ $row['value'] ?? '' }}</dd></div>
-                @endforeach
+            <h3 class="text-xs uppercase text-gray-400 mb-2 flex items-center justify-between">
+                <span>Custom fields</span>
+                <span x-show="!shown" class="text-[11px] text-gray-500 normal-case">(hidden — reveal to view)</span>
+            </h3>
+            <dl x-show="shown" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <template x-for="row in revealedFields" :key="row.key">
+                    <div class="flex"><dt class="w-1/3 text-xs text-gray-400" x-text="row.key"></dt><dd class="text-sm font-mono" x-text="row.value"></dd></div>
+                </template>
             </dl>
+            <p x-show="!shown" class="text-xs text-gray-500">Click <em>Reveal</em> above to display custom fields.</p>
         </div>
     @endif
 
@@ -87,11 +95,11 @@
 <script>
 function vaultCredentialView(id) {
     return {
-        shown: false, value: '', error: '', clearTimer: null,
+        shown: false, value: '', revealedNotes: '', revealedFields: [], error: '', clearTimer: null,
         async reveal() {
-            if (this.shown) { this.shown = false; this.value = ''; return; }
+            if (this.shown) { this.shown = false; this.value = ''; this.revealedNotes = ''; this.revealedFields = []; return; }
             // Explicit confirm so a misclick doesn't reveal a secret + write an audit row.
-            if (!window.confirm('Reveal this password? This action is logged in the workspace audit trail.')) return;
+            if (!window.confirm('Reveal the password, notes and custom fields? This action is logged in the workspace audit trail.')) return;
             this.error = '';
             const r = await fetch(`/user/vault/credentials/${id}/reveal`, {
                 method: 'POST',
@@ -99,11 +107,13 @@ function vaultCredentialView(id) {
             });
             if (!r.ok) { this.error = 'Could not decrypt.'; return; }
             const j = await r.json();
-            this.value = j.password;
+            this.value = j.password ?? '';
+            this.revealedNotes = j.notes ?? '';
+            this.revealedFields = (j.custom_fields ?? []).map(f => ({ key: f.key ?? '', value: f.value ?? '' }));
             this.shown = true;
-            // Auto-clear after 30s so a revealed secret doesn't linger on screen.
+            // Auto-clear after 30s so revealed secrets don't linger on screen.
             clearTimeout(this.clearTimer);
-            this.clearTimer = setTimeout(() => { this.shown = false; this.value = ''; }, 30000);
+            this.clearTimer = setTimeout(() => { this.shown = false; this.value = ''; this.revealedNotes = ''; this.revealedFields = []; }, 30000);
         },
         async copy() {
             await vaultCopyClear(this.value);
