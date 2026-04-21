@@ -72,19 +72,25 @@
                         <span x-show="!testing"><i class="fas fa-stethoscope mr-1"></i> Test connection</span>
                         <span x-show="testing"><i class="fas fa-spinner fa-spin"></i> Testing…</span>
                     </button>
-                    <button type="submit" formaction="{{ route('user.cloud-files.settings.destroy', $provider) }}"
-                            formmethod="POST"
-                            onclick="return confirm('Remove {{ $label }} OAuth app from this workspace? All connections will stop working.')"
-                            class="px-3 py-2 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-200 text-sm">
-                        @method('DELETE')
-                        <i class="fas fa-trash mr-1"></i> Remove
-                    </button>
                 @endif
                 <button type="submit" class="px-4 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-600 text-white text-sm font-semibold">
                     <i class="fas fa-save mr-1"></i> Save
                 </button>
             </div>
         </form>
+
+        @if($row)
+            {{-- Separate form so the DELETE method-spoof input lives at form
+                 level, not nested inside a <button>. --}}
+            <form method="POST" action="{{ route('user.cloud-files.settings.destroy', $provider) }}"
+                  onsubmit="return confirm('Remove {{ $label }} OAuth app from this workspace? All connections will stop working.')"
+                  class="mt-2 text-right">
+                @csrf @method('DELETE')
+                <button type="submit" class="px-3 py-2 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-200 text-sm">
+                    <i class="fas fa-trash mr-1"></i> Remove
+                </button>
+            </form>
+        @endif
     @endforeach
 </div>
 @endsection

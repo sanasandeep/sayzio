@@ -629,7 +629,7 @@ Route::prefix('user')->name('user.')->group(function () {
         // OAuth flows are user-scoped — connect lives under files.view so any
         // member with library access can attach their own cloud account.
         Route::get('cloud-oauth/{provider}/start',    [\App\Modules\User\Controllers\CloudOAuthController::class, 'start'])->middleware('workspace.can:files.view')->name('cloud-oauth.start');
-        Route::get('cloud-oauth/{provider}/callback', [\App\Modules\User\Controllers\CloudOAuthController::class, 'callback'])->name('cloud-oauth.callback');
+        Route::get('cloud-oauth/{provider}/callback', [\App\Modules\User\Controllers\CloudOAuthController::class, 'callback'])->middleware('workspace.can:files.view')->name('cloud-oauth.callback');
 
         Route::prefix('cloud-files')->name('cloud-files.')->middleware('workspace.can:files.view')->group(function () {
             Route::get('/',                                [\App\Modules\User\Controllers\CloudFileController::class, 'index'])->name('index');
