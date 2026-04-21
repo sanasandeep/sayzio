@@ -543,7 +543,12 @@
     if (!empty($deviceFilter)) {
         $activeFilters[] = ['key' => 'device', 'label' => 'Device', 'value' => ucfirst($deviceFilter), 'icon' => 'fa-display', 'clearUrl' => $buildUrl(['device' => null])];
     }
-    $clearAllUrl = $buildUrl(['alias' => null, 'source' => null, 'country' => null, 'device' => null]);
+    if (!empty($languageFilter)) {
+        $lf = $languageLabel($languageFilter);
+        $langValue = ($lf['flag'] ? $lf['flag'] . ' ' : '') . $lf['name'];
+        $activeFilters[] = ['key' => 'language', 'label' => 'Language', 'value' => $langValue, 'icon' => 'fa-language', 'clearUrl' => $buildUrl(['language' => null]), 'title' => 'Remove Language filter (' . $languageFilter . ')'];
+    }
+    $clearAllUrl = $buildUrl(['alias' => null, 'source' => null, 'country' => null, 'device' => null, 'language' => null]);
 @endphp
 
 @if(!empty($activeFilters))
@@ -555,7 +560,7 @@
     @foreach($activeFilters as $f)
         <a href="{{ $f['clearUrl'] }}"
            class="pill pill-active-soft inline-flex items-center gap-1.5"
-           title="Remove {{ $f['label'] }} filter">
+           title="{{ $f['title'] ?? ('Remove ' . $f['label'] . ' filter') }}">
             <i class="fas {{ $f['icon'] }} text-[9px] opacity-70"></i>
             <span class="opacity-70">{{ $f['label'] }}:</span>
             <span class="font-bold">{{ $f['value'] }}</span>
