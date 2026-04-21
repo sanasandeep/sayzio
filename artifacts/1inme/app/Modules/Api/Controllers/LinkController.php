@@ -7,6 +7,8 @@ use App\Modules\Api\Resources\LinkResource;
 use App\Modules\User\Models\Link;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -113,6 +115,32 @@ class LinkController extends Controller
         }
 
         $link->fill($data)->save();
+        return $this->ok(['link' => LinkResource::toArray($link->fresh())]);
+    }
+
+    /**
+     * Reset all click counters & analytics rows for a link the caller
+     * owns. Used by the mobile "Reset" action under link settings.
+     */
+    public function reset(Request $request, int $id)
+    {
+        $link = Link::where('user_id', $request->user()->id)->find($id);
+        if (!$link) return $this->notFound('Link not found');
+
+        DB::transaction(function () use ($link) {
+            $link->forceFill([
+                'total_clicks'  => 0,
+                'unique_clicks' => 0,
+            ])->save();
+
+            if (Schema::hasTable('click_events')) {
+                DB::table('click_events')->where('link_id', $link->id)->delete();
+            }
+            if (Schema::hasTable('link_clicks')) {
+                DB::table('link_clicks')->where('link_id', $link->id)->delete();
+            }
+        });
+
         return $this->ok(['link' => LinkResource::toArray($link->fresh())]);
     }
 

@@ -1,10 +1,11 @@
-import { Redirect, Stack } from "expo-router";
-import { ActivityIndicator, View } from "react-native";
+import { Feather } from "@expo/vector-icons";
+import { Redirect, Tabs } from "expo-router";
+import { ActivityIndicator, Platform, View } from "react-native";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 
-export default function SignedInLayout() {
+export default function SignedInTabsLayout() {
   const colors = useColors();
   const { ready, user } = useAuth();
 
@@ -26,18 +27,70 @@ export default function SignedInLayout() {
   if (!user) return <Redirect href="/(auth)" />;
 
   return (
-    <Stack
+    <Tabs
       screenOptions={{
-        headerStyle: { backgroundColor: colors.background },
-        headerTitleStyle: {
-          color: colors.foreground,
-          fontFamily: "SpaceGrotesk_600SemiBold",
+        headerShown: false,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.mutedForeground,
+        tabBarStyle: {
+          backgroundColor: colors.card,
+          borderTopColor: colors.border,
+          borderTopWidth: 1,
+          paddingTop: 6,
+          paddingBottom: Platform.OS === "ios" ? 24 : 8,
+          height: Platform.OS === "ios" ? 84 : 64,
         },
-        headerTintColor: colors.primary,
-        contentStyle: { backgroundColor: colors.background },
+        tabBarLabelStyle: {
+          fontFamily: "SpaceGrotesk_600SemiBold",
+          fontSize: 11,
+        },
       }}
     >
-      <Stack.Screen name="index" options={{ headerShown: false }} />
-    </Stack>
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: "Home",
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="home" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="links"
+        options={{
+          title: "Links",
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="link" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="create"
+        options={{
+          title: "Create",
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="plus-circle" size={size + 6} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          title: "Inbox",
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="bell" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: "Profile",
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="user" size={size} color={color} />
+          ),
+        }}
+      />
+    </Tabs>
   );
 }

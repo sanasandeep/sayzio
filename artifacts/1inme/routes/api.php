@@ -12,6 +12,7 @@ use App\Modules\Api\Controllers\FormController;
 use App\Modules\Api\Controllers\InboxController;
 use App\Modules\Api\Controllers\LinkController;
 use App\Modules\Api\Controllers\NfcWriteController;
+use App\Modules\Api\Controllers\DashboardController;
 use App\Modules\Api\Controllers\NotificationController;
 use App\Modules\Api\Controllers\OnboardingController;
 use App\Modules\Api\Controllers\OtpController;
@@ -88,6 +89,7 @@ Route::prefix('v1')->group(function () {
         Route::patch('/links/{id}',  [LinkController::class, 'update'])->whereNumber('id');
         Route::delete('/links/{id}', [LinkController::class, 'destroy'])->whereNumber('id');
         Route::get   ('/links/{id}/analytics', [LinkController::class, 'analytics'])->whereNumber('id');
+        Route::post  ('/links/{id}/reset',     [LinkController::class, 'reset'])->whereNumber('id');
 
         // Biolink blocks (authoring)
         Route::get   ('/links/{id}/blocks',                 [BiolinkBlockController::class, 'index'])->whereNumber('id');
@@ -111,6 +113,9 @@ Route::prefix('v1')->group(function () {
         // Subscribers
         Route::get   ('/subscribers',        [SubscriberController::class, 'index']);
         Route::delete('/subscribers/{id}',   [SubscriberController::class, 'destroy'])->whereNumber('id');
+
+        // Dashboard summary (mobile home tab)
+        Route::get ('/dashboard',                      [DashboardController::class, 'index']);
 
         // Notifications
         Route::get ('/notifications',                  [NotificationController::class, 'index']);

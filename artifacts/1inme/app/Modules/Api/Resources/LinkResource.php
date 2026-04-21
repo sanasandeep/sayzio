@@ -25,6 +25,7 @@ class LinkResource
             'seo_description' => $l->seo_description,
             'seo_image'       => $l->seo_image,
             'short_url'       => url('/' . $l->alias),
+            'settings'        => $l->settings ?? new \stdClass(),
             'created_at'      => optional($l->created_at)->toIso8601String(),
             'updated_at'      => optional($l->updated_at)->toIso8601String(),
         ];

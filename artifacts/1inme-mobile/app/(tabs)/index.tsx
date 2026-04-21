@@ -1,9 +1,12 @@
 import { Feather } from "@expo/vector-icons";
+import { useQuery } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import {
+  ActivityIndicator,
   Platform,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,34 +15,22 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BrandWordmark } from "@/components/Brand";
-import { Button } from "@/components/Button";
+import { EmptyState } from "@/components/EmptyState";
+import { LinkRow } from "@/components/LinkRow";
+import { StatTile } from "@/components/StatTile";
 import { useAuth } from "@/contexts/AuthContext";
-import { useThemeControls } from "@/contexts/ThemeContext";
 import { useColors } from "@/hooks/useColors";
-import type { ThemePref } from "@/lib/secure";
+import { getDashboard } from "@/lib/api/dashboard";
 
-const INFO_PAGES: { href: "/info/about" | "/info/nfc" | "/info/privacy" | "/info/terms" | "/info/help"; label: string; icon: keyof typeof Feather.glyphMap }[] = [
-  { href: "/info/about", label: "About 1INME", icon: "info" },
-  { href: "/info/nfc", label: "How NFC works", icon: "wifi" },
-  { href: "/info/help", label: "Help & support", icon: "life-buoy" },
-  { href: "/info/privacy", label: "Privacy", icon: "shield" },
-  { href: "/info/terms", label: "Terms of service", icon: "file-text" },
-];
-
-const THEME_OPTIONS: { value: ThemePref; label: string; icon: keyof typeof Feather.glyphMap }[] = [
-  { value: "system", label: "System", icon: "smartphone" },
-  { value: "light", label: "Light", icon: "sun" },
-  { value: "dark", label: "Dark", icon: "moon" },
-];
-
-export default function HomeHub() {
+export default function Home() {
   const colors = useColors();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user, signOut } = useAuth();
-  const { pref, setPref } = useThemeControls();
+  const { user } = useAuth();
   const webTop = Platform.OS === "web" ? 67 : 0;
-  const webBottom = Platform.OS === "web" ? 34 : 0;
+
+  const q = useQuery({ queryKey: ["dashboard"], queryFn: getDashboard });
+  const refreshing = q.isFetching && !q.isLoading;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -52,206 +43,142 @@ export default function HomeHub() {
       <ScrollView
         contentContainerStyle={{
           paddingTop: insets.top + 16 + webTop,
-          paddingBottom: insets.bottom + 32 + webBottom,
-          paddingHorizontal: 24,
-          gap: 24,
+          paddingBottom: 32,
+          paddingHorizontal: 20,
+          gap: 20,
         }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => q.refetch()}
+            tintColor={colors.primary}
+          />
+        }
       >
         <View style={styles.headerRow}>
-          <BrandWordmark size={28} />
-        </View>
-
-        <View
-          style={[
-            styles.card,
-            {
-              backgroundColor: colors.card,
-              borderColor: colors.border,
-              borderRadius: colors.radius,
-            },
-          ]}
-        >
-          <Text style={[styles.hello, { color: colors.mutedForeground }]}>
-            Signed in as
-          </Text>
-          <Text style={[styles.name, { color: colors.foreground }]}>
-            {user?.display_name || user?.email || user?.mobile || "1INME member"}
-          </Text>
-          {user?.role ? (
-            <View
-              style={[
-                styles.badge,
-                { backgroundColor: colors.primary + "22" },
-              ]}
-            >
-              <Text style={[styles.badgeText, { color: colors.primary }]}>
-                {user.role}
-              </Text>
-            </View>
-          ) : null}
-          <Text style={[styles.cardBody, { color: colors.mutedForeground }]}>
-            Your dashboard, links, and inbox arrive in the next update. In the
-            meantime, manage everything on the web at 1inme.com.
-          </Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
-            Appearance
-          </Text>
-          <View
-            style={[
-              styles.segment,
-              {
-                backgroundColor: colors.card,
-                borderColor: colors.border,
-                borderRadius: colors.radius,
-              },
-            ]}
+          <BrandWordmark size={26} />
+          <Pressable
+            onPress={() => router.push("/(tabs)/notifications")}
+            hitSlop={8}
           >
-            {THEME_OPTIONS.map((opt) => {
-              const active = pref === opt.value;
-              return (
-                <Pressable
-                  key={opt.value}
-                  onPress={() => setPref(opt.value)}
-                  style={[
-                    styles.segmentItem,
-                    {
-                      backgroundColor: active ? colors.background : "transparent",
-                      borderRadius: colors.radius - 4,
-                    },
-                  ]}
+            <Feather name="bell" size={22} color={colors.foreground} />
+          </Pressable>
+        </View>
+
+        <View>
+          <Text style={[styles.eyebrow, { color: colors.mutedForeground }]}>
+            Welcome back
+          </Text>
+          <Text style={[styles.h1, { color: colors.foreground }]}>
+            {user?.display_name || user?.email || user?.mobile || "Member"}
+          </Text>
+        </View>
+
+        {q.isLoading ? (
+          <View style={{ paddingVertical: 32 }}>
+            <ActivityIndicator color={colors.primary} />
+          </View>
+        ) : q.error ? (
+          <Text style={{ color: colors.destructive }}>
+            Couldn't load dashboard.
+          </Text>
+        ) : (
+          <>
+            <View style={styles.tileRow}>
+              <StatTile
+                label="Total clicks"
+                value={q.data?.totals.total_clicks ?? 0}
+                icon="bar-chart-2"
+                hint={`${q.data?.totals.unique_clicks ?? 0} unique`}
+              />
+              <StatTile
+                label="Active links"
+                value={q.data?.totals.active_links ?? 0}
+                icon="link"
+                hint={`of ${q.data?.totals.links ?? 0} total`}
+              />
+            </View>
+            <View style={styles.tileRow}>
+              <StatTile
+                label="NFC writes"
+                value={q.data?.totals.nfc_writes ?? 0}
+                icon="wifi"
+              />
+              <StatTile
+                label="Followers"
+                value={q.data?.totals.followers ?? 0}
+                icon="users"
+              />
+            </View>
+
+            {q.data?.top_link ? (
+              <View style={styles.section}>
+                <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+                  Top performer
+                </Text>
+                <LinkRow link={q.data.top_link} />
+              </View>
+            ) : null}
+
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text
+                  style={[styles.sectionLabel, { color: colors.mutedForeground }]}
                 >
-                  <Feather
-                    name={opt.icon}
-                    size={16}
-                    color={active ? colors.primary : colors.mutedForeground}
-                  />
-                  <Text
-                    style={[
-                      styles.segmentText,
-                      {
-                        color: active ? colors.primary : colors.mutedForeground,
-                      },
-                    ]}
-                  >
-                    {opt.label}
+                  Recent links
+                </Text>
+                <Pressable onPress={() => router.push("/(tabs)/links")}>
+                  <Text style={[styles.seeAll, { color: colors.primary }]}>
+                    See all
                   </Text>
                 </Pressable>
-              );
-            })}
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
-            Learn
-          </Text>
-          <View
-            style={[
-              styles.list,
-              {
-                backgroundColor: colors.card,
-                borderColor: colors.border,
-                borderRadius: colors.radius,
-              },
-            ]}
-          >
-            {INFO_PAGES.map((p, i) => (
-              <Pressable
-                key={p.href}
-                onPress={() => router.push(p.href)}
-                style={({ pressed }) => [
-                  styles.listItem,
-                  {
-                    borderTopWidth: i === 0 ? 0 : StyleSheet.hairlineWidth,
-                    borderTopColor: colors.border,
-                    opacity: pressed ? 0.7 : 1,
-                  },
-                ]}
-              >
-                <Feather name={p.icon} size={18} color={colors.primary} />
-                <Text style={[styles.listLabel, { color: colors.foreground }]}>
-                  {p.label}
-                </Text>
-                <Feather
-                  name="chevron-right"
-                  size={18}
-                  color={colors.mutedForeground}
+              </View>
+              {q.data?.recent_links.length ? (
+                <View style={{ gap: 10 }}>
+                  {q.data.recent_links.map((l) => (
+                    <LinkRow key={l.id} link={l} />
+                  ))}
+                </View>
+              ) : (
+                <EmptyState
+                  icon="link"
+                  title="No links yet"
+                  body="Tap Create to make your first short link or biolink."
                 />
-              </Pressable>
-            ))}
-          </View>
-        </View>
-
-        <Button label="Sign out" variant="outline" onPress={signOut} />
+              )}
+            </View>
+          </>
+        )}
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  headerRow: { flexDirection: "row", alignItems: "center" },
-  card: {
-    padding: 20,
-    borderWidth: 1,
-    gap: 6,
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
-  hello: {
+  eyebrow: {
     fontFamily: "SpaceGrotesk_500Medium",
     fontSize: 12,
-    letterSpacing: 0.6,
-    textTransform: "uppercase",
-  },
-  name: { fontFamily: "SpaceGrotesk_700Bold", fontSize: 24 },
-  badge: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-    marginTop: 4,
-  },
-  badgeText: {
-    fontFamily: "SpaceGrotesk_600SemiBold",
-    fontSize: 11,
     letterSpacing: 0.4,
     textTransform: "uppercase",
   },
-  cardBody: {
-    fontFamily: "SpaceGrotesk_400Regular",
-    fontSize: 14,
-    lineHeight: 21,
-    marginTop: 8,
+  h1: { fontFamily: "SpaceGrotesk_700Bold", fontSize: 28, marginTop: 2 },
+  tileRow: { flexDirection: "row", gap: 12 },
+  section: { gap: 10 },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
-  section: { gap: 8 },
   sectionLabel: {
     fontFamily: "SpaceGrotesk_500Medium",
     fontSize: 12,
-    letterSpacing: 0.6,
+    letterSpacing: 0.4,
     textTransform: "uppercase",
   },
-  segment: {
-    flexDirection: "row",
-    padding: 4,
-    borderWidth: 1,
-  },
-  segmentItem: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingVertical: 10,
-  },
-  segmentText: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 13 },
-  list: { borderWidth: 1, overflow: "hidden" },
-  listItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-  },
-  listLabel: { flex: 1, fontFamily: "SpaceGrotesk_500Medium", fontSize: 16 },
+  seeAll: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 13 },
 });
