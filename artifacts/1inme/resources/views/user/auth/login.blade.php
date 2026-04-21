@@ -35,39 +35,11 @@
                     @include('common.partials.brand-logo', ['height' => 'h-14'])
                 </a>
                 <p class="text-xl font-semibold mb-2" style="color: var(--text-secondary);">The link management platform<br><span class="gradient-text">built for growth.</span></p>
-                <p class="text-sm leading-relaxed mb-12" style="color: var(--text-dimmed);">Shorten URLs, build Link in Bio pages, generate QR codes, and track every click with powerful analytics.</p>
+                <p class="text-sm leading-relaxed mb-10" style="color: var(--text-dimmed);">Shorten URLs, build Link in Bio pages, generate QR codes, and track every click with powerful analytics.</p>
 
-                <div class="space-y-6">
-                    <div class="flex items-start gap-4 group">
-                        <div class="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 glow-icon transition-all duration-500 group-hover:scale-110" style="background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.15);">
-                            <i class="fas fa-link text-violet-400 text-sm"></i>
-                        </div>
-                        <div>
-                            <p class="text-sm font-bold mb-0.5" style="color: var(--text-primary);">6 Link Types</p>
-                            <p class="text-xs" style="color: var(--text-dimmed);">Short Links, Link in Bio pages, File Share, Contact Cards, Events & more</p>
-                        </div>
-                    </div>
-                    <div class="flex items-start gap-4 group">
-                        <div class="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 glow-icon transition-all duration-500 group-hover:scale-110" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.15);">
-                            <i class="fas fa-chart-line text-emerald-400 text-sm"></i>
-                        </div>
-                        <div>
-                            <p class="text-sm font-bold mb-0.5" style="color: var(--text-primary);">Real-time Analytics</p>
-                            <p class="text-xs" style="color: var(--text-dimmed);">Track clicks, devices, locations & referrers in real time</p>
-                        </div>
-                    </div>
-                    <div class="flex items-start gap-4 group">
-                        <div class="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 glow-icon transition-all duration-500 group-hover:scale-110" style="background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.15);">
-                            <i class="fas fa-th-large text-amber-400 text-sm"></i>
-                        </div>
-                        <div>
-                            <p class="text-sm font-bold mb-0.5" style="color: var(--text-primary);">99+ Link in Bio Blocks</p>
-                            <p class="text-xs" style="color: var(--text-dimmed);">Build stunning Link in Bio pages with videos, forms, maps & more</p>
-                        </div>
-                    </div>
-                </div>
+                @include('common.partials.auth-slider', ['variant' => 'page'])
 
-                <div class="mt-14 flex items-center gap-3">
+                <div class="mt-12 flex items-center gap-3">
                     <div class="flex -space-x-2.5">
                         <div class="w-9 h-9 rounded-full bg-gradient-to-br from-violet-400 to-pink-400 border-2 flex items-center justify-center text-white text-[10px] font-bold shadow-md" style="border-color: var(--bg-body);">A</div>
                         <div class="w-9 h-9 rounded-full bg-gradient-to-br from-violet-400 to-cyan-400 border-2 flex items-center justify-center text-white text-[10px] font-bold shadow-md" style="border-color: var(--bg-body);">M</div>

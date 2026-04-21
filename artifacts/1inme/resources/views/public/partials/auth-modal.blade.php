@@ -14,39 +14,12 @@
 
         <div class="grid md:grid-cols-2">
             {{-- Left dark panel --}}
-            <div class="hidden md:block p-8 bg-gradient-to-br from-[#161b26] to-[#0f1320] text-white">
-                <div class="mb-8">@include('common.partials.brand-logo', ['height' => 'h-9'])</div>
+            <div class="hidden md:flex flex-col p-8 bg-gradient-to-br from-[#161b26] to-[#0f1320] text-white">
+                <div class="mb-6">@include('common.partials.brand-logo', ['height' => 'h-9'])</div>
                 <h3 class="text-xl font-bold mb-6 leading-tight">One link.<br>A whole audience.</h3>
-                <ul class="space-y-4 text-sm">
-                    <li class="flex items-start gap-3">
-                        <span class="w-8 h-8 rounded-lg bg-violet-500/20 flex items-center justify-center text-violet-300"><i class="fas fa-link text-xs"></i></span>
-                        <div>
-                            <div class="font-semibold">Drag-and-drop biolinks</div>
-                            <div class="text-xs text-gray-400">Stack blocks, theme, ship.</div>
-                        </div>
-                    </li>
-                    <li class="flex items-start gap-3">
-                        <span class="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center text-cyan-300"><i class="fas fa-chart-line text-xs"></i></span>
-                        <div>
-                            <div class="font-semibold">Live analytics</div>
-                            <div class="text-xs text-gray-400">See visitors as they arrive.</div>
-                        </div>
-                    </li>
-                    <li class="flex items-start gap-3">
-                        <span class="w-8 h-8 rounded-lg bg-pink-500/20 flex items-center justify-center text-pink-300"><i class="fas fa-bolt text-xs"></i></span>
-                        <div>
-                            <div class="font-semibold">Performance Coach</div>
-                            <div class="text-xs text-gray-400">One-click fixes for what's slowing you down.</div>
-                        </div>
-                    </li>
-                    <li class="flex items-start gap-3">
-                        <span class="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-300"><i class="fas fa-qrcode text-xs"></i></span>
-                        <div>
-                            <div class="font-semibold">Short links &amp; QR codes</div>
-                            <div class="text-xs text-gray-400">Branded, dynamic, repointable.</div>
-                        </div>
-                    </li>
-                </ul>
+                <div class="flex-1 flex items-center">
+                    @include('common.partials.auth-slider', ['variant' => 'modal'])
+                </div>
             </div>
 
             {{-- Right form panel --}}
