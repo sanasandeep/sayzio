@@ -482,6 +482,21 @@
                 @include('user.partials.workspace-switcher')
             @endauth
 
+            @php
+                use App\Modules\User\Services\WorkspacePermissions as WP;
+                // Resolve once: hide menu entries the active member's role can't reach.
+                // Owners and super-admins always pass these checks.
+                $__can = [
+                    'links_view'     => WP::userCan('links.view'),
+                    'links_create'   => WP::userCan('links.create'),
+                    'inbox_view'     => WP::userCan('inbox.view'),
+                    'posts_view'     => WP::userCan('posts.view'),
+                    'followers_view' => WP::userCan('followers.view'),
+                    'stats_view'     => WP::userCan('stats.view'),
+                    'settings_view'  => WP::userCan('settings.view'),
+                    'referrals_view' => WP::userCan('referrals.view'),
+                ];
+            @endphp
             <nav class="flex-1 py-4 overflow-y-auto overflow-x-hidden sidebar-nav-scroll" :class="sidebarMode === 'icons' ? 'px-2' : 'px-3'">
                 {{-- ========== OVERVIEW ========== --}}
                 <a href="{{ route('user.dashboard') }}"
@@ -503,9 +518,10 @@
                 </a>
 
                 {{-- ========== LINKS & PAGES ========== --}}
-                @canInWorkspace('links.view')
+                @if($__can['links_view'] || $__can['links_create'] || $__can['inbox_view'])
                 <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Links &amp; Pages</div>
 
+                @if($__can['links_view'])
                 <a href="{{ route('user.links.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.links.index') || request()->routeIs('user.links.show') ? 'active' : '' }}"
                    style="--nav-tint:#8b5cf6; --nav-tint-soft:rgba(139,92,246,0.12);">
@@ -513,7 +529,8 @@
                     <span class="nav-label">All Links</span>
                     <span class="sidebar-tooltip">All Links</span>
                 </a>
-                @canInWorkspace('links.create')
+                @endif
+                @if($__can['links_create'])
                 <a href="{{ route('user.links.create') }}"
                    class="sidebar-link {{ request()->routeIs('user.links.create') ? 'active' : '' }}"
                    style="--nav-tint:#10b981; --nav-tint-soft:rgba(16,185,129,0.12);">
@@ -521,7 +538,8 @@
                     <span class="nav-label">Create Link</span>
                     <span class="sidebar-tooltip">Create Link</span>
                 </a>
-                @endcanInWorkspace
+                @endif
+                @if($__can['links_view'])
                 <a href="{{ route('user.qr-codes.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.qr-codes.*') || request()->routeIs('user.qrcode*') ? 'active' : '' }}"
                    style="--nav-tint:#6366f1; --nav-tint-soft:rgba(99,102,241,0.12);">
@@ -529,6 +547,8 @@
                     <span class="nav-label">QR Codes</span>
                     <span class="sidebar-tooltip">QR Codes</span>
                 </a>
+                @endif
+                @if($__can['inbox_view'])
                 <a href="{{ route('user.forms.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.forms.*') ? 'active' : '' }}"
                    style="--nav-tint:#ec4899; --nav-tint-soft:rgba(236,72,153,0.12);">
@@ -536,6 +556,8 @@
                     <span class="nav-label">Forms</span>
                     <span class="sidebar-tooltip">Forms</span>
                 </a>
+                @endif
+                @if($__can['links_view'])
                 <a href="{{ route('user.splash-pages.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.splash-pages.*') ? 'active' : '' }}"
                    style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">
@@ -543,12 +565,14 @@
                     <span class="nav-label">Intros</span>
                     <span class="sidebar-tooltip">Intros</span>
                 </a>
-                @endcanInWorkspace
+                @endif
+                @endif
 
                 {{-- ========== AUDIENCE ========== --}}
+                @if($__can['inbox_view'] || $__can['followers_view'] || $__can['posts_view'])
                 <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Audience</div>
 
-                @canInWorkspace('inbox.view')
+                @if($__can['inbox_view'])
                 <a href="{{ route('user.inbox.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.inbox.*') ? 'active' : '' }}"
                    style="--nav-tint:#0ea5e9; --nav-tint-soft:rgba(14,165,233,0.12);">
@@ -559,8 +583,6 @@
                     </span>
                     <span class="sidebar-tooltip">Unified Inbox</span>
                 </a>
-                @endcanInWorkspace
-                @canInWorkspace('followers.view')
                 <a href="{{ route('user.subscribers.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.subscribers.*') ? 'active' : '' }}"
                    style="--nav-tint:#14b8a6; --nav-tint-soft:rgba(20,184,166,0.12);">
@@ -568,6 +590,8 @@
                     <span class="nav-label">Leads</span>
                     <span class="sidebar-tooltip">Leads</span>
                 </a>
+                @endif
+                @if($__can['followers_view'])
                 <a href="{{ route('user.followers.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.followers.*') || request()->routeIs('user.following.*') ? 'active' : '' }}"
                    style="--nav-tint:#f472b6; --nav-tint-soft:rgba(244,114,182,0.12);">
@@ -575,8 +599,8 @@
                     <span class="nav-label">Followers</span>
                     <span class="sidebar-tooltip">Followers</span>
                 </a>
-                @endcanInWorkspace
-                @canInWorkspace('posts.view')
+                @endif
+                @if($__can['posts_view'])
                 <a href="{{ route('user.posts.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.posts.*') ? 'active' : '' }}"
                    style="--nav-tint:#60a5fa; --nav-tint-soft:rgba(96,165,250,0.12);">
@@ -584,7 +608,6 @@
                     <span class="nav-label">My Posts</span>
                     <span class="sidebar-tooltip">My Posts</span>
                 </a>
-                @endcanInWorkspace
                 <a href="{{ route('feed.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.feed.*') ? 'active' : '' }}"
                    style="--nav-tint:#34d399; --nav-tint-soft:rgba(52,211,153,0.12);">
@@ -592,10 +615,14 @@
                     <span class="nav-label">Feed</span>
                     <span class="sidebar-tooltip">Feed</span>
                 </a>
+                @endif
+                @endif
 
                 {{-- ========== MARKETING ========== --}}
+                @if($__can['links_view'] || $__can['stats_view'] || $__can['settings_view'] || $__can['referrals_view'])
                 <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Marketing</div>
 
+                @if($__can['links_view'])
                 <a href="{{ route('user.social-proofs.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.social-proofs.*') ? 'active' : '' }}"
                    style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">
@@ -603,6 +630,8 @@
                     <span class="nav-label">Buzz</span>
                     <span class="sidebar-tooltip">Buzz</span>
                 </a>
+                @endif
+                @if($__can['stats_view'])
                 <a href="{{ route('user.pixels.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.pixels.*') ? 'active' : '' }}"
                    style="--nav-tint:#ec4899; --nav-tint-soft:rgba(236,72,153,0.12);">
@@ -610,6 +639,8 @@
                     <span class="nav-label">Tracking</span>
                     <span class="sidebar-tooltip">Tracking</span>
                 </a>
+                @endif
+                @if($__can['settings_view'])
                 <a href="{{ route('user.social-accounts.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.social-accounts.*') ? 'active' : '' }}"
                    style="--nav-tint:#ec4899; --nav-tint-soft:rgba(236,72,153,0.12);">
@@ -631,7 +662,8 @@
                     <span class="nav-label">Domains</span>
                     <span class="sidebar-tooltip">Custom Domains</span>
                 </a>
-                @canInWorkspace('referrals.view')
+                @endif
+                @if($__can['referrals_view'])
                 <a href="{{ route('user.referrals.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.referrals.*') ? 'active' : '' }}"
                    style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
@@ -639,9 +671,11 @@
                     <span class="nav-label">Referrals</span>
                     <span class="sidebar-tooltip">Referrals</span>
                 </a>
-                @endcanInWorkspace
+                @endif
+                @endif
 
                 {{-- ========== CONTACTS ========== --}}
+                @if($__can['settings_view'])
                 <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Contacts</div>
 
                 <a href="{{ route('user.contacts.index') }}"
@@ -658,8 +692,10 @@
                     <span class="nav-label">Dialer</span>
                     <span class="sidebar-tooltip">Dialer</span>
                 </a>
+                @endif
 
                 {{-- ========== CALENDAR ========== --}}
+                @if($__can['settings_view'])
                 <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Calendar</div>
 
                 <a href="{{ route('user.events.index') }}"
@@ -676,8 +712,10 @@
                     <span class="nav-label">Calendar Sync</span>
                     <span class="sidebar-tooltip">Calendar Sync</span>
                 </a>
+                @endif
 
                 {{-- ========== WORKSPACE ========== --}}
+                @if($__can['links_view'])
                 <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Workspace</div>
 
                 <a href="{{ route('user.projects.index') }}"
@@ -694,8 +732,10 @@
                     <span class="nav-label">My Files</span>
                     <span class="sidebar-tooltip">Files</span>
                 </a>
+                @endif
 
                 {{-- ========== ACCOUNT ========== --}}
+                @if($__can['settings_view'])
                 <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Account</div>
 
                 <a href="{{ route('user.verification.index') }}"
@@ -712,6 +752,7 @@
                     <span class="nav-label">Profile</span>
                     <span class="sidebar-tooltip">Profile</span>
                 </a>
+                @endif
 
                 @if(auth()->user()->isSuperAdmin())
                 {{-- ========== SUPER ADMIN ========== --}}
@@ -827,44 +868,10 @@
                         <span class="badge-dot"></span>
                     </button>
 
-                    @php
-                        $__ws = app()->bound('current_workspace') ? app('current_workspace') : null;
-                        $__roleLabel = null;
-                        if ($__ws && auth()->check()) {
-                            if (auth()->user()->isSuperAdmin()) {
-                                $__roleLabel = 'Super Admin';
-                            } elseif ((int) $__ws->owner_user_id === auth()->id()) {
-                                $__roleLabel = 'Owner';
-                            } else {
-                                $__roleLabel = ucfirst(auth()->user()->membershipFor($__ws)?->role ?? 'Member');
-                            }
-                        }
-                        $__roleColors = [
-                            'Owner'       => ['#7c3aed', 'rgba(124,58,237,0.12)', 'rgba(124,58,237,0.30)'],
-                            'Super Admin' => ['#ef4444', 'rgba(239,68,68,0.12)', 'rgba(239,68,68,0.30)'],
-                            'Admin'       => ['#0ea5e9', 'rgba(14,165,233,0.12)', 'rgba(14,165,233,0.30)'],
-                            'Editor'      => ['#10b981', 'rgba(16,185,129,0.12)', 'rgba(16,185,129,0.30)'],
-                            'Replier'     => ['#f59e0b', 'rgba(245,158,11,0.12)', 'rgba(245,158,11,0.30)'],
-                            'Analyst'     => ['#a855f7', 'rgba(168,85,247,0.12)', 'rgba(168,85,247,0.30)'],
-                            'Viewer'      => ['#64748b', 'rgba(100,116,139,0.12)', 'rgba(100,116,139,0.30)'],
-                        ];
-                        [$__roleFg, $__roleBg, $__roleBorder] = $__roleColors[$__roleLabel] ?? ['#64748b', 'rgba(100,116,139,0.12)', 'rgba(100,116,139,0.30)'];
-                    @endphp
-                    @if($__roleLabel)
-                        <span class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider"
-                              style="color: {{ $__roleFg }}; background: {{ $__roleBg }}; border: 1px solid {{ $__roleBorder }};"
-                              title="Your role in {{ $__ws->name }}">
-                            <i class="fas fa-id-badge text-[9px]"></i>
-                            <span>{{ auth()->user()->name }} · {{ $__roleLabel }}</span>
-                        </span>
-                    @endif
-
-                    @canInWorkspace('links.create')
                     <a href="{{ route('user.links.create') }}" class="btn-primary hidden sm:inline-flex items-center gap-1.5 text-xs px-3.5 py-2 whitespace-nowrap">
                         <i class="fas fa-plus" style="font-size: 9px;"></i>
                         <span>New Link</span>
                     </a>
-                    @endcanInWorkspace
 
                     <div x-data="{ open: false }" class="relative lg:hidden">
                         <button @click="open = !open" class="header-icon-btn">
@@ -907,65 +914,91 @@
                         </span></a>
 
                         {{-- Links & Pages --}}
-                        @canInWorkspace('links.view')
+                        @if($__can['links_view'] || $__can['links_create'] || $__can['inbox_view'])
                         <p class="pt-3 px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Links &amp; Pages</p>
+                        @if($__can['links_view'])
                         <a href="{{ route('user.links.index') }}" class="sidebar-link {{ request()->routeIs('user.links.index') || request()->routeIs('user.links.show') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-link"></i></div> <span>All Links</span></a>
-                        @canInWorkspace('links.create')
+                        @endif
+                        @if($__can['links_create'])
                         <a href="{{ route('user.links.create') }}" class="sidebar-link {{ request()->routeIs('user.links.create') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-plus-circle"></i></div> <span>Create Link</span></a>
-                        @endcanInWorkspace
+                        @endif
+                        @if($__can['links_view'])
                         <a href="{{ route('user.qr-codes.index') }}" class="sidebar-link {{ request()->routeIs('user.qr-codes.*') || request()->routeIs('user.qrcode*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-qrcode"></i></div> <span>QR Codes</span></a>
+                        @endif
+                        @if($__can['inbox_view'])
                         <a href="{{ route('user.forms.index') }}" class="sidebar-link {{ request()->routeIs('user.forms.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-clipboard-list"></i></div> <span>Forms</span></a>
+                        @endif
+                        @if($__can['links_view'])
                         <a href="{{ route('user.splash-pages.index') }}" class="sidebar-link {{ request()->routeIs('user.splash-pages.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-rocket"></i></div> <span>Intros</span></a>
-                        @endcanInWorkspace
+                        @endif
+                        @endif
 
                         {{-- Audience --}}
+                        @if($__can['inbox_view'] || $__can['followers_view'] || $__can['posts_view'])
                         <p class="pt-3 px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Audience</p>
-                        @canInWorkspace('inbox.view')
+                        @if($__can['inbox_view'])
                         <a href="{{ route('user.inbox.index') }}" class="sidebar-link {{ request()->routeIs('user.inbox.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-inbox"></i></div> <span>Inbox
                             @php $__mInbox = (new \App\Modules\User\Services\InboxAggregator(auth()->id()))->unreadCount(); @endphp
                             @if($__mInbox)<span class="ml-1 inline-block px-1.5 rounded-full text-[10px] bg-violet-500 text-white">{{ $__mInbox > 99 ? '99+' : $__mInbox }}</span>@endif
                         </span></a>
-                        @endcanInWorkspace
-                        @canInWorkspace('followers.view')
                         <a href="{{ route('user.subscribers.index') }}" class="sidebar-link {{ request()->routeIs('user.subscribers.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-users"></i></div> <span>Leads</span></a>
+                        @endif
+                        @if($__can['followers_view'])
                         <a href="{{ route('user.followers.index') }}" class="sidebar-link {{ request()->routeIs('user.followers.*') || request()->routeIs('user.following.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-group"></i></div> <span>Followers</span></a>
-                        @endcanInWorkspace
-                        @canInWorkspace('posts.view')
+                        @endif
+                        @if($__can['posts_view'])
                         <a href="{{ route('user.posts.index') }}" class="sidebar-link {{ request()->routeIs('user.posts.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-pen-to-square"></i></div> <span>My Posts</span></a>
-                        @endcanInWorkspace
                         <a href="{{ route('feed.index') }}" class="sidebar-link {{ request()->routeIs('user.feed.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-stream"></i></div> <span>Feed</span></a>
+                        @endif
+                        @endif
 
                         {{-- Marketing --}}
+                        @if($__can['links_view'] || $__can['stats_view'] || $__can['settings_view'] || $__can['referrals_view'])
                         <p class="pt-3 px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Marketing</p>
+                        @if($__can['links_view'])
                         <a href="{{ route('user.social-proofs.index') }}" class="sidebar-link {{ request()->routeIs('user.social-proofs.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bell"></i></div> <span>Buzz</span></a>
+                        @endif
+                        @if($__can['stats_view'])
                         <a href="{{ route('user.pixels.index') }}" class="sidebar-link {{ request()->routeIs('user.pixels.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bullseye"></i></div> <span>Tracking</span></a>
+                        @endif
+                        @if($__can['settings_view'])
                         <a href="{{ route('user.social-accounts.index') }}" class="sidebar-link {{ request()->routeIs('user.social-accounts.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-share-nodes"></i></div> <span>Connected Accounts</span></a>
                         <a href="{{ route('user.integrations.index') }}" class="sidebar-link {{ request()->routeIs('user.integrations.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-plug"></i></div> <span>Integrations</span></a>
                         <a href="{{ route('user.domains.index') }}" class="sidebar-link {{ request()->routeIs('user.domains.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-globe"></i></div> <span>Domains</span></a>
-                        @canInWorkspace('referrals.view')
+                        @endif
+                        @if($__can['referrals_view'])
                         <a href="{{ route('user.referrals.index') }}" class="sidebar-link {{ request()->routeIs('user.referrals.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-gift"></i></div> <span>Referrals</span></a>
-                        @endcanInWorkspace
+                        @endif
+                        @endif
 
                         {{-- Contacts --}}
+                        @if($__can['settings_view'])
                         <p class="pt-3 px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Contacts</p>
                         <a href="{{ route('user.contacts.index') }}" class="sidebar-link {{ request()->routeIs('user.contacts.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-address-book"></i></div> <span>Contacts</span></a>
                         <a href="{{ route('user.dialer.index') }}" class="sidebar-link {{ request()->routeIs('user.dialer.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-phone"></i></div> <span>Dialer</span></a>
+                        @endif
 
                         {{-- Calendar --}}
+                        @if($__can['settings_view'])
                         <p class="pt-3 px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Calendar</p>
                         <a href="{{ route('user.events.index') }}" class="sidebar-link {{ request()->routeIs('user.events.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-calendar-day"></i></div> <span>Events</span></a>
                         <a href="{{ route('user.calendar.index') }}" class="sidebar-link {{ request()->routeIs('user.calendar.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-calendar-alt"></i></div> <span>Calendar Sync</span></a>
+                        @endif
 
                         {{-- Workspace --}}
+                        @if($__can['links_view'])
                         <p class="pt-3 px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Workspace</p>
                         <a href="{{ route('user.projects.index') }}" class="sidebar-link {{ request()->routeIs('user.projects.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-folder"></i></div> <span>Projects</span></a>
                         <a href="{{ route('user.files.index') }}" class="sidebar-link {{ request()->routeIs('user.files.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-cloud-upload-alt"></i></div> <span>My Files</span></a>
+                        @endif
 
                         {{-- Account --}}
+                        @if($__can['settings_view'])
                         <p class="pt-3 px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Account</p>
                         <a href="{{ route('user.verification.index') }}" class="sidebar-link {{ request()->routeIs('user.verification.*') && !request()->routeIs('user.verification.admin*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-check-circle"></i></div> <span>Verification</span></a>
                         <a href="{{ route('user.profile.edit') }}" class="sidebar-link {{ request()->routeIs('user.profile.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-circle"></i></div> <span>Profile</span></a>
                         <a href="{{ route('user.identifiers.index') }}" class="sidebar-link {{ request()->routeIs('user.identifiers.*') || request()->routeIs('user.merge.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-link"></i></div> <span>Linked identifiers</span></a>
+                        @endif
 
                         @if(auth()->user()->isSuperAdmin())
                         <p class="pt-3 px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Super Admin</p>

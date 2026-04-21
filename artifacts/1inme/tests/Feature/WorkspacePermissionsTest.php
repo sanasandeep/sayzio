@@ -207,6 +207,25 @@ class WorkspacePermissionsTest extends TestCase
         $this->assertNotEquals(403, $resp->status());
     }
 
+    public function test_sidebar_shows_all_entries_for_owner(): void
+    {
+        $owner = $this->makeUser();
+        $ws    = $owner->ownedWorkspaces()->first();
+
+        $this->actingAs($owner);
+        $this->withSession([WorkspaceContext::SESSION_KEY => $ws->id]);
+
+        $html = $this->followingRedirects()->get('/user/dashboard')->getContent();
+        // Owner sees the full menu — sample a few that are gated for members.
+        $this->assertStringContainsString('user/integrations', $html);
+        $this->assertStringContainsString('user/calendar', $html);
+        $this->assertStringContainsString('user/contacts', $html);
+        $this->assertStringContainsString('user/verification', $html);
+        $this->assertStringContainsString('user/referrals', $html);
+        $this->assertStringContainsString('user/pixels', $html);
+        $this->assertStringContainsString('user/followers', $html);
+    }
+
     public function test_owner_bypasses_permission_gate(): void
     {
         $owner = $this->makeUser();

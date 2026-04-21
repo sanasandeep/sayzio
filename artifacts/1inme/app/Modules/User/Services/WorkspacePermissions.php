@@ -72,4 +72,31 @@ class WorkspacePermissions
     {
         return self::ROLES;
     }
+
+    /**
+     * Convenience check for views/menus: does the *current authenticated user*
+     * hold the given permission in the *currently bound workspace*?
+     *
+     * Owners (and super-admins) of the active workspace always pass. Returns
+     * false when no user is signed in or no workspace is bound (e.g. CLI).
+     */
+    public static function userCan(string $permission): bool
+    {
+        $user = auth()->user();
+        if (!$user) return false;
+        $ws = app()->bound('current_workspace') ? app('current_workspace') : null;
+        if (!$ws) return false;
+        return $user->canInWorkspace($ws, $permission);
+    }
+
+    /** True if the active user is the owner (or super-admin) of the active workspace. */
+    public static function userIsOwner(): bool
+    {
+        $user = auth()->user();
+        if (!$user) return false;
+        if (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) return true;
+        $ws = app()->bound('current_workspace') ? app('current_workspace') : null;
+        if (!$ws) return false;
+        return (int) $ws->owner_user_id === (int) $user->id;
+    }
 }
