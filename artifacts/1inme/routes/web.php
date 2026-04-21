@@ -66,6 +66,9 @@ Route::controller(\App\Modules\Common\Controllers\SitePageController::class)->gr
     Route::get('/buzz',           fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('buzz'))->name('site.buzz');
     Route::view('/docs/api', 'public.api-docs')->name('site.api-docs');
     Route::get('/services', fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('services'))->name('site.services');
+    Route::get('/{slug}/history', [\App\Modules\Common\Controllers\SitePageController::class, 'history'])
+        ->where('slug', 'terms|privacy|refunds|cookies|gdpr')
+        ->name('site.policy.history');
 });
 Route::post('/contact', [\App\Modules\Common\Controllers\SitePageController::class, 'submitContact'])
     ->name('site.contact.submit')->middleware('throttle:10,10');

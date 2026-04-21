@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\AppSetting;
 use App\Modules\Common\Models\ContactMessage;
 use App\Modules\Common\Models\SitePage;
+use App\Modules\Common\Models\SitePageRevision;
 use App\Modules\Common\Support\SitePagesContent;
 use App\Modules\User\Models\CreatorPost;
 use App\Modules\User\Models\Link;
@@ -59,9 +60,26 @@ class SitePageController extends Controller
             ]);
         }
         if (in_array($slug, SitePagesContent::policySlugs(), true)) {
-            return view('public.policy', ['page' => $page]);
+            $hasHistory = SitePageRevision::where('site_page_id', $page->id)->exists();
+            return view('public.policy', ['page' => $page, 'hasHistory' => $hasHistory]);
         }
         return view('public.page', ['page' => $page]);
+    }
+
+    /**
+     * Public-facing change history for a policy page. Shows the date and
+     * a short summary of each saved revision so visitors can see how the
+     * page has changed over time.
+     */
+    public function history(string $slug)
+    {
+        abort_unless(in_array($slug, SitePagesContent::policySlugs(), true), 404);
+        $page = SitePage::where('slug', $slug)->firstOrFail();
+        $revisions = SitePageRevision::where('site_page_id', $page->id)
+            ->orderByDesc('id')
+            ->limit(100)
+            ->get(['id', 'site_page_id', 'title', 'summary', 'created_at']);
+        return view('public.policy-history', ['page' => $page, 'revisions' => $revisions]);
     }
 
     /**

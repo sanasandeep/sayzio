@@ -474,6 +474,53 @@
         </div>
     @endif
 
+    @if(isset($revisions) && $revisions->count())
+        <div class="glass rounded-2xl p-6">
+            <h3 class="text-sm font-semibold text-white mb-1">Revision history</h3>
+            <p class="text-xs text-white/50 mb-4">Every save snapshots the page so you can see what changed and roll back if needed.</p>
+            <div class="space-y-2 max-h-96 overflow-y-auto pr-2">
+                @foreach($revisions as $rev)
+                    @php $revEditor = $rev->editor(); @endphp
+                    <div class="flex items-start justify-between gap-3 p-3 bg-white/5 border border-white/10 rounded-xl">
+                        <div class="min-w-0">
+                            <p class="text-sm text-white">
+                                {{ $rev->created_at->format('M j, Y g:i a') }}
+                                <span class="text-xs text-white/50 ml-1">#{{ $rev->id }}</span>
+                            </p>
+                            <p class="text-xs text-white/60 mt-0.5">
+                                @if($revEditor)
+                                    <i class="far fa-user mr-1"></i>{{ $revEditor->name ?? $rev->editor_name }}
+                                @elseif($rev->editor_name)
+                                    <i class="far fa-user mr-1"></i>{{ $rev->editor_name }}
+                                @else
+                                    <i class="far fa-user mr-1"></i><span class="text-white/40">System</span>
+                                @endif
+                            </p>
+                            @if($rev->summary)
+                                <p class="text-xs text-white/70 mt-1">{{ $rev->summary }}</p>
+                            @endif
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <a href="{{ route('admin.site-pages.revisions.show', [$page->slug, $rev->id]) }}"
+                               class="text-xs px-3 py-1.5 bg-white/10 hover:bg-white/15 text-white rounded-lg">
+                                <i class="far fa-eye mr-1"></i>View
+                            </a>
+                            @if(!$loop->first)
+                                <form method="POST" action="{{ route('admin.site-pages.revisions.restore', [$page->slug, $rev->id]) }}"
+                                      onsubmit="return confirm('Restore this revision? Your current content will be saved as a new revision first.')">
+                                    @csrf
+                                    <button type="submit" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-lg">
+                                        <i class="fas fa-clock-rotate-left mr-1"></i>Restore
+                                    </button>
+                                </form>
+                            @endif
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
     @if($page->slug === 'faqs')
         <div class="glass rounded-2xl p-6">
             <h3 class="text-sm font-semibold text-white mb-3">FAQ items</h3>

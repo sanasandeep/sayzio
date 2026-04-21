@@ -9,10 +9,19 @@
     <div class="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full" style="background:radial-gradient(circle,rgba(124,58,237,0.18) 0%,transparent 70%);"></div>
     <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <h1 class="text-4xl sm:text-5xl font-bold tracking-tight">{{ $page->title }}</h1>
-        @if($lastUpdated)
-            <p class="mt-3 text-sm text-gray-400">
-                <i class="far fa-calendar-alt mr-1.5"></i>
-                Last updated: <span class="text-gray-300">{{ \Illuminate\Support\Carbon::parse($lastUpdated)->format('F j, Y') }}</span>
+        @if($lastUpdated || ($hasHistory ?? false))
+            <p class="mt-3 text-sm text-gray-400 flex flex-wrap items-center gap-x-3 gap-y-1">
+                @if($lastUpdated)
+                    <span>
+                        <i class="far fa-calendar-alt mr-1.5"></i>
+                        Last updated: <span class="text-gray-300">{{ \Illuminate\Support\Carbon::parse($lastUpdated)->format('F j, Y') }}</span>
+                    </span>
+                @endif
+                @if($hasHistory ?? false)
+                    <a href="{{ route('site.policy.history', $page->slug) }}" class="text-violet-400 hover:text-violet-300 underline-offset-2 hover:underline">
+                        <i class="fas fa-clock-rotate-left mr-1"></i>View change history
+                    </a>
+                @endif
             </p>
         @endif
         @if($page->intro)

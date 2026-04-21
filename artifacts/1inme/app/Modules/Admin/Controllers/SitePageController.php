@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\AppSetting;
 use App\Modules\Common\Models\FaqItem;
 use App\Modules\Common\Models\SitePage;
+use App\Modules\Common\Models\SitePageRevision;
 use App\Modules\Common\Services\PathSuggester;
 use App\Modules\Common\Support\SitePagesContent;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class SitePageController extends Controller
 {
@@ -25,6 +27,10 @@ class SitePageController extends Controller
     {
         $page = SitePage::where('slug', $slug)->firstOrFail();
         $faqs = $slug === 'faqs' ? FaqItem::where('page_slug', 'faqs')->orderBy('sort_order')->orderBy('id')->get() : collect();
+        $revisions = SitePageRevision::where('site_page_id', $page->id)
+            ->orderByDesc('id')
+            ->limit(50)
+            ->get();
         if ($slug === 'features') {
             $current = is_array($page->sections) ? $page->sections : [];
             $featuresCategories = SitePagesContent::normalizeFeaturesCategories($current);
@@ -41,7 +47,7 @@ class SitePageController extends Controller
             'creators_feed_show_pinned' => (bool) AppSetting::get('creators_feed_show_pinned', true),
             'error_404_suggestions_enabled' => (bool) AppSetting::get(PathSuggester::SETTING_KEY, true),
         ];
-        return view('admin.site-pages.edit', compact('page', 'faqs', 'settings', 'featuresCategories'));
+        return view('admin.site-pages.edit', compact('page', 'faqs', 'settings', 'featuresCategories', 'revisions'));
     }
 
     public function update(Request $request, string $slug)
@@ -127,8 +133,58 @@ class SitePageController extends Controller
             $payload['last_updated_at'] = $data['last_updated_at'] ?? null;
             $payload['show_toc'] = (bool) $request->input('show_toc', false);
         }
+        $previous = $this->captureState($page);
         $page->update($payload);
+        $this->snapshotPrevious($page->fresh(), $previous, $this->captureState($page->fresh()));
         return redirect()->route('admin.site-pages.edit', $slug)->with('success', 'Page updated.');
+    }
+
+    /**
+     * Capture the savable state of a SitePage as an associative array so
+     * we can compare it against the post-save state to build a revision
+     * summary.
+     */
+    private function captureState(SitePage $page): array
+    {
+        return [
+            'title'            => (string) $page->title,
+            'meta_description' => (string) ($page->meta_description ?? ''),
+            'intro'            => (string) ($page->intro ?? ''),
+            'last_updated_at'  => $page->last_updated_at ? $page->last_updated_at->toDateString() : null,
+            'show_toc'         => (bool) ($page->show_toc ?? true),
+            'sections'         => is_array($page->sections) ? $page->sections : [],
+            'cta_label'        => (string) ($page->cta_label ?? ''),
+            'cta_url'          => (string) ($page->cta_url ?? ''),
+        ];
+    }
+
+    /**
+     * Persist the previous state of the page as a new revision row,
+     * tagged with the editor who triggered the replacing save and a
+     * short summary describing what changed. Called on every save so
+     * the audit trail is complete.
+     */
+    private function snapshotPrevious(SitePage $page, array $previous, array $newState): void
+    {
+        [$id, $type, $name] = $this->currentEditor();
+        SitePageRevision::snapshot($page, $previous, $newState, $id, $type, $name);
+    }
+
+    /**
+     * Resolve the editor of the current request. Admin pages run under
+     * the `admin` guard; we fall back to the default web guard so the
+     * helper still records meaningful identity if the editor was
+     * authenticated as a regular user (e.g. via an impersonation flow).
+     */
+    private function currentEditor(): array
+    {
+        if ($admin = Auth::guard('admin')->user()) {
+            return [(int) $admin->getKey(), 'admin', (string) ($admin->name ?? $admin->email ?? '')];
+        }
+        if ($user = Auth::user()) {
+            return [(int) $user->getKey(), 'user', (string) ($user->name ?? $user->email ?? '')];
+        }
+        return [null, null, null];
     }
 
     /**
@@ -156,13 +212,58 @@ class SitePageController extends Controller
             (array) ($data['categories'] ?? [])
         );
 
+        $previous = $this->captureState($page);
         $page->update([
             'title' => $data['title'],
             'meta_description' => $data['meta_description'] ?? null,
             'sections' => $sections,
         ]);
+        $this->snapshotPrevious($page->fresh(), $previous, $this->captureState($page->fresh()));
 
         return redirect()->route('admin.site-pages.edit', $page->slug)->with('success', 'Features page updated.');
+    }
+
+    /**
+     * Show a single revision side-by-side with the page's current state
+     * so an admin can preview what was different before restoring.
+     */
+    public function showRevision(string $slug, SitePageRevision $revision)
+    {
+        $page = SitePage::where('slug', $slug)->firstOrFail();
+        abort_unless($revision->site_page_id === $page->id, 404);
+        return view('admin.site-pages.revision', [
+            'page'     => $page,
+            'revision' => $revision,
+        ]);
+    }
+
+    /**
+     * Restore a prior revision: copy its content back onto the page and
+     * record the act as a new snapshot so the history stays linear.
+     */
+    public function restoreRevision(string $slug, SitePageRevision $revision)
+    {
+        $page = SitePage::where('slug', $slug)->firstOrFail();
+        abort_unless($revision->site_page_id === $page->id, 404);
+
+        $previous = $this->captureState($page);
+        $page->update([
+            'title'            => $revision->title ?? $page->title,
+            'meta_description' => $revision->meta_description,
+            'intro'            => $revision->intro,
+            'last_updated_at'  => $revision->last_updated_at?->toDateString(),
+            'show_toc'         => (bool) $revision->show_toc,
+            'sections'         => is_array($revision->sections) ? $revision->sections : [],
+            'cta_label'        => $revision->cta_label,
+            'cta_url'          => $revision->cta_url,
+        ]);
+
+        [$id, $type, $name] = $this->currentEditor();
+        $newState = $this->captureState($page->fresh());
+        $rev = SitePageRevision::snapshot($page->fresh(), $previous, $newState, $id, $type, $name);
+        $rev->update(['summary' => 'Restored revision #' . $revision->id . '. ' . $rev->summary]);
+
+        return redirect()->route('admin.site-pages.edit', $slug)->with('success', 'Revision restored.');
     }
 
     public function updateDiscoverySettings(Request $request)

@@ -216,6 +216,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::delete('faqs/{faq}', [\App\Modules\Admin\Controllers\SitePageController::class, 'destroyFaq'])->middleware(CheckPermission::class . ':settings.manage')->name('faqs.destroy');
             Route::get('{slug}', [\App\Modules\Admin\Controllers\SitePageController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
             Route::put('{slug}', [\App\Modules\Admin\Controllers\SitePageController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
+            Route::get('{slug}/revisions/{revision}', [\App\Modules\Admin\Controllers\SitePageController::class, 'showRevision'])->middleware(CheckPermission::class . ':settings.manage')->name('revisions.show');
+            Route::post('{slug}/revisions/{revision}/restore', [\App\Modules\Admin\Controllers\SitePageController::class, 'restoreRevision'])->middleware(CheckPermission::class . ':settings.manage')->name('revisions.restore');
         });
 
         Route::prefix('contact-inbox')->name('contact-inbox.')->group(function () {
