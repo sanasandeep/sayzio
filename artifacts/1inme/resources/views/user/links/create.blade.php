@@ -42,8 +42,22 @@
             </p>
         </div>
 
+        <a href="{{ route('user.links.wizard') }}"
+           class="block glass rounded-2xl p-5 mb-4 border border-violet-500/20 bg-gradient-to-r from-violet-500/10 to-fuchsia-500/5 hover:from-violet-500/15 hover:to-fuchsia-500/10 transition-all group">
+            <div class="flex items-center gap-4">
+                <div class="w-11 h-11 rounded-xl bg-violet-500/20 text-violet-300 flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-magic text-lg"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-white font-medium">Build a Link in Bio with the guided wizard</div>
+                    <div class="text-xs text-white/50 mt-0.5">Answer a few questions and we'll generate your page — blocks, layout and all.</div>
+                </div>
+                <i class="fas fa-arrow-right text-white/30 group-hover:text-violet-300 transition-colors"></i>
+            </div>
+        </a>
+
         <div class="glass rounded-2xl p-6 mb-6">
-            <h2 class="text-base font-semibold text-white mb-1">What kind of link?</h2>
+            <h2 class="text-base font-semibold text-white mb-1">…or pick a link type manually</h2>
             <p class="text-xs text-white/40 mb-4">Pick one to continue — we'll only ask for the fields that matter for that type.</p>
 
             <div class="grid grid-cols-2 md:grid-cols-5 gap-3">

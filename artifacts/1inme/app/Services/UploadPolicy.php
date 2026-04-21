@@ -58,6 +58,9 @@ class UploadPolicy
 
         // ── File Share (uses plan-wide max_file_size_mb by default) ───────
         'link.file_share'        => ['label' => 'File Share Upload',          'group' => 'File Share',         'max_mb' => 5,  'extensions' => [],                                          'multiple' => false],
+
+        // ── Biolink Wizard ────────────────────────────────────────────────
+        'biolink.avatar'         => ['label' => 'Wizard Avatar / Cover',      'group' => 'Bio Wizard',         'max_mb' => 5,  'extensions' => ['jpg','jpeg','png','webp'],                'multiple' => false],
     ];
 
     /**

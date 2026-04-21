@@ -13,6 +13,7 @@ use App\Modules\User\Controllers\IcsLinkController;
 use App\Modules\User\Controllers\VcfLinkController;
 use App\Modules\User\Controllers\QrCodeController;
 use App\Modules\User\Controllers\BiolinkBlockController;
+use App\Modules\User\Controllers\BiolinkWizardController;
 use App\Modules\User\Controllers\CalendarAccountController;
 use App\Modules\User\Controllers\RsvpController;
 use App\Modules\User\Controllers\UserFileController;
@@ -27,6 +28,13 @@ use App\Modules\User\Middleware\CheckPlanLimit;
 use App\Modules\User\Middleware\SuperAdmin;
 
 Route::get('/', [\App\Modules\Common\Controllers\HomeController::class, 'index'])->name('home');
+
+// Public SVG placeholders generated for the biolink creation wizard.
+// Referenced as the default avatar / cover image on pages built by the
+// wizard, so this route must remain auth-free.
+Route::get('/wizard-placeholders/{slug}.svg', [\App\Modules\User\Controllers\BiolinkWizardController::class, 'placeholder'])
+    ->where('slug', '[a-z0-9_]+')
+    ->name('wizard.placeholder');
 
 // Public anonymous currency switcher used by the marketing pricing section
 // (and any other public page that renders prices via PricingResolver).
@@ -208,6 +216,13 @@ Route::prefix('user')->name('user.')->group(function () {
         // destroy/toggle/duplicate/aliases/blocks/page-settings) escalate to
         // links.create / links.edit / links.delete. This stops a viewer from
         // editing biolink blocks or destroying links.
+        // Guided biolink creation wizard. Registered BEFORE the
+        // `Route::resource('links', ...)` so `links/wizard` is matched as a
+        // literal path and not as the `links/{link}` show-route.
+        Route::get('links/wizard',         [BiolinkWizardController::class, 'index'])->middleware('workspace.can:links.create')->name('links.wizard');
+        Route::post('links/wizard',        [BiolinkWizardController::class, 'save'])->middleware('workspace.can:links.create')->name('links.wizard.save');
+        Route::post('links/wizard/finish', [BiolinkWizardController::class, 'finish'])->middleware(['workspace.can:links.create', CheckPlanLimit::class . ':links'])->name('links.wizard.finish');
+
         Route::resource('links', LinkController::class)->except(['store', 'update', 'destroy'])->middleware('workspace.can:links.view');
         Route::put('links/{link}',  [LinkController::class, 'update'])->middleware('workspace.can:links.edit')->name('links.update');
         Route::patch('links/{link}',[LinkController::class, 'update'])->middleware('workspace.can:links.edit');

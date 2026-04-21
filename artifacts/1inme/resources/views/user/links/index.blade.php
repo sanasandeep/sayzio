@@ -84,11 +84,16 @@
         <i class="fas fa-link text-violet-400 text-xl"></i>
     </div>
     <h3 class="text-base font-bold mb-1.5" style="color: var(--text-primary);">No links yet</h3>
-    <p class="text-xs mb-5" style="color: var(--text-dimmed);">Create your first link to start tracking clicks.</p>
+    <p class="text-xs mb-5" style="color: var(--text-dimmed);">Create your first link to start tracking clicks — or let our wizard build a Link in Bio for you in under a minute.</p>
     @canInWorkspace('links.create')
-    <a href="{{ route('user.links.create') }}" class="btn-primary text-xs py-2.5">
-        <i class="fas fa-plus text-[10px]"></i> Create Link
-    </a>
+    <div class="flex items-center justify-center gap-2 flex-wrap">
+        <a href="{{ route('user.links.wizard') }}" class="btn-primary text-xs py-2.5">
+            <i class="fas fa-magic text-[10px]"></i> Build with wizard
+        </a>
+        <a href="{{ route('user.links.create') }}" class="text-xs py-2.5 px-4 rounded-xl border border-white/10 text-white/70 hover:text-white hover:bg-white/5 transition-all">
+            <i class="fas fa-plus text-[10px]"></i> Create Link
+        </a>
+    </div>
     @else
     <p class="text-[11px]" style="color: var(--text-faint);"><i class="fas fa-lock mr-1"></i>Ask a workspace admin to create the first link.</p>
     @endcanInWorkspace
