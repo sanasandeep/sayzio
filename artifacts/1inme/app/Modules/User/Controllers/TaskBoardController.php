@@ -50,8 +50,11 @@ class TaskBoardController extends Controller
             }])
             ->get();
 
-        // Auto-seed a personal board on first visit so the page is never empty.
-        if ($personal->isEmpty()) {
+        // Auto-seed a personal board only inside the user's own personal
+        // workspace (per spec). Inside team workspaces we never silently
+        // create personal boards — that would leak private state.
+        $ws = app('current_workspace');
+        if ($personal->isEmpty() && $ws && $ws->is_personal && (int) $ws->owner_user_id === (int) $userId) {
             $personal = collect([$this->createBoard('My Tasks', 'personal', '#8b5cf6')])
                 ->each->loadCount(['cards as open_cards_count' => function ($q) {
                     $q->whereNull('completed_at')->whereNull('archived_at');
@@ -229,12 +232,7 @@ class TaskBoardController extends Controller
         return back()->with('success', 'Board updated.');
     }
 
-    /**
-     * Soft-archive a board (sets archived_at). Hidden from the default
-     * boards list but recoverable via unarchiveBoard(). Per spec, team
-     * mutations (create / edit / delete / archive) are open to admin and
-     * editor roles; viewers are still rejected by authorizeCardDelete().
-     */
+    /** Soft-archive a board (sets archived_at). Editors and above only. */
     public function archiveBoard(TaskBoard $board)
     {
         $this->authorizeCardDelete($board);
@@ -256,7 +254,6 @@ class TaskBoardController extends Controller
 
     public function destroyBoard(TaskBoard $board)
     {
-        // Spec: admin AND editor may delete team boards; viewers cannot.
         $this->authorizeCardDelete($board);
         DB::transaction(function () use ($board) {
             $cardIds = $board->cards()->pluck('id');
@@ -555,12 +552,6 @@ class TaskBoardController extends Controller
         return response()->json(['ok' => true, 'completed' => $subtask->completed]);
     }
 
-    /**
-     * Persist a new subtask ordering for a card. The client posts the
-     * subtask IDs in the desired display order; we re-number `position`
-     * 1..N after validating every id belongs to the card. Cross-card or
-     * cross-workspace IDs are silently dropped — never mass-updated.
-     */
     public function reorderSubtasks(Request $request, TaskCard $card)
     {
         $card = $this->resolveScopedCard($card->id);
@@ -570,8 +561,7 @@ class TaskBoardController extends Controller
         $ids = $request->input('order', []);
         if (!is_array($ids)) abort(422, 'order must be an array');
 
-        // Constrain to subtasks that actually belong to this card so a
-        // crafted payload cannot reorder another card's checklist.
+        // Drop foreign IDs so a crafted payload can only renumber this card.
         $owned = $card->subtasks()->pluck('id')->all();
         $clean = array_values(array_intersect(array_map('intval', $ids), $owned));
         if (!$clean) return response()->json(['ok' => true, 'updated' => 0]);
@@ -735,13 +725,7 @@ class TaskBoardController extends Controller
     {
         $card = $this->resolveScopedCard($attachment->card_id);
         $this->authorizeEdit($card->board);
-        try {
-            \Storage::disk($attachment->disk)->delete($attachment->path);
-        } catch (\Throwable $e) {
-            // Disk may already be missing the file (manual cleanup, S3 race);
-            // we still want to remove the DB row so the UI stays consistent.
-            report($e);
-        }
+        \Storage::disk($attachment->disk)->delete($attachment->path);
         TaskActivity::log($card->id, auth()->id(), 'attachment_removed', ['name' => $attachment->original_name]);
         $attachment->delete();
         return response()->json(['ok' => true]);

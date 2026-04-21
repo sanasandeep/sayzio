@@ -50,9 +50,6 @@ class PersonalTaskBoardProvisioner
             $board->position      = 0;
             $board->save();
 
-            // Spec mandates the standard Todo / Doing / Done columns for
-            // newly provisioned personal boards (matches STARTER_COLUMNS
-            // used by team boards).
             $cols = [
                 ['name' => 'Todo',  'color' => '#64748b', 'is_done' => false],
                 ['name' => 'Doing', 'color' => '#3b82f6', 'is_done' => false],

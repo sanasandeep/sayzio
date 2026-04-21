@@ -123,15 +123,37 @@
 
     <div class="kanban-scroll flex gap-4" data-sortable-cols>
         @foreach($board->columns as $col)
-            <div class="kanban-col" data-column-id="{{ $col->id }}">
-                <div class="kanban-col-header" style="border-top: 3px solid {{ $col->color ?: '#8b5cf6' }}; border-radius: 14px 14px 0 0;">
+            <div class="kanban-col" data-column-id="{{ $col->id }}"
+                 x-data="{ editing:false, name:'{{ addslashes($col->name) }}', color:'{{ $col->color ?: '#8b5cf6' }}', wip:{{ (int) ($col->wip_limit ?? 0) }}, is_done:{{ $col->is_done ? 'true':'false' }} }">
+                <div class="kanban-col-header" :style="'border-top: 3px solid '+color+'; border-radius: 14px 14px 0 0;'">
                     <span class="col-drag-handle" data-col-handle title="Drag to reorder column"><i class="fas fa-grip-vertical"></i></span>
-                    <span class="flex-1">{{ $col->name }}</span>
-                    @if($col->is_done)<i class="fas fa-check-circle text-emerald-500" title="Done column"></i>@endif
-                    <span class="text-xs font-normal" style="color: var(--text-faint);">{{ $col->cards->count() }}@if($col->wip_limit)/{{ $col->wip_limit }}@endif</span>
-                    <button @click="deleteColumn({{ $col->id }})" class="text-xs" style="color: var(--text-faint);" title="Delete column">
-                        <i class="fas fa-times"></i>
-                    </button>
+                    <span class="flex-1 cursor-pointer" @click="editing=true" x-text="name"></span>
+                    <i class="fas fa-check-circle text-emerald-500" x-show="is_done" title="Done column"></i>
+                    <span class="text-xs font-normal" style="color: var(--text-faint);">{{ $col->cards->count() }}<span x-show="wip>0">/<span x-text="wip"></span></span></span>
+                    <button @click="editing=true" class="text-xs" style="color: var(--text-faint);" title="Edit column"><i class="fas fa-pen"></i></button>
+                    <button @click="deleteColumn({{ $col->id }})" class="text-xs" style="color: var(--text-faint);" title="Delete column"><i class="fas fa-times"></i></button>
+                </div>
+                {{-- Inline edit popover wired to PUT /columns/{id} --}}
+                <div x-show="editing" x-transition class="absolute z-30 p-3 mt-1 rounded-xl shadow-xl space-y-2"
+                     @click.outside="editing=false"
+                     style="background: var(--bg-glass); border: 1px solid var(--border-soft); width: 240px;">
+                    <input type="text" x-model="name" maxlength="60"
+                           class="w-full px-2 py-1 text-sm rounded border"
+                           style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
+                    <div class="flex items-center gap-2">
+                        <input type="color" x-model="color" class="h-7 w-10 rounded cursor-pointer">
+                        <input type="number" min="0" max="999" x-model.number="wip" placeholder="WIP"
+                               class="flex-1 px-2 py-1 text-sm rounded border"
+                               style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
+                    </div>
+                    <label class="flex items-center gap-2 text-xs" style="color: var(--text-muted);">
+                        <input type="checkbox" x-model="is_done"> Marks card as done
+                    </label>
+                    <div class="flex justify-end gap-2">
+                        <button @click="editing=false" class="text-xs px-2 py-1" style="color: var(--text-muted);">Cancel</button>
+                        <button class="text-xs px-3 py-1 rounded" style="background:#8b5cf6;color:#fff;"
+                                @click="$root.saveColumn({{ $col->id }}, { name, color, wip_limit: wip || null, is_done }).then(() => editing=false)">Save</button>
+                    </div>
                 </div>
                 <div class="kanban-col-cards" data-sortable-cards data-column-id="{{ $col->id }}">
                     @foreach($col->cards as $card)
@@ -316,9 +338,6 @@
 
                 <div class="mt-5">
                     <h3 class="text-xs font-bold uppercase mb-2" style="color: var(--text-faint);">Subtasks</h3>
-                    {{-- The wrapper is the SortableJS handle. Each child is
-                         tagged with data-id so we can read the new ordering
-                         straight off the DOM after a drag completes. --}}
                     <div x-ref="subtaskList" data-subtask-list>
                         <template x-for="s in card.subtasks" :key="s.id">
                             <div class="flex items-center gap-2 mb-1 px-1 py-0.5 rounded" :data-id="s.id"
@@ -429,9 +448,6 @@
                             <p class="text-xs italic" style="color: var(--text-faint);">No activity yet.</p>
                         </template>
                         <ol class="space-y-2">
-                            {{-- The activities() relation already orders by
-                                 created_at DESC server-side, so we render in
-                                 the array order (newest first). --}}
                             <template x-for="a in (card.activities || [])" :key="a.id">
                                 <li class="flex items-start gap-2 text-xs" style="color: var(--text-muted);">
                                     <i class="fas fa-circle text-[6px] mt-1.5" style="color:#7c3aed;"></i>
@@ -465,9 +481,6 @@ function kanbanBoard(boardId) {
         showAddColumn: false,
         newLabelOpen: false,
         boardLabels: @json($board->labels->map(fn($l) => ['id'=>$l->id,'name'=>$l->name,'color'=>$l->color])),
-        // Workspace members reachable from this board, with the same mention
-        // token format the server's notifyMentions() expects (lowercased, no
-        // whitespace) so the autocomplete inserts text the parser will hit.
         boardMembers: @json($members->map(fn($m) => [
             'id' => $m->id,
             'name' => $m->name,
@@ -476,7 +489,6 @@ function kanbanBoard(boardId) {
         filters: { search: '', assignee: '', label: '', due: '' },
         card: null,
         cardTab: 'comments',
-        // Mention autocomplete state.
         mentionOpen: false,
         mentionQuery: '',
         mentionStart: 0,
@@ -546,12 +558,9 @@ function kanbanBoard(boardId) {
             this.card = data.card;
             this.card.due_date = this.card.due_date ? this.card.due_date.substring(0, 10) : null;
             this.drawerOpen = true;
-            // Defer until Alpine paints the new subtask DOM nodes.
             this.$nextTick(() => this.initSubtaskSortable());
         },
 
-        // Bind Sortable to the subtask list each time the drawer renders.
-        // We replace the previous instance to avoid leaks across re-opens.
         initSubtaskSortable() {
             const el = this.$refs.subtaskList;
             if (!el || typeof Sortable === 'undefined') return;
@@ -573,8 +582,6 @@ function kanbanBoard(boardId) {
                 .map(n => parseInt(n.dataset.id, 10))
                 .filter(Boolean);
             if (!order.length) return;
-            // Re-sync local state so any subsequent toggle/delete uses the
-            // post-drag ordering even before the server round-trip lands.
             const byId = Object.fromEntries(this.card.subtasks.map(s => [s.id, s]));
             this.card.subtasks = order.map(id => byId[id]).filter(Boolean);
             await this.fetchJson(`/user/tasks/cards/${this.card.id}/subtasks/reorder`,
@@ -624,14 +631,9 @@ function kanbanBoard(boardId) {
             this.card.comments.push(r.comment);
             ta.value = '';
             this.mentionOpen = false;
-            // A new comment writes an activity row server-side; refresh the
-            // card so the Activity tab stays in sync without a full reload.
             this.refreshActivities();
         },
 
-        // ---- @-mention autocomplete -------------------------------------
-        // Detect "@token" being typed at the caret. Filter workspace members
-        // by name / mention_token (case-insensitive prefix or substring).
         onCommentInput(e) {
             const ta = e.target;
             const pos = ta.selectionStart;
@@ -669,7 +671,6 @@ function kanbanBoard(boardId) {
             this.mentionOpen = false;
         },
 
-        // ---- Activity tab helpers ---------------------------------------
         async refreshActivities() {
             if (!this.card) return;
             try {
@@ -812,6 +813,11 @@ function kanbanBoard(boardId) {
             if (!confirm('Delete this column? Cards inside will be moved to the next column.')) return;
             const fd = new FormData(); fd.append('_token', this.csrf); fd.append('_method', 'DELETE');
             await fetch(`/user/tasks/columns/${id}`, { method: 'POST', body: fd, credentials: 'same-origin' });
+            location.reload();
+        },
+
+        async saveColumn(id, payload) {
+            await this.fetchJson(`/user/tasks/columns/${id}`, { method: 'PUT', body: payload });
             location.reload();
         },
     };
