@@ -2,6 +2,7 @@
 
 namespace App\Modules\Common\Services;
 
+use App\Modules\Common\Services\BotDetector;
 use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\LinkClick;
@@ -14,6 +15,7 @@ class LinkTrackingService
     public function track(Link $link, Request $request, ?string $usedAlias = null, ?string $source = null): LinkClick
     {
         $userAgent = $this->resolveUserAgent($request);
+        $isBot = app(BotDetector::class)->isBot($userAgent);
 
         $geoService = app(GeoIpService::class);
         $geo = $geoService->detectGeo($request->ip());
@@ -30,6 +32,7 @@ class LinkTrackingService
             'source' => $source,
             'user_agent' => $userAgent ? mb_substr($userAgent, 0, 512) : null,
             'channel' => ChannelClassifier::classify($userAgent),
+            'is_bot' => $isBot,
             'language' => $this->detectLanguage($request),
             'country_code' => $geo['country_code'] ?? null,
             'city' => $geo['city'] ?? null,
@@ -38,6 +41,12 @@ class LinkTrackingService
             'utm_params' => $this->extractUtmParams($request),
             'clicked_at' => now(),
         ]);
+
+        // Skip incrementing the cached counters for obvious bot/scraper hits
+        // so creator-facing totals and unique-visitor stats reflect real humans.
+        if ($isBot) {
+            return $click;
+        }
 
         $link->increment('total_clicks');
 
@@ -114,6 +123,7 @@ class LinkTrackingService
     public function trackBlockClick(Link $link, BiolinkBlock $block, string $destinationUrl, Request $request, ?string $usedAlias = null, ?string $source = null): LinkClick
     {
         $userAgent = $this->resolveUserAgent($request);
+        $isBot = app(BotDetector::class)->isBot($userAgent);
         $geoService = app(GeoIpService::class);
         $geo = $geoService->detectGeo($request->ip());
 
@@ -132,6 +142,7 @@ class LinkTrackingService
             'source' => $source,
             'user_agent' => $userAgent ? mb_substr($userAgent, 0, 512) : null,
             'channel' => ChannelClassifier::classify($userAgent),
+            'is_bot' => $isBot,
             'language' => $this->detectLanguage($request),
             'country_code' => $geo['country_code'] ?? null,
             'city' => $geo['city'] ?? null,
@@ -140,6 +151,12 @@ class LinkTrackingService
             'utm_params' => $this->extractUtmParams($request),
             'clicked_at' => now(),
         ]);
+
+        // Bot/scraper hits are recorded but excluded from the cached counters
+        // so creator dashboards reflect real humans.
+        if ($isBot) {
+            return $click;
+        }
 
         $link->increment('total_clicks');
 

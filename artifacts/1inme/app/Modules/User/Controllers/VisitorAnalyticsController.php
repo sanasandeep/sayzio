@@ -24,6 +24,7 @@ class VisitorAnalyticsController extends Controller
         // click on this link happened strictly before the period started.
         $inRangeIps = DB::table('link_clicks')
             ->where('link_id', $link->id)
+            ->where('is_bot', false)
             ->whereNull('block_id')
             ->where('clicked_at', '>=', $since)
             ->distinct()
@@ -36,6 +37,7 @@ class VisitorAnalyticsController extends Controller
         $firstSeen = $inRangeIps->isEmpty() ? collect() : DB::table('link_clicks')
             ->selectRaw('ip_address, MIN(clicked_at) as first_seen')
             ->where('link_id', $link->id)
+            ->where('is_bot', false)
             ->whereNull('block_id')
             ->whereIn('ip_address', $inRangeIps->all())
             ->groupBy('ip_address')
@@ -53,6 +55,7 @@ class VisitorAnalyticsController extends Controller
         $perDay = DB::table('link_clicks')
             ->selectRaw('DATE(clicked_at) as d, ip_address')
             ->where('link_id', $link->id)
+            ->where('is_bot', false)
             ->whereNull('block_id')
             ->where('clicked_at', '>=', $since)
             ->get();
@@ -94,6 +97,7 @@ class VisitorAnalyticsController extends Controller
                 DB::raw('COUNT(*) as visit_count')
             )
             ->where('link_clicks.link_id', $link->id)
+            ->where('link_clicks.is_bot', false)
             ->whereNotNull('link_clicks.viewer_user_id')
             ->where('link_clicks.clicked_at', '>=', $since)
             ->groupBy('users.id', 'users.name', 'users.email', 'users.avatar')
