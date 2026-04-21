@@ -134,10 +134,34 @@
                                 @endif
                             </td>
                             <td class="py-2 pr-3 text-xs">
-                                @if(($issue->unsubscribed_count ?? 0) > 0)
-                                    <span class="text-amber-200">{{ number_format($issue->unsubscribed_count) }}</span>
+                                @php
+                                    $unsubs = (int) ($issue->unsubscribed_count ?? 0);
+                                    $delivered = (int) ($issue->sent_count ?? 0);
+                                    $rate = $delivered > 0 ? ($unsubs / $delivered) * 100 : null;
+                                    $isHigh = $rate !== null && $rate >= 1.0;
+                                @endphp
+                                @if($unsubs > 0)
+                                    <span class="text-amber-200">{{ number_format($unsubs) }}</span>
+                                    @if($rate !== null)
+                                        @if($isHigh)
+                                            <span class="ml-1 px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-200 border border-red-400/40"
+                                                  title="Unsubscribe rate is unusually high (≥ 1% of delivered)">
+                                                {{ number_format($rate, 2) }}%
+                                                <i class="fas fa-triangle-exclamation ml-0.5"></i>
+                                            </span>
+                                        @else
+                                            <span class="ml-1 text-white/50">({{ number_format($rate, 2) }}%)</span>
+                                        @endif
+                                    @else
+                                        <span class="ml-1 text-white/40" title="No delivered recipients yet">(—)</span>
+                                    @endif
                                 @else
                                     <span class="text-white/40">0</span>
+                                    @if($rate !== null)
+                                        <span class="ml-1 text-white/40">(0.00%)</span>
+                                    @else
+                                        <span class="ml-1 text-white/40" title="No delivered recipients yet">(—)</span>
+                                    @endif
                                 @endif
                             </td>
                             <td class="py-2 pr-3 text-xs text-white/60">{{ $issue->sender_email ?: '—' }}</td>
