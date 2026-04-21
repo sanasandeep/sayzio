@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 
 class LinkTrackingService
 {
-    public function track(Link $link, Request $request, ?string $usedAlias = null): LinkClick
+    public function track(Link $link, Request $request, ?string $usedAlias = null, ?string $source = null): LinkClick
     {
         $userAgent = $request->userAgent();
 
@@ -25,6 +25,7 @@ class LinkTrackingService
             'os' => $this->detectOS($userAgent),
             'device_type' => $this->detectDeviceType($userAgent),
             'referrer' => $request->header('referer'),
+            'source' => $source,
             'language' => $this->detectLanguage($request),
             'country_code' => $geo['country_code'] ?? null,
             'city' => $geo['city'] ?? null,
@@ -106,7 +107,7 @@ class LinkTrackingService
         return substr($lang, 0, 2);
     }
 
-    public function trackBlockClick(Link $link, BiolinkBlock $block, string $destinationUrl, Request $request, ?string $usedAlias = null): LinkClick
+    public function trackBlockClick(Link $link, BiolinkBlock $block, string $destinationUrl, Request $request, ?string $usedAlias = null, ?string $source = null): LinkClick
     {
         $userAgent = $request->userAgent();
         $geoService = app(GeoIpService::class);
@@ -124,6 +125,7 @@ class LinkTrackingService
             'os' => $this->detectOS($userAgent),
             'device_type' => $this->detectDeviceType($userAgent),
             'referrer' => $request->header('referer'),
+            'source' => $source,
             'language' => $this->detectLanguage($request),
             'country_code' => $geo['country_code'] ?? null,
             'city' => $geo['city'] ?? null,

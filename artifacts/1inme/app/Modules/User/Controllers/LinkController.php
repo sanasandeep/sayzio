@@ -390,6 +390,12 @@ class LinkController extends Controller
             ->selectRaw("device_type, COUNT(*) as count")
             ->whereNotNull('device_type')->groupBy('device_type')->orderByDesc('count')->get();
 
+        // Mobile-app vs web traffic split. Rows logged before this column
+        // existed are surfaced under "Unknown" so totals always reconcile.
+        $sourceStats = (clone $clicksQuery)
+            ->selectRaw("COALESCE(source, 'unknown') as source, COUNT(*) as count")
+            ->groupBy('source')->orderByDesc('count')->get();
+
         $languageStats = (clone $clicksQuery)
             ->selectRaw("language, COUNT(*) as count")
             ->whereNotNull('language')->groupBy('language')
@@ -660,7 +666,7 @@ class LinkController extends Controller
         return view('user.links.show', compact(
             'link', 'clicksOverTime', 'topReferrers',
             'browserStats', 'osStats', 'countryStats', 'cityStats',
-            'deviceStats', 'languageStats', 'blockStats', 'utmStats',
+            'deviceStats', 'sourceStats', 'languageStats', 'blockStats', 'utmStats',
             'recentClicks', 'totalInRange', 'uniqueInRange',
             'blockClicksInRange', 'pageVisitsInRange',
             'period', 'groupBy', 'startDate', 'endDate',

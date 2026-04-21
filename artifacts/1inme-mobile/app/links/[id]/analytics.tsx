@@ -133,6 +133,20 @@ export default function LinkAnalyticsScreen() {
             }))}
           />
         </Section>
+
+        <Section title="Mobile app vs web">
+          <Breakdown
+            rows={(data.by_source ?? []).map((r) => ({
+              label:
+                r.source === "mobile_app"
+                  ? "Mobile app"
+                  : r.source === "web"
+                    ? "Web"
+                    : "Unknown",
+              clicks: r.clicks,
+            }))}
+          />
+        </Section>
       </ScrollView>
     </View>
   );

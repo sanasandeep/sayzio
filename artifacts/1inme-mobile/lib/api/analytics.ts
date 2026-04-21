@@ -10,6 +10,7 @@ export type Analytics = {
   by_country: { country: string | null; clicks: number }[];
   by_referrer: { referrer_host: string | null; clicks: number }[];
   by_device: { device_type: string | null; clicks: number }[];
+  by_source: { source: string | null; clicks: number }[];
 };
 
 export async function getAnalytics(linkId: number): Promise<Analytics> {

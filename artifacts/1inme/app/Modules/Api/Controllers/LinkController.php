@@ -181,6 +181,7 @@ class LinkController extends Controller
             'by_country'  => [],
             'by_referrer' => [],
             'by_device'   => [],
+            'by_source'   => [],
         ];
 
         if (\Schema::hasTable('click_events')) {
@@ -201,6 +202,18 @@ class LinkController extends Controller
                 ->selectRaw('device_type, count(*) as clicks')
                 ->groupBy('device_type')->orderByDesc('clicks')->get()->all();
         }
+
+        // Mobile-app vs web split — pulled directly from `link_clicks` since
+        // that's where the LinkTrackingService records the source tag. Works
+        // independently of the optional `click_events` rollup table.
+        $payload['by_source'] = \DB::table('link_clicks')
+            ->where('link_id', $link->id)
+            ->whereBetween('clicked_at', [$from, $to])
+            ->selectRaw("COALESCE(source, 'unknown') as source, count(*) as clicks")
+            ->groupBy('source')
+            ->orderByDesc('clicks')
+            ->get()
+            ->all();
 
         return $this->ok(['analytics' => $payload]);
     }

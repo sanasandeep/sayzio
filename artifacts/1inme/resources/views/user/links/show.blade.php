@@ -597,6 +597,37 @@
     </div>
 </div>
 
+{{-- ===================== TRAFFIC SOURCE (mobile app vs web) ===================== --}}
+@php
+    $sourceLabelMap = ['mobile_app' => 'Mobile app', 'web' => 'Web', 'unknown' => 'Unknown'];
+    $sourceTotal = (int) $sourceStats->sum('count');
+@endphp
+<div class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#06b6d4,#22d3ee); --sc-glow: rgba(6,182,212,0.35); --sc-color: #67e8f9; --sc-border: rgba(6,182,212,0.3);">
+    <div class="section-head">
+        <div class="section-title"><div class="section-icon"><i class="fas fa-mobile-screen"></i></div> Traffic source</div>
+        <div class="text-xs" style="color: var(--text-faint);">Where each visit came from — the in-app viewer or the web</div>
+    </div>
+    @if($sourceStats->isEmpty() || $sourceTotal === 0)
+        <p class="text-sm text-center py-8" style="color: var(--text-faint);">No data</p>
+    @else
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+            <div style="height: 220px;"><canvas id="sourceChart"></canvas></div>
+            <div class="space-y-2">
+                @foreach($sourceStats as $row)
+                    @php
+                        $label = $sourceLabelMap[$row->source] ?? ucfirst(str_replace('_', ' ', $row->source));
+                        $pct = $sourceTotal > 0 ? round(($row->count / $sourceTotal) * 100, 1) : 0;
+                    @endphp
+                    <div class="flex items-center justify-between text-sm" style="color: var(--text-faint);">
+                        <span>{{ $label }}</span>
+                        <span><strong style="color: var(--text);">{{ number_format($row->count) }}</strong> &middot; {{ $pct }}%</span>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
+</div>
+
 {{-- ===================== GEOGRAPHIC HEATMAP ===================== --}}
 <div class="section-card mb-7"
      style="--sc-accent: linear-gradient(90deg,#f97316,#ef4444); --sc-glow: rgba(249,115,22,0.35); --sc-color: #fdba74; --sc-border: rgba(249,115,22,0.3);">
@@ -2080,6 +2111,7 @@ document.addEventListener('DOMContentLoaded', function () {
     @if(!$browserStats->isEmpty())doughnut('browserChart', @json($browserStats->pluck('browser')), @json($browserStats->pluck('count')));@endif
     @if(!$osStats->isEmpty())doughnut('osChart', @json($osStats->pluck('os')), @json($osStats->pluck('count')));@endif
     @if(!$deviceStats->isEmpty())doughnut('deviceChart', @json($deviceStats->pluck('device_type')), @json($deviceStats->pluck('count')));@endif
+    @if(!$sourceStats->isEmpty())doughnut('sourceChart', @json($sourceStats->pluck('source')->map(fn($s) => ['mobile_app' => 'Mobile app', 'web' => 'Web', 'unknown' => 'Unknown'][$s] ?? ucfirst(str_replace('_', ' ', $s)))), @json($sourceStats->pluck('count')));@endif
 });
 </script>
 

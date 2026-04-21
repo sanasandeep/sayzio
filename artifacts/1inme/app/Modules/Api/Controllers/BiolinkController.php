@@ -117,7 +117,7 @@ class BiolinkController extends Controller
             return $this->fail($gate['message'], $gate['status'], $gate['code']);
         }
 
-        $this->trackingService->track($link, $request, $alias);
+        $this->trackingService->track($link, $request, $alias, 'mobile_app');
 
         return $this->ok(['tracked' => true]);
     }
@@ -158,7 +158,7 @@ class BiolinkController extends Controller
             $destination = (string) ($linkData['url'] ?? $s['link'] ?? $s['url'] ?? '');
         }
 
-        $this->trackingService->trackBlockClick($link, $block, $destination, $request, $alias);
+        $this->trackingService->trackBlockClick($link, $block, $destination, $request, $alias, 'mobile_app');
 
         return $this->ok(['tracked' => true]);
     }

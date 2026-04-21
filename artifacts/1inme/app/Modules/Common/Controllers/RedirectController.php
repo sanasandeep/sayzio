@@ -137,7 +137,7 @@ class RedirectController extends Controller
             && !empty($settings['show_preview_page']);
 
         if ($previewEnabled && !$request->boolean('_continue')) {
-            $this->trackingService->track($link, $request, $alias);
+            $this->trackingService->track($link, $request, $alias, 'web');
             return response()->view('common.preview-page', compact('link'));
         }
 
@@ -145,7 +145,7 @@ class RedirectController extends Controller
         // users back here with `?_web=1` for the in-browser fallback — we
         // must NOT re-track that bounce or it inflates click counts.
         if (!$previewEnabled && !$request->boolean('_web')) {
-            $this->trackingService->track($link, $request, $alias);
+            $this->trackingService->track($link, $request, $alias, 'web');
         }
 
         // Smart redirect rules — evaluated for ALL link types so that
@@ -482,7 +482,7 @@ class RedirectController extends Controller
             $destinationUrl .= $separator . http_build_query($utmParams);
         }
 
-        $this->trackingService->trackBlockClick($link, $block, $destinationUrl, $request, $alias);
+        $this->trackingService->trackBlockClick($link, $block, $destinationUrl, $request, $alias, 'web');
 
         return redirect()->away($destinationUrl, 302);
     }
