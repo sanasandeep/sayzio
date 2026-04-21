@@ -204,6 +204,12 @@ uri = "file://artifacts/1inme/public/images/marketing/about/team.png"
 type = "image"
 title = "generated_image"
 
+[[generated]]
+id = "N1SiVTeGblcrRHCGelN-k"
+uri = "file://artifacts/1inme-mobile/assets/images/icon.png"
+type = "image"
+title = "1inme icon"
+
 [[outputs]]
 id = "e3t8rw5hE2-FfEtnuBmVI"
 uri = "file://attached_assets/stock_images/role_artist.jpg"

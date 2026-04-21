@@ -1,0 +1,27 @@
+kind = "mobile"
+previewPath = "/mobile/"
+title = "1INME Mobile"
+version = "1.0.0"
+id = "artifacts/1inme-mobile"
+router = "expo-domain"
+
+[[integratedSkills]]
+name = "expo"
+version = "1.0.0"
+
+[[services]]
+ensurePreviewReachable = "/status"
+name = "expo"
+paths = [ "/mobile/" ]
+localPort = 23680
+
+[services.development]
+run = "pnpm --filter @workspace/1inme-mobile run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/1inme-mobile", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/1inme-mobile", "run", "serve" ]
+
+[services.env]
+PORT = "23680"
+BASE_PATH = "/mobile/"
