@@ -169,6 +169,14 @@
             <span class="nav-label">Banned Names</span>
             <span class="sidebar-tooltip">Banned Names</span>
         </a>
+
+        <a href="{{ route('admin.demo-content.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.demo-content.*') ? 'active' : '' }}"
+           style="--nav-tint:#10b981; --nav-tint-soft:rgba(16,185,129,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-seedling"></i></div>
+            <span class="nav-label">Demo Content</span>
+            <span class="sidebar-tooltip">Demo Content</span>
+        </a>
     </nav>
 
     {{-- Footer / user --}}

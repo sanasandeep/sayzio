@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Common\Services\ViewerSession;
 use App\Modules\User\Models\FeedEvent;
 use App\Modules\User\Models\Follow;
+use App\Modules\User\Models\Subscriber;
 use App\Modules\User\Models\UserNotification;
 use Illuminate\Http\Request;
 
@@ -41,8 +42,25 @@ class FeedController extends Controller
                 \App\Modules\User\Models\CreatorPost::publishDuePosts($p->user_id);
             });
 
+        // Visibility filter: a feed event must match the viewer's relationship
+        // with its creator. Followers see public/registered/followers tier
+        // events; subscriber-tier events require an active Subscriber row
+        // matched on the viewer's email.
+        $subscribedCreatorIds = Subscriber::where('status', 'active')
+            ->where('email', $me->email)
+            ->whereIn('user_id', $followingIds)
+            ->pluck('user_id');
+
         $events = FeedEvent::with('user')
             ->whereIn('user_id', $followingIds)
+            ->where(function ($q) use ($subscribedCreatorIds, $me) {
+                $q->whereIn('visibility', ['public', 'registered', 'followers'])
+                  ->orWhere('user_id', $me->id) // own posts always visible
+                  ->orWhere(function ($w) use ($subscribedCreatorIds) {
+                      $w->where('visibility', 'subscribers')
+                        ->whereIn('user_id', $subscribedCreatorIds);
+                  });
+            })
             ->orderByDesc('occurred_at')
             ->paginate(20);
 

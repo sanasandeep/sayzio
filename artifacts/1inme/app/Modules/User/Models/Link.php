@@ -15,6 +15,7 @@ class Link extends Model
         'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
         'settings', 'total_clicks', 'unique_clicks',
         'splash_page_id', 'splash_enabled',
+        'visibility', 'is_demo',
     ];
 
     protected function casts(): array

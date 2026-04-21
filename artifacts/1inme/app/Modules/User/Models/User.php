@@ -21,6 +21,7 @@ class User extends Authenticatable
         'referral_code', 'referrer_id', 'referral_code_used',
         'social_connection_broken_emails',
         'country',
+        'is_demo',
     ];
 
     protected $hidden = ['password', 'remember_token'];

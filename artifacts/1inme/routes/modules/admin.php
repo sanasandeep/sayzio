@@ -21,6 +21,7 @@ use App\Modules\Admin\Controllers\BannedNameController;
 use App\Modules\Admin\Controllers\TaxController;
 use App\Modules\Admin\Controllers\GatewaySettingsController;
 use App\Modules\Admin\Controllers\PendingPaymentController;
+use App\Modules\Admin\Controllers\DemoContentController;
 use App\Modules\Admin\Middleware\CheckPermission;
 
 Route::prefix('admin')->name('admin.')->group(function () {
@@ -36,6 +37,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::middleware([\App\Modules\Admin\Middleware\AdminAuth::class])->group(function () {
         Route::post('logout', [AuthController::class, 'logout'])->name('logout');
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+
+        Route::prefix('demo-content')->name('demo-content.')->group(function () {
+            Route::get('/',     [DemoContentController::class, 'index'])->name('index');
+            Route::post('seed', [DemoContentController::class, 'seed'])->name('seed');
+            Route::post('wipe', [DemoContentController::class, 'wipe'])->name('wipe');
+        });
 
         Route::prefix('staff')->name('staff.')->group(function () {
             Route::get('/', [StaffController::class, 'index'])->middleware(CheckPermission::class . ':staff.view')->name('index');

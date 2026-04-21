@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Modules\Common\Services\AppLinkResolver;
 use App\Modules\Common\Services\LinkTrackingService;
 use App\Modules\Common\Services\SmartRedirectResolver;
+use App\Modules\Common\Services\ViewerSession;
 use App\Modules\User\Models\BiolinkBlock;
+use App\Modules\User\Models\Follow;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\Subscriber;
 use App\Modules\User\Services\SpamChecker;
@@ -195,6 +197,11 @@ class RedirectController extends Controller
             }
         }
 
+        // Visibility gating for biolinks (see enforceBiolinkVisibility()).
+        if ($gated = $this->enforceBiolinkVisibility($request, $link)) {
+            return $gated;
+        }
+
         return match ($link->type) {
             'url' => tap(
                 redirect()->away($finalUrl, $link->redirect_type ?: 301),
@@ -209,6 +216,48 @@ class RedirectController extends Controller
             'vcf' => $this->handleVcfDownload($link),
             default => abort(404),
         };
+    }
+
+    /**
+     * Enforce a biolink's visibility tier (public/registered/followers/
+     * subscribers). Returns a 401 gated response when the viewer doesn't
+     * meet the tier, or null to allow the request to proceed.
+     *
+     * Owners (the link's creator) always bypass the gate. Public visibility
+     * is a no-op so this is cheap to call on every biolink request.
+     */
+    protected function enforceBiolinkVisibility(Request $request, Link $link)
+    {
+        $vis = $link->visibility ?? 'public';
+        if ($vis === 'public') return null;
+        if ($link->type !== 'biolink') return null;
+
+        $viewerId = ViewerSession::id() ?: optional($request->user())->id;
+        if ($viewerId && (int) $viewerId === (int) $link->user_id) {
+            return null; // owner sees their own page in any tier
+        }
+
+        if ($vis === 'registered' && ! $viewerId) {
+            return response()->view('common.gated', ['link' => $link, 'reason' => 'registered'], 401);
+        }
+        if ($vis === 'followers') {
+            $following = $viewerId && Follow::where('follower_id', $viewerId)
+                ->where('creator_id', $link->user_id)->exists();
+            if (! $following) {
+                return response()->view('common.gated', ['link' => $link, 'reason' => 'followers'], 401);
+            }
+        }
+        if ($vis === 'subscribers') {
+            $subscribed = $viewerId && Subscriber::where('user_id', $link->user_id)
+                ->where('status', 'active')
+                ->whereIn('email', function ($q) use ($viewerId) {
+                    $q->select('email')->from('users')->where('id', $viewerId);
+                })->exists();
+            if (! $subscribed) {
+                return response()->view('common.gated', ['link' => $link, 'reason' => 'subscribers'], 401);
+            }
+        }
+        return null;
     }
 
     /**
@@ -398,6 +447,12 @@ class RedirectController extends Controller
                 return redirect()->away($redirect, 302);
             }
             return response()->view('common.link-expired', ['link' => $link], 410);
+        }
+
+        // Same visibility enforcement as the biolink page itself, so private
+        // tiers cannot be bypassed by deep-linking directly to a block click URL.
+        if ($gated = $this->enforceBiolinkVisibility($request, $link)) {
+            return $gated;
         }
 
         $block = BiolinkBlock::where('id', $blockId)->where('link_id', $link->id)->firstOrFail();
