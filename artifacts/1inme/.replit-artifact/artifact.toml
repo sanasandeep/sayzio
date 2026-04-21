@@ -18,7 +18,7 @@ PORT = "5000"
 args = ["sh", "-c", "cd artifacts/1inme && composer install --no-dev --optimize-autoloader --no-interaction && php artisan config:clear && php artisan route:clear && php artisan view:clear"]
 
 [services.production.run]
-args = ["sh", "-c", "cd artifacts/1inme && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=5000"]
+args = ["sh", "-c", '''cd artifacts/1inme && { php artisan migrate --force 2>&1 || echo "[1inme] migrate skipped/failed - continuing to serve"; } && exec php artisan serve --host=0.0.0.0 --port=5000''']
 
 [services.production.run.env]
 PORT = "5000"
