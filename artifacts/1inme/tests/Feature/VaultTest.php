@@ -366,6 +366,32 @@ class VaultTest extends TestCase
         $this->assertSame('@acme', $payload['clients'][0]['social_handles'][0]['handle']);
     }
 
+    public function test_client_attachments_load_via_relation_and_cascade_on_delete(): void
+    {
+        Storage::fake('local');
+        config(['filesystems.default' => 'local']);
+        $owner = $this->makeUser('owner');
+        $this->bindWorkspace($owner);
+        $client = VaultClient::create(['name' => 'Acme']);
+
+        $this->actingAs($owner)->post('/user/vault/clients/' . $client->id . '/attachments', [
+            'file' => \Illuminate\Http\UploadedFile::fake()->createWithContent('a.txt', 'hello'),
+        ])->assertRedirect();
+
+        // Relation must surface the row (regression: morphMany previously hid it).
+        $this->assertCount(1, $client->fresh()->attachments);
+
+        $att = VaultAttachment::first();
+        $this->assertTrue(Storage::disk('local')->exists($att->path));
+
+        $this->actingAs($owner)
+            ->delete('/user/vault/clients/' . $client->id)
+            ->assertRedirect();
+
+        $this->assertFalse(Storage::disk('local')->exists($att->path));
+        $this->assertSame(0, VaultAttachment::count());
+    }
+
     public function test_credential_delete_cascades_attachments_on_disk(): void
     {
         Storage::fake('local');

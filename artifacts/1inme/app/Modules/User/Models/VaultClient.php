@@ -51,7 +51,10 @@ class VaultClient extends Model
 
     public function attachments()
     {
-        return $this->morphMany(VaultAttachment::class, 'parent', 'parent_type', 'parent_id', 'id')
+        // Plain hasMany on parent_id with an explicit parent_type filter so
+        // the literal 'client' / 'credential' discriminator we store matches
+        // (a morphMany would inject the FQCN as the type and exclude rows).
+        return $this->hasMany(VaultAttachment::class, 'parent_id', 'id')
             ->where('parent_type', 'client');
     }
 

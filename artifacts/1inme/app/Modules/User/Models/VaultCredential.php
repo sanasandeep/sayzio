@@ -35,7 +35,7 @@ class VaultCredential extends Model
 
     public function attachments()
     {
-        return $this->morphMany(VaultAttachment::class, 'parent', 'parent_type', 'parent_id', 'id')
+        return $this->hasMany(VaultAttachment::class, 'parent_id', 'id')
             ->where('parent_type', 'credential');
     }
 
