@@ -26,7 +26,7 @@
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <div class="rounded-2xl border p-4" style="background: var(--surface-1); border-color: var(--border-soft);">
             <div class="text-[11px] uppercase tracking-wide" style="color: var(--text-dimmed);">Demo creators</div>
-            <div class="text-2xl font-bold mt-1" style="color: var(--text-primary);">{{ number_format($stats['users']) }}</div>
+            <div class="text-2xl font-bold mt-1" style="color: var(--text-primary);">{{ number_format($stats['creators'] ?? $stats['users']) }}</div>
         </div>
         <div class="rounded-2xl border p-4" style="background: var(--surface-1); border-color: var(--border-soft);">
             <div class="text-[11px] uppercase tracking-wide" style="color: var(--text-dimmed);">Demo links</div>
@@ -39,6 +39,22 @@
         <div class="rounded-2xl border p-4" style="background: var(--surface-1); border-color: var(--border-soft);">
             <div class="text-[11px] uppercase tracking-wide" style="color: var(--text-dimmed);">Demo super-admin</div>
             <div class="text-2xl font-bold mt-1" style="color: var(--text-primary);">{{ $stats['demo_user'] ? 'Yes' : 'No' }}</div>
+        </div>
+        <div class="rounded-2xl border p-4" style="background: var(--surface-1); border-color: var(--border-soft);">
+            <div class="text-[11px] uppercase tracking-wide" style="color: var(--text-dimmed);">Demo team workspaces</div>
+            <div class="text-2xl font-bold mt-1" style="color: var(--text-primary);">{{ number_format($stats['workspaces'] ?? 0) }}</div>
+        </div>
+        <div class="rounded-2xl border p-4" style="background: var(--surface-1); border-color: var(--border-soft);">
+            <div class="text-[11px] uppercase tracking-wide" style="color: var(--text-dimmed);">Demo task boards</div>
+            <div class="text-2xl font-bold mt-1" style="color: var(--text-primary);">{{ number_format($stats['task_boards'] ?? 0) }}</div>
+        </div>
+        <div class="rounded-2xl border p-4" style="background: var(--surface-1); border-color: var(--border-soft);">
+            <div class="text-[11px] uppercase tracking-wide" style="color: var(--text-dimmed);">Demo task cards</div>
+            <div class="text-2xl font-bold mt-1" style="color: var(--text-primary);">{{ number_format($stats['task_cards'] ?? 0) }}</div>
+        </div>
+        <div class="rounded-2xl border p-4" style="background: var(--surface-1); border-color: var(--border-soft);">
+            <div class="text-[11px] uppercase tracking-wide" style="color: var(--text-dimmed);">Demo team members</div>
+            <div class="text-2xl font-bold mt-1" style="color: var(--text-primary);">{{ number_format($stats['team_members'] ?? 0) }}</div>
         </div>
     </div>
 
@@ -53,8 +69,10 @@
                 <h2 class="text-base font-semibold" style="color: var(--text-primary);">Create demo content</h2>
             </div>
             <p class="text-xs mb-4" style="color: var(--text-dimmed);">
-                Wipes any existing demo data, then re-creates 6 demo creators with biolinks and a fresh feed
-                spanning all four visibility tiers. Existing real users are never touched.
+                Wipes any existing demo data, then re-creates the full demo footprint: 50+ links of every
+                type, 5 workspaces (1 personal + 4 team) with members, invites and populated task boards,
+                10 demo creators with biolinks, and 50+ feed events per creator across all four visibility
+                tiers. Existing real users are never touched.
             </p>
             <ul class="text-xs mb-4 space-y-1.5" style="color: var(--text-dimmed);">
                 <li><span class="inline-block w-2 h-2 rounded-full bg-emerald-400 mr-2"></span><strong>Public</strong> — visible to anyone</li>
