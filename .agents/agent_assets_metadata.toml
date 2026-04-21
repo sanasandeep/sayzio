@@ -287,3 +287,9 @@ id = "dsaWjQ-BeS00KuvqFb5b0"
 uri = "file://attached_assets/stock_images/thumb_podcast.jpg"
 type = "image"
 title = "podcast microphone studio setup warm lighting"
+
+[[outputs]]
+id = "18oaUFLuWSmAvAENvux6s"
+uri = "file://artifacts/1inme-mobile/assets/images/icon.png"
+type = "image"
+title = "1INME app icon / splash artwork"
