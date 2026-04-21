@@ -152,14 +152,28 @@
             <div class="flex-1 overflow-y-auto p-4">
                 <div class="grid grid-cols-6 sm:grid-cols-8 gap-2">
                     <template x-for="ic in filteredIcons()" :key="ic">
-                        <button type="button" @click="selectIcon(ic)"
-                                :class="'group flex items-center justify-center aspect-square rounded-lg border text-white/80 hover:text-white hover:bg-violet-500/20 transition ' + (picker.ci !== null && categories[picker.ci] && categories[picker.ci].icon === ic ? 'bg-violet-500/30 border-violet-400/50' : 'bg-white/5 border-white/10')"
-                                :title="ic">
+                        <button type="button" @click="tapIcon(ic)"
+                                @mouseenter="picker.hover = ic" @mouseleave="if (picker.hover === ic) picker.hover = null"
+                                @focus="picker.hover = ic" @blur="if (picker.hover === ic) picker.hover = null"
+                                :class="'group flex items-center justify-center aspect-square rounded-lg border text-white/80 hover:text-white hover:bg-violet-500/20 transition ' + (picker.hover === ic ? 'ring-2 ring-violet-400/60 ' : '') + (picker.ci !== null && categories[picker.ci] && categories[picker.ci].icon === ic ? 'bg-violet-500/30 border-violet-400/50' : 'bg-white/5 border-white/10')"
+                                :title="ic" :aria-label="ic">
                             <i :class="'fas ' + ic + ' text-base'"></i>
                         </button>
                     </template>
                 </div>
                 <div x-show="filteredIcons().length === 0" class="text-xs text-white/40 text-center py-6">No icons match "<span x-text="picker.query"></span>".</div>
+            </div>
+            <div class="px-4 py-2 border-t border-white/10 bg-black/30 flex items-center justify-center gap-2 min-h-[36px]">
+                <template x-if="picker.hover">
+                    <span class="flex items-center gap-2 text-xs text-white">
+                        <i :class="'fas ' + picker.hover + ' text-violet-300'"></i>
+                        <code class="text-white/90" x-text="picker.hover"></code>
+                        <span class="text-white/40 hidden sm:inline">— tap again to select</span>
+                    </span>
+                </template>
+                <template x-if="!picker.hover">
+                    <span class="text-[11px] text-white/40">Hover or tap an icon to see its name.</span>
+                </template>
             </div>
             <div class="p-3 border-t border-white/10 text-[11px] text-white/40 text-center">
                 You can also type a FontAwesome class name directly in the icon field.
@@ -340,7 +354,7 @@
                     description: f.description || '',
                 })),
             })),
-            picker: { open: false, ci: null, query: '' },
+            picker: { open: false, ci: null, query: '', hover: null },
             dragCat: { from: null },
             dragFeat: { fromCi: null, fromFi: null },
             addCategory() {
@@ -424,6 +438,7 @@
                 this.picker.open = true;
                 this.picker.ci = ci;
                 this.picker.query = '';
+                this.picker.hover = null;
                 this.$nextTick(() => {
                     if (this.$refs.pickerSearch) this.$refs.pickerSearch.focus();
                 });
@@ -432,12 +447,23 @@
                 this.picker.open = false;
                 this.picker.ci = null;
                 this.picker.query = '';
+                this.picker.hover = null;
             },
             selectIcon(name) {
                 if (this.picker.ci !== null && this.categories[this.picker.ci]) {
                     this.categories[this.picker.ci].icon = name;
                 }
                 this.closePicker();
+            },
+            tapIcon(name) {
+                // On hover-capable devices, the icon is already "hovered" before
+                // click, so the first tap selects. On touch devices, the first
+                // tap reveals the name and a second tap on the same icon selects.
+                if (this.picker.hover === name) {
+                    this.selectIcon(name);
+                } else {
+                    this.picker.hover = name;
+                }
             },
             filteredIcons() {
                 const q = (this.picker.query || '').trim().toLowerCase();
