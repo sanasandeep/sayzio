@@ -1,6 +1,6 @@
 @php($useModal = $useModal ?? false)
-<nav class="sticky top-0 inset-x-0 z-40 bg-[#1e2330]/90 backdrop-blur-xl border-b border-white/5"
-     x-data="{ mobileOpen:false {{ $useModal ? ', authOpen:false, authTab:\'login\'' : '' }} }">
+<div x-data="{ mobileOpen:false {{ $useModal ? ', authOpen:false, authTab:\'login\'' : '' }} }">
+<nav class="sticky top-0 inset-x-0 z-40 bg-[#1e2330]/90 backdrop-blur-xl border-b border-white/5">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16">
             <a href="{{ route('home') }}" class="inline-flex items-center" aria-label="1INME home">
@@ -62,7 +62,8 @@
         </div>
     </div>
 
-    @if($useModal)
-        @include('public.partials.auth-modal')
-    @endif
 </nav>
+@if($useModal)
+    @include('public.partials.auth-modal')
+@endif
+</div>

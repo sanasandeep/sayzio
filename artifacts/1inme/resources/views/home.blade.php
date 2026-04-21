@@ -1951,8 +1951,9 @@
 <div class="aurora" aria-hidden="true"><b></b><b></b><b></b><b></b></div>
 
 {{-- ============================ NAV ============================ --}}
+<div x-data="{ mobileOpen: false, authOpen: false, authTab: 'login' }">
 <nav class="fixed top-0 inset-x-0 z-50 bg-[#0a0a14]/80 backdrop-blur-xl border-b border-white/5"
-     x-data="{ mobileOpen: false, authOpen: false, authTab: 'login' }" role="banner">
+     role="banner">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16">
             <a href="{{ route('home') }}" class="inline-flex items-center" aria-label="1INME home">
@@ -1996,8 +1997,9 @@
             </div>
         </div>
     </div>
-    @include('public.partials.auth-modal')
 </nav>
+@include('public.partials.auth-modal')
+</div>
 
 {{-- ============================ HERO ============================ --}}
 @php

@@ -1,11 +1,11 @@
 {{-- Two-panel login/register modal. Mounted only on the home page. Forms post to the existing user auth endpoints. --}}
 <div x-show="authOpen" x-cloak
-     class="fixed inset-0 z-[100] flex items-center justify-center p-4"
+     class="fixed inset-0 z-[100] overflow-y-auto overscroll-contain bg-black/70 backdrop-blur-sm"
+     @click.self="authOpen=false"
      @keydown.escape.window="authOpen=false"
      role="dialog" aria-modal="true" aria-label="Sign in or create an account">
-    <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" @click="authOpen=false"></div>
-
-    <div class="relative w-full max-w-3xl bg-[#1e2330] rounded-2xl shadow-2xl overflow-hidden border border-white/10">
+    <div class="min-h-full flex items-center justify-center p-4" @click.self="authOpen=false">
+    <div class="relative w-full max-w-3xl my-8 bg-[#1e2330] rounded-2xl shadow-2xl overflow-hidden border border-white/10">
         <button type="button" @click="authOpen=false"
                 class="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center"
                 aria-label="Close">
@@ -119,6 +119,7 @@
                 @endif
             </div>
         </div>
+    </div>
     </div>
 </div>
 @if($errors->any() || old('name') || old('email'))
