@@ -21,7 +21,7 @@
              @touchmove.window.prevent="moveDrag($event)"
              @touchend.window="endDrag()">
             <template x-if="previewUrl">
-                <img :src="previewUrl" alt="" draggable="false" class="absolute left-1/2 top-1/2 max-w-none pointer-events-none" :style="imgStyle">
+                <img :src="previewUrl" :crossorigin="previewUrl && previewUrl.indexOf('blob:') === 0 ? null : 'anonymous'" alt="" draggable="false" class="absolute left-1/2 top-1/2 max-w-none pointer-events-none" :style="imgStyle">
             </template>
             <div class="absolute inset-0 pointer-events-none">
                 <div class="absolute inset-0 rounded-full ring-2 ring-white/70 shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]"></div>
@@ -34,7 +34,8 @@
         </div>
         <p x-show="error" x-text="error" class="text-xs text-red-400 mt-2"></p>
         <div class="mt-4 flex items-center justify-between gap-2">
-            <button type="button" @click="skipCrop()" class="text-xs px-3 py-1.5 text-white/70 hover:text-white" title="Upload the original photo without cropping">Skip cropping</button>
+            <button type="button" x-show="pendingFile" @click="skipCrop()" class="text-xs px-3 py-1.5 text-white/70 hover:text-white" title="Upload the original photo without cropping">Skip cropping</button>
+            <span x-show="!pendingFile" class="text-xs text-white/40">Re-cropping current photo</span>
             <div class="flex items-center gap-2">
                 <button type="button" @click="cancelCrop()" class="text-xs px-3 py-1.5 text-white/70 hover:text-white">Cancel</button>
                 <button type="button" @click="confirmCrop()" :disabled="!natW" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1">

@@ -49,6 +49,22 @@
                     return 'transform: translate(calc(-50% + ' + this.tx + 'px), calc(-50% + ' + this.ty + 'px)) scale(' + this.totalScale + '); transform-origin: center center;';
                 },
                 pickFile() { this.$refs.fileInput.click(); },
+                _loadedImg: null,
+                _resetCropState() {
+                    this.zoom = 1;
+                    this.tx = 0;
+                    this.ty = 0;
+                    this.natW = 0;
+                    this.natH = 0;
+                    this.baseScale = 1;
+                    this._loadedImg = null;
+                },
+                _releasePreview() {
+                    if (this.previewUrl && this.previewUrl.indexOf('blob:') === 0) {
+                        try { URL.revokeObjectURL(this.previewUrl); } catch (_) {}
+                    }
+                    this.previewUrl = '';
+                },
                 handleFile(e) {
                     const file = (e.target.files || [])[0];
                     e.target.value = '';
@@ -63,23 +79,44 @@
                     }
                     this.error = '';
                     this.pendingFile = file;
-                    if (this.previewUrl) URL.revokeObjectURL(this.previewUrl);
+                    this._releasePreview();
                     this.previewUrl = URL.createObjectURL(file);
-                    this.zoom = 1;
-                    this.tx = 0;
-                    this.ty = 0;
-                    this.natW = 0;
-                    this.natH = 0;
-                    this.baseScale = 1;
+                    this._resetCropState();
                     this.cropping = true;
                     const img = new Image();
                     img.onload = () => {
                         this.natW = img.naturalWidth || 1;
                         this.natH = img.naturalHeight || 1;
                         this.baseScale = Math.max(this.vpW / this.natW, this.vpH / this.natH);
+                        this._loadedImg = img;
                         this.clampPan();
                     };
                     img.src = this.previewUrl;
+                },
+                recropFromUrl() {
+                    const url = (this.model || '').trim();
+                    if (!url) { this.error = 'Add a photo URL first.'; return; }
+                    this.error = '';
+                    this.pendingFile = null;
+                    this._releasePreview();
+                    this.previewUrl = url;
+                    this._resetCropState();
+                    this.cropping = true;
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    img.onload = () => {
+                        this.natW = img.naturalWidth || 1;
+                        this.natH = img.naturalHeight || 1;
+                        this.baseScale = Math.max(this.vpW / this.natW, this.vpH / this.natH);
+                        this._loadedImg = img;
+                        this.clampPan();
+                    };
+                    img.onerror = () => {
+                        this.cropping = false;
+                        this._releasePreview();
+                        this.error = 'Could not load this image for re-cropping. The host may block cross-origin access — re-upload the file instead.';
+                    };
+                    img.src = url;
                 },
                 clampPan() {
                     if (!this.natW || !this.natH) return;
@@ -112,12 +149,13 @@
                 },
                 endDrag() { this.dragging = false; },
                 cancelCrop() {
-                    if (this.previewUrl) { URL.revokeObjectURL(this.previewUrl); this.previewUrl = ''; }
+                    this._releasePreview();
                     this.pendingFile = null;
                     this.cropping = false;
                 },
                 async confirmCrop() {
-                    if (!this.pendingFile || !this.natW || !this.natH) return;
+                    if (!this.natW || !this.natH) return;
+                    if (!this.pendingFile && !this.previewUrl) return;
                     this.error = '';
                     try {
                         const s = this.totalScale;
@@ -133,19 +171,41 @@
                         canvas.width = outW;
                         canvas.height = outH;
                         const ctx = canvas.getContext('2d');
-                        const img = new Image();
-                        img.src = this.previewUrl;
-                        await new Promise((res, rej) => {
-                            if (img.complete && img.naturalWidth) res();
-                            else { img.onload = res; img.onerror = () => rej(new Error('Could not load image for cropping.')); }
-                        });
+                        let img = this._loadedImg;
+                        if (!img) {
+                            img = new Image();
+                            const isRemote = this.previewUrl.indexOf('blob:') !== 0;
+                            if (isRemote) img.crossOrigin = 'anonymous';
+                            img.src = this.previewUrl;
+                            await new Promise((res, rej) => {
+                                if (img.complete && img.naturalWidth) res();
+                                else { img.onload = res; img.onerror = () => rej(new Error('Could not load image for cropping.')); }
+                            });
+                        }
                         ctx.drawImage(img, sx, sy, sw, sh, 0, 0, outW, outH);
-                        const blob = await new Promise((res) => canvas.toBlob(res, 'image/jpeg', 0.92));
+                        let blob;
+                        try {
+                            blob = await new Promise((res, rej) => {
+                                try { canvas.toBlob((b) => res(b), 'image/jpeg', 0.92); }
+                                catch (e) { rej(e); }
+                            });
+                        } catch (e) {
+                            throw new Error('This image host blocks cross-origin access, so it cannot be re-cropped here. Re-upload the file instead.');
+                        }
                         if (!blob) throw new Error('Could not generate cropped image.');
-                        const baseName = (this.pendingFile.name || 'photo').replace(/\.[^.]+$/, '');
+                        let baseName = 'photo';
+                        if (this.pendingFile) {
+                            baseName = (this.pendingFile.name || 'photo').replace(/\.[^.]+$/, '');
+                        } else {
+                            try {
+                                const path = (new URL(this.previewUrl, window.location.href)).pathname;
+                                const last = path.split('/').pop() || '';
+                                baseName = (last.replace(/\.[^.]+$/, '') || 'photo');
+                            } catch (_) { /* keep default */ }
+                        }
                         const file = new File([blob], baseName + '-cropped.jpg', { type: 'image/jpeg' });
                         const previousFile = this.pendingFile;
-                        if (this.previewUrl) { URL.revokeObjectURL(this.previewUrl); this.previewUrl = ''; }
+                        this._releasePreview();
                         this.pendingFile = null;
                         this.cropping = false;
                         try {
@@ -161,8 +221,13 @@
                 },
                 async skipCrop() {
                     const file = this.pendingFile;
-                    if (!file) return;
-                    if (this.previewUrl) { URL.revokeObjectURL(this.previewUrl); this.previewUrl = ''; }
+                    if (!file) {
+                        // Re-crop from URL has no underlying file to upload as-is —
+                        // skipping is equivalent to cancelling.
+                        this.cancelCrop();
+                        return;
+                    }
+                    this._releasePreview();
                     this.pendingFile = null;
                     this.cropping = false;
                     try {
@@ -235,11 +300,12 @@
                         </template>
                         <div class="flex-1 space-y-2">
                             <input type="url" name="extra[founder][photo]" x-model="photo" placeholder="https://… or upload below" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-2 flex-wrap">
                                 <button type="button" @click="pickFile()" :disabled="uploading" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1">
                                     <i class="fas fa-upload"></i>
                                     <span x-text="uploading ? ('Uploading… ' + progress + '%') : 'Upload image'"></span>
                                 </button>
+                                <button type="button" x-show="photo" @click="recropFromUrl()" :disabled="uploading" class="text-xs px-3 py-1.5 bg-white/10 hover:bg-white/20 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1" title="Re-crop the photo currently in the URL field"><i class="fas fa-crop"></i><span>Re-crop current photo</span></button>
                                 <button type="button" x-show="photo" @click="clear()" class="text-xs px-2 py-1.5 text-white/60 hover:text-white"><i class="fas fa-times mr-1"></i>Remove</button>
                             </div>
                             <p x-show="error" x-text="error" class="text-xs text-red-400"></p>
@@ -293,11 +359,12 @@
                         </template>
                         <div class="flex-1 space-y-2">
                             <input type="url" :name="'extra[co_founders]['+i+'][photo]'" x-model="p.photo" placeholder="Photo URL or upload below" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-2 flex-wrap">
                                 <button type="button" @click="pickFile()" :disabled="uploading" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1">
                                     <i class="fas fa-upload"></i>
                                     <span x-text="uploading ? ('Uploading… ' + progress + '%') : 'Upload image'"></span>
                                 </button>
+                                <button type="button" x-show="p.photo" @click="recropFromUrl()" :disabled="uploading" class="text-xs px-3 py-1.5 bg-white/10 hover:bg-white/20 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1" title="Re-crop the photo currently in the URL field"><i class="fas fa-crop"></i><span>Re-crop current photo</span></button>
                                 <button type="button" x-show="p.photo" @click="clear()" class="text-xs px-2 py-1.5 text-white/60 hover:text-white"><i class="fas fa-times mr-1"></i>Remove</button>
                             </div>
                             <p x-show="error" x-text="error" class="text-xs text-red-400"></p>
@@ -345,11 +412,12 @@
                         </template>
                         <div class="flex-1 space-y-2">
                             <input type="url" :name="'extra[team]['+i+'][photo]'" x-model="p.photo" placeholder="Photo URL or upload below" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-2 flex-wrap">
                                 <button type="button" @click="pickFile()" :disabled="uploading" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1">
                                     <i class="fas fa-upload"></i>
                                     <span x-text="uploading ? ('Uploading… ' + progress + '%') : 'Upload image'"></span>
                                 </button>
+                                <button type="button" x-show="p.photo" @click="recropFromUrl()" :disabled="uploading" class="text-xs px-3 py-1.5 bg-white/10 hover:bg-white/20 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1" title="Re-crop the photo currently in the URL field"><i class="fas fa-crop"></i><span>Re-crop current photo</span></button>
                                 <button type="button" x-show="p.photo" @click="clear()" class="text-xs px-2 py-1.5 text-white/60 hover:text-white"><i class="fas fa-times mr-1"></i>Remove</button>
                             </div>
                             <p x-show="error" x-text="error" class="text-xs text-red-400"></p>
