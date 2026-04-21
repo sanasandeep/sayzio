@@ -30,6 +30,14 @@
     .drawer.open { transform: translateX(0); }
     .priority-pill { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
     .label-pill { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; color: white; }
+    .rt-toolbar button { padding: 2px 8px; border-radius: 6px; font-size: 12px; color: var(--text-muted); border: 1px solid var(--border-soft); background: var(--bg-glass-input); }
+    .rt-toolbar button:hover { color: var(--text-primary); }
+    .rt-editor { min-height: 96px; padding: 8px 10px; border: 1px solid var(--border-soft); border-radius: 8px; background: var(--bg-glass-input); color: var(--text-primary); font-size: 14px; }
+    .rt-editor:focus { outline: 2px solid rgba(124,58,237,0.4); }
+    .progress-track { height: 6px; background: var(--bg-glass-input); border-radius: 999px; overflow: hidden; }
+    .progress-fill  { height: 6px; background: linear-gradient(90deg,#7c3aed,#a78bfa); }
+    .col-drag-handle { cursor: grab; opacity: 0.5; padding: 0 4px; }
+    .col-drag-handle:hover { opacity: 1; }
 </style>
 @endpush
 @section('content')
@@ -65,10 +73,49 @@
         </div>
     </div>
 
-    <div class="kanban-scroll flex gap-4">
+    {{-- Filter bar: assignee / label / due range / search. All client-side. --}}
+    <div class="mb-4 flex flex-wrap items-center gap-2 p-3 rounded-xl"
+         style="background: var(--bg-card); border: 1px solid var(--border-soft);">
+        <input type="text" x-model.debounce.150ms="filters.search" placeholder="Search title / description…"
+               class="px-3 py-1.5 rounded-lg border text-sm flex-1 min-w-[200px]"
+               style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
+        <select x-model="filters.assignee"
+                class="px-2 py-1.5 rounded-lg border text-sm"
+                style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
+            <option value="">All assignees</option>
+            @foreach($members as $m)
+                <option value="{{ $m->id }}">{{ $m->name }}</option>
+            @endforeach
+        </select>
+        <select x-model="filters.label"
+                class="px-2 py-1.5 rounded-lg border text-sm"
+                style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
+            <option value="">All labels</option>
+            @foreach($board->labels as $lab)
+                <option value="{{ $lab->id }}">{{ $lab->name }}</option>
+            @endforeach
+        </select>
+        <select x-model="filters.due"
+                class="px-2 py-1.5 rounded-lg border text-sm"
+                style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
+            <option value="">Any due date</option>
+            <option value="overdue">Overdue</option>
+            <option value="today">Due today</option>
+            <option value="week">Due this week</option>
+            <option value="none">No due date</option>
+        </select>
+        <button @click="filters = { search:'', assignee:'', label:'', due:'' }"
+                class="text-xs font-semibold px-2 py-1.5 rounded-lg border"
+                style="border-color: var(--border-soft); color: var(--text-muted);">
+            Clear
+        </button>
+    </div>
+
+    <div class="kanban-scroll flex gap-4" data-sortable-cols>
         @foreach($board->columns as $col)
             <div class="kanban-col" data-column-id="{{ $col->id }}">
                 <div class="kanban-col-header" style="border-top: 3px solid {{ $col->color ?: '#8b5cf6' }}; border-radius: 14px 14px 0 0;">
+                    <span class="col-drag-handle" data-col-handle title="Drag to reorder column"><i class="fas fa-grip-vertical"></i></span>
                     <span class="flex-1">{{ $col->name }}</span>
                     @if($col->is_done)<i class="fas fa-check-circle text-emerald-500" title="Done column"></i>@endif
                     <span class="text-xs font-normal" style="color: var(--text-faint);">{{ $col->cards->count() }}@if($col->wip_limit)/{{ $col->wip_limit }}@endif</span>
@@ -79,7 +126,12 @@
                 <div class="kanban-col-cards" data-sortable-cards data-column-id="{{ $col->id }}">
                     @foreach($col->cards as $card)
                         <div class="kanban-card {{ $card->completed_at ? 'completed' : '' }}"
-                             data-card-id="{{ $card->id }}" id="card-{{ $card->id }}"
+                             data-card-id="{{ $card->id }}"
+                             data-card-title="{{ strtolower($card->title.' '.$card->description) }}"
+                             data-card-assignees="{{ $card->assignees->pluck('id')->implode(',') }}"
+                             data-card-labels="{{ $card->labels->pluck('id')->implode(',') }}"
+                             data-card-due="{{ $card->due_date ? $card->due_date->toDateString() : '' }}"
+                             id="card-{{ $card->id }}"
                              @click="openCard({{ $card->id }})">
                             <div class="text-sm font-semibold" style="color: var(--text-primary);">{{ $card->title }}</div>
                             <div class="flex items-center flex-wrap gap-1 mt-2">
@@ -175,11 +227,28 @@
                     </div>
                 </div>
 
+                <div class="mb-3">
+                    <label class="block text-[10px] font-bold uppercase mb-1" style="color: var(--text-faint);">
+                        Progress (<span x-text="card.progress || 0"></span>%)
+                    </label>
+                    <input type="range" min="0" max="100" step="5" x-model.number="card.progress"
+                           @change="saveCard({ progress: parseInt(card.progress) })"
+                           class="w-full">
+                    <div class="progress-track mt-1"><div class="progress-fill" :style="`width:${card.progress||0}%`"></div></div>
+                </div>
+
                 <label class="block text-[10px] font-bold uppercase mb-1" style="color: var(--text-faint);">Description</label>
-                <textarea x-model="card.description" @blur="saveCard({ description: card.description })" rows="4"
-                          class="w-full px-3 py-2 rounded-lg border text-sm"
-                          style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);"
-                          placeholder="Add more detail…"></textarea>
+                <div class="rt-toolbar flex gap-1 mb-1">
+                    <button type="button" @click="rtCmd('bold')"><b>B</b></button>
+                    <button type="button" @click="rtCmd('italic')"><i>I</i></button>
+                    <button type="button" @click="rtCmd('underline')"><u>U</u></button>
+                    <button type="button" @click="rtCmd('insertUnorderedList')">• List</button>
+                    <button type="button" @click="rtCmd('insertOrderedList')">1. List</button>
+                </div>
+                <div class="rt-editor" contenteditable="true" x-ref="descEditor"
+                     @blur="saveCard({ description_html: $event.target.innerHTML })"
+                     x-html="card.description_html || ''"
+                     data-placeholder="Add more detail…"></div>
 
                 <div class="mt-5">
                     <h3 class="text-xs font-bold uppercase mb-2" style="color: var(--text-faint);">Assignees</h3>
@@ -252,6 +321,25 @@
                 </div>
 
                 <div class="mt-5">
+                    <h3 class="text-xs font-bold uppercase mb-2" style="color: var(--text-faint);">Attachments</h3>
+                    <template x-for="a in (card.attachments || [])" :key="a.id">
+                        <div class="flex items-center justify-between gap-2 mb-1 p-2 rounded text-sm" style="background: var(--bg-glass-input);">
+                            <a :href="a.url" target="_blank" class="flex items-center gap-2 flex-1 truncate" style="color: var(--text-primary);">
+                                <i class="fas fa-paperclip"></i>
+                                <span class="truncate" x-text="a.original_name"></span>
+                                <span class="text-xs" style="color: var(--text-faint);" x-text="a.human_size"></span>
+                            </a>
+                            <button @click="destroyAttachment(a.id)" class="text-xs" style="color: var(--text-faint);"><i class="fas fa-times"></i></button>
+                        </div>
+                    </template>
+                    <label class="inline-flex items-center gap-2 px-3 py-1.5 mt-1 rounded-lg text-xs font-semibold border cursor-pointer"
+                           style="border-color: var(--border-strong); color: var(--text-primary);">
+                        <i class="fas fa-upload"></i> Upload file (max 10MB)
+                        <input type="file" class="hidden" @change="uploadAttachment($event)">
+                    </label>
+                </div>
+
+                <div class="mt-5">
                     <h3 class="text-xs font-bold uppercase mb-2" style="color: var(--text-faint);">Comments</h3>
                     <template x-for="c in card.comments" :key="c.id">
                         <div class="mb-2 p-2 rounded" style="background: var(--bg-glass-input);">
@@ -286,11 +374,33 @@ function kanbanBoard(boardId) {
         showAddColumn: false,
         newLabelOpen: false,
         boardLabels: @json($board->labels->map(fn($l) => ['id'=>$l->id,'name'=>$l->name,'color'=>$l->color])),
+        filters: { search: '', assignee: '', label: '', due: '' },
         card: null,
         csrf: document.querySelector('meta[name="csrf-token"]').content,
 
         init() {
             const self = this;
+            // Re-apply filters whenever any filter value changes.
+            this.$watch('filters', () => this.applyFilters(), { deep: true });
+            this.applyFilters();
+
+            // Column drag-and-drop reorder (drag handle on each header).
+            const colsEl = document.querySelector('[data-sortable-cols]');
+            if (colsEl) {
+                Sortable.create(colsEl, {
+                    handle: '[data-col-handle]',
+                    animation: 150,
+                    ghostClass: 'sortable-ghost',
+                    onEnd: () => {
+                        const order = Array.from(colsEl.querySelectorAll('.kanban-col'))
+                            .map(c => parseInt(c.dataset.columnId));
+                        self.fetchJson(`/user/tasks/boards/${self.boardId}/columns/reorder`, {
+                            method: 'POST', body: { order }
+                        });
+                    },
+                });
+            }
+
             document.querySelectorAll('[data-sortable-cards]').forEach(el => {
                 Sortable.create(el, {
                     group: 'cards',
@@ -394,6 +504,71 @@ function kanbanBoard(boardId) {
             await this.attachLabel(r.label.id);
             e.target.reset();
             this.newLabelOpen = false;
+        },
+
+        rtCmd(cmd) {
+            document.execCommand(cmd, false, null);
+            const ed = this.$refs.descEditor;
+            if (ed) this.saveCard({ description_html: ed.innerHTML });
+        },
+
+        async uploadAttachment(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (file.size > 10 * 1024 * 1024) {
+                alert('File too large (10MB max).');
+                e.target.value = '';
+                return;
+            }
+            const fd = new FormData();
+            fd.append('file', file);
+            fd.append('_token', this.csrf);
+            const r = await fetch(`/user/tasks/cards/${this.card.id}/attachments`, {
+                method: 'POST', body: fd, headers: { 'X-CSRF-TOKEN': this.csrf, 'Accept': 'application/json' },
+            });
+            const j = await r.json();
+            if (j.ok) {
+                this.card.attachments = this.card.attachments || [];
+                this.card.attachments.unshift(j.attachment);
+            }
+            e.target.value = '';
+        },
+        async destroyAttachment(id) {
+            await this.fetchJson(`/user/tasks/attachments/${id}`, { method: 'DELETE' });
+            this.card.attachments = (this.card.attachments || []).filter(a => a.id !== id);
+        },
+
+        applyFilters() {
+            const f = this.filters;
+            const today = new Date(); today.setHours(0,0,0,0);
+            const weekEnd = new Date(today); weekEnd.setDate(weekEnd.getDate() + 7);
+            document.querySelectorAll('.kanban-card').forEach(card => {
+                let show = true;
+                if (f.search) {
+                    const t = (card.dataset.cardTitle || '').toLowerCase();
+                    if (!t.includes(f.search.toLowerCase())) show = false;
+                }
+                if (show && f.assignee) {
+                    const ids = (card.dataset.cardAssignees || '').split(',').filter(Boolean);
+                    if (!ids.includes(String(f.assignee))) show = false;
+                }
+                if (show && f.label) {
+                    const ids = (card.dataset.cardLabels || '').split(',').filter(Boolean);
+                    if (!ids.includes(String(f.label))) show = false;
+                }
+                if (show && f.due) {
+                    const due = card.dataset.cardDue;
+                    if (f.due === 'none') { if (due) show = false; }
+                    else if (!due) show = false;
+                    else {
+                        const d = new Date(due); d.setHours(0,0,0,0);
+                        if (f.due === 'overdue' && d >= today) show = false;
+                        if (f.due === 'today' && d.getTime() !== today.getTime()) show = false;
+                        if (f.due === 'week' && (d < today || d > weekEnd)) show = false;
+                    }
+                }
+                card.style.display = show ? '' : 'none';
+            });
         },
 
         async destroyCard() {

@@ -8,6 +8,13 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
+// Daily 8am local server time: notify assignees of cards that are due today
+// or already overdue. Dedup-protected so reruns in the same day are no-ops.
+Schedule::command('tasks:send-due-reminders')
+    ->dailyAt('08:00')
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Nightly: write yesterday's Performance Coach score + component breakdown
 // for every active link. Drives the 30-day sparkline in the coach card.
 Schedule::command('coach:snapshot-scores')

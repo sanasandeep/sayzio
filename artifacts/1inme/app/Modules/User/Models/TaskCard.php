@@ -11,8 +11,8 @@ class TaskCard extends Model
 
     protected $fillable = [
         'workspace_id', 'board_id', 'column_id', 'created_by_user_id',
-        'title', 'description', 'position', 'due_date', 'priority',
-        'completed_at', 'archived_at',
+        'title', 'description', 'description_html', 'position',
+        'due_date', 'priority', 'progress', 'completed_at', 'archived_at',
     ];
 
     protected $casts = [
@@ -27,6 +27,7 @@ class TaskCard extends Model
     public function subtasks()   { return $this->hasMany(TaskSubtask::class, 'card_id')->orderBy('position'); }
     public function comments()   { return $this->hasMany(TaskComment::class, 'card_id')->orderBy('created_at'); }
     public function activities() { return $this->hasMany(TaskActivity::class, 'card_id')->orderByDesc('created_at'); }
+    public function attachments(){ return $this->hasMany(TaskAttachment::class, 'card_id')->orderByDesc('id'); }
 
     public function assignees()
     {

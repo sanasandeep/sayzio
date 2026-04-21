@@ -4,6 +4,7 @@ namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\TaskActivity;
+use App\Modules\User\Models\TaskAttachment;
 use App\Modules\User\Models\TaskBoard;
 use App\Modules\User\Models\TaskCard;
 use App\Modules\User\Models\TaskColumn;
@@ -106,6 +107,102 @@ class TaskBoardController extends Controller
             'members'    => $members,
             'priorities' => TaskCard::priorities(),
         ]);
+    }
+
+    /** Sanitize description HTML to a safe allow-list of inline + block tags. */
+    /**
+     * Allow-list HTML sanitizer built on DOMDocument. Anything not on the
+     * tag/attribute whitelist (or any href whose scheme isn't http/https/
+     * mailto) is stripped. This defeats event-handler injection (`onclick=`
+     * with or without quotes), `javascript:` URLs (including encoded
+     * variants), and unknown elements like `<script>` / `<iframe>`.
+     */
+    private function sanitizeHtml(?string $html): ?string
+    {
+        if ($html === null) return null;
+        $html = trim($html);
+        if ($html === '') return '';
+
+        $allowedTags = [
+            'p','br','b','strong','i','em','u','s','strike','ul','ol','li',
+            'a','blockquote','code','pre','h1','h2','h3','span','div',
+        ];
+        $allowedAttrs = [
+            'a' => ['href', 'title', 'rel', 'target'],
+        ];
+
+        $doc = new \DOMDocument('1.0', 'UTF-8');
+        // Suppress libxml warnings about HTML5 tags / loose markup.
+        libxml_use_internal_errors(true);
+        // Wrap so DOMDocument doesn't auto-add <html><body> entities and so
+        // we can encode incoming UTF-8 correctly.
+        $wrapped = '<?xml encoding="UTF-8"?><div id="__rt_root">' . $html . '</div>';
+        if (!$doc->loadHTML($wrapped, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD | LIBXML_NONET)) {
+            libxml_clear_errors();
+            return '';
+        }
+        libxml_clear_errors();
+
+        $root = $doc->getElementById('__rt_root');
+        if (!$root) {
+            // Fallback: nothing parsed cleanly.
+            return '';
+        }
+
+        // Walk depth-first; collect disallowed nodes for replacement, but
+        // never touch the root wrapper itself.
+        $walk = function (\DOMNode $node) use (&$walk, $allowedTags, $allowedAttrs, $root) {
+            // Snapshot children before mutating.
+            $children = iterator_to_array($node->childNodes);
+            foreach ($children as $child) {
+                if ($child instanceof \DOMElement) {
+                    $tag = strtolower($child->tagName);
+                    if (!in_array($tag, $allowedTags, true)) {
+                        // Unwrap: replace element with its text content.
+                        $text = $node->ownerDocument->createTextNode($child->textContent);
+                        $node->replaceChild($text, $child);
+                        continue;
+                    }
+                    // Strip every attribute not on the per-tag allowlist.
+                    $allowedForTag = $allowedAttrs[$tag] ?? [];
+                    foreach (iterator_to_array($child->attributes) as $attr) {
+                        $name = strtolower($attr->name);
+                        if (!in_array($name, $allowedForTag, true)) {
+                            $child->removeAttribute($attr->name);
+                            continue;
+                        }
+                        if ($name === 'href') {
+                            // Normalize: lowercase, decode hex/decimal entities,
+                            // strip whitespace inside the scheme prefix.
+                            $val = trim($attr->value);
+                            $decoded = html_entity_decode($val, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                            $stripped = preg_replace('/\s+/', '', $decoded);
+                            if (!preg_match('#^(https?:|mailto:|/|\#)#i', $stripped)) {
+                                // Anything that isn't a safe scheme/path is killed.
+                                $child->removeAttribute('href');
+                                continue;
+                            }
+                        }
+                        if ($name === 'target') {
+                            // Hard-pin target=_blank with safe rel.
+                            $child->setAttribute('target', '_blank');
+                            $child->setAttribute('rel', 'noopener noreferrer nofollow');
+                        }
+                    }
+                    $walk($child);
+                } elseif ($child instanceof \DOMComment || $child instanceof \DOMProcessingInstruction) {
+                    $node->removeChild($child);
+                }
+            }
+        };
+        $walk($root);
+
+        // Serialize the inner HTML of the wrapper.
+        $out = '';
+        foreach ($root->childNodes as $c) {
+            $out .= $doc->saveHTML($c);
+        }
+        return $out;
     }
 
     public function updateBoard(Request $request, TaskBoard $board)
@@ -242,9 +339,14 @@ class TaskBoardController extends Controller
     public function showCard(TaskCard $card)
     {
         $this->authorizeView($card->board);
-        $card->load(['assignees:id,name,avatar', 'labels', 'subtasks', 'comments.user:id,name,avatar', 'activities.user:id,name,avatar', 'column']);
+        $card->load(['assignees:id,name,avatar', 'labels', 'subtasks', 'comments.user:id,name,avatar', 'activities.user:id,name,avatar', 'column', 'attachments.uploader:id,name']);
+        $cardArr = $card->toArray();
+        $cardArr['attachments'] = $card->attachments->map(fn ($a) => array_merge($a->toArray(), [
+            'url' => $a->url(),
+            'human_size' => $a->humanSize(),
+        ]))->all();
         return response()->json([
-            'card'    => $card,
+            'card'    => $cardArr,
             'members' => $this->workspaceMembers(),
             'labels'  => $card->board->labels,
             'priorities' => TaskCard::priorities(),
@@ -255,11 +357,16 @@ class TaskBoardController extends Controller
     {
         $this->authorizeEdit($card->board);
         $data = $request->validate([
-            'title'       => 'sometimes|string|max:200',
-            'description' => 'sometimes|nullable|string|max:8000',
-            'due_date'    => 'sometimes|nullable|date',
-            'priority'    => 'sometimes|in:low,normal,high,urgent',
+            'title'            => 'sometimes|string|max:200',
+            'description'      => 'sometimes|nullable|string|max:8000',
+            'description_html' => 'sometimes|nullable|string|max:20000',
+            'due_date'         => 'sometimes|nullable|date',
+            'priority'         => 'sometimes|in:low,normal,high,urgent',
+            'progress'         => 'sometimes|integer|min:0|max:100',
         ]);
+        if (array_key_exists('description_html', $data)) {
+            $data['description_html'] = $this->sanitizeHtml($data['description_html']);
+        }
 
         $changes = [];
         foreach ($data as $field => $value) {
@@ -446,8 +553,118 @@ class TaskBoardController extends Controller
             'body'    => $data['body'],
         ]);
         TaskActivity::log($card->id, auth()->id(), 'commented', ['preview' => mb_substr($data['body'], 0, 80)]);
+        $this->notifyMentions($card, $data['body']);
         $comment->load('user:id,name,avatar');
         return response()->json(['ok' => true, 'comment' => $comment]);
+    }
+
+    /**
+     * Find @name / @email mentions in a comment body and ping each matched
+     * workspace member with a task_mention notification. Mentions only fire
+     * for users who are members of the card's workspace (or its owner).
+     */
+    private function notifyMentions(TaskCard $card, string $body): void
+    {
+        if (!preg_match_all('/@([a-z0-9._\-]{2,64})/i', $body, $m)) return;
+        $tokens = array_unique($m[1]);
+        if (!$tokens) return;
+        $members = $this->workspaceMembers();
+        foreach ($tokens as $token) {
+            $tokenLower = mb_strtolower($token);
+            $hit = $members->first(function ($u) use ($tokenLower) {
+                $name = mb_strtolower(preg_replace('/\s+/', '', (string) $u->name));
+                $handle = mb_strtolower((string) ($u->handle ?? ''));
+                $emailUser = mb_strtolower(strstr((string) $u->email, '@', true) ?: '');
+                return $name === $tokenLower || $handle === $tokenLower || $emailUser === $tokenLower;
+            });
+            if (!$hit || (int) $hit->id === (int) auth()->id()) continue;
+            UserNotification::create([
+                'user_id'    => $hit->id,
+                'type'       => 'task_mention',
+                'data'       => [
+                    'message'    => optional(auth()->user())->name . ' mentioned you on: ' . $card->title,
+                    'card_id'    => $card->id,
+                    'board_id'   => $card->board_id,
+                    'board_name' => optional($card->board)->name,
+                    'mentioner'  => optional(auth()->user())->name,
+                    'url'        => route('user.tasks.show', $card->board_id) . '#card-' . $card->id,
+                ],
+                'created_at' => now(),
+            ]);
+        }
+    }
+
+    // ----- Attachments ------------------------------------------------------
+
+    public function storeAttachment(Request $request, TaskCard $card)
+    {
+        $this->authorizeEdit($card->board);
+        $request->validate([
+            // 10 MB cap per the v1 spec.
+            'file' => [
+                'required', 'file', 'max:10240',
+                // Allowlist common doc / image / archive types. We forbid
+                // active content (html, svg, js, php, exe) so attachments
+                // can't be served as same-origin script/markup.
+                'mimes:jpg,jpeg,png,gif,webp,bmp,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv,md,rtf,zip,tar,gz,mp3,mp4,mov,wav,ogg',
+            ],
+        ]);
+        $file = $request->file('file');
+        // Defense-in-depth: also reject by extension since `mimes` derives
+        // its check from server-side type detection only.
+        $ext = strtolower($file->getClientOriginalExtension());
+        if (in_array($ext, ['html','htm','svg','xhtml','xml','js','mjs','php','phtml','phar','exe','sh','bat','cmd'], true)) {
+            return response()->json(['ok' => false, 'error' => 'File type not allowed.'], 422);
+        }
+        // Store on private 'local' disk so URLs never leak — downloads must
+        // go through downloadAttachment() which re-checks workspace authz.
+        $path = $file->store('task-attachments/' . $card->workspace_id, 'local');
+        $att = TaskAttachment::create([
+            'card_id'             => $card->id,
+            'uploaded_by_user_id' => auth()->id(),
+            'original_name'       => $file->getClientOriginalName(),
+            'mime'                => $file->getClientMimeType(),
+            'size_bytes'          => $file->getSize(),
+            'disk'                => 'local',
+            'path'                => $path,
+        ]);
+        TaskActivity::log($card->id, auth()->id(), 'attached', ['name' => $att->original_name]);
+        return response()->json([
+            'ok' => true,
+            'attachment' => array_merge($att->toArray(), [
+                'url' => $att->url(),
+                'human_size' => $att->humanSize(),
+            ]),
+        ]);
+    }
+
+    public function downloadAttachment(TaskAttachment $attachment)
+    {
+        // resolveScopedCard 404s if the card isn't in the current workspace,
+        // which transitively gates the attachment.
+        $card = $this->resolveScopedCard($attachment->card_id);
+        $this->authorizeView($card->board);
+        $disk = \Storage::disk($attachment->disk);
+        if (!$disk->exists($attachment->path)) {
+            abort(404);
+        }
+        // Force `Content-Disposition: attachment` so browsers download rather
+        // than render — even if the upload allowlist were bypassed.
+        return $disk->download($attachment->path, $attachment->original_name, [
+            'Content-Type'              => 'application/octet-stream',
+            'X-Content-Type-Options'    => 'nosniff',
+            'Content-Security-Policy'   => "default-src 'none'",
+        ]);
+    }
+
+    public function destroyAttachment(TaskAttachment $attachment)
+    {
+        $card = $this->resolveScopedCard($attachment->card_id);
+        $this->authorizeEdit($card->board);
+        try { \Storage::disk($attachment->disk)->delete($attachment->path); } catch (\Throwable $e) {}
+        TaskActivity::log($card->id, auth()->id(), 'attachment_removed', ['name' => $attachment->original_name]);
+        $attachment->delete();
+        return response()->json(['ok' => true]);
     }
 
     // ----- Labels -----------------------------------------------------------

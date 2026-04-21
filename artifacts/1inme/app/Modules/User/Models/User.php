@@ -79,6 +79,14 @@ class User extends Authenticatable
                     ]
                 );
             }
+            // Auto-provision a "My Tasks" personal kanban board for the new
+            // user on their personal workspace. Wrapped in try/catch so a
+            // failure here can never block account creation.
+            try {
+                \App\Modules\User\Services\PersonalTaskBoardProvisioner::ensureFor($user);
+            } catch (\Throwable $e) {
+                report($e);
+            }
         });
     }
 

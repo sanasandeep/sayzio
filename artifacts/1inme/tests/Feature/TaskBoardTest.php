@@ -2,15 +2,20 @@
 
 namespace Tests\Feature;
 
+use App\Modules\User\Models\TaskAttachment;
 use App\Modules\User\Models\TaskBoard;
 use App\Modules\User\Models\TaskCard;
 use App\Modules\User\Models\TaskColumn;
+use App\Modules\User\Models\TaskSubtask;
 use App\Modules\User\Models\User;
+use App\Modules\User\Models\UserNotification;
 use App\Modules\User\Models\Workspace;
 use App\Modules\User\Models\WorkspaceMember;
 use App\Modules\User\Services\WorkspaceContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -169,6 +174,216 @@ class TaskBoardTest extends TestCase
         $this->actingAs($alice)
             ->post("/user/tasks/cards/{$card->id}/assign", ['user_id' => $outsider->id])
             ->assertStatus(422);
+    }
+
+    public function test_personal_board_owner_can_create_cards_even_as_viewer(): void
+    {
+        // A user added to someone else's workspace as a viewer should still
+        // be able to maintain their own personal board on their personal
+        // workspace, regardless of role on the shared one.
+        $alice = $this->makeUser('alice');
+        $bob   = $this->makeUser('bob');
+        $aliceWs = $alice->ensureDefaultWorkspace();
+        WorkspaceMember::create(['workspace_id' => $aliceWs->id, 'user_id' => $bob->id, 'role' => 'viewer']);
+
+        // Bob acts inside his own personal workspace.
+        $bobWs = $bob->ensureDefaultWorkspace();
+        session(['active_workspace_id' => $bobWs->id]);
+
+        // Bob creates a personal board on his workspace and adds a card.
+        $this->actingAs($bob)
+            ->post('/user/tasks/boards', ['name' => 'Bob TODO', 'scope' => 'personal'])
+            ->assertRedirect();
+        $board = TaskBoard::query()->withoutGlobalScope('workspace')
+            ->where('name', 'Bob TODO')->first();
+        $this->assertNotNull($board);
+        $col = $board->columns()->orderBy('position')->first();
+
+        $this->actingAs($bob)
+            ->post("/user/tasks/boards/{$board->id}/cards", ['column_id' => $col->id, 'title' => 'Buy milk'])
+            ->assertRedirect();
+        $this->assertDatabaseHas('task_cards', ['title' => 'Buy milk', 'board_id' => $board->id]);
+    }
+
+    public function test_cross_workspace_subtask_returns_404_not_500(): void
+    {
+        // Subtask resolved through global model binding for a card belonging
+        // to another workspace must 404 cleanly, not crash on null relation.
+        $alice = $this->makeUser('alice');
+        $bob   = $this->makeUser('bob');
+        $aliceWs = $alice->ensureDefaultWorkspace();
+        $bobWs   = $bob->ensureDefaultWorkspace();
+
+        session(['active_workspace_id' => $aliceWs->id]);
+        $this->actingAs($alice)->post('/user/tasks/boards', ['name' => 'A', 'scope' => 'team']);
+        $board = TaskBoard::query()->withoutGlobalScope('workspace')->where('name', 'A')->first();
+        $col   = $board->columns()->orderBy('position')->first();
+        $this->actingAs($alice)->post("/user/tasks/boards/{$board->id}/cards",
+            ['column_id' => $col->id, 'title' => 'Card']);
+        $card = TaskCard::query()->withoutGlobalScope('workspace')->where('title', 'Card')->first();
+        $this->actingAs($alice)->post("/user/tasks/cards/{$card->id}/subtasks", ['title' => 'Sub'])->assertOk();
+        $sub = TaskSubtask::query()->withoutGlobalScope('workspace')->first();
+
+        // Bob is signed-in to *his* workspace; the subtask doesn't belong here.
+        session(['active_workspace_id' => $bobWs->id]);
+        $this->actingAs($bob)
+            ->post("/user/tasks/subtasks/{$sub->id}/toggle")
+            ->assertNotFound();
+    }
+
+    public function test_attachment_upload_and_size_limit(): void
+    {
+        Storage::fake('public');
+        $alice = $this->makeUser('alice');
+        session(['active_workspace_id' => $alice->ensureDefaultWorkspace()->id]);
+        $this->actingAs($alice)->post('/user/tasks/boards', ['name' => 'Att', 'scope' => 'team']);
+        $board = TaskBoard::query()->withoutGlobalScope('workspace')->where('name', 'Att')->first();
+        $col = $board->columns()->orderBy('position')->first();
+        $this->actingAs($alice)->post("/user/tasks/boards/{$board->id}/cards", ['column_id' => $col->id, 'title' => 'C']);
+        $card = TaskCard::query()->withoutGlobalScope('workspace')->where('title', 'C')->first();
+
+        // Happy path
+        $this->actingAs($alice)
+            ->post("/user/tasks/cards/{$card->id}/attachments", [
+                'file' => UploadedFile::fake()->create('spec.pdf', 200, 'application/pdf'),
+            ])
+            ->assertOk();
+        $this->assertSame(1, TaskAttachment::query()->withoutGlobalScope('workspace')->count());
+
+        // Oversized file (11MB) gets rejected by validation.
+        $this->actingAs($alice)
+            ->post("/user/tasks/cards/{$card->id}/attachments", [
+                'file' => UploadedFile::fake()->create('big.bin', 11 * 1024),
+            ])
+            ->assertStatus(302); // validation redirect
+        $this->assertSame(1, TaskAttachment::query()->withoutGlobalScope('workspace')->count());
+    }
+
+    public function test_mention_in_comment_pings_workspace_member(): void
+    {
+        $alice = $this->makeUser('alice');
+        $bob   = $this->makeUser('bob');
+        $bob->update(['name' => 'bobster']); // single-token name for the @bobster mention
+        $aliceWs = $alice->ensureDefaultWorkspace();
+        WorkspaceMember::create(['workspace_id' => $aliceWs->id, 'user_id' => $bob->id, 'role' => 'editor']);
+
+        session(['active_workspace_id' => $aliceWs->id]);
+        $this->actingAs($alice)->post('/user/tasks/boards', ['name' => 'M', 'scope' => 'team']);
+        $board = TaskBoard::query()->withoutGlobalScope('workspace')->where('name', 'M')->first();
+        $col = $board->columns()->orderBy('position')->first();
+        $this->actingAs($alice)->post("/user/tasks/boards/{$board->id}/cards", ['column_id' => $col->id, 'title' => 'X']);
+        $card = TaskCard::query()->withoutGlobalScope('workspace')->where('title', 'X')->first();
+
+        $this->actingAs($alice)
+            ->post("/user/tasks/cards/{$card->id}/comments", ['body' => 'hey @bobster please review'])
+            ->assertOk();
+
+        $this->assertDatabaseHas('user_notifications', [
+            'user_id' => $bob->id,
+            'type'    => 'task_mention',
+        ]);
+    }
+
+    public function test_due_reminder_command_notifies_assignees_and_dedupes(): void
+    {
+        $alice = $this->makeUser('alice');
+        $bob   = $this->makeUser('bob');
+        $ws    = $alice->ensureDefaultWorkspace();
+        WorkspaceMember::create(['workspace_id' => $ws->id, 'user_id' => $bob->id, 'role' => 'editor']);
+
+        session(['active_workspace_id' => $ws->id]);
+        $this->actingAs($alice)->post('/user/tasks/boards', ['name' => 'Due', 'scope' => 'team']);
+        $board = TaskBoard::query()->withoutGlobalScope('workspace')->where('name', 'Due')->first();
+        $col = $board->columns()->orderBy('position')->first();
+        $this->actingAs($alice)->post("/user/tasks/boards/{$board->id}/cards", ['column_id' => $col->id, 'title' => 'Late']);
+        $card = TaskCard::query()->withoutGlobalScope('workspace')->where('title', 'Late')->first();
+        $card->update(['due_date' => now()->subDays(2), 'completed_at' => null]);
+        $card->assignees()->attach($bob->id);
+
+        // Drop the workspace binding to mimic CLI execution context.
+        app()->forgetInstance('current_workspace');
+        session()->forget('active_workspace_id');
+
+        $this->artisan('tasks:send-due-reminders')->assertSuccessful();
+        $this->artisan('tasks:send-due-reminders')->assertSuccessful(); // dedupe
+
+        $count = UserNotification::where('user_id', $bob->id)
+            ->where('type', 'task_overdue')
+            ->count();
+        $this->assertSame(1, $count, 'reminder should fire once per day per card per assignee');
+    }
+
+    public function test_attachment_blocks_disallowed_mime_and_extension(): void
+    {
+        Storage::fake('local');
+        $alice = $this->makeUser('alice');
+        session(['active_workspace_id' => $alice->ensureDefaultWorkspace()->id]);
+        $this->actingAs($alice)->post('/user/tasks/boards', ['name' => 'Sec', 'scope' => 'team']);
+        $board = TaskBoard::query()->withoutGlobalScope('workspace')->where('name', 'Sec')->first();
+        $col = $board->columns()->orderBy('position')->first();
+        $this->actingAs($alice)->post("/user/tasks/boards/{$board->id}/cards", ['column_id' => $col->id, 'title' => 'C']);
+        $card = TaskCard::query()->withoutGlobalScope('workspace')->where('title', 'C')->first();
+
+        // SVG is a known same-origin XSS vector — must be rejected.
+        $this->actingAs($alice)
+            ->post("/user/tasks/cards/{$card->id}/attachments", [
+                'file' => UploadedFile::fake()->createWithContent('evil.svg',
+                    '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>'),
+            ])
+            ->assertStatus(302); // validation redirect
+        $this->assertSame(0, TaskAttachment::query()->withoutGlobalScope('workspace')->count());
+
+        // .html disguised as text/plain — extension blocklist must still kill it.
+        $this->actingAs($alice)
+            ->post("/user/tasks/cards/{$card->id}/attachments", [
+                'file' => UploadedFile::fake()->createWithContent('payload.html', '<script>alert(1)</script>'),
+            ])
+            ->assertStatus(302);
+        $this->assertSame(0, TaskAttachment::query()->withoutGlobalScope('workspace')->count());
+    }
+
+    public function test_html_sanitizer_strips_xss_payloads(): void
+    {
+        $alice = $this->makeUser('alice');
+        session(['active_workspace_id' => $alice->ensureDefaultWorkspace()->id]);
+        $this->actingAs($alice)->post('/user/tasks/boards', ['name' => 'X', 'scope' => 'team']);
+        $board = TaskBoard::query()->withoutGlobalScope('workspace')->where('name', 'X')->first();
+        $col = $board->columns()->orderBy('position')->first();
+        $this->actingAs($alice)->post("/user/tasks/boards/{$board->id}/cards", ['column_id' => $col->id, 'title' => 'C']);
+        $card = TaskCard::query()->withoutGlobalScope('workspace')->where('title', 'C')->first();
+
+        $payload = '<p>Hello <b>world</b></p>'
+            . '<script>alert(1)</script>'
+            . '<img src=x onerror=alert(1)>'
+            . '<a href="javascript:alert(1)" onclick=alert(2) onmouseover="alert(3)">click</a>'
+            . '<a href="JaVaScRiPt&#58;alert(4)">enc</a>'
+            . '<iframe src="https://evil.example"></iframe>';
+
+        $this->actingAs($alice)
+            ->patch("/user/tasks/cards/{$card->id}", ['description_html' => $payload])
+            ->assertOk();
+
+        $stored = $card->fresh()->description_html;
+        $this->assertStringNotContainsStringIgnoringCase('<script', $stored);
+        $this->assertStringNotContainsStringIgnoringCase('<iframe', $stored);
+        $this->assertStringNotContainsStringIgnoringCase('onerror', $stored);
+        $this->assertStringNotContainsStringIgnoringCase('onclick', $stored);
+        $this->assertStringNotContainsStringIgnoringCase('onmouseover', $stored);
+        $this->assertStringNotContainsStringIgnoringCase('javascript:', $stored);
+        // Safe content survives.
+        $this->assertStringContainsString('Hello', $stored);
+        $this->assertStringContainsString('<b>world</b>', $stored);
+    }
+
+    public function test_personal_board_auto_creates_for_new_user(): void
+    {
+        // Creating a brand-new user should also create their personal board
+        // via the User::created hook (PersonalTaskBoardProvisioner).
+        $u = $this->makeUser('newbie');
+        $this->assertSame(1, TaskBoard::query()->withoutGlobalScope('workspace')
+            ->where('owner_user_id', $u->id)
+            ->where('scope', 'personal')
+            ->count());
     }
 
     public function test_deleting_column_moves_cards_to_fallback_column(): void

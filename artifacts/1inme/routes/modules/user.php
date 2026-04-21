@@ -580,6 +580,11 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post('boards/{board}/labels',           [\App\Modules\User\Controllers\TaskBoardController::class, 'storeLabel'])->name('labels.store');
             Route::post('cards/{card}/labels',             [\App\Modules\User\Controllers\TaskBoardController::class, 'attachLabel'])->name('cards.labels.attach');
             Route::delete('cards/{card}/labels/{label}',   [\App\Modules\User\Controllers\TaskBoardController::class, 'detachLabel'])->name('cards.labels.detach');
+
+            // File attachments — 10 MB cap enforced in the controller.
+            Route::post('cards/{card}/attachments',        [\App\Modules\User\Controllers\TaskBoardController::class, 'storeAttachment'])->name('attachments.store');
+            Route::get('attachments/{attachment}/download',[\App\Modules\User\Controllers\TaskBoardController::class, 'downloadAttachment'])->name('attachments.download');
+            Route::delete('attachments/{attachment}',      [\App\Modules\User\Controllers\TaskBoardController::class, 'destroyAttachment'])->name('attachments.destroy');
         });
 
         // Account verification (blue-tick request) — workspace-account-level.
