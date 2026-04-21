@@ -243,6 +243,63 @@ class VaultTest extends TestCase
         $this->assertSame([['key' => 'Account #', 'value' => 'A-12345']], $client->getEncrypted('fields', true));
     }
 
+    public function test_tag_search_does_not_cross_workspaces(): void
+    {
+        $alice = $this->makeUser('alice');
+        $bob = $this->makeUser('bob');
+
+        $this->bindWorkspace($alice);
+        VaultCredential::create(['label' => 'alice creds', 'tags' => ['shared-tag']]);
+
+        $this->bindWorkspace($bob);
+        VaultCredential::create(['label' => 'bob creds', 'tags' => ['shared-tag']]);
+
+        // Bob searching for the shared tag must only see his own row, not alice's.
+        $resp = $this->actingAs($bob)->get('/user/vault/credentials?q=shared-tag')->assertOk();
+        $resp->assertSee('bob creds');
+        $resp->assertDontSee('alice creds');
+
+        // Same for clients.
+        $this->bindWorkspace($alice);
+        VaultClient::create(['name' => 'alice client', 'tags' => ['leakcheck']]);
+        $this->bindWorkspace($bob);
+        VaultClient::create(['name' => 'bob client', 'tags' => ['leakcheck']]);
+        $resp2 = $this->actingAs($bob)->get('/user/vault/clients?q=leakcheck')->assertOk();
+        $resp2->assertSee('bob client');
+        $resp2->assertDontSee('alice client');
+    }
+
+    public function test_attachment_download_returns_generic_error_when_ciphertext_corrupt(): void
+    {
+        Storage::fake('local');
+        config(['filesystems.default' => 'local']);
+        $owner = $this->makeUser('owner');
+        $ws = $this->bindWorkspace($owner);
+        $client = VaultClient::create(['name' => 'C']);
+
+        // Write a corrupt blob directly and create the row pointing at it.
+        $path = 'vault/' . $ws->id . '/clients/' . $client->id . '/broken.enc';
+        Storage::disk('local')->put($path, 'not-real-cipher');
+        $att = VaultAttachment::create([
+            'workspace_id'        => $ws->id,
+            'uploaded_by_user_id' => $owner->id,
+            'parent_type'         => 'client',
+            'parent_id'           => $client->id,
+            'filename'            => 'broken.bin',
+            'disk'                => 'local',
+            'path'                => $path,
+            'size'                => 15,
+            'encrypted'           => true,
+        ]);
+
+        $this->actingAs($owner)
+            ->get('/user/vault/attachments/' . $att->id . '/download')
+            ->assertStatus(422);
+
+        $this->bindWorkspace($owner);
+        $this->assertTrue(VaultAudit::where('action', 'reveal')->where('target_id', $client->id)->exists());
+    }
+
     public function test_attachment_bytes_are_encrypted_at_rest_and_decrypt_on_download(): void
     {
         Storage::fake('local');

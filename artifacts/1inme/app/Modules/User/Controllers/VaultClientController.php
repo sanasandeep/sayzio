@@ -21,16 +21,19 @@ class VaultClientController extends Controller
         $query = VaultClient::query()->orderBy('name');
 
         if ($q !== '') {
+            // Tag predicate stays inside the same grouped where so the
+            // workspace scope cannot be ORed away (would leak across tenants).
             $needle = '%' . str_replace('%', '\%', $q) . '%';
-            $query->where(function ($w) use ($needle) {
+            $tagSafe = preg_match('/^[A-Za-z0-9_-]{1,40}$/', $q) ? $q : null;
+            $query->where(function ($w) use ($needle, $tagSafe) {
                 $w->where('name', 'like', $needle)
                   ->orWhere('company', 'like', $needle)
                   ->orWhere('primary_email', 'like', $needle)
                   ->orWhere('primary_phone', 'like', $needle);
+                if ($tagSafe !== null) {
+                    $w->orWhereJsonContains('tags', $tagSafe);
+                }
             });
-            if (preg_match('/^[A-Za-z0-9_-]{1,40}$/', $q)) {
-                $query->orWhereJsonContains('tags', $q);
-            }
         }
 
         $items = $query->get()->filter(fn ($c) => $c->visibleTo($request->user(), app('current_workspace')))->values();

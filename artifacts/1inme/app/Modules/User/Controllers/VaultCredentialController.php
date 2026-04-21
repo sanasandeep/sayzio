@@ -18,17 +18,21 @@ class VaultCredentialController extends Controller
         $query = VaultCredential::query()->orderByDesc('updated_at');
 
         if ($q !== '') {
-            // Encrypted columns are intentionally excluded from search.
+            // Encrypted columns are intentionally excluded from search. The
+            // tag predicate must stay inside the same grouped `where` so the
+            // workspace global scope's WHERE remains conjunctive — without
+            // the grouping a top-level orWhereJsonContains would leak rows
+            // from other workspaces.
             $needle = '%' . str_replace('%', '\%', $q) . '%';
-            $query->where(function ($w) use ($needle) {
+            $tagSafe = preg_match('/^[A-Za-z0-9_-]{1,40}$/', $q) ? $q : null;
+            $query->where(function ($w) use ($needle, $tagSafe) {
                 $w->where('label', 'like', $needle)
                   ->orWhere('username', 'like', $needle)
                   ->orWhere('url', 'like', $needle);
+                if ($tagSafe !== null) {
+                    $w->orWhereJsonContains('tags', $tagSafe);
+                }
             });
-            // Tag match (JSON array): use whereJsonContains where the haystack equals the term.
-            if (preg_match('/^[A-Za-z0-9_-]{1,40}$/', $q)) {
-                $query->orWhereJsonContains('tags', $q);
-            }
         }
 
         $items = $query->get()->filter(fn ($c) => $c->visibleTo($request->user(), app('current_workspace')))->values();

@@ -68,7 +68,14 @@ class VaultAttachmentController extends Controller
 
         $bytes = Storage::disk($attachment->disk)->get($attachment->path);
         if ($attachment->encrypted) {
-            $bytes = app(WorkspaceEncryption::class)->decrypt((int) $attachment->workspace_id, $bytes);
+            try {
+                $bytes = app(WorkspaceEncryption::class)->decrypt((int) $attachment->workspace_id, $bytes);
+            } catch (\Throwable $e) {
+                // Audit the attempt even when decryption fails, then surface
+                // a generic error so we never leak cipher/key internals.
+                VaultAudit::record('reveal', $attachment->parent_type, $attachment->parent_id, $attachment->filename . ' (decrypt failed)');
+                abort(422, 'Could not decrypt attachment.');
+            }
         }
 
         VaultAudit::record('reveal', $attachment->parent_type, $attachment->parent_id, $attachment->filename);

@@ -36,7 +36,13 @@
             <div class="rounded-lg p-3 bg-white/5"><dt class="text-xs uppercase text-gray-400">URL</dt><dd class="mt-1"><a href="{{ $item->url }}" target="_blank" class="text-blue-400 hover:underline">{{ $item->url }}</a></dd></div>
         @endif
         @if($item->username)
-            <div class="rounded-lg p-3 bg-white/5"><dt class="text-xs uppercase text-gray-400">Username</dt><dd class="mt-1 font-mono text-sm">{{ $item->username }}</dd></div>
+            <div class="rounded-lg p-3 bg-white/5">
+                <dt class="text-xs uppercase text-gray-400 flex items-center justify-between">
+                    <span>Username</span>
+                    <button type="button" onclick="navigator.clipboard.writeText(this.dataset.v)" data-v="{{ $item->username }}" class="text-xs text-gray-400 hover:text-white"><i class="fas fa-copy"></i></button>
+                </dt>
+                <dd class="mt-1 font-mono text-sm">{{ $item->username }}</dd>
+            </div>
         @endif
         <div class="rounded-lg p-3 bg-white/5 md:col-span-2">
             <dt class="text-xs uppercase text-gray-400 flex items-center justify-between">
