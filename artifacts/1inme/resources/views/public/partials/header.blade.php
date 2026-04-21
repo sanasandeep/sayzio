@@ -12,6 +12,7 @@
                 <a href="{{ route('site.how-it-works') }}" class="text-sm text-gray-300 hover:text-violet-400">How it works</a>
                 <a href="{{ route('site.discovery') }}" class="text-sm text-gray-300 hover:text-violet-400">Discover</a>
                 <a href="{{ route('site.creators-feed') }}" class="text-sm text-gray-300 hover:text-violet-400">Feed</a>
+                <a href="{{ route('site.api-docs') }}" class="text-sm text-gray-300 hover:text-violet-400">API</a>
                 <a href="{{ route('site.about') }}" class="text-sm text-gray-300 hover:text-violet-400">About</a>
                 <a href="{{ route('site.contact') }}" class="text-sm text-gray-300 hover:text-violet-400">Contact</a>
             </div>
@@ -38,6 +39,7 @@
             <a href="{{ route('site.how-it-works') }}" class="block px-3 py-2 text-sm text-gray-300">How it works</a>
             <a href="{{ route('site.discovery') }}" class="block px-3 py-2 text-sm text-gray-300">Discover</a>
             <a href="{{ route('site.creators-feed') }}" class="block px-3 py-2 text-sm text-gray-300">Creators feed</a>
+            <a href="{{ route('site.api-docs') }}" class="block px-3 py-2 text-sm text-gray-300">API</a>
             <a href="{{ route('site.about') }}" class="block px-3 py-2 text-sm text-gray-300">About</a>
             <a href="{{ route('site.contact') }}" class="block px-3 py-2 text-sm text-gray-300">Contact</a>
             <div class="pt-2 border-t border-white/10 space-y-2">

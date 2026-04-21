@@ -920,6 +920,7 @@
                 <a href="{{ route('site.discovery') }}" class="text-sm font-medium text-gray-300 hover:text-white">Discover</a>
                 <a href="{{ route('site.creators-feed') }}" class="text-sm font-medium text-gray-300 hover:text-white">Feed</a>
                 <a href="#pricing" class="text-sm font-medium text-gray-300 hover:text-white">Pricing</a>
+                <a href="{{ route('site.api-docs') }}" class="text-sm font-medium text-gray-300 hover:text-white">API</a>
             </div>
             <div class="hidden md:flex items-center gap-3">
                 @auth
@@ -940,6 +941,7 @@
             <a href="{{ route('site.discovery') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Discover</a>
             <a href="{{ route('site.creators-feed') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Feed</a>
             <a href="#pricing" @click="mobileOpen=false" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Pricing</a>
+            <a href="{{ route('site.api-docs') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">API</a>
             <div class="pt-2 border-t border-white/10 space-y-2">
                 @auth
                     <a href="{{ route('user.dashboard') }}" class="block px-4 py-2.5 grad-bar text-white rounded-full text-sm font-bold text-center">Dashboard</a>
