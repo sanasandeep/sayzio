@@ -35,7 +35,7 @@ class OtpController extends Controller
         // Always issue + try to send when a real user exists. Generic
         // success either way to avoid enumeration.
         if ($user) {
-            $code = $otp->generate($data['identifier'], $data['type'], 'login', 'web');
+            $code = $otp->generate($data['identifier'], $data['type'], 'login', 'web', $request->ip());
             try {
                 $data['type'] === 'email'
                     ? $otp->sendEmail($data['identifier'], $code)
@@ -109,7 +109,7 @@ class OtpController extends Controller
             $user->ensureDefaultWorkspace();
         }
 
-        $code = $otp->generate($data['identifier'], $data['type'], 'login', 'web');
+        $code = $otp->generate($data['identifier'], $data['type'], 'login', 'web', $request->ip());
         try {
             $data['type'] === 'email'
                 ? $otp->sendEmail($data['identifier'], $code)

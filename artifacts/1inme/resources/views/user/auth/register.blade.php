@@ -49,8 +49,17 @@
                     <p class="text-sm" style="color: var(--text-dimmed);">Create your free account</p>
                 </div>
 
-                <form method="POST" action="{{ route('user.register.submit') }}">
+                <form method="POST" action="{{ route('user.register.submit') }}" autocomplete="off">
                     @csrf
+                    {{-- Honeypot: visually hidden, off the tab order, off
+                         autocomplete. Real users never type into it; spam
+                         bots fill every input on the page. The controller
+                         silently accepts and discards any POST with this
+                         field populated. --}}
+                    <div aria-hidden="true" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;">
+                        <label for="website">Leave this field empty</label>
+                        <input type="text" id="website" name="website" tabindex="-1" autocomplete="off" value="">
+                    </div>
                     <div class="space-y-4">
                         <div>
                             <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Full Name</label>

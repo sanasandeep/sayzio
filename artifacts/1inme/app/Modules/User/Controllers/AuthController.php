@@ -26,14 +26,25 @@ class AuthController extends Controller
 
     public function register(Request $request, ReferralService $referrals)
     {
+        // Honeypot: a hidden field that real users never see and never
+        // fill, but headless spam bots populate every input on the
+        // form. Bail silently with a 200 so the bot can't tell its
+        // submission was rejected.
+        if (filled($request->input('website'))) {
+            \Log::info('Registration honeypot tripped', ['ip' => $request->ip()]);
+            return redirect()->route('user.login')
+                ->with('status', 'If your account was created, we sent a code to your inbox.');
+        }
+
         $rules = [
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
+            'email' => 'required|email|max:190|unique:users,email',
             'mobile' => 'nullable|string|max:20',
             'referral_code' => 'nullable|string|max:32',
             'country' => ['nullable', 'string', 'size:2', 'regex:/^[A-Za-z]{2}$/'],
         ];
         $validated = $request->validate($rules);
+        $validated['email'] = strtolower($validated['email']);
         if (!empty($validated['country'])) {
             $validated['country'] = strtoupper($validated['country']);
         }
@@ -69,7 +80,7 @@ class AuthController extends Controller
 
         // Send a login OTP and route the new user through verification.
         $otpService = new OtpService();
-        $code = $otpService->generate($user->email, 'email', 'login', 'web');
+        $code = $otpService->generate($user->email, 'email', 'login', 'web', $request->ip());
         try {
             $otpService->sendEmail($user->email, $code);
         } catch (\Exception $e) {
@@ -80,6 +91,13 @@ class AuthController extends Controller
             'otp_identifier' => $user->email,
             'otp_type'       => 'email',
         ]);
+
+        // Rotate both the session ID and the CSRF token so that any
+        // pre-auth session fixation handle a bot may have planted on
+        // the visitor is invalidated before we hand off to the OTP
+        // verification flow.
+        $request->session()->regenerate();
+        $request->session()->regenerateToken();
 
         return redirect()->route('user.otp.verify.form')
             ->with('status', 'Account created. We sent a 6-digit code to ' . $user->email . '.');
@@ -109,7 +127,7 @@ class AuthController extends Controller
         }
 
         $otpService = new OtpService();
-        $code = $otpService->generate($identifier, $type, 'login', 'web');
+        $code = $otpService->generate($identifier, $type, 'login', 'web', $request->ip());
 
         if ($type === 'email') {
             $otpService->sendEmail($identifier, $code);
@@ -121,6 +139,10 @@ class AuthController extends Controller
         // Regular login flow — clear any stale merge-challenge marker so
         // we don't accidentally hijack the session into a merge.
         session()->forget('merge_challenge_active');
+
+        // Rotate the CSRF token at the start of the auth handshake so
+        // the verify-otp POST has to be made from a freshly-issued token.
+        $request->session()->regenerateToken();
 
         return redirect()->route('user.otp.verify.form')->with('status', 'OTP sent to your ' . $type . '.');
     }
@@ -139,7 +161,7 @@ class AuthController extends Controller
 
         if ($user) {
             $otpService = new OtpService();
-            $code = $otpService->generate($identifier, $type, 'login', 'web');
+            $code = $otpService->generate($identifier, $type, 'login', 'web', $request->ip());
             try {
                 if ($type === 'email') {
                     $otpService->sendEmail($identifier, $code);

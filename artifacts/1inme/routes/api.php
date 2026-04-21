@@ -43,13 +43,17 @@ Route::prefix('v1')->group(function () {
     ]));
 
     // ── Auth (public) ───────────────────────────────────────────────
-    Route::post('/auth/register', [AuthController::class, 'register'])->middleware('throttle:10,1');
-    Route::post('/auth/login',    [AuthController::class, 'login'])->middleware('throttle:10,1');
+    // All public auth routes use the identifier-aware named limiters
+    // declared in App\Providers\AppServiceProvider so the limit follows
+    // (account + IP), not just IP. See that file for the per-bucket
+    // budgets.
+    Route::post('/auth/register', [AuthController::class, 'register'])->middleware('throttle:auth-register');
+    Route::post('/auth/login',    [AuthController::class, 'login'])->middleware('throttle:auth-credentials');
 
     // OTP-based mobile auth
-    Route::post('/auth/otp/send',     [OtpController::class, 'send'])->middleware('throttle:10,1');
-    Route::post('/auth/otp/verify',   [OtpController::class, 'verify'])->middleware('throttle:10,1');
-    Route::post('/auth/otp/register', [OtpController::class, 'register'])->middleware('throttle:5,1');
+    Route::post('/auth/otp/send',     [OtpController::class, 'send'])->middleware('throttle:otp-send');
+    Route::post('/auth/otp/verify',   [OtpController::class, 'verify'])->middleware('throttle:otp-verify');
+    Route::post('/auth/otp/register', [OtpController::class, 'register'])->middleware('throttle:auth-register');
 
     // Native social sign-in (Apple / Google / etc.)
     Route::post('/auth/social', [SocialAuthController::class, 'exchange'])->middleware('throttle:20,1');

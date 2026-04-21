@@ -47,7 +47,11 @@ return [
     |
     */
 
-    'expiration' => null,
+    // Mobile API tokens auto-expire after this many minutes of inactivity.
+    // Default = 60 days, which matches typical mobile-app refresh cadence
+    // while still ensuring stolen tokens have a finite blast radius. Set
+    // to null in env to keep the legacy never-expire behaviour.
+    'expiration' => env('SANCTUM_EXPIRATION_MINUTES', 60 * 24 * 60),
 
     /*
     |--------------------------------------------------------------------------

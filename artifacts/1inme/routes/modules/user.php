@@ -51,13 +51,21 @@ Route::post('/webhooks/billing/activate', [\App\Modules\User\Controllers\Upgrade
 
 Route::prefix('user')->name('user.')->group(function () {
     Route::get('register', [AuthController::class, 'showRegister'])->name('register');
-    Route::post('register', [AuthController::class, 'register'])->name('register.submit');
+    // Registration was previously unthrottled — easy spam-farm vector.
+    // Now keyed on IP via the auth-register limiter (3/min, 20/hour).
+    Route::post('register', [AuthController::class, 'register'])
+        ->middleware('throttle:auth-register')
+        ->name('register.submit');
     Route::get('login', [AuthController::class, 'showLogin'])->name('login');
-    Route::post('demo-login', [AuthController::class, 'demoLogin'])->name('demo.login');
-    Route::post('send-otp', [AuthController::class, 'sendOtp'])->middleware('throttle:5,1')->name('otp.send');
-    Route::post('resend-otp', [AuthController::class, 'resendOtp'])->middleware('throttle:5,1')->name('otp.resend');
+    Route::post('demo-login', [AuthController::class, 'demoLogin'])->middleware('throttle:5,1')->name('demo.login');
+    // OTP send/verify now go through identifier-aware named limiters
+    // defined in AppServiceProvider so a single attacker IP can't pin
+    // a victim account behind a CGNAT carrier, and a botnet can't
+    // bypass the per-IP cap by spraying across many IPs.
+    Route::post('send-otp', [AuthController::class, 'sendOtp'])->middleware('throttle:otp-send')->name('otp.send');
+    Route::post('resend-otp', [AuthController::class, 'resendOtp'])->middleware('throttle:otp-send')->name('otp.resend');
     Route::get('verify-otp', [AuthController::class, 'showOtpVerify'])->name('otp.verify.form');
-    Route::post('verify-otp', [AuthController::class, 'verifyOtp'])->middleware('throttle:10,1')->name('otp.verify');
+    Route::post('verify-otp', [AuthController::class, 'verifyOtp'])->middleware('throttle:otp-verify')->name('otp.verify');
 
     // "Sign in with <provider>" — resolves the social identity to its
     // linked account and signs the visitor in. Available pre-auth.

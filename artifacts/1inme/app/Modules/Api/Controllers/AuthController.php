@@ -51,11 +51,25 @@ class AuthController extends Controller
         ]);
 
         $user = User::where('email', strtolower($data['email']))->first();
-        if (!$user || !Hash::check($data['password'], $user->password)) {
+
+        // Always run a Hash::check, even when the user does not exist,
+        // so an attacker can't tell "unknown email" apart from "known
+        // email + wrong password" by timing the response. The dummy
+        // hash below is a real bcrypt of an unguessable random string.
+        $hashedAttempt = $user ? $user->password : '$2y$12$.invalid.dummy.hash.to.equalize.timing.zzzzzzzzzzzzzz';
+        $passwordOk    = Hash::check($data['password'], $hashedAttempt);
+
+        if (!$user || !$passwordOk) {
             return $this->unauthorized('Invalid credentials', 'invalid_credentials');
         }
         if (($user->status ?? 'active') !== 'active') {
             return $this->forbidden('Account is not active');
+        }
+
+        // Opportunistic re-hash if Laravel's hasher (e.g. bcrypt cost,
+        // argon parameters) has rotated since this password was set.
+        if (Hash::needsRehash($user->password)) {
+            $user->forceFill(['password' => Hash::make($data['password'])])->save();
         }
 
         $user->forceFill(['last_login_at' => now()])->save();
