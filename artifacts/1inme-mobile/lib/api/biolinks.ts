@@ -44,6 +44,20 @@ export async function getBiolink(alias: string): Promise<BiolinkPayload> {
   return res.data;
 }
 
+// Best-effort biolink page-visit tracking. Mirrors the web's
+// RedirectController::track() call so opening a creator's biolink in the
+// mobile app is counted toward their total/unique visit analytics.
+// Never throws — analytics is fire-and-forget.
+export function trackBiolinkVisit(alias: string): void {
+  if (!alias) return;
+  void apiFetch(`/biolinks/${encodeURIComponent(alias)}/visit`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  }).catch(() => {
+    // Swallow — analytics must never disrupt the page load.
+  });
+}
+
 // Best-effort block tap tracking. Mirrors the web's per-block click tracker
 // (the `/{alias}/b/{blockId}` redirect on the website) so taps that happen
 // inside the in-app biolink viewer also show up in the creator's analytics.

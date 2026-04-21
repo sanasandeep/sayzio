@@ -101,6 +101,27 @@ class BiolinkController extends Controller
         return ['status' => 403, 'code' => 'forbidden', 'message' => 'Not allowed'];
     }
 
+    public function visit(Request $request, string $alias)
+    {
+        $link = Link::where('alias', $alias)->where('type', 'biolink')->first();
+        if (!$link || !$link->is_active) return $this->notFound('Biolink not found');
+
+        if (!$link->isAccessible()) {
+            return $this->notFound('Biolink not available');
+        }
+
+        $owner  = $link->user;
+        $viewer = $request->user();
+        $gate   = $this->checkVisibility($link, $viewer, $owner);
+        if ($gate !== null) {
+            return $this->fail($gate['message'], $gate['status'], $gate['code']);
+        }
+
+        $this->trackingService->track($link, $request, $alias);
+
+        return $this->ok(['tracked' => true]);
+    }
+
     public function tap(Request $request, string $alias, int $blockId)
     {
         $link = Link::where('alias', $alias)->where('type', 'biolink')->first();

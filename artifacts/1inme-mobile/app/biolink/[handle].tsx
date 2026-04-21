@@ -2,6 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import * as Linking from "expo-linking";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useRef } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -21,6 +22,7 @@ import {
   type BiolinkPayload,
   getBiolink,
   trackBiolinkBlockTap,
+  trackBiolinkVisit,
 } from "@/lib/api/biolinks";
 
 function pickStr(s: Record<string, unknown> | null, ...keys: string[]): string | null {
@@ -157,6 +159,18 @@ export default function BiolinkViewer() {
     queryFn: () => getBiolink(alias),
     enabled: !!alias,
   });
+
+  // Fire one page-visit ping per successful biolink load, mirroring the
+  // web's RedirectController::track() so in-app opens are counted in the
+  // creator's visit analytics. Best-effort and non-blocking; we only ping
+  // once per (alias, mount) pair to avoid double-counting on re-renders.
+  const visitedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!q.data || !alias) return;
+    if (visitedRef.current === alias) return;
+    visitedRef.current = alias;
+    trackBiolinkVisit(alias);
+  }, [q.data, alias]);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>

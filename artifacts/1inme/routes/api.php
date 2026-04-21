@@ -69,6 +69,12 @@ Route::prefix('v1')->group(function () {
     Route::post('/biolinks/{alias}/subscribe', [BiolinkController::class, 'subscribe'])
         ->middleware('throttle:10,1');
 
+    // Best-effort page-visit tracking from in-app biolink viewers (mobile).
+    // Mirrors the web's RedirectController::track() call on every biolink
+    // page load so visits via the app are counted in creator analytics.
+    Route::middleware(['api.optional_auth', 'throttle:120,1'])
+        ->post('/biolinks/{alias}/visit', [BiolinkController::class, 'visit']);
+
     // Best-effort block tap tracking from in-app biolink viewers (mobile).
     // Mirrors the web's redirect.block click counter so taps via the app
     // show up in the creator's analytics.
