@@ -19,14 +19,37 @@
 @once
     <script>
         window.aboutPhotoUploader = function (config) {
+            const aspect = (config && config.aspect) || 1;
+            const outputSize = (config && config.outputSize) || 800;
+            const viewport = 320;
             return {
                 uploading: false,
                 progress: 0,
                 error: '',
+                cropping: false,
+                previewUrl: '',
+                pendingFile: null,
+                natW: 0,
+                natH: 0,
+                baseScale: 1,
+                zoom: 1,
+                tx: 0,
+                ty: 0,
+                dragging: false,
+                _dragStartX: 0,
+                _dragStartY: 0,
+                _dragStartTx: 0,
+                _dragStartTy: 0,
                 get model() { return config.get(); },
                 set model(v) { config.set(v); },
+                get vpW() { return viewport; },
+                get vpH() { return Math.round(viewport / aspect); },
+                get totalScale() { return this.baseScale * this.zoom; },
+                get imgStyle() {
+                    return 'transform: translate(calc(-50% + ' + this.tx + 'px), calc(-50% + ' + this.ty + 'px)) scale(' + this.totalScale + '); transform-origin: center center;';
+                },
                 pickFile() { this.$refs.fileInput.click(); },
-                async handleFile(e) {
+                handleFile(e) {
                     const file = (e.target.files || [])[0];
                     e.target.value = '';
                     if (!file) return;
@@ -39,6 +62,116 @@
                         return;
                     }
                     this.error = '';
+                    this.pendingFile = file;
+                    if (this.previewUrl) URL.revokeObjectURL(this.previewUrl);
+                    this.previewUrl = URL.createObjectURL(file);
+                    this.zoom = 1;
+                    this.tx = 0;
+                    this.ty = 0;
+                    this.natW = 0;
+                    this.natH = 0;
+                    this.baseScale = 1;
+                    this.cropping = true;
+                    const img = new Image();
+                    img.onload = () => {
+                        this.natW = img.naturalWidth || 1;
+                        this.natH = img.naturalHeight || 1;
+                        this.baseScale = Math.max(this.vpW / this.natW, this.vpH / this.natH);
+                        this.clampPan();
+                    };
+                    img.src = this.previewUrl;
+                },
+                clampPan() {
+                    if (!this.natW || !this.natH) return;
+                    const halfW = (this.natW * this.totalScale) / 2;
+                    const halfH = (this.natH * this.totalScale) / 2;
+                    const maxTx = Math.max(0, halfW - this.vpW / 2);
+                    const maxTy = Math.max(0, halfH - this.vpH / 2);
+                    if (this.tx > maxTx) this.tx = maxTx;
+                    if (this.tx < -maxTx) this.tx = -maxTx;
+                    if (this.ty > maxTy) this.ty = maxTy;
+                    if (this.ty < -maxTy) this.ty = -maxTy;
+                },
+                onZoom(v) { this.zoom = parseFloat(v) || 1; this.clampPan(); },
+                startDrag(e) {
+                    if (!this.cropping) return;
+                    const p = e.touches ? e.touches[0] : e;
+                    this.dragging = true;
+                    this._dragStartX = p.clientX;
+                    this._dragStartY = p.clientY;
+                    this._dragStartTx = this.tx;
+                    this._dragStartTy = this.ty;
+                    if (e.preventDefault) e.preventDefault();
+                },
+                moveDrag(e) {
+                    if (!this.dragging) return;
+                    const p = e.touches ? e.touches[0] : e;
+                    this.tx = this._dragStartTx + (p.clientX - this._dragStartX);
+                    this.ty = this._dragStartTy + (p.clientY - this._dragStartY);
+                    this.clampPan();
+                },
+                endDrag() { this.dragging = false; },
+                cancelCrop() {
+                    if (this.previewUrl) { URL.revokeObjectURL(this.previewUrl); this.previewUrl = ''; }
+                    this.pendingFile = null;
+                    this.cropping = false;
+                },
+                async confirmCrop() {
+                    if (!this.pendingFile || !this.natW || !this.natH) return;
+                    this.error = '';
+                    try {
+                        const s = this.totalScale;
+                        const sw = this.vpW / s;
+                        const sh = this.vpH / s;
+                        const cx = this.natW / 2 - this.tx / s;
+                        const cy = this.natH / 2 - this.ty / s;
+                        const sx = cx - sw / 2;
+                        const sy = cy - sh / 2;
+                        const outW = outputSize;
+                        const outH = Math.round(outputSize / aspect);
+                        const canvas = document.createElement('canvas');
+                        canvas.width = outW;
+                        canvas.height = outH;
+                        const ctx = canvas.getContext('2d');
+                        const img = new Image();
+                        img.src = this.previewUrl;
+                        await new Promise((res, rej) => {
+                            if (img.complete && img.naturalWidth) res();
+                            else { img.onload = res; img.onerror = () => rej(new Error('Could not load image for cropping.')); }
+                        });
+                        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, outW, outH);
+                        const blob = await new Promise((res) => canvas.toBlob(res, 'image/jpeg', 0.92));
+                        if (!blob) throw new Error('Could not generate cropped image.');
+                        const baseName = (this.pendingFile.name || 'photo').replace(/\.[^.]+$/, '');
+                        const file = new File([blob], baseName + '-cropped.jpg', { type: 'image/jpeg' });
+                        const previousFile = this.pendingFile;
+                        if (this.previewUrl) { URL.revokeObjectURL(this.previewUrl); this.previewUrl = ''; }
+                        this.pendingFile = null;
+                        this.cropping = false;
+                        try {
+                            await this.uploadFile(file);
+                        } catch (err) {
+                            // Restore so user can retry / skip; surface error.
+                            this.pendingFile = previousFile;
+                            throw err;
+                        }
+                    } catch (err) {
+                        this.error = err.message || 'Crop failed.';
+                    }
+                },
+                async skipCrop() {
+                    const file = this.pendingFile;
+                    if (!file) return;
+                    if (this.previewUrl) { URL.revokeObjectURL(this.previewUrl); this.previewUrl = ''; }
+                    this.pendingFile = null;
+                    this.cropping = false;
+                    try {
+                        await this.uploadFile(file);
+                    } catch (_) {
+                        // uploadFile already surfaces the message via this.error.
+                    }
+                },
+                async uploadFile(file) {
                     this.uploading = true;
                     this.progress = 0;
                     try {
@@ -68,6 +201,7 @@
                         this.model = url;
                     } catch (err) {
                         this.error = err.message || 'Upload failed.';
+                        throw err;
                     } finally {
                         this.uploading = false;
                     }
@@ -76,6 +210,7 @@
             };
         };
     </script>
+    <style>[x-cloak]{display:none !important}</style>
 @endonce
 
 <div class="pt-2 border-t border-white/10 space-y-6">
@@ -111,6 +246,7 @@
                         </div>
                     </div>
                     <input type="file" x-ref="fileInput" @change="handleFile($event)" accept="image/*" class="hidden">
+                    @include('admin.site-pages.partials.about-crop-modal')
                 </div>
             </div>
             <div class="sm:col-span-2">
@@ -168,6 +304,7 @@
                         </div>
                     </div>
                     <input type="file" x-ref="fileInput" @change="handleFile($event)" accept="image/*" class="hidden">
+                    @include('admin.site-pages.partials.about-crop-modal')
                 </div>
                 <textarea :name="'extra[co_founders]['+i+'][bio]'" x-model="p.bio" rows="2" placeholder="Short bio" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white"></textarea>
                 <div class="grid sm:grid-cols-2 gap-3">
@@ -219,6 +356,7 @@
                         </div>
                     </div>
                     <input type="file" x-ref="fileInput" @change="handleFile($event)" accept="image/*" class="hidden">
+                    @include('admin.site-pages.partials.about-crop-modal')
                 </div>
                 <textarea :name="'extra[team]['+i+'][bio]'" x-model="p.bio" rows="2" placeholder="One-line bio" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white"></textarea>
             </div>
