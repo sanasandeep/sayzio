@@ -34,6 +34,7 @@ const TOOL_PAGES: {
   href:
     | "/posts"
     | "/contacts"
+    | "/dialer"
     | "/forms"
     | "/followers"
     | "/social"
@@ -48,6 +49,7 @@ const TOOL_PAGES: {
 }[] = [
   { href: "/posts", label: "Posts", icon: "message-square" },
   { href: "/contacts", label: "Contacts", icon: "users" },
+  { href: "/dialer", label: "Dialer", icon: "phone" },
   { href: "/forms", label: "Forms", icon: "file-text" },
   { href: "/followers", label: "Followers & Following", icon: "user-check" },
   { href: "/subscribers", label: "Subscribers", icon: "user-plus" },

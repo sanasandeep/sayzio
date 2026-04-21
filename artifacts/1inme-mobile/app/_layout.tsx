@@ -64,6 +64,7 @@ function RootLayoutNav() {
       <Stack.Screen name="biolink/[handle]" options={{ headerShown: false }} />
       <Stack.Screen name="oauth-callback" options={{ headerShown: false }} />
       <Stack.Screen name="plans" options={{ title: "Plans & billing" }} />
+      <Stack.Screen name="dialer" options={{ title: "Dialer" }} />
     </Stack>
   );
 }
