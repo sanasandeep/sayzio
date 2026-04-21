@@ -69,7 +69,7 @@
                 @php $features = $plan->features ?? []; @endphp
                 @if(!empty($features))
                 <ul class="mt-4 space-y-1.5 text-sm text-white/70 flex-grow">
-                    @foreach(['max_links' => 'links', 'max_biolinks' => 'bio pages', 'max_projects' => 'projects', 'storage_limit_mb' => 'MB storage', 'contacts_max' => 'contacts'] as $key => $label)
+                    @foreach(['max_links' => 'links', 'max_biolinks' => 'bio pages', 'max_projects' => 'projects', 'storage_limit_mb' => 'MB storage', 'contacts_max' => 'contacts', 'max_workspaces' => 'team workspaces', 'max_seats_per_workspace' => 'seats per workspace'] as $key => $label)
                         @if(isset($features[$key]))
                             <li class="flex items-start gap-2"><span class="text-violet-400">•</span><span>{{ $features[$key] == -1 ? 'Unlimited' : number_format((int)$features[$key]) }} {{ $label }}</span></li>
                         @endif

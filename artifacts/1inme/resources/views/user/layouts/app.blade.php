@@ -478,6 +478,9 @@
                     </a>
                 </template>
             </div>
+            @auth
+                @include('user.partials.workspace-switcher')
+            @endauth
 
             <nav class="flex-1 py-4 overflow-y-auto overflow-x-hidden sidebar-nav-scroll" :class="sidebarMode === 'icons' ? 'px-2' : 'px-3'">
                 {{-- ========== OVERVIEW ========== --}}

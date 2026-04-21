@@ -2,13 +2,17 @@
 
 namespace App\Modules\User\Models;
 
+
+use App\Modules\User\Concerns\BelongsToWorkspace;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Contact extends Model
 {
-    protected $fillable = [
+    
+    use BelongsToWorkspace;
+protected $fillable = [
         'user_id', 'google_contacts_account_id', 'google_resource_name', 'google_etag',
         'display_name', 'given_name', 'family_name', 'organization', 'job_title',
         'notes', 'photo_path', 'photo_url',

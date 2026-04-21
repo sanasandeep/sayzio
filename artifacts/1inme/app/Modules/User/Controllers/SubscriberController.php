@@ -49,20 +49,20 @@ class SubscriberController
 
     public function show(Request $request, Subscriber $subscriber)
     {
-        abort_if($subscriber->user_id !== $request->user()->id, 403);
+        abort_if($subscriber->user_id !== workspace_owner_id(), 403);
         return view('user.subscribers.show', compact('subscriber'));
     }
 
     public function destroy(Request $request, Subscriber $subscriber)
     {
-        abort_if($subscriber->user_id !== $request->user()->id, 403);
+        abort_if($subscriber->user_id !== workspace_owner_id(), 403);
         $subscriber->delete();
         return back()->with('success', 'Subscriber removed.');
     }
 
     public function toggleStatus(Request $request, Subscriber $subscriber)
     {
-        abort_if($subscriber->user_id !== $request->user()->id, 403);
+        abort_if($subscriber->user_id !== workspace_owner_id(), 403);
         $subscriber->update([
             'status' => $subscriber->status === 'active' ? 'unsubscribed' : 'active',
             'unsubscribed_at' => $subscriber->status === 'active' ? now() : null,
@@ -242,7 +242,7 @@ class SubscriberController
 
     public function messageHistory(Request $request)
     {
-        $messages = SubscriberMessage::where('user_id', $request->user()->id)
+        $messages = SubscriberMessage::where('user_id', workspace_owner_id())
             ->orderByDesc('created_at')
             ->paginate(20);
         return view('user.subscribers.messages', compact('messages'));

@@ -15,7 +15,7 @@ class InboxController
 {
     public function index(Request $request)
     {
-        $userId = $request->user()->id;
+        $userId = app()->bound("workspace_owner") ? app("workspace_owner")->id : workspace_owner_id();
         $aggregator = new InboxAggregator($userId);
 
         $filters = [
@@ -44,7 +44,7 @@ class InboxController
 
     public function show(Request $request, string $type, int $id)
     {
-        $userId = $request->user()->id;
+        $userId = app()->bound("workspace_owner") ? app("workspace_owner")->id : workspace_owner_id();
 
         if ($type === InboxAggregator::SOURCE_FORM) {
             $sub = FormSubmission::with('form')->findOrFail($id);
@@ -74,7 +74,7 @@ class InboxController
 
     public function reply(Request $request, string $type, int $id)
     {
-        $userId = $request->user()->id;
+        $userId = app()->bound("workspace_owner") ? app("workspace_owner")->id : workspace_owner_id();
         abort_unless(in_array($type, [InboxAggregator::SOURCE_FORM, 'subscriber'], true), 404);
 
         $validated = $request->validate([
@@ -171,7 +171,7 @@ class InboxController
     public function update(Request $request, string $type, int $id)
     {
         $user = $request->user();
-        $userId = $user->id;
+        $userId = app()->bound("workspace_owner") ? app("workspace_owner")->id : $user->id;
         $action = $request->input('action');
         $valid = ['read', 'unread', 'star', 'unstar', 'spam', 'not_spam', 'not_spam_trust', 'delete'];
         abort_unless(in_array($action, $valid, true), 422);
@@ -194,7 +194,7 @@ class InboxController
 
     public function bulk(Request $request)
     {
-        $userId = $request->user()->id;
+        $userId = app()->bound("workspace_owner") ? app("workspace_owner")->id : workspace_owner_id();
         $action = $request->input('action');
         $items = (array) $request->input('items', []);
         $valid = ['read', 'unread', 'star', 'unstar', 'spam', 'not_spam', 'not_spam_trust', 'delete', 'export'];
@@ -257,7 +257,7 @@ class InboxController
 
     public function exportFiltered(Request $request)
     {
-        $userId = $request->user()->id;
+        $userId = app()->bound("workspace_owner") ? app("workspace_owner")->id : workspace_owner_id();
         $aggregator = new InboxAggregator($userId);
         $filters = [
             'source'    => $request->get('source'),
@@ -416,7 +416,8 @@ class InboxController
         // Helps creators see which custom keywords are actually firing — and
         // which defaults might be over-aggressive in their niche.
         $since = now()->subDays(30);
-        $formIds = Form::where('user_id', $user->id)->pluck('id');
+        $ownerId = app()->bound('workspace_owner') ? app('workspace_owner')->id : $user->id;
+        $formIds = Form::where('user_id', $ownerId)->pluck('id');
         $reasons = collect();
         if ($formIds->isNotEmpty()) {
             $reasons = $reasons->concat(
@@ -428,7 +429,7 @@ class InboxController
             );
         }
         $reasons = $reasons->concat(
-            Subscriber::where('user_id', $user->id)
+            Subscriber::where('user_id', $ownerId)
                 ->where('is_spam', true)
                 ->whereNotNull('spam_reason')
                 ->where('created_at', '>=', $since)

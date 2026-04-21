@@ -2,12 +2,16 @@
 
 namespace App\Modules\User\Models;
 
+
+use App\Modules\User\Concerns\BelongsToWorkspace;
 use App\Modules\User\Support\IntegrationConfigRegistry;
 use Illuminate\Database\Eloquent\Model;
 
 class IntegrationConfig extends Model
 {
-    protected $fillable = [
+    
+    use BelongsToWorkspace;
+protected $fillable = [
         'user_id', 'kind', 'provider', 'name',
         'is_active', 'is_default', 'credentials', 'meta',
     ];

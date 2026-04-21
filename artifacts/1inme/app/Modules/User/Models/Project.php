@@ -2,11 +2,15 @@
 
 namespace App\Modules\User\Models;
 
+
+use App\Modules\User\Concerns\BelongsToWorkspace;
 use Illuminate\Database\Eloquent\Model;
 
 class Project extends Model
 {
-    protected $fillable = ['user_id', 'name', 'color', 'description'];
+    
+    use BelongsToWorkspace;
+protected $fillable = ['user_id', 'name', 'color', 'description'];
 
     public function user()
     {

@@ -2,12 +2,16 @@
 
 namespace App\Modules\User\Models;
 
+
+use App\Modules\User\Concerns\BelongsToWorkspace;
 use App\Modules\User\Support\QrCodeTypeRegistry;
 use Illuminate\Database\Eloquent\Model;
 
 class QrCode extends Model
 {
-    protected $table = 'qr_codes';
+    
+    use BelongsToWorkspace;
+protected $table = 'qr_codes';
 
     protected $fillable = [
         'project_id', 'link_id', 'name', 'type',

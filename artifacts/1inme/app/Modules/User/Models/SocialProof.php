@@ -2,12 +2,16 @@
 
 namespace App\Modules\User\Models;
 
+
+use App\Modules\User\Concerns\BelongsToWorkspace;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 class SocialProof extends Model
 {
-    protected $fillable = [
+    
+    use BelongsToWorkspace;
+protected $fillable = [
         'user_id', 'uuid', 'name', 'type', 'is_active',
         'settings', 'design', 'targeting', 'schedule', 'notifications',
         'directory_badge_notification_id',

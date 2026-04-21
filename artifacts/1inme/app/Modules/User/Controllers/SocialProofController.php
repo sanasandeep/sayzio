@@ -11,7 +11,7 @@ class SocialProofController extends Controller
 {
     public function index(Request $request)
     {
-        $proofs = SocialProof::where('user_id', $request->user()->id)
+        $proofs = SocialProof::where('user_id', workspace_owner_id())
             ->orderByDesc('id')
             ->get();
         return view('user.social-proofs.index', compact('proofs'));
@@ -33,7 +33,7 @@ class SocialProofController extends Controller
         ]);
 
         $proof = SocialProof::create([
-            'user_id'       => $request->user()->id,
+            'user_id'       => workspace_owner_id(),
             'name'          => $validated['name'],
             'type'          => 'recent_activity', // legacy column — first notification's type
             'is_active'     => true,
@@ -50,7 +50,7 @@ class SocialProofController extends Controller
 
     public function edit(Request $request, SocialProof $socialProof)
     {
-        abort_if($socialProof->user_id !== $request->user()->id, 403);
+        abort_if($socialProof->user_id !== workspace_owner_id(), 403);
         $stats = $this->statsFor($socialProof);
 
         // Make sure notifications is an array even on legacy rows where the
@@ -68,7 +68,7 @@ class SocialProofController extends Controller
 
     public function update(Request $request, SocialProof $socialProof)
     {
-        abort_if($socialProof->user_id !== $request->user()->id, 403);
+        abort_if($socialProof->user_id !== workspace_owner_id(), 403);
 
         $validated = $request->validate([
             'name'              => 'required|string|max:120',
@@ -143,7 +143,7 @@ class SocialProofController extends Controller
         // directory resolver never has to break a tie between two preferences.
         DB::transaction(function () use ($socialProof, $request, $badgeId, $validated, $design, $targeting, $notifications) {
             if ($badgeId !== null) {
-                SocialProof::where('user_id', $request->user()->id)
+                SocialProof::where('user_id', workspace_owner_id())
                     ->where('id', '!=', $socialProof->id)
                     ->whereNotNull('directory_badge_notification_id')
                     ->update(['directory_badge_notification_id' => null]);
@@ -166,14 +166,14 @@ class SocialProofController extends Controller
 
     public function toggleActive(Request $request, SocialProof $socialProof)
     {
-        abort_if($socialProof->user_id !== $request->user()->id, 403);
+        abort_if($socialProof->user_id !== workspace_owner_id(), 403);
         $socialProof->update(['is_active' => !$socialProof->is_active]);
         return back()->with('success', $socialProof->is_active ? 'Activated.' : 'Paused.');
     }
 
     public function destroy(Request $request, SocialProof $socialProof)
     {
-        abort_if($socialProof->user_id !== $request->user()->id, 403);
+        abort_if($socialProof->user_id !== workspace_owner_id(), 403);
         $socialProof->delete();
         return redirect()->route('user.social-proofs.index')->with('success', 'Campaign deleted.');
     }

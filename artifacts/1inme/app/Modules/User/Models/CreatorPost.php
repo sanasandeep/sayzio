@@ -2,11 +2,15 @@
 
 namespace App\Modules\User\Models;
 
+
+use App\Modules\User\Concerns\BelongsToWorkspace;
 use Illuminate\Database\Eloquent\Model;
 
 class CreatorPost extends Model
 {
-    protected $fillable = ['user_id', 'title', 'body', 'image', 'scheduled_at', 'published_at', 'pinned_at'];
+    
+    use BelongsToWorkspace;
+protected $fillable = ['user_id', 'title', 'body', 'image', 'scheduled_at', 'published_at', 'pinned_at'];
 
     protected $casts = [
         'scheduled_at' => 'datetime',

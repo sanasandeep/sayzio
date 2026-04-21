@@ -18,7 +18,7 @@ class FormController extends Controller
 {
     public function index(Request $request)
     {
-        $query = $request->user()->forms()->with('project')->withCount('submissions');
+        $query = workspace_owner()->forms()->with('project')->withCount('submissions');
 
         if ($search = $request->get('search')) {
             $query->where(function ($q) use ($search) {
@@ -34,14 +34,14 @@ class FormController extends Controller
         }
 
         $forms = $query->latest()->paginate(20)->withQueryString();
-        $projects = $request->user()->projects()->orderBy('name')->get();
+        $projects = workspace_owner()->projects()->orderBy('name')->get();
 
         return view('user.forms.index', compact('forms', 'projects'));
     }
 
     public function create(Request $request)
     {
-        $projects = $request->user()->projects()->orderBy('name')->get();
+        $projects = workspace_owner()->projects()->orderBy('name')->get();
         return view('user.forms.create', compact('projects'));
     }
 
@@ -50,12 +50,12 @@ class FormController extends Controller
         $data = $request->validate([
             'title' => 'required|string|max:160',
             'description' => 'nullable|string|max:1000',
-            'project_id' => ['nullable', \Illuminate\Validation\Rule::exists('projects', 'id')->where('user_id', $request->user()->id)],
+            'project_id' => ['nullable', \Illuminate\Validation\Rule::exists('projects', 'id')->where('user_id', workspace_owner_id())],
             'template' => 'nullable|in:contact,lead,survey,registration,feedback,blank',
         ]);
 
         $template = $data['template'] ?? 'contact';
-        $form = $request->user()->forms()->create([
+        $form = workspace_owner()->forms()->create([
             'project_id' => $data['project_id'] ?? null,
             'slug' => Form::uniqueSlug($data['title']),
             'title' => $data['title'],
@@ -262,7 +262,7 @@ class FormController extends Controller
             if ($raw === null || $raw === '') return null;
             if (! ctype_digit($raw)) return null;
             $found = \App\Modules\User\Models\IntegrationConfig::where('id', (int) $raw)
-                ->where('user_id', $request->user()->id)
+                ->where('user_id', workspace_owner_id())
                 ->kind($kind)
                 ->value('id');
             return $found ?: null;
@@ -350,7 +350,7 @@ class FormController extends Controller
             }
         }
 
-        $replies = \App\Modules\User\Models\InboxReply::where('user_id', $request->user()->id)
+        $replies = \App\Modules\User\Models\InboxReply::where('user_id', workspace_owner_id())
             ->where('item_type', 'form_submission')
             ->where('item_id', $submission->id)
             ->orderByDesc('created_at')
@@ -423,7 +423,7 @@ class FormController extends Controller
 
     protected function authorizeForm(Request $request, Form $form): void
     {
-        abort_unless($form->user_id === $request->user()->id, 403);
+        abort_unless($form->user_id === workspace_owner_id(), 403);
     }
 
     protected function templateFields(string $template): array

@@ -1,0 +1,64 @@
+<?php
+
+namespace App\Modules\User\Middleware;
+
+use App\Modules\User\Models\Workspace;
+use Closure;
+use Illuminate\Http\Request;
+
+/**
+ * Gate a route by a workspace permission, e.g.
+ *   Route::middleware('workspace.can:posts.create')->...
+ *
+ * Owner of the active workspace (and super-admins) bypass; everyone else
+ * must have the listed permission(s) on their membership.
+ *
+ * If multiple permissions are listed, ANY one of them grants access.
+ * Returns 403 with a structured JSON payload on AJAX/JSON requests so the
+ * UI can show a friendly explanation instead of a raw error page.
+ */
+class RequireWorkspacePermission
+{
+    public function handle(Request $request, Closure $next, string ...$permissions)
+    {
+        $user = $request->user();
+        if (!$user) {
+            abort(401);
+        }
+
+        /** @var Workspace|null $ws */
+        $ws = app()->bound('current_workspace') ? app('current_workspace') : null;
+        if (!$ws) {
+            // No workspace context — usually a misconfigured route. Deny.
+            return $this->deny($request, 'no_workspace');
+        }
+
+        if ($user->isSuperAdmin() || (int) $ws->owner_user_id === $user->id) {
+            return $next($request);
+        }
+
+        $membership = $user->membershipFor($ws);
+        if (!$membership) {
+            return $this->deny($request, 'not_a_member');
+        }
+
+        foreach ($permissions as $perm) {
+            if ($membership->can($perm)) {
+                return $next($request);
+            }
+        }
+        return $this->deny($request, 'missing_permission', $permissions);
+    }
+
+    protected function deny(Request $request, string $reason, array $permissions = [])
+    {
+        if ($request->expectsJson() || $request->wantsJson()) {
+            return response()->json([
+                'error'       => 'forbidden',
+                'reason'      => $reason,
+                'permissions' => $permissions,
+            ], 403);
+        }
+        abort(403, 'You do not have permission to perform this action in this workspace.');
+    }
+}

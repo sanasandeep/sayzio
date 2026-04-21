@@ -17,7 +17,7 @@ class InboxDirectMessageController
 {
     public function index(Request $request)
     {
-        $userId = $request->user()->id;
+        $userId = workspace_owner_id();
 
         $tab = $request->get('tab', 'active'); // active|blocked
 
@@ -44,7 +44,7 @@ class InboxDirectMessageController
 
     public function thread(Request $request, ViewerDmConversation $conversation)
     {
-        abort_unless((int) $conversation->owner_user_id === (int) $request->user()->id, 404);
+        abort_unless((int) $conversation->owner_user_id === (int) workspace_owner_id(), 404);
 
         $conversation->load(['viewer:id,name,email,profile_picture', 'link:id,alias']);
         $messages = $conversation->messages()->limit(500)->get();
@@ -64,7 +64,7 @@ class InboxDirectMessageController
 
     public function reply(Request $request, ViewerDmConversation $conversation)
     {
-        abort_unless((int) $conversation->owner_user_id === (int) $request->user()->id, 404);
+        abort_unless((int) $conversation->owner_user_id === (int) workspace_owner_id(), 404);
 
         $data = $request->validate([
             'body' => ['required', 'string', 'min:1', 'max:5000'],
@@ -81,7 +81,7 @@ class InboxDirectMessageController
             ViewerDmMessage::create([
                 'conversation_id' => $conversation->id,
                 'sender_type'     => 'owner',
-                'sender_user_id'  => $request->user()->id,
+                'sender_user_id'  => workspace_owner_id(),
                 'body'            => $body,
             ]);
 
@@ -99,7 +99,7 @@ class InboxDirectMessageController
 
     public function block(Request $request, ViewerDmConversation $conversation)
     {
-        abort_unless((int) $conversation->owner_user_id === (int) $request->user()->id, 404);
+        abort_unless((int) $conversation->owner_user_id === (int) workspace_owner_id(), 404);
 
         $alsoAccount = $request->boolean('account_wide');
 
@@ -123,7 +123,7 @@ class InboxDirectMessageController
 
     public function unblock(Request $request, ViewerDmConversation $conversation)
     {
-        abort_unless((int) $conversation->owner_user_id === (int) $request->user()->id, 404);
+        abort_unless((int) $conversation->owner_user_id === (int) workspace_owner_id(), 404);
 
         $conversation->status     = 'active';
         $conversation->blocked_at = null;

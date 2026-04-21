@@ -18,7 +18,7 @@ class QrCodeController extends Controller
 
     public function index(Request $request)
     {
-        $query = $request->user()->qrCodes()->with(['project', 'link']);
+        $query = workspace_owner()->qrCodes()->with(['project', 'link']);
         if ($search = $request->get('search')) {
             $query->where('name', 'ilike', "%{$search}%");
         }
@@ -29,7 +29,7 @@ class QrCodeController extends Controller
             $query->where('project_id', $projectId);
         }
         $qrCodes = $query->latest()->paginate(20)->withQueryString();
-        $projects = $request->user()->projects()->orderBy('name')->get();
+        $projects = workspace_owner()->projects()->orderBy('name')->get();
         $types = QrCodeTypeRegistry::types();
         return view('user.qr-codes.index', compact('qrCodes', 'projects', 'types'));
     }
@@ -37,11 +37,11 @@ class QrCodeController extends Controller
     public function builder(Request $request, ?QrCodeModel $qrCode = null)
     {
         if ($qrCode && $qrCode->exists) {
-            abort_unless($qrCode->user_id === $request->user()->id, 403);
+            abort_unless($qrCode->user_id === workspace_owner_id(), 403);
         }
         $types = QrCodeTypeRegistry::types();
-        $projects = $request->user()->projects()->orderBy('name')->get();
-        $links = $request->user()->links()->where('is_active', true)
+        $projects = workspace_owner()->projects()->orderBy('name')->get();
+        $links = workspace_owner()->links()->where('is_active', true)
             ->orderBy('created_at', 'desc')->limit(200)
             ->get(['id', 'alias', 'title']);
         $defaultDesign = $this->defaultDesign();
@@ -55,28 +55,28 @@ class QrCodeController extends Controller
     {
         $data = $this->validateRequest($request);
         $qrCode = new QrCodeModel($data);
-        $qrCode->user_id = $request->user()->id;
+        $qrCode->user_id = workspace_owner_id();
         $qrCode->save();
         return redirect()->route('user.qr-codes.edit', $qrCode)->with('success', 'QR code saved.');
     }
 
     public function update(Request $request, QrCodeModel $qrCode)
     {
-        abort_unless($qrCode->user_id === $request->user()->id, 403);
+        abort_unless($qrCode->user_id === workspace_owner_id(), 403);
         $qrCode->fill($this->validateRequest($request))->save();
         return redirect()->route('user.qr-codes.edit', $qrCode)->with('success', 'QR code updated.');
     }
 
     public function destroy(Request $request, QrCodeModel $qrCode)
     {
-        abort_unless($qrCode->user_id === $request->user()->id, 403);
+        abort_unless($qrCode->user_id === workspace_owner_id(), 403);
         $qrCode->delete();
         return redirect()->route('user.qr-codes.index')->with('success', 'QR code deleted.');
     }
 
     public function duplicate(Request $request, QrCodeModel $qrCode)
     {
-        abort_unless($qrCode->user_id === $request->user()->id, 403);
+        abort_unless($qrCode->user_id === workspace_owner_id(), 403);
         $copy = $qrCode->replicate(['preview_url', 'downloads']);
         $copy->name = $qrCode->name . ' (copy)';
         $copy->save();
@@ -88,7 +88,7 @@ class QrCodeController extends Controller
     {
         $request->validate([
             'type'      => ['required', Rule::in(array_keys(QrCodeTypeRegistry::types())), 'string'],
-            'link_id'   => ['nullable', Rule::exists('links', 'id')->where('user_id', $request->user()->id)],
+            'link_id'   => ['nullable', Rule::exists('links', 'id')->where('user_id', workspace_owner_id())],
             'payload'   => 'nullable|array',
         ]);
         if ($request->filled('link_id')) {
@@ -109,7 +109,7 @@ class QrCodeController extends Controller
 
     private function validateRequest(Request $request): array
     {
-        $userId = $request->user()->id;
+        $userId = workspace_owner_id();
         $base = $request->validate([
             'name'       => 'required|string|max:160',
             'type'       => ['required', Rule::in(array_keys(QrCodeTypeRegistry::types()))],
@@ -193,7 +193,7 @@ class QrCodeController extends Controller
 
     public function show(Request $request, Link $link)
     {
-        abort_if($link->user_id !== $request->user()->id, 403);
+        abort_if($link->user_id !== workspace_owner_id(), 403);
 
         return view('user.links.qrcode', compact('link'));
     }
@@ -280,7 +280,7 @@ class QrCodeController extends Controller
 
     public function generate(Request $request, Link $link)
     {
-        abort_if($link->user_id !== $request->user()->id, 403);
+        abort_if($link->user_id !== workspace_owner_id(), 403);
 
         $validated = $request->validate([
             'size' => 'nullable|integer|min:100|max:1000',
@@ -329,7 +329,7 @@ class QrCodeController extends Controller
 
     public function preview(Request $request, Link $link)
     {
-        abort_if($link->user_id !== $request->user()->id, 403);
+        abort_if($link->user_id !== workspace_owner_id(), 403);
 
         $size = (int) ($request->get('size', 300));
         $fgColor = $request->get('fg_color', '#000000');

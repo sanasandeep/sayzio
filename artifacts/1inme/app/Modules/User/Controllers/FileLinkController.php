@@ -12,29 +12,29 @@ class FileLinkController extends Controller
 {
     public function create(Request $request)
     {
-        $projects = $request->user()->projects()->orderBy('name')->get();
-        $maxFileSizeMb = (int) $request->user()->getPlanFeature('max_file_size_mb', 5);
+        $projects = workspace_owner()->projects()->orderBy('name')->get();
+        $maxFileSizeMb = (int) workspace_owner()->getPlanFeature('max_file_size_mb', 5);
 
         $prefillAlias = (string) $request->query('alias', '');
-        $aliasLimits  = $request->user()->getAliasLengthLimits();
+        $aliasLimits  = workspace_owner()->getAliasLengthLimits();
         return view('user.links.create-file', compact('projects', 'maxFileSizeMb', 'prefillAlias', 'aliasLimits'));
     }
 
     public function store(Request $request)
     {
-        $maxFileSizeMb = (int) $request->user()->getPlanFeature('max_file_size_mb', 5);
+        $maxFileSizeMb = (int) workspace_owner()->getPlanFeature('max_file_size_mb', 5);
         $maxFileSizeKb = $maxFileSizeMb * 1024;
 
         $validated = $request->validate([
             'title' => 'nullable|string|max:255',
             'alias' => array_merge(
                 ['nullable', 'string', 'alpha_dash', 'unique:links,alias'],
-                ['min:' . $request->user()->getAliasLengthLimits()['min']],
-                ['max:' . $request->user()->getAliasLengthLimits()['max']],
+                ['min:' . workspace_owner()->getAliasLengthLimits()['min']],
+                ['max:' . workspace_owner()->getAliasLengthLimits()['max']],
                 [new \App\Modules\Admin\Rules\NotBannedName()],
             ),
             'project_id' => ['nullable', 'exists:projects,id', function ($attribute, $value, $fail) use ($request) {
-                if ($value && !\App\Modules\User\Models\Project::where('id', $value)->where('user_id', $request->user()->id)->exists()) {
+                if ($value && !\App\Modules\User\Models\Project::where('id', $value)->where('user_id', workspace_owner_id())->exists()) {
                     $fail('The selected project does not belong to you.');
                 }
             }],
@@ -61,7 +61,7 @@ class FileLinkController extends Controller
         $alias = $validated['alias'] ?: Link::generateAlias();
 
         $link = Link::create([
-            'user_id' => $request->user()->id,
+            'user_id' => workspace_owner_id(),
             'type' => 'file',
             'alias' => $alias,
             'title' => $validated['title'] ?: $file->getClientOriginalName(),

@@ -13,10 +13,12 @@ class CreatorPostController extends Controller
 {
     public function index()
     {
-        // Lazily publish any due scheduled posts before listing.
-        CreatorPost::publishDuePosts(auth()->id());
+        // Lazily publish any due scheduled posts in this workspace before listing.
+        // workspace_owner is bound by SetActiveWorkspace; falls back to auth user.
+        $ownerId = app()->bound('workspace_owner') ? app('workspace_owner')->id : auth()->id();
+        CreatorPost::publishDuePosts($ownerId);
 
-        $posts = CreatorPost::where('user_id', auth()->id())
+        $posts = CreatorPost::query()
             ->orderByDesc('pinned_at')
             ->orderByDesc('created_at')
             ->paginate(20);
@@ -41,8 +43,12 @@ class CreatorPostController extends Controller
         $scheduledAt = !empty($data['scheduled_at']) ? \Carbon\Carbon::parse($data['scheduled_at']) : null;
         $isFuture = $scheduledAt && $scheduledAt->isFuture();
 
+        // Attribute the post to the workspace owner (so existing per-creator
+        // queries — feed events, follower notifications — keep working) while
+        // workspace_id + created_by_user_id are auto-filled by the trait.
+        $ownerId = app()->bound('workspace_owner') ? app('workspace_owner')->id : auth()->id();
         $post = CreatorPost::create([
-            'user_id'      => auth()->id(),
+            'user_id'      => $ownerId,
             'title'        => $data['title'] ?? null,
             'body'         => $data['body'],
             'image'        => $imagePath,
@@ -50,7 +56,7 @@ class CreatorPostController extends Controller
             'published_at' => $isFuture ? null : now(),
         ]);
 
-        $me = auth()->user();
+        $me = app()->bound('workspace_owner') ? app('workspace_owner') : auth()->user();
 
         if (!$isFuture) {
             FeedEvent::create([
@@ -69,7 +75,8 @@ class CreatorPostController extends Controller
             // Only published posts can be pinned. If this one is scheduled,
             // it will be pinnable from the list once it goes live.
             if (!$isFuture) {
-                CreatorPost::where('user_id', $me->id)->whereNotNull('pinned_at')->update(['pinned_at' => null]);
+                // Workspace-scoped: clears any other pinned post in this workspace.
+                CreatorPost::query()->whereNotNull('pinned_at')->update(['pinned_at' => null]);
                 $post->pinned_at = now();
                 $post->save();
             }
@@ -84,12 +91,14 @@ class CreatorPostController extends Controller
 
     public function pin(CreatorPost $post)
     {
-        abort_unless($post->user_id === auth()->id(), 403);
+        // The route binding + workspace global scope guarantees this post belongs
+        // to the active workspace. The `workspace.can:posts.edit` middleware on
+        // the route is the authorization gate.
         if (!$post->isPublished()) {
             return back()->with('error', 'You can only pin a published post.');
         }
-        // Unpin any other pinned post for this creator.
-        CreatorPost::where('user_id', auth()->id())
+        // Unpin any other pinned post in this workspace.
+        CreatorPost::query()
             ->whereNotNull('pinned_at')
             ->where('id', '!=', $post->id)
             ->update(['pinned_at' => null]);
@@ -100,7 +109,7 @@ class CreatorPostController extends Controller
 
     public function unpin(CreatorPost $post)
     {
-        abort_unless($post->user_id === auth()->id(), 403);
+        // Auth handled by route middleware + global workspace scope.
         $post->pinned_at = null;
         $post->save();
         return back()->with('success', 'Post unpinned.');
@@ -108,7 +117,7 @@ class CreatorPostController extends Controller
 
     public function destroy(CreatorPost $post)
     {
-        abort_unless($post->user_id === auth()->id(), 403);
+        // Auth handled by route middleware + global workspace scope.
         $post->delete();
         return back()->with('success', 'Post deleted.');
     }

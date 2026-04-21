@@ -2,11 +2,15 @@
 
 namespace App\Modules\User\Models;
 
+
+use App\Modules\User\Concerns\BelongsToWorkspace;
 use Illuminate\Database\Eloquent\Model;
 
 class Subscriber extends Model
 {
-    protected $fillable = [
+    
+    use BelongsToWorkspace;
+protected $fillable = [
         'user_id', 'link_id', 'block_id', 'type', 'email', 'phone',
         'name', 'channel_url', 'status', 'source', 'metadata',
         'subscribed_at', 'unsubscribed_at',
@@ -34,6 +38,19 @@ class Subscriber extends Model
     public function link()
     {
         return $this->belongsTo(Link::class);
+    }
+
+    /**
+     * Parent record used by the BelongsToWorkspace trait to derive
+     * workspace_id when a subscriber is created from a public flow
+     * (no current_workspace bound). Falls back to the parent link.
+     */
+    public function parentForWorkspace()
+    {
+        if ($this->link_id) {
+            return Link::withoutGlobalScope('workspace')->find($this->link_id);
+        }
+        return null;
     }
 
     public function block()

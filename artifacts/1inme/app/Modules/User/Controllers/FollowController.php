@@ -11,9 +11,11 @@ class FollowController extends Controller
 {
     public function followers(Request $request)
     {
-        $me = auth()->user();
+        // Followers belong to the workspace owner — when a team member is
+        // signed in, scope to the workspace owner's followers.
+        $creator = app()->bound('workspace_owner') ? app('workspace_owner') : auth()->user();
         $followers = Follow::with('follower')
-            ->where('creator_id', $me->id)
+            ->where('creator_id', $creator->id)
             ->orderByDesc('created_at')
             ->paginate(30);
         return view('user.followers.index', compact('followers'));
@@ -21,7 +23,7 @@ class FollowController extends Controller
 
     public function following(Request $request)
     {
-        $me = auth()->user();
+        $me = app()->bound('workspace_owner') ? app('workspace_owner') : auth()->user();
         $following = Follow::with('creator')
             ->where('follower_id', $me->id)
             ->orderByDesc('created_at')

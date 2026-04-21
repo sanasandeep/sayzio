@@ -2,11 +2,15 @@
 
 namespace App\Modules\User\Models;
 
+
+use App\Modules\User\Concerns\BelongsToWorkspace;
 use Illuminate\Database\Eloquent\Model;
 
 class Pixel extends Model
 {
-    protected $fillable = ['user_id', 'name', 'type', 'pixel_id'];
+    
+    use BelongsToWorkspace;
+protected $fillable = ['user_id', 'name', 'type', 'pixel_id'];
 
     public function user()
     {

@@ -26,20 +26,20 @@ class VcfLinkController extends Controller
 
     public function create(Request $request)
     {
-        $projects = $request->user()->projects()->orderBy('name')->get();
+        $projects = workspace_owner()->projects()->orderBy('name')->get();
         $prefillAlias = (string) $request->query('alias', '');
-        $aliasLimits  = $request->user()->getAliasLengthLimits();
+        $aliasLimits  = workspace_owner()->getAliasLengthLimits();
 
         return view('user.links.create-vcf', $this->formContext() + compact('projects', 'prefillAlias', 'aliasLimits'));
     }
 
     public function edit(Request $request, Link $link)
     {
-        abort_if($link->user_id !== $request->user()->id, 403);
+        abort_if($link->user_id !== workspace_owner_id(), 403);
         abort_if($link->type !== 'vcf', 404);
 
-        $projects = $request->user()->projects()->orderBy('name')->get();
-        $aliasLimits = $request->user()->getAliasLengthLimits();
+        $projects = workspace_owner()->projects()->orderBy('name')->get();
+        $aliasLimits = workspace_owner()->getAliasLengthLimits();
         $vcf = $link->vcfData ?: new VcfData();
 
         return view('user.links.edit-vcf', $this->formContext() + compact('link', 'vcf', 'projects', 'aliasLimits'));
@@ -50,7 +50,7 @@ class VcfLinkController extends Controller
         $validated = $this->validatePayload($request);
 
         $link = Link::create([
-            'user_id'    => $request->user()->id,
+            'user_id'    => workspace_owner_id(),
             'type'       => 'vcf',
             'alias'      => $validated['alias'] ?: Link::generateAlias(),
             'title'      => $this->buildLinkTitle($validated),
@@ -69,7 +69,7 @@ class VcfLinkController extends Controller
 
     public function update(Request $request, Link $link)
     {
-        abort_if($link->user_id !== $request->user()->id, 403);
+        abort_if($link->user_id !== workspace_owner_id(), 403);
         abort_if($link->type !== 'vcf', 404);
 
         $validated = $this->validatePayload($request, $link);
@@ -139,7 +139,7 @@ class VcfLinkController extends Controller
 
     private function validatePayload(Request $request, ?Link $link = null): array
     {
-        $aliasLimits = $request->user()->getAliasLengthLimits();
+        $aliasLimits = workspace_owner()->getAliasLengthLimits();
         $aliasUnique = 'unique:links,alias' . ($link ? ',' . $link->id : '');
 
         return $request->validate([
@@ -150,7 +150,7 @@ class VcfLinkController extends Controller
                 [new \App\Modules\Admin\Rules\NotBannedName()],
             ),
             'project_id' => ['nullable', 'exists:projects,id', function ($attribute, $value, $fail) use ($request) {
-                if ($value && !\App\Modules\User\Models\Project::where('id', $value)->where('user_id', $request->user()->id)->exists()) {
+                if ($value && !\App\Modules\User\Models\Project::where('id', $value)->where('user_id', workspace_owner_id())->exists()) {
                     $fail('The selected project does not belong to you.');
                 }
             }],

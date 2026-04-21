@@ -2,6 +2,8 @@
 
 namespace App\Modules\User\Models;
 
+
+use App\Modules\User\Concerns\BelongsToWorkspace;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -10,7 +12,9 @@ use RuntimeException;
 
 class UserFile extends Model
 {
-    protected $fillable = [
+    
+    use BelongsToWorkspace;
+protected $fillable = [
         'user_id', 'original_name', 'filename', 'mime_type',
         'size_bytes', 'type', 'disk', 'path',
     ];

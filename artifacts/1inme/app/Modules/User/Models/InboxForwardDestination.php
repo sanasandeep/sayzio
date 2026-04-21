@@ -2,13 +2,17 @@
 
 namespace App\Modules\User\Models;
 
+
+use App\Modules\User\Concerns\BelongsToWorkspace;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class InboxForwardDestination extends Model
 {
-    protected $table = 'inbox_forward_destinations';
+    
+    use BelongsToWorkspace;
+protected $table = 'inbox_forward_destinations';
 
     protected $fillable = [
         'user_id', 'label', 'type', 'target', 'method', 'sources',

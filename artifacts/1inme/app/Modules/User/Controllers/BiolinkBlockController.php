@@ -14,7 +14,7 @@ class BiolinkBlockController extends Controller
 {
     public function editor(Link $link)
     {
-        abort_if($link->user_id !== auth()->id() || $link->type !== 'biolink', 403);
+        abort_if($link->user_id !== workspace_owner_id() || $link->type !== 'biolink', 403);
         $blocks = $link->biolinkBlocks()->whereNull('parent_id')->orderBy('sort_order')->get();
         $blocks->load('children');
         $blockTypes = BiolinkBlock::TYPES;
@@ -30,7 +30,7 @@ class BiolinkBlockController extends Controller
                 'is_active' => (bool) $f->is_active,
             ])->values();
 
-        $userBuzz = \App\Modules\User\Models\SocialProof::where('user_id', auth()->id())
+        $userBuzz = \App\Modules\User\Models\SocialProof::where('user_id', workspace_owner_id())
             ->orderByDesc('id')
             ->get(['id', 'name', 'type', 'is_active'])
             ->map(fn ($b) => [
@@ -52,7 +52,7 @@ class BiolinkBlockController extends Controller
 
     public function settingsAppearance(Link $link)
     {
-        abort_if($link->user_id !== auth()->id() || $link->type !== 'biolink', 403);
+        abort_if($link->user_id !== workspace_owner_id() || $link->type !== 'biolink', 403);
         $bgTemplates = \App\Modules\Admin\Models\BgTemplate::active()->get();
         $link->load(['pixels', 'aliases']);
         $projects = auth()->user()->projects()->orderBy('name')->get();
@@ -62,25 +62,25 @@ class BiolinkBlockController extends Controller
 
     public function settingsLayout(Link $link)
     {
-        abort_if($link->user_id !== auth()->id() || $link->type !== 'biolink', 403);
+        abort_if($link->user_id !== workspace_owner_id() || $link->type !== 'biolink', 403);
         return view('user.links.settings.layout', compact('link'));
     }
 
     public function settingsBlockTheme(Link $link)
     {
-        abort_if($link->user_id !== auth()->id() || $link->type !== 'biolink', 403);
+        abort_if($link->user_id !== workspace_owner_id() || $link->type !== 'biolink', 403);
         return view('user.links.settings.block-theme', compact('link'));
     }
 
     public function settingsAdvanced(Link $link)
     {
-        abort_if($link->user_id !== auth()->id() || $link->type !== 'biolink', 403);
+        abort_if($link->user_id !== workspace_owner_id() || $link->type !== 'biolink', 403);
         return view('user.links.settings.advanced', compact('link'));
     }
 
     public function store(Request $request, Link $link)
     {
-        abort_if($link->user_id !== auth()->id() || $link->type !== 'biolink', 403);
+        abort_if($link->user_id !== workspace_owner_id() || $link->type !== 'biolink', 403);
 
         $validated = $request->validate([
             'type' => 'required|string|in:' . implode(',', array_keys(BiolinkBlock::TYPES)),
@@ -195,7 +195,7 @@ class BiolinkBlockController extends Controller
 
     public function update(Request $request, Link $link, BiolinkBlock $block)
     {
-        abort_if($link->user_id !== auth()->id() || $block->link_id !== $link->id, 403);
+        abort_if($link->user_id !== workspace_owner_id() || $block->link_id !== $link->id, 403);
 
         $validated = $request->validate([
             'settings' => 'nullable|array',
@@ -244,7 +244,7 @@ class BiolinkBlockController extends Controller
 
     public function editForm(Link $link, BiolinkBlock $block)
     {
-        abort_if($link->user_id !== auth()->id() || $block->link_id !== $link->id, 403);
+        abort_if($link->user_id !== workspace_owner_id() || $block->link_id !== $link->id, 403);
         $blockTypes = BiolinkBlock::TYPES;
         $html = view('user.links.partials.block-edit-form-ajax', compact('link', 'block', 'blockTypes'))->render();
         return response()->json(['html' => $html]);
@@ -252,7 +252,7 @@ class BiolinkBlockController extends Controller
 
     public function destroy(Link $link, BiolinkBlock $block)
     {
-        abort_if($link->user_id !== auth()->id() || $block->link_id !== $link->id, 403);
+        abort_if($link->user_id !== workspace_owner_id() || $block->link_id !== $link->id, 403);
         if (in_array($block->type, ['verified_heading', 'verified_avatar'])) {
             if (request()->ajax() || request()->wantsJson()) {
                 return response()->json(['success' => false, 'message' => 'Verified blocks cannot be deleted.'], 403);
@@ -270,7 +270,7 @@ class BiolinkBlockController extends Controller
 
     public function reorder(Request $request, Link $link)
     {
-        abort_if($link->user_id !== auth()->id() || $link->type !== 'biolink', 403);
+        abort_if($link->user_id !== workspace_owner_id() || $link->type !== 'biolink', 403);
 
         $validated = $request->validate([
             'blocks' => 'required|array',
@@ -288,7 +288,7 @@ class BiolinkBlockController extends Controller
 
     public function moveBlock(Request $request, Link $link, BiolinkBlock $block)
     {
-        abort_if($link->user_id !== auth()->id() || $block->link_id !== $link->id, 403);
+        abort_if($link->user_id !== workspace_owner_id() || $block->link_id !== $link->id, 403);
 
         $validated = $request->validate([
             'parent_id' => 'nullable|integer|exists:biolink_blocks,id',
@@ -340,7 +340,7 @@ class BiolinkBlockController extends Controller
 
     public function toggleActive(Link $link, BiolinkBlock $block)
     {
-        abort_if($link->user_id !== auth()->id() || $block->link_id !== $link->id, 403);
+        abort_if($link->user_id !== workspace_owner_id() || $block->link_id !== $link->id, 403);
         $block->update(['is_active' => !$block->is_active]);
 
         if (request()->ajax() || request()->wantsJson()) {
@@ -352,7 +352,7 @@ class BiolinkBlockController extends Controller
 
     public function updatePageSettings(Request $request, Link $link)
     {
-        abort_if($link->user_id !== auth()->id() || $link->type !== 'biolink', 403);
+        abort_if($link->user_id !== workspace_owner_id() || $link->type !== 'biolink', 403);
 
         $validated = $request->validate([
             'biolink_title' => 'nullable|string|max:100',

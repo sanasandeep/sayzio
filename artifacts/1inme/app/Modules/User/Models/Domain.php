@@ -2,12 +2,16 @@
 
 namespace App\Modules\User\Models;
 
+
+use App\Modules\User\Concerns\BelongsToWorkspace;
 use App\Modules\Admin\Models\Plan;
 use Illuminate\Database\Eloquent\Model;
 
 class Domain extends Model
 {
-    protected $fillable = [
+    
+    use BelongsToWorkspace;
+protected $fillable = [
         'user_id', 'domain', 'type', 'is_verified', 'is_active',
         'verification_token', 'cname_target', 'verified_at',
     ];

@@ -2,11 +2,15 @@
 
 namespace App\Modules\User\Models;
 
+
+use App\Modules\User\Concerns\BelongsToWorkspace;
 use Illuminate\Database\Eloquent\Model;
 
 class CalendarAccount extends Model
 {
-    protected $fillable = [
+    
+    use BelongsToWorkspace;
+protected $fillable = [
         'user_id', 'provider', 'display_name', 'account_email',
         'external_account_id', 'access_token', 'refresh_token',
         'token_expires_at', 'scope', 'default_calendar_id',

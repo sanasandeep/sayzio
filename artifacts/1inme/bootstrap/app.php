@@ -27,8 +27,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/*',
         ]);
         $middleware->alias([
-            'onboarding.gate'    => \App\Modules\User\Middleware\RedirectToOnboarding::class,
-            'api.optional_auth'  => \App\Modules\Api\Middleware\OptionalSanctum::class,
+            'onboarding.gate'   => \App\Modules\User\Middleware\RedirectToOnboarding::class,
+            'api.optional_auth' => \App\Modules\Api\Middleware\OptionalSanctum::class,
+            'workspace.scope'   => \App\Modules\User\Middleware\SetActiveWorkspace::class,
+            'workspace.can'     => \App\Modules\User\Middleware\RequireWorkspacePermission::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

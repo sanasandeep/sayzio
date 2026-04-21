@@ -2,11 +2,15 @@
 
 namespace App\Modules\User\Models;
 
+
+use App\Modules\User\Concerns\BelongsToWorkspace;
 use Illuminate\Database\Eloquent\Model;
 
 class Referral extends Model
 {
-    protected $fillable = [
+    
+    use BelongsToWorkspace;
+protected $fillable = [
         'referrer_id', 'referred_user_id', 'code_used', 'status',
         'signed_up_at', 'converted_at', 'ip', 'user_agent',
     ];

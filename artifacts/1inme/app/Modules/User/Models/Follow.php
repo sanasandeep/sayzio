@@ -2,11 +2,15 @@
 
 namespace App\Modules\User\Models;
 
+
+use App\Modules\User\Concerns\BelongsToWorkspace;
 use Illuminate\Database\Eloquent\Model;
 
 class Follow extends Model
 {
-    public $timestamps = false;
+    
+    use BelongsToWorkspace;
+public $timestamps = false;
     protected $fillable = ['follower_id', 'creator_id', 'created_at'];
     protected $casts = ['created_at' => 'datetime'];
 

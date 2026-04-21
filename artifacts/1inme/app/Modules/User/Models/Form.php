@@ -2,12 +2,16 @@
 
 namespace App\Modules\User\Models;
 
+
+use App\Modules\User\Concerns\BelongsToWorkspace;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 class Form extends Model
 {
-    protected $fillable = [
+    
+    use BelongsToWorkspace;
+protected $fillable = [
         'project_id', 'slug', 'title', 'description',
         'fields', 'design', 'settings', 'notifications',
         'is_active', 'is_multi_step',

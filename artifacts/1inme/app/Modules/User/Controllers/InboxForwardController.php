@@ -12,7 +12,7 @@ class InboxForwardController
 {
     public function index(Request $request)
     {
-        $userId = $request->user()->id;
+        $userId = workspace_owner_id();
         $destinations = InboxForwardDestination::where('user_id', $userId)
             ->orderBy('created_at')->get();
         $deliveries = InboxForwardDelivery::where('user_id', $userId)
@@ -25,7 +25,7 @@ class InboxForwardController
 
     public function store(Request $request)
     {
-        $userId = $request->user()->id;
+        $userId = workspace_owner_id();
         $data = $this->validateData($request);
         $data['user_id'] = $userId;
         InboxForwardDestination::create($data);
@@ -69,7 +69,7 @@ class InboxForwardController
 
     public function retry(Request $request, InboxForwardDelivery $delivery)
     {
-        abort_unless($delivery->user_id === $request->user()->id, 403);
+        abort_unless($delivery->user_id === workspace_owner_id(), 403);
         abort_unless(in_array($delivery->status, ['failed', 'dead'], true), 422);
         // Reset retry window so worker (or this request) can run it now.
         $delivery->update(['next_retry_at' => now()->subSecond()]);
@@ -79,7 +79,7 @@ class InboxForwardController
 
     protected function authorize(Request $request, InboxForwardDestination $forward): void
     {
-        abort_unless($forward->user_id === $request->user()->id, 403);
+        abort_unless($forward->user_id === workspace_owner_id(), 403);
     }
 
     protected function validateData(Request $request): array

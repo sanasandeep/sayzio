@@ -38,7 +38,7 @@ class LinkController extends Controller
 
     public function index(Request $request)
     {
-        $query = $request->user()->links()->with(['project', 'domain', 'fileLink']);
+        $query = workspace_owner()->links()->with(['project', 'domain', 'fileLink']);
 
         if ($search = $request->get('search')) {
             $query->where(function ($q) use ($search) {
@@ -63,7 +63,7 @@ class LinkController extends Controller
         }
 
         $links = $query->latest()->paginate(15)->withQueryString();
-        $projects = $request->user()->projects()->orderBy('name')->get();
+        $projects = workspace_owner()->projects()->orderBy('name')->get();
 
         return view('user.links.index', compact('links', 'projects'));
     }
@@ -103,7 +103,7 @@ class LinkController extends Controller
      */
     public function chooseType(Request $request)
     {
-        $limits = $request->user()->getAliasLengthLimits();
+        $limits = workspace_owner()->getAliasLengthLimits();
 
         $validated = $request->validate([
             'type'  => 'required|in:url,biolink,file,ics,vcf',
@@ -137,8 +137,8 @@ class LinkController extends Controller
      */
     public function createUrl(Request $request)
     {
-        $projects = $request->user()->projects()->orderBy('name')->get();
-        $pixels = $request->user()->pixels()->orderBy('name')->get();
+        $projects = workspace_owner()->projects()->orderBy('name')->get();
+        $pixels = workspace_owner()->pixels()->orderBy('name')->get();
         $domains = \App\Modules\User\Models\Domain::availableTo($request->user())->get();
 
         return view('user.links.create-url', [
@@ -146,7 +146,7 @@ class LinkController extends Controller
             'pixels' => $pixels,
             'domains' => $domains,
             'prefillAlias' => (string) $request->query('alias', ''),
-            'aliasLimits' => $request->user()->getAliasLengthLimits(),
+            'aliasLimits' => workspace_owner()->getAliasLengthLimits(),
         ]);
     }
 
@@ -156,20 +156,20 @@ class LinkController extends Controller
      */
     public function createBiolink(Request $request)
     {
-        $projects = $request->user()->projects()->orderBy('name')->get();
+        $projects = workspace_owner()->projects()->orderBy('name')->get();
         $domains  = \App\Modules\User\Models\Domain::availableTo($request->user())->get();
 
         return view('user.links.create-biolink', [
             'projects' => $projects,
             'domains'  => $domains,
             'prefillAlias' => (string) $request->query('alias', ''),
-            'aliasLimits' => $request->user()->getAliasLengthLimits(),
+            'aliasLimits' => workspace_owner()->getAliasLengthLimits(),
         ]);
     }
 
     public function store(Request $request)
     {
-        $userId = $request->user()->id;
+        $userId = workspace_owner_id();
 
         $validated = $request->validate([
             'type' => 'required|in:url,biolink,file,ics,vcf',
@@ -177,8 +177,8 @@ class LinkController extends Controller
             'redirect_type' => 'nullable|in:301,302',
             'alias' => array_merge(
                 ['nullable', 'string', 'alpha_dash', 'unique:links,alias'],
-                ['min:' . $request->user()->getAliasLengthLimits()['min']],
-                ['max:' . $request->user()->getAliasLengthLimits()['max']],
+                ['min:' . workspace_owner()->getAliasLengthLimits()['min']],
+                ['max:' . workspace_owner()->getAliasLengthLimits()['max']],
                 [new \App\Modules\Admin\Rules\NotBannedName()],
             ),
             'title' => 'nullable|string|max:255',
@@ -266,7 +266,7 @@ class LinkController extends Controller
             $validated['smart_rules_json']
         );
 
-        $validated['user_id'] = $request->user()->id;
+        $validated['user_id'] = workspace_owner_id();
 
         $pixelIds = $validated['pixel_ids'] ?? [];
         unset($validated['pixel_ids']);
@@ -316,7 +316,7 @@ class LinkController extends Controller
 
     public function show(Request $request, Link $link)
     {
-        abort_if($link->user_id !== $request->user()->id, 403);
+        abort_if($link->user_id !== workspace_owner_id(), 403);
 
         $link->load(['project', 'domain', 'pixels']);
 
@@ -680,7 +680,7 @@ class LinkController extends Controller
      */
     public function updatePerformanceCoachSettings(Request $request, Link $link)
     {
-        abort_if($link->user_id !== $request->user()->id, 403);
+        abort_if($link->user_id !== workspace_owner_id(), 403);
 
         $validated = $request->validate([
             'preset' => ['required', 'string', 'in:' . implode(',', \App\Modules\User\Services\LinkPerformanceCoach::validPresetKeys())],
@@ -733,7 +733,7 @@ class LinkController extends Controller
 
     public function recentClicksPartial(Request $request, Link $link)
     {
-        abort_if($link->user_id !== $request->user()->id, 403);
+        abort_if($link->user_id !== workspace_owner_id(), 403);
         [$startDate, $endDate] = $this->resolveAnalyticsRange($request);
 
         $recentClicks = $link->clicks()
@@ -762,7 +762,7 @@ class LinkController extends Controller
      */
     public function followers(Request $request, Link $link)
     {
-        abort_if($link->user_id !== $request->user()->id, 403);
+        abort_if($link->user_id !== workspace_owner_id(), 403);
 
         $link->load(['project', 'domain']);
         [$startDate, $endDate, $period, $groupBy] = $this->resolveAnalyticsRange($request);
@@ -896,7 +896,7 @@ class LinkController extends Controller
      */
     public function followersExport(Request $request, Link $link)
     {
-        abort_if($link->user_id !== $request->user()->id, 403);
+        abort_if($link->user_id !== workspace_owner_id(), 403);
 
         [$startDate, $endDate, $period] = $this->resolveAnalyticsRange($request);
 
@@ -974,7 +974,7 @@ class LinkController extends Controller
      */
     public function followerHistory(Request $request, Link $link, User $follower)
     {
-        abort_if($link->user_id !== $request->user()->id, 403);
+        abort_if($link->user_id !== workspace_owner_id(), 403);
 
         // Confirm this user is actually a follower of the link's owner so
         // the page can't be used as a generic per-user click viewer.
@@ -1007,7 +1007,7 @@ class LinkController extends Controller
 
     public function heatmap(Request $request, Link $link)
     {
-        abort_if($link->user_id !== $request->user()->id, 403);
+        abort_if($link->user_id !== workspace_owner_id(), 403);
         [$startDate, $endDate] = $this->resolveAnalyticsRange($request);
 
         // True period total (never truncated by the points cap below).
@@ -1132,7 +1132,7 @@ class LinkController extends Controller
 
     public function heatmapLive(Request $request, Link $link)
     {
-        abort_if($link->user_id !== $request->user()->id, 403);
+        abort_if($link->user_id !== workspace_owner_id(), 403);
 
         // "Live" window: last 5 minutes of clicks. Short enough to feel real-time,
         // long enough to keep a few pulses on screen between 10s polls.
@@ -1178,7 +1178,7 @@ class LinkController extends Controller
      */
     public function heatmapLiveStream(Request $request, Link $link)
     {
-        abort_if($link->user_id !== $request->user()->id, 403);
+        abort_if($link->user_id !== workspace_owner_id(), 403);
 
         $lastId = (int) $request->query('lastId', 0);
         $sinceTs = $request->query('since');
@@ -1534,7 +1534,7 @@ class LinkController extends Controller
 
     public function exportClicks(Request $request, Link $link)
     {
-        abort_if($link->user_id !== $request->user()->id, 403);
+        abort_if($link->user_id !== workspace_owner_id(), 403);
         [$startDate, $endDate] = $this->resolveAnalyticsRange($request);
 
         $filename = 'clicks-' . $link->alias . '-' . now()->format('Y-m-d-His') . '.csv';
@@ -1577,7 +1577,7 @@ class LinkController extends Controller
 
     public function edit(Request $request, Link $link)
     {
-        abort_if($link->user_id !== $request->user()->id, 403);
+        abort_if($link->user_id !== workspace_owner_id(), 403);
 
         // For biolinks, all edit controls live on the unified Appearance
         // settings page so users have a single, premium place to manage them.
@@ -1597,8 +1597,8 @@ class LinkController extends Controller
             return redirect()->route('user.links.ics.edit', $link);
         }
 
-        $projects = $request->user()->projects()->orderBy('name')->get();
-        $pixels = $request->user()->pixels()->orderBy('name')->get();
+        $projects = workspace_owner()->projects()->orderBy('name')->get();
+        $pixels = workspace_owner()->pixels()->orderBy('name')->get();
         $domains = \App\Modules\User\Models\Domain::availableTo($request->user())->get();
         $link->load('pixels');
 
@@ -1611,9 +1611,9 @@ class LinkController extends Controller
 
     public function update(Request $request, Link $link)
     {
-        abort_if($link->user_id !== $request->user()->id, 403);
+        abort_if($link->user_id !== workspace_owner_id(), 403);
 
-        $userId = $request->user()->id;
+        $userId = workspace_owner_id();
 
         $validated = $request->validate([
             'long_url' => 'nullable|url|max:2048',
@@ -1740,16 +1740,16 @@ class LinkController extends Controller
      */
     public function splashSettings(Request $request, Link $link)
     {
-        abort_if($link->user_id !== $request->user()->id, 403);
+        abort_if($link->user_id !== workspace_owner_id(), 403);
         $link->load('splashPage');
-        $splashPages = $request->user()->splashPages()->orderBy('name')->get(['id', 'name', 'title']);
+        $splashPages = workspace_owner()->splashPages()->orderBy('name')->get(['id', 'name', 'title']);
         return view('user.links.settings.splash', compact('link', 'splashPages'));
     }
 
     public function updateSplash(Request $request, Link $link)
     {
-        abort_if($link->user_id !== $request->user()->id, 403);
-        $userId = $request->user()->id;
+        abort_if($link->user_id !== workspace_owner_id(), 403);
+        $userId = workspace_owner_id();
         $validated = $request->validate([
             'splash_enabled'  => 'sometimes|boolean',
             'splash_page_id'  => ['nullable', \Illuminate\Validation\Rule::exists('splash_pages', 'id')->where('user_id', $userId)],
@@ -1766,7 +1766,7 @@ class LinkController extends Controller
 
     public function destroy(Request $request, Link $link)
     {
-        abort_if($link->user_id !== $request->user()->id, 403);
+        abort_if($link->user_id !== workspace_owner_id(), 403);
 
         $link->delete();
 
@@ -1783,11 +1783,11 @@ class LinkController extends Controller
      */
     public function duplicate(Request $request, Link $link)
     {
-        abort_if($link->user_id !== $request->user()->id, 403);
+        abort_if($link->user_id !== workspace_owner_id(), 403);
 
         // Plan limit: a duplicate counts as a new link.
-        $maxLinks = (int) $request->user()->getPlanFeature('max_links', 0);
-        if ($maxLinks > 0 && $request->user()->links()->count() >= $maxLinks) {
+        $maxLinks = (int) workspace_owner()->getPlanFeature('max_links', 0);
+        if ($maxLinks > 0 && workspace_owner()->links()->count() >= $maxLinks) {
             return back()->with('error', 'You have reached your plan link limit. Upgrade to duplicate more links.');
         }
 
@@ -1840,7 +1840,7 @@ class LinkController extends Controller
      */
     public function resetStats(Request $request, Link $link)
     {
-        abort_if($link->user_id !== $request->user()->id, 403);
+        abort_if($link->user_id !== workspace_owner_id(), 403);
 
         $aliasScope = $request->query('alias') ?: $request->input('alias');
         if ($aliasScope && !in_array($aliasScope, $link->getAllAliases(), true)) {
@@ -1871,7 +1871,7 @@ class LinkController extends Controller
 
     public function toggleActive(Request $request, Link $link)
     {
-        abort_if($link->user_id !== $request->user()->id, 403);
+        abort_if($link->user_id !== workspace_owner_id(), 403);
 
         $link->update(['is_active' => !$link->is_active]);
 
@@ -1889,7 +1889,7 @@ class LinkController extends Controller
      */
     public function coachAction(Request $request, Link $link)
     {
-        abort_if($link->user_id !== $request->user()->id, 403);
+        abort_if($link->user_id !== workspace_owner_id(), 403);
 
         $validated = $request->validate([
             'action_type' => 'required|string|in:deactivate_blocks,promote_block,enable_block',
@@ -2001,7 +2001,7 @@ class LinkController extends Controller
             // an expiry so it can't be replayed later or on another link.
             $token = Crypt::encrypt([
                 'link_id'    => $link->id,
-                'user_id'    => $request->user()->id,
+                'user_id'    => workspace_owner_id(),
                 'type'       => $type,
                 'data'       => $undoData,
                 'expires_at' => now()->addMinutes(10)->timestamp,
@@ -2032,7 +2032,7 @@ class LinkController extends Controller
         }
 
         if (!is_array($payload)
-            || ($payload['user_id'] ?? null) !== $request->user()->id
+            || ($payload['user_id'] ?? null) !== workspace_owner_id()
             || empty($payload['link_id'])
             || empty($payload['type'])
         ) {
@@ -2043,7 +2043,7 @@ class LinkController extends Controller
             return back()->with('error', 'The undo window has expired.');
         }
 
-        $link = Link::where('user_id', $request->user()->id)
+        $link = Link::where('user_id', workspace_owner_id())
             ->where('id', $payload['link_id'])
             ->first();
         if (!$link) {
@@ -2093,7 +2093,7 @@ class LinkController extends Controller
 
     public function updateAlias(Request $request, Link $link)
     {
-        abort_if($link->user_id !== $request->user()->id, 403);
+        abort_if($link->user_id !== workspace_owner_id(), 403);
 
         $validated = $request->validate([
             'alias' => [

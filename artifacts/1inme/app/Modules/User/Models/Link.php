@@ -2,12 +2,16 @@
 
 namespace App\Modules\User\Models;
 
+
+use App\Modules\User\Concerns\BelongsToWorkspace;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 class Link extends Model
 {
-    protected $fillable = [
+    
+    use BelongsToWorkspace;
+protected $fillable = [
         'user_id', 'project_id', 'domain_id', 'type', 'alias', 'title',
         'long_url', 'redirect_type', 'is_active', 'is_verified', 'verified_name', 'verified_logo',
         'expires_at', 'password', 'is_password_protected',

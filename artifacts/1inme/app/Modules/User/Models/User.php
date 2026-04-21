@@ -137,6 +137,71 @@ class User extends Authenticatable
         return $this->belongsTo(Plan::class);
     }
 
+    /** Workspaces this user owns (one-to-many — owner side). */
+    public function ownedWorkspaces()
+    {
+        return $this->hasMany(Workspace::class, 'owner_user_id');
+    }
+
+    /** Memberships this user has on other people's workspaces. */
+    public function workspaceMemberships()
+    {
+        return $this->hasMany(WorkspaceMember::class);
+    }
+
+    /**
+     * Every workspace this user can access — owned + member-of, sorted with
+     * owned ones first. Used by the workspace switcher.
+     *
+     * @return \Illuminate\Support\Collection<\App\Modules\User\Models\Workspace>
+     */
+    public function accessibleWorkspaces()
+    {
+        $owned = $this->ownedWorkspaces()->get();
+        $memberWsIds = $this->workspaceMemberships()->pluck('workspace_id');
+        $joined = $memberWsIds->isEmpty()
+            ? collect()
+            : Workspace::whereIn('id', $memberWsIds)->get();
+        return $owned->merge($joined)->sortBy([['owner_user_id', 'asc'], ['id', 'asc']])->values();
+    }
+
+    /** True if this user is the owner OR an active member of $workspace. */
+    public function belongsToWorkspace(Workspace $workspace): bool
+    {
+        if ($this->id === (int) $workspace->owner_user_id) return true;
+        return $this->workspaceMemberships()->where('workspace_id', $workspace->id)->exists();
+    }
+
+    /** Membership row for this user on $workspace, if any. */
+    public function membershipFor(Workspace $workspace): ?WorkspaceMember
+    {
+        return $this->workspaceMemberships()->where('workspace_id', $workspace->id)->first();
+    }
+
+    /**
+     * Check a permission against the given workspace. Owner of the workspace
+     * (and super-admin) always pass; members consult their permission blob.
+     */
+    public function canInWorkspace(Workspace $workspace, string $permission): bool
+    {
+        if ($this->isSuperAdmin()) return true;
+        if ((int) $workspace->owner_user_id === $this->id) return true;
+        $membership = $this->membershipFor($workspace);
+        if (!$membership) return false;
+        return $membership->can($permission);
+    }
+
+    /** Lazily ensure this user owns at least one workspace, returning their default. */
+    public function ensureDefaultWorkspace(): Workspace
+    {
+        $existing = $this->ownedWorkspaces()->orderBy('id')->first();
+        if ($existing) return $existing;
+        return $this->ownedWorkspaces()->create([
+            'name' => ($this->name ?: ('User ' . $this->id)) . "'s workspace",
+            'slug' => 'ws-' . $this->id,
+        ]);
+    }
+
     public function projects()
     {
         return $this->hasMany(Project::class);

@@ -21,10 +21,10 @@ class IcsLinkController extends Controller
 
     public function create(Request $request)
     {
-        $projects = $request->user()->projects()->orderBy('name')->get();
+        $projects = workspace_owner()->projects()->orderBy('name')->get();
 
         $prefillAlias = (string) $request->query('alias', '');
-        $aliasLimits  = $request->user()->getAliasLengthLimits();
+        $aliasLimits  = workspace_owner()->getAliasLengthLimits();
         $timezones    = self::TIMEZONES;
         return view('user.links.create-ics', compact('projects', 'prefillAlias', 'aliasLimits', 'timezones'));
     }
@@ -36,7 +36,7 @@ class IcsLinkController extends Controller
         $alias = $validated['alias'] ?: Link::generateAlias();
 
         $link = Link::create([
-            'user_id'    => $request->user()->id,
+            'user_id'    => workspace_owner_id(),
             'type'       => 'ics',
             'alias'      => $alias,
             'title'      => $validated['event_name'],
@@ -53,13 +53,13 @@ class IcsLinkController extends Controller
 
     public function edit(Request $request, Link $link)
     {
-        abort_if($link->user_id !== $request->user()->id, 403);
+        abort_if($link->user_id !== workspace_owner_id(), 403);
         abort_if($link->type !== 'ics', 404);
 
         $link->load('icsData');
         $ics = $link->icsData ?? new IcsData();
 
-        $projects   = $request->user()->projects()->orderBy('name')->get();
+        $projects   = workspace_owner()->projects()->orderBy('name')->get();
         $timezones  = self::TIMEZONES;
 
         return view('user.links.edit-ics', compact('link', 'ics', 'projects', 'timezones'));
@@ -67,7 +67,7 @@ class IcsLinkController extends Controller
 
     public function update(Request $request, Link $link)
     {
-        abort_if($link->user_id !== $request->user()->id, 403);
+        abort_if($link->user_id !== workspace_owner_id(), 403);
         abort_if($link->type !== 'ics', 404);
 
         $validated = $this->validateRequest($request, $link);
@@ -84,7 +84,7 @@ class IcsLinkController extends Controller
             $accountId = $request->input('push_calendar_account_id');
             if ($accountId) {
                 $owns = \App\Modules\User\Models\CalendarAccount::where('id', $accountId)
-                    ->where('user_id', $request->user()->id)->exists();
+                    ->where('user_id', workspace_owner_id())->exists();
                 if ($owns) {
                     $newSettings['push_calendar_account_id'] = (int) $accountId;
                 }
@@ -135,7 +135,7 @@ class IcsLinkController extends Controller
 
     private function validateRequest(Request $request, ?Link $link): array
     {
-        $aliasLimits = $request->user()->getAliasLengthLimits();
+        $aliasLimits = workspace_owner()->getAliasLengthLimits();
         $aliasRule = ['nullable', 'string', 'alpha_dash',
             'min:' . $aliasLimits['min'], 'max:' . $aliasLimits['max']];
         $aliasRule[] = $link
@@ -146,7 +146,7 @@ class IcsLinkController extends Controller
         return $request->validate([
             'alias' => $aliasRule,
             'project_id' => ['nullable', 'exists:projects,id', function ($attribute, $value, $fail) use ($request) {
-                if ($value && !\App\Modules\User\Models\Project::where('id', $value)->where('user_id', $request->user()->id)->exists()) {
+                if ($value && !\App\Modules\User\Models\Project::where('id', $value)->where('user_id', workspace_owner_id())->exists()) {
                     $fail('The selected project does not belong to you.');
                 }
             }],

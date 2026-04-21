@@ -198,6 +198,10 @@ class AuthController extends Controller
             session()->forget(['otp_identifier', 'otp_type']);
             $request->session()->regenerate();
 
+            // Ensure user has a default workspace; auto-attach any pending invite.
+            $user->ensureDefaultWorkspace();
+            \App\Modules\User\Controllers\AcceptInviteController::attachPendingInvite($user);
+
             if ($redirect = \App\Modules\Admin\Services\HandleRenameEnforcer::maybeRedirect($user)) {
                 return $redirect;
             }

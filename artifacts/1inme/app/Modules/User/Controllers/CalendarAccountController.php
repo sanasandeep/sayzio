@@ -23,7 +23,7 @@ class CalendarAccountController extends Controller
 
     public function index(Request $request)
     {
-        $accounts = CalendarAccount::where('user_id', $request->user()->id)
+        $accounts = CalendarAccount::where('user_id', workspace_owner_id())
             ->orderByDesc('id')->get();
 
         $googleConfigured = (new GoogleCalendarProvider())->isConfigured();
@@ -41,7 +41,7 @@ class CalendarAccountController extends Controller
      */
     public function events(Request $request)
     {
-        $userId = $request->user()->id;
+        $userId = workspace_owner_id();
 
         $upcoming = IcsData::query()
             ->whereHas('link', fn ($q) => $q->where('user_id', $userId))
@@ -62,7 +62,7 @@ class CalendarAccountController extends Controller
      */
     public function eventsFeed(Request $request)
     {
-        $userId = $request->user()->id;
+        $userId = workspace_owner_id();
         $start  = $request->query('start') ? Carbon::parse($request->query('start')) : now()->subMonth();
         $end    = $request->query('end')   ? Carbon::parse($request->query('end'))   : now()->addMonths(2);
 
@@ -139,7 +139,7 @@ class CalendarAccountController extends Controller
         $request->session()->put('calendar_oauth_state', [
             'state'    => $state,
             'provider' => $provider,
-            'user_id'  => $request->user()->id,
+            'user_id'  => workspace_owner_id(),
         ]);
 
         $redirect = route('user.calendar.callback', ['provider' => $provider]);
@@ -174,7 +174,7 @@ class CalendarAccountController extends Controller
 
     public function syncNow(Request $request, CalendarAccount $account)
     {
-        abort_if($account->user_id !== $request->user()->id, 403);
+        abort_if($account->user_id !== workspace_owner_id(), 403);
         $stats = $this->sync->syncAccount($account);
         $msg = "Synced — {$stats['created']} new, {$stats['updated']} updated, {$stats['deleted']} removed.";
         if ($stats['errors']) $msg .= " ({$stats['errors']} errors — see logs.)";
@@ -183,7 +183,7 @@ class CalendarAccountController extends Controller
 
     public function update(Request $request, CalendarAccount $account)
     {
-        abort_if($account->user_id !== $request->user()->id, 403);
+        abort_if($account->user_id !== workspace_owner_id(), 403);
         $account->update([
             'mirror_enabled' => $request->boolean('mirror_enabled'),
             'push_enabled'   => $request->boolean('push_enabled'),
@@ -194,7 +194,7 @@ class CalendarAccountController extends Controller
 
     public function destroy(Request $request, CalendarAccount $account)
     {
-        abort_if($account->user_id !== $request->user()->id, 403);
+        abort_if($account->user_id !== workspace_owner_id(), 403);
 
         // Optionally delete mirrored Event Invite links (keep by default — user may want them).
         if ($request->boolean('purge_mirrored')) {

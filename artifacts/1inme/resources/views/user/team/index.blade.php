@@ -1,0 +1,233 @@
+@extends('user.layouts.app')
+
+@section('title', 'Team')
+
+@section('content')
+<div class="max-w-5xl mx-auto px-4 py-8" x-data="teamPage()">
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-bold" style="color: var(--text-primary);">{{ $workspace->name }} — Team</h1>
+            <p class="text-sm opacity-70 mt-1">
+                Seats used: <strong>{{ $usedSeats }}</strong>
+                {{ $maxSeats === -1 ? '(unlimited)' : ' / ' . $maxSeats }}
+            </p>
+        </div>
+        <button type="button" @click="openInvite()"
+                class="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-semibold hover:bg-primary-700">
+            <i class="fas fa-plus mr-1"></i> Invite teammate
+        </button>
+    </div>
+
+    @if(session('success'))
+        <div class="mb-4 p-3 rounded bg-green-100 text-green-800 text-sm">{{ session('success') }}</div>
+    @endif
+    @if(session('error'))
+        <div class="mb-4 p-3 rounded bg-red-100 text-red-800 text-sm">{{ session('error') }}</div>
+    @endif
+
+    @if($maxSeats !== -1 && $usedSeats >= $maxSeats)
+        <div class="mb-4 p-3 rounded border border-amber-300 bg-amber-50 text-amber-800 text-sm flex items-center justify-between">
+            <span><i class="fas fa-info-circle mr-1"></i> You've reached your seat limit. Upgrade your plan or remove a member to invite more.</span>
+            <a href="{{ route('user.upgrade') }}" class="ml-3 px-3 py-1 bg-amber-600 text-white rounded text-xs font-semibold">Upgrade</a>
+        </div>
+    @endif
+
+    <div class="rounded-lg border" style="border-color: var(--border-strong); background: var(--bg-card);">
+        <div class="px-4 py-3 border-b font-semibold" style="border-color: var(--border-strong);">Members</div>
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="text-left opacity-70">
+                    <th class="px-4 py-2">Name</th>
+                    <th class="px-4 py-2">Email</th>
+                    <th class="px-4 py-2">Role</th>
+                    <th class="px-4 py-2"></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="border-t" style="border-color: var(--border-strong);">
+                    <td class="px-4 py-3 font-medium">{{ $workspace->owner->name ?? 'Owner' }} <span class="text-xs opacity-60">(you)</span></td>
+                    <td class="px-4 py-3">{{ $workspace->owner->email ?? '' }}</td>
+                    <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-xs bg-purple-100 text-purple-700">Owner</span></td>
+                    <td class="px-4 py-3"></td>
+                </tr>
+                @foreach($members as $m)
+                    <tr class="border-t" style="border-color: var(--border-strong);">
+                        <td class="px-4 py-3">{{ $m->user->name ?? '—' }}</td>
+                        <td class="px-4 py-3">{{ $m->user->email ?? '—' }}</td>
+                        <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-700">{{ ucfirst($m->role) }}</span></td>
+                        <td class="px-4 py-3 text-right">
+                            <button type="button" @click='openEdit(@json([
+                                "id"          => $m->id,
+                                "name"        => $m->user->name ?? "",
+                                "role"        => $m->role,
+                                "permissions" => $m->effectivePermissions(),
+                            ]))' class="text-xs text-primary-600 hover:underline mr-3">Edit</button>
+                            <form method="POST" action="{{ route('user.team.members.remove', $m) }}" class="inline"
+                                  onsubmit="return confirm('Remove this member from the workspace?')">
+                                @csrf @method('DELETE')
+                                <button class="text-xs text-red-600 hover:underline">Remove</button>
+                            </form>
+                        </td>
+                    </tr>
+                @endforeach
+                @if($members->isEmpty())
+                    <tr class="border-t" style="border-color: var(--border-strong);">
+                        <td colspan="4" class="px-4 py-6 text-center opacity-60">No teammates yet — invite someone above.</td>
+                    </tr>
+                @endif
+            </tbody>
+        </table>
+    </div>
+
+    @if($pendingInvites->isNotEmpty())
+        <div class="mt-6 rounded-lg border" style="border-color: var(--border-strong); background: var(--bg-card);">
+            <div class="px-4 py-3 border-b font-semibold" style="border-color: var(--border-strong);">Pending invites</div>
+            <table class="w-full text-sm">
+                <tbody>
+                    @foreach($pendingInvites as $inv)
+                        <tr class="border-t" style="border-color: var(--border-strong);">
+                            <td class="px-4 py-3">{{ $inv->email }}</td>
+                            <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-700">{{ ucfirst($inv->role) }}</span></td>
+                            <td class="px-4 py-3 text-xs opacity-60">Expires {{ optional($inv->expires_at)->diffForHumans() }}</td>
+                            <td class="px-4 py-3 text-right">
+                                <form method="POST" action="{{ route('user.team.invites.resend', $inv) }}" class="inline">
+                                    @csrf
+                                    <button class="text-xs text-primary-600 hover:underline mr-3">Resend</button>
+                                </form>
+                                <form method="POST" action="{{ route('user.team.invites.revoke', $inv) }}" class="inline">
+                                    @csrf @method('DELETE')
+                                    <button class="text-xs text-red-600 hover:underline">Revoke</button>
+                                </form>
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    @endif
+
+    {{-- Invite / edit modal --}}
+    <div x-show="modal.open" x-cloak
+         class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="rounded-lg shadow-xl w-full max-w-2xl" style="background: var(--bg-card);">
+            <form :action="modal.action" method="POST" class="p-6">
+                @csrf
+                <template x-if="modal.method === 'PUT'"><input type="hidden" name="_method" value="PUT"></template>
+                <h2 class="text-lg font-bold mb-4" x-text="modal.title"></h2>
+
+                <template x-if="modal.method !== 'PUT'">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1">Email address</label>
+                        <input type="email" name="email" required
+                               class="w-full px-3 py-2 border rounded"
+                               style="background: var(--bg-card); border-color: var(--border-strong); color: var(--text-primary);">
+                    </div>
+                </template>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1">Role</label>
+                    <select name="role" x-model="form.role" @change="applyPreset()"
+                            class="w-full px-3 py-2 border rounded"
+                            style="background: var(--bg-card); border-color: var(--border-strong); color: var(--text-primary);">
+                        <option value="admin">Admin — everything except billing & member management</option>
+                        <option value="editor">Editor — view + edit on Links / Posts / Inbox / Followers</option>
+                        <option value="replier">Replier — Inbox view + reply</option>
+                        <option value="analyst">Analyst — Stats only</option>
+                        <option value="viewer">Viewer — view-only across the board</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                </div>
+
+                <div class="mb-4">
+                    <button type="button" @click="advanced = !advanced"
+                            class="text-xs text-primary-600 hover:underline">
+                        <i class="fas" :class="advanced ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+                        Advanced permissions
+                    </button>
+                    <div x-show="advanced" x-cloak class="mt-3 border rounded p-3 overflow-x-auto" style="border-color: var(--border-strong);">
+                        <table class="w-full text-xs">
+                            <thead>
+                                <tr>
+                                    <th class="text-left">Feature</th>
+                                    @foreach(['view','create','edit','delete','reply'] as $a)
+                                        <th class="px-2 capitalize">{{ $a }}</th>
+                                    @endforeach
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($matrix as $feature => $actions)
+                                    <tr class="border-t" style="border-color: var(--border-strong);">
+                                        <td class="py-2 capitalize">{{ $feature }}</td>
+                                        @foreach(['view','create','edit','delete','reply'] as $a)
+                                            <td class="px-2 text-center">
+                                                @if(in_array($a, $actions, true))
+                                                    <input type="checkbox"
+                                                           :name="'permissions[{{ $feature }}.{{ $a }}]'"
+                                                           x-model="form.permissions['{{ $feature }}.{{ $a }}']"
+                                                           value="1"
+                                                           @change="form.role='custom'">
+                                                @else
+                                                    <span class="opacity-30">—</span>
+                                                @endif
+                                            </td>
+                                        @endforeach
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-2">
+                    <button type="button" @click="modal.open = false"
+                            class="px-3 py-2 text-sm rounded border" style="border-color: var(--border-strong);">Cancel</button>
+                    <button type="submit" class="px-4 py-2 text-sm rounded bg-primary-600 text-white font-semibold">
+                        <span x-text="modal.method === 'PUT' ? 'Save changes' : 'Send invite'"></span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function teamPage() {
+    return {
+        modal: { open: false, action: '', method: '', title: '' },
+        form: { role: 'viewer', permissions: {} },
+        advanced: false,
+        presets: @json(\App\Modules\User\Services\WorkspacePermissions::presets()),
+        emptyPerms: (() => {
+            const m = @json($matrix);
+            const out = {};
+            for (const [f, acts] of Object.entries(m)) {
+                for (const a of acts) out[`${f}.${a}`] = false;
+            }
+            return out;
+        })(),
+        openInvite() {
+            this.modal = { open: true, action: '{{ route("user.team.invite") }}', method: 'POST', title: 'Invite teammate' };
+            this.form = { role: 'viewer', permissions: { ...this.emptyPerms } };
+            this.applyPreset();
+            this.advanced = false;
+        },
+        openEdit(member) {
+            this.modal = { open: true, action: '{{ url("user/team/members") }}/' + member.id, method: 'PUT', title: 'Edit ' + member.name };
+            const perms = { ...this.emptyPerms };
+            for (const k of Object.keys(member.permissions || {})) {
+                if (member.permissions[k]) perms[k] = true;
+            }
+            this.form = { role: member.role, permissions: perms };
+            this.advanced = (member.role === 'custom');
+        },
+        applyPreset() {
+            if (this.form.role === 'custom') return;
+            const preset = this.presets[this.form.role] || {};
+            const perms = { ...this.emptyPerms };
+            for (const k of Object.keys(preset)) perms[k] = !!preset[k];
+            this.form.permissions = perms;
+        },
+    };
+}
+</script>
+@endsection

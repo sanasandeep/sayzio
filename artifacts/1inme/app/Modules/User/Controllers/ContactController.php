@@ -121,7 +121,7 @@ class ContactController extends Controller
 
     public function show(Request $request, Contact $contact)
     {
-        abort_if($contact->user_id !== $request->user()->id, 403);
+        abort_if($contact->user_id !== workspace_owner_id(), 403);
         $contact->load(['phones', 'emails', 'biolinkUser']);
         $biolinkPreview = $this->biolinkPreview($contact);
         return view('user.contacts.show', compact('contact', 'biolinkPreview'));
@@ -129,7 +129,7 @@ class ContactController extends Controller
 
     public function edit(Request $request, Contact $contact)
     {
-        abort_if($contact->user_id !== $request->user()->id, 403);
+        abort_if($contact->user_id !== workspace_owner_id(), 403);
         $contact->load(['phones', 'emails']);
         return view('user.contacts.edit', [
             'contact'     => $contact,
@@ -140,7 +140,7 @@ class ContactController extends Controller
 
     public function update(Request $request, Contact $contact)
     {
-        abort_if($contact->user_id !== $request->user()->id, 403);
+        abort_if($contact->user_id !== workspace_owner_id(), 403);
         $v = $this->validatePayload($request);
 
         DB::transaction(function () use ($contact, $v, $request) {
@@ -172,7 +172,7 @@ class ContactController extends Controller
 
     public function destroy(Request $request, Contact $contact)
     {
-        abort_if($contact->user_id !== $request->user()->id, 403);
+        abort_if($contact->user_id !== workspace_owner_id(), 403);
         if ($contact->photo_path) Storage::disk('public')->delete($contact->photo_path);
         // Park a deletion tombstone before removing the row so the next sync
         // can finalise it on Google. Best-effort immediate attempt too — but
@@ -190,7 +190,7 @@ class ContactController extends Controller
 
     public function detachBiolink(Request $request, Contact $contact)
     {
-        abort_if($contact->user_id !== $request->user()->id, 403);
+        abort_if($contact->user_id !== workspace_owner_id(), 403);
         if ($contact->biolink_user_id) {
             $this->resolver->detach($contact, $contact->biolink_user_id);
         }
@@ -199,7 +199,7 @@ class ContactController extends Controller
 
     public function attachBiolink(Request $request, Contact $contact)
     {
-        abort_if($contact->user_id !== $request->user()->id, 403);
+        abort_if($contact->user_id !== workspace_owner_id(), 403);
         // Force a re-resolve clearing the detach marker for any user that the
         // current phones now resolve to.
         $contact->loadMissing('phones');
@@ -219,7 +219,7 @@ class ContactController extends Controller
     public function importForm(Request $request)
     {
         $cap = $this->planContactsCap($request->user());
-        $existing = Contact::where('user_id', $request->user()->id)->count();
+        $existing = Contact::where('user_id', workspace_owner_id())->count();
         return view('user.contacts.import', [
             'softCap'   => $cap === -1 ? null : $cap,
             'remaining' => $cap === -1 ? null : max(0, $cap - $existing),
@@ -414,7 +414,7 @@ class ContactController extends Controller
 
     public function importCancel(Request $request, string $token)
     {
-        $this->discardStash($request->user()->id, $token);
+        $this->discardStash(workspace_owner_id(), $token);
         return redirect()->route('user.contacts.import')
             ->with('success', 'Import cancelled — nothing was added.');
     }
@@ -566,14 +566,14 @@ class ContactController extends Controller
     /** Persisted summary page — works for both inline and queued imports. */
     public function importShow(Request $request, ContactImport $import)
     {
-        abort_if($import->user_id !== $request->user()->id, 403);
+        abort_if($import->user_id !== workspace_owner_id(), 403);
         return view('user.contacts.import_summary', ['import' => $import]);
     }
 
     /** Tiny JSON endpoint the summary page polls while a job is running. */
     public function importStatus(Request $request, ContactImport $import)
     {
-        abort_if($import->user_id !== $request->user()->id, 403);
+        abort_if($import->user_id !== workspace_owner_id(), 403);
         return response()->json([
             'status'         => $import->status,
             'total'          => $import->total_rows,
@@ -596,7 +596,7 @@ class ContactController extends Controller
      */
     public function smsBiolink(Request $request, Contact $contact)
     {
-        abort_if($contact->user_id !== $request->user()->id, 403);
+        abort_if($contact->user_id !== workspace_owner_id(), 403);
         $contact->loadMissing(['phones', 'biolinkUser']);
 
         $preview = $this->biolinkPreview($contact);
@@ -627,7 +627,7 @@ class ContactController extends Controller
             return back()->with('error', 'You can only text this biolink to a phone number saved on the contact.');
         }
 
-        $userId = $request->user()->id;
+        $userId = workspace_owner_id();
         $configId = (int) $request->input('config_id', 0);
         $config = $configId
             ? IntegrationConfig::where('user_id', $userId)->where('id', $configId)->kind('sms')->active()->first()
