@@ -489,6 +489,7 @@
                 $__can = [
                     'tasks_view'     => WP::userCan('tasks.view'),
                     'vault_view'     => WP::userCan('vault.view'),
+                    'files_view'     => WP::userCan('files.view'),
                     'links_view'     => WP::userCan('links.view'),
                     'links_create'   => WP::userCan('links.create'),
                     'inbox_view'     => WP::userCan('inbox.view'),
@@ -587,6 +588,16 @@
                     <div class="nav-icon-wrap"><i class="fas fa-vault"></i></div>
                     <span class="nav-label">Vault</span>
                     <span class="sidebar-tooltip">Workspace Vault</span>
+                </a>
+                @endif
+
+                @if($__can['files_view'])
+                <a href="{{ route('user.cloud-files.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.cloud-files.*') || request()->routeIs('user.cloud-oauth.*') ? 'active' : '' }}"
+                   style="--nav-tint:#06b6d4; --nav-tint-soft:rgba(6,182,212,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-cloud"></i></div>
+                    <span class="nav-label">Files</span>
+                    <span class="sidebar-tooltip">Cloud Files</span>
                 </a>
                 @endif
 

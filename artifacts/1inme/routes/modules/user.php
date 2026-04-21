@@ -625,6 +625,28 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post('export',                                  [\App\Modules\User\Controllers\VaultExportController::class, 'download'])->middleware('workspace.owner')->name('export.download');
         });
 
+        // ---- Cloud File Library (Drive / Dropbox / OneDrive) ----
+        // OAuth flows are user-scoped — connect lives under files.view so any
+        // member with library access can attach their own cloud account.
+        Route::get('cloud-oauth/{provider}/start',    [\App\Modules\User\Controllers\CloudOAuthController::class, 'start'])->middleware('workspace.can:files.view')->name('cloud-oauth.start');
+        Route::get('cloud-oauth/{provider}/callback', [\App\Modules\User\Controllers\CloudOAuthController::class, 'callback'])->name('cloud-oauth.callback');
+
+        Route::prefix('cloud-files')->name('cloud-files.')->middleware('workspace.can:files.view')->group(function () {
+            Route::get('/',                                [\App\Modules\User\Controllers\CloudFileController::class, 'index'])->name('index');
+            Route::post('/',                               [\App\Modules\User\Controllers\CloudFileController::class, 'store'])->middleware('workspace.can:files.create')->name('store');
+            Route::delete('{cloudFile}',                   [\App\Modules\User\Controllers\CloudFileController::class, 'destroy'])->middleware('workspace.can:files.delete')->name('destroy');
+
+            Route::get('connections',                      [\App\Modules\User\Controllers\CloudConnectionController::class, 'index'])->name('connections');
+            Route::delete('connections/{connection}',      [\App\Modules\User\Controllers\CloudConnectionController::class, 'destroy'])->name('connections.destroy');
+
+            Route::get('picker/{connection}',              [\App\Modules\User\Controllers\CloudFilePickerController::class, 'browse'])->name('picker.browse');
+
+            // Owner-only OAuth-app credential management.
+            Route::get('settings',                         [\App\Modules\User\Controllers\CloudProviderAppController::class, 'index'])->middleware('workspace.owner')->name('settings.index');
+            Route::put('settings/{provider}',              [\App\Modules\User\Controllers\CloudProviderAppController::class, 'update'])->middleware('workspace.owner')->name('settings.update');
+            Route::delete('settings/{provider}',           [\App\Modules\User\Controllers\CloudProviderAppController::class, 'destroy'])->middleware('workspace.owner')->name('settings.destroy');
+        });
+
         // Account verification (blue-tick request) — workspace-account-level.
         Route::prefix('verification')->name('verification.')->middleware('workspace.can:settings.view')->group(function () {
             Route::get('/', [VerificationController::class, 'index'])->name('index');
