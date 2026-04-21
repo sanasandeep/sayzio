@@ -104,12 +104,23 @@ class WorkspaceController extends Controller
                 ->with('access_request_error', "We couldn't find that workspace.");
         }
 
-        // Don't pester the owner more than once an hour for the same path.
-        $cacheKey = "access_request:{$user->id}:{$ws->id}:" . md5((string) ($data['path'] ?? ''));
-        if (\Cache::has($cacheKey)) {
+        // Don't pester the owner more than once an hour for the same
+        // (user, workspace, permission-set). Keying on the requested
+        // permissions (not the URL path) means a frustrated teammate
+        // can't bypass the cooldown by reopening the no-permission page
+        // in a fresh tab/session and resubmitting — every duplicate
+        // request for the same gated capability is silently swallowed
+        // while still showing the friendly confirmation flash.
+        $perms = array_values(array_unique(array_map('strval', $data['permissions'] ?? [])));
+        sort($perms);
+        $permKey = $perms ? md5(implode('|', $perms)) : 'none';
+        $cacheKey = "access_request:{$user->id}:{$ws->id}:{$permKey}";
+        // Cache::add is atomic (write-if-absent) — closes the race where
+        // two near-simultaneous submissions could both pass a has()
+        // check before either wrote the cooldown marker.
+        if (! \Cache::add($cacheKey, 1, now()->addHour())) {
             return back()->with('access_request_sent', true);
         }
-        \Cache::put($cacheKey, 1, now()->addHour());
 
         UserNotification::create([
             'user_id'    => (int) $ws->owner_user_id,
