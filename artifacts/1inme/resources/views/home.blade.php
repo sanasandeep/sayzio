@@ -2065,13 +2065,67 @@
             <a href="{{ route('home') }}" class="inline-flex items-center" aria-label="1INME home">
                 @include('common.partials.brand-logo', ['height' => 'h-9'])
             </a>
-            <div class="hidden md:flex items-center gap-7" role="navigation" aria-label="Primary">
-                <a href="#features" class="text-sm font-medium text-gray-300 hover:text-white">Features</a>
-                <a href="#how-it-works" class="text-sm font-medium text-gray-300 hover:text-white">How it works</a>
-                <a href="{{ route('site.discovery') }}" class="text-sm font-medium text-gray-300 hover:text-white">Discover</a>
-                <a href="{{ route('site.creators-feed') }}" class="text-sm font-medium text-gray-300 hover:text-white">Feed</a>
-                <a href="#pricing" class="text-sm font-medium text-gray-300 hover:text-white">Pricing</a>
-                <a href="{{ route('site.api-docs') }}" class="text-sm font-medium text-gray-300 hover:text-white">API</a>
+            <div class="hidden md:flex items-center gap-1 lg:gap-2" role="navigation" aria-label="Primary"
+                 x-data="{ openMenu:null }" @click.outside="openMenu=null">
+                {{-- Product dropdown --}}
+                <div class="relative">
+                    <button type="button"
+                            @click="openMenu === 'product' ? openMenu=null : openMenu='product'"
+                            :aria-expanded="openMenu === 'product'"
+                            class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-300 hover:text-white rounded-lg">
+                        Product <i class="fas fa-chevron-down text-[10px] opacity-70" :class="openMenu === 'product' ? 'rotate-180' : ''"></i>
+                    </button>
+                    <div x-show="openMenu === 'product'" x-cloak x-transition.opacity.duration.150ms
+                         class="absolute left-0 top-full mt-2 w-72 rounded-2xl border border-white/10 bg-[#11101c] shadow-2xl shadow-black/60 p-2 z-50">
+                        <a href="#features" @click="openMenu=null" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
+                            <i class="fas fa-bolt text-violet-400 mt-1"></i>
+                            <span><span class="block text-sm font-semibold text-white">Features</span><span class="block text-xs text-gray-500">Everything 1INME can do</span></span>
+                        </a>
+                        <a href="#how-it-works" @click="openMenu=null" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
+                            <i class="fas fa-play text-violet-400 mt-1"></i>
+                            <span><span class="block text-sm font-semibold text-white">How it works</span><span class="block text-xs text-gray-500">Step-by-step setup</span></span>
+                        </a>
+                        <a href="{{ route('site.workspace-team') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
+                            <i class="fas fa-people-group text-violet-400 mt-1"></i>
+                            <span><span class="block text-sm font-semibold text-white">Workspace &amp; Team</span><span class="block text-xs text-gray-500">Roles, permissions, audit logs</span></span>
+                        </a>
+                        <a href="{{ route('site.api-docs') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
+                            <i class="fas fa-code text-violet-400 mt-1"></i>
+                            <span><span class="block text-sm font-semibold text-white">API</span><span class="block text-xs text-gray-500">Build with 1INME</span></span>
+                        </a>
+                    </div>
+                </div>
+                {{-- Solutions dropdown --}}
+                <div class="relative">
+                    <button type="button"
+                            @click="openMenu === 'solutions' ? openMenu=null : openMenu='solutions'"
+                            :aria-expanded="openMenu === 'solutions'"
+                            class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-300 hover:text-white rounded-lg">
+                        Solutions <i class="fas fa-chevron-down text-[10px] opacity-70" :class="openMenu === 'solutions' ? 'rotate-180' : ''"></i>
+                    </button>
+                    <div x-show="openMenu === 'solutions'" x-cloak x-transition.opacity.duration.150ms
+                         class="absolute left-0 top-full mt-2 w-72 rounded-2xl border border-white/10 bg-[#11101c] shadow-2xl shadow-black/60 p-2 z-50">
+                        <a href="{{ route('site.services') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
+                            <i class="fas fa-bullseye text-pink-400 mt-1"></i>
+                            <span><span class="block text-sm font-semibold text-white">Use cases</span><span class="block text-xs text-gray-500">For creators, brands, agencies &amp; teams</span></span>
+                        </a>
+                        <a href="{{ route('site.discovery') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
+                            <i class="fas fa-compass text-pink-400 mt-1"></i>
+                            <span><span class="block text-sm font-semibold text-white">Discover creators</span><span class="block text-xs text-gray-500">Browse the public directory</span></span>
+                        </a>
+                        <a href="{{ route('site.creators-feed') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
+                            <i class="fas fa-stream text-pink-400 mt-1"></i>
+                            <span><span class="block text-sm font-semibold text-white">Creators feed</span><span class="block text-xs text-gray-500">What the community is shipping</span></span>
+                        </a>
+                        <a href="{{ route('site.buzz') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
+                            <i class="fas fa-bullhorn text-pink-400 mt-1"></i>
+                            <span><span class="block text-sm font-semibold text-white">Buzz</span><span class="block text-xs text-gray-500">News, press &amp; love</span></span>
+                        </a>
+                    </div>
+                </div>
+                <a href="#pricing" class="px-3 py-2 text-sm font-medium text-gray-300 hover:text-white">Pricing</a>
+                <a href="{{ route('site.about') }}" class="px-3 py-2 text-sm font-medium text-gray-300 hover:text-white">About</a>
+                <a href="{{ route('site.contact') }}" class="px-3 py-2 text-sm font-medium text-gray-300 hover:text-white">Contact</a>
             </div>
             <div class="hidden md:flex items-center gap-3" x-data="homeThemeToggle()">
                 <button type="button"
@@ -2094,12 +2148,23 @@
             </button>
         </div>
         <div x-show="mobileOpen" x-cloak x-transition class="md:hidden pb-4 border-t border-white/10 mt-2 pt-3 space-y-1">
+            <div class="px-3 pt-1 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">Product</div>
             <a href="#features" @click="mobileOpen=false" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Features</a>
             <a href="#how-it-works" @click="mobileOpen=false" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">How it works</a>
-            <a href="{{ route('site.discovery') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Discover</a>
-            <a href="{{ route('site.creators-feed') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Feed</a>
-            <a href="#pricing" @click="mobileOpen=false" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Pricing</a>
+            <a href="{{ route('site.workspace-team') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Workspace &amp; Team</a>
             <a href="{{ route('site.api-docs') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">API</a>
+
+            <div class="px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">Solutions</div>
+            <a href="{{ route('site.services') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Use cases</a>
+            <a href="{{ route('site.discovery') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Discover creators</a>
+            <a href="{{ route('site.creators-feed') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Creators feed</a>
+            <a href="{{ route('site.buzz') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Buzz</a>
+
+            <div class="px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">Company</div>
+            <a href="#pricing" @click="mobileOpen=false" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Pricing</a>
+            <a href="{{ route('site.about') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">About</a>
+            <a href="{{ route('site.contact') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Contact</a>
+            <a href="{{ route('site.faqs') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">FAQs</a>
             <div class="pt-2 border-t border-white/10 space-y-2">
                 @auth
                     <a href="{{ route('user.dashboard') }}" class="block px-4 py-2.5 grad-bar text-white rounded-full text-sm font-bold text-center">Dashboard</a>
@@ -4434,7 +4499,7 @@
 {{-- ============================ FOOTER ============================ --}}
 <footer class="bg-[#08020f] text-white pt-16 pb-8 border-t border-white/5">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid md:grid-cols-5 gap-8 mb-12">
+        <div class="grid md:grid-cols-6 gap-8 mb-12">
             <div class="md:col-span-2">
                 <a href="{{ route('home') }}" class="inline-flex items-center" aria-label="1INME home">
                     @include('common.partials.brand-logo', ['height' => 'h-9'])
@@ -4445,10 +4510,19 @@
                 <h4 class="text-xs font-bold text-gray-300 uppercase tracking-wider mb-4">Product</h4>
                 <ul class="space-y-2.5">
                     <li><a href="#features" class="text-sm text-gray-500 hover:text-white">Features</a></li>
-                    <li><a href="{{ route('site.discovery') }}" class="text-sm text-gray-500 hover:text-white">Discover</a></li>
-                    <li><a href="{{ route('site.creators-feed') }}" class="text-sm text-gray-500 hover:text-white">Creators feed</a></li>
                     <li><a href="#how-it-works" class="text-sm text-gray-500 hover:text-white">How it works</a></li>
+                    <li><a href="{{ route('site.workspace-team') }}" class="text-sm text-gray-500 hover:text-white">Workspace &amp; Team</a></li>
                     <li><a href="#pricing" class="text-sm text-gray-500 hover:text-white">Pricing</a></li>
+                    <li><a href="{{ route('site.api-docs') }}" class="text-sm text-gray-500 hover:text-white">API</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-xs font-bold text-gray-300 uppercase tracking-wider mb-4">Solutions</h4>
+                <ul class="space-y-2.5">
+                    <li><a href="{{ route('site.services') }}" class="text-sm text-gray-500 hover:text-white">Use cases</a></li>
+                    <li><a href="{{ route('site.discovery') }}" class="text-sm text-gray-500 hover:text-white">Discover creators</a></li>
+                    <li><a href="{{ route('site.creators-feed') }}" class="text-sm text-gray-500 hover:text-white">Creators feed</a></li>
+                    <li><a href="{{ route('site.buzz') }}" class="text-sm text-gray-500 hover:text-white">Buzz</a></li>
                 </ul>
             </div>
             <div>
