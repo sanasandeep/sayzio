@@ -1,5 +1,40 @@
 uploads = []
-generated = []
+
+[[generated]]
+id = "XshkDhOO5fpZxm3c-hPIQ"
+uri = "file://artifacts/1inme/public/images/auth-slider/photo-creators.png"
+type = "image"
+title = "creators_bedroom_studio"
+
+[[generated]]
+id = "NDopo24J1VMZYZ-JF8Tv2"
+uri = "file://artifacts/1inme/public/images/auth-slider/photo-shops.png"
+type = "image"
+title = "small_shop_packing"
+
+[[generated]]
+id = "u-WFdSRj299qj4mvLmzmL"
+uri = "file://artifacts/1inme/public/images/auth-slider/photo-musicians.png"
+type = "image"
+title = "musician_studio_portrait"
+
+[[generated]]
+id = "b6mUbj3vHbXYc-a5ezXB-"
+uri = "file://artifacts/1inme/public/images/auth-slider/photo-educators.png"
+type = "image"
+title = "educator_home_office"
+
+[[generated]]
+id = "KDZMhLbzp9VpPxe1FRdz4"
+uri = "file://artifacts/1inme/public/images/auth-slider/photo-agencies.png"
+type = "image"
+title = "agency_team_collab"
+
+[[generated]]
+id = "srtzQlbQsuOnlCamT4SJP"
+uri = "file://artifacts/1inme/public/images/auth-slider/photo-podcasters.png"
+type = "image"
+title = "podcaster_studio_portrait"
 
 [[outputs]]
 id = "e3t8rw5hE2-FfEtnuBmVI"

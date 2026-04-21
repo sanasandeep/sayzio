@@ -13,13 +13,9 @@
         </button>
 
         <div class="grid md:grid-cols-2">
-            {{-- Left dark panel --}}
-            <div class="hidden md:flex flex-col p-8 bg-gradient-to-br from-[#161b26] to-[#0f1320] text-white">
-                <div class="mb-6">@include('common.partials.brand-logo', ['height' => 'h-9'])</div>
-                <h3 class="text-xl font-bold mb-6 leading-tight">One link.<br>A whole audience.</h3>
-                <div class="flex-1 flex items-center">
-                    @include('common.partials.auth-slider', ['variant' => 'modal'])
-                </div>
+            {{-- Left full-bleed slider panel — real photos with category bullets --}}
+            <div class="hidden md:block relative">
+                @include('common.partials.auth-slider', ['variant' => 'modal'])
             </div>
 
             {{-- Right form panel --}}

@@ -29,25 +29,11 @@
     </div>
 
     <div class="min-h-screen flex relative z-10">
-        <div class="hidden lg:flex flex-1 flex-col justify-center items-center p-12 xl:p-20 relative">
-            <div class="max-w-md">
-                <a href="{{ route('home') }}" class="inline-flex items-center mb-6 group">
-                    @include('common.partials.brand-logo', ['height' => 'h-14'])
-                </a>
-                <p class="text-xl font-semibold mb-2" style="color: var(--text-secondary);">The link management platform<br><span class="gradient-text">built for growth.</span></p>
-                <p class="text-sm leading-relaxed mb-10" style="color: var(--text-dimmed);">Shorten URLs, build Link in Bio pages, generate QR codes, and track every click with powerful analytics.</p>
-
-                @include('common.partials.auth-slider', ['variant' => 'page'])
-
-                <div class="mt-12 flex items-center gap-3">
-                    <div class="flex -space-x-2.5">
-                        <div class="w-9 h-9 rounded-full bg-gradient-to-br from-violet-400 to-pink-400 border-2 flex items-center justify-center text-white text-[10px] font-bold shadow-md" style="border-color: var(--bg-body);">A</div>
-                        <div class="w-9 h-9 rounded-full bg-gradient-to-br from-violet-400 to-cyan-400 border-2 flex items-center justify-center text-white text-[10px] font-bold shadow-md" style="border-color: var(--bg-body);">M</div>
-                        <div class="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-400 to-teal-400 border-2 flex items-center justify-center text-white text-[10px] font-bold shadow-md" style="border-color: var(--bg-body);">K</div>
-                    </div>
-                    <p class="text-xs" style="color: var(--text-dimmed);">Trusted by <span class="font-bold" style="color: var(--text-muted);">10,000+</span> creators & businesses</p>
-                </div>
-            </div>
+        <div class="hidden lg:block flex-1 relative">
+            <a href="{{ route('home') }}" class="absolute top-7 left-7 xl:top-9 xl:left-9 z-30 inline-flex items-center group">
+                @include('common.partials.brand-logo', ['height' => 'h-10'])
+            </a>
+            @include('common.partials.auth-slider', ['variant' => 'page'])
         </div>
 
         <div class="flex-1 lg:flex-none lg:w-[480px] flex items-center justify-center p-6 lg:p-12 relative">

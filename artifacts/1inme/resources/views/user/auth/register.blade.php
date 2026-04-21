@@ -25,16 +25,11 @@
     </div>
 
     <div class="min-h-screen flex relative z-10">
-        <div class="hidden lg:flex flex-1 flex-col justify-center items-center p-12 xl:p-20 relative">
-            <div class="max-w-md">
-                <a href="{{ route('home') }}" class="inline-flex items-center mb-6 group">
-                    @include('common.partials.brand-logo', ['height' => 'h-14'])
-                </a>
-                <p class="text-xl font-semibold mb-2" style="color: var(--text-secondary);">Create your free account<br><span class="gradient-text">in under a minute.</span></p>
-                <p class="text-sm leading-relaxed mb-10" style="color: var(--text-dimmed);">Join 10,000+ creators using 1INME to grow their audience with smarter links and live insights.</p>
-
-                @include('common.partials.auth-slider', ['variant' => 'page'])
-            </div>
+        <div class="hidden lg:block flex-1 relative">
+            <a href="{{ route('home') }}" class="absolute top-7 left-7 xl:top-9 xl:left-9 z-30 inline-flex items-center group">
+                @include('common.partials.brand-logo', ['height' => 'h-10'])
+            </a>
+            @include('common.partials.auth-slider', ['variant' => 'page'])
         </div>
 
         <div class="flex-1 lg:flex-none lg:w-[480px] flex items-center justify-center p-6 lg:p-12 relative">

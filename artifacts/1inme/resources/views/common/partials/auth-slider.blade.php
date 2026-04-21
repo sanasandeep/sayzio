@@ -1,96 +1,105 @@
 {{--
-    Shared auto-rotating info slider for auth screens (login page, register page, public auth modal).
+    Shared auto-rotating "use case" slider for auth screens.
+    Now full-bleed: each slide fills the container with a real photo
+    background, an overlay, a brand logo (modal only), a category tag,
+    a headline and 3-4 bullet points showing how that audience uses 1INME.
+
     Props:
-      - variant: 'page' (large, used on user/auth/login.blade.php and register.blade.php)
-                 or 'modal' (compact, used inside the public auth modal)
+      - variant: 'page'  (used on user/auth/login.blade.php and register.blade.php)
+                 'modal' (used inside the public auth modal — includes brand logo overlay)
 --}}
 @php
     $variant = $variant ?? 'page';
     $slides = [
-        // 5 product feature slides
         [
-            'icon' => 'fas fa-link',
-            'color_text' => 'text-violet-300',
-            'color_bg' => 'rgba(124,58,237,0.18)',
-            'color_border' => 'rgba(124,58,237,0.35)',
-            'image' => asset('images/auth-slider/biolinks.svg'),
-            'overlay' => 'linear-gradient(135deg, rgba(15,10,30,0.55) 0%, rgba(15,10,30,0.85) 100%)',
-            'headline' => 'Drag-and-drop biolinks',
-            'description' => 'Stack 99+ blocks — videos, forms, maps, products — into a stunning Link in Bio page in minutes.',
+            'image'    => asset('images/auth-slider/photo-creators.png'),
+            'tag'      => 'For content creators',
+            'headline' => 'Turn followers into a fan economy.',
+            'icon'     => 'fas fa-camera',
+            'accent'   => '#a78bfa',
+            'bullets'  => [
+                'One bio link for TikTok, Reels and YouTube',
+                'Drop merch, presets and digital products',
+                'Collect tips and paid DMs',
+                'See which posts drive the most clicks',
+            ],
         ],
         [
-            'icon' => 'fas fa-chart-line',
-            'color_text' => 'text-cyan-300',
-            'color_bg' => 'rgba(6,182,212,0.18)',
-            'color_border' => 'rgba(6,182,212,0.35)',
-            'image' => asset('images/auth-slider/analytics.svg'),
-            'overlay' => 'linear-gradient(135deg, rgba(8,20,30,0.55) 0%, rgba(8,20,30,0.88) 100%)',
-            'headline' => 'Real-time analytics',
-            'description' => 'Watch clicks, devices, locations and referrers stream in live as visitors arrive.',
+            'image'    => asset('images/auth-slider/photo-musicians.png'),
+            'tag'      => 'For musicians & artists',
+            'headline' => 'Every release. One smart link.',
+            'icon'     => 'fas fa-music',
+            'accent'   => '#f472b6',
+            'bullets'  => [
+                'Auto-route fans to Spotify, Apple, YouTube',
+                'Sell vinyl, merch and tour tickets',
+                'Capture emails for the next drop',
+                'Track plays, streams and pre-saves live',
+            ],
         ],
         [
-            'icon' => 'fas fa-bolt',
-            'color_text' => 'text-pink-300',
-            'color_bg' => 'rgba(236,72,153,0.18)',
-            'color_border' => 'rgba(236,72,153,0.35)',
-            'image' => asset('images/auth-slider/coach.svg'),
-            'overlay' => 'linear-gradient(135deg, rgba(28,8,22,0.55) 0%, rgba(28,8,22,0.88) 100%)',
-            'headline' => 'Performance Coach',
-            'description' => 'Get one-click fixes for whatever is slowing your links and pages down.',
+            'image'    => asset('images/auth-slider/photo-shops.png'),
+            'tag'      => 'For small shops & makers',
+            'headline' => 'Sell from your bio in one tap.',
+            'icon'     => 'fas fa-store',
+            'accent'   => '#fb923c',
+            'bullets'  => [
+                'Showcase your shop, lookbook & reviews',
+                'Branded short links for packaging & ads',
+                'Dynamic QR codes for stickers and flyers',
+                'See which post drove the order',
+            ],
         ],
         [
-            'icon' => 'fas fa-qrcode',
-            'color_text' => 'text-emerald-300',
-            'color_bg' => 'rgba(16,185,129,0.18)',
-            'color_border' => 'rgba(16,185,129,0.35)',
-            'image' => asset('images/auth-slider/qrcodes.svg'),
-            'overlay' => 'linear-gradient(135deg, rgba(6,28,22,0.55) 0%, rgba(6,28,22,0.88) 100%)',
-            'headline' => 'Short links & QR codes',
-            'description' => 'Branded, dynamic and repointable — perfect for campaigns, packaging and print.',
+            'image'    => asset('images/auth-slider/photo-educators.png'),
+            'tag'      => 'For coaches & educators',
+            'headline' => 'Book sessions. Sell courses. Repeat.',
+            'icon'     => 'fas fa-graduation-cap',
+            'accent'   => '#34d399',
+            'bullets'  => [
+                'Embed Calendly, Stripe and lesson links',
+                'Drop free lead magnets behind email opt-ins',
+                'Run waitlists and early-bird offers',
+                'Coach: AI suggestions to lift conversions',
+            ],
         ],
         [
-            'icon' => 'fas fa-users',
-            'color_text' => 'text-indigo-300',
-            'color_bg' => 'rgba(99,102,241,0.18)',
-            'color_border' => 'rgba(99,102,241,0.35)',
-            'image' => asset('images/auth-slider/team.svg'),
-            'overlay' => 'linear-gradient(135deg, rgba(14,12,40,0.55) 0%, rgba(14,12,40,0.88) 100%)',
-            'headline' => 'Team workspaces',
-            'description' => 'Invite teammates with owner, admin, editor or viewer roles — every action is logged.',
-        ],
-        // 3 informational slides
-        [
-            'icon' => 'fas fa-heart',
-            'color_text' => 'text-fuchsia-300',
-            'color_bg' => 'rgba(217,70,239,0.18)',
-            'color_border' => 'rgba(217,70,239,0.35)',
-            'image' => asset('images/auth-slider/trusted.svg'),
-            'overlay' => 'linear-gradient(135deg, rgba(20,10,35,0.55) 0%, rgba(20,10,35,0.88) 100%)',
-            'headline' => 'Trusted by 10,000+ creators',
-            'description' => 'Solo creators, growing brands and agencies all run their links and bio pages on 1INME.',
+            'image'    => asset('images/auth-slider/photo-podcasters.png'),
+            'tag'      => 'For podcasters & streamers',
+            'headline' => 'Grow on every platform at once.',
+            'icon'     => 'fas fa-microphone-lines',
+            'accent'   => '#22d3ee',
+            'bullets'  => [
+                'Smart link routes to Spotify, Apple, Overcast',
+                'Direct fans to Patreon, Discord, Twitch',
+                'Promote latest episode automatically',
+                'See where new listeners come from',
+            ],
         ],
         [
-            'icon' => 'fas fa-mobile-screen',
-            'color_text' => 'text-sky-300',
-            'color_bg' => 'rgba(14,165,233,0.18)',
-            'color_border' => 'rgba(14,165,233,0.35)',
-            'image' => asset('images/auth-slider/devices.svg'),
-            'overlay' => 'linear-gradient(135deg, rgba(8,15,30,0.55) 0%, rgba(8,15,30,0.88) 100%)',
-            'headline' => 'Works on web + mobile',
-            'description' => 'Build, edit and track from any device. Your bio page looks gorgeous on every screen.',
-        ],
-        [
-            'icon' => 'fas fa-shield-halved',
-            'color_text' => 'text-emerald-300',
-            'color_bg' => 'rgba(16,185,129,0.18)',
-            'color_border' => 'rgba(16,185,129,0.35)',
-            'image' => asset('images/auth-slider/secure.svg'),
-            'overlay' => 'linear-gradient(135deg, rgba(8,24,20,0.55) 0%, rgba(8,24,20,0.88) 100%)',
-            'headline' => 'GDPR-ready & secure',
-            'description' => 'Encrypted in transit, role-based access, audit logs and privacy controls baked in.',
+            'image'    => asset('images/auth-slider/photo-agencies.png'),
+            'tag'      => 'For agencies & teams',
+            'headline' => 'Run links across every client.',
+            'icon'     => 'fas fa-people-group',
+            'accent'   => '#818cf8',
+            'bullets'  => [
+                'Workspaces with owner, admin, editor, viewer roles',
+                'White-label biolinks on your own domain',
+                'Bulk-create short links from CSV',
+                'Audit logs and exportable analytics',
+            ],
         ],
     ];
     $count = count($slides);
+
+    // Variant tuning
+    $isModal   = $variant === 'modal';
+    $minHeight = $isModal ? 'min-h-[520px]' : 'min-h-screen';
+    $padX      = $isModal ? 'px-7'  : 'px-10 xl:px-14';
+    $padBottom = $isModal ? 'pb-20' : 'pb-24';
+    $padTop    = $isModal ? 'pt-7'  : 'pt-7';
+    $headSize  = $isModal ? 'text-2xl' : 'text-4xl';
+    $rounding  = $isModal ? 'rounded-l-2xl' : 'rounded-none';
 @endphp
 
 <div
@@ -98,99 +107,125 @@
     x-init="init()"
     @mouseenter="pause()"
     @mouseleave="resume()"
+    @focusin="pause()"
+    @focusout="resume()"
     @keydown.arrow-left.prevent="prev()"
     @keydown.arrow-right.prevent="next()"
+    @keydown.space.prevent="toggle()"
     tabindex="0"
     role="region"
     aria-roledescription="carousel"
-    aria-label="1INME features and highlights"
-    class="auth-slider relative w-full focus:outline-none {{ $variant === 'modal' ? '' : 'max-w-md' }}"
+    aria-label="See how creators, brands and teams use 1INME"
+    class="auth-slider relative w-full h-full focus:outline-none"
 >
-    <div class="relative overflow-hidden rounded-2xl {{ $variant === 'modal' ? 'min-h-[300px]' : 'min-h-[300px]' }}">
+    <div class="relative w-full h-full overflow-hidden {{ $rounding }} {{ $minHeight }}">
         @foreach($slides as $i => $slide)
             <div
                 x-show="active === {{ $i }}"
                 {{ $i === 0 ? '' : 'x-cloak' }}
-                x-transition:enter="transition ease-out duration-500"
-                x-transition:enter-start="opacity-0 translate-x-4"
-                x-transition:enter-end="opacity-100 translate-x-0"
-                x-transition:leave="transition ease-in duration-300 absolute inset-0"
-                x-transition:leave-start="opacity-100 translate-x-0"
-                x-transition:leave-end="opacity-0 -translate-x-4"
+                x-transition:enter="transition ease-out duration-700"
+                x-transition:enter-start="opacity-0 scale-[1.04]"
+                x-transition:enter-end="opacity-100 scale-100"
+                x-transition:leave="transition ease-in duration-400 absolute inset-0"
+                x-transition:leave-start="opacity-100 scale-100"
+                x-transition:leave-end="opacity-0 scale-[0.98]"
                 role="group"
                 aria-roledescription="slide"
                 aria-label="Slide {{ $i + 1 }} of {{ $count }}: {{ $slide['headline'] }}"
-                class="relative overflow-hidden rounded-2xl {{ $variant === 'modal' ? 'min-h-[300px]' : 'min-h-[300px]' }}"
+                class="absolute inset-0"
             >
-                {{-- Background image layer --}}
+                {{-- Real photograph background --}}
                 <div
                     aria-hidden="true"
                     class="absolute inset-0 bg-center bg-cover"
-                    style="background-image: url('{{ $slide['image'] }}');"
+                    style="background-image: url('{{ $slide['image'] }}'); animation: authSliderKenburns 14s ease-in-out infinite alternate;"
                 ></div>
-                {{-- Gradient overlay for text legibility --}}
+                {{-- Multi-stop dark gradient overlay so text is always legible --}}
                 <div
                     aria-hidden="true"
                     class="absolute inset-0"
-                    style="background: {{ $slide['overlay'] }};"
+                    style="background:
+                        linear-gradient(180deg, rgba(8,4,18,0.40) 0%, rgba(8,4,18,0.10) 35%, rgba(8,4,18,0.55) 65%, rgba(8,4,18,0.92) 100%),
+                        linear-gradient(110deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0) 55%);"
+                ></div>
+                {{-- Tinted accent corner glow --}}
+                <div
+                    aria-hidden="true"
+                    class="absolute -top-10 -left-10 w-56 h-56 rounded-full opacity-50 pointer-events-none"
+                    style="background: radial-gradient(closest-side, {{ $slide['accent'] }}55, transparent 70%); filter: blur(36px);"
                 ></div>
 
-                {{-- Content --}}
-                <div class="relative {{ $variant === 'modal' ? 'p-5' : 'p-6' }}">
-                    <div
-                        class="{{ $variant === 'modal' ? 'w-12 h-12' : 'w-14 h-14' }} rounded-2xl flex items-center justify-center mb-4 backdrop-blur-sm"
-                        style="background: {{ $slide['color_bg'] }}; border: 1px solid {{ $slide['color_border'] }};"
-                    >
-                        <i class="{{ $slide['icon'] }} {{ $slide['color_text'] }} {{ $variant === 'modal' ? 'text-lg' : 'text-xl' }}"></i>
+                {{-- Top brand row (modal only) --}}
+                @if($isModal)
+                <div class="absolute top-0 inset-x-0 {{ $padX }} {{ $padTop }} z-10">
+                    @include('common.partials.brand-logo', ['height' => 'h-9'])
+                </div>
+                @endif
+
+                {{-- Bottom-anchored content --}}
+                <div class="absolute bottom-0 inset-x-0 {{ $padX }} {{ $padBottom }} z-10">
+                    {{-- Category tag pill --}}
+                    <div class="inline-flex items-center gap-2 mb-4 px-3 py-1.5 rounded-full text-[11px] font-semibold uppercase tracking-wider"
+                         style="background: {{ $slide['accent'] }}26; border: 1px solid {{ $slide['accent'] }}66; color: #fff; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);">
+                        <i class="{{ $slide['icon'] }}" style="color: {{ $slide['accent'] }};"></i>
+                        <span>{{ $slide['tag'] }}</span>
                     </div>
-                    <h3 class="{{ $variant === 'modal' ? 'text-lg' : 'text-2xl' }} font-bold mb-3 leading-tight"
-                        style="color:#ffffff !important; text-shadow: 0 1px 12px rgba(0,0,0,0.6);">
+                    <h3 class="{{ $headSize }} font-bold mb-4 leading-tight"
+                        style="color:#ffffff !important; text-shadow: 0 2px 18px rgba(0,0,0,0.65);">
                         {{ $slide['headline'] }}
                     </h3>
-                    <p class="{{ $variant === 'modal' ? 'text-xs' : 'text-sm' }} leading-relaxed"
-                       style="color:rgba(255,255,255,0.88) !important; text-shadow: 0 1px 8px rgba(0,0,0,0.55);">
-                        {{ $slide['description'] }}
-                    </p>
+                    <ul class="space-y-1.5 text-sm">
+                        @foreach($slide['bullets'] as $b)
+                            <li class="flex items-start gap-2.5"
+                                style="color: rgba(255,255,255,0.92) !important; text-shadow: 0 1px 8px rgba(0,0,0,0.55);">
+                                <span class="mt-[7px] inline-block w-1.5 h-1.5 rounded-full flex-shrink-0"
+                                      style="background: {{ $slide['accent'] }}; box-shadow: 0 0 10px {{ $slide['accent'] }}99;"></span>
+                                <span>{{ $b }}</span>
+                            </li>
+                        @endforeach
+                    </ul>
                 </div>
             </div>
         @endforeach
-    </div>
 
-    <div class="flex items-center justify-between mt-5">
-        <div class="flex items-center gap-1.5 flex-wrap" aria-label="Choose slide">
-            @foreach($slides as $i => $slide)
-                <button
-                    type="button"
-                    @click="goTo({{ $i }})"
-                    :aria-current="active === {{ $i }} ? 'true' : 'false'"
-                    aria-label="Go to slide {{ $i + 1 }}: {{ $slide['headline'] }}"
-                    :class="active === {{ $i }} ? 'w-5 bg-violet-400' : 'w-2 bg-white/25 hover:bg-white/40'"
-                    class="h-2 rounded-full transition-all duration-300"
-                ></button>
-            @endforeach
-        </div>
-        <div class="flex items-center gap-1.5">
-            <button
-                type="button"
-                @click="prev()"
-                aria-label="Previous slide"
-                class="w-8 h-8 rounded-full flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition"
-            >
-                <i class="fas fa-chevron-left text-[11px]"></i>
-            </button>
-            <button
-                type="button"
-                @click="next()"
-                aria-label="Next slide"
-                class="w-8 h-8 rounded-full flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition"
-            >
-                <i class="fas fa-chevron-right text-[11px]"></i>
-            </button>
+        {{-- Bottom-overlaid controls (dots + prev/next) --}}
+        <div class="absolute bottom-3 inset-x-0 {{ $padX }} z-20 flex items-center justify-between pointer-events-none">
+            <div class="flex items-center gap-1.5 pointer-events-auto" aria-label="Choose slide">
+                @foreach($slides as $i => $slide)
+                    <button
+                        type="button"
+                        @click="goTo({{ $i }})"
+                        :aria-current="active === {{ $i }} ? 'true' : 'false'"
+                        aria-label="Go to slide {{ $i + 1 }}: {{ $slide['headline'] }}"
+                        :class="active === {{ $i }} ? 'w-6 bg-white' : 'w-2 bg-white/40 hover:bg-white/70'"
+                        class="h-1.5 rounded-full transition-all duration-300"
+                    ></button>
+                @endforeach
+            </div>
+            <div class="flex items-center gap-1.5 pointer-events-auto">
+                <button type="button" @click="prev()" aria-label="Previous slide"
+                        class="w-8 h-8 rounded-full flex items-center justify-center text-white/85 hover:text-white bg-white/10 hover:bg-white/20 backdrop-blur-md transition">
+                    <i class="fas fa-chevron-left text-[11px]"></i>
+                </button>
+                <button type="button" @click="next()" aria-label="Next slide"
+                        class="w-8 h-8 rounded-full flex items-center justify-center text-white/85 hover:text-white bg-white/10 hover:bg-white/20 backdrop-blur-md transition">
+                    <i class="fas fa-chevron-right text-[11px]"></i>
+                </button>
+            </div>
         </div>
     </div>
 </div>
 
 @once
+        <style>
+            @keyframes authSliderKenburns {
+                0%   { transform: scale(1.00) translate3d(0,0,0); }
+                100% { transform: scale(1.08) translate3d(-1.5%, -1.5%, 0); }
+            }
+            @media (prefers-reduced-motion: reduce) {
+                .auth-slider [style*="authSliderKenburns"] { animation: none !important; }
+            }
+        </style>
         <script>
             document.addEventListener('alpine:init', () => {
                 Alpine.data('authSlider', (count) => ({
@@ -214,6 +249,7 @@
                     stop() { if (this.timer) { clearInterval(this.timer); this.timer = null; } },
                     pause() { this.paused = true; },
                     resume() { this.paused = false; },
+                    toggle() { this.paused = !this.paused; },
                     next() { this.active = (this.active + 1) % this.count; },
                     prev() { this.active = (this.active - 1 + this.count) % this.count; },
                     goTo(i) { this.active = i; },
