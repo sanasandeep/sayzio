@@ -29,7 +29,15 @@
                 var m = document.cookie.match(/(?:^|; )1inme_theme=([^;]+)/);
                 if (m) pref = decodeURIComponent(m[1]);
             }
-            if (pref === 'light') document.documentElement.classList.add('light-mode');
+            if (pref === 'light' || pref === 'dark') {
+                if (pref === 'light') document.documentElement.classList.add('light-mode');
+            } else {
+                try {
+                    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+                        document.documentElement.classList.add('light-mode');
+                    }
+                } catch(e) {}
+            }
         })();
         window.inmeToggleTheme = function(){
             var html = document.documentElement;
