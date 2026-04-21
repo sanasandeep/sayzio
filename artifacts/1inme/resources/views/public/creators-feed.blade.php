@@ -1,34 +1,53 @@
 @extends('public.layouts.site')
 @section('content')
-<section class="relative pt-16 pb-10 lg:pt-24 lg:pb-12 overflow-hidden">
-    <div class="absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full" style="background:radial-gradient(circle,rgba(124,58,237,0.18) 0%,transparent 70%);"></div>
-    <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h1 class="text-4xl sm:text-5xl font-bold tracking-tight">{{ $page->title }}</h1>
-        @if($page->meta_description)
-            <p class="mt-4 text-lg text-gray-400 max-w-2xl mx-auto">{{ $page->meta_description }}</p>
-        @endif
-        @foreach(($page->sections ?? []) as $section)
-            @if(!empty($section['body']))
-                <p class="mt-4 text-base text-gray-400 max-w-2xl mx-auto">{{ $section['body'] }}</p>
+{{-- HERO --}}
+<section class="relative pt-20 pb-12 lg:pt-28 lg:pb-14 overflow-hidden">
+    <div class="mesh-bg"></div>
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-10 items-center">
+        <div data-anim="fade-right">
+            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-400/20 text-xs text-violet-300 uppercase tracking-wider font-semibold">
+                <i class="fas fa-stream text-[10px]"></i> Live feed
+            </span>
+            <h1 class="mt-5 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05]">
+                {{ $page->title }}
+            </h1>
+            @if($page->meta_description)
+                <p class="mt-5 text-lg text-gray-400 max-w-xl leading-relaxed">{{ $page->meta_description }}</p>
             @endif
-        @endforeach
+            @foreach(($page->sections ?? []) as $section)
+                @if(!empty($section['body']))
+                    <p class="mt-3 text-base text-gray-400 max-w-xl leading-relaxed">{{ $section['body'] }}</p>
+                @endif
+            @endforeach
+            <div class="mt-7 flex items-center gap-6 text-sm">
+                <div><div class="text-2xl font-bold"><span data-count="{{ $posts->total() }}"></span></div><div class="text-xs uppercase tracking-wider text-gray-500 mt-0.5">Posts</div></div>
+                <div class="w-px h-10 bg-white/10"></div>
+                <div><div class="text-2xl font-bold flex items-baseline gap-1"><span class="w-2 h-2 rounded-full bg-emerald-400 pulse-dot text-emerald-400/40"></span><span class="text-base font-semibold text-emerald-300">Live</span></div><div class="text-xs uppercase tracking-wider text-gray-500 mt-0.5">Updated continuously</div></div>
+            </div>
+        </div>
+        <div data-anim="fade-left" data-tilt="5">
+            <div class="img-frame img-tilt aspect-[5/4]">
+                <img src="{{ asset('images/marketing/creators-feed/hero.png') }}" alt="Creators sharing posts on 1INME">
+            </div>
+        </div>
     </div>
 </section>
 
-<section class="pb-20">
+{{-- FEED --}}
+<section class="pb-24">
     <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         @if($posts->isEmpty())
-            <div class="text-center text-gray-500 text-sm py-16">No posts in the feed yet.</div>
+            <div class="text-center text-gray-500 text-sm py-16" data-anim="fade-up">No posts in the feed yet.</div>
         @else
-            <div class="space-y-5">
+            <div class="space-y-5" data-anim="fade-up" data-stagger>
                 @foreach($posts as $p)
                     @php($u = $p->user)
-                    <article class="bg-white/[0.03] border border-white/10 rounded-2xl p-5 sm:p-6">
+                    <article class="bg-white/[0.03] border border-white/10 rounded-2xl p-5 sm:p-6 hover:border-violet-400/40 transition">
                         <header class="flex items-center gap-3 mb-3">
                             @if($u && $u->avatar)
-                                <img src="{{ $u->avatar }}" alt="" class="w-10 h-10 rounded-full object-cover">
+                                <img src="{{ $u->avatar }}" alt="{{ $u?->name ?? 'Avatar' }}" class="w-10 h-10 rounded-full object-cover ring-2 ring-white/5">
                             @else
-                                <div class="w-10 h-10 rounded-full bg-violet-600/20 flex items-center justify-center text-violet-300 text-sm font-bold">
+                                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-white text-sm font-bold ring-2 ring-white/5">
                                     {{ strtoupper(mb_substr($u?->name ?? '?', 0, 1)) }}
                                 </div>
                             @endif
@@ -49,7 +68,7 @@
                             <h2 class="text-lg sm:text-xl font-bold text-white mb-2">{{ $p->title }}</h2>
                         @endif
                         @if($p->image)
-                            <img src="{{ $p->image }}" alt="" class="w-full rounded-xl mb-3 max-h-96 object-cover">
+                            <div class="img-frame mb-3 aspect-[16/10]"><img src="{{ $p->image }}" alt="{{ $p->title ?? 'Post image' }}"></div>
                         @endif
                         @if($p->body)
                             <div class="prose-light text-gray-300 leading-relaxed text-sm">

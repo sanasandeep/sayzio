@@ -72,6 +72,15 @@ class SitePageController extends Controller
             $hasHistory = SitePageRevision::where('site_page_id', $page->id)->exists();
             return view('public.policy', ['page' => $page, 'hasHistory' => $hasHistory]);
         }
+        if ($slug === 'how-it-works') {
+            return view('public.how-it-works', ['page' => $page]);
+        }
+        if ($slug === 'workspace-team') {
+            return view('public.workspace-team', ['page' => $page]);
+        }
+        if ($slug === 'buzz') {
+            return view('public.buzz', ['page' => $page]);
+        }
         return view('public.page', ['page' => $page]);
     }
 

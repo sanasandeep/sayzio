@@ -35,12 +35,34 @@
     ];
 @endphp
 
-<section class="pt-16 pb-8 lg:pt-24 text-center">
-    <div class="max-w-3xl mx-auto px-4">
-        <h1 class="text-4xl sm:text-5xl font-bold">{{ $page->title }}</h1>
-        @if($page->meta_description)
-            <p class="mt-4 text-lg text-gray-400">{{ $page->meta_description }}</p>
-        @endif
+<section class="relative pt-20 pb-12 lg:pt-28 lg:pb-16 overflow-hidden">
+    <div class="mesh-bg"></div>
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-10 items-center">
+        <div data-anim="fade-right">
+            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-400/20 text-xs text-violet-300 uppercase tracking-wider font-semibold">
+                <i class="fas fa-envelope text-[10px]"></i> Contact
+            </span>
+            <h1 class="mt-5 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05]">{{ $page->title }}</h1>
+            @if($page->meta_description)
+                <p class="mt-5 text-lg text-gray-400 max-w-xl leading-relaxed">{{ $page->meta_description }}</p>
+            @endif
+            <div class="mt-7 flex flex-wrap items-center gap-6 text-sm" data-anim="fade-up" data-stagger>
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 pulse-dot text-emerald-400/40"></span>
+                    <span class="text-gray-200 font-medium">Replies within 1 business day</span>
+                </div>
+                <div class="text-gray-400"><i class="fas fa-language text-violet-300 mr-1"></i> EN · हिन्दी</div>
+            </div>
+        </div>
+        <div data-anim="fade-left" data-tilt="5" class="relative">
+            <div class="img-frame img-tilt aspect-[16/10]">
+                <img src="{{ asset('images/marketing/contact/hero.png') }}" alt="The 1INME support team">
+            </div>
+            <div class="absolute -bottom-5 -right-5 bg-[#11101c] border border-white/10 rounded-2xl p-3 pr-4 flex items-center gap-3 shadow-2xl float-y">
+                <i class="fas fa-headset text-violet-400 text-lg"></i>
+                <div class="text-xs"><div class="font-semibold text-white">Friendly humans</div><div class="text-gray-400">Behind every reply</div></div>
+            </div>
+        </div>
     </div>
 </section>
 
@@ -56,7 +78,7 @@
 </section>
 
 <section class="pb-12">
-    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 grid md:grid-cols-2 gap-6">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 grid md:grid-cols-2 gap-6" data-anim="fade-up" data-stagger>
         <div class="bg-white/[0.03] border border-white/10 rounded-2xl p-6 space-y-5">
             <h2 class="text-lg font-bold text-white">Contact details</h2>
             @if($address !== '')
@@ -132,8 +154,29 @@
     </div>
 </section>
 
+<section class="pb-12">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 grid md:grid-cols-3 gap-5" data-anim="fade-up" data-stagger>
+        <div class="bg-white/[0.03] border border-white/10 rounded-2xl p-5 hover:border-violet-400/40 transition">
+            <div class="w-10 h-10 rounded-lg bg-violet-500/15 border border-violet-400/30 flex items-center justify-center text-violet-300 mb-3"><i class="fas fa-bolt"></i></div>
+            <div class="text-sm font-bold text-white">Fast replies</div><div class="text-xs text-gray-400 mt-1">Most messages get a real human reply within a few hours.</div>
+        </div>
+        <div class="bg-white/[0.03] border border-white/10 rounded-2xl p-5 hover:border-violet-400/40 transition">
+            <div class="w-10 h-10 rounded-lg bg-violet-500/15 border border-violet-400/30 flex items-center justify-center text-violet-300 mb-3"><i class="fas fa-handshake"></i></div>
+            <div class="text-sm font-bold text-white">Partnerships</div><div class="text-xs text-gray-400 mt-1">Press, integrations, agencies — pitch us, we read every one.</div>
+        </div>
+        <div class="bg-white/[0.03] border border-white/10 rounded-2xl p-5 hover:border-violet-400/40 transition">
+            <div class="w-10 h-10 rounded-lg bg-violet-500/15 border border-violet-400/30 flex items-center justify-center text-violet-300 mb-3"><i class="fas fa-lightbulb"></i></div>
+            <div class="text-sm font-bold text-white">Feature ideas</div><div class="text-xs text-gray-400 mt-1">Tell us what to build next — your name is on the changelog.</div>
+        </div>
+    </div>
+</section>
+
 <section class="pb-20">
-    <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 grid md:grid-cols-[1fr_1fr] gap-6 items-start">
+        <div class="img-frame aspect-[4/3] hidden md:block" data-anim="fade-right" data-tilt="4">
+            <img src="{{ asset('images/marketing/contact/office.png') }}" alt="Our office">
+        </div>
+        <div data-anim="fade-left">
         @if(session('success'))
             <div class="rounded-xl px-4 py-3 text-sm mb-4" style="background:rgba(34,197,94,0.10); border:1px solid rgba(34,197,94,0.30); color:#86efac;">
                 {{ session('success') }}
@@ -168,10 +211,11 @@
                 <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5 text-gray-400">Message</label>
                 <textarea name="message" required rows="6" class="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white">{{ old('message') }}</textarea>
             </div>
-            <button type="submit" class="w-full py-3 bg-violet-600 hover:bg-violet-700 rounded-lg text-sm font-bold text-white">
+            <button type="submit" class="w-full py-3 bg-violet-600 hover:bg-violet-700 rounded-lg text-sm font-bold text-white transition">
                 Send message
             </button>
         </form>
+        </div>
     </div>
 </section>
 @endsection

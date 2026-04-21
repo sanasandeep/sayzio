@@ -56,22 +56,39 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-20">
 
     {{-- Hero --}}
-    <header class="mb-10 text-center sm:text-left">
-        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-400/20 text-xs text-violet-300 uppercase tracking-wider font-semibold mb-3">
-            <i class="fas fa-bolt text-[10px]"></i> REST API · v1
-        </div>
-        <h1 class="text-4xl sm:text-5xl font-bold tracking-tight">API Documentation</h1>
-        <p class="mt-3 text-gray-400 max-w-3xl">
-            Build mobile apps, integrations, and automations on top of 1INME. Bearer-token authenticated, JSON in / JSON out.
-        </p>
-        <div class="mt-5 flex flex-wrap items-center gap-3 justify-center sm:justify-start">
-            <code class="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-violet-300 font-mono">{{ $base }}</code>
-            <button type="button" data-copy="{{ $base }}" class="copy-btn px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-gray-300 inline-flex items-center gap-2">
-                <i class="fas fa-copy text-xs"></i> <span>Copy base URL</span>
-            </button>
-            <a href="#auth" class="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 text-sm font-semibold text-white inline-flex items-center gap-2">
-                <i class="fas fa-arrow-down text-xs"></i> Get a token
-            </a>
+    <header class="mb-12 relative overflow-hidden rounded-3xl border border-white/10 grad-border">
+        <div class="mesh-bg opacity-60"></div>
+        <div class="relative grid lg:grid-cols-[1.1fr_1fr] gap-8 items-center p-6 sm:p-10">
+            <div data-anim="fade-right">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-400/20 text-xs text-violet-300 uppercase tracking-wider font-semibold mb-3">
+                    <i class="fas fa-bolt text-[10px]"></i> REST API · v1
+                </div>
+                <h1 class="text-4xl sm:text-5xl font-bold tracking-tight leading-[1.05]">Build on <span class="grad-text">1INME</span>.</h1>
+                <p class="mt-4 text-gray-300 max-w-2xl leading-relaxed">
+                    Bearer-token authenticated, JSON in / JSON out. Power mobile apps, integrations and automations on top of every link, biolink and creator post.
+                </p>
+                <div class="mt-5 flex flex-wrap items-center gap-3">
+                    <code class="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-violet-300 font-mono">{{ $base }}</code>
+                    <button type="button" data-copy="{{ $base }}" class="copy-btn px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-gray-300 inline-flex items-center gap-2">
+                        <i class="fas fa-copy text-xs"></i> <span>Copy base URL</span>
+                    </button>
+                    <a href="#auth" class="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 text-sm font-semibold text-white inline-flex items-center gap-2">
+                        <i class="fas fa-arrow-down text-xs"></i> Get a token
+                    </a>
+                </div>
+                <div class="mt-7 flex items-center gap-6 text-sm" data-anim="fade-up" data-stagger>
+                    <div><div class="text-2xl font-bold"><span data-count="60" data-count-suffix="+"></span></div><div class="text-[11px] uppercase tracking-wider text-gray-500 mt-0.5">Endpoints</div></div>
+                    <div class="w-px h-10 bg-white/10"></div>
+                    <div><div class="text-2xl font-bold"><span data-count="120"></span><span class="text-violet-300">ms</span></div><div class="text-[11px] uppercase tracking-wider text-gray-500 mt-0.5">p50 latency</div></div>
+                    <div class="w-px h-10 bg-white/10"></div>
+                    <div><div class="text-2xl font-bold"><span data-count="99.99" data-count-suffix="%"></span></div><div class="text-[11px] uppercase tracking-wider text-gray-500 mt-0.5">Uptime</div></div>
+                </div>
+            </div>
+            <div data-anim="fade-left" data-tilt="5">
+                <div class="img-frame img-tilt aspect-[16/10]">
+                    <img src="{{ asset('images/marketing/api-docs/hero.png') }}" alt="Code editor showing the 1INME REST API">
+                </div>
+            </div>
         </div>
     </header>
 
