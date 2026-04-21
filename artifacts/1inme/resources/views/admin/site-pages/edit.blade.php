@@ -1,5 +1,93 @@
 @extends('admin.layouts.app')
 @section('title', 'Edit page — ' . $page->title)
+
+@push('styles')
+<style>
+    .rte-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 1.75rem; height: 1.75rem; padding: 0 .4rem; font-size: 12px; color: rgba(255,255,255,.7); background: transparent; border-radius: .375rem; border: 1px solid transparent; }
+    .rte-btn:hover { background: rgba(255,255,255,.08); color: #fff; }
+    .rte-btn:focus { outline: none; border-color: rgba(139,92,246,.6); }
+    .rte-content :is(h3,h4) { font-weight: 600; color: #fff; margin: .5em 0 .25em; }
+    .rte-content h3 { font-size: 1.05rem; }
+    .rte-content h4 { font-size: 0.95rem; }
+    .rte-content p { margin: .35em 0; }
+    .rte-content ul { list-style: disc; padding-left: 1.25rem; margin: .35em 0; }
+    .rte-content ol { list-style: decimal; padding-left: 1.25rem; margin: .35em 0; }
+    .rte-content blockquote { border-left: 3px solid rgba(255,255,255,.2); padding-left: .75rem; color: rgba(255,255,255,.75); margin: .5em 0; }
+    .rte-content code { background: rgba(255,255,255,.08); padding: .05em .35em; border-radius: .25rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.85em; }
+    .rte-content a { color: #c4b5fd; text-decoration: underline; }
+    .rte-content:empty::before { content: attr(data-placeholder); color: rgba(255,255,255,.35); }
+</style>
+@endpush
+
+@push('scripts')
+<script>
+    function rteEditor() {
+        return {
+            editor: null,
+            onChange: null,
+            mount(el, initialHtml, onChange) {
+                this.editor = el;
+                this.onChange = onChange;
+                el.setAttribute('data-placeholder', 'Write the section body…');
+                el.innerHTML = initialHtml || '';
+                try { document.execCommand('defaultParagraphSeparator', false, 'p'); } catch (e) {}
+                el.addEventListener('input', () => this.sync());
+                el.addEventListener('blur', () => this.sync());
+                el.addEventListener('paste', (e) => {
+                    e.preventDefault();
+                    const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+                    document.execCommand('insertText', false, text);
+                });
+            },
+            sync() {
+                if (this.onChange && this.editor) this.onChange(this.editor.innerHTML);
+            },
+            focus() { if (this.editor) this.editor.focus(); },
+            exec(cmd, value = null) {
+                this.focus();
+                try { document.execCommand(cmd, false, value); } catch (e) {}
+                this.sync();
+            },
+            block(tag) {
+                this.exec('formatBlock', tag.toUpperCase());
+            },
+            wrapInline(tag) {
+                this.focus();
+                const sel = window.getSelection();
+                if (!sel || sel.rangeCount === 0) return;
+                const range = sel.getRangeAt(0);
+                if (range.collapsed) return;
+                const node = document.createElement(tag);
+                try {
+                    node.appendChild(range.extractContents());
+                    range.insertNode(node);
+                    sel.removeAllRanges();
+                    const newRange = document.createRange();
+                    newRange.selectNodeContents(node);
+                    sel.addRange(newRange);
+                } catch (e) {}
+                this.sync();
+            },
+            addLink() {
+                this.focus();
+                const sel = window.getSelection();
+                const hasSelection = sel && sel.toString().length > 0;
+                const url = window.prompt('Link URL (https://, /path, mailto:, tel:)');
+                if (!url) return;
+                if (hasSelection) {
+                    this.exec('createLink', url);
+                } else {
+                    const text = window.prompt('Link text', url) || url;
+                    document.execCommand('insertHTML', false,
+                        '<a href="' + url.replace(/"/g, '&quot;') + '">' + text.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])) + '</a>');
+                    this.sync();
+                }
+            },
+        };
+    }
+</script>
+@endpush
+
 @section('content')
 <div class="max-w-4xl mx-auto space-y-6">
     <a href="{{ route('admin.site-pages.index') }}" class="text-xs text-violet-400 hover:underline"><i class="fas fa-arrow-left mr-1"></i>Back to all pages</a>
@@ -247,17 +335,47 @@
                         <input type="hidden" :name="'sections['+i+'][id]'" :value="s.id">
                         <input type="text" :name="'sections['+i+'][heading]'" x-model="s.heading" placeholder="Section heading"
                                class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                        <label class="block text-[10px] uppercase tracking-wider text-white/40">Body <span class="normal-case tracking-normal text-white/40">(Markdown or basic HTML)</span></label>
-                        <textarea :name="'sections['+i+'][body]'" x-model="s.body" rows="6" placeholder="Body — line breaks are preserved."
-                                  class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white font-mono"></textarea>
-                        <p class="text-[11px] text-white/40 leading-relaxed">
-                            Formatting: <code class="text-white/60">**bold**</code>,
-                            <code class="text-white/60">*italic*</code>,
-                            <code class="text-white/60">[text](https://url)</code>,
-                            lines starting with <code class="text-white/60">-</code> become bullet lists,
-                            <code class="text-white/60">1.</code> become numbered lists.
-                            Safe HTML tags (<code class="text-white/60">a, strong, em, ul, ol, li, p, br, h3, h4, blockquote, code</code>) are allowed; anything else (including scripts, inline event handlers, and unsafe link protocols) is filtered out.
-                        </p>
+                        <label class="block text-[10px] uppercase tracking-wider text-white/40">Body @if(!$isPolicy)<span class="normal-case tracking-normal text-white/40">(Markdown or basic HTML)</span>@endif</label>
+                        @if($isPolicy)
+                            <div x-data="rteEditor()"
+                                 x-init="mount($refs.editor, s.body || '', html => s.body = html)"
+                                 class="rounded-lg border border-white/10 overflow-hidden bg-white/5">
+                                <div class="flex flex-wrap items-center gap-1 px-2 py-1.5 border-b border-white/10 bg-white/5">
+                                    <button type="button" @mousedown.prevent="exec('bold')" title="Bold" class="rte-btn"><i class="fas fa-bold"></i></button>
+                                    <button type="button" @mousedown.prevent="exec('italic')" title="Italic" class="rte-btn"><i class="fas fa-italic"></i></button>
+                                    <button type="button" @mousedown.prevent="exec('underline')" title="Underline" class="rte-btn"><i class="fas fa-underline"></i></button>
+                                    <span class="w-px h-4 bg-white/10 mx-1"></span>
+                                    <button type="button" @mousedown.prevent="block('h3')" title="Heading 3" class="rte-btn font-semibold">H3</button>
+                                    <button type="button" @mousedown.prevent="block('h4')" title="Heading 4" class="rte-btn font-semibold">H4</button>
+                                    <button type="button" @mousedown.prevent="block('p')" title="Paragraph" class="rte-btn"><i class="fas fa-paragraph"></i></button>
+                                    <button type="button" @mousedown.prevent="block('blockquote')" title="Quote" class="rte-btn"><i class="fas fa-quote-right"></i></button>
+                                    <button type="button" @mousedown.prevent="wrapInline('code')" title="Inline code" class="rte-btn"><i class="fas fa-code"></i></button>
+                                    <span class="w-px h-4 bg-white/10 mx-1"></span>
+                                    <button type="button" @mousedown.prevent="exec('insertUnorderedList')" title="Bulleted list" class="rte-btn"><i class="fas fa-list-ul"></i></button>
+                                    <button type="button" @mousedown.prevent="exec('insertOrderedList')" title="Numbered list" class="rte-btn"><i class="fas fa-list-ol"></i></button>
+                                    <span class="w-px h-4 bg-white/10 mx-1"></span>
+                                    <button type="button" @mousedown.prevent="addLink()" title="Add link" class="rte-btn"><i class="fas fa-link"></i></button>
+                                    <button type="button" @mousedown.prevent="exec('unlink')" title="Remove link" class="rte-btn"><i class="fas fa-unlink"></i></button>
+                                </div>
+                                <div x-ref="editor" contenteditable="true" spellcheck="true"
+                                     class="rte-content min-h-[160px] px-3 py-2 text-sm text-white focus:outline-none"></div>
+                            </div>
+                            <input type="hidden" :name="'sections['+i+'][body]'" :value="s.body">
+                            <p class="text-[11px] text-white/40 leading-relaxed">
+                                Use the toolbar to format text. Allowed tags: <code class="text-white/60">a, strong, em, u, ul, ol, li, p, br, h3, h4, blockquote, code</code>. Output is sanitized on save — anything else (scripts, inline handlers, unsafe link protocols) is stripped.
+                            </p>
+                        @else
+                            <textarea :name="'sections['+i+'][body]'" x-model="s.body" rows="6" placeholder="Body — line breaks are preserved."
+                                      class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white font-mono"></textarea>
+                            <p class="text-[11px] text-white/40 leading-relaxed">
+                                Formatting: <code class="text-white/60">**bold**</code>,
+                                <code class="text-white/60">*italic*</code>,
+                                <code class="text-white/60">[text](https://url)</code>,
+                                lines starting with <code class="text-white/60">-</code> become bullet lists,
+                                <code class="text-white/60">1.</code> become numbered lists.
+                                Safe HTML tags (<code class="text-white/60">a, strong, em, ul, ol, li, p, br, h3, h4, blockquote, code</code>) are allowed; anything else (including scripts, inline event handlers, and unsafe link protocols) is filtered out.
+                            </p>
+                        @endif
                     </div>
                 </template>
                 <div x-show="sections.length===0" class="text-xs text-white/40 text-center py-4">No sections yet — click "Add section".</div>
