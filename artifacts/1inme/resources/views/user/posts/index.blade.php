@@ -11,6 +11,7 @@
         <div class="mb-4 p-3 rounded-lg bg-rose-50 text-rose-700 text-sm">{{ session('error') }}</div>
     @endif
 
+    @canInWorkspace('posts.create')
     <form action="{{ route('user.posts.store') }}" method="POST" enctype="multipart/form-data" class="rounded-2xl border p-5 mb-6 space-y-3" style="background: var(--bg-card); border-color: var(--border-soft);">
         @csrf
         <input type="text" name="title" placeholder="Title (optional)" class="w-full px-3 py-2 rounded-lg border text-sm" style="background: var(--bg-soft); border-color: var(--border-soft); color: var(--text-primary);" value="{{ old('title') }}"/>
@@ -31,6 +32,12 @@
         @error('scheduled_at')<p class="text-xs text-rose-600">{{ $message }}</p>@enderror
         <p class="text-[11px]" style="color: var(--text-faint);">Leave the schedule field empty to publish immediately. Pinned posts appear at the top of your followers' feeds and on your biolink.</p>
     </form>
+    @else
+    <div class="rounded-2xl border p-4 mb-6 flex items-center gap-3 text-sm" style="background: rgba(245,158,11,0.06); border-color: rgba(245,158,11,0.25); color: #b45309;">
+        <i class="fas fa-lock"></i>
+        <span>Your role doesn't allow creating posts in this workspace. Ask a workspace admin if you need access.</span>
+    </div>
+    @endcanInWorkspace
 
     @if($posts->count() === 0)
         <div class="text-center py-10 rounded-2xl border" style="background: var(--bg-card); border-color: var(--border-soft);">
@@ -72,23 +79,31 @@
                             </p>
                         </div>
                         <div class="flex flex-col items-end gap-2">
-                            @if($post->isPublished())
-                                @if($post->isPinned())
-                                    <form action="{{ route('user.posts.unpin', $post) }}" method="POST">
-                                        @csrf
-                                        <button class="text-xs text-amber-700 font-semibold"><i class="fas fa-thumbtack"></i> Unpin</button>
-                                    </form>
-                                @else
-                                    <form action="{{ route('user.posts.pin', $post) }}" method="POST">
-                                        @csrf
-                                        <button class="text-xs text-violet-600 font-semibold"><i class="fas fa-thumbtack"></i> Pin</button>
-                                    </form>
+                            @canInWorkspace('posts.edit')
+                                @if($post->isPublished())
+                                    @if($post->isPinned())
+                                        <form action="{{ route('user.posts.unpin', $post) }}" method="POST">
+                                            @csrf
+                                            <button class="text-xs text-amber-700 font-semibold"><i class="fas fa-thumbtack"></i> Unpin</button>
+                                        </form>
+                                    @else
+                                        <form action="{{ route('user.posts.pin', $post) }}" method="POST">
+                                            @csrf
+                                            <button class="text-xs text-violet-600 font-semibold"><i class="fas fa-thumbtack"></i> Pin</button>
+                                        </form>
+                                    @endif
                                 @endif
-                            @endif
-                            <form action="{{ route('user.posts.destroy', $post) }}" method="POST" onsubmit="return confirm('Delete this post?');">
-                                @csrf @method('DELETE')
-                                <button class="text-xs text-rose-600 font-semibold">Delete</button>
-                            </form>
+                            @endcanInWorkspace
+                            @canInWorkspace('posts.delete')
+                                <form action="{{ route('user.posts.destroy', $post) }}" method="POST" onsubmit="return confirm('Delete this post?');">
+                                    @csrf @method('DELETE')
+                                    <button class="text-xs text-rose-600 font-semibold">Delete</button>
+                                </form>
+                            @else
+                                <button type="button" disabled class="text-xs font-semibold cursor-not-allowed opacity-50" style="color: var(--text-faint);" title="Your role doesn't allow deleting posts">
+                                    <i class="fas fa-lock text-[10px] mr-1"></i>Delete
+                                </button>
+                            @endcanInWorkspace
                         </div>
                     </div>
                 </div>

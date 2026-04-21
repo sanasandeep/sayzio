@@ -503,6 +503,7 @@
                 </a>
 
                 {{-- ========== LINKS & PAGES ========== --}}
+                @canInWorkspace('links.view')
                 <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Links &amp; Pages</div>
 
                 <a href="{{ route('user.links.index') }}"
@@ -512,6 +513,7 @@
                     <span class="nav-label">All Links</span>
                     <span class="sidebar-tooltip">All Links</span>
                 </a>
+                @canInWorkspace('links.create')
                 <a href="{{ route('user.links.create') }}"
                    class="sidebar-link {{ request()->routeIs('user.links.create') ? 'active' : '' }}"
                    style="--nav-tint:#10b981; --nav-tint-soft:rgba(16,185,129,0.12);">
@@ -519,6 +521,7 @@
                     <span class="nav-label">Create Link</span>
                     <span class="sidebar-tooltip">Create Link</span>
                 </a>
+                @endcanInWorkspace
                 <a href="{{ route('user.qr-codes.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.qr-codes.*') || request()->routeIs('user.qrcode*') ? 'active' : '' }}"
                    style="--nav-tint:#6366f1; --nav-tint-soft:rgba(99,102,241,0.12);">
@@ -540,10 +543,12 @@
                     <span class="nav-label">Intros</span>
                     <span class="sidebar-tooltip">Intros</span>
                 </a>
+                @endcanInWorkspace
 
                 {{-- ========== AUDIENCE ========== --}}
                 <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Audience</div>
 
+                @canInWorkspace('inbox.view')
                 <a href="{{ route('user.inbox.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.inbox.*') ? 'active' : '' }}"
                    style="--nav-tint:#0ea5e9; --nav-tint-soft:rgba(14,165,233,0.12);">
@@ -554,6 +559,8 @@
                     </span>
                     <span class="sidebar-tooltip">Unified Inbox</span>
                 </a>
+                @endcanInWorkspace
+                @canInWorkspace('followers.view')
                 <a href="{{ route('user.subscribers.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.subscribers.*') ? 'active' : '' }}"
                    style="--nav-tint:#14b8a6; --nav-tint-soft:rgba(20,184,166,0.12);">
@@ -568,6 +575,8 @@
                     <span class="nav-label">Followers</span>
                     <span class="sidebar-tooltip">Followers</span>
                 </a>
+                @endcanInWorkspace
+                @canInWorkspace('posts.view')
                 <a href="{{ route('user.posts.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.posts.*') ? 'active' : '' }}"
                    style="--nav-tint:#60a5fa; --nav-tint-soft:rgba(96,165,250,0.12);">
@@ -575,6 +584,7 @@
                     <span class="nav-label">My Posts</span>
                     <span class="sidebar-tooltip">My Posts</span>
                 </a>
+                @endcanInWorkspace
                 <a href="{{ route('feed.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.feed.*') ? 'active' : '' }}"
                    style="--nav-tint:#34d399; --nav-tint-soft:rgba(52,211,153,0.12);">
@@ -621,6 +631,7 @@
                     <span class="nav-label">Domains</span>
                     <span class="sidebar-tooltip">Custom Domains</span>
                 </a>
+                @canInWorkspace('referrals.view')
                 <a href="{{ route('user.referrals.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.referrals.*') ? 'active' : '' }}"
                    style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
@@ -628,6 +639,7 @@
                     <span class="nav-label">Referrals</span>
                     <span class="sidebar-tooltip">Referrals</span>
                 </a>
+                @endcanInWorkspace
 
                 {{-- ========== CONTACTS ========== --}}
                 <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Contacts</div>
@@ -815,10 +827,44 @@
                         <span class="badge-dot"></span>
                     </button>
 
+                    @php
+                        $__ws = app()->bound('current_workspace') ? app('current_workspace') : null;
+                        $__roleLabel = null;
+                        if ($__ws && auth()->check()) {
+                            if (auth()->user()->isSuperAdmin()) {
+                                $__roleLabel = 'Super Admin';
+                            } elseif ((int) $__ws->owner_user_id === auth()->id()) {
+                                $__roleLabel = 'Owner';
+                            } else {
+                                $__roleLabel = ucfirst(auth()->user()->membershipFor($__ws)?->role ?? 'Member');
+                            }
+                        }
+                        $__roleColors = [
+                            'Owner'       => ['#7c3aed', 'rgba(124,58,237,0.12)', 'rgba(124,58,237,0.30)'],
+                            'Super Admin' => ['#ef4444', 'rgba(239,68,68,0.12)', 'rgba(239,68,68,0.30)'],
+                            'Admin'       => ['#0ea5e9', 'rgba(14,165,233,0.12)', 'rgba(14,165,233,0.30)'],
+                            'Editor'      => ['#10b981', 'rgba(16,185,129,0.12)', 'rgba(16,185,129,0.30)'],
+                            'Replier'     => ['#f59e0b', 'rgba(245,158,11,0.12)', 'rgba(245,158,11,0.30)'],
+                            'Analyst'     => ['#a855f7', 'rgba(168,85,247,0.12)', 'rgba(168,85,247,0.30)'],
+                            'Viewer'      => ['#64748b', 'rgba(100,116,139,0.12)', 'rgba(100,116,139,0.30)'],
+                        ];
+                        [$__roleFg, $__roleBg, $__roleBorder] = $__roleColors[$__roleLabel] ?? ['#64748b', 'rgba(100,116,139,0.12)', 'rgba(100,116,139,0.30)'];
+                    @endphp
+                    @if($__roleLabel)
+                        <span class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider"
+                              style="color: {{ $__roleFg }}; background: {{ $__roleBg }}; border: 1px solid {{ $__roleBorder }};"
+                              title="Your role in {{ $__ws->name }}">
+                            <i class="fas fa-id-badge text-[9px]"></i>
+                            <span>{{ auth()->user()->name }} · {{ $__roleLabel }}</span>
+                        </span>
+                    @endif
+
+                    @canInWorkspace('links.create')
                     <a href="{{ route('user.links.create') }}" class="btn-primary hidden sm:inline-flex items-center gap-1.5 text-xs px-3.5 py-2 whitespace-nowrap">
                         <i class="fas fa-plus" style="font-size: 9px;"></i>
                         <span>New Link</span>
                     </a>
+                    @endcanInWorkspace
 
                     <div x-data="{ open: false }" class="relative lg:hidden">
                         <button @click="open = !open" class="header-icon-btn">
@@ -861,22 +907,32 @@
                         </span></a>
 
                         {{-- Links & Pages --}}
+                        @canInWorkspace('links.view')
                         <p class="pt-3 px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Links &amp; Pages</p>
                         <a href="{{ route('user.links.index') }}" class="sidebar-link {{ request()->routeIs('user.links.index') || request()->routeIs('user.links.show') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-link"></i></div> <span>All Links</span></a>
+                        @canInWorkspace('links.create')
                         <a href="{{ route('user.links.create') }}" class="sidebar-link {{ request()->routeIs('user.links.create') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-plus-circle"></i></div> <span>Create Link</span></a>
+                        @endcanInWorkspace
                         <a href="{{ route('user.qr-codes.index') }}" class="sidebar-link {{ request()->routeIs('user.qr-codes.*') || request()->routeIs('user.qrcode*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-qrcode"></i></div> <span>QR Codes</span></a>
                         <a href="{{ route('user.forms.index') }}" class="sidebar-link {{ request()->routeIs('user.forms.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-clipboard-list"></i></div> <span>Forms</span></a>
                         <a href="{{ route('user.splash-pages.index') }}" class="sidebar-link {{ request()->routeIs('user.splash-pages.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-rocket"></i></div> <span>Intros</span></a>
+                        @endcanInWorkspace
 
                         {{-- Audience --}}
                         <p class="pt-3 px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Audience</p>
+                        @canInWorkspace('inbox.view')
                         <a href="{{ route('user.inbox.index') }}" class="sidebar-link {{ request()->routeIs('user.inbox.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-inbox"></i></div> <span>Inbox
                             @php $__mInbox = (new \App\Modules\User\Services\InboxAggregator(auth()->id()))->unreadCount(); @endphp
                             @if($__mInbox)<span class="ml-1 inline-block px-1.5 rounded-full text-[10px] bg-violet-500 text-white">{{ $__mInbox > 99 ? '99+' : $__mInbox }}</span>@endif
                         </span></a>
+                        @endcanInWorkspace
+                        @canInWorkspace('followers.view')
                         <a href="{{ route('user.subscribers.index') }}" class="sidebar-link {{ request()->routeIs('user.subscribers.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-users"></i></div> <span>Leads</span></a>
                         <a href="{{ route('user.followers.index') }}" class="sidebar-link {{ request()->routeIs('user.followers.*') || request()->routeIs('user.following.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-group"></i></div> <span>Followers</span></a>
+                        @endcanInWorkspace
+                        @canInWorkspace('posts.view')
                         <a href="{{ route('user.posts.index') }}" class="sidebar-link {{ request()->routeIs('user.posts.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-pen-to-square"></i></div> <span>My Posts</span></a>
+                        @endcanInWorkspace
                         <a href="{{ route('feed.index') }}" class="sidebar-link {{ request()->routeIs('user.feed.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-stream"></i></div> <span>Feed</span></a>
 
                         {{-- Marketing --}}
@@ -886,7 +942,9 @@
                         <a href="{{ route('user.social-accounts.index') }}" class="sidebar-link {{ request()->routeIs('user.social-accounts.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-share-nodes"></i></div> <span>Connected Accounts</span></a>
                         <a href="{{ route('user.integrations.index') }}" class="sidebar-link {{ request()->routeIs('user.integrations.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-plug"></i></div> <span>Integrations</span></a>
                         <a href="{{ route('user.domains.index') }}" class="sidebar-link {{ request()->routeIs('user.domains.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-globe"></i></div> <span>Domains</span></a>
+                        @canInWorkspace('referrals.view')
                         <a href="{{ route('user.referrals.index') }}" class="sidebar-link {{ request()->routeIs('user.referrals.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-gift"></i></div> <span>Referrals</span></a>
+                        @endcanInWorkspace
 
                         {{-- Contacts --}}
                         <p class="pt-3 px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Contacts</p>

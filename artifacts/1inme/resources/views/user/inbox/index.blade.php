@@ -125,6 +125,7 @@
             <form method="POST" action="{{ route('user.inbox.bulk') }}" id="bulk-form">@csrf
                 <div class="card-premium p-3 mb-3 flex items-center gap-2 flex-wrap" x-show="allChecked" x-cloak>
                     <span class="text-xs font-semibold" style="color: var(--text-secondary);" x-text="selected.length + ' selected'"></span>
+                    @canInWorkspace('inbox.edit')
                     <button name="action" value="read"     class="px-3 py-1.5 rounded-lg text-xs" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-secondary);"><i class="fas fa-envelope-open mr-1"></i>Mark read</button>
                     <button name="action" value="unread"   class="px-3 py-1.5 rounded-lg text-xs" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-secondary);"><i class="fas fa-envelope mr-1"></i>Mark unread</button>
                     <button name="action" value="star"     class="px-3 py-1.5 rounded-lg text-xs" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-secondary);"><i class="fas fa-star mr-1 text-amber-400"></i>Star</button>
@@ -132,8 +133,13 @@
                     <button name="action" value="spam"     class="px-3 py-1.5 rounded-lg text-xs" style="background: rgba(234,88,12,0.1); border: 1px solid rgba(234,88,12,0.2); color: #fb923c;"><i class="fas fa-ban mr-1"></i>Spam</button>
                     <button name="action" value="not_spam" class="px-3 py-1.5 rounded-lg text-xs" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-secondary);"><i class="fas fa-shield-alt mr-1"></i>Not spam</button>
                     <button name="action" value="not_spam_trust" class="px-3 py-1.5 rounded-lg text-xs" style="background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.2); color: #4ade80;" title="Mark not spam and add the sender to your trusted list."><i class="fas fa-user-shield mr-1"></i>Not spam &amp; trust</button>
+                    @endcanInWorkspace
                     <button name="action" value="export"   class="px-3 py-1.5 rounded-lg text-xs" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-secondary);"><i class="fas fa-file-csv mr-1"></i>Export</button>
+                    @canInWorkspace('inbox.delete')
                     <button name="action" value="delete"   onclick="return confirm('Delete selected items?')" class="px-3 py-1.5 rounded-lg text-xs" style="background: rgba(239,68,68,0.1); color: #f87171;"><i class="fas fa-trash mr-1"></i>Delete</button>
+                    @else
+                    <button type="button" disabled class="px-3 py-1.5 rounded-lg text-xs cursor-not-allowed opacity-50" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);" title="Your role doesn't allow deleting inbox items"><i class="fas fa-lock mr-1"></i>Delete</button>
+                    @endcanInWorkspace
                 </div>
 
                 @if($items->isEmpty())

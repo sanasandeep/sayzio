@@ -2,6 +2,14 @@
 @section('title', 'My Links')
 
 @section('content')
+@php
+    $__heroActions = [];
+    $__ws = app()->bound('current_workspace') ? app('current_workspace') : null;
+    $__canCreateLink = $__ws && auth()->check() && auth()->user()->canInWorkspace($__ws, 'links.create');
+    if ($__canCreateLink) {
+        $__heroActions[] = ['label' => 'Create Link', 'url' => route('user.links.create'), 'icon' => 'fa-plus', 'class' => 'btn-primary'];
+    }
+@endphp
 @include('user.partials.page-hero', [
     'title'    => 'My Links',
     'subtitle' => 'Manage and track all your shortened links.',
@@ -9,10 +17,14 @@
     'chips'    => [
         ['icon' => 'fa-layer-group', 'text' => ($links->total() ?? $links->count()) . ' total'],
     ],
-    'actions'  => [
-        ['label' => 'Create Link', 'url' => route('user.links.create'), 'icon' => 'fa-plus', 'class' => 'btn-primary'],
-    ],
+    'actions'  => $__heroActions,
 ])
+@unless($__canCreateLink)
+<div class="mb-4 px-3 py-2 rounded-lg text-xs flex items-center gap-2" style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); color: #b45309;">
+    <i class="fas fa-lock"></i>
+    <span>Your role in this workspace can view links but not create new ones.</span>
+</div>
+@endunless
 
 <div class="card-premium mb-5">
     <form method="GET" class="p-4 flex flex-wrap items-end gap-3">
@@ -62,9 +74,13 @@
     </div>
     <h3 class="text-base font-bold mb-1.5" style="color: var(--text-primary);">No links yet</h3>
     <p class="text-xs mb-5" style="color: var(--text-dimmed);">Create your first link to start tracking clicks.</p>
+    @canInWorkspace('links.create')
     <a href="{{ route('user.links.create') }}" class="btn-primary text-xs py-2.5">
         <i class="fas fa-plus text-[10px]"></i> Create Link
     </a>
+    @else
+    <p class="text-[11px]" style="color: var(--text-faint);"><i class="fas fa-lock mr-1"></i>Ask a workspace admin to create the first link.</p>
+    @endcanInWorkspace
 </div>
 @else
 <div class="space-y-2.5">
@@ -173,26 +189,40 @@
                     <a href="{{ route('user.links.show', $link) }}" class="p-1.5 rounded-md transition-all hover:bg-violet-500/10" style="color: var(--text-faint);" title="View">
                         <i class="fas fa-chart-bar text-xs hover:text-violet-400"></i>
                     </a>
-                    @if($link->type === 'biolink')
-                    <a href="{{ route('user.links.blocks.editor', $link) }}" class="p-1.5 rounded-md transition-all hover:bg-pink-500/10" style="color: var(--text-faint);" title="Edit Blocks">
-                        <i class="fas fa-th-large text-xs hover:text-pink-400"></i>
-                    </a>
-                    @endif
-                    <a href="{{ route('user.links.edit', $link) }}" class="p-1.5 rounded-md transition-all hover:bg-violet-500/10" style="color: var(--text-faint);" title="Edit">
-                        <i class="fas fa-edit text-xs hover:text-violet-400"></i>
-                    </a>
+                    @canInWorkspace('links.edit')
+                        @if($link->type === 'biolink')
+                        <a href="{{ route('user.links.blocks.editor', $link) }}" class="p-1.5 rounded-md transition-all hover:bg-pink-500/10" style="color: var(--text-faint);" title="Edit Blocks">
+                            <i class="fas fa-th-large text-xs hover:text-pink-400"></i>
+                        </a>
+                        @endif
+                        <a href="{{ route('user.links.edit', $link) }}" class="p-1.5 rounded-md transition-all hover:bg-violet-500/10" style="color: var(--text-faint);" title="Edit">
+                            <i class="fas fa-edit text-xs hover:text-violet-400"></i>
+                        </a>
+                    @else
+                        <span class="p-1.5 rounded-md opacity-50 cursor-not-allowed" style="color: var(--text-faint);" title="Your role doesn't allow editing links">
+                            <i class="fas fa-lock text-xs"></i>
+                        </span>
+                    @endcanInWorkspace
+                    @canInWorkspace('links.create')
                     <form action="{{ route('user.links.duplicate', $link) }}" method="POST">
                         @csrf
                         <button class="p-1.5 rounded-md transition-all hover:bg-cyan-500/10" style="color: var(--text-faint);" title="Duplicate">
                             <i class="fas fa-copy text-xs hover:text-cyan-400"></i>
                         </button>
                     </form>
+                    @endcanInWorkspace
+                    @canInWorkspace('links.delete')
                     <form action="{{ route('user.links.destroy', $link) }}" method="POST" onsubmit="return confirm('Delete this link?')">
                         @csrf @method('DELETE')
                         <button class="p-1.5 rounded-md transition-all hover:bg-red-500/10" style="color: var(--text-faint);" title="Delete">
                             <i class="fas fa-trash text-xs hover:text-red-400"></i>
                         </button>
                     </form>
+                    @else
+                    <span class="p-1.5 rounded-md opacity-50 cursor-not-allowed" style="color: var(--text-faint);" title="Your role doesn't allow deleting links">
+                        <i class="fas fa-trash text-xs"></i>
+                    </span>
+                    @endcanInWorkspace
                 </div>
             </div>
         </div>
