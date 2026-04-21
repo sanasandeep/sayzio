@@ -255,6 +255,35 @@ class CloudFilesTest extends TestCase
             ->assertDontSee('OwnerFile');
     }
 
+    public function test_oauth_callback_rejects_when_workspace_changed_mid_flow(): void
+    {
+        $owner = $this->makeUser('o');
+        $ws1 = $this->bindWorkspace($owner);
+        CloudProviderApp::create([
+            'provider' => 'google_drive', 'client_id' => 'g', 'client_secret_encrypted' => 's', 'enabled' => true,
+        ]);
+
+        // Start OAuth in workspace 1.
+        Http::fake();
+        $this->actingAs($owner)->withSession([])->get('/user/cloud-oauth/google_drive/start');
+        $session = session()->all();
+
+        // User switches workspaces before the provider redirects back.
+        $ws2 = \App\Modules\User\Models\Workspace::create([
+            'owner_user_id' => $owner->id, 'name' => 'WS2', 'slug' => 'ws2-' . uniqid(),
+        ]);
+        $session[\App\Modules\User\Services\WorkspaceContext::SESSION_KEY] = $ws2->id;
+
+        // Replay callback with the workspace-1 state cookie. The OAuth
+        // controller binds the connection to the workspace recorded at
+        // start time, NOT the user's current active workspace, so ws2
+        // must NOT receive a connection.
+        $this->actingAs($owner)->withSession($session)
+            ->get('/user/cloud-oauth/google_drive/callback?code=abc&state=' . ($session['cloud_oauth_state_google_drive'] ?? 'x'));
+
+        $this->assertSame(0, CloudConnection::where('workspace_id', $ws2->id)->count());
+    }
+
     public function test_picker_blocks_other_users_connection(): void
     {
         $alice = $this->makeUser('a');

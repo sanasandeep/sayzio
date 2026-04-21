@@ -165,6 +165,14 @@
                 </template>
 
                 <div x-show="!loading && folders.length === 0 && files.length === 0" class="text-center text-gray-500 py-8 text-sm">This folder is empty.</div>
+
+                <div x-show="cursor && !loading" class="text-center pt-3">
+                    <button type="button" @click="loadMore()" :disabled="loadingMore"
+                            class="px-3 py-1.5 rounded bg-white/5 hover:bg-white/10 text-sm">
+                        <span x-show="!loadingMore">Load more</span>
+                        <span x-show="loadingMore"><i class="fas fa-spinner fa-spin"></i> Loading…</span>
+                    </button>
+                </div>
             </div>
 
             <div class="px-5 py-3 border-t border-white/10 flex items-center justify-between">
@@ -190,9 +198,11 @@ function cloudPicker() {
         visible: false,
         connectionId: @json($usableConnections->first()?->id),
         loading: false,
+        loadingMore: false,
         saving: false,
         searching: false,
         searchTerm: '',
+        cursor: null,
         error: '',
         folders: [],
         files: [],
@@ -204,18 +214,35 @@ function cloudPicker() {
             this.breadcrumbs = [{ id: null, name: 'Home' }]; this.load(null);
         },
         close() { this.visible = false; },
-        async fetchPicker(params) {
-            this.loading = true; this.error = ''; this.folders = []; this.files = [];
+        async fetchPicker(params, append = false) {
+            if (append) { this.loadingMore = true; }
+            else { this.loading = true; this.folders = []; this.files = []; this.cursor = null; }
+            this.error = '';
             try {
                 const r = await fetch(`/user/cloud-files/picker/${this.connectionId}?` + new URLSearchParams(params), {
                     headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }
                 });
                 const j = await r.json();
                 if (!r.ok) { this.error = j.message || 'Could not load files. ' + (j.error === 'reconnect_required' ? 'Reconnect needed.' : ''); return; }
-                this.folders = j.folders || [];
-                this.files = j.files || [];
+                if (append) {
+                    this.folders = this.folders.concat(j.folders || []);
+                    this.files = this.files.concat(j.files || []);
+                } else {
+                    this.folders = j.folders || [];
+                    this.files = j.files || [];
+                }
+                this.cursor = j.cursor || null;
             } catch (e) { this.error = 'Network error.'; }
-            finally { this.loading = false; }
+            finally { this.loading = false; this.loadingMore = false; }
+        },
+        currentParams() {
+            return this.searching
+                ? { search: this.searchTerm.trim() }
+                : (this.breadcrumbs.at(-1).id ? { folder: this.breadcrumbs.at(-1).id } : {});
+        },
+        loadMore() {
+            if (!this.cursor || this.loadingMore) return;
+            this.fetchPicker({ ...this.currentParams(), cursor: this.cursor }, true);
         },
         load(folderId) { this.searching = false; this.fetchPicker(folderId ? { folder: folderId } : {}); },
         runSearch() {
