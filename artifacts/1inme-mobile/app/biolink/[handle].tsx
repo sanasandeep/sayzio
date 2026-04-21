@@ -20,6 +20,7 @@ import {
   type BiolinkBlock,
   type BiolinkPayload,
   getBiolink,
+  trackBiolinkBlockTap,
 } from "@/lib/api/biolinks";
 
 function pickStr(s: Record<string, unknown> | null, ...keys: string[]): string | null {
@@ -46,10 +47,18 @@ function openSafe(u: string) {
   if (isSafeUrl(u)) void Linking.openURL(u);
 }
 
-function BlockView({ block }: { block: BiolinkBlock }) {
+function BlockView({ block, alias }: { block: BiolinkBlock; alias: string }) {
   const colors = useColors();
   const s = block.settings ?? {};
   const t = block.type;
+
+  // Fire the analytics ping first (best-effort, non-blocking) so the tap
+  // is counted even on slow networks where Linking.openURL hands off
+  // immediately.
+  const handleTap = (url: string) => {
+    trackBiolinkBlockTap(alias, block.id, url);
+    openSafe(url);
+  };
 
   // Generic link/button block
   if (
@@ -68,7 +77,7 @@ function BlockView({ block }: { block: BiolinkBlock }) {
     if (!isSafeUrl(url)) return null;
     return (
       <Pressable
-        onPress={() => openSafe(url)}
+        onPress={() => handleTap(url)}
         style={[
           styles.btn,
           { backgroundColor: colors.primary, borderColor: colors.primary },
@@ -123,7 +132,7 @@ function BlockView({ block }: { block: BiolinkBlock }) {
   if (fallbackUrl && isSafeUrl(fallbackUrl)) {
     return (
       <Pressable
-        onPress={() => openSafe(fallbackUrl)}
+        onPress={() => handleTap(fallbackUrl)}
         style={[styles.btn, { backgroundColor: colors.card, borderColor: colors.border }]}
       >
         <Text style={[styles.btnLabel, { color: colors.foreground }]}>
@@ -223,7 +232,7 @@ export default function BiolinkViewer() {
             {q.data.blocks
               .filter((b) => !b.parent_id)
               .map((b) => (
-                <BlockView key={b.id} block={b} />
+                <BlockView key={b.id} block={b} alias={alias} />
               ))}
           </View>
         </ScrollView>

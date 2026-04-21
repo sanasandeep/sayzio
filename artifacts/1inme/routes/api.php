@@ -69,6 +69,13 @@ Route::prefix('v1')->group(function () {
     Route::post('/biolinks/{alias}/subscribe', [BiolinkController::class, 'subscribe'])
         ->middleware('throttle:10,1');
 
+    // Best-effort block tap tracking from in-app biolink viewers (mobile).
+    // Mirrors the web's redirect.block click counter so taps via the app
+    // show up in the creator's analytics.
+    Route::middleware(['api.optional_auth', 'throttle:120,1'])
+        ->post('/biolinks/{alias}/blocks/{blockId}/tap', [BiolinkController::class, 'tap'])
+        ->whereNumber('blockId');
+
     // Public read-only catalog
     Route::get('/plans', [PlanController::class, 'index']);
 

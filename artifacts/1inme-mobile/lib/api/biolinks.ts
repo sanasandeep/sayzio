@@ -43,3 +43,26 @@ export async function getBiolink(alias: string): Promise<BiolinkPayload> {
   );
   return res.data;
 }
+
+// Best-effort block tap tracking. Mirrors the web's per-block click tracker
+// (the `/{alias}/b/{blockId}` redirect on the website) so taps that happen
+// inside the in-app biolink viewer also show up in the creator's analytics.
+// Never throws — a failed analytics ping must not break the link open.
+export function trackBiolinkBlockTap(
+  alias: string,
+  blockId: number,
+  destinationUrl?: string | null,
+): void {
+  if (!alias || !Number.isFinite(blockId)) return;
+  const body: Record<string, unknown> = {};
+  if (destinationUrl) body.destination_url = destinationUrl;
+  void apiFetch(
+    `/biolinks/${encodeURIComponent(alias)}/blocks/${blockId}/tap`,
+    {
+      method: "POST",
+      body: JSON.stringify(body),
+    },
+  ).catch(() => {
+    // Swallow — analytics is best-effort and must never disrupt the tap.
+  });
+}

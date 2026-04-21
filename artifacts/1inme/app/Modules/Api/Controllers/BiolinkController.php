@@ -3,6 +3,7 @@
 namespace App\Modules\Api\Controllers;
 
 use App\Modules\Api\Controllers\Concerns\ApiResponses;
+use App\Modules\Common\Services\LinkTrackingService;
 use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Follow;
 use App\Modules\User\Models\Link;
@@ -13,6 +14,10 @@ use Illuminate\Routing\Controller;
 class BiolinkController extends Controller
 {
     use ApiResponses;
+
+    public function __construct(protected LinkTrackingService $trackingService)
+    {
+    }
 
     public function show(Request $request, string $alias)
     {
@@ -94,6 +99,47 @@ class BiolinkController extends Controller
         }
 
         return ['status' => 403, 'code' => 'forbidden', 'message' => 'Not allowed'];
+    }
+
+    public function tap(Request $request, string $alias, int $blockId)
+    {
+        $link = Link::where('alias', $alias)->where('type', 'biolink')->first();
+        if (!$link || !$link->is_active) return $this->notFound('Biolink not found');
+
+        if (!$link->isAccessible()) {
+            return $this->notFound('Biolink not available');
+        }
+
+        $owner  = $link->user;
+        $viewer = $request->user();
+        $gate   = $this->checkVisibility($link, $viewer, $owner);
+        if ($gate !== null) {
+            return $this->fail($gate['message'], $gate['status'], $gate['code']);
+        }
+
+        $block = BiolinkBlock::where('id', $blockId)
+            ->where('link_id', $link->id)
+            ->first();
+        if (!$block) return $this->notFound('Block not found');
+
+        $data = $request->validate([
+            'destination_url' => ['nullable', 'string', 'max:2048'],
+        ]);
+
+        $destination = $data['destination_url'] ?? '';
+        $parsed = $destination !== '' ? parse_url($destination) : null;
+        $isSafe = $parsed
+            && isset($parsed['scheme'])
+            && in_array(strtolower($parsed['scheme']), ['http', 'https', 'tel', 'mailto', 'sms'], true);
+        if (!$isSafe) {
+            $s = $block->settings ?? [];
+            $linkData = $s['_link'] ?? [];
+            $destination = (string) ($linkData['url'] ?? $s['link'] ?? $s['url'] ?? '');
+        }
+
+        $this->trackingService->trackBlockClick($link, $block, $destination, $request, $alias);
+
+        return $this->ok(['tracked' => true]);
     }
 
     public function subscribe(Request $request, string $alias)
