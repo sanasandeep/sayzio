@@ -7,6 +7,7 @@ use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\BiolinkWizardDraft;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\User;
+use App\Modules\User\Models\WorkspaceMember;
 use App\Modules\User\Services\BiolinkPageRecipes;
 use App\Modules\User\Services\WorkspaceContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -61,7 +62,7 @@ class BiolinkWizardIntegrationTest extends TestCase
             'is_active' => true,
         ]);
 
-        $snapshot = BiolinkPageRecipes::build('creator', 'profile', null, [
+        $snapshot = BiolinkPageRecipes::build('creator', 'influencer', null, [
             'display_name' => 'Demo Creator',
             'tagline'      => 'Stories, art, and good vibes',
             'bio'          => 'Sharing my creative journey.',
@@ -108,7 +109,7 @@ class BiolinkWizardIntegrationTest extends TestCase
             'actor_user_id' => $user->id,
             'workspace_id'  => $this->activeWorkspaceId($user),
             'category'      => 'creator',
-            'page_type'     => 'profile',
+            'page_type'     => 'influencer',
             'industry'      => null,
             'step'          => 3,
             'answers'       => ['display_name' => 'Old Name'],
@@ -169,7 +170,7 @@ class BiolinkWizardIntegrationTest extends TestCase
             'actor_user_id' => $alice->id,
             'workspace_id'  => $this->activeWorkspaceId($alice),
             'category'      => 'creator',
-            'page_type'     => 'profile',
+            'page_type'     => 'influencer',
             'step'          => 3,
             'answers'       => ['display_name' => 'Alice'],
         ]);
@@ -199,5 +200,48 @@ class BiolinkWizardIntegrationTest extends TestCase
 
         $this->assertSame('Alice', $aliceDraft->answers['display_name']);
         $this->assertSame('Bob Inc v2', $bobDraft->answers['business_name']);
+    }
+
+    /**
+     * A team member without `links.create` (e.g. a viewer) must NOT be
+     * able to launch destructive wizard actions in the workspace owner's
+     * context. The route is gated by `workspace.can:links.create`, which
+     * returns 403 (HTML) / JSON for missing permissions.
+     */
+    public function test_viewer_role_cannot_start_or_finish_wizard(): void
+    {
+        $alice = $this->makeUser();
+        $bob   = $this->makeUser();
+
+        // Resolve Alice's personal workspace and add Bob as a viewer
+        // (viewers have view=true, create=false in WorkspacePermissions).
+        $aliceWs = app(WorkspaceContext::class)->resolve($alice);
+        $this->assertNotNull($aliceWs, 'Alice should have a default workspace');
+        WorkspaceMember::create([
+            'workspace_id' => $aliceWs->id,
+            'user_id'      => $bob->id,
+            'role'         => 'viewer',
+        ]);
+
+        // Force Bob's session to point at Alice's workspace so the
+        // SetActiveWorkspace middleware resolves *that* workspace, not
+        // Bob's personal one (where he'd be the owner and bypass perms).
+        $resp = $this->actingAs($bob)
+            ->withSession([WorkspaceContext::SESSION_KEY => $aliceWs->id])
+            ->withHeaders(['Accept' => 'application/json'])
+            ->post('/user/links/wizard/start');
+
+        $this->assertSame(403, $resp->status(),
+            'viewer must be denied destructive wizard start');
+        $this->assertSame('forbidden', $resp->json('error'));
+
+        // Finish must also be denied.
+        $resp2 = $this->actingAs($bob)
+            ->withSession([WorkspaceContext::SESSION_KEY => $aliceWs->id])
+            ->withHeaders(['Accept' => 'application/json'])
+            ->post('/user/links/wizard/finish');
+
+        $this->assertSame(403, $resp2->status(),
+            'viewer must be denied wizard finish');
     }
 }

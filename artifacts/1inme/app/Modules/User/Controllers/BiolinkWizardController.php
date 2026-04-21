@@ -155,7 +155,19 @@ class BiolinkWizardController extends Controller
                 break;
 
             case 'back':
-                $draft->step = max(0, ($draft->step ?? 0) - 1);
+                // Walk one logical step back. The industry step (2) is
+                // optional — many category/page-type combos skip it — so
+                // a blind `step - 1` would land the user on an empty step
+                // 2 with no industries to pick. Compute the previous step
+                // from the actual taxonomy instead.
+                $cur = (int) ($draft->step ?? 0);
+                if ($cur >= 3) {
+                    $hasIndustry = $draft->category && $draft->page_type
+                        && BiolinkWizardQuestions::hasIndustryStep($draft->category, $draft->page_type);
+                    $draft->step = $hasIndustry ? 2 : 1;
+                } else {
+                    $draft->step = max(0, $cur - 1);
+                }
                 break;
 
             case 'restart':

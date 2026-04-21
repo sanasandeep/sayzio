@@ -44,10 +44,10 @@ class BiolinkWizardTest extends TestCase
         }
     }
 
-    /** Recipe: the canonical creator/profile combo produces profile + cta blocks. */
+    /** Recipe: the canonical creator/influencer combo produces profile + cta blocks. */
     public function test_recipe_builds_profile_and_cta_for_creator(): void
     {
-        $snap = BiolinkPageRecipes::build('creator', 'profile', null, [
+        $snap = BiolinkPageRecipes::build('creator', 'influencer', null, [
             'display_name' => 'Demo Creator',
             'tagline'      => 'Stories, art, and good vibes',
             'bio'          => 'Sharing my creative journey.',
@@ -65,10 +65,10 @@ class BiolinkWizardTest extends TestCase
         $this->assertContains('cta_button', $types);
     }
 
-    /** Recipe: a restaurant/menu combo emits at least the profile + a list block. */
+    /** Recipe: a restaurant/restaurant combo emits at least the profile + a list block. */
     public function test_recipe_builds_for_restaurant_menu(): void
     {
-        $snap = BiolinkPageRecipes::build('restaurant', 'menu', 'italian', [
+        $snap = BiolinkPageRecipes::build('restaurant', 'restaurant', null, [
             'business_name' => 'Bella Italia',
             'tagline'       => 'Family recipes since 1972',
             'address'       => '123 Pasta St',

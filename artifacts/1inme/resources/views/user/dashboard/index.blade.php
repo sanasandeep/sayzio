@@ -17,7 +17,8 @@
         ['icon' => 'fa-link', 'text' => ($stats['total_links'] ?? 0) . ' links'],
     ],
     'actions'  => [
-        ['label' => 'Create Link', 'url' => route('user.links.create'), 'icon' => 'fa-plus', 'class' => 'btn-primary'],
+        ['label' => 'Create Bio Link', 'url' => route('user.links.wizard'), 'icon' => 'fa-magic', 'class' => 'btn-primary'],
+        ['label' => 'Quick Link',      'url' => route('user.links.create'), 'icon' => 'fa-plus',  'class' => 'btn-secondary'],
     ],
 ])
 
@@ -104,8 +105,8 @@
                     </div>
                     <h2 class="text-sm font-bold" style="color: var(--text-primary);">Recent Links</h2>
                 </div>
-                <a href="{{ route('user.links.create') }}" class="text-[11px] text-violet-400 hover:text-violet-300 font-semibold transition-all flex items-center gap-1 hover:gap-2">
-                    <i class="fas fa-plus text-[9px]"></i> New
+                <a href="{{ route('user.links.wizard') }}" class="text-[11px] text-violet-400 hover:text-violet-300 font-semibold transition-all flex items-center gap-1 hover:gap-2" title="Guided bio link wizard (or use Quick Link for short URLs)">
+                    <i class="fas fa-magic text-[9px]"></i> New Bio Link
                 </a>
             </div>
 
@@ -135,10 +136,15 @@
                     <i class="fas fa-link text-xl text-violet-400"></i>
                 </div>
                 <p class="text-sm mb-1 font-bold" style="color: var(--text-muted);">No links yet</p>
-                <p class="text-xs mb-5" style="color: var(--text-dimmed);">Create your first link to get started</p>
-                <a href="{{ route('user.links.create') }}" class="btn-primary text-xs py-2.5">
-                    <i class="fas fa-plus text-[10px]"></i> Create Link
-                </a>
+                <p class="text-xs mb-5" style="color: var(--text-dimmed);">Launch the guided wizard or build a quick short link.</p>
+                <div class="flex items-center justify-center gap-2">
+                    <a href="{{ route('user.links.wizard') }}" class="btn-primary text-xs py-2.5">
+                        <i class="fas fa-magic text-[10px]"></i> Bio Link Wizard
+                    </a>
+                    <a href="{{ route('user.links.create') }}" class="btn-secondary text-xs py-2.5">
+                        <i class="fas fa-plus text-[10px]"></i> Quick Link
+                    </a>
+                </div>
             </div>
             @else
             <div>
@@ -181,6 +187,13 @@
                 <h2 class="text-sm font-bold" style="color: var(--text-primary);">Quick Actions</h2>
             </div>
             <div class="space-y-1">
+                <a href="{{ route('user.links.wizard') }}" class="flex items-center gap-3 p-2.5 rounded-xl transition-all group hover:translate-x-1" style="background: transparent;" onmouseover="this.style.background='var(--bg-glass-input)'" onmouseout="this.style.background='transparent'">
+                    <div class="w-8 h-8 rounded-xl flex items-center justify-center glow-icon transition-all duration-300" style="background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.12);">
+                        <i class="fas fa-magic text-violet-400 text-[10px]"></i>
+                    </div>
+                    <span class="text-xs font-medium" style="color: var(--text-muted);">Bio Link Wizard</span>
+                    <i class="fas fa-chevron-right text-[8px] ml-auto transition-transform group-hover:translate-x-1" style="color: var(--text-faint);"></i>
+                </a>
                 <a href="{{ route('user.links.create') }}" class="flex items-center gap-3 p-2.5 rounded-xl transition-all group hover:translate-x-1" style="background: transparent;" onmouseover="this.style.background='var(--bg-glass-input)'" onmouseout="this.style.background='transparent'">
                     <div class="w-8 h-8 rounded-xl flex items-center justify-center glow-icon transition-all duration-300" style="background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.12);">
                         <i class="fas fa-link text-violet-400 text-[10px]"></i>
