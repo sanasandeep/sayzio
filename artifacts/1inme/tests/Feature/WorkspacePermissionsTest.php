@@ -525,8 +525,11 @@ class WorkspacePermissionsTest extends TestCase
         $resp = $this->get('/user/profile/digest/preview');
         $this->assertNotEquals(403, $resp->status());
 
-        // Editor lacks digests.edit — sending a sample must 403.
-        $this->post('/user/profile/digest/sample')->assertForbidden();
+        // Editor (digests.view present) — sending a sample to themselves
+        // is also allowed, since the action only emails the signed-in
+        // user and is therefore a QA/preview action gated under view.
+        $sample = $this->post('/user/profile/digest/sample');
+        $this->assertNotEquals(403, $sample->status());
     }
 
     public function test_digest_routes_block_member_without_digests_view(): void

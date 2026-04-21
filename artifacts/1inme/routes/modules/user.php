@@ -147,9 +147,19 @@ Route::prefix('user')->name('user.')->group(function () {
             // QA the digest without unlocking billing/integrations. We
             // strip the parent `settings.view` middleware and re-apply the
             // matching digests permission.
+            //
+            // `digest.sample` is intentionally `digests.view`, not
+            // `digests.edit`: the action only ever emails the signed-in
+            // user (controller hard-codes $user->email as the recipient),
+            // so it's a QA/preview action — the same role that can view
+            // the digest can fire one to themselves. `digests.edit` stays
+            // reserved for bulk/all-followers digest actions (currently
+            // only the scheduled console command, but kept distinct so a
+            // future "send digest to all followers now" admin action has
+            // a stricter gate available).
             Route::post('/digest/sample', [ProfileController::class, 'sendSample'])
                 ->withoutMiddleware('workspace.can:settings.view')
-                ->middleware('workspace.can:digests.edit')
+                ->middleware('workspace.can:digests.view')
                 ->name('digest.sample');
             Route::get('/digest/preview', [ProfileController::class, 'digestPreview'])
                 ->withoutMiddleware('workspace.can:settings.view')
