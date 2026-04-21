@@ -12,6 +12,7 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\URL;
 
 /**
  * Deliver a queued newsletter issue to every active (non-unsubscribed)
@@ -64,7 +65,8 @@ class SendNewsletterIssueJob implements ShouldQueue
                             continue;
                         }
                         try {
-                            Mail::html($issue->body_html, function ($m) use ($sub, $issue, $fromAddress, $fromName) {
+                            $html = $this->renderForSubscriber($issue->body_html, $sub);
+                            Mail::html($html, function ($m) use ($sub, $issue, $fromAddress, $fromName) {
                                 $m->to($sub->email)
                                   ->subject($issue->subject)
                                   ->from($fromAddress, $fromName);
@@ -101,6 +103,34 @@ class SendNewsletterIssueJob implements ShouldQueue
             ])->save();
             throw $e;
         }
+    }
+
+    /**
+     * Append a per-recipient unsubscribe footer to the issue body. The link
+     * is a Laravel signed URL bound to the subscriber id (no expiry) so the
+     * recipient can opt out with a single click without logging in. The
+     * footer is injected just before </body> when present, otherwise
+     * concatenated to the end so plain HTML fragments still get it.
+     */
+    protected function renderForSubscriber(string $bodyHtml, NewsletterSubscriber $sub): string
+    {
+        $url = URL::signedRoute(
+            'site.newsletter.unsubscribe',
+            ['subscriber' => $sub->id]
+        );
+
+        $footer = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
+            . 'style="margin-top:32px;border-top:1px solid #e2e8f0;padding-top:16px;font-family:Arial,Helvetica,sans-serif;">'
+            . '<tr><td style="text-align:center;font-size:12px;color:#64748b;line-height:1.6;">'
+            . 'You are receiving this because ' . e($sub->email) . ' is subscribed to our newsletter.<br>'
+            . '<a href="' . e($url) . '" style="color:#2563eb;text-decoration:underline;">Unsubscribe with one click</a>.'
+            . '</td></tr></table>';
+
+        if (stripos($bodyHtml, '</body>') !== false) {
+            return preg_replace('/<\/body>/i', $footer . '</body>', $bodyHtml, 1);
+        }
+
+        return $bodyHtml . $footer;
     }
 
     public function failed(\Throwable $e): void
