@@ -12,6 +12,72 @@
         $cc = strtoupper($cc);
         return mb_chr(0x1F1E6 + ord($cc[0]) - ord('A')) . mb_chr(0x1F1E6 + ord($cc[1]) - ord('A'));
     };
+    $languageNames = [
+        'en'=>'English','es'=>'Spanish','pt'=>'Portuguese','fr'=>'French','de'=>'German',
+        'it'=>'Italian','nl'=>'Dutch','sv'=>'Swedish','no'=>'Norwegian','da'=>'Danish',
+        'fi'=>'Finnish','pl'=>'Polish','ru'=>'Russian','uk'=>'Ukrainian','cs'=>'Czech',
+        'sk'=>'Slovak','ro'=>'Romanian','hu'=>'Hungarian','el'=>'Greek','tr'=>'Turkish',
+        'ar'=>'Arabic','he'=>'Hebrew','fa'=>'Persian','ur'=>'Urdu','hi'=>'Hindi',
+        'bn'=>'Bengali','pa'=>'Punjabi','ta'=>'Tamil','te'=>'Telugu','ml'=>'Malayalam',
+        'mr'=>'Marathi','gu'=>'Gujarati','kn'=>'Kannada','th'=>'Thai','vi'=>'Vietnamese',
+        'id'=>'Indonesian','ms'=>'Malay','tl'=>'Filipino','fil'=>'Filipino',
+        'zh'=>'Chinese','ja'=>'Japanese','ko'=>'Korean','ca'=>'Catalan','eu'=>'Basque',
+        'gl'=>'Galician','bg'=>'Bulgarian','hr'=>'Croatian','sr'=>'Serbian','sl'=>'Slovenian',
+        'lt'=>'Lithuanian','lv'=>'Latvian','et'=>'Estonian','is'=>'Icelandic','ga'=>'Irish',
+        'cy'=>'Welsh','sq'=>'Albanian','mk'=>'Macedonian','bs'=>'Bosnian','af'=>'Afrikaans',
+        'sw'=>'Swahili','am'=>'Amharic','zu'=>'Zulu','xh'=>'Xhosa','yo'=>'Yoruba',
+        'ig'=>'Igbo','ha'=>'Hausa','az'=>'Azerbaijani','ka'=>'Georgian','hy'=>'Armenian',
+        'kk'=>'Kazakh','uz'=>'Uzbek','ky'=>'Kyrgyz','mn'=>'Mongolian','my'=>'Burmese',
+        'km'=>'Khmer','lo'=>'Lao','si'=>'Sinhala','ne'=>'Nepali',
+    ];
+    $regionNames = $countryNames + [
+        'GB'=>'UK','US'=>'US','CA'=>'Canada','AU'=>'Australia','NZ'=>'New Zealand',
+        'IE'=>'Ireland','ZA'=>'South Africa','MX'=>'Mexico','AR'=>'Argentina','CL'=>'Chile',
+        'CO'=>'Colombia','PE'=>'Peru','VE'=>'Venezuela','BR'=>'Brazil','PT'=>'Portugal',
+        'ES'=>'Spain','FR'=>'France','BE'=>'Belgium','CH'=>'Switzerland','AT'=>'Austria',
+        'DE'=>'Germany','LU'=>'Luxembourg','IT'=>'Italy','NL'=>'Netherlands','HK'=>'Hong Kong',
+        'TW'=>'Taiwan','CN'=>'China','SG'=>'Singapore','MO'=>'Macau','JP'=>'Japan','KR'=>'Korea',
+        'IN'=>'India','PK'=>'Pakistan','BD'=>'Bangladesh','LK'=>'Sri Lanka','PH'=>'Philippines',
+        'ID'=>'Indonesia','MY'=>'Malaysia','TH'=>'Thailand','VN'=>'Vietnam','RU'=>'Russia',
+        'UA'=>'Ukraine','PL'=>'Poland','CZ'=>'Czechia','SK'=>'Slovakia','HU'=>'Hungary',
+        'RO'=>'Romania','BG'=>'Bulgaria','GR'=>'Greece','TR'=>'Turkey','IL'=>'Israel',
+        'SA'=>'Saudi Arabia','AE'=>'UAE','EG'=>'Egypt','MA'=>'Morocco','NG'=>'Nigeria',
+        'KE'=>'Kenya','SE'=>'Sweden','NO'=>'Norway','DK'=>'Denmark','FI'=>'Finland','IS'=>'Iceland',
+    ];
+    $languageLabel = function($code) use ($languageNames, $regionNames, $flag) {
+        $raw = (string) $code;
+        if ($raw === '' || !preg_match('/^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/', $raw)) {
+            return ['name' => $raw !== '' ? $raw : 'Unknown', 'flag' => '', 'region' => null];
+        }
+        $parts = explode('-', $raw);
+        $lang = strtolower($parts[0]);
+        $region = null;
+        for ($i = 1; $i < count($parts); $i++) {
+            $p = $parts[$i];
+            if (strlen($p) === 2 && ctype_alpha($p)) { $region = strtoupper($p); break; }
+            if (strlen($p) === 3 && ctype_digit($p)) { $region = $p; break; }
+        }
+        $langName = $languageNames[$lang] ?? null;
+        if (!$langName) return ['name' => $raw, 'flag' => '', 'region' => $region];
+        $name = $langName;
+        $flagStr = '';
+        if ($region !== null) {
+            if ($region === '419') {
+                $name .= ' (Latin America)';
+                $flagStr = '🌎';
+            } elseif ($region === '005') {
+                $name .= ' (South America)';
+                $flagStr = '🌎';
+            } elseif (ctype_alpha($region)) {
+                $regionName = $regionNames[$region] ?? $region;
+                $name .= ' (' . $regionName . ')';
+                $flagStr = $flag($region);
+            } else {
+                $name .= ' (' . $region . ')';
+            }
+        }
+        return ['name' => $name, 'flag' => $flagStr, 'region' => $region];
+    };
     function _fmtSecs($s){ $s=(int)$s; if($s<60) return $s.'s'; $m=intdiv($s,60); $r=$s%60; if($m<60) return $m.'m '.$r.'s'; $h=intdiv($m,60); return $h.'h '.($m%60).'m'; }
     function _fmtMs($ms){ return _fmtSecs(intdiv((int)$ms,1000)); }
 @endphp
@@ -729,7 +795,8 @@
         <div class="flex items-center gap-2 flex-wrap">
             <div class="text-xs" style="color: var(--text-faint);">Browser language sent by each visitor</div>
             @if(!empty($languageFilter))
-                <a href="{{ $buildUrl(['language' => null]) }}" class="section-pill" title="Clear language filter"><i class="fas fa-times mr-1"></i>{{ $languageFilter }}</a>
+                @php $lf = $languageLabel($languageFilter); @endphp
+                <a href="{{ $buildUrl(['language' => null]) }}" class="section-pill" title="Clear language filter ({{ $languageFilter }})"><i class="fas fa-times mr-1"></i>@if($lf['flag'])<span class="mr-1">{{ $lf['flag'] }}</span>@endif{{ $lf['name'] }}</a>
             @endif
         </div>
     </div>
@@ -739,9 +806,12 @@
         <div class="flex flex-wrap items-center gap-2">
             <a href="{{ $buildUrl(['language' => null]) }}" class="pill {{ empty($languageFilter) ? 'pill-active' : '' }}">All</a>
             @foreach($languageStats as $row)
-                @php $pct = $languageTotal > 0 ? round(($row->count / $languageTotal) * 100, 1) : 0; @endphp
-                <a href="{{ $buildUrl(['language' => $row->language]) }}" class="pill {{ ($languageFilter ?? '') === $row->language ? 'pill-active' : '' }}" title="{{ $pct }}% of clicks">
-                    {{ $row->language }} <span class="ml-1 opacity-60">({{ number_format($row->count) }})</span>
+                @php
+                    $pct = $languageTotal > 0 ? round(($row->count / $languageTotal) * 100, 1) : 0;
+                    $ll = $languageLabel($row->language);
+                @endphp
+                <a href="{{ $buildUrl(['language' => $row->language]) }}" class="pill {{ ($languageFilter ?? '') === $row->language ? 'pill-active' : '' }}" title="{{ $row->language }} · {{ $pct }}% of clicks">
+                    @if($ll['flag'])<span class="mr-1">{{ $ll['flag'] }}</span>@endif{{ $ll['name'] }} <span class="ml-1 opacity-60">({{ number_format($row->count) }})</span>
                 </a>
             @endforeach
         </div>
