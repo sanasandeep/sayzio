@@ -128,7 +128,7 @@
                                class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-violet-500/40">
                         <div class="grid grid-cols-3 gap-3">
                             <select name="tax_id_kind" data-tax-kind class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-violet-500/40">
-                                @php($currentKind = old('tax_id_kind', $billing->tax_id_kind ?: 'NONE'))
+                                @php $currentKind = old('tax_id_kind', $billing->tax_id_kind ?: 'NONE'); @endphp
                                 <option value="NONE"  {{ $currentKind === 'NONE'  ? 'selected' : '' }} class="bg-[#0d0818]">No tax ID</option>
                                 <option value="GSTIN" {{ $currentKind === 'GSTIN' ? 'selected' : '' }} class="bg-[#0d0818]">GSTIN (India)</option>
                                 <option value="VATIN" {{ $currentKind === 'VATIN' ? 'selected' : '' }} class="bg-[#0d0818]">VATIN (EU / UK)</option>
