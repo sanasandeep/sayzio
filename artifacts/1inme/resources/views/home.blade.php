@@ -1114,6 +1114,170 @@
 
         /* ============ Brand logo dark mode ============ */
         .brand-logo--light { display: none; }
+
+        /* ============ Workspace collab panel ============ */
+        .ws-card { position: relative; }
+        .ws-row {
+            display: flex; align-items: center; gap: 12px;
+            background: rgba(255,255,255,.04);
+            border: 1px solid rgba(255,255,255,.08);
+            border-radius: 14px;
+            padding: 10px 12px;
+            position: relative;
+            opacity: 0;
+            transform: translateY(8px);
+            animation: wsRowIn .55s cubic-bezier(.16,1,.3,1) forwards;
+        }
+        @keyframes wsRowIn { to { opacity: 1; transform: translateY(0);} }
+
+        .ws-avatar {
+            position: relative;
+            width: 38px; height: 38px;
+            border-radius: 50%;
+            overflow: hidden;
+            flex-shrink: 0;
+            background: rgba(255,255,255,.06);
+            border: 2px solid rgba(255,255,255,.12);
+        }
+        .ws-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .ws-avatar.is-online::after {
+            content: ""; position: absolute; right: -1px; bottom: -1px;
+            width: 11px; height: 11px; border-radius: 50%;
+            background: #22c55e;
+            border: 2px solid #0d0d12;
+            box-shadow: 0 0 0 0 rgba(34,197,94,.6);
+            animation: wsPing 2s infinite;
+        }
+        @keyframes wsPing {
+            0% { box-shadow: 0 0 0 0 rgba(34,197,94,.55); }
+            70% { box-shadow: 0 0 0 6px rgba(34,197,94,0); }
+            100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+        }
+
+        .ws-meta { min-width: 0; flex: 1; }
+        .ws-name { font-size: 12px; font-weight: 700; color: #fff; display:flex; align-items:center; gap:6px; }
+        .ws-name .verified { color: var(--c1); font-size: 10px; }
+        .ws-task {
+            font-size: 11px; color: #9ca3af;
+            display: flex; align-items: center; gap: 6px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .ws-task i { font-size: 9px; opacity: .8; }
+
+        .ws-badge {
+            font-size: 9px; font-weight: 800;
+            text-transform: uppercase; letter-spacing: .08em;
+            padding: 4px 8px; border-radius: 999px;
+            display: inline-flex; align-items: center; gap: 5px;
+            white-space: nowrap; flex-shrink: 0;
+        }
+        .ws-badge .dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            animation: wsDot 1.2s ease-in-out infinite;
+        }
+        @keyframes wsDot { 0%,100% { opacity: 1; transform: scale(1);} 50% { opacity: .4; transform: scale(.7);} }
+        .ws-b-edit   { background: rgba(124,58,237,.18); color: #c4b5fd; }
+        .ws-b-edit .dot { background: #a78bfa; }
+        .ws-b-up     { background: rgba(27,212,217,.18); color: #67e8f9; }
+        .ws-b-up .dot { background: #22d3ee; }
+        .ws-b-comment{ background: rgba(233,78,140,.18); color: #f9a8d4; }
+        .ws-b-comment .dot { background: #ec4899; }
+        .ws-b-ok     { background: rgba(34,197,94,.18); color: #86efac; }
+        .ws-b-ok .dot { background: #22c55e; animation: none; }
+        .ws-b-view   { background: rgba(255,200,69,.18); color: #fde68a; }
+        .ws-b-view .dot { background: #fbbf24; }
+
+        /* typing dots inside task line */
+        .ws-typing { display: inline-flex; gap: 3px; margin-left: 4px; }
+        .ws-typing span {
+            width: 4px; height: 4px; border-radius: 50%;
+            background: #a78bfa;
+            animation: wsType 1.1s infinite ease-in-out;
+        }
+        .ws-typing span:nth-child(2) { animation-delay: .15s; }
+        .ws-typing span:nth-child(3) { animation-delay: .3s; }
+        @keyframes wsType {
+            0%,80%,100% { transform: scale(.6); opacity: .4; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        /* progress bar for upload */
+        .ws-prog {
+            margin-top: 4px;
+            height: 3px;
+            background: rgba(255,255,255,.08);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+        .ws-prog .bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--c1), var(--c2));
+            border-radius: 999px;
+            width: 0;
+            animation: wsProg 4.5s ease-in-out infinite;
+        }
+        @keyframes wsProg {
+            0% { width: 0; }
+            70% { width: 92%; }
+            100% { width: 92%; }
+        }
+
+        /* Online avatar stack */
+        .ws-online-stack { display: flex; align-items: center; }
+        .ws-online-stack .av {
+            width: 26px; height: 26px; border-radius: 50%;
+            border: 2px solid #0d0d12; overflow: hidden;
+            margin-left: -8px; background: #1f2030;
+            box-shadow: 0 0 0 0 rgba(27,212,217,.5);
+            animation: wsBreath 3s ease-in-out infinite;
+        }
+        .ws-online-stack .av:first-child { margin-left: 0; }
+        .ws-online-stack .av:nth-child(2) { animation-delay: .4s; }
+        .ws-online-stack .av:nth-child(3) { animation-delay: .8s; }
+        .ws-online-stack .av:nth-child(4) { animation-delay: 1.2s; }
+        .ws-online-stack .av:nth-child(5) { animation-delay: 1.6s; }
+        .ws-online-stack .av img { width:100%; height:100%; object-fit: cover; }
+        @keyframes wsBreath {
+            0%,100% { box-shadow: 0 0 0 0 rgba(27,212,217,.5); }
+            50% { box-shadow: 0 0 0 4px rgba(27,212,217,0); }
+        }
+
+        /* Live cursor floating across panel */
+        .ws-cursor {
+            position: absolute;
+            width: 14px; height: 14px;
+            pointer-events: none;
+            z-index: 5;
+            opacity: 0;
+            animation: wsCursor 9s ease-in-out infinite;
+        }
+        .ws-cursor svg { width: 100%; height: 100%; filter: drop-shadow(0 2px 4px rgba(0,0,0,.4)); }
+        .ws-cursor .lbl {
+            position: absolute; left: 14px; top: 12px;
+            font-size: 9px; font-weight: 700; color: #fff;
+            background: linear-gradient(135deg,#7c3aed,#e94e8c);
+            padding: 2px 6px; border-radius: 6px;
+            white-space: nowrap;
+        }
+        @keyframes wsCursor {
+            0%   { left: 12%; top: 22%; opacity: 0; }
+            8%   { opacity: 1; }
+            25%  { left: 65%; top: 35%; }
+            45%  { left: 30%; top: 58%; }
+            65%  { left: 72%; top: 72%; }
+            85%  { left: 18%; top: 80%; opacity: 1; }
+            95%  { opacity: 0; }
+            100% { left: 12%; top: 22%; opacity: 0; }
+        }
+        .ws-cursor.c2 { animation-delay: -4.5s; animation-duration: 11s; }
+        .ws-cursor.c2 .lbl { background: linear-gradient(135deg,#1bd4d9,#7c3aed); }
+
+        @media (prefers-reduced-motion: reduce) {
+            .ws-row, .ws-avatar.is-online::after, .ws-badge .dot,
+            .ws-typing span, .ws-prog .bar, .ws-online-stack .av,
+            .ws-cursor { animation: none !important; }
+            .ws-row { opacity: 1; transform: none; }
+        }
     </style>
 </head>
 <body class="overflow-x-hidden">
@@ -2834,42 +2998,142 @@
             </div>
 
             <div class="reveal rd-3">
-                <div class="glass rounded-3xl p-6 sm:p-8 tilt relative overflow-hidden">
+                <div class="glass rounded-3xl p-6 sm:p-8 tilt relative overflow-hidden ws-card">
                     <div class="absolute -top-16 -right-16 w-56 h-56 rounded-full opacity-30" style="background:radial-gradient(circle,var(--c2),transparent 70%);"></div>
+                    <div class="absolute -bottom-20 -left-20 w-64 h-64 rounded-full opacity-20" style="background:radial-gradient(circle,var(--c3),transparent 70%);"></div>
+
+                    {{-- Live cursors floating across the panel --}}
+                    <div class="ws-cursor" aria-hidden="true">
+                        <svg viewBox="0 0 16 16" fill="none"><path d="M2 2 L14 8 L8 9.5 L6.5 14 Z" fill="#a78bfa" stroke="#fff" stroke-width="1"/></svg>
+                        <span class="lbl">Jane</span>
+                    </div>
+                    <div class="ws-cursor c2" aria-hidden="true">
+                        <svg viewBox="0 0 16 16" fill="none"><path d="M2 2 L14 8 L8 9.5 L6.5 14 Z" fill="#22d3ee" stroke="#fff" stroke-width="1"/></svg>
+                        <span class="lbl">Marco</span>
+                    </div>
+
                     <div class="relative">
+                        {{-- Header --}}
                         <div class="flex items-center justify-between mb-5">
                             <div class="flex items-center gap-3">
                                 <div class="w-10 h-10 rounded-xl grad-bar flex items-center justify-center text-white font-bold">A</div>
                                 <div>
                                     <div class="text-sm font-bold">Acme Studio</div>
-                                    <div class="text-[11px] text-gray-400">Pro workspace · 6 members</div>
+                                    <div class="text-[11px] text-gray-400 flex items-center gap-1.5">
+                                        <span class="relative flex h-1.5 w-1.5">
+                                            <span class="absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping" style="background:#22c55e"></span>
+                                            <span class="relative inline-flex rounded-full h-1.5 w-1.5" style="background:#22c55e"></span>
+                                        </span>
+                                        Pro workspace · 6 members · 5 online
+                                    </div>
                                 </div>
                             </div>
                             <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full" style="background:rgba(27,212,217,.15); color:var(--c1);">Active</span>
                         </div>
+
+                        {{-- Live activity rows --}}
+                        @php
+                            $teammates = [
+                                [
+                                    'name' => 'Jane Doe',
+                                    'role' => 'Owner',
+                                    'avatar' => '/images/hero-roles/role_designer.jpg',
+                                    'badge_class' => 'ws-b-edit',
+                                    'badge' => 'Editing',
+                                    'task_icon' => 'fa-pen',
+                                    'task' => 'Spring Campaign page',
+                                    'extra' => 'typing',
+                                    'delay' => '0s',
+                                ],
+                                [
+                                    'name' => 'Marco Perez',
+                                    'role' => 'Admin',
+                                    'avatar' => '/images/hero-roles/role_developer.jpg',
+                                    'badge_class' => 'ws-b-up',
+                                    'badge' => 'Uploading',
+                                    'task_icon' => 'fa-cloud-arrow-up',
+                                    'task' => '12 assets · Brand kit',
+                                    'extra' => 'progress',
+                                    'delay' => '.12s',
+                                ],
+                                [
+                                    'name' => 'Aisha Khan',
+                                    'role' => 'Editor',
+                                    'avatar' => '/images/hero-roles/role_writer.jpg',
+                                    'badge_class' => 'ws-b-comment',
+                                    'badge' => 'Commenting',
+                                    'task_icon' => 'fa-comment-dots',
+                                    'task' => 'on “Hero copy v3”',
+                                    'extra' => null,
+                                    'delay' => '.24s',
+                                ],
+                                [
+                                    'name' => 'Devon Smith',
+                                    'role' => 'Editor',
+                                    'avatar' => '/images/hero-roles/role_business.jpg',
+                                    'badge_class' => 'ws-b-ok',
+                                    'badge' => 'Approved',
+                                    'task_icon' => 'fa-circle-check',
+                                    'task' => 'Q1 Report · just now',
+                                    'extra' => null,
+                                    'delay' => '.36s',
+                                ],
+                                [
+                                    'name' => 'Priya Nair',
+                                    'role' => 'Viewer',
+                                    'avatar' => '/images/hero-roles/role_photographer.jpg',
+                                    'badge_class' => 'ws-b-view',
+                                    'badge' => 'Viewing',
+                                    'task_icon' => 'fa-chart-line',
+                                    'task' => 'Analytics dashboard',
+                                    'extra' => null,
+                                    'delay' => '.48s',
+                                ],
+                            ];
+                        @endphp
                         <div class="space-y-2.5">
-                            @foreach([
-                                ['JD','Jane Doe','jane@acme.co','Owner','#7c3aed'],
-                                ['MP','Marco Perez','marco@acme.co','Admin','#1bd4d9'],
-                                ['AK','Aisha Khan','aisha@acme.co','Editor','#e94e8c'],
-                                ['DS','Devon Smith','devon@acme.co','Editor','#ff8a3c'],
-                                ['PN','Priya Nair','priya@acme.co','Viewer','#ffc845'],
-                            ] as $m)
-                                <div class="flex items-center justify-between bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5">
-                                    <div class="flex items-center gap-3 min-w-0">
-                                        <div class="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0" style="background:linear-gradient(135deg,{{ $m[4] }},var(--c2));">{{ $m[0] }}</div>
-                                        <div class="min-w-0">
-                                            <div class="text-xs font-bold truncate">{{ $m[1] }}</div>
-                                            <div class="text-[10px] text-gray-500 truncate">{{ $m[2] }}</div>
-                                        </div>
+                            @foreach($teammates as $m)
+                                <div class="ws-row" style="animation-delay: {{ $m['delay'] }}">
+                                    <div class="ws-avatar is-online">
+                                        <img src="{{ $m['avatar'] }}" alt="{{ $m['name'] }}" loading="lazy">
                                     </div>
-                                    <span class="text-[10px] font-bold uppercase tracking-wider text-gray-300 ml-3 flex-shrink-0">{{ $m[3] }}</span>
+                                    <div class="ws-meta">
+                                        <div class="ws-name">
+                                            {{ $m['name'] }}
+                                            <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-500">· {{ $m['role'] }}</span>
+                                        </div>
+                                        <div class="ws-task">
+                                            <i class="fas {{ $m['task_icon'] }}"></i>
+                                            <span class="truncate">{{ $m['task'] }}</span>
+                                            @if($m['extra'] === 'typing')
+                                                <span class="ws-typing" aria-hidden="true"><span></span><span></span><span></span></span>
+                                            @endif
+                                        </div>
+                                        @if($m['extra'] === 'progress')
+                                            <div class="ws-prog" aria-hidden="true"><div class="bar"></div></div>
+                                        @endif
+                                    </div>
+                                    <span class="ws-badge {{ $m['badge_class'] }}">
+                                        <span class="dot"></span>{{ $m['badge'] }}
+                                    </span>
                                 </div>
                             @endforeach
                         </div>
-                        <div class="mt-5 flex items-center justify-between text-xs text-gray-400">
-                            <span><i class="fas fa-arrow-right-arrow-left mr-1.5"></i> Switch workspace</span>
-                            <span><i class="fas fa-receipt mr-1.5"></i> Workspace billing</span>
+
+                        {{-- Footer: online stack + actions --}}
+                        <div class="mt-5 flex items-center justify-between gap-3 flex-wrap">
+                            <div class="flex items-center gap-3">
+                                <div class="ws-online-stack" aria-label="Online now">
+                                    @foreach($teammates as $m)
+                                        <div class="av"><img src="{{ $m['avatar'] }}" alt="" loading="lazy"></div>
+                                    @endforeach
+                                </div>
+                                <span class="text-[11px] text-gray-400">Collaborating live</span>
+                            </div>
+                            <div class="flex items-center gap-4 text-[11px] text-gray-400">
+                                <span><i class="fas fa-arrow-right-arrow-left mr-1.5"></i>Switch</span>
+                                <span><i class="fas fa-receipt mr-1.5"></i>Billing</span>
+                            </div>
                         </div>
                     </div>
                 </div>
