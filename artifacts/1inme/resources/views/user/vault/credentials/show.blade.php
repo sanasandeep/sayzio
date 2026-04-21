@@ -90,6 +90,8 @@ function vaultCredentialView(id) {
         shown: false, value: '', error: '', clearTimer: null,
         async reveal() {
             if (this.shown) { this.shown = false; this.value = ''; return; }
+            // Explicit confirm so a misclick doesn't reveal a secret + write an audit row.
+            if (!window.confirm('Reveal this password? This action is logged in the workspace audit trail.')) return;
             this.error = '';
             const r = await fetch(`/user/vault/credentials/${id}/reveal`, {
                 method: 'POST',

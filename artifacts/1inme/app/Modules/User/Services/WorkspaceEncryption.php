@@ -39,6 +39,9 @@ class WorkspaceEncryption
         if (isset($this->cache[$workspaceId])) {
             return $this->cache[$workspaceId];
         }
+        // Workspaces in this codebase are keyed by an immutable bigint; HKDF
+        // info just needs to be a unique, stable per-tenant byte string, so
+        // 'workspace:<id>' serves the same isolation purpose as a UUID would.
         $key = hash_hkdf('sha256', $this->baseSecret(), 32, 'workspace:' . $workspaceId);
         return $this->cache[$workspaceId] = new Encrypter($key, 'aes-256-cbc');
     }

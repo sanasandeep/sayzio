@@ -37,8 +37,23 @@ class VaultClientController extends Controller
         }
 
         $items = $query->get()->filter(fn ($c) => $c->visibleTo($request->user(), app('current_workspace')))->values();
+        $audits = $this->recentAudits($request);
 
-        return view('user.vault.clients.index', compact('items', 'q'));
+        return view('user.vault.clients.index', compact('items', 'q', 'audits'));
+    }
+
+    protected function recentAudits(Request $request)
+    {
+        $user = $request->user();
+        $ws = app('current_workspace');
+        $isAdmin = $user->isSuperAdmin()
+            || (int) $ws->owner_user_id === (int) $user->id
+            || $user->canInWorkspace($ws, 'vault.delete');
+        $q = \App\Modules\User\Models\VaultAudit::query()->orderByDesc('occurred_at')->limit(50);
+        if (!$isAdmin) {
+            $q->where('actor_user_id', $user->id);
+        }
+        return $q->get();
     }
 
     public function create()

@@ -49,4 +49,20 @@
         </tbody>
     </table>
 </div>
+
+@if($audits->count())
+    <div class="mt-8">
+        <h2 class="text-sm font-semibold text-gray-300 mb-2">Recent activity</h2>
+        <div class="rounded-xl border border-white/10 divide-y divide-white/5" style="background: var(--bg-card);">
+            @foreach($audits as $a)
+                <div class="px-4 py-2 text-xs text-gray-400 flex items-center gap-3">
+                    <span class="w-20 text-gray-500">{{ $a->occurred_at?->diffForHumans() }}</span>
+                    <span class="px-2 py-0.5 rounded bg-white/5 uppercase tracking-wider text-[10px]">{{ $a->action }}</span>
+                    <span>{{ $a->target_type }}</span>
+                    <span class="text-gray-300">{{ $a->target_label }}</span>
+                </div>
+            @endforeach
+        </div>
+    </div>
+@endif
 @endsection
