@@ -18,6 +18,10 @@
         [x-cloak]{display:none!important}
         .prose-light p { margin-bottom:.75rem; line-height:1.65; color:#d1d5db; }
         .prose-light a { color:#a78bfa; text-decoration:underline; }
+        .brand-logo { display: none; }
+        .brand-logo--dark { display: inline-block; }
+        html.light-mode .brand-logo--dark { display: none; }
+        html.light-mode .brand-logo--light { display: inline-block; }
     </style>
     @stack('head')
 </head>
