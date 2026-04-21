@@ -19,28 +19,34 @@
       "associatedDomains": [
         "applinks:1inme.com",
         "applinks:www.1inme.com"
-      ]
+      ],
+      "infoPlist": {
+        "NSContactsUsageDescription": "1INME can read your contacts so you can save someone you just met as a contact card from their 1INME profile.",
+        "NSLocationWhenInUseUsageDescription": "1INME records the approximate location of NFC tag writes so you can see where each tag was provisioned. This is optional and only used while the app is open.",
+        "NFCReaderUsageDescription": "1INME writes your short link to NFC tags so a tap opens your profile."
+      }
     },
     "android": {
       "package": "com.oneinme.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#0a0a0f"
+      },
+      "permissions": [
+        "android.permission.NFC",
+        "android.permission.READ_CONTACTS",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.VIBRATE"
+      ],
       "intentFilters": [
         {
           "action": "VIEW",
           "autoVerify": true,
           "data": [
-            {
-              "scheme": "https",
-              "host": "1inme.com"
-            },
-            {
-              "scheme": "https",
-              "host": "www.1inme.com"
-            }
+            { "scheme": "https", "host": "1inme.com" },
+            { "scheme": "https", "host": "www.1inme.com" }
           ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
+          "category": ["BROWSABLE", "DEFAULT"]
         }
       ]
     },
@@ -50,14 +56,20 @@
     "plugins": [
       [
         "expo-router",
-        {
-          "origin": "https://1inme.com/"
-        }
+        { "origin": "https://1inme.com/" }
       ],
       "expo-font",
       "expo-web-browser",
       "expo-secure-store",
-      "react-native-nfc-manager"
+      "react-native-nfc-manager",
+      [
+        "expo-contacts",
+        { "contactsPermission": "1INME can read your contacts so you can save someone you just met as a contact card." }
+      ],
+      [
+        "expo-location",
+        { "locationWhenInUsePermission": "1INME records the approximate location of NFC tag writes so you can see where each tag was provisioned." }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
