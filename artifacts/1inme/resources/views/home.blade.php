@@ -1640,16 +1640,6 @@
                     </div>
                 </div>
 
-                {{-- Block-type icons cluster --}}
-                <div class="mt-5">
-                    <div class="hero-blocks">
-                        @foreach($heroBlockIcons as $idx => $bi)
-                            <span class="hero-block-chip" style="--bdur:{{ 4 + ($idx % 5) * 0.6 }}s; --bdel:{{ -1 * ($idx * 0.35) }}s; --brot:{{ ($idx % 2 ? 4 : -4) }}deg;">
-                                <i class="{{ $bi['i'] }}" style="color:{{ $bi['c'] }}"></i>{{ $bi['l'] }}
-                            </span>
-                        @endforeach
-                    </div>
-                </div>
             </div>
         </div>
     </div>
