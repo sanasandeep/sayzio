@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\AppSetting;
 use App\Modules\Common\Models\FaqItem;
 use App\Modules\Common\Models\SitePage;
+use App\Modules\Common\Services\PathSuggester;
 use Illuminate\Http\Request;
 
 class SitePageController extends Controller
@@ -28,6 +29,7 @@ class SitePageController extends Controller
             'discovery_show_search'     => (bool) AppSetting::get('discovery_show_search', true),
             'creators_feed_per_page'    => (int) AppSetting::get('creators_feed_per_page', 12),
             'creators_feed_show_pinned' => (bool) AppSetting::get('creators_feed_show_pinned', true),
+            'error_404_suggestions_enabled' => (bool) AppSetting::get(PathSuggester::SETTING_KEY, true),
         ];
         return view('admin.site-pages.edit', compact('page', 'faqs', 'settings'));
     }
@@ -43,7 +45,11 @@ class SitePageController extends Controller
             'sections.*.body' => 'nullable|string|max:20000',
             'cta_label' => 'nullable|string|max:120',
             'cta_url' => ['nullable', 'string', 'max:500', 'regex:#^(/|https?://)#i'],
+            'error_404_suggestions_enabled' => 'nullable|boolean',
         ]);
+        if ($slug === 'error-404') {
+            AppSetting::put(PathSuggester::SETTING_KEY, (bool) $request->input('error_404_suggestions_enabled', false));
+        }
         $sections = collect($data['sections'] ?? [])
             ->filter(fn($s) => trim($s['heading'] ?? '') !== '' || trim($s['body'] ?? '') !== '')
             ->values()->all();

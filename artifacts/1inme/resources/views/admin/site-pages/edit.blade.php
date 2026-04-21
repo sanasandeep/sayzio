@@ -60,6 +60,19 @@
             </div>
         @endif
 
+        @if($page->slug === 'error-404')
+            <div class="pt-2">
+                <label class="inline-flex items-start gap-2 text-sm text-white">
+                    <input type="hidden" name="error_404_suggestions_enabled" value="0">
+                    <input type="checkbox" name="error_404_suggestions_enabled" value="1" {{ old('error_404_suggestions_enabled', $settings['error_404_suggestions_enabled']) ? 'checked' : '' }} class="mt-0.5 rounded border-white/20 bg-white/5">
+                    <span>
+                        Show "Did you mean…?" suggestions
+                        <span class="block text-xs text-white/50 mt-0.5">When a visitor hits a 404, show up to 3 close matches from your biolinks, short links and site pages. Nothing is shown when no match is close enough.</span>
+                    </span>
+                </label>
+            </div>
+        @endif
+
         <div class="pt-4 border-t border-white/10 flex items-center justify-between">
             @if(in_array($page->slug, ['error-403', 'error-404']))
                 <span class="text-xs text-white/40">Shown automatically when visitors hit a {{ $page->slug === 'error-403' ? '403 (no access)' : '404 (not found)' }} response.</span>

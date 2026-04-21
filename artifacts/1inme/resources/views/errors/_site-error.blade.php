@@ -24,6 +24,31 @@
             </div>
         @endforeach
 
+        @if(!empty($suggestions ?? []))
+            <div class="bg-violet-500/[0.06] border border-violet-400/20 rounded-2xl p-6 sm:p-8">
+                <h2 class="text-xl sm:text-2xl font-bold mb-3 text-white">Did you mean…?</h2>
+                <p class="text-sm text-gray-400 mb-4">These existing pages look close to the URL you typed:</p>
+                <ul class="space-y-2">
+                    @foreach($suggestions as $s)
+                        @php
+                            $kindLabel = match($s['kind'] ?? '') {
+                                'biolink'    => 'Bio link',
+                                'short_link' => 'Short link',
+                                'page'       => 'Site page',
+                                default      => 'Page',
+                            };
+                        @endphp
+                        <li>
+                            <a href="{{ $s['url'] }}" class="flex items-center justify-between gap-4 px-4 py-3 bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 rounded-xl text-sm text-white transition">
+                                <span class="font-mono truncate">{{ $s['label'] }}</span>
+                                <span class="text-[10px] uppercase tracking-wider text-violet-300 shrink-0">{{ $kindLabel }}</span>
+                            </a>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         @if(!empty($page->cta_label) && !empty($page->cta_url))
             <div class="text-center pt-2">
                 <a href="{{ $page->cta_url }}" class="inline-flex items-center px-6 py-3 bg-[#7c3aed] hover:bg-[#6d28d9] text-white rounded-full text-sm font-bold">
