@@ -6,12 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class SitePage extends Model
 {
-    protected $fillable = ['slug', 'title', 'meta_description', 'intro', 'last_updated_at', 'show_toc', 'sections', 'cta_label', 'cta_url'];
+    protected $fillable = ['slug', 'title', 'meta_description', 'intro', 'last_updated_at', 'show_toc', 'sections', 'extra', 'cta_label', 'cta_url'];
 
     protected function casts(): array
     {
         return [
             'sections'        => 'array',
+            'extra'           => 'array',
             'last_updated_at' => 'date',
             'show_toc'        => 'boolean',
         ];

@@ -45,7 +45,16 @@ class SitePageController extends Controller
             return view('public.faqs', ['page' => $page, 'faqs' => $page->faqs()]);
         }
         if ($slug === 'contact') {
-            return view('public.contact', ['page' => $page]);
+            $extra = is_array($page->extra) && !empty($page->extra)
+                ? SitePagesContent::normalizeContactExtra($page->extra)
+                : SitePagesContent::contactExtraDefault();
+            return view('public.contact', ['page' => $page, 'extra' => $extra]);
+        }
+        if ($slug === 'about') {
+            $extra = is_array($page->extra) && !empty($page->extra)
+                ? SitePagesContent::normalizeAboutExtra($page->extra)
+                : SitePagesContent::aboutExtraDefault();
+            return view('public.about', ['page' => $page, 'extra' => $extra]);
         }
         if ($slug === 'discovery') {
             return $this->showDiscovery($page, $request);

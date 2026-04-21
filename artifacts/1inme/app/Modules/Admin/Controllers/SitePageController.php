@@ -72,7 +72,50 @@ class SitePageController extends Controller
             'cta_label' => 'nullable|string|max:120',
             'cta_url' => ['nullable', 'string', 'max:500', 'regex:#^(/|https?://)#i'],
             'error_404_suggestions_enabled' => 'nullable|boolean',
+            'extra' => 'nullable|array',
         ];
+        if ($slug === 'about') {
+            $rules['extra.founder']                       = 'nullable|array';
+            $rules['extra.founder.name']                  = 'nullable|string|max:120';
+            $rules['extra.founder.role']                  = 'nullable|string|max:120';
+            $rules['extra.founder.photo']                 = 'nullable|string|max:1000';
+            $rules['extra.founder.bio']                   = 'nullable|string|max:2000';
+            $rules['extra.founder.links.twitter']         = ['nullable', 'string', 'max:500', 'regex:#^https?://#i'];
+            $rules['extra.founder.links.linkedin']        = ['nullable', 'string', 'max:500', 'regex:#^https?://#i'];
+            $rules['extra.co_founders']                   = 'nullable|array|max:20';
+            $rules['extra.co_founders.*.name']            = 'nullable|string|max:120';
+            $rules['extra.co_founders.*.role']            = 'nullable|string|max:120';
+            $rules['extra.co_founders.*.photo']           = 'nullable|string|max:1000';
+            $rules['extra.co_founders.*.bio']             = 'nullable|string|max:2000';
+            $rules['extra.co_founders.*.links.twitter']   = ['nullable', 'string', 'max:500', 'regex:#^https?://#i'];
+            $rules['extra.co_founders.*.links.linkedin']  = ['nullable', 'string', 'max:500', 'regex:#^https?://#i'];
+            $rules['extra.team']                          = 'nullable|array|max:60';
+            $rules['extra.team.*.name']                   = 'nullable|string|max:120';
+            $rules['extra.team.*.role']                   = 'nullable|string|max:120';
+            $rules['extra.team.*.photo']                  = 'nullable|string|max:1000';
+            $rules['extra.team.*.bio']                    = 'nullable|string|max:2000';
+            $rules['extra.team.*.links.twitter']          = ['nullable', 'string', 'max:500', 'regex:#^https?://#i'];
+            $rules['extra.team.*.links.linkedin']         = ['nullable', 'string', 'max:500', 'regex:#^https?://#i'];
+            $rules['extra.milestones']                    = 'nullable|array|max:50';
+            $rules['extra.milestones.*.date']             = 'nullable|string|max:40';
+            $rules['extra.milestones.*.title']            = 'nullable|string|max:200';
+            $rules['extra.milestones.*.description']      = 'nullable|string|max:1000';
+        }
+        if ($slug === 'contact') {
+            $rules['extra.address']            = 'nullable|string|max:1000';
+            $rules['extra.email']              = 'nullable|email|max:190';
+            $rules['extra.phone']              = 'nullable|string|max:60';
+            $rules['extra.hours']              = 'nullable|string|max:500';
+            $rules['extra.social.twitter']     = ['nullable', 'string', 'max:500', 'regex:#^https?://#i'];
+            $rules['extra.social.instagram']   = ['nullable', 'string', 'max:500', 'regex:#^https?://#i'];
+            $rules['extra.social.linkedin']    = ['nullable', 'string', 'max:500', 'regex:#^https?://#i'];
+            $rules['extra.social.youtube']     = ['nullable', 'string', 'max:500', 'regex:#^https?://#i'];
+            $rules['extra.social.facebook']    = ['nullable', 'string', 'max:500', 'regex:#^https?://#i'];
+            $rules['extra.map.lat']            = 'nullable|numeric|between:-90,90';
+            $rules['extra.map.lng']            = 'nullable|numeric|between:-180,180';
+            $rules['extra.map.zoom']           = 'nullable|integer|between:1,19';
+            $rules['extra.map.label']          = 'nullable|string|max:200';
+        }
         if ($slug === 'services') {
             $rules['sections.*.tagline']   = 'nullable|string|max:200';
             $rules['sections.*.icon']      = 'nullable|string|max:60';
@@ -133,6 +176,11 @@ class SitePageController extends Controller
             $payload['last_updated_at'] = $data['last_updated_at'] ?? null;
             $payload['show_toc'] = (bool) $request->input('show_toc', false);
         }
+        if ($slug === 'about') {
+            $payload['extra'] = SitePagesContent::normalizeAboutExtra((array) ($data['extra'] ?? []));
+        } elseif ($slug === 'contact') {
+            $payload['extra'] = SitePagesContent::normalizeContactExtra((array) ($data['extra'] ?? []));
+        }
         $previous = $this->captureState($page);
         $page->update($payload);
         $this->snapshotPrevious($page->fresh(), $previous, $this->captureState($page->fresh()));
@@ -153,6 +201,7 @@ class SitePageController extends Controller
             'last_updated_at'  => $page->last_updated_at ? $page->last_updated_at->toDateString() : null,
             'show_toc'         => (bool) ($page->show_toc ?? true),
             'sections'         => is_array($page->sections) ? $page->sections : [],
+            'extra'            => is_array($page->extra) ? $page->extra : null,
             'cta_label'        => (string) ($page->cta_label ?? ''),
             'cta_url'          => (string) ($page->cta_url ?? ''),
         ];
@@ -254,6 +303,7 @@ class SitePageController extends Controller
             'last_updated_at'  => $revision->last_updated_at?->toDateString(),
             'show_toc'         => (bool) $revision->show_toc,
             'sections'         => is_array($revision->sections) ? $revision->sections : [],
+            'extra'            => is_array($revision->extra) ? $revision->extra : null,
             'cta_label'        => $revision->cta_label,
             'cta_url'          => $revision->cta_url,
         ]);

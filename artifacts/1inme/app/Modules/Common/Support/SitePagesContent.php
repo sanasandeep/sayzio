@@ -760,6 +760,192 @@ class SitePagesContent
     }
 
     /**
+     * Default narrative sections for the public /about page (intro + story).
+     * Each row is the simple heading/body shape used by the generic
+     * page renderer.
+     */
+    public static function aboutSectionsDefault(): array
+    {
+        return [
+            ['heading' => 'About 1INME', 'body' => "We're building the simplest way for creators, freelancers and small businesses to turn one link into a complete online presence — biolinks, short links, QR codes, analytics, and more, all in one tidy place."],
+            ['heading' => 'Our story', 'body' => "1INME started in 2023 in a tiny workspace in Hyderabad. Our founder kept watching small businesses and creators juggle five different tools to do one simple thing: share their work and capture leads. We thought there was a better way.\n\nWe shipped the first version of 1INME — just biolinks and short links — to a handful of friends. They loved it, broke it, told us what was missing, and we kept iterating. Today, thousands of creators across the world use 1INME to run their online presence from one URL."],
+            ['heading' => 'What we believe', 'body' => "Software should respect your time and your audience. We don't sell your data, we don't bolt on features that don't earn their keep, and we ship every week. If something's broken or unclear, our team is one message away."],
+        ];
+    }
+
+    /**
+     * Default structured "extra" payload for the public /about page —
+     * founder, co-founders, team grid, and milestones timeline. All copy
+     * is intentionally placeholder so admins can swap in real names,
+     * bios, photos and dates from the editor without touching code.
+     */
+    public static function aboutExtraDefault(): array
+    {
+        return [
+            'founder' => [
+                'name'   => 'Aarav Reddy',
+                'role'   => 'Founder & CEO',
+                'photo'  => '',
+                'bio'    => "Aarav started 1INME after a decade of helping small businesses get online. He still does the first reply on every founder-tier support email.",
+                'links'  => ['twitter' => '', 'linkedin' => ''],
+            ],
+            'co_founders' => [
+                ['name' => 'Meera Iyer',  'role' => 'Co-founder & CTO',     'photo' => '', 'bio' => "Meera leads engineering. Previously shipped scale at two fintechs.",        'links' => ['twitter' => '', 'linkedin' => '']],
+                ['name' => 'Rohan Shah',  'role' => 'Co-founder & Design',  'photo' => '', 'bio' => "Rohan owns the look and feel of 1INME — every pixel, every motion.",     'links' => ['twitter' => '', 'linkedin' => '']],
+                ['name' => 'Priya Menon', 'role' => 'Co-founder & Growth',  'photo' => '', 'bio' => "Priya makes sure the people who would love 1INME actually find it.",     'links' => ['twitter' => '', 'linkedin' => '']],
+            ],
+            'team' => [
+                ['name' => 'Karthik Rao',     'role' => 'Senior Engineer',     'photo' => '', 'bio' => "Backend & APIs."],
+                ['name' => 'Anjali Verma',    'role' => 'Frontend Engineer',   'photo' => '', 'bio' => "Builder behind the dashboard."],
+                ['name' => 'Sandeep Kumar',   'role' => 'Product Designer',    'photo' => '', 'bio' => "Designs the everyday flows."],
+                ['name' => 'Lakshmi Nair',    'role' => 'Customer Success',    'photo' => '', 'bio' => "Probably replied to your last ticket."],
+                ['name' => 'Vikram Joshi',    'role' => 'DevOps',              'photo' => '', 'bio' => "Keeps the lights on, 24/7."],
+                ['name' => 'Neha Bansal',     'role' => 'Marketing',           'photo' => '', 'bio' => "Tells the 1INME story to the world."],
+            ],
+            'milestones' => [
+                ['date' => '2023-04', 'title' => 'Idea on a whiteboard', 'description' => "An offhand conversation about how messy social bios are turns into the first sketch of 1INME."],
+                ['date' => '2023-09', 'title' => 'First public beta',    'description' => "We open the doors to a handful of friends and creators. Biolinks and short links only — but it works."],
+                ['date' => '2024-03', 'title' => 'Crossed 10,000 users', 'description' => "Word spreads. Creators across India and South-East Asia start moving their link-in-bio to 1INME."],
+                ['date' => '2024-11', 'title' => 'Analytics & QR codes', 'description' => "Live analytics, the Performance Coach and dynamic QR codes ship — turning 1INME into a real growth tool."],
+                ['date' => '2025-06', 'title' => 'Workspaces for teams', 'description' => "Agencies and small teams get proper workspaces, roles and per-workspace billing."],
+                ['date' => '2026-02', 'title' => 'Hello, world',         'description' => "1INME crosses 100k creators across more than 60 countries. We're just getting started."],
+            ],
+        ];
+    }
+
+    /**
+     * Default narrative sections for the public /contact page (intro copy).
+     */
+    public static function contactSectionsDefault(): array
+    {
+        return [
+            ['heading' => 'We love hearing from you', 'body' => "Whether you have a question, hit a snag, want to suggest a feature or are exploring a partnership, drop us a note using the form below. A real person on our team will read it and reply, usually within one business day."],
+        ];
+    }
+
+    /**
+     * Default structured "extra" payload for the public /contact page —
+     * address, email, phone, hours, social links and OpenStreetMap
+     * coordinates centred on Hyderabad.
+     */
+    public static function contactExtraDefault(): array
+    {
+        return [
+            'address' => "1INME Technologies Pvt Ltd\n4th Floor, Cyber Heights\nHITEC City, Madhapur\nHyderabad 500081, India",
+            'email'   => 'hello@1inme.example',
+            'phone'   => '+91 40 1234 5678',
+            'hours'   => "Mon–Fri · 10:00 – 18:00 IST\nClosed on public holidays",
+            'social'  => [
+                'twitter'   => 'https://x.com/1inme',
+                'instagram' => 'https://instagram.com/1inme',
+                'linkedin'  => 'https://linkedin.com/company/1inme',
+                'youtube'   => '',
+                'facebook'  => '',
+            ],
+            'map' => [
+                'lat'  => 17.4435,
+                'lng'  => 78.3772,
+                'zoom' => 14,
+                'label'=> 'Our Hyderabad office',
+            ],
+        ];
+    }
+
+    /**
+     * Coerce admin-submitted About "extra" payload into the canonical
+     * shape: trims string fields, normalizes link sub-arrays, and drops
+     * fully-empty repeatable rows. Missing top-level keys collapse to
+     * empty strings/arrays so the public Blade view can always render.
+     */
+    public static function normalizeAboutExtra(array $input): array
+    {
+        $founderIn = (array) ($input['founder'] ?? []);
+        $founder = [
+            'name'  => trim((string) ($founderIn['name']  ?? '')),
+            'role'  => trim((string) ($founderIn['role']  ?? '')),
+            'photo' => trim((string) ($founderIn['photo'] ?? '')),
+            'bio'   => trim((string) ($founderIn['bio']   ?? '')),
+            'links' => [
+                'twitter'  => trim((string) ($founderIn['links']['twitter']  ?? '')),
+                'linkedin' => trim((string) ($founderIn['links']['linkedin'] ?? '')),
+            ],
+        ];
+
+        $cleanPersonRow = function ($p): ?array {
+            if (!is_array($p)) return null;
+            $name = trim((string) ($p['name'] ?? ''));
+            $role = trim((string) ($p['role'] ?? ''));
+            $photo = trim((string) ($p['photo'] ?? ''));
+            $bio = trim((string) ($p['bio'] ?? ''));
+            $tw = trim((string) ($p['links']['twitter'] ?? ''));
+            $ln = trim((string) ($p['links']['linkedin'] ?? ''));
+            if ($name === '' && $role === '' && $bio === '' && $photo === '') return null;
+            return [
+                'name' => $name, 'role' => $role, 'photo' => $photo, 'bio' => $bio,
+                'links' => ['twitter' => $tw, 'linkedin' => $ln],
+            ];
+        };
+        $coFounders = array_values(array_filter(array_map($cleanPersonRow, (array) ($input['co_founders'] ?? []))));
+        $team = array_values(array_filter(array_map($cleanPersonRow, (array) ($input['team'] ?? []))));
+
+        $milestones = [];
+        foreach ((array) ($input['milestones'] ?? []) as $m) {
+            if (!is_array($m)) continue;
+            $date = trim((string) ($m['date'] ?? ''));
+            $title = trim((string) ($m['title'] ?? ''));
+            $desc = trim((string) ($m['description'] ?? ''));
+            if ($date === '' && $title === '' && $desc === '') continue;
+            $milestones[] = ['date' => $date, 'title' => $title, 'description' => $desc];
+        }
+
+        return [
+            'founder'     => $founder,
+            'co_founders' => $coFounders,
+            'team'        => $team,
+            'milestones'  => $milestones,
+        ];
+    }
+
+    /**
+     * Coerce admin-submitted Contact "extra" payload into the canonical
+     * shape (address/email/phone/hours/social/map). Latitude/longitude
+     * are clamped to valid ranges and zoom to 1–19; missing fields fall
+     * back to safe defaults so the public page always renders.
+     */
+    public static function normalizeContactExtra(array $input): array
+    {
+        $defaults = self::contactExtraDefault();
+        // Note: defaults are only consulted to backfill missing/non-numeric
+        // map coordinates and zoom — text fields collapse to empty strings.
+        $socialIn = (array) ($input['social'] ?? []);
+        $social = [];
+        foreach (['twitter', 'instagram', 'linkedin', 'youtube', 'facebook'] as $k) {
+            $social[$k] = trim((string) ($socialIn[$k] ?? ''));
+        }
+        $mapIn = (array) ($input['map'] ?? []);
+        $lat  = is_numeric($mapIn['lat']  ?? null) ? (float) $mapIn['lat']  : (float) $defaults['map']['lat'];
+        $lng  = is_numeric($mapIn['lng']  ?? null) ? (float) $mapIn['lng']  : (float) $defaults['map']['lng'];
+        $zoom = is_numeric($mapIn['zoom'] ?? null) ? (int)   $mapIn['zoom'] : (int)   $defaults['map']['zoom'];
+        $lat  = max(-90.0, min(90.0, $lat));
+        $lng  = max(-180.0, min(180.0, $lng));
+        $zoom = max(1, min(19, $zoom));
+
+        return [
+            'address' => trim((string) ($input['address'] ?? '')),
+            'email'   => trim((string) ($input['email']   ?? '')),
+            'phone'   => trim((string) ($input['phone']   ?? '')),
+            'hours'   => trim((string) ($input['hours']   ?? '')),
+            'social'  => $social,
+            'map'     => [
+                'lat'   => $lat,
+                'lng'   => $lng,
+                'zoom'  => $zoom,
+                'label' => trim((string) ($mapIn['label'] ?? '')),
+            ],
+        ];
+    }
+
+    /**
      * Definition of the supported social networks: app-setting key,
      * human label, and the FontAwesome brand icon class to render in the
      * public footer.

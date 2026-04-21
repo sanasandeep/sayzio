@@ -11,7 +11,7 @@ class SitePageRevision extends Model
 {
     protected $fillable = [
         'site_page_id', 'slug', 'title', 'meta_description', 'intro',
-        'last_updated_at', 'show_toc', 'sections', 'cta_label', 'cta_url',
+        'last_updated_at', 'show_toc', 'sections', 'extra', 'cta_label', 'cta_url',
         'summary', 'editor_id', 'editor_type', 'editor_name',
     ];
 
@@ -19,6 +19,7 @@ class SitePageRevision extends Model
     {
         return [
             'sections'        => 'array',
+            'extra'           => 'array',
             'last_updated_at' => 'date',
             'show_toc'        => 'boolean',
         ];
@@ -71,6 +72,7 @@ class SitePageRevision extends Model
             'last_updated_at' => $previousState['last_updated_at'] ?? null,
             'show_toc'        => (bool) ($previousState['show_toc'] ?? true),
             'sections'        => $previousState['sections'] ?? [],
+            'extra'           => $previousState['extra'] ?? null,
             'cta_label'       => ($previousState['cta_label'] ?? '') !== '' ? $previousState['cta_label'] : null,
             'cta_url'         => ($previousState['cta_url'] ?? '') !== '' ? $previousState['cta_url'] : null,
             'summary'         => $summary,

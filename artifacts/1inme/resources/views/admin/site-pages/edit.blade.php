@@ -371,6 +371,12 @@
             </div>
         @endif
 
+        @if($page->slug === 'about')
+            @include('admin.site-pages.partials.about-editor', ['page' => $page])
+        @elseif($page->slug === 'contact')
+            @include('admin.site-pages.partials.contact-editor', ['page' => $page])
+        @endif
+
         <div class="pt-4 border-t border-white/10 flex items-center justify-between">
             @if(in_array($page->slug, $errorSlugs))
                 <span class="text-xs text-white/40">Shown automatically when visitors hit a {{ $errorLabels[$page->slug] }} response.</span>
