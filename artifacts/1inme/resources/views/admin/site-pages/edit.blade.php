@@ -38,8 +38,17 @@
                     </div>
                     <input type="text" :name="'sections['+i+'][heading]'" x-model="s.heading" placeholder="Section heading"
                            class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                    <textarea :name="'sections['+i+'][body]'" x-model="s.body" rows="6" placeholder="Body — line breaks are preserved. Basic HTML is allowed."
+                    <label class="block text-[10px] uppercase tracking-wider text-white/40">Body <span class="normal-case tracking-normal text-white/40">(Markdown or basic HTML)</span></label>
+                    <textarea :name="'sections['+i+'][body]'" x-model="s.body" rows="6" placeholder="Body — line breaks are preserved."
                               class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white font-mono"></textarea>
+                    <p class="text-[11px] text-white/40 leading-relaxed">
+                        Formatting: <code class="text-white/60">**bold**</code>,
+                        <code class="text-white/60">*italic*</code>,
+                        <code class="text-white/60">[text](https://url)</code>,
+                        lines starting with <code class="text-white/60">-</code> become bullet lists,
+                        <code class="text-white/60">1.</code> become numbered lists.
+                        Safe HTML tags (<code class="text-white/60">a, strong, em, ul, ol, li, p, br, h3, h4, blockquote, code</code>) are allowed; anything else (including scripts, inline event handlers, and unsafe link protocols) is filtered out.
+                    </p>
                 </div>
             </template>
             <div x-show="sections.length===0" class="text-xs text-white/40 text-center py-4">No sections yet — click "Add section".</div>

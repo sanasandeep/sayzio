@@ -18,7 +18,7 @@
                     <h2 class="text-xl sm:text-2xl font-bold mb-3 text-white">{{ $section['heading'] }}</h2>
                 @endif
                 <div class="prose-light text-gray-300 leading-relaxed">
-                    {!! nl2br(e($section['body'] ?? '')) !!}
+                    {!! \App\Services\SafeHtml::render($section['body'] ?? '') !!}
                 </div>
             </div>
         @endforeach

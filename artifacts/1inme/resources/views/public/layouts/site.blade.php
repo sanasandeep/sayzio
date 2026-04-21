@@ -19,6 +19,16 @@
         [x-cloak]{display:none!important}
         .prose-light p { margin-bottom:.75rem; line-height:1.65; color:#d1d5db; }
         .prose-light a { color:#a78bfa; text-decoration:underline; }
+        .prose-light strong { color:#f5f3ff; font-weight:600; }
+        .prose-light em { font-style:italic; }
+        .prose-light ul, .prose-light ol { margin: .25rem 0 .9rem 1.4rem; line-height:1.65; color:#d1d5db; }
+        .prose-light ul { list-style: disc; }
+        .prose-light ol { list-style: decimal; }
+        .prose-light li { margin-bottom:.25rem; }
+        .prose-light h3 { font-size:1.05rem; font-weight:600; color:#fff; margin:.5rem 0 .35rem; }
+        .prose-light h4 { font-size:.95rem; font-weight:600; color:#fff; margin:.5rem 0 .25rem; }
+        .prose-light blockquote { border-left:3px solid rgba(167,139,250,.5); padding-left:.75rem; color:#cbd5e1; margin:.5rem 0 .9rem; }
+        .prose-light code { background:rgba(255,255,255,.08); padding:.05rem .35rem; border-radius:.25rem; font-size:.9em; }
         .brand-logo { display: none; }
         .brand-logo--dark { display: inline-block; }
         html.light-mode .brand-logo--dark { display: none; }
