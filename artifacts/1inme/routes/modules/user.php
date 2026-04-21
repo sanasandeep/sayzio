@@ -626,8 +626,18 @@ Route::prefix('user')->name('user.')->group(function () {
         });
 
         // ---- Cloud File Library (Drive / Dropbox / OneDrive) ----
-        // OAuth flows are user-scoped — connect lives under files.view so any
-        // member with library access can attach their own cloud account.
+        //
+        // Permission policy:
+        //   * connect / disconnect own cloud account → workspace.can:files.view
+        //     (intentional — every member with library access may link their
+        //     OWN accounts; we do NOT require files.create here because
+        //     attaching credentials is per-user, not a workspace mutation)
+        //   * add files to the shared library              → files.create
+        //   * remove files from the shared library         → files.delete
+        //   * manage workspace OAuth app credentials       → workspace.owner
+        //
+        // If product intent later changes (e.g. only contributors may link
+        // accounts), elevate the start/callback/destroy gates to files.create.
         Route::get('cloud-oauth/{provider}/start',    [\App\Modules\User\Controllers\CloudOAuthController::class, 'start'])->middleware('workspace.can:files.view')->name('cloud-oauth.start');
         Route::get('cloud-oauth/{provider}/callback', [\App\Modules\User\Controllers\CloudOAuthController::class, 'callback'])->middleware('workspace.can:files.view')->name('cloud-oauth.callback');
 
