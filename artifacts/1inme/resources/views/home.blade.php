@@ -4417,6 +4417,15 @@
 </section>
 
 {{-- ============================ WHY 1INME (comparison) ============================ --}}
+@php
+    $__whyRaw = \App\Modules\Admin\Models\AppSetting::get('marketing_why_comparison', null);
+    if ($__whyRaw === null) {
+        $__whyRows = \App\Modules\Common\Support\SitePagesContent::whyComparisonDefault();
+    } else {
+        $__whyRows = \App\Modules\Common\Support\SitePagesContent::normalizeWhyComparison((array) $__whyRaw);
+    }
+@endphp
+@if(!empty($__whyRows))
 <section id="why" class="py-20 lg:py-28 relative overflow-hidden">
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-10 max-w-2xl mx-auto">
@@ -4424,34 +4433,29 @@
             <h2 class="reveal rd-1 text-4xl sm:text-5xl font-bold tracking-tight mb-4">One link. <span class="grad-text">Everything you need.</span></h2>
             <p class="reveal rd-2 text-gray-400">Most “link in bio” tools stop at a list of links. 1INME gives you the whole growth stack.</p>
         </div>
-        @php
-            $__rows = [
-                ['Drag-and-drop biolink page', true, 'Limited'],
-                ['Branded short links + dynamic QR', true, 'Add-on / no'],
-                ['Live analytics with map of clicks', true, 'Basic charts'],
-                ['Built-in Performance Coach (AI-style tips)', true, 'No'],
-                ['Free forever plan, no credit card', true, 'Trial only'],
-                ['Unlimited blocks on the free tier', true, 'Capped'],
-            ];
-        @endphp
         <div class="reveal rd-3 grad-border rounded-3xl overflow-hidden">
             <div class="grid grid-cols-12 px-4 sm:px-6 py-4 bg-white/[.04] text-xs font-bold uppercase tracking-wider text-gray-400">
                 <div class="col-span-6">Feature</div>
                 <div class="col-span-3 text-center text-white">1INME</div>
                 <div class="col-span-3 text-center">Typical bio-link tool</div>
             </div>
-            @foreach($__rows as $r)
+            @foreach($__whyRows as $r)
                 <div class="grid grid-cols-12 items-center px-4 sm:px-6 py-4 border-t border-white/5 text-sm">
-                    <div class="col-span-6 text-gray-200">{{ $r[0] }}</div>
+                    <div class="col-span-6 text-gray-200">{{ $r['feature'] }}</div>
                     <div class="col-span-3 text-center">
-                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-300 text-xs font-semibold"><i class="fas fa-check"></i> Yes</span>
+                        @if(strcasecmp(trim((string) $r['ours']), 'yes') === 0)
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-300 text-xs font-semibold"><i class="fas fa-check"></i> Yes</span>
+                        @else
+                            <span class="text-white text-xs font-semibold">{{ $r['ours'] }}</span>
+                        @endif
                     </div>
-                    <div class="col-span-3 text-center text-gray-400 text-xs">{{ $r[2] }}</div>
+                    <div class="col-span-3 text-center text-gray-400 text-xs">{{ $r['theirs'] }}</div>
                 </div>
             @endforeach
         </div>
     </div>
 </section>
+@endif
 
 {{-- ============================ PRICING ============================ --}}
 <section id="pricing" class="py-24 lg:py-32 relative overflow-hidden">

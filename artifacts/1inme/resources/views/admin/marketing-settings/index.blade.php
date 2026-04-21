@@ -4,9 +4,11 @@
 @php
     $defaultsTrust = \App\Modules\Common\Support\SitePagesContent::trustStripDefault();
     $defaultsTest = \App\Modules\Common\Support\SitePagesContent::testimonialsDefault();
+    $defaultsWhy = \App\Modules\Common\Support\SitePagesContent::whyComparisonDefault();
     $trustForJs = !empty($trust_strip) ? $trust_strip : $defaultsTrust;
     $landingForJs = !empty($landing_testimonials) ? $landing_testimonials : $defaultsTest;
     $featuresForJs = !empty($features_testimonials) ? $features_testimonials : $defaultsTest;
+    $whyForJs = !empty($why_comparison) ? $why_comparison : $defaultsWhy;
 @endphp
 <div class="max-w-4xl mx-auto space-y-6">
     <a href="{{ route('admin.site-pages.index') }}" class="text-xs text-violet-400 hover:underline">
@@ -24,6 +26,7 @@
               trust: @json($trustForJs),
               landing: @json($landingForJs),
               features: @json($featuresForJs),
+              why: @json($whyForJs),
           }'
           class="space-y-6">
         @csrf
@@ -83,6 +86,38 @@
                 </div>
             </template>
             <p x-show="trust.length===0" class="text-xs text-white/40">No metrics yet — add at least one to show the strip.</p>
+        </div>
+
+        {{-- Why 1INME comparison --}}
+        <div class="glass rounded-2xl p-6 space-y-3">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-lg font-semibold text-white">Why 1INME comparison</h2>
+                    <p class="text-xs text-white/50">Rows in the comparison table on the landing page (just before pricing). Up to 12 rows. If the "1INME" column is left as <span class="font-mono">Yes</span> it renders as the green check pill; any other text is shown verbatim.</p>
+                </div>
+                <button type="button" @click="if(why.length<12) why.push({feature:'',ours:'Yes',theirs:''})"
+                        class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 rounded-lg text-white">
+                    <i class="fas fa-plus mr-1"></i> Add row
+                </button>
+            </div>
+            <div class="hidden sm:grid grid-cols-[2fr_1fr_1fr_auto] gap-2 px-1 text-[11px] font-bold uppercase tracking-wider text-white/40">
+                <div>Feature</div>
+                <div>1INME</div>
+                <div>Competitor</div>
+                <div></div>
+            </div>
+            <template x-for="(w,i) in why" :key="i">
+                <div class="bg-white/5 border border-white/10 rounded-xl p-3 grid sm:grid-cols-[2fr_1fr_1fr_auto] gap-2 items-center">
+                    <input type="text" :name="'why_comparison['+i+'][feature]'" x-model="w.feature" placeholder="Drag-and-drop biolink page"
+                           class="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                    <input type="text" :name="'why_comparison['+i+'][ours]'" x-model="w.ours" placeholder="Yes"
+                           class="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                    <input type="text" :name="'why_comparison['+i+'][theirs]'" x-model="w.theirs" placeholder="Limited"
+                           class="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                    <button type="button" @click="why.splice(i,1)" class="text-red-400 hover:text-red-300 text-xs px-2"><i class="fas fa-trash"></i></button>
+                </div>
+            </template>
+            <p x-show="why.length===0" class="text-xs text-white/40">No rows yet — the comparison section will be hidden on the landing page.</p>
         </div>
 
         {{-- Landing testimonials --}}

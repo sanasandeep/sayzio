@@ -1031,6 +1031,46 @@ class SitePagesContent
     }
 
     /**
+     * Default "Why 1INME" comparison rows shown on the landing page just
+     * before pricing. Each row pairs a feature label with what 1INME offers
+     * versus a typical competitor.
+     */
+    public static function whyComparisonDefault(): array
+    {
+        return [
+            ['feature' => 'Drag-and-drop biolink page',                'ours' => 'Yes', 'theirs' => 'Limited'],
+            ['feature' => 'Branded short links + dynamic QR',          'ours' => 'Yes', 'theirs' => 'Add-on / no'],
+            ['feature' => 'Live analytics with map of clicks',         'ours' => 'Yes', 'theirs' => 'Basic charts'],
+            ['feature' => 'Built-in Performance Coach (AI-style tips)','ours' => 'Yes', 'theirs' => 'No'],
+            ['feature' => 'Free forever plan, no credit card',         'ours' => 'Yes', 'theirs' => 'Trial only'],
+            ['feature' => 'Unlimited blocks on the free tier',         'ours' => 'Yes', 'theirs' => 'Capped'],
+        ];
+    }
+
+    /**
+     * Coerce admin input into a sane comparison-rows array (drops empty
+     * rows, trims, caps lengths). Returns at most 12 rows.
+     */
+    public static function normalizeWhyComparison(array $input): array
+    {
+        $out = [];
+        foreach (array_values($input) as $row) {
+            if (!is_array($row)) continue;
+            $feature = trim((string) ($row['feature'] ?? ''));
+            $ours    = trim((string) ($row['ours']    ?? ''));
+            $theirs  = trim((string) ($row['theirs']  ?? ''));
+            if ($feature === '' && $ours === '' && $theirs === '') continue;
+            $out[] = [
+                'feature' => mb_substr($feature, 0, 200),
+                'ours'    => mb_substr($ours, 0, 80),
+                'theirs'  => mb_substr($theirs, 0, 80),
+            ];
+            if (count($out) >= 12) break;
+        }
+        return $out;
+    }
+
+    /**
      * Definition of the supported social networks: app-setting key,
      * human label, and the FontAwesome brand icon class to render in the
      * public footer.

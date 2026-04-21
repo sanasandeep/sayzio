@@ -28,6 +28,9 @@ class MarketingSettingsController extends Controller
             'features_testimonials' => SitePagesContent::normalizeTestimonials(
                 (array) AppSetting::get('marketing_features_testimonials', [])
             ),
+            'why_comparison'        => SitePagesContent::normalizeWhyComparison(
+                (array) AppSetting::get('marketing_why_comparison', [])
+            ),
         ]);
     }
 
@@ -51,6 +54,10 @@ class MarketingSettingsController extends Controller
             'features_testimonials.*.name'    => 'nullable|string|max:120',
             'features_testimonials.*.role'    => 'nullable|string|max:160',
             'features_testimonials.*.photo'   => ['nullable', 'string', 'max:1000', 'regex:#^https?://#i'],
+            'why_comparison'                  => 'nullable|array|max:12',
+            'why_comparison.*.feature'        => 'nullable|string|max:200',
+            'why_comparison.*.ours'           => 'nullable|string|max:80',
+            'why_comparison.*.theirs'         => 'nullable|string|max:80',
         ]);
 
         AppSetting::put('marketing_ga4_id', trim((string) ($data['ga4_id'] ?? '')));
@@ -64,6 +71,9 @@ class MarketingSettingsController extends Controller
         );
         AppSetting::put('marketing_features_testimonials',
             SitePagesContent::normalizeTestimonials((array) ($data['features_testimonials'] ?? []))
+        );
+        AppSetting::put('marketing_why_comparison',
+            SitePagesContent::normalizeWhyComparison((array) ($data['why_comparison'] ?? []))
         );
 
         return back()->with('success', 'Marketing settings saved.');
