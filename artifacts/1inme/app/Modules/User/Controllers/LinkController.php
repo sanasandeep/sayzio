@@ -366,12 +366,31 @@ class LinkController extends Controller
             $deviceFilter = null;
         }
 
+        // Optional browser / OS / language filters — narrow analytics to clicks
+        // matching that user-agent dimension. Each is intentionally NOT applied
+        // to its own breakdown card below so users see the full split and can
+        // switch between values. These are free-form strings (whatever the
+        // user-agent parser stored), so we trim / cap length rather than
+        // whitelisting against a fixed set.
+        $sanitizeUaFilter = function ($v) {
+            if (!is_string($v)) return null;
+            $v = trim($v);
+            if ($v === '' || mb_strlen($v) > 64) return null;
+            return $v;
+        };
+        $browserFilter  = $sanitizeUaFilter($request->query('browser'));
+        $osFilter       = $sanitizeUaFilter($request->query('os'));
+        $languageFilter = $sanitizeUaFilter($request->query('language'));
+
         $clicksQuery = $link->clicks()
             ->whereBetween('clicked_at', [$startDate, $endDate])
             ->when($aliasFilter, fn ($q) => $q->where('alias', $aliasFilter))
             ->when($sourceFilter, fn ($q) => $q->where('source', $sourceFilter))
             ->when($countryFilter, fn ($q) => $q->where('country_code', $countryFilter))
-            ->when($deviceFilter, fn ($q) => $q->where('device_type', $deviceFilter));
+            ->when($deviceFilter, fn ($q) => $q->where('device_type', $deviceFilter))
+            ->when($browserFilter, fn ($q) => $q->where('browser', $browserFilter))
+            ->when($osFilter, fn ($q) => $q->where('os', $osFilter))
+            ->when($languageFilter, fn ($q) => $q->where('language', $languageFilter));
 
         $totalInRange = (clone $clicksQuery)->count();
         $uniqueInRange = (clone $clicksQuery)->distinct('ip_address')->count('ip_address');
@@ -396,11 +415,29 @@ class LinkController extends Controller
             ->whereNotNull('referrer')->where('referrer', '!=', '')
             ->groupBy('referrer')->orderByDesc('count')->limit(10)->get();
 
-        $browserStats = (clone $clicksQuery)
+        // Intentionally NOT filtered by $browserFilter so the card always shows
+        // the full split (and lets users switch between browsers).
+        $browserStats = $link->clicks()
+            ->whereBetween('clicked_at', [$startDate, $endDate])
+            ->when($aliasFilter, fn ($q) => $q->where('alias', $aliasFilter))
+            ->when($sourceFilter, fn ($q) => $q->where('source', $sourceFilter))
+            ->when($countryFilter, fn ($q) => $q->where('country_code', $countryFilter))
+            ->when($deviceFilter, fn ($q) => $q->where('device_type', $deviceFilter))
+            ->when($osFilter, fn ($q) => $q->where('os', $osFilter))
+            ->when($languageFilter, fn ($q) => $q->where('language', $languageFilter))
             ->selectRaw("browser, COUNT(*) as count")
             ->whereNotNull('browser')->groupBy('browser')->orderByDesc('count')->get();
 
-        $osStats = (clone $clicksQuery)
+        // Intentionally NOT filtered by $osFilter so the card always shows the
+        // full split (and lets users switch between operating systems).
+        $osStats = $link->clicks()
+            ->whereBetween('clicked_at', [$startDate, $endDate])
+            ->when($aliasFilter, fn ($q) => $q->where('alias', $aliasFilter))
+            ->when($sourceFilter, fn ($q) => $q->where('source', $sourceFilter))
+            ->when($countryFilter, fn ($q) => $q->where('country_code', $countryFilter))
+            ->when($deviceFilter, fn ($q) => $q->where('device_type', $deviceFilter))
+            ->when($browserFilter, fn ($q) => $q->where('browser', $browserFilter))
+            ->when($languageFilter, fn ($q) => $q->where('language', $languageFilter))
             ->selectRaw("os, COUNT(*) as count")
             ->whereNotNull('os')->groupBy('os')->orderByDesc('count')->get();
 
@@ -411,6 +448,9 @@ class LinkController extends Controller
             ->when($aliasFilter, fn ($q) => $q->where('alias', $aliasFilter))
             ->when($sourceFilter, fn ($q) => $q->where('source', $sourceFilter))
             ->when($deviceFilter, fn ($q) => $q->where('device_type', $deviceFilter))
+            ->when($browserFilter, fn ($q) => $q->where('browser', $browserFilter))
+            ->when($osFilter, fn ($q) => $q->where('os', $osFilter))
+            ->when($languageFilter, fn ($q) => $q->where('language', $languageFilter))
             ->selectRaw("country_code, COUNT(*) as count")
             ->whereNotNull('country_code')->groupBy('country_code')
             ->orderByDesc('count')->limit(20)->get();
@@ -427,6 +467,9 @@ class LinkController extends Controller
             ->when($aliasFilter, fn ($q) => $q->where('alias', $aliasFilter))
             ->when($sourceFilter, fn ($q) => $q->where('source', $sourceFilter))
             ->when($countryFilter, fn ($q) => $q->where('country_code', $countryFilter))
+            ->when($browserFilter, fn ($q) => $q->where('browser', $browserFilter))
+            ->when($osFilter, fn ($q) => $q->where('os', $osFilter))
+            ->when($languageFilter, fn ($q) => $q->where('language', $languageFilter))
             ->selectRaw("device_type, COUNT(*) as count")
             ->whereNotNull('device_type')->groupBy('device_type')->orderByDesc('count')->get();
 
@@ -439,10 +482,22 @@ class LinkController extends Controller
             ->when($aliasFilter, fn ($q) => $q->where('alias', $aliasFilter))
             ->when($countryFilter, fn ($q) => $q->where('country_code', $countryFilter))
             ->when($deviceFilter, fn ($q) => $q->where('device_type', $deviceFilter))
+            ->when($browserFilter, fn ($q) => $q->where('browser', $browserFilter))
+            ->when($osFilter, fn ($q) => $q->where('os', $osFilter))
+            ->when($languageFilter, fn ($q) => $q->where('language', $languageFilter))
             ->selectRaw("COALESCE(source, 'unknown') as source, COUNT(*) as count")
             ->groupBy('source')->orderByDesc('count')->get();
 
-        $languageStats = (clone $clicksQuery)
+        // Intentionally NOT filtered by $languageFilter so the card always
+        // shows the full split (and lets users switch between languages).
+        $languageStats = $link->clicks()
+            ->whereBetween('clicked_at', [$startDate, $endDate])
+            ->when($aliasFilter, fn ($q) => $q->where('alias', $aliasFilter))
+            ->when($sourceFilter, fn ($q) => $q->where('source', $sourceFilter))
+            ->when($countryFilter, fn ($q) => $q->where('country_code', $countryFilter))
+            ->when($deviceFilter, fn ($q) => $q->where('device_type', $deviceFilter))
+            ->when($browserFilter, fn ($q) => $q->where('browser', $browserFilter))
+            ->when($osFilter, fn ($q) => $q->where('os', $osFilter))
             ->selectRaw("language, COUNT(*) as count")
             ->whereNotNull('language')->groupBy('language')
             ->orderByDesc('count')->limit(15)->get();
@@ -466,7 +521,10 @@ class LinkController extends Controller
             ->when($aliasFilter, fn ($q) => $q->where('alias', $aliasFilter))
             ->when($sourceFilter, fn ($q) => $q->where('source', $sourceFilter))
             ->when($countryFilter, fn ($q) => $q->where('country_code', $countryFilter))
-            ->when($deviceFilter, fn ($q) => $q->where('device_type', $deviceFilter));
+            ->when($deviceFilter, fn ($q) => $q->where('device_type', $deviceFilter))
+            ->when($browserFilter, fn ($q) => $q->where('browser', $browserFilter))
+            ->when($osFilter, fn ($q) => $q->where('os', $osFilter))
+            ->when($languageFilter, fn ($q) => $q->where('language', $languageFilter));
 
         $totalInRangePrev         = (clone $prevClicksQuery)->count();
         $blockClicksInRangePrev   = (clone $prevClicksQuery)->whereNotNull('block_id')->count();
@@ -726,6 +784,7 @@ class LinkController extends Controller
             'uniqueBlockClicksInRange', 'uniqueBlockClicksPrev',
             'aliasBreakdown', 'aliasFilter', 'availableAliases', 'sourceFilter',
             'countryFilter', 'deviceFilter',
+            'browserFilter', 'osFilter', 'languageFilter',
             'performance', 'performanceHistory'
         ));
     }

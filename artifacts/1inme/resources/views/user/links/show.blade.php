@@ -626,14 +626,44 @@
 {{-- ===================== BROWSER / OS / DEVICE ===================== --}}
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-7">
     <div class="section-card" style="--sc-accent: linear-gradient(90deg,#6366f1,#818cf8); --sc-glow: rgba(99,102,241,0.35); --sc-color: #a5b4fc; --sc-border: rgba(99,102,241,0.3);">
-        <div class="section-head"><div class="section-title"><div class="section-icon"><i class="fas fa-globe"></i></div> Browsers</div></div>
+        <div class="section-head">
+            <div class="section-title"><div class="section-icon"><i class="fas fa-globe"></i></div> Browsers</div>
+            @if(!empty($browserFilter))
+                <a href="{{ $buildUrl(['browser' => null]) }}" class="section-pill" title="Clear browser filter"><i class="fas fa-times mr-1"></i>{{ $browserFilter }}</a>
+            @endif
+        </div>
         @if($browserStats->isEmpty())<p class="text-sm text-center py-8" style="color: var(--text-faint);">No data</p>
-        @else<div style="height: 240px;"><canvas id="browserChart"></canvas></div>@endif
+        @else
+            <div style="height: 240px;"><canvas id="browserChart"></canvas></div>
+            <div class="flex flex-wrap items-center gap-2 mt-3">
+                <a href="{{ $buildUrl(['browser' => null]) }}" class="pill {{ empty($browserFilter) ? 'pill-active' : '' }}">All</a>
+                @foreach($browserStats->take(8) as $row)
+                    <a href="{{ $buildUrl(['browser' => $row->browser]) }}" class="pill {{ ($browserFilter ?? '') === $row->browser ? 'pill-active' : '' }}">
+                        {{ $row->browser }} <span class="ml-1 opacity-60">({{ number_format($row->count) }})</span>
+                    </a>
+                @endforeach
+            </div>
+        @endif
     </div>
     <div class="section-card" style="--sc-accent: linear-gradient(90deg,#10b981,#34d399); --sc-glow: rgba(16,185,129,0.35); --sc-color: #6ee7b7; --sc-border: rgba(16,185,129,0.3);">
-        <div class="section-head"><div class="section-title"><div class="section-icon"><i class="fas fa-laptop"></i></div> Operating Systems</div></div>
+        <div class="section-head">
+            <div class="section-title"><div class="section-icon"><i class="fas fa-laptop"></i></div> Operating Systems</div>
+            @if(!empty($osFilter))
+                <a href="{{ $buildUrl(['os' => null]) }}" class="section-pill" title="Clear OS filter"><i class="fas fa-times mr-1"></i>{{ $osFilter }}</a>
+            @endif
+        </div>
         @if($osStats->isEmpty())<p class="text-sm text-center py-8" style="color: var(--text-faint);">No data</p>
-        @else<div style="height: 240px;"><canvas id="osChart"></canvas></div>@endif
+        @else
+            <div style="height: 240px;"><canvas id="osChart"></canvas></div>
+            <div class="flex flex-wrap items-center gap-2 mt-3">
+                <a href="{{ $buildUrl(['os' => null]) }}" class="pill {{ empty($osFilter) ? 'pill-active' : '' }}">All</a>
+                @foreach($osStats->take(8) as $row)
+                    <a href="{{ $buildUrl(['os' => $row->os]) }}" class="pill {{ ($osFilter ?? '') === $row->os ? 'pill-active' : '' }}">
+                        {{ $row->os }} <span class="ml-1 opacity-60">({{ number_format($row->count) }})</span>
+                    </a>
+                @endforeach
+            </div>
+        @endif
     </div>
     <div class="section-card" style="--sc-accent: linear-gradient(90deg,#f59e0b,#fbbf24); --sc-glow: rgba(245,158,11,0.35); --sc-color: #fcd34d; --sc-border: rgba(245,158,11,0.3);">
         <div class="section-head">
@@ -685,6 +715,35 @@
                     </div>
                 @endforeach
             </div>
+        </div>
+    @endif
+</div>
+
+{{-- ===================== LANGUAGES ===================== --}}
+@php
+    $languageTotal = (int) $languageStats->sum('count');
+@endphp
+<div class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#8b5cf6,#ec4899); --sc-glow: rgba(139,92,246,0.35); --sc-color: #d8b4fe; --sc-border: rgba(139,92,246,0.3);">
+    <div class="section-head">
+        <div class="section-title"><div class="section-icon"><i class="fas fa-language"></i></div> Languages</div>
+        <div class="flex items-center gap-2 flex-wrap">
+            <div class="text-xs" style="color: var(--text-faint);">Browser language sent by each visitor</div>
+            @if(!empty($languageFilter))
+                <a href="{{ $buildUrl(['language' => null]) }}" class="section-pill" title="Clear language filter"><i class="fas fa-times mr-1"></i>{{ $languageFilter }}</a>
+            @endif
+        </div>
+    </div>
+    @if($languageStats->isEmpty() || $languageTotal === 0)
+        <p class="text-sm text-center py-8" style="color: var(--text-faint);">No data</p>
+    @else
+        <div class="flex flex-wrap items-center gap-2">
+            <a href="{{ $buildUrl(['language' => null]) }}" class="pill {{ empty($languageFilter) ? 'pill-active' : '' }}">All</a>
+            @foreach($languageStats as $row)
+                @php $pct = $languageTotal > 0 ? round(($row->count / $languageTotal) * 100, 1) : 0; @endphp
+                <a href="{{ $buildUrl(['language' => $row->language]) }}" class="pill {{ ($languageFilter ?? '') === $row->language ? 'pill-active' : '' }}" title="{{ $pct }}% of clicks">
+                    {{ $row->language }} <span class="ml-1 opacity-60">({{ number_format($row->count) }})</span>
+                </a>
+            @endforeach
         </div>
     @endif
 </div>
