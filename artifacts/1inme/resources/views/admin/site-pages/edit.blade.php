@@ -45,7 +45,18 @@
             <div x-show="sections.length===0" class="text-xs text-white/40 text-center py-4">No sections yet — click "Add section".</div>
         </div>
 
-        @if(in_array($page->slug, ['error-403', 'error-404']))
+        @php
+            $errorSlugs = ['error-403', 'error-404', 'error-500', 'error-503', 'error-419', 'error-429'];
+            $errorLabels = [
+                'error-403' => '403 (no access)',
+                'error-404' => '404 (not found)',
+                'error-500' => '500 (server error)',
+                'error-503' => '503 (maintenance)',
+                'error-419' => '419 (session expired)',
+                'error-429' => '429 (too many requests)',
+            ];
+        @endphp
+        @if(in_array($page->slug, $errorSlugs))
             <div class="grid sm:grid-cols-2 gap-4 pt-2">
                 <div>
                     <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Call-to-action label</label>
@@ -74,8 +85,8 @@
         @endif
 
         <div class="pt-4 border-t border-white/10 flex items-center justify-between">
-            @if(in_array($page->slug, ['error-403', 'error-404']))
-                <span class="text-xs text-white/40">Shown automatically when visitors hit a {{ $page->slug === 'error-403' ? '403 (no access)' : '404 (not found)' }} response.</span>
+            @if(in_array($page->slug, $errorSlugs))
+                <span class="text-xs text-white/40">Shown automatically when visitors hit a {{ $errorLabels[$page->slug] }} response.</span>
             @else
                 <a href="/{{ $page->slug === 'home' ? '' : $page->slug }}" target="_blank" class="text-xs text-violet-400 hover:underline">View live page <i class="fas fa-external-link-alt ml-1 text-[10px]"></i></a>
             @endif

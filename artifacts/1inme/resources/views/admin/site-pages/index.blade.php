@@ -10,9 +10,19 @@
                 <div class="flex items-center justify-between py-3">
                     <div>
                         <div class="text-sm font-semibold text-white">{{ $p->title }}</div>
+                        @php
+                            $errorPageLabels = [
+                                'error-403' => '403 No access',
+                                'error-404' => '404 Not found',
+                                'error-500' => '500 Server error',
+                                'error-503' => '503 Maintenance',
+                                'error-419' => '419 Session expired',
+                                'error-429' => '429 Too many requests',
+                            ];
+                        @endphp
                         <div class="text-[11px] text-white/40">
-                            @if(in_array($p->slug, ['error-403', 'error-404']))
-                                Error page · {{ $p->slug === 'error-403' ? '403 No access' : '404 Not found' }}
+                            @if(isset($errorPageLabels[$p->slug]))
+                                Error page · {{ $errorPageLabels[$p->slug] }}
                             @else
                                 /{{ $p->slug === 'home' ? '' : $p->slug }}
                             @endif

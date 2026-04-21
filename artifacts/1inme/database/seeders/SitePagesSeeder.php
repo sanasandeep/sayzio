@@ -170,6 +170,46 @@ class SitePagesSeeder extends Seeder
                 'cta_url' => '/',
             ],
             [
+                'slug' => 'error-500',
+                'title' => 'Something went wrong',
+                'meta_description' => 'An unexpected error occurred on our side. Please try again in a moment.',
+                'sections' => [
+                    ['heading' => 'We hit a snag', 'body' => "Sorry — something went wrong on our end. Our team has been notified and is looking into it. Please try again in a few minutes."],
+                ],
+                'cta_label' => 'Back to home',
+                'cta_url' => '/',
+            ],
+            [
+                'slug' => 'error-503',
+                'title' => "We'll be right back",
+                'meta_description' => 'The site is temporarily down for maintenance.',
+                'sections' => [
+                    ['heading' => 'Down for maintenance', 'body' => "We're making some quick improvements and will be back online shortly. Thanks for your patience — please check back in a few minutes."],
+                ],
+                'cta_label' => 'Check our status',
+                'cta_url' => '/',
+            ],
+            [
+                'slug' => 'error-419',
+                'title' => 'Your session expired',
+                'meta_description' => 'For your security, your session timed out. Please refresh and try again.',
+                'sections' => [
+                    ['heading' => 'Session expired', 'body' => "For your security, this page has been open too long without activity. Please go back, refresh the page, and try again."],
+                ],
+                'cta_label' => 'Back to home',
+                'cta_url' => '/',
+            ],
+            [
+                'slug' => 'error-429',
+                'title' => 'Too many requests',
+                'meta_description' => "You've sent too many requests in a short time. Please slow down and try again.",
+                'sections' => [
+                    ['heading' => 'Slow down a moment', 'body' => "You've made a lot of requests very quickly. Please wait a few seconds before trying again."],
+                ],
+                'cta_label' => 'Back to home',
+                'cta_url' => '/',
+            ],
+            [
                 'slug' => 'cookies',
                 'title' => 'Cookie Policy',
                 'meta_description' => 'How 1INME uses cookies and similar technologies.',
