@@ -2117,9 +2117,17 @@
                     </button>
                     <div x-show="openMenu === 'product'" x-cloak x-transition.opacity.duration.150ms
                          class="absolute left-0 top-full mt-2 w-72 rounded-2xl border border-white/10 bg-[#11101c] shadow-2xl shadow-black/60 p-2 z-50">
+                        <a href="#everything" @click="openMenu=null" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
+                            <i class="fas fa-grip text-violet-400 mt-1"></i>
+                            <span><span class="block text-sm font-semibold text-white">Everything you get</span><span class="block text-xs text-gray-500">All four pillars in one place</span></span>
+                        </a>
                         <a href="#features" @click="openMenu=null" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
                             <i class="fas fa-bolt text-violet-400 mt-1"></i>
-                            <span><span class="block text-sm font-semibold text-white">Features</span><span class="block text-xs text-gray-500">Everything 1INME can do</span></span>
+                            <span><span class="block text-sm font-semibold text-white">Features</span><span class="block text-xs text-gray-500">Build, share &amp; grow</span></span>
+                        </a>
+                        <a href="#audience" @click="openMenu=null" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
+                            <i class="fas fa-users text-violet-400 mt-1"></i>
+                            <span><span class="block text-sm font-semibold text-white">Who it&rsquo;s for</span><span class="block text-xs text-gray-500">Creators, businesses, networking pros</span></span>
                         </a>
                         <a href="#how-it-works" @click="openMenu=null" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
                             <i class="fas fa-play text-violet-400 mt-1"></i>
@@ -2189,7 +2197,9 @@
         </div>
         <div x-show="mobileOpen" x-cloak x-transition class="md:hidden pb-4 border-t border-white/10 mt-2 pt-3 space-y-1">
             <div class="px-3 pt-1 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">Product</div>
+            <a href="#everything" @click="mobileOpen=false" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Everything you get</a>
             <a href="#features" @click="mobileOpen=false" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Features</a>
+            <a href="#audience" @click="mobileOpen=false" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Who it&rsquo;s for</a>
             <a href="#how-it-works" @click="mobileOpen=false" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">How it works</a>
             <a href="{{ route('site.workspace-team') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Workspace &amp; Team</a>
             <a href="{{ route('site.api-docs') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">API</a>
@@ -2546,7 +2556,7 @@
                         <span class="absolute inline-flex h-full w-full rounded-full" style="background:var(--c1)"></span>
                         <span class="ring-pulse" style="inset:0;background:var(--c1);"></span>
                     </span>
-                    <span class="grad-text">Built for every kind of you · Live analytics · QR codes</span>
+                    <span class="grad-text">All-in-one growth stack · Free Forever · Native mobile app</span>
                 </div>
 
                 <h1 id="hero-h" class="reveal rd-1 text-5xl sm:text-6xl lg:text-7xl font-bold leading-[1.05] tracking-tight mb-8">
@@ -2562,7 +2572,7 @@
                 </h1>
 
                 <p class="reveal rd-2 text-lg sm:text-xl text-gray-400 max-w-xl mx-auto lg:mx-0 mb-10 leading-relaxed">
-                    Whoever you are, 1INME gives you <strong class="text-white">one link</strong> for everything: drag-and-drop biolink pages, branded short links, dynamic QR codes, plus live analytics and an AI-style Performance Coach.
+                    Whoever you are, 1INME is the <strong class="text-white">all-in-one</strong> link, monetization &amp; growth stack: drag-and-drop biolink pages, branded short links, dynamic QR codes, NFC tags, built-in DMs, an AI Performance Coach and a native mobile app — <strong class="text-white">free forever</strong>, no card required.
                 </p>
 
                 <div class="reveal rd-3 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5 justify-center lg:justify-start">
@@ -3970,19 +3980,152 @@
     </div>
 </section>
 
-{{-- ============================ AVATAR ROW (creators trust) ============================ --}}
-<section class="py-16 lg:py-20 relative overflow-hidden">
-    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h3 class="reveal text-2xl sm:text-3xl lg:text-4xl font-bold mb-3">Built for <span class="grad-text">creators, brands &amp; small businesses.</span></h3>
-        <p class="reveal rd-1 text-gray-400 mb-10">Whatever you do, you can do it from one link.</p>
-        <div class="reveal rd-2 flex items-center justify-center gap-3 flex-wrap">
-            @php $creatorColors = ['#1bd4d9','#7c3aed','#e94e8c','#ff8a3c','#ffc845','#7c3aed','#e94e8c','#1bd4d9']; @endphp
-            @foreach($creatorColors as $i => $c)
-                <div class="relative shake-hover">
-                    <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl border-2 border-white/20 flex items-center justify-center text-2xl font-bold text-white" style="background: linear-gradient(135deg, {{ $c }}, var(--c2)); transform:rotate({{ $i % 2 ? -4 : 4 }}deg);">
-                        {{ ['🎨','🎵','🛒','📸','🎙️','✨','🍔','🚀'][$i] }}
+{{-- ============================ EVERYTHING YOU GET (4 PILLARS) ============================ --}}
+@php
+    $__pillars = [
+        [
+            'eyebrow' => 'Bio-link & branding',
+            'title'   => 'A whole site behind one link',
+            'icon'    => 'fa-grip-vertical',
+            'color'   => '#1bd4d9',
+            'items'   => [
+                ['fa-grip-vertical', 'Drag-and-drop builder'],
+                ['fa-palette',       'Custom themes &amp; fonts'],
+                ['fa-globe',         'Custom domains'],
+                ['fa-photo-film',    'Video, music &amp; form embeds'],
+                ['fa-comments',      'Live social-proof widgets'],
+            ],
+        ],
+        [
+            'eyebrow' => 'Links, QR & NFC',
+            'title'   => 'Share anywhere — online &amp; off',
+            'icon'    => 'fa-qrcode',
+            'color'   => '#7c3aed',
+            'items'   => [
+                ['fa-link',     'Branded short links with click analytics'],
+                ['fa-qrcode',   'Dynamic styled QR codes, editable destinations'],
+                ['fa-wifi',     'NFC tag writing from the mobile app'],
+                ['fa-bullseye', 'UTM builder &amp; campaign tracking'],
+            ],
+        ],
+        [
+            'eyebrow' => 'Monetization & engagement',
+            'title'   => 'Get paid &amp; talk to fans',
+            'icon'    => 'fa-store',
+            'color'   => '#e94e8c',
+            'items'   => [
+                ['fa-store',    'Sell digital products'],
+                ['fa-hand-holding-dollar', 'Tips &amp; donations'],
+                ['fa-message',  'Built-in DMs from biolink visitors'],
+                ['fa-stream',   'Creator feed &amp; followers'],
+                ['fa-clipboard-list', 'Forms &amp; RSVPs'],
+            ],
+        ],
+        [
+            'eyebrow' => 'Growth & intelligence',
+            'title'   => 'See what works, fix what doesn&rsquo;t',
+            'icon'    => 'fa-bolt',
+            'color'   => '#ff8a3c',
+            'items'   => [
+                ['fa-bolt',     'AI Performance Coach'],
+                ['fa-fire',     'Click heatmaps'],
+                ['fa-map-location-dot', 'Live visitor map'],
+                ['fa-chart-line', 'UTM builder &amp; deep analytics'],
+                ['fa-coins',    'Coin / Wallet add-ons'],
+            ],
+        ],
+    ];
+@endphp
+<section id="everything" class="py-24 lg:py-32 relative overflow-hidden" aria-labelledby="everything-h">
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-14 max-w-3xl mx-auto">
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c5)">Everything you get</div>
+            <h2 id="everything-h" class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
+                One platform.<br><span class="grad-text">The whole growth stack.</span>
+            </h2>
+            <p class="reveal rd-2 text-lg text-gray-400">
+                Four pillars, one login, free forever. No more stitching together five different tools to launch, share, sell and grow.
+            </p>
+        </div>
+
+        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            @foreach($__pillars as $i => $p)
+                <article class="reveal rd-{{ ($i % 4) + 1 }} glass rounded-3xl p-6 lift relative overflow-hidden">
+                    <div class="absolute -top-12 -right-12 w-40 h-40 rounded-full opacity-20" style="background:radial-gradient(circle, {{ $p['color'] }}, transparent 70%);"></div>
+                    <div class="relative w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style="background: linear-gradient(135deg, {{ $p['color'] }}, var(--c2)); box-shadow: 0 12px 30px -12px {{ $p['color'] }};">
+                        <i class="fas {{ $p['icon'] }} text-white"></i>
                     </div>
-                </div>
+                    <div class="relative text-[11px] font-bold uppercase tracking-wider mb-1" style="color: {{ $p['color'] }};">{{ $p['eyebrow'] }}</div>
+                    <h3 class="relative text-lg font-bold mb-4 leading-snug">{!! $p['title'] !!}</h3>
+                    <ul class="relative space-y-2.5 text-sm text-gray-300">
+                        @foreach($p['items'] as [$ic, $label])
+                            <li class="flex items-start gap-2.5">
+                                <span class="mt-0.5 w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0" style="background: rgba(255,255,255,0.06); color: {{ $p['color'] }};">
+                                    <i class="fas {{ $ic }} text-[10px]"></i>
+                                </span>
+                                <span>{!! $label !!}</span>
+                            </li>
+                        @endforeach
+                    </ul>
+                </article>
+            @endforeach
+        </div>
+    </div>
+</section>
+
+{{-- ============================ AUDIENCE (CREATORS / BUSINESSES / NETWORKING) ============================ --}}
+@php
+    $__audiences = [
+        [
+            'eyebrow' => 'Creators',
+            'title'   => 'Turn followers into fans &mdash; and income.',
+            'desc'    => 'One link for every drop, with tips, products, DMs, scheduled posts and an AI coach to keep you growing.',
+            'icon'    => 'fa-microphone-lines',
+            'color'   => '#e94e8c',
+            'cta'     => 'Build my creator page',
+        ],
+        [
+            'eyebrow' => 'Businesses',
+            'title'   => 'A landing page, storefront &amp; CRM in one.',
+            'desc'    => 'Branded short links, QR codes for packaging &amp; print, custom domains, forms and team workspaces.',
+            'icon'    => 'fa-store',
+            'color'   => '#1bd4d9',
+            'cta'     => 'Start my business page',
+        ],
+        [
+            'eyebrow' => 'Networking pros',
+            'title'   => 'Your digital business card &mdash; and then some.',
+            'desc'    => 'Tap-to-share NFC tags, dynamic QR codes, instant DMs and a live visitor map of who&rsquo;s engaging.',
+            'icon'    => 'fa-id-badge',
+            'color'   => '#ff8a3c',
+            'cta'     => 'Make my smart card',
+        ],
+    ];
+@endphp
+<section id="audience" class="py-20 lg:py-28 relative overflow-hidden" aria-labelledby="audience-h">
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 max-w-2xl mx-auto">
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c3)">Who it&rsquo;s for</div>
+            <h2 id="audience-h" class="reveal rd-1 text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-4">
+                Built for <span class="grad-text">creators, brands &amp; networking pros.</span>
+            </h2>
+            <p class="reveal rd-2 text-gray-400">Pick the one that fits you &mdash; the same all-in-one toolkit powers all three.</p>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-5">
+            @foreach($__audiences as $i => $a)
+                <article class="reveal rd-{{ $i + 1 }} glass rounded-3xl p-7 tilt relative overflow-hidden flex flex-col">
+                    <div class="absolute -top-16 -right-16 w-48 h-48 rounded-full opacity-25" style="background:radial-gradient(circle, {{ $a['color'] }}, transparent 70%);"></div>
+                    <div class="relative w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style="background: linear-gradient(135deg, {{ $a['color'] }}, var(--c2)); box-shadow: 0 12px 30px -10px {{ $a['color'] }};">
+                        <i class="fas {{ $a['icon'] }} text-xl text-white"></i>
+                    </div>
+                    <div class="relative text-[11px] font-bold uppercase tracking-wider mb-2" style="color: {{ $a['color'] }};">{{ $a['eyebrow'] }}</div>
+                    <h3 class="relative text-xl font-bold mb-3 leading-snug">{!! $a['title'] !!}</h3>
+                    <p class="relative text-sm text-gray-400 leading-relaxed mb-6 flex-1">{!! $a['desc'] !!}</p>
+                    <button type="button" @click="authTab='register'; authOpen=true" class="relative btn-bounce inline-flex items-center justify-center gap-2 px-5 py-2.5 grad-bar text-white rounded-full text-sm font-bold self-start">
+                        {{ $a['cta'] }} <i class="fas fa-arrow-right text-[10px]"></i>
+                    </button>
+                </article>
             @endforeach
         </div>
     </div>
@@ -4619,6 +4762,35 @@
     </div>
 </section>
 @endif
+
+{{-- ============================ FREE HERE / PAID THERE (lead-in to compare) ============================ --}}
+<section class="pt-4 pb-2 lg:pt-8 lg:pb-4 relative overflow-hidden" aria-label="Free here, paid elsewhere">
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="reveal glass rounded-3xl px-6 py-6 sm:px-8 sm:py-7 flex flex-col lg:flex-row items-center gap-5 lg:gap-7">
+            <div class="flex items-center gap-3 shrink-0">
+                <span class="w-11 h-11 rounded-2xl flex items-center justify-center grad-bar shadow-lg shadow-violet-500/30">
+                    <i class="fas fa-gift text-white"></i>
+                </span>
+                <div class="text-left">
+                    <div class="text-[11px] font-bold uppercase tracking-wider" style="color:var(--c5)">Free here, paid there</div>
+                    <div class="text-base sm:text-lg font-bold leading-tight">What costs extra elsewhere is on the <span class="grad-text">Free Forever</span> plan.</div>
+                </div>
+            </div>
+            <div class="flex flex-wrap items-center justify-center lg:justify-end gap-2 lg:ml-auto">
+                @foreach([
+                    ['fa-infinity',  'Unlimited links'],
+                    ['fa-message',   'Built-in DMs'],
+                    ['fa-bolt',      'AI Coach'],
+                    ['fa-mobile-screen', 'Native mobile app'],
+                ] as [$ic, $lbl])
+                    <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[.06] border border-white/10 text-xs sm:text-sm font-semibold text-white">
+                        <i class="fas {{ $ic }} text-[11px]" style="color:var(--c1)"></i> {{ $lbl }}
+                    </span>
+                @endforeach
+            </div>
+        </div>
+    </div>
+</section>
 
 {{-- ============================ HOW WE COMPARE ============================ --}}
 @include('public.partials._compare', ['compact' => true])
