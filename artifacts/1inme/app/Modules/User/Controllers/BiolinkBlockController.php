@@ -40,8 +40,22 @@ class BiolinkBlockController extends Controller
                 'is_active' => (bool) $b->is_active,
             ])->values();
 
+        // AI Companions the owner can drop into a biolink block. We
+        // restrict to the `biolink` placement so users don't accidentally
+        // pick an embed-only or inbox-only companion.
+        $userCompanions = \App\Modules\User\Models\AiCompanion::where('user_id', workspace_owner_id())
+            ->where('placement', 'biolink')
+            ->orderByDesc('id')
+            ->get(['id', 'public_id', 'name', 'is_disabled'])
+            ->map(fn ($c) => [
+                'id'          => $c->id,
+                'public_id'   => $c->public_id,
+                'name'        => $c->name,
+                'is_disabled' => (bool) $c->is_disabled,
+            ])->values();
+
         return view('user.links.biolink-editor', compact(
-            'link', 'blocks', 'blockTypes', 'blockCategories', 'userForms', 'userBuzz'
+            'link', 'blocks', 'blockTypes', 'blockCategories', 'userForms', 'userBuzz', 'userCompanions'
         ));
     }
 
@@ -993,6 +1007,7 @@ class BiolinkBlockController extends Controller
             'cta_button' => ['text' => 'Click Here', 'url' => '', 'color' => '#7c3aed', 'text_color' => '#ffffff', 'size' => 'lg'],
             'notification' => ['text' => 'New update!', 'type' => 'info', 'dismissible' => true],
             'social_proof' => ['social_proof_id' => null],
+            'ai_companion' => ['companion_id' => null],
             'form' => ['form_id' => null, 'height' => 600],
             'nav_menu' => ['items' => [['text' => 'Home', 'url' => '']]],
             'ticker' => ['items' => ['Breaking news', 'Updates'], 'speed' => 'normal'],

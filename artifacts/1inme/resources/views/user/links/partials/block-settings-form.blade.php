@@ -791,6 +791,29 @@ function imageListUploader_{{ $gridImgId }}() {
     <button type="button" @click="items.push({label:'',value:25,color:'#ec4899'})" class="text-xs text-violet-400"><i class="fas fa-plus mr-1"></i>Add</button>
 </div>
 
+@elseif($block->type === 'ai_companion')
+    @php
+        $userCmps = \App\Modules\User\Models\AiCompanion::where('user_id', auth()->id())
+            ->where('placement', 'biolink')
+            ->orderByDesc('id')
+            ->get(['id', 'name', 'is_disabled']);
+    @endphp
+    <label class="{{ $labelClass }}">Pick an AI Companion</label>
+    @if($userCmps->isEmpty())
+        <p class="text-xs text-white/40 mb-2">You haven't created any biolink AI Companions yet.</p>
+        <a href="{{ route('user.ai-companions.create') }}?placement=biolink" target="_blank" class="text-xs text-violet-400 hover:text-violet-300"><i class="fas fa-plus mr-1"></i>Create one</a>
+    @else
+        <select name="settings[companion_id]" class="{{ $inputClass }}">
+            <option value="">— Choose a Companion —</option>
+            @foreach($userCmps as $c)
+                <option value="{{ $c->id }}" {{ (string)($s['companion_id'] ?? '') === (string)$c->id ? 'selected' : '' }}>
+                    {{ $c->name }}{{ $c->is_disabled ? ' — disabled' : '' }}
+                </option>
+            @endforeach
+        </select>
+        <p class="text-xs text-white/40 mt-2"><i class="fas fa-info-circle mr-1"></i> Renders as a floating chat launcher (or inline chat) on this biolink page.</p>
+    @endif
+
 @elseif($block->type === 'social_proof')
     @php $userSps = \App\Modules\User\Models\SocialProof::where('user_id', auth()->id())->orderByDesc('id')->get(); @endphp
     <label class="{{ $labelClass }}">Pick a Buzz campaign</label>

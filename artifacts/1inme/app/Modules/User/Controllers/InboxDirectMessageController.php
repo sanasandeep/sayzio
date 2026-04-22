@@ -5,6 +5,7 @@ namespace App\Modules\User\Controllers;
 use App\Modules\Common\Models\ViewerDmConversation;
 use App\Modules\Common\Models\ViewerDmMessage;
 use App\Modules\Common\Models\ViewerDmUserBlock;
+use App\Modules\User\Models\AiCompanion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -56,10 +57,44 @@ class InboxDirectMessageController
             $conversation->save();
         }
 
+        $companions = AiCompanion::where('user_id', workspace_owner_id())
+            ->where('placement', AiCompanion::PLACEMENT_INBOX)
+            ->where('is_disabled', false)
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
         return view('user.inbox.dms.thread', [
             'conversation' => $conversation,
             'messages'     => $messages,
+            'companions'   => $companions,
         ]);
+    }
+
+    /** PUT /user/inbox/dms/{conversation}/auto-reply — bind / unbind a Companion. */
+    public function setAutoReply(Request $request, ViewerDmConversation $conversation)
+    {
+        abort_unless((int) $conversation->owner_user_id === (int) workspace_owner_id(), 404);
+
+        $data = $request->validate([
+            'companion_id' => 'nullable|integer',
+        ]);
+
+        $cmpId = null;
+        if (!empty($data['companion_id'])) {
+            $cmp = AiCompanion::where('id', $data['companion_id'])
+                ->where('user_id', workspace_owner_id())
+                ->where('placement', AiCompanion::PLACEMENT_INBOX)
+                ->first();
+            if (!$cmp) {
+                return back()->with('error', 'Pick one of your inbox-placement Companions.');
+            }
+            $cmpId = $cmp->id;
+        }
+
+        $conversation->auto_reply_companion_id = $cmpId;
+        $conversation->save();
+
+        return back()->with('success', $cmpId ? 'AI Companion enabled for this thread.' : 'AI Companion disabled.');
     }
 
     public function reply(Request $request, ViewerDmConversation $conversation)

@@ -11,11 +11,12 @@ class ViewerDmMessage extends Model
     protected $table = 'viewer_dm_messages';
 
     protected $fillable = [
-        'conversation_id', 'sender_type', 'sender_user_id', 'body', 'read_at',
+        'conversation_id', 'sender_type', 'sender_user_id', 'body', 'read_at', 'is_ai',
     ];
 
     protected $casts = [
         'read_at' => 'datetime',
+        'is_ai'   => 'bool',
     ];
 
     public function conversation(): BelongsTo

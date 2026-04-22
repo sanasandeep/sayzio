@@ -23,6 +23,12 @@ return Application::configure(basePath: dirname(__DIR__))
             '*/track/session',
             '*/track/heartbeat',
             'sp/*/track',
+            // AI Companion: cross-origin embed posts JSON from arbitrary
+            // sites — origin allow-listing inside the controller plus the
+            // `cmp_*` routing constraint are the access controls here.
+            'companion/*/message',
+            'companion/*/session',
+            'companion/*/rate',
             'webhooks/*',
             'api/*',
             // RFC 8058 one-click unsubscribe POST originates from inbox

@@ -18,12 +18,14 @@ class ViewerDmConversation extends Model
         'owner_unread_count', 'viewer_unread_count',
         'status', 'blocked_at', 'last_message_at',
         'last_message_preview', 'last_sender',
+        'auto_reply_companion_id',
     ];
 
     protected $casts = [
         'owner_replied'    => 'bool',
         'blocked_at'       => 'datetime',
         'last_message_at'  => 'datetime',
+        'auto_reply_companion_id' => 'int',
     ];
 
     /** Anti-spam: the very first burst from a brand-new viewer is capped. */

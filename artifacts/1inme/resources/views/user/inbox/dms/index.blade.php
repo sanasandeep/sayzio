@@ -32,6 +32,12 @@
            class="px-4 py-2 rounded-xl text-sm {{ $tab === 'blocked' ? 'bg-rose-500/20 text-rose-200 border border-rose-400/40' : 'bg-white/5 border border-white/10' }}">
             Blocked
         </a>
+        @if(\Illuminate\Support\Facades\Route::has('user.inbox.ai-companions.index'))
+            <a href="{{ route('user.inbox.ai-companions.index') }}"
+               class="px-4 py-2 rounded-xl text-sm bg-white/5 border border-white/10 hover:bg-white/10">
+                AI Companions
+            </a>
+        @endif
         <div class="ml-auto">
             <a href="{{ route('user.inbox.index') }}" class="text-xs text-white/60 hover:text-white">
                 <i class="fas fa-arrow-left mr-1"></i> Form / subscriber inbox

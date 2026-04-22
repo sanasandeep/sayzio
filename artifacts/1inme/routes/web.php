@@ -36,6 +36,27 @@ Route::post  ('/viewer/follow/{creator}', [\App\Modules\Common\Controllers\Viewe
 Route::get ('/viewer/dm/{link}/thread', [\App\Modules\Common\Controllers\ViewerDirectMessageController::class, 'thread'])->where('link', '[0-9]+')->name('viewer.dm.thread');
 Route::post('/viewer/dm/{link}/send',   [\App\Modules\Common\Controllers\ViewerDirectMessageController::class, 'send'])->where('link', '[0-9]+')->middleware('throttle:20,1')->name('viewer.dm.send');
 
+// ---- AI Companion public chat endpoint + embed bundle / iframe ----
+// Public, auth-free. Origin checks are enforced inside the controller
+// for the `embed` placement; biolink + inbox bypass that gate because
+// they always run from a 1INME-owned origin.
+Route::post   ('/companion/{publicId}/session', [\App\Modules\Common\Controllers\PublicCompanionController::class, 'session'])
+    ->where('publicId', 'cmp_[a-z0-9]{20}')
+    ->name('public.companion.session');
+Route::post   ('/companion/{publicId}/rate',    [\App\Modules\Common\Controllers\PublicCompanionController::class, 'rate'])
+    ->where('publicId', 'cmp_[a-z0-9]{20}')
+    ->name('public.companion.rate');
+Route::post   ('/companion/{publicId}/message', [\App\Modules\Common\Controllers\PublicCompanionController::class, 'message'])
+    ->where('publicId', 'cmp_[a-z0-9]{20}')
+    ->middleware('throttle:60,1')
+    ->name('public.companion.message');
+Route::options('/companion/{publicId}/message', [\App\Modules\Common\Controllers\PublicCompanionController::class, 'preflight'])
+    ->where('publicId', 'cmp_[a-z0-9]{20}');
+Route::get    ('/embed/companion.js',                  [\App\Modules\Common\Controllers\PublicCompanionController::class, 'bundle'])->name('public.companion.bundle');
+Route::get    ('/embed/companion/{publicId}/iframe',   [\App\Modules\Common\Controllers\PublicCompanionController::class, 'iframe'])
+    ->where('publicId', 'cmp_[a-z0-9]{20}')
+    ->name('public.companion.iframe');
+
 // ---- Public Social-Proof Widget ----
 Route::get   ('/sp/{uuid}.js',    [\App\Modules\Common\Controllers\SocialProofPublicController::class, 'loaderJs'])->name('sp.public.js')->where('uuid', '[a-f0-9-]{36}');
 Route::get   ('/sp/{uuid}.json',  [\App\Modules\Common\Controllers\SocialProofPublicController::class, 'config'])  ->name('sp.public.config')->where('uuid', '[a-f0-9-]{36}');

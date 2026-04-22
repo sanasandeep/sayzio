@@ -416,6 +416,20 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post  ('{persona}/test',    [\App\Modules\User\Controllers\AI\PersonasController::class, 'test'])->whereNumber('persona')->middleware('throttle:20,1')->name('test');
         });
 
+        // AI Companions — placement-bound chatbots that bind a Persona
+        // to a biolink block, an external embed snippet, or the inbox
+        // auto-reply bot. CRUD + conversation browser + analytics.
+        Route::prefix('ai-companions')->name('ai-companions.')->group(function () {
+            Route::get   ('/',                            [\App\Modules\User\Controllers\AI\CompanionsController::class, 'index'])->name('index');
+            Route::get   ('create',                       [\App\Modules\User\Controllers\AI\CompanionsController::class, 'create'])->name('create');
+            Route::post  ('/',                            [\App\Modules\User\Controllers\AI\CompanionsController::class, 'store'])->name('store');
+            Route::get   ('{companion}',                  [\App\Modules\User\Controllers\AI\CompanionsController::class, 'edit'])->whereNumber('companion')->name('edit');
+            Route::put   ('{companion}',                  [\App\Modules\User\Controllers\AI\CompanionsController::class, 'update'])->whereNumber('companion')->name('update');
+            Route::delete('{companion}',                  [\App\Modules\User\Controllers\AI\CompanionsController::class, 'destroy'])->whereNumber('companion')->name('destroy');
+            Route::get   ('{companion}/conversations',    [\App\Modules\User\Controllers\AI\CompanionsController::class, 'conversations'])->whereNumber('companion')->name('conversations');
+            Route::get   ('{companion}/conversations/{conversation}', [\App\Modules\User\Controllers\AI\CompanionsController::class, 'conversation'])->whereNumber('companion')->whereNumber('conversation')->name('conversation');
+        });
+
         // Page & card templates (admin-curated presets) — picker reads
         // require links.view; apply mutates the link so requires links.edit.
         Route::get('links/{link}/templates', [\App\Modules\User\Controllers\LinkTemplateController::class, 'picker'])->middleware('workspace.can:links.view')->name('links.templates.picker');
@@ -623,6 +637,17 @@ Route::prefix('user')->name('user.')->group(function () {
                 Route::post('{conversation}/reply',          [\App\Modules\User\Controllers\InboxDirectMessageController::class, 'reply'])->whereNumber('conversation')->middleware('workspace.can:inbox.reply')->name('reply');
                 Route::post('{conversation}/block',          [\App\Modules\User\Controllers\InboxDirectMessageController::class, 'block'])->whereNumber('conversation')->middleware('workspace.can:inbox.edit')->name('block');
                 Route::post('{conversation}/unblock',        [\App\Modules\User\Controllers\InboxDirectMessageController::class, 'unblock'])->whereNumber('conversation')->middleware('workspace.can:inbox.edit')->name('unblock');
+                Route::put ('{conversation}/auto-reply',     [\App\Modules\User\Controllers\InboxDirectMessageController::class, 'setAutoReply'])->whereNumber('conversation')->middleware('workspace.can:inbox.edit')->name('auto-reply');
+            });
+
+            // AI Companion as inbox participant — owners (and team
+            // members with inbox.view) can chat with each Companion as
+            // if it were a contact. Useful for testing prompts /
+            // knowledge before exposing the bot to visitors.
+            Route::prefix('ai-companions')->name('ai-companions.')->group(function () {
+                Route::get ('/',                          [\App\Modules\User\Controllers\InboxAiCompanionController::class, 'index'])->name('index');
+                Route::get ('{companion}',                [\App\Modules\User\Controllers\InboxAiCompanionController::class, 'show'])->whereNumber('companion')->name('show');
+                Route::post('{companion}/message',        [\App\Modules\User\Controllers\InboxAiCompanionController::class, 'send'])->whereNumber('companion')->middleware(['workspace.can:inbox.reply', 'throttle:60,1'])->name('send');
             });
 
             Route::get('{type}/{id}', [InboxController::class, 'show'])

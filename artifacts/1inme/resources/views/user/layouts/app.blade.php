@@ -642,6 +642,13 @@
                     <span class="sidebar-tooltip">Ask Coach</span>
                 </a>
                 @endif
+                <a href="{{ route('user.ai-companions.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.ai-companions.*') ? 'active' : '' }}"
+                   style="--nav-tint:#8b5cf6; --nav-tint-soft:rgba(139,92,246,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-robot"></i></div>
+                    <span class="nav-label">Companions</span>
+                    <span class="sidebar-tooltip">AI Companions (chatbot widget / embed / inbox bot)</span>
+                </a>
                 <a href="{{ route('user.ai.coach.show') }}"
                    class="sidebar-link {{ request()->routeIs('user.ai.coach.*') ? 'active' : '' }}"
                    style="--nav-tint:#22d3ee; --nav-tint-soft:rgba(34,211,238,0.12);">

@@ -299,6 +299,19 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::put('settings',  [\App\Modules\Admin\Controllers\AskCoachAdminController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
         });
 
+        // AI Companions — placement-bound chatbots (biolink / embed /
+        // inbox). Companion wraps an AI Persona; this admin section
+        // tunes platform caps and disables abusive widgets.
+        Route::prefix('ai-companions')->name('ai-companions.')->group(function () {
+            Route::get ('/',                     [\App\Modules\Admin\Controllers\AiCompanionAdminController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::put ('caps',                  [\App\Modules\Admin\Controllers\AiCompanionAdminController::class, 'updateCaps'])->middleware(CheckPermission::class . ':settings.manage')->name('caps.update');
+            Route::get ('moderation',            [\App\Modules\Admin\Controllers\AiCompanionAdminController::class, 'moderation'])->middleware(CheckPermission::class . ':settings.manage')->name('moderation');
+            Route::post('messages/{message}/flag',   [\App\Modules\Admin\Controllers\AiCompanionAdminController::class, 'flagMessage'])->middleware(CheckPermission::class . ':settings.manage')->whereNumber('message')->name('messages.flag');
+            Route::post('messages/{message}/unflag', [\App\Modules\Admin\Controllers\AiCompanionAdminController::class, 'unflagMessage'])->middleware(CheckPermission::class . ':settings.manage')->whereNumber('message')->name('messages.unflag');
+            Route::post('{companion}/disable',   [\App\Modules\Admin\Controllers\AiCompanionAdminController::class, 'disable'])->middleware(CheckPermission::class . ':settings.manage')->whereNumber('companion')->name('disable');
+            Route::post('{companion}/enable',    [\App\Modules\Admin\Controllers\AiCompanionAdminController::class, 'enable'])->middleware(CheckPermission::class . ':settings.manage')->whereNumber('companion')->name('enable');
+        });
+
         // AI Personas — per-user list, plan caps, abuse disable.
         Route::prefix('ai-personas')->name('ai-personas.')->group(function () {
             Route::get ('/',                   [\App\Modules\Admin\Controllers\AiPersonaAdminController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');

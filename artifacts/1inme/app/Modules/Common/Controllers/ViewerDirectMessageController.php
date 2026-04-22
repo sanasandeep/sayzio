@@ -196,6 +196,57 @@ class ViewerDirectMessageController
         }
 
         $conv = $result['conv'];
+
+        // ── AI Companion auto-reply ──────────────────────────────────────
+        // If this thread has an AI Companion bound (inbox placement),
+        // and the companion's `auto_send_inbox` flag is on, draft +
+        // post a reply on the owner's behalf. Failures are swallowed
+        // — the viewer's send must still succeed.
+        if ($conv->auto_reply_companion_id) {
+            try {
+                /** @var \App\Modules\User\Models\AiCompanion|null $cmp */
+                $cmp = \App\Modules\User\Models\AiCompanion::query()
+                    ->where('id', $conv->auto_reply_companion_id)
+                    ->where('user_id', $ownerId)
+                    ->where('placement', \App\Modules\User\Models\AiCompanion::PLACEMENT_INBOX)
+                    ->where('is_disabled', false)
+                    ->first();
+                $cfg = $cmp?->effectiveConfig() ?? [];
+                if ($cmp && !empty($cfg['auto_send_inbox'])) {
+                    $runtime = app(\App\Services\AI\CompanionRuntime::class);
+                    $token = 'inbox_v' . $viewer->id . '_c' . $conv->id;
+                    $result = $runtime->turn($cmp, $token, $body, [
+                        'name'   => $viewer->name ?? null,
+                        'email'  => $viewer->email ?? null,
+                        'ip'     => $request->ip(),
+                        'ua'     => Str::limit((string) $request->userAgent(), 255, ''),
+                        'origin' => 'inbox',
+                    ]);
+                    if (($result['ok'] ?? false) && !empty($result['answer'])) {
+                        $aiBody = (string) $result['answer'];
+                        $aiPreview = Str::limit(preg_replace('/\s+/', ' ', $aiBody), 220, '…');
+                        DB::transaction(function () use ($conv, $ownerId, $aiBody, $aiPreview) {
+                            ViewerDmMessage::create([
+                                'conversation_id' => $conv->id,
+                                'sender_type'     => 'owner',
+                                'sender_user_id'  => $ownerId,
+                                'body'            => $aiBody,
+                                'is_ai'           => true,
+                            ]);
+                            $conv->owner_replied        = true;
+                            $conv->owner_unread_count   = 0;
+                            $conv->last_message_at      = Carbon::now();
+                            $conv->last_message_preview = $aiPreview;
+                            $conv->last_sender          = 'owner';
+                            $conv->save();
+                        });
+                    }
+                }
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
         return response()->json([
             'ok'    => true,
             'limit' => ViewerDmConversation::VIEWER_INITIAL_LIMIT,
