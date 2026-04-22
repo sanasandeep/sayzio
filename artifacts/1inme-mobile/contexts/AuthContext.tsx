@@ -17,14 +17,17 @@ import {
 } from "@/lib/biometrics";
 import {
   DEFAULT_IDLE_TIMEOUT_MS,
+  DEFAULT_LOCK_WARNING_LEAD_MS,
   getBiometricEnabled,
   getBiometricPromptDismissed,
   getIdleTimeoutMs,
+  getLockWarningLeadMs,
   getStoredUser,
   getToken,
   setBiometricEnabled as persistBiometricEnabled,
   setBiometricPromptDismissed as persistBiometricPromptDismissed,
   setIdleTimeoutMs as persistIdleTimeoutMs,
+  setLockWarningLeadMs as persistLockWarningLeadMs,
   setStoredUser,
   setToken,
 } from "@/lib/secure";
@@ -48,15 +51,14 @@ type AuthState = {
   // Idle re-lock window in ms while the app is in the foreground.
   // 0 means the idle timer is disabled (only background re-lock applies).
   idleTimeoutMs: number;
+  // User-chosen upper bound on how early the pre-lock warning surfaces.
+  // The actual lead time is still capped against half the idle window,
+  // so this is a preference rather than a guarantee.
+  lockWarningLeadMs: number;
   // While the idle timer is about to fire, this holds the whole-second
   // countdown shown by the warning banner. `null` means no warning visible.
   lockWarningSecondsRemaining: number | null;
 };
-
-// How far ahead of the auto-lock we surface the warning banner. Capped
-// against half the configured idle window so a very short window still
-// gets a brief unobtrusive countdown rather than being all-warning.
-const LOCK_WARNING_LEAD_MS = 10_000;
 
 type Ctx = AuthState & {
   signOut: () => Promise<void>;
@@ -88,6 +90,7 @@ type Ctx = AuthState & {
   shouldOfferBiometricEnrollment: () => Promise<boolean>;
   dismissBiometricEnrollmentPrompt: () => Promise<void>;
   setIdleTimeoutMs: (ms: number) => Promise<void>;
+  setLockWarningLeadMs: (ms: number) => Promise<void>;
   noteActivity: () => void;
 };
 
@@ -102,6 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     biometricEnabled: false,
     biometricCapability: null,
     idleTimeoutMs: DEFAULT_IDLE_TIMEOUT_MS,
+    lockWarningLeadMs: DEFAULT_LOCK_WARNING_LEAD_MS,
     lockWarningSecondsRemaining: null,
   });
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
@@ -116,14 +120,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [token, user, biometricEnabled, capability, idleTimeoutMs] =
-        await Promise.all([
-          getToken(),
-          getStoredUser<AuthUser>(),
-          getBiometricEnabled(),
-          getBiometricCapability(),
-          getIdleTimeoutMs(),
-        ]);
+      const [
+        token,
+        user,
+        biometricEnabled,
+        capability,
+        idleTimeoutMs,
+        lockWarningLeadMs,
+      ] = await Promise.all([
+        getToken(),
+        getStoredUser<AuthUser>(),
+        getBiometricEnabled(),
+        getBiometricCapability(),
+        getIdleTimeoutMs(),
+        getLockWarningLeadMs(),
+      ]);
       if (cancelled) return;
 
       let enabled = biometricEnabled;
@@ -143,6 +154,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         biometricEnabled: enabled,
         biometricCapability: capability,
         idleTimeoutMs,
+        lockWarningLeadMs,
         lockWarningSecondsRemaining: null,
       });
     })();
@@ -197,10 +209,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Treat the moment the timer is (re)armed as fresh activity so a user
     // who just unlocked or just toggled the setting gets a full window.
     lastActivityRef.current = Date.now();
-    // Cap the lead time so a tiny configured idle window still leaves
-    // some pre-warning quiet period.
+    // Cap the user-chosen lead time so a tiny configured idle window
+    // still leaves some pre-warning quiet period.
     const leadMs = Math.min(
-      LOCK_WARNING_LEAD_MS,
+      state.lockWarningLeadMs,
       Math.max(1000, Math.floor(state.idleTimeoutMs / 2)),
     );
     const tick = () => {
@@ -251,13 +263,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           : { ...s, lockWarningSecondsRemaining: null },
       );
     };
-  }, [state.token, state.biometricEnabled, state.locked, state.idleTimeoutMs]);
+  }, [
+    state.token,
+    state.biometricEnabled,
+    state.locked,
+    state.idleTimeoutMs,
+    state.lockWarningLeadMs,
+  ]);
 
   const setIdleTimeoutMs = useCallback(async (ms: number) => {
     const clamped = Math.max(0, Math.floor(ms));
     await persistIdleTimeoutMs(clamped);
     lastActivityRef.current = Date.now();
     setState((s) => ({ ...s, idleTimeoutMs: clamped }));
+  }, []);
+
+  const setLockWarningLeadMs = useCallback(async (ms: number) => {
+    // Floor at 1 second so a corrupt 0 can't silently hide the warning.
+    const clamped = Math.max(1000, Math.floor(ms));
+    await persistLockWarningLeadMs(clamped);
+    lastActivityRef.current = Date.now();
+    setState((s) => ({ ...s, lockWarningLeadMs: clamped }));
   }, []);
 
   const applySession = useCallback(async (token: string, user: AuthUser) => {
@@ -473,6 +499,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       shouldOfferBiometricEnrollment,
       dismissBiometricEnrollmentPrompt,
       setIdleTimeoutMs,
+      setLockWarningLeadMs,
       noteActivity,
     }),
     [
@@ -491,6 +518,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       shouldOfferBiometricEnrollment,
       dismissBiometricEnrollmentPrompt,
       setIdleTimeoutMs,
+      setLockWarningLeadMs,
       noteActivity,
     ],
   );

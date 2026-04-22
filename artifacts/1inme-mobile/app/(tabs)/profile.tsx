@@ -25,10 +25,12 @@ import { useColors } from "@/hooks/useColors";
 import { aiCredits as aiCreditsApi, wallet as walletApi } from "@/lib/api";
 import {
   formatIdleTimeout,
+  formatLockWarningLead,
   getLastCustomIdleTimeoutMs,
   IDLE_TIMEOUT_CUSTOM_MAX_MS,
   IDLE_TIMEOUT_CUSTOM_MIN_MS,
   IDLE_TIMEOUT_PRESETS_MS,
+  LOCK_WARNING_LEAD_PRESETS_MS,
   setLastCustomIdleTimeoutMs,
   type ThemePref,
 } from "@/lib/secure";
@@ -40,6 +42,12 @@ const IDLE_TIMEOUT_OPTIONS: { value: number; label: string }[] =
   }));
 
 const PRESET_VALUES = new Set<number>(IDLE_TIMEOUT_PRESETS_MS);
+
+const LOCK_WARNING_OPTIONS: { value: number; label: string }[] =
+  LOCK_WARNING_LEAD_PRESETS_MS.map((ms) => ({
+    value: ms,
+    label: formatLockWarningLead(ms),
+  }));
 
 type CustomUnit = "sec" | "min";
 
@@ -123,6 +131,8 @@ export default function Profile() {
     refreshBiometricCapability,
     idleTimeoutMs,
     setIdleTimeoutMs,
+    lockWarningLeadMs,
+    setLockWarningLeadMs,
   } = useAuth();
   const { pref, setPref } = useThemeControls();
   const webTop = Platform.OS === "web" ? 67 : 0;
@@ -520,6 +530,7 @@ export default function Profile() {
               </Pressable>
             ) : null}
             {showBiometricRow && biometricSupported && biometricEnabled ? (
+              <>
               <View
                 style={{
                   borderTopWidth: StyleSheet.hairlineWidth,
@@ -670,6 +681,98 @@ export default function Profile() {
                   </View>
                 ) : null}
               </View>
+              <View
+                style={{
+                  borderTopWidth: StyleSheet.hairlineWidth,
+                  borderTopColor: colors.border,
+                  paddingHorizontal: 16,
+                  paddingVertical: 14,
+                  gap: 10,
+                }}
+              >
+                <View
+                  style={{ flexDirection: "row", alignItems: "center", gap: 14 }}
+                >
+                  <Feather
+                    name="alert-triangle"
+                    size={18}
+                    color={colors.primary}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={[styles.listLabel, { color: colors.foreground }]}
+                    >
+                      Lock warning
+                    </Text>
+                    <Text
+                      style={[
+                        styles.helper,
+                        { color: colors.mutedForeground },
+                      ]}
+                    >
+                      {idleTimeoutMs > 0
+                        ? `Heads-up ${formatLockWarningLead(
+                            Math.min(
+                              lockWarningLeadMs,
+                              Math.max(
+                                1000,
+                                Math.floor(idleTimeoutMs / 2),
+                              ),
+                            ),
+                          )} before auto-lock.`
+                        : "Only used when auto-lock is on."}
+                    </Text>
+                  </View>
+                </View>
+                <View
+                  style={[
+                    styles.segment,
+                    {
+                      backgroundColor: colors.background,
+                      borderColor: colors.border,
+                      borderRadius: colors.radius,
+                    },
+                  ]}
+                >
+                  {LOCK_WARNING_OPTIONS.map((opt) => {
+                    const active = lockWarningLeadMs === opt.value;
+                    return (
+                      <Pressable
+                        key={opt.value}
+                        onPress={() => {
+                          setLockWarningLeadMs(opt.value).catch(() => {});
+                        }}
+                        style={[
+                          styles.segmentItem,
+                          {
+                            backgroundColor: active
+                              ? colors.card
+                              : "transparent",
+                            borderRadius: colors.radius - 4,
+                          },
+                        ]}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Warn ${opt.label} before auto-lock`}
+                        accessibilityState={{ selected: active }}
+                      >
+                        <Text
+                          style={[
+                            styles.segmentText,
+                            {
+                              color: active
+                                ? colors.primary
+                                : colors.mutedForeground,
+                            },
+                          ]}
+                        >
+                          {opt.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+              </>
             ) : null}
           </View>
         </View>

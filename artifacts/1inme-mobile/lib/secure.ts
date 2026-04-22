@@ -9,6 +9,7 @@ const BIOMETRIC_ENABLED_KEY = "1inme.auth.biometric.enabled";
 const BIOMETRIC_PROMPT_DISMISSED_KEY = "1inme.auth.biometric.prompt.dismissed";
 const IDLE_TIMEOUT_MS_KEY = "1inme.auth.idle.timeout.ms";
 const LAST_CUSTOM_IDLE_TIMEOUT_MS_KEY = "1inme.auth.idle.timeout.lastCustom.ms";
+const LOCK_WARNING_LEAD_MS_KEY = "1inme.auth.lock.warning.lead.ms";
 
 // Default idle re-lock window when biometric unlock is on. 5 minutes feels
 // like a reasonable middle-ground between security and convenience.
@@ -138,4 +139,39 @@ export const setLastCustomIdleTimeoutMs = (ms: number) =>
   setItem(
     LAST_CUSTOM_IDLE_TIMEOUT_MS_KEY,
     String(Math.max(0, Math.floor(ms))),
+  );
+
+// How far ahead of the auto-lock the warning banner appears. The idle
+// timer caps this against half the configured idle window, so the
+// persisted choice is just the user's preferred upper bound.
+export const DEFAULT_LOCK_WARNING_LEAD_MS = 10_000;
+export const LOCK_WARNING_LEAD_PRESETS_MS = [
+  5_000,
+  10_000,
+  30_000,
+] as const;
+
+// Format a lock-warning lead duration for compact labels (e.g. "5s").
+export function formatLockWarningLead(ms: number): string {
+  const totalSec = Math.max(1, Math.round(ms / 1000));
+  if (totalSec < 60) return `${totalSec}s`;
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  return sec === 0 ? `${min}m` : `${min}m ${sec}s`;
+}
+
+// Persisted lock-warning lead in ms. Falls back to the default when
+// unset/unparseable, and clamps non-positive stored values to the default
+// so a corrupt/zero value can never silently disable the warning.
+export const getLockWarningLeadMs = async (): Promise<number> => {
+  const raw = await getItem(LOCK_WARNING_LEAD_MS_KEY);
+  if (raw == null) return DEFAULT_LOCK_WARNING_LEAD_MS;
+  const n = Number.parseInt(raw, 10);
+  if (!Number.isFinite(n) || n <= 0) return DEFAULT_LOCK_WARNING_LEAD_MS;
+  return n;
+};
+export const setLockWarningLeadMs = (ms: number) =>
+  setItem(
+    LOCK_WARNING_LEAD_MS_KEY,
+    String(Math.max(1000, Math.floor(ms))),
   );
