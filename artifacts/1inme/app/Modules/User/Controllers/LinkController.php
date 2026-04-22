@@ -432,7 +432,7 @@ class LinkController extends Controller
         // filtered" badge so creators understand drops in popular-link traffic
         // aren't missing data — they're crawlers we deliberately exclude.
         // Mirrors the same dimension filters as $clicksQuery for consistency.
-        $botClicksInRange = \App\Modules\User\Models\LinkClick::withBots()
+        $botClicksQuery = \App\Modules\User\Models\LinkClick::withBots()
             ->where('link_id', $link->id)
             ->where('is_bot', true)
             ->whereBetween('clicked_at', [$startDate, $endDate])
@@ -444,8 +444,36 @@ class LinkController extends Controller
             ->when($osFilter, fn ($q) => $q->where('os', $osFilter))
             ->when($languageFilter, fn ($q) => $q->where('language', $languageFilter))
             ->when($channelFilter, fn ($q) => $q->where('channel', $channelFilter))
-            ->when($baseLanguageFilter, $applyBaseLanguage)
-            ->count();
+            ->when($baseLanguageFilter, $applyBaseLanguage);
+
+        $botClicksInRange = (clone $botClicksQuery)->count();
+
+        // Group raw bot UAs and bucket them into friendly families (Googlebot,
+        // ClaudeBot, Headless Chrome, …) so the "Bot hits filtered" badge can
+        // reveal *which* bots are hitting this link, not just how many. We pull
+        // the top N raw UAs (cheap, indexed-ish group-by) and aggregate into
+        // families in PHP — UA cardinality is low enough that this is fine and
+        // it lets us reuse the existing BotDetector classification logic.
+        $botFamilyBreakdown = collect();
+        if ($botClicksInRange > 0) {
+            $rawBotUserAgents = (clone $botClicksQuery)
+                ->selectRaw('COALESCE(user_agent, \'\') as ua, COUNT(*) as count')
+                ->groupBy('ua')
+                ->orderByDesc('count')
+                ->limit(200)
+                ->get();
+
+            $detector = app(\App\Modules\Common\Services\BotDetector::class);
+            $families = [];
+            foreach ($rawBotUserAgents as $row) {
+                $family = $detector->classifyFamily($row->ua === '' ? null : $row->ua);
+                $families[$family] = ($families[$family] ?? 0) + (int) $row->count;
+            }
+            arsort($families);
+            $botFamilyBreakdown = collect($families)
+                ->map(fn ($count, $family) => (object) ['family' => $family, 'count' => $count])
+                ->values();
+        }
 
         $dateExpr = match ($groupBy) {
             'week' => "TO_CHAR(DATE_TRUNC('week', clicked_at), 'YYYY-MM-DD')",
@@ -872,7 +900,7 @@ class LinkController extends Controller
             'browserStats', 'osStats', 'countryStats', 'cityStats',
             'deviceStats', 'sourceStats', 'channelStats', 'languageStats', 'blockStats', 'utmStats',
             'recentClicks', 'totalInRange', 'uniqueInRange',
-            'blockClicksInRange', 'pageVisitsInRange', 'botClicksInRange',
+            'blockClicksInRange', 'pageVisitsInRange', 'botClicksInRange', 'botFamilyBreakdown',
             'period', 'groupBy', 'startDate', 'endDate',
             'totalSessions', 'avgSessionSeconds', 'totalEngagedSeconds',
             'bounceRate', 'blockEngagement', 'blockClickMap', 'blockMeta',

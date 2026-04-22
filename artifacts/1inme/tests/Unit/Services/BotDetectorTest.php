@@ -41,6 +41,54 @@ class BotDetectorTest extends TestCase
         $this->assertTrue($this->detector->isBot('   '));
     }
 
+    #[DataProvider('botFamilyExpectations')]
+    public function test_classify_family_buckets_known_bots(string $expected, string $ua): void
+    {
+        $this->assertSame(
+            $expected,
+            $this->detector->classifyFamily($ua),
+            "Expected UA to bucket as '$expected': $ua"
+        );
+    }
+
+    public function test_classify_family_returns_unknown_for_empty_ua(): void
+    {
+        $this->assertSame('Unknown (no UA)', $this->detector->classifyFamily(null));
+        $this->assertSame('Unknown (no UA)', $this->detector->classifyFamily(''));
+        $this->assertSame('Unknown (no UA)', $this->detector->classifyFamily('   '));
+    }
+
+    public function test_classify_family_falls_back_to_other_bot_for_unfamiliar_markers(): void
+    {
+        $this->assertSame('Other bot',     $this->detector->classifyFamily('Mozilla/5.0 SomeRandomBot/1.0'));
+        $this->assertSame('Other crawler', $this->detector->classifyFamily('Unknown crawler/2.0'));
+        $this->assertSame('Other spider',  $this->detector->classifyFamily('CustomSpider/1.0'));
+    }
+
+    public static function botFamilyExpectations(): array
+    {
+        return [
+            ['Googlebot',       'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'],
+            ['Bingbot',         'Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)'],
+            ['AhrefsBot',       'Mozilla/5.0 (compatible; AhrefsBot/7.0; +http://ahrefs.com/robot/)'],
+            ['SemrushBot',      'Mozilla/5.0 (compatible; SemrushBot/7~bl;)'],
+            ['DuckDuckGo',      'DuckDuckBot/1.1; (+http://duckduckgo.com/duckduckbot.html)'],
+            ['Yandex',          'Mozilla/5.0 (compatible; YandexBot/3.0; +http://yandex.com/bots)'],
+            ['Baidu',           'Mozilla/5.0 (compatible; Baiduspider/2.0;)'],
+            ['GPTBot (OpenAI)', 'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; GPTBot/1.0; +https://openai.com/gptbot)'],
+            ['ClaudeBot',       'Mozilla/5.0 (compatible; ClaudeBot/1.0; +claudebot@anthropic.com)'],
+            ['Headless Chrome', 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 HeadlessChrome/118.0.0.0 Safari/537.36'],
+            ['curl',            'curl/7.85.0'],
+            ['wget',            'Wget/1.21.3'],
+            ['Python script',   'python-requests/2.31.0'],
+            ['UptimeRobot',     'Mozilla/5.0 (compatible; UptimeRobot/2.0;)'],
+            ['Lighthouse',      'Mozilla/5.0 Chrome/119.0.0.0 Safari/537.36 Lighthouse'],
+            ['Facebook',        'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)'],
+            ['Go client',       'Go-http-client/1.1'],
+            ['Java client',     'Java/17.0.2'],
+        ];
+    }
+
     public static function botUserAgents(): array
     {
         return [

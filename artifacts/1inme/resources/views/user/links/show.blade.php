@@ -693,14 +693,61 @@
         <div class="kpi-cell-value">{{ $totalInRange > 0 ? round(($uniqueInRange / $totalInRange) * 100) : 0 }}%</div>
     </div>
     @if($botClicksInRange > 0)
-    <a href="{{ route('user.links.clicks.export', $link) }}?{{ http_build_query(array_merge($qs, ['include_bots' => 1])) }}"
-       class="kpi-cell kpi-cell-link"
-       title="We exclude obvious crawlers like Googlebot, AhrefsBot, headless Chrome, etc. from your totals so your numbers reflect real humans. Click to download a CSV that includes these bot/scraper hits.">
+    <button type="button"
+       class="kpi-cell kpi-cell-link text-left"
+       onclick="(function(el){var p=document.getElementById('bot-breakdown-panel');if(!p)return;p.hidden=!p.hidden;el.setAttribute('aria-expanded', p.hidden ? 'false' : 'true');if(!p.hidden){p.scrollIntoView({behavior:'smooth',block:'nearest'});}})(this)"
+       aria-expanded="false"
+       aria-controls="bot-breakdown-panel"
+       title="We exclude obvious crawlers like Googlebot, AhrefsBot, headless Chrome, etc. from your totals so your numbers reflect real humans. Click to see which bots are hitting this link.">
         <div class="kpi-cell-head"><i class="fas fa-robot"></i> Bot hits filtered</div>
-        <div class="kpi-cell-value">{{ number_format($botClicksInRange) }} <i class="fas fa-file-csv text-[11px] ml-1" style="color: var(--text-faint);"></i></div>
-    </a>
+        <div class="kpi-cell-value">{{ number_format($botClicksInRange) }} <i class="fas fa-chevron-down text-[10px] ml-1" style="color: var(--text-faint);"></i></div>
+    </button>
     @endif
 </div>
+
+@if($botClicksInRange > 0)
+<div id="bot-breakdown-panel" hidden class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#64748b,#94a3b8); --sc-glow: rgba(100,116,139,0.30); --sc-color: #cbd5e1; --sc-border: rgba(100,116,139,0.30);">
+    <div class="section-head">
+        <div class="section-title"><div class="section-icon"><i class="fas fa-robot"></i></div> Top bots hitting this link</div>
+        <a href="{{ route('user.links.clicks.export', $link) }}?{{ http_build_query(array_merge($qs, ['include_bots' => 1])) }}"
+           class="section-pill" title="Download a CSV of all clicks including bot/scraper hits in this date range.">
+            <i class="fas fa-file-csv mr-1"></i> Export CSV (with bots)
+        </a>
+    </div>
+    @if($botFamilyBreakdown->isEmpty())
+        <p class="text-sm text-center py-6" style="color: var(--text-faint);">No bot details available for this range.</p>
+    @else
+        @php
+            $botMax = max(1, $botFamilyBreakdown->max('count'));
+            $botBreakdownTotal = $botFamilyBreakdown->sum('count');
+            $botCoveragePct = $botClicksInRange > 0 ? round(($botBreakdownTotal / $botClicksInRange) * 100) : 100;
+        @endphp
+        <p class="text-[12px] mb-3" style="color: var(--text-faint);">
+            Grouped by bot family — based on the user-agent string. Counts respect the filters above.
+            @if($botCoveragePct < 100)
+                Showing the top user-agents, which cover {{ number_format($botBreakdownTotal) }} of {{ number_format($botClicksInRange) }} bot hits ({{ $botCoveragePct }}%); the long tail is omitted.
+            @endif
+        </p>
+        <div class="flex flex-col gap-2">
+            @foreach($botFamilyBreakdown->take(12) as $row)
+                @php $pct = round(($row->count / $botMax) * 100); @endphp
+                <div class="flex items-center gap-3 text-[13px]">
+                    <div class="w-44 truncate" style="color: var(--text-color);" title="{{ $row->family }}">{{ $row->family }}</div>
+                    <div class="flex-1 h-2 rounded-full overflow-hidden" style="background: rgba(100,116,139,0.18);">
+                        <div class="h-full rounded-full" style="width: {{ $pct }}%; background: linear-gradient(90deg,#64748b,#94a3b8);"></div>
+                    </div>
+                    <div class="w-20 text-right tabular-nums" style="color: var(--text-faint);">{{ number_format($row->count) }}</div>
+                </div>
+            @endforeach
+        </div>
+        @if($botFamilyBreakdown->count() > 12)
+            <p class="text-[11px] mt-3" style="color: var(--text-faint);">
+                Showing top 12 of {{ $botFamilyBreakdown->count() }} bot families.
+            </p>
+        @endif
+    @endif
+</div>
+@endif
 
 {{-- ===================== CLICKS OVER TIME ===================== --}}
 <div class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#7c3aed,#ec4899); --sc-glow: rgba(124,58,237,0.35); --sc-color: #ddd6fe; --sc-border: rgba(124,58,237,0.3);">

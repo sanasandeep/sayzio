@@ -91,4 +91,95 @@ class BotDetector
 
         return false;
     }
+
+    /**
+     * Ordered list of bot "families" — friendly display name => list of
+     * case-insensitive substrings. The first family whose substring is found
+     * in the UA wins, so order matters: more specific names come before
+     * generic catch-alls. Used by analytics to break the "Bot hits filtered"
+     * badge down by who's actually crawling the link.
+     */
+    protected const BOT_FAMILIES = [
+        'Googlebot'         => ['googlebot', 'adsbot-google', 'mediapartners-google', 'apis-google'],
+        'Bingbot'           => ['bingbot', 'bingpreview', 'msnbot'],
+        'Yandex'            => ['yandex'],
+        'Baidu'             => ['baiduspider'],
+        'DuckDuckGo'        => ['duckduckbot'],
+        'Applebot'          => ['applebot'],
+        'Amazonbot'         => ['amazonbot'],
+        'GPTBot (OpenAI)'   => ['gptbot', 'oai-searchbot', 'chatgpt-user'],
+        'ClaudeBot'        => ['claudebot', 'anthropic-ai'],
+        'PerplexityBot'     => ['perplexitybot'],
+        'CommonCrawl'       => ['ccbot'],
+        'ByteSpider'        => ['bytespider'],
+        'Cohere'            => ['cohere-ai'],
+        'YouBot'            => ['youbot'],
+        'AhrefsBot'         => ['ahrefsbot'],
+        'SemrushBot'        => ['semrushbot'],
+        'MJ12bot'           => ['mj12bot'],
+        'DotBot'            => ['dotbot'],
+        'PetalBot'          => ['petalbot'],
+        'Screaming Frog'    => ['screaming frog'],
+        'Sitebulb'          => ['sitebulb'],
+        'Serpstat'          => ['serpstatbot'],
+        'Internet Archive'  => ['archive.org_bot', 'ia_archiver', 'wayback'],
+        'Facebook'          => ['facebookexternalhit', 'facebookcatalog', 'meta-externalagent'],
+        'Embedly'           => ['embedly'],
+        'Prerender'         => ['prerender'],
+        'Lighthouse'        => ['lighthouse', 'pagespeed'],
+        'GTmetrix'          => ['gtmetrix'],
+        'Pingdom'           => ['pingdom'],
+        'UptimeRobot'       => ['uptimerobot'],
+        'StatusCake'        => ['statuscake'],
+        'New Relic'         => ['newrelicpinger'],
+        'Site24x7'          => ['site24x7'],
+        'Headless Chrome'   => ['headlesschrome'],
+        'PhantomJS'         => ['phantomjs'],
+        'Puppeteer'         => ['puppeteer'],
+        'Playwright'        => ['playwright'],
+        'Selenium'          => ['selenium'],
+        'curl'              => ['curl/'],
+        'wget'              => ['wget/'],
+        'Python script'     => ['python-requests', 'python-urllib', 'aiohttp'],
+        'Java client'       => ['java/', 'apache-httpclient'],
+        'Go client'         => ['go-http-client'],
+        'Node.js client'    => ['node-fetch', 'electron-fetch', 'undici', 'axios/'],
+        'OkHttp'            => ['okhttp'],
+        'Guzzle'            => ['guzzlehttp'],
+        'HTTPie'            => ['httpie/'],
+        'Perl LWP'          => ['libwww-perl', 'lwp::', 'mechanize'],
+        'RestSharp'         => ['restsharp'],
+    ];
+
+    /**
+     * Bucket a user-agent string into a friendly family name (e.g. "Googlebot",
+     * "ClaudeBot", "Headless Chrome"). Returns "Unknown bot" for empty UAs and
+     * "Other bot" for UAs that {@see isBot()} flagged but don't match a known
+     * family. Safe to call on non-bot UAs too — they'll just fall into
+     * "Other bot".
+     */
+    public function classifyFamily(?string $userAgent): string
+    {
+        if ($userAgent === null || trim($userAgent) === '') {
+            return 'Unknown (no UA)';
+        }
+
+        $haystack = strtolower(trim($userAgent));
+
+        foreach (self::BOT_FAMILIES as $family => $needles) {
+            foreach ($needles as $needle) {
+                if (str_contains($haystack, $needle)) {
+                    return $family;
+                }
+            }
+        }
+
+        // Generic markers that didn't match a specific family.
+        if (str_contains($haystack, 'crawler')) return 'Other crawler';
+        if (str_contains($haystack, 'spider'))  return 'Other spider';
+        if (str_contains($haystack, 'bot'))     return 'Other bot';
+        if (str_contains($haystack, 'scrape'))  return 'Other scraper';
+
+        return 'Other bot';
+    }
 }
