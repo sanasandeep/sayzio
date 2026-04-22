@@ -602,6 +602,46 @@
                 </a>
                 @endif
 
+                {{-- ========== AI ========== --}}
+                @if(\App\Services\AI\AiEngineSettings::isEnabled())
+                <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">AI</div>
+                <a href="{{ route('user.ai.mind.show') }}"
+                   class="sidebar-link {{ request()->routeIs('user.ai.mind.*') ? 'active' : '' }}"
+                   style="--nav-tint:#8b5cf6; --nav-tint-soft:rgba(139,92,246,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-brain"></i></div>
+                    <span class="nav-label">Mind</span>
+                    <span class="sidebar-tooltip">Mind</span>
+                </a>
+                <a href="{{ route('user.ai.persona.show') }}"
+                   class="sidebar-link {{ request()->routeIs('user.ai.persona.*') ? 'active' : '' }}"
+                   style="--nav-tint:#a78bfa; --nav-tint-soft:rgba(167,139,250,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-user-pen"></i></div>
+                    <span class="nav-label">Persona</span>
+                    <span class="sidebar-tooltip">Persona</span>
+                </a>
+                <a href="{{ route('user.ai.companion.show') }}"
+                   class="sidebar-link {{ request()->routeIs('user.ai.companion.*') ? 'active' : '' }}"
+                   style="--nav-tint:#7c3aed; --nav-tint-soft:rgba(124,58,237,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-comments"></i></div>
+                    <span class="nav-label">Companion</span>
+                    <span class="sidebar-tooltip">Companion</span>
+                </a>
+                <a href="{{ route('user.ai.coach.show') }}"
+                   class="sidebar-link {{ request()->routeIs('user.ai.coach.*') ? 'active' : '' }}"
+                   style="--nav-tint:#22d3ee; --nav-tint-soft:rgba(34,211,238,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-bullhorn"></i></div>
+                    <span class="nav-label">Coach</span>
+                    <span class="sidebar-tooltip">Coach</span>
+                </a>
+                <a href="{{ route('user.ai-credits.show') }}"
+                   class="sidebar-link {{ request()->routeIs('user.ai-credits.*') ? 'active' : '' }}"
+                   style="--nav-tint:#c4b5fd; --nav-tint-soft:rgba(196,181,253,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-sparkles"></i></div>
+                    <span class="nav-label">AI Credits</span>
+                    <span class="sidebar-tooltip">AI Credits</span>
+                </a>
+                @endif
+
                 {{-- ========== AUDIENCE ========== --}}
                 @if($__can['inbox_view'] || $__can['followers_view'] || $__can['posts_view'])
                 <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Audience</div>

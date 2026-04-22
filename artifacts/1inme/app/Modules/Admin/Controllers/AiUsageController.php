@@ -34,9 +34,17 @@ class AiUsageController extends Controller
 
         // Per-user aggregation. Grouping keeps the result list small
         // even on large ledgers because we cap to top 100 spenders.
+        // Feature tags are stored as either a bare product name ("mind")
+        // or a "product.sub" form ("persona.profile", "companion.chat",
+        // "coach.suggest"). The dropdown lists product-level options, so
+        // filter with a prefix match to roll every sub-feature up to its
+        // product on the admin index.
         $rows = AiCreditTransaction::query()
             ->where('created_at', '>=', $since)
-            ->when($feature, fn($q) => $q->where('feature', $feature))
+            ->when($feature, fn($q) => $q->where(function ($q) use ($feature) {
+                $q->where('feature', $feature)
+                  ->orWhere('feature', 'like', $feature . '.%');
+            }))
             ->select(
                 'user_id',
                 DB::raw("SUM(CASE WHEN type='spend' THEN -delta_credits ELSE 0 END) AS spent"),

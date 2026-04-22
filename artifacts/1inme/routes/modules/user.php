@@ -333,6 +333,25 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get ('ai-credits/transactions', [\App\Modules\User\Controllers\AiCreditsController::class, 'transactions'])->name('ai-credits.transactions');
         Route::post('ai-credits/buy',          [\App\Modules\User\Controllers\AiCreditsController::class, 'buy'])->name('ai-credits.buy');
 
+        // ---- AI features (spend credits via OpenAiService) ----
+        // Each feature charges through OpenAiService::chat() with a
+        // unique `feature` tag so admin reporting can attribute spend
+        // back to the right product on /admin/ai-usage.
+        Route::prefix('ai')->name('ai.')->group(function () {
+            Route::get ('mind',        [\App\Modules\User\Controllers\AI\MindController::class, 'show'])->name('mind.show');
+            Route::post('mind/think',  [\App\Modules\User\Controllers\AI\MindController::class, 'think'])->middleware('throttle:30,1')->name('mind.think');
+
+            Route::get ('persona',           [\App\Modules\User\Controllers\AI\PersonaController::class, 'show'])->name('persona.show');
+            Route::post('persona/generate',  [\App\Modules\User\Controllers\AI\PersonaController::class, 'generate'])->middleware('throttle:30,1')->name('persona.generate');
+
+            Route::get ('companion',         [\App\Modules\User\Controllers\AI\CompanionController::class, 'show'])->name('companion.show');
+            Route::post('companion/send',    [\App\Modules\User\Controllers\AI\CompanionController::class, 'send'])->middleware('throttle:60,1')->name('companion.send');
+            Route::post('companion/reset',   [\App\Modules\User\Controllers\AI\CompanionController::class, 'reset'])->name('companion.reset');
+
+            Route::get ('coach',         [\App\Modules\User\Controllers\AI\CoachController::class, 'show'])->name('coach.show');
+            Route::post('coach/suggest', [\App\Modules\User\Controllers\AI\CoachController::class, 'suggest'])->middleware('throttle:30,1')->name('coach.suggest');
+        });
+
         // Page & card templates (admin-curated presets) — picker reads
         // require links.view; apply mutates the link so requires links.edit.
         Route::get('links/{link}/templates', [\App\Modules\User\Controllers\LinkTemplateController::class, 'picker'])->middleware('workspace.can:links.view')->name('links.templates.picker');

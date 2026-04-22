@@ -40,6 +40,26 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // AI features throw InsufficientAiCreditsException when the user
+        // tries to spend more credits than they have. Surface it as a
+        // friendly redirect to the top-up page (or JSON for API/AJAX)
+        // rather than a 500 — the message includes a clear CTA.
+        $exceptions->render(function (\App\Services\AI\InsufficientAiCreditsException $e, \Illuminate\Http\Request $request) {
+            $msg = "You need {$e->required} AI credits to do that — you have {$e->balance}. Top up to continue.";
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json([
+                    'error' => [
+                        'message'  => $msg,
+                        'code'     => 'insufficient_ai_credits',
+                        'required' => $e->required,
+                        'balance'  => $e->balance,
+                        'top_up'   => route('user.ai-credits.show'),
+                    ],
+                ], 402);
+            }
+            return redirect()->route('user.ai-credits.show')->with('error', $msg);
+        });
+
         // Standardize JSON error envelope for /api/* routes.
         $exceptions->render(function (\Throwable $e, \Illuminate\Http\Request $request) {
             if (!$request->is('api/*')) {

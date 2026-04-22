@@ -52,7 +52,14 @@ class AiCreditsController extends Controller
         // via query string. Used by both the HTML view and CSV export.
         $q = $balance->transactions();
         if ($t = $request->query('type'))      $q->where('type', $t);
-        if ($f = $request->query('feature'))   $q->where('feature', $f);
+        if ($f = $request->query('feature')) {
+            // Match the bare product tag and any "product.sub" variants
+            // ("persona", "persona.profile", …) so the user-facing
+            // history filter rolls sub-features up to their product.
+            $q->where(function ($q) use ($f) {
+                $q->where('feature', $f)->orWhere('feature', 'like', $f . '.%');
+            });
+        }
         if ($from = $request->query('from'))   $q->where('created_at', '>=', $from);
         if ($to   = $request->query('to'))     $q->where('created_at', '<=', $to . ' 23:59:59');
 
