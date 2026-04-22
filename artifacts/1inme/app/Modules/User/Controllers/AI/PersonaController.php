@@ -4,6 +4,7 @@ namespace App\Modules\User\Controllers\AI;
 
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\AiMind;
+use App\Modules\User\Models\AiMindDefault;
 use App\Modules\User\Models\AiPersona;
 use App\Services\AI\AiCreditService;
 use App\Services\AI\AiEngineSettings;
@@ -62,6 +63,15 @@ class PersonaController extends Controller
             }
         }
 
+        // Pre-populate Mind selection from the user's saved defaults
+        // when the form has no fresh session selection yet, so they
+        // don't have to re-pick every visit.
+        $default = AiMindDefault::forUserFeature($user->id, 'persona');
+        if ($default && !array_key_exists('mind_ids', $input)) {
+            $input['mind_ids']         = $default->mind_ids ?? [];
+            $input['include_platform'] = $default->include_platform;
+        }
+
         return view('user.ai.persona', [
             'balance'      => $this->credits->getBalance($user),
             'result'       => session('ai.persona.result'),
@@ -71,7 +81,61 @@ class PersonaController extends Controller
                 ->get(),
             'mineMinds'    => $this->userMinds($user),
             'platformMind' => $this->platformMind(),
+            'hasDefault'   => (bool) $default,
+            'defaultFeature' => 'persona',
         ]);
+    }
+
+    /**
+     * Save the current Mind selection (from the form) as this user's
+     * default for Persona. Subsequent visits pre-populate the picker.
+     */
+    public function saveDefaults(Request $request)
+    {
+        $this->ensureEnabled();
+        $data = $request->validate([
+            'mind_ids'         => 'nullable|array',
+            'mind_ids.*'       => 'integer',
+            'include_platform' => 'nullable|boolean',
+        ]);
+
+        $user = $request->user();
+        $mindIds = array_values(array_unique(array_map('intval', $data['mind_ids'] ?? [])));
+        // Constrain to the user's own active Minds so we don't store
+        // stale or cross-user ids in defaults.
+        if ($mindIds) {
+            $mindIds = AiMind::where('user_id', $user->id)
+                ->where('is_disabled', false)
+                ->whereIn('id', $mindIds)
+                ->pluck('id')
+                ->map(fn($id) => (int) $id)
+                ->all();
+        }
+
+        AiMindDefault::updateOrCreate(
+            ['user_id' => $user->id, 'feature' => 'persona'],
+            [
+                'mind_ids'         => $mindIds,
+                'include_platform' => (bool) ($data['include_platform'] ?? false),
+            ],
+        );
+
+        return redirect()->route('user.ai.persona.show')
+            ->with('status', 'Saved as your default Mind selection for Persona.');
+    }
+
+    /**
+     * Forget this user's default Mind selection for Persona.
+     */
+    public function clearDefaults(Request $request)
+    {
+        $this->ensureEnabled();
+        AiMindDefault::where('user_id', $request->user()->id)
+            ->where('feature', 'persona')
+            ->delete();
+
+        return redirect()->route('user.ai.persona.show')
+            ->with('status', 'Cleared your default Mind selection for Persona.');
     }
 
     public function generate(Request $request)

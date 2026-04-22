@@ -52,4 +52,46 @@
             </span>
         </label>
     @endif
+
+    @isset($defaultFeature)
+        {{-- Save / clear the user's default Mind selection for this
+             feature (Persona, Coach). The save/clear forms sit outside
+             this <form> via the `form` attribute, but the buttons are
+             rendered inline so the affordance is right next to the
+             checkboxes. --}}
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-white/10">
+            <p class="text-xs text-white/40">
+                @if(!empty($hasDefault))
+                    Loaded from your default selection.
+                @else
+                    Tip: save this selection as your default to skip re-picking next time.
+                @endif
+            </p>
+            <div class="flex items-center gap-2">
+                <button type="submit"
+                        formaction="{{ route('user.ai.' . $defaultFeature . '.defaults.save') }}"
+                        formmethod="POST"
+                        formnovalidate
+                        class="px-3 py-1.5 rounded-lg bg-white/10 border border-white/10 text-white/80 text-xs hover:bg-white/20">
+                    Use as default
+                </button>
+                @if(!empty($hasDefault))
+                    {{-- Submitted from inside the parent <form>. Setting
+                         the button's name/value to `_method=DELETE`
+                         only adds that pair when this button is the
+                         submitter, so Laravel routes it to the DELETE
+                         clearDefaults action without affecting the
+                         "Use as default" POST. --}}
+                    <button type="submit"
+                            formaction="{{ route('user.ai.' . $defaultFeature . '.defaults.clear') }}"
+                            formmethod="POST"
+                            formnovalidate
+                            name="_method" value="DELETE"
+                            class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white/60 text-xs hover:bg-white/10">
+                        Clear default
+                    </button>
+                @endif
+            </div>
+        </div>
+    @endisset
 </div>

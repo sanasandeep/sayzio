@@ -351,6 +351,8 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post('persona/save',      [\App\Modules\User\Controllers\AI\PersonaController::class, 'save'])->name('persona.save');
             Route::patch('personas/{persona}',  [\App\Modules\User\Controllers\AI\PersonaController::class, 'update'])->name('persona.update');
             Route::delete('personas/{persona}', [\App\Modules\User\Controllers\AI\PersonaController::class, 'destroy'])->name('persona.destroy');
+            Route::post  ('persona/defaults',   [\App\Modules\User\Controllers\AI\PersonaController::class, 'saveDefaults'])->name('persona.defaults.save');
+            Route::delete('persona/defaults',   [\App\Modules\User\Controllers\AI\PersonaController::class, 'clearDefaults'])->name('persona.defaults.clear');
 
             Route::get   ('companion',                       [\App\Modules\User\Controllers\AI\CompanionController::class, 'show'])->name('companion.show');
             Route::post  ('companion',                       [\App\Modules\User\Controllers\AI\CompanionController::class, 'store'])->name('companion.store');
@@ -362,6 +364,8 @@ Route::prefix('user')->name('user.')->group(function () {
 
             Route::get ('coach',         [\App\Modules\User\Controllers\AI\CoachController::class, 'show'])->name('coach.show');
             Route::post('coach/suggest', [\App\Modules\User\Controllers\AI\CoachController::class, 'suggest'])->middleware('throttle:30,1')->name('coach.suggest');
+            Route::post  ('coach/defaults', [\App\Modules\User\Controllers\AI\CoachController::class, 'saveDefaults'])->name('coach.defaults.save');
+            Route::delete('coach/defaults', [\App\Modules\User\Controllers\AI\CoachController::class, 'clearDefaults'])->name('coach.defaults.clear');
         });
 
         // AI Minds — labelled knowledge bases (text/docs/FAQs/links/
