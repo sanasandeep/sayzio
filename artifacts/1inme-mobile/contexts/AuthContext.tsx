@@ -48,7 +48,15 @@ type AuthState = {
   // Idle re-lock window in ms while the app is in the foreground.
   // 0 means the idle timer is disabled (only background re-lock applies).
   idleTimeoutMs: number;
+  // While the idle timer is about to fire, this holds the whole-second
+  // countdown shown by the warning banner. `null` means no warning visible.
+  lockWarningSecondsRemaining: number | null;
 };
+
+// How far ahead of the auto-lock we surface the warning banner. Capped
+// against half the configured idle window so a very short window still
+// gets a brief unobtrusive countdown rather than being all-warning.
+const LOCK_WARNING_LEAD_MS = 10_000;
 
 type Ctx = AuthState & {
   signOut: () => Promise<void>;
@@ -94,6 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     biometricEnabled: false,
     biometricCapability: null,
     idleTimeoutMs: DEFAULT_IDLE_TIMEOUT_MS,
+    lockWarningSecondsRemaining: null,
   });
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
   // Tracks the last user-interaction timestamp. Updated on touch/navigation
@@ -134,6 +143,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         biometricEnabled: enabled,
         biometricCapability: capability,
         idleTimeoutMs,
+        lockWarningSecondsRemaining: null,
       });
     })();
     return () => {
@@ -162,6 +172,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const noteActivity = useCallback(() => {
     lastActivityRef.current = Date.now();
+    setState((s) =>
+      s.lockWarningSecondsRemaining == null
+        ? s
+        : { ...s, lockWarningSecondsRemaining: null },
+    );
   }, []);
 
   // Foreground idle re-lock: while signed-in with biometric unlock on and
@@ -182,24 +197,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Treat the moment the timer is (re)armed as fresh activity so a user
     // who just unlocked or just toggled the setting gets a full window.
     lastActivityRef.current = Date.now();
+    // Cap the lead time so a tiny configured idle window still leaves
+    // some pre-warning quiet period.
+    const leadMs = Math.min(
+      LOCK_WARNING_LEAD_MS,
+      Math.max(1000, Math.floor(state.idleTimeoutMs / 2)),
+    );
     const tick = () => {
       if (cancelled) return;
       const elapsed = Date.now() - lastActivityRef.current;
       const remaining = state.idleTimeoutMs - elapsed;
       if (remaining <= 0) {
         setState((s) => {
-          if (!s.token || !s.biometricEnabled || s.locked) return s;
-          return { ...s, locked: true };
+          if (!s.token || !s.biometricEnabled || s.locked) {
+            return s.lockWarningSecondsRemaining == null
+              ? s
+              : { ...s, lockWarningSecondsRemaining: null };
+          }
+          return { ...s, locked: true, lockWarningSecondsRemaining: null };
         });
         return;
       }
-      // Add a small slack so we don't spin in sub-ms reschedules.
-      timeoutId = setTimeout(tick, remaining + 50);
+      if (remaining <= leadMs) {
+        // Inside the warning window — surface the countdown and re-tick
+        // every second until the lock fires (or activity resets us).
+        const seconds = Math.max(1, Math.ceil(remaining / 1000));
+        setState((s) =>
+          s.lockWarningSecondsRemaining === seconds
+            ? s
+            : { ...s, lockWarningSecondsRemaining: seconds },
+        );
+        const nextDelay = remaining - (seconds - 1) * 1000;
+        timeoutId = setTimeout(tick, Math.max(50, nextDelay));
+        return;
+      }
+      // Still well before the warning window — sleep until just before it.
+      timeoutId = setTimeout(tick, remaining - leadMs + 50);
     };
-    timeoutId = setTimeout(tick, state.idleTimeoutMs + 50);
+    const initialDelay = Math.max(
+      50,
+      state.idleTimeoutMs - leadMs + 50,
+    );
+    timeoutId = setTimeout(tick, initialDelay);
     return () => {
       cancelled = true;
       if (timeoutId) clearTimeout(timeoutId);
+      // The idle timer is being torn down (sign-out, biometric toggle,
+      // window changed, lock fired, etc.) — drop any stale countdown so
+      // the banner can't linger after the lock condition is gone.
+      setState((s) =>
+        s.lockWarningSecondsRemaining == null
+          ? s
+          : { ...s, lockWarningSecondsRemaining: null },
+      );
     };
   }, [state.token, state.biometricEnabled, state.locked, state.idleTimeoutMs]);
 
@@ -219,6 +269,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user,
       // Fresh sign-in counts as already unlocked.
       locked: false,
+      lockWarningSecondsRemaining: null,
     }));
   }, []);
 
@@ -256,6 +307,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user: null,
       locked: false,
       biometricEnabled: false,
+      lockWarningSecondsRemaining: null,
     }));
   }, []);
 
@@ -350,7 +402,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const disableBiometricUnlock = useCallback(async () => {
     await persistBiometricEnabled(false);
-    setState((s) => ({ ...s, biometricEnabled: false, locked: false }));
+    setState((s) => ({
+      ...s,
+      biometricEnabled: false,
+      locked: false,
+      lockWarningSecondsRemaining: null,
+    }));
   }, []);
 
   const unlockWithBiometrics = useCallback(async () => {
@@ -367,6 +424,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         token: null,
         user: null,
         locked: false,
+        lockWarningSecondsRemaining: null,
       }));
       return {
         ok: false as const,
@@ -376,7 +434,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     const res = await promptBiometric("Unlock 1INME");
     if (!res.ok) return res;
-    setState((s) => ({ ...s, locked: false }));
+    setState((s) => ({
+      ...s,
+      locked: false,
+      lockWarningSecondsRemaining: null,
+    }));
     return { ok: true as const };
   }, []);
 

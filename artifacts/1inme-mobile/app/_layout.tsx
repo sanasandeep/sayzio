@@ -22,6 +22,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { DeepLinkRouter } from "@/components/DeepLinkRouter";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { IdleLockWarning } from "@/components/IdleLockWarning";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { useColors } from "@/hooks/useColors";
@@ -125,6 +126,7 @@ export default function RootLayout() {
                     <DeepLinkRouter />
                     <ActivityWatcher>
                       <RootLayoutNav />
+                      <IdleLockWarning />
                     </ActivityWatcher>
                   </KeyboardProvider>
                 </GestureHandlerRootView>
