@@ -247,6 +247,9 @@
         color: var(--text-primary);
         letter-spacing: -0.02em;
     }
+    a.kpi-cell-link { text-decoration: none; transition: background 0.15s ease; }
+    a.kpi-cell-link:hover { background: var(--bg-glass); }
+    a.kpi-cell-link:hover .kpi-cell-head { color: var(--text-primary); }
 
     /* ============ Comparison Tile (used in Block-Level Clicks) ============ */
     .cmp-tile {
@@ -689,10 +692,14 @@
         <div class="kpi-cell-head"><i class="fas fa-percentage"></i> Conversion</div>
         <div class="kpi-cell-value">{{ $totalInRange > 0 ? round(($uniqueInRange / $totalInRange) * 100) : 0 }}%</div>
     </div>
-    <div class="kpi-cell" title="We exclude obvious crawlers like Googlebot, AhrefsBot, headless Chrome, etc. from your totals so your numbers reflect real humans. This is how many bot/scraper hits we filtered out in this period.">
+    @if($botClicksInRange > 0)
+    <a href="{{ route('user.links.clicks.export', $link) }}?{{ http_build_query(array_merge($qs, ['include_bots' => 1])) }}"
+       class="kpi-cell kpi-cell-link"
+       title="We exclude obvious crawlers like Googlebot, AhrefsBot, headless Chrome, etc. from your totals so your numbers reflect real humans. Click to download a CSV that includes these bot/scraper hits.">
         <div class="kpi-cell-head"><i class="fas fa-robot"></i> Bot hits filtered</div>
-        <div class="kpi-cell-value">{{ number_format($botClicksInRange) }}</div>
-    </div>
+        <div class="kpi-cell-value">{{ number_format($botClicksInRange) }} <i class="fas fa-file-csv text-[11px] ml-1" style="color: var(--text-faint);"></i></div>
+    </a>
+    @endif
 </div>
 
 {{-- ===================== CLICKS OVER TIME ===================== --}}
@@ -1726,7 +1733,7 @@
         <div class="section-title"><div class="section-icon"><i class="fas fa-list"></i></div> Recent Clicks</div>
         <div class="flex items-center gap-2">
             <a href="{{ route('user.links.clicks.export', $link) }}?{{ http_build_query($qs) }}" class="table-action" title="Real visitors only — bot/scraper hits excluded"><i class="fas fa-file-csv"></i> Export full log</a>
-            <a href="{{ route('user.links.clicks.export', $link) }}?{{ http_build_query($qs + ['include_bots' => 1]) }}" class="table-action" title="Includes bot/scraper hits with an Is Bot column"><i class="fas fa-robot"></i> Include bots</a>
+            <a href="{{ route('user.links.clicks.export', $link) }}?{{ http_build_query(array_merge($qs, ['include_bots' => 1])) }}" class="table-action" title="Includes bot/scraper hits with an Is Bot column"><i class="fas fa-robot"></i> Include bots</a>
         </div>
     </div>
     <div id="recent-clicks-container" data-endpoint="{{ route('user.links.clicks.partial', $link) }}?{{ http_build_query($qs) }}">
