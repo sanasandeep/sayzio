@@ -44,24 +44,37 @@ class PricingPagesController extends Controller
         };
 
         $plans = Plan::active()->with('prices')->ordered()->get();
-        $rows = $plans->map(function (Plan $p) use ($user, $cycle, $taxFor) {
+        $rows = $plans->map(function (Plan $p) use ($user, $taxFor) {
             $monthly = PricingResolver::priceFor($p, $user, 'monthly');
             $annual  = PricingResolver::priceFor($p, $user, 'annual');
-            $shown   = $cycle === 'annual' ? $annual : $monthly;
             return [
-                'model'   => $p,
-                'monthly' => $monthly,
-                'annual'  => $annual,
-                'shown'   => $shown,
-                'tax'     => $taxFor($shown),
+                'model'      => $p,
+                'monthly'    => $monthly,
+                'annual'     => $annual,
+                'tax_monthly'=> $taxFor($monthly),
+                'tax_annual' => $taxFor($annual),
             ];
         });
 
+        $packages = CoinPackage::active()->with('prices')->ordered()->get()
+            ->map(function (CoinPackage $p) use ($currency) {
+                $priced = PricingResolver::priceForCurrency($p, $currency, 'monthly');
+                return [
+                    'model'         => $p,
+                    'amount_minor'  => (int) ($priced['amount_minor'] ?? 0),
+                    'formatted'     => $priced['formatted'] ?? null,
+                    'currency'      => $currency,
+                    'total_coins'   => $p->totalCoins(),
+                ];
+            });
+
         return view('public.pricing.plans', [
-            'plans'    => $rows,
-            'cycle'    => $cycle,
-            'currency' => $currency,
-            'user'     => $user,
+            'plans'         => $rows,
+            'cycle'         => $cycle,
+            'currency'      => $currency,
+            'user'          => $user,
+            'packages'      => $packages,
+            'wallet_enabled'=> WalletService::isEnabled(),
         ]);
     }
 
