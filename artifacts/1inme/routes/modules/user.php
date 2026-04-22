@@ -383,6 +383,21 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post('{mind}/ask',          [\App\Modules\User\Controllers\MindChatController::class, 'ask'])->whereNumber('mind')->middleware('throttle:20,1')->name('ask');
         });
 
+        // AI Personas — configurable conversational agents that the
+        // user later wires into widgets / inbox / Coach. Each save
+        // writes a new ai_persona_versions row and can be rolled back.
+        Route::prefix('ai-personas')->name('ai-personas.')->group(function () {
+            Route::get   ('/',                 [\App\Modules\User\Controllers\AI\PersonasController::class, 'index'])->name('index');
+            Route::get   ('create',            [\App\Modules\User\Controllers\AI\PersonasController::class, 'create'])->name('create');
+            Route::post  ('/',                 [\App\Modules\User\Controllers\AI\PersonasController::class, 'store'])->name('store');
+            Route::get   ('{persona}',         [\App\Modules\User\Controllers\AI\PersonasController::class, 'edit'])->whereNumber('persona')->name('edit');
+            Route::put   ('{persona}',         [\App\Modules\User\Controllers\AI\PersonasController::class, 'update'])->whereNumber('persona')->name('update');
+            Route::delete('{persona}',         [\App\Modules\User\Controllers\AI\PersonasController::class, 'destroy'])->whereNumber('persona')->name('destroy');
+            Route::post  ('{persona}/duplicate',[\App\Modules\User\Controllers\AI\PersonasController::class, 'duplicate'])->whereNumber('persona')->name('duplicate');
+            Route::post  ('{persona}/versions/{version}/rollback', [\App\Modules\User\Controllers\AI\PersonasController::class, 'rollback'])->whereNumber('persona')->whereNumber('version')->name('rollback');
+            Route::post  ('{persona}/test',    [\App\Modules\User\Controllers\AI\PersonasController::class, 'test'])->whereNumber('persona')->middleware('throttle:20,1')->name('test');
+        });
+
         // Page & card templates (admin-curated presets) — picker reads
         // require links.view; apply mutates the link so requires links.edit.
         Route::get('links/{link}/templates', [\App\Modules\User\Controllers\LinkTemplateController::class, 'picker'])->middleware('workspace.can:links.view')->name('links.templates.picker');

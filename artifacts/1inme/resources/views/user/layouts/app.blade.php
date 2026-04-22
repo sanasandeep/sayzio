@@ -619,6 +619,13 @@
                     <span class="nav-label">Persona</span>
                     <span class="sidebar-tooltip">Persona</span>
                 </a>
+                <a href="{{ route('user.ai-personas.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.ai-personas.*') ? 'active' : '' }}"
+                   style="--nav-tint:#f472b6; --nav-tint-soft:rgba(244,114,182,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-user-astronaut"></i></div>
+                    <span class="nav-label">Personas</span>
+                    <span class="sidebar-tooltip">AI Personas</span>
+                </a>
                 <a href="{{ route('user.ai.companion.show') }}"
                    class="sidebar-link {{ request()->routeIs('user.ai.companion.*') ? 'active' : '' }}"
                    style="--nav-tint:#7c3aed; --nav-tint-soft:rgba(124,58,237,0.12);">
@@ -835,6 +842,13 @@
                     <div class="nav-icon-wrap"><i class="fas fa-network-wired"></i></div>
                     <span class="nav-label">Minds</span>
                     <span class="sidebar-tooltip">Minds</span>
+                </a>
+                <a href="{{ route('user.ai-personas.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.ai-personas.*') ? 'active' : '' }}"
+                   style="--nav-tint:#f472b6; --nav-tint-soft:rgba(244,114,182,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-user-astronaut"></i></div>
+                    <span class="nav-label">Personas</span>
+                    <span class="sidebar-tooltip">Personas</span>
                 </a>
                 <a href="{{ route('user.ai-credits.show') }}"
                    class="sidebar-link {{ request()->routeIs('user.ai-credits.*') ? 'active' : '' }}"
