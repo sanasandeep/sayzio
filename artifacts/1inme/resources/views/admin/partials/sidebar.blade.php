@@ -98,6 +98,14 @@
             <span class="sidebar-tooltip">Plans</span>
         </a>
 
+        <a href="{{ route('admin.coin-packages.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.coin-packages.*') ? 'active' : '' }}"
+           style="--nav-tint:#eab308; --nav-tint-soft:rgba(234,179,8,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-coins"></i></div>
+            <span class="nav-label">Coin Packages</span>
+            <span class="sidebar-tooltip">Coin Packages</span>
+        </a>
+
         <a href="{{ route('admin.templates.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.templates.*') ? 'active' : '' }}"
            style="--nav-tint:#ec4899; --nav-tint-soft:rgba(236,72,153,0.12);">

@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
         $this->call(BannedNamesSeeder::class);
         $this->call(PageTemplatePersonaSeeder::class);
         $this->call(PlansAndAddonsSeeder::class);
+        $this->call(CoinPackagesSeeder::class);
         $this->call(TaxJurisdictionsSeeder::class);
         $this->call(GatewaySettingsSeeder::class);
         $this->call(SitePagesSeeder::class);
