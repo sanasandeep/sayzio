@@ -2,6 +2,8 @@
 
 namespace App\Modules\User\Services;
 
+use App\Modules\User\Services\WorkspaceRoleMatrix;
+
 /**
  * Canonical role → action mapping for workspace members.
  *
@@ -27,18 +29,28 @@ class WorkspacePermissions
     public const ACTIONS = ['view', 'create', 'edit', 'delete', 'reply'];
 
     /**
-     * Source-of-truth: which actions each role can perform on every
-     * resource inside the workspace. Owner is implicit (always allowed).
+     * Source-of-truth defaults. The active workspace may override individual
+     * cells via `WorkspaceRoleMatrix` — the legacy callers keep working
+     * because middleware/views resolve through `roleCan()` which honours the
+     * effective matrix when a workspace is bound.
      */
     public static function roleActions(): array
     {
-        return [
-            'admin'   => ['view' => true,  'create' => true,  'edit' => true,  'delete' => true,  'reply' => true],
-            'editor'  => ['view' => true,  'create' => true,  'edit' => true,  'delete' => false, 'reply' => true],
-            'replier' => ['view' => true,  'create' => false, 'edit' => false, 'delete' => false, 'reply' => true],
-            'analyst' => ['view' => true,  'create' => false, 'edit' => false, 'delete' => false, 'reply' => false],
-            'viewer'  => ['view' => true,  'create' => false, 'edit' => false, 'delete' => false, 'reply' => false],
-        ];
+        return WorkspaceRoleMatrix::defaults();
+    }
+
+    /**
+     * Effective role × action matrix for a given workspace, falling back to
+     * the active workspace bound on the container, and finally the
+     * hardcoded defaults. Used by the team UI and the invite preview so
+     * they reflect the workspace's customisations.
+     */
+    public static function effectiveRoleActions(?\App\Modules\User\Models\Workspace $ws = null): array
+    {
+        if (!$ws) {
+            $ws = app()->bound('current_workspace') ? app('current_workspace') : null;
+        }
+        return WorkspaceRoleMatrix::forWorkspace($ws);
     }
 
     /** Friendly one-line description of each role for the team UI. */
@@ -58,12 +70,13 @@ class WorkspacePermissions
      * or the legacy 'feature.action' form like 'links.edit' (the prefix
      * is ignored).
      */
-    public static function roleCan(string $role, string $action): bool
+    public static function roleCan(string $role, string $action, ?\App\Modules\User\Models\Workspace $ws = null): bool
     {
         if (str_contains($action, '.')) {
             [, $action] = explode('.', $action, 2);
         }
-        $row = self::roleActions()[$role] ?? self::roleActions()['viewer'];
+        $matrix = self::effectiveRoleActions($ws);
+        $row = $matrix[$role] ?? $matrix['viewer'];
         return (bool) ($row[$action] ?? false);
     }
 

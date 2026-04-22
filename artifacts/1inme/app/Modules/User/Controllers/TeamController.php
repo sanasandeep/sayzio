@@ -14,17 +14,31 @@ use Illuminate\Support\Facades\Mail;
 
 /**
  * Team-settings page (members + pending invites + invite/edit/remove flows)
- * for the *active* workspace. All actions here are owner-only.
+ * for the *active* workspace. The workspace Owner and any member with the
+ * Admin role can manage teammates here. Workspace-level destructive actions
+ * (delete workspace, billing, ownership transfer) remain owner-only and are
+ * gated separately by the `workspace.owner` middleware.
  */
 class TeamController extends Controller
 {
-    /** Resolve the active workspace and ensure the caller owns it. */
+    /** Resolve the active workspace and ensure the caller is owner or admin. */
     protected function workspace(Request $request): Workspace
     {
         $ws = app('current_workspace');
-        abort_unless((int) $ws->owner_user_id === $request->user()->id,
-                     403, 'Only the workspace owner can manage the team.');
+        abort_unless($this->isOwnerOrAdmin($request, $ws),
+                     403, 'Only the workspace owner or an Admin can manage the team.');
         return $ws;
+    }
+
+    /** True if the active user is the workspace owner OR an Admin member. */
+    protected function isOwnerOrAdmin(Request $request, Workspace $ws): bool
+    {
+        $user = $request->user();
+        if (!$user) return false;
+        if (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) return true;
+        if ((int) $ws->owner_user_id === (int) $user->id) return true;
+        $m = $user->membershipFor($ws);
+        return $m && $m->role === 'admin';
     }
 
     public function index(Request $request)
@@ -33,7 +47,9 @@ class TeamController extends Controller
         $members = $ws->members()->with('user:id,name,email,avatar')->get();
         $pendingInvites = $ws->pendingInvites()->orderByDesc('created_at')->get();
 
-        $owner = $request->user();
+        // Seat limits come from the workspace OWNER's plan, not the actor's
+        // — an Admin teammate may be on a smaller plan personally.
+        $owner = $ws->owner ?: $request->user();
         $maxSeats = (int) $owner->getPlanFeature('max_seats_per_workspace', 1);
         $usedSeats = $ws->seatCount();
 
@@ -44,13 +60,15 @@ class TeamController extends Controller
             'maxSeats'          => $maxSeats,
             'usedSeats'         => $usedSeats,
             'roleDescriptions'  => WorkspacePermissions::roleDescriptions(),
+            'effectiveMatrix'   => WorkspacePermissions::effectiveRoleActions($ws),
+            'canEditRoles'      => $this->isOwnerOrAdmin($request, $ws),
         ]);
     }
 
     public function invite(Request $request)
     {
         $ws = $this->workspace($request);
-        $owner = $request->user();
+        $owner = $ws->owner ?: $request->user();
 
         $data = $request->validate([
             'email' => 'required|email|max:255',
@@ -71,7 +89,7 @@ class TeamController extends Controller
 
         $invite = WorkspaceInvite::create([
             'workspace_id'    => $ws->id,
-            'inviter_user_id' => $owner->id,
+            'inviter_user_id' => $request->user()->id,
             'email'           => strtolower(trim($data['email'])),
             'role'            => $data['role'],
             // permissions blob no longer drives gating — role does. Stored

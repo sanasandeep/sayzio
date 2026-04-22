@@ -12,10 +12,19 @@
                 {{ $maxSeats === -1 ? '(unlimited)' : ' / ' . $maxSeats }}
             </p>
         </div>
-        <button type="button" @click="openInvite()"
-                class="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-semibold hover:bg-primary-700">
-            <i class="fas fa-plus mr-1"></i> Invite teammate
-        </button>
+        <div class="flex items-center gap-2">
+            @if(!empty($canEditRoles))
+                <a href="{{ route('user.team.roles.index') }}"
+                   class="px-3 py-2 rounded-lg text-sm font-semibold border hover:bg-gray-50"
+                   style="border-color: var(--border-strong); color: var(--text-primary);">
+                    <i class="fas fa-sliders-h mr-1"></i> Roles &amp; permissions
+                </a>
+            @endif
+            <button type="button" @click="openInvite()"
+                    class="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-semibold hover:bg-primary-700">
+                <i class="fas fa-plus mr-1"></i> Invite teammate
+            </button>
+        </div>
     </div>
 
     @if(session('success'))
@@ -138,8 +147,8 @@
                     <p class="mt-2 text-xs opacity-70">
                         <i class="fas fa-info-circle mr-1"></i>
                         Roles apply to <strong>everything in this workspace</strong> — links, biolinks, forms,
-                        subscribers, posts, QR codes and more. Workspace-level admin actions
-                        (delete workspace, manage members, billing) stay owner-only.
+                        subscribers, posts, QR codes and more. Workspace-level destructive actions
+                        (delete workspace, billing, transfer ownership) stay owner-only.
                     </p>
                 </div>
 
@@ -155,7 +164,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach(\App\Modules\User\Services\WorkspacePermissions::roleActions() as $roleSlug => $row)
+                            @foreach($effectiveMatrix as $roleSlug => $row)
                                 <tr class="border-t" style="border-color: var(--border-strong);"
                                     :class="form.role === '{{ $roleSlug }}' ? 'bg-purple-50/40' : ''">
                                     <td class="py-1.5 capitalize font-medium">{{ $roleSlug }}</td>

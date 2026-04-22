@@ -124,6 +124,11 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::put   ('team/members/{member}',                 [\App\Modules\User\Controllers\TeamController::class, 'updateMember'])->name('team.members.update');
         Route::delete('team/members/{member}',                 [\App\Modules\User\Controllers\TeamController::class, 'removeMember'])->name('team.members.remove');
 
+        // ---- Roles & Permissions (Owner + Admin) ----
+        Route::get   ('team/roles',                            [\App\Modules\User\Controllers\WorkspaceRolesController::class, 'index']) ->name('team.roles.index');
+        Route::put   ('team/roles',                            [\App\Modules\User\Controllers\WorkspaceRolesController::class, 'update'])->name('team.roles.update');
+        Route::post  ('team/roles/reset',                      [\App\Modules\User\Controllers\WorkspaceRolesController::class, 'reset']) ->name('team.roles.reset');
+
         // First-run onboarding wizard
         Route::prefix('onboarding')->name('onboarding.')->group(function () {
             Route::get('persona',  [\App\Modules\User\Controllers\OnboardingController::class, 'persona'])->name('persona');

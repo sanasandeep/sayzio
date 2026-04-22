@@ -28,8 +28,8 @@ class WorkspaceMember extends Model
      */
     public function effectivePermissions(): array
     {
-        return WorkspacePermissions::roleActions()[$this->role ?: 'viewer']
-            ?? WorkspacePermissions::roleActions()['viewer'];
+        $matrix = WorkspacePermissions::effectiveRoleActions($this->workspace);
+        return $matrix[$this->role ?: 'viewer'] ?? $matrix['viewer'];
     }
 
     /**
@@ -40,6 +40,6 @@ class WorkspaceMember extends Model
      */
     public function can(string $permission): bool
     {
-        return WorkspacePermissions::roleCan($this->role ?: 'viewer', $permission);
+        return WorkspacePermissions::roleCan($this->role ?: 'viewer', $permission, $this->workspace);
     }
 }

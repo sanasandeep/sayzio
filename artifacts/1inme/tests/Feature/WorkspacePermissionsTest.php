@@ -462,17 +462,155 @@ class WorkspacePermissionsTest extends TestCase
         $this->get('/user/billing')->assertOk();
     }
 
-    public function test_team_management_remains_owner_only(): void
+    public function test_admin_member_can_now_invite_and_non_admin_member_cannot(): void
     {
-        // Admin member cannot manage members — only the owner can.
-        $owner  = $this->makeUser();
-        $ws     = $owner->ownedWorkspaces()->first();
-        $member = $this->makeUser();
-        $this->memberOf($ws, $member, 'admin');
+        // Admins are allowed to manage teammates (invite, edit role, remove).
+        // Editor (and below) members still get a 403.
+        $owner = $this->makeUser();
+        $ws    = $owner->ownedWorkspaces()->first();
+        $plan  = Plan::firstOrCreate(['slug' => 'test-team'],
+            ['name' => 'Test Team', 'price' => 0, 'currency' => 'USD', 'is_active' => true,
+             'features' => ['max_workspaces' => 5, 'max_seats_per_workspace' => 10]]);
+        $owner->plan_id = $plan->id; $owner->save();
 
-        $this->actingAs($member);
+        $admin  = $this->makeUser();
+        $editor = $this->makeUser();
+        $this->memberOf($ws, $admin, 'admin');
+        $this->memberOf($ws, $editor, 'editor');
+
+        $this->actingAs($admin);
+        $this->withSession([WorkspaceContext::SESSION_KEY => $ws->id]);
+        $resp = $this->post('/user/team/invite', ['email' => 'newhire@example.com', 'role' => 'viewer']);
+        $resp->assertRedirect();
+        $this->assertDatabaseHas('workspace_invites', [
+            'workspace_id' => $ws->id, 'email' => 'newhire@example.com',
+        ]);
+
+        $this->actingAs($editor);
         $this->withSession([WorkspaceContext::SESSION_KEY => $ws->id]);
         $this->post('/user/team/invite', ['email' => 'x@y.z', 'role' => 'viewer'])->assertForbidden();
+    }
+
+    public function test_admin_member_can_open_roles_screen_and_save_matrix(): void
+    {
+        $owner = $this->makeUser();
+        $ws    = $owner->ownedWorkspaces()->first();
+        $admin = $this->makeUser();
+        $this->memberOf($ws, $admin, 'admin');
+
+        $this->actingAs($admin);
+        $this->withSession([WorkspaceContext::SESSION_KEY => $ws->id]);
+
+        $this->get('/user/team/roles')->assertOk();
+
+        // Grant editor the delete action — would 403 by default.
+        $matrix = \App\Modules\User\Services\WorkspaceRoleMatrix::defaults();
+        $matrix['editor']['delete'] = true;
+        $this->put('/user/team/roles', ['matrix' => $matrix])->assertRedirect();
+
+        $this->assertTrue(
+            \App\Modules\User\Services\WorkspacePermissions::roleCan('editor', 'delete', $ws->fresh()),
+        );
+
+        // Audit row recorded.
+        $this->assertDatabaseHas('workspace_role_permission_audits', [
+            'workspace_id' => $ws->id,
+            'user_id'      => $admin->id,
+        ]);
+    }
+
+    public function test_non_admin_member_cannot_open_or_save_roles(): void
+    {
+        $owner  = $this->makeUser();
+        $ws     = $owner->ownedWorkspaces()->first();
+        $editor = $this->makeUser();
+        $this->memberOf($ws, $editor, 'editor');
+
+        $this->actingAs($editor);
+        $this->withSession([WorkspaceContext::SESSION_KEY => $ws->id]);
+
+        $this->get('/user/team/roles')->assertForbidden();
+        $this->put('/user/team/roles', ['matrix' => []])->assertForbidden();
+    }
+
+    public function test_locked_admin_view_cell_cannot_be_revoked(): void
+    {
+        $owner = $this->makeUser();
+        $ws    = $owner->ownedWorkspaces()->first();
+
+        $this->actingAs($owner);
+        $this->withSession([WorkspaceContext::SESSION_KEY => $ws->id]);
+
+        $matrix = \App\Modules\User\Services\WorkspaceRoleMatrix::defaults();
+        $matrix['admin']['view'] = false; // attempt to lock admin out
+        $this->put('/user/team/roles', ['matrix' => $matrix])->assertRedirect();
+
+        $this->assertTrue(
+            \App\Modules\User\Services\WorkspacePermissions::roleCan('admin', 'view', $ws->fresh()),
+            'Admin row view cell must remain enabled even if posted as false.',
+        );
+    }
+
+    public function test_unknown_roles_or_actions_are_rejected_on_save(): void
+    {
+        $owner = $this->makeUser();
+        $ws    = $owner->ownedWorkspaces()->first();
+
+        $this->actingAs($owner);
+        $this->withSession([WorkspaceContext::SESSION_KEY => $ws->id]);
+
+        $bad = \App\Modules\User\Services\WorkspaceRoleMatrix::defaults();
+        $bad['mystery'] = ['view' => true];
+        $resp = $this->put('/user/team/roles', ['matrix' => $bad]);
+        $resp->assertSessionHas('error');
+    }
+
+    public function test_reset_to_defaults_restores_baseline(): void
+    {
+        $owner = $this->makeUser();
+        $ws    = $owner->ownedWorkspaces()->first();
+
+        $this->actingAs($owner);
+        $this->withSession([WorkspaceContext::SESSION_KEY => $ws->id]);
+
+        $matrix = \App\Modules\User\Services\WorkspaceRoleMatrix::defaults();
+        $matrix['viewer']['edit'] = true;
+        $this->put('/user/team/roles', ['matrix' => $matrix]);
+        $this->assertTrue(\App\Modules\User\Services\WorkspacePermissions::roleCan('viewer', 'edit', $ws->fresh()));
+
+        $this->post('/user/team/roles/reset')->assertRedirect();
+        $this->assertFalse(\App\Modules\User\Services\WorkspacePermissions::roleCan('viewer', 'edit', $ws->fresh()));
+    }
+
+    public function test_matrix_changes_are_scoped_per_workspace(): void
+    {
+        $ownerA = $this->makeUser();
+        $wsA    = $ownerA->ownedWorkspaces()->first();
+        $ownerB = $this->makeUser();
+        $wsB    = $ownerB->ownedWorkspaces()->first();
+
+        $matrix = \App\Modules\User\Services\WorkspaceRoleMatrix::defaults();
+        $matrix['editor']['delete'] = true;
+        \App\Modules\User\Services\WorkspaceRoleMatrix::save($wsA, $matrix, $ownerA);
+
+        $this->assertTrue(\App\Modules\User\Services\WorkspacePermissions::roleCan('editor', 'delete', $wsA));
+        $this->assertFalse(\App\Modules\User\Services\WorkspacePermissions::roleCan('editor', 'delete', $wsB));
+    }
+
+    public function test_billing_remains_owner_only_for_admin_members_after_role_changes(): void
+    {
+        // Even after we let admins manage the team, owner-only routes
+        // (billing, upgrade, checkout) must stay 403 for admins.
+        $owner = $this->makeUser();
+        $ws    = $owner->ownedWorkspaces()->first();
+        $admin = $this->makeUser();
+        $this->memberOf($ws, $admin, 'admin');
+
+        $this->actingAs($admin);
+        $this->withSession([WorkspaceContext::SESSION_KEY => $ws->id]);
+        $this->get('/user/billing')->assertForbidden();
+        $this->get('/user/upgrade')->assertForbidden();
+        $this->delete('/user/workspaces/' . $ws->id)->assertForbidden();
     }
 
     public function test_role_actions_table_is_stable(): void
