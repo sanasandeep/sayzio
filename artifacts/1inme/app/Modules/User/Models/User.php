@@ -23,6 +23,7 @@ class User extends Authenticatable
         'social_connection_broken_emails',
         'country',
         'is_demo',
+        'blocked_bot_families',
     ];
 
     protected $hidden = ['password', 'remember_token'];
@@ -44,6 +45,7 @@ class User extends Authenticatable
             'digest_preferred_hour' => 'integer',
             'social_connection_broken_emails' => 'boolean',
             'last_handle_ban_email_sent_at' => 'datetime',
+            'blocked_bot_families' => 'array',
         ];
     }
 

@@ -6,16 +6,32 @@ use App\Modules\Common\Services\BotDetector;
 use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\LinkClick;
+use App\Modules\User\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 use App\Modules\Common\Services\ChannelClassifier;
 
 class LinkTrackingService
 {
-    public function track(Link $link, Request $request, ?string $usedAlias = null, ?string $source = null): LinkClick
+    public function track(Link $link, Request $request, ?string $usedAlias = null, ?string $source = null): ?LinkClick
     {
         $userAgent = $this->resolveUserAgent($request);
-        $isBot = app(BotDetector::class)->isBot($userAgent);
+        $detector = app(BotDetector::class);
+        $isBot = $detector->isBot($userAgent);
+
+        // Creators can choose to drop specific bot families (e.g.
+        // "GPTBot (OpenAI)", "AhrefsBot") from being recorded at all.
+        // We classify the UA once and bail BEFORE persisting so the row
+        // never lands in link_clicks — these bots become invisible to
+        // every downstream surface (totals, breakdowns, exports, badges).
+        if ($isBot) {
+            $blockedFamilies = $this->blockedFamiliesForLink($link);
+            if (!empty($blockedFamilies)
+                && in_array($detector->classifyFamily($userAgent), $blockedFamilies, true)) {
+                return null;
+            }
+        }
 
         $geoService = app(GeoIpService::class);
         $geo = $geoService->detectGeo($request->ip());
@@ -128,10 +144,22 @@ class LinkTrackingService
         return substr($lang, 0, 2);
     }
 
-    public function trackBlockClick(Link $link, BiolinkBlock $block, string $destinationUrl, Request $request, ?string $usedAlias = null, ?string $source = null): LinkClick
+    public function trackBlockClick(Link $link, BiolinkBlock $block, string $destinationUrl, Request $request, ?string $usedAlias = null, ?string $source = null): ?LinkClick
     {
         $userAgent = $this->resolveUserAgent($request);
-        $isBot = app(BotDetector::class)->isBot($userAgent);
+        $detector = app(BotDetector::class);
+        $isBot = $detector->isBot($userAgent);
+
+        // Honour the link owner's blocked-family list before doing any
+        // work — same contract as track(): blocked bots leave no trace.
+        if ($isBot) {
+            $blockedFamilies = $this->blockedFamiliesForLink($link);
+            if (!empty($blockedFamilies)
+                && in_array($detector->classifyFamily($userAgent), $blockedFamilies, true)) {
+                return null;
+            }
+        }
+
         $geoService = app(GeoIpService::class);
         $geo = $geoService->detectGeo($request->ip());
 
@@ -185,6 +213,32 @@ class LinkTrackingService
         \App\Events\BlockClicked::dispatch($link, $block, $click, $destinationUrl);
 
         return $click;
+    }
+
+    /**
+     * Fetch the link owner's blocked bot families. We pull a single
+     * column directly via the query builder (avoiding the full User
+     * hydration) because this runs on every redirect. Returns an empty
+     * array when the column is null/missing — the caller short-circuits
+     * the classify+match work in that case so the common path stays cheap.
+     *
+     * @return array<int, string>
+     */
+    protected function blockedFamiliesForLink(Link $link): array
+    {
+        if ($link->user_id === null) {
+            return [];
+        }
+
+        $raw = DB::table('users')->where('id', (int) $link->user_id)->value('blocked_bot_families');
+        if (is_string($raw)) {
+            $decoded = json_decode($raw, true);
+            return is_array($decoded) ? array_values(array_filter($decoded, 'is_string')) : [];
+        }
+        if (is_array($raw)) {
+            return array_values(array_filter($raw, 'is_string'));
+        }
+        return [];
     }
 
     protected function resolveUserAgent(Request $request): ?string

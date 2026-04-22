@@ -709,10 +709,16 @@
 <div id="bot-breakdown-panel" hidden class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#64748b,#94a3b8); --sc-glow: rgba(100,116,139,0.30); --sc-color: #cbd5e1; --sc-border: rgba(100,116,139,0.30);">
     <div class="section-head">
         <div class="section-title"><div class="section-icon"><i class="fas fa-robot"></i></div> Top bots hitting this link</div>
-        <a href="{{ route('user.links.clicks.export', $link) }}?{{ http_build_query(array_merge($qs, ['include_bots' => 1])) }}"
-           class="section-pill" title="Download a CSV of all clicks including bot/scraper hits in this date range.">
-            <i class="fas fa-file-csv mr-1"></i> Export CSV (with bots)
-        </a>
+        <div class="flex items-center gap-2 flex-wrap">
+            <a href="{{ route('user.bot-blocks.index') }}"
+               class="section-pill" title="See and manage every bot family you've chosen to drop from tracking.">
+                <i class="fas fa-ban mr-1"></i> Manage blocked bots
+            </a>
+            <a href="{{ route('user.links.clicks.export', $link) }}?{{ http_build_query(array_merge($qs, ['include_bots' => 1])) }}"
+               class="section-pill" title="Download a CSV of all clicks including bot/scraper hits in this date range.">
+                <i class="fas fa-file-csv mr-1"></i> Export CSV (with bots)
+            </a>
+        </div>
     </div>
     @if($botFamilyBreakdown->isEmpty())
         <p class="text-sm text-center py-6" style="color: var(--text-faint);">No bot details available for this range.</p>
@@ -728,16 +734,53 @@
                 Showing the top user-agents, which cover {{ number_format($botBreakdownTotal) }} of {{ number_format($botClicksInRange) }} bot hits ({{ $botCoveragePct }}%); the long tail is omitted.
             @endif
         </p>
+        @php $blockedFamilies = (array) (auth()->user()->blocked_bot_families ?? []); @endphp
         <div class="flex flex-col gap-2">
             @foreach($botFamilyBreakdown->take(12) as $row)
-                @php $pct = round(($row->count / $botMax) * 100); @endphp
+                @php
+                    $pct = round(($row->count / $botMax) * 100);
+                    $isBlocked = in_array($row->family, $blockedFamilies, true);
+                @endphp
                 <div class="flex flex-col gap-1">
                     <div class="flex items-center gap-3 text-[13px]">
-                        <div class="w-44 truncate" style="color: var(--text-color);" title="{{ $row->family }}">{{ $row->family }}</div>
+                        <div class="w-44 truncate" style="color: var(--text-color);" title="{{ $row->family }}">
+                            {{ $row->family }}
+                            @if($isBlocked)
+                                <span class="ml-1 text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded"
+                                      style="background: rgba(244,63,94,0.15); color: #fca5a5;"
+                                      title="Already blocked. Future hits from this family are dropped before they're recorded.">
+                                    blocked
+                                </span>
+                            @endif
+                        </div>
                         <div class="flex-1 h-2 rounded-full overflow-hidden" style="background: rgba(100,116,139,0.18);">
                             <div class="h-full rounded-full" style="width: {{ $pct }}%; background: linear-gradient(90deg,#64748b,#94a3b8);"></div>
                         </div>
                         <div class="w-20 text-right tabular-nums" style="color: var(--text-faint);">{{ number_format($row->count) }}</div>
+                        @if($isBlocked)
+                            <form method="POST" action="{{ route('user.bot-blocks.destroy', ['family' => $row->family]) }}" class="shrink-0">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit"
+                                        class="text-[11px] font-semibold px-2.5 py-1 rounded-lg hover:bg-emerald-50 hover:text-emerald-700 transition"
+                                        style="color: var(--text-muted); border:1px solid var(--border-soft);"
+                                        title="Start counting hits from {{ $row->family }} again.">
+                                    <i class="fas fa-undo mr-1"></i> Unblock
+                                </button>
+                            </form>
+                        @else
+                            <form method="POST" action="{{ route('user.bot-blocks.store') }}" class="shrink-0"
+                                  onsubmit="return confirm('Drop all future hits from {{ $row->family }} before they\'re recorded? You can undo this from the Blocked bots page.');">
+                                @csrf
+                                <input type="hidden" name="family" value="{{ $row->family }}"/>
+                                <button type="submit"
+                                        class="text-[11px] font-semibold px-2.5 py-1 rounded-lg hover:bg-rose-50 hover:text-rose-700 transition"
+                                        style="color: var(--text-muted); border:1px solid var(--border-soft);"
+                                        title="Drop future hits from {{ $row->family }} before they're recorded.">
+                                    <i class="fas fa-ban mr-1"></i> Block
+                                </button>
+                            </form>
+                        @endif
                     </div>
                     @if(!empty($row->sample_user_agent))
                         <details class="ml-44 pl-3 text-[11px]" style="color: var(--text-faint);">

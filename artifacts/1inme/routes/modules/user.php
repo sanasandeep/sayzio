@@ -148,6 +148,14 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('notifications/preferences', [\App\Modules\User\Controllers\NotificationController::class, 'preferences'])->name('notifications.preferences');
         Route::put('notifications/preferences', [\App\Modules\User\Controllers\NotificationController::class, 'updatePreferences'])->name('notifications.preferences.update');
 
+        // Per-user blocklist of bot families that should not be recorded
+        // at all. Gated under stats.view because the management screen
+        // is reached from the link analytics bot-breakdown panel — only
+        // members who can see analytics need (or can use) this control.
+        Route::get   ('bot-blocks',                [\App\Modules\User\Controllers\BotBlockController::class, 'index'])->middleware('workspace.can:stats.view')->name('bot-blocks.index');
+        Route::post  ('bot-blocks',                [\App\Modules\User\Controllers\BotBlockController::class, 'store'])->middleware('workspace.can:stats.view')->name('bot-blocks.store');
+        Route::delete('bot-blocks/{family}',       [\App\Modules\User\Controllers\BotBlockController::class, 'destroy'])->middleware('workspace.can:stats.view')->where('family', '.+')->name('bot-blocks.destroy');
+
         Route::get('links/{link}/visitors', [\App\Modules\User\Controllers\VisitorAnalyticsController::class, 'index'])->middleware('workspace.can:stats.view')->name('links.visitors');
         Route::get('links/{link}/nfc-writes', [\App\Modules\User\Controllers\VisitorAnalyticsController::class, 'nfcHistory'])->middleware('workspace.can:stats.view')->name('links.nfc-writes');
         Route::get('links/{link}/followers', [\App\Modules\User\Controllers\LinkController::class, 'followers'])->middleware('workspace.can:followers.view')->name('links.followers');

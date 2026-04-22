@@ -152,6 +152,19 @@ class BotDetector
     ];
 
     /**
+     * Friendly display names of every bot family the detector knows about,
+     * in the same order as {@see BOT_FAMILIES}. Used by the per-user
+     * "block this bot family from being recorded" management screen so
+     * the picker stays in sync with the classifier.
+     *
+     * @return array<int, string>
+     */
+    public function knownFamilies(): array
+    {
+        return array_keys(self::BOT_FAMILIES);
+    }
+
+    /**
      * Bucket a user-agent string into a friendly family name (e.g. "Googlebot",
      * "ClaudeBot", "Headless Chrome"). Returns "Unknown bot" for empty UAs and
      * "Other bot" for UAs that {@see isBot()} flagged but don't match a known
