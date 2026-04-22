@@ -20,6 +20,24 @@ export const IDLE_TIMEOUT_PRESETS_MS = [
   10 * 60 * 1000,
 ] as const;
 
+// Bounds for the "Custom…" picker. 15 seconds is short enough for a kiosk
+// device but long enough to avoid accidental re-locks; 60 minutes is the
+// upper end before "auto-lock" stops feeling like a meaningful guard.
+export const IDLE_TIMEOUT_CUSTOM_MIN_MS = 15 * 1000;
+export const IDLE_TIMEOUT_CUSTOM_MAX_MS = 60 * 60 * 1000;
+
+// Format an idle-timeout duration into a short human-friendly string used
+// in helper text and segmented-control labels. 0 maps to "Off".
+export function formatIdleTimeout(ms: number): string {
+  if (ms <= 0) return "Off";
+  const totalSec = Math.round(ms / 1000);
+  if (totalSec < 60) return `${totalSec} sec`;
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  if (sec === 0) return `${min} min`;
+  return `${min} min ${sec} sec`;
+}
+
 async function setItem(key: string, value: string | null) {
   if (value == null) {
     if (Platform.OS === "web") {

@@ -5,11 +5,14 @@ import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -20,13 +23,23 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useThemeControls } from "@/contexts/ThemeContext";
 import { useColors } from "@/hooks/useColors";
 import { aiCredits as aiCreditsApi, wallet as walletApi } from "@/lib/api";
-import { IDLE_TIMEOUT_PRESETS_MS, type ThemePref } from "@/lib/secure";
+import {
+  formatIdleTimeout,
+  IDLE_TIMEOUT_CUSTOM_MAX_MS,
+  IDLE_TIMEOUT_CUSTOM_MIN_MS,
+  IDLE_TIMEOUT_PRESETS_MS,
+  type ThemePref,
+} from "@/lib/secure";
 
 const IDLE_TIMEOUT_OPTIONS: { value: number; label: string }[] =
   IDLE_TIMEOUT_PRESETS_MS.map((ms) => ({
     value: ms,
     label: ms === 0 ? "Off" : `${Math.round(ms / 60000)} min`,
   }));
+
+const PRESET_VALUES = new Set<number>(IDLE_TIMEOUT_PRESETS_MS);
+
+type CustomUnit = "sec" | "min";
 
 const INFO_PAGES: {
   href: "/info/about" | "/info/nfc" | "/info/privacy" | "/info/terms" | "/info/help";
@@ -114,6 +127,52 @@ export default function Profile() {
   const [coinBalance, setCoinBalance] = useState<number | null>(null);
   const [aiCreditBalance, setAiCreditBalance] = useState<number | null>(null);
   const [biometricBusy, setBiometricBusy] = useState(false);
+  const [customPickerOpen, setCustomPickerOpen] = useState(false);
+  const [customAmount, setCustomAmount] = useState("30");
+  const [customUnit, setCustomUnit] = useState<CustomUnit>("sec");
+
+  const isCustomActive = idleTimeoutMs > 0 && !PRESET_VALUES.has(idleTimeoutMs);
+
+  const openCustomPicker = useCallback(() => {
+    // Seed the picker with the current value when it's already custom,
+    // otherwise default to 30 sec — a reasonable kiosk-friendly value.
+    if (isCustomActive) {
+      const totalSec = Math.round(idleTimeoutMs / 1000);
+      if (totalSec % 60 === 0) {
+        setCustomUnit("min");
+        setCustomAmount(String(totalSec / 60));
+      } else {
+        setCustomUnit("sec");
+        setCustomAmount(String(totalSec));
+      }
+    } else {
+      setCustomUnit("sec");
+      setCustomAmount("30");
+    }
+    setCustomPickerOpen(true);
+  }, [idleTimeoutMs, isCustomActive]);
+
+  const parsedCustomMs = (() => {
+    const n = Number.parseInt(customAmount, 10);
+    if (!Number.isFinite(n) || n <= 0) return null;
+    const ms = customUnit === "min" ? n * 60_000 : n * 1000;
+    return ms;
+  })();
+  const clampedCustomMs =
+    parsedCustomMs == null
+      ? null
+      : Math.min(
+          IDLE_TIMEOUT_CUSTOM_MAX_MS,
+          Math.max(IDLE_TIMEOUT_CUSTOM_MIN_MS, parsedCustomMs),
+        );
+  const customOutOfRange =
+    parsedCustomMs != null && parsedCustomMs !== clampedCustomMs;
+
+  const saveCustomPicker = useCallback(() => {
+    if (clampedCustomMs == null) return;
+    setIdleTimeoutMs(clampedCustomMs).catch(() => {});
+    setCustomPickerOpen(false);
+  }, [clampedCustomMs, setIdleTimeoutMs]);
 
   useFocusEffect(
     useCallback(() => {
@@ -436,7 +495,7 @@ export default function Profile() {
                       style={[styles.helper, { color: colors.mutedForeground }]}
                     >
                       {idleTimeoutMs > 0
-                        ? `Re-locks after ${Math.round(idleTimeoutMs / 60000)} min of inactivity.`
+                        ? `Re-locks after ${formatIdleTimeout(idleTimeoutMs)} of inactivity.`
                         : "Stays unlocked until you leave the app."}
                     </Text>
                   </View>
@@ -484,6 +543,38 @@ export default function Profile() {
                       </Pressable>
                     );
                   })}
+                  <Pressable
+                    key="custom"
+                    onPress={openCustomPicker}
+                    style={[
+                      styles.segmentItem,
+                      {
+                        backgroundColor: isCustomActive
+                          ? colors.card
+                          : "transparent",
+                        borderRadius: colors.radius - 4,
+                      },
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel="Choose a custom auto-lock duration"
+                    accessibilityState={{ selected: isCustomActive }}
+                  >
+                    <Text
+                      style={[
+                        styles.segmentText,
+                        {
+                          color: isCustomActive
+                            ? colors.primary
+                            : colors.mutedForeground,
+                        },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {isCustomActive
+                        ? formatIdleTimeout(idleTimeoutMs)
+                        : "Custom…"}
+                    </Text>
+                  </Pressable>
                 </View>
               </View>
             ) : null}
@@ -619,6 +710,132 @@ export default function Profile() {
 
         <Button label="Sign out" variant="outline" onPress={signOut} />
       </ScrollView>
+
+      <Modal
+        visible={customPickerOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setCustomPickerOpen(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={styles.customBackdrop}
+        >
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setCustomPickerOpen(false)}
+            accessibilityElementsHidden
+            importantForAccessibility="no"
+          />
+          <View
+            style={[
+              styles.customSheet,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                borderRadius: colors.radius,
+              },
+            ]}
+          >
+            <Text style={[styles.customTitle, { color: colors.foreground }]}>
+              Custom auto-lock
+            </Text>
+            <Text style={[styles.helper, { color: colors.mutedForeground }]}>
+              Choose between {formatIdleTimeout(IDLE_TIMEOUT_CUSTOM_MIN_MS)} and{" "}
+              {formatIdleTimeout(IDLE_TIMEOUT_CUSTOM_MAX_MS)}.
+            </Text>
+
+            <View style={styles.customRow}>
+              <TextInput
+                value={customAmount}
+                onChangeText={(t) => setCustomAmount(t.replace(/[^0-9]/g, ""))}
+                keyboardType="number-pad"
+                inputMode="numeric"
+                maxLength={4}
+                selectTextOnFocus
+                style={[
+                  styles.customInput,
+                  {
+                    color: colors.foreground,
+                    borderColor: colors.border,
+                    backgroundColor: colors.background,
+                    borderRadius: colors.radius - 4,
+                  },
+                ]}
+                accessibilityLabel="Auto-lock duration amount"
+              />
+              <View
+                style={[
+                  styles.segment,
+                  {
+                    backgroundColor: colors.background,
+                    borderColor: colors.border,
+                    borderRadius: colors.radius,
+                    flex: 1,
+                  },
+                ]}
+              >
+                {(["sec", "min"] as CustomUnit[]).map((u) => {
+                  const active = customUnit === u;
+                  return (
+                    <Pressable
+                      key={u}
+                      onPress={() => setCustomUnit(u)}
+                      style={[
+                        styles.segmentItem,
+                        {
+                          backgroundColor: active ? colors.card : "transparent",
+                          borderRadius: colors.radius - 4,
+                        },
+                      ]}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: active }}
+                    >
+                      <Text
+                        style={[
+                          styles.segmentText,
+                          {
+                            color: active
+                              ? colors.primary
+                              : colors.mutedForeground,
+                          },
+                        ]}
+                      >
+                        {u === "sec" ? "Seconds" : "Minutes"}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+
+            <Text style={[styles.helper, { color: colors.mutedForeground }]}>
+              {clampedCustomMs == null
+                ? "Enter a number to continue."
+                : customOutOfRange
+                  ? `Out of range — will be saved as ${formatIdleTimeout(clampedCustomMs)}.`
+                  : `Re-locks after ${formatIdleTimeout(clampedCustomMs)} of inactivity.`}
+            </Text>
+
+            <View style={styles.customActions}>
+              <View style={{ flex: 1 }}>
+                <Button
+                  label="Cancel"
+                  variant="outline"
+                  onPress={() => setCustomPickerOpen(false)}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Button
+                  label="Save"
+                  onPress={saveCustomPicker}
+                  disabled={clampedCustomMs == null}
+                />
+              </View>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -694,5 +911,40 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 999,
     overflow: "hidden",
+  },
+  customBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "stretch",
+    paddingHorizontal: 24,
+  },
+  customSheet: {
+    padding: 20,
+    borderWidth: 1,
+    gap: 14,
+  },
+  customTitle: {
+    fontFamily: "SpaceGrotesk_700Bold",
+    fontSize: 20,
+  },
+  customRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  customInput: {
+    width: 80,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontFamily: "SpaceGrotesk_600SemiBold",
+    fontSize: 18,
+    textAlign: "center",
+  },
+  customActions: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 4,
   },
 });
