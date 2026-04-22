@@ -45,6 +45,14 @@ class PricingResolver
     public const SESSION_KEY = 'billing_currency';
     public const SESSION_KEY_GEO = 'billing_currency_geo';
 
+    /**
+     * How long a cached geo-derived currency stays valid before we
+     * re-check, even if the request IP hasn't visibly changed. Bounds
+     * the staleness window for cases where the cached IP isn't
+     * available (e.g. legacy string-shaped cache values).
+     */
+    public const GEO_CACHE_TTL_SECONDS = 86400; // 24h
+
     /** Country → currency lookup. Defaults to USD when unmapped. */
     public static function currencyForCountry(?string $countryCode): string
     {
@@ -71,14 +79,20 @@ class PricingResolver
      * Geo-IP-derived default currency for the current request.
      *
      * Resolution order:
-     *   1. If we already cached a geo currency on this session,
-     *      reuse it (one geo lookup per session, not per request).
+     *   1. If we already cached a geo currency on this session AND the
+     *      cached entry is still fresh (request IP matches the IP we
+     *      cached against, and the entry is younger than
+     *      GEO_CACHE_TTL_SECONDS), reuse it. This bounds staleness so
+     *      visitors who flip networks (mobile data ↔ Wi-Fi, VPN on/off)
+     *      get re-evaluated instead of being stuck on the original
+     *      currency for the life of the session.
      *   2. Otherwise ask GeoIpService for the country of the current
      *      request's client IP. The framework's trusted-proxy setup
      *      means $request->ip() returns the real client IP (X-Forwarded-For)
      *      behind the load balancer.
      *   3. Map country → currency (IN → INR, everything else → USD).
-     *   4. Cache the result on the session and return it.
+     *   4. Cache the result (with the IP and timestamp it was derived
+     *      from) on the session and return it.
      *
      * Private/loopback IPs and any geo-IP failure (timeout, exception,
      * unmapped country) all gracefully fall back to USD without
@@ -90,10 +104,22 @@ class PricingResolver
      */
     private static function geoDefaultCurrency(): string
     {
+        $currentIp = null;
+        try {
+            if (app()->bound('request')) {
+                $rip = request()->ip();
+                if (is_string($rip) && $rip !== '') {
+                    $currentIp = $rip;
+                }
+            }
+        } catch (\Throwable $e) {
+            $currentIp = null;
+        }
+
         try {
             $cached = session(self::SESSION_KEY_GEO);
-            if (is_string($cached) && in_array($cached, ['USD', 'INR'], true)) {
-                return $cached;
+            if (self::cachedGeoStillValid($cached, $currentIp)) {
+                return is_array($cached) ? $cached['currency'] : $cached;
             }
         } catch (\Throwable $e) {
             // No session bound (CLI) — skip cache and fall through to USD.
@@ -102,23 +128,52 @@ class PricingResolver
 
         $currency = 'USD';
         try {
-            if (app()->bound('request')) {
-                $ip = request()->ip();
-                if (is_string($ip) && $ip !== '') {
-                    $cc = app(GeoIpService::class)->detectCountry($ip);
-                    $currency = self::currencyForCountry($cc);
-                }
+            if ($currentIp !== null) {
+                $cc = app(GeoIpService::class)->detectCountry($currentIp);
+                $currency = self::currencyForCountry($cc);
             }
         } catch (\Throwable $e) {
             $currency = 'USD';
         }
 
         try {
-            session([self::SESSION_KEY_GEO => $currency]);
+            session([self::SESSION_KEY_GEO => [
+                'currency' => $currency,
+                'ip'       => $currentIp,
+                'at'       => time(),
+            ]]);
         } catch (\Throwable $e) {
             // best-effort cache only
         }
         return $currency;
+    }
+
+    /**
+     * True iff a session-cached geo entry can still be reused for the
+     * current request. Accepts both the new array shape (with `ip` and
+     * `at`) and the legacy string shape (currency only) — legacy
+     * entries are considered fresh only if they're inside the TTL,
+     * which we can't know without a timestamp, so they're treated as
+     * stale and re-evaluated on first read after deploy.
+     */
+    private static function cachedGeoStillValid($cached, ?string $currentIp): bool
+    {
+        if (!is_array($cached)) {
+            return false;
+        }
+        $cur = $cached['currency'] ?? null;
+        if (!is_string($cur) || !in_array($cur, ['USD', 'INR'], true)) {
+            return false;
+        }
+        $cachedIp = $cached['ip'] ?? null;
+        if ($currentIp !== null && is_string($cachedIp) && $cachedIp !== $currentIp) {
+            return false;
+        }
+        $at = $cached['at'] ?? null;
+        if (!is_int($at) || (time() - $at) > self::GEO_CACHE_TTL_SECONDS) {
+            return false;
+        }
+        return true;
     }
 
     /**
