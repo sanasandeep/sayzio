@@ -731,12 +731,24 @@
         <div class="flex flex-col gap-2">
             @foreach($botFamilyBreakdown->take(12) as $row)
                 @php $pct = round(($row->count / $botMax) * 100); @endphp
-                <div class="flex items-center gap-3 text-[13px]">
-                    <div class="w-44 truncate" style="color: var(--text-color);" title="{{ $row->family }}">{{ $row->family }}</div>
-                    <div class="flex-1 h-2 rounded-full overflow-hidden" style="background: rgba(100,116,139,0.18);">
-                        <div class="h-full rounded-full" style="width: {{ $pct }}%; background: linear-gradient(90deg,#64748b,#94a3b8);"></div>
+                <div class="flex flex-col gap-1">
+                    <div class="flex items-center gap-3 text-[13px]">
+                        <div class="w-44 truncate" style="color: var(--text-color);" title="{{ $row->family }}">{{ $row->family }}</div>
+                        <div class="flex-1 h-2 rounded-full overflow-hidden" style="background: rgba(100,116,139,0.18);">
+                            <div class="h-full rounded-full" style="width: {{ $pct }}%; background: linear-gradient(90deg,#64748b,#94a3b8);"></div>
+                        </div>
+                        <div class="w-20 text-right tabular-nums" style="color: var(--text-faint);">{{ number_format($row->count) }}</div>
                     </div>
-                    <div class="w-20 text-right tabular-nums" style="color: var(--text-faint);">{{ number_format($row->count) }}</div>
+                    @if(!empty($row->sample_user_agent))
+                        <details class="ml-44 pl-3 text-[11px]" style="color: var(--text-faint);">
+                            <summary class="cursor-pointer select-none hover:underline" title="Show one example raw user-agent string from this bot family">
+                                <i class="fas fa-code text-[10px] mr-1"></i> Sample user-agent
+                            </summary>
+                            <code class="block mt-1 p-2 rounded break-all font-mono text-[11px]"
+                                  style="background: rgba(100,116,139,0.12); color: var(--text-color);"
+                                  title="{{ $row->sample_user_agent }}">{{ $row->sample_user_agent }}</code>
+                        </details>
+                    @endif
                 </div>
             @endforeach
         </div>

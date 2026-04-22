@@ -465,13 +465,26 @@ class LinkController extends Controller
 
             $detector = app(\App\Modules\Common\Services\BotDetector::class);
             $families = [];
+            // Track one representative raw UA per family so creators can see
+            // *what* is hitting them — especially useful for the catch-all
+            // "Other …" buckets. We pick the highest-count UA in each family
+            // (rawBotUserAgents is already sorted by count desc, so the first
+            // UA we see for a family is the most frequent one).
+            $sampleUserAgents = [];
             foreach ($rawBotUserAgents as $row) {
                 $family = $detector->classifyFamily($row->ua === '' ? null : $row->ua);
                 $families[$family] = ($families[$family] ?? 0) + (int) $row->count;
+                if (!isset($sampleUserAgents[$family]) && $row->ua !== '') {
+                    $sampleUserAgents[$family] = $row->ua;
+                }
             }
             arsort($families);
             $botFamilyBreakdown = collect($families)
-                ->map(fn ($count, $family) => (object) ['family' => $family, 'count' => $count])
+                ->map(fn ($count, $family) => (object) [
+                    'family' => $family,
+                    'count' => $count,
+                    'sample_user_agent' => $sampleUserAgents[$family] ?? null,
+                ])
                 ->values();
         }
 
