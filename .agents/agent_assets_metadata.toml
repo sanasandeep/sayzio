@@ -282,6 +282,78 @@ uri = "file://artifacts/1inme/storage/app/public/onboarding/coaches.png"
 type = "image"
 title = "coach real photo"
 
+[[generated]]
+id = "bSduE16MNkzvh5pggX12x"
+uri = "file://artifacts/1inme/storage/app/public/onboarding/creators_2.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "uCqJbQUtfT9WO7uDMO5TP"
+uri = "file://artifacts/1inme/storage/app/public/onboarding/creators_3.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "YKGZmxnruehEraESvly1y"
+uri = "file://artifacts/1inme/storage/app/public/onboarding/business_2.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "XnbFmkReLf6vhuNVnKbik"
+uri = "file://artifacts/1inme/storage/app/public/onboarding/business_3.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "h0OOJcpx90o0i-wrwbf6A"
+uri = "file://artifacts/1inme/storage/app/public/onboarding/freelancer_2.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "BA5iSAMetNMGuIibRcxiz"
+uri = "file://artifacts/1inme/storage/app/public/onboarding/freelancer_3.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "ekrXI_Qagl8kugBZwkBlU"
+uri = "file://artifacts/1inme/storage/app/public/onboarding/networker_2.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "vgzHj7HWORy4ZzvHSVTvW"
+uri = "file://artifacts/1inme/storage/app/public/onboarding/networker_3.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "8e-BhaKtuAGSm1r_wuKBq"
+uri = "file://artifacts/1inme/storage/app/public/onboarding/students_2.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "1VK-OfzO3DmBysEfas0pO"
+uri = "file://artifacts/1inme/storage/app/public/onboarding/students_3.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "hnDVOlLPvEpGP2SJlIurs"
+uri = "file://artifacts/1inme/storage/app/public/onboarding/coaches_2.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "jFidB8aLD5d-YshZToKYe"
+uri = "file://artifacts/1inme/storage/app/public/onboarding/coaches_3.png"
+type = "image"
+title = "generated_image"
+
 [[outputs]]
 id = "e3t8rw5hE2-FfEtnuBmVI"
 uri = "file://attached_assets/stock_images/role_artist.jpg"

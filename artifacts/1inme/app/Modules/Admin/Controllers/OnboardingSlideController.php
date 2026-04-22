@@ -11,10 +11,14 @@ use Illuminate\Support\Str;
 /**
  * Admin CRUD for the mobile-app onboarding/splash slider.
  *
+ * Each slide can have:
+ *   - one legacy "background" image (`image_path`) — kept for back-compat
+ *   - a gallery (`gallery_images` JSON array of paths) — rendered as an
+ *     auto-rotating image slider inside the slide on the mobile splash
+ *
  * Uploads land on the `public` disk under onboarding/, served via
  * /storage/onboarding/<file>.png after `php artisan storage:link`.
- * Old images are deleted when a new one is uploaded so the disk
- * doesn't accumulate orphans.
+ * Removed images are deleted from disk so it doesn't accumulate orphans.
  */
 class OnboardingSlideController extends Controller
 {
@@ -38,6 +42,8 @@ class OnboardingSlideController extends Controller
             $data['image_path'] = $request->file('image')
                 ->store('onboarding', 'public');
         }
+
+        $data['gallery_images'] = $this->collectGalleryUploads($request, []);
 
         OnboardingSlide::create($data);
 
@@ -65,6 +71,20 @@ class OnboardingSlideController extends Controller
                 ->store('onboarding', 'public');
         }
 
+        // Existing gallery minus anything the admin asked to remove,
+        // then append any newly-uploaded files.
+        $current = $onboardingSlide->gallery_images ?: [];
+        $remove  = (array) $request->input('remove_gallery', []);
+        $kept    = [];
+        foreach ($current as $p) {
+            if (in_array($p, $remove, true)) {
+                Storage::disk('public')->delete($p);
+            } else {
+                $kept[] = $p;
+            }
+        }
+        $data['gallery_images'] = $this->collectGalleryUploads($request, $kept);
+
         $onboardingSlide->update($data);
 
         return redirect()->route('admin.onboarding-slides.index')
@@ -76,21 +96,46 @@ class OnboardingSlideController extends Controller
         if ($onboardingSlide->image_path) {
             Storage::disk('public')->delete($onboardingSlide->image_path);
         }
+        foreach (($onboardingSlide->gallery_images ?: []) as $p) {
+            Storage::disk('public')->delete($p);
+        }
         $onboardingSlide->delete();
 
         return redirect()->route('admin.onboarding-slides.index')
             ->with('success', 'Slide deleted.');
     }
 
+    /**
+     * @param  array<int, string>  $existing
+     * @return array<int, string>
+     */
+    private function collectGalleryUploads(Request $request, array $existing): array
+    {
+        $files = $request->file('gallery_images', []);
+        if (!is_array($files)) {
+            $files = [$files];
+        }
+        foreach ($files as $f) {
+            if ($f && $f->isValid()) {
+                $existing[] = $f->store('onboarding', 'public');
+            }
+        }
+        return array_values($existing);
+    }
+
     private function validated(Request $request): array
     {
         return $request->validate([
-            'category'    => ['required', 'string', 'max:80'],
-            'title'       => ['required', 'string', 'max:255'],
-            'body'        => ['nullable', 'string', 'max:600'],
-            'status'      => ['required', 'in:active,inactive'],
-            'sort_order'  => ['nullable', 'integer', 'min:0', 'max:9999'],
-            'image'       => ['nullable', 'image', 'max:5120'],
+            'category'           => ['required', 'string', 'max:80'],
+            'title'              => ['required', 'string', 'max:255'],
+            'body'               => ['nullable', 'string', 'max:600'],
+            'status'             => ['required', 'in:active,inactive'],
+            'sort_order'         => ['nullable', 'integer', 'min:0', 'max:9999'],
+            'image'              => ['nullable', 'image', 'max:5120'],
+            'gallery_images'     => ['nullable', 'array', 'max:10'],
+            'gallery_images.*'   => ['image', 'max:5120'],
+            'remove_gallery'     => ['nullable', 'array'],
+            'remove_gallery.*'   => ['string'],
         ]);
     }
 

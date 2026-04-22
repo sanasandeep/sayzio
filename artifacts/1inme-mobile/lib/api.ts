@@ -67,6 +67,7 @@ export type OnboardingSlide = {
   title: string;
   body: string | null;
   image_url: string | null;
+  image_urls: string[];
   sort_order: number;
 };
 

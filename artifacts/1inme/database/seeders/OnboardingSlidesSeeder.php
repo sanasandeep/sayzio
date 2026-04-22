@@ -60,20 +60,40 @@ class OnboardingSlidesSeeder extends Seeder
         ];
 
         foreach ($slides as $i => $row) {
+            // Primary background image (legacy single image).
             $imagePath = "onboarding/{$row['slug']}.png";
-            $hasImage = Storage::disk('public')->exists($imagePath);
+            $hasImage  = Storage::disk('public')->exists($imagePath);
 
-            OnboardingSlide::firstOrCreate(
+            // Gallery: <slug>.png + <slug>_2.png + <slug>_3.png if present.
+            $gallery = [];
+            foreach ([
+                "onboarding/{$row['slug']}.png",
+                "onboarding/{$row['slug']}_2.png",
+                "onboarding/{$row['slug']}_3.png",
+            ] as $candidate) {
+                if (Storage::disk('public')->exists($candidate)) {
+                    $gallery[] = $candidate;
+                }
+            }
+
+            $slide = OnboardingSlide::firstOrCreate(
                 ['slug' => $row['slug']],
                 [
-                    'category'   => $row['category'],
-                    'title'      => $row['title'],
-                    'body'       => $row['body'],
-                    'image_path' => $hasImage ? $imagePath : null,
-                    'status'     => 'active',
-                    'sort_order' => ($i + 1) * 10,
+                    'category'       => $row['category'],
+                    'title'          => $row['title'],
+                    'body'           => $row['body'],
+                    'image_path'     => $hasImage ? $imagePath : null,
+                    'gallery_images' => !empty($gallery) ? $gallery : null,
+                    'status'         => 'active',
+                    'sort_order'     => ($i + 1) * 10,
                 ],
             );
+
+            // Backfill the gallery on existing rows that pre-date the
+            // gallery feature so the demo data shows the slider.
+            if (empty($slide->gallery_images) && !empty($gallery)) {
+                $slide->update(['gallery_images' => $gallery]);
+            }
         }
     }
 }
