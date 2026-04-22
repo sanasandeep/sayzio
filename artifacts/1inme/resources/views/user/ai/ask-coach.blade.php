@@ -173,12 +173,27 @@
                                             </div>
                                         @endif
 
-                                        {{-- Citations --}}
+                                        {{-- Citations: when a Mind source backs the citation, link
+                                             to its detail page so the asker can verify the answer. --}}
                                         @if(!empty($meta['citations']))
                                             <p class="text-[10px] text-white/40">
                                                 Sources:
                                                 @foreach($meta['citations'] as $c)
-                                                    <span class="inline-block px-1.5 py-0.5 mr-1 rounded bg-white/5 text-white/60">{{ $c['label'] ?? $c['source'] ?? '' }}</span>
+                                                    @php
+                                                        $cMid = (int) ($c['mind_id'] ?? 0);
+                                                        $cSid = (int) ($c['id'] ?? 0);
+                                                        $cHref = ($cMid && $cSid)
+                                                            ? route('user.minds.sources.show', ['mind' => $cMid, 'source' => $cSid])
+                                                            : null;
+                                                        $cLabel = (string) ($c['title'] ?? $c['label'] ?? $c['source'] ?? '');
+                                                    @endphp
+                                                    @if($cHref)
+                                                        <a href="{{ $cHref }}"
+                                                           class="inline-block px-1.5 py-0.5 mr-1 rounded bg-white/5 text-white/80 underline decoration-white/20 hover:decoration-white/60 hover:text-white"
+                                                           title="View source">{{ $cLabel }}</a>
+                                                    @else
+                                                        <span class="inline-block px-1.5 py-0.5 mr-1 rounded bg-white/5 text-white/60">{{ $cLabel }}</span>
+                                                    @endif
                                                 @endforeach
                                             </p>
                                         @endif

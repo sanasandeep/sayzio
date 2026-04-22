@@ -386,6 +386,7 @@ class CompanionController extends Controller
         // Embedding spend is on the asking user, just like Persona/Coach.
         $kbCreditsSpent = 0;
         $kbContext      = '';
+        $kbCitations    = [];
         $selectedMinds  = $this->minds->resolveMindsForUser(
             $user,
             $threadModel->mind_ids ?? [],
@@ -398,6 +399,7 @@ class CompanionController extends Controller
                 );
                 $kbContext      = $retrieved['context'];
                 $kbCreditsSpent = (int) $retrieved['credits_spent'];
+                $kbCitations    = $retrieved['citations'] ?? [];
             } catch (InsufficientAiCreditsException $e) {
                 throw $e;
             } catch (\Throwable $e) {
@@ -443,6 +445,7 @@ class CompanionController extends Controller
             'content'    => $out['content'],
             'meta'       => [
                 'credits_spent' => (int) $out['credits_spent'] + $kbCreditsSpent,
+                'citations'     => $kbCitations,
             ],
             'created_at' => now(),
         ]);

@@ -56,7 +56,7 @@
                                 <span class="flex items-center gap-1.5">
                                     <span class="flex-1 truncate">{!! $titles[$t->id] ?? e($t->title) !!}</span>
                                     @if($search !== '')
-                                        @php($mc = $matchCounts[$t->id] ?? 0)
+                                        @php $mc = $matchCounts[$t->id] ?? 0; @endphp
                                         <span class="shrink-0 text-[10px] leading-none px-1.5 py-0.5 rounded-full {{ $mc > 0 ? 'bg-yellow-300/15 text-yellow-200/90' : 'bg-white/5 text-white/40' }}"
                                               title="{{ $mc }} {{ $mc === 1 ? 'message matches' : 'messages match' }} “{{ $search }}”{{ $mc === 0 ? ' (title match only)' : '' }}">
                                             {{ $mc }} {{ $mc === 1 ? 'match' : 'matches' }}
@@ -137,6 +137,28 @@
                                 <div class="max-w-[80%] rounded-2xl px-4 py-2 text-sm
                                     {{ $turn['role'] === 'user' ? 'bg-violet-600 text-white' : 'bg-white/10 text-white/90' }}">
                                     <pre class="whitespace-pre-wrap font-sans">@if(!empty($turn['html'])){!! $turn['html'] !!}@else{{ $turn['content'] }}@endif</pre>
+                                    @if(($turn['role'] ?? null) === 'assistant' && !empty($turn['meta']['citations']))
+                                        <p class="text-[10px] text-white/50 mt-1">
+                                            Sources:
+                                            @foreach($turn['meta']['citations'] as $i => $c)
+                                                @php
+                                                    $cMid = (int) ($c['mind_id'] ?? 0);
+                                                    $cSid = (int) ($c['id'] ?? 0);
+                                                    $cHref = ($cMid && $cSid)
+                                                        ? route('user.minds.sources.show', ['mind' => $cMid, 'source' => $cSid])
+                                                        : null;
+                                                    $cTitle = (string) ($c['title'] ?? $c['label'] ?? $c['source'] ?? 'source');
+                                                @endphp
+                                                @if($cHref)
+                                                    <a href="{{ $cHref }}"
+                                                       class="inline-block px-1.5 py-0.5 mr-1 rounded bg-white/5 text-white/80 underline decoration-white/20 hover:decoration-white/60 hover:text-white"
+                                                       title="View source">[{{ $i + 1 }}] {{ $cTitle }}</a>
+                                                @else
+                                                    <span class="inline-block px-1.5 py-0.5 mr-1 rounded bg-white/5 text-white/60">[{{ $i + 1 }}] {{ $cTitle }}</span>
+                                                @endif
+                                            @endforeach
+                                        </p>
+                                    @endif
                                     @if(($turn['role'] ?? null) === 'assistant' && !empty($turn['meta']['credits_spent']))
                                         <p class="text-[10px] text-white/40 mt-1">{{ number_format($turn['meta']['credits_spent']) }} ✦</p>
                                     @endif
