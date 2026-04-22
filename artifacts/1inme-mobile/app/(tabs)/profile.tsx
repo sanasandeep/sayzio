@@ -20,7 +20,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useThemeControls } from "@/contexts/ThemeContext";
 import { useColors } from "@/hooks/useColors";
 import { aiCredits as aiCreditsApi, wallet as walletApi } from "@/lib/api";
-import type { ThemePref } from "@/lib/secure";
+import { IDLE_TIMEOUT_PRESETS_MS, type ThemePref } from "@/lib/secure";
+
+const IDLE_TIMEOUT_OPTIONS: { value: number; label: string }[] =
+  IDLE_TIMEOUT_PRESETS_MS.map((ms) => ({
+    value: ms,
+    label: ms === 0 ? "Off" : `${Math.round(ms / 60000)} min`,
+  }));
 
 const INFO_PAGES: {
   href: "/info/about" | "/info/nfc" | "/info/privacy" | "/info/terms" | "/info/help";
@@ -100,6 +106,8 @@ export default function Profile() {
     enableBiometricUnlock,
     disableBiometricUnlock,
     refreshBiometricCapability,
+    idleTimeoutMs,
+    setIdleTimeoutMs,
   } = useAuth();
   const { pref, setPref } = useThemeControls();
   const webTop = Platform.OS === "web" ? 67 : 0;
@@ -405,6 +413,79 @@ export default function Profile() {
                   </Text>
                 )}
               </Pressable>
+            ) : null}
+            {showBiometricRow && biometricSupported && biometricEnabled ? (
+              <View
+                style={{
+                  borderTopWidth: StyleSheet.hairlineWidth,
+                  borderTopColor: colors.border,
+                  paddingHorizontal: 16,
+                  paddingVertical: 14,
+                  gap: 10,
+                }}
+              >
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+                  <Feather name="clock" size={18} color={colors.primary} />
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={[styles.listLabel, { color: colors.foreground }]}
+                    >
+                      Auto-lock when idle
+                    </Text>
+                    <Text
+                      style={[styles.helper, { color: colors.mutedForeground }]}
+                    >
+                      {idleTimeoutMs > 0
+                        ? `Re-locks after ${Math.round(idleTimeoutMs / 60000)} min of inactivity.`
+                        : "Stays unlocked until you leave the app."}
+                    </Text>
+                  </View>
+                </View>
+                <View
+                  style={[
+                    styles.segment,
+                    {
+                      backgroundColor: colors.background,
+                      borderColor: colors.border,
+                      borderRadius: colors.radius,
+                    },
+                  ]}
+                >
+                  {IDLE_TIMEOUT_OPTIONS.map((opt) => {
+                    const active = idleTimeoutMs === opt.value;
+                    return (
+                      <Pressable
+                        key={opt.value}
+                        onPress={() => {
+                          setIdleTimeoutMs(opt.value).catch(() => {});
+                        }}
+                        style={[
+                          styles.segmentItem,
+                          {
+                            backgroundColor: active ? colors.card : "transparent",
+                            borderRadius: colors.radius - 4,
+                          },
+                        ]}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: active }}
+                      >
+                        <Text
+                          style={[
+                            styles.segmentText,
+                            {
+                              color: active
+                                ? colors.primary
+                                : colors.mutedForeground,
+                            },
+                          ]}
+                        >
+                          {opt.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
             ) : null}
           </View>
         </View>

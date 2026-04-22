@@ -16,12 +16,15 @@ import {
   type BiometricCapability,
 } from "@/lib/biometrics";
 import {
+  DEFAULT_IDLE_TIMEOUT_MS,
   getBiometricEnabled,
   getBiometricPromptDismissed,
+  getIdleTimeoutMs,
   getStoredUser,
   getToken,
   setBiometricEnabled as persistBiometricEnabled,
   setBiometricPromptDismissed as persistBiometricPromptDismissed,
+  setIdleTimeoutMs as persistIdleTimeoutMs,
   setStoredUser,
   setToken,
 } from "@/lib/secure";
@@ -42,6 +45,9 @@ type AuthState = {
   locked: boolean;
   biometricEnabled: boolean;
   biometricCapability: BiometricCapability | null;
+  // Idle re-lock window in ms while the app is in the foreground.
+  // 0 means the idle timer is disabled (only background re-lock applies).
+  idleTimeoutMs: number;
 };
 
 type Ctx = AuthState & {
@@ -73,6 +79,8 @@ type Ctx = AuthState & {
   refreshBiometricCapability: () => Promise<BiometricCapability>;
   shouldOfferBiometricEnrollment: () => Promise<boolean>;
   dismissBiometricEnrollmentPrompt: () => Promise<void>;
+  setIdleTimeoutMs: (ms: number) => Promise<void>;
+  noteActivity: () => void;
 };
 
 const AuthContext = createContext<Ctx | null>(null);
@@ -85,8 +93,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     locked: false,
     biometricEnabled: false,
     biometricCapability: null,
+    idleTimeoutMs: DEFAULT_IDLE_TIMEOUT_MS,
   });
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
+  // Tracks the last user-interaction timestamp. Updated on touch/navigation
+  // via `noteActivity` and read by the idle re-lock timer.
+  const lastActivityRef = useRef<number>(Date.now());
 
   // Initial load: read token, user, biometric pref, and capability.
   // If we have a session AND biometric unlock is enabled AND device still
@@ -95,12 +107,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [token, user, biometricEnabled, capability] = await Promise.all([
-        getToken(),
-        getStoredUser<AuthUser>(),
-        getBiometricEnabled(),
-        getBiometricCapability(),
-      ]);
+      const [token, user, biometricEnabled, capability, idleTimeoutMs] =
+        await Promise.all([
+          getToken(),
+          getStoredUser<AuthUser>(),
+          getBiometricEnabled(),
+          getBiometricCapability(),
+          getIdleTimeoutMs(),
+        ]);
       if (cancelled) return;
 
       let enabled = biometricEnabled;
@@ -119,6 +133,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         locked,
         biometricEnabled: enabled,
         biometricCapability: capability,
+        idleTimeoutMs,
       });
     })();
     return () => {
@@ -143,6 +158,56 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
     return () => sub.remove();
+  }, []);
+
+  const noteActivity = useCallback(() => {
+    lastActivityRef.current = Date.now();
+  }, []);
+
+  // Foreground idle re-lock: while signed-in with biometric unlock on and
+  // an idle timeout configured, re-lock if no activity has happened within
+  // the window. We use a self-rescheduling timer that checks elapsed time
+  // against `lastActivityRef`, so individual taps don't churn timers.
+  useEffect(() => {
+    if (
+      !state.token ||
+      !state.biometricEnabled ||
+      state.locked ||
+      state.idleTimeoutMs <= 0
+    ) {
+      return;
+    }
+    let cancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    // Treat the moment the timer is (re)armed as fresh activity so a user
+    // who just unlocked or just toggled the setting gets a full window.
+    lastActivityRef.current = Date.now();
+    const tick = () => {
+      if (cancelled) return;
+      const elapsed = Date.now() - lastActivityRef.current;
+      const remaining = state.idleTimeoutMs - elapsed;
+      if (remaining <= 0) {
+        setState((s) => {
+          if (!s.token || !s.biometricEnabled || s.locked) return s;
+          return { ...s, locked: true };
+        });
+        return;
+      }
+      // Add a small slack so we don't spin in sub-ms reschedules.
+      timeoutId = setTimeout(tick, remaining + 50);
+    };
+    timeoutId = setTimeout(tick, state.idleTimeoutMs + 50);
+    return () => {
+      cancelled = true;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [state.token, state.biometricEnabled, state.locked, state.idleTimeoutMs]);
+
+  const setIdleTimeoutMs = useCallback(async (ms: number) => {
+    const clamped = Math.max(0, Math.floor(ms));
+    await persistIdleTimeoutMs(clamped);
+    lastActivityRef.current = Date.now();
+    setState((s) => ({ ...s, idleTimeoutMs: clamped }));
   }, []);
 
   const applySession = useCallback(async (token: string, user: AuthUser) => {
@@ -345,6 +410,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       refreshBiometricCapability,
       shouldOfferBiometricEnrollment,
       dismissBiometricEnrollmentPrompt,
+      setIdleTimeoutMs,
+      noteActivity,
     }),
     [
       state,
@@ -361,6 +428,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       refreshBiometricCapability,
       shouldOfferBiometricEnrollment,
       dismissBiometricEnrollmentPrompt,
+      setIdleTimeoutMs,
+      noteActivity,
     ],
   );
 

@@ -7,6 +7,18 @@ const ONBOARDING_KEY = "1inme.onboarding.complete";
 const THEME_KEY = "1inme.theme";
 const BIOMETRIC_ENABLED_KEY = "1inme.auth.biometric.enabled";
 const BIOMETRIC_PROMPT_DISMISSED_KEY = "1inme.auth.biometric.prompt.dismissed";
+const IDLE_TIMEOUT_MS_KEY = "1inme.auth.idle.timeout.ms";
+
+// Default idle re-lock window when biometric unlock is on. 5 minutes feels
+// like a reasonable middle-ground between security and convenience.
+export const DEFAULT_IDLE_TIMEOUT_MS = 5 * 60 * 1000;
+// Allowed presets shown in Settings (plus 0 = off).
+export const IDLE_TIMEOUT_PRESETS_MS = [
+  0,
+  2 * 60 * 1000,
+  5 * 60 * 1000,
+  10 * 60 * 1000,
+] as const;
 
 async function setItem(key: string, value: string | null) {
   if (value == null) {
@@ -77,3 +89,17 @@ export const getBiometricPromptDismissed = async () =>
   (await getItem(BIOMETRIC_PROMPT_DISMISSED_KEY)) === "1";
 export const setBiometricPromptDismissed = (v: boolean) =>
   setItem(BIOMETRIC_PROMPT_DISMISSED_KEY, v ? "1" : null);
+
+// Persisted idle timeout in ms. 0 = off. Returns the default when the
+// key is unset or unparseable, and clamps negative values to the default.
+// Any other non-negative integer is honored as-is so a future "Custom…"
+// option can persist arbitrary values without needing to extend presets.
+export const getIdleTimeoutMs = async (): Promise<number> => {
+  const raw = await getItem(IDLE_TIMEOUT_MS_KEY);
+  if (raw == null) return DEFAULT_IDLE_TIMEOUT_MS;
+  const n = Number.parseInt(raw, 10);
+  if (!Number.isFinite(n) || n < 0) return DEFAULT_IDLE_TIMEOUT_MS;
+  return n;
+};
+export const setIdleTimeoutMs = (ms: number) =>
+  setItem(IDLE_TIMEOUT_MS_KEY, String(Math.max(0, Math.floor(ms))));

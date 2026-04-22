@@ -12,16 +12,17 @@ import {
   setAuthTokenGetter,
   setBaseUrl,
 } from "@workspace/api-client-react";
-import { Stack } from "expo-router";
+import { Stack, usePathname } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
+import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { DeepLinkRouter } from "@/components/DeepLinkRouter";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { useColors } from "@/hooks/useColors";
 import { getBaseUrl } from "@/lib/api";
@@ -43,6 +44,22 @@ try {
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
+
+// Wraps the app in a transparent View that captures bubble-phase touches so
+// any tap anywhere in the UI resets the idle re-lock timer. We also reset
+// the timer on navigation (pathname changes) so swipes/back gestures count.
+function ActivityWatcher({ children }: { children: React.ReactNode }) {
+  const { noteActivity } = useAuth();
+  const pathname = usePathname();
+  useEffect(() => {
+    noteActivity();
+  }, [pathname, noteActivity]);
+  return (
+    <View style={{ flex: 1 }} onTouchStart={noteActivity}>
+      {children}
+    </View>
+  );
+}
 
 function RootLayoutNav() {
   const colors = useColors();
@@ -106,7 +123,9 @@ export default function RootLayout() {
                 <GestureHandlerRootView>
                   <KeyboardProvider>
                     <DeepLinkRouter />
-                    <RootLayoutNav />
+                    <ActivityWatcher>
+                      <RootLayoutNav />
+                    </ActivityWatcher>
                   </KeyboardProvider>
                 </GestureHandlerRootView>
               </SubscriptionProvider>
