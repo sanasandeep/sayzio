@@ -90,6 +90,68 @@ class MindCreditUsageService
     }
 
     /**
+     * Daily-bucketed credit spend for one Mind, split by ingestion vs.
+     * questions. Always returns exactly $days rows in chronological
+     * order, padded with zeros so the UI can render a fixed-width chart.
+     *
+     * @return array<int,array{date:string, ingest:int, query:int}>
+     */
+    public function dailySpendForMind(int $mindId, int $days = self::DEFAULT_WINDOW_DAYS): array
+    {
+        $since = Carbon::now()->subDays($days - 1)->startOfDay();
+
+        $rows = AiCreditTransaction::query()
+            ->where('feature', 'mind')
+            ->where('type', 'spend')
+            ->where('meta->mind_id', $mindId)
+            ->where('created_at', '>=', $since)
+            ->get(['delta_credits', 'meta', 'created_at']);
+
+        return $this->bucketByDay($rows, $since, $days);
+    }
+
+    /**
+     * Daily-bucketed credit spend across every Mind on the platform.
+     *
+     * @return array<int,array{date:string, ingest:int, query:int}>
+     */
+    public function dailySpendGlobal(int $days = self::DEFAULT_WINDOW_DAYS): array
+    {
+        $since = Carbon::now()->subDays($days - 1)->startOfDay();
+
+        $rows = AiCreditTransaction::query()
+            ->where('feature', 'mind')
+            ->where('type', 'spend')
+            ->whereNotNull('meta')
+            ->where('created_at', '>=', $since)
+            ->get(['delta_credits', 'meta', 'created_at']);
+
+        return $this->bucketByDay($rows, $since, $days);
+    }
+
+    /**
+     * @param  iterable<int,AiCreditTransaction>  $rows
+     * @return array<int,array{date:string, ingest:int, query:int}>
+     */
+    private function bucketByDay(iterable $rows, Carbon $since, int $days): array
+    {
+        $buckets = [];
+        for ($i = 0; $i < $days; $i++) {
+            $d = $since->copy()->addDays($i)->toDateString();
+            $buckets[$d] = ['date' => $d, 'ingest' => 0, 'query' => 0];
+        }
+        foreach ($rows as $tx) {
+            $d = Carbon::parse($tx->created_at)->toDateString();
+            if (!isset($buckets[$d])) continue;
+            $kind = (string) data_get($tx->meta, 'kind', '');
+            $cost = (int) abs((int) $tx->delta_credits);
+            if ($kind === 'query')  $buckets[$d]['query']  += $cost;
+            else                    $buckets[$d]['ingest'] += $cost;
+        }
+        return array_values($buckets);
+    }
+
+    /**
      * Top Minds by credit spend in the window. Each row carries the
      * Mind model (with owner) plus split totals.
      *

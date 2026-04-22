@@ -80,6 +80,7 @@ class MindController extends Controller
         $sources = $mind->sources()->withCount('chunks')->latest('id')->get();
         $creditUsage      = $usage->usageForMind((int) $mind->id);
         $sourceCreditSpend = $usage->ingestionBySource((int) $mind->id);
+        $dailyCreditSpend  = $usage->dailySpendForMind((int) $mind->id);
         return view('user.minds.edit', [
             'mind'              => $mind,
             'sources'           => $sources,
@@ -89,6 +90,7 @@ class MindController extends Controller
             'sourceCounts'      => $sources->groupBy('type')->map->count(),
             'creditUsage'       => $creditUsage,
             'sourceCreditSpend' => $sourceCreditSpend,
+            'dailyCreditSpend'  => $dailyCreditSpend,
         ]);
     }
 

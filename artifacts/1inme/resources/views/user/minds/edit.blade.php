@@ -57,6 +57,7 @@
                 <p class="text-[11px] text-white/40 mt-1">Combined spend</p>
             </div>
         </div>
+        <x-mind-daily-spend-chart :days="$dailyCreditSpend" />
         @if($creditUsage['total'] === 0)
             <p class="text-[11px] text-white/40 mt-3">No credits spent on this Mind in the last {{ $creditUsage['days'] }} days.</p>
         @endif

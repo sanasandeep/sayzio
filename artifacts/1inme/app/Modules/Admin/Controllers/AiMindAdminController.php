@@ -47,7 +47,8 @@ class AiMindAdminController extends Controller
             ->latest('updated_at')
             ->paginate(25);
 
-        $topByCredits = $usage->topMinds(10);
+        $topByCredits   = $usage->topMinds(10);
+        $dailySpend     = $usage->dailySpendGlobal();
 
         return view('admin.ai-minds.index', [
             'totals'        => $totals,
@@ -55,6 +56,7 @@ class AiMindAdminController extends Controller
             'minds'         => $minds,
             'caps'          => AiMindSettings::caps(),
             'topByCredits'  => $topByCredits,
+            'dailySpend'    => $dailySpend,
         ]);
     }
 
