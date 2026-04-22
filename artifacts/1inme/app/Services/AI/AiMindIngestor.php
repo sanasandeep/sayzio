@@ -201,56 +201,156 @@ class AiMindIngestor
             return preg_replace("/^\xEF\xBB\xBF/", '', (string) $raw);
         }
 
-        // DOCX is a zip with word/document.xml inside. We extract the
-        // visible text by stripping XML tags. No new deps needed.
+        // DOCX: parse with PHPWord so we keep the structure (headings,
+        // lists, tables) instead of just dumping the body XML. The
+        // structured text helps the embedder produce better chunks.
         if ($ext === 'docx' || str_contains($mime, 'wordprocessingml')) {
             $tmp = tempnam(sys_get_temp_dir(), 'mind-doc-');
             file_put_contents($tmp, $disk->get($source->storage_path));
             try {
-                $zip = new \ZipArchive();
-                if ($zip->open($tmp) !== true) {
-                    throw new \RuntimeException('Could not open DOCX file.');
-                }
-                $xml = $zip->getFromName('word/document.xml') ?: '';
-                $zip->close();
-                // Convert paragraph + tab markers into newlines / tabs
-                // before stripping the rest of the XML.
-                $xml = preg_replace('/<w:p[^>]*>/', "\n", $xml);
-                $xml = preg_replace('/<w:tab\/>/', "\t", $xml);
-                return trim(html_entity_decode(strip_tags($xml), ENT_QUOTES | ENT_XML1, 'UTF-8'));
+                return $this->extractDocxStructured($tmp);
             } finally {
                 @unlink($tmp);
             }
         }
 
-        // PDF v1: best-effort. Real PDF text extraction requires a
-        // dedicated parser; for image-only or complex layouts we mark
-        // this clearly so the user can switch to text/links instead.
+        // PDF: parse with smalot/pdfparser so multi-column layouts and
+        // embedded font encodings come through correctly. We let the
+        // parser run first and only fall back to the OCR-required
+        // message when it produces no text — checking raw bytes for
+        // `/Font` up front misclassifies PDFs whose objects are stored
+        // in compressed object streams.
         if ($ext === 'pdf' || $mime === 'application/pdf') {
             $bytes = (string) $disk->get($source->storage_path);
-            // Quick image-only sniff: PDFs without a /Font object are
-            // almost always scans.
-            if (!preg_match('/\/Font\b/', $bytes)) {
-                throw new \RuntimeException('This PDF appears to be image-only — please paste its text or upload a text PDF.');
-            }
-            // Cheap text extraction: pull `(...)Tj` and `[(...)]TJ`
-            // operator strings. Misses ligatures + complex encodings
-            // but works for the common case of digital export PDFs.
-            $text = '';
-            if (preg_match_all('/\(((?:\\\\\)|[^)])+)\)\s*T[jJ]/', $bytes, $m)) {
-                foreach ($m[1] as $piece) {
-                    $piece = str_replace(['\\(', '\\)', '\\\\', '\\n', '\\r'], ['(', ')', '\\', "\n", "\r"], $piece);
-                    $text .= $piece . ' ';
-                }
-            }
-            $text = trim($text);
-            if ($text === '') {
-                throw new \RuntimeException('Could not extract text from this PDF — try a text-based export.');
-            }
-            return $text;
+            return $this->extractPdfStructured($bytes);
         }
 
         throw new \RuntimeException("Unsupported document type: {$ext}");
+    }
+
+    /**
+     * PDF text extraction via smalot/pdfparser. Pages are joined with
+     * blank lines so the chunker can break on page boundaries when it
+     * lands near one.
+     */
+    protected function extractPdfStructured(string $bytes): string
+    {
+        $hasFontResource = false;
+        try {
+            $parser = new \Smalot\PdfParser\Parser();
+            $pdf    = $parser->parseContent($bytes);
+            $pages  = $pdf->getPages();
+            $out    = [];
+            foreach ($pages as $page) {
+                // A page that exposes any font resource means the PDF
+                // genuinely carries text glyphs (vs. being a pure image
+                // scan). We use this to choose the right error message.
+                if (!$hasFontResource) {
+                    try {
+                        if (method_exists($page, 'getFonts') && !empty($page->getFonts())) {
+                            $hasFontResource = true;
+                        }
+                    } catch (\Throwable $e) { /* ignore — informational */ }
+                }
+                $t = trim((string) $page->getText());
+                if ($t !== '') $out[] = $t;
+            }
+            $text = trim(implode("\n\n", $out));
+        } catch (\Throwable $e) {
+            throw new \RuntimeException('Could not parse this PDF: ' . $e->getMessage());
+        }
+        if ($text === '') {
+            if (!$hasFontResource) {
+                throw new \RuntimeException('This PDF appears to be image-only — OCR is required. Please paste its text or upload a text-based PDF.');
+            }
+            throw new \RuntimeException('Could not extract text from this PDF — try a text-based export.');
+        }
+        return $text;
+    }
+
+    /**
+     * DOCX structured extraction via PHPWord. We walk the element tree
+     * so headings keep their prefix (#, ##), bullet/numbered lists keep
+     * their markers, and tables render as pipe-separated rows.
+     */
+    protected function extractDocxStructured(string $path): string
+    {
+        try {
+            $doc = \PhpOffice\PhpWord\IOFactory::load($path, 'Word2007');
+        } catch (\Throwable $e) {
+            throw new \RuntimeException('Could not open DOCX file: ' . $e->getMessage());
+        }
+        $lines = [];
+        foreach ($doc->getSections() as $section) {
+            foreach ($section->getElements() as $el) {
+                $this->renderDocxElement($el, $lines);
+            }
+        }
+        $text = trim(implode("\n", $lines));
+        if ($text === '') {
+            throw new \RuntimeException('No extractable text found in this DOCX.');
+        }
+        return $text;
+    }
+
+    /** @param array<int,string> $lines */
+    protected function renderDocxElement(object $el, array &$lines): void
+    {
+        $cls = class_basename($el);
+        switch ($cls) {
+            case 'Title':
+                $depth = method_exists($el, 'getDepth') ? (int) $el->getDepth() : 1;
+                $lines[] = str_repeat('#', max(1, min(6, $depth + 1))) . ' ' . $this->docxInline($el);
+                $lines[] = '';
+                break;
+            case 'TextRun':
+            case 'Text':
+                $t = $this->docxInline($el);
+                if ($t !== '') $lines[] = $t;
+                break;
+            case 'ListItem':
+            case 'ListItemRun':
+                $lines[] = '- ' . $this->docxInline($el);
+                break;
+            case 'Table':
+                foreach ($el->getRows() as $row) {
+                    $cells = [];
+                    foreach ($row->getCells() as $cell) {
+                        $cellLines = [];
+                        foreach ($cell->getElements() as $ce) {
+                            $this->renderDocxElement($ce, $cellLines);
+                        }
+                        $cells[] = trim(implode(' ', $cellLines));
+                    }
+                    $lines[] = '| ' . implode(' | ', $cells) . ' |';
+                }
+                $lines[] = '';
+                break;
+            default:
+                if (method_exists($el, 'getElements')) {
+                    foreach ($el->getElements() as $child) {
+                        $this->renderDocxElement($child, $lines);
+                    }
+                } else {
+                    $t = $this->docxInline($el);
+                    if ($t !== '') $lines[] = $t;
+                }
+        }
+    }
+
+    protected function docxInline(object $el): string
+    {
+        if (method_exists($el, 'getText')) {
+            $t = $el->getText();
+            if (is_string($t)) return trim($t);
+        }
+        $parts = [];
+        if (method_exists($el, 'getElements')) {
+            foreach ($el->getElements() as $child) {
+                $parts[] = $this->docxInline($child);
+            }
+        }
+        return trim(implode(' ', array_filter($parts, fn ($p) => $p !== '')));
     }
 
     protected function fetchLink(AiMindSource $source): string
