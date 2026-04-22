@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Modules\Admin\Models\Addon;
 use App\Modules\Admin\Models\Plan;
 use App\Modules\Admin\Models\Price;
+use App\Modules\Common\Services\GeoIpService;
 use App\Modules\User\Models\User;
 
 /**
@@ -21,8 +22,15 @@ use App\Modules\User\Models\User;
  *   - Logged-in user with `country` set → look up
  *     `country_currency` config; default USD.
  *   - Logged-in user with no country → respect the
- *     `billing_currency` session flag if present; default USD.
- *   - Anonymous → respect the `billing_currency` session flag; default USD.
+ *     `billing_currency` session flag if present; otherwise fall back
+ *     to the geo-IP default (INR for India, USD elsewhere).
+ *   - Anonymous → respect the `billing_currency` session flag; otherwise
+ *     fall back to the geo-IP default (INR for India, USD elsewhere).
+ *
+ * The geo-derived default is cached on the session under
+ * `billing_currency_geo` so we don't re-hit the geo-IP service on
+ * every request. The manual switcher (which writes
+ * `billing_currency`) and an explicit user country still win over it.
  *
  * No FX conversion is ever done — admins set INR and USD independently.
  *
@@ -35,6 +43,7 @@ use App\Modules\User\Models\User;
 class PricingResolver
 {
     public const SESSION_KEY = 'billing_currency';
+    public const SESSION_KEY_GEO = 'billing_currency_geo';
 
     /** Country → currency lookup. Defaults to USD when unmapped. */
     public static function currencyForCountry(?string $countryCode): string
@@ -55,7 +64,61 @@ class PricingResolver
         if (is_string($session) && in_array($session, ['USD', 'INR'], true)) {
             return $session;
         }
-        return 'USD';
+        return self::geoDefaultCurrency();
+    }
+
+    /**
+     * Geo-IP-derived default currency for the current request.
+     *
+     * Resolution order:
+     *   1. If we already cached a geo currency on this session,
+     *      reuse it (one geo lookup per session, not per request).
+     *   2. Otherwise ask GeoIpService for the country of the current
+     *      request's client IP. The framework's trusted-proxy setup
+     *      means $request->ip() returns the real client IP (X-Forwarded-For)
+     *      behind the load balancer.
+     *   3. Map country → currency (IN → INR, everything else → USD).
+     *   4. Cache the result on the session and return it.
+     *
+     * Private/loopback IPs and any geo-IP failure (timeout, exception,
+     * unmapped country) all gracefully fall back to USD without
+     * throwing — this keeps local dev and offline test environments
+     * working with no extra setup.
+     *
+     * Returns USD when no HTTP request is bound (CLI / queue worker
+     * context), since there's nothing to geolocate.
+     */
+    private static function geoDefaultCurrency(): string
+    {
+        try {
+            $cached = session(self::SESSION_KEY_GEO);
+            if (is_string($cached) && in_array($cached, ['USD', 'INR'], true)) {
+                return $cached;
+            }
+        } catch (\Throwable $e) {
+            // No session bound (CLI) — skip cache and fall through to USD.
+            return 'USD';
+        }
+
+        $currency = 'USD';
+        try {
+            if (app()->bound('request')) {
+                $ip = request()->ip();
+                if (is_string($ip) && $ip !== '') {
+                    $cc = app(GeoIpService::class)->detectCountry($ip);
+                    $currency = self::currencyForCountry($cc);
+                }
+            }
+        } catch (\Throwable $e) {
+            $currency = 'USD';
+        }
+
+        try {
+            session([self::SESSION_KEY_GEO => $currency]);
+        } catch (\Throwable $e) {
+            // best-effort cache only
+        }
+        return $currency;
     }
 
     /**
