@@ -326,14 +326,62 @@
             .stack-inner { width: 280px; }
         }
 
+        /* ============ Pillar preview subtle animations (only when card is in view) ============ */
+        .pp-live-dot { display:inline-block; width:6px; height:6px; border-radius:9999px; will-change: transform, opacity; }
+        .pp-in-view .pp-live-dot { animation: ppLiveDot 1.8s ease-in-out infinite; }
+        @keyframes ppLiveDot { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.45); opacity: .55; } }
+
+        .pp-qr-wrap { position: relative; overflow: hidden; }
+        .pp-qr-wrap::after {
+            content: ''; position: absolute; left: 6%; right: 6%; top: 2px; height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,.9), transparent);
+            box-shadow: 0 0 6px rgba(255,255,255,.55);
+            border-radius: 2px; pointer-events: none; opacity: 0; will-change: transform, opacity;
+        }
+        .pp-in-view .pp-qr-wrap::after { animation: ppQrScan 2.6s ease-in-out infinite; }
+        @keyframes ppQrScan {
+            0%   { transform: translateY(0);    opacity: 0; }
+            15%  { opacity: 1; }
+            50%  { transform: translateY(38px); opacity: 1; }
+            85%  { opacity: 1; }
+            100% { transform: translateY(0);    opacity: 0; }
+        }
+        .pp-nfc-pulse { will-change: transform; }
+        .pp-in-view .pp-nfc-pulse { animation: ppNfcPulse 2.2s ease-in-out infinite; }
+        @keyframes ppNfcPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+
+        .pp-tip-card { will-change: transform, opacity; }
+        .pp-in-view .pp-tip-card { animation: ppTipSlide 6.5s ease-in-out infinite; }
+        @keyframes ppTipSlide {
+            0%, 6%    { transform: translateX(-14px); opacity: 0; }
+            16%, 82%  { transform: translateX(0);     opacity: 1; }
+            94%, 100% { transform: translateX(-6px);  opacity: .85; }
+        }
+        .pp-dm-bubble { transform-origin: left bottom; will-change: transform; }
+        .pp-in-view .pp-dm-bubble { animation: ppDmBreath 3.6s ease-in-out infinite 1.2s; }
+        @keyframes ppDmBreath { 0%,100% { transform: scale(1); } 50% { transform: scale(1.04); } }
+
+        .pp-coach-arc { stroke-dashoffset: 97.39; }
+        .pp-in-view .pp-coach-arc { animation: ppCoachFill 1.8s cubic-bezier(.34,1.56,.64,1) .15s both; }
+        @keyframes ppCoachFill { from { stroke-dashoffset: 97.39; } to { stroke-dashoffset: 12.66; } }
+        .pp-coach-num { will-change: transform; }
+        .pp-in-view .pp-coach-num { animation: ppCoachPulse 3.4s ease-in-out infinite 1.6s; }
+        @keyframes ppCoachPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+        .pp-coach-bar { transform-origin: bottom; transform: scaleY(0); will-change: transform; }
+        .pp-in-view .pp-coach-bar { animation: ppBarRise 1.1s cubic-bezier(.34,1.56,.64,1) both; }
+        @keyframes ppBarRise { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+
         /* ============ Reduced motion ============ */
         @media (prefers-reduced-motion: reduce) {
             .reveal, .aurora b, .float-a, .float-b, .float-c, .wiggle, .spin-slow,
             .marquee, .marquee-rev, .eq i, .pulse-dot, .ring-pulse, .spark-line,
             .gauge-arc, .draw-line, .grad-text, .drift-a, .drift-b, .pop-in, .btn-glow::after,
-            .stack-3d, .stack-card, .role-word {
+            .stack-3d, .stack-card, .role-word,
+            .pp-live-dot, .pp-nfc-pulse, .pp-tip-card, .pp-dm-bubble, .pp-coach-num, .pp-coach-bar {
                 animation: none !important; transition: none !important; transform: none !important; opacity: 1 !important;
             }
+            .pp-in-view .pp-qr-wrap::after { animation: none !important; opacity: 0 !important; }
+            .pp-coach-arc { stroke-dashoffset: 12.66 !important; animation: none !important; }
             .spark-line, .draw-line { stroke-dashoffset: 0 !important; }
             .gauge-arc { stroke-dashoffset: 75 !important; }
             /* Simple crossfade fallback for the rotating hero */
@@ -4068,7 +4116,7 @@
                                     <div class="text-[11px] font-bold truncate">@maya.daily</div>
                                     <div class="text-[9px] text-gray-400 truncate">1inme.com/maya</div>
                                 </div>
-                                <span class="ml-auto text-[8px] font-bold px-1.5 py-0.5 rounded-full" style="background:rgba(27,212,217,.15); color:{{ $p['color'] }};">LIVE</span>
+                                <span class="ml-auto inline-flex items-center gap-1 text-[8px] font-bold px-1.5 py-0.5 rounded-full" style="background:rgba(27,212,217,.15); color:{{ $p['color'] }};"><span class="pp-live-dot" style="background:{{ $p['color'] }};"></span>LIVE</span>
                             </div>
                             <div class="space-y-1.5">
                                 <div class="flex items-center gap-2 px-2 py-1.5 rounded-lg" style="background:rgba(255,255,255,.05);">
@@ -4084,13 +4132,13 @@
                             {{-- Styled QR + NFC badge --}}
                             <div class="flex items-center gap-3">
                                 <div class="relative w-16 h-16 rounded-xl flex-shrink-0 p-1.5" style="background:linear-gradient(135deg, {{ $p['color'] }}, #1bd4d9);">
-                                    <div class="w-full h-full rounded-md grid grid-cols-6 grid-rows-6 gap-[1px] bg-[#0b0d12] p-1">
+                                    <div class="pp-qr-wrap w-full h-full rounded-md grid grid-cols-6 grid-rows-6 gap-[1px] bg-[#0b0d12] p-1">
                                         @php $cells = [1,0,1,1,0,1, 0,1,0,1,1,0, 1,1,1,0,1,1, 0,1,0,1,0,1, 1,0,1,1,1,0, 0,1,1,0,1,1]; @endphp
                                         @foreach($cells as $c)
                                             <span class="rounded-[1px]" style="background: {{ $c ? '#fff' : 'transparent' }};"></span>
                                         @endforeach
                                     </div>
-                                    <div class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold text-white" style="background:{{ $p['color'] }}; box-shadow:0 4px 10px -2px {{ $p['color'] }};">
+                                    <div class="pp-nfc-pulse absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold text-white" style="background:{{ $p['color'] }}; box-shadow:0 4px 10px -2px {{ $p['color'] }};">
                                         <i class="fas fa-wifi" style="transform:rotate(90deg)"></i>
                                     </div>
                                 </div>
@@ -4106,7 +4154,7 @@
                         @elseif($i === 2)
                             {{-- Tip + DM bubble --}}
                             <div class="space-y-2">
-                                <div class="flex items-center gap-2 px-2.5 py-2 rounded-xl" style="background:linear-gradient(90deg, rgba(233,78,140,.18), rgba(255,138,60,.12));">
+                                <div class="pp-tip-card flex items-center gap-2 px-2.5 py-2 rounded-xl" style="background:linear-gradient(90deg, rgba(233,78,140,.18), rgba(255,138,60,.12));">
                                     <div class="w-7 h-7 rounded-lg flex items-center justify-center text-white" style="background:linear-gradient(135deg, {{ $p['color'] }}, #ff8a3c);">
                                         <i class="fas fa-hand-holding-dollar text-[10px]"></i>
                                     </div>
@@ -4117,7 +4165,7 @@
                                 </div>
                                 <div class="flex items-end gap-1.5">
                                     <div class="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] font-bold flex-shrink-0" style="background:linear-gradient(135deg,#7c3aed,#1bd4d9);">A</div>
-                                    <div class="px-2.5 py-1.5 rounded-2xl rounded-bl-sm text-[10px]" style="background:rgba(255,255,255,.08);">
+                                    <div class="pp-dm-bubble px-2.5 py-1.5 rounded-2xl rounded-bl-sm text-[10px]" style="background:rgba(255,255,255,.08);">
                                         when's the next drop?
                                     </div>
                                 </div>
@@ -4128,7 +4176,7 @@
                                 <div class="relative w-16 h-16 flex-shrink-0">
                                     <svg viewBox="0 0 36 36" class="w-full h-full -rotate-90">
                                         <circle cx="18" cy="18" r="15.5" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="3"/>
-                                        <circle cx="18" cy="18" r="15.5" fill="none" stroke="url(#coachGrad{{ $i }})" stroke-width="3" stroke-linecap="round" stroke-dasharray="97.39" stroke-dashoffset="12.66"/>
+                                        <circle class="pp-coach-arc" cx="18" cy="18" r="15.5" fill="none" stroke="url(#coachGrad{{ $i }})" stroke-width="3" stroke-linecap="round" stroke-dasharray="97.39" stroke-dashoffset="12.66"/>
                                         <defs>
                                             <linearGradient id="coachGrad{{ $i }}" x1="0" x2="1" y1="0" y2="1">
                                                 <stop offset="0%" stop-color="{{ $p['color'] }}"/>
@@ -4137,7 +4185,7 @@
                                         </defs>
                                     </svg>
                                     <div class="absolute inset-0 flex flex-col items-center justify-center">
-                                        <div class="text-sm font-bold leading-none">87</div>
+                                        <div class="pp-coach-num text-sm font-bold leading-none">87</div>
                                         <div class="text-[7px] text-gray-400 uppercase tracking-wider mt-0.5">health</div>
                                     </div>
                                 </div>
@@ -4148,8 +4196,8 @@
                                     </div>
                                     <div class="text-[10px] text-gray-300 leading-snug mb-1.5">Add a QR to your latest post — <span class="font-bold text-white">+12% est.</span></div>
                                     <div class="flex items-end gap-0.5 h-4">
-                                        @foreach([4,7,5,9,6,11,8,12,10,14] as $h)
-                                            <span class="flex-1 rounded-sm" style="height:{{ $h * 6 }}%;background:linear-gradient(180deg, {{ $p['color'] }}, #1bd4d9);"></span>
+                                        @foreach([4,7,5,9,6,11,8,12,10,14] as $bi => $h)
+                                            <span class="pp-coach-bar flex-1 rounded-sm" style="height:{{ $h * 6 }}%;background:linear-gradient(180deg, {{ $p['color'] }}, #1bd4d9);animation-delay:{{ 0.2 + $bi * 0.07 }}s;"></span>
                                         @endforeach
                                     </div>
                                 </div>
@@ -5237,6 +5285,20 @@
             setTimeout(() => reveals.forEach(el => el.classList.add('visible')), 250);
         } else {
             reveals.forEach(el => el.classList.add('visible'));
+        }
+
+        // Toggle pp-in-view on pillar preview blocks so their subtle animations
+        // only run while the card is on screen (and pause when scrolled away).
+        const pillarPreviews = document.querySelectorAll('.pillar-preview');
+        if (pillarPreviews.length && 'IntersectionObserver' in window) {
+            const ppObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    entry.target.classList.toggle('pp-in-view', entry.isIntersecting);
+                });
+            }, { threshold: 0.15 });
+            pillarPreviews.forEach(el => ppObserver.observe(el));
+        } else {
+            pillarPreviews.forEach(el => el.classList.add('pp-in-view'));
         }
 
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
