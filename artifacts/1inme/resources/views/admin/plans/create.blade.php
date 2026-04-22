@@ -95,6 +95,17 @@
                     </div>
                 </div>
 
+                <div>
+                    <label class="flex items-center gap-2 text-sm text-white/80 p-2 rounded hover:bg-white/5">
+                        <input type="hidden" name="is_popular" value="0">
+                        <input type="checkbox" name="is_popular" value="1"
+                               {{ old('is_popular') ? 'checked' : '' }}
+                               class="rounded border-white/10 text-violet-400">
+                        Most popular
+                    </label>
+                    <p class="text-[10px] text-white/30 mt-1 ml-2">Highlights this plan on the landing page and mobile Upgrade screen. Only one plan can be marked popular at a time — saving will clear the flag on any other plan.</p>
+                </div>
+
                 <div class="border-t border-white/10 pt-5">
                     <h3 class="text-sm font-medium text-white/80 mb-3">Plan Features / Limits</h3>
                     <div class="grid grid-cols-2 gap-4">

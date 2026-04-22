@@ -42,6 +42,7 @@ class PlanController extends Controller
     {
         $validated = $request->validate($this->rules());
         $validated['slug'] = $this->uniqueSlug($validated['name']);
+        $validated['is_popular'] = $request->boolean('is_popular');
         $addonIds = $validated['addon_ids'] ?? [];
         unset($validated['addon_ids']);
 
@@ -64,6 +65,9 @@ class PlanController extends Controller
         }
 
         $plan = Plan::create($validated);
+        if ($plan->is_popular) {
+            Plan::where('id', '!=', $plan->id)->where('is_popular', true)->update(['is_popular' => false]);
+        }
         $plan->addons()->sync($addonIds);
         $this->syncPriceTable($plan, $minor);
 
@@ -80,6 +84,7 @@ class PlanController extends Controller
     public function update(Request $request, Plan $plan)
     {
         $validated = $request->validate($this->rules());
+        $validated['is_popular'] = $request->boolean('is_popular');
         $addonIds = $validated['addon_ids'] ?? [];
         unset($validated['addon_ids']);
 
@@ -96,6 +101,9 @@ class PlanController extends Controller
         }
 
         $plan->update($validated);
+        if ($plan->is_popular) {
+            Plan::where('id', '!=', $plan->id)->where('is_popular', true)->update(['is_popular' => false]);
+        }
         $plan->addons()->sync($addonIds);
         $this->syncPriceTable($plan, $minor);
 
@@ -120,6 +128,7 @@ class PlanController extends Controller
             'refund_window_days' => 'required|integer|min:0|max:365',
             'status' => 'required|in:active,inactive',
             'sort_order' => 'integer|min:0',
+            'is_popular' => 'nullable|boolean',
             'features' => 'nullable|array',
             'addon_ids' => 'nullable|array',
             'addon_ids.*' => 'integer|exists:addons,id',
