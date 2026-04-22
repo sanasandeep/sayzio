@@ -113,6 +113,12 @@ Route::prefix('v1')->group(function () {
         Route::get ('/ai/credits/packs',        [\App\Modules\Api\Controllers\AiCreditsController::class, 'packs']);
         Route::post('/ai/credits/purchase',     [\App\Modules\Api\Controllers\AiCreditsController::class, 'purchase']);
 
+        // AI Mind picker defaults (Persona / Coach mobile parity).
+        Route::get   ('/ai/minds',                  [\App\Modules\Api\Controllers\AiMindPickerController::class, 'minds']);
+        Route::get   ('/ai/{feature}/defaults',     [\App\Modules\Api\Controllers\AiMindPickerController::class, 'getDefaults'])->whereIn('feature', ['persona', 'coach']);
+        Route::put   ('/ai/{feature}/defaults',     [\App\Modules\Api\Controllers\AiMindPickerController::class, 'saveDefaults'])->whereIn('feature', ['persona', 'coach']);
+        Route::delete('/ai/{feature}/defaults',     [\App\Modules\Api\Controllers\AiMindPickerController::class, 'clearDefaults'])->whereIn('feature', ['persona', 'coach']);
+
         // Onboarding
         Route::get('/onboarding',          [OnboardingController::class, 'status']);
         Route::post('/onboarding/complete',[OnboardingController::class, 'complete']);

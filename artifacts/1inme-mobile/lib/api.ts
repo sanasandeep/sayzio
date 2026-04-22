@@ -202,6 +202,50 @@ export const aiCredits = {
   },
 };
 
+// ── AI Mind picker (Persona / Coach defaults) ─────────────────────
+export type AiMindSummary = { id: number; name: string };
+export type AiMindList = {
+  mine: AiMindSummary[];
+  platform: AiMindSummary | null;
+};
+export type AiMindFeature = "persona" | "coach";
+export type AiMindDefaults = {
+  feature: AiMindFeature;
+  has_default: boolean;
+  mind_ids: number[];
+  include_platform: boolean;
+};
+
+export const aiMinds = {
+  list: async (): Promise<AiMindList> => {
+    const r = await apiFetch<{ data: AiMindList }>("/ai/minds");
+    return r.data;
+  },
+  getDefaults: async (feature: AiMindFeature): Promise<AiMindDefaults> => {
+    const r = await apiFetch<{ data: AiMindDefaults }>(
+      `/ai/${feature}/defaults`,
+    );
+    return r.data;
+  },
+  saveDefaults: async (
+    feature: AiMindFeature,
+    input: { mind_ids: number[]; include_platform: boolean },
+  ): Promise<AiMindDefaults> => {
+    const r = await apiFetch<{ data: AiMindDefaults }>(
+      `/ai/${feature}/defaults`,
+      { method: "PUT", body: JSON.stringify(input) },
+    );
+    return r.data;
+  },
+  clearDefaults: async (feature: AiMindFeature): Promise<AiMindDefaults> => {
+    const r = await apiFetch<{ data: AiMindDefaults }>(
+      `/ai/${feature}/defaults`,
+      { method: "DELETE" },
+    );
+    return r.data;
+  },
+};
+
 function safeJson(text: string): any {
   try {
     return JSON.parse(text);
