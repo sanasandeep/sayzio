@@ -11,12 +11,23 @@ export type Plan = {
   name: string;
   description: string | null;
   features: string[];
+  features_map?: Record<string, string | number | boolean>;
   currency: string;
   is_default: boolean;
+  is_popular?: boolean;
   is_current: boolean;
   trial_days: number;
   monthly: PlanPrice;
   annual: PlanPrice;
+};
+
+export type PremiumFeature = {
+  key: string;
+  group: string;
+  name: string;
+  description: string;
+  unit?: string;
+  unlocked_by: string[];
 };
 
 export type Addon = {
@@ -31,7 +42,12 @@ export type Addon = {
 };
 
 export type PlansResponse = {
-  data: { currency: string; plans: Plan[]; addons: Addon[] };
+  data: {
+    currency: string;
+    plans: Plan[];
+    addons: Addon[];
+    premium_features?: PremiumFeature[];
+  };
 };
 
 export type RevenueCatActivateResponse = {

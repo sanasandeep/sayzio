@@ -64,7 +64,9 @@ class RevenueCatBillingController extends Controller
                     'features'     => is_array($p->features) ? array_values($p->features) : [],
                     'currency'     => $currency,
                     'is_default'   => (bool) $p->is_default,
+                    'is_popular'   => (bool) $p->is_popular,
                     'is_current'   => $user && (int) $user->plan_id === (int) $p->id,
+                    'features_map' => is_array($p->features) ? $p->features : [],
                     'trial_days'   => (int) ($p->trial_days ?? 0),
                     'monthly'      => [
                         'amount_minor' => (int) ($monthly['amount_minor'] ?? 0),
@@ -103,10 +105,22 @@ class RevenueCatBillingController extends Controller
                 ];
             })->all();
 
+        // Premium feature catalogue with plain-English copy is owned
+        // by the API so the mobile Premium Features screen can render
+        // exactly the same descriptions the web /premium-features page
+        // shows — without the mobile bundle duplicating strings.
+        $planModels = Plan::query()
+            ->where('status', 'active')->where('is_archived', false)->get();
+        $unlocks = \App\Modules\Common\Support\PremiumFeatures::unlocksByFeature($planModels);
+        $premiumFeatures = collect(\App\Modules\Common\Support\PremiumFeatures::catalogue())
+            ->map(fn ($e) => $e + ['unlocked_by' => $unlocks[$e['key']] ?? []])
+            ->values()->all();
+
         return $this->ok([
-            'currency' => $currency,
-            'plans'    => $plans,
-            'addons'   => $addons,
+            'currency'         => $currency,
+            'plans'            => $plans,
+            'addons'           => $addons,
+            'premium_features' => $premiumFeatures,
         ]);
     }
 

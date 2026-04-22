@@ -11,7 +11,7 @@ class Plan extends Model
         'monthly_price', 'annual_price',
         'monthly_price_secondary', 'annual_price_secondary',
         'trial_days', 'grace_days', 'refund_window_days',
-        'features', 'metadata', 'is_default', 'status',
+        'features', 'metadata', 'is_default', 'is_popular', 'status',
         'is_archived', 'sort_order',
     ];
 
@@ -25,6 +25,7 @@ class Plan extends Model
             'monthly_price_secondary' => 'decimal:2',
             'annual_price_secondary' => 'decimal:2',
             'is_default' => 'boolean',
+            'is_popular' => 'boolean',
             'is_archived' => 'boolean',
         ];
     }

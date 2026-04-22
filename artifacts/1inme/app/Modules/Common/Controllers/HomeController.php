@@ -19,12 +19,22 @@ class HomeController extends Controller
         $billing = $user ? BillingAddress::where('user_id', $user->id)->first() : null;
         $hasAddress = $billing && !empty($billing->country);
 
-        $plans = Plan::where('status', 'active')
+        // Landing-page pricing is intentionally just two cards now:
+        // the always-free entry plan and the curator-flagged "popular"
+        // plan. The full plan grid lives at /pricing — keeping the
+        // landing page focused removes choice paralysis above the fold.
+        $allPlans = Plan::where('status', 'active')
             ->where('is_archived', false)
             ->with('prices')
             ->ordered()
-            ->take(3)
-            ->get()
+            ->get();
+
+        $isFree = fn ($p) => (int) PricingResolver::priceFor($p, $user, 'monthly')['amount_minor'] === 0;
+        $freePlan = $allPlans->first($isFree);
+        $popularPlan = $allPlans->firstWhere('is_popular', true)
+            ?? $allPlans->first(fn ($p) => !$isFree($p)); // Fallback if none flagged.
+
+        $plans = collect([$freePlan, $popularPlan])->filter()->unique('id')->values()
             ->map(function ($p) use ($user, $billing, $hasAddress, $currency) {
                 $monthly = PricingResolver::priceFor($p, $user, 'monthly');
                 $tax = null;
@@ -45,6 +55,7 @@ class HomeController extends Controller
                     'description' => $p->description,
                     'features'    => $p->features ?? [],
                     'is_free'     => $monthly['amount_minor'] <= 0,
+                    'is_popular'  => (bool) $p->is_popular,
                     'monthly'     => $monthly,
                     'tax'         => $tax,
                 ];

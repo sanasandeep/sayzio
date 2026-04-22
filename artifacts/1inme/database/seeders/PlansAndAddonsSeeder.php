@@ -203,6 +203,7 @@ class PlansAndAddonsSeeder extends Seeder
                 'annual_price' => 99.99,
                 'trial_days' => 14,
                 'is_default' => false,
+                'is_popular' => true,
                 'status' => 'active',
                 'is_archived' => false,
                 'sort_order' => 2,

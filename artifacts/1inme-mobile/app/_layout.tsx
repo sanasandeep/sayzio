@@ -64,7 +64,10 @@ function RootLayoutNav() {
       <Stack.Screen name="info" options={{ headerShown: false }} />
       <Stack.Screen name="biolink/[handle]" options={{ headerShown: false }} />
       <Stack.Screen name="oauth-callback" options={{ headerShown: false }} />
+      <Stack.Screen name="upgrade" options={{ title: "Upgrade" }} />
       <Stack.Screen name="plans" options={{ title: "Plans & billing" }} />
+      <Stack.Screen name="coin-packages" options={{ title: "Coin packages" }} />
+      <Stack.Screen name="premium-features" options={{ title: "Premium features" }} />
       <Stack.Screen name="dialer" options={{ title: "Dialer" }} />
       <Stack.Screen name="call/active" options={{ headerShown: false }} />
       <Stack.Screen name="call/incoming" options={{ headerShown: false }} />

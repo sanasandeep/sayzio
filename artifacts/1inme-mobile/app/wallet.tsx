@@ -1,6 +1,5 @@
 import { Feather } from "@expo/vector-icons";
 import { Stack, useRouter } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -16,19 +15,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useColors } from "@/hooks/useColors";
 import {
-  type CoinPackage,
   type WalletBalance,
   type WalletTransaction,
   wallet as walletApi,
 } from "@/lib/api";
-
-const GATEWAYS: { slug: string; label: string }[] = [
-  { slug: "stripe", label: "Card (Stripe)" },
-  { slug: "razorpay", label: "Razorpay" },
-  { slug: "paypal", label: "PayPal" },
-  { slug: "cashfree", label: "Cashfree" },
-  { slug: "offline", label: "Manual / Offline" },
-];
 
 export default function WalletScreen() {
   const colors = useColors();
@@ -37,26 +27,25 @@ export default function WalletScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [balance, setBalance] = useState<WalletBalance | null>(null);
-  const [packages, setPackages] = useState<CoinPackage[]>([]);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
-  const [busyPkgId, setBusyPkgId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const [bal, pkgs, tx] = await Promise.all([
+      // Buying coins lives on its own /coin-packages screen now, so the
+      // wallet view focuses purely on balance + history.
+      const [bal, tx] = await Promise.all([
         walletApi.balance(),
-        walletApi.packages(),
         walletApi.transactions({ limit: 15 }),
       ]);
       setBalance(bal);
-      setPackages(pkgs.items);
       setTransactions(tx.items);
-    } catch (e: any) {
-      if (e?.status === 404) {
+    } catch (e: unknown) {
+      const err = e as { status?: number; message?: string } | undefined;
+      if (err?.status === 404) {
         Alert.alert("Wallet unavailable", "The wallet feature is currently disabled.");
         router.back();
       } else {
-        Alert.alert("Couldn't load wallet", e?.message ?? "Try again in a moment.");
+        Alert.alert("Couldn't load wallet", err?.message ?? "Try again in a moment.");
       }
     } finally {
       setLoading(false);
@@ -67,31 +56,6 @@ export default function WalletScreen() {
   useEffect(() => {
     void load();
   }, [load]);
-
-  const buy = async (pkg: CoinPackage, gateway: string) => {
-    setBusyPkgId(pkg.id);
-    try {
-      const res = await walletApi.purchase(pkg.id, gateway);
-      const handoff: any = res.handoff;
-      if (handoff?.kind === "redirect" && typeof handoff.url === "string") {
-        await WebBrowser.openBrowserAsync(handoff.url);
-        await load();
-      } else {
-        Alert.alert("Almost there", "Continue checkout in your web browser to complete payment.");
-      }
-    } catch (e: any) {
-      Alert.alert("Purchase failed", e?.message ?? "Please try again.");
-    } finally {
-      setBusyPkgId(null);
-    }
-  };
-
-  const promptGateway = (pkg: CoinPackage) => {
-    Alert.alert("Pay with", pkg.name, [
-      ...GATEWAYS.map((g) => ({ text: g.label, onPress: () => buy(pkg, g.slug) })),
-      { text: "Cancel", style: "cancel" as const },
-    ]);
-  };
 
   if (loading) {
     return (
@@ -148,56 +112,26 @@ export default function WalletScreen() {
           )}
         </View>
 
-        <View>
-          <Text style={[styles.section, { color: colors.foreground }]}>Buy coins</Text>
-          {packages.length === 0 ? (
+        <Pressable
+          onPress={() => router.push("/coin-packages" as never)}
+          style={({ pressed }) => [
+            styles.packageCard,
+            {
+              backgroundColor: colors.card,
+              borderColor: colors.primary,
+              borderRadius: colors.radius,
+              opacity: pressed ? 0.7 : 1,
+            },
+          ]}
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.pkgName, { color: colors.foreground }]}>Top up coins</Text>
             <Text style={[styles.subtle, { color: colors.mutedForeground }]}>
-              No coin packages are available right now.
+              Browse coin packages and pick a gateway.
             </Text>
-          ) : (
-            <View style={{ gap: 10 }}>
-              {packages.map((pkg) => (
-                <Pressable
-                  key={pkg.id}
-                  onPress={() => promptGateway(pkg)}
-                  disabled={busyPkgId === pkg.id}
-                  style={({ pressed }) => [
-                    styles.packageCard,
-                    {
-                      backgroundColor: colors.card,
-                      borderColor: colors.border,
-                      borderRadius: colors.radius,
-                      opacity: pressed || busyPkgId === pkg.id ? 0.6 : 1,
-                    },
-                  ]}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.pkgName, { color: colors.foreground }]}>{pkg.name}</Text>
-                    <Text style={[styles.subtle, { color: colors.mutedForeground }]}>
-                      {pkg.coin_amount.toLocaleString()} coins
-                      {pkg.bonus_coins > 0 ? ` + ${pkg.bonus_coins.toLocaleString()} bonus` : ""}
-                    </Text>
-                    {pkg.description ? (
-                      <Text style={[styles.subtle, { color: colors.mutedForeground }]}>
-                        {pkg.description}
-                      </Text>
-                    ) : null}
-                  </View>
-                  <View style={{ alignItems: "flex-end" }}>
-                    <Text style={[styles.price, { color: colors.foreground }]}>
-                      {pkg.formatted ?? `${pkg.currency} ${(pkg.amount_minor / 100).toFixed(2)}`}
-                    </Text>
-                    {busyPkgId === pkg.id ? (
-                      <ActivityIndicator size="small" color={colors.primary} />
-                    ) : (
-                      <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
-                    )}
-                  </View>
-                </Pressable>
-              ))}
-            </View>
-          )}
-        </View>
+          </View>
+          <Feather name="chevron-right" size={18} color={colors.primary} />
+        </Pressable>
 
         <View>
           <Text style={[styles.section, { color: colors.foreground }]}>Recent transactions</Text>

@@ -4515,18 +4515,9 @@
         </div>
         @endif
 
-        @php
-            $planCount = max(1, count($plans));
-            $gridClass = match (true) {
-                $planCount >= 4 => 'md:grid-cols-2 lg:grid-cols-4',
-                $planCount === 3 => 'md:grid-cols-3',
-                $planCount === 2 => 'md:grid-cols-2',
-                default => 'md:grid-cols-1',
-            };
-        @endphp
-        <div class="grid {{ $gridClass }} gap-6 max-w-6xl mx-auto">
+        <div class="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
             @foreach($plans as $i => $plan)
-                @php $featured = $i === 1; $f = $plan['features']; @endphp
+                @php $featured = !empty($plan['is_popular']) || (!$plan['is_free'] && $i > 0); $f = $plan['features']; @endphp
                 <div class="reveal rd-{{ $i + 1 }} lift relative rounded-3xl p-8 {{ $featured ? 'text-white shadow-2xl shadow-[#7c3aed]/30 scale-[1.03]' : 'glass' }}" @if($featured) style="background: linear-gradient(150deg, var(--c2), var(--c3) 60%, var(--c4));" @endif>
                     @if($featured)
                         <div class="absolute -top-3 right-6 px-3 py-1 grad-bar text-white text-[10px] font-bold rounded-full uppercase tracking-wider">Most popular</div>
@@ -4564,6 +4555,22 @@
                     </button>
                 </div>
             @endforeach
+        </div>
+
+        {{-- Drill-down links to the dedicated pricing pages --}}
+        <div class="mt-12 text-center">
+            <p class="text-gray-400 text-sm uppercase tracking-wider mb-4">Want the full picture?</p>
+            <div class="flex flex-wrap items-center justify-center gap-3">
+                <a href="{{ route('site.pricing') }}" class="inline-flex items-center gap-2 px-6 py-3 rounded-full grad-bar text-white text-sm font-bold">
+                    <i class="fas fa-tags"></i> See all plans
+                </a>
+                <a href="{{ route('site.coins') }}" class="inline-flex items-center gap-2 px-6 py-3 rounded-full glass text-white hover:bg-white/10 text-sm font-medium">
+                    <i class="fas fa-coins text-amber-400"></i> Browse coin packages
+                </a>
+                <a href="{{ route('site.premium-features') }}" class="inline-flex items-center gap-2 px-6 py-3 rounded-full glass text-white hover:bg-white/10 text-sm font-medium">
+                    <i class="fas fa-star"></i> Premium features
+                </a>
+            </div>
         </div>
     </div>
 </section>

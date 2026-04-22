@@ -47,7 +47,9 @@
                 <li><a href="{{ route('site.features') }}" class="hover:text-white">Features</a></li>
                 <li><a href="{{ route('site.how-it-works') }}" class="hover:text-white">How it works</a></li>
                 <li><a href="{{ route('site.workspace-team') }}" class="hover:text-white">Workspace &amp; Team</a></li>
-                <li><a href="{{ route('home') }}#pricing" class="hover:text-white">Pricing</a></li>
+                <li><a href="{{ route('site.pricing') }}" class="hover:text-white">Pricing</a></li>
+                <li><a href="{{ route('site.coins') }}" class="hover:text-white">Coin packages</a></li>
+                <li><a href="{{ route('site.premium-features') }}" class="hover:text-white">Premium features</a></li>
                 <li><a href="{{ route('site.api-docs') }}" class="hover:text-white">API</a></li>
             </ul>
         </div>

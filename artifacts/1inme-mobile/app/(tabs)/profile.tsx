@@ -302,7 +302,7 @@ export default function Profile() {
               />
             </Pressable>
             <Pressable
-              onPress={() => router.push("/plans" as never)}
+              onPress={() => router.push("/upgrade" as never)}
               style={({ pressed }) => [
                 styles.listItem,
                 {
@@ -314,7 +314,7 @@ export default function Profile() {
             >
               <Feather name="zap" size={18} color={colors.primary} />
               <Text style={[styles.listLabel, { color: colors.foreground }]}>
-                Plans & billing
+                Upgrade
               </Text>
               <Feather
                 name="chevron-right"
