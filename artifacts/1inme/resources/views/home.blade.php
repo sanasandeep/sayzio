@@ -4057,6 +4057,106 @@
                     </div>
                     <div class="relative text-[11px] font-bold uppercase tracking-wider mb-1" style="color: {{ $p['color'] }};">{{ $p['eyebrow'] }}</div>
                     <h3 class="relative text-lg font-bold mb-4 leading-snug">{!! $p['title'] !!}</h3>
+
+                    {{-- Mini visual preview, one per pillar --}}
+                    <div class="pillar-preview relative mb-5 rounded-2xl p-3 overflow-hidden" style="background:linear-gradient(135deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.06);" aria-hidden="true">
+                        @if($i === 0)
+                            {{-- Bio-link mini card --}}
+                            <div class="flex items-center gap-2.5 mb-2.5">
+                                <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style="background:linear-gradient(135deg, {{ $p['color'] }}, #7c3aed);">M</div>
+                                <div class="min-w-0">
+                                    <div class="text-[11px] font-bold truncate">@maya.daily</div>
+                                    <div class="text-[9px] text-gray-400 truncate">1inme.com/maya</div>
+                                </div>
+                                <span class="ml-auto text-[8px] font-bold px-1.5 py-0.5 rounded-full" style="background:rgba(27,212,217,.15); color:{{ $p['color'] }};">LIVE</span>
+                            </div>
+                            <div class="space-y-1.5">
+                                <div class="flex items-center gap-2 px-2 py-1.5 rounded-lg" style="background:rgba(255,255,255,.05);">
+                                    <i class="fab fa-spotify text-[10px]" style="color:#1ed760"></i>
+                                    <span class="text-[10px] font-semibold">New single — out now</span>
+                                </div>
+                                <div class="flex items-center gap-2 px-2 py-1.5 rounded-lg" style="background:linear-gradient(90deg, rgba(27,212,217,.18), rgba(124,58,237,.12));">
+                                    <i class="fas fa-store text-[10px]" style="color:{{ $p['color'] }}"></i>
+                                    <span class="text-[10px] font-semibold">Merch shop</span>
+                                </div>
+                            </div>
+                        @elseif($i === 1)
+                            {{-- Styled QR + NFC badge --}}
+                            <div class="flex items-center gap-3">
+                                <div class="relative w-16 h-16 rounded-xl flex-shrink-0 p-1.5" style="background:linear-gradient(135deg, {{ $p['color'] }}, #1bd4d9);">
+                                    <div class="w-full h-full rounded-md grid grid-cols-6 grid-rows-6 gap-[1px] bg-[#0b0d12] p-1">
+                                        @php $cells = [1,0,1,1,0,1, 0,1,0,1,1,0, 1,1,1,0,1,1, 0,1,0,1,0,1, 1,0,1,1,1,0, 0,1,1,0,1,1]; @endphp
+                                        @foreach($cells as $c)
+                                            <span class="rounded-[1px]" style="background: {{ $c ? '#fff' : 'transparent' }};"></span>
+                                        @endforeach
+                                    </div>
+                                    <div class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold text-white" style="background:{{ $p['color'] }}; box-shadow:0 4px 10px -2px {{ $p['color'] }};">
+                                        <i class="fas fa-wifi" style="transform:rotate(90deg)"></i>
+                                    </div>
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="text-[10px] text-gray-400">Scans · 7d</div>
+                                    <div class="text-base font-bold leading-tight">1,420</div>
+                                    <div class="flex items-center gap-1 mt-1">
+                                        <span class="text-[9px] font-bold px-1.5 py-0.5 rounded" style="background:rgba(124,58,237,.2); color:#c4b5fd;">NFC</span>
+                                        <span class="text-[9px] font-bold px-1.5 py-0.5 rounded" style="background:rgba(255,255,255,.06); color:#9ca3af;">QR</span>
+                                    </div>
+                                </div>
+                            </div>
+                        @elseif($i === 2)
+                            {{-- Tip + DM bubble --}}
+                            <div class="space-y-2">
+                                <div class="flex items-center gap-2 px-2.5 py-2 rounded-xl" style="background:linear-gradient(90deg, rgba(233,78,140,.18), rgba(255,138,60,.12));">
+                                    <div class="w-7 h-7 rounded-lg flex items-center justify-center text-white" style="background:linear-gradient(135deg, {{ $p['color'] }}, #ff8a3c);">
+                                        <i class="fas fa-hand-holding-dollar text-[10px]"></i>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="text-[10px] text-gray-300">Tip from <span class="font-bold">@leo</span></div>
+                                        <div class="text-[11px] font-bold">$ 5.00 · "love your set 🔥"</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-end gap-1.5">
+                                    <div class="w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] font-bold flex-shrink-0" style="background:linear-gradient(135deg,#7c3aed,#1bd4d9);">A</div>
+                                    <div class="px-2.5 py-1.5 rounded-2xl rounded-bl-sm text-[10px]" style="background:rgba(255,255,255,.08);">
+                                        when's the next drop?
+                                    </div>
+                                </div>
+                            </div>
+                        @else
+                            {{-- AI Coach health gauge --}}
+                            <div class="flex items-center gap-3">
+                                <div class="relative w-16 h-16 flex-shrink-0">
+                                    <svg viewBox="0 0 36 36" class="w-full h-full -rotate-90">
+                                        <circle cx="18" cy="18" r="15.5" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="3"/>
+                                        <circle cx="18" cy="18" r="15.5" fill="none" stroke="url(#coachGrad{{ $i }})" stroke-width="3" stroke-linecap="round" stroke-dasharray="97.39" stroke-dashoffset="12.66"/>
+                                        <defs>
+                                            <linearGradient id="coachGrad{{ $i }}" x1="0" x2="1" y1="0" y2="1">
+                                                <stop offset="0%" stop-color="{{ $p['color'] }}"/>
+                                                <stop offset="100%" stop-color="#1bd4d9"/>
+                                            </linearGradient>
+                                        </defs>
+                                    </svg>
+                                    <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                        <div class="text-sm font-bold leading-none">87</div>
+                                        <div class="text-[7px] text-gray-400 uppercase tracking-wider mt-0.5">health</div>
+                                    </div>
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center gap-1.5 mb-1">
+                                        <i class="fas fa-bolt text-[10px]" style="color:{{ $p['color'] }}"></i>
+                                        <span class="text-[10px] font-bold uppercase tracking-wider" style="color:{{ $p['color'] }}">AI Coach</span>
+                                    </div>
+                                    <div class="text-[10px] text-gray-300 leading-snug mb-1.5">Add a QR to your latest post — <span class="font-bold text-white">+12% est.</span></div>
+                                    <div class="flex items-end gap-0.5 h-4">
+                                        @foreach([4,7,5,9,6,11,8,12,10,14] as $h)
+                                            <span class="flex-1 rounded-sm" style="height:{{ $h * 6 }}%;background:linear-gradient(180deg, {{ $p['color'] }}, #1bd4d9);"></span>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+
                     <ul class="relative space-y-2.5 text-sm text-gray-300">
                         @foreach($p['items'] as [$ic, $label])
                             <li class="flex items-start gap-2.5">
