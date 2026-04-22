@@ -1,6 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import {
   Platform,
   Pressable,
@@ -16,6 +17,7 @@ import { Button } from "@/components/Button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useThemeControls } from "@/contexts/ThemeContext";
 import { useColors } from "@/hooks/useColors";
+import { wallet as walletApi } from "@/lib/api";
 import type { ThemePref } from "@/lib/secure";
 
 const INFO_PAGES: {
@@ -91,6 +93,23 @@ export default function Profile() {
   const { user, signOut } = useAuth();
   const { pref, setPref } = useThemeControls();
   const webTop = Platform.OS === "web" ? 67 : 0;
+  const [coinBalance, setCoinBalance] = useState<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    walletApi
+      .balance()
+      .then((b) => {
+        if (cancelled) return;
+        setCoinBalance(b.enabled ? b.balance : null);
+      })
+      .catch(() => {
+        if (!cancelled) setCoinBalance(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -295,6 +314,11 @@ export default function Profile() {
               <Text style={[styles.listLabel, { color: colors.foreground }]}>
                 Wallet & coins
               </Text>
+              {coinBalance !== null ? (
+                <Text style={[styles.balancePill, { color: colors.primary, backgroundColor: colors.primary + "1a" }]}>
+                  {coinBalance.toLocaleString()} 🪙
+                </Text>
+              ) : null}
               <Feather
                 name="chevron-right"
                 size={18}
@@ -421,4 +445,12 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   listLabel: { flex: 1, fontFamily: "SpaceGrotesk_500Medium", fontSize: 16 },
+  balancePill: {
+    fontFamily: "SpaceGrotesk_600SemiBold",
+    fontSize: 13,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    overflow: "hidden",
+  },
 });
