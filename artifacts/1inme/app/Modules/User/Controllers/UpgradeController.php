@@ -10,6 +10,7 @@ use App\Modules\User\Models\BillingAddress;
 use App\Services\PricingResolver;
 use App\Services\TaxCalculator;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cookie;
 
 class UpgradeController extends Controller
 {
@@ -182,7 +183,14 @@ class UpgradeController extends Controller
         if (!in_array($currency, ['USD', 'INR'], true)) {
             $currency = 'USD';
         }
-        session([PricingResolver::SESSION_KEY => $currency]);
+        // Persists the choice in three places (where applicable):
+        //   - session flag (this request and the rest of the session),
+        //   - long-lived signed cookie (survives session expiry for
+        //     anonymous visitors),
+        //   - users.preferred_currency, if signed in and no profile
+        //     country (so the choice follows them across devices).
+        $cookie = PricingResolver::rememberManualChoice($currency, $request->user());
+        Cookie::queue($cookie);
         return back();
     }
 }

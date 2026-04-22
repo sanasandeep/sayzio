@@ -22,6 +22,7 @@ class User extends Authenticatable
         'referral_code', 'referrer_id', 'referral_code_used',
         'social_connection_broken_emails',
         'country',
+        'preferred_currency',
         'is_demo',
         'blocked_bot_families',
     ];

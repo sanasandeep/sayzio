@@ -21,11 +21,15 @@ use App\Modules\User\Models\User;
  * Currency selection rules:
  *   - Logged-in user with `country` set → look up
  *     `country_currency` config; default USD.
- *   - Logged-in user with no country → respect the
- *     `billing_currency` session flag if present; otherwise fall back
- *     to the geo-IP default (INR for India, USD elsewhere).
- *   - Anonymous → respect the `billing_currency` session flag; otherwise
- *     fall back to the geo-IP default (INR for India, USD elsewhere).
+ *   - Logged-in user with no country → respect their persisted
+ *     `preferred_currency` (set by the manual switcher and stored on
+ *     the user record so it follows them across devices); otherwise
+ *     fall through to the rules below.
+ *   - Anonymous (or signed-in user with no country and no persisted
+ *     preference) → respect the `billing_currency` session flag if
+ *     present; otherwise the long-lived signed `billing_currency_pref`
+ *     cookie (so the choice survives session expiry); otherwise fall
+ *     back to the geo-IP default (INR for India, USD elsewhere).
  *
  * The geo-derived default is cached on the session under
  * `billing_currency_geo` so we don't re-hit the geo-IP service on
@@ -44,6 +48,17 @@ class PricingResolver
 {
     public const SESSION_KEY = 'billing_currency';
     public const SESSION_KEY_GEO = 'billing_currency_geo';
+
+    /**
+     * Long-lived signed cookie that mirrors the manual override for
+     * anonymous (and not-yet-signed-in) visitors so their choice
+     * survives session expiry / cookie wipes shorter than this TTL.
+     * Signed-in users with no profile country also get the choice
+     * mirrored onto `users.preferred_currency` so it follows them
+     * across devices — see `rememberManualChoice()`.
+     */
+    public const COOKIE_KEY = 'billing_currency_pref';
+    public const COOKIE_DAYS = 365;
 
     /**
      * Where the currency the visitor is currently seeing came from.
@@ -87,15 +102,45 @@ class PricingResolver
         if ($user && !empty($user->country)) {
             return self::SOURCE_USER_COUNTRY;
         }
+        if ($user && self::isValidCurrency($user->preferred_currency ?? null)) {
+            return self::SOURCE_MANUAL;
+        }
         try {
             $session = session(self::SESSION_KEY);
         } catch (\Throwable $e) {
-            return self::SOURCE_GEO;
+            $session = null;
         }
-        if (is_string($session) && in_array($session, ['USD', 'INR'], true)) {
+        if (self::isValidCurrency($session)) {
+            return self::SOURCE_MANUAL;
+        }
+        if (self::isValidCurrency(self::cookieOverride())) {
             return self::SOURCE_MANUAL;
         }
         return self::SOURCE_GEO;
+    }
+
+    private static function isValidCurrency($value): bool
+    {
+        return is_string($value) && in_array($value, ['USD', 'INR'], true);
+    }
+
+    /**
+     * Read the long-lived signed override cookie off the current
+     * request, if any. Returns null when there's no bound request
+     * (CLI / queue), no cookie set, or the value isn't a supported
+     * currency code.
+     */
+    private static function cookieOverride(): ?string
+    {
+        try {
+            if (!app()->bound('request')) {
+                return null;
+            }
+            $val = request()->cookie(self::COOKIE_KEY);
+        } catch (\Throwable $e) {
+            return null;
+        }
+        return self::isValidCurrency($val) ? $val : null;
     }
 
     /**
@@ -162,11 +207,70 @@ class PricingResolver
         if ($user && !empty($user->country)) {
             return self::currencyForCountry($user->country);
         }
-        $session = session(self::SESSION_KEY);
-        if (is_string($session) && in_array($session, ['USD', 'INR'], true)) {
+        if ($user && self::isValidCurrency($user->preferred_currency ?? null)) {
+            return $user->preferred_currency;
+        }
+        try {
+            $session = session(self::SESSION_KEY);
+        } catch (\Throwable $e) {
+            $session = null;
+        }
+        if (self::isValidCurrency($session)) {
             return $session;
         }
+        $cookie = self::cookieOverride();
+        if ($cookie !== null) {
+            return $cookie;
+        }
         return self::geoDefaultCurrency();
+    }
+
+    /**
+     * Persist a manual currency choice across sessions. Always writes:
+     *   - the per-request session flag (so the rest of the request and
+     *     subsequent requests in the same session render correctly),
+     *   - a long-lived signed cookie (so anonymous visitors keep their
+     *     choice after their session expires).
+     *
+     * Additionally, when the visitor is signed in and has NOT set a
+     * profile country, the choice is mirrored onto
+     * `users.preferred_currency` so it follows them across devices.
+     * Users with an explicit country don't get the column written —
+     * country is the billing-of-record signal and must keep winning.
+     *
+     * Returns the long-lived cookie object so the caller can attach it
+     * to the outgoing response (Laravel's Cookie::queue() also works).
+     */
+    public static function rememberManualChoice(string $currency, ?User $user = null): \Symfony\Component\HttpFoundation\Cookie
+    {
+        $currency = self::isValidCurrency($currency) ? $currency : 'USD';
+
+        try {
+            session([self::SESSION_KEY => $currency]);
+        } catch (\Throwable $e) {
+            // No session bound — best-effort only.
+        }
+
+        if ($user && empty($user->country)) {
+            try {
+                $user->forceFill(['preferred_currency' => $currency])->save();
+            } catch (\Throwable $e) {
+                // Don't block the user-facing switch on a DB hiccup.
+            }
+        }
+
+        // `secure` is left null so Laravel falls back to
+        // `config('session.secure')` (which is env-driven) instead of
+        // hard-coding insecure transport.
+        return cookie(
+            self::COOKIE_KEY,
+            $currency,
+            self::COOKIE_DAYS * 24 * 60, // minutes
+            '/',
+            null,
+            null,  // secure: defer to session config (env-driven)
+            true   // httpOnly
+        );
     }
 
     /**
