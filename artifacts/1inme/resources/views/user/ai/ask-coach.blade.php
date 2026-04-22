@@ -208,16 +208,141 @@
                 </div>
 
                 <form method="POST" action="{{ route('user.ai.ask-coach.send', $active->id) }}"
+                      data-coach-form
+                      data-stream-url="{{ route('user.ai.ask-coach.send', $active->id) }}"
+                      data-thread-url="{{ route('user.ai.ask-coach.thread', $active->id) }}"
                       class="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-3 flex gap-2">
                     @csrf
                     <input type="text" name="message" required maxlength="2000" autofocus
+                           data-coach-input
                            placeholder="Ask Coach about your 1INME data…"
                            class="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm">
-                    <button class="px-4 py-2 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700">
+                    <button data-coach-send class="px-4 py-2 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700">
                         Send
                     </button>
                 </form>
                 @error('message')<p class="text-xs text-red-300 mt-1">{{ $message }}</p>@enderror
+
+                <script>
+                (function () {
+                    const form = document.querySelector('[data-coach-form]');
+                    if (!form || !window.fetch || !window.TextDecoder) return;
+
+                    const input  = form.querySelector('[data-coach-input]');
+                    const button = form.querySelector('[data-coach-send]');
+                    const csrf   = form.querySelector('input[name="_token"]').value;
+                    const stream = form.dataset.streamUrl;
+                    const reload = form.dataset.threadUrl;
+                    const list   = form.previousElementSibling; // chat scroll panel
+
+                    function bubble(role, text) {
+                        const wrap = document.createElement('div');
+                        wrap.className = 'flex ' + (role === 'user' ? 'justify-end' : 'justify-start');
+                        const inner = document.createElement('div');
+                        inner.className = 'max-w-[85%] rounded-2xl px-4 py-3 text-sm space-y-2 ' +
+                            (role === 'user' ? 'bg-violet-600 text-white' : 'bg-white/10 text-white/90');
+                        const pre = document.createElement('pre');
+                        pre.className = 'whitespace-pre-wrap font-sans';
+                        pre.textContent = text;
+                        inner.appendChild(pre);
+                        wrap.appendChild(inner);
+                        list.appendChild(wrap);
+                        list.scrollTop = list.scrollHeight;
+                        return pre;
+                    }
+
+                    form.addEventListener('submit', async function (e) {
+                        e.preventDefault();
+                        const message = (input.value || '').trim();
+                        if (!message || button.disabled) return;
+                        button.disabled = true;
+                        input.disabled = true;
+                        const original = button.textContent;
+                        button.textContent = '…';
+
+                        // Remove the empty-state placeholder if present.
+                        const empty = list.querySelector('p.text-white\\/40');
+                        if (empty) empty.remove();
+
+                        bubble('user', message);
+                        const target = bubble('assistant', '');
+                        target.textContent = '…';
+                        let started = false;
+                        input.value = '';
+
+                        try {
+                            const res = await fetch(stream, {
+                                method: 'POST',
+                                headers: {
+                                    'Accept': 'text/event-stream',
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': csrf,
+                                    'X-Requested-With': 'XMLHttpRequest',
+                                },
+                                body: JSON.stringify({ message }),
+                                credentials: 'same-origin',
+                            });
+
+                            if (!res.ok || !res.body) {
+                                throw new Error('Stream failed (' + res.status + ')');
+                            }
+
+                            const reader  = res.body.getReader();
+                            const decoder = new TextDecoder('utf-8');
+                            let buffer = '';
+                            let event = 'message';
+                            let payload = '';
+                            let errored = false;
+
+                            const handleFrame = function () {
+                                if (!payload) { event = 'message'; return; }
+                                let data;
+                                try { data = JSON.parse(payload); } catch (_) { event = 'message'; payload = ''; return; }
+                                if (event === 'token' && typeof data.delta === 'string') {
+                                    if (!started) { target.textContent = ''; started = true; }
+                                    target.textContent += data.delta;
+                                    list.scrollTop = list.scrollHeight;
+                                } else if (event === 'error') {
+                                    errored = true;
+                                    target.textContent = data.message || 'Coach could not reply.';
+                                } else if (event === 'done') {
+                                    if (data && data.message && typeof data.message.content === 'string') {
+                                        target.textContent = data.message.content;
+                                    }
+                                }
+                                event = 'message';
+                                payload = '';
+                            };
+
+                            while (true) {
+                                const { value, done } = await reader.read();
+                                if (done) break;
+                                buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, '\n');
+                                let idx;
+                                while ((idx = buffer.indexOf('\n\n')) !== -1) {
+                                    const frame = buffer.slice(0, idx);
+                                    buffer = buffer.slice(idx + 2);
+                                    event = 'message'; payload = '';
+                                    frame.split('\n').forEach(function (line) {
+                                        if (line.startsWith('event:')) event = line.slice(6).trim();
+                                        else if (line.startsWith('data:')) payload += line.slice(5).trim();
+                                    });
+                                    handleFrame();
+                                }
+                            }
+                            // Reload to pick up insight cards / actions / citations / feedback.
+                            if (!errored) window.location.assign(reload);
+                        } catch (err) {
+                            target.textContent = 'Coach could not reply right now. Please try again.';
+                        } finally {
+                            button.disabled = false;
+                            input.disabled = false;
+                            button.textContent = original;
+                            input.focus();
+                        }
+                    });
+                })();
+                </script>
             @else
                 <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-10 text-center">
                     <p class="text-white/60 text-sm">Start a chat to ask Coach about your 1INME.</p>

@@ -12,6 +12,8 @@ use App\Services\AI\InsufficientAiCreditsException;
 use App\Services\AI\OpenAiService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Mobile parity for the Ask Coach web feature. Same persistence and
@@ -61,7 +63,7 @@ class AskCoachController extends Controller
         return response()->json(['thread' => $t, 'messages' => $msgs]);
     }
 
-    public function send(Request $request, int $thread): JsonResponse
+    public function send(Request $request, int $thread)
     {
         $this->ensureEnabled($request);
         $data = $request->validate([
@@ -73,6 +75,10 @@ class AskCoachController extends Controller
             ->where('user_id', $user->id)
             ->where('id', $thread)
             ->firstOrFail();
+
+        if ($this->wantsStream($request)) {
+            return $this->sendStream($request, $t, $data['message']);
+        }
 
         AskCoachMessage::create([
             'thread_id'  => $t->id,
@@ -150,6 +156,130 @@ class AskCoachController extends Controller
             'message' => $assistant,
             'balance' => $this->credits->getBalance($user),
         ]);
+    }
+
+    /**
+     * SSE variant of send(). Mirrors the web controller's stream
+     * frames (open/token/done/error) so the mobile screen can render
+     * tokens word-by-word while still receiving the final message
+     * record (with citations, insights, actions) in the closing frame.
+     */
+    protected function sendStream(Request $request, AskCoachThread $t, string $message): StreamedResponse
+    {
+        $user = $request->user();
+
+        AskCoachMessage::create([
+            'thread_id'  => $t->id,
+            'role'       => 'user',
+            'content'    => $message,
+            'created_at' => now(),
+        ]);
+
+        $picks = $this->tools->pickToolsForQuestion($message);
+        $invocations = []; $citations = []; $insights = []; $actions = [];
+        foreach ($picks as $tool) {
+            $r = $this->tools->run($tool, $user);
+            if (($r['summary'] ?? '') === '') continue;
+            $invocations[] = $r;
+            if (!empty($r['citation'])) $citations[] = $r['citation'];
+            if (!empty($r['data']))     $insights[] = ['tool' => $tool, 'data' => $r['data']];
+            foreach ($r['actions'] ?? [] as $a) if ($a) $actions[] = $a;
+        }
+
+        $recent = AskCoachMessage::query()
+            ->where('thread_id', $t->id)
+            ->orderByDesc('id')
+            ->limit(self::MAX_PROMPT_TURNS * 2)
+            ->get(['role', 'content'])
+            ->reverse()
+            ->values();
+
+        $systemPrompt = AiEngineSettings::askCoachSystemPrompt();
+        if ($invocations) {
+            $systemPrompt .= "\n\nSnapshots from the user's data:\n";
+            foreach ($invocations as $inv) {
+                $systemPrompt .= "\n[{$inv['tool']}]\n" . $inv['summary'] . "\n";
+            }
+        }
+
+        $messages = array_merge(
+            [['role' => 'system', 'content' => $systemPrompt]],
+            $recent->map(fn($m) => ['role' => $m->role, 'content' => $m->content])->all(),
+        );
+
+        $response = new StreamedResponse(function () use ($user, $messages, $t, $picks, $citations, $insights, $actions, $message) {
+            $emit = function (string $event, array $data): void {
+                echo "event: {$event}\n";
+                echo 'data: ' . json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n\n";
+                if (function_exists('ob_get_level') && ob_get_level() > 0) @ob_flush();
+                @flush();
+            };
+            $emit('open', ['ok' => true]);
+
+            try {
+                $out = $this->ai->chatStream(
+                    $user,
+                    AiEngineSettings::featureModel('ask_coach'),
+                    $messages,
+                    [
+                        'feature'     => 'ask_coach.chat',
+                        'temperature' => 0.4,
+                        'max_tokens'  => 600,
+                        'reason'      => 'Ask Coach (mobile, streamed)',
+                    ],
+                    function (string $delta) use ($emit) {
+                        $emit('token', ['delta' => $delta]);
+                    },
+                );
+            } catch (InsufficientAiCreditsException $e) {
+                $emit('error', ['code' => 'insufficient_credits', 'message' => $e->getMessage()]);
+                return;
+            } catch (\RuntimeException $e) {
+                Log::warning('Ask Coach (api) stream failed: ' . $e->getMessage());
+                $emit('error', ['code' => 'ai_unavailable', 'message' => 'Coach could not reply right now.']);
+                return;
+            }
+
+            $assistant = AskCoachMessage::create([
+                'thread_id'  => $t->id,
+                'role'       => 'assistant',
+                'content'    => $out['content'],
+                'meta'       => [
+                    'credits_spent' => (int) $out['credits_spent'],
+                    'tools_used'    => $picks,
+                    'citations'     => $citations,
+                    'insights'      => $insights,
+                    'actions'       => array_values(array_filter($actions)),
+                    'streamed'      => true,
+                ],
+                'created_at' => now(),
+            ]);
+
+            $updates = ['last_message_at' => now()];
+            if ($t->title === 'New chat') {
+                $updates['title'] = \Illuminate\Support\Str::limit(trim($message), 80, '…');
+            }
+            $t->forceFill($updates)->save();
+
+            $emit('done', [
+                'message' => $assistant->only(['id', 'role', 'content', 'meta', 'feedback', 'created_at']),
+                'thread'  => ['id' => $t->id, 'title' => $t->title],
+                'balance' => $this->credits->getBalance($user),
+            ]);
+        });
+
+        $response->headers->set('Content-Type', 'text/event-stream; charset=UTF-8');
+        $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate');
+        $response->headers->set('X-Accel-Buffering', 'no');
+        $response->headers->set('Connection', 'keep-alive');
+        return $response;
+    }
+
+    protected function wantsStream(Request $request): bool
+    {
+        if ($request->boolean('stream')) return true;
+        $accept = (string) $request->header('Accept', '');
+        return str_contains(strtolower($accept), 'text/event-stream');
     }
 
     public function feedback(Request $request, int $message): JsonResponse

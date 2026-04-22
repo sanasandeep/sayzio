@@ -157,6 +157,13 @@ class AskCoachController extends Controller
         $threadModel = $this->threadQuery($user->id, $this->workspaceId())->find($thread);
         if (!$threadModel) abort(404);
 
+        // Branch into the SSE variant when the client opts in. Web UI
+        // and mobile screen both use this so words land as they're
+        // generated instead of after a full round-trip.
+        if ($this->wantsStream($request)) {
+            return $this->sendStream($request, $threadModel, $data['message']);
+        }
+
         $now = now();
         AskCoachMessage::create([
             'thread_id'  => $threadModel->id,
@@ -336,6 +343,142 @@ class AskCoachController extends Controller
         $threadModel->forceFill($updates)->save();
 
         return redirect()->route('user.ai.ask-coach.thread', $threadModel->id);
+    }
+
+    /**
+     * SSE variant of send(). Emits incremental token frames so the
+     * browser/mobile renderer can paint words as they arrive, then a
+     * final "done" frame with citations / insights / actions / id so
+     * the bubble matches what a fresh page load would show.
+     */
+    protected function sendStream(Request $request, AskCoachThread $threadModel, string $message): StreamedResponse
+    {
+        $user = $request->user();
+        $now  = now();
+        AskCoachMessage::create([
+            'thread_id'  => $threadModel->id,
+            'role'       => 'user',
+            'content'    => $message,
+            'created_at' => $now,
+        ]);
+
+        // Pick + run the read-only tools, build the prompt — same
+        // shape as the non-streaming branch above, just hoisted so we
+        // can flush meta in the closing "done" frame.
+        $picks = $this->tools->pickToolsForQuestion($message);
+        $invocations = []; $citations = []; $insights = []; $actions = [];
+        foreach ($picks as $tool) {
+            $r = $this->tools->run($tool, $user);
+            if (($r['summary'] ?? '') === '') continue;
+            $invocations[] = $r;
+            if (!empty($r['citation'])) $citations[] = $r['citation'];
+            if (!empty($r['data']))     $insights[] = ['tool' => $tool, 'data' => $r['data']];
+            foreach ($r['actions'] ?? [] as $a) if ($a) $actions[] = $a;
+        }
+
+        $recent = AskCoachMessage::query()
+            ->where('thread_id', $threadModel->id)
+            ->orderByDesc('id')
+            ->limit(self::MAX_PROMPT_TURNS * 2)
+            ->get(['role', 'content'])
+            ->reverse()
+            ->values();
+
+        $systemPrompt = AiEngineSettings::askCoachSystemPrompt();
+        if ($invocations) {
+            $systemPrompt .= "\n\nSnapshots from the user's data (read-only, do not invent values beyond these):\n";
+            foreach ($invocations as $inv) {
+                $systemPrompt .= "\n[{$inv['tool']}]\n" . $inv['summary'] . "\n";
+            }
+        }
+
+        $messages = array_merge(
+            [['role' => 'system', 'content' => $systemPrompt]],
+            $recent->map(fn($m) => ['role' => $m->role, 'content' => $m->content])->all(),
+        );
+
+        $response = new StreamedResponse(function () use ($user, $messages, $threadModel, $picks, $citations, $insights, $actions, $message) {
+            $emit = function (string $event, array $data): void {
+                echo "event: {$event}\n";
+                echo 'data: ' . json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n\n";
+                if (function_exists('ob_get_level') && ob_get_level() > 0) @ob_flush();
+                @flush();
+            };
+            // Initial frame — lets the client paint the empty bubble.
+            $emit('open', ['ok' => true]);
+
+            try {
+                $out = $this->ai->chatStream(
+                    $user,
+                    AiEngineSettings::featureModel('ask_coach'),
+                    $messages,
+                    [
+                        'feature'     => 'ask_coach.chat',
+                        'temperature' => 0.4,
+                        'max_tokens'  => 600,
+                        'reason'      => 'Ask Coach: streamed reply',
+                    ],
+                    function (string $delta) use ($emit) {
+                        $emit('token', ['delta' => $delta]);
+                    },
+                );
+            } catch (InsufficientAiCreditsException $e) {
+                $emit('error', ['code' => 'insufficient_credits', 'message' => $e->getMessage()]);
+                return;
+            } catch (\RuntimeException $e) {
+                Log::warning('Ask Coach stream failed: ' . $e->getMessage());
+                $threadModel->forceFill(['last_message_at' => now()])->save();
+                $emit('error', ['code' => 'ai_unavailable', 'message' => 'Coach could not reply right now. Please try again.']);
+                return;
+            }
+
+            $assistant = AskCoachMessage::create([
+                'thread_id'  => $threadModel->id,
+                'role'       => 'assistant',
+                'content'    => $out['content'],
+                'meta'       => [
+                    'credits_spent' => (int) $out['credits_spent'],
+                    'model'         => $out['model'] ?? null,
+                    'tools_used'    => $picks,
+                    'citations'     => $citations,
+                    'insights'      => $insights,
+                    'actions'       => array_values(array_filter($actions)),
+                    'streamed'      => true,
+                ],
+                'created_at' => now(),
+            ]);
+
+            $updates = ['last_message_at' => now()];
+            if ($threadModel->title === 'New chat') {
+                $updates['title'] = $this->autoTitle($message);
+            }
+            $threadModel->forceFill($updates)->save();
+
+            $emit('done', [
+                'message' => [
+                    'id'       => $assistant->id,
+                    'role'     => 'assistant',
+                    'content'  => $assistant->content,
+                    'meta'     => $assistant->meta,
+                    'feedback' => $assistant->feedback,
+                ],
+                'thread'  => ['id' => $threadModel->id, 'title' => $threadModel->title],
+                'balance' => $this->credits->getBalance($user),
+            ]);
+        });
+
+        $response->headers->set('Content-Type', 'text/event-stream; charset=UTF-8');
+        $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate');
+        $response->headers->set('X-Accel-Buffering', 'no');
+        $response->headers->set('Connection', 'keep-alive');
+        return $response;
+    }
+
+    protected function wantsStream(Request $request): bool
+    {
+        if ($request->boolean('stream')) return true;
+        $accept = (string) $request->header('Accept', '');
+        return str_contains(strtolower($accept), 'text/event-stream');
     }
 
     public function feedback(Request $request, int $message)

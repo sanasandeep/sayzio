@@ -74,20 +74,42 @@ export default function AskCoachScreen() {
     if (!text || !threadId || sending) return;
     setSending(true);
     setDraft("");
-    // Optimistic user turn so the chat feels instant.
+
+    // Optimistic user turn + an empty assistant placeholder we'll
+    // append tokens to as they stream in.
+    const userTempId = -Date.now();
+    const assistantTempId = -(Date.now() + 1);
     setHistory((h) => [
       ...h,
-      {
-        id: -Date.now(),
-        role: "user",
-        content: text,
-        meta: null,
-      },
+      { id: userTempId, role: "user", content: text, meta: null },
+      { id: assistantTempId, role: "assistant", content: "", meta: null },
     ]);
+
     try {
-      const out = await askCoach.send(threadId, text);
-      setHistory((h) => [...h, out.message]);
+      await askCoach.sendStream(threadId, text, {
+        onToken: (delta) => {
+          setHistory((h) =>
+            h.map((m) =>
+              m.id === assistantTempId
+                ? { ...m, content: m.content + delta }
+                : m,
+            ),
+          );
+          requestAnimationFrame(() => scrollRef.current?.scrollToEnd());
+        },
+        onDone: ({ message }) => {
+          setHistory((h) =>
+            h.map((m) => (m.id === assistantTempId ? message : m)),
+          );
+        },
+        onError: (err) => {
+          // Drop the placeholder and surface the failure.
+          setHistory((h) => h.filter((m) => m.id !== assistantTempId));
+          Alert.alert("Send failed", err.message || "Coach could not reply.");
+        },
+      });
     } catch (e: any) {
+      setHistory((h) => h.filter((m) => m.id !== assistantTempId));
       Alert.alert("Send failed", e?.message || "Coach could not reply.");
     } finally {
       setSending(false);

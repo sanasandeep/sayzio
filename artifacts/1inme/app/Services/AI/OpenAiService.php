@@ -121,6 +121,123 @@ class OpenAiService
     }
 
     /**
+     * Streaming chat completion. Same gating + ledger semantics as
+     * {@see chat()} but pushes tokens to `$onChunk(string $delta)` as
+     * the model produces them, so callers can re-emit them down an SSE
+     * channel for word-by-word rendering.
+     *
+     * Returns the same shape as chat() (sans `raw`).
+     */
+    public function chatStream(
+        User $user,
+        string $model,
+        array $messages,
+        array $opts,
+        callable $onChunk,
+    ): array {
+        $modelCfg = $this->guard($model, 'chat');
+
+        $estimatedIn = $this->estimateChatPromptTokens($messages);
+        $maxOut      = (int) ($opts['max_tokens'] ?? self::DEFAULT_MAX_OUTPUT_TOKENS);
+        $worstCase   = max(
+            (int) ($opts['min_credits'] ?? 0),
+            $this->computeCost($modelCfg, $estimatedIn, $maxOut),
+        );
+        if ($worstCase > 0) $this->ensureCanAfford($user, $worstCase);
+
+        $payload = array_filter([
+            'model'           => $model,
+            'messages'        => $messages,
+            'temperature'     => $opts['temperature'] ?? null,
+            'max_tokens'      => $opts['max_tokens'] ?? null,
+            'stream'          => true,
+            // Ask OpenAI to emit a final usage frame so we can charge
+            // the exact token counts instead of estimating.
+            'stream_options'  => ['include_usage' => true],
+        ], fn($v) => $v !== null);
+
+        $key = AiEngineSettings::openAiKey();
+        $url = self::BASE_URL . '/chat/completions';
+
+        $response = Http::withToken($key)
+            ->withOptions(['stream' => true])
+            ->withHeaders(['Accept' => 'text/event-stream'])
+            ->timeout(120)
+            ->post($url, $payload);
+
+        if ($response->failed()) {
+            $msg = (string) Str::of($response->body())->limit(300);
+            Log::warning("OpenAI stream failed: HTTP {$response->status()} {$msg}");
+            throw new \RuntimeException("OpenAI request failed (HTTP {$response->status()}).");
+        }
+
+        $body      = $response->toPsrResponse()->getBody();
+        $buffer    = '';
+        $content   = '';
+        $tokensIn  = 0;
+        $tokensOut = 0;
+        $callId    = null;
+
+        while (!$body->eof()) {
+            $chunk = $body->read(2048);
+            if ($chunk === '') continue;
+            // Normalize CRLF so parsers downstream only have to look for "\n\n".
+            $buffer .= str_replace("\r\n", "\n", $chunk);
+
+            // SSE frames are delimited by a blank line (\n\n).
+            while (($pos = strpos($buffer, "\n\n")) !== false) {
+                $frame  = substr($buffer, 0, $pos);
+                $buffer = substr($buffer, $pos + 2);
+                foreach (explode("\n", $frame) as $line) {
+                    if (!str_starts_with($line, 'data:')) continue;
+                    $data = trim(substr($line, 5));
+                    if ($data === '' || $data === '[DONE]') continue;
+                    $j = json_decode($data, true);
+                    if (!is_array($j)) continue;
+                    if ($callId === null && isset($j['id'])) $callId = $j['id'];
+                    $delta = $j['choices'][0]['delta']['content'] ?? null;
+                    if (is_string($delta) && $delta !== '') {
+                        $content .= $delta;
+                        $onChunk($delta);
+                    }
+                    if (isset($j['usage']) && is_array($j['usage'])) {
+                        $tokensIn  = (int) ($j['usage']['prompt_tokens']     ?? $tokensIn);
+                        $tokensOut = (int) ($j['usage']['completion_tokens'] ?? $tokensOut);
+                    }
+                }
+            }
+        }
+
+        // Fall back to estimates if OpenAI omitted the usage frame.
+        if ($tokensIn  === 0) $tokensIn  = $estimatedIn;
+        if ($tokensOut === 0) $tokensOut = $this->estimateTextTokens($content);
+
+        $cost = $this->computeCost($modelCfg, $tokensIn, $tokensOut);
+        $tx = $cost > 0
+            ? $this->credits->charge($user, $cost, [
+                'feature'    => $opts['feature'] ?? null,
+                'related_id' => $opts['related_id'] ?? null,
+                'model'      => $model,
+                'tokens_in'  => $tokensIn,
+                'tokens_out' => $tokensOut,
+                'reason'     => $opts['reason'] ?? "OpenAI chat stream ({$model})",
+                'meta'       => array_merge(
+                    is_array($opts['meta'] ?? null) ? $opts['meta'] : [],
+                    ['call_id' => $callId, 'streamed' => true],
+                ),
+            ])
+            : null;
+
+        return [
+            'content'       => $content,
+            'tokens_in'     => $tokensIn,
+            'tokens_out'    => $tokensOut,
+            'credits_spent' => $tx ? (int) abs($tx->delta_credits) : 0,
+            'model'         => $model,
+        ];
+    }
+
+    /**
      * Embedding call. `$inputs` is a list of strings. Returns:
      *   ['vectors' => list<list<float>>, 'tokens_in' => int,
      *    'credits_spent' => int, 'model' => string]
