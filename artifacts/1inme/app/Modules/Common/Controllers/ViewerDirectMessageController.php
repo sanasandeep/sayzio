@@ -6,6 +6,7 @@ use App\Modules\Common\Models\ViewerDmConversation;
 use App\Modules\Common\Models\ViewerDmMessage;
 use App\Modules\Common\Models\ViewerDmUserBlock;
 use App\Modules\Common\Services\ViewerSession;
+use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Link;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,6 +22,35 @@ use Illuminate\Support\Str;
  */
 class ViewerDirectMessageController
 {
+    /**
+     * Resolve a biolink that is currently messageable.
+     *
+     * Returns the Link if it exists, is active, and has at least one
+     * active `direct_message` block. Otherwise returns one of:
+     *   ['reason' => 'not_found', 'http' => 404]   (no such biolink / inactive)
+     *   ['reason' => 'dm_disabled', 'http' => 403] (link exists but DM block off)
+     *
+     * Centralising this keeps thread() and send() in lock-step so a
+     * creator who toggles DM off is honoured by both endpoints.
+     */
+    private function resolveMessageableLink(int $linkId)
+    {
+        $link = Link::where('id', $linkId)->where('type', 'biolink')->first();
+        if (! $link || ! ($link->is_active ?? true)) {
+            return ['reason' => 'not_found', 'http' => 404];
+        }
+
+        $hasActiveDm = BiolinkBlock::where('link_id', $link->id)
+            ->where('type', 'direct_message')
+            ->where('is_active', true)
+            ->exists();
+        if (! $hasActiveDm) {
+            return ['reason' => 'dm_disabled', 'http' => 403];
+        }
+
+        return $link;
+    }
+
     public function thread(Request $request, int $linkId): JsonResponse
     {
         $viewer = ViewerSession::user();
@@ -28,10 +58,11 @@ class ViewerDirectMessageController
             return response()->json(['ok' => false, 'reason' => 'login_required'], 401);
         }
 
-        $link = Link::where('id', $linkId)->where('type', 'biolink')->first();
-        if (! $link) {
-            return response()->json(['ok' => false, 'reason' => 'not_found'], 404);
+        $resolved = $this->resolveMessageableLink($linkId);
+        if (is_array($resolved)) {
+            return response()->json(['ok' => false, 'reason' => $resolved['reason']], $resolved['http']);
         }
+        $link = $resolved;
 
         $conv = ViewerDmConversation::where('link_id', $link->id)
             ->where('viewer_user_id', $viewer->id)
@@ -82,10 +113,11 @@ class ViewerDirectMessageController
             return response()->json(['ok' => false, 'reason' => 'empty'], 422);
         }
 
-        $link = Link::where('id', $linkId)->where('type', 'biolink')->first();
-        if (! $link) {
-            return response()->json(['ok' => false, 'reason' => 'not_found'], 404);
+        $resolved = $this->resolveMessageableLink($linkId);
+        if (is_array($resolved)) {
+            return response()->json(['ok' => false, 'reason' => $resolved['reason']], $resolved['http']);
         }
+        $link = $resolved;
 
         $ownerId = (int) $link->user_id;
 

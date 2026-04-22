@@ -1226,158 +1226,19 @@
                     $dmBtn    = $s['button_text'] ?? 'Send message';
                     $dmLimit  = (int) (\App\Modules\Common\Models\ViewerDmConversation::VIEWER_INITIAL_LIMIT);
                     $dmLinkId = (int) ($link->id ?? 0);
+                    $loggedIn = \App\Modules\Common\Services\ViewerSession::check();
                 @endphp
-                <div class="mb-4 glass-block rounded-2xl p-5"
-                     x-data='dmBlock({{ json_encode(["linkId" => $dmLinkId, "limit" => $dmLimit, "loggedIn" => \App\Modules\Common\Services\ViewerSession::check(), "csrf" => csrf_token()]) }})'
-                     x-init="init()">
-                    <div class="flex items-center gap-3 mb-3">
-                        <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background: rgba(99,102,241,.18); color:#a5b4fc">
-                            <i class="fas fa-comments"></i>
-                        </div>
-                        <div class="flex-1">
-                            <p class="text-sm font-semibold leading-tight">{{ $dmTitle }}</p>
-                            <p class="text-xs opacity-60 leading-tight">{{ $dmDesc }}</p>
-                        </div>
-                    </div>
-
-                    {{-- Anti-spam note (always shown so the rule is transparent). --}}
-                    <p class="text-[11px] mb-3 px-3 py-2 rounded-lg"
-                       style="background: rgba(250,204,21,.08); color:#fde68a; border:1px solid rgba(250,204,21,.2);">
-                        <i class="fas fa-info-circle mr-1"></i>
-                        New conversations are limited to {{ $dmLimit }} messages until the creator replies.
-                    </p>
-
-                    {{-- Logged-out: prompt to login first. --}}
-                    <template x-if="!loggedIn">
-                        <button type="button"
-                                @click="$dispatch('open-viewer-login')"
-                                class="w-full bio-btn py-2.5 text-sm font-medium">
-                            <i class="fas fa-sign-in-alt mr-1"></i> Login to send a message
-                        </button>
-                    </template>
-
-                    {{-- Logged-in: thread + composer. --}}
-                    <template x-if="loggedIn">
-                        <div>
-                            {{-- Status banners --}}
-                            <template x-if="state.blocked">
-                                <p class="text-xs mb-3 px-3 py-2 rounded-lg" style="background:rgba(239,68,68,.1);color:#fca5a5;border:1px solid rgba(239,68,68,.25)">
-                                    <i class="fas fa-ban mr-1"></i> The creator has blocked further messages in this conversation.
-                                </p>
-                            </template>
-                            <template x-if="!state.blocked && state.throttled">
-                                <p class="text-xs mb-3 px-3 py-2 rounded-lg" style="background:rgba(250,204,21,.1);color:#fde68a;border:1px solid rgba(250,204,21,.25)">
-                                    <i class="fas fa-hourglass-half mr-1"></i>
-                                    You've used your <span x-text="limit"></span> intro messages. Wait for a reply to continue.
-                                </p>
-                            </template>
-
-                            {{-- Thread --}}
-                            <div class="space-y-2 mb-3 max-h-64 overflow-y-auto pr-1" x-show="messages.length > 0">
-                                <template x-for="m in messages" :key="m.id">
-                                    <div :class="m.side === 'viewer' ? 'flex justify-end' : 'flex justify-start'">
-                                        <div class="rounded-2xl px-3 py-2 text-xs max-w-[80%] whitespace-pre-wrap break-words"
-                                             :class="m.side === 'viewer'
-                                                ? 'bg-white/10 text-white'
-                                                : 'bg-indigo-500/30 text-indigo-50'"
-                                             x-text="m.body"></div>
-                                    </div>
-                                </template>
-                            </div>
-
-                            {{-- Composer --}}
-                            <form @submit.prevent="send()"
-                                  x-show="!state.blocked && !state.throttled"
-                                  class="flex gap-2 items-end">
-                                <textarea x-model="body" required rows="2" maxlength="2000"
-                                          :placeholder="'{{ addslashes($dmPh) }}'"
-                                          class="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm outline-none focus:border-white/20 resize-none"
-                                          style="color: {{ $fontColor }}"></textarea>
-                                <button type="submit"
-                                        :disabled="loading || !body.trim()"
-                                        class="bio-btn px-4 py-2.5 text-sm font-medium whitespace-nowrap">
-                                    <span x-show="!loading">{{ $dmBtn }}</span>
-                                    <span x-show="loading"><i class="fas fa-spinner fa-spin"></i></span>
-                                </button>
-                            </form>
-                            <p class="text-[11px] mt-2 opacity-60" x-show="!state.blocked && !state.owner_replied && !state.throttled">
-                                <span x-text="(limit - state.sent)"></span> intro messages left.
-                            </p>
-                            <p class="text-[11px] mt-2 text-red-300" x-show="error" x-text="error"></p>
-                        </div>
-                    </template>
-                </div>
-
-                <script>
-                    if (typeof window.dmBlock !== 'function') {
-                        window.dmBlock = function (cfg) {
-                            return {
-                                linkId:   cfg.linkId,
-                                limit:    cfg.limit,
-                                loggedIn: !!cfg.loggedIn,
-                                csrf:     cfg.csrf || '',
-                                body:     '',
-                                loading:  false,
-                                error:    '',
-                                messages: [],
-                                state:    { sent: 0, owner_replied: false, blocked: false, throttled: false },
-                                async init() {
-                                    if (!this.loggedIn) return;
-                                    await this.refresh();
-                                },
-                                async refresh() {
-                                    try {
-                                        const r = await fetch(`/viewer/dm/${this.linkId}/thread`, { headers: { Accept: 'application/json' } });
-                                        if (r.status === 401) { this.loggedIn = false; return; }
-                                        const j = await r.json();
-                                        if (j.ok) {
-                                            this.messages = j.messages || [];
-                                            this.state    = j.state    || this.state;
-                                        }
-                                    } catch (e) { /* swallow */ }
-                                },
-                                async send() {
-                                    const trimmed = (this.body || '').trim();
-                                    if (this.loading || !trimmed) return;
-                                    this.loading = true;
-                                    this.error   = '';
-                                    try {
-                                        const meta  = document.querySelector('meta[name="csrf-token"]');
-                                        const token = (meta && meta.getAttribute('content')) || this.csrf || '';
-                                        const fd = new FormData();
-                                        fd.append('body', trimmed);
-                                        fd.append('_token', token);
-                                        const r = await fetch(`/viewer/dm/${this.linkId}/send`, {
-                                            method:  'POST',
-                                            body:    fd,
-                                            headers: { Accept: 'application/json', 'X-CSRF-TOKEN': token },
-                                        });
-                                        const j = await r.json();
-                                        if (!j.ok) {
-                                            const map = {
-                                                login_required: 'Please log in to send a message.',
-                                                blocked:        'The creator has blocked this conversation.',
-                                                throttled:      `You've used your ${this.limit} intro messages. Wait for a reply.`,
-                                                self:           'You can\'t message your own biolink.',
-                                                not_found:      'This biolink no longer exists.',
-                                                empty:          'Message cannot be empty.',
-                                            };
-                                            this.error = map[j.reason] || 'Could not send message.';
-                                            if (j.reason === 'login_required') { this.loggedIn = false; }
-                                        } else {
-                                            this.body = '';
-                                            await this.refresh();
-                                        }
-                                    } catch (e) {
-                                        this.error = 'Network error. Try again.';
-                                    } finally {
-                                        this.loading = false;
-                                    }
-                                },
-                            };
-                        };
-                    }
-                </script>
+                @include('common.partials.dm-chat-widget', [
+                    'dmTitle'   => $dmTitle,
+                    'dmDesc'    => $dmDesc,
+                    'dmPh'      => $dmPh,
+                    'dmBtn'     => $dmBtn,
+                    'dmLimit'   => $dmLimit,
+                    'dmLinkId'  => $dmLinkId,
+                    'loggedIn'  => $loggedIn,
+                    'fontColor' => $fontColor,
+                    'variant'   => 'block',
+                ])
 
             @elseif($block->type === 'whatsapp_widget')
                 <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $s['phone'] ?? '') }}?text={{ urlencode($s['message'] ?? '') }}" target="_blank" rel="noopener"

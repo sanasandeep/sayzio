@@ -23,7 +23,8 @@
          style="background: {{ $modalBgPanel }}; color: {{ $modalAccent }};">
         <div class="flex items-start justify-between mb-3">
             <div>
-                <h3 class="text-lg font-extrabold">Sign in to follow</h3>
+                <h3 class="text-lg font-extrabold"
+                    x-text="pendingAction === 'message' ? 'Sign in to message' : 'Sign in to follow'"></h3>
                 <p class="text-xs opacity-70 mt-0.5">One-time code · No password.</p>
             </div>
             <button @click="visible = false" class="opacity-50 hover:opacity-100 text-xl leading-none">&times;</button>
@@ -72,6 +73,12 @@ function viewerLoginModal(creatorId, initialMe) {
         loggedIn: !!initialMe,
         me: initialMe,
         creatorId: creatorId,
+        // Pending action triggered by the caller. Currently:
+        //   - default (null): follow `creatorId` after login.
+        //   - 'message':       open chat overlay against `pendingBiolinkId`.
+        pendingAction: null,
+        pendingBiolinkId: null,
+        pendingCreatorName: '',
         channel: 'email',
         identifier: '',
         otp: '',
@@ -80,15 +87,36 @@ function viewerLoginModal(creatorId, initialMe) {
         message: '',
         csrf: document.querySelector('meta[name="csrf-token"]')?.content || '',
         open(detail) {
+            detail = detail || {};
             // Allow overriding the creator id when re-using on the directory.
-            if (detail && detail.creatorId) this.creatorId = detail.creatorId;
-            if (this.loggedIn && this.creatorId && detail?.followAfterLogin !== false) {
-                // Already signed in: just follow + close.
-                this.followAndClose();
-                return;
+            if (detail.creatorId) this.creatorId = detail.creatorId;
+            this.pendingAction       = detail.action || null;
+            this.pendingBiolinkId    = detail.biolinkId || null;
+            this.pendingCreatorName  = detail.creatorName || '';
+            if (this.loggedIn) {
+                if (this.pendingAction === 'message' && this.pendingBiolinkId) {
+                    this.dispatchMessageReady();
+                    return;
+                }
+                if (this.creatorId && detail.followAfterLogin !== false) {
+                    // Already signed in: just follow + close.
+                    this.followAndClose();
+                    return;
+                }
             }
             this.visible = true;
             this.message = '';
+        },
+        dispatchMessageReady() {
+            window.dispatchEvent(new CustomEvent('viewer-message-ready', {
+                detail: {
+                    biolinkId:   this.pendingBiolinkId,
+                    creatorId:   this.creatorId,
+                    creatorName: this.pendingCreatorName,
+                    me:          this.me,
+                },
+            }));
+            this.visible = false;
         },
         async sendOtp() {
             this.sending = true; this.message = '';
@@ -108,8 +136,11 @@ function viewerLoginModal(creatorId, initialMe) {
                 if (r.ok) {
                     this.loggedIn = true;
                     this.me = d.user;
-                    if (this.creatorId) await this.followAndClose();
-                    else { this.message = 'Signed in!'; setTimeout(()=>this.visible=false, 600); }
+                    if (this.pendingAction === 'message' && this.pendingBiolinkId) {
+                        this.dispatchMessageReady();
+                    } else if (this.creatorId) {
+                        await this.followAndClose();
+                    } else { this.message = 'Signed in!'; setTimeout(()=>this.visible=false, 600); }
                 } else this.message = d.message || 'Invalid code.';
             } catch(e) { this.message = 'Network error.'; }
             this.verifying = false;

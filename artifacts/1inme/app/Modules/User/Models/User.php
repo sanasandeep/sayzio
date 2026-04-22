@@ -139,6 +139,35 @@ class User extends Authenticatable
             ->first();
     }
 
+    /**
+     * Returns the creator's default biolink only if it currently has an
+     * active Direct Message block AND, when a viewer is supplied, the
+     * viewer is not account-blocked by this creator. Returns null when
+     * the creator cannot be messaged from outside one of their biolink
+     * pages — used to decide whether to surface a "Message" button on
+     * the public Creators directory and to route the resulting chat.
+     */
+    public function messageableBiolink(?User $viewer = null): ?Link
+    {
+        $bio = $this->primaryBiolink();
+        if (!$bio) return null;
+
+        $hasDm = BiolinkBlock::where('link_id', $bio->id)
+            ->where('type', 'direct_message')
+            ->where('is_active', true)
+            ->exists();
+        if (!$hasDm) return null;
+
+        if ($viewer) {
+            $blocked = \App\Modules\Common\Models\ViewerDmUserBlock::where('owner_user_id', $this->id)
+                ->where('viewer_user_id', $viewer->id)
+                ->exists();
+            if ($blocked) return null;
+        }
+
+        return $bio;
+    }
+
     public function plan()
     {
         return $this->belongsTo(Plan::class);

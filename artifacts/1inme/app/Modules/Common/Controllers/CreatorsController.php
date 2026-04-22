@@ -3,6 +3,9 @@
 namespace App\Modules\Common\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Common\Models\ViewerDmUserBlock;
+use App\Modules\Common\Services\ViewerSession;
+use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Follow;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\SocialProof;
@@ -66,8 +69,54 @@ class CreatorsController extends Controller
         }
 
         $buzzSnippets = $this->buildBuzzSnippets($creators->pluck('id')->all());
+        $messageableBiolinks = $this->buildMessageableBiolinks($creators);
 
-        return view('common.creators-directory', compact('creators', 'q', 'sort', 'myFollowingIds', 'buzzSnippets'));
+        return view('common.creators-directory', compact('creators', 'q', 'sort', 'myFollowingIds', 'buzzSnippets', 'messageableBiolinks'));
+    }
+
+    /**
+     * Returns [creator_id => link_id] for creators whose default biolink
+     * has the Direct Message block enabled and is reachable for the
+     * current viewer (not account-blocked). Used to decide which cards
+     * show the "Message" button on the directory.
+     */
+    private function buildMessageableBiolinks($creators): array
+    {
+        $primaryBiolinkIds = []; // creator_id => link_id
+        foreach ($creators as $c) {
+            $bio = $c->primaryBiolink();
+            if ($bio) {
+                $primaryBiolinkIds[(int) $c->id] = (int) $bio->id;
+            }
+        }
+        if (empty($primaryBiolinkIds)) return [];
+
+        $dmEnabledLinkIds = BiolinkBlock::whereIn('link_id', array_values($primaryBiolinkIds))
+            ->where('type', 'direct_message')
+            ->where('is_active', true)
+            ->pluck('link_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $blockedOwnerIds = [];
+        $viewer = ViewerSession::user();
+        if ($viewer) {
+            $blockedOwnerIds = ViewerDmUserBlock::where('viewer_user_id', $viewer->id)
+                ->whereIn('owner_user_id', array_keys($primaryBiolinkIds))
+                ->pluck('owner_user_id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+        }
+
+        $out = [];
+        foreach ($primaryBiolinkIds as $creatorId => $linkId) {
+            if (!in_array($linkId, $dmEnabledLinkIds, true)) continue;
+            if (in_array($creatorId, $blockedOwnerIds, true)) continue;
+            // Cannot message yourself.
+            if ($viewer && (int) $viewer->id === (int) $creatorId) continue;
+            $out[$creatorId] = $linkId;
+        }
+        return $out;
     }
 
     /**
