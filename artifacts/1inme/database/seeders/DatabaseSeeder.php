@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
         $this->call(PageTemplatePersonaSeeder::class);
         $this->call(PlansAndAddonsSeeder::class);
         $this->call(CoinPackagesSeeder::class);
+        $this->call(OnboardingSlidesSeeder::class);
         $this->call(TaxJurisdictionsSeeder::class);
         $this->call(GatewaySettingsSeeder::class);
         $this->call(SitePagesSeeder::class);

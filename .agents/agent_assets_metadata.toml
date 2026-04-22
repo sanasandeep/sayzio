@@ -246,6 +246,42 @@ uri = "file://artifacts/1inme-mobile/assets/images/onboarding/coaches.png"
 type = "image"
 title = "coach laptop class"
 
+[[generated]]
+id = "z0ZighOOYim_KGkHItg1z"
+uri = "file://artifacts/1inme/storage/app/public/onboarding/creators.png"
+type = "image"
+title = "creator real photo"
+
+[[generated]]
+id = "uVVaOatSWjdxc2ZqTnMh_"
+uri = "file://artifacts/1inme/storage/app/public/onboarding/business.png"
+type = "image"
+title = "small biz real photo"
+
+[[generated]]
+id = "Fx4u90EMo0GUGcqD8Av2t"
+uri = "file://artifacts/1inme/storage/app/public/onboarding/freelancer.png"
+type = "image"
+title = "freelancer real photo"
+
+[[generated]]
+id = "15lHIfzuGEUFcbKp1wYSq"
+uri = "file://artifacts/1inme/storage/app/public/onboarding/networker.png"
+type = "image"
+title = "networking real photo"
+
+[[generated]]
+id = "CyB_n6YiUdZpF30Z9d3wa"
+uri = "file://artifacts/1inme/storage/app/public/onboarding/students.png"
+type = "image"
+title = "student real photo"
+
+[[generated]]
+id = "LOL-ikt9qH9YGnZZJclJe"
+uri = "file://artifacts/1inme/storage/app/public/onboarding/coaches.png"
+type = "image"
+title = "coach real photo"
+
 [[outputs]]
 id = "e3t8rw5hE2-FfEtnuBmVI"
 uri = "file://attached_assets/stock_images/role_artist.jpg"

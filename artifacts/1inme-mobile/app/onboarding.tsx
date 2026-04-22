@@ -1,7 +1,9 @@
+import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Dimensions,
   FlatList,
   ImageBackground,
@@ -18,63 +20,57 @@ import { BrandWordmark } from "@/components/Brand";
 import { Button } from "@/components/Button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { onboarding as onboardingApi, type OnboardingSlide } from "@/lib/api";
 import { setOnboardingComplete } from "@/lib/secure";
 
-// Each slide pairs an audience-specific background with copy that
-// answers "what does 1INME do for someone like me?". Images live in
-// assets/images/onboarding/ as 9:16 portraits so they fill the phone
-// behind the headline; the gradient scrim keeps text legible regardless
-// of the underlying art.
-type Slide = {
-  key: string;
-  image: ReturnType<typeof require>;
-  category: string;
-  title: string;
-  body: string;
+// Bundled fallbacks. Used only if the slides endpoint is unreachable
+// (offline, fresh install with no network) so the splash never breaks.
+// Admin-managed slides from the API take priority.
+const FALLBACK_IMAGES: Record<string, ReturnType<typeof require>> = {
+  creators: require("@/assets/images/onboarding/creators.png"),
+  business: require("@/assets/images/onboarding/business.png"),
+  freelancer: require("@/assets/images/onboarding/freelancer.png"),
+  networker: require("@/assets/images/onboarding/networker.png"),
+  students: require("@/assets/images/onboarding/students.png"),
+  coaches: require("@/assets/images/onboarding/coaches.png"),
 };
 
-const SLIDES: Slide[] = [
+const FALLBACK_SLIDES: OnboardingSlide[] = [
   {
-    key: "creators",
-    image: require("@/assets/images/onboarding/creators.png"),
+    id: -1,
+    slug: "creators",
     category: "For creators",
     title: "Every link, every channel — one tap away",
     body: "Bundle your latest video, store, sponsorships and socials into a single biolink your audience can save, share, or tap.",
+    image_url: null,
+    sort_order: 10,
   },
   {
-    key: "business",
-    image: require("@/assets/images/onboarding/business.png"),
+    id: -2,
+    slug: "business",
     category: "For small businesses",
     title: "Your menu, hours and reviews on the counter",
-    body: "Stick a 1INME NFC tag at the till. Customers tap their phone to see your menu, opening hours, directions and leave a review — no app needed.",
+    body: "Stick a 1INME NFC tag at the till. Customers tap their phone to see your menu, hours, directions and leave a review — no app needed.",
+    image_url: null,
+    sort_order: 20,
   },
   {
-    key: "freelancer",
-    image: require("@/assets/images/onboarding/freelancer.png"),
+    id: -3,
+    slug: "freelancer",
     category: "For freelancers",
     title: "Pitch your portfolio in one link",
     body: "Send one tidy 1INME profile instead of five attachments. Show case studies, rates and a booking link, and see exactly who clicked what.",
+    image_url: null,
+    sort_order: 30,
   },
   {
-    key: "networker",
-    image: require("@/assets/images/onboarding/networker.png"),
+    id: -4,
+    slug: "networker",
     category: "For networkers",
     title: "Replace your business card",
     body: "Tap a 1INME NFC card to share contact, LinkedIn, calendar and portfolio in seconds — and the other person doesn't need to install anything.",
-  },
-  {
-    key: "students",
-    image: require("@/assets/images/onboarding/students.png"),
-    category: "For students & job seekers",
-    title: "One link for your CV, projects and socials",
-    body: "Hand recruiters a single 1INME link with your résumé, GitHub, portfolio and contact info — and watch which sections they actually open.",
-  },
-  {
-    key: "coaches",
-    image: require("@/assets/images/onboarding/coaches.png"),
-    category: "For coaches & educators",
-    title: "Sell, schedule and stay in touch",
-    body: "Group your courses, booking calendar, payment links and follower updates in one biolink — and broadcast announcements to everyone who follows you.",
+    image_url: null,
+    sort_order: 40,
   },
 ];
 
@@ -100,8 +96,29 @@ export default function Onboarding() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const listRef = useRef<FlatList<Slide>>(null);
+  const listRef = useRef<FlatList<OnboardingSlide>>(null);
   const [index, setIndex] = useState(0);
+  const [slides, setSlides] = useState<OnboardingSlide[] | null>(null);
+
+  // Fetch slides from the admin-managed endpoint. If the request
+  // fails for any reason we fall back to the bundled set so the
+  // splash always renders something.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await onboardingApi.slides();
+        if (cancelled) return;
+        const items = (res.items ?? []).filter((s) => !!s);
+        setSlides(items.length > 0 ? items : FALLBACK_SLIDES);
+      } catch {
+        if (!cancelled) setSlides(FALLBACK_SLIDES);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const finish = async () => {
     await setOnboardingComplete(true);
@@ -114,7 +131,8 @@ export default function Onboarding() {
   };
 
   const next = async () => {
-    if (index < SLIDES.length - 1) {
+    const total = slides?.length ?? 0;
+    if (index < total - 1) {
       listRef.current?.scrollToIndex({ index: index + 1, animated: true });
       return;
     }
@@ -130,57 +148,91 @@ export default function Onboarding() {
   const webTop = Platform.OS === "web" ? 67 : 0;
   const webBottom = Platform.OS === "web" ? 34 : 0;
 
+  // Loading state — keeps the gradient background visible so there's
+  // no white flash before slides arrive.
+  if (slides === null) {
+    return (
+      <View style={[styles.root, { backgroundColor: "#0a0a0f" }]}>
+        <LinearGradient
+          colors={["#1a0d2e", "#0a0a0f"]}
+          style={StyleSheet.absoluteFill}
+        />
+        <View style={styles.loader}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
+      </View>
+    );
+  }
+
+  const total = slides.length;
+
   return (
-    <View style={[styles.root, { backgroundColor: colors.background }]}>
+    <View style={[styles.root, { backgroundColor: "#0a0a0f" }]}>
       <FlatList
         ref={listRef}
-        data={SLIDES}
-        keyExtractor={(s) => s.key}
+        data={slides}
+        keyExtractor={(s) => String(s.id) + ":" + s.slug}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         onScroll={onScroll}
         scrollEventThrottle={16}
-        renderItem={({ item }) => (
-          <ImageBackground
-            source={item.image}
-            resizeMode="cover"
-            style={[styles.slide, { width, height }]}
-          >
-            {/* Top scrim keeps the brand wordmark + Skip readable on
-                bright frames; bottom scrim does the same for the
-                category/title/body block. */}
-            <LinearGradient
-              colors={["rgba(10,10,15,0.55)", "rgba(10,10,15,0.05)", "rgba(10,10,15,0.85)"]}
-              locations={[0, 0.35, 1]}
-              style={StyleSheet.absoluteFill}
-            />
-
-            <View
-              style={[
-                styles.copy,
-                {
-                  paddingHorizontal: 28,
-                  paddingBottom: insets.bottom + 200 + webBottom,
-                },
-              ]}
+        renderItem={({ item }) => {
+          const source = item.image_url
+            ? { uri: item.image_url }
+            : FALLBACK_IMAGES[item.slug] ?? FALLBACK_IMAGES.creators;
+          return (
+            <ImageBackground
+              source={source}
+              resizeMode="cover"
+              style={[styles.slide, { width, height }]}
             >
+              {/* Subtle top + bottom darkening so the brand wordmark,
+                  Skip button and the glass card all stay legible
+                  regardless of the underlying photograph. */}
+              <LinearGradient
+                colors={[
+                  "rgba(10,10,15,0.55)",
+                  "rgba(10,10,15,0.05)",
+                  "rgba(10,10,15,0.55)",
+                ]}
+                locations={[0, 0.4, 1]}
+                style={StyleSheet.absoluteFill}
+              />
+
               <View
                 style={[
-                  styles.categoryChip,
+                  styles.copyWrap,
                   {
-                    backgroundColor: "rgba(255,255,255,0.14)",
-                    borderColor: "rgba(255,255,255,0.22)",
+                    paddingHorizontal: 20,
+                    paddingBottom: insets.bottom + 200 + webBottom,
                   },
                 ]}
               >
-                <Text style={styles.categoryText}>{item.category}</Text>
+                {/* Glassmorphism card. expo-blur renders a real backdrop
+                    blur on iOS / web; on Android it falls back to a
+                    translucent tint. The semi-opaque inner overlay +
+                    hairline border give it the frosted-glass look on
+                    every platform. */}
+                <BlurView
+                  intensity={Platform.OS === "android" ? 40 : 60}
+                  tint="dark"
+                  style={styles.glassCard}
+                >
+                  <View style={styles.glassInner}>
+                    <View style={styles.categoryChip}>
+                      <Text style={styles.categoryText}>{item.category}</Text>
+                    </View>
+                    <Text style={styles.title}>{item.title}</Text>
+                    {item.body ? (
+                      <Text style={styles.body}>{item.body}</Text>
+                    ) : null}
+                  </View>
+                </BlurView>
               </View>
-              <Text style={styles.title}>{item.title}</Text>
-              <Text style={styles.body}>{item.body}</Text>
-            </View>
-          </ImageBackground>
-        )}
+            </ImageBackground>
+          );
+        }}
       />
 
       {/* Top brand bar floats above the carousel */}
@@ -192,11 +244,7 @@ export default function Onboarding() {
         ]}
       >
         <BrandWordmark size={28} />
-        <Text
-          accessibilityRole="button"
-          onPress={skip}
-          style={styles.skip}
-        >
+        <Text accessibilityRole="button" onPress={skip} style={styles.skip}>
           Skip
         </Text>
       </View>
@@ -210,7 +258,7 @@ export default function Onboarding() {
         ]}
       >
         <View style={styles.dots}>
-          {SLIDES.map((_, i) => (
+          {slides.map((_, i) => (
             <View
               key={i}
               style={[
@@ -225,7 +273,7 @@ export default function Onboarding() {
           ))}
         </View>
         <Button
-          label={index === SLIDES.length - 1 ? "Get started" : "Continue"}
+          label={index === total - 1 ? "Get started" : "Continue"}
           onPress={next}
         />
         <View style={styles.infoLinks}>
@@ -251,12 +299,23 @@ export default function Onboarding() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  loader: { flex: 1, alignItems: "center", justifyContent: "center" },
   slide: { flex: 1 },
-  copy: {
+  copyWrap: {
     position: "absolute",
     left: 0,
     right: 0,
     bottom: 0,
+  },
+  glassCard: {
+    borderRadius: 24,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.18)",
+  },
+  glassInner: {
+    padding: 22,
+    backgroundColor: "rgba(20,16,32,0.35)",
   },
   categoryChip: {
     alignSelf: "flex-start",
@@ -265,6 +324,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     marginBottom: 14,
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderColor: "rgba(255,255,255,0.22)",
   },
   categoryText: {
     color: "#fff",
@@ -276,17 +337,16 @@ const styles = StyleSheet.create({
   title: {
     color: "#fff",
     fontFamily: "SpaceGrotesk_700Bold",
-    fontSize: 30,
+    fontSize: 26,
     letterSpacing: -0.5,
-    lineHeight: 36,
-    marginBottom: 12,
+    lineHeight: 32,
+    marginBottom: 10,
   },
   body: {
-    color: "rgba(255,255,255,0.85)",
+    color: "rgba(255,255,255,0.88)",
     fontFamily: "SpaceGrotesk_400Regular",
-    fontSize: 15,
-    lineHeight: 22,
-    maxWidth: 360,
+    fontSize: 14,
+    lineHeight: 21,
   },
   topBar: {
     position: "absolute",

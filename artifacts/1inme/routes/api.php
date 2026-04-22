@@ -15,6 +15,7 @@ use App\Modules\Api\Controllers\NfcWriteController;
 use App\Modules\Api\Controllers\DashboardController;
 use App\Modules\Api\Controllers\NotificationController;
 use App\Modules\Api\Controllers\OnboardingController;
+use App\Modules\Api\Controllers\OnboardingSlideController;
 use App\Modules\Api\Controllers\OtpController;
 use App\Modules\Api\Controllers\PlanController;
 use App\Modules\Api\Controllers\WalletController;
@@ -88,6 +89,9 @@ Route::prefix('v1')->group(function () {
 
     // Public read-only catalog
     Route::get('/plans', [PlanController::class, 'index']);
+
+    // Mobile splash slider — admin-managed onboarding slides.
+    Route::get('/onboarding/slides', [OnboardingSlideController::class, 'index']);
 
     // ── Authenticated ───────────────────────────────────────────────
     Route::middleware('auth:sanctum')->group(function () {

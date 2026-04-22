@@ -106,6 +106,14 @@
             <span class="sidebar-tooltip">Coin Packages</span>
         </a>
 
+        <a href="{{ route('admin.onboarding-slides.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.onboarding-slides.*') ? 'active' : '' }}"
+           style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-mobile-screen"></i></div>
+            <span class="nav-label">Onboarding Slides</span>
+            <span class="sidebar-tooltip">Onboarding Slides</span>
+        </a>
+
         <a href="{{ route('admin.templates.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.templates.*') ? 'active' : '' }}"
            style="--nav-tint:#ec4899; --nav-tint-soft:rgba(236,72,153,0.12);">

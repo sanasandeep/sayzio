@@ -59,6 +59,22 @@ export async function apiFetch<T = unknown>(
   return body as T;
 }
 
+// ── Onboarding slides ─────────────────────────────────────────────
+export type OnboardingSlide = {
+  id: number;
+  slug: string;
+  category: string;
+  title: string;
+  body: string | null;
+  image_url: string | null;
+  sort_order: number;
+};
+
+export const onboarding = {
+  slides: () =>
+    apiFetch<{ items: OnboardingSlide[] }>("/onboarding/slides"),
+};
+
 // ── Wallet & coins ────────────────────────────────────────────────
 export type WalletBalance = {
   enabled: boolean;
