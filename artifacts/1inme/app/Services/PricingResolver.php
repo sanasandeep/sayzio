@@ -108,6 +108,54 @@ class PricingResolver
         return self::currencySourceForUser($user) === self::SOURCE_GEO;
     }
 
+    /**
+     * Country code (ISO 3166-1 alpha-2) the geo-IP resolver derived
+     * the auto-picked currency from, or null when geo lookup failed
+     * / no cache entry exists / a non-geo source decided the currency.
+     *
+     * Reads from the same session-scoped cache `geoDefaultCurrency()`
+     * populates so this is a free piggyback — no extra GeoIP call.
+     * Always run AFTER currency resolution on the same request so the
+     * cache is guaranteed to be primed.
+     */
+    public static function geoDetectedCountryCode(): ?string
+    {
+        try {
+            $cached = session(self::SESSION_KEY_GEO);
+        } catch (\Throwable $e) {
+            return null;
+        }
+        if (!is_array($cached)) {
+            return null;
+        }
+        $cc = $cached['country'] ?? null;
+        return is_string($cc) && $cc !== '' ? strtoupper($cc) : null;
+    }
+
+    /**
+     * Human-readable country name for the geo-detected country, e.g.
+     * "United States" for "US". Uses the intl extension's locale data
+     * (always available — verified at boot). Returns null when there's
+     * no cached country code or the code can't be resolved to a name,
+     * so callers can hide the country hint gracefully.
+     */
+    public static function geoDetectedCountryName(): ?string
+    {
+        $cc = self::geoDetectedCountryCode();
+        if (!$cc) {
+            return null;
+        }
+        if (class_exists(\Locale::class)) {
+            // `getDisplayRegion` needs a locale-shaped tag; "-XX" is the
+            // canonical way to ask for just the region's display name.
+            $name = \Locale::getDisplayRegion('-' . $cc, 'en');
+            if (is_string($name) && $name !== '' && strtoupper($name) !== strtoupper($cc)) {
+                return $name;
+            }
+        }
+        return null;
+    }
+
     /** Resolve the currency that applies to the given user (or anonymous). */
     public static function currencyForUser(?User $user): string
     {
@@ -173,6 +221,7 @@ class PricingResolver
         }
 
         $currency = 'USD';
+        $cc = null;
         try {
             if ($currentIp !== null) {
                 $cc = app(GeoIpService::class)->detectCountry($currentIp);
@@ -180,11 +229,13 @@ class PricingResolver
             }
         } catch (\Throwable $e) {
             $currency = 'USD';
+            $cc = null;
         }
 
         try {
             session([self::SESSION_KEY_GEO => [
                 'currency' => $currency,
+                'country'  => is_string($cc) && $cc !== '' ? strtoupper($cc) : null,
                 'ip'       => $currentIp,
                 'at'       => time(),
             ]]);

@@ -218,6 +218,33 @@ class PricingResolverGeoTest extends TestCase
         );
     }
 
+    public function test_geo_cache_retains_detected_country_code(): void
+    {
+        $this->fakeGeoCountry('US');
+        $this->bindRequestWithIp('198.51.100.1');
+
+        // Prime the cache via the normal currency resolution path.
+        PricingResolver::currencyForUser(null);
+
+        $this->assertSame('US', PricingResolver::geoDetectedCountryCode());
+        $this->assertSame('United States', PricingResolver::geoDetectedCountryName());
+
+        $cached = session(PricingResolver::SESSION_KEY_GEO);
+        $this->assertSame('US', $cached['country'] ?? null);
+    }
+
+    public function test_geo_country_helpers_return_null_when_lookup_failed(): void
+    {
+        // Private IP → GeoIpService returns null → no country cached.
+        $this->fakeGeoCountry(null);
+        $this->bindRequestWithIp('127.0.0.1');
+
+        PricingResolver::currencyForUser(null);
+
+        $this->assertNull(PricingResolver::geoDetectedCountryCode());
+        $this->assertNull(PricingResolver::geoDetectedCountryName());
+    }
+
     protected function tearDown(): void
     {
         Mockery::close();

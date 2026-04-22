@@ -16,6 +16,10 @@
     $isManual = $currencySource === \App\Services\PricingResolver::SOURCE_MANUAL;
     $isCountry = $currencySource === \App\Services\PricingResolver::SOURCE_USER_COUNTRY;
     $symbol = $currency === 'INR' ? '₹' : '$';
+    // Only relevant on the auto-detected branch — when the geo lookup
+    // failed (private IP, offline, unknown country) this is null and we
+    // fall back to the original currency-only badge silently.
+    $geoCountryName = $isAuto ? \App\Services\PricingResolver::geoDetectedCountryName() : null;
 @endphp
 <div class="inline-flex flex-wrap items-center justify-center gap-2 {{ $compact ? '' : 'mt-3' }}"
      role="group" aria-label="Currency selection">
@@ -31,6 +35,11 @@
             <span class="text-gray-400">Your country:</span>
         @endif
         <span class="font-semibold text-white">{{ $symbol }} {{ $currency }}</span>
+        @if($isAuto && $geoCountryName)
+            <span class="text-gray-500" aria-hidden="true">·</span>
+            <span class="text-gray-400">Looks like you're in
+                <span class="text-gray-200">{{ $geoCountryName }}</span></span>
+        @endif
     </span>
 
     @if($isCountry)
