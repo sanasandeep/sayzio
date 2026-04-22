@@ -394,6 +394,7 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::delete('{mind}',            [\App\Modules\User\Controllers\MindController::class, 'destroy'])->whereNumber('mind')->name('destroy');
             Route::post('{mind}/refresh',      [\App\Modules\User\Controllers\MindController::class, 'refresh'])->whereNumber('mind')->name('refresh');
             // Sources
+            Route::get ('{mind}/sources/{source}', [\App\Modules\User\Controllers\MindSourceController::class, 'show'])->whereNumber('mind')->whereNumber('source')->name('sources.show');
             Route::post('{mind}/sources',      [\App\Modules\User\Controllers\MindSourceController::class, 'store'])->whereNumber('mind')->name('sources.store');
             Route::post('{mind}/sources/{source}/refresh', [\App\Modules\User\Controllers\MindSourceController::class, 'refresh'])->whereNumber('mind')->whereNumber('source')->name('sources.refresh');
             Route::delete('{mind}/sources/{source}', [\App\Modules\User\Controllers\MindSourceController::class, 'destroy'])->whereNumber('mind')->whereNumber('source')->name('sources.destroy');

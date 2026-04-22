@@ -21,6 +21,26 @@ use Illuminate\Support\Facades\Storage;
  */
 class MindSourceController extends Controller
 {
+    /**
+     * Read-only view of a single source's body so creators can verify
+     * what an AI citation actually pulled from. Accessible to the mind
+     * owner (or anyone for the platform-managed mind), even when the
+     * mind is disabled — read-only by design.
+     */
+    public function show(Request $request, AiMind $mind, AiMindSource $source)
+    {
+        if (!AiEngineSettings::isEnabled()) abort(404);
+        if (!$mind->isPlatform() && (int) $mind->user_id !== (int) $request->user()->id) {
+            abort(403);
+        }
+        if ((int) $source->mind_id !== (int) $mind->id) abort(404);
+
+        return view('user.minds.sources.show', [
+            'mind'   => $mind,
+            'source' => $source,
+        ]);
+    }
+
     public function store(Request $request, AiMind $mind)
     {
         $this->guard($mind, $request->user());

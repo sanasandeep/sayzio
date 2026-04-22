@@ -54,10 +54,19 @@
                     @if(!empty($cites))
                         <ul class="mt-2 space-y-1 text-xs text-white/70">
                             @foreach($cites as $row)
-                                @php $c = $row['cite']; @endphp
+                                @php
+                                    $c = $row['cite'];
+                                    $cMid = (int) ($c['mind_id'] ?? 0);
+                                    $cSid = (int) ($c['id'] ?? 0);
+                                    $href = ($cMid && $cSid) ? route('user.minds.sources.show', ['mind' => $cMid, 'source' => $cSid]) : null;
+                                @endphp
                                 <li>
                                     <span class="text-white/40">[{{ $row['index'] }}]</span>
-                                    <span class="text-white/90">{{ $c['title'] }}</span>
+                                    @if($href)
+                                        <a href="{{ $href }}" class="text-white/90 underline decoration-white/20 hover:decoration-white/60 hover:text-white" title="View source">{{ $c['title'] }}</a>
+                                    @else
+                                        <span class="text-white/90">{{ $c['title'] }}</span>
+                                    @endif
                                     <span class="text-white/40">· {{ $c['type'] }}</span>
                                     <span class="text-white/40">· match {{ number_format($c['score'] * 100, 1) }}%</span>
                                 </li>
@@ -72,10 +81,19 @@
                     <p class="text-xs uppercase tracking-wider text-white/40 mb-2">Other sources</p>
                     <ul class="space-y-1 text-xs text-white/70">
                         @foreach($unattached as $row)
-                            @php $c = $row['cite']; @endphp
+                            @php
+                                $c = $row['cite'];
+                                $cMid = (int) ($c['mind_id'] ?? 0);
+                                $cSid = (int) ($c['id'] ?? 0);
+                                $href = ($cMid && $cSid) ? route('user.minds.sources.show', ['mind' => $cMid, 'source' => $cSid]) : null;
+                            @endphp
                             <li>
                                 <span class="text-white/40">[{{ $row['index'] }}]</span>
-                                <span class="text-white/90">{{ $c['title'] }}</span>
+                                @if($href)
+                                    <a href="{{ $href }}" class="text-white/90 underline decoration-white/20 hover:decoration-white/60 hover:text-white" title="View source">{{ $c['title'] }}</a>
+                                @else
+                                    <span class="text-white/90">{{ $c['title'] }}</span>
+                                @endif
                                 <span class="text-white/40">· {{ $c['type'] }}</span>
                                 <span class="text-white/40">· match {{ number_format($c['score'] * 100, 1) }}%</span>
                             </li>
@@ -90,9 +108,18 @@
         <p class="text-xs uppercase tracking-wider text-white/40 mb-2">Sources</p>
         <ul class="space-y-1 text-xs text-white/70">
             @foreach($citations as $i => $c)
+                @php
+                    $cMid = (int) ($c['mind_id'] ?? 0);
+                    $cSid = (int) ($c['id'] ?? 0);
+                    $href = ($cMid && $cSid) ? route('user.minds.sources.show', ['mind' => $cMid, 'source' => $cSid]) : null;
+                @endphp
                 <li>
                     <span class="text-white/40">[{{ $i + 1 }}]</span>
-                    <span class="text-white/90">{{ $c['title'] }}</span>
+                    @if($href)
+                        <a href="{{ $href }}" class="text-white/90 underline decoration-white/20 hover:decoration-white/60 hover:text-white" title="View source">{{ $c['title'] }}</a>
+                    @else
+                        <span class="text-white/90">{{ $c['title'] }}</span>
+                    @endif
                     <span class="text-white/40">· {{ $c['type'] }}</span>
                     <span class="text-white/40">· match {{ number_format($c['score'] * 100, 1) }}%</span>
                 </li>
