@@ -8,6 +8,7 @@ const THEME_KEY = "1inme.theme";
 const BIOMETRIC_ENABLED_KEY = "1inme.auth.biometric.enabled";
 const BIOMETRIC_PROMPT_DISMISSED_KEY = "1inme.auth.biometric.prompt.dismissed";
 const IDLE_TIMEOUT_MS_KEY = "1inme.auth.idle.timeout.ms";
+const LAST_CUSTOM_IDLE_TIMEOUT_MS_KEY = "1inme.auth.idle.timeout.lastCustom.ms";
 
 // Default idle re-lock window when biometric unlock is on. 5 minutes feels
 // like a reasonable middle-ground between security and convenience.
@@ -121,3 +122,20 @@ export const getIdleTimeoutMs = async (): Promise<number> => {
 };
 export const setIdleTimeoutMs = (ms: number) =>
   setItem(IDLE_TIMEOUT_MS_KEY, String(Math.max(0, Math.floor(ms))));
+
+// Most recently chosen "Custom…" auto-lock value, persisted separately from
+// the active timeout so the segmented control can offer one-tap recall after
+// the user switches to a built-in preset. Returns null when nothing has been
+// stored or the stored value is unparseable / non-positive.
+export const getLastCustomIdleTimeoutMs = async (): Promise<number | null> => {
+  const raw = await getItem(LAST_CUSTOM_IDLE_TIMEOUT_MS_KEY);
+  if (raw == null) return null;
+  const n = Number.parseInt(raw, 10);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return n;
+};
+export const setLastCustomIdleTimeoutMs = (ms: number) =>
+  setItem(
+    LAST_CUSTOM_IDLE_TIMEOUT_MS_KEY,
+    String(Math.max(0, Math.floor(ms))),
+  );

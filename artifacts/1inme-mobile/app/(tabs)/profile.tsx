@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -25,9 +25,11 @@ import { useColors } from "@/hooks/useColors";
 import { aiCredits as aiCreditsApi, wallet as walletApi } from "@/lib/api";
 import {
   formatIdleTimeout,
+  getLastCustomIdleTimeoutMs,
   IDLE_TIMEOUT_CUSTOM_MAX_MS,
   IDLE_TIMEOUT_CUSTOM_MIN_MS,
   IDLE_TIMEOUT_PRESETS_MS,
+  setLastCustomIdleTimeoutMs,
   type ThemePref,
 } from "@/lib/secure";
 
@@ -130,14 +132,53 @@ export default function Profile() {
   const [customPickerOpen, setCustomPickerOpen] = useState(false);
   const [customAmount, setCustomAmount] = useState("30");
   const [customUnit, setCustomUnit] = useState<CustomUnit>("sec");
+  const [lastCustomMs, setLastCustomMs] = useState<number | null>(null);
 
   const isCustomActive = idleTimeoutMs > 0 && !PRESET_VALUES.has(idleTimeoutMs);
+  // Show the recall chip only when there's a remembered custom value that
+  // isn't already the active selection — otherwise it would duplicate the
+  // "Custom…" cell or do nothing when tapped. Also hide if the stored value
+  // happens to coincide with a built-in preset, so we don't surface a chip
+  // that's redundant with the segmented control itself.
+  const showLastCustomChip =
+    lastCustomMs != null &&
+    lastCustomMs > 0 &&
+    !PRESET_VALUES.has(lastCustomMs) &&
+    lastCustomMs !== idleTimeoutMs;
+
+  useEffect(() => {
+    let cancelled = false;
+    getLastCustomIdleTimeoutMs()
+      .then((v) => {
+        if (!cancelled) setLastCustomMs(v);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Whenever the active timeout becomes a custom (non-preset) value, treat it
+  // as the latest "last custom" so freshly-saved picks are remembered without
+  // needing to re-open the modal.
+  useEffect(() => {
+    if (isCustomActive && idleTimeoutMs !== lastCustomMs) {
+      setLastCustomMs(idleTimeoutMs);
+      setLastCustomIdleTimeoutMs(idleTimeoutMs).catch(() => {});
+    }
+  }, [isCustomActive, idleTimeoutMs, lastCustomMs]);
 
   const openCustomPicker = useCallback(() => {
-    // Seed the picker with the current value when it's already custom,
-    // otherwise default to 30 sec — a reasonable kiosk-friendly value.
-    if (isCustomActive) {
-      const totalSec = Math.round(idleTimeoutMs / 1000);
+    // Seed the picker with the current value when it's already custom, fall
+    // back to the most recent custom value if one is remembered, otherwise
+    // default to 30 sec — a reasonable kiosk-friendly value.
+    const seedMs = isCustomActive
+      ? idleTimeoutMs
+      : lastCustomMs && lastCustomMs > 0
+        ? lastCustomMs
+        : null;
+    if (seedMs != null) {
+      const totalSec = Math.round(seedMs / 1000);
       if (totalSec % 60 === 0) {
         setCustomUnit("min");
         setCustomAmount(String(totalSec / 60));
@@ -150,7 +191,12 @@ export default function Profile() {
       setCustomAmount("30");
     }
     setCustomPickerOpen(true);
-  }, [idleTimeoutMs, isCustomActive]);
+  }, [idleTimeoutMs, isCustomActive, lastCustomMs]);
+
+  const recallLastCustom = useCallback(() => {
+    if (lastCustomMs == null || lastCustomMs <= 0) return;
+    setIdleTimeoutMs(lastCustomMs).catch(() => {});
+  }, [lastCustomMs, setIdleTimeoutMs]);
 
   const parsedCustomMs = (() => {
     const n = Number.parseInt(customAmount, 10);
@@ -576,6 +622,53 @@ export default function Profile() {
                     </Text>
                   </Pressable>
                 </View>
+                {showLastCustomChip ? (
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                      gap: 8,
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.helper,
+                        { color: colors.mutedForeground },
+                      ]}
+                    >
+                      Recent custom
+                    </Text>
+                    <Pressable
+                      onPress={recallLastCustom}
+                      style={({ pressed }) => [
+                        styles.recallChip,
+                        {
+                          backgroundColor: colors.primary + "1a",
+                          borderColor: colors.primary + "40",
+                          borderRadius: colors.radius - 4,
+                          opacity: pressed ? 0.7 : 1,
+                        },
+                      ]}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Use last custom auto-lock value, ${formatIdleTimeout(lastCustomMs ?? 0)}`}
+                    >
+                      <Feather
+                        name="rotate-ccw"
+                        size={12}
+                        color={colors.primary}
+                      />
+                      <Text
+                        style={[
+                          styles.recallChipText,
+                          { color: colors.primary },
+                        ]}
+                      >
+                        {formatIdleTimeout(lastCustomMs ?? 0)}
+                      </Text>
+                    </Pressable>
+                  </View>
+                ) : null}
               </View>
             ) : null}
           </View>
@@ -893,6 +986,18 @@ const styles = StyleSheet.create({
     fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 12,
     marginTop: 2,
+  },
+  recallChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  recallChipText: {
+    fontFamily: "SpaceGrotesk_600SemiBold",
+    fontSize: 12,
   },
   statusPill: {
     fontFamily: "SpaceGrotesk_600SemiBold",
