@@ -151,6 +151,11 @@ async function start() {
     }
     try {
       await listenOnce();
+      // Friendly, plain-English notice so creators notice the self-heal in
+      // the workflow log alongside the structured warning above.
+      console.log(
+        `[api-server] Recovered port ${port} from a previous run.`,
+      );
     } catch (retryErr) {
       const retryCode = (retryErr as NodeJS.ErrnoException).code;
       if (retryCode === "EADDRINUSE") {
