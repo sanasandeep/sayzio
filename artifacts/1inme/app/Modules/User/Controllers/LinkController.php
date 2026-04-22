@@ -460,6 +460,27 @@ class LinkController extends Controller
             ->orderBy('bucket')
             ->get();
 
+        // Bot hits per bucket — same period/dimension filters as the main chart,
+        // but bypasses the global "no bots" scope so creators can spot scraper
+        // spikes over time alongside the human series.
+        $botClicksOverTime = \App\Modules\User\Models\LinkClick::withBots()
+            ->where('link_id', $link->id)
+            ->where('is_bot', true)
+            ->whereBetween('clicked_at', [$startDate, $endDate])
+            ->when($aliasFilter, fn ($q) => $q->where('alias', $aliasFilter))
+            ->when($sourceFilter, fn ($q) => $q->where('source', $sourceFilter))
+            ->when($countryFilter, fn ($q) => $q->where('country_code', $countryFilter))
+            ->when($deviceFilter, fn ($q) => $q->where('device_type', $deviceFilter))
+            ->when($browserFilter, fn ($q) => $q->where('browser', $browserFilter))
+            ->when($osFilter, fn ($q) => $q->where('os', $osFilter))
+            ->when($languageFilter, fn ($q) => $q->where('language', $languageFilter))
+            ->when($channelFilter, fn ($q) => $q->where('channel', $channelFilter))
+            ->when($baseLanguageFilter, $applyBaseLanguage)
+            ->selectRaw("$dateExpr as bucket, COUNT(*) as count")
+            ->groupByRaw($dateExpr)
+            ->orderBy('bucket')
+            ->pluck('count', 'bucket');
+
         $topReferrers = (clone $clicksQuery)
             ->selectRaw("referrer, COUNT(*) as count")
             ->whereNotNull('referrer')->where('referrer', '!=', '')
@@ -847,7 +868,7 @@ class LinkController extends Controller
         ]);
 
         return view('user.links.show', compact(
-            'link', 'clicksOverTime', 'topReferrers',
+            'link', 'clicksOverTime', 'botClicksOverTime', 'topReferrers',
             'browserStats', 'osStats', 'countryStats', 'cityStats',
             'deviceStats', 'sourceStats', 'channelStats', 'languageStats', 'blockStats', 'utmStats',
             'recentClicks', 'totalInRange', 'uniqueInRange',

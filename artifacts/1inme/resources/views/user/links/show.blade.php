@@ -2466,14 +2466,47 @@ document.addEventListener('DOMContentLoaded', function () {
         g1.addColorStop(0, 'rgba(124,58,237,0.45)'); g1.addColorStop(1, 'rgba(124,58,237,0.02)');
         const g2 = ctx.createLinearGradient(0,0,0,300);
         g2.addColorStop(0, 'rgba(16,185,129,0.30)'); g2.addColorStop(1, 'rgba(16,185,129,0.02)');
+        @php
+            // Build a unified bucket axis that includes both human-click
+            // buckets and bot-only buckets — so a scraper-only spike in a
+            // period with zero human traffic still shows up on the chart.
+            $humanByBucket = $clicksOverTime->keyBy('bucket');
+            $allBuckets = $humanByBucket->keys()
+                ->merge($botClicksOverTime->keys())
+                ->unique()
+                ->sort()
+                ->values();
+            $totalSeries = $allBuckets->map(fn ($b) => (int) ($humanByBucket[$b]->count ?? 0))->all();
+            $uniqueSeries = $allBuckets->map(fn ($b) => (int) ($humanByBucket[$b]->unique_count ?? 0))->all();
+            $botSeries = $allBuckets->map(fn ($b) => (int) ($botClicksOverTime[$b] ?? 0))->all();
+            $botSeriesHasData = collect($botSeries)->sum() > 0;
+        @endphp
+        const datasets = [
+            { label: 'Total Clicks', data: @json($totalSeries), borderColor: '#8b5cf6', backgroundColor: g1, tension: 0.4, fill: true, borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 6, pointHoverBackgroundColor: '#8b5cf6', pointHoverBorderColor: '#fff', pointHoverBorderWidth: 2 },
+            { label: 'Unique IPs', data: @json($uniqueSeries), borderColor: '#34d399', backgroundColor: g2, tension: 0.4, fill: true, borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 6, pointHoverBackgroundColor: '#34d399', pointHoverBorderColor: '#fff', pointHoverBorderWidth: 2 }
+        ];
+        @if($botSeriesHasData)
+        datasets.push({
+            label: 'Filtered bots (excluded from totals)',
+            data: @json($botSeries),
+            borderColor: '#f97316',
+            backgroundColor: 'rgba(249,115,22,0.08)',
+            borderDash: [4, 4],
+            tension: 0.4,
+            fill: false,
+            borderWidth: 2,
+            pointRadius: 0,
+            pointHoverRadius: 5,
+            pointHoverBackgroundColor: '#f97316',
+            pointHoverBorderColor: '#fff',
+            pointHoverBorderWidth: 2,
+        });
+        @endif
         new Chart(ctx, {
             type: 'line',
             data: {
-                labels: @json($clicksOverTime->pluck('bucket')),
-                datasets: [
-                    { label: 'Total Clicks', data: @json($clicksOverTime->pluck('count')), borderColor: '#8b5cf6', backgroundColor: g1, tension: 0.4, fill: true, borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 6, pointHoverBackgroundColor: '#8b5cf6', pointHoverBorderColor: '#fff', pointHoverBorderWidth: 2 },
-                    { label: 'Unique IPs', data: @json($clicksOverTime->pluck('unique_count')), borderColor: '#34d399', backgroundColor: g2, tension: 0.4, fill: true, borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 6, pointHoverBackgroundColor: '#34d399', pointHoverBorderColor: '#fff', pointHoverBorderWidth: 2 }
-                ]
+                labels: @json($allBuckets),
+                datasets: datasets
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
