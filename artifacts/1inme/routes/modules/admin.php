@@ -280,6 +280,15 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('{user}/adjust',    [\App\Modules\Admin\Controllers\AiUsageController::class, 'adjust'])->middleware(CheckPermission::class . ':settings.manage')->name('adjust');
         });
 
+        // AI Minds — aggregate stats, per-plan caps, abuse controls.
+        Route::prefix('ai-minds')->name('ai-minds.')->group(function () {
+            Route::get ('/',                  [\App\Modules\Admin\Controllers\AiMindAdminController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::put ('caps',               [\App\Modules\Admin\Controllers\AiMindAdminController::class, 'updateCaps'])->middleware(CheckPermission::class . ':settings.manage')->name('caps.update');
+            Route::post('{mind}/disable',     [\App\Modules\Admin\Controllers\AiMindAdminController::class, 'disable'])->middleware(CheckPermission::class . ':settings.manage')->whereNumber('mind')->name('disable');
+            Route::post('{mind}/enable',      [\App\Modules\Admin\Controllers\AiMindAdminController::class, 'enable'])->middleware(CheckPermission::class . ':settings.manage')->whereNumber('mind')->name('enable');
+            Route::post('reseed-default',     [\App\Modules\Admin\Controllers\AiMindAdminController::class, 'reseedDefault'])->middleware(CheckPermission::class . ':settings.manage')->name('reseed');
+        });
+
         Route::prefix('notifications')->name('notifications.')->group(function () {
             Route::get('/', [\App\Modules\Admin\Controllers\NotificationController::class, 'index'])->middleware(CheckPermission::class . ':users.edit')->name('index');
             Route::post('/', [\App\Modules\Admin\Controllers\NotificationController::class, 'send'])->middleware(CheckPermission::class . ':users.edit')->name('send');

@@ -826,6 +826,24 @@
                     <span class="nav-label">Profile</span>
                     <span class="sidebar-tooltip">Profile</span>
                 </a>
+
+                @if(\App\Services\AI\AiEngineSettings::isEnabled())
+                <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">AI</div>
+                <a href="{{ route('user.minds.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.minds.*') ? 'active' : '' }}"
+                   style="--nav-tint:#22d3ee; --nav-tint-soft:rgba(34,211,238,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-network-wired"></i></div>
+                    <span class="nav-label">Minds</span>
+                    <span class="sidebar-tooltip">Minds</span>
+                </a>
+                <a href="{{ route('user.ai-credits.show') }}"
+                   class="sidebar-link {{ request()->routeIs('user.ai-credits.*') ? 'active' : '' }}"
+                   style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-brain"></i></div>
+                    <span class="nav-label">AI Credits</span>
+                    <span class="sidebar-tooltip">AI Credits</span>
+                </a>
+                @endif
                 @endif
 
                 @if(auth()->user()->isSuperAdmin())

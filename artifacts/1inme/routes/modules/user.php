@@ -352,6 +352,25 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post('coach/suggest', [\App\Modules\User\Controllers\AI\CoachController::class, 'suggest'])->middleware('throttle:30,1')->name('coach.suggest');
         });
 
+        // AI Minds — labelled knowledge bases (text/docs/FAQs/links/
+        // 1INME features) every AI Persona / Coach can draw on. Note:
+        // distinct from the stateless `ai/mind` summary tool above.
+        Route::prefix('minds')->name('minds.')->group(function () {
+            Route::get ('/',                   [\App\Modules\User\Controllers\MindController::class, 'index'])->name('index');
+            Route::get ('create',              [\App\Modules\User\Controllers\MindController::class, 'create'])->name('create');
+            Route::post('/',                   [\App\Modules\User\Controllers\MindController::class, 'store'])->name('store');
+            Route::get ('{mind}',              [\App\Modules\User\Controllers\MindController::class, 'edit'])->whereNumber('mind')->name('edit');
+            Route::put ('{mind}',              [\App\Modules\User\Controllers\MindController::class, 'update'])->whereNumber('mind')->name('update');
+            Route::delete('{mind}',            [\App\Modules\User\Controllers\MindController::class, 'destroy'])->whereNumber('mind')->name('destroy');
+            Route::post('{mind}/refresh',      [\App\Modules\User\Controllers\MindController::class, 'refresh'])->whereNumber('mind')->name('refresh');
+            // Sources
+            Route::post('{mind}/sources',      [\App\Modules\User\Controllers\MindSourceController::class, 'store'])->whereNumber('mind')->name('sources.store');
+            Route::post('{mind}/sources/{source}/refresh', [\App\Modules\User\Controllers\MindSourceController::class, 'refresh'])->whereNumber('mind')->whereNumber('source')->name('sources.refresh');
+            Route::delete('{mind}/sources/{source}', [\App\Modules\User\Controllers\MindSourceController::class, 'destroy'])->whereNumber('mind')->whereNumber('source')->name('sources.destroy');
+            // Test chat — AJAX in-page panel.
+            Route::post('{mind}/ask',          [\App\Modules\User\Controllers\MindChatController::class, 'ask'])->whereNumber('mind')->middleware('throttle:20,1')->name('ask');
+        });
+
         // Page & card templates (admin-curated presets) — picker reads
         // require links.view; apply mutates the link so requires links.edit.
         Route::get('links/{link}/templates', [\App\Modules\User\Controllers\LinkTemplateController::class, 'picker'])->middleware('workspace.can:links.view')->name('links.templates.picker');

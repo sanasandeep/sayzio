@@ -83,6 +83,15 @@ class User extends Authenticatable
                 );
             }
             \App\Modules\User\Services\PersonalTaskBoardProvisioner::ensureFor($user);
+            // Make sure the platform-managed "1INME Default Mind"
+            // exists so the new account immediately has access to a
+            // Mind with product knowledge in it. Per-user "My Mind" is
+            // created lazily the first time they open the dashboard.
+            try {
+                \App\Services\AI\AiMindProvisioner::ensurePlatformDefault();
+            } catch (\Throwable $e) {
+                // Don't ever break account creation on AI provisioning.
+            }
         });
     }
 

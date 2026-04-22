@@ -115,3 +115,11 @@ Schedule::command('cloud-connections:check')
     ->dailyAt('04:15')
     ->withoutOverlapping()
     ->onOneServer();
+
+// Every 15 minutes: re-crawl AI Mind link sources whose configured
+// refresh window has elapsed. The command itself caps the per-tick
+// fan-out via the admin-set "max_link_refreshes_per_day" knob.
+Schedule::command('minds:refresh-links')
+    ->everyFifteenMinutes()
+    ->withoutOverlapping()
+    ->onOneServer();

@@ -146,6 +146,14 @@
             <span class="sidebar-tooltip">AI Usage</span>
         </a>
 
+        <a href="{{ route('admin.ai-minds.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.ai-minds.*') ? 'active' : '' }}"
+           style="--nav-tint:#22d3ee; --nav-tint-soft:rgba(34,211,238,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-network-wired"></i></div>
+            <span class="nav-label">AI Minds</span>
+            <span class="sidebar-tooltip">AI Minds</span>
+        </a>
+
         <a href="{{ route('admin.coach-defaults.edit') }}"
            class="sidebar-link {{ request()->routeIs('admin.coach-defaults.*') ? 'active' : '' }}"
            style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
