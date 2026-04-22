@@ -44,7 +44,10 @@ class CoachController extends Controller
         $user = $request->user();
         AiMindProvisioner::ensureForUser($user);
 
-        $owner = app('workspace_owner', fn() => $user);
+        // Note: app($abstract, $parameters) type-checks $parameters as
+        // array, so passing a closure default would always TypeError —
+        // gate on bound() instead and fall back to the asking user.
+        $owner = app()->bound('workspace_owner') ? app('workspace_owner') : $user;
         // Surface the active workspace's most recent links so the user
         // can pick the one they want coached. Cap at 25 to keep the
         // <select> usable.
@@ -133,7 +136,7 @@ class CoachController extends Controller
     {
         $this->ensureEnabled();
         $user = $request->user();
-        $owner = app('workspace_owner', fn() => $user);
+        $owner = app()->bound('workspace_owner') ? app('workspace_owner') : $user;
         $data = $request->validate([
             'link_id'          => 'required|integer',
             'goal'             => 'nullable|string|max:200',
