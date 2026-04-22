@@ -19,6 +19,11 @@
                     + New conversation
                 </button>
             </form>
+            <a href="{{ route('user.ai.companion.show', ['compose' => 1]) }}"
+               class="block w-full text-center px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-white/70 text-xs hover:bg-white/10"
+               title="Pick which Minds Companion should ground in for this new chat">
+                + New (with Minds…)
+            </a>
 
             <form method="GET" action="{{ route('user.ai.companion.show') }}" class="flex gap-1">
                 <input type="search" name="q" value="{{ $search }}" maxlength="120"
@@ -76,6 +81,11 @@
 
         {{-- Main: active thread --}}
         <section>
+            @if(session('status'))
+                <div class="mb-4 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.05] px-4 py-2 text-sm text-emerald-200">
+                    {{ session('status') }}
+                </div>
+            @endif
             @if($active)
                 <div class="flex items-center gap-2 mb-3">
                     <form method="POST" action="{{ route('user.ai.companion.rename', $active->id) }}"
@@ -106,6 +116,17 @@
                         </button>
                     </form>
                 </div>
+
+                @if(!empty($activeMinds))
+                    <div class="mb-3 rounded-xl border border-violet-500/20 bg-violet-500/[0.05] px-3 py-2 text-xs text-white/70 flex flex-wrap items-center gap-2">
+                        <span class="text-white/50 uppercase tracking-wider">Grounded in:</span>
+                        @foreach($activeMinds as $m)
+                            <span class="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/80">
+                                {{ $m->name }}@if($m->isPlatform()) <span class="text-white/40">(platform)</span>@endif
+                            </span>
+                        @endforeach
+                    </div>
+                @endif
 
                 <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-3 max-h-[60vh] overflow-y-auto">
                     @if(empty($history))
@@ -148,15 +169,35 @@
                     </script>
                 @endif
             @else
-                <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-10 text-center">
-                    <p class="text-white/60 text-sm">Start a new conversation to chat with Companion.</p>
-                    <form method="POST" action="{{ route('user.ai.companion.store') }}" class="mt-4">
-                        @csrf
+                {{-- Composer: pick which Minds to ground the new chat in,
+                     and optionally save the picks as the user's Companion
+                     default. The save / clear buttons reuse this <form>
+                     via `formaction` so they POST the same checkboxes. --}}
+                <form method="POST" action="{{ route('user.ai.companion.store') }}"
+                      class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
+                    @csrf
+                    <div>
+                        <p class="text-sm text-white/80">Start a new conversation</p>
+                        <p class="text-xs text-white/40 mt-0.5">
+                            Pick the Minds Companion should ground replies in. They apply to every turn of the new chat.
+                        </p>
+                    </div>
+
+                    @include('user.ai._partials.mind-picker', [
+                        'mineMinds'      => $mineMinds,
+                        'platformMind'   => $platformMind,
+                        'selectedIds'    => $composerSelectedIds,
+                        'platformOptIn'  => $composerPlatformOptIn,
+                        'defaultFeature' => $defaultFeature,
+                        'hasDefault'     => $hasDefault,
+                    ])
+
+                    <div class="flex justify-end">
                         <button class="px-4 py-2 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700">
-                            + New conversation
+                            + Start conversation
                         </button>
-                    </form>
-                </div>
+                    </div>
+                </form>
             @endif
         </section>
     </div>

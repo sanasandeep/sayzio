@@ -3,10 +3,14 @@
 namespace App\Modules\User\Controllers\AI;
 
 use App\Http\Controllers\Controller;
+use App\Modules\User\Models\AiMind;
+use App\Modules\User\Models\AiMindDefault;
 use App\Modules\User\Models\CompanionMessage;
 use App\Modules\User\Models\CompanionThread;
 use App\Services\AI\AiCreditService;
 use App\Services\AI\AiEngineSettings;
+use App\Services\AI\AiMindProvisioner;
+use App\Services\AI\AiMindQueryService;
 use App\Services\AI\InsufficientAiCreditsException;
 use App\Services\AI\OpenAiService;
 use Illuminate\Database\Eloquent\Builder;
@@ -40,6 +44,7 @@ class CompanionController extends Controller
     public function __construct(
         protected OpenAiService $ai,
         protected AiCreditService $credits,
+        protected AiMindQueryService $minds,
     ) {}
 
     /** Sidebar page size. Older threads are reachable via pagination. */
@@ -49,7 +54,13 @@ class CompanionController extends Controller
     {
         $this->ensureEnabled();
         $user = $request->user();
+        AiMindProvisioner::ensureForUser($user);
         $wsId = $this->workspaceId();
+
+        // `?compose=1` forces the empty-state composer card to render even
+        // when the user has saved threads, so they can manage their default
+        // Mind selection (or pick a one-off set) before starting a new chat.
+        $compose = (bool) $request->boolean('compose');
 
         $search = trim((string) $request->query('q', ''));
 
@@ -123,10 +134,16 @@ class CompanionController extends Controller
         if ($thread) {
             $active = $this->threadQuery($user->id, $wsId)->find($thread);
             if (!$active) abort(404);
-        } elseif ($threads->isNotEmpty() && $search === '' && $request->query('page') === null) {
+        } elseif (
+            $threads->isNotEmpty()
+            && $search === ''
+            && $request->query('page') === null
+            && !$compose
+        ) {
             // Only auto-open the newest thread on the default landing view.
-            // While searching or paginating, leave the right pane empty so
-            // we don't yank the user into an unrelated thread.
+            // While searching, paginating, or composing a new thread, leave
+            // the right pane empty so we don't yank the user into an
+            // unrelated thread.
             $active = $threads->first();
         }
 
@@ -156,6 +173,33 @@ class CompanionController extends Controller
             })->all()
             : [];
 
+        // Pre-populate Mind selection for the new-conversation composer.
+        // When viewing an existing thread, surface that thread's saved
+        // selection so the user can see what Companion is grounding in;
+        // otherwise fall back to the user's saved default for Companion.
+        $default = AiMindDefault::forUserFeature($user->id, 'companion');
+        if ($active) {
+            $composerSelectedIds = array_map('intval', $active->mind_ids ?? []);
+            $composerPlatformOptIn = (bool) $active->include_platform;
+        } elseif ($default) {
+            $composerSelectedIds = array_map('intval', $default->mind_ids ?? []);
+            $composerPlatformOptIn = (bool) $default->include_platform;
+        } else {
+            $composerSelectedIds = [];
+            $composerPlatformOptIn = false;
+        }
+
+        // Resolve the active thread's Minds (if any) so the chat header
+        // can display a "Grounded in:" hint with the human-readable names.
+        $activeMinds = [];
+        if ($active && (!empty($active->mind_ids) || $active->include_platform)) {
+            $activeMinds = $this->minds->resolveMindsForUser(
+                $user,
+                $active->mind_ids ?? [],
+                (bool) $active->include_platform,
+            );
+        }
+
         return view('user.ai.companion', [
             'balance'  => $this->credits->getBalance($user),
             'threads'  => $threads,
@@ -165,7 +209,58 @@ class CompanionController extends Controller
             'snippets' => $snippets,
             'titles'   => $titles,
             'matchCounts' => $matchCounts,
+            'compose'           => $compose,
+            'mineMinds'         => $this->userMinds($user),
+            'platformMind'      => $this->platformMind(),
+            'composerSelectedIds'   => $composerSelectedIds,
+            'composerPlatformOptIn' => $composerPlatformOptIn,
+            'hasDefault'        => (bool) $default,
+            'defaultFeature'    => 'companion',
+            'activeMinds'       => $activeMinds,
         ]);
+    }
+
+    /**
+     * Save the current Mind selection (from the composer form) as this
+     * user's default for Companion. Subsequent visits and new threads
+     * pre-populate the picker.
+     */
+    public function saveDefaults(Request $request)
+    {
+        $this->ensureEnabled();
+        $data = $request->validate([
+            'mind_ids'         => 'nullable|array',
+            'mind_ids.*'       => 'integer',
+            'include_platform' => 'nullable|boolean',
+        ]);
+
+        $user = $request->user();
+        $mindIds = $this->sanitizeMindIds($user, $data['mind_ids'] ?? []);
+
+        AiMindDefault::updateOrCreate(
+            ['user_id' => $user->id, 'feature' => 'companion'],
+            [
+                'mind_ids'         => $mindIds,
+                'include_platform' => (bool) ($data['include_platform'] ?? false),
+            ],
+        );
+
+        return redirect()->route('user.ai.companion.show', ['compose' => 1])
+            ->with('status', 'Saved as your default Mind selection for Companion.');
+    }
+
+    /**
+     * Forget this user's default Mind selection for Companion.
+     */
+    public function clearDefaults(Request $request)
+    {
+        $this->ensureEnabled();
+        AiMindDefault::where('user_id', $request->user()->id)
+            ->where('feature', 'companion')
+            ->delete();
+
+        return redirect()->route('user.ai.companion.show', ['compose' => 1])
+            ->with('status', 'Cleared your default Mind selection for Companion.');
     }
 
     /** Build a short, centered snippet around the first occurrence of
@@ -204,14 +299,46 @@ class CompanionController extends Controller
         return $result ?? $escaped;
     }
 
-    /** Create a new (empty) thread and redirect to it. */
+    /** Create a new (empty) thread and redirect to it.
+     *
+     * Accepts an optional Mind selection (own ids + platform opt-in) so
+     * the new thread is grounded in the user's selected knowledge bases
+     * for every turn. When the form omits both, we fall back to the
+     * user's saved Companion default so the per-user default is always
+     * honored — even when threads are spun up from the simple sidebar
+     * button.
+     */
     public function store(Request $request)
     {
         $this->ensureEnabled();
+        $data = $request->validate([
+            'mind_ids'         => 'nullable|array',
+            'mind_ids.*'       => 'integer',
+            'include_platform' => 'nullable|boolean',
+        ]);
+
+        $user = $request->user();
+
+        $mindIdsProvided = $request->has('mind_ids');
+        $platformProvided = $request->has('include_platform');
+
+        if ($mindIdsProvided || $platformProvided) {
+            $mindIds = $this->sanitizeMindIds($user, $data['mind_ids'] ?? []);
+            $includePlatform = (bool) ($data['include_platform'] ?? false);
+        } else {
+            $default = AiMindDefault::forUserFeature($user->id, 'companion');
+            $mindIds = $default
+                ? $this->sanitizeMindIds($user, $default->mind_ids ?? [])
+                : [];
+            $includePlatform = $default ? (bool) $default->include_platform : false;
+        }
+
         $thread = CompanionThread::create([
-            'user_id'      => $request->user()->id,
-            'workspace_id' => $this->workspaceId(),
-            'title'        => 'New conversation',
+            'user_id'          => $user->id,
+            'workspace_id'     => $this->workspaceId(),
+            'title'            => 'New conversation',
+            'mind_ids'         => $mindIds,
+            'include_platform' => $includePlatform,
         ]);
         return redirect()->route('user.ai.companion.thread', $thread->id);
     }
@@ -253,10 +380,44 @@ class CompanionController extends Controller
             ->reverse()
             ->values();
 
+        // If this thread was opened with a Mind selection, retrieve
+        // matching context now (using the latest user turn as the query)
+        // and append it to the system prompt so replies stay grounded.
+        // Embedding spend is on the asking user, just like Persona/Coach.
+        $kbCreditsSpent = 0;
+        $kbContext      = '';
+        $selectedMinds  = $this->minds->resolveMindsForUser(
+            $user,
+            $threadModel->mind_ids ?? [],
+            (bool) $threadModel->include_platform,
+        );
+        if ($selectedMinds) {
+            try {
+                $retrieved = $this->minds->retrieveContext(
+                    $user, $selectedMinds, $data['message']
+                );
+                $kbContext      = $retrieved['context'];
+                $kbCreditsSpent = (int) $retrieved['credits_spent'];
+            } catch (InsufficientAiCreditsException $e) {
+                throw $e;
+            } catch (\Throwable $e) {
+                Log::warning('Companion Mind retrieval failed: ' . $e->getMessage());
+                // Fall through with no context rather than failing the
+                // turn — Companion still works without KB grounding.
+            }
+        }
+
+        $systemPrompt = "You are Companion, a friendly and concise assistant. "
+            . "Keep replies clear and short unless the user asks for depth.";
+        if ($kbContext !== '') {
+            $systemPrompt .= "\n\nWhen relevant, ground your answer in the Knowledge Base context "
+                . "below — reuse its terminology, products and audience details. Do not invent "
+                . "facts that are not in the context.\n\n"
+                . "Knowledge Base context:\n" . $kbContext;
+        }
+
         $messages = array_merge(
-            [['role' => 'system', 'content' =>
-                "You are Companion, a friendly and concise assistant. "
-                . "Keep replies clear and short unless the user asks for depth."]],
+            [['role' => 'system', 'content' => $systemPrompt]],
             $recent->map(fn($m) => ['role' => $m->role, 'content' => $m->content])->all(),
         );
 
@@ -280,7 +441,9 @@ class CompanionController extends Controller
             'thread_id'  => $threadModel->id,
             'role'       => 'assistant',
             'content'    => $out['content'],
-            'meta'       => ['credits_spent' => $out['credits_spent']],
+            'meta'       => [
+                'credits_spent' => (int) $out['credits_spent'] + $kbCreditsSpent,
+            ],
             'created_at' => now(),
         ]);
 
@@ -482,5 +645,42 @@ class CompanionController extends Controller
     protected function ensureEnabled(): void
     {
         if (!AiEngineSettings::isEnabled()) abort(404);
+    }
+
+    /** @return \Illuminate\Support\Collection<int,AiMind> */
+    protected function userMinds($user)
+    {
+        return AiMind::where('user_id', $user->id)
+            ->where('is_disabled', false)
+            ->orderBy('name')
+            ->get(['id', 'name']);
+    }
+
+    protected function platformMind(): ?AiMind
+    {
+        return AiMind::whereNull('user_id')
+            ->where('is_default', true)
+            ->where('is_disabled', false)
+            ->first(['id', 'name']);
+    }
+
+    /**
+     * Filter a posted mind_ids array down to ids the asking user
+     * actually owns and has not disabled, so we never persist stale or
+     * cross-user references in defaults / threads.
+     *
+     * @param  array<int,int|string> $ids
+     * @return array<int,int>
+     */
+    protected function sanitizeMindIds($user, array $ids): array
+    {
+        $ids = array_values(array_unique(array_map('intval', $ids)));
+        if (!$ids) return [];
+        return AiMind::where('user_id', $user->id)
+            ->where('is_disabled', false)
+            ->whereIn('id', $ids)
+            ->pluck('id')
+            ->map(fn($id) => (int) $id)
+            ->all();
     }
 }

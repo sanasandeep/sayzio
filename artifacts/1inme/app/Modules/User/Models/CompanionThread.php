@@ -8,12 +8,17 @@ class CompanionThread extends Model
 {
     protected $table = 'companion_threads';
 
-    protected $fillable = ['user_id', 'workspace_id', 'title', 'last_message_at'];
+    protected $fillable = [
+        'user_id', 'workspace_id', 'title', 'last_message_at',
+        'mind_ids', 'include_platform',
+    ];
 
     protected function casts(): array
     {
         return [
-            'last_message_at' => 'datetime',
+            'last_message_at'  => 'datetime',
+            'mind_ids'         => 'array',
+            'include_platform' => 'boolean',
         ];
     }
 
