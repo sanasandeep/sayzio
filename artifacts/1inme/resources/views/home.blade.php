@@ -4494,6 +4494,155 @@
 </section>
 @endif
 
+{{-- ============================ HOW WE COMPARE ============================ --}}
+@php
+    // Static marketing matrix. Kept inline (no DB / controller change) per task spec.
+    // Competitor names are intentionally generic categories of well-known
+    // bio-link tools so we never make a price claim against a specific brand.
+    $__cmpCompetitors = [
+        ['key' => 'ours',     'name' => '1INME',         'badge' => 'Better deal',           'isOurs' => true],
+        ['key' => 'linktree', 'name' => 'Linktree',      'badge' => 'Half the cost',         'isOurs' => false],
+        ['key' => 'bitly',    'name' => 'Bitly',         'badge' => 'More features included', 'isOurs' => false],
+        ['key' => 'beacons',  'name' => 'Beacons',       'badge' => 'Up to 1/10th the price','isOurs' => false],
+    ];
+    // 10 features. Order chosen to front-load 1INME-only wins.
+    $__cmpFeatures = [
+        ['Biolink pages',             ['ours' => true, 'linktree' => true,  'bitly' => true,  'beacons' => true]],
+        ['Branded short links',       ['ours' => true, 'linktree' => false, 'bitly' => true,  'beacons' => false]],
+        ['Dynamic QR codes',          ['ours' => true, 'linktree' => true,  'bitly' => true,  'beacons' => true]],
+        ['Built-in analytics',        ['ours' => true, 'linktree' => true,  'bitly' => true,  'beacons' => true]],
+        ['Live visitor map',          ['ours' => true, 'linktree' => false, 'bitly' => false, 'beacons' => false]],
+        ['Performance coach',         ['ours' => true, 'linktree' => false, 'bitly' => false, 'beacons' => false]],
+        ['Team workspaces',           ['ours' => true, 'linktree' => true,  'bitly' => true,  'beacons' => false]],
+        ['Direct messaging',          ['ours' => true, 'linktree' => false, 'bitly' => false, 'beacons' => false]],
+        ['Scheduled posts',           ['ours' => true, 'linktree' => false, 'bitly' => false, 'beacons' => true]],
+        ['Custom domains',            ['ours' => true, 'linktree' => true,  'bitly' => true,  'beacons' => true]],
+    ];
+@endphp
+<section id="compare" class="py-20 lg:py-28 relative overflow-hidden">
+    <div class="mesh-bg" aria-hidden="true"></div>
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 max-w-2xl mx-auto">
+            <div data-anim="fade-up" class="text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c4)">How we compare</div>
+            <h2 data-anim="fade-up" class="text-4xl sm:text-5xl font-bold tracking-tight mb-4">
+                More features. <span class="grad-text">Better deal.</span>
+            </h2>
+            <p data-anim="fade-up" class="text-gray-400">See how 1INME stacks up against the link-in-bio tools you already know — and why creators are switching.</p>
+        </div>
+
+        {{-- ===== Desktop / tablet matrix ===== --}}
+        <div data-anim="fade-up" class="hidden md:block cmp-wrap">
+            <div class="grad-border rounded-3xl overflow-hidden relative">
+                {{-- Highlighted column band overlays the 1INME column (col 2 of 5: feature col + 4 brand cols) --}}
+                <div class="cmp-ours-band" style="left: 40%; width: calc(60% / 4);"></div>
+
+                {{-- Header --}}
+                <div class="grid items-center px-4 sm:px-6 py-5 bg-white/[.03] text-xs font-bold uppercase tracking-wider text-gray-400 relative z-[1]"
+                     style="grid-template-columns: 40% repeat(4, 1fr);">
+                    <div>Feature</div>
+                    @foreach($__cmpCompetitors as $c)
+                        <div class="text-center">
+                            @if($c['isOurs'])
+                                <span class="cmp-brand-ours text-xs">
+                                    <i class="fas fa-bolt"></i> {{ $c['name'] }}
+                                </span>
+                            @else
+                                <span class="text-gray-300 text-sm normal-case tracking-normal font-semibold">{{ $c['name'] }}</span>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+
+                {{-- Rows --}}
+                <div class="cmp-stagger" data-anim="fade">
+                    @foreach($__cmpFeatures as $row)
+                        @php [$label, $support] = $row; @endphp
+                        <div class="cmp-row grid items-center px-4 sm:px-6 py-4 border-t border-white/5 text-sm"
+                             style="grid-template-columns: 40% repeat(4, 1fr);">
+                            <div class="text-gray-200 font-medium">{{ $label }}</div>
+                            @foreach($__cmpCompetitors as $c)
+                                <div class="text-center">
+                                    @if($support[$c['key']])
+                                        <span class="cmp-mark {{ $c['isOurs'] ? 'cmp-mark-yes-ours' : 'cmp-mark-yes' }}" aria-label="Included">
+                                            <svg class="cmp-draw" width="{{ $c['isOurs'] ? 18 : 14 }}" height="{{ $c['isOurs'] ? 18 : 14 }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                <path d="M5 12.5l4.5 4.5L19 7"/>
+                                            </svg>
+                                        </span>
+                                    @else
+                                        <span class="cmp-mark cmp-mark-no" aria-label="Not included">
+                                            <svg class="cmp-draw" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true">
+                                                <path d="M6 12h12"/>
+                                            </svg>
+                                        </span>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                    @endforeach
+
+                    {{-- Footer badges row --}}
+                    <div class="cmp-row grid items-center px-4 sm:px-6 py-5 border-t border-white/10 bg-white/[.02]"
+                         style="grid-template-columns: 40% repeat(4, 1fr);">
+                        <div class="text-xs font-bold uppercase tracking-wider text-gray-400">The bottom line</div>
+                        @foreach($__cmpCompetitors as $c)
+                            <div class="text-center">
+                                <span class="cmp-badge {{ $c['isOurs'] ? 'cmp-badge-ours' : '' }}">
+                                    @if($c['isOurs'])<i class="fas fa-star text-[10px]"></i>@endif
+                                    {{ $c['badge'] }}
+                                </span>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- ===== Mobile stacked cards ===== --}}
+        <div class="md:hidden space-y-4" data-anim="fade">
+            @foreach($__cmpCompetitors as $c)
+                <div data-anim="fade-up" class="cmp-card {{ $c['isOurs'] ? 'cmp-card-ours' : '' }}">
+                    <div class="flex items-center justify-between gap-3 mb-4">
+                        <div class="flex items-center gap-2">
+                            @if($c['isOurs'])
+                                <span class="cmp-brand-ours text-xs"><i class="fas fa-bolt"></i> {{ $c['name'] }}</span>
+                            @else
+                                <span class="text-base font-bold text-gray-100">{{ $c['name'] }}</span>
+                            @endif
+                        </div>
+                        <span class="cmp-badge {{ $c['isOurs'] ? 'cmp-badge-ours' : '' }}">
+                            @if($c['isOurs'])<i class="fas fa-star text-[10px]"></i>@endif
+                            {{ $c['badge'] }}
+                        </span>
+                    </div>
+                    <ul class="cmp-stagger space-y-2.5" data-anim="fade">
+                        @foreach($__cmpFeatures as $row)
+                            @php [$label, $support] = $row; $on = $support[$c['key']]; @endphp
+                            <li class="cmp-row flex items-center gap-3 text-sm">
+                                @if($on)
+                                    <span class="cmp-mark {{ $c['isOurs'] ? 'cmp-mark-yes-ours' : 'cmp-mark-yes' }}" style="width:24px;height:24px;">
+                                        <svg class="cmp-draw" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <path d="M5 12.5l4.5 4.5L19 7"/>
+                                        </svg>
+                                    </span>
+                                @else
+                                    <span class="cmp-mark cmp-mark-no" style="width:24px;height:24px;">
+                                        <svg class="cmp-draw" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true">
+                                            <path d="M6 12h12"/>
+                                        </svg>
+                                    </span>
+                                @endif
+                                <span class="{{ $on ? 'text-gray-100' : 'text-gray-500 line-through' }}">{{ $label }}</span>
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endforeach
+        </div>
+
+        <p data-anim="fade-up" class="text-center text-xs text-gray-500 mt-6">Comparison reflects publicly listed feature sets at the time of writing. We never quote a competitor's price.</p>
+    </div>
+</section>
+
 {{-- ============================ PRICING ============================ --}}
 <section id="pricing" class="py-24 lg:py-32 relative overflow-hidden">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
