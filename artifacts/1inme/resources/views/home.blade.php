@@ -371,15 +371,53 @@
         .pp-in-view .pp-coach-bar { animation: ppBarRise 1.1s cubic-bezier(.34,1.56,.64,1) both; }
         @keyframes ppBarRise { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 
+        /* ============ Audience card subtle animations (only when card is in view) ============ */
+        .aud-blob { will-change: transform; }
+        .aud-in-view .aud-blob { animation: audBlobDrift 9s ease-in-out infinite; }
+        @keyframes audBlobDrift {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50%      { transform: translate(-6%, 4%) scale(1.08); }
+        }
+
+        .aud-icon { position: relative; overflow: hidden; will-change: transform; }
+        .aud-icon::after {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,.55) 50%, transparent 70%);
+            transform: translateX(-120%);
+            pointer-events: none;
+        }
+        .aud-in-view .aud-icon::after { animation: audIconShimmer 3.6s ease-in-out infinite; }
+        @keyframes audIconShimmer {
+            0%, 60% { transform: translateX(-120%); }
+            85%     { transform: translateX(120%); }
+            100%    { transform: translateX(120%); }
+        }
+        .aud-in-view .aud-icon > i { animation: audIconBob 4.2s ease-in-out infinite; }
+        @keyframes audIconBob {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50%      { transform: translateY(-2px) rotate(-4deg); }
+        }
+
+        .aud-arrow { display: inline-block; will-change: transform; }
+        .aud-in-view .aud-arrow { animation: audArrowNudge 2.4s ease-in-out infinite; }
+        @keyframes audArrowNudge {
+            0%, 60%, 100% { transform: translateX(0); }
+            75%           { transform: translateX(4px); }
+            90%           { transform: translateX(0); }
+        }
+
         /* ============ Reduced motion ============ */
         @media (prefers-reduced-motion: reduce) {
             .reveal, .aurora b, .float-a, .float-b, .float-c, .wiggle, .spin-slow,
             .marquee, .marquee-rev, .eq i, .pulse-dot, .ring-pulse, .spark-line,
             .gauge-arc, .draw-line, .grad-text, .drift-a, .drift-b, .pop-in, .btn-glow::after,
             .stack-3d, .stack-card, .role-word,
-            .pp-live-dot, .pp-nfc-pulse, .pp-tip-card, .pp-dm-bubble, .pp-coach-num, .pp-coach-bar {
+            .pp-live-dot, .pp-nfc-pulse, .pp-tip-card, .pp-dm-bubble, .pp-coach-num, .pp-coach-bar,
+            .aud-blob, .aud-arrow {
                 animation: none !important; transition: none !important; transform: none !important; opacity: 1 !important;
             }
+            .aud-in-view .aud-icon::after { animation: none !important; transform: translateX(-120%) !important; }
+            .aud-in-view .aud-icon > i { animation: none !important; transform: none !important; }
             .pp-in-view .pp-qr-wrap::after { animation: none !important; opacity: 0 !important; }
             .pp-coach-arc { stroke-dashoffset: 12.66 !important; animation: none !important; }
             .spark-line, .draw-line { stroke-dashoffset: 0 !important; }
@@ -4262,16 +4300,16 @@
 
         <div class="grid md:grid-cols-3 gap-5">
             @foreach($__audiences as $i => $a)
-                <article class="reveal rd-{{ $i + 1 }} glass rounded-3xl p-7 tilt relative overflow-hidden flex flex-col">
-                    <div class="absolute -top-16 -right-16 w-48 h-48 rounded-full opacity-25" style="background:radial-gradient(circle, {{ $a['color'] }}, transparent 70%);"></div>
-                    <div class="relative w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style="background: linear-gradient(135deg, {{ $a['color'] }}, var(--c2)); box-shadow: 0 12px 30px -10px {{ $a['color'] }};">
-                        <i class="fas {{ $a['icon'] }} text-xl text-white"></i>
+                <article class="audience-card reveal rd-{{ $i + 1 }} glass rounded-3xl p-7 tilt relative overflow-hidden flex flex-col">
+                    <div class="aud-blob absolute -top-16 -right-16 w-48 h-48 rounded-full opacity-25" style="background:radial-gradient(circle, {{ $a['color'] }}, transparent 70%);animation-delay:{{ $i * 1.2 }}s;"></div>
+                    <div class="aud-icon relative w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style="background: linear-gradient(135deg, {{ $a['color'] }}, var(--c2)); box-shadow: 0 12px 30px -10px {{ $a['color'] }};animation-delay:{{ $i * 0.4 }}s;">
+                        <i class="fas {{ $a['icon'] }} text-xl text-white" style="animation-delay:{{ $i * 0.5 }}s;"></i>
                     </div>
                     <div class="relative text-[11px] font-bold uppercase tracking-wider mb-2" style="color: {{ $a['color'] }};">{{ $a['eyebrow'] }}</div>
                     <h3 class="relative text-xl font-bold mb-3 leading-snug">{!! $a['title'] !!}</h3>
                     <p class="relative text-sm text-gray-400 leading-relaxed mb-6 flex-1">{!! $a['desc'] !!}</p>
                     <button type="button" @click="authTab='register'; authOpen=true" class="relative btn-bounce inline-flex items-center justify-center gap-2 px-5 py-2.5 grad-bar text-white rounded-full text-sm font-bold self-start">
-                        {{ $a['cta'] }} <i class="fas fa-arrow-right text-[10px]"></i>
+                        {{ $a['cta'] }} <i class="aud-arrow fas fa-arrow-right text-[10px]" style="animation-delay:{{ $i * 0.3 }}s;"></i>
                     </button>
                 </article>
             @endforeach
@@ -5299,6 +5337,20 @@
             pillarPreviews.forEach(el => ppObserver.observe(el));
         } else {
             pillarPreviews.forEach(el => el.classList.add('pp-in-view'));
+        }
+
+        // Toggle aud-in-view on audience cards so their subtle animations
+        // only run while the card is on screen.
+        const audCards = document.querySelectorAll('.audience-card');
+        if (audCards.length && 'IntersectionObserver' in window) {
+            const audObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    entry.target.classList.toggle('aud-in-view', entry.isIntersecting);
+                });
+            }, { threshold: 0.2 });
+            audCards.forEach(el => audObserver.observe(el));
+        } else {
+            audCards.forEach(el => el.classList.add('aud-in-view'));
         }
 
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
