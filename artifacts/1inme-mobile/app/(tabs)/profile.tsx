@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import {
   Platform,
   Pressable,
@@ -95,21 +95,23 @@ export default function Profile() {
   const webTop = Platform.OS === "web" ? 67 : 0;
   const [coinBalance, setCoinBalance] = useState<number | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    walletApi
-      .balance()
-      .then((b) => {
-        if (cancelled) return;
-        setCoinBalance(b.enabled ? b.balance : null);
-      })
-      .catch(() => {
-        if (!cancelled) setCoinBalance(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      walletApi
+        .balance()
+        .then((b) => {
+          if (cancelled) return;
+          setCoinBalance(b.enabled ? b.balance : null);
+        })
+        .catch(() => {
+          if (!cancelled) setCoinBalance(null);
+        });
+      return () => {
+        cancelled = true;
+      };
+    }, []),
+  );
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
