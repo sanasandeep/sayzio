@@ -17,7 +17,7 @@ import { Button } from "@/components/Button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useThemeControls } from "@/contexts/ThemeContext";
 import { useColors } from "@/hooks/useColors";
-import { wallet as walletApi } from "@/lib/api";
+import { aiCredits as aiCreditsApi, wallet as walletApi } from "@/lib/api";
 import type { ThemePref } from "@/lib/secure";
 
 const INFO_PAGES: {
@@ -94,6 +94,7 @@ export default function Profile() {
   const { pref, setPref } = useThemeControls();
   const webTop = Platform.OS === "web" ? 67 : 0;
   const [coinBalance, setCoinBalance] = useState<number | null>(null);
+  const [aiCreditBalance, setAiCreditBalance] = useState<number | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -106,6 +107,15 @@ export default function Profile() {
         })
         .catch(() => {
           if (!cancelled) setCoinBalance(null);
+        });
+      aiCreditsApi
+        .balance()
+        .then((b) => {
+          if (cancelled) return;
+          setAiCreditBalance(b.enabled ? b.balance : null);
+        })
+        .catch(() => {
+          if (!cancelled) setAiCreditBalance(null);
         });
       return () => {
         cancelled = true;
@@ -327,6 +337,32 @@ export default function Profile() {
                 color={colors.mutedForeground}
               />
             </Pressable>
+            {aiCreditBalance !== null ? (
+              <Pressable
+                onPress={() => router.push("/ai-credits" as never)}
+                style={({ pressed }) => [
+                  styles.listItem,
+                  {
+                    borderTopWidth: StyleSheet.hairlineWidth,
+                    borderTopColor: colors.border,
+                    opacity: pressed ? 0.7 : 1,
+                  },
+                ]}
+              >
+                <Feather name="cpu" size={18} color={colors.primary} />
+                <Text style={[styles.listLabel, { color: colors.foreground }]}>
+                  AI credits
+                </Text>
+                <Text style={[styles.balancePill, { color: colors.primary, backgroundColor: colors.primary + "1a" }]}>
+                  {aiCreditBalance.toLocaleString()} ✦
+                </Text>
+                <Feather
+                  name="chevron-right"
+                  size={18}
+                  color={colors.mutedForeground}
+                />
+              </Pressable>
+            ) : null}
             <Pressable
               onPress={() => router.push("/upgrade" as never)}
               style={({ pressed }) => [

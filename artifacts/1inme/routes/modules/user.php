@@ -327,6 +327,12 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('wallet/buy',            [\App\Modules\User\Controllers\WalletController::class, 'buyHandoff'])->name('wallet.buy.handoff');
         Route::post('addons/{addon}/activate-with-coins', [\App\Modules\User\Controllers\WalletController::class, 'activateAddon'])->name('addons.activate-with-coins');
 
+        // AI credits — separate ledger from the wallet. Buying converts
+        // wallet coins into AI credits at the admin-set rate.
+        Route::get ('ai-credits',              [\App\Modules\User\Controllers\AiCreditsController::class, 'show'])->name('ai-credits.show');
+        Route::get ('ai-credits/transactions', [\App\Modules\User\Controllers\AiCreditsController::class, 'transactions'])->name('ai-credits.transactions');
+        Route::post('ai-credits/buy',          [\App\Modules\User\Controllers\AiCreditsController::class, 'buy'])->name('ai-credits.buy');
+
         // Page & card templates (admin-curated presets) — picker reads
         // require links.view; apply mutates the link so requires links.edit.
         Route::get('links/{link}/templates', [\App\Modules\User\Controllers\LinkTemplateController::class, 'picker'])->middleware('workspace.can:links.view')->name('links.templates.picker');

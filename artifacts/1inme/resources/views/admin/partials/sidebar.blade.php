@@ -130,6 +130,22 @@
             <span class="sidebar-tooltip">Spam Rules</span>
         </a>
 
+        <a href="{{ route('admin.ai-engine.edit') }}"
+           class="sidebar-link {{ request()->routeIs('admin.ai-engine.*') ? 'active' : '' }}"
+           style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-brain"></i></div>
+            <span class="nav-label">AI Engine</span>
+            <span class="sidebar-tooltip">AI Engine</span>
+        </a>
+
+        <a href="{{ route('admin.ai-usage.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.ai-usage.*') ? 'active' : '' }}"
+           style="--nav-tint:#06b6d4; --nav-tint-soft:rgba(6,182,212,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-microchip"></i></div>
+            <span class="nav-label">AI Usage</span>
+            <span class="sidebar-tooltip">AI Usage</span>
+        </a>
+
         <a href="{{ route('admin.coach-defaults.edit') }}"
            class="sidebar-link {{ request()->routeIs('admin.coach-defaults.*') ? 'active' : '' }}"
            style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">

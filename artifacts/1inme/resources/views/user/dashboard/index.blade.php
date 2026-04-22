@@ -137,6 +137,35 @@
     </div>
 </div>
 
+{{-- AI credits at-a-glance card (only visible when the engine is on). --}}
+@if(\App\Services\AI\AiEngineSettings::isEnabled())
+    @php
+        $aiBal = app(\App\Services\AI\AiCreditService::class)->balanceFor($user);
+    @endphp
+    <a href="{{ route('user.ai-credits.show') }}" class="block mb-8">
+        <div class="card-premium px-5 py-4 flex items-center justify-between hover:border-violet-500/40 transition-colors">
+            <div class="flex items-center gap-4">
+                <div class="w-11 h-11 rounded-xl flex items-center justify-center"
+                     style="background: rgba(168,85,247,0.12); border: 1px solid rgba(168,85,247,0.25);">
+                    <i class="fas fa-brain text-violet-300"></i>
+                </div>
+                <div>
+                    <p class="text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">AI credits</p>
+                    <p class="text-2xl font-bold" style="color: var(--text-primary);">
+                        {{ number_format($aiBal->balance) }} <span class="text-violet-300">✦</span>
+                    </p>
+                </div>
+            </div>
+            <div class="text-right">
+                <p class="text-xs" style="color: var(--text-faint);">
+                    Spent {{ number_format($aiBal->lifetime_spent) }} lifetime
+                </p>
+                <p class="text-xs text-violet-300 mt-1">Manage &amp; top up <i class="fas fa-arrow-right ml-1"></i></p>
+            </div>
+        </div>
+    </a>
+@endif
+
 {{-- ===================== WORKSPACE-WIDE CHANNEL BREAKDOWN =====================
      Rolls every link's click log up into a single "what share of my traffic
      comes from in-app webviews vs real browsers vs bots" view. The pills

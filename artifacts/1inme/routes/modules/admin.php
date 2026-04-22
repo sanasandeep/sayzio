@@ -268,6 +268,18 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::put('/',  [WalletSettingsController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
         });
 
+        // AI Engine: OpenAI key, models/rates, wallet→credits conversion,
+        // credit packs, plus per-user usage report and adjustments.
+        Route::prefix('ai-engine')->name('ai-engine.')->group(function () {
+            Route::get('/', [\App\Modules\Admin\Controllers\AiEngineController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
+            Route::put('/', [\App\Modules\Admin\Controllers\AiEngineController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
+        });
+        Route::prefix('ai-usage')->name('ai-usage.')->group(function () {
+            Route::get('/',                 [\App\Modules\Admin\Controllers\AiUsageController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::get('{user}',            [\App\Modules\Admin\Controllers\AiUsageController::class, 'show'])->middleware(CheckPermission::class . ':settings.manage')->name('show');
+            Route::post('{user}/adjust',    [\App\Modules\Admin\Controllers\AiUsageController::class, 'adjust'])->middleware(CheckPermission::class . ':settings.manage')->name('adjust');
+        });
+
         Route::prefix('notifications')->name('notifications.')->group(function () {
             Route::get('/', [\App\Modules\Admin\Controllers\NotificationController::class, 'index'])->middleware(CheckPermission::class . ':users.edit')->name('index');
             Route::post('/', [\App\Modules\Admin\Controllers\NotificationController::class, 'send'])->middleware(CheckPermission::class . ':users.edit')->name('send');

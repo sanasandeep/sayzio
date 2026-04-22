@@ -153,6 +153,8 @@
                     <a href="{{ route('admin.addons.index') }}" class="sidebar-link {{ request()->routeIs('admin.addons.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-puzzle-piece"></i></div><span>Addons</span></a>
                     <a href="{{ route('admin.coin-packages.index') }}" class="sidebar-link {{ request()->routeIs('admin.coin-packages.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-coins"></i></div><span>Coin Packages</span></a>
                     <a href="{{ route('admin.wallet-settings.edit') }}" class="sidebar-link {{ request()->routeIs('admin.wallet-settings.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-wallet"></i></div><span>Wallet Settings</span></a>
+                    <a href="{{ route('admin.ai-engine.edit') }}" class="sidebar-link {{ request()->routeIs('admin.ai-engine.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-brain"></i></div><span>AI Engine</span></a>
+                    <a href="{{ route('admin.ai-usage.index') }}" class="sidebar-link {{ request()->routeIs('admin.ai-usage.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-microchip"></i></div><span>AI Usage</span></a>
                     <a href="{{ route('admin.assets.index') }}" class="sidebar-link {{ request()->routeIs('admin.assets.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-folder-tree"></i></div><span>Asset Vault</span></a>
                 </nav>
             </div>

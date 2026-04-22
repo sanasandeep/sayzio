@@ -47,12 +47,19 @@ export async function apiFetch<T = unknown>(
   const body = text ? safeJson(text) : null;
 
   if (!res.ok) {
+    // Backend may return either a flat { message } payload or the
+    // standard envelope { error: { message, code, details } }.
+    const nested =
+      body && typeof body.error === "object" ? body.error : null;
+    const message =
+      nested?.message ||
+      (body && typeof body.message === "string" ? body.message : null) ||
+      (body && typeof body.error === "string" ? body.error : null) ||
+      `Request failed (${res.status})`;
     const err: ApiError = {
       status: res.status,
-      message:
-        (body && (body.message || body.error)) ||
-        `Request failed (${res.status})`,
-      errors: body?.errors,
+      message,
+      errors: body?.errors ?? nested?.details,
     };
     throw err;
   }
@@ -129,6 +136,70 @@ export const wallet = {
       method: "POST",
       body: JSON.stringify({ coin_package_id, gateway }),
     }),
+};
+
+// ── AI credits ────────────────────────────────────────────────────
+export type AiCreditBalance = {
+  enabled: boolean;
+  balance: number;
+  lifetime_purchased: number;
+  lifetime_spent: number;
+  wallet_to_credits_rate: number;
+};
+export type AiCreditTransaction = {
+  id: number;
+  type: "purchase" | "spend" | "refund" | "grant" | "admin_adjustment";
+  delta_credits: number;
+  balance_after: number;
+  feature: string | null;
+  model: string | null;
+  tokens_in: number | null;
+  tokens_out: number | null;
+  reason: string | null;
+  created_at: string | null;
+};
+export type AiCreditPack = {
+  id: string;
+  label: string;
+  credits: number;
+  wallet_cost: number;
+};
+export type AiCreditPurchaseResponse = {
+  transaction_id: number;
+  credits_added: number;
+  balance: number;
+};
+
+export const aiCredits = {
+  balance: async (): Promise<AiCreditBalance> => {
+    const r = await apiFetch<{ data: AiCreditBalance }>("/ai/credits");
+    return r.data;
+  },
+  transactions: async (
+    limit = 25,
+  ): Promise<{ items: AiCreditTransaction[] }> => {
+    const r = await apiFetch<{ data: { items: AiCreditTransaction[] } }>(
+      `/ai/credits/transactions?limit=${limit}`,
+    );
+    return r.data;
+  },
+  packs: async (): Promise<{ items: AiCreditPack[]; rate: number }> => {
+    const r = await apiFetch<{
+      data: { items: AiCreditPack[]; rate: number };
+    }>("/ai/credits/packs");
+    return r.data;
+  },
+  purchase: async (
+    input:
+      | { pack_id: string; idempotency_key?: string }
+      | { credits: number; idempotency_key?: string },
+  ): Promise<AiCreditPurchaseResponse> => {
+    const r = await apiFetch<{ data: AiCreditPurchaseResponse }>(
+      "/ai/credits/purchase",
+      { method: "POST", body: JSON.stringify(input) },
+    );
+    return r.data;
+  },
 };
 
 function safeJson(text: string): any {
