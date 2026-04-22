@@ -62,6 +62,24 @@ class PricingResolver
         return $map[$cc] ?? 'USD';
     }
 
+    /**
+     * True when the active currency was chosen by geo-IP fallback rather
+     * than by the user's profile country or an explicit session switch.
+     * Used by the pricing page to show a small "based on your location"
+     * hint so roaming visitors know they can flip back.
+     */
+    public static function wasPickedByGeo(?User $user): bool
+    {
+        if ($user && !empty($user->country)) return false;
+        try {
+            $session = session(self::SESSION_KEY);
+        } catch (\Throwable $e) {
+            return false;
+        }
+        if (is_string($session) && in_array($session, ['USD', 'INR'], true)) return false;
+        return true;
+    }
+
     /** Resolve the currency that applies to the given user (or anonymous). */
     public static function currencyForUser(?User $user): string
     {

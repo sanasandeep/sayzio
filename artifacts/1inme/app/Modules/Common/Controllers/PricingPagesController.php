@@ -25,6 +25,7 @@ class PricingPagesController extends Controller
         $user = $request->user();
         $cycle = $request->query('cycle', 'monthly') === 'annual' ? 'annual' : 'monthly';
         $currency = PricingResolver::currencyForUser($user);
+        $currencyPickedByGeo = PricingResolver::wasPickedByGeo($user);
 
         $billing = $user ? BillingAddress::where('user_id', $user->id)->first() : null;
         $hasAddress = $billing && !empty($billing->country);
@@ -72,6 +73,7 @@ class PricingPagesController extends Controller
             'plans'         => $rows,
             'cycle'         => $cycle,
             'currency'      => $currency,
+            'currency_picked_by_geo' => $currencyPickedByGeo,
             'user'          => $user,
             'packages'      => $packages,
             'wallet_enabled'=> WalletService::isEnabled(),

@@ -107,6 +107,31 @@
             </div>
         </div>
 
+        @if($currency_picked_by_geo)
+        <div
+            x-data="{
+                shown: (() => { try { return sessionStorage.getItem('geoCurrencyHintDismissed') !== '1'; } catch(e) { return true; } })(),
+                dismiss(){ this.shown = false; try { sessionStorage.setItem('geoCurrencyHintDismissed','1'); } catch(e) {} }
+            }"
+            x-show="shown && view==='plans'" x-transition x-cloak
+            class="flex items-center justify-center mt-4">
+            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 bg-white/[0.04] text-[11px] text-gray-300">
+                <i class="fas fa-location-arrow text-violet-300 text-[10px]"></i>
+                <span>
+                    Showing prices in
+                    <span class="text-white font-medium">{{ $currency === 'INR' ? '₹ (INR)' : '$ (USD)' }}</span>
+                    based on your location — switch to
+                    <span class="text-white font-medium">{{ $currency === 'INR' ? '$ (USD)' : '₹ (INR)' }}</span>
+                    below.
+                </span>
+                <button type="button" @click="dismiss()" aria-label="Dismiss"
+                    class="ml-1 w-5 h-5 rounded-full hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white">
+                    <i class="fas fa-times text-[10px]"></i>
+                </button>
+            </div>
+        </div>
+        @endif
+
         @if(!$user || !$user->country)
         <form method="POST" action="{{ route('upgrade.public.switch-currency') }}" class="flex items-center justify-center gap-2 mt-4" x-show="view==='plans'" x-transition>
             @csrf
