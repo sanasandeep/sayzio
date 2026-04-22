@@ -161,6 +161,45 @@
         </div>
     </div>
 
+    {{-- Per-feature model change history --}}
+    <div class="glass rounded-2xl border border-white/10 p-6 space-y-3">
+        <div>
+            <h3 class="font-semibold text-white">Feature model history</h3>
+            <p class="text-xs text-white/40">
+                Last {{ count($featureModelHistory) }} change{{ count($featureModelHistory) === 1 ? '' : 's' }}
+                to per-feature models. Use this to trace sudden cost changes back to a specific switch.
+            </p>
+        </div>
+        @if(count($featureModelHistory) === 0)
+            <p class="text-xs text-white/40 italic">No changes recorded yet.</p>
+        @else
+            <table class="w-full text-sm">
+                <thead><tr class="text-white/40 text-xs uppercase tracking-wider">
+                    <th class="text-left py-2">When</th>
+                    <th class="text-left">Feature</th>
+                    <th class="text-left">From</th>
+                    <th class="text-left">To</th>
+                    <th class="text-left">By</th>
+                </tr></thead>
+                <tbody>
+                @foreach($featureModelHistory as $row)
+                    <tr class="border-t border-white/5 align-top">
+                        <td class="py-2 text-white/70 whitespace-nowrap" title="{{ $row->created_at?->toDateTimeString() }}">
+                            {{ $row->created_at?->diffForHumans() }}
+                        </td>
+                        <td class="text-white/80 font-mono">{{ $row->feature }}</td>
+                        <td class="text-white/60 font-mono">{{ $row->old_model ?? '—' }}</td>
+                        <td class="text-amber-300 font-mono">{{ $row->new_model ?? '—' }}</td>
+                        <td class="text-white/60">
+                            {{ $row->admin_name ?? ($row->admin_id ? '#' . $row->admin_id : 'system') }}
+                        </td>
+                    </tr>
+                @endforeach
+                </tbody>
+            </table>
+        @endif
+    </div>
+
     {{-- Wallet -> credits conversion --}}
     <div class="glass rounded-2xl border border-white/10 p-6 space-y-3">
         <h3 class="font-semibold text-white">Wallet → AI credits</h3>

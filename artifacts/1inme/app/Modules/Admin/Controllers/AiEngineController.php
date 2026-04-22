@@ -5,6 +5,7 @@ namespace App\Modules\Admin\Controllers;
 use App\Http\Controllers\Controller;
 use App\Services\AI\AiEngineSettings;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -39,6 +40,7 @@ class AiEngineController extends Controller
             'featureModels'   => AiEngineSettings::featureModels(),
             'featureStatus'   => $featureStatus,
             'defaultFeatureModel' => AiEngineSettings::DEFAULT_FEATURE_MODEL,
+            'featureModelHistory' => AiEngineSettings::recentFeatureModelChanges(20),
         ]);
     }
 
@@ -135,7 +137,12 @@ class AiEngineController extends Controller
             AiEngineSettings::setPacks($data['packs']);
         }
         if (array_key_exists('feature_models', $data)) {
-            AiEngineSettings::setFeatureModels($data['feature_models']);
+            $admin = Auth::guard('admin')->user() ?: $request->user();
+            AiEngineSettings::setFeatureModels(
+                $data['feature_models'],
+                $admin?->id,
+                $admin?->name ?? $admin?->email
+            );
         }
 
         return redirect()->route('admin.ai-engine.edit')

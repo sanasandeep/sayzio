@@ -2,8 +2,10 @@
 
 namespace App\Services\AI;
 
+use App\Modules\Admin\Models\AiFeatureModelChange;
 use App\Modules\Admin\Models\AppSetting;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Typed accessor for every admin-configurable AI Engine knob.
@@ -222,17 +224,62 @@ class AiEngineSettings
     }
 
     /**
+     * Persist the per-feature model map and append an audit row for every
+     * feature whose model actually changed. `$adminId` / `$adminName`
+     * identify who made the change so cost regressions are traceable.
+     *
      * @param array<string,string|null> $map
      */
-    public static function setFeatureModels(array $map): void
+    public static function setFeatureModels(array $map, ?int $adminId = null, ?string $adminName = null): void
     {
+        $previous = self::featureModels();
+
         $clean = [];
         foreach (self::FEATURES as $f) {
             if (array_key_exists($f, $map) && is_string($map[$f]) && $map[$f] !== '') {
                 $clean[$f] = trim($map[$f]);
             }
         }
-        AppSetting::put(self::KEY_FEATURE_MODELS, $clean);
+
+        // Wrap the setting write and the audit insert in one transaction
+        // so a row in the history table can never disagree with the
+        // actually-stored mapping.
+        DB::transaction(function () use ($clean, $previous, $adminId, $adminName) {
+            AppSetting::put(self::KEY_FEATURE_MODELS, $clean);
+
+            $effective = self::featureModels();
+            $rows = [];
+            $now  = now();
+            foreach (self::FEATURES as $f) {
+                $old = $previous[$f] ?? null;
+                $new = $effective[$f] ?? null;
+                if ($old === $new) continue;
+                $rows[] = [
+                    'feature'    => $f,
+                    'old_model'  => $old,
+                    'new_model'  => $new,
+                    'admin_id'   => $adminId,
+                    'admin_name' => $adminName,
+                    'created_at' => $now,
+                ];
+            }
+            if ($rows) {
+                AiFeatureModelChange::insert($rows);
+            }
+        });
+    }
+
+    /**
+     * Most recent per-feature model changes for the admin history panel.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection<int,AiFeatureModelChange>
+     */
+    public static function recentFeatureModelChanges(int $limit = 20)
+    {
+        return AiFeatureModelChange::orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->get();
     }
 
     /**
