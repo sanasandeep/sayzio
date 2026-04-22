@@ -16,7 +16,8 @@
         </div>
 
         @if(!$user || !$user->country)
-        <form method="POST" action="{{ route('user.upgrade.switch-currency') }}" class="inline-flex items-center gap-2 mt-3 ml-3">
+        <form method="POST" action="{{ route('user.upgrade.switch-currency') }}" class="inline-flex items-center gap-2 mt-3 ml-3"
+              onsubmit="try { sessionStorage.setItem('geoCurrencyHintDismissed','1'); } catch(e) {}">
             @csrf
             <label class="text-xs text-white/40">Preview in:</label>
             <select name="currency" onchange="this.form.submit()" class="px-3 py-1 text-xs bg-white/5 border border-white/10 rounded-full text-white/80">
@@ -26,6 +27,31 @@
         </form>
         @endif
     </div>
+
+    @if(!empty($currency_picked_by_geo))
+    <div
+        x-data="{
+            shown: (() => { try { return sessionStorage.getItem('geoCurrencyHintDismissed') !== '1'; } catch(e) { return true; } })(),
+            dismiss(){ this.shown = false; try { sessionStorage.setItem('geoCurrencyHintDismissed','1'); } catch(e) {} }
+        }"
+        x-show="shown" x-transition x-cloak
+        class="flex items-center justify-center -mt-2">
+        <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 bg-white/[0.04] text-[11px] text-white/70">
+            <i class="fas fa-location-arrow text-violet-300 text-[10px]"></i>
+            <span>
+                Showing prices in
+                <span class="text-white font-medium">{{ $currency === 'INR' ? '₹ (INR)' : '$ (USD)' }}</span>
+                based on your location — switch to
+                <span class="text-white font-medium">{{ $currency === 'INR' ? '$ (USD)' : '₹ (INR)' }}</span>
+                above.
+            </span>
+            <button type="button" @click="dismiss()" aria-label="Dismiss"
+                class="ml-1 w-5 h-5 rounded-full hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white">
+                <i class="fas fa-times text-[10px]"></i>
+            </button>
+        </div>
+    </div>
+    @endif
 
     <div class="grid grid-cols-1 md:grid-cols-{{ min(count($plans), 4) }} gap-5">
         @foreach($plans as $row)

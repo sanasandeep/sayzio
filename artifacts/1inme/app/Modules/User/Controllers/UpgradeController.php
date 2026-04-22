@@ -74,13 +74,14 @@ class UpgradeController extends Controller
         });
 
         return view('user.upgrade.show', [
-            'plans'      => $plansPriced,
-            'addons'     => $addonsPriced,
-            'cycle'      => $cycle,
-            'currency'   => $currency,
-            'user'       => $user,
-            'hasAddress' => $hasAddress,
-            'billing'    => $billing,
+            'plans'                  => $plansPriced,
+            'addons'                 => $addonsPriced,
+            'cycle'                  => $cycle,
+            'currency'               => $currency,
+            'currency_picked_by_geo' => PricingResolver::wasPickedByGeo($user),
+            'user'                   => $user,
+            'hasAddress'             => $hasAddress,
+            'billing'                => $billing,
         ]);
     }
 
