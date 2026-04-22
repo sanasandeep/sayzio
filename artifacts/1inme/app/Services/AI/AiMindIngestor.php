@@ -61,8 +61,19 @@ class AiMindIngestor
                 return;
             }
 
-            $text = $this->extractText($source);
             $caps = AiMindSettings::caps();
+            $ocrUsed = false;
+            try {
+                $text = $this->extractText($source);
+            } catch (PdfOcrRequiredException $e) {
+                if (!$payer) {
+                    // No account to charge means we can't run OCR — preserve
+                    // the original "OCR required" surface for the operator.
+                    throw new \RuntimeException('This PDF appears to be image-only — OCR is required. Please paste its text or upload a text-based PDF.');
+                }
+                $text = $this->extractPdfWithOcr($e->pdfBytes, $payer, $source, $caps);
+                $ocrUsed = true;
+            }
             if ($text === '') {
                 throw new \RuntimeException('No extractable text found in this source.');
             }
@@ -107,7 +118,7 @@ class AiMindIngestor
                 }
             }
 
-            DB::transaction(function () use ($source, $chunks, $vectors, $model) {
+            DB::transaction(function () use ($source, $chunks, $vectors, $model, $ocrUsed) {
                 AiMindChunk::where('source_id', $source->id)->delete();
                 foreach ($chunks as $i => $content) {
                     AiMindChunk::create([
@@ -122,7 +133,7 @@ class AiMindIngestor
                 }
                 $source->forceFill([
                     'status'           => AiMindSource::STATUS_READY,
-                    'status_message'   => null,
+                    'status_message'   => $ocrUsed ? "OCR'd from scan" : null,
                     'chunks_count'     => count($chunks),
                     'last_ingested_at' => now(),
                     'next_refresh_at'  => $this->nextRefreshAt($source),
@@ -266,11 +277,93 @@ class AiMindIngestor
         }
         if ($text === '') {
             if (!$hasFontResource) {
-                throw new \RuntimeException('This PDF appears to be image-only — OCR is required. Please paste its text or upload a text-based PDF.');
+                // Bubble the bytes up so ingest() can attempt OCR rather
+                // than failing here — extractText has no payer context.
+                throw new PdfOcrRequiredException($bytes);
             }
             throw new \RuntimeException('Could not extract text from this PDF — try a text-based export.');
         }
         return $text;
+    }
+
+    /**
+     * Render each PDF page to PNG via `pdftoppm` (poppler-utils) and ask
+     * a vision-capable chat model to transcribe it. Pages are processed
+     * sequentially so a mid-document failure leaves a clear error rather
+     * than a partially-charged source.
+     */
+    protected function extractPdfWithOcr(string $bytes, User $payer, AiMindSource $source, array $caps): string
+    {
+        if (!$this->pdftoppmAvailable()) {
+            throw new \RuntimeException('OCR is not available on this server (pdftoppm not installed).');
+        }
+
+        $maxPages = max(1, (int) ($caps['max_ocr_pages_per_source'] ?? 30));
+        $tmpDir   = sys_get_temp_dir() . '/mind-ocr-' . uniqid('', true);
+        if (!@mkdir($tmpDir, 0700, true) && !is_dir($tmpDir)) {
+            throw new \RuntimeException('Could not create OCR working directory.');
+        }
+        $pdfPath = $tmpDir . '/in.pdf';
+        file_put_contents($pdfPath, $bytes);
+
+        try {
+            $cmd = sprintf(
+                'pdftoppm -png -r 200 -l %d %s %s 2>&1',
+                $maxPages,
+                escapeshellarg($pdfPath),
+                escapeshellarg($tmpDir . '/page'),
+            );
+            exec($cmd, $output, $exitCode);
+            if ($exitCode !== 0) {
+                throw new \RuntimeException('Could not render PDF for OCR: ' . trim(implode("\n", $output)));
+            }
+
+            $pngs = glob($tmpDir . '/page-*.png') ?: [];
+            sort($pngs);
+            if (!$pngs) {
+                throw new \RuntimeException('OCR rendering produced no pages.');
+            }
+
+            $model     = AiMindSettings::ocrModel();
+            $pageTexts = [];
+            foreach ($pngs as $i => $pngPath) {
+                $b64 = base64_encode((string) file_get_contents($pngPath));
+                $messages = [[
+                    'role'    => 'user',
+                    'content' => [
+                        ['type' => 'text', 'text' => 'Transcribe every readable word from this scanned page exactly as it appears. Preserve paragraph breaks. Return only the extracted text, with no commentary.'],
+                        ['type' => 'image_url', 'image_url' => ['url' => 'data:image/png;base64,' . $b64]],
+                    ],
+                ]];
+                $resp = $this->openai->chat($payer, $model, $messages, [
+                    'feature'     => 'mind',
+                    'related_id'  => $source->id,
+                    'temperature' => 0,
+                    'reason'      => 'Mind OCR page ' . ($i + 1) . ": {$source->title}",
+                ]);
+                $t = trim((string) ($resp['content'] ?? ''));
+                if ($t !== '') $pageTexts[] = $t;
+            }
+
+            $text = trim(implode("\n\n", $pageTexts));
+            if ($text === '') {
+                throw new \RuntimeException('OCR ran but no text was recognised in this PDF.');
+            }
+            return $text;
+        } finally {
+            foreach (glob($tmpDir . '/*') ?: [] as $f) @unlink($f);
+            @rmdir($tmpDir);
+        }
+    }
+
+    /** Cached check for the poppler `pdftoppm` binary on PATH. */
+    protected function pdftoppmAvailable(): bool
+    {
+        static $available = null;
+        if ($available !== null) return $available;
+        $out = []; $code = 1;
+        @exec('command -v pdftoppm 2>/dev/null', $out, $code);
+        return $available = ($code === 0 && !empty($out));
     }
 
     /**

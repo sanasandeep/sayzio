@@ -20,6 +20,7 @@ class AiMindSettings
     public const KEY_CAPS            = 'ai.mind.caps';
     public const KEY_CHAT_MODEL      = 'ai.mind.chat_model';
     public const KEY_EMBEDDING_MODEL = 'ai.mind.embedding_model';
+    public const KEY_OCR_MODEL       = 'ai.mind.ocr_model';
 
     /** Sensible defaults — operator can override per key in the admin UI. */
     public static function capsDefault(): array
@@ -36,6 +37,7 @@ class AiMindSettings
             'max_text_chars'         => 200_000,
             'chunk_chars'            => 1200,
             'chunk_overlap_chars'    => 150,
+            'max_ocr_pages_per_source' => 30,
         ];
     }
 
@@ -84,5 +86,16 @@ class AiMindSettings
     public static function setEmbeddingModel(string $model): void
     {
         AppSetting::put(self::KEY_EMBEDDING_MODEL, trim($model));
+    }
+
+    /** Vision-capable chat model used to OCR scanned PDF pages. */
+    public static function ocrModel(): string
+    {
+        return (string) AppSetting::get(self::KEY_OCR_MODEL, 'gpt-4o-mini');
+    }
+
+    public static function setOcrModel(string $model): void
+    {
+        AppSetting::put(self::KEY_OCR_MODEL, trim($model));
     }
 }

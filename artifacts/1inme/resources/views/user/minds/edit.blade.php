@@ -183,7 +183,7 @@
                                 @if(($sourceCreditSpend[$s->id] ?? 0) > 0)
                                     · <span class="text-amber-300" title="Credits spent embedding this source in the last {{ $creditUsage['days'] }} days">{{ number_format($sourceCreditSpend[$s->id]) }} credits / 30d</span>
                                 @endif
-                                @if($s->status_message) · <span class="text-red-300">{{ $s->status_message }}</span>@endif
+                                @if($s->status_message) · <span class="{{ $s->status === AiMindSource::STATUS_READY ? 'text-emerald-300/80' : 'text-red-300' }}">{{ $s->status_message }}</span>@endif
                             </p>
                         </div>
                         <span class="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded {{ $statusColor[$s->status] ?? 'bg-white/10 text-white/60' }}">{{ $s->status }}</span>

@@ -120,6 +120,47 @@ class AiMindIngestorDocumentTest extends TestCase
         $this->ingestor()->extractText($source);
     }
 
+    public function test_image_only_pdf_runs_ocr_fallback_and_marks_source_ready(): void
+    {
+        Storage::fake('local');
+
+        $bytes = $this->buildFontlessPdf();
+        Storage::disk('local')->put('docs/scan.pdf', $bytes);
+        $source = $this->makeSource('local', 'docs/scan.pdf', 'pdf');
+
+        // Stand in for the OpenAI service: we don't want to hit the
+        // network, but we do want to verify the OCR fallback path runs
+        // chat() once per rendered page and stitches the text back in.
+        $openai = \Mockery::mock(OpenAiService::class);
+        $openai->shouldReceive('chat')
+            ->atLeast()->once()
+            ->andReturn([
+                'content'       => 'Recovered text from scanned page.',
+                'tokens_in'     => 10,
+                'tokens_out'    => 5,
+                'credits_spent' => 1,
+                'model'         => 'gpt-4o-mini',
+                'raw'           => [],
+            ]);
+        // No real embeddings either — return empty vectors so the chunk
+        // store still gets populated.
+        $openai->shouldReceive('embed')
+            ->andReturnUsing(fn ($u, $m, $batch) => [
+                'vectors'       => array_map(fn () => [], $batch),
+                'tokens_in'     => 0,
+                'credits_spent' => 0,
+                'model'         => $m,
+            ]);
+
+        $ingestor = new AiMindIngestor($openai);
+        $ingestor->ingest($source);
+
+        $source->refresh();
+        $this->assertSame(AiMindSource::STATUS_READY, $source->status);
+        $this->assertStringContainsStringIgnoringCase('ocr', (string) $source->status_message);
+        $this->assertGreaterThan(0, $source->chunks_count);
+    }
+
     public function test_docx_extraction_handles_numbered_list_runs(): void
     {
         Storage::fake('local');
