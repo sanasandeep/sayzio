@@ -90,7 +90,10 @@ class OpenAiService
                 'tokens_in'  => $tokensIn,
                 'tokens_out' => $tokensOut,
                 'reason'     => $opts['reason'] ?? "OpenAI chat ({$model})",
-                'meta'       => ['call_id' => $response['id'] ?? null],
+                'meta'       => array_merge(
+                    is_array($opts['meta'] ?? null) ? $opts['meta'] : [],
+                    ['call_id' => $response['id'] ?? null],
+                ),
             ])
             : null;
 
@@ -137,6 +140,7 @@ class OpenAiService
                 'tokens_in'  => $tokensIn,
                 'tokens_out' => 0,
                 'reason'     => $opts['reason'] ?? "OpenAI embedding ({$model})",
+                'meta'       => is_array($opts['meta'] ?? null) ? $opts['meta'] : null,
             ])
             : null;
 

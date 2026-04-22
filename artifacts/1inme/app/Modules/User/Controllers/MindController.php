@@ -9,6 +9,7 @@ use App\Services\AI\AiMindFeatureAdapter;
 use App\Services\AI\AiMindProvisioner;
 use App\Services\AI\AiMindSettings;
 use App\Services\AI\AiEngineSettings;
+use App\Services\AI\MindCreditUsageService;
 use Illuminate\Http\Request;
 
 /**
@@ -72,18 +73,22 @@ class MindController extends Controller
         return redirect()->route('user.minds.edit', $mind)->with('status', 'Mind created.');
     }
 
-    public function edit(Request $request, AiMind $mind)
+    public function edit(Request $request, AiMind $mind, MindCreditUsageService $usage)
     {
         $this->ensureEnabled();
         $this->authorize_($mind, $request->user());
         $sources = $mind->sources()->withCount('chunks')->latest('id')->get();
+        $creditUsage      = $usage->usageForMind((int) $mind->id);
+        $sourceCreditSpend = $usage->ingestionBySource((int) $mind->id);
         return view('user.minds.edit', [
-            'mind'          => $mind,
-            'sources'       => $sources,
-            'features'      => AiMindFeatureAdapter::FEATURES,
-            'caps'          => AiMindSettings::caps(),
-            'isPlatform'    => $mind->isPlatform(),
-            'sourceCounts'  => $sources->groupBy('type')->map->count(),
+            'mind'              => $mind,
+            'sources'           => $sources,
+            'features'          => AiMindFeatureAdapter::FEATURES,
+            'caps'              => AiMindSettings::caps(),
+            'isPlatform'        => $mind->isPlatform(),
+            'sourceCounts'      => $sources->groupBy('type')->map->count(),
+            'creditUsage'       => $creditUsage,
+            'sourceCreditSpend' => $sourceCreditSpend,
         ]);
     }
 

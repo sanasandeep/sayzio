@@ -8,6 +8,7 @@ use App\Modules\User\Models\AiMindChunk;
 use App\Modules\User\Models\AiMindSource;
 use App\Services\AI\AiMindProvisioner;
 use App\Services\AI\AiMindSettings;
+use App\Services\AI\MindCreditUsageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -20,7 +21,7 @@ use Illuminate\Support\Facades\DB;
  */
 class AiMindAdminController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request, MindCreditUsageService $usage)
     {
         $totals = [
             'minds'     => (int) AiMind::count(),
@@ -46,11 +47,14 @@ class AiMindAdminController extends Controller
             ->latest('updated_at')
             ->paginate(25);
 
+        $topByCredits = $usage->topMinds(10);
+
         return view('admin.ai-minds.index', [
-            'totals'   => $totals,
-            'topUsers' => $topUsers,
-            'minds'    => $minds,
-            'caps'     => AiMindSettings::caps(),
+            'totals'        => $totals,
+            'topUsers'      => $topUsers,
+            'minds'         => $minds,
+            'caps'          => AiMindSettings::caps(),
+            'topByCredits'  => $topByCredits,
         ]);
     }
 

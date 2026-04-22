@@ -91,6 +91,11 @@ class AiMindIngestor
                         'feature'    => 'mind',
                         'related_id' => $source->id,
                         'reason'     => "Mind ingest: {$source->title}",
+                        'meta'       => [
+                            'kind'      => 'ingest',
+                            'mind_id'   => (int) $source->mind_id,
+                            'source_id' => (int) $source->id,
+                        ],
                     ]);
                     foreach ($resp['vectors'] as $v) $vectors[] = $v;
                     $tokens += (int) ($resp['tokens_in'] ?? 0);

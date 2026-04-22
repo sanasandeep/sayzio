@@ -32,6 +32,36 @@
         </div>
     </div>
 
+    {{-- Credit usage (last 30 days) --}}
+    <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+        <div class="flex items-center justify-between">
+            <h3 class="text-white font-semibold flex items-center gap-2">
+                <i class="fas fa-coins text-amber-300"></i> AI credits used
+            </h3>
+            <span class="text-[11px] uppercase tracking-wider text-white/40">Last {{ $creditUsage['days'] }} days</span>
+        </div>
+        <div class="grid grid-cols-3 gap-3 mt-4">
+            <div class="rounded-xl border border-white/10 bg-white/[0.02] p-3">
+                <p class="text-[10px] uppercase tracking-wider text-white/40">Ingestion</p>
+                <p class="text-xl font-bold text-cyan-300 mt-1">{{ number_format($creditUsage['ingest']) }}</p>
+                <p class="text-[11px] text-white/40 mt-1">Embedding sources</p>
+            </div>
+            <div class="rounded-xl border border-white/10 bg-white/[0.02] p-3">
+                <p class="text-[10px] uppercase tracking-wider text-white/40">Questions</p>
+                <p class="text-xl font-bold text-violet-300 mt-1">{{ number_format($creditUsage['query']) }}</p>
+                <p class="text-[11px] text-white/40 mt-1">Live test queries</p>
+            </div>
+            <div class="rounded-xl border border-white/10 bg-white/[0.02] p-3">
+                <p class="text-[10px] uppercase tracking-wider text-white/40">Total</p>
+                <p class="text-xl font-bold text-white mt-1">{{ number_format($creditUsage['total']) }}</p>
+                <p class="text-[11px] text-white/40 mt-1">Combined spend</p>
+            </div>
+        </div>
+        @if($creditUsage['total'] === 0)
+            <p class="text-[11px] text-white/40 mt-3">No credits spent on this Mind in the last {{ $creditUsage['days'] }} days.</p>
+        @endif
+    </div>
+
     @unless($isPlatform)
     <form method="POST" action="{{ route('user.minds.update', $mind) }}" class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-3">
         @csrf @method('PUT')
@@ -150,6 +180,9 @@
                                 @if($s->type==='document') · {{ number_format(($s->size_bytes ?? 0)/1024, 1) }} KB@endif
                                 @if($s->type==='feature') · {{ \App\Services\AI\AiMindFeatureAdapter::label($s->feature_key) }}@endif
                                 · {{ number_format($s->chunks_count ?? $s->chunks()->count()) }} chunks
+                                @if(($sourceCreditSpend[$s->id] ?? 0) > 0)
+                                    · <span class="text-amber-300" title="Credits spent embedding this source in the last {{ $creditUsage['days'] }} days">{{ number_format($sourceCreditSpend[$s->id]) }} credits / 30d</span>
+                                @endif
                                 @if($s->status_message) · <span class="text-red-300">{{ $s->status_message }}</span>@endif
                             </p>
                         </div>

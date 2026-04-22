@@ -49,6 +49,46 @@
         <div class="flex justify-end"><button class="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm">Save caps</button></div>
     </form>
 
+    {{-- Top minds by AI credit spend --}}
+    <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+        <div class="flex items-center justify-between mb-3">
+            <h3 class="text-white font-semibold">Top 10 Minds by credit spend</h3>
+            <span class="text-[11px] uppercase tracking-wider text-white/40">Last 30 days</span>
+        </div>
+        @if($topByCredits->isEmpty())
+            <p class="text-sm text-white/40">No Mind credit spend in the last 30 days.</p>
+        @else
+            <table class="w-full text-sm text-left">
+                <thead class="text-[11px] uppercase tracking-wider text-white/40">
+                    <tr>
+                        <th class="py-2">Mind</th>
+                        <th>Owner</th>
+                        <th class="text-right">Ingestion</th>
+                        <th class="text-right">Questions</th>
+                        <th class="text-right">Total</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                    @foreach($topByCredits as $row)
+                        <tr class="text-white/80">
+                            <td class="py-2">
+                                {{ $row['mind']->name }}
+                                @if($row['mind']->isPlatform())<span class="text-[10px] uppercase tracking-wider text-cyan-300/80 ml-1">Default</span>@endif
+                            </td>
+                            <td>
+                                {{ $row['mind']->user?->name ?: '— platform —' }}
+                                <br><span class="text-[11px] text-white/40">{{ $row['mind']->user?->email }}</span>
+                            </td>
+                            <td class="text-right text-cyan-300">{{ number_format($row['ingest']) }}</td>
+                            <td class="text-right text-violet-300">{{ number_format($row['query']) }}</td>
+                            <td class="text-right font-semibold text-white">{{ number_format($row['total']) }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @endif
+    </div>
+
     {{-- Top users --}}
     @if($topUsers->isNotEmpty())
     <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5">

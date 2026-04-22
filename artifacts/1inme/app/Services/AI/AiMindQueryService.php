@@ -53,9 +53,18 @@ class AiMindQueryService
 
         // Embed the question on the asker's account so they pay for
         // their own queries, even when querying the platform Mind.
+        // Attribute spend to the *focused* (first) Mind so per-Mind
+        // analytics can break questions out from ingestion.
+        $focusedMind = $minds[0];
+        $queryMeta = [
+            'kind'    => 'query',
+            'mind_id' => (int) $focusedMind->id,
+        ];
         $emb = $this->openai->embed($user, $embedModel, [$question], [
-            'feature' => 'mind',
-            'reason'  => 'Mind test query',
+            'feature'    => 'mind',
+            'related_id' => (int) $focusedMind->id,
+            'reason'     => 'Mind query',
+            'meta'       => $queryMeta,
         ]);
         $queryVec = $emb['vectors'][0] ?? [];
         $creditsSpent = (int) ($emb['credits_spent'] ?? 0);
@@ -141,8 +150,10 @@ class AiMindQueryService
         ];
 
         $chat = $this->openai->chat($user, $chatModel, $messages, [
-            'feature' => 'mind',
-            'reason'  => 'Mind test query',
+            'feature'    => 'mind',
+            'related_id' => (int) $focusedMind->id,
+            'reason'     => 'Mind query',
+            'meta'       => $queryMeta,
             'temperature' => 0.2,
             'max_tokens'  => 700,
         ]);
