@@ -343,6 +343,9 @@ Route::prefix('user')->name('user.')->group(function () {
 
             Route::get ('persona',           [\App\Modules\User\Controllers\AI\PersonaController::class, 'show'])->name('persona.show');
             Route::post('persona/generate',  [\App\Modules\User\Controllers\AI\PersonaController::class, 'generate'])->middleware('throttle:30,1')->name('persona.generate');
+            Route::post('persona/save',      [\App\Modules\User\Controllers\AI\PersonaController::class, 'save'])->name('persona.save');
+            Route::patch('personas/{persona}',  [\App\Modules\User\Controllers\AI\PersonaController::class, 'update'])->name('persona.update');
+            Route::delete('personas/{persona}', [\App\Modules\User\Controllers\AI\PersonaController::class, 'destroy'])->name('persona.destroy');
 
             Route::get   ('companion',                       [\App\Modules\User\Controllers\AI\CompanionController::class, 'show'])->name('companion.show');
             Route::post  ('companion',                       [\App\Modules\User\Controllers\AI\CompanionController::class, 'store'])->name('companion.store');
