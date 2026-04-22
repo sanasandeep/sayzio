@@ -3,6 +3,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   Platform,
   Pressable,
   ScrollView,
@@ -90,11 +92,50 @@ export default function Profile() {
   const colors = useColors();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user, signOut } = useAuth();
+  const {
+    user,
+    signOut,
+    biometricCapability,
+    biometricEnabled,
+    enableBiometricUnlock,
+    disableBiometricUnlock,
+    refreshBiometricCapability,
+  } = useAuth();
   const { pref, setPref } = useThemeControls();
   const webTop = Platform.OS === "web" ? 67 : 0;
   const [coinBalance, setCoinBalance] = useState<number | null>(null);
   const [aiCreditBalance, setAiCreditBalance] = useState<number | null>(null);
+  const [biometricBusy, setBiometricBusy] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshBiometricCapability().catch(() => {});
+    }, [refreshBiometricCapability]),
+  );
+
+  const onToggleBiometric = useCallback(async () => {
+    if (biometricBusy) return;
+    setBiometricBusy(true);
+    try {
+      if (biometricEnabled) {
+        await disableBiometricUnlock();
+      } else {
+        const res = await enableBiometricUnlock();
+        if (!res.ok && res.reason !== "cancel") {
+          Alert.alert(
+            "Couldn't enable",
+            res.message ?? "Please try again.",
+          );
+        }
+      }
+    } finally {
+      setBiometricBusy(false);
+    }
+  }, [biometricBusy, biometricEnabled, disableBiometricUnlock, enableBiometricUnlock]);
+
+  const biometricLabel = biometricCapability?.label ?? "Biometric unlock";
+  const biometricSupported = !!biometricCapability?.supported;
+  const showBiometricRow = Platform.OS !== "web" && !!biometricCapability?.hasHardware;
 
   useFocusEffect(
     useCallback(() => {
@@ -298,6 +339,73 @@ export default function Profile() {
                 />
               </Pressable>
             ))}
+            {showBiometricRow ? (
+              <Pressable
+                onPress={biometricSupported ? onToggleBiometric : undefined}
+                disabled={!biometricSupported || biometricBusy}
+                style={({ pressed }) => [
+                  styles.listItem,
+                  {
+                    borderTopWidth: StyleSheet.hairlineWidth,
+                    borderTopColor: colors.border,
+                    opacity: pressed && biometricSupported ? 0.7 : 1,
+                  },
+                ]}
+                accessibilityRole="switch"
+                accessibilityState={{
+                  checked: biometricEnabled,
+                  disabled: !biometricSupported,
+                }}
+              >
+                <Feather name="shield" size={18} color={colors.primary} />
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={[styles.listLabel, { color: colors.foreground }]}
+                  >
+                    Unlock with {biometricLabel}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.helper,
+                      { color: colors.mutedForeground },
+                    ]}
+                  >
+                    {!biometricSupported
+                      ? "Set up a fingerprint or face in your device settings to use this."
+                      : biometricEnabled
+                        ? "On — you'll be asked when you open the app."
+                        : "Off — sign in with your code each time."}
+                  </Text>
+                </View>
+                {biometricBusy ? (
+                  <ActivityIndicator color={colors.primary} />
+                ) : (
+                  <Text
+                    style={[
+                      styles.statusPill,
+                      {
+                        color: !biometricSupported
+                          ? colors.mutedForeground
+                          : biometricEnabled
+                            ? colors.primary
+                            : colors.mutedForeground,
+                        backgroundColor: !biometricSupported
+                          ? colors.border + "55"
+                          : biometricEnabled
+                            ? colors.primary + "1a"
+                            : colors.border + "55",
+                      },
+                    ]}
+                  >
+                    {!biometricSupported
+                      ? "Unavailable"
+                      : biometricEnabled
+                        ? "On"
+                        : "Off"}
+                  </Text>
+                )}
+              </Pressable>
+            ) : null}
           </View>
         </View>
 
@@ -483,6 +591,21 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   listLabel: { flex: 1, fontFamily: "SpaceGrotesk_500Medium", fontSize: 16 },
+  helper: {
+    fontFamily: "SpaceGrotesk_400Regular",
+    fontSize: 12,
+    marginTop: 2,
+  },
+  statusPill: {
+    fontFamily: "SpaceGrotesk_600SemiBold",
+    fontSize: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    overflow: "hidden",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
   balancePill: {
     fontFamily: "SpaceGrotesk_600SemiBold",
     fontSize: 13,

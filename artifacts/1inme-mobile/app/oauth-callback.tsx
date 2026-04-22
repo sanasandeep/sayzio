@@ -6,11 +6,13 @@ import { Button } from "@/components/Button";
 import { useAuth, type AuthUser } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { apiFetch } from "@/lib/api";
+import { maybeOfferBiometricEnrollment } from "@/lib/biometricsPrompt";
 
 export default function OAuthCallback() {
   const colors = useColors();
   const router = useRouter();
-  const { applySession, socialLogin } = useAuth();
+  const auth = useAuth();
+  const { applySession, socialLogin } = auth;
   const params = useLocalSearchParams<{
     token?: string | string[];
     user?: string | string[];
@@ -48,7 +50,10 @@ export default function OAuthCallback() {
         } catch {}
       }
       applySession(token, user)
-        .then(() => router.replace("/(tabs)"))
+        .then(() => {
+          router.replace("/(tabs)");
+          maybeOfferBiometricEnrollment(auth);
+        })
         .catch((e) => setError(e?.message ?? "Could not complete sign-in"));
       return;
     }
@@ -65,7 +70,10 @@ export default function OAuthCallback() {
         id_token: idToken,
         access_token: accessToken,
       })
-        .then(() => router.replace("/(tabs)"))
+        .then(() => {
+          router.replace("/(tabs)");
+          maybeOfferBiometricEnrollment(auth);
+        })
         .catch((e) => setError(e?.message ?? "Sign-in failed"));
       return;
     }
@@ -79,7 +87,10 @@ export default function OAuthCallback() {
         },
       )
         .then((res) => applySession(res.token, res.user))
-        .then(() => router.replace("/(tabs)"))
+        .then(() => {
+          router.replace("/(tabs)");
+          maybeOfferBiometricEnrollment(auth);
+        })
         .catch((e) => setError(e?.message ?? "Sign-in failed"));
       return;
     }

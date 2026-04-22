@@ -23,7 +23,8 @@
       "infoPlist": {
         "NSContactsUsageDescription": "1INME can read your contacts so you can save someone you just met as a contact card from their 1INME profile.",
         "NSLocationWhenInUseUsageDescription": "1INME records the approximate location of NFC tag writes so you can see where each tag was provisioned. This is optional and only used while the app is open.",
-        "NFCReaderUsageDescription": "1INME writes your short link to NFC tags so a tap opens your profile."
+        "NFCReaderUsageDescription": "1INME writes your short link to NFC tags so a tap opens your profile.",
+        "NSFaceIDUsageDescription": "1INME uses Face ID so you can unlock the app without re-entering your code."
       }
     },
     "android": {
@@ -74,6 +75,10 @@
       ],
       "expo-web-browser",
       "expo-secure-store",
+      [
+        "expo-local-authentication",
+        { "faceIDPermission": "1INME uses Face ID so you can unlock the app without re-entering your code." }
+      ],
       "react-native-nfc-manager",
       [
         "expo-contacts",

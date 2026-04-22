@@ -63,6 +63,7 @@ function RootLayoutNav() {
       <Stack.Screen name="onboarding" options={{ headerShown: false }} />
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="lock" options={{ headerShown: false, gestureEnabled: false }} />
       <Stack.Screen name="info" options={{ headerShown: false }} />
       <Stack.Screen name="biolink/[handle]" options={{ headerShown: false }} />
       <Stack.Screen name="oauth-callback" options={{ headerShown: false }} />

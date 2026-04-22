@@ -14,12 +14,14 @@ import { TextField } from "@/components/TextField";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import type { ApiError } from "@/lib/api";
+import { maybeOfferBiometricEnrollment } from "@/lib/biometricsPrompt";
 
 export default function Verify() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { verifyOtp, sendOtp } = useAuth();
+  const auth = useAuth();
+  const { verifyOtp, sendOtp } = auth;
 
   const params = useLocalSearchParams<{ channel?: string; identifier?: string }>();
   const channel = (params.channel === "mobile" ? "mobile" : "email") as
@@ -42,6 +44,7 @@ export default function Verify() {
     try {
       await verifyOtp({ channel, identifier, code: code.trim() });
       router.replace("/(tabs)");
+      maybeOfferBiometricEnrollment(auth);
     } catch (e) {
       setError((e as ApiError)?.message ?? "Code did not match");
     } finally {

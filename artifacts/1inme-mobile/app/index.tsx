@@ -10,7 +10,7 @@ import { getOnboardingComplete } from "@/lib/secure";
 
 export default function GateScreen() {
   const colors = useColors();
-  const { ready, user } = useAuth();
+  const { ready, user, locked, biometricEnabled, token } = useAuth();
   const [onboarded, setOnboarded] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -36,7 +36,8 @@ export default function GateScreen() {
   }
 
   if (!onboarded) return <Redirect href="/onboarding" />;
-  if (!user) return <Redirect href="/(auth)" />;
+  if (!user || !token) return <Redirect href="/(auth)" />;
+  if (locked && biometricEnabled) return <Redirect href={"/lock" as never} />;
   return <Redirect href="/(tabs)" />;
 }
 

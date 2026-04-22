@@ -5,6 +5,8 @@ const TOKEN_KEY = "1inme.auth.token";
 const USER_KEY = "1inme.auth.user";
 const ONBOARDING_KEY = "1inme.onboarding.complete";
 const THEME_KEY = "1inme.theme";
+const BIOMETRIC_ENABLED_KEY = "1inme.auth.biometric.enabled";
+const BIOMETRIC_PROMPT_DISMISSED_KEY = "1inme.auth.biometric.prompt.dismissed";
 
 async function setItem(key: string, value: string | null) {
   if (value == null) {
@@ -65,3 +67,13 @@ export const getThemePref = async (): Promise<ThemePref> => {
 };
 export const setThemePref = (v: ThemePref) =>
   setItem(THEME_KEY, v === "system" ? null : v);
+
+export const getBiometricEnabled = async () =>
+  (await getItem(BIOMETRIC_ENABLED_KEY)) === "1";
+export const setBiometricEnabled = (v: boolean) =>
+  setItem(BIOMETRIC_ENABLED_KEY, v ? "1" : null);
+
+export const getBiometricPromptDismissed = async () =>
+  (await getItem(BIOMETRIC_PROMPT_DISMISSED_KEY)) === "1";
+export const setBiometricPromptDismissed = (v: boolean) =>
+  setItem(BIOMETRIC_PROMPT_DISMISSED_KEY, v ? "1" : null);

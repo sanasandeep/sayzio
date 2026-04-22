@@ -21,6 +21,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { getBaseUrl } from "@/lib/api";
 import type { ApiError } from "@/lib/api";
+import { maybeOfferBiometricEnrollment } from "@/lib/biometricsPrompt";
 
 type Channel = "email" | "mobile";
 
@@ -52,7 +53,8 @@ export default function AuthLanding() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { sendOtp, demoLogin } = useAuth();
+  const auth = useAuth();
+  const { sendOtp, demoLogin } = auth;
 
   const [channel, setChannel] = useState<Channel>("email");
   const [identifier, setIdentifier] = useState("");
@@ -85,6 +87,7 @@ export default function AuthLanding() {
     try {
       await demoLogin(role === "user" ? "user" : "super_admin");
       router.replace("/(tabs)");
+      maybeOfferBiometricEnrollment(auth);
     } catch (e) {
       setError((e as ApiError)?.message ?? "Demo unavailable");
     } finally {
