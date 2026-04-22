@@ -245,17 +245,37 @@ class AiEngineSettings
      */
     public static function featureModelStatus(string $feature): array
     {
-        $name = self::featureModel($feature);
-        $cfg  = self::model($name);
+        return self::featureModelStatusFor($feature, self::featureModels(), self::models());
+    }
+
+    /**
+     * Same as featureModelStatus() but operates on caller-supplied
+     * models / feature_models arrays. Lets the controller validate a
+     * pending save (post-normalization) before persisting it.
+     *
+     * @param array<string,string> $featureModels
+     * @param array<int,array{name:string,kind:string,enabled:bool}> $models
+     * @return array{ok:bool,level:string,message:?string}
+     */
+    public static function featureModelStatusFor(string $feature, array $featureModels, array $models): array
+    {
+        $name = $featureModels[$feature] ?? self::DEFAULT_FEATURE_MODEL;
+        $cfg = null;
+        foreach ($models as $m) {
+            if (is_array($m) && isset($m['name']) && strcasecmp((string) $m['name'], $name) === 0) {
+                $cfg = $m;
+                break;
+            }
+        }
         if (!$cfg) {
             return ['ok' => false, 'level' => 'error',
                 'message' => "Model \"{$name}\" is not in the models table — calls will fail."];
         }
-        if (!$cfg['enabled']) {
+        if (empty($cfg['enabled'])) {
             return ['ok' => false, 'level' => 'error',
                 'message' => "Model \"{$name}\" is disabled — enable it above or pick another."];
         }
-        if ($cfg['kind'] !== 'chat') {
+        if (($cfg['kind'] ?? 'chat') !== 'chat') {
             return ['ok' => false, 'level' => 'error',
                 'message' => "Model \"{$name}\" is configured as {$cfg['kind']}, not chat."];
         }

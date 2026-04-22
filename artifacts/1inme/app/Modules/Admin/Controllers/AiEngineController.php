@@ -5,6 +5,7 @@ namespace App\Modules\Admin\Controllers;
 use App\Http\Controllers\Controller;
 use App\Services\AI\AiEngineSettings;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Admin settings for the AI Engine:
@@ -62,6 +63,53 @@ class AiEngineController extends Controller
             'feature_models'                => 'array',
             'feature_models.*'              => 'nullable|string|max:64',
         ]);
+
+        // Validate that no AI feature ends up pointing at a missing,
+        // disabled, or non-chat model after the new payload is applied.
+        // We mirror what setModels()/setFeatureModels() will persist so
+        // the check matches the post-save reality, then merge with the
+        // currently-stored values for anything the form omitted (the
+        // form supports partial saves of just the toggle, etc.).
+        $effectiveModels = array_key_exists('models', $data)
+            ? array_values(array_filter(array_map(function ($m) {
+                if (!is_array($m) || empty($m['name'])) return null;
+                return [
+                    'name'    => trim((string) $m['name']),
+                    'kind'    => in_array(($m['kind'] ?? 'chat'), ['chat', 'embedding'], true) ? $m['kind'] : 'chat',
+                    'enabled' => (bool) ($m['enabled'] ?? false),
+                ];
+            }, $data['models'])))
+            : AiEngineSettings::models();
+
+        // When feature_models is posted we mirror setFeatureModels(): only
+        // non-empty string entries are persisted, anything missing/empty
+        // falls back to DEFAULT_FEATURE_MODEL via featureModels(). This
+        // way validation sees exactly what featureModels() will return
+        // after the save, including partial payloads.
+        if (array_key_exists('feature_models', $data)) {
+            $effectiveFeatureModels = [];
+            foreach (AiEngineSettings::FEATURES as $f) {
+                $val = $data['feature_models'][$f] ?? null;
+                $effectiveFeatureModels[$f] = (is_string($val) && trim($val) !== '')
+                    ? trim($val)
+                    : AiEngineSettings::DEFAULT_FEATURE_MODEL;
+            }
+        } else {
+            $effectiveFeatureModels = AiEngineSettings::featureModels();
+        }
+
+        $featureErrors = [];
+        foreach (AiEngineSettings::FEATURES as $f) {
+            $status = AiEngineSettings::featureModelStatusFor($f, $effectiveFeatureModels, $effectiveModels);
+            if (!$status['ok']) {
+                $featureErrors["feature_models.{$f}"] = [
+                    ucfirst($f) . ': ' . $status['message'],
+                ];
+            }
+        }
+        if ($featureErrors) {
+            throw ValidationException::withMessages($featureErrors);
+        }
 
         AiEngineSettings::setEnabled($request->boolean('enabled'));
 
