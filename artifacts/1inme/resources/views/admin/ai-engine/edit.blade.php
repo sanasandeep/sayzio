@@ -60,9 +60,17 @@
             </button>
         </div>
 
+        @php
+            $modelToFeatures = [];
+            foreach ($featureModels as $feat => $modelName) {
+                $modelToFeatures[$modelName][] = $feat;
+            }
+        @endphp
+
         <table class="w-full text-sm">
             <thead><tr class="text-white/40 text-xs uppercase tracking-wider">
                 <th class="text-left py-2">Model</th>
+                <th class="text-left">Used by</th>
                 <th class="text-left">Kind</th>
                 <th class="text-left">Enabled</th>
                 <th class="text-right">In / 1k</th>
@@ -71,15 +79,31 @@
             </tr></thead>
             <tbody id="models-tbody">
             @foreach($models as $i => $m)
-                <tr class="border-t border-white/5">
+                @php $usedBy = $modelToFeatures[$m['name']] ?? []; @endphp
+                <tr class="border-t border-white/5 align-top" data-model-row data-features="{{ implode(',', $usedBy) }}">
                     <td class="py-2"><input name="models[{{ $i }}][name]" value="{{ $m['name'] }}" class="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm" required></td>
+                    <td class="py-2">
+                        @if($usedBy)
+                            <div class="flex flex-wrap gap-1">
+                                @foreach($usedBy as $feat)
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded bg-violet-500/15 border border-violet-500/30 text-violet-200 text-[10px] font-mono uppercase tracking-wider">{{ $feat }}</span>
+                                @endforeach
+                            </div>
+                        @else
+                            <span class="text-white/30 text-xs">—</span>
+                        @endif
+                    </td>
                     <td><select name="models[{{ $i }}][kind]" class="bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm">
                         <option value="chat"      {{ $m['kind']==='chat' ? 'selected':'' }}>chat</option>
                         <option value="embedding" {{ $m['kind']==='embedding' ? 'selected':'' }}>embedding</option>
                     </select></td>
                     <td>
                         <input type="hidden" name="models[{{ $i }}][enabled]" value="0">
-                        <input type="checkbox" name="models[{{ $i }}][enabled]" value="1" {{ $m['enabled'] ? 'checked':'' }} class="accent-violet-500">
+                        <input type="checkbox" data-enabled-toggle name="models[{{ $i }}][enabled]" value="1" {{ $m['enabled'] ? 'checked':'' }} class="accent-violet-500">
+                        <p data-disable-warning class="hidden mt-1 text-[11px] text-amber-300 flex items-start gap-1">
+                            <i class="fas fa-triangle-exclamation mt-0.5"></i>
+                            <span data-disable-warning-text></span>
+                        </p>
                     </td>
                     <td class="text-right"><input type="number" min="0" name="models[{{ $i }}][in_credits_per_1k]" value="{{ $m['in_credits_per_1k'] }}" class="w-24 text-right bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm"></td>
                     <td class="text-right"><input type="number" min="0" name="models[{{ $i }}][out_credits_per_1k]" value="{{ $m['out_credits_per_1k'] }}" class="w-24 text-right bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm"></td>
@@ -115,6 +139,7 @@
                 <div class="space-y-1.5">
                     <label class="text-xs uppercase tracking-wider text-white/40 block">{{ ucfirst($f) }}</label>
                     <select name="feature_models[{{ $f }}]"
+                            data-feature-select="{{ $f }}"
                             class="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-white text-sm">
                         @foreach($chatModelNames as $name)
                             <option value="{{ $name }}" {{ $name === $current ? 'selected' : '' }}>{{ $name }}</option>
@@ -197,16 +222,85 @@ function addModelRow() {
     const tb = document.getElementById('models-tbody');
     const i = tb.children.length;
     const row = document.createElement('tr');
-    row.className = 'border-t border-white/5';
+    row.className = 'border-t border-white/5 align-top';
+    row.setAttribute('data-model-row', '');
+    row.setAttribute('data-features', '');
     row.innerHTML = `
         <td class="py-2"><input name="models[${i}][name]" class="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm" required></td>
+        <td class="py-2"><span class="text-white/30 text-xs">—</span></td>
         <td><select name="models[${i}][kind]" class="bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm"><option value="chat">chat</option><option value="embedding">embedding</option></select></td>
-        <td><input type="hidden" name="models[${i}][enabled]" value="0"><input type="checkbox" name="models[${i}][enabled]" value="1" checked class="accent-violet-500"></td>
+        <td><input type="hidden" name="models[${i}][enabled]" value="0"><input type="checkbox" data-enabled-toggle name="models[${i}][enabled]" value="1" checked class="accent-violet-500"><p data-disable-warning class="hidden mt-1 text-[11px] text-amber-300 flex items-start gap-1"><i class="fas fa-triangle-exclamation mt-0.5"></i><span data-disable-warning-text></span></p></td>
         <td class="text-right"><input type="number" min="0" name="models[${i}][in_credits_per_1k]" value="0" class="w-24 text-right bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm"></td>
         <td class="text-right"><input type="number" min="0" name="models[${i}][out_credits_per_1k]" value="0" class="w-24 text-right bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm"></td>
         <td class="text-right"><button type="button" onclick="this.closest('tr').remove()" class="text-white/30 hover:text-red-400"><i class="fas fa-trash"></i></button></td>`;
     tb.appendChild(row);
 }
+
+(function () {
+    function rowsByModelName() {
+        const map = {};
+        document.querySelectorAll('[data-model-row]').forEach(function (row) {
+            const nameInput = row.querySelector('input[name^="models["][name$="[name]"]');
+            const name = nameInput ? nameInput.value.trim() : '';
+            if (!name) return;
+            (map[name] = map[name] || []).push(row);
+        });
+        return map;
+    }
+    function renderBadges(row, features) {
+        const cell = row.children[1];
+        if (!cell) return;
+        if (!features.length) {
+            cell.innerHTML = '<span class="text-white/30 text-xs">—</span>';
+            return;
+        }
+        cell.innerHTML = '<div class="flex flex-wrap gap-1">' + features.map(function (f) {
+            return '<span class="inline-flex items-center px-1.5 py-0.5 rounded bg-violet-500/15 border border-violet-500/30 text-violet-200 text-[10px] font-mono uppercase tracking-wider">' + f + '</span>';
+        }).join('') + '</div>';
+    }
+    function refreshDisableWarning(row) {
+        const features = (row.getAttribute('data-features') || '').split(',').filter(Boolean);
+        const toggle = row.querySelector('[data-enabled-toggle]');
+        const warn = row.querySelector('[data-disable-warning]');
+        if (!toggle || !warn) return;
+        if (features.length && !toggle.checked) {
+            warn.querySelector('[data-disable-warning-text]').textContent =
+                'In use by ' + features.join(', ') + ' — those features will fail until reassigned.';
+            warn.classList.remove('hidden');
+        } else {
+            warn.classList.add('hidden');
+        }
+    }
+    function syncFeatureUsage() {
+        const byModel = rowsByModelName();
+        const usage = {};
+        document.querySelectorAll('[data-feature-select]').forEach(function (sel) {
+            const feat = sel.getAttribute('data-feature-select');
+            const target = sel.value.trim();
+            if (target) (usage[target] = usage[target] || []).push(feat);
+        });
+        document.querySelectorAll('[data-model-row]').forEach(function (row) {
+            const nameInput = row.querySelector('input[name^="models["][name$="[name]"]');
+            const name = nameInput ? nameInput.value.trim() : '';
+            const features = name && usage[name] ? usage[name] : [];
+            row.setAttribute('data-features', features.join(','));
+            renderBadges(row, features);
+            refreshDisableWarning(row);
+        });
+    }
+    document.addEventListener('change', function (e) {
+        if (e.target && e.target.matches('[data-enabled-toggle]')) {
+            const row = e.target.closest('[data-model-row]');
+            if (row) refreshDisableWarning(row);
+        }
+        if (e.target && e.target.matches('[data-feature-select]')) {
+            syncFeatureUsage();
+        }
+        if (e.target && e.target.matches('input[name^="models["][name$="[name]"]')) {
+            syncFeatureUsage();
+        }
+    });
+})();
 function addPackRow() {
     const tb = document.getElementById('packs-tbody');
     const i = tb.children.length;
