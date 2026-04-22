@@ -5453,5 +5453,6 @@
         }
     });
 </script>
+@include('common.partials.cookie-consent', ['surface' => 'site'])
 </body>
 </html>

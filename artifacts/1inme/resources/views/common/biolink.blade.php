@@ -2205,6 +2205,12 @@
 
     @include('common.partials.pixel-scripts', ['link' => $link])
 
+    @php
+        $__ccViewerId = \App\Modules\Common\Services\ViewerSession::id() ?: optional(request()->user())->id;
+        $__ccIsOwner  = $__ccViewerId && (int) $__ccViewerId === (int) ($link->user_id ?? 0);
+    @endphp
+    @include('common.partials.cookie-consent', ['surface' => 'biolink', 'isOwner' => $__ccIsOwner])
+
     <script>
     (function() {
         var params = new URLSearchParams(window.location.search);

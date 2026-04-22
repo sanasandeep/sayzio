@@ -1,15 +1,29 @@
 {{--
     GA4 + Meta Pixel snippets for marketing pages only.
     Each block renders only when its admin-configured ID is present.
+
+    When the cookie-consent system is gating non-essential scripts on the
+    marketing site we render these as text/plain blocks tagged with their
+    consent category; the consent JS upgrades the type to text/javascript
+    once the visitor opts in. When consent gating is off, they run inline
+    as before.
 --}}
 @php
     $__ga4 = trim((string) \App\Modules\Admin\Models\AppSetting::get('marketing_ga4_id', ''));
     $__pixel = trim((string) \App\Modules\Admin\Models\AppSetting::get('marketing_meta_pixel_id', ''));
     $__validId = fn ($id) => $id !== '' && preg_match('/^[A-Za-z0-9\-_]+$/', $id) === 1;
+
+    $__cc = \App\Modules\Common\Support\CookieConsentConfig::get();
+    $__ccGate = !empty($__cc['enabled'])
+        && !empty($__cc['scope_marketing'])
+        && !empty($__cc['block_until_consent']);
+    $__attr = function($cat) use ($__ccGate) {
+        return $__ccGate ? ' type="text/plain" data-consent-category="' . e($cat) . '"' : '';
+    };
 @endphp
 @if($__validId($__ga4))
-    <script async src="https://www.googletagmanager.com/gtag/js?id={{ $__ga4 }}"></script>
-    <script>
+    <script{!! $__attr('analytics') !!} async src="https://www.googletagmanager.com/gtag/js?id={{ $__ga4 }}"></script>
+    <script{!! $__attr('analytics') !!}>
         window.dataLayer = window.dataLayer || [];
         function gtag(){dataLayer.push(arguments);}
         gtag('js', new Date());
@@ -17,7 +31,7 @@
     </script>
 @endif
 @if($__pixel !== '' && preg_match('/^[0-9]+$/', $__pixel))
-    <script>
+    <script{!! $__attr('marketing') !!}>
         !function(f,b,e,v,n,t,s)
         {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
         n.callMethod.apply(n,arguments):n.queue.push(arguments)};
@@ -29,8 +43,10 @@
         fbq('init', @json($__pixel));
         fbq('track', 'PageView');
     </script>
+    @if(!$__ccGate)
     <noscript>
         <img height="1" width="1" style="display:none" alt=""
              src="https://www.facebook.com/tr?id={{ $__pixel }}&ev=PageView&noscript=1"/>
     </noscript>
+    @endif
 @endif

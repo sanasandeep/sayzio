@@ -210,6 +210,14 @@
             <span class="sidebar-tooltip">Marketing</span>
         </a>
 
+        <a href="{{ route('admin.cookie-consent.edit') }}"
+           class="sidebar-link {{ request()->routeIs('admin.cookie-consent.*') ? 'active' : '' }}"
+           style="--nav-tint:#eab308; --nav-tint-soft:rgba(234,179,8,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-cookie-bite"></i></div>
+            <span class="nav-label">Cookie Consent</span>
+            <span class="sidebar-tooltip">Cookie Consent</span>
+        </a>
+
         <a href="{{ route('admin.newsletter.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.newsletter.*') ? 'active' : '' }}"
            style="--nav-tint:#06b6d4; --nav-tint-soft:rgba(6,182,212,0.12);">

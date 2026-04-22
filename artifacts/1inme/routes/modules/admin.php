@@ -219,6 +219,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('/settings', [\App\Modules\Admin\Controllers\NewsletterController::class, 'updateSettings'])->middleware(CheckPermission::class . ':settings.manage')->name('settings.update');
             Route::delete('/{subscriber}', [\App\Modules\Admin\Controllers\NewsletterController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
         });
+        Route::prefix('cookie-consent')->name('cookie-consent.')->group(function () {
+            Route::get('/',  [\App\Modules\Admin\Controllers\CookieConsentController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
+            Route::put('/', [\App\Modules\Admin\Controllers\CookieConsentController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
+        });
         Route::prefix('marketing-settings')->name('marketing-settings.')->group(function () {
             Route::get('/', [\App\Modules\Admin\Controllers\MarketingSettingsController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
             Route::put('/', [\App\Modules\Admin\Controllers\MarketingSettingsController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
