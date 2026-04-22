@@ -7,6 +7,32 @@
     $greeting = $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good evening');
     $heroIcon = $hour < 12 ? 'fa-sun' : ($hour < 17 ? 'fa-cloud-sun' : 'fa-moon');
     $heroDay = now()->format('l');
+
+    $channelLabelMap = \App\Modules\Common\Services\ChannelClassifier::LABELS;
+    $channelTotal    = (int) ($channelStats->sum('count') ?? 0);
+    $channelIcon = function (string $key): string {
+        return [
+            \App\Modules\Common\Services\ChannelClassifier::KEY_1INME_APP       => 'fa-mobile-screen-button',
+            \App\Modules\Common\Services\ChannelClassifier::KEY_INSTAGRAM       => 'fa-brands fa-instagram',
+            \App\Modules\Common\Services\ChannelClassifier::KEY_TIKTOK          => 'fa-brands fa-tiktok',
+            \App\Modules\Common\Services\ChannelClassifier::KEY_FACEBOOK        => 'fa-brands fa-facebook',
+            \App\Modules\Common\Services\ChannelClassifier::KEY_MESSENGER       => 'fa-brands fa-facebook-messenger',
+            \App\Modules\Common\Services\ChannelClassifier::KEY_SNAPCHAT        => 'fa-brands fa-snapchat',
+            \App\Modules\Common\Services\ChannelClassifier::KEY_LINKEDIN        => 'fa-brands fa-linkedin',
+            \App\Modules\Common\Services\ChannelClassifier::KEY_TWITTER         => 'fa-brands fa-x-twitter',
+            \App\Modules\Common\Services\ChannelClassifier::KEY_PINTEREST       => 'fa-brands fa-pinterest',
+            \App\Modules\Common\Services\ChannelClassifier::KEY_YOUTUBE         => 'fa-brands fa-youtube',
+            \App\Modules\Common\Services\ChannelClassifier::KEY_WHATSAPP        => 'fa-brands fa-whatsapp',
+            \App\Modules\Common\Services\ChannelClassifier::KEY_TELEGRAM        => 'fa-brands fa-telegram',
+            \App\Modules\Common\Services\ChannelClassifier::KEY_GENERIC_WEBVIEW => 'fa-window-maximize',
+            \App\Modules\Common\Services\ChannelClassifier::KEY_BROWSER         => 'fa-globe',
+            \App\Modules\Common\Services\ChannelClassifier::KEY_BOT             => 'fa-robot',
+            \App\Modules\Common\Services\ChannelClassifier::KEY_UNKNOWN         => 'fa-circle-question',
+        ][$key] ?? 'fa-circle-question';
+    };
+    $channelBuildUrl = function (?string $key): string {
+        return $key ? route('user.dashboard', ['channel' => $key]) : route('user.dashboard');
+    };
 @endphp
 @include('user.partials.page-hero', [
     'title'    => $greeting . ', ' . $user->name,
@@ -21,6 +47,22 @@
         ['label' => 'Quick Link',      'url' => route('user.links.create'), 'icon' => 'fa-plus',  'class' => 'btn-secondary'],
     ],
 ])
+
+@if(!empty($channelFilter))
+    <div class="mb-5 flex flex-wrap items-center gap-2 px-4 py-3 rounded-xl"
+         style="background: rgba(168,85,247,0.08); border: 1px solid rgba(168,85,247,0.25);">
+        <span class="text-[11px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">Filtered by channel</span>
+        <span class="badge inline-flex items-center gap-1.5"
+              style="background: rgba(168,85,247,0.15); color: #f0abfc; border: 1px solid rgba(168,85,247,0.3);">
+            <i class="fas {{ $channelIcon($channelFilter) }} text-[10px]"></i>
+            {{ $channelLabelMap[$channelFilter] ?? $channelFilter }}
+        </span>
+        <span class="text-[11px]" style="color: var(--text-faint);">Click totals below reflect this bucket only.</span>
+        <a href="{{ $channelBuildUrl(null) }}" class="ml-auto text-[11px] text-violet-400 hover:text-violet-300 font-semibold inline-flex items-center gap-1">
+            <i class="fas fa-times text-[9px]"></i> Clear filter
+        </a>
+    </div>
+@endif
 
 <div class="grid grid-cols-2 md:grid-cols-5 gap-5 mb-8">
     {{-- Plan widget: name + price resolved via PricingResolver so the
@@ -92,6 +134,72 @@
                 <i class="fas fa-folder text-indigo-400 text-sm"></i>
             </div>
         </div>
+    </div>
+</div>
+
+{{-- ===================== WORKSPACE-WIDE CHANNEL BREAKDOWN =====================
+     Rolls every link's click log up into a single "what share of my traffic
+     comes from in-app webviews vs real browsers vs bots" view. The pills
+     below double as a workspace-wide channel filter (?channel=…) that
+     narrows the click-derived tiles above. --}}
+<div class="card-premium overflow-hidden mb-6">
+    <div class="flex items-center justify-between px-5 py-4" style="border-bottom: 1px solid var(--border-subtle);">
+        <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: rgba(168,85,247,0.1); border: 1px solid rgba(168,85,247,0.18);">
+                <i class="fas fa-window-restore text-fuchsia-400 text-xs"></i>
+            </div>
+            <div>
+                <h2 class="text-sm font-bold" style="color: var(--text-primary);">Channel breakdown</h2>
+                <p class="text-[11px]" style="color: var(--text-faint);">Across every link in your workspace &middot; detected from user-agent</p>
+            </div>
+        </div>
+        <span class="text-[11px]" style="color: var(--text-faint);">Total: <strong style="color: var(--text-primary);">{{ number_format($channelTotal) }}</strong></span>
+    </div>
+    <div class="p-5">
+        @if($channelStats->isEmpty() || $channelTotal === 0)
+            <p class="text-sm text-center py-6" style="color: var(--text-faint);">
+                No data yet. Channel detection began once user-agents started being recorded; older clicks show as Unknown.
+            </p>
+        @else
+            <div class="space-y-2 mb-4">
+                @foreach($channelStats as $row)
+                    @php
+                        $key   = $row->channel ?: 'unknown';
+                        $label = $channelLabelMap[$key] ?? ucfirst(str_replace('_', ' ', $key));
+                        $pct   = $channelTotal > 0 ? round(($row->count / $channelTotal) * 100, 1) : 0;
+                    @endphp
+                    <div>
+                        <div class="flex items-center justify-between text-xs mb-1" style="color: var(--text-faint);">
+                            <span class="inline-flex items-center gap-2">
+                                <i class="fas {{ $channelIcon($key) }} text-[12px] opacity-80"></i>
+                                <span style="color: var(--text-muted);">{{ $label }}</span>
+                            </span>
+                            <span><strong style="color: var(--text-primary);">{{ number_format($row->count) }}</strong> &middot; {{ $pct }}%</span>
+                        </div>
+                        <div class="w-full h-1.5 rounded-full overflow-hidden" style="background: var(--bg-glass-input);">
+                            <div class="h-full rounded-full bg-gradient-to-r from-fuchsia-500 to-violet-500" style="width: {{ $pct }}%;"></div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+            <div class="flex flex-wrap items-center gap-2 pt-2" style="border-top: 1px solid var(--border-subtle);">
+                <span class="text-[10px] uppercase tracking-wider font-bold mr-1" style="color: var(--text-faint);">Filter:</span>
+                <a href="{{ $channelBuildUrl(null) }}" class="badge {{ empty($channelFilter) ? 'badge-active' : '' }}"
+                   style="{{ empty($channelFilter) ? 'background: rgba(168,85,247,0.18); color: #f0abfc; border: 1px solid rgba(168,85,247,0.35);' : 'background: rgba(255,255,255,0.04); color: var(--text-muted); border: 1px solid var(--border-subtle);' }}">All</a>
+                @foreach($channelStats as $row)
+                    @php $key = $row->channel ?: 'unknown'; @endphp
+                    @continue($key === \App\Modules\Common\Services\ChannelClassifier::KEY_UNKNOWN)
+                    @php $isActive = ($channelFilter ?? '') === $key; @endphp
+                    <a href="{{ $channelBuildUrl($key) }}"
+                       class="badge inline-flex items-center gap-1.5"
+                       style="{{ $isActive ? 'background: rgba(168,85,247,0.18); color: #f0abfc; border: 1px solid rgba(168,85,247,0.35);' : 'background: rgba(255,255,255,0.04); color: var(--text-muted); border: 1px solid var(--border-subtle);' }}">
+                        <i class="fas {{ $channelIcon($key) }} text-[9px] opacity-80"></i>
+                        {{ $channelLabelMap[$key] ?? $key }}
+                        <span class="opacity-60">({{ number_format($row->count) }})</span>
+                    </a>
+                @endforeach
+            </div>
+        @endif
     </div>
 </div>
 
