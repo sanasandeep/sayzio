@@ -178,6 +178,30 @@ class PricingResolver
     }
 
     /**
+     * City name the geo-IP resolver associated with the auto-picked
+     * currency, or null when geo lookup didn't return a city / no
+     * cache entry exists / a non-geo source decided the currency.
+     *
+     * Reads from the same session-scoped cache `geoDefaultCurrency()`
+     * populates so this is a free piggyback — no extra GeoIP call.
+     * Always run AFTER currency resolution on the same request so the
+     * cache is guaranteed to be primed.
+     */
+    public static function geoDetectedCity(): ?string
+    {
+        try {
+            $cached = session(self::SESSION_KEY_GEO);
+        } catch (\Throwable $e) {
+            return null;
+        }
+        if (!is_array($cached)) {
+            return null;
+        }
+        $city = $cached['city'] ?? null;
+        return is_string($city) && $city !== '' ? $city : null;
+    }
+
+    /**
      * Human-readable country name for the geo-detected country, e.g.
      * "United States" for "US". Uses the intl extension's locale data
      * (always available — verified at boot). Returns null when there's
@@ -326,20 +350,28 @@ class PricingResolver
 
         $currency = 'USD';
         $cc = null;
+        $city = null;
         try {
             if ($currentIp !== null) {
-                $cc = app(GeoIpService::class)->detectCountry($currentIp);
+                // Use detectGeo() so we capture both country and city
+                // from the same underlying lookup — the GeoIpService
+                // already caches by IP, so this is no extra cost.
+                $geo = app(GeoIpService::class)->detectGeo($currentIp);
+                $cc = $geo['country_code'] ?? null;
+                $city = $geo['city'] ?? null;
                 $currency = self::currencyForCountry($cc);
             }
         } catch (\Throwable $e) {
             $currency = 'USD';
             $cc = null;
+            $city = null;
         }
 
         try {
             session([self::SESSION_KEY_GEO => [
                 'currency' => $currency,
                 'country'  => is_string($cc) && $cc !== '' ? strtoupper($cc) : null,
+                'city'     => is_string($city) && $city !== '' ? $city : null,
                 'ip'       => $currentIp,
                 'at'       => time(),
             ]]);

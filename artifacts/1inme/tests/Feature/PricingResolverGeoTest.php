@@ -27,15 +27,15 @@ class PricingResolverGeoTest extends TestCase
      * given country code. Private IPs always return null (the real
      * service short-circuits on private ranges).
      */
-    protected function fakeGeoCountry(?string $cc): void
+    protected function fakeGeoCountry(?string $cc, ?string $city = null): void
     {
         $mock = Mockery::mock(GeoIpService::class);
         $mock->shouldReceive('detectCountry')->andReturn($cc);
         $mock->shouldReceive('lookup')->andReturn([]);
-        $mock->shouldReceive('detectCity')->andReturn(null);
+        $mock->shouldReceive('detectCity')->andReturn($city);
         $mock->shouldReceive('detectCoordinates')->andReturn(null);
         $mock->shouldReceive('detectGeo')->andReturn([
-            'country_code' => $cc, 'city' => null,
+            'country_code' => $cc, 'city' => $city,
             'latitude' => null, 'longitude' => null,
         ]);
         $this->app->instance(GeoIpService::class, $mock);
@@ -107,9 +107,12 @@ class PricingResolverGeoTest extends TestCase
     public function test_geo_lookup_is_cached_on_session(): void
     {
         $mock = Mockery::mock(GeoIpService::class);
-        // Strict: detectCountry must only be called ONCE across two
+        // Strict: detectGeo must only be called ONCE across two
         // PricingResolver invocations on the same session.
-        $mock->shouldReceive('detectCountry')->once()->andReturn('IN');
+        $mock->shouldReceive('detectGeo')->once()->andReturn([
+            'country_code' => 'IN', 'city' => null,
+            'latitude' => null, 'longitude' => null,
+        ]);
         $this->app->instance(GeoIpService::class, $mock);
 
         $this->bindRequestWithIp('203.0.113.7');
@@ -127,8 +130,14 @@ class PricingResolverGeoTest extends TestCase
     {
         // First request comes from an Indian IP → INR cached.
         $mock = Mockery::mock(GeoIpService::class);
-        $mock->shouldReceive('detectCountry')->with('203.0.113.7')->once()->andReturn('IN');
-        $mock->shouldReceive('detectCountry')->with('198.51.100.9')->once()->andReturn('US');
+        $mock->shouldReceive('detectGeo')->with('203.0.113.7')->once()->andReturn([
+            'country_code' => 'IN', 'city' => null,
+            'latitude' => null, 'longitude' => null,
+        ]);
+        $mock->shouldReceive('detectGeo')->with('198.51.100.9')->once()->andReturn([
+            'country_code' => 'US', 'city' => null,
+            'latitude' => null, 'longitude' => null,
+        ]);
         $this->app->instance(GeoIpService::class, $mock);
 
         $this->bindRequestWithIp('203.0.113.7');
@@ -150,7 +159,10 @@ class PricingResolverGeoTest extends TestCase
         // Two lookups expected: one for the initial cache, one after
         // we age the cache past the TTL.
         $mock = Mockery::mock(GeoIpService::class);
-        $mock->shouldReceive('detectCountry')->twice()->andReturn('IN', 'US');
+        $mock->shouldReceive('detectGeo')->twice()->andReturn(
+            ['country_code' => 'IN', 'city' => null, 'latitude' => null, 'longitude' => null],
+            ['country_code' => 'US', 'city' => null, 'latitude' => null, 'longitude' => null],
+        );
         $this->app->instance(GeoIpService::class, $mock);
 
         $this->bindRequestWithIp('203.0.113.7');
@@ -231,6 +243,32 @@ class PricingResolverGeoTest extends TestCase
 
         $cached = session(PricingResolver::SESSION_KEY_GEO);
         $this->assertSame('US', $cached['country'] ?? null);
+    }
+
+    public function test_geo_cache_retains_detected_city(): void
+    {
+        $this->fakeGeoCountry('IN', 'Mumbai');
+        $this->bindRequestWithIp('203.0.113.1');
+
+        PricingResolver::currencyForUser(null);
+
+        $this->assertSame('Mumbai', PricingResolver::geoDetectedCity());
+
+        $cached = session(PricingResolver::SESSION_KEY_GEO);
+        $this->assertSame('Mumbai', $cached['city'] ?? null);
+    }
+
+    public function test_geo_detected_city_null_when_geo_returns_no_city(): void
+    {
+        // Country resolved but city missing — accessor must return null
+        // so the badge falls back to country-only copy.
+        $this->fakeGeoCountry('US', null);
+        $this->bindRequestWithIp('198.51.100.1');
+
+        PricingResolver::currencyForUser(null);
+
+        $this->assertNull(PricingResolver::geoDetectedCity());
+        $this->assertSame('US', PricingResolver::geoDetectedCountryCode());
     }
 
     public function test_geo_country_helpers_return_null_when_lookup_failed(): void

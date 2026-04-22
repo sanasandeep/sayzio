@@ -20,6 +20,10 @@
     // failed (private IP, offline, unknown country) this is null and we
     // fall back to the original currency-only badge silently.
     $geoCountryName = $isAuto ? \App\Services\PricingResolver::geoDetectedCountryName() : null;
+    // City is best-effort — when present we prefix the country to make
+    // the inference more transparent ("Mumbai, India"). Suppressed when
+    // there's no country to attach it to so we never show a bare city.
+    $geoCity = ($isAuto && $geoCountryName) ? \App\Services\PricingResolver::geoDetectedCity() : null;
 @endphp
 <div class="inline-flex flex-wrap items-center justify-center gap-2 {{ $compact ? '' : 'mt-3' }}"
      role="group" aria-label="Currency selection">
@@ -38,7 +42,7 @@
         @if($isAuto && $geoCountryName)
             <span class="text-gray-500" aria-hidden="true">·</span>
             <span class="text-gray-400">Looks like you're in
-                <span class="text-gray-200">{{ $geoCountryName }}</span></span>
+                <span class="text-gray-200">{{ $geoCity ? $geoCity . ', ' . $geoCountryName : $geoCountryName }}</span></span>
         @endif
     </span>
 
