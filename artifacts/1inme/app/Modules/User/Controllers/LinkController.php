@@ -929,6 +929,9 @@ class LinkController extends Controller
         abort_if($link->user_id !== workspace_owner_id(), 403);
         [$startDate, $endDate] = $this->resolveAnalyticsRange($request);
 
+        // `$link->clicks()` flows through the LinkClick model and therefore
+        // the `is_bot = false` global scope — bot/scraper rows never reach
+        // the live activity table, matching the totals shown above it.
         $recentClicks = $link->clicks()
             ->whereBetween('clicked_at', [$startDate, $endDate])
             ->orderByDesc('clicked_at')
@@ -1375,6 +1378,10 @@ class LinkController extends Controller
     {
         abort_if($link->user_id !== workspace_owner_id(), 403);
 
+        // Every query in this stream goes through `$link->clicks()`, which
+        // applies the LinkClick `is_bot = false` global scope. Bot/scraper
+        // hits therefore never appear in the live pulse, the unique-visitor
+        // counter, or the SSE event payloads — only humans do.
         $lastId = (int) $request->query('lastId', 0);
         $sinceTs = $request->query('since');
         // When the client has no cursor yet, seed from the existing 5-minute
@@ -1737,31 +1744,50 @@ class LinkController extends Controller
         abort_if($link->user_id !== workspace_owner_id(), 403);
         [$startDate, $endDate] = $this->resolveAnalyticsRange($request);
 
-        $filename = 'clicks-' . $link->alias . '-' . now()->format('Y-m-d-His') . '.csv';
+        // CSV exports default to real-human traffic — bot/scraper hits are
+        // hidden everywhere else (totals, uniques, live feeds), so creators
+        // would otherwise see one number in the dashboard and a different
+        // number in the spreadsheet. Operators that genuinely want raw
+        // traffic (debugging, audits) can opt in with `?include_bots=1`.
+        $includeBots = filter_var($request->query('include_bots'), FILTER_VALIDATE_BOOL);
+
+        $suffix = $includeBots ? '-with-bots' : '';
+        $filename = 'clicks-' . $link->alias . $suffix . '-' . now()->format('Y-m-d-His') . '.csv';
         $headers = [
             'Content-Type' => 'text/csv',
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ];
 
         $columns = ['Clicked At', 'Link Type', 'Link Type Slug', 'IP', 'Country', 'City', 'Channel', 'Channel Key', 'Browser', 'OS', 'Device', 'Language', 'Referrer', 'Block ID', 'Block Type', 'Block Type Slug', 'Destination URL', 'UTM Source', 'UTM Medium', 'UTM Campaign'];
+        if ($includeBots) {
+            $columns[] = 'Is Bot';
+        }
 
         $linkTypeLabel = \App\Modules\User\Models\Link::typeLabel($link->type);
         $linkTypeSlug = (string) $link->type;
 
-        return response()->stream(function () use ($link, $startDate, $endDate, $columns, $linkTypeLabel, $linkTypeSlug) {
+        return response()->stream(function () use ($link, $startDate, $endDate, $columns, $linkTypeLabel, $linkTypeSlug, $includeBots) {
             $h = fopen('php://output', 'w');
             fputcsv($h, $columns);
-            $link->clicks()
+
+            // Without `include_bots`, rely on the LinkClick global scope to
+            // strip bot rows. With it, drop the scope and append the flag
+            // column so reviewers can still tell humans from scrapers.
+            $query = $includeBots
+                ? \App\Modules\User\Models\LinkClick::withBots()->where('link_id', $link->id)
+                : $link->clicks();
+
+            $query
                 ->whereBetween('clicked_at', [$startDate, $endDate])
                 ->orderByDesc('clicked_at')
-                ->chunk(500, function ($rows) use ($h, $linkTypeLabel, $linkTypeSlug) {
+                ->chunk(500, function ($rows) use ($h, $linkTypeLabel, $linkTypeSlug, $includeBots) {
                     foreach ($rows as $r) {
                         $u = $r->utm_params ?? [];
                         $blockTypeSlug = (string) ($r->block_type ?? '');
                         $blockTypeLabel = $blockTypeSlug !== ''
                             ? (\App\Modules\User\Models\BiolinkBlock::TYPES[$blockTypeSlug]['label'] ?? ucfirst(str_replace('_', ' ', $blockTypeSlug)))
                             : '';
-                        fputcsv($h, [
+                        $row = [
                             optional($r->clicked_at)->format('Y-m-d H:i:s'),
                             $linkTypeLabel, $linkTypeSlug,
                             $r->ip_address, $r->country_code, $r->city,
@@ -1770,7 +1796,11 @@ class LinkController extends Controller
                             $r->browser, $r->os, $r->device_type, $r->language,
                             $r->referrer, $r->block_id, $blockTypeLabel, $blockTypeSlug, $r->destination_url,
                             $u['utm_source'] ?? '', $u['utm_medium'] ?? '', $u['utm_campaign'] ?? '',
-                        ]);
+                        ];
+                        if ($includeBots) {
+                            $row[] = $r->is_bot ? 'yes' : 'no';
+                        }
+                        fputcsv($h, $row);
                     }
                 });
             fclose($h);

@@ -1724,7 +1724,10 @@
 <div class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#8b5cf6,#a78bfa); --sc-glow: rgba(124,58,237,0.35); --sc-color: #ddd6fe; --sc-border: rgba(124,58,237,0.3);">
     <div class="section-head">
         <div class="section-title"><div class="section-icon"><i class="fas fa-list"></i></div> Recent Clicks</div>
-        <a href="{{ route('user.links.clicks.export', $link) }}?{{ http_build_query($qs) }}" class="table-action"><i class="fas fa-file-csv"></i> Export full log</a>
+        <div class="flex items-center gap-2">
+            <a href="{{ route('user.links.clicks.export', $link) }}?{{ http_build_query($qs) }}" class="table-action" title="Real visitors only — bot/scraper hits excluded"><i class="fas fa-file-csv"></i> Export full log</a>
+            <a href="{{ route('user.links.clicks.export', $link) }}?{{ http_build_query($qs + ['include_bots' => 1]) }}" class="table-action" title="Includes bot/scraper hits with an Is Bot column"><i class="fas fa-robot"></i> Include bots</a>
+        </div>
     </div>
     <div id="recent-clicks-container" data-endpoint="{{ route('user.links.clicks.partial', $link) }}?{{ http_build_query($qs) }}">
         @include('user.links.partials.recent-clicks-table')

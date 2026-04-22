@@ -44,6 +44,10 @@ class LinkTrackingService
 
         // Skip incrementing the cached counters for obvious bot/scraper hits
         // so creator-facing totals and unique-visitor stats reflect real humans.
+        // We also short-circuit BEFORE firing the LinkClicked event — that
+        // event is the entry point for outbound click webhooks and "new
+        // visitor" notifications, and creators should never be paged for
+        // a scraper.
         if ($isBot) {
             return $click;
         }
@@ -59,6 +63,10 @@ class LinkTrackingService
         if ($isUnique) {
             $link->increment('unique_clicks');
         }
+
+        // Broadcast to downstream listeners (webhooks, notifications,
+        // realtime push). Reaching this line guarantees `is_bot = false`.
+        \App\Events\LinkClicked::dispatch($link, $click);
 
         return $click;
     }
@@ -153,7 +161,9 @@ class LinkTrackingService
         ]);
 
         // Bot/scraper hits are recorded but excluded from the cached counters
-        // so creator dashboards reflect real humans.
+        // so creator dashboards reflect real humans. We also bail BEFORE
+        // dispatching BlockClicked so webhooks / "new visitor" notifications
+        // never fire on scraper traffic.
         if ($isBot) {
             return $click;
         }
@@ -169,6 +179,10 @@ class LinkTrackingService
         if ($isUnique) {
             $link->increment('unique_clicks');
         }
+
+        // Broadcast to downstream listeners. Reaching this line guarantees
+        // `is_bot = false`.
+        \App\Events\BlockClicked::dispatch($link, $block, $click, $destinationUrl);
 
         return $click;
     }
