@@ -14,6 +14,14 @@ use App\Modules\User\Models\User;
  *
  * Returns the answer plus the cited sources so the UI can show users
  * which knowledge base entries informed each reply.
+ *
+ * Two entry points:
+ *   ask()             — full Q&A flow (used by the Mind test panel).
+ *   retrieveContext() — embeds a query and returns formatted context +
+ *                       citations, with no chat call. Used by Persona /
+ *                       Coach so they can ground their generations in
+ *                       the user's selected Minds without paying for an
+ *                       extra LLM round-trip.
  */
 class AiMindQueryService
 {
@@ -26,53 +34,80 @@ class AiMindQueryService
     ) {}
 
     /**
-     * @param array<int,AiMind> $minds Knowledge bases to search.
+     * Resolve a list of mind ids the given user is allowed to query.
+     * Drops disabled minds, ids the user does not own, and (when
+     * $includePlatform is false) the platform default mind. Always
+     * returns a fresh, de-duplicated array of AiMind models.
+     *
+     * @param array<int,int|string> $mindIds
+     * @return array<int,AiMind>
+     */
+    public function resolveMindsForUser(User $user, array $mindIds, bool $includePlatform): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $mindIds))));
+        if (!$ids && !$includePlatform) {
+            return [];
+        }
+
+        $query = AiMind::query()->where('is_disabled', false);
+        $query->where(function ($q) use ($ids, $includePlatform, $user) {
+            if ($ids) {
+                $q->orWhere(function ($qq) use ($ids, $user) {
+                    $qq->whereIn('id', $ids)->where('user_id', $user->id);
+                });
+            }
+            if ($includePlatform) {
+                $q->orWhere(function ($qq) {
+                    $qq->whereNull('user_id')->where('is_default', true);
+                });
+            }
+        });
+
+        return $query->get()->all();
+    }
+
+    /**
+     * Retrieve the top matching chunks (and live feature snapshots) for
+     * a free-text query across the given minds. Returns the assembled
+     * context block plus structured citations and the credit cost of
+     * the embedding call. No chat completion is performed.
+     *
+     * @param array<int,AiMind> $minds
      * @return array{
-     *   answer:string,
+     *   context:string,
      *   citations:array<int,array{id:int,title:string,type:string,mind_id:int,score:float}>,
-     *   credits_spent:int,
-     *   tokens_in:int,
-     *   tokens_out:int,
-     *   model:string,
      *   feature_snapshots:array<int,array{key:string,label:string,text:string}>,
+     *   credits_spent:int,
      * }
      */
-    public function ask(User $user, array $minds, string $question): array
+    public function retrieveContext(User $user, array $minds, string $query): array
     {
-        $question = trim($question);
-        if ($question === '') {
-            throw new \InvalidArgumentException('Question is required.');
-        }
+        $query = trim($query);
         $minds = array_values(array_filter($minds, fn($m) => $m && !$m->is_disabled));
-        if (!$minds) {
-            throw new \RuntimeException('No active Mind selected for this query.');
+        if (!$minds || $query === '') {
+            return [
+                'context'           => '',
+                'citations'         => [],
+                'feature_snapshots' => [],
+                'credits_spent'     => 0,
+            ];
         }
 
         $embedModel = AiMindSettings::embeddingModel();
-        $chatModel  = AiMindSettings::chatModel();
-
-        // Embed the question on the asker's account so they pay for
-        // their own queries, even when querying the platform Mind.
-        // Attribute spend to the *focused* (first) Mind so per-Mind
-        // analytics can break questions out from ingestion.
         $focusedMind = $minds[0];
         $queryMeta = [
             'kind'    => 'query',
             'mind_id' => (int) $focusedMind->id,
         ];
-        $emb = $this->openai->embed($user, $embedModel, [$question], [
+        $emb = $this->openai->embed($user, $embedModel, [$query], [
             'feature'    => 'mind',
             'related_id' => (int) $focusedMind->id,
-            'reason'     => 'Mind query',
+            'reason'     => 'Mind context retrieval',
             'meta'       => $queryMeta,
         ]);
         $queryVec = $emb['vectors'][0] ?? [];
         $creditsSpent = (int) ($emb['credits_spent'] ?? 0);
 
-        // Pull every embedded chunk in the selected minds and rank by
-        // cosine similarity. v1 keeps similarity in PHP — fine for the
-        // chunk volumes the per-source cap allows. A future revision
-        // can swap in pgvector without changing the read API.
         $candidates = AiMindChunk::query()
             ->whereIn('mind_id', collect($minds)->pluck('id'))
             ->limit(2000)
@@ -86,12 +121,8 @@ class AiMindQueryService
         usort($scored, fn($a, $b) => $b['score'] <=> $a['score']);
         $top = array_slice($scored, 0, self::TOP_K);
 
-        // Live feature snapshots (per-user, per-mind) — never embedded,
-        // always recomputed at query time.
         $snapshots = [];
         foreach ($minds as $mind) {
-            // The platform mind's owner is null; feature snapshots only
-            // make sense against the asking user's account.
             $owner = $mind->user_id ? $mind->user : $user;
             if (!$owner) continue;
             $featureSources = $mind->sources()
@@ -110,7 +141,6 @@ class AiMindQueryService
             }
         }
 
-        // Assemble the prompt. Keep total context under MAX_CONTEXT_CHARS.
         $contextParts = [];
         $citations    = [];
         $used         = 0;
@@ -138,7 +168,47 @@ class AiMindQueryService
             $contextParts[] = $piece;
             $used += mb_strlen($piece);
         }
-        $context = implode("\n", $contextParts);
+
+        return [
+            'context'           => implode("\n", $contextParts),
+            'citations'         => $citations,
+            'feature_snapshots' => $snapshots,
+            'credits_spent'     => $creditsSpent,
+        ];
+    }
+
+    /**
+     * @param array<int,AiMind> $minds Knowledge bases to search.
+     * @return array{
+     *   answer:string,
+     *   citations:array<int,array{id:int,title:string,type:string,mind_id:int,score:float}>,
+     *   credits_spent:int,
+     *   tokens_in:int,
+     *   tokens_out:int,
+     *   model:string,
+     *   feature_snapshots:array<int,array{key:string,label:string,text:string}>,
+     * }
+     */
+    public function ask(User $user, array $minds, string $question): array
+    {
+        $question = trim($question);
+        if ($question === '') {
+            throw new \InvalidArgumentException('Question is required.');
+        }
+        $minds = array_values(array_filter($minds, fn($m) => $m && !$m->is_disabled));
+        if (!$minds) {
+            throw new \RuntimeException('No active Mind selected for this query.');
+        }
+
+        $focusedMind = $minds[0];
+        $queryMeta = [
+            'kind'    => 'query',
+            'mind_id' => (int) $focusedMind->id,
+        ];
+        $chatModel = AiMindSettings::chatModel();
+
+        $retrieved = $this->retrieveContext($user, $minds, $question);
+        $context = $retrieved['context'];
 
         $messages = [
             ['role' => 'system', 'content' =>
@@ -160,12 +230,12 @@ class AiMindQueryService
 
         return [
             'answer'            => $chat['content'],
-            'citations'         => $citations,
-            'credits_spent'     => $creditsSpent + (int) ($chat['credits_spent'] ?? 0),
+            'citations'         => $retrieved['citations'],
+            'credits_spent'     => $retrieved['credits_spent'] + (int) ($chat['credits_spent'] ?? 0),
             'tokens_in'         => (int) ($chat['tokens_in'] ?? 0),
             'tokens_out'        => (int) ($chat['tokens_out'] ?? 0),
             'model'             => $chatModel,
-            'feature_snapshots' => $snapshots,
+            'feature_snapshots' => $retrieved['feature_snapshots'],
         ];
     }
 
