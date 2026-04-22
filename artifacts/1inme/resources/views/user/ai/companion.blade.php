@@ -48,7 +48,16 @@
                             <a href="{{ route('user.ai.companion.thread', $t->id) }}{{ $search !== '' ? '?q=' . urlencode($search) : '' }}"
                                class="block px-3 py-2 rounded-xl text-sm
                                       {{ $isActive ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/[0.06]' }}">
-                                <span class="block truncate">{!! $titles[$t->id] ?? e($t->title) !!}</span>
+                                <span class="flex items-center gap-1.5">
+                                    <span class="flex-1 truncate">{!! $titles[$t->id] ?? e($t->title) !!}</span>
+                                    @if($search !== '')
+                                        @php($mc = $matchCounts[$t->id] ?? 0)
+                                        <span class="shrink-0 text-[10px] leading-none px-1.5 py-0.5 rounded-full {{ $mc > 0 ? 'bg-yellow-300/15 text-yellow-200/90' : 'bg-white/5 text-white/40' }}"
+                                              title="{{ $mc }} {{ $mc === 1 ? 'message matches' : 'messages match' }} “{{ $search }}”{{ $mc === 0 ? ' (title match only)' : '' }}">
+                                            {{ $mc }} {{ $mc === 1 ? 'match' : 'matches' }}
+                                        </span>
+                                    @endif
+                                </span>
                                 @if(!empty($snippets[$t->id]))
                                     <span class="block text-[11px] text-white/50 mt-0.5 line-clamp-2">{!! $snippets[$t->id] !!}</span>
                                 @endif

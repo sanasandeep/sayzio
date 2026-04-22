@@ -56,6 +56,7 @@ class CompanionController extends Controller
         $threadsQuery = $this->threadQuery($user->id, $wsId);
         $snippets = [];
         $titles = [];
+        $matchCounts = [];
 
         if ($search !== '') {
             // Escape LIKE wildcards so a stray % or _ in the query doesn't
@@ -111,6 +112,7 @@ class CompanionController extends Controller
                         $this->snippet($m->content, $search), $search
                     );
                 }
+                $matchCounts[$m->thread_id] = ($matchCounts[$m->thread_id] ?? 0) + 1;
             }
             foreach ($threads as $t) {
                 $titles[$t->id] = $this->highlight((string) $t->title, $search);
@@ -144,6 +146,7 @@ class CompanionController extends Controller
             'search'   => $search,
             'snippets' => $snippets,
             'titles'   => $titles,
+            'matchCounts' => $matchCounts,
         ]);
     }
 
