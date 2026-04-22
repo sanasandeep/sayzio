@@ -2715,7 +2715,7 @@
                             <span class="float-card-label">Live visitors</span>
                             <span class="flex items-center gap-1 text-[9px] font-bold" style="color:var(--c1)"><span class="w-1.5 h-1.5 rounded-full pulse-dot" style="background:var(--c1)"></span>NOW</span>
                         </div>
-                        <div class="text-xl font-bold">247</div>
+                        <div class="text-xl font-bold" id="hero-tick-visitors" data-tick-visitors>247</div>
                         <svg class="w-full h-6" viewBox="0 0 100 30" preserveAspectRatio="none">
                             <polyline class="spark-line" fill="none" stroke="url(#sl)" stroke-width="2.5" stroke-linecap="round" points="0,22 12,18 24,20 36,12 48,15 60,8 72,11 84,5 100,7"/>
                             <defs><linearGradient id="sl"><stop offset="0%" stop-color="#1bd4d9"/><stop offset="100%" stop-color="#e94e8c"/></linearGradient></defs>
@@ -2786,7 +2786,7 @@
                     <div class="float-b float-card float-card--revenue hidden lg:block" style="animation-delay:-4s" aria-hidden="true">
                         <span class="float-card-label">Revenue today</span>
                         <div class="flex items-baseline gap-2 mt-0.5">
-                            <div class="text-xl font-bold">$ 412</div>
+                            <div class="text-xl font-bold" id="hero-tick-revenue" data-tick-revenue>$ 412</div>
                             <span class="text-[10px] font-bold" style="color:#1ed760">▲ 9%</span>
                         </div>
                         <div class="flex items-center gap-1 mt-1 text-[9px] text-gray-400">
@@ -2833,6 +2833,79 @@
     </div>
 
     <script>
+        // Floating-card metric tickers: gently increment Live visitors and
+        // Revenue today so the hero feels alive. Pauses when off-screen,
+        // when the tab is hidden, and respects prefers-reduced-motion.
+        (function () {
+            const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            if (reduce) return;
+            const visEl = document.getElementById('hero-tick-visitors');
+            const revEl = document.getElementById('hero-tick-revenue');
+            if (!visEl && !revEl) return;
+
+            const parseNum = (el, fallback) => {
+                if (!el) return fallback;
+                const n = parseInt((el.textContent || '').replace(/[^0-9]/g, ''), 10);
+                return Number.isFinite(n) ? n : fallback;
+            };
+            let visitors = parseNum(visEl, 247);
+            let revenue  = parseNum(revEl, 412);
+            let inView = false;
+            let timer = null;
+
+            function flash(el) {
+                if (!el) return;
+                el.style.transition = 'color .25s ease';
+                const prev = el.style.color;
+                el.style.color = '#1ed760';
+                setTimeout(() => { el.style.color = prev; }, 280);
+            }
+
+            function tick() {
+                if (document.hidden || !inView) return;
+                if (visEl && Math.random() < 0.85) {
+                    visitors += Math.random() < 0.15 ? -1 : (Math.random() < 0.4 ? 2 : 1);
+                    if (visitors < 180) visitors = 180;
+                    if (visitors > 320) visitors = 320;
+                    visEl.textContent = visitors.toLocaleString();
+                    flash(visEl);
+                }
+                if (revEl && Math.random() < 0.5) {
+                    revenue += 1 + Math.floor(Math.random() * 6);
+                    revEl.textContent = '$ ' + revenue.toLocaleString();
+                    flash(revEl);
+                }
+            }
+
+            function start() {
+                if (timer) return;
+                timer = setInterval(tick, 2200);
+            }
+            function stop() {
+                if (!timer) return;
+                clearInterval(timer);
+                timer = null;
+            }
+
+            const target = (visEl || revEl).closest('.hero-phone-stage') || (visEl || revEl);
+            if ('IntersectionObserver' in window) {
+                const io = new IntersectionObserver((entries) => {
+                    entries.forEach(e => {
+                        inView = e.isIntersecting;
+                        if (inView) start(); else stop();
+                    });
+                }, { threshold: 0.15 });
+                io.observe(target);
+            } else {
+                inView = true;
+                start();
+            }
+
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) stop(); else if (inView) start();
+            });
+        })();
+
         (function () {
             const ROLES   = @json($heroRoles);
             const word    = document.getElementById('hero-role-word');
