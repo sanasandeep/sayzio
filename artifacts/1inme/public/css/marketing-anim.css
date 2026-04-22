@@ -611,3 +611,257 @@ html.light-mode .cmp-cell.cmp-group-head { background: rgba(15,23,42,.04); color
     .cmp-pulse { animation: none !important; }
     .cmp-cta:hover { background-position: 0 0; }
 }
+
+/* =====================================================================
+   Why 1INME v2: animated card grid + SVG highlights + rotating chip
+   ===================================================================== */
+.why2-section { position: relative; }
+.why2-bg-orb {
+    position: absolute; width: 540px; height: 540px;
+    pointer-events: none; opacity: .55;
+    filter: blur(20px);
+    animation: why2-float 14s ease-in-out infinite;
+}
+.why2-bg-orb-a { top: -120px; left: -120px; }
+.why2-bg-orb-b { bottom: -160px; right: -140px; animation-delay: -7s; }
+@keyframes why2-float {
+    0%, 100% { transform: translate3d(0,0,0) scale(1); }
+    50%      { transform: translate3d(20px,-30px,0) scale(1.06); }
+}
+html.light-mode .why2-bg-orb { opacity: .35; }
+
+/* Animated underline draws in once on view */
+.why2-underline {
+    position: absolute;
+    left: 0; right: 0; bottom: -10px;
+    width: 100%; height: 16px;
+    overflow: visible;
+}
+.why2-underline path {
+    stroke-dasharray: 420;
+    stroke-dashoffset: 420;
+    transition: stroke-dashoffset 1.4s cubic-bezier(.2,.7,.2,1) .25s;
+    filter: drop-shadow(0 4px 14px rgba(236,72,153,.45));
+}
+.why2-section [data-anim].in-view .why2-underline path,
+.in-view .why2-underline path { stroke-dashoffset: 0; }
+
+/* Rotating "vs" chip */
+.why2-vs-pill {
+    display: inline-flex; align-items: center; gap: .55rem;
+    padding: .45rem .9rem; border-radius: 9999px;
+    background: linear-gradient(90deg, rgba(167,139,250,.20), rgba(236,72,153,.18), rgba(34,211,238,.18));
+    border: 1px solid rgba(255,255,255,.14);
+    color: #fff; font-weight: 700; letter-spacing: .01em;
+    font-size: .82rem;
+    box-shadow: 0 12px 30px -16px rgba(236,72,153,.45);
+    min-width: 110px; justify-content: center;
+}
+.why2-vs-dot {
+    width: 8px; height: 8px; border-radius: 9999px;
+    background: linear-gradient(135deg, #34d399, #22d3ee);
+    box-shadow: 0 0 0 0 rgba(52,211,153,.5);
+    animation: why2-vs-pulse 1.6s ease-in-out infinite;
+}
+@keyframes why2-vs-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(52,211,153,.55); }
+    70%  { box-shadow: 0 0 0 10px rgba(52,211,153,0); }
+    100% { box-shadow: 0 0 0 0 rgba(52,211,153,0); }
+}
+.why2-vs-name {
+    display: inline-block;
+    animation: why2-vs-flip .35s ease;
+}
+@keyframes why2-vs-flip {
+    0%   { opacity: 0; transform: translateY(6px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+html.light-mode .why2-vs-pill {
+    background: linear-gradient(90deg, rgba(124,58,237,.10), rgba(236,72,153,.10), rgba(34,211,238,.10));
+    border-color: rgba(124,58,237,.25);
+    color: #6d28d9;
+}
+
+/* Card grid */
+.why2-grid {
+    display: grid; gap: 1rem;
+    grid-template-columns: 1fr;
+}
+@media (min-width: 720px) {
+    .why2-grid { grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+}
+
+.why2-card {
+    position: relative;
+    border-radius: 1.25rem;
+    background:
+        linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.015));
+    border: 1px solid rgba(255,255,255,.08);
+    padding: 1.4rem 1.4rem 1.25rem;
+    overflow: hidden;
+    transition: transform .35s ease, box-shadow .35s ease, border-color .35s ease;
+    transition-delay: var(--why2-delay, 0ms);
+}
+.why2-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(167,139,250,.35);
+    box-shadow: 0 22px 60px -28px rgba(167,139,250,.55);
+}
+html.light-mode .why2-card {
+    background: #ffffff;
+    border-color: rgba(15,23,42,.08);
+    box-shadow: 0 4px 14px -8px rgba(15,23,42,.10);
+}
+html.light-mode .why2-card:hover {
+    border-color: rgba(124,58,237,.35);
+    box-shadow: 0 22px 50px -22px rgba(124,58,237,.30);
+}
+
+/* Animated gradient sweep behind the card on hover */
+.why2-card-glow {
+    position: absolute; inset: -2px;
+    border-radius: inherit;
+    background:
+        radial-gradient(220px 120px at var(--mx, 30%) 10%, rgba(167,139,250,.22), transparent 60%),
+        radial-gradient(260px 140px at var(--mx2, 80%) 110%, rgba(236,72,153,.18), transparent 60%);
+    opacity: 0; transition: opacity .4s ease;
+    pointer-events: none;
+}
+.why2-card:hover .why2-card-glow { opacity: 1; }
+
+/* Number bubble */
+.why2-num {
+    position: relative;
+    width: 44px; height: 44px;
+    display: inline-flex; align-items: center; justify-content: center;
+    margin-bottom: .85rem;
+    color: #fff; font-weight: 800; font-size: .82rem; letter-spacing: .04em;
+}
+.why2-num svg { position: absolute; inset: 0; }
+.why2-num-ring {
+    stroke-dasharray: 113;
+    stroke-dashoffset: 113;
+    transform-origin: 50% 50%;
+    transition: stroke-dashoffset 1.1s cubic-bezier(.2,.7,.2,1) calc(.15s + var(--why2-delay, 0ms));
+}
+[data-anim].in-view .why2-num-ring,
+.why2-card[data-anim].in-view .why2-num-ring { stroke-dashoffset: 0; }
+html.light-mode .why2-num { color: #6d28d9; }
+
+.why2-card-title {
+    font-size: 1.05rem; font-weight: 700; color: #f8fafc;
+    margin-bottom: .9rem; letter-spacing: -.005em;
+}
+html.light-mode .why2-card-title { color: #0f172a; }
+
+/* Per-row layout */
+.why2-row {
+    display: flex; align-items: flex-start; gap: .65rem;
+    padding: .55rem 0;
+    border-top: 1px dashed rgba(255,255,255,.06);
+}
+.why2-row:first-of-type { border-top: 0; padding-top: 0; }
+html.light-mode .why2-row { border-top-color: rgba(15,23,42,.08); }
+.why2-row-content { display: flex; flex-direction: column; gap: .25rem; min-width: 0; flex: 1; }
+.why2-row-label {
+    font-size: .68rem; font-weight: 800; letter-spacing: .12em;
+    text-transform: uppercase; color: #94a3b8;
+}
+.why2-row-ours .why2-row-label { color: #c4b5fd; }
+html.light-mode .why2-row-ours .why2-row-label { color: #7c3aed; }
+
+.why2-row-value { font-size: .92rem; color: #e5e7eb; font-weight: 600; }
+.why2-row-value-them { color: #94a3b8; font-weight: 500; font-size: .82rem; }
+html.light-mode .why2-row-value { color: #0f172a; }
+html.light-mode .why2-row-value-them { color: #475569; }
+
+/* 1INME tick (animated check draw) */
+.why2-tick {
+    flex: 0 0 28px;
+    width: 28px; height: 28px; border-radius: 9999px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #34d399, #22d3ee);
+    color: #0b1020;
+    box-shadow: 0 10px 24px -10px rgba(34,211,238,.55);
+}
+.why2-tick-path {
+    stroke-dasharray: 28; stroke-dashoffset: 28;
+    transition: stroke-dashoffset .8s cubic-bezier(.2,.7,.2,1) calc(.4s + var(--why2-delay, 0ms));
+}
+.why2-card[data-anim].in-view .why2-tick-path { stroke-dashoffset: 0; }
+
+/* Highlight sweep on the Yes/value pill */
+.why2-hl {
+    position: relative;
+    display: inline-block;
+    padding: .15rem .55rem;
+    border-radius: .5rem;
+    color: #ecfeff;
+    background: linear-gradient(90deg, rgba(52,211,153,.18), rgba(34,211,238,.18));
+    border: 1px solid rgba(34,211,238,.30);
+    overflow: hidden;
+    isolation: isolate;
+}
+.why2-hl::after {
+    content: '';
+    position: absolute; top: 0; left: -120%;
+    width: 80%; height: 100%;
+    background: linear-gradient(100deg, transparent, rgba(255,255,255,.45), transparent);
+    transform: skewX(-20deg);
+    animation: why2-hl-sweep 3.6s ease-in-out infinite;
+    z-index: -1;
+}
+@keyframes why2-hl-sweep {
+    0%   { left: -120%; }
+    55%  { left: 120%;  }
+    100% { left: 120%;  }
+}
+html.light-mode .why2-hl { color: #047857; background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.35); }
+
+/* Competitor row dash */
+.why2-dash {
+    flex: 0 0 28px;
+    width: 28px; height: 28px; border-radius: 9999px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: rgba(148,163,184,.12); color: #94a3b8;
+}
+html.light-mode .why2-dash { background: rgba(15,23,42,.06); color: #64748b; }
+
+/* Rival chips */
+.why2-rival-chips { display: inline-flex; flex-wrap: wrap; gap: .3rem; margin-bottom: .15rem; }
+.why2-chip {
+    display: inline-flex; align-items: center;
+    padding: .12rem .55rem; border-radius: 9999px;
+    font-size: .68rem; font-weight: 700; letter-spacing: .02em;
+    color: #cbd5e1; background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.10);
+}
+.why2-chip-more { color: #94a3b8; background: transparent; border-style: dashed; }
+html.light-mode .why2-chip { color: #475569; background: rgba(15,23,42,.04); border-color: rgba(15,23,42,.10); }
+
+/* CTA pill */
+.why2-cta {
+    display: inline-flex; align-items: center; gap: .55rem;
+    padding: .8rem 1.2rem; border-radius: 9999px;
+    color: #fff; font-weight: 700; letter-spacing: .01em; font-size: .9rem;
+    background: linear-gradient(90deg, #a78bfa, #ec4899, #22d3ee);
+    background-size: 220% 100%;
+    box-shadow: 0 18px 50px -16px rgba(236,72,153,.55);
+    transition: transform .25s ease, background-position .7s ease, box-shadow .3s ease;
+}
+.why2-cta:hover { transform: translateY(-1px); background-position: 100% 0; box-shadow: 0 22px 60px -14px rgba(167,139,250,.65); }
+.why2-cta-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 9999px;
+    background: rgba(255,255,255,.18);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .why2-bg-orb,
+    .why2-vs-dot,
+    .why2-hl::after { animation: none !important; }
+    .why2-underline path,
+    .why2-num-ring,
+    .why2-tick-path { stroke-dashoffset: 0 !important; transition: none !important; }
+    .why2-cta:hover { background-position: 0 0; }
+}
