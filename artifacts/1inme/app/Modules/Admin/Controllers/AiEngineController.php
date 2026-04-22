@@ -22,13 +22,22 @@ class AiEngineController extends Controller
 {
     public function edit()
     {
+        $featureStatus = [];
+        foreach (AiEngineSettings::FEATURES as $f) {
+            $featureStatus[$f] = AiEngineSettings::featureModelStatus($f);
+        }
+
         return view('admin.ai-engine.edit', [
-            'enabled'        => AiEngineSettings::isEnabled(),
-            'maskedKey'      => AiEngineSettings::maskedOpenAiKey(),
-            'hasKey'         => AiEngineSettings::openAiKey() !== null,
-            'models'         => AiEngineSettings::models(),
-            'walletRate'     => AiEngineSettings::walletToCreditsRate(),
-            'packs'          => AiEngineSettings::packs(),
+            'enabled'         => AiEngineSettings::isEnabled(),
+            'maskedKey'       => AiEngineSettings::maskedOpenAiKey(),
+            'hasKey'          => AiEngineSettings::openAiKey() !== null,
+            'models'          => AiEngineSettings::models(),
+            'walletRate'      => AiEngineSettings::walletToCreditsRate(),
+            'packs'           => AiEngineSettings::packs(),
+            'features'        => AiEngineSettings::FEATURES,
+            'featureModels'   => AiEngineSettings::featureModels(),
+            'featureStatus'   => $featureStatus,
+            'defaultFeatureModel' => AiEngineSettings::DEFAULT_FEATURE_MODEL,
         ]);
     }
 
@@ -50,6 +59,8 @@ class AiEngineController extends Controller
             'packs.*.label'                 => 'required_with:packs|string|max:64',
             'packs.*.credits'               => 'required_with:packs|integer|min:1',
             'packs.*.wallet_cost'           => 'required_with:packs|integer|min:1',
+            'feature_models'                => 'array',
+            'feature_models.*'              => 'nullable|string|max:64',
         ]);
 
         AiEngineSettings::setEnabled($request->boolean('enabled'));
@@ -74,6 +85,9 @@ class AiEngineController extends Controller
         }
         if (array_key_exists('packs', $data)) {
             AiEngineSettings::setPacks($data['packs']);
+        }
+        if (array_key_exists('feature_models', $data)) {
+            AiEngineSettings::setFeatureModels($data['feature_models']);
         }
 
         return redirect()->route('admin.ai-engine.edit')

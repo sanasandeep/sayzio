@@ -27,8 +27,6 @@ use Illuminate\Support\Facades\Log;
  */
 class PersonaController extends Controller
 {
-    protected const MODEL = 'gpt-4o-mini';
-
     public function __construct(
         protected OpenAiService $ai,
         protected AiCreditService $credits,
@@ -89,7 +87,7 @@ class PersonaController extends Controller
         ];
 
         try {
-            $out = $this->ai->chat($request->user(), self::MODEL, $messages, [
+            $out = $this->ai->chat($request->user(), AiEngineSettings::featureModel('persona'), $messages, [
                 'feature'     => 'persona.profile',
                 'temperature' => 0.6,
                 'max_tokens'  => 500,

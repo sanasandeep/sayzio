@@ -31,8 +31,6 @@ use Illuminate\Support\Str;
  */
 class CompanionController extends Controller
 {
-    protected const MODEL = 'gpt-4o-mini';
-
     /** Cap turns sent to the model to keep prompt size — and per-call cost
      *  — predictable. Older turns stay in the DB but aren't replayed. */
     protected const MAX_PROMPT_TURNS = 12;
@@ -135,7 +133,7 @@ class CompanionController extends Controller
         );
 
         try {
-            $out = $this->ai->chat($user, self::MODEL, $messages, [
+            $out = $this->ai->chat($user, AiEngineSettings::featureModel('companion'), $messages, [
                 'feature'     => 'companion.chat',
                 'temperature' => 0.7,
                 'max_tokens'  => 600,

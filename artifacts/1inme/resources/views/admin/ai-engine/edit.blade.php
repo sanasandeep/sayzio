@@ -90,6 +90,52 @@
         </table>
     </div>
 
+    {{-- Per-feature model picker --}}
+    <div class="glass rounded-2xl border border-white/10 p-6 space-y-4">
+        <div>
+            <h3 class="font-semibold text-white">Feature models</h3>
+            <p class="text-xs text-white/40">
+                Choose which chat model each AI feature uses. Falls back to
+                <span class="font-mono text-amber-300">{{ $defaultFeatureModel }}</span> if unset.
+            </p>
+        </div>
+
+        @php
+            $chatModelNames = array_values(array_map(fn($m) => $m['name'],
+                array_filter($models, fn($m) => ($m['kind'] ?? 'chat') === 'chat')));
+        @endphp
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            @foreach($features as $f)
+                @php
+                    $current = $featureModels[$f] ?? $defaultFeatureModel;
+                    $status  = $featureStatus[$f];
+                    $inList  = in_array($current, $chatModelNames, true);
+                @endphp
+                <div class="space-y-1.5">
+                    <label class="text-xs uppercase tracking-wider text-white/40 block">{{ ucfirst($f) }}</label>
+                    <select name="feature_models[{{ $f }}]"
+                            class="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-white text-sm">
+                        @foreach($chatModelNames as $name)
+                            <option value="{{ $name }}" {{ $name === $current ? 'selected' : '' }}>{{ $name }}</option>
+                        @endforeach
+                        @if(!$inList)
+                            <option value="{{ $current }}" selected>{{ $current }} (not in models table)</option>
+                        @endif
+                    </select>
+                    @if(!$status['ok'])
+                        <p class="text-[11px] text-red-300 flex items-start gap-1.5">
+                            <i class="fas fa-triangle-exclamation mt-0.5"></i>
+                            <span>{{ $status['message'] }}</span>
+                        </p>
+                    @else
+                        <p class="text-[11px] text-white/30">Spend tagged <span class="font-mono">{{ $f }}</span>.</p>
+                    @endif
+                </div>
+            @endforeach
+        </div>
+    </div>
+
     {{-- Wallet -> credits conversion --}}
     <div class="glass rounded-2xl border border-white/10 p-6 space-y-3">
         <h3 class="font-semibold text-white">Wallet → AI credits</h3>

@@ -25,6 +25,13 @@ class AiEngineSettings
     public const KEY_MODELS         = 'ai.models';
     public const KEY_WALLET_RATE    = 'ai.wallet_to_credits_rate';
     public const KEY_PACKS          = 'ai.credit_packs';
+    public const KEY_FEATURE_MODELS = 'ai.feature_models';
+
+    /** Chat features whose model is admin-configurable. */
+    public const FEATURES = ['mind', 'persona', 'companion', 'coach'];
+
+    /** Fallback chat model used when a feature has no mapping yet. */
+    public const DEFAULT_FEATURE_MODEL = 'gpt-4o-mini';
 
     public static function isEnabled(): bool
     {
@@ -183,5 +190,75 @@ class AiEngineSettings
             if ($p['id'] === $id) return $p;
         }
         return null;
+    }
+
+    /**
+     * Per-feature chat model map. Always returns every known feature so
+     * callers can rely on array_key access.
+     *
+     * @return array<string,string>
+     */
+    public static function featureModels(): array
+    {
+        $stored = AppSetting::get(self::KEY_FEATURE_MODELS);
+        $out = [];
+        foreach (self::FEATURES as $f) {
+            $val = is_array($stored) && !empty($stored[$f]) && is_string($stored[$f])
+                ? trim($stored[$f])
+                : self::DEFAULT_FEATURE_MODEL;
+            $out[$f] = $val;
+        }
+        return $out;
+    }
+
+    /**
+     * Resolve the chat model for a given feature, falling back to the
+     * default if the feature is unknown or unset.
+     */
+    public static function featureModel(string $feature): string
+    {
+        $map = self::featureModels();
+        return $map[$feature] ?? self::DEFAULT_FEATURE_MODEL;
+    }
+
+    /**
+     * @param array<string,string|null> $map
+     */
+    public static function setFeatureModels(array $map): void
+    {
+        $clean = [];
+        foreach (self::FEATURES as $f) {
+            if (array_key_exists($f, $map) && is_string($map[$f]) && $map[$f] !== '') {
+                $clean[$f] = trim($map[$f]);
+            }
+        }
+        AppSetting::put(self::KEY_FEATURE_MODELS, $clean);
+    }
+
+    /**
+     * Diagnose a feature → model mapping for the admin UI.
+     *
+     * Returns ['ok'=>bool,'level'=>'ok|warn|error','message'=>?string].
+     * Warns when the model is unknown, disabled, or not a chat model.
+     *
+     * @return array{ok:bool,level:string,message:?string}
+     */
+    public static function featureModelStatus(string $feature): array
+    {
+        $name = self::featureModel($feature);
+        $cfg  = self::model($name);
+        if (!$cfg) {
+            return ['ok' => false, 'level' => 'error',
+                'message' => "Model \"{$name}\" is not in the models table — calls will fail."];
+        }
+        if (!$cfg['enabled']) {
+            return ['ok' => false, 'level' => 'error',
+                'message' => "Model \"{$name}\" is disabled — enable it above or pick another."];
+        }
+        if ($cfg['kind'] !== 'chat') {
+            return ['ok' => false, 'level' => 'error',
+                'message' => "Model \"{$name}\" is configured as {$cfg['kind']}, not chat."];
+        }
+        return ['ok' => true, 'level' => 'ok', 'message' => null];
     }
 }

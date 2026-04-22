@@ -24,9 +24,6 @@ use Illuminate\Support\Facades\Log;
  */
 class MindController extends Controller
 {
-    /** Cheapest enabled chat model — keeps per-call cost predictable. */
-    protected const MODEL = 'gpt-4o-mini';
-
     public function __construct(
         protected OpenAiService $ai,
         protected AiCreditService $credits,
@@ -59,7 +56,7 @@ class MindController extends Controller
         ];
 
         try {
-            $out = $this->ai->chat($request->user(), self::MODEL, $messages, [
+            $out = $this->ai->chat($request->user(), AiEngineSettings::featureModel('mind'), $messages, [
                 'feature'     => 'mind',
                 'temperature' => 0.4,
                 'max_tokens'  => 600,

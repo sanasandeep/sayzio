@@ -22,8 +22,6 @@ use Illuminate\Support\Facades\Log;
  */
 class CoachController extends Controller
 {
-    protected const MODEL = 'gpt-4o-mini';
-
     public function __construct(
         protected OpenAiService $ai,
         protected AiCreditService $credits,
@@ -89,7 +87,7 @@ class CoachController extends Controller
         ];
 
         try {
-            $out = $this->ai->chat($request->user(), self::MODEL, $messages, [
+            $out = $this->ai->chat($request->user(), AiEngineSettings::featureModel('coach'), $messages, [
                 'feature'     => 'coach.suggest',
                 'related_id'  => $link->id,
                 'temperature' => 0.5,
