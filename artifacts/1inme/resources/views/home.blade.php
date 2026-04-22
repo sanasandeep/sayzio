@@ -4495,10 +4495,10 @@
 @endif
 
 {{-- ============================ HOW WE COMPARE ============================ --}}
+@include('public.partials._compare', ['compact' => true])
 @php
-    // Static marketing matrix. Kept inline (no DB / controller change) per task spec.
-    // Competitor names are intentionally generic categories of well-known
-    // bio-link tools so we never make a price claim against a specific brand.
+    // Legacy inline arrays kept commented out — replaced by shared partial above.
+    /*
     $__cmpCompetitors = [
         ['key' => 'ours',     'name' => '1INME',         'badge' => 'Better deal',           'isOurs' => true],
         ['key' => 'linktree', 'name' => 'Linktree',      'badge' => 'Half the cost',         'isOurs' => false],
@@ -4518,8 +4518,10 @@
         ['Scheduled posts',           ['ours' => true, 'linktree' => false, 'bitly' => false, 'beacons' => true]],
         ['Custom domains',            ['ours' => true, 'linktree' => true,  'bitly' => true,  'beacons' => true]],
     ];
+    */
 @endphp
-<section id="compare" class="py-20 lg:py-28 relative overflow-hidden">
+@if(false)
+<section id="compare-legacy" class="py-20 lg:py-28 relative overflow-hidden">
     <div class="mesh-bg" aria-hidden="true"></div>
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-12 max-w-2xl mx-auto">
@@ -4642,6 +4644,7 @@
         <p data-anim="fade-up" class="text-center text-xs text-gray-500 mt-6">Comparison reflects publicly listed feature sets at the time of writing. We never quote a competitor's price.</p>
     </div>
 </section>
+@endif
 
 {{-- ============================ PRICING ============================ --}}
 <section id="pricing" class="py-24 lg:py-32 relative overflow-hidden">

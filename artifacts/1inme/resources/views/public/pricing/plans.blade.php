@@ -273,4 +273,7 @@
         </div>
     </div>
 </section>
+
+{{-- ============================ FULL FEATURE COMPARISON ============================ --}}
+@include('public.partials._compare', ['compact' => false, 'anchorId' => 'compare'])
 @endsection
