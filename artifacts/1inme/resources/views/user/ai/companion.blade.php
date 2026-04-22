@@ -115,7 +115,7 @@
                             <div class="flex {{ $turn['role'] === 'user' ? 'justify-end' : 'justify-start' }}">
                                 <div class="max-w-[80%] rounded-2xl px-4 py-2 text-sm
                                     {{ $turn['role'] === 'user' ? 'bg-violet-600 text-white' : 'bg-white/10 text-white/90' }}">
-                                    <pre class="whitespace-pre-wrap font-sans">{{ $turn['content'] }}</pre>
+                                    <pre class="whitespace-pre-wrap font-sans">@if(!empty($turn['html'])){!! $turn['html'] !!}@else{{ $turn['content'] }}@endif</pre>
                                     @if(($turn['role'] ?? null) === 'assistant' && !empty($turn['meta']['credits_spent']))
                                         <p class="text-[10px] text-white/40 mt-1">{{ number_format($turn['meta']['credits_spent']) }} ✦</p>
                                     @endif
@@ -136,6 +136,17 @@
                     </button>
                 </form>
                 @error('message')<p class="text-xs text-red-300 mt-1">{{ $message }}</p>@enderror
+
+                @if($search !== '')
+                    <script>
+                        (function () {
+                            var first = document.getElementById('companion-first-match');
+                            if (first && typeof first.scrollIntoView === 'function') {
+                                first.scrollIntoView({ block: 'center' });
+                            }
+                        })();
+                    </script>
+                @endif
             @else
                 <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-10 text-center">
                     <p class="text-white/60 text-sm">Start a new conversation to chat with Companion.</p>

@@ -130,12 +130,30 @@ class CompanionController extends Controller
             $active = $threads->first();
         }
 
+        // When a search term is in play we also pre-render a highlighted
+        // copy of each message body so the open thread shows users *where*
+        // the term appears, not just that the thread matched. The first
+        // <mark> in the transcript gets an anchor id so the view can
+        // scroll it into view on load.
+        $firstMarkAssigned = false;
         $history = $active
-            ? $active->messages()->get()->map(fn($m) => [
-                'role'    => $m->role,
-                'content' => $m->content,
-                'meta'    => $m->meta ?? [],
-            ])->all()
+            ? $active->messages()->get()->map(function ($m) use ($search, &$firstMarkAssigned) {
+                $row = [
+                    'role'    => $m->role,
+                    'content' => $m->content,
+                    'meta'    => $m->meta ?? [],
+                    'html'    => null,
+                ];
+                if ($search !== '' && mb_stripos((string) $m->content, $search) !== false) {
+                    $html = $this->highlight((string) $m->content, $search);
+                    if (!$firstMarkAssigned) {
+                        $html = preg_replace('/<mark /', '<mark id="companion-first-match" ', $html, 1);
+                        $firstMarkAssigned = true;
+                    }
+                    $row['html'] = $html;
+                }
+                return $row;
+            })->all()
             : [];
 
         return view('user.ai.companion', [
