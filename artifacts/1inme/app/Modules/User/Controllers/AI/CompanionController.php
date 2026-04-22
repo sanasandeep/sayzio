@@ -55,6 +55,7 @@ class CompanionController extends Controller
 
         $threadsQuery = $this->threadQuery($user->id, $wsId);
         $snippets = [];
+        $titles = [];
 
         if ($search !== '') {
             // Escape LIKE wildcards so a stray % or _ in the query doesn't
@@ -106,8 +107,13 @@ class CompanionController extends Controller
                 ->get(['thread_id', 'content']);
             foreach ($matches as $m) {
                 if (!isset($snippets[$m->thread_id])) {
-                    $snippets[$m->thread_id] = $this->snippet($m->content, $search);
+                    $snippets[$m->thread_id] = $this->highlight(
+                        $this->snippet($m->content, $search), $search
+                    );
                 }
+            }
+            foreach ($threads as $t) {
+                $titles[$t->id] = $this->highlight((string) $t->title, $search);
             }
         }
 
@@ -137,6 +143,7 @@ class CompanionController extends Controller
             'history'  => $history,
             'search'   => $search,
             'snippets' => $snippets,
+            'titles'   => $titles,
         ]);
     }
 
@@ -157,6 +164,23 @@ class CompanionController extends Controller
         if ($start > 0)                               $slice = '…' . $slice;
         if ($start + $len < mb_strlen($clean))        $slice = $slice . '…';
         return $slice;
+    }
+
+    /** Wrap every (case-insensitive) occurrence of $term in <mark>, after
+     *  HTML-escaping both the haystack and the needle so a hostile thread
+     *  title or message can't inject markup. The returned string is safe
+     *  to print with {!! !!} in Blade. */
+    protected function highlight(string $text, string $term): string
+    {
+        $escaped = e($text);
+        if ($term === '') return $escaped;
+        $pattern = '/' . preg_quote(e($term), '/') . '/iu';
+        $result = preg_replace_callback(
+            $pattern,
+            fn($m) => '<mark class="bg-yellow-300/30 text-white rounded px-0.5">' . $m[0] . '</mark>',
+            $escaped
+        );
+        return $result ?? $escaped;
     }
 
     /** Create a new (empty) thread and redirect to it. */

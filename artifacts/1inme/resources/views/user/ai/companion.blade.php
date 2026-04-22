@@ -48,9 +48,9 @@
                             <a href="{{ route('user.ai.companion.thread', $t->id) }}{{ $search !== '' ? '?q=' . urlencode($search) : '' }}"
                                class="block px-3 py-2 rounded-xl text-sm
                                       {{ $isActive ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/[0.06]' }}">
-                                <span class="block truncate">{{ $t->title }}</span>
+                                <span class="block truncate">{!! $titles[$t->id] ?? e($t->title) !!}</span>
                                 @if(!empty($snippets[$t->id]))
-                                    <span class="block text-[11px] text-white/50 mt-0.5 line-clamp-2">{{ $snippets[$t->id] }}</span>
+                                    <span class="block text-[11px] text-white/50 mt-0.5 line-clamp-2">{!! $snippets[$t->id] !!}</span>
                                 @endif
                                 @if($t->last_message_at)
                                     <span class="block text-[10px] text-white/30 mt-0.5">{{ $t->last_message_at->diffForHumans() }}</span>
