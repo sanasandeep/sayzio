@@ -214,6 +214,27 @@ class LinkController extends Controller
             $validated['alias'] = Link::generateAlias();
         }
 
+        // Per-link advanced setting gates — surfaced inline so the user sees
+        // the upgrade nudge instead of a silent feature drop. We also check
+        // protection-and-scheduling fields here (consumed later by
+        // applyProtectionScheduling) so a downgraded plan cannot bypass.
+        $owner = workspace_owner();
+        $expMode = $request->input('_exp_mode', 'none');
+        $gateMap = [
+            'password'         => !empty($validated['password']),
+            'expiry'           => !empty($validated['expires_at']) || !empty($validated['expiry_url']) || !empty($validated['expire_on_first_click']) || !empty($validated['max_clicks']) || ($expMode !== 'none' && $expMode !== ''),
+            'geo_targeting'    => !empty($validated['country_restrictions']) || $request->filled('country_blocklist'),
+            'device_targeting' => !empty($validated['device_targeting']),
+            'deep_link'        => array_key_exists('open_in_app', $validated) && $request->boolean('open_in_app'),
+            'smart_rules'      => !empty($validated['smart_rules_json']),
+            'active_window'    => !empty($validated['start_at']) || $request->boolean('active_window_enabled'),
+        ];
+        foreach ($gateMap as $setting => $requested) {
+            if ($requested && !$owner->userCanUseLinkSetting($setting)) {
+                return back()->withInput()->with('error', 'The "' . str_replace('_', ' ', $setting) . '" link setting isn\'t available on your current plan. Upgrade to enable it.');
+            }
+        }
+
         if (!empty($validated['password'])) {
             $validated['password'] = Hash::make($validated['password']);
             $validated['is_password_protected'] = true;
@@ -246,11 +267,17 @@ class LinkController extends Controller
         if (!empty($validated['start_at']))       $settings['start_at']   = $validated['start_at'];
         if (!empty($validated['expire_on_first_click'])) $settings['expire_on_first_click'] = true;
         // Default `open_in_app` to true for url-type links so app opening
-        // is on by default — users can disable it per-link.
+        // is on by default — users can disable it per-link. The default
+        // must respect the plan gate: if the user's plan disallows the
+        // deep-link feature, force it off rather than silently enabling
+        // a paid capability when the field is omitted.
         if (($validated['type'] ?? null) === 'url') {
-            $settings['open_in_app'] = $request->has('open_in_app')
-                ? $request->boolean('open_in_app')
-                : true;
+            $deepLinkAllowed = $owner->userCanUseLinkSetting('deep_link');
+            if ($request->has('open_in_app')) {
+                $settings['open_in_app'] = $deepLinkAllowed && $request->boolean('open_in_app');
+            } else {
+                $settings['open_in_app'] = $deepLinkAllowed;
+            }
         }
         // Smart redirect rules — supported on every link type. For non-url
         // types a matched rule overrides the normal landing/file behavior
@@ -1937,6 +1964,29 @@ class LinkController extends Controller
             'smart_rules_json' => 'nullable|string|max:20000',
         ]);
 
+        // Per-link advanced setting gates (update path). The protection /
+        // scheduling fields are processed later by applyProtectionScheduling
+        // — gate them here so a downgraded user cannot bypass via update.
+        $owner = workspace_owner();
+        $expMode = $request->input('_exp_mode', 'none');
+        $expiryRequested = $expMode !== 'none' && $expMode !== '';
+        $activeWindowRequested = $request->boolean('active_window_enabled');
+        $countryBlocklistRequested = $request->filled('country_blocklist');
+        $gateMap = [
+            'password'         => !empty($validated['password']),
+            'geo_targeting'    => !empty($validated['country_restrictions']) || $countryBlocklistRequested,
+            'device_targeting' => !empty($validated['device_targeting']),
+            'deep_link'        => array_key_exists('open_in_app', $validated) && $request->boolean('open_in_app'),
+            'smart_rules'      => !empty($validated['smart_rules_json']),
+            'expiry'           => $expiryRequested,
+            'active_window'    => $activeWindowRequested,
+        ];
+        foreach ($gateMap as $setting => $requested) {
+            if ($requested && !$owner->userCanUseLinkSetting($setting)) {
+                return back()->withInput()->with('error', 'The "' . str_replace('_', ' ', $setting) . '" link setting isn\'t available on your current plan. Upgrade to enable it.');
+            }
+        }
+
         if (!empty($validated['password'])) {
             $validated['password'] = Hash::make($validated['password']);
             $validated['is_password_protected'] = true;
@@ -1987,7 +2037,10 @@ class LinkController extends Controller
         // always submits a hidden `open_in_app=0` plus the checkbox so
         // unchecking really clears it.
         if ($link->type === 'url' && $request->has('open_in_app')) {
-            $settings['open_in_app'] = $request->boolean('open_in_app');
+            // Respect the plan gate: a downgraded plan cannot enable the
+            // deep-link feature even if the form posts open_in_app=1.
+            $settings['open_in_app'] = $owner->userCanUseLinkSetting('deep_link')
+                && $request->boolean('open_in_app');
         }
 
         // Engagement preview-page toggle (url/ics/vcf).

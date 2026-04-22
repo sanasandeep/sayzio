@@ -2,6 +2,7 @@
 @section('title', 'Intros')
 
 @section('content')
+@include('user.partials._plan_lock', ['feature' => 'splash_pages', 'kind' => 'flag', 'label' => 'Splash pages'])
 @php
     $__user = auth()->user();
     $__ws = app()->bound('current_workspace') ? app('current_workspace') : null;

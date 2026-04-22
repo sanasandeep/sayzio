@@ -367,6 +367,93 @@ class User extends Authenticatable
     }
 
     /**
+     * Boolean feature flag check that respects super-admin bypass.
+     */
+    public function planFeatureEnabled(string $key): bool
+    {
+        return (bool) $this->getPlanFeature($key, false);
+    }
+
+    /**
+     * True when the current count is below (or at) the plan's max for $key.
+     * -1 means unlimited; super_admin bypass already returns PHP_INT_MAX.
+     */
+    public function planUnderLimit(string $key, int $currentCount, int $default = 0): bool
+    {
+        $max = (int) $this->getPlanFeature($key, $default);
+        if ($max === -1) return true;
+        if ($this->isSuperAdmin()) return true;
+        return $currentCount < $max;
+    }
+
+    /**
+     * True when the user's plan permits a given biolink block type.
+     * `block_types_allowed` may be `'*'` (all), or an array of block-type
+     * slugs. Empty / missing entry means "all allowed" (legacy behavior).
+     */
+    public function userCanUseBlockType(string $slug): bool
+    {
+        if ($this->isSuperAdmin()) return true;
+        $allowed = $this->getPlanFeature('block_types_allowed', '*');
+        if ($allowed === '*' || $allowed === null || $allowed === '') return true;
+        if (!is_array($allowed)) return true;
+        return in_array($slug, $allowed, true);
+    }
+
+    /**
+     * True when the user's plan permits a given per-link advanced setting.
+     * Mapping is centralized so controllers/middleware stay consistent.
+     */
+    public function userCanUseLinkSetting(string $setting): bool
+    {
+        if ($this->isSuperAdmin()) return true;
+        $key = match ($setting) {
+            'password'         => 'link_password',
+            'expiry'           => 'link_expiry',
+            'geo_targeting'    => 'link_geo_targeting',
+            'device_targeting' => 'link_device_targeting',
+            'deep_link'        => 'link_deep_link',
+            'smart_rules'      => 'link_smart_rules',
+            'active_window'    => 'link_active_window',
+            default            => null,
+        };
+        if ($key === null) return true;
+        return (bool) $this->getPlanFeature($key, false);
+    }
+
+    /**
+     * Returns the cheapest active plan that unlocks $key, or null when no
+     * plan unlocks it. Used by the lock-banner partial and middleware to
+     * surface a concrete "Upgrade to <plan>" message instead of a generic
+     * one.  Boolean keys: any truthy value qualifies.  Numeric "max_*"
+     * keys: the plan must allow strictly more than the user's current
+     * effective cap (a -1 / "unlimited" plan always qualifies).
+     */
+    public function planThatUnlocks(string $key, $current = null)
+    {
+        $plans = \App\Modules\Admin\Models\Plan::where('status', 'active')
+            ->orderBy('monthly_price')->get();
+        $isNumeric = str_starts_with($key, 'max_') || $key === 'storage_limit_mb' || $key === 'contacts_max';
+        // Compare against the user's CURRENT PLAN CAP (not the usage count)
+        // so the suggested plan is the one that meaningfully raises the
+        // limit. If the caller passed $current and it's higher than the cap
+        // (i.e. they've blown past it), use that as the floor instead.
+        $currentCap = (int) $this->getPlanFeature($key, 0);
+        $floor = is_numeric($current ?? null) ? max($currentCap, (int) $current) : $currentCap;
+        foreach ($plans as $p) {
+            $val = ($p->features[$key] ?? null);
+            if ($isNumeric) {
+                $vNum = (int) $val;
+                if ($vNum === -1) return $p;
+                if ($vNum > $floor) return $p;
+            } else {
+                if (!empty($val)) return $p;
+            }
+        }
+        return null;
+    }
+
+    /**
      * Min/max custom-alias length permitted for this user's plan. Admins
      * configure these per plan; sane defaults apply for users on the free /
      * unconfigured tier so link creation always works.

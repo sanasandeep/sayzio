@@ -71,11 +71,50 @@
                 @php $features = $plan->features ?? []; @endphp
                 @if(!empty($features))
                 <ul class="mt-4 space-y-1.5 text-sm text-white/70 flex-grow">
-                    @foreach(['max_links' => 'links', 'max_biolinks' => 'bio pages', 'max_projects' => 'projects', 'storage_limit_mb' => 'MB storage', 'contacts_max' => 'contacts', 'max_workspaces' => 'team workspaces', 'max_seats_per_workspace' => 'seats per workspace'] as $key => $label)
-                        @if(isset($features[$key]))
+                    @foreach([
+                        'max_links' => 'links',
+                        'max_biolinks' => 'bio pages',
+                        'max_projects' => 'projects',
+                        'storage_limit_mb' => 'MB storage',
+                        'contacts_max' => 'contacts',
+                        'max_forms' => 'forms',
+                        'max_buzz_items' => 'buzz popups',
+                        'max_splash_pages' => 'splash pages',
+                        'max_files' => 'files',
+                        'max_vault_items' => 'vault items',
+                        'max_task_boards' => 'task boards',
+                        'max_leads' => 'leads',
+                        'max_events' => 'events',
+                        'max_workspaces' => 'team workspaces',
+                        'max_seats_per_workspace' => 'seats per workspace',
+                    ] as $key => $label)
+                        @if(isset($features[$key]) && (int) $features[$key] !== 0)
                             <li class="flex items-start gap-2"><span class="text-violet-400">•</span><span>{{ $features[$key] == -1 ? 'Unlimited' : number_format((int)$features[$key]) }} {{ $label }}</span></li>
                         @endif
                     @endforeach
+                    @php
+                        $boolFeatures = [
+                            'calendar_sync'           => 'Calendar sync',
+                            'verification_eligible'   => 'Verified badge eligibility',
+                            'creator_profile_public'  => 'Public creator profile',
+                            'link_password'           => 'Password-protected links',
+                            'link_expiry'             => 'Link expiry & active windows',
+                            'link_geo_targeting'      => 'Geo targeting per link',
+                            'link_device_targeting'   => 'Device targeting per link',
+                            'link_deep_link'          => 'Deep-link / open-in-app',
+                            'link_smart_rules'        => 'Smart redirect rules',
+                        ];
+                    @endphp
+                    @foreach($boolFeatures as $key => $label)
+                        @if(!empty($features[$key]))
+                            <li class="flex items-start gap-2"><span class="text-emerald-400">✓</span><span>{{ $label }}</span></li>
+                        @endif
+                    @endforeach
+                    @if(($features['block_types_allowed'] ?? null) === '*')
+                        <li class="flex items-start gap-2"><span class="text-emerald-400">✓</span><span>All biolink block types</span></li>
+                    @elseif(is_array($features['block_types_allowed'] ?? null))
+                        <li class="flex items-start gap-2"><span class="text-violet-400">•</span><span>{{ count($features['block_types_allowed']) }} biolink block types</span></li>
+                    @endif
                 </ul>
                 @endif
 

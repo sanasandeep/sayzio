@@ -684,20 +684,37 @@ $catColors = [
                     {{-- BLOCKS GRID --}}
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-2" x-show="galleryMode === 'blocks'">
                         @foreach($blockTypes as $typeKey => $typeInfo)
-                        @php $catColor = $catColors[$typeInfo['category']] ?? '#8b5cf6'; @endphp
+                        @php
+                            $catColor = $catColors[$typeInfo['category']] ?? '#8b5cf6';
+                            $blockLocked = !auth()->user()->userCanUseBlockType($typeKey);
+                        @endphp
                         <div x-show="(galleryCategory === 'all' || galleryCategory === '{{ $typeInfo['category'] }}') && (gallerySearch === '' || '{{ strtolower($typeInfo['label']) }}'.includes(gallerySearch.toLowerCase())) && !(_cardGalleryParentId && '{{ $typeKey }}' === 'card') && '{{ $typeInfo['category'] }}' !== 'verified'"
                              x-cloak>
-                            <button type="button" class="gallery-block-card" onclick="ajaxAddBlock('{{ $typeKey }}', '{{ route('user.links.blocks.store', $link) }}', _cardGalleryParentId)">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background: {{ $catColor }}15; border: 1px solid {{ $catColor }}25;">
-                                        <i class="fas {{ $typeInfo['icon'] }} text-sm" style="color: {{ $catColor }};"></i>
+                            @if($blockLocked)
+                                <a href="{{ route('user.upgrade') }}" class="gallery-block-card opacity-60 cursor-pointer block" title="Upgrade your plan to unlock this block">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background: {{ $catColor }}15; border: 1px solid {{ $catColor }}25;">
+                                            <i class="fas fa-lock text-sm" style="color: {{ $catColor }};"></i>
+                                        </div>
+                                        <div class="min-w-0">
+                                            <div class="text-xs font-semibold truncate" style="color: var(--text-primary);">{{ $typeInfo['label'] }}</div>
+                                            <div class="text-[10px] truncate text-violet-400">Upgrade to unlock</div>
+                                        </div>
                                     </div>
-                                    <div class="min-w-0">
-                                        <div class="text-xs font-semibold truncate" style="color: var(--text-primary);">{{ $typeInfo['label'] }}</div>
-                                        <div class="text-[10px] truncate" style="color: var(--text-faint);">{{ ucfirst(str_replace('_', ' ', $typeInfo['category'])) }}</div>
+                                </a>
+                            @else
+                                <button type="button" class="gallery-block-card" onclick="ajaxAddBlock('{{ $typeKey }}', '{{ route('user.links.blocks.store', $link) }}', _cardGalleryParentId)">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background: {{ $catColor }}15; border: 1px solid {{ $catColor }}25;">
+                                            <i class="fas {{ $typeInfo['icon'] }} text-sm" style="color: {{ $catColor }};"></i>
+                                        </div>
+                                        <div class="min-w-0">
+                                            <div class="text-xs font-semibold truncate" style="color: var(--text-primary);">{{ $typeInfo['label'] }}</div>
+                                            <div class="text-[10px] truncate" style="color: var(--text-faint);">{{ ucfirst(str_replace('_', ' ', $typeInfo['category'])) }}</div>
+                                        </div>
                                     </div>
-                                </div>
-                            </button>
+                                </button>
+                            @endif
                         </div>
                         @endforeach
                     </div>

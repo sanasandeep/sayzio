@@ -28,7 +28,21 @@ class PlansAndAddonsSeeder extends Seeder
                 // We deliberately do NOT overwrite curator edits.
                 $patch = [];
                 if (empty($existing->description)) $patch['description'] = $def['description'];
-                if (empty($existing->features))    $patch['features']    = $def['features'];
+                if (empty($existing->features)) {
+                    $patch['features'] = $def['features'];
+                } else {
+                    // Overlay-only: add new feature keys that aren't already
+                    // set by the curator. Existing keys are never overwritten.
+                    $merged = $existing->features;
+                    $changed = false;
+                    foreach ($def['features'] as $k => $v) {
+                        if (!array_key_exists($k, $merged)) {
+                            $merged[$k] = $v;
+                            $changed = true;
+                        }
+                    }
+                    if ($changed) $patch['features'] = $merged;
+                }
                 if ($existing->metadata === null)  $patch['metadata']    = $def['metadata'];
                 if ($patch) {
                     $existing->fill($patch)->save();
@@ -161,6 +175,33 @@ class PlansAndAddonsSeeder extends Seeder
                     'teams' => false,
                     'ecommerce' => false,
                     'custom_forms' => false,
+                    // New feature gates (Free tier)
+                    'block_types_allowed' => ['heading', 'paragraph', 'avatar', 'link_button', 'social_icons', 'spacer', 'divider'],
+                    'max_forms' => 1,
+                    'buzz_popups' => false,
+                    'max_buzz_items' => 0,
+                    'splash_pages' => false,
+                    'max_splash_pages' => 0,
+                    'files' => true,
+                    'max_files' => 25,
+                    'vaults' => false,
+                    'max_vault_items' => 0,
+                    'tasks' => true,
+                    'max_task_boards' => 1,
+                    'leads' => false,
+                    'max_leads' => 0,
+                    'creator_profile_public' => false,
+                    'events' => false,
+                    'max_events' => 0,
+                    'calendar_sync' => false,
+                    'verification_eligible' => false,
+                    'link_password' => false,
+                    'link_expiry' => false,
+                    'link_geo_targeting' => false,
+                    'link_device_targeting' => false,
+                    'link_deep_link' => false,
+                    'link_smart_rules' => false,
+                    'link_active_window' => false,
                 ],
             ],
             [
@@ -193,6 +234,33 @@ class PlansAndAddonsSeeder extends Seeder
                     'teams' => false,
                     'ecommerce' => false,
                     'custom_forms' => false,
+                    // New feature gates (Starter tier)
+                    'block_types_allowed' => ['heading', 'paragraph', 'avatar', 'link_button', 'social_icons', 'spacer', 'divider', 'image', 'video', 'card', 'badge', 'youtube', 'tiktok', 'instagram', 'twitter', 'spotify', 'soundcloud'],
+                    'max_forms' => 5,
+                    'buzz_popups' => false,
+                    'max_buzz_items' => 0,
+                    'splash_pages' => true,
+                    'max_splash_pages' => 3,
+                    'files' => true,
+                    'max_files' => 100,
+                    'vaults' => false,
+                    'max_vault_items' => 0,
+                    'tasks' => true,
+                    'max_task_boards' => 3,
+                    'leads' => true,
+                    'max_leads' => 500,
+                    'creator_profile_public' => true,
+                    'events' => true,
+                    'max_events' => 5,
+                    'calendar_sync' => false,
+                    'verification_eligible' => false,
+                    'link_password' => true,
+                    'link_expiry' => true,
+                    'link_geo_targeting' => false,
+                    'link_device_targeting' => false,
+                    'link_deep_link' => false,
+                    'link_smart_rules' => false,
+                    'link_active_window' => true,
                 ],
             ],
             [
@@ -226,6 +294,33 @@ class PlansAndAddonsSeeder extends Seeder
                     'teams' => true,
                     'ecommerce' => false,
                     'custom_forms' => true,
+                    // New feature gates (Pro tier)
+                    'block_types_allowed' => '*',
+                    'max_forms' => 25,
+                    'buzz_popups' => true,
+                    'max_buzz_items' => 10,
+                    'splash_pages' => true,
+                    'max_splash_pages' => 25,
+                    'files' => true,
+                    'max_files' => 1000,
+                    'vaults' => true,
+                    'max_vault_items' => 100,
+                    'tasks' => true,
+                    'max_task_boards' => 25,
+                    'leads' => true,
+                    'max_leads' => 5000,
+                    'creator_profile_public' => true,
+                    'events' => true,
+                    'max_events' => 50,
+                    'calendar_sync' => true,
+                    'verification_eligible' => true,
+                    'link_password' => true,
+                    'link_expiry' => true,
+                    'link_geo_targeting' => true,
+                    'link_device_targeting' => true,
+                    'link_deep_link' => true,
+                    'link_smart_rules' => false,
+                    'link_active_window' => true,
                 ],
             ],
             [
@@ -258,6 +353,33 @@ class PlansAndAddonsSeeder extends Seeder
                     'teams' => true,
                     'ecommerce' => true,
                     'custom_forms' => true,
+                    // New feature gates (Business tier)
+                    'block_types_allowed' => '*',
+                    'max_forms' => -1,
+                    'buzz_popups' => true,
+                    'max_buzz_items' => 100,
+                    'splash_pages' => true,
+                    'max_splash_pages' => -1,
+                    'files' => true,
+                    'max_files' => -1,
+                    'vaults' => true,
+                    'max_vault_items' => 1000,
+                    'tasks' => true,
+                    'max_task_boards' => -1,
+                    'leads' => true,
+                    'max_leads' => -1,
+                    'creator_profile_public' => true,
+                    'events' => true,
+                    'max_events' => -1,
+                    'calendar_sync' => true,
+                    'verification_eligible' => true,
+                    'link_password' => true,
+                    'link_expiry' => true,
+                    'link_geo_targeting' => true,
+                    'link_device_targeting' => true,
+                    'link_deep_link' => true,
+                    'link_smart_rules' => true,
+                    'link_active_window' => true,
                 ],
             ],
             [
@@ -293,6 +415,33 @@ class PlansAndAddonsSeeder extends Seeder
                     'custom_branding' => true,
                     'custom_favicon' => true,
                     'custom_code' => true,
+                    // New feature gates (Enterprise tier)
+                    'block_types_allowed' => '*',
+                    'max_forms' => -1,
+                    'buzz_popups' => true,
+                    'max_buzz_items' => -1,
+                    'splash_pages' => true,
+                    'max_splash_pages' => -1,
+                    'files' => true,
+                    'max_files' => -1,
+                    'vaults' => true,
+                    'max_vault_items' => -1,
+                    'tasks' => true,
+                    'max_task_boards' => -1,
+                    'leads' => true,
+                    'max_leads' => -1,
+                    'creator_profile_public' => true,
+                    'events' => true,
+                    'max_events' => -1,
+                    'calendar_sync' => true,
+                    'verification_eligible' => true,
+                    'link_password' => true,
+                    'link_expiry' => true,
+                    'link_geo_targeting' => true,
+                    'link_device_targeting' => true,
+                    'link_deep_link' => true,
+                    'link_smart_rules' => true,
+                    'link_active_window' => true,
                 ],
             ],
         ];

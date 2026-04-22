@@ -165,7 +165,21 @@
 
                     @if(!empty($features))
                     <ul class="mt-4 space-y-1.5 text-sm text-gray-200 flex-grow">
-                        @foreach(['max_links' => 'links', 'max_biolinks' => 'bio pages', 'max_projects' => 'projects', 'storage_limit_mb' => 'MB storage', 'contacts_max' => 'contacts'] as $key => $label)
+                        @foreach([
+                            'max_links' => 'links',
+                            'max_biolinks' => 'bio pages',
+                            'max_projects' => 'projects',
+                            'storage_limit_mb' => 'MB storage',
+                            'contacts_max' => 'contacts',
+                            'max_forms' => 'forms',
+                            'max_files' => 'files',
+                            'max_vault_items' => 'vault items',
+                            'max_task_boards' => 'task boards',
+                            'max_leads' => 'leads',
+                            'max_events' => 'events',
+                            'max_buzz_items' => 'buzz popups',
+                            'max_splash_pages' => 'splash pages',
+                        ] as $key => $label)
                             @if(isset($features[$key]))
                                 <li class="flex items-start gap-2">
                                     <i class="fas fa-check-circle text-violet-400 text-xs mt-1"></i>
@@ -173,6 +187,36 @@
                                 </li>
                             @endif
                         @endforeach
+                        @foreach([
+                            'creator_profile_public' => 'Public creator profile',
+                            'calendar_sync' => 'Calendar sync',
+                            'verification_eligible' => 'Verified-creator eligible',
+                            'link_password' => 'Password-protected links',
+                            'link_expiry' => 'Link expiry',
+                            'link_geo_targeting' => 'Geo targeting',
+                            'link_device_targeting' => 'Device targeting',
+                            'link_deep_link' => 'Deep links',
+                            'link_smart_rules' => 'Smart redirect rules',
+                            'link_active_window' => 'Active-window scheduling',
+                        ] as $key => $label)
+                            @if(!empty($features[$key]))
+                                <li class="flex items-start gap-2">
+                                    <i class="fas fa-check-circle text-violet-400 text-xs mt-1"></i>
+                                    <span>{{ $label }}</span>
+                                </li>
+                            @endif
+                        @endforeach
+                        @if(!empty($features['block_types_allowed']) && $features['block_types_allowed'] !== '*' && is_array($features['block_types_allowed']))
+                            <li class="flex items-start gap-2">
+                                <i class="fas fa-check-circle text-violet-400 text-xs mt-1"></i>
+                                <span>{{ count($features['block_types_allowed']) }} biolink block types</span>
+                            </li>
+                        @elseif(($features['block_types_allowed'] ?? null) === '*')
+                            <li class="flex items-start gap-2">
+                                <i class="fas fa-check-circle text-violet-400 text-xs mt-1"></i>
+                                <span>All biolink block types</span>
+                            </li>
+                        @endif
                     </ul>
                     @endif
 

@@ -3,6 +3,7 @@
 @section('title', 'Contacts')
 
 @section('content')
+@include('user.partials._plan_lock', ['feature' => 'leads', 'kind' => 'flag', 'label' => 'Leads capture'])
 <div class="max-w-7xl mx-auto">
     @include('user.partials.page-hero', [
         'title' => 'Contacts',

@@ -90,6 +90,16 @@ class BiolinkBlockController extends Controller
             'insert_after' => 'nullable|integer|exists:biolink_blocks,id',
         ]);
 
+        // Plan gating: block_types_allowed restricts the catalog of block
+        // slugs a non-super-admin can add. '*' or missing entry = all.
+        if (!workspace_owner()->userCanUseBlockType($validated['type'])) {
+            $message = "The '" . ($validated['type']) . "' block isn't available on your current plan. Upgrade to unlock it.";
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'error' => $message], 403);
+            }
+            return back()->with('error', $message);
+        }
+
         $parentId = $validated['parent_id'] ?? null;
         $insertAfterId = $validated['insert_after'] ?? null;
 

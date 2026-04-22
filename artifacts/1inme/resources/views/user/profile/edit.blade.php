@@ -187,9 +187,16 @@
                             @if($user->avatar)<img src="{{ $user->avatar }}" class="w-16 h-16 rounded-full mb-2 object-cover"/>@endif
                             <input type="file" name="avatar" accept="image/*" class="text-white/70 text-sm"/>
                         </div>
-                        <label class="flex items-center gap-2 text-sm text-white/70">
-                            <input type="checkbox" name="discoverable" value="1" {{ $user->discoverable ? 'checked' : '' }} class="w-4 h-4">
+                        @php $canPublicProfile = $user->planFeatureEnabled('creator_profile_public'); @endphp
+                        <label class="flex items-center gap-2 text-sm {{ $canPublicProfile ? 'text-white/70' : 'text-white/40' }}">
+                            <input type="checkbox" name="discoverable" value="1"
+                                {{ $user->discoverable ? 'checked' : '' }}
+                                @if(!$canPublicProfile) disabled @endif
+                                class="w-4 h-4">
                             Show me in the public Creators directory at /creators
+                            @if(!$canPublicProfile)
+                                <a href="{{ route('user.upgrade') }}" class="ml-1 text-[11px] uppercase tracking-wider text-violet-400 hover:underline">Upgrade to unlock</a>
+                            @endif
                         </label>
                         <label class="flex items-center gap-2 text-sm text-white/70">
                             <input type="checkbox" name="allow_followers" value="1" {{ ($user->allow_followers ?? true) ? 'checked' : '' }} class="w-4 h-4">

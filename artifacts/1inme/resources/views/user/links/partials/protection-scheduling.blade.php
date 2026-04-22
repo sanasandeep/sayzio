@@ -19,6 +19,11 @@
       active_window_days[]     mon|tue|wed|thu|fri|sat|sun
       country_blocklist        comma-separated ISO codes (e.g. "RU,KP")
 --}}
+@auth
+    @include('user.partials._plan_lock', ['feature' => 'link_expiry', 'kind' => 'flag', 'label' => 'Link expiry'])
+    @include('user.partials._plan_lock', ['feature' => 'link_active_window', 'kind' => 'flag', 'label' => 'Active-window scheduling'])
+    @include('user.partials._plan_lock', ['feature' => 'link_geo_targeting', 'kind' => 'flag', 'label' => 'Geo targeting'])
+@endauth
 @php
     $s_ps          = (array) ($link->settings ?? []);
     $tz_ps         = $s_ps['timezone'] ?? 'UTC';

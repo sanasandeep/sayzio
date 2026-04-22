@@ -1,6 +1,7 @@
 @extends('user.layouts.app')
 @section('title', 'Tasks')
 @section('content')
+@include('user.partials._plan_lock', ['feature' => 'tasks', 'kind' => 'flag', 'label' => 'Task boards'])
 <div class="max-w-6xl mx-auto px-4 py-8" x-data="{ showNew: false, scope: 'team' }">
     <div class="page-hero mb-6 flex items-center justify-between gap-4 flex-wrap">
         <div>

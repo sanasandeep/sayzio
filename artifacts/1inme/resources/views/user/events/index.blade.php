@@ -63,6 +63,7 @@ html.light-mode #bz-cal .fc-list-empty{ color:#64748b }
 @endpush
 
 @section('content')
+@include('user.partials._plan_lock', ['feature' => 'events', 'kind' => 'flag', 'label' => 'Events'])
 <div class="max-w-7xl mx-auto">
     @include('user.partials.page-hero', [
         'title' => 'Events',

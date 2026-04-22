@@ -2,6 +2,7 @@
 @section('title', 'Forms')
 
 @section('content')
+@include('user.partials._plan_lock', ['feature' => 'max_forms', 'kind' => 'limit', 'current' => isset($forms) ? (method_exists($forms, 'total') ? $forms->total() : (is_countable($forms) ? count($forms) : 0)) : 0, 'label' => 'Forms'])
 @php
     $__user = auth()->user();
     $__ws = app()->bound('current_workspace') ? app('current_workspace') : null;

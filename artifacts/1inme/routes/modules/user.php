@@ -213,7 +213,7 @@ Route::prefix('user')->name('user.')->group(function () {
         // submissions starring/destroy live under inbox.edit/inbox.delete.
         Route::get('forms', [FormController::class, 'index'])->middleware('workspace.can:inbox.view')->name('forms.index');
         Route::get('forms/create', [FormController::class, 'create'])->middleware('workspace.can:inbox.create')->name('forms.create');
-        Route::post('forms', [FormController::class, 'store'])->middleware('workspace.can:inbox.create')->name('forms.store');
+        Route::post('forms', [FormController::class, 'store'])->middleware(['workspace.can:inbox.create', CheckPlanLimit::class . ':forms'])->name('forms.store');
         Route::get('forms/{form}', [FormController::class, 'show'])->middleware('workspace.can:inbox.view')->name('forms.show');
         Route::delete('forms/{form}', [FormController::class, 'destroy'])->middleware('workspace.can:inbox.delete')->name('forms.destroy');
         Route::post('forms/{form}/toggle-active', [FormController::class, 'toggleActive'])->middleware('workspace.can:inbox.edit')->name('forms.toggle-active');
@@ -275,7 +275,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('links-file/create', [FileLinkController::class, 'create'])->middleware('workspace.can:links.create')->name('links.file.create');
         Route::post('links-file', [FileLinkController::class, 'store'])->middleware(['workspace.can:links.create', CheckPlanLimit::class . ':links'])->name('links.file.store');
         Route::get('links-ics/create', [IcsLinkController::class, 'create'])->middleware('workspace.can:links.create')->name('links.ics.create');
-        Route::post('links-ics', [IcsLinkController::class, 'store'])->middleware(['workspace.can:links.create', CheckPlanLimit::class . ':links'])->name('links.ics.store');
+        Route::post('links-ics', [IcsLinkController::class, 'store'])->middleware(['workspace.can:links.create', CheckPlanLimit::class . ':links', CheckPlanLimit::class . ':events'])->name('links.ics.store');
         Route::get('links-ics/{link}/edit', [IcsLinkController::class, 'edit'])->middleware('workspace.can:links.edit')->name('links.ics.edit');
         Route::put('links-ics/{link}', [IcsLinkController::class, 'update'])->middleware('workspace.can:links.edit')->name('links.ics.update');
         Route::get('links-vcf/create', [VcfLinkController::class, 'create'])->middleware('workspace.can:links.create')->name('links.vcf.create');
@@ -337,7 +337,8 @@ Route::prefix('user')->name('user.')->group(function () {
         // Standalone splash pages — reusable across multiple links. Read
         // under links.view, mutate under links.edit.
         Route::resource('splash-pages', \App\Modules\User\Controllers\SplashPageController::class)->only(['index', 'show'])->middleware('workspace.can:links.view');
-        Route::resource('splash-pages', \App\Modules\User\Controllers\SplashPageController::class)->except(['index', 'show'])->middleware('workspace.can:links.edit');
+        Route::post('splash-pages', [\App\Modules\User\Controllers\SplashPageController::class, 'store'])->middleware(['workspace.can:links.edit', CheckPlanLimit::class . ':splash_pages'])->name('splash-pages.store');
+        Route::resource('splash-pages', \App\Modules\User\Controllers\SplashPageController::class)->except(['index', 'show', 'store'])->middleware('workspace.can:links.edit');
         Route::get('splash-pages/{splash_page}/preview', [\App\Modules\User\Controllers\SplashPageController::class, 'preview'])->middleware('workspace.can:links.view')->name('splash-pages.preview');
 
         // Reusable third-party integration configurations (payment / sms / email)
@@ -405,13 +406,13 @@ Route::prefix('user')->name('user.')->group(function () {
         // workspace's address book.
         Route::get('contacts',                              [ContactController::class, 'index'])->middleware('workspace.can:settings.view')->name('contacts.index');
         Route::get('contacts/create',                       [ContactController::class, 'create'])->middleware('workspace.can:settings.edit')->name('contacts.create');
-        Route::post('contacts',                             [ContactController::class, 'store'])->middleware(['workspace.can:settings.edit', CheckPlanLimit::class . ':contacts_max'])->name('contacts.store');
+        Route::post('contacts',                             [ContactController::class, 'store'])->middleware(['workspace.can:settings.edit', CheckPlanLimit::class . ':contacts_max', CheckPlanLimit::class . ':leads'])->name('contacts.store');
         Route::get('contacts/import',                       [ContactController::class, 'importForm'])->middleware('workspace.can:settings.edit')->name('contacts.import');
-        Route::post('contacts/import',                      [ContactController::class, 'import'])->middleware(['workspace.can:settings.edit', CheckPlanLimit::class . ':contacts_max'])->name('contacts.import.store');
+        Route::post('contacts/import',                      [ContactController::class, 'import'])->middleware(['workspace.can:settings.edit', CheckPlanLimit::class . ':contacts_max', CheckPlanLimit::class . ':leads'])->name('contacts.import.store');
         Route::get('contacts/import/preview/{token}',       [ContactController::class, 'importPreview'])->middleware('workspace.can:settings.edit')->name('contacts.import.preview');
         Route::post('contacts/import/preview/{token}/row/{index}', [ContactController::class, 'importRowUpdate'])->whereNumber('index')->middleware('workspace.can:settings.edit')->name('contacts.import.preview.row.update');
         Route::post('contacts/import/preview/{token}/row/{index}/skip', [ContactController::class, 'importRowSkip'])->whereNumber('index')->middleware('workspace.can:settings.edit')->name('contacts.import.preview.row.skip');
-        Route::post('contacts/import/confirm/{token}',      [ContactController::class, 'importConfirm'])->middleware(['workspace.can:settings.edit', CheckPlanLimit::class . ':contacts_max'])->name('contacts.import.confirm');
+        Route::post('contacts/import/confirm/{token}',      [ContactController::class, 'importConfirm'])->middleware(['workspace.can:settings.edit', CheckPlanLimit::class . ':contacts_max', CheckPlanLimit::class . ':leads'])->name('contacts.import.confirm');
         Route::post('contacts/import/cancel/{token}',       [ContactController::class, 'importCancel'])->middleware('workspace.can:settings.edit')->name('contacts.import.cancel');
         Route::get('contacts/import/{import}',              [ContactController::class, 'importShow'])->middleware('workspace.can:settings.view')->name('contacts.import.show');
         Route::get('contacts/import/{import}/status',       [ContactController::class, 'importStatus'])->middleware('workspace.can:settings.view')->name('contacts.import.status');
@@ -439,10 +440,10 @@ Route::prefix('user')->name('user.')->group(function () {
 
         // ===== Calendar accounts (Google / Microsoft / CalDAV sync) =====
         Route::get('calendar',                              [CalendarAccountController::class, 'index'])->middleware('workspace.can:settings.view')->name('calendar.index');
-        Route::get('calendar/connect/{provider}',           [CalendarAccountController::class, 'connect'])->middleware('workspace.can:settings.edit')->name('calendar.connect')->where('provider', 'google|microsoft|caldav');
+        Route::get('calendar/connect/{provider}',           [CalendarAccountController::class, 'connect'])->middleware(['workspace.can:settings.edit', CheckPlanLimit::class . ':calendar_sync'])->name('calendar.connect')->where('provider', 'google|microsoft|caldav');
         Route::get('calendar/callback/{provider}',          [CalendarAccountController::class, 'callback'])->middleware('workspace.can:settings.edit')->name('calendar.callback')->where('provider', 'google|microsoft|caldav');
-        Route::post('calendar/{account}/sync',              [CalendarAccountController::class, 'syncNow'])->middleware('workspace.can:settings.edit')->name('calendar.sync');
-        Route::put('calendar/{account}',                    [CalendarAccountController::class, 'update'])->middleware('workspace.can:settings.edit')->name('calendar.update');
+        Route::post('calendar/{account}/sync',              [CalendarAccountController::class, 'syncNow'])->middleware(['workspace.can:settings.edit', CheckPlanLimit::class . ':calendar_sync'])->name('calendar.sync');
+        Route::put('calendar/{account}',                    [CalendarAccountController::class, 'update'])->middleware(['workspace.can:settings.edit', CheckPlanLimit::class . ':calendar_sync'])->name('calendar.update');
         Route::delete('calendar/{account}',                 [CalendarAccountController::class, 'destroy'])->middleware('workspace.can:settings.edit')->name('calendar.destroy');
 
         // ===== RSVPs (guest list on Event Invite links) — followers feature.
@@ -479,7 +480,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::prefix('social-proofs')->name('social-proofs.')->group(function () {
             Route::get('/',                            [\App\Modules\User\Controllers\SocialProofController::class, 'index'])->middleware('workspace.can:links.view')->name('index');
             Route::get('create',                       [\App\Modules\User\Controllers\SocialProofController::class, 'create'])->middleware('workspace.can:links.create')->name('create');
-            Route::post('/',                           [\App\Modules\User\Controllers\SocialProofController::class, 'store'])->middleware('workspace.can:links.create')->name('store');
+            Route::post('/',                           [\App\Modules\User\Controllers\SocialProofController::class, 'store'])->middleware(['workspace.can:links.create', CheckPlanLimit::class . ':buzz_popups'])->name('store');
             Route::get('{socialProof}/edit',           [\App\Modules\User\Controllers\SocialProofController::class, 'edit'])->middleware('workspace.can:links.edit')->name('edit');
             Route::put('{socialProof}',                [\App\Modules\User\Controllers\SocialProofController::class, 'update'])->middleware('workspace.can:links.edit')->name('update');
             Route::post('{socialProof}/toggle',        [\App\Modules\User\Controllers\SocialProofController::class, 'toggleActive'])->middleware('workspace.can:links.edit')->name('toggle');
@@ -492,8 +493,8 @@ Route::prefix('user')->name('user.')->group(function () {
         // role allowed to edit links can pick / upload media for them.
         Route::prefix('files')->name('files.')->group(function () {
             Route::get('/', [UserFileController::class, 'index'])->middleware('workspace.can:links.view')->name('index');
-            Route::post('upload', [UserFileController::class, 'upload'])->middleware('workspace.can:links.edit')->name('upload');
-            Route::post('import-url', [UserFileController::class, 'importUrl'])->middleware('workspace.can:links.edit')->name('import-url');
+            Route::post('upload', [UserFileController::class, 'upload'])->middleware(['workspace.can:links.edit', CheckPlanLimit::class . ':files'])->name('upload');
+            Route::post('import-url', [UserFileController::class, 'importUrl'])->middleware(['workspace.can:links.edit', CheckPlanLimit::class . ':files'])->name('import-url');
             Route::delete('{file}', [UserFileController::class, 'destroy'])->middleware('workspace.can:links.edit')->name('destroy');
             Route::get('quota', [UserFileController::class, 'quota'])->middleware('workspace.can:links.view')->name('quota');
         });
@@ -575,7 +576,7 @@ Route::prefix('user')->name('user.')->group(function () {
             // Board creation is NOT gated by tasks.create at the route level so
             // that a viewer-role member can still maintain a private personal
             // board. The controller enforces tasks.create for team boards.
-            Route::post('boards',                 [\App\Modules\User\Controllers\TaskBoardController::class, 'store'])->name('boards.store');
+            Route::post('boards',                 [\App\Modules\User\Controllers\TaskBoardController::class, 'store'])->middleware(CheckPlanLimit::class . ':tasks')->name('boards.store');
             Route::get('boards/{board}',          [\App\Modules\User\Controllers\TaskBoardController::class, 'show'])->name('show');
             Route::put('boards/{board}',          [\App\Modules\User\Controllers\TaskBoardController::class, 'updateBoard'])->name('boards.update');
             Route::post('boards/{board}/archive',   [\App\Modules\User\Controllers\TaskBoardController::class, 'archiveBoard'])->name('boards.archive');
@@ -625,7 +626,7 @@ Route::prefix('user')->name('user.')->group(function () {
 
             Route::get('credentials',                              [\App\Modules\User\Controllers\VaultCredentialController::class, 'index'])->name('credentials.index');
             Route::get('credentials/create',                       [\App\Modules\User\Controllers\VaultCredentialController::class, 'create'])->middleware('workspace.can:vault.create')->name('credentials.create');
-            Route::post('credentials',                             [\App\Modules\User\Controllers\VaultCredentialController::class, 'store'])->middleware('workspace.can:vault.create')->name('credentials.store');
+            Route::post('credentials',                             [\App\Modules\User\Controllers\VaultCredentialController::class, 'store'])->middleware(['workspace.can:vault.create', CheckPlanLimit::class . ':vaults'])->name('credentials.store');
             Route::get('credentials/{credential}',                 [\App\Modules\User\Controllers\VaultCredentialController::class, 'show'])->name('credentials.show');
             Route::get('credentials/{credential}/edit',            [\App\Modules\User\Controllers\VaultCredentialController::class, 'edit'])->middleware('workspace.can:vault.edit')->name('credentials.edit');
             Route::put('credentials/{credential}',                 [\App\Modules\User\Controllers\VaultCredentialController::class, 'update'])->middleware('workspace.can:vault.edit')->name('credentials.update');
@@ -694,8 +695,8 @@ Route::prefix('user')->name('user.')->group(function () {
         // Account verification (blue-tick request) — workspace-account-level.
         Route::prefix('verification')->name('verification.')->middleware('workspace.can:settings.view')->group(function () {
             Route::get('/', [VerificationController::class, 'index'])->name('index');
-            Route::get('request', [VerificationController::class, 'create'])->middleware('workspace.can:settings.edit')->name('request');
-            Route::post('request', [VerificationController::class, 'store'])->middleware('workspace.can:settings.edit')->name('store');
+            Route::get('request', [VerificationController::class, 'create'])->middleware(['workspace.can:settings.edit', CheckPlanLimit::class . ':verification_eligible'])->name('request');
+            Route::post('request', [VerificationController::class, 'store'])->middleware(['workspace.can:settings.edit', CheckPlanLimit::class . ':verification_eligible'])->name('store');
             Route::post('blocks/{block}/toggle', [VerificationController::class, 'toggleBlock'])->middleware('workspace.can:settings.edit')->name('block.toggle');
         });
 

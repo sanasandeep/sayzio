@@ -7,6 +7,9 @@
     Saves to settings['smart_rules'] via the hidden `smart_rules_json` field.
     Self-contained Alpine component so it works inside any parent form.
 --}}
+@auth
+    @include('user.partials._plan_lock', ['feature' => 'link_smart_rules', 'kind' => 'flag', 'label' => 'Smart redirect rules'])
+@endauth
 @php
     $smartRulesData = $link->settings['smart_rules'] ?? [];
     $tzList = ['UTC','Asia/Kolkata','Asia/Dubai','Asia/Singapore','Asia/Tokyo','Asia/Shanghai','Europe/London','Europe/Berlin','Europe/Paris','America/New_York','America/Chicago','America/Denver','America/Los_Angeles','America/Sao_Paulo','Australia/Sydney','Africa/Lagos','Africa/Cairo','Africa/Johannesburg'];

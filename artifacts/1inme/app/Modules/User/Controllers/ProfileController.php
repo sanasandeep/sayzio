@@ -157,7 +157,14 @@ class ProfileController extends Controller
             unset($validated['avatar']);
         }
 
-        $validated['discoverable'] = $request->boolean('discoverable');
+        // Plan gate: making a creator profile publicly discoverable is a
+        // paid feature. Silently coerce to false (and warn) when the user's
+        // plan doesn't include `creator_profile_public`.
+        $wantsDiscoverable = $request->boolean('discoverable');
+        if ($wantsDiscoverable && !$user->planFeatureEnabled('creator_profile_public')) {
+            return back()->withInput()->with('error', 'A public, discoverable creator profile isn\'t available on your current plan. Upgrade to publish your profile.');
+        }
+        $validated['discoverable'] = $wantsDiscoverable;
         $validated['allow_followers'] = $request->boolean('allow_followers');
         $validated['notify_new_follower'] = $request->boolean('notify_new_follower');
 
