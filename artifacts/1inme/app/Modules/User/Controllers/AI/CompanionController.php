@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Companion — multi-turn chat assistant. Conversations live in the
@@ -167,6 +168,66 @@ class CompanionController extends Controller
         return redirect()->route('user.ai.companion.thread', $threadModel->id);
     }
 
+    /**
+     * Stream the full transcript of a thread as a markdown (default) or
+     * plain-text download. Streamed + chunked so threads with thousands of
+     * turns don't have to be held in memory at once.
+     */
+    public function export(Request $request, int $thread): StreamedResponse
+    {
+        $this->ensureEnabled();
+        $format = $request->query('format') === 'txt' ? 'txt' : 'md';
+
+        $threadModel = $this->threadQuery($request->user()->id, $this->workspaceId())->find($thread);
+        if (!$threadModel) abort(404);
+
+        $filename = $this->exportFilename($threadModel->title) . '.' . $format;
+        $mime = $format === 'md' ? 'text/markdown; charset=UTF-8' : 'text/plain; charset=UTF-8';
+
+        return response()->streamDownload(function () use ($threadModel, $format) {
+            $out = fopen('php://output', 'w');
+
+            if ($format === 'md') {
+                fwrite($out, '# ' . $threadModel->title . "\n\n");
+                fwrite($out, '_Exported ' . now()->toDayDateTimeString() . "_\n\n---\n\n");
+            } else {
+                fwrite($out, $threadModel->title . "\n");
+                fwrite($out, str_repeat('=', max(3, mb_strlen($threadModel->title))) . "\n");
+                fwrite($out, 'Exported ' . now()->toDayDateTimeString() . "\n\n");
+            }
+
+            CompanionMessage::query()
+                ->where('thread_id', $threadModel->id)
+                ->orderBy('id')
+                ->chunk(200, function ($messages) use ($out, $format) {
+                    foreach ($messages as $m) {
+                        $label = $m->role === 'user' ? 'You'
+                            : ($m->role === 'assistant' ? 'Companion' : ucfirst($m->role));
+                        $ts = $m->created_at
+                            ? $m->created_at->toDayDateTimeString()
+                            : '';
+                        if ($format === 'md') {
+                            fwrite($out, '## ' . $label . ($ts ? ' · ' . $ts : '') . "\n\n");
+                            fwrite($out, rtrim((string) $m->content) . "\n\n");
+                        } else {
+                            fwrite($out, '[' . $label . ($ts ? ' · ' . $ts : '') . "]\n");
+                            fwrite($out, rtrim((string) $m->content) . "\n\n");
+                        }
+                    }
+                    if (function_exists('ob_get_level') && ob_get_level() > 0) {
+                        @ob_flush();
+                    }
+                    @flush();
+                });
+
+            fclose($out);
+        }, $filename, [
+            'Content-Type'        => $mime,
+            'Cache-Control'       => 'no-store, no-cache, must-revalidate',
+            'X-Accel-Buffering'   => 'no',
+        ]);
+    }
+
     public function rename(Request $request, int $thread)
     {
         $this->ensureEnabled();
@@ -212,6 +273,13 @@ class CompanionController extends Controller
         return app()->bound('current_workspace')
             ? (int) app('current_workspace')->id
             : null;
+    }
+
+    protected function exportFilename(string $title): string
+    {
+        $slug = Str::slug($title);
+        if ($slug === '') $slug = 'companion-conversation';
+        return $slug . '-' . now()->format('Ymd-His');
     }
 
     protected function autoTitle(string $message): string

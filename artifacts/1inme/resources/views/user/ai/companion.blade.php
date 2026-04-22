@@ -54,6 +54,16 @@
                             Rename
                         </button>
                     </form>
+                    <a href="{{ route('user.ai.companion.export', $active->id) }}"
+                       class="px-3 py-2 rounded-xl bg-white/10 text-white/80 text-xs hover:bg-white/20"
+                       title="Download this conversation as a markdown file">
+                        Export
+                    </a>
+                    <a href="{{ route('user.ai.companion.export', ['thread' => $active->id, 'format' => 'txt']) }}"
+                       class="px-3 py-2 rounded-xl bg-white/10 text-white/80 text-xs hover:bg-white/20"
+                       title="Download this conversation as a plain-text file">
+                        .txt
+                    </a>
                     <form method="POST" action="{{ route('user.ai.companion.destroy', $active->id) }}"
                           onsubmit="return confirm('Delete this conversation? This cannot be undone.');">
                         @csrf

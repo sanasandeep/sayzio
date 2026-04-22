@@ -357,6 +357,7 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::get   ('companion/{thread}',              [\App\Modules\User\Controllers\AI\CompanionController::class, 'show'])->whereNumber('thread')->name('companion.thread');
             Route::post  ('companion/{thread}/send',         [\App\Modules\User\Controllers\AI\CompanionController::class, 'send'])->whereNumber('thread')->middleware('throttle:60,1')->name('companion.send');
             Route::post  ('companion/{thread}/rename',       [\App\Modules\User\Controllers\AI\CompanionController::class, 'rename'])->whereNumber('thread')->name('companion.rename');
+            Route::get   ('companion/{thread}/export',       [\App\Modules\User\Controllers\AI\CompanionController::class, 'export'])->whereNumber('thread')->name('companion.export');
             Route::delete('companion/{thread}',              [\App\Modules\User\Controllers\AI\CompanionController::class, 'destroy'])->whereNumber('thread')->name('companion.destroy');
 
             Route::get ('coach',         [\App\Modules\User\Controllers\AI\CoachController::class, 'show'])->name('coach.show');
