@@ -211,8 +211,12 @@ class AiMindIngestor
         $mime = strtolower((string) $source->mime);
         $ext  = strtolower(pathinfo($source->storage_path, PATHINFO_EXTENSION));
 
-        // TXT / MD: read directly. Strip any BOM.
-        if (in_array($ext, ['txt', 'md'], true) || str_starts_with($mime, 'text/')) {
+        // TXT / MD: read directly. Strip any BOM. We restrict the
+        // text/* MIME shortcut to plain/markdown so structured text
+        // formats like text/rtf still hit their dedicated parser
+        // below instead of being ingested as raw source.
+        $plainTextMimes = ['text/plain', 'text/markdown', 'text/x-markdown'];
+        if (in_array($ext, ['txt', 'md'], true) || in_array($mime, $plainTextMimes, true)) {
             $raw = $disk->get($source->storage_path);
             return preg_replace("/^\xEF\xBB\xBF/", '', (string) $raw);
         }
@@ -225,6 +229,56 @@ class AiMindIngestor
             file_put_contents($tmp, $disk->get($source->storage_path));
             try {
                 return $this->extractDocxStructured($tmp);
+            } finally {
+                @unlink($tmp);
+            }
+        }
+
+        // Legacy binary .doc — PHPWord's MsDoc reader walks the OLE
+        // streams and gives us structured paragraphs the same way the
+        // DOCX path does, so we render through the same element tree.
+        if ($ext === 'doc' || $mime === 'application/msword') {
+            $tmp = tempnam(sys_get_temp_dir(), 'mind-doc-');
+            file_put_contents($tmp, $disk->get($source->storage_path));
+            try {
+                return $this->extractWordStructured($tmp, 'MsDoc', 'DOC');
+            } finally {
+                @unlink($tmp);
+            }
+        }
+
+        // RTF — PHPWord's RTF reader keeps paragraph/heading structure
+        // for well-formed files. If it can't parse the document (some
+        // exporters write quirky RTF), fall back to a control-word
+        // stripper that at least preserves the visible text.
+        if ($ext === 'rtf' || $mime === 'application/rtf' || $mime === 'text/rtf') {
+            $bytes = (string) $disk->get($source->storage_path);
+            $tmp   = tempnam(sys_get_temp_dir(), 'mind-rtf-');
+            file_put_contents($tmp, $bytes);
+            try {
+                try {
+                    return $this->extractWordStructured($tmp, 'RTF', 'RTF');
+                } catch (\Throwable $e) {
+                    $text = $this->extractRtfPlain($bytes);
+                    if ($text === '') {
+                        throw new \RuntimeException('Could not extract text from this RTF: ' . $e->getMessage());
+                    }
+                    return $text;
+                }
+            } finally {
+                @unlink($tmp);
+            }
+        }
+
+        // PPTX — OOXML zip with one XML per slide. We open it with
+        // ZipArchive and pull the visible text runs from each slide,
+        // keeping the slide title (first text frame) as a heading so
+        // the chunker can break on slide boundaries.
+        if ($ext === 'pptx' || str_contains($mime, 'presentationml')) {
+            $tmp = tempnam(sys_get_temp_dir(), 'mind-pptx-');
+            file_put_contents($tmp, $disk->get($source->storage_path));
+            try {
+                return $this->extractPptxStructured($tmp);
             } finally {
                 @unlink($tmp);
             }
@@ -373,10 +427,21 @@ class AiMindIngestor
      */
     protected function extractDocxStructured(string $path): string
     {
+        return $this->extractWordStructured($path, 'Word2007', 'DOCX');
+    }
+
+    /**
+     * Shared PHPWord extraction for any Word-family format the library
+     * can read (Word2007/DOCX, MsDoc/.doc, RTF). The element renderer
+     * is format-agnostic — headings, lists, and tables all map onto
+     * the same Title/ListItem/Table classes.
+     */
+    protected function extractWordStructured(string $path, string $reader, string $label): string
+    {
         try {
-            $doc = \PhpOffice\PhpWord\IOFactory::load($path, 'Word2007');
+            $doc = \PhpOffice\PhpWord\IOFactory::load($path, $reader);
         } catch (\Throwable $e) {
-            throw new \RuntimeException('Could not open DOCX file: ' . $e->getMessage());
+            throw new \RuntimeException("Could not open {$label} file: " . $e->getMessage());
         }
         $lines = [];
         foreach ($doc->getSections() as $section) {
@@ -386,9 +451,132 @@ class AiMindIngestor
         }
         $text = trim(implode("\n", $lines));
         if ($text === '') {
-            throw new \RuntimeException('No extractable text found in this DOCX.');
+            throw new \RuntimeException("No extractable text found in this {$label}.");
         }
         return $text;
+    }
+
+    /**
+     * Last-ditch RTF reader: strip control words, groups, and hex
+     * escapes, leaving only the visible text. Used when PHPWord's RTF
+     * reader rejects the file (some apps emit non-spec RTF).
+     */
+    protected function extractRtfPlain(string $rtf): string
+    {
+        // Drop binary blobs and embedded objects up front.
+        $rtf = preg_replace('/\{\\\\(?:\*\\\\)?(?:pict|object|bin|fonttbl|colortbl|stylesheet|info|header|footer|themedata|datastore|latentstyles|listtable|rsidtbl)\b[^{}]*\}/is', ' ', $rtf);
+        // Decode \'hh hex escapes (Windows-1252 best-effort).
+        $rtf = preg_replace_callback('/\\\\\'([0-9a-fA-F]{2})/', function ($m) {
+            $byte = chr(hexdec($m[1]));
+            $u    = @iconv('Windows-1252', 'UTF-8//IGNORE', $byte);
+            return $u !== false ? $u : '';
+        }, $rtf);
+        // Decode \uNNNN unicode escapes (signed 16-bit, optionally negative).
+        $rtf = preg_replace_callback('/\\\\u(-?\d+)\??/', function ($m) {
+            $cp = (int) $m[1];
+            if ($cp < 0) $cp += 65536;
+            return mb_chr($cp, 'UTF-8') ?: '';
+        }, $rtf);
+        // Paragraph / line breaks become real newlines.
+        $rtf = preg_replace('/\\\\(par|line|page|sect)\b\s?/', "\n", $rtf);
+        $rtf = preg_replace('/\\\\tab\b\s?/', "\t", $rtf);
+        // Strip remaining control words and group markers.
+        $rtf = preg_replace('/\\\\[a-zA-Z]+-?\d* ?/', '', $rtf);
+        $rtf = str_replace(['{', '}', '\\\\', '\\'], ['', '', "\n", ''], $rtf);
+        // Collapse runs of whitespace inside lines but keep paragraph breaks.
+        $lines = array_map(fn ($l) => trim(preg_replace('/[ \t]+/u', ' ', $l)), explode("\n", $rtf));
+        $lines = array_values(array_filter($lines, fn ($l) => $l !== ''));
+        return trim(implode("\n", $lines));
+    }
+
+    /**
+     * PPTX structured extraction. We open the OOXML package, sort the
+     * slide parts by their natural slide number, and pull the text
+     * runs from each. The first text frame on a slide is treated as
+     * its title and emitted as a `## ` heading so the chunker can
+     * break cleanly on slide boundaries.
+     */
+    protected function extractPptxStructured(string $path): string
+    {
+        $zip = new \ZipArchive();
+        if ($zip->open($path) !== true) {
+            throw new \RuntimeException('Could not open PPTX file (not a valid OOXML package).');
+        }
+        try {
+            $slideEntries = [];
+            for ($i = 0; $i < $zip->numFiles; $i++) {
+                $name = $zip->getNameIndex($i);
+                if ($name && preg_match('#^ppt/slides/slide(\d+)\.xml$#', $name, $m)) {
+                    $slideEntries[(int) $m[1]] = $name;
+                }
+            }
+            if (!$slideEntries) {
+                throw new \RuntimeException('No slides found in this PPTX.');
+            }
+            ksort($slideEntries);
+            $lines = [];
+            $idx   = 0;
+            foreach ($slideEntries as $num => $entry) {
+                $idx++;
+                $xml = (string) $zip->getFromName($entry);
+                $frames = $this->pptxTextFrames($xml);
+                if (!$frames) continue;
+                $title = trim(array_shift($frames));
+                $lines[] = '## Slide ' . $num . ($title !== '' ? ': ' . $title : '');
+                foreach ($frames as $frame) {
+                    $frame = trim($frame);
+                    if ($frame !== '') $lines[] = $frame;
+                }
+                $lines[] = '';
+            }
+            $text = trim(implode("\n", $lines));
+            if ($text === '') {
+                throw new \RuntimeException('No extractable text found in this PPTX.');
+            }
+            return $text;
+        } finally {
+            $zip->close();
+        }
+    }
+
+    /**
+     * Pull text frames from one slide's XML. Each <p:sp> shape becomes
+     * one frame; runs (`<a:t>`) inside it are concatenated and
+     * paragraph (`<a:p>`) breaks become newlines so multi-line bullet
+     * blocks stay readable.
+     *
+     * @return list<string>
+     */
+    protected function pptxTextFrames(string $xml): array
+    {
+        if ($xml === '') return [];
+        // Use SimpleXML with namespace stripping so we don't have to
+        // register the drawingml/presentationml namespaces explicitly.
+        $clean = preg_replace('/<(\/?)(?:[a-zA-Z0-9]+:)/', '<$1', $xml);
+        $prev  = libxml_use_internal_errors(true);
+        $doc   = simplexml_load_string($clean);
+        libxml_clear_errors();
+        libxml_use_internal_errors($prev);
+        if (!$doc) return [];
+        $frames = [];
+        foreach ($doc->xpath('//sp/txBody') ?: [] as $body) {
+            $paragraphs = [];
+            foreach ($body->xpath('./p') ?: [] as $p) {
+                $runs = [];
+                foreach ($p->xpath('./r/t') ?: [] as $t) {
+                    $runs[] = (string) $t;
+                }
+                // Standalone <a:t> (no run wrapper) — rare but possible.
+                foreach ($p->xpath('./fld/t') ?: [] as $t) {
+                    $runs[] = (string) $t;
+                }
+                $line = trim(implode('', $runs));
+                if ($line !== '') $paragraphs[] = $line;
+            }
+            $frame = trim(implode("\n", $paragraphs));
+            if ($frame !== '') $frames[] = $frame;
+        }
+        return $frames;
     }
 
     /** @param array<int,string> $lines */

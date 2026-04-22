@@ -148,7 +148,7 @@ class MindSourceController extends Controller
         $data = $request->validate([
             'title' => 'required|string|max:200',
             'file'  => 'required|file|max:' . ($caps['max_doc_size_mb'] * 1024)
-                . '|mimes:pdf,docx,txt,md',
+                . '|mimes:pdf,docx,doc,rtf,pptx,txt,md',
         ]);
         $file = $request->file('file');
         $disk = 'local';
