@@ -71,6 +71,13 @@ class OpenAiService
             'temperature'       => $opts['temperature'] ?? null,
             'max_tokens'        => $opts['max_tokens'] ?? null,
             'response_format'   => $opts['response_format'] ?? null,
+            // Native OpenAI function-calling. When `tools` is set the
+            // model may answer with `tool_calls` instead of content;
+            // the caller is responsible for executing them and feeding
+            // the results back as `role=tool` messages on a follow-up
+            // call. `tool_choice` lets callers force/forbid calls.
+            'tools'             => $opts['tools'] ?? null,
+            'tool_choice'       => $opts['tool_choice'] ?? null,
         ], fn($v) => $v !== null);
 
         $response = $this->request('POST', '/chat/completions', $payload);
@@ -97,8 +104,14 @@ class OpenAiService
             ])
             : null;
 
+        $message     = $response['choices'][0]['message'] ?? [];
+        $finish      = (string) ($response['choices'][0]['finish_reason'] ?? '');
+        $toolCalls   = is_array($message['tool_calls'] ?? null) ? $message['tool_calls'] : [];
+
         return [
-            'content'       => (string) ($response['choices'][0]['message']['content'] ?? ''),
+            'content'       => (string) ($message['content'] ?? ''),
+            'tool_calls'    => $toolCalls,
+            'finish_reason' => $finish,
             'tokens_in'     => $tokensIn,
             'tokens_out'    => $tokensOut,
             'credits_spent' => $tx ? (int) abs($tx->delta_credits) : 0,

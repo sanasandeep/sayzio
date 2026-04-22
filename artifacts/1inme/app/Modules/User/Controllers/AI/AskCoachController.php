@@ -36,6 +36,13 @@ class AskCoachController extends Controller
     /** Cap turns sent to the model. Older turns stay in the DB. */
     protected const MAX_PROMPT_TURNS = 10;
 
+    /**
+     * Hard cap on how many times we round-trip the model in a single
+     * user turn while it asks for more tools. Stops a runaway loop
+     * (and runaway credit spend) if the model keeps requesting data.
+     */
+    protected const MAX_TOOL_ITERATIONS = 4;
+
     /** Sidebar pagination. */
     protected const THREADS_PER_PAGE = 50;
 
@@ -158,24 +165,9 @@ class AskCoachController extends Controller
             'created_at' => $now,
         ]);
 
-        // 1) Pick + run the read-only tools relevant to this question.
-        $picks = $this->tools->pickToolsForQuestion($data['message']);
-        $invocations = [];      // for the model prompt + UI rendering
-        $citations = [];
-        $insights = [];
-        $actions = [];
-        foreach ($picks as $tool) {
-            $r = $this->tools->run($tool, $user);
-            if (($r['summary'] ?? '') === '') continue;
-            $invocations[] = $r;
-            if (!empty($r['citation'])) $citations[] = $r['citation'];
-            if (!empty($r['data']))     $insights[] = ['tool' => $tool, 'data' => $r['data']];
-            foreach ($r['actions'] ?? [] as $a) {
-                if ($a) $actions[] = $a;
-            }
-        }
-
-        // 2) Build the rolling chat window.
+        // 1) Build the rolling chat window once. Tool calls are
+        //    appended to a transient $messages array per turn, never
+        //    persisted, so reloads always start from clean history.
         $recent = AskCoachMessage::query()
             ->where('thread_id', $threadModel->id)
             ->orderByDesc('id')
@@ -185,31 +177,138 @@ class AskCoachController extends Controller
             ->values();
 
         $systemPrompt = AiEngineSettings::askCoachSystemPrompt();
-        if ($invocations) {
-            $systemPrompt .= "\n\nSnapshots from the user's data (read-only, do not invent values beyond these):\n";
-            foreach ($invocations as $inv) {
-                $systemPrompt .= "\n[{$inv['tool']}]\n" . $inv['summary'] . "\n";
-            }
-        }
-
         $messages = array_merge(
             [['role' => 'system', 'content' => $systemPrompt]],
             $recent->map(fn($m) => ['role' => $m->role, 'content' => $m->content])->all(),
         );
 
-        // 3) Call the model.
+        $model = AiEngineSettings::featureModel('ask_coach');
+
+        // 2) Native OpenAI function-calling loop. Let the model itself
+        //    decide which (if any) data tools to pull, instead of the
+        //    legacy keyword router. Falls back to that router if the
+        //    tool-calling round-trip blows up (model variant doesn't
+        //    support tools, transport error after we've emitted any
+        //    tool messages, etc.).
+        $picks = [];
+        $invocations = [];
+        $citations = [];
+        $insights = [];
+        $actions = [];
+        $totalCredits = 0;
+        $out = null;
+        $usedFallback = false;
+
         try {
-            $out = $this->ai->chat($user, AiEngineSettings::featureModel('ask_coach'), $messages, [
-                'feature'     => 'ask_coach.chat',
-                'temperature' => 0.4,
-                'max_tokens'  => 600,
-                'reason'      => 'Ask Coach: data-aware reply',
-            ]);
-        } catch (\RuntimeException $e) {
-            if ($e instanceof InsufficientAiCreditsException) throw $e;
-            Log::warning('Ask Coach AI call failed: ' . $e->getMessage());
-            $threadModel->forceFill(['last_message_at' => $now])->save();
-            return back()->with('error', 'Coach could not reply right now. Please try again.');
+            $tools = $this->tools->functionDefinitions();
+            for ($i = 0; $i < self::MAX_TOOL_ITERATIONS; $i++) {
+                $out = $this->ai->chat($user, $model, $messages, [
+                    'feature'     => 'ask_coach.chat',
+                    'temperature' => 0.4,
+                    'max_tokens'  => 600,
+                    'reason'      => 'Ask Coach: data-aware reply',
+                    'tools'       => $tools,
+                ]);
+                $totalCredits += (int) ($out['credits_spent'] ?? 0);
+
+                $toolCalls = $out['tool_calls'] ?? [];
+                if (!$toolCalls) break;
+
+                // Echo the assistant's tool_calls back in the next
+                // request — OpenAI requires this so each `tool`
+                // response can be paired by id.
+                $messages[] = [
+                    'role'       => 'assistant',
+                    'content'    => $out['content'] !== '' ? $out['content'] : null,
+                    'tool_calls' => $toolCalls,
+                ];
+
+                foreach ($toolCalls as $call) {
+                    $name = (string) ($call['function']['name'] ?? '');
+                    $callId = (string) ($call['id'] ?? '');
+                    if (!array_key_exists($name, $this->tools->tools())) {
+                        $messages[] = [
+                            'role'         => 'tool',
+                            'tool_call_id' => $callId,
+                            'content'      => 'Unknown tool.',
+                        ];
+                        continue;
+                    }
+                    $r = $this->tools->run($name, $user);
+                    $picks[] = $name;
+                    $summary = (string) ($r['summary'] ?? '');
+                    if ($summary !== '') {
+                        $invocations[] = $r;
+                        if (!empty($r['citation'])) $citations[] = $r['citation'];
+                        if (!empty($r['data']))     $insights[] = ['tool' => $name, 'data' => $r['data']];
+                        foreach ($r['actions'] ?? [] as $a) {
+                            if ($a) $actions[] = $a;
+                        }
+                    }
+                    $messages[] = [
+                        'role'         => 'tool',
+                        'tool_call_id' => $callId,
+                        'content'      => $summary !== '' ? $summary : 'No data available for this user.',
+                    ];
+                }
+            }
+        } catch (InsufficientAiCreditsException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            Log::warning('Ask Coach tool-calling failed, retrying with keyword fallback: ' . $e->getMessage());
+            $usedFallback = true;
+            $out = null;
+        }
+
+        // 3) Fallback: legacy keyword router + prompt-injected
+        //    snapshots. Used when the model never returned a usable
+        //    final answer (loop exhausted) or the tool-calling path
+        //    threw mid-flight.
+        if ($usedFallback || $out === null || $out['content'] === '') {
+            // Mark fallback for any path that actually re-runs the
+            // keyword router (loop exhausted, empty final content,
+            // exception), not just exceptions, so the persisted meta
+            // accurately reflects which path produced the answer.
+            $usedFallback = true;
+            $picks = $this->tools->pickToolsForQuestion($data['message']);
+            $invocations = []; $citations = []; $insights = []; $actions = [];
+            foreach ($picks as $tool) {
+                $r = $this->tools->run($tool, $user);
+                if (($r['summary'] ?? '') === '') continue;
+                $invocations[] = $r;
+                if (!empty($r['citation'])) $citations[] = $r['citation'];
+                if (!empty($r['data']))     $insights[] = ['tool' => $tool, 'data' => $r['data']];
+                foreach ($r['actions'] ?? [] as $a) {
+                    if ($a) $actions[] = $a;
+                }
+            }
+
+            $fallbackPrompt = AiEngineSettings::askCoachSystemPrompt();
+            if ($invocations) {
+                $fallbackPrompt .= "\n\nSnapshots from the user's data (read-only, do not invent values beyond these):\n";
+                foreach ($invocations as $inv) {
+                    $fallbackPrompt .= "\n[{$inv['tool']}]\n" . $inv['summary'] . "\n";
+                }
+            }
+            $fallbackMessages = array_merge(
+                [['role' => 'system', 'content' => $fallbackPrompt]],
+                $recent->map(fn($m) => ['role' => $m->role, 'content' => $m->content])->all(),
+            );
+
+            try {
+                $out = $this->ai->chat($user, $model, $fallbackMessages, [
+                    'feature'     => 'ask_coach.chat',
+                    'temperature' => 0.4,
+                    'max_tokens'  => 600,
+                    'reason'      => 'Ask Coach: data-aware reply (fallback)',
+                ]);
+                $totalCredits += (int) ($out['credits_spent'] ?? 0);
+            } catch (\RuntimeException $e) {
+                if ($e instanceof InsufficientAiCreditsException) throw $e;
+                Log::warning('Ask Coach AI call failed: ' . $e->getMessage());
+                $threadModel->forceFill(['last_message_at' => $now])->save();
+                return back()->with('error', 'Coach could not reply right now. Please try again.');
+            }
         }
 
         // 4) Persist the assistant turn with everything the renderer
@@ -219,12 +318,13 @@ class AskCoachController extends Controller
             'role'       => 'assistant',
             'content'    => $out['content'],
             'meta'       => [
-                'credits_spent' => (int) $out['credits_spent'],
+                'credits_spent' => $totalCredits,
                 'model'         => $out['model'] ?? null,
-                'tools_used'    => $picks,
+                'tools_used'    => array_values(array_unique($picks)),
                 'citations'     => $citations,
                 'insights'      => $insights,
                 'actions'       => array_values(array_filter($actions)),
+                'fallback'      => $usedFallback,
             ],
             'created_at' => now(),
         ]);

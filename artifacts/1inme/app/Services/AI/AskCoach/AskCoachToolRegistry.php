@@ -52,10 +52,42 @@ class AskCoachToolRegistry
     }
 
     /**
-     * Return tools relevant to a free-text user question. Cheap keyword
-     * routing keeps every chat turn from re-pulling every dataset and
-     * blowing up the prompt — the more focused the snapshot, the
-     * better the model answers.
+     * Expose the catalogue as OpenAI function-calling tool definitions.
+     * Every tool is parameter-less because each one is implicitly
+     * scoped to the asking user's workspace — the model just decides
+     * *whether* to ask for that snapshot, not *whose* snapshot to ask
+     * for. Returns the JSON-serialisable shape the chat API expects.
+     *
+     * @return list<array{type:string,function:array{name:string,description:string,parameters:array}}>
+     */
+    public function functionDefinitions(): array
+    {
+        $defs = [];
+        foreach ($this->tools() as $name => $meta) {
+            $defs[] = [
+                'type' => 'function',
+                'function' => [
+                    'name'        => $name,
+                    'description' => $meta['description'],
+                    // Empty object schema: callable with no arguments.
+                    // `additionalProperties=false` keeps the model from
+                    // inventing parameters we'd then have to ignore.
+                    'parameters'  => [
+                        'type'       => 'object',
+                        'properties' => (object) [],
+                        'additionalProperties' => false,
+                    ],
+                ],
+            ];
+        }
+        return $defs;
+    }
+
+    /**
+     * Fallback router used only when native tool-calling is
+     * unavailable (e.g. the chosen model doesn't support it, or the
+     * tools-enabled call errored out). Cheap keyword matching keeps
+     * the chat answering with grounded data instead of giving up.
      *
      * @return list<string>
      */
