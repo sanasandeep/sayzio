@@ -5,6 +5,8 @@ import {
   SpaceGrotesk_700Bold,
   useFonts,
 } from "@expo-google-fonts/space-grotesk";
+import Feather from "@expo/vector-icons/Feather";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   setAuthTokenGetter,
@@ -81,6 +83,8 @@ export default function RootLayout() {
     SpaceGrotesk_500Medium,
     SpaceGrotesk_600SemiBold,
     SpaceGrotesk_700Bold,
+    ...Ionicons.font,
+    ...Feather.font,
   });
 
   useEffect(() => {
