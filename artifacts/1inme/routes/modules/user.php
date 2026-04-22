@@ -344,9 +344,12 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::get ('persona',           [\App\Modules\User\Controllers\AI\PersonaController::class, 'show'])->name('persona.show');
             Route::post('persona/generate',  [\App\Modules\User\Controllers\AI\PersonaController::class, 'generate'])->middleware('throttle:30,1')->name('persona.generate');
 
-            Route::get ('companion',         [\App\Modules\User\Controllers\AI\CompanionController::class, 'show'])->name('companion.show');
-            Route::post('companion/send',    [\App\Modules\User\Controllers\AI\CompanionController::class, 'send'])->middleware('throttle:60,1')->name('companion.send');
-            Route::post('companion/reset',   [\App\Modules\User\Controllers\AI\CompanionController::class, 'reset'])->name('companion.reset');
+            Route::get   ('companion',                       [\App\Modules\User\Controllers\AI\CompanionController::class, 'show'])->name('companion.show');
+            Route::post  ('companion',                       [\App\Modules\User\Controllers\AI\CompanionController::class, 'store'])->name('companion.store');
+            Route::get   ('companion/{thread}',              [\App\Modules\User\Controllers\AI\CompanionController::class, 'show'])->whereNumber('thread')->name('companion.thread');
+            Route::post  ('companion/{thread}/send',         [\App\Modules\User\Controllers\AI\CompanionController::class, 'send'])->whereNumber('thread')->middleware('throttle:60,1')->name('companion.send');
+            Route::post  ('companion/{thread}/rename',       [\App\Modules\User\Controllers\AI\CompanionController::class, 'rename'])->whereNumber('thread')->name('companion.rename');
+            Route::delete('companion/{thread}',              [\App\Modules\User\Controllers\AI\CompanionController::class, 'destroy'])->whereNumber('thread')->name('companion.destroy');
 
             Route::get ('coach',         [\App\Modules\User\Controllers\AI\CoachController::class, 'show'])->name('coach.show');
             Route::post('coach/suggest', [\App\Modules\User\Controllers\AI\CoachController::class, 'suggest'])->middleware('throttle:30,1')->name('coach.suggest');
