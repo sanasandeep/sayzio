@@ -1,4 +1,4 @@
-import { FontAwesome5, Feather } from "@expo/vector-icons";
+import { Ionicons, Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -36,16 +36,16 @@ type SocialProvider =
 const SOCIALS: {
   id: SocialProvider;
   label: string;
-  icon: keyof typeof FontAwesome5.glyphMap;
+  icon: keyof typeof Ionicons.glyphMap;
   color: string;
 }[] = [
-  { id: "google", label: "Google", icon: "google", color: "#ea4335" },
-  { id: "instagram", label: "Instagram", icon: "instagram", color: "#e1306c" },
-  { id: "facebook", label: "Facebook", icon: "facebook", color: "#1877f2" },
-  { id: "twitter", label: "X", icon: "twitter", color: "#0f1419" },
-  { id: "linkedin", label: "LinkedIn", icon: "linkedin", color: "#0a66c2" },
-  { id: "pinterest", label: "Pinterest", icon: "pinterest", color: "#e60023" },
-  { id: "tiktok", label: "TikTok", icon: "tiktok", color: "#010101" },
+  { id: "google", label: "Google", icon: "logo-google", color: "#ea4335" },
+  { id: "instagram", label: "Instagram", icon: "logo-instagram", color: "#e1306c" },
+  { id: "facebook", label: "Facebook", icon: "logo-facebook", color: "#1877f2" },
+  { id: "twitter", label: "X", icon: "logo-x", color: "#ffffff" },
+  { id: "linkedin", label: "LinkedIn", icon: "logo-linkedin", color: "#0a66c2" },
+  { id: "pinterest", label: "Pinterest", icon: "logo-pinterest", color: "#e60023" },
+  { id: "tiktok", label: "TikTok", icon: "logo-tiktok", color: "#ffffff" },
 ];
 
 export default function AuthLanding() {
@@ -132,7 +132,7 @@ export default function AuthLanding() {
         ]}
         keyboardShouldPersistTaps="handled"
       >
-        <BrandWordmark size={36} />
+        <BrandWordmark size={36} align="center" />
         <View style={{ height: 32 }} />
         <Text style={[styles.h1, { color: colors.foreground }]}>
           Welcome back
@@ -231,11 +231,10 @@ export default function AuthLanding() {
                 ]}
                 accessibilityLabel={`Continue with ${s.label}`}
               >
-                <FontAwesome5
+                <Ionicons
                   name={s.icon}
-                  size={22}
+                  size={24}
                   color={colors.scheme === "dark" ? colors.foreground : s.color}
-                  brand
                 />
               </Pressable>
             );
