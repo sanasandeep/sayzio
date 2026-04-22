@@ -20,17 +20,38 @@
                 </button>
             </form>
 
+            <form method="GET" action="{{ route('user.ai.companion.show') }}" class="flex gap-1">
+                <input type="search" name="q" value="{{ $search }}" maxlength="120"
+                       placeholder="Search conversations…"
+                       class="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-xs placeholder-white/30">
+                @if($search !== '')
+                    <a href="{{ route('user.ai.companion.show') }}"
+                       class="px-2 py-2 rounded-xl bg-white/5 text-white/60 text-xs hover:bg-white/10"
+                       title="Clear search">×</a>
+                @endif
+            </form>
+
             @if($threads->isEmpty())
-                <p class="text-xs text-white/40 text-center py-4">No saved conversations yet.</p>
+                <p class="text-xs text-white/40 text-center py-4">
+                    {{ $search !== '' ? 'No conversations match that search.' : 'No saved conversations yet.' }}
+                </p>
             @else
+                @if($search !== '')
+                    <p class="text-[10px] uppercase tracking-wider text-white/40 px-1 pt-1">
+                        {{ $threads->total() }} match{{ $threads->total() === 1 ? '' : 'es' }}
+                    </p>
+                @endif
                 <ul class="space-y-1">
                     @foreach($threads as $t)
                         @php $isActive = $active && $active->id === $t->id; @endphp
                         <li>
-                            <a href="{{ route('user.ai.companion.thread', $t->id) }}"
-                               class="block px-3 py-2 rounded-xl text-sm truncate
+                            <a href="{{ route('user.ai.companion.thread', $t->id) }}{{ $search !== '' ? '?q=' . urlencode($search) : '' }}"
+                               class="block px-3 py-2 rounded-xl text-sm
                                       {{ $isActive ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/[0.06]' }}">
-                                {{ $t->title }}
+                                <span class="block truncate">{{ $t->title }}</span>
+                                @if(!empty($snippets[$t->id]))
+                                    <span class="block text-[11px] text-white/50 mt-0.5 line-clamp-2">{{ $snippets[$t->id] }}</span>
+                                @endif
                                 @if($t->last_message_at)
                                     <span class="block text-[10px] text-white/30 mt-0.5">{{ $t->last_message_at->diffForHumans() }}</span>
                                 @endif
@@ -38,6 +59,9 @@
                         </li>
                     @endforeach
                 </ul>
+                @if($threads->hasPages())
+                    <div class="pt-2">{{ $threads->links() }}</div>
+                @endif
             @endif
         </aside>
 

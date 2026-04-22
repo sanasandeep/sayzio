@@ -41,23 +41,76 @@ class CompanionController extends Controller
         protected AiCreditService $credits,
     ) {}
 
+    /** Sidebar page size. Older threads are reachable via pagination. */
+    protected const THREADS_PER_PAGE = 50;
+
     public function show(Request $request, ?int $thread = null)
     {
         $this->ensureEnabled();
         $user = $request->user();
         $wsId = $this->workspaceId();
 
-        $threads = $this->threadQuery($user->id, $wsId)
+        $search = trim((string) $request->query('q', ''));
+
+        $threadsQuery = $this->threadQuery($user->id, $wsId);
+        $snippets = [];
+
+        if ($search !== '') {
+            // Escape LIKE wildcards so a stray % or _ in the query doesn't
+            // turn into "match anything". MySQL/SQLite both accept the \
+            // escape and Laravel passes the LIKE pattern through verbatim.
+            $like = '%' . addcslashes($search, '%_\\') . '%';
+
+            // Threads whose messages contain the term — collected first so
+            // the title/body OR is a single indexable WHERE.
+            $matchedThreadIds = CompanionMessage::query()
+                ->whereIn('thread_id', (clone $threadsQuery)->select('id'))
+                ->where('content', 'like', $like)
+                ->distinct()
+                ->pluck('thread_id')
+                ->all();
+
+            $threadsQuery->where(function ($w) use ($like, $matchedThreadIds) {
+                $w->where('title', 'like', $like);
+                if (!empty($matchedThreadIds)) {
+                    $w->orWhereIn('id', $matchedThreadIds);
+                }
+            });
+        }
+
+        $threads = $threadsQuery
             ->orderByDesc('last_message_at')
             ->orderByDesc('id')
-            ->limit(50)
-            ->get();
+            ->paginate(self::THREADS_PER_PAGE)
+            ->withQueryString();
+
+        if ($search !== '' && $threads->isNotEmpty()) {
+            // Pull one matching message per thread on this page to render
+            // a snippet beside the title. Earliest match wins (stable id
+            // order) so users see consistent context across reloads.
+            $like = '%' . addcslashes($search, '%_\\') . '%';
+            $pageThreadIds = $threads->pluck('id')->all();
+            $matches = CompanionMessage::query()
+                ->whereIn('thread_id', $pageThreadIds)
+                ->where('content', 'like', $like)
+                ->orderBy('thread_id')
+                ->orderBy('id')
+                ->get(['thread_id', 'content']);
+            foreach ($matches as $m) {
+                if (!isset($snippets[$m->thread_id])) {
+                    $snippets[$m->thread_id] = $this->snippet($m->content, $search);
+                }
+            }
+        }
 
         $active = null;
         if ($thread) {
             $active = $this->threadQuery($user->id, $wsId)->find($thread);
             if (!$active) abort(404);
-        } elseif ($threads->isNotEmpty()) {
+        } elseif ($threads->isNotEmpty() && $search === '' && $request->query('page') === null) {
+            // Only auto-open the newest thread on the default landing view.
+            // While searching or paginating, leave the right pane empty so
+            // we don't yank the user into an unrelated thread.
             $active = $threads->first();
         }
 
@@ -70,11 +123,32 @@ class CompanionController extends Controller
             : [];
 
         return view('user.ai.companion', [
-            'balance' => $this->credits->getBalance($user),
-            'threads' => $threads,
-            'active'  => $active,
-            'history' => $history,
+            'balance'  => $this->credits->getBalance($user),
+            'threads'  => $threads,
+            'active'   => $active,
+            'history'  => $history,
+            'search'   => $search,
+            'snippets' => $snippets,
         ]);
+    }
+
+    /** Build a short, centered snippet around the first occurrence of
+     *  the search term so the sidebar can show why a thread matched. */
+    protected function snippet(string $content, string $term, int $radius = 60): string
+    {
+        $clean = trim(preg_replace('/\s+/', ' ', $content));
+        if ($term === '') return Str::limit($clean, $radius * 2, '…');
+
+        $pos = mb_stripos($clean, $term);
+        if ($pos === false) return Str::limit($clean, $radius * 2, '…');
+
+        $start = max(0, $pos - $radius);
+        $len   = mb_strlen($term) + ($radius * 2);
+        $slice = mb_substr($clean, $start, $len);
+
+        if ($start > 0)                               $slice = '…' . $slice;
+        if ($start + $len < mb_strlen($clean))        $slice = $slice . '…';
+        return $slice;
     }
 
     /** Create a new (empty) thread and redirect to it. */
