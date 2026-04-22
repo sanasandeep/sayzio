@@ -11,6 +11,7 @@ use App\Services\AI\InsufficientAiCreditsException;
 use App\Services\AI\OpenAiService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -62,16 +63,21 @@ class CompanionController extends Controller
             $like = '%' . addcslashes($search, '%_\\') . '%';
 
             // Threads whose messages contain the term — collected first so
-            // the title/body OR is a single indexable WHERE.
-            $matchedThreadIds = CompanionMessage::query()
-                ->whereIn('thread_id', (clone $threadsQuery)->select('id'))
-                ->where('content', 'like', $like)
+            // the title/body OR is a single indexable WHERE. Prefer the
+            // fulltext / tsvector index when the connection supports it so
+            // search stays fast on tens of thousands of stored turns.
+            $matchedThreadIds = $this->applyContentSearch(
+                CompanionMessage::query()
+                    ->whereIn('thread_id', (clone $threadsQuery)->select('id')),
+                $search,
+                $like,
+            )
                 ->distinct()
                 ->pluck('thread_id')
                 ->all();
 
-            $threadsQuery->where(function ($w) use ($like, $matchedThreadIds) {
-                $w->where('title', 'like', $like);
+            $threadsQuery->where(function ($w) use ($search, $like, $matchedThreadIds) {
+                $this->applyTitleSearch($w, $search, $like);
                 if (!empty($matchedThreadIds)) {
                     $w->orWhereIn('id', $matchedThreadIds);
                 }
@@ -90,9 +96,11 @@ class CompanionController extends Controller
             // order) so users see consistent context across reloads.
             $like = '%' . addcslashes($search, '%_\\') . '%';
             $pageThreadIds = $threads->pluck('id')->all();
-            $matches = CompanionMessage::query()
-                ->whereIn('thread_id', $pageThreadIds)
-                ->where('content', 'like', $like)
+            $matches = $this->applyContentSearch(
+                CompanionMessage::query()->whereIn('thread_id', $pageThreadIds),
+                $search,
+                $like,
+            )
                 ->orderBy('thread_id')
                 ->orderBy('id')
                 ->get(['thread_id', 'content']);
@@ -360,6 +368,70 @@ class CompanionController extends Controller
     {
         $clean = trim(preg_replace('/\s+/', ' ', $message));
         return Str::limit($clean, 60, '…') ?: 'New conversation';
+    }
+
+    /**
+     * Apply a content search predicate to a CompanionMessage query, using
+     * the connection's fulltext index when supported and falling back to
+     * a wildcarded LIKE everywhere else (sqlite, older MySQL without FT,
+     * etc). The LIKE expression is still pre-escaped by the caller.
+     */
+    protected function applyContentSearch(Builder $q, string $term, string $like): Builder
+    {
+        $driver = $q->getModel()->getConnection()->getDriverName();
+
+        if ($driver === 'pgsql') {
+            return $q->whereRaw(
+                "to_tsvector('simple', content) @@ plainto_tsquery('simple', ?)",
+                [$term],
+            );
+        }
+        if ($driver === 'mysql' || $driver === 'mariadb') {
+            return $q->whereRaw(
+                'MATCH(content) AGAINST(? IN BOOLEAN MODE)',
+                [$this->booleanFulltextTerm($term)],
+            );
+        }
+        return $q->where('content', 'like', $like);
+    }
+
+    /**
+     * Same as applyContentSearch but for the threads.title column. Accepts
+     * a generic query/builder so it composes cleanly inside the
+     * sub-closures used by the sidebar query.
+     */
+    protected function applyTitleSearch($q, string $term, string $like)
+    {
+        $driver = DB::connection()->getDriverName();
+
+        if ($driver === 'pgsql') {
+            return $q->whereRaw(
+                "to_tsvector('simple', title) @@ plainto_tsquery('simple', ?)",
+                [$term],
+            );
+        }
+        if ($driver === 'mysql' || $driver === 'mariadb') {
+            return $q->whereRaw(
+                'MATCH(title) AGAINST(? IN BOOLEAN MODE)',
+                [$this->booleanFulltextTerm($term)],
+            );
+        }
+        return $q->where('title', 'like', $like);
+    }
+
+    /**
+     * Turn a free-text search term into a MySQL boolean-mode expression:
+     * each whitespace-separated token gets a leading `+` so all words must
+     * match, and the trailing `*` makes it a prefix search ("compan" finds
+     * "companion"). Boolean operators in the user input are stripped so
+     * they can't break the parse.
+     */
+    protected function booleanFulltextTerm(string $term): string
+    {
+        $clean = preg_replace('/[+\-><()~*"@]+/', ' ', $term) ?? '';
+        $tokens = preg_split('/\s+/', trim($clean), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        if (empty($tokens)) return '';
+        return implode(' ', array_map(fn($t) => '+' . $t . '*', $tokens));
     }
 
     protected function ensureEnabled(): void
