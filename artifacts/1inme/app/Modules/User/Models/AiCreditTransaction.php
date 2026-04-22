@@ -32,7 +32,7 @@ class AiCreditTransaction extends Model
     public const TYPES = ['purchase', 'spend', 'refund', 'grant', 'admin_adjustment'];
 
     /** Known AI features for filtering / reporting. */
-    public const FEATURES = ['mind', 'persona', 'companion', 'coach'];
+    public const FEATURES = ['mind', 'persona', 'companion', 'coach', 'ask_coach'];
 
     public function balance() { return $this->belongsTo(AiCreditBalance::class, 'balance_id'); }
     public function user()    { return $this->belongsTo(User::class); }

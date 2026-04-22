@@ -293,6 +293,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('reseed-default',     [\App\Modules\Admin\Controllers\AiMindAdminController::class, 'reseedDefault'])->middleware(CheckPermission::class . ':settings.manage')->name('reseed');
         });
 
+        // Ask Coach — usage + quality + central system prompt + per-plan toggle.
+        Route::prefix('ask-coach')->name('ask-coach.')->group(function () {
+            Route::get('/',         [\App\Modules\Admin\Controllers\AskCoachAdminController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::put('settings',  [\App\Modules\Admin\Controllers\AskCoachAdminController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
+        });
+
         // AI Personas — per-user list, plan caps, abuse disable.
         Route::prefix('ai-personas')->name('ai-personas.')->group(function () {
             Route::get ('/',                   [\App\Modules\Admin\Controllers\AiPersonaAdminController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');

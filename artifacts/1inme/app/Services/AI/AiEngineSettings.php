@@ -30,7 +30,74 @@ class AiEngineSettings
     public const KEY_FEATURE_MODELS = 'ai.feature_models';
 
     /** Chat features whose model is admin-configurable. */
-    public const FEATURES = ['mind', 'persona', 'companion', 'coach'];
+    public const FEATURES = ['mind', 'persona', 'companion', 'coach', 'ask_coach'];
+
+    // ── Ask Coach (data-aware self-support chatbot) ───────────────
+    public const KEY_ASK_COACH_PROMPT  = 'ai.ask_coach.system_prompt';
+    public const KEY_ASK_COACH_PLANS   = 'ai.ask_coach.enabled_plans';
+
+    public const DEFAULT_ASK_COACH_PROMPT = <<<'PROMPT'
+You are 1INME Coach, a calm, concise self-support assistant for the user
+who is chatting with you. The user is signed in to 1INME and is asking
+questions about their own account, links, audience and analytics.
+
+Rules you must follow:
+- Ground every concrete claim in the live data the system gives you in
+  the "Snapshots" block. If a question can't be answered from those
+  snapshots, say so and suggest where to find it.
+- Never invent numbers, dates, link URLs, names or revenue figures.
+- Never reveal secrets or message bodies — counts only.
+- Keep answers short (max ~150 words) and end with one specific next
+  action when relevant.
+- You are read-only. Do not promise to change settings, edit links,
+  refund customers or contact anyone on the user's behalf.
+PROMPT;
+
+    public static function askCoachSystemPrompt(): string
+    {
+        $val = AppSetting::get(self::KEY_ASK_COACH_PROMPT);
+        return is_string($val) && trim($val) !== '' ? $val : self::DEFAULT_ASK_COACH_PROMPT;
+    }
+
+    public static function setAskCoachSystemPrompt(?string $prompt): void
+    {
+        AppSetting::put(self::KEY_ASK_COACH_PROMPT, is_string($prompt) ? trim($prompt) : null);
+    }
+
+    /**
+     * Plan slugs allowed to use Ask Coach. An empty list means
+     * "every plan" (the default), so admins don't have to pre-flag
+     * every plan when they enable the feature.
+     *
+     * @return list<string>
+     */
+    public static function askCoachEnabledPlans(): array
+    {
+        $val = AppSetting::get(self::KEY_ASK_COACH_PLANS);
+        if (!is_array($val)) return [];
+        return array_values(array_filter(array_map('strval', $val), fn($s) => $s !== ''));
+    }
+
+    public static function setAskCoachEnabledPlans(array $plans): void
+    {
+        $clean = array_values(array_unique(array_filter(array_map(
+            fn($s) => preg_replace('/[^a-z0-9_-]/i', '', (string) $s), $plans
+        ))));
+        AppSetting::put(self::KEY_ASK_COACH_PLANS, $clean);
+    }
+
+    /**
+     * Is the asker's plan allowed to use Ask Coach? Empty allow-list ==
+     * everyone in. Free-tier users with no plan_id resolve to slug
+     * "free" so admins can include/exclude them like any other plan.
+     */
+    public static function askCoachAllowedFor(\App\Modules\User\Models\User $user): bool
+    {
+        $allow = self::askCoachEnabledPlans();
+        if (!$allow) return true;
+        $slug = $user->plan_id && $user->plan ? (string) $user->plan->slug : 'free';
+        return in_array($slug, $allow, true);
+    }
 
     /** Fallback chat model used when a feature has no mapping yet. */
     public const DEFAULT_FEATURE_MODEL = 'gpt-4o-mini';

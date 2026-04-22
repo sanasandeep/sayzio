@@ -368,6 +368,18 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post('coach/suggest', [\App\Modules\User\Controllers\AI\CoachController::class, 'suggest'])->middleware('throttle:30,1')->name('coach.suggest');
             Route::post  ('coach/defaults', [\App\Modules\User\Controllers\AI\CoachController::class, 'saveDefaults'])->name('coach.defaults.save');
             Route::delete('coach/defaults', [\App\Modules\User\Controllers\AI\CoachController::class, 'clearDefaults'])->name('coach.defaults.clear');
+
+            // Ask Coach — multi-turn data-aware self-support chatbot
+            // (separate from the per-link Coach above; spend tagged
+            //  `ask_coach.chat` for admin reporting).
+            Route::get   ('ask-coach',                              [\App\Modules\User\Controllers\AI\AskCoachController::class, 'show'])->name('ask-coach.show');
+            Route::post  ('ask-coach',                              [\App\Modules\User\Controllers\AI\AskCoachController::class, 'store'])->name('ask-coach.store');
+            Route::get   ('ask-coach/{thread}',                     [\App\Modules\User\Controllers\AI\AskCoachController::class, 'show'])->whereNumber('thread')->name('ask-coach.thread');
+            Route::post  ('ask-coach/{thread}/send',                [\App\Modules\User\Controllers\AI\AskCoachController::class, 'send'])->whereNumber('thread')->middleware('throttle:30,1')->name('ask-coach.send');
+            Route::post  ('ask-coach/{thread}/rename',              [\App\Modules\User\Controllers\AI\AskCoachController::class, 'rename'])->whereNumber('thread')->name('ask-coach.rename');
+            Route::get   ('ask-coach/{thread}/export',              [\App\Modules\User\Controllers\AI\AskCoachController::class, 'export'])->whereNumber('thread')->name('ask-coach.export');
+            Route::delete('ask-coach/{thread}',                     [\App\Modules\User\Controllers\AI\AskCoachController::class, 'destroy'])->whereNumber('thread')->name('ask-coach.destroy');
+            Route::post  ('ask-coach/messages/{message}/feedback',  [\App\Modules\User\Controllers\AI\AskCoachController::class, 'feedback'])->whereNumber('message')->middleware('throttle:30,1')->name('ask-coach.feedback');
         });
 
         // AI Minds — labelled knowledge bases (text/docs/FAQs/links/

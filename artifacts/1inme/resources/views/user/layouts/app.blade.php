@@ -633,6 +633,15 @@
                     <span class="nav-label">Companion</span>
                     <span class="sidebar-tooltip">Companion</span>
                 </a>
+                @if(\App\Services\AI\AiEngineSettings::isEnabled() && auth()->check() && \App\Services\AI\AiEngineSettings::askCoachAllowedFor(auth()->user()))
+                <a href="{{ route('user.ai.ask-coach.show') }}"
+                   class="sidebar-link {{ request()->routeIs('user.ai.ask-coach.*') ? 'active' : '' }}"
+                   style="--nav-tint:#a78bfa; --nav-tint-soft:rgba(167,139,250,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-comment-dots"></i></div>
+                    <span class="nav-label">Ask Coach</span>
+                    <span class="sidebar-tooltip">Ask Coach</span>
+                </a>
+                @endif
                 <a href="{{ route('user.ai.coach.show') }}"
                    class="sidebar-link {{ request()->routeIs('user.ai.coach.*') ? 'active' : '' }}"
                    style="--nav-tint:#22d3ee; --nav-tint-soft:rgba(34,211,238,0.12);">
