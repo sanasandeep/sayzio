@@ -25,7 +25,7 @@ class PricingPagesController extends Controller
         $user = $request->user();
         $cycle = $request->query('cycle', 'monthly') === 'annual' ? 'annual' : 'monthly';
         $currency = PricingResolver::currencyForUser($user);
-        $currencyPickedByGeo = PricingResolver::wasPickedByGeo($user);
+        $currencySource = PricingResolver::currencySourceForUser($user);
 
         $billing = $user ? BillingAddress::where('user_id', $user->id)->first() : null;
         $hasAddress = $billing && !empty($billing->country);
@@ -73,7 +73,7 @@ class PricingPagesController extends Controller
             'plans'         => $rows,
             'cycle'         => $cycle,
             'currency'      => $currency,
-            'currency_picked_by_geo' => $currencyPickedByGeo,
+            'currencySource'=> $currencySource,
             'user'          => $user,
             'packages'      => $packages,
             'wallet_enabled'=> WalletService::isEnabled(),
@@ -84,6 +84,7 @@ class PricingPagesController extends Controller
     {
         $user = $request->user();
         $currency = PricingResolver::currencyForUser($user);
+        $currencySource = PricingResolver::currencySourceForUser($user);
 
         $packages = CoinPackage::active()->with('prices')->ordered()->get()
             ->map(function (CoinPackage $p) use ($currency) {
@@ -100,6 +101,7 @@ class PricingPagesController extends Controller
         return view('public.pricing.coins', [
             'packages'      => $packages,
             'currency'      => $currency,
+            'currencySource'=> $currencySource,
             'user'          => $user,
             'wallet_enabled'=> WalletService::isEnabled(),
         ]);

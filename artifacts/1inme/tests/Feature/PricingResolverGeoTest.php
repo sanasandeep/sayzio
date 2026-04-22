@@ -178,6 +178,46 @@ class PricingResolverGeoTest extends TestCase
         $this->assertSame('USD', PricingResolver::currencyForUser(null));
     }
 
+    public function test_currency_source_for_user_country(): void
+    {
+        $user = new User(['country' => 'IN']);
+        $this->assertSame(
+            PricingResolver::SOURCE_USER_COUNTRY,
+            PricingResolver::currencySourceForUser($user),
+        );
+    }
+
+    public function test_currency_source_manual_when_session_set(): void
+    {
+        $this->fakeGeoCountry('IN');
+        $this->bindRequestWithIp('203.0.113.1');
+        session([PricingResolver::SESSION_KEY => 'USD']);
+
+        // Anonymous visitor with an explicit override.
+        $this->assertSame(
+            PricingResolver::SOURCE_MANUAL,
+            PricingResolver::currencySourceForUser(null),
+        );
+
+        // Logged-in user without country also counts as manual override.
+        $user = new User(['country' => null]);
+        $this->assertSame(
+            PricingResolver::SOURCE_MANUAL,
+            PricingResolver::currencySourceForUser($user),
+        );
+    }
+
+    public function test_currency_source_geo_when_no_user_or_override(): void
+    {
+        $this->fakeGeoCountry('IN');
+        $this->bindRequestWithIp('203.0.113.1');
+
+        $this->assertSame(
+            PricingResolver::SOURCE_GEO,
+            PricingResolver::currencySourceForUser(null),
+        );
+    }
+
     protected function tearDown(): void
     {
         Mockery::close();

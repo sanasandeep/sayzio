@@ -18,6 +18,7 @@ class UpgradeController extends Controller
         $user = $request->user();
         $cycle = $request->query('cycle', 'monthly') === 'annual' ? 'annual' : 'monthly';
         $currency = PricingResolver::currencyForUser($user);
+        $currencySource = PricingResolver::currencySourceForUser($user);
 
         // Eager-load `prices` so PricingResolver doesn't re-query per row
         // (avoids the obvious N+1 on this page).
@@ -74,14 +75,14 @@ class UpgradeController extends Controller
         });
 
         return view('user.upgrade.show', [
-            'plans'                  => $plansPriced,
-            'addons'                 => $addonsPriced,
-            'cycle'                  => $cycle,
-            'currency'               => $currency,
-            'currency_picked_by_geo' => PricingResolver::wasPickedByGeo($user),
-            'user'                   => $user,
-            'hasAddress'             => $hasAddress,
-            'billing'                => $billing,
+            'plans'      => $plansPriced,
+            'addons'     => $addonsPriced,
+            'cycle'      => $cycle,
+            'currency'   => $currency,
+            'currencySource' => $currencySource,
+            'user'       => $user,
+            'hasAddress' => $hasAddress,
+            'billing'    => $billing,
         ]);
     }
 

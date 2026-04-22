@@ -8,7 +8,13 @@
         <div class="text-center max-w-3xl mx-auto space-y-3">
             <div class="text-xs font-bold uppercase tracking-[.2em] text-amber-400">Coin packages</div>
             <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">Top up coins, unlock add-ons.</h1>
-            <p class="text-lg text-gray-400">Coins let you activate paid add-ons on demand without changing plans. Prices in <span class="text-white font-medium">{{ $currency }}</span>.</p>
+            <p class="text-lg text-gray-400">Coins let you activate paid add-ons on demand without changing plans.</p>
+            @include('public.pricing._currency_badge', [
+                'currency'       => $currency,
+                'currencySource' => $currencySource,
+                'user'           => $user,
+                'switchRoute'    => 'upgrade.public.switch-currency',
+            ])
         </div>
 
         @if(!$wallet_enabled)

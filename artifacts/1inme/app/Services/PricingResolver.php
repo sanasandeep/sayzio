@@ -46,6 +46,16 @@ class PricingResolver
     public const SESSION_KEY_GEO = 'billing_currency_geo';
 
     /**
+     * Where the currency the visitor is currently seeing came from.
+     * Used by pricing views to render the right badge ("Auto-detected
+     * from your location" vs "You selected this" vs "Based on your
+     * billing country") so the auto-pick is transparent.
+     */
+    public const SOURCE_USER_COUNTRY = 'user_country';
+    public const SOURCE_MANUAL = 'manual';
+    public const SOURCE_GEO = 'geo';
+
+    /**
      * How long a cached geo-derived currency stays valid before we
      * re-check, even if the request IP hasn't visibly changed. Bounds
      * the staleness window for cases where the cached IP isn't
@@ -63,21 +73,39 @@ class PricingResolver
     }
 
     /**
-     * True when the active currency was chosen by geo-IP fallback rather
-     * than by the user's profile country or an explicit session switch.
-     * Used by the pricing page to show a small "based on your location"
-     * hint so roaming visitors know they can flip back.
+     * Where did the active currency come from? Mirrors the precedence
+     * in `currencyForUser()`:
+     *   - SOURCE_USER_COUNTRY: signed-in user has a profile country.
+     *   - SOURCE_MANUAL: visitor explicitly clicked the switcher
+     *     (session `billing_currency` is set).
+     *   - SOURCE_GEO: derived (or fell back to USD) from the request's
+     *     geo-IP. Anything not covered above lands here so views can
+     *     surface the "Auto-detected from your location" hint.
      */
-    public static function wasPickedByGeo(?User $user): bool
+    public static function currencySourceForUser(?User $user): string
     {
-        if ($user && !empty($user->country)) return false;
+        if ($user && !empty($user->country)) {
+            return self::SOURCE_USER_COUNTRY;
+        }
         try {
             $session = session(self::SESSION_KEY);
         } catch (\Throwable $e) {
-            return false;
+            return self::SOURCE_GEO;
         }
-        if (is_string($session) && in_array($session, ['USD', 'INR'], true)) return false;
-        return true;
+        if (is_string($session) && in_array($session, ['USD', 'INR'], true)) {
+            return self::SOURCE_MANUAL;
+        }
+        return self::SOURCE_GEO;
+    }
+
+    /**
+     * Back-compat shim for callers that only need to know whether the
+     * currency was auto-picked by geo-IP fallback. New code should use
+     * `currencySourceForUser()` directly.
+     */
+    public static function wasPickedByGeo(?User $user): bool
+    {
+        return self::currencySourceForUser($user) === self::SOURCE_GEO;
     }
 
     /** Resolve the currency that applies to the given user (or anonymous). */

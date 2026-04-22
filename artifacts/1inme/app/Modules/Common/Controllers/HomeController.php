@@ -15,6 +15,7 @@ class HomeController extends Controller
     {
         $user = $request->user();
         $currency = PricingResolver::currencyForUser($user);
+        $currencySource = PricingResolver::currencySourceForUser($user);
 
         $billing = $user ? BillingAddress::where('user_id', $user->id)->first() : null;
         $hasAddress = $billing && !empty($billing->country);
@@ -61,6 +62,6 @@ class HomeController extends Controller
                 ];
             });
 
-        return view('home', compact('plans', 'currency', 'hasAddress'));
+        return view('home', compact('plans', 'currency', 'currencySource', 'user', 'hasAddress'));
     }
 }

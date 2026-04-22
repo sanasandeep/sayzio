@@ -72,8 +72,13 @@
             </h1>
             <p class="text-lg text-gray-400">
                 Plans for steady use, coins for one-off boosts — all in one place.
-                Prices in <span class="text-white font-medium">{{ $currency }}</span>@if($user && $user->country) for <span class="uppercase">{{ $user->country }}</span>@endif.
             </p>
+            @include('public.pricing._currency_badge', [
+                'currency'       => $currency,
+                'currencySource' => $currencySource,
+                'user'           => $user,
+                'switchRoute'    => 'upgrade.public.switch-currency',
+            ])
         </div>
 
         {{-- Plans / Coins switcher --}}
@@ -107,39 +112,6 @@
             </div>
         </div>
 
-        @if($currency_picked_by_geo)
-        <div
-            x-data="{
-                shown: (() => { try { return sessionStorage.getItem('geoCurrencyHintDismissed') !== '1'; } catch(e) { return true; } })(),
-                dismiss(){ this.shown = false; try { sessionStorage.setItem('geoCurrencyHintDismissed','1'); } catch(e) {} }
-            }"
-            x-show="shown && view==='plans'" x-transition x-cloak
-            class="flex items-center justify-center mt-4">
-            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 bg-white/[0.04] text-[11px] text-gray-300">
-                <i class="fas fa-location-arrow text-violet-300 text-[10px]"></i>
-                <span>
-                    Showing prices in
-                    <span class="text-white font-medium">{{ $currency === 'INR' ? '₹ (INR)' : '$ (USD)' }}</span>
-                    based on your location — switch to
-                    <span class="text-white font-medium">{{ $currency === 'INR' ? '$ (USD)' : '₹ (INR)' }}</span>
-                    below.
-                </span>
-                <button type="button" @click="dismiss()" aria-label="Dismiss"
-                    class="ml-1 w-5 h-5 rounded-full hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white">
-                    <i class="fas fa-times text-[10px]"></i>
-                </button>
-            </div>
-        </div>
-        @endif
-
-        @if(!$user || !$user->country)
-        <form method="POST" action="{{ route('upgrade.public.switch-currency') }}" class="flex items-center justify-center gap-2 mt-4" x-show="view==='plans'" x-transition>
-            @csrf
-            <span class="text-xs uppercase tracking-wider text-gray-500">Show prices in:</span>
-            <button type="submit" name="currency" value="USD" class="px-3 py-1 text-xs rounded-l-full border border-white/10 {{ $currency === 'USD' ? 'bg-violet-600 text-white' : 'bg-white/5 text-gray-300 hover:bg-white/10' }}">USD ($)</button>
-            <button type="submit" name="currency" value="INR" class="px-3 py-1 text-xs rounded-r-full border border-white/10 border-l-0 {{ $currency === 'INR' ? 'bg-violet-600 text-white' : 'bg-white/5 text-gray-300 hover:bg-white/10' }}">INR (₹)</button>
-        </form>
-        @endif
 
         {{-- ───────────────── PLANS GRID ───────────────── --}}
         <div x-show="view==='plans'" x-transition.opacity.duration.300ms

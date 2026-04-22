@@ -4503,17 +4503,15 @@
             <p class="reveal rd-2 text-lg text-gray-400">Start free. Upgrade only when you outgrow it.</p>
         </div>
 
-        @php $showSwitcher = auth()->check() ? empty(auth()->user()->country) : true; @endphp
-        @if ($showSwitcher)
-        <div class="flex items-center justify-center gap-2 mb-8">
-            <span class="text-xs uppercase tracking-wider text-gray-500">Show prices in:</span>
-            <form method="POST" action="{{ route('upgrade.public.switch-currency') }}" class="inline-flex">
-                @csrf
-                <button type="submit" name="currency" value="USD" class="px-3 py-1 text-xs rounded-l-full border border-white/10 {{ ($currency ?? 'USD') === 'USD' ? 'grad-bar text-white' : 'bg-white/5 text-gray-300 hover:bg-white/10' }}">USD&nbsp;($)</button>
-                <button type="submit" name="currency" value="INR" class="px-3 py-1 text-xs rounded-r-full border border-white/10 border-l-0 {{ ($currency ?? 'USD') === 'INR' ? 'grad-bar text-white' : 'bg-white/5 text-gray-300 hover:bg-white/10' }}">INR&nbsp;(₹)</button>
-            </form>
+        <div class="flex items-center justify-center mb-8">
+            @include('public.pricing._currency_badge', [
+                'currency'       => $currency ?? 'USD',
+                'currencySource' => $currencySource ?? \App\Services\PricingResolver::SOURCE_GEO,
+                'user'           => $user ?? auth()->user(),
+                'switchRoute'    => 'upgrade.public.switch-currency',
+                'compact'        => true,
+            ])
         </div>
-        @endif
 
         <div class="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
             @foreach($plans as $i => $plan)

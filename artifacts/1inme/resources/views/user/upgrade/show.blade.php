@@ -6,7 +6,11 @@
 <div class="max-w-6xl mx-auto space-y-8">
     <div class="text-center space-y-2">
         <h1 class="text-3xl font-semibold text-white">Pick the plan that fits your work</h1>
-        <p class="text-white/60">All prices in <span class="font-medium text-white">{{ $currency }}</span>@if($user && $user->country) — based on your billing country (<span class="uppercase">{{ $user->country }}</span>). <a href="{{ route('user.profile.edit') }}" class="text-violet-400 hover:underline">Change country</a>@else. <a href="{{ route('user.profile.edit') }}" class="text-violet-400 hover:underline">Set your country</a> for accurate pricing@endif.</p>
+        @if(!$user || !$user->country)
+            <p class="text-white/60">All prices below.
+                <a href="{{ route('user.profile.edit') }}" class="text-violet-400 hover:underline">Set your country</a> for accurate pricing.
+            </p>
+        @endif
 
         <div class="inline-flex rounded-full border border-white/10 bg-white/[0.02] p-1 mt-3">
             <a href="{{ route('user.upgrade', ['cycle' => 'monthly']) }}"
@@ -15,43 +19,15 @@
                class="px-4 py-1.5 text-sm rounded-full transition {{ $cycle === 'annual' ? 'bg-violet-600 text-white' : 'text-white/60 hover:text-white' }}">Annual <span class="text-[10px] opacity-70">save 2 months</span></a>
         </div>
 
-        @if(!$user || !$user->country)
-        <form method="POST" action="{{ route('user.upgrade.switch-currency') }}" class="inline-flex items-center gap-2 mt-3 ml-3"
-              onsubmit="try { sessionStorage.setItem('geoCurrencyHintDismissed','1'); } catch(e) {}">
-            @csrf
-            <label class="text-xs text-white/40">Preview in:</label>
-            <select name="currency" onchange="this.form.submit()" class="px-3 py-1 text-xs bg-white/5 border border-white/10 rounded-full text-white/80">
-                <option value="USD" {{ $currency === 'USD' ? 'selected' : '' }} class="bg-[#0d0818]">USD ($)</option>
-                <option value="INR" {{ $currency === 'INR' ? 'selected' : '' }} class="bg-[#0d0818]">INR (₹)</option>
-            </select>
-        </form>
-        @endif
-    </div>
-
-    @if(!empty($currency_picked_by_geo))
-    <div
-        x-data="{
-            shown: (() => { try { return sessionStorage.getItem('geoCurrencyHintDismissed') !== '1'; } catch(e) { return true; } })(),
-            dismiss(){ this.shown = false; try { sessionStorage.setItem('geoCurrencyHintDismissed','1'); } catch(e) {} }
-        }"
-        x-show="shown" x-transition x-cloak
-        class="flex items-center justify-center -mt-2">
-        <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 bg-white/[0.04] text-[11px] text-white/70">
-            <i class="fas fa-location-arrow text-violet-300 text-[10px]"></i>
-            <span>
-                Showing prices in
-                <span class="text-white font-medium">{{ $currency === 'INR' ? '₹ (INR)' : '$ (USD)' }}</span>
-                based on your location — switch to
-                <span class="text-white font-medium">{{ $currency === 'INR' ? '$ (USD)' : '₹ (INR)' }}</span>
-                above.
-            </span>
-            <button type="button" @click="dismiss()" aria-label="Dismiss"
-                class="ml-1 w-5 h-5 rounded-full hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white">
-                <i class="fas fa-times text-[10px]"></i>
-            </button>
+        <div class="pt-1">
+            @include('public.pricing._currency_badge', [
+                'currency'       => $currency,
+                'currencySource' => $currencySource,
+                'user'           => $user,
+                'switchRoute'    => 'user.upgrade.switch-currency',
+            ])
         </div>
     </div>
-    @endif
 
     <div class="grid grid-cols-1 md:grid-cols-{{ min(count($plans), 4) }} gap-5">
         @foreach($plans as $row)
