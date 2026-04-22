@@ -100,12 +100,14 @@ class PersonaController extends Controller
         $kbCreditsSpent = 0;
         $citations      = [];
         $kbContext      = '';
+        $mindStats      = [];
         if ($selectedMinds) {
             try {
                 $retrieved = $this->minds->retrieveContext($user, $selectedMinds, $brief);
                 $kbContext      = $retrieved['context'];
                 $citations      = $retrieved['citations'];
                 $kbCreditsSpent = (int) $retrieved['credits_spent'];
+                $mindStats      = $retrieved['mind_stats'] ?? [];
             } catch (InsufficientAiCreditsException $e) {
                 throw $e;
             } catch (\Throwable $e) {
@@ -162,7 +164,13 @@ class PersonaController extends Controller
             'model'          => $out['model'],
             'citations'      => $citations,
             'minds_used'     => array_map(
-                fn(AiMind $m) => ['id' => (int) $m->id, 'name' => (string) $m->name, 'is_platform' => $m->isPlatform()],
+                fn(AiMind $m) => [
+                    'id'          => (int) $m->id,
+                    'name'        => (string) $m->name,
+                    'is_platform' => $m->isPlatform(),
+                    'chunks_used' => (int) ($mindStats[(int) $m->id]['chunks_used'] ?? 0),
+                    'top_score'   => (float) ($mindStats[(int) $m->id]['top_score'] ?? 0.0),
+                ],
                 $selectedMinds,
             ),
         ]);

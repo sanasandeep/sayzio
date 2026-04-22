@@ -77,6 +77,7 @@ class AiMindQueryService
      *   context:string,
      *   citations:array<int,array{id:int,title:string,type:string,mind_id:int,score:float}>,
      *   feature_snapshots:array<int,array{key:string,label:string,text:string}>,
+     *   mind_stats:array<int,array{chunks_used:int,top_score:float}>,
      *   credits_spent:int,
      * }
      */
@@ -89,6 +90,7 @@ class AiMindQueryService
                 'context'           => '',
                 'citations'         => [],
                 'feature_snapshots' => [],
+                'mind_stats'        => [],
                 'credits_spent'     => 0,
             ];
         }
@@ -143,6 +145,7 @@ class AiMindQueryService
 
         $contextParts = [];
         $citations    = [];
+        $mindStats    = [];
         $used         = 0;
         foreach ($top as $row) {
             /** @var AiMindChunk $chunk */
@@ -151,6 +154,15 @@ class AiMindQueryService
             if ($used + mb_strlen($piece) > self::MAX_CONTEXT_CHARS) break;
             $contextParts[] = $piece;
             $used += mb_strlen($piece);
+            $score = round((float) $row['score'], 4);
+            $mid = (int) $chunk->mind_id;
+            if (!isset($mindStats[$mid])) {
+                $mindStats[$mid] = ['chunks_used' => 0, 'top_score' => 0.0];
+            }
+            $mindStats[$mid]['chunks_used']++;
+            if ($score > $mindStats[$mid]['top_score']) {
+                $mindStats[$mid]['top_score'] = $score;
+            }
             $src = AiMindSource::find($chunk->source_id);
             if ($src) {
                 $citations[] = [
@@ -158,7 +170,7 @@ class AiMindQueryService
                     'title'   => (string) $src->title,
                     'type'    => (string) $src->type,
                     'mind_id' => (int) $src->mind_id,
-                    'score'   => round((float) $row['score'], 4),
+                    'score'   => $score,
                 ];
             }
         }
@@ -173,6 +185,7 @@ class AiMindQueryService
             'context'           => implode("\n", $contextParts),
             'citations'         => $citations,
             'feature_snapshots' => $snapshots,
+            'mind_stats'        => $mindStats,
             'credits_spent'     => $creditsSpent,
         ];
     }

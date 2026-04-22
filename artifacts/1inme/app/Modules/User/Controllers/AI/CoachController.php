@@ -108,6 +108,7 @@ class CoachController extends Controller
         $kbCreditsSpent = 0;
         $citations      = [];
         $kbContext      = '';
+        $mindStats      = [];
         if ($selectedMinds) {
             // Use goal + link title as the retrieval query — captures
             // both the strategic intent and the topic of the link.
@@ -117,6 +118,7 @@ class CoachController extends Controller
                 $kbContext      = $retrieved['context'];
                 $citations      = $retrieved['citations'];
                 $kbCreditsSpent = (int) $retrieved['credits_spent'];
+                $mindStats      = $retrieved['mind_stats'] ?? [];
             } catch (InsufficientAiCreditsException $e) {
                 throw $e;
             } catch (\Throwable $e) {
@@ -168,7 +170,13 @@ class CoachController extends Controller
             'link_title'     => $link->title,
             'citations'      => $citations,
             'minds_used'     => array_map(
-                fn(AiMind $m) => ['id' => (int) $m->id, 'name' => (string) $m->name, 'is_platform' => $m->isPlatform()],
+                fn(AiMind $m) => [
+                    'id'          => (int) $m->id,
+                    'name'        => (string) $m->name,
+                    'is_platform' => $m->isPlatform(),
+                    'chunks_used' => (int) ($mindStats[(int) $m->id]['chunks_used'] ?? 0),
+                    'top_score'   => (float) ($mindStats[(int) $m->id]['top_score'] ?? 0.0),
+                ],
                 $selectedMinds,
             ),
         ]);
