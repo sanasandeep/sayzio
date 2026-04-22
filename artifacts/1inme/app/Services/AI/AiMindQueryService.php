@@ -75,7 +75,7 @@ class AiMindQueryService
      * @param array<int,AiMind> $minds
      * @return array{
      *   context:string,
-     *   citations:array<int,array{id:int,title:string,type:string,mind_id:int,score:float}>,
+     *   citations:array<int,array{id:int,title:string,type:string,mind_id:int,score:float,url:?string}>,
      *   feature_snapshots:array<int,array{key:string,label:string,text:string}>,
      *   mind_stats:array<int,array{chunks_used:int,top_score:float}>,
      *   credits_spent:int,
@@ -171,6 +171,7 @@ class AiMindQueryService
                     'type'    => (string) $src->type,
                     'mind_id' => (int) $src->mind_id,
                     'score'   => $score,
+                    'url'     => $src->url ? (string) $src->url : null,
                 ];
             }
         }
@@ -194,7 +195,7 @@ class AiMindQueryService
      * @param array<int,AiMind> $minds Knowledge bases to search.
      * @return array{
      *   answer:string,
-     *   citations:array<int,array{id:int,title:string,type:string,mind_id:int,score:float}>,
+     *   citations:array<int,array{id:int,title:string,type:string,mind_id:int,score:float,url:?string}>,
      *   credits_spent:int,
      *   tokens_in:int,
      *   tokens_out:int,

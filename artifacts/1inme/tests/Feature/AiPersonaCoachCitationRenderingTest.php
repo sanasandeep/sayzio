@@ -209,6 +209,51 @@ class AiPersonaCoachCitationRenderingTest extends TestCase
         $this->assertStringNotContainsString('>Sources<', $html);
     }
 
+    public function test_persona_view_renders_open_original_link_for_link_citations(): void
+    {
+        $user = $this->makeUser('p-link');
+        $mind = AiMind::create([
+            'user_id'     => $user->id,
+            'name'        => 'Link Mind',
+            'is_default'  => false,
+            'is_disabled' => false,
+        ]);
+        $src = AiMindSource::create([
+            'mind_id' => $mind->id,
+            'type'    => AiMindSource::TYPE_LINK,
+            'title'   => 'External article',
+            'url'     => 'https://example.com/original-article',
+            'body'    => 'CACHED-LINK-BODY',
+            'status'  => AiMindSource::STATUS_READY,
+        ]);
+        AiMindChunk::create([
+            'mind_id'   => $mind->id,
+            'source_id' => $src->id,
+            'ord'       => 0,
+            'content'   => 'CACHED-LINK-BODY',
+            'tokens'    => 5,
+            'embedding' => [1.0],
+            'model'     => 'text-embedding-3-small',
+        ]);
+
+        $this->actingAs($user)
+            ->post(route('user.ai.persona.generate'), [
+                'audience' => 'Indie hackers',
+                'mind_ids' => [$mind->id],
+            ])
+            ->assertRedirect(route('user.ai.persona.show'));
+
+        $html = $this->actingAs($user)
+            ->get(route('user.ai.persona.show'))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('https://example.com/original-article', $html);
+        $this->assertStringContainsString('target="_blank"', $html);
+        $this->assertStringContainsString('rel="noopener noreferrer"', $html);
+        $this->assertStringContainsString('Open original page in new tab', $html);
+    }
+
     public function test_coach_view_renders_mind_name_and_citation_title(): void
     {
         $user = $this->makeUser('c-cite');

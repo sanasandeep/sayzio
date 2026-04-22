@@ -59,6 +59,8 @@
                                     $cMid = (int) ($c['mind_id'] ?? 0);
                                     $cSid = (int) ($c['id'] ?? 0);
                                     $href = ($cMid && $cSid) ? route('user.minds.sources.show', ['mind' => $cMid, 'source' => $cSid]) : null;
+                                    $isLink = ($c['type'] ?? '') === 'link';
+                                    $origUrl = $isLink ? ($c['url'] ?? null) : null;
                                 @endphp
                                 <li>
                                     <span class="text-white/40">[{{ $row['index'] }}]</span>
@@ -66,6 +68,15 @@
                                         <a href="{{ $href }}" class="text-white/90 underline decoration-white/20 hover:decoration-white/60 hover:text-white" title="View source">{{ $c['title'] }}</a>
                                     @else
                                         <span class="text-white/90">{{ $c['title'] }}</span>
+                                    @endif
+                                    @if($origUrl)
+                                        <a href="{{ $origUrl }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-0.5 text-white/50 hover:text-white ml-1" title="Open original page in new tab" aria-label="Open original page in new tab">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3" aria-hidden="true">
+                                                <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                                                <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                                            </svg>
+                                            <span class="sr-only">Open original</span>
+                                        </a>
                                     @endif
                                     <span class="text-white/40">· {{ $c['type'] }}</span>
                                     <span class="text-white/40">· match {{ number_format($c['score'] * 100, 1) }}%</span>
@@ -86,6 +97,8 @@
                                 $cMid = (int) ($c['mind_id'] ?? 0);
                                 $cSid = (int) ($c['id'] ?? 0);
                                 $href = ($cMid && $cSid) ? route('user.minds.sources.show', ['mind' => $cMid, 'source' => $cSid]) : null;
+                                $isLink = ($c['type'] ?? '') === 'link';
+                                $origUrl = $isLink ? ($c['url'] ?? null) : null;
                             @endphp
                             <li>
                                 <span class="text-white/40">[{{ $row['index'] }}]</span>
@@ -93,6 +106,15 @@
                                     <a href="{{ $href }}" class="text-white/90 underline decoration-white/20 hover:decoration-white/60 hover:text-white" title="View source">{{ $c['title'] }}</a>
                                 @else
                                     <span class="text-white/90">{{ $c['title'] }}</span>
+                                @endif
+                                @if($origUrl)
+                                    <a href="{{ $origUrl }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-0.5 text-white/50 hover:text-white ml-1" title="Open original page in new tab" aria-label="Open original page in new tab">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3" aria-hidden="true">
+                                            <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                                            <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                                        </svg>
+                                        <span class="sr-only">Open original</span>
+                                    </a>
                                 @endif
                                 <span class="text-white/40">· {{ $c['type'] }}</span>
                                 <span class="text-white/40">· match {{ number_format($c['score'] * 100, 1) }}%</span>
@@ -112,6 +134,8 @@
                     $cMid = (int) ($c['mind_id'] ?? 0);
                     $cSid = (int) ($c['id'] ?? 0);
                     $href = ($cMid && $cSid) ? route('user.minds.sources.show', ['mind' => $cMid, 'source' => $cSid]) : null;
+                    $isLink = ($c['type'] ?? '') === 'link';
+                    $origUrl = $isLink ? ($c['url'] ?? null) : null;
                 @endphp
                 <li>
                     <span class="text-white/40">[{{ $i + 1 }}]</span>
@@ -119,6 +143,15 @@
                         <a href="{{ $href }}" class="text-white/90 underline decoration-white/20 hover:decoration-white/60 hover:text-white" title="View source">{{ $c['title'] }}</a>
                     @else
                         <span class="text-white/90">{{ $c['title'] }}</span>
+                    @endif
+                    @if($origUrl)
+                        <a href="{{ $origUrl }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-0.5 text-white/50 hover:text-white ml-1" title="Open original page in new tab" aria-label="Open original page in new tab">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3" aria-hidden="true">
+                                <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                                <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                            </svg>
+                            <span class="sr-only">Open original</span>
+                        </a>
                     @endif
                     <span class="text-white/40">· {{ $c['type'] }}</span>
                     <span class="text-white/40">· match {{ number_format($c['score'] * 100, 1) }}%</span>
