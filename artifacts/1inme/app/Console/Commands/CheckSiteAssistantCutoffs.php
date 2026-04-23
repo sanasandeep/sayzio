@@ -84,7 +84,15 @@ class CheckSiteAssistantCutoffs extends Command
         $this->info("Last 24h: {$total} cut-offs, {$retried} retried — abandon rate {$abandonRate}% (threshold {$threshold}%).");
 
         if ($abandonRate < $threshold) {
-            $this->info('Below threshold — no alert dispatched.');
+            // Recovery path — only fire once per alert episode, and only
+            // if we previously sent an alert. Flips `cutoff_alerting`
+            // off so the next breach starts a fresh episode.
+            if (! ($cfg['cutoff_alerting'] ?? false)) {
+                $this->info('Below threshold — no alert dispatched.');
+                return self::SUCCESS;
+            }
+
+            $this->dispatchRecovery($cfg, $abandonRate, $threshold, $total, $retried);
             return self::SUCCESS;
         }
 
@@ -177,9 +185,91 @@ class CheckSiteAssistantCutoffs extends Command
 
         SiteAssistantSettings::update([
             'cutoff_alert_last_sent_at' => now()->toIso8601String(),
+            'cutoff_alerting'           => true,
         ]);
 
         $this->info("Alert dispatched — in-app: {$inAppDelivered}, email: {$emailsSent}.");
         return self::SUCCESS;
+    }
+
+    /**
+     * Send the "all clear" follow-up to the same admin set the alert
+     * went to. Mirrors the alert fan-out (in-app + email) and clears
+     * the `cutoff_alerting` flag so we don't re-send for the same
+     * recovery episode.
+     */
+    private function dispatchRecovery(array $cfg, int $abandonRate, int $threshold, int $total, int $retried): void
+    {
+        $admins = User::query()
+            ->whereHas('roles.permissions', fn ($q) => $q->where('key', 'settings.manage'))
+            ->get();
+
+        $subject = "Site Assistant cut-off recovered: {$abandonRate}% abandon rate (last 24h)";
+        $body    = "Good news — the Site Assistant cut-off abandon rate is back down to {$abandonRate}% over the last 24h ({$total} cut-offs, {$retried} retried), below the {$threshold}% alerting threshold. No further action needed.";
+        $url     = route('admin.site-assistant.analytics');
+
+        $inAppDelivered = 0;
+        foreach ($admins as $u) {
+            try {
+                UserNotification::create([
+                    'user_id' => $u->id,
+                    'type'    => 'site_assistant_cutoff_recovered',
+                    'data'    => [
+                        'subject'      => $subject,
+                        'body'         => $body,
+                        'message'      => $body,
+                        'url'          => $url,
+                        'target_url'   => $url,
+                        'abandon_rate' => $abandonRate,
+                        'threshold'    => $threshold,
+                        'total'        => $total,
+                        'retried'      => $retried,
+                        'window_hours' => 24,
+                    ],
+                    'created_at' => now(),
+                ]);
+                $inAppDelivered++;
+            } catch (\Throwable $e) {
+                Log::warning("site-assistant cut-off recovery in-app failed for user {$u->id}: " . $e->getMessage());
+            }
+        }
+
+        $explicit = [];
+        foreach (preg_split('/[\s,;]+/', (string) ($cfg['cutoff_alert_emails'] ?? '')) ?: [] as $p) {
+            $p = strtolower(trim((string) $p));
+            if ($p !== '' && filter_var($p, FILTER_VALIDATE_EMAIL)) {
+                $explicit[$p] = true;
+            }
+        }
+        $explicit = array_keys($explicit);
+        if (! empty($explicit)) {
+            $emails = $explicit;
+        } else {
+            $emails = $admins
+                ->filter(fn ($u) => $u->email && $u->email_verified_at)
+                ->pluck('email')
+                ->unique()
+                ->values()
+                ->all();
+        }
+
+        $emailsSent = 0;
+        foreach ($emails as $email) {
+            try {
+                Mail::raw($body . "\n\n" . $url, function ($m) use ($email, $subject) {
+                    $m->to($email)->subject($subject);
+                });
+                $emailsSent++;
+            } catch (\Throwable $e) {
+                Log::warning("site-assistant cut-off recovery email to {$email} failed: " . $e->getMessage());
+            }
+        }
+
+        SiteAssistantSettings::update([
+            'cutoff_alerting'           => false,
+            'cutoff_alert_recovered_at' => now()->toIso8601String(),
+        ]);
+
+        $this->info("Recovery dispatched — in-app: {$inAppDelivered}, email: {$emailsSent}.");
     }
 }

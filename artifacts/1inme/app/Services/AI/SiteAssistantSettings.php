@@ -63,6 +63,8 @@ class SiteAssistantSettings
             'cutoff_alert_cooldown_hours'      => 6,    // suppress repeat alerts inside this window
             'cutoff_alert_emails'              => '',   // optional comma-separated extra recipients
             'cutoff_alert_last_sent_at'        => null, // ISO-8601 timestamp written by the checker
+            'cutoff_alerting'                  => false, // true while we're in an active alert state; flipped off when the recovery notice is sent
+            'cutoff_alert_recovered_at'        => null, // ISO-8601 timestamp of the last recovery notification
         ];
     }
 
