@@ -168,6 +168,17 @@ export type PollResults = {
   options: { index: number; label: string; count: number; percent: number }[];
 };
 
+// Thrown by getPollResults when the creator has set a "reveal results at"
+// deadline that hasn't passed yet. Lets the caller render a "Results
+// visible after <date>" message instead of a generic 403 fallback.
+export type PollResultsLockedError = {
+  status: number;
+  message: string;
+  errors?: Record<string, string[]>;
+  code: "results_locked";
+  reveal_at: string;
+};
+
 // Fetch aggregated tallies for a poll block. Used right after a viewer
 // votes (and on first render for viewers who already voted in a previous
 // session) so they can see how their pick compares to the rest. Returns
@@ -177,10 +188,32 @@ export async function getPollResults(
   alias: string,
   blockId: number,
 ): Promise<PollResults> {
-  const res = await apiFetch<{ data: PollResults }>(
-    `/biolinks/${encodeURIComponent(alias)}/blocks/${blockId}/poll-results`,
-  );
-  return res.data;
+  try {
+    const res = await apiFetch<{ data: PollResults }>(
+      `/biolinks/${encodeURIComponent(alias)}/blocks/${blockId}/poll-results`,
+    );
+    return res.data;
+  } catch (e) {
+    // apiFetch puts the server's `error.details` into `errors`, so a
+    // results_locked 403 carries the reveal_at timestamp through that
+    // field. Re-throw it as a typed PollResultsLockedError so callers
+    // can render a "Results visible after <date>" message instead of
+    // the generic 403 fallback.
+    if (e && typeof e === "object" && "status" in e && (e as { status: number }).status === 403) {
+      const details = (e as { errors?: Record<string, unknown> }).errors;
+      const revealAt = details && typeof details.reveal_at === "string" ? details.reveal_at : null;
+      if (revealAt) {
+        const locked: PollResultsLockedError = {
+          status: 403,
+          message: (e as { message?: string }).message ?? "Results locked",
+          code: "results_locked",
+          reveal_at: revealAt,
+        };
+        throw locked;
+      }
+    }
+    throw e;
+  }
 }
 
 export type RsvpSubmission = {

@@ -128,11 +128,23 @@ function PollBlock({
     .filter((x) => x.length > 0)
     .slice(0, 8);
 
+  // Pre-read the creator's "reveal results at" deadline from the block
+  // settings so we can show "Results visible after <date>" before the
+  // viewer ever votes (the API also enforces this server-side).
+  const revealAtRaw = pickStr(settings, "reveal_results_at");
+  const revealAtInitial = (() => {
+    if (!revealAtRaw) return null;
+    const d = new Date(revealAtRaw);
+    if (Number.isNaN(d.getTime())) return null;
+    return d.getTime() > Date.now() ? d : null;
+  })();
+
   const [submitting, setSubmitting] = useState<number | null>(null);
   const [votedIndex, setVotedIndex] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<PollResults | null>(null);
   const [resultsLoading, setResultsLoading] = useState(false);
+  const [resultsLockedUntil, setResultsLockedUntil] = useState<Date | null>(revealAtInitial);
   const remembered = useRememberedResponse(alias, block.id);
 
   // Fetch the live tally (best-effort: a failure just falls back to the
@@ -144,12 +156,23 @@ function PollBlock({
       const r = await getPollResults(alias, block.id);
       setResults(r);
       setHiddenUntilVote(false);
+      setResultsLockedUntil(null);
     } catch (e) {
       // Server returns 403 vote_required when the creator has hidden
-      // tallies until this viewer has voted. Surface that explicitly
-      // instead of leaving the viewer staring at a silent fallback.
+      // tallies until this viewer has voted, or 403 results_locked
+      // when a reveal-at deadline hasn't passed. Surface either case
+      // explicitly so the viewer doesn't stare at a silent fallback.
       const status = (e && typeof e === "object" && "status" in e) ? Number((e as { status: unknown }).status) : 0;
-      if (status === 403) setHiddenUntilVote(true);
+      const code = (e && typeof e === "object" && "code" in e) ? String((e as { code: unknown }).code) : "";
+      if (status === 403 && code === "results_locked") {
+        const revealAt = (e as { reveal_at?: string }).reveal_at;
+        if (revealAt) {
+          const d = new Date(revealAt);
+          if (!Number.isNaN(d.getTime())) setResultsLockedUntil(d);
+        }
+      } else if (status === 403) {
+        setHiddenUntilVote(true);
+      }
     } finally {
       setResultsLoading(false);
     }
@@ -207,15 +230,22 @@ function PollBlock({
       );
     }
     return (
-      <RespondedCard
-        icon="📊"
-        title={question}
-        responseLabel={remembered.value}
-        onChange={() => {
-          remembered.forget();
-          setResults(null);
-        }}
-      />
+      <View>
+        <RespondedCard
+          icon="📊"
+          title={question}
+          responseLabel={remembered.value}
+          onChange={() => {
+            remembered.forget();
+            setResults(null);
+          }}
+        />
+        {resultsLockedUntil ? (
+          <Text style={[styles.body, { color: colors.mutedForeground, textAlign: "left", fontSize: 12, marginTop: 4, paddingHorizontal: 12 }]}>
+            🔒 Results visible after {resultsLockedUntil.toLocaleString()}
+          </Text>
+        ) : null}
+      </View>
     );
   }
 
@@ -266,9 +296,16 @@ function PollBlock({
           No options configured.
         </Text>
       )}
+      {resultsLockedUntil ? (
+        <Text style={[styles.body, { color: colors.mutedForeground, textAlign: "left", fontSize: 12, marginTop: 4 }]}>
+          🔒 Results visible after {resultsLockedUntil.toLocaleString()}
+        </Text>
+      ) : null}
       {votedIndex !== null ? (
         <Text style={[styles.body, { color: "#16a34a", textAlign: "left", fontSize: 12, marginTop: 4 }]}>
-          {hiddenUntilVote ? "Thanks for voting! Results are hidden by the creator." : "Thanks for voting!"}
+          {resultsLockedUntil
+            ? "Thanks for voting!"
+            : (hiddenUntilVote ? "Thanks for voting! Results are hidden by the creator." : "Thanks for voting!")}
         </Text>
       ) : null}
       {error ? (

@@ -452,6 +452,21 @@ function imageListUploader_{{ $gridImgId }}() {
         <input type="checkbox" name="settings[hide_results_until_voted]" value="1" @checked(!empty($s['hide_results_until_voted'])) class="rounded border-white/20 bg-white/5">
         <span>Hide results until the viewer has voted</span>
     </label>
+    {{-- Stricter mode: hide tallies from EVERYONE (including voters) until
+         the configured timestamp passes. Takes precedence over the
+         per-viewer toggle above. Empty = disabled. --}}
+    <div class="mt-3">
+        <label class="{{ $labelClass }}">Reveal results at (optional)</label>
+        @php
+            $revealVal = '';
+            if (!empty($s['reveal_results_at'])) {
+                try { $revealVal = \Carbon\Carbon::parse($s['reveal_results_at'])->format('Y-m-d\TH:i'); }
+                catch (\Throwable $e) { $revealVal = ''; }
+            }
+        @endphp
+        <input type="datetime-local" name="settings[reveal_results_at]" value="{{ $revealVal }}" class="{{ $inputClass }}">
+        <p class="text-[11px] text-white/40 mt-1">Until this date/time, no one — including you — sees the tallies, even after they vote.</p>
+    </div>
     @if($block->exists)
         <a href="{{ route('user.links.poll-votes.index', [$block->link_id, $block->id]) }}"
            class="inline-flex items-center gap-1.5 mt-3 text-xs text-violet-300 hover:text-violet-200">

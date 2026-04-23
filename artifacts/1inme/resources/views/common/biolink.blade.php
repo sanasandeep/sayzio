@@ -1277,14 +1277,32 @@
                      /poll-results endpoint, so viewers can immediately see how their pick compares.
                      If the results fetch fails, the option list stays visible with the picked
                      option highlighted (and a small "Thanks for voting" hint) instead of an error wall. --}}
+                @php
+                    $pollRevealAt = null;
+                    $pollRevealLabel = null;
+                    if (!empty($s['reveal_results_at'])) {
+                        try {
+                            $pollRevealAt = \Carbon\Carbon::parse($s['reveal_results_at']);
+                            $pollRevealLabel = $pollRevealAt->toIso8601String();
+                        } catch (\Throwable $e) {
+                            $pollRevealAt = null;
+                        }
+                    }
+                @endphp
                 <div class="mb-4 glass-block rounded-xl p-5"
                      x-data="biolinkPoll({
                         alias: @js($link->alias),
                         blockId: {{ (int) $block->id }},
                         options: @js(array_values((array) ($s['options'] ?? []))),
+                        revealAt: @js($pollRevealLabel),
                      })"
                      x-init="init()">
                     <p class="text-sm font-semibold mb-3">{{ $s['question'] ?? '' }}</p>
+                    <template x-if="resultsLocked">
+                        <p class="text-xs mb-2" style="color:{{ $fontColor }}99">
+                            <i class="fas fa-lock mr-1"></i>Results visible after <span x-text="revealAtDisplay"></span>
+                        </p>
+                    </template>
                     <template x-if="!results">
                         <div class="space-y-2">
                             @foreach(($s['options'] ?? []) as $i => $opt)
@@ -2034,7 +2052,21 @@
             submitting: null,
             results: null,
             error: '',
-            init() { /* nothing to fetch upfront — results are pulled after voting */ },
+            // Reveal-at deadline: when set + still in the future, the
+            // /poll-results endpoint refuses tallies (even for voters),
+            // so we surface a "Results visible after <date>" line.
+            revealAt: opts.revealAt || null,
+            resultsLocked: false,
+            revealAtDisplay: '',
+            init() {
+                if (this.revealAt) {
+                    const d = new Date(this.revealAt);
+                    if (!Number.isNaN(d.getTime())) {
+                        this.revealAtDisplay = d.toLocaleString();
+                        if (d.getTime() > Date.now()) this.resultsLocked = true;
+                    }
+                }
+            },
             async vote(i, label) {
                 if (this.submitting !== null) return;
                 this.submitting = i;
@@ -2063,7 +2095,21 @@
                         headers: { 'Accept': 'application/json' },
                     });
                     if (r.status === 403) {
-                        // Creator has hidden tallies until the viewer votes.
+                        // Either the creator has hidden tallies until the
+                        // viewer votes, or the reveal-at deadline hasn't
+                        // passed yet. Inspect the envelope to tell them apart.
+                        let body = null;
+                        try { body = await r.json(); } catch (_) { /* noop */ }
+                        const code = body && body.error && body.error.code;
+                        const details = (body && body.error && body.error.details) || {};
+                        if (code === 'results_locked' && details.reveal_at) {
+                            this.revealAt = details.reveal_at;
+                            const d = new Date(details.reveal_at);
+                            if (!Number.isNaN(d.getTime())) this.revealAtDisplay = d.toLocaleString();
+                            this.resultsLocked = true;
+                            this.error = '';
+                            return;
+                        }
                         this.error = 'Vote to see results';
                         return;
                     }

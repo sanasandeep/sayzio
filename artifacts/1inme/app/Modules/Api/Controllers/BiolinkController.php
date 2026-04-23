@@ -308,6 +308,33 @@ class BiolinkController extends Controller
 
         $settings = $block->settings ?? [];
 
+        $isOwner = $viewer && $owner && (int) $viewer->id === (int) $owner->id;
+
+        // Per-poll deadline gate: when "reveal results at" is set, refuse
+        // tallies for EVERYONE (including the owner) until that timestamp
+        // passes. Takes precedence over hide_results_until_voted because
+        // it's the stricter mode.
+        $revealAtRaw = $settings['reveal_results_at'] ?? null;
+        $revealAt = null;
+        if (is_string($revealAtRaw) && trim($revealAtRaw) !== '') {
+            try {
+                $revealAt = \Carbon\Carbon::parse($revealAtRaw);
+            } catch (\Throwable $e) {
+                $revealAt = null;
+            }
+        }
+        if ($revealAt && $revealAt->isFuture()) {
+            return $this->fail(
+                'Results visible after ' . $revealAt->toIso8601String(),
+                403,
+                'results_locked',
+                [
+                    'hidden'    => true,
+                    'reveal_at' => $revealAt->toIso8601String(),
+                ]
+            );
+        }
+
         // Per-poll privacy gate: when "hide results until voted" is on,
         // refuse tallies until the requester has voted. Owner is exempt.
         // Vote identity matches pollVote's dedupe key.
@@ -315,7 +342,6 @@ class BiolinkController extends Controller
             $settings['hide_results_until_voted'] ?? false,
             FILTER_VALIDATE_BOOLEAN
         );
-        $isOwner = $viewer && $owner && (int) $viewer->id === (int) $owner->id;
         if ($hideUntilVoted && !$isOwner) {
             $fingerprint = $viewer
                 ? 'u:' . $viewer->id
