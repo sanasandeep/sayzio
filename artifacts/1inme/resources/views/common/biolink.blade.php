@@ -2062,6 +2062,11 @@
                         credentials: 'same-origin',
                         headers: { 'Accept': 'application/json' },
                     });
+                    if (r.status === 403) {
+                        // Creator has hidden tallies until the viewer votes.
+                        this.error = 'Vote to see results';
+                        return;
+                    }
                     if (!r.ok) return;
                     const json = await r.json();
                     if (json && json.data && Array.isArray(json.data.options)) {

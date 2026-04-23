@@ -137,13 +137,19 @@ function PollBlock({
 
   // Fetch the live tally (best-effort: a failure just falls back to the
   // legacy "Thanks for voting!" message rather than blocking the UI).
+  const [hiddenUntilVote, setHiddenUntilVote] = useState(false);
   const loadResults = useCallback(async () => {
     setResultsLoading(true);
     try {
       const r = await getPollResults(alias, block.id);
       setResults(r);
-    } catch {
-      /* keep prior results, if any */
+      setHiddenUntilVote(false);
+    } catch (e) {
+      // Server returns 403 vote_required when the creator has hidden
+      // tallies until this viewer has voted. Surface that explicitly
+      // instead of leaving the viewer staring at a silent fallback.
+      const status = (e && typeof e === "object" && "status" in e) ? Number((e as { status: unknown }).status) : 0;
+      if (status === 403) setHiddenUntilVote(true);
     } finally {
       setResultsLoading(false);
     }
@@ -262,7 +268,7 @@ function PollBlock({
       )}
       {votedIndex !== null ? (
         <Text style={[styles.body, { color: "#16a34a", textAlign: "left", fontSize: 12, marginTop: 4 }]}>
-          Thanks for voting!
+          {hiddenUntilVote ? "Thanks for voting! Results are hidden by the creator." : "Thanks for voting!"}
         </Text>
       ) : null}
       {error ? (

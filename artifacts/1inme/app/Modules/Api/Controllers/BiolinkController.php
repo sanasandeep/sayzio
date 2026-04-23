@@ -307,6 +307,32 @@ class BiolinkController extends Controller
         if (!$block) return $this->notFound('Poll not found');
 
         $settings = $block->settings ?? [];
+
+        // Per-poll privacy gate: when "hide results until voted" is on,
+        // refuse tallies until the requester has voted. Owner is exempt.
+        // Vote identity matches pollVote's dedupe key.
+        $hideUntilVoted = filter_var(
+            $settings['hide_results_until_voted'] ?? false,
+            FILTER_VALIDATE_BOOLEAN
+        );
+        $isOwner = $viewer && $owner && (int) $viewer->id === (int) $owner->id;
+        if ($hideUntilVoted && !$isOwner) {
+            $fingerprint = $viewer
+                ? 'u:' . $viewer->id
+                : substr(hash('sha256', $request->ip() . '|' . ($request->userAgent() ?? '')), 0, 32);
+            $hasVoted = PollVote::where('block_id', $block->id)
+                ->where('voter_fingerprint', $fingerprint)
+                ->exists();
+            if (!$hasVoted) {
+                return $this->fail(
+                    'Vote to see results',
+                    403,
+                    'vote_required',
+                    ['hidden' => true]
+                );
+            }
+        }
+
         $rawOptions = $settings['options'] ?? $settings['choices'] ?? $settings['items'] ?? [];
         $labels = [];
         foreach ((array) $rawOptions as $opt) {
