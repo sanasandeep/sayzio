@@ -77,6 +77,10 @@ class SiteAssistantController extends Controller
             'session_rate_per_minute'  => 'nullable|integer|min:1|max:120',
             'handoff_enabled'          => 'nullable|boolean',
             'handoff_freeze_after'     => 'nullable|boolean',
+            'low_balance_multiplier'         => 'nullable|integer|min:1|max:50',
+            'low_balance_default_credits'    => 'nullable|integer|min:1|max:100000',
+            'low_balance_message_signed_in'  => 'nullable|string|max:500',
+            'low_balance_message_anonymous'  => 'nullable|string|max:500',
             'starter_prompts'          => 'nullable|array',
             'starter_prompts.*'        => 'nullable|string|max:200',
         ]);
@@ -97,6 +101,10 @@ class SiteAssistantController extends Controller
             'session_rate_per_minute' => (int)   ($data['session_rate_per_minute'] ?? 12),
             'handoff_enabled'         => $request->boolean('handoff_enabled'),
             'handoff_freeze_after'    => $request->boolean('handoff_freeze_after'),
+            'low_balance_multiplier'        => max(1, (int) ($data['low_balance_multiplier'] ?? 3)),
+            'low_balance_default_credits'   => max(1, (int) ($data['low_balance_default_credits'] ?? 50)),
+            'low_balance_message_signed_in' => trim((string) ($data['low_balance_message_signed_in'] ?? '')),
+            'low_balance_message_anonymous' => trim((string) ($data['low_balance_message_anonymous'] ?? '')),
             'starter_prompts'         => array_values(array_filter(array_map(
                 fn ($s) => trim((string) $s),
                 (array) ($data['starter_prompts'] ?? [])

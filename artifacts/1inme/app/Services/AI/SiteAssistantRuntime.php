@@ -112,13 +112,16 @@ class SiteAssistantRuntime
         }
         if ($balance < 0) $balance = 0;
 
-        $avg = $this->estimateAverageReplyCredits($conv, $user);
+        $cfg = SiteAssistantSettings::get();
+        $avg = $this->estimateAverageReplyCredits($conv, $user, $cfg);
         if ($avg <= 0) return $blank;
 
-        // "Low" once the visitor has fewer than ~3 average replies left,
-        // matched to the same multiple we use to phrase the hint.
-        $threshold = $avg * 3;
-        $remaining = (int) floor($balance / $avg);
+        // "Low" once the visitor has fewer than the configured multiple
+        // of average replies left. Admins can tune the multiplier from
+        // the assistant settings page.
+        $multiplier = max(1, (int) ($cfg['low_balance_multiplier'] ?? 3));
+        $threshold  = $avg * $multiplier;
+        $remaining  = (int) floor($balance / $avg);
 
         if ($balance >= $threshold) {
             return ['low' => false, 'remaining_replies' => $user ? $remaining : null, 'avg_reply_credits' => $avg, 'message' => null];
@@ -126,19 +129,23 @@ class SiteAssistantRuntime
 
         // Anonymous visitors get a generic hint without a number.
         if (!$user) {
+            $anonMsg = trim((string) ($cfg['low_balance_message_anonymous'] ?? ''));
             return [
                 'low'               => true,
                 'remaining_replies' => null,
                 'avg_reply_credits' => $avg,
-                'message'           => 'Heads up — this chat is running low on credits and replies may be cut short soon.',
+                'message'           => $anonMsg !== '' ? $anonMsg : null,
             ];
         }
 
-        $msg = $remaining <= 0
-            ? "You're out of credits — top up to keep chatting."
-            : ($remaining === 1
-                ? 'Only enough credits left for about 1 more reply — top up to keep chatting.'
-                : "Only enough credits left for about {$remaining} more replies — top up to keep chatting.");
+        $template = trim((string) ($cfg['low_balance_message_signed_in'] ?? ''));
+        $msg = $template !== ''
+            ? strtr($template, [
+                '{remaining}' => (string) max(0, $remaining),
+                '{avg}'       => (string) $avg,
+                '{balance}'   => (string) $balance,
+            ])
+            : null;
 
         return [
             'low'               => true,
@@ -156,8 +163,9 @@ class SiteAssistantRuntime
      * assistant conversations, then to a conservative default that
      * roughly matches a short grounded reply.
      */
-    protected function estimateAverageReplyCredits(SiteAssistantConversation $conv, ?User $user): int
+    protected function estimateAverageReplyCredits(SiteAssistantConversation $conv, ?User $user, ?array $cfg = null): int
     {
+        $cfg = $cfg ?? SiteAssistantSettings::get();
         $avg = (float) SiteAssistantMessage::where('conversation_id', $conv->id)
             ->where('role', 'assistant')
             ->where('credits_spent', '>', 0)
@@ -173,9 +181,10 @@ class SiteAssistantRuntime
             if ($avg > 0) return max(1, (int) round($avg));
         }
 
-        // Reasonable default for a short grounded reply when we have
-        // no historical signal yet (first turn of the first session).
-        return 50;
+        // Admin-configurable fallback for a short grounded reply when
+        // we have no historical signal yet (first turn of the first
+        // session). Defaults to 50 credits if unset.
+        return max(1, (int) ($cfg['low_balance_default_credits'] ?? 50));
     }
 
     /**

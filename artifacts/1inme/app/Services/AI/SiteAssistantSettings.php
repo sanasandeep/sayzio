@@ -32,6 +32,16 @@ class SiteAssistantSettings
             'session_rate_per_minute' => 12,
             'handoff_enabled'   => true,
             'handoff_freeze_after' => true,
+            // Low-balance pre-send warning. The runtime calls the visitor
+            // "low" when their balance is below `multiplier * avg cost of
+            // a reply`. Default reply cost is used as the fallback when
+            // there's no historical signal yet (first turn).
+            'low_balance_multiplier'      => 3,
+            'low_balance_default_credits' => 50,
+            'low_balance_message_signed_in' =>
+                'Only enough credits left for about {remaining} more replies — top up to keep chatting.',
+            'low_balance_message_anonymous' =>
+                'Heads up — this chat is running low on credits and replies may be cut short soon.',
             'starter_prompts'   => [
                 'What can I do on this page?',
                 'How does pricing work?',

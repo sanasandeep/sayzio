@@ -152,6 +152,33 @@
             </div>
         </div>
 
+        <div class="glass rounded-2xl border border-white/10 p-6 space-y-4">
+            <h3 class="font-semibold text-white">Low-balance warning</h3>
+            <p class="text-xs text-white/40">Shown to visitors before they send a message when their AI credit balance is close to running out. The runtime estimates an average reply cost from recent history; the fallback below is used when there's no history yet.</p>
+            <div class="grid md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs text-white/60 mb-1">Trigger threshold (× average reply)</label>
+                    <input type="number" min="1" max="50" name="low_balance_multiplier" value="{{ $cfg['low_balance_multiplier'] }}" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    <p class="text-xs text-white/40 mt-1">Warn when balance is below this many average replies. Default 3.</p>
+                </div>
+                <div>
+                    <label class="block text-xs text-white/60 mb-1">Fallback average reply (credits)</label>
+                    <input type="number" min="1" max="100000" name="low_balance_default_credits" value="{{ $cfg['low_balance_default_credits'] }}" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    <p class="text-xs text-white/40 mt-1">Used until the visitor has assistant replies on record.</p>
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs text-white/60 mb-1">Signed-in message</label>
+                <input type="text" maxlength="500" name="low_balance_message_signed_in" value="{{ $cfg['low_balance_message_signed_in'] }}" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                <p class="text-xs text-white/40 mt-1">Use <code>{remaining}</code> for replies left, <code>{avg}</code> for average reply cost, <code>{balance}</code> for raw credits.</p>
+            </div>
+            <div>
+                <label class="block text-xs text-white/60 mb-1">Anonymous visitor message</label>
+                <input type="text" maxlength="500" name="low_balance_message_anonymous" value="{{ $cfg['low_balance_message_anonymous'] }}" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                <p class="text-xs text-white/40 mt-1">No numbers are leaked to anonymous visitors — keep this generic.</p>
+            </div>
+        </div>
+
         <div class="glass rounded-2xl border border-white/10 p-6 space-y-3">
             <h3 class="font-semibold text-white">Customer Care Handoff</h3>
             <label class="flex items-center gap-3 cursor-pointer">
