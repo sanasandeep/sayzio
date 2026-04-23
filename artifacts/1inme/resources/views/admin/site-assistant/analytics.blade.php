@@ -65,28 +65,84 @@
     </div>
 
     <div class="glass rounded-2xl border border-white/10 p-6">
-        <div class="flex items-baseline justify-between mb-4">
+        <div class="flex items-baseline justify-between mb-4 gap-3 flex-wrap">
             <h3 class="font-semibold text-white">Recent cut-off alerts</h3>
-            <span class="text-xs text-white/40">last {{ $recentAlerts->count() }} dispatched</span>
+            <div class="flex items-center gap-3">
+                <span class="text-xs text-white/40">
+                    {{ $recentAlerts->count() }} shown
+                    @if($acknowledgedCount > 0)
+                        · {{ $acknowledgedCount }} acknowledged
+                    @endif
+                </span>
+                @if($acknowledgedCount > 0)
+                    @if($showAcknowledged)
+                        <a href="{{ route('admin.site-assistant.analytics', ['days' => $days]) }}"
+                           class="px-2.5 py-1 rounded-md text-[11px] bg-white/10 hover:bg-white/15 border border-white/10 text-white/70">
+                            Hide acknowledged
+                        </a>
+                    @else
+                        <a href="{{ route('admin.site-assistant.analytics', ['days' => $days, 'show_ack' => 1]) }}"
+                           class="px-2.5 py-1 rounded-md text-[11px] bg-white/5 hover:bg-white/10 border border-white/10 text-white/60">
+                            Show acknowledged
+                        </a>
+                    @endif
+                @endif
+            </div>
         </div>
         @if($recentAlerts->isEmpty())
-            <p class="text-sm text-white/40">No cut-off alerts have been dispatched yet.</p>
+            <p class="text-sm text-white/40">
+                @if($acknowledgedCount > 0 && !$showAcknowledged)
+                    No unacknowledged cut-off alerts. Nice work — toggle "Show acknowledged" to review past incidents.
+                @else
+                    No cut-off alerts have been dispatched yet.
+                @endif
+            </p>
         @else
             <ul class="divide-y divide-white/5 text-sm">
                 @foreach($recentAlerts as $a)
-                    <li class="py-2 flex items-center justify-between gap-4">
+                    @php $ack = $a->acknowledged_at !== null; @endphp
+                    <li class="py-2 flex items-center justify-between gap-4 {{ $ack ? 'opacity-50' : '' }}">
                         <div class="min-w-0">
                             <div class="text-white/80">
-                                <span class="font-semibold text-rose-300">{{ $a->abandon_rate }}% abandon</span>
+                                <span class="font-semibold {{ $ack ? 'text-white/60 line-through' : 'text-rose-300' }}">{{ $a->abandon_rate }}% abandon</span>
                                 <span class="text-white/40">· threshold {{ $a->threshold }}%</span>
+                                @if($ack)
+                                    <span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/15 text-emerald-300 border border-emerald-400/20">
+                                        Acknowledged
+                                    </span>
+                                @endif
                             </div>
                             <div class="text-[11px] text-white/40 mt-0.5">
                                 {{ number_format($a->total) }} cut-offs · {{ number_format($a->retried) }} retried · {{ $a->window_hours }}h window
+                                @if($ack)
+                                    · by {{ optional($a->acknowledger)->name ?? optional($a->acknowledger)->email ?? 'unknown' }}
+                                    <span title="{{ optional($a->acknowledged_at)->toDayDateTimeString() }}">
+                                        {{ optional($a->acknowledged_at)->diffForHumans() }}
+                                    </span>
+                                @endif
                             </div>
                         </div>
-                        <div class="text-right text-xs text-white/50 whitespace-nowrap"
-                             title="{{ optional($a->dispatched_at)->toDayDateTimeString() }}">
-                            {{ optional($a->dispatched_at)->diffForHumans() }}
+                        <div class="flex items-center gap-3 shrink-0">
+                            <div class="text-right text-xs text-white/50 whitespace-nowrap"
+                                 title="{{ optional($a->dispatched_at)->toDayDateTimeString() }}">
+                                {{ optional($a->dispatched_at)->diffForHumans() }}
+                            </div>
+                            <form method="POST"
+                                  action="{{ route('admin.site-assistant.alerts.acknowledge', $a) }}"
+                                  class="m-0">
+                                @csrf
+                                <input type="hidden" name="days" value="{{ $days }}">
+                                @if($showAcknowledged)
+                                    <input type="hidden" name="show_ack" value="1">
+                                @endif
+                                <button type="submit"
+                                        class="px-2.5 py-1 rounded-md text-[11px] border whitespace-nowrap
+                                               {{ $ack
+                                                  ? 'bg-white/5 hover:bg-white/10 border-white/10 text-white/60'
+                                                  : 'bg-emerald-500/15 hover:bg-emerald-500/25 border-emerald-400/30 text-emerald-200' }}">
+                                    {{ $ack ? 'Dismiss' : 'Acknowledge' }}
+                                </button>
+                            </form>
                         </div>
                     </li>
                 @endforeach

@@ -21,6 +21,8 @@ class SiteAssistantCutoffAlert extends Model
         'window_hours',
         'in_app_delivered',
         'emails_sent',
+        'acknowledged_at',
+        'acknowledged_by',
     ];
 
     protected $casts = [
@@ -32,5 +34,17 @@ class SiteAssistantCutoffAlert extends Model
         'window_hours'     => 'integer',
         'in_app_delivered' => 'integer',
         'emails_sent'      => 'integer',
+        'acknowledged_at'  => 'datetime',
+        'acknowledged_by'  => 'integer',
     ];
+
+    public function acknowledger()
+    {
+        return $this->belongsTo(\App\Modules\User\Models\User::class, 'acknowledged_by');
+    }
+
+    public function isAcknowledged(): bool
+    {
+        return $this->acknowledged_at !== null;
+    }
 }

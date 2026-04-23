@@ -757,10 +757,18 @@ class SiteAssistantController extends Controller
         // Shown in a compact panel beside the cut-off retry tile so
         // admins have a trail of when the alert system fired and how
         // bad each window was, instead of the alerts being write-only.
-        $recentAlerts = SiteAssistantCutoffAlert::query()
-            ->orderByDesc('dispatched_at')
-            ->limit(8)
-            ->get();
+        // By default we hide alerts the admin team has already
+        // acknowledged so fresh incidents don't get drowned out by
+        // stale ones; ?show_ack=1 brings them back (de-emphasised).
+        $showAcknowledged = $request->boolean('show_ack');
+        $alertsQuery = SiteAssistantCutoffAlert::query()
+            ->with('acknowledger:id,name,email')
+            ->orderByDesc('dispatched_at');
+        if (!$showAcknowledged) {
+            $alertsQuery->whereNull('acknowledged_at');
+        }
+        $recentAlerts = $alertsQuery->limit(8)->get();
+        $acknowledgedCount = (int) SiteAssistantCutoffAlert::whereNotNull('acknowledged_at')->count();
 
         return view('admin.site-assistant.analytics', [
             'days'              => $days,
@@ -779,7 +787,36 @@ class SiteAssistantController extends Controller
             'lbClicksTotal'     => $lbClicksTotal,
             'lbClicksBySurface' => $lbClicksBySurface,
             'recentAlerts'      => $recentAlerts,
+            'showAcknowledged'  => $showAcknowledged,
+            'acknowledgedCount' => $acknowledgedCount,
         ]);
+    }
+
+    /**
+     * Mark a recent cut-off alert as acknowledged so it stops cluttering
+     * the analytics panel. Records who clicked the button and when so
+     * the audit trail is preserved. Re-clicking on an already-acknowledged
+     * row clears the acknowledgement (toggle behaviour).
+     */
+    public function acknowledgeAlert(Request $request, SiteAssistantCutoffAlert $alert)
+    {
+        if ($alert->acknowledged_at !== null) {
+            $alert->forceFill([
+                'acknowledged_at' => null,
+                'acknowledged_by' => null,
+            ])->save();
+            $msg = 'Alert acknowledgement cleared.';
+        } else {
+            $alert->forceFill([
+                'acknowledged_at' => now(),
+                'acknowledged_by' => optional($request->user())->id,
+            ])->save();
+            $msg = 'Alert acknowledged.';
+        }
+        return redirect()->route('admin.site-assistant.analytics', array_filter([
+            'days'     => $request->get('days'),
+            'show_ack' => $request->boolean('show_ack') ? 1 : null,
+        ]))->with('success', $msg);
     }
 
     protected function totals(): array

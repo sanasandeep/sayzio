@@ -348,6 +348,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             // Usage analytics — messages/day, top routes, deflection
             // rate, and the questions that triggered handoffs.
             Route::get  ('analytics',                [\App\Modules\Admin\Controllers\SiteAssistantController::class, 'analytics'])->middleware(CheckPermission::class . ':settings.manage')->name('analytics');
+            Route::post ('alerts/{alert}/acknowledge', [\App\Modules\Admin\Controllers\SiteAssistantController::class, 'acknowledgeAlert'])->middleware(CheckPermission::class . ':settings.manage')->whereNumber('alert')->name('alerts.acknowledge');
 
             // Per-page custom content the assistant trains on. Sources
             // are stored in a dedicated platform Mind and may be scoped
