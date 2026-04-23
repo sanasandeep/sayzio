@@ -5,6 +5,7 @@ import {
   setAudioModeAsync,
   useAudioPlayer,
   useAudioRecorder,
+  useAudioRecorderState,
 } from "expo-audio";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Haptics from "expo-haptics";
@@ -84,6 +85,12 @@ function mapNavTarget(url: string | undefined): string | null {
  * server's three feature codes (voice_stt / voice_llm / voice_tts) so
  * the user can see exactly where each credit went on this turn.
  */
+/**
+ * Number of bars in the live waveform under the mic. A small fixed
+ * window keeps the layout stable and the visual readable on phones.
+ */
+const WAVEFORM_BARS = 28;
+
 const STAGE_LABEL: Record<"stt" | "llm" | "tts", string> = {
   stt: "Voice transcription",
   llm: "Voice thinking",
@@ -121,11 +128,47 @@ export function VoiceAssistant() {
     filename: string;
   } | null>(null);
 
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const recordingOptions = useMemo(
+    () => ({ ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true }),
+    [],
+  );
+  const recorder = useAudioRecorder(recordingOptions);
+  const recorderState = useAudioRecorderState(recorder, 80);
   // Separate, lower-quality recorder dedicated to wake-phrase snippets
   // so it never collides with the in-session recorder above.
   const wakeRecorder = useAudioRecorder(RecordingPresets.LOW_QUALITY);
   const player = useAudioPlayer(audioPath ? { uri: audioPath } : null);
+
+  // Rolling buffer of recent normalised mic levels (0..1) used to draw
+  // the live waveform while the user is speaking. We keep a fixed number
+  // of samples so the visualiser shifts left as new audio arrives.
+  const [levels, setLevels] = useState<number[]>(() =>
+    new Array(WAVEFORM_BARS).fill(0),
+  );
+
+  useEffect(() => {
+    if (phase !== "listening") return;
+    const m = recorderState?.metering;
+    if (typeof m !== "number" || !Number.isFinite(m)) return;
+    // expo-audio reports metering in dBFS (~ -160..0). Map -60..0 dB to
+    // 0..1 with a small floor so even silence shows a faint baseline.
+    const norm = Math.max(0.04, Math.min(1, (m + 60) / 60));
+    setLevels((prev) => {
+      const next = prev.slice(1);
+      next.push(norm);
+      return next;
+    });
+  }, [recorderState?.metering, phase]);
+
+  useEffect(() => {
+    if (phase === "idle" || phase === "processing") {
+      setLevels((prev) =>
+        prev.some((v) => v !== 0) ? new Array(WAVEFORM_BARS).fill(0) : prev,
+      );
+    }
+  }, [phase]);
+
+  const currentLevel = levels[levels.length - 1] ?? 0;
 
   const [wakeWordEnabled, setWakeWordEnabled] = useState(false);
   // Mirror in a ref for the long-running wake loop so it can read the
@@ -580,6 +623,8 @@ export function VoiceAssistant() {
                 pending={pending}
                 lastCredits={lastCredits}
                 balance={balance}
+                levels={levels}
+                currentLevel={currentLevel}
                 onMicTap={onMicTap}
                 onMicLongPressIn={startListening}
                 onMicLongPressOut={stopAndSend}
@@ -624,6 +669,8 @@ function SessionView(props: {
   pending: VoicePendingConfirmation[];
   lastCredits: VoiceTurnResponse["credits"] | null;
   balance: number | null;
+  levels: number[];
+  currentLevel: number;
   onMicTap: () => void;
   onMicLongPressIn: () => void;
   onMicLongPressOut: () => void;
@@ -640,6 +687,8 @@ function SessionView(props: {
     pending,
     lastCredits,
     balance,
+    levels,
+    currentLevel,
     onMicTap,
     onMicLongPressIn,
     onMicLongPressOut,
@@ -667,7 +716,16 @@ function SessionView(props: {
         delayLongPress={200}
         style={[
           styles.bigMic,
-          { borderColor: micColor, backgroundColor: colors.background },
+          {
+            borderColor: micColor,
+            backgroundColor: colors.background,
+            transform: [
+              {
+                scale:
+                  phase === "listening" ? 1 + currentLevel * 0.18 : 1,
+              },
+            ],
+          },
         ]}
       >
         {phase === "processing" ? (
@@ -681,9 +739,22 @@ function SessionView(props: {
         )}
       </Pressable>
 
+      {phase === "listening" ? (
+        <Waveform levels={levels} color={micColor} />
+      ) : null}
+
       <Text style={[styles.phase, { color: colors.mutedForeground }]}>
         {phaseLabel}
       </Text>
+
+      {phase === "listening" ? (
+        <Text
+          style={[styles.partialTranscript, { color: colors.mutedForeground }]}
+          accessibilityLiveRegion="polite"
+        >
+          Hearing you…
+        </Text>
+      ) : null}
 
       {error ? (
         <Text style={[styles.error, { color: "#dc2626" }]}>{error}</Text>
@@ -788,6 +859,34 @@ function SessionView(props: {
         </View>
       ) : null}
     </ScrollView>
+  );
+}
+
+/* ── Live waveform ────────────────────────────────────────────── */
+
+/**
+ * Tiny pure-RN bar visualiser. Each bar's height is driven by a
+ * normalised mic level (0..1) sampled from `useAudioRecorderState`.
+ * No SVG / canvas / Skia dependency — just sized Views, which is
+ * cheap enough to redraw at the ~12.5 Hz metering cadence we use.
+ */
+function Waveform({ levels, color }: { levels: number[]; color: string }) {
+  return (
+    <View style={styles.waveform} accessibilityElementsHidden>
+      {levels.map((v, i) => (
+        <View
+          key={i}
+          style={[
+            styles.waveformBar,
+            {
+              height: Math.max(3, v * 36),
+              backgroundColor: color,
+              opacity: 0.35 + v * 0.65,
+            },
+          ]}
+        />
+      ))}
+    </View>
   );
 }
 
@@ -932,6 +1031,23 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontFamily: "SpaceGrotesk_500Medium",
     fontSize: 13,
+  },
+  waveform: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    height: 40,
+    gap: 3,
+  },
+  waveformBar: {
+    width: 3,
+    borderRadius: 2,
+  },
+  partialTranscript: {
+    textAlign: "center",
+    fontFamily: "SpaceGrotesk_400Regular",
+    fontSize: 13,
+    fontStyle: "italic",
   },
   error: {
     fontFamily: "SpaceGrotesk_500Medium",
