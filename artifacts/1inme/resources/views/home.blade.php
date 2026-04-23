@@ -6108,12 +6108,16 @@
                         ? \App\Modules\Common\Support\CookieConsentConfig::get() : null;
                 @endphp
                 @if($__ccCfgHome)
-                    @php $__ccPolicyHome = $__ccCfgHome['copy']['policy_link_url'] ?? '/cookies'; @endphp
+                    @php
+                        $__ccCopyHome = \App\Modules\Common\Support\CookieConsentConfig::copyFor($__ccCfgHome);
+                        $__ccPolicyHome = $__ccCopyHome['policy_link_url'] ?? '/cookies';
+                        $__ccReopenHome = $__ccCopyHome['reopen_link_label'] ?? 'Cookie preferences';
+                    @endphp
                     <a href="{{ $__ccPolicyHome }}"
                        class="cc-footer-link text-gray-500 hover:text-white"
-                       aria-label="{{ $__ccCfgHome['copy']['reopen_link_label'] ?? 'Cookie preferences' }}"
+                       aria-label="{{ $__ccReopenHome }}"
                        onclick="if(window.openCookiePreferences){return window.openCookiePreferences(event);}">
-                        {{ $__ccCfgHome['copy']['reopen_link_label'] ?? 'Cookie preferences' }}
+                        {{ $__ccReopenHome }}
                     </a>
                     <span class="text-white/10">·</span>
                 @endif

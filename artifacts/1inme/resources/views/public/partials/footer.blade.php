@@ -125,13 +125,17 @@
                 ? \App\Modules\Common\Support\CookieConsentConfig::get() : null;
         @endphp
         @if($__ccCfg)
-            @php $__ccPolicy = $__ccCfg['copy']['policy_link_url'] ?? '/cookies'; @endphp
+            @php
+                $__ccCopy = \App\Modules\Common\Support\CookieConsentConfig::copyFor($__ccCfg);
+                $__ccPolicy = $__ccCopy['policy_link_url'] ?? '/cookies';
+                $__ccReopen = $__ccCopy['reopen_link_label'] ?? 'Cookie preferences';
+            @endphp
             <span class="mx-2 text-white/20">·</span>
             <a href="{{ $__ccPolicy }}"
                class="cc-footer-link text-gray-400 hover:text-white"
-               aria-label="{{ $__ccCfg['copy']['reopen_link_label'] ?? 'Cookie preferences' }}"
+               aria-label="{{ $__ccReopen }}"
                onclick="if(window.openCookiePreferences){return window.openCookiePreferences(event);}">
-                {{ $__ccCfg['copy']['reopen_link_label'] ?? 'Cookie preferences' }}
+                {{ $__ccReopen }}
             </a>
         @endif
     </div>

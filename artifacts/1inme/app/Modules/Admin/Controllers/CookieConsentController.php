@@ -84,6 +84,21 @@ class CookieConsentController extends Controller
             'copy.policy_link_url'   => ['nullable', 'string', 'max:500', 'regex:#^(/|https?://)#i'],
             'copy.reopen_link_label' => 'nullable|string|max:80',
 
+            // Per-locale copy overrides. Keys are arbitrary BCP-47 tags
+            // posted from the admin form; the model normalizer drops any
+            // that don't canonicalise. We only enforce safe length caps
+            // here — empty fields fall back to the default copy at render.
+            'copy_locales'                       => 'nullable|array|max:50',
+            'copy_locales.*'                     => 'array',
+            'copy_locales.*.title'               => 'nullable|string|max:200',
+            'copy_locales.*.body'                => 'nullable|string|max:2000',
+            'copy_locales.*.accept_all'          => 'nullable|string|max:60',
+            'copy_locales.*.reject_all'          => 'nullable|string|max:60',
+            'copy_locales.*.customize'           => 'nullable|string|max:60',
+            'copy_locales.*.save'                => 'nullable|string|max:60',
+            'copy_locales.*.policy_link_label'   => 'nullable|string|max:80',
+            'copy_locales.*.reopen_link_label'   => 'nullable|string|max:80',
+
             'categories'               => 'array',
             'categories.*.id'          => 'required|in:analytics,marketing,functional',
             'categories.*.name'        => 'nullable|string|max:80',
@@ -146,6 +161,11 @@ class CookieConsentController extends Controller
         }
         unset($payload['header_logo_file']);
 
+        // Always overlay copy_locales explicitly (even when the form
+        // submits none) so that removing every locale row in the admin UI
+        // actually clears the stored overrides instead of silently
+        // falling back to the previous value.
+        $payload['copy_locales'] = $request->input('copy_locales', []);
         $payload['policy_version'] = $current['policy_version'] + ($bump ? 1 : 0);
 
         CookieConsentConfig::put($payload);

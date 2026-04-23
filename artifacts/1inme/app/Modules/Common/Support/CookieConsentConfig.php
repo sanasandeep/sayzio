@@ -104,6 +104,11 @@ class CookieConsentConfig
                 'policy_link_url'   => '/cookies',
                 'reopen_link_label' => 'Cookie preferences',
             ],
+            // Optional per-locale overrides for the visitor copy block. Keys are
+            // BCP-47 tags (e.g. 'fr', 'pt-BR'); each entry is a partial copy
+            // map. Missing fields fall back to the default `copy` above, so
+            // existing single-string installs keep working untouched.
+            'copy_locales' => [],
             'categories' => [
                 [
                     'id'          => 'analytics',
@@ -202,6 +207,7 @@ class CookieConsentConfig
             'show_policy_link'    => self::bool($in['show_policy_link'] ?? $cur['show_policy_link']),
             'show_reopen_button'  => self::bool($in['show_reopen_button'] ?? $cur['show_reopen_button']),
             'copy'                => self::normalizeCopy((array) ($in['copy'] ?? $cur['copy'])),
+            'copy_locales'        => self::normalizeCopyLocales((array) ($in['copy_locales'] ?? $cur['copy_locales'] ?? [])),
             'categories'          => self::normalizeCategories((array) ($in['categories'] ?? $cur['categories'])),
         ];
 
@@ -293,6 +299,148 @@ class CookieConsentConfig
         return $out;
     }
 
+    /**
+     * Validate the per-locale copy overrides. Locale keys are canonicalised
+     * to BCP-47 form (lowercase primary + uppercase region, e.g. `pt-BR`).
+     * Unknown / malformed keys are dropped silently. Empty per-key values
+     * are stripped so they fall back to the default copy at render time.
+     */
+    public static function normalizeCopyLocales(array $in): array
+    {
+        $allowedKeys = array_keys(self::defaults()['copy']);
+        $caps = [
+            'title'             => 200,
+            'body'              => 2000,
+            'accept_all'        => 60,
+            'reject_all'        => 60,
+            'customize'         => 60,
+            'save'              => 60,
+            'policy_link_label' => 80,
+            'policy_link_url'   => 500, // not localised in the form, but accepted if posted
+            'reopen_link_label' => 80,
+        ];
+        $out = [];
+        foreach ($in as $code => $row) {
+            if (!is_array($row)) continue;
+            $canon = self::canonicalLocale((string) $code);
+            if ($canon === null) continue;
+            $entry = [];
+            foreach ($allowedKeys as $k) {
+                if (!array_key_exists($k, $row)) continue;
+                $val = trim((string) $row[$k]);
+                if ($val === '') continue;
+                $entry[$k] = mb_substr($val, 0, $caps[$k] ?? 200);
+            }
+            if (!empty($entry)) {
+                $out[$canon] = $entry;
+            }
+            if (count($out) >= 50) break;
+        }
+        ksort($out);
+        return $out;
+    }
+
+    /**
+     * Canonicalise a locale tag to lowercase primary + uppercase region.
+     * Returns null if the input doesn't look like a BCP-47 language tag.
+     */
+    public static function canonicalLocale(string $code): ?string
+    {
+        $code = trim($code);
+        if ($code === '') return null;
+        if (!preg_match('/^([a-zA-Z]{2,3})(?:[-_]([a-zA-Z]{2,4}))?$/', $code, $m)) {
+            return null;
+        }
+        $primary = strtolower($m[1]);
+        if (!empty($m[2])) {
+            return $primary . '-' . strtoupper($m[2]);
+        }
+        return $primary;
+    }
+
+    /**
+     * Pick the best available locale for a visitor given an Accept-Language
+     * header value. Tries exact match first (case-insensitive), then falls
+     * back to a primary-subtag match (e.g. `pt-BR` → `pt`, or `pt` → `pt-BR`
+     * if only the regional variant is configured). Returns null if nothing
+     * matches or the header is empty.
+     */
+    public static function pickLocale(array $available, ?string $acceptLanguage): ?string
+    {
+        if (empty($available) || !$acceptLanguage) return null;
+
+        $availMap = [];      // lowercased tag => canonical tag
+        $availPrimary = [];  // primary subtag => first canonical tag in order
+        foreach ($available as $code) {
+            $availMap[strtolower($code)] = $code;
+            $primary = strtolower(explode('-', $code)[0]);
+            if (!isset($availPrimary[$primary])) $availPrimary[$primary] = $code;
+        }
+
+        $entries = [];
+        foreach (explode(',', $acceptLanguage) as $part) {
+            $part = trim($part);
+            if ($part === '') continue;
+            $q = 1.0;
+            $tag = $part;
+            if (strpos($part, ';') !== false) {
+                [$tag, $params] = explode(';', $part, 2);
+                $tag = trim($tag);
+                if (preg_match('/q=([0-9.]+)/', $params, $qm)) {
+                    $q = (float) $qm[1];
+                }
+            }
+            if ($tag === '*' || $q <= 0) continue;
+            if (!preg_match('/^[a-zA-Z]{1,8}(-[a-zA-Z0-9]{1,8})*$/', $tag)) continue;
+            $entries[] = [$tag, $q];
+        }
+        usort($entries, fn($a, $b) => $b[1] <=> $a[1]);
+
+        foreach ($entries as [$tag, $q]) {
+            $low = strtolower($tag);
+            if (isset($availMap[$low])) return $availMap[$low];
+            $primary = explode('-', $low)[0];
+            if (isset($availPrimary[$primary])) return $availPrimary[$primary];
+        }
+        return null;
+    }
+
+    /**
+     * Resolve the copy block to render for a given visitor by overlaying any
+     * matching per-locale entry on top of the admin-defined defaults. When
+     * no locale matches (or none are configured), the defaults are returned
+     * unchanged — preserving behaviour for single-string installs.
+     *
+     * If $acceptLanguage is null, the current request's Accept-Language is
+     * used (when available), so view templates can call this with just $cfg.
+     */
+    public static function copyFor(array $cfg, ?string $acceptLanguage = null): array
+    {
+        $copy = (array) ($cfg['copy'] ?? self::defaults()['copy']);
+        $locales = (array) ($cfg['copy_locales'] ?? []);
+        if (empty($locales)) return $copy;
+
+        if ($acceptLanguage === null && function_exists('request')) {
+            try {
+                $acceptLanguage = (string) (request()->server('HTTP_ACCEPT_LANGUAGE') ?? '');
+            } catch (\Throwable $e) {
+                $acceptLanguage = '';
+            }
+        }
+        if ($acceptLanguage === '' || $acceptLanguage === null) return $copy;
+
+        $picked = self::pickLocale(array_keys($locales), $acceptLanguage);
+        if ($picked === null) return $copy;
+
+        $override = (array) ($locales[$picked] ?? []);
+        foreach ($copy as $k => $v) {
+            if (isset($override[$k]) && $override[$k] !== '') {
+                $copy[$k] = $override[$k];
+            }
+        }
+        return $copy;
+    }
+
     private static function normalizeCategories(array $cats): array
     {
         $allowed = ['analytics', 'marketing', 'functional'];
@@ -332,6 +480,11 @@ class CookieConsentConfig
         }
         if (isset($stored['copy']) && is_array($stored['copy'])) {
             $out['copy'] = self::normalizeCopy(array_merge($defaults['copy'], $stored['copy']));
+        }
+        if (isset($stored['copy_locales']) && is_array($stored['copy_locales'])) {
+            $out['copy_locales'] = self::normalizeCopyLocales($stored['copy_locales']);
+        } else {
+            $out['copy_locales'] = [];
         }
         return $out;
     }

@@ -142,6 +142,67 @@
             </div>
 
             <div class="glass rounded-2xl p-6 space-y-4">
+                <h2 class="text-base font-semibold text-white">Per-language copy</h2>
+                <p class="text-xs text-white/50">
+                    Add translated versions of the prompt copy. Visitors are matched to the closest language from their browser's
+                    <span class="font-mono text-white/70">Accept-Language</span> header (e.g. <span class="font-mono text-white/70">fr-CA</span> falls back to <span class="font-mono text-white/70">fr</span>). Any field left blank uses the default copy above. Use BCP-47 codes like
+                    <span class="font-mono text-white/70">fr</span>, <span class="font-mono text-white/70">es</span>, <span class="font-mono text-white/70">pt-BR</span>, <span class="font-mono text-white/70">zh-CN</span>.
+                </p>
+
+                <div id="cc_locales" class="space-y-3"></div>
+
+                <div class="flex items-center gap-3">
+                    <button type="button" id="cc_locale_add"
+                        class="px-3 py-1.5 rounded-lg text-xs font-medium"
+                        style="background: rgba(124,58,237,0.15); border: 1px solid rgba(124,58,237,0.35); color: #c4b5fd;">
+                        <i class="fas fa-plus mr-1"></i> Add language
+                    </button>
+                    <span class="text-[11px] text-white/40">Up to 50 languages.</span>
+                </div>
+
+                <template id="cc_locale_row_tpl">
+                    <div class="cc-locale-row rounded-xl p-4" style="background:rgba(255,255,255,0.03); border:1px solid var(--border-glass);">
+                        <div class="flex items-center justify-between gap-3 mb-3">
+                            <label class="block text-xs text-white/60 flex-1 max-w-[240px]">Language code (BCP-47)
+                                <input type="text" data-cc-locale-code value="" placeholder="fr or pt-BR"
+                                    class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white font-mono"
+                                    pattern="[A-Za-z]{2,3}([-_][A-Za-z]{2,4})?">
+                            </label>
+                            <button type="button" data-cc-locale-remove class="text-xs text-red-300 hover:text-red-200 px-2 py-1">
+                                <i class="fas fa-trash"></i> Remove
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <label class="block text-xs text-white/60">Title
+                                <input type="text" data-cc-loc="title" class="cc-loc-field mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                            </label>
+                            <label class="block text-xs text-white/60">Cookie policy link label
+                                <input type="text" data-cc-loc="policy_link_label" class="cc-loc-field mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                            </label>
+                            <label class="md:col-span-2 block text-xs text-white/60">Body
+                                <textarea rows="2" data-cc-loc="body" class="cc-loc-field mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"></textarea>
+                            </label>
+                            <label class="block text-xs text-white/60">Accept all label
+                                <input type="text" data-cc-loc="accept_all" class="cc-loc-field mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                            </label>
+                            <label class="block text-xs text-white/60">Reject all label
+                                <input type="text" data-cc-loc="reject_all" class="cc-loc-field mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                            </label>
+                            <label class="block text-xs text-white/60">Customize label
+                                <input type="text" data-cc-loc="customize" class="cc-loc-field mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                            </label>
+                            <label class="block text-xs text-white/60">Save label
+                                <input type="text" data-cc-loc="save" class="cc-loc-field mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                            </label>
+                            <label class="md:col-span-2 block text-xs text-white/60">Footer reopen link label
+                                <input type="text" data-cc-loc="reopen_link_label" class="cc-loc-field mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                            </label>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <div class="glass rounded-2xl p-6 space-y-4">
                 <h2 class="text-base font-semibold text-white">Layout &amp; position</h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <label class="block text-xs text-white/60">Layout
@@ -567,6 +628,57 @@
     }
 
     build();
+
+    // ---- Per-language copy repeater ------------------------------------
+    // Each row's inputs are wired to `copy_locales[<code>][<key>]` form
+    // names so the existing controller validation + normalizer pick them
+    // up. Codes are re-applied to all field names whenever the code input
+    // changes so renaming a row doesn't require resaving twice.
+    const localesHost = document.getElementById('cc_locales');
+    const localeTpl = document.getElementById('cc_locale_row_tpl');
+    const addBtn = document.getElementById('cc_locale_add');
+    const seeded = @json($cfg['copy_locales'] ?? new \stdClass());
+    const COPY_KEYS = ['title','body','accept_all','reject_all','customize','save','policy_link_label','reopen_link_label'];
+
+    function rewireRowNames(row) {
+        const codeInput = row.querySelector('[data-cc-locale-code]');
+        const raw = (codeInput.value || '').trim();
+        // Use a placeholder bucket while the code is empty/invalid so the
+        // repeater never collides with another row. Server normalizer
+        // discards invalid codes.
+        const bucket = raw === '' ? '__pending_' + (row.dataset.rowId || '0') : raw;
+        row.querySelectorAll('[data-cc-loc]').forEach(el => {
+            const k = el.getAttribute('data-cc-loc');
+            el.name = `copy_locales[${bucket}][${k}]`;
+        });
+    }
+
+    let rowSeq = 0;
+    function addRow(code, values) {
+        if (localesHost.querySelectorAll('.cc-locale-row').length >= 50) return;
+        const node = localeTpl.content.firstElementChild.cloneNode(true);
+        node.dataset.rowId = String(++rowSeq);
+        const codeInput = node.querySelector('[data-cc-locale-code]');
+        codeInput.value = code || '';
+        if (values && typeof values === 'object') {
+            COPY_KEYS.forEach(k => {
+                const f = node.querySelector(`[data-cc-loc="${k}"]`);
+                if (f && values[k] != null) f.value = values[k];
+            });
+        }
+        node.querySelector('[data-cc-locale-remove]').addEventListener('click', () => {
+            node.remove();
+        });
+        codeInput.addEventListener('input', () => rewireRowNames(node));
+        localesHost.appendChild(node);
+        rewireRowNames(node);
+    }
+
+    if (addBtn) addBtn.addEventListener('click', () => addRow('', null));
+
+    if (seeded && typeof seeded === 'object' && !Array.isArray(seeded)) {
+        Object.keys(seeded).forEach(code => addRow(code, seeded[code]));
+    }
 })();
 </script>
 @endsection

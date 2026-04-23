@@ -1946,15 +1946,17 @@
             @if(!$__ccIsOwner && \App\Modules\Common\Support\CookieConsentConfig::shouldRender('biolink'))
                 @php
                     $__ccCfgBio = \App\Modules\Common\Support\CookieConsentConfig::get();
-                    $__ccPolicyBio = $__ccCfgBio['copy']['policy_link_url'] ?? '/cookies';
+                    $__ccCopyBio = \App\Modules\Common\Support\CookieConsentConfig::copyFor($__ccCfgBio);
+                    $__ccPolicyBio = $__ccCopyBio['policy_link_url'] ?? '/cookies';
+                    $__ccReopenBio = $__ccCopyBio['reopen_link_label'] ?? 'Cookie preferences';
                 @endphp
                 <p class="text-center text-xs mt-3">
                     <a href="{{ $__ccPolicyBio }}"
                        class="cc-footer-link"
                        style="color: {{ $fontColor }}66;"
-                       aria-label="{{ $__ccCfgBio['copy']['reopen_link_label'] ?? 'Cookie preferences' }}"
+                       aria-label="{{ $__ccReopenBio }}"
                        onclick="if(window.openCookiePreferences){return window.openCookiePreferences(event);}">
-                        {{ $__ccCfgBio['copy']['reopen_link_label'] ?? 'Cookie preferences' }}
+                        {{ $__ccReopenBio }}
                     </a>
                 </p>
             @endif

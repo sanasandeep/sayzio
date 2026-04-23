@@ -20,6 +20,9 @@
 @if($cc)
 @php
     $effective = CookieConsentConfig::effectiveFor($cc, $surface);
+    // Pick the best per-locale copy override for this visitor (falls back to
+    // the admin-defined defaults when no locale matches or none configured).
+    $ccCopy = CookieConsentConfig::copyFor($cc);
     $cfgJson = [
         'enabled'             => true,
         'surface'             => $surface,
@@ -45,7 +48,7 @@
         'headerLogoEnabled'   => $cc['header_logo_enabled'],
         'headerLogoUrl'       => $cc['header_logo_url'],
         'showPolicyLink'      => $cc['show_policy_link'],
-        'copy'                => $cc['copy'],
+        'copy'                => $ccCopy,
         'categories'          => array_values($cc['categories']),
         'cookieName'          => '1inme_cookie_consent',
     ];
