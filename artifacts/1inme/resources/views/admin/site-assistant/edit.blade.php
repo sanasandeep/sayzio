@@ -201,7 +201,7 @@
             <div class="flex items-start justify-between gap-3 flex-wrap">
                 <div>
                     <h3 class="font-semibold text-white">Preview</h3>
-                    <p class="text-xs text-white/40">Live render of the greeting and starter prompts a visitor would see, using the unsaved values above. Pick a configured language or paste an <span class="font-mono">Accept-Language</span> header to test the matcher.</p>
+                    <p class="text-xs text-white/40">Live render of the greeting, starter prompts, and low-balance warning bubbles (signed-in + anonymous variants) a visitor would see, using the unsaved values above. Pick a configured language or paste an <span class="font-mono">Accept-Language</span> header to test the matcher. The greeting/starter prompts and low-balance translations resolve independently, so a locale defined in only one section will fall back to the default copy in the other.</p>
                 </div>
             </div>
 
@@ -230,6 +230,14 @@
                 <div id="sa_preview_suggested" style="display:flex;flex-wrap:wrap;gap:6px;padding:8px 14px 0"></div>
                 <div id="sa_preview_body" style="padding:14px;display:flex;flex-direction:column;gap:10px;min-height:120px">
                     <div id="sa_preview_greeting" style="align-self:flex-start;max-width:85%;padding:10px 12px;border-radius:14px;border-bottom-left-radius:4px;background:rgba(255,255,255,.06);color:#e2e8f0;font-size:13.5px;line-height:1.45;white-space:pre-wrap;word-wrap:break-word"></div>
+                </div>
+                <div id="sa_preview_low_balance_signed_in" data-audience="signed_in" style="margin:0 10px 6px;padding:7px 10px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:8px;color:#fde68a;font-size:11.5px;line-height:1.35;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                    <span style="display:inline-block;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;opacity:.7;color:#fde68a">Signed-in</span>
+                    <span data-lb-msg style="flex:1;min-width:0;word-wrap:break-word"></span>
+                </div>
+                <div id="sa_preview_low_balance_anonymous" data-audience="anonymous" style="margin:0 10px 10px;padding:7px 10px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:8px;color:#fde68a;font-size:11.5px;line-height:1.35;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                    <span style="display:inline-block;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;opacity:.7;color:#fde68a">Anonymous</span>
+                    <span data-lb-msg style="flex:1;min-width:0;word-wrap:break-word"></span>
                 </div>
             </div>
 
@@ -310,6 +318,37 @@
                     return String(code || '').replace(/_/g, '-').trim();
                 }
 
+                // Read the default low-balance copy for a given audience
+                // (`signed_in` or `anonymous`) straight from the form so the
+                // preview reflects unsaved edits.
+                function defaultLowBalance(audience){
+                    var name = audience === 'signed_in'
+                        ? 'low_balance_message_signed_in'
+                        : 'low_balance_message_anonymous';
+                    var i = form.querySelector('input[name="' + name + '"]');
+                    return i ? i.value : '';
+                }
+
+                // Pull per-language low-balance overrides from the live rows
+                // in the "Per-language translations" section. Mirrors
+                // SiteAssistantSettings::normalizeLowBalanceLocales (blank
+                // values are dropped so they fall back to the default copy).
+                function lbLocaleRows(){
+                    var rows = form.querySelectorAll('#lb_locales .lb-locale-row');
+                    var out = {};
+                    rows.forEach(function (row) {
+                        var code = canonLocale(row.querySelector('[data-lb-locale-code]').value);
+                        if (!code) return;
+                        if (!out[code]) out[code] = {};
+                        ['signed_in', 'anonymous'].forEach(function (k) {
+                            var f = row.querySelector('[data-lb-loc="' + k + '"]');
+                            var v = f ? (f.value || '').trim() : '';
+                            if (v) out[code][k] = v;
+                        });
+                    });
+                    return out;
+                }
+
                 // Pull the current per-language config from the live form rows.
                 function localeRows(){
                     var rows = form.querySelectorAll('#intro_locales .intro-locale-row');
@@ -333,11 +372,18 @@
                 var greetEl = document.getElementById('sa_preview_greeting');
                 var suggested = document.getElementById('sa_preview_suggested');
                 var avatarEl = document.getElementById('sa_preview_avatar');
+                var lbSignedIn = document.getElementById('sa_preview_low_balance_signed_in');
+                var lbAnonymous = document.getElementById('sa_preview_low_balance_anonymous');
 
                 function refreshLocaleOptions(){
                     var current = sel.value;
-                    var rows = localeRows();
-                    var codes = Object.keys(rows).sort();
+                    // Languages from either greeting/starter rows or
+                    // low-balance rows should be selectable so admins can
+                    // preview translations for either section.
+                    var combined = {};
+                    Object.keys(localeRows()).forEach(function (c) { combined[c] = true; });
+                    Object.keys(lbLocaleRows()).forEach(function (c) { combined[c] = true; });
+                    var codes = Object.keys(combined).sort();
                     var html = '<option value="__default__">Default (no Accept-Language match)</option>';
                     codes.forEach(function (c) {
                         html += '<option value="' + escapeHtml(c) + '">' + escapeHtml(c) + '</option>';
@@ -404,6 +450,50 @@
                         avatarEl.innerHTML = '★';
                         avatarEl.style.background = 'rgba(255,255,255,.08)';
                     }
+
+                    // Low-balance bubbles. The matcher runs against the
+                    // low-balance row codes (mirroring
+                    // SiteAssistantSettings::lowBalanceMessageFor) so that
+                    // a translation set defined only in the low-balance
+                    // section still resolves here, independent of the
+                    // greeting/starter row set.
+                    var lbRows = lbLocaleRows();
+                    var lbAvailable = Object.keys(lbRows);
+                    var lbPicked = null;
+                    if (acceptVal) {
+                        lbPicked = pickLocale(lbAvailable, acceptVal);
+                    } else if (sel.value && sel.value !== '__default__' && lbAvailable.indexOf(sel.value) >= 0) {
+                        lbPicked = sel.value;
+                    }
+
+                    // Append a note about the low-balance match when it
+                    // differs from the greeting/starter match, so admins
+                    // aren't confused when the two locale sets diverge.
+                    if (lbAvailable.length) {
+                        if (lbPicked && lbPicked !== picked) {
+                            resolved.textContent = note + ' · low-balance matched: ' + lbPicked + '.';
+                        } else if (!lbPicked && picked) {
+                            resolved.textContent = note + ' · low-balance: default copy (no translation matched).';
+                        }
+                    }
+
+                    [['signed_in', lbSignedIn], ['anonymous', lbAnonymous]].forEach(function (pair) {
+                        var audience = pair[0];
+                        var box = pair[1];
+                        if (!box) return;
+                        var msg = defaultLowBalance(audience);
+                        if (lbPicked && lbRows[lbPicked] && lbRows[lbPicked][audience]) {
+                            msg = lbRows[lbPicked][audience];
+                        }
+                        var msgEl = box.querySelector('[data-lb-msg]');
+                        if (!msg) {
+                            msgEl.textContent = '(empty — bubble will not appear)';
+                            box.style.opacity = '0.5';
+                        } else {
+                            msgEl.textContent = msg;
+                            box.style.opacity = '1';
+                        }
+                    });
                 }
 
                 // Re-render whenever any input in the form changes — cheap
@@ -412,12 +502,16 @@
                     refreshLocaleOptions();
                     render();
                 });
-                // Row add/remove fires no input events, so observe DOM changes too.
-                var host = document.getElementById('intro_locales');
-                if (host && window.MutationObserver) {
-                    new MutationObserver(function () { refreshLocaleOptions(); render(); })
-                        .observe(host, { childList: true });
-                }
+                // Row add/remove fires no input events, so observe DOM changes
+                // on both per-language sections (greeting/starter prompts and
+                // low-balance translations).
+                ['intro_locales', 'lb_locales'].forEach(function (hostId) {
+                    var host = document.getElementById(hostId);
+                    if (host && window.MutationObserver) {
+                        new MutationObserver(function () { refreshLocaleOptions(); render(); })
+                            .observe(host, { childList: true });
+                    }
+                });
                 sel.addEventListener('change', render);
                 accept.addEventListener('input', render);
 
