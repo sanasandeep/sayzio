@@ -17,10 +17,13 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useColors } from "@/hooks/useColors";
+import { getBaseUrl } from "@/lib/api";
 import {
   type CoachMessage,
   type CoachThread,
   askCoach,
+  citationHref,
+  citationLabel,
 } from "@/lib/api/ask-coach";
 
 /**
@@ -257,9 +260,64 @@ function MessageBubble({
         ) : null}
 
         {!isUser && meta.citations?.length ? (
-          <Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 6 }}>
-            Sources: {meta.citations.map((c) => c.label || c.source).join(" · ")}
-          </Text>
+          <View
+            style={{
+              marginTop: 6,
+              flexDirection: "row",
+              flexWrap: "wrap",
+              alignItems: "center",
+              gap: 4,
+            }}
+          >
+            <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>
+              Sources:
+            </Text>
+            {meta.citations.map((c, i) => {
+              const href = citationHref(c, getBaseUrl());
+              const label = citationLabel(c) || "source";
+              if (href) {
+                return (
+                  <Pressable
+                    key={i}
+                    accessibilityRole="link"
+                    accessibilityLabel={`View source ${label}`}
+                    onPress={() => Linking.openURL(href)}
+                    style={{
+                      paddingHorizontal: 6,
+                      paddingVertical: 2,
+                      borderRadius: 6,
+                      backgroundColor: "#ffffff14",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: colors.text,
+                        fontSize: 10,
+                        textDecorationLine: "underline",
+                      }}
+                    >
+                      {label}
+                    </Text>
+                  </Pressable>
+                );
+              }
+              return (
+                <Text
+                  key={i}
+                  style={{
+                    color: colors.mutedForeground,
+                    fontSize: 10,
+                    paddingHorizontal: 6,
+                    paddingVertical: 2,
+                    borderRadius: 6,
+                    backgroundColor: "#ffffff14",
+                  }}
+                >
+                  {label}
+                </Text>
+              );
+            })}
+          </View>
         ) : null}
       </View>
 

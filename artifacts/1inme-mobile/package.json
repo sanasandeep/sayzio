@@ -8,7 +8,8 @@
     "build": "node scripts/build.js",
     "serve": "node server/serve.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test:icon-fonts": "node scripts/check-icon-fonts.mjs"
+    "test:icon-fonts": "node scripts/check-icon-fonts.mjs",
+    "test:citation-href": "node scripts/test-citation-href.mjs"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

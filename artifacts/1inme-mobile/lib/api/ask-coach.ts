@@ -10,8 +10,34 @@ export type CoachThread = {
 };
 
 export type CoachAction = { label: string; url: string; reason?: string };
-export type CoachCitation = { label?: string; source?: string };
+export type CoachCitation = {
+  id?: number | null;
+  mind_id?: number | null;
+  title?: string | null;
+  label?: string | null;
+  source?: string | null;
+};
 export type CoachInsight = { tool: string; data: Record<string, unknown> };
+
+/**
+ * Build the absolute URL to a Mind source detail page for a citation,
+ * mirroring the web's `route('user.minds.sources.show', …)`. Returns
+ * null when the citation lacks the ids needed to deep-link (legacy
+ * messages, tool-only citations) so the UI can fall back to plain text.
+ */
+export function citationHref(
+  c: CoachCitation,
+  baseUrl: string,
+): string | null {
+  const mid = Number(c?.mind_id ?? 0);
+  const sid = Number(c?.id ?? 0);
+  if (!mid || !sid) return null;
+  return `${baseUrl.replace(/\/$/, "")}/user/minds/${mid}/sources/${sid}`;
+}
+
+export function citationLabel(c: CoachCitation): string {
+  return String(c?.title ?? c?.label ?? c?.source ?? "");
+}
 
 export type CoachMessage = {
   id: number;
