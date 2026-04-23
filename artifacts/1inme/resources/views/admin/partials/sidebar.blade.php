@@ -154,6 +154,14 @@
             <span class="sidebar-tooltip">AI Minds</span>
         </a>
 
+        <a href="{{ route('admin.site-assistant.edit') }}"
+           class="sidebar-link {{ request()->routeIs('admin.site-assistant.*') ? 'active' : '' }}"
+           style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-robot"></i></div>
+            <span class="nav-label">Site Assistant</span>
+            <span class="sidebar-tooltip">Site Assistant</span>
+        </a>
+
         <a href="{{ route('admin.coach-defaults.edit') }}"
            class="sidebar-link {{ request()->routeIs('admin.coach-defaults.*') ? 'active' : '' }}"
            style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">

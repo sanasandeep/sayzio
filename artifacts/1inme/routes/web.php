@@ -57,6 +57,16 @@ Route::get    ('/embed/companion/{publicId}/iframe',   [\App\Modules\Common\Cont
     ->where('publicId', 'cmp_[a-z0-9]{20}')
     ->name('public.companion.iframe');
 
+// ---- Site-wide AI Assistant (marketing + logged-in widget) ----
+Route::prefix('assistant')->name('site-assistant.')->group(function () {
+    Route::get ('bootstrap', [\App\Modules\Common\Controllers\SiteAssistantController::class, 'bootstrap'])->name('bootstrap');
+    Route::post('session',   [\App\Modules\Common\Controllers\SiteAssistantController::class, 'session'])->middleware('throttle:60,1')->name('session');
+    Route::post('message',   [\App\Modules\Common\Controllers\SiteAssistantController::class, 'message'])->middleware('throttle:60,1')->name('message');
+    Route::post('stream',    [\App\Modules\Common\Controllers\SiteAssistantController::class, 'stream'])->middleware('throttle:60,1')->name('stream');
+    Route::post('choice',    [\App\Modules\Common\Controllers\SiteAssistantController::class, 'choice'])->middleware('throttle:60,1')->name('choice');
+    Route::post('handoff',   [\App\Modules\Common\Controllers\SiteAssistantController::class, 'handoff'])->middleware('throttle:10,1')->name('handoff');
+});
+
 // ---- Public Social-Proof Widget ----
 Route::get   ('/sp/{uuid}.js',    [\App\Modules\Common\Controllers\SocialProofPublicController::class, 'loaderJs'])->name('sp.public.js')->where('uuid', '[a-f0-9-]{36}');
 Route::get   ('/sp/{uuid}.json',  [\App\Modules\Common\Controllers\SocialProofPublicController::class, 'config'])  ->name('sp.public.config')->where('uuid', '[a-f0-9-]{36}');

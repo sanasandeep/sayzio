@@ -318,6 +318,34 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('{companion}/enable',    [\App\Modules\Admin\Controllers\AiCompanionAdminController::class, 'enable'])->middleware(CheckPermission::class . ':settings.manage')->whereNumber('companion')->name('enable');
         });
 
+        // Site-Wide AI Assistant — config, page hints, response templates,
+        // conversations browser. Admin manages everything from here.
+        Route::prefix('site-assistant')->name('site-assistant.')->group(function () {
+            Route::get ('/',           [\App\Modules\Admin\Controllers\SiteAssistantController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
+            Route::put ('/',           [\App\Modules\Admin\Controllers\SiteAssistantController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
+
+            Route::get   ('hints',                  [\App\Modules\Admin\Controllers\SiteAssistantController::class, 'hints'])->middleware(CheckPermission::class . ':settings.manage')->name('hints');
+            Route::post  ('hints',                  [\App\Modules\Admin\Controllers\SiteAssistantController::class, 'storeHint'])->middleware(CheckPermission::class . ':settings.manage')->name('hints.store');
+            Route::put   ('hints/{hint}',           [\App\Modules\Admin\Controllers\SiteAssistantController::class, 'updateHint'])->middleware(CheckPermission::class . ':settings.manage')->whereNumber('hint')->name('hints.update');
+            Route::delete('hints/{hint}',           [\App\Modules\Admin\Controllers\SiteAssistantController::class, 'destroyHint'])->middleware(CheckPermission::class . ':settings.manage')->whereNumber('hint')->name('hints.destroy');
+
+            Route::get   ('templates',              [\App\Modules\Admin\Controllers\SiteAssistantController::class, 'templates'])->middleware(CheckPermission::class . ':settings.manage')->name('templates');
+            Route::post  ('templates',              [\App\Modules\Admin\Controllers\SiteAssistantController::class, 'storeTemplate'])->middleware(CheckPermission::class . ':settings.manage')->name('templates.store');
+            Route::put   ('templates/{template}',   [\App\Modules\Admin\Controllers\SiteAssistantController::class, 'updateTemplate'])->middleware(CheckPermission::class . ':settings.manage')->whereNumber('template')->name('templates.update');
+            Route::delete('templates/{template}',   [\App\Modules\Admin\Controllers\SiteAssistantController::class, 'destroyTemplate'])->middleware(CheckPermission::class . ':settings.manage')->whereNumber('template')->name('templates.destroy');
+
+            Route::get   ('conversations',                       [\App\Modules\Admin\Controllers\SiteAssistantController::class, 'conversations'])->middleware(CheckPermission::class . ':settings.manage')->name('conversations');
+            Route::get   ('conversations/{conversation}',        [\App\Modules\Admin\Controllers\SiteAssistantController::class, 'showConversation'])->middleware(CheckPermission::class . ':settings.manage')->whereNumber('conversation')->name('conversations.show');
+            Route::post  ('conversations/{conversation}/disable',[\App\Modules\Admin\Controllers\SiteAssistantController::class, 'disableConversation'])->middleware(CheckPermission::class . ':settings.manage')->whereNumber('conversation')->name('conversations.disable');
+            Route::post  ('conversations/{conversation}/enable', [\App\Modules\Admin\Controllers\SiteAssistantController::class, 'enableConversation'])->middleware(CheckPermission::class . ':settings.manage')->whereNumber('conversation')->name('conversations.enable');
+
+            // Knowledge base wrapper — list platform Minds the assistant
+            // can draw from, with one-click re-index per Mind. Underlying
+            // Mind CRUD stays in the existing AI Mind admin module.
+            Route::get  ('knowledge',                [\App\Modules\Admin\Controllers\SiteAssistantController::class, 'knowledge'])->middleware(CheckPermission::class . ':settings.manage')->name('knowledge');
+            Route::post ('knowledge/{mind}/reindex', [\App\Modules\Admin\Controllers\SiteAssistantController::class, 'reindexKnowledge'])->middleware(CheckPermission::class . ':settings.manage')->whereNumber('mind')->name('knowledge.reindex');
+        });
+
         // AI Personas — per-user list, plan caps, abuse disable.
         Route::prefix('ai-personas')->name('ai-personas.')->group(function () {
             Route::get ('/',                   [\App\Modules\Admin\Controllers\AiPersonaAdminController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');

@@ -1204,6 +1204,8 @@
         }
     })();
     </script>
+    @include('common.partials.site-assistant', ['surface' => 'app'])
+
     @include('common.partials.global-shortcuts')
     @include('partials.voice-assistant')
     @stack('scripts')

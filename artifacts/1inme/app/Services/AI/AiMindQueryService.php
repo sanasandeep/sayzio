@@ -80,8 +80,17 @@ class AiMindQueryService
      *   mind_stats:array<int,array{chunks_used:int,top_score:float}>,
      *   credits_spent:int,
      * }
+     *
+     * @param User|null $contextUser When provided, this is the user
+     *   whose private data feeds TYPE_FEATURE snapshots for platform
+     *   Minds. When null, NO platform-Mind feature snapshots are
+     *   produced — preventing data leakage from the billing user
+     *   (or any other user) to anonymous visitors. The caller must
+     *   only pass the authenticated visitor here, never the billing
+     *   user. For user-owned Minds the snapshot still resolves to
+     *   the Mind's owner, which is unchanged.
      */
-    public function retrieveContext(User $user, array $minds, string $query): array
+    public function retrieveContext(User $user, array $minds, string $query, array $embedOverrides = [], ?User $contextUser = null): array
     {
         $query = trim($query);
         $minds = array_values(array_filter($minds, fn($m) => $m && !$m->is_disabled));
@@ -101,12 +110,12 @@ class AiMindQueryService
             'kind'    => 'query',
             'mind_id' => (int) $focusedMind->id,
         ];
-        $emb = $this->openai->embed($user, $embedModel, [$query], [
+        $emb = $this->openai->embed($user, $embedModel, [$query], array_replace([
             'feature'    => 'mind',
             'related_id' => (int) $focusedMind->id,
             'reason'     => 'Mind context retrieval',
             'meta'       => $queryMeta,
-        ]);
+        ], $embedOverrides));
         $queryVec = $emb['vectors'][0] ?? [];
         $creditsSpent = (int) ($emb['credits_spent'] ?? 0);
 
@@ -125,7 +134,16 @@ class AiMindQueryService
 
         $snapshots = [];
         foreach ($minds as $mind) {
-            $owner = $mind->user_id ? $mind->user : $user;
+            // For user-owned Minds, the snapshot owner is the Mind's
+            // creator. For platform Minds we MUST use $contextUser (the
+            // authenticated visitor); if there is none, we skip feature
+            // snapshots entirely to avoid leaking billing-user data to
+            // anonymous visitors.
+            if ($mind->user_id) {
+                $owner = $mind->user;
+            } else {
+                $owner = $contextUser;
+            }
             if (!$owner) continue;
             $featureSources = $mind->sources()
                 ->where('type', AiMindSource::TYPE_FEATURE)

@@ -84,6 +84,8 @@
 
 @include('common.partials.cookie-consent', ['surface' => 'site'])
 
+@include('common.partials.site-assistant', ['surface' => 'marketing'])
+
 @include('common.partials.global-shortcuts')
 
 <script src="{{ asset('js/marketing-anim.js') }}?v=1" defer></script>
