@@ -65,6 +65,13 @@ class SiteAssistantSettings
             'cutoff_alert_last_sent_at'        => null, // ISO-8601 timestamp written by the checker
             'cutoff_alerting'                  => false, // true while we're in an active alert state; flipped off when the recovery notice is sent
             'cutoff_alert_recovered_at'        => null, // ISO-8601 timestamp of the last recovery notification
+            // Optional per-locale overrides for the greeting bubble and
+            // starter prompt buttons shown when the chat first opens.
+            // Shape: ['fr' => 'Bonjour…', …] for greeting,
+            // and:   ['fr' => ['Que puis-je faire ?', …], …] for prompts.
+            // Empty/missing entries fall back to the default English copy.
+            'greeting_locales'        => [],
+            'starter_prompts_locales' => [],
         ];
     }
 
@@ -215,13 +222,7 @@ P;
         $locales = (array) ($cfg['low_balance_message_locales'] ?? []);
         if (empty($locales)) return $default;
 
-        if ($acceptLanguage === null && function_exists('request')) {
-            try {
-                $acceptLanguage = (string) (request()->server('HTTP_ACCEPT_LANGUAGE') ?? '');
-            } catch (\Throwable $e) {
-                $acceptLanguage = '';
-            }
-        }
+        $acceptLanguage = self::resolveAcceptLanguage($acceptLanguage);
         if (!$acceptLanguage) return $default;
 
         $picked = \App\Modules\Common\Support\CookieConsentConfig::pickLocale(array_keys($locales), $acceptLanguage);
@@ -229,6 +230,120 @@ P;
 
         $override = trim((string) ($locales[$picked][$audience] ?? ''));
         return $override !== '' ? $override : $default;
+    }
+
+    /**
+     * Normalize the per-locale greeting overrides posted from the admin
+     * form. Same shape rules as {@see normalizeLowBalanceLocales()}:
+     * BCP-47 canonicalised codes, blanks dropped, capped at 50 entries.
+     */
+    public static function normalizeGreetingLocales(array $in): array
+    {
+        $out = [];
+        foreach ($in as $code => $val) {
+            $canon = \App\Modules\Common\Support\CookieConsentConfig::canonicalLocale((string) $code);
+            if ($canon === null) continue;
+            $val = trim((string) $val);
+            if ($val === '') continue;
+            $out[$canon] = mb_substr($val, 0, 500);
+            if (count($out) >= 50) break;
+        }
+        ksort($out);
+        return $out;
+    }
+
+    /**
+     * Normalize the per-locale starter prompt overrides. Each entry is
+     * an ordered list of short prompt strings; blank entries are
+     * dropped and each prompt is capped at 200 chars (matching the
+     * default copy field length). Locales with no surviving prompts
+     * are omitted so they fall back to the default English set.
+     */
+    public static function normalizeStarterPromptsLocales(array $in): array
+    {
+        $out = [];
+        foreach ($in as $code => $list) {
+            if (!is_array($list)) continue;
+            $canon = \App\Modules\Common\Support\CookieConsentConfig::canonicalLocale((string) $code);
+            if ($canon === null) continue;
+            $clean = [];
+            foreach ($list as $p) {
+                $p = trim((string) $p);
+                if ($p === '') continue;
+                $clean[] = mb_substr($p, 0, 200);
+                if (count($clean) >= 10) break;
+            }
+            if (!empty($clean)) $out[$canon] = $clean;
+            if (count($out) >= 50) break;
+        }
+        ksort($out);
+        return $out;
+    }
+
+    /**
+     * Resolve the locale-specific greeting using the visitor's
+     * Accept-Language header, falling back to the default English copy
+     * (`greeting`) when no locale override matches.
+     */
+    public static function greetingFor(array $cfg, ?string $acceptLanguage = null): string
+    {
+        $default = (string) ($cfg['greeting'] ?? '');
+        $locales = (array) ($cfg['greeting_locales'] ?? []);
+        if (empty($locales)) return $default;
+
+        $accept = self::resolveAcceptLanguage($acceptLanguage);
+        if (!$accept) return $default;
+
+        $picked = \App\Modules\Common\Support\CookieConsentConfig::pickLocale(array_keys($locales), $accept);
+        if ($picked === null) return $default;
+
+        $val = trim((string) ($locales[$picked] ?? ''));
+        return $val !== '' ? $val : $default;
+    }
+
+    /**
+     * Resolve the locale-specific starter prompts using the visitor's
+     * Accept-Language header, falling back to the default English set
+     * (`starter_prompts`) when no locale override matches or the
+     * matched locale's list is empty.
+     *
+     * @return array<int,string>
+     */
+    public static function starterPromptsFor(array $cfg, ?string $acceptLanguage = null): array
+    {
+        $default = array_values((array) ($cfg['starter_prompts'] ?? []));
+        $locales = (array) ($cfg['starter_prompts_locales'] ?? []);
+        if (empty($locales)) return $default;
+
+        $accept = self::resolveAcceptLanguage($acceptLanguage);
+        if (!$accept) return $default;
+
+        $picked = \App\Modules\Common\Support\CookieConsentConfig::pickLocale(array_keys($locales), $accept);
+        if ($picked === null) return $default;
+
+        $list = array_values(array_filter(array_map(
+            fn ($s) => trim((string) $s),
+            (array) ($locales[$picked] ?? [])
+        )));
+        return !empty($list) ? $list : $default;
+    }
+
+    /**
+     * Read the visitor's Accept-Language header from the current
+     * request when an explicit value isn't provided. Returns an empty
+     * string if no request context is available.
+     */
+    protected static function resolveAcceptLanguage(?string $acceptLanguage): string
+    {
+        if ($acceptLanguage !== null) return $acceptLanguage;
+        if (function_exists('request')) {
+            try {
+                return (string) (request()->server('HTTP_ACCEPT_LANGUAGE') ?? '');
+            } catch (\Throwable $e) {
+                // fall through to empty
+            }
+        }
+        return '';
     }
 
     public static function isOverBudget(): bool

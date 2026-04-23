@@ -85,6 +85,116 @@
                   ta.dispatchEvent(new Event('change'));
                 </script>
             </div>
+
+            <div class="pt-2 border-t border-white/10 space-y-3">
+                <div>
+                    <h4 class="text-sm font-semibold text-white">Per-language greeting & starter prompts</h4>
+                    <p class="text-xs text-white/40">Visitors are matched to the closest language from their browser's <span class="font-mono text-white/60">Accept-Language</span> header (e.g. <span class="font-mono text-white/60">fr-CA</span> falls back to <span class="font-mono text-white/60">fr</span>). Any field left blank uses the default copy above. Use BCP-47 codes like <span class="font-mono text-white/60">fr</span>, <span class="font-mono text-white/60">es</span>, <span class="font-mono text-white/60">pt-BR</span>, <span class="font-mono text-white/60">zh-CN</span>.</p>
+                </div>
+
+                <div id="intro_locales" class="space-y-3"></div>
+
+                <div class="flex items-center gap-3">
+                    <button type="button" id="intro_locale_add" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-purple-500/15 border border-purple-500/35 text-purple-200">
+                        + Add language
+                    </button>
+                    <span class="text-[11px] text-white/40">Up to 50 languages.</span>
+                </div>
+
+                <template id="intro_locale_row_tpl">
+                    <div class="intro-locale-row rounded-xl p-4 bg-white/5 border border-white/10">
+                        <div class="flex items-center justify-between gap-3 mb-3">
+                            <label class="block text-xs text-white/60 flex-1 max-w-[240px]">Language code (BCP-47)
+                                <input type="text" data-intro-locale-code value="" placeholder="fr or pt-BR"
+                                    class="mt-1 w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white font-mono"
+                                    pattern="[A-Za-z]{2,3}([-_][A-Za-z]{2,4})?">
+                            </label>
+                            <button type="button" data-intro-locale-remove class="text-xs text-red-300 hover:text-red-200 px-2 py-1">Remove</button>
+                        </div>
+                        <div class="space-y-3">
+                            <label class="block text-xs text-white/60">Greeting
+                                <input type="text" maxlength="500" data-intro-greeting class="mt-1 w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                            </label>
+                            <label class="block text-xs text-white/60">Starter prompts (one per line, up to 10)
+                                <textarea rows="3" data-intro-prompts class="mt-1 w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"></textarea>
+                            </label>
+                        </div>
+                    </div>
+                </template>
+
+                <script>
+                (function () {
+                    var host = document.getElementById('intro_locales');
+                    var tpl  = document.getElementById('intro_locale_row_tpl');
+                    var addBtn = document.getElementById('intro_locale_add');
+                    var seededGreetings = @json((object)($cfg['greeting_locales'] ?? new \stdClass()));
+                    var seededPrompts   = @json((object)($cfg['starter_prompts_locales'] ?? new \stdClass()));
+                    var seq = 0;
+
+                    function bucketName(row) {
+                        var code = (row.querySelector('[data-intro-locale-code]').value || '').trim();
+                        return code === '' ? '__pending_' + (row.dataset.rowId || '0') : code;
+                    }
+
+                    function syncPromptInputs(row) {
+                        var bucket = bucketName(row);
+                        // Drop any prior hidden inputs we generated for this row
+                        row.querySelectorAll('input[data-intro-prompt-hidden]').forEach(function (n) { n.remove(); });
+                        var ta = row.querySelector('[data-intro-prompts]');
+                        var lines = (ta.value || '').split('\n').map(function (s) { return s.trim(); }).filter(Boolean);
+                        lines.forEach(function (line, i) {
+                            var h = document.createElement('input');
+                            h.type = 'hidden';
+                            h.setAttribute('data-intro-prompt-hidden', '');
+                            h.name = 'starter_prompts_locales[' + bucket + '][' + i + ']';
+                            h.value = line;
+                            row.appendChild(h);
+                        });
+                    }
+
+                    function rewire(row) {
+                        var bucket = bucketName(row);
+                        var g = row.querySelector('[data-intro-greeting]');
+                        g.name = 'greeting_locales[' + bucket + ']';
+                        syncPromptInputs(row);
+                    }
+
+                    function addRow(code, greeting, prompts) {
+                        if (host.querySelectorAll('.intro-locale-row').length >= 50) return;
+                        var node = tpl.content.firstElementChild.cloneNode(true);
+                        node.dataset.rowId = String(++seq);
+                        var codeInput = node.querySelector('[data-intro-locale-code]');
+                        var greetInput = node.querySelector('[data-intro-greeting]');
+                        var promptsTa = node.querySelector('[data-intro-prompts]');
+                        codeInput.value = code || '';
+                        greetInput.value = greeting || '';
+                        promptsTa.value = (prompts && prompts.length) ? prompts.join('\n') : '';
+                        node.querySelector('[data-intro-locale-remove]').addEventListener('click', function () { node.remove(); });
+                        codeInput.addEventListener('input', function () { rewire(node); });
+                        promptsTa.addEventListener('input', function () { syncPromptInputs(node); });
+                        host.appendChild(node);
+                        rewire(node);
+                    }
+
+                    if (addBtn) addBtn.addEventListener('click', function () { addRow('', '', null); });
+
+                    var codes = {};
+                    if (seededGreetings && typeof seededGreetings === 'object' && !Array.isArray(seededGreetings)) {
+                        Object.keys(seededGreetings).forEach(function (c) { codes[c] = true; });
+                    }
+                    if (seededPrompts && typeof seededPrompts === 'object' && !Array.isArray(seededPrompts)) {
+                        Object.keys(seededPrompts).forEach(function (c) { codes[c] = true; });
+                    }
+                    Object.keys(codes).sort().forEach(function (code) {
+                        addRow(
+                            code,
+                            (seededGreetings && seededGreetings[code]) || '',
+                            (seededPrompts && seededPrompts[code]) || null
+                        );
+                    });
+                })();
+                </script>
+            </div>
         </div>
 
         <div class="glass rounded-2xl border border-white/10 p-6 space-y-4">

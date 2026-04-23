@@ -93,6 +93,11 @@ class SiteAssistantController extends Controller
             'cutoff_alert_min_sample'          => 'nullable|integer|min:1|max:100000',
             'cutoff_alert_cooldown_hours'      => 'nullable|integer|min:1|max:168',
             'cutoff_alert_emails'              => 'nullable|string|max:2000',
+            'greeting_locales'                  => 'nullable|array|max:50',
+            'greeting_locales.*'                => 'nullable|string|max:500',
+            'starter_prompts_locales'           => 'nullable|array|max:50',
+            'starter_prompts_locales.*'         => 'array',
+            'starter_prompts_locales.*.*'       => 'nullable|string|max:200',
         ]);
         $payload = [
             'enabled_marketing'       => $request->boolean('enabled_marketing'),
@@ -127,6 +132,12 @@ class SiteAssistantController extends Controller
             'cutoff_alert_min_sample'        => (int) ($data['cutoff_alert_min_sample'] ?? 20),
             'cutoff_alert_cooldown_hours'    => (int) ($data['cutoff_alert_cooldown_hours'] ?? 6),
             'cutoff_alert_emails'            => $this->cleanEmailList((string) ($data['cutoff_alert_emails'] ?? '')),
+            'greeting_locales'        => SiteAssistantSettings::normalizeGreetingLocales(
+                (array) $request->input('greeting_locales', [])
+            ),
+            'starter_prompts_locales' => SiteAssistantSettings::normalizeStarterPromptsLocales(
+                (array) $request->input('starter_prompts_locales', [])
+            ),
         ];
         SiteAssistantSettings::update($payload);
         return redirect()->route('admin.site-assistant.edit')->with('success', 'Site Assistant settings saved.');
