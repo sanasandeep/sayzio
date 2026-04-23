@@ -5473,6 +5473,23 @@
                     @else
                         <div class="aspect-[16/9]" style="background:linear-gradient(135deg, rgba(124,58,237,.25), rgba(56,189,248,.18));"></div>
                     @endif
+                    <div class="p-6">
+                        <h3 class="text-lg font-semibold text-white group-hover:text-violet-200 transition">{{ $post->title }}</h3>
+                        @if($post->excerpt)
+                            <p class="mt-2 text-sm text-gray-400 line-clamp-3">{{ $post->excerpt }}</p>
+                        @endif
+                        <div class="mt-4 flex items-center gap-2 text-xs text-white/50">
+                            <span>{{ optional($post->published_at)->format('M j, Y') }}</span>
+                            <span>·</span>
+                            <span>{{ $post->reading_time_min }} min read</span>
+                        </div>
+                    </div>
+                </a>
+            @endforeach
+        </div>
+    </div>
+</section>
+@endif
 
 {{-- ============================ WHY 1INME (comparison) ============================ --}}
 @php
