@@ -4,6 +4,8 @@
     $addresses = old('addresses', $item ? $item->addresses->map(fn($a)=>$a->only(['label','line1','line2','city','region','postal_code','country']))->all() : []);
     $fields = $item?->getEncrypted('fields', true) ?? [];
     $socials = $item?->getEncrypted('social_handles', true) ?? [];
+    $socialRows = array_values(array_map(fn($r)=>['network'=>$r['network']??'','handle'=>$r['handle']??'','url'=>$r['url']??''], $socials ?: []));
+    $fieldRows = array_values(array_map(fn($r)=>['key'=>$r['key']??'','value'=>$r['value']??''], $fields ?: []));
 @endphp
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
     <label class="block">
@@ -76,7 +78,7 @@
     <button type="button" @click="rows.push({label:'',line1:'',line2:'',city:'',region:'',postal_code:'',country:''})" class="text-xs text-amber-400">+ Add address</button>
 </div>
 
-<div class="mt-6" x-data='{ rows: @json(array_values(array_map(fn($r)=>["network"=>$r["network"]??"","handle"=>$r["handle"]??"","url"=>$r["url"]??""], $socials ?: []))) }'>
+<div class="mt-6" x-data='{ rows: @json($socialRows) }'>
     <div class="flex items-center justify-between mb-2">
         <h3 class="text-sm font-semibold text-gray-300">Social handles (encrypted)</h3>
         <button type="button" @click="rows.push({network:'',handle:'',url:''})" class="text-xs text-amber-400">+ Add</button>
@@ -91,7 +93,7 @@
     </template>
 </div>
 
-<div class="mt-6" x-data='{ rows: @json(array_values(array_map(fn($r)=>["key"=>$r["key"]??"","value"=>$r["value"]??""], $fields ?: []))) }'>
+<div class="mt-6" x-data='{ rows: @json($fieldRows) }'>
     <div class="flex items-center justify-between mb-2">
         <h3 class="text-sm font-semibold text-gray-300">Custom fields (encrypted)</h3>
         <button type="button" @click="rows.push({key:'',value:''})" class="text-xs text-amber-400">+ Add</button>

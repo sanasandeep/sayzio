@@ -73,7 +73,7 @@
                         <td class="py-2 text-white">{{ $p->name }}<br><span class="text-[10px] text-white/40">v{{ optional($p->activeVersion)->revision ?? '—' }} · {{ $p->updated_at?->diffForHumans() }}</span></td>
                         <td class="text-white/70">{{ $p->user?->email ?? '—' }}</td>
                         <td class="text-white/60 text-[12px]">{{ $p->model }}</td>
-                        <td class="text-white/60">{{ $p->minds_count }}@if($p->use_default_mind) +d@endif</td>
+                        <td class="text-white/60">{{ $p->minds_count }}@if($p->use_default_mind) +d @endif</td>
                         <td>
                             @if($p->is_disabled)
                                 <span class="text-[10px] px-2 py-0.5 rounded-full bg-red-500/10 text-red-300 border border-red-500/20">Disabled</span>

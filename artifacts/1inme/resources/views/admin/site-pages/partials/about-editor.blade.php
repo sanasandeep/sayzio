@@ -297,7 +297,7 @@
                     <div class="flex items-start gap-3">
                         <div class="shrink-0 text-center">
                             <template x-if="photo">
-                                <img :src="photo" alt="" class="w-32 h-32 rounded-full object-cover border-2 border-violet-400/40 bg-white/5" @error="$el.style.display='none'">
+                                <img :src="photo" alt="" class="w-32 h-32 rounded-full object-cover border-2 border-violet-400/40 bg-white/5" @@error="$el.style.display='none'">
                             </template>
                             <template x-if="!photo">
                                 <div class="w-32 h-32 rounded-full border-2 border-dashed border-white/15 bg-white/5 flex items-center justify-center text-[10px] text-white/40 text-center px-2">As shown on /about</div>
@@ -362,7 +362,7 @@
                     <div class="flex items-start gap-3">
                         <div class="shrink-0 text-center">
                             <template x-if="p.photo">
-                                <img :src="p.photo" alt="" class="w-24 h-24 rounded-full object-cover border-2 border-white/10 bg-white/5" @error="$el.style.display='none'">
+                                <img :src="p.photo" alt="" class="w-24 h-24 rounded-full object-cover border-2 border-white/10 bg-white/5" @@error="$el.style.display='none'">
                             </template>
                             <template x-if="!p.photo">
                                 <div class="w-24 h-24 rounded-full border-2 border-dashed border-white/15 bg-white/5 flex items-center justify-center text-[10px] text-white/40 text-center px-2">As shown on /about</div>
@@ -421,7 +421,7 @@
                     <div class="flex items-start gap-3">
                         <div class="shrink-0 text-center">
                             <template x-if="p.photo">
-                                <img :src="p.photo" alt="" class="w-16 h-16 rounded-full object-cover bg-white/5" @error="$el.style.display='none'">
+                                <img :src="p.photo" alt="" class="w-16 h-16 rounded-full object-cover bg-white/5" @@error="$el.style.display='none'">
                             </template>
                             <template x-if="!p.photo">
                                 <div class="w-16 h-16 rounded-full border-2 border-dashed border-white/15 bg-white/5 flex items-center justify-center text-[9px] text-white/40 text-center px-1">/about</div>
