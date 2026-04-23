@@ -234,10 +234,12 @@
                 <div id="sa_preview_low_balance_signed_in" data-audience="signed_in" style="margin:0 10px 6px;padding:7px 10px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:8px;color:#fde68a;font-size:11.5px;line-height:1.35;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
                     <span style="display:inline-block;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;opacity:.7;color:#fde68a">Signed-in</span>
                     <span data-lb-msg style="flex:1;min-width:0;word-wrap:break-word"></span>
+                    <span data-lb-cta role="button" aria-disabled="true" style="flex-shrink:0;background:rgba(251,191,36,.22);border:1px solid rgba(251,191,36,.45);color:#fde68a;font-size:11.5px;font-weight:600;padding:4px 10px;border-radius:999px;text-decoration:none;font-family:inherit;cursor:default;white-space:nowrap">Top up</span>
                 </div>
                 <div id="sa_preview_low_balance_anonymous" data-audience="anonymous" style="margin:0 10px 10px;padding:7px 10px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:8px;color:#fde68a;font-size:11.5px;line-height:1.35;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
                     <span style="display:inline-block;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;opacity:.7;color:#fde68a">Anonymous</span>
                     <span data-lb-msg style="flex:1;min-width:0;word-wrap:break-word"></span>
+                    <span data-lb-cta role="button" aria-disabled="true" style="flex-shrink:0;background:rgba(251,191,36,.22);border:1px solid rgba(251,191,36,.45);color:#fde68a;font-size:11.5px;font-weight:600;padding:4px 10px;border-radius:999px;text-decoration:none;font-family:inherit;cursor:default;white-space:nowrap">Top up</span>
                 </div>
             </div>
 
