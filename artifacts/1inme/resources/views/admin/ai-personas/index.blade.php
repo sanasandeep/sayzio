@@ -12,11 +12,12 @@
     </div>
 
     <div class="grid grid-cols-3 gap-3">
-        @foreach([
+        @php($__personaCards = [
             ['label'=>'Personas','val'=>$totals['personas'],'tint'=>'pink'],
             ['label'=>'Disabled','val'=>$totals['disabled'],'tint'=>'red'],
             ['label'=>'Used at least once','val'=>$totals['active'],'tint'=>'emerald'],
-        ] as $card)
+        ])
+        @foreach($__personaCards as $card)
             <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
                 <p class="text-[10px] uppercase tracking-wider text-white/40">{{ $card['label'] }}</p>
                 <p class="text-2xl font-bold text-{{ $card['tint'] }}-300 mt-1">{{ number_format($card['val']) }}</p>

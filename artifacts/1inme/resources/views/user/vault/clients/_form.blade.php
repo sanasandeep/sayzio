@@ -78,7 +78,7 @@
     <button type="button" @click="rows.push({label:'',line1:'',line2:'',city:'',region:'',postal_code:'',country:''})" class="text-xs text-amber-400">+ Add address</button>
 </div>
 
-<div class="mt-6" x-data='{ rows: @json($socialRows) }'>
+<div class="mt-6" x-data='{ rows: {!! json_encode(array_values(array_map(fn($r)=>["network"=>$r["network"]??"","handle"=>$r["handle"]??"","url"=>$r["url"]??""], $socials ?: []))) !!} }'>
     <div class="flex items-center justify-between mb-2">
         <h3 class="text-sm font-semibold text-gray-300">Social handles (encrypted)</h3>
         <button type="button" @click="rows.push({network:'',handle:'',url:''})" class="text-xs text-amber-400">+ Add</button>
@@ -93,7 +93,7 @@
     </template>
 </div>
 
-<div class="mt-6" x-data='{ rows: @json($fieldRows) }'>
+<div class="mt-6" x-data='{ rows: {!! json_encode(array_values(array_map(fn($r)=>["key"=>$r["key"]??"","value"=>$r["value"]??""], $fields ?: []))) !!} }'>
     <div class="flex items-center justify-between mb-2">
         <h3 class="text-sm font-semibold text-gray-300">Custom fields (encrypted)</h3>
         <button type="button" @click="rows.push({key:'',value:''})" class="text-xs text-amber-400">+ Add</button>

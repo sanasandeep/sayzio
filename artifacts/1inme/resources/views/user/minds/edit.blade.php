@@ -177,9 +177,9 @@
                             <p class="text-white text-sm truncate">{{ $s->title }}</p>
                             <p class="text-[11px] text-white/40 truncate">
                                 {{ ucfirst($s->type) }}
-                                @if($s->type==='link') · <a href="{{ $s->url }}" target="_blank" rel="noopener" class="hover:underline">{{ $s->url }}</a> · refresh every {{ $s->refresh_minutes }}m@endif
-                                @if($s->type==='document') · {{ number_format(($s->size_bytes ?? 0)/1024, 1) }} KB@endif
-                                @if($s->type==='feature') · {{ \App\Services\AI\AiMindFeatureAdapter::label($s->feature_key) }}@endif
+                                @if($s->type==='link') · <a href="{{ $s->url }}" target="_blank" rel="noopener" class="hover:underline">{{ $s->url }}</a> · refresh every {{ $s->refresh_minutes }}m @endif
+                                @if($s->type==='document') · {{ number_format(($s->size_bytes ?? 0)/1024, 1) }} KB @endif
+                                @if($s->type==='feature') · {{ \App\Services\AI\AiMindFeatureAdapter::label($s->feature_key) }} @endif
                                 · {{ number_format($s->chunks_count ?? $s->chunks()->count()) }} chunks
                                 @if(($sourceCreditSpend[$s->id] ?? 0) > 0)
                                     · <span class="text-amber-300" title="Credits spent embedding this source in the last {{ $creditUsage['days'] }} days">{{ number_format($sourceCreditSpend[$s->id]) }} credits / 30d</span>
