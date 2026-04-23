@@ -413,7 +413,8 @@ class SiteAssistantRuntime
         array $page,
         string $message,
         array $visitorMeta,
-        callable $emit
+        callable $emit,
+        ?int $retryOfMessageId = null
     ): void {
         $cfg = SiteAssistantSettings::get();
         if (!SiteAssistantSettings::isEnabledFor($surface)) {
@@ -452,11 +453,31 @@ class SiteAssistantRuntime
         $billingUser = $this->billingUser($user);
         if (!$billingUser) { $emit('error', ['error' => 'The assistant is not configured.']); return; }
 
+        // If this turn is a retry of a previous partial assistant
+        // message, validate that the referenced message belongs to the
+        // same conversation and is itself a partial/failed stream.
+        // Anything else is silently ignored — the visitor isn't allowed
+        // to tag arbitrary unrelated messages from the client.
+        $retryOf = null;
+        if ($retryOfMessageId) {
+            $candidate = SiteAssistantMessage::where('conversation_id', $conv->id)
+                ->where('id', $retryOfMessageId)
+                ->where('role', 'assistant')
+                ->first();
+            $candidateStatus = $candidate?->meta['stream']['status'] ?? null;
+            if ($candidate && in_array($candidateStatus, ['partial', 'failed'], true)) {
+                $retryOf = (int) $candidate->id;
+            }
+        }
+
         $userMsg = SiteAssistantMessage::create([
             'conversation_id' => $conv->id,
             'role'            => 'user',
             'content'         => $message,
-            'meta'            => array_filter(['page' => $page ?: null]),
+            'meta'            => array_filter([
+                'page'     => $page ?: null,
+                'retry_of' => $retryOf,
+            ]),
         ]);
         $emit('user', ['user_message' => $this->serializeMessage($userMsg->fresh())]);
 
@@ -548,17 +569,19 @@ class SiteAssistantRuntime
             ]);
             return;
         } catch (InsufficientAiCreditsException $e) {
-            $this->persistFailedStreamMessage($conv, $partial, 'The assistant is temporarily out of capacity.');
+            $failed = $this->persistFailedStreamMessage($conv, $partial, 'The assistant is temporarily out of capacity.');
             $emit('error', [
-                'error'   => 'The assistant is temporarily out of capacity.',
-                'partial' => $partial !== '',
+                'error'              => 'The assistant is temporarily out of capacity.',
+                'partial'            => $partial !== '',
+                'assistant_message_id' => $failed?->id,
             ]); return;
         } catch (\Throwable $e) {
             report($e);
-            $this->persistFailedStreamMessage($conv, $partial, 'The assistant could not respond right now.');
+            $failed = $this->persistFailedStreamMessage($conv, $partial, 'The assistant could not respond right now.');
             $emit('error', [
-                'error'   => 'The assistant could not respond right now.',
-                'partial' => $partial !== '',
+                'error'              => 'The assistant could not respond right now.',
+                'partial'            => $partial !== '',
+                'assistant_message_id' => $failed?->id,
             ]); return;
         }
 
@@ -711,11 +734,12 @@ class SiteAssistantRuntime
      * the attempt, but does not charge additional credits (chatStream
      * never returned a usage frame).
      */
-    protected function persistFailedStreamMessage(SiteAssistantConversation $conv, string $partial, string $error, array $extra = []): void
+    protected function persistFailedStreamMessage(SiteAssistantConversation $conv, string $partial, string $error, array $extra = []): ?SiteAssistantMessage
     {
         try {
-            DB::transaction(function () use ($conv, $partial, $error, $extra) {
-                SiteAssistantMessage::create([
+            $msg = null;
+            DB::transaction(function () use ($conv, $partial, $error, $extra, &$msg) {
+                $msg = SiteAssistantMessage::create([
                     'conversation_id' => $conv->id,
                     'role'            => 'assistant',
                     'content'         => $partial,
@@ -729,8 +753,10 @@ class SiteAssistantRuntime
                 $conv->last_message_at = now();
                 $conv->save();
             });
+            return $msg;
         } catch (\Throwable $e) {
             report($e);
+            return null;
         }
     }
 

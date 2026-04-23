@@ -84,10 +84,11 @@ class SiteAssistantController extends Controller
     public function stream(Request $request)
     {
         $data = $request->validate([
-            'visitor_token' => 'required|string|max:64',
-            'surface'       => 'nullable|in:marketing,app',
-            'message'       => 'required|string|max:4000',
-            'page'          => 'array',
+            'visitor_token'        => 'required|string|max:64',
+            'surface'              => 'nullable|in:marketing,app',
+            'message'              => 'required|string|max:4000',
+            'page'                 => 'array',
+            'retry_of_message_id'  => 'nullable|integer',
         ]);
         $surface = $this->detectSurface($request);
         $user = $request->user();
@@ -95,9 +96,10 @@ class SiteAssistantController extends Controller
         $page = (array) ($data['page'] ?? []);
         $message = $data['message'];
         $meta = $this->visitorMeta($request);
+        $retryOf = isset($data['retry_of_message_id']) ? (int) $data['retry_of_message_id'] : null;
 
         $runtime = $this->runtime;
-        $response = response()->stream(function () use ($runtime, $token, $user, $surface, $page, $message, $meta) {
+        $response = response()->stream(function () use ($runtime, $token, $user, $surface, $page, $message, $meta, $retryOf) {
             $emit = function (string $event, array $payload) {
                 echo "event: {$event}\n";
                 echo 'data: ' . json_encode($payload) . "\n\n";
@@ -105,7 +107,7 @@ class SiteAssistantController extends Controller
                 @flush();
             };
             try {
-                $runtime->turnStream($token, $user, $surface, $page, $message, $meta, $emit);
+                $runtime->turnStream($token, $user, $surface, $page, $message, $meta, $emit, $retryOf);
             } catch (\Throwable $e) {
                 report($e);
                 $emit('error', ['error' => 'The assistant could not respond right now.']);

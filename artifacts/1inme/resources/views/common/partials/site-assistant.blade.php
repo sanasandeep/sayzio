@@ -329,18 +329,20 @@
 
   // Retry a previous prompt after a mid-stream cutoff. Reuses the same
   // text without re-rendering the visitor's message bubble (it's still
-  // visible above the cut-off reply).
-  function retryPrompt(text){
+  // visible above the cut-off reply). The id of the partial assistant
+  // message is forwarded so the server can flag the new user message
+  // as a retry of that specific cut-off reply (admin transcript view).
+  function retryPrompt(text, retryOfId){
     if(busy || !text) return;
     busy=true; sendBtn.disabled=true;
-    streamMessage(text).finally(function(){ busy=false; sendBtn.disabled=false; });
+    streamMessage(text, retryOfId).finally(function(){ busy=false; sendBtn.disabled=false; });
   }
 
   // Streaming via fetch + ReadableStream so the assistant reply paints
   // word-by-word. We pre-render an empty assistant bubble and append
   // each token as it arrives. Final `done` event swaps the bubble's
   // content with the sanitized server-side message (handles blocks).
-  function streamMessage(text){
+  function streamMessage(text, retryOfId){
     var bubble=el('div',{class:'sa-msg assistant'},'');
     body.appendChild(bubble); scrollBottom();
     var streamed='';
@@ -366,7 +368,7 @@
     return fetch(ds.streamUrl, {
       method:'POST', credentials:'same-origin',
       headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrf,'Accept':'text/event-stream'},
-      body: JSON.stringify({ visitor_token: token, message: text, page: pageMeta(), surface: SURFACE || undefined })
+      body: JSON.stringify({ visitor_token: token, message: text, page: pageMeta(), surface: SURFACE || undefined, retry_of_message_id: retryOfId || undefined })
     }).then(function(res){
       var ct=(res.headers && res.headers.get && res.headers.get('Content-Type'))||'';
       if(!res.ok || !res.body || ct.indexOf('text/event-stream')<0){
@@ -416,6 +418,7 @@
               // keep the partial bubble in view and offer a retry. Otherwise
               // fall back to the centered error toast as before.
               if(parsed.partial && streamed){
+                var partialMsgId = parsed.assistant_message_id || null;
                 var note=el('div',{class:'sa-cutoff'});
                 note.appendChild(el('span',{},'⚠ This reply was cut off — '));
                 var retryBtn=el('button',{type:'button'},'Retry');
@@ -423,7 +426,7 @@
                   if(busy) return;
                   retryBtn.disabled=true;
                   note.remove(); bubble.remove();
-                  retryPrompt(text);
+                  retryPrompt(text, partialMsgId);
                 };
                 note.appendChild(retryBtn);
                 body.appendChild(note); scrollBottom();

@@ -16,11 +16,24 @@
         @if($conversation->handed_off)<div class="md:col-span-3 text-amber-300 text-xs">Handed off → ContactMessage #{{ $conversation->contact_message_id }}</div>@endif
     </div>
 
+    @php
+        // Build a set of partial/failed assistant message ids that the
+        // visitor later retried — i.e. ids referenced by `meta.retry_of`
+        // on any subsequent user message in this same conversation.
+        $retriedAssistantIds = [];
+        foreach ($conversation->messages as $__m) {
+            if ($__m->role !== 'user') continue;
+            $rid = (int) (($__m->meta ?? [])['retry_of'] ?? 0);
+            if ($rid > 0) $retriedAssistantIds[$rid] = true;
+        }
+    @endphp
     <div class="glass rounded-2xl border border-white/10 p-6 space-y-3">
         @forelse($conversation->messages as $m)
             @php
                 $streamStatus = $m->role === 'assistant' ? ($m->meta['stream']['status'] ?? null) : null;
                 $streamError  = $m->role === 'assistant' ? ($m->meta['stream']['error']  ?? null) : null;
+                $isCutOff     = in_array($streamStatus, ['partial', 'failed'], true);
+                $wasRetried   = $isCutOff && isset($retriedAssistantIds[(int) $m->id]);
                 $bubbleClass  = $m->role === 'user'
                     ? 'bg-purple-600/30 text-white'
                     : ($streamStatus === 'failed' || $streamStatus === 'partial'
@@ -42,6 +55,13 @@
                                 <span class="px-1.5 py-0.5 rounded bg-white/10 text-white/60 normal-case tracking-normal" title="Returned in a single non-streaming response.">classic</span>
                             @else
                                 <span class="px-1.5 py-0.5 rounded bg-slate-500/20 text-slate-300 normal-case tracking-normal" title="This reply pre-dates delivery-mode tracking — we can't tell whether it was streamed or returned in one shot.">unknown</span>
+                            @endif
+                            @if($isCutOff)
+                                @if($wasRetried)
+                                    <span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 normal-case tracking-normal" title="The visitor clicked Retry on this cut-off reply — the next user message asks the same question again.">visitor retried</span>
+                                @else
+                                    <span class="px-1.5 py-0.5 rounded bg-white/10 text-white/60 normal-case tracking-normal" title="The visitor did not click Retry — they either abandoned the chat or moved on to a different question. Frequent abandons usually mean a flaky upstream call worth fixing.">visitor did not retry</span>
+                                @endif
                             @endif
                         @endif
                     </div>
