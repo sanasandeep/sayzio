@@ -51,6 +51,18 @@ class SiteAssistantSettings
                 'How does pricing work?',
                 'Talk to a human',
             ],
+            // Cut-off retry monitor — a scheduled job evaluates the
+            // last 24h of partial/failed assistant streams and alerts
+            // admins when the abandon rate (visitors who never clicked
+            // Retry) crosses the configured threshold. Disabled by
+            // default so existing installs are silent until an admin
+            // opts in.
+            'cutoff_alert_enabled'             => false,
+            'cutoff_alert_abandon_threshold'   => 60,   // percent (0-100)
+            'cutoff_alert_min_sample'          => 20,   // need this many cut-offs in window before we alert
+            'cutoff_alert_cooldown_hours'      => 6,    // suppress repeat alerts inside this window
+            'cutoff_alert_emails'              => '',   // optional comma-separated extra recipients
+            'cutoff_alert_last_sent_at'        => null, // ISO-8601 timestamp written by the checker
         ];
     }
 

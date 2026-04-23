@@ -275,6 +275,43 @@
             </label>
         </div>
 
+        <div class="glass rounded-2xl border border-white/10 p-6 space-y-4">
+            <div>
+                <h3 class="font-semibold text-white">Cut-off retry alerts</h3>
+                <p class="text-xs text-white/50 mt-1">A scheduled check looks at the last 24h of cut-off / failed assistant streams and notifies admins (in-app + email) when the abandon rate — the share of cut-offs visitors never clicked Retry on — exceeds the threshold below. Useful for catching upstream regressions before users complain.</p>
+            </div>
+            <label class="flex items-center gap-3 cursor-pointer">
+                <input type="hidden" name="cutoff_alert_enabled" value="0">
+                <input type="checkbox" name="cutoff_alert_enabled" value="1" class="rounded" {{ !empty($cfg['cutoff_alert_enabled']) ? 'checked' : '' }}>
+                <span class="text-sm text-white">Enable cut-off abandon-rate alerts</span>
+            </label>
+            <div class="grid md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs text-white/60 mb-1">Abandon-rate threshold (%)</label>
+                    <input type="number" min="1" max="100" name="cutoff_alert_abandon_threshold" value="{{ (int)($cfg['cutoff_alert_abandon_threshold'] ?? 60) }}" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    <p class="text-[10px] text-white/40 mt-1">Alert fires when the 24h abandon rate is at or above this value.</p>
+                </div>
+                <div>
+                    <label class="block text-xs text-white/60 mb-1">Minimum sample size</label>
+                    <input type="number" min="1" max="100000" name="cutoff_alert_min_sample" value="{{ (int)($cfg['cutoff_alert_min_sample'] ?? 20) }}" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    <p class="text-[10px] text-white/40 mt-1">Skip the check until at least this many cut-offs occurred in 24h.</p>
+                </div>
+                <div>
+                    <label class="block text-xs text-white/60 mb-1">Cooldown between alerts (hours)</label>
+                    <input type="number" min="1" max="168" name="cutoff_alert_cooldown_hours" value="{{ (int)($cfg['cutoff_alert_cooldown_hours'] ?? 6) }}" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    <p class="text-[10px] text-white/40 mt-1">Suppress repeat alerts inside this window.</p>
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs text-white/60 mb-1">Email recipients (optional)</label>
+                <input type="text" name="cutoff_alert_emails" value="{{ $cfg['cutoff_alert_emails'] ?? '' }}" placeholder="ops@example.com, oncall@example.com" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                <p class="text-[10px] text-white/40 mt-1">Comma- or space-separated. Leave blank to email every platform admin (settings.manage) with a verified email instead.</p>
+            </div>
+            @if(!empty($cfg['cutoff_alert_last_sent_at']))
+                <p class="text-[11px] text-white/40">Last alert dispatched: <span class="text-white/70">{{ $cfg['cutoff_alert_last_sent_at'] }}</span></p>
+            @endif
+        </div>
+
         <div class="flex justify-end">
             <button class="px-5 py-2.5 rounded-xl bg-purple-500 hover:bg-purple-400 text-white text-sm font-semibold">Save settings</button>
         </div>

@@ -87,6 +87,11 @@ class SiteAssistantController extends Controller
             'low_balance_message_locales.*.anonymous'  => 'nullable|string|max:500',
             'starter_prompts'          => 'nullable|array',
             'starter_prompts.*'        => 'nullable|string|max:200',
+            'cutoff_alert_enabled'             => 'nullable|boolean',
+            'cutoff_alert_abandon_threshold'   => 'nullable|integer|min:1|max:100',
+            'cutoff_alert_min_sample'          => 'nullable|integer|min:1|max:100000',
+            'cutoff_alert_cooldown_hours'      => 'nullable|integer|min:1|max:168',
+            'cutoff_alert_emails'              => 'nullable|string|max:2000',
         ]);
         $payload = [
             'enabled_marketing'       => $request->boolean('enabled_marketing'),
@@ -116,9 +121,34 @@ class SiteAssistantController extends Controller
                 fn ($s) => trim((string) $s),
                 (array) ($data['starter_prompts'] ?? [])
             ))),
+            'cutoff_alert_enabled'           => $request->boolean('cutoff_alert_enabled'),
+            'cutoff_alert_abandon_threshold' => (int) ($data['cutoff_alert_abandon_threshold'] ?? 60),
+            'cutoff_alert_min_sample'        => (int) ($data['cutoff_alert_min_sample'] ?? 20),
+            'cutoff_alert_cooldown_hours'    => (int) ($data['cutoff_alert_cooldown_hours'] ?? 6),
+            'cutoff_alert_emails'            => $this->cleanEmailList((string) ($data['cutoff_alert_emails'] ?? '')),
         ];
         SiteAssistantSettings::update($payload);
         return redirect()->route('admin.site-assistant.edit')->with('success', 'Site Assistant settings saved.');
+    }
+
+    /**
+     * Normalize the cut-off alert email recipient list. Splits on
+     * commas / semicolons / whitespace, lowercases, drops malformed
+     * entries via filter_var, dedupes, and rejoins with ", " so the
+     * stored value round-trips cleanly into the input field.
+     */
+    protected function cleanEmailList(string $raw): string
+    {
+        $parts = preg_split('/[\s,;]+/', $raw) ?: [];
+        $clean = [];
+        foreach ($parts as $p) {
+            $p = strtolower(trim($p));
+            if ($p === '') continue;
+            if (filter_var($p, FILTER_VALIDATE_EMAIL)) {
+                $clean[$p] = true;
+            }
+        }
+        return implode(', ', array_keys($clean));
     }
 
     // ── Knowledge Base wrapper ────────────────────────────────

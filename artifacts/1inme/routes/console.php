@@ -124,6 +124,16 @@ Schedule::command('minds:refresh-links')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Hourly: evaluate the last 24h of Site Assistant cut-offs and notify
+// admins (in-app + email) when the abandon rate exceeds the configured
+// threshold. The command itself is a no-op when alerts are disabled,
+// the sample size is below the configured floor, or the cooldown window
+// hasn't elapsed since the last alert — so a per-hour cadence is safe.
+Schedule::command('site-assistant:check-cutoffs')
+    ->hourly()
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Every minute: flip blog posts whose scheduled_at has elapsed from
 // status=scheduled to status=published. Cheap query (indexed status +
 // scheduled_at) so a per-minute cadence keeps the publish window tight.
