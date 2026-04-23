@@ -210,6 +210,14 @@
             <span class="sidebar-tooltip">Marketing</span>
         </a>
 
+        <a href="{{ route('admin.marketing-events.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.marketing-events.*') ? 'active' : '' }}"
+           style="--nav-tint:#ec4899; --nav-tint-soft:rgba(236,72,153,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-chart-line"></i></div>
+            <span class="nav-label">Marketing Events</span>
+            <span class="sidebar-tooltip">Marketing Events</span>
+        </a>
+
         <a href="{{ route('admin.cookie-consent.edit') }}"
            class="sidebar-link {{ request()->routeIs('admin.cookie-consent.*') ? 'active' : '' }}"
            style="--nav-tint:#eab308; --nav-tint-soft:rgba(234,179,8,0.12);">

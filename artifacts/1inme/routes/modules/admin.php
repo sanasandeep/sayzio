@@ -150,6 +150,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/', [SpamRuleStatsController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
         });
 
+        Route::prefix('marketing-events')->name('marketing-events.')->group(function () {
+            Route::get('/', [\App\Modules\Admin\Controllers\MarketingEventStatsController::class, 'index'])
+                ->middleware(CheckPermission::class . ':settings.manage')
+                ->name('index');
+        });
+
         Route::prefix('banned-names')->name('banned-names.')->group(function () {
             Route::get('/', [BannedNameController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
             Route::get('export', [BannedNameController::class, 'export'])->middleware(CheckPermission::class . ':settings.manage')->name('export');

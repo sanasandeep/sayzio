@@ -23,6 +23,9 @@ return Application::configure(basePath: dirname(__DIR__))
             '*/track/session',
             '*/track/heartbeat',
             'sp/*/track',
+            // Anonymous landing-page CTA tracking — endpoint is allow-listed
+            // server-side (see MarketingEventController::ALLOWED).
+            'marketing-events/track',
             // AI Companion: cross-origin embed posts JSON from arbitrary
             // sites — origin allow-listing inside the controller plus the
             // `cmp_*` routing constraint are the access controls here.

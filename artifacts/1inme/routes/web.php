@@ -108,6 +108,11 @@ Route::controller(\App\Modules\Common\Controllers\SitePageController::class)->gr
 });
 Route::post('/contact', [\App\Modules\Common\Controllers\SitePageController::class, 'submitContact'])
     ->name('site.contact.submit')->middleware('throttle:10,10');
+
+// ---- Marketing CTA click tracking (anonymous, allow-listed) ----
+Route::post('/marketing-events/track', [\App\Modules\Common\Controllers\MarketingEventController::class, 'track'])
+    ->middleware('throttle:60,1')
+    ->name('marketing-events.track');
 Route::post('/newsletter/subscribe', [\App\Modules\Common\Controllers\NewsletterController::class, 'subscribe'])
     ->name('site.newsletter.subscribe')->middleware('throttle:10,10');
 Route::get('/newsletter/unsubscribe/{subscriber}', [\App\Modules\Common\Controllers\NewsletterController::class, 'unsubscribe'])

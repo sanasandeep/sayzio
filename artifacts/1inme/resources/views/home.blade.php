@@ -5658,7 +5658,10 @@
                             @endif
                         @endforeach
                     </ul>
-                    <button type="button" @click="authTab='register'; authOpen=true" class="btn-bounce block w-full py-3.5 text-center rounded-full text-sm font-bold transition-transform group-hover:scale-[1.02] {{ $featured ? 'bg-white text-[#7c3aed] hover:bg-gray-100' : 'grad-bar text-white' }}">
+                    <button type="button" @click="authTab='register'; authOpen=true"
+                            data-mkt-source="landing_pricing_teaser"
+                            data-mkt-target="{{ $plan['is_free'] ? 'plan_free' : 'plan_paid' }}"
+                            class="btn-bounce block w-full py-3.5 text-center rounded-full text-sm font-bold transition-transform group-hover:scale-[1.02] {{ $featured ? 'bg-white text-[#7c3aed] hover:bg-gray-100' : 'grad-bar text-white' }}">
                         {{ $plan['is_free'] ? 'Get started free' : 'Start free trial' }}
                     </button>
                 </div>
@@ -5677,14 +5680,20 @@
                         <p class="text-sm text-gray-400 mt-1">All tiers, coin packs and premium add-ons in one place.</p>
                     </div>
                     <div class="flex flex-wrap items-center justify-center lg:justify-end gap-3 shrink-0">
-                        <a href="{{ route('site.pricing') }}" class="btn-bounce inline-flex items-center gap-2 px-6 py-3 rounded-full grad-bar text-white text-sm font-bold shadow-lg shadow-[#7c3aed]/30 hover:shadow-[#7c3aed]/50 transition-shadow">
+                        <a href="{{ route('site.pricing') }}"
+                           data-mkt-source="landing_pricing_teaser" data-mkt-target="pricing"
+                           class="btn-bounce inline-flex items-center gap-2 px-6 py-3 rounded-full grad-bar text-white text-sm font-bold shadow-lg shadow-[#7c3aed]/30 hover:shadow-[#7c3aed]/50 transition-shadow">
                             <i class="fas fa-tags"></i> See all plans
                             <i class="fas fa-arrow-right text-xs ml-1"></i>
                         </a>
-                        <a href="{{ route('site.coins') }}" class="inline-flex items-center gap-2 px-5 py-3 rounded-full glass text-white hover:bg-white/10 text-sm font-semibold transition-colors">
+                        <a href="{{ route('site.coins') }}"
+                           data-mkt-source="landing_pricing_teaser" data-mkt-target="coins"
+                           class="inline-flex items-center gap-2 px-5 py-3 rounded-full glass text-white hover:bg-white/10 text-sm font-semibold transition-colors">
                             <i class="fas fa-coins text-amber-400"></i> Coin packages
                         </a>
-                        <a href="{{ route('site.premium-features') }}" class="inline-flex items-center gap-2 px-5 py-3 rounded-full glass text-white hover:bg-white/10 text-sm font-semibold transition-colors">
+                        <a href="{{ route('site.premium-features') }}"
+                           data-mkt-source="landing_pricing_teaser" data-mkt-target="premium_features"
+                           class="inline-flex items-center gap-2 px-5 py-3 rounded-full glass text-white hover:bg-white/10 text-sm font-semibold transition-colors">
                             <i class="fas fa-star text-amber-300"></i> Premium features
                         </a>
                     </div>
@@ -5880,6 +5889,71 @@
         }
     });
 </script>
+
+{{-- ============================ MARKETING CTA TRACKING ============================
+     Records server-side click events for the landing pricing teaser CTAs
+     (drill-downs to /pricing, /coins, /premium-features and the two plan
+     buttons). Mirrors to GA4 + Meta Pixel when they're configured by the
+     marketing-tracking partial. Powers Admin → Marketing Events.
+--}}
+<script>
+    (function () {
+        var ENDPOINT = @json(route('marketing-events.track'));
+
+        function postEvent(source, target) {
+            try {
+                var payload = JSON.stringify({ source: source, target: target });
+                if (navigator.sendBeacon) {
+                    var blob = new Blob([payload], { type: 'application/json' });
+                    if (navigator.sendBeacon(ENDPOINT, blob)) return;
+                }
+                fetch(ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: payload,
+                    keepalive: true,
+                    credentials: 'same-origin',
+                });
+            } catch (_) { /* best-effort */ }
+        }
+
+        function mirrorToPipelines(source, target) {
+            try {
+                if (typeof window.gtag === 'function') {
+                    window.gtag('event', 'marketing_cta_click', {
+                        event_category: 'marketing',
+                        event_label: source + ':' + target,
+                        cta_source: source,
+                        cta_target: target,
+                    });
+                } else if (Array.isArray(window.dataLayer)) {
+                    window.dataLayer.push({
+                        event: 'marketing_cta_click',
+                        cta_source: source,
+                        cta_target: target,
+                    });
+                }
+                if (typeof window.fbq === 'function') {
+                    window.fbq('trackCustom', 'MarketingCtaClick', {
+                        source: source,
+                        target: target,
+                    });
+                }
+            } catch (_) { /* best-effort */ }
+        }
+
+        document.addEventListener('click', function (e) {
+            var el = e.target.closest('[data-mkt-source][data-mkt-target]');
+            if (!el) return;
+            var source = el.getAttribute('data-mkt-source');
+            var target = el.getAttribute('data-mkt-target');
+            if (!source || !target) return;
+            postEvent(source, target);
+            mirrorToPipelines(source, target);
+        }, true);
+    })();
+</script>
+
 @include('common.partials.cookie-consent', ['surface' => 'site'])
 </body>
 </html>
