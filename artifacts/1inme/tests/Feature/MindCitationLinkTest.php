@@ -8,8 +8,11 @@ use App\Modules\User\Models\AiMindSource;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\User;
 use App\Services\AI\AiEngineSettings;
+use App\Services\AI\AiMindIngestor;
 use App\Services\AI\OpenAiService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Mockery;
 use Tests\TestCase;
@@ -246,6 +249,102 @@ class MindCitationLinkTest extends TestCase
 
         $resp->assertSee('id="chunk-highlight"', false);
         $resp->assertSee('Do you offer refunds?');
+    }
+
+    public function test_ingestor_persists_extracted_text_for_document_sources(): void
+    {
+        Storage::fake('local');
+        $body = "Intro paragraph here.\n\n"
+              . "This is the cited middle passage that should light up.\n\n"
+              . "Closing words follow.";
+        Storage::disk('local')->put('docs/note.txt', $body);
+
+        $user = $this->makeUser();
+        $mind = AiMind::create([
+            'user_id'     => $user->id,
+            'name'        => 'Doc Mind',
+            'is_default'  => false,
+            'is_disabled' => false,
+        ]);
+        $src = AiMindSource::create([
+            'mind_id'      => $mind->id,
+            'type'         => AiMindSource::TYPE_DOCUMENT,
+            'title'        => 'Note.txt',
+            'storage_disk' => 'local',
+            'storage_path' => 'docs/note.txt',
+            'mime'         => 'text/plain',
+            'size_bytes'   => strlen($body),
+        ]);
+
+        app(AiMindIngestor::class)->ingest($src);
+
+        $src->refresh();
+        $this->assertSame(AiMindSource::STATUS_READY, $src->status);
+        $this->assertStringContainsString('cited middle passage', (string) $src->body);
+
+        $chunk = AiMindChunk::where('source_id', $src->id)->orderBy('ord')->first();
+        $this->assertNotNull($chunk);
+
+        $resp = $this->actingAs($user)
+            ->get(route('user.minds.sources.show', ['mind' => $mind->id, 'source' => $src->id])
+                . '?chunk=' . $chunk->id)
+            ->assertOk();
+
+        // The body now renders inline with the chunk highlighted in
+        // place — no fallback "Cited passage" callout needed.
+        $resp->assertSee('id="chunk-highlight"', false);
+        $resp->assertSee('<mark', false);
+        $resp->assertSee('cited middle passage');
+        $resp->assertDontSee('Cited passage');
+    }
+
+    public function test_ingestor_persists_extracted_text_for_link_sources(): void
+    {
+        Http::fake([
+            'example.com/robots.txt' => Http::response('', 404),
+            'example.com/article'    => Http::response(
+                '<html><body><article>'
+                . '<p>Intro paragraph about the topic.</p>'
+                . '<p>This is the cited middle passage that should light up.</p>'
+                . '<p>Closing words follow.</p>'
+                . '</article></body></html>',
+                200,
+                ['Content-Type' => 'text/html'],
+            ),
+        ]);
+
+        $user = $this->makeUser();
+        $mind = AiMind::create([
+            'user_id'     => $user->id,
+            'name'        => 'Link Mind',
+            'is_default'  => false,
+            'is_disabled' => false,
+        ]);
+        $src = AiMindSource::create([
+            'mind_id' => $mind->id,
+            'type'    => AiMindSource::TYPE_LINK,
+            'title'   => 'Example article',
+            'url'     => 'https://example.com/article',
+        ]);
+
+        app(AiMindIngestor::class)->ingest($src);
+
+        $src->refresh();
+        $this->assertSame(AiMindSource::STATUS_READY, $src->status);
+        $this->assertStringContainsString('cited middle passage', (string) $src->body);
+
+        $chunk = AiMindChunk::where('source_id', $src->id)->orderBy('ord')->first();
+        $this->assertNotNull($chunk);
+
+        $resp = $this->actingAs($user)
+            ->get(route('user.minds.sources.show', ['mind' => $mind->id, 'source' => $src->id])
+                . '?chunk=' . $chunk->id)
+            ->assertOk();
+
+        $resp->assertSee('id="chunk-highlight"', false);
+        $resp->assertSee('<mark', false);
+        $resp->assertSee('cited middle passage');
+        $resp->assertDontSee('Cited passage');
     }
 
     public function test_source_detail_falls_back_to_cited_passage_when_body_missing(): void

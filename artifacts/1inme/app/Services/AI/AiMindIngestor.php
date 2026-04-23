@@ -118,7 +118,7 @@ class AiMindIngestor
                 }
             }
 
-            DB::transaction(function () use ($source, $chunks, $vectors, $model, $ocrUsed) {
+            DB::transaction(function () use ($source, $chunks, $vectors, $model, $ocrUsed, $text) {
                 AiMindChunk::where('source_id', $source->id)->delete();
                 foreach ($chunks as $i => $content) {
                     AiMindChunk::create([
@@ -131,13 +131,23 @@ class AiMindIngestor
                         'model'     => $model,
                     ]);
                 }
-                $source->forceFill([
+                $attrs = [
                     'status'           => AiMindSource::STATUS_READY,
                     'status_message'   => $ocrUsed ? "OCR'd from scan" : null,
                     'chunks_count'     => count($chunks),
                     'last_ingested_at' => now(),
                     'next_refresh_at'  => $this->nextRefreshAt($source),
-                ])->save();
+                ];
+                // Persist the extracted text on body for document and link
+                // sources so the source detail page can render it (and the
+                // citation highlighter can pinpoint the chunk inline).
+                // text/FAQ already store user-supplied body; feature has no
+                // body. For documents and links, body would otherwise be
+                // empty and force the highlighter into its fallback callout.
+                if (in_array($source->type, [AiMindSource::TYPE_DOCUMENT, AiMindSource::TYPE_LINK], true)) {
+                    $attrs['body'] = $text;
+                }
+                $source->forceFill($attrs)->save();
             });
 
             $mind->forceFill(['last_ingested_at' => now()])->save();
