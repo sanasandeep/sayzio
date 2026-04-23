@@ -3601,36 +3601,241 @@
     </script>
 </section>
 
-{{-- ============================ MARQUEE STRIP ============================ --}}
-<div class="grad-bar py-4 overflow-hidden border-y border-white/10" aria-hidden="true">
-    <div class="flex whitespace-nowrap marquee">
-        @for($i = 0; $i < 2; $i++)
-        <span class="inline-flex items-center gap-8 mx-4">
-            @foreach([
-                ['fa-grip-vertical','Drag &amp; Drop Editor'],
-                ['fa-globe','Live Geo Heatmap'],
-                ['fa-bolt','Performance Coach'],
-                ['fa-link','Short Links'],
-                ['fa-qrcode','Dynamic QR Codes'],
-                ['fa-users','Follower System'],
-                ['fa-wpforms','Form Builder'],
-                ['fa-bullhorn','Social Proof'],
-                ['fa-address-book','Contacts Sync'],
-                ['fa-phone','Built-in Dialer'],
-            ] as $item)
-                <span class="text-sm font-bold uppercase tracking-wider flex items-center gap-2 text-white"><i class="fas {{ $item[0] }}"></i>{!! $item[1] !!}</span>
-                <span class="text-xl text-white/70">★</span>
-            @endforeach
-        </span>
-        @endfor
+{{-- ============================ BUZZ ============================ --}}
+<section id="buzz" class="py-24 lg:py-32 relative overflow-hidden">
+    <div class="absolute inset-0 -z-10" style="background:radial-gradient(60% 50% at 80% 30%, rgba(233,78,140,.15), transparent 70%);"></div>
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-14 max-w-3xl mx-auto">
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c3)">Buzz</div>
+            <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
+                Show visitors <span class="grad-text">real momentum.</span>
+            </h2>
+            <p class="reveal rd-2 text-lg text-gray-400">
+                Buzz is the social-proof widget already wired into every 1INME biolink. Live signups, visits and purchases pop up right on your page so visitors see the room is busy — and act.
+            </p>
+        </div>
+
+        <div class="grid lg:grid-cols-2 gap-10 items-center">
+            <div class="reveal rd-3 order-2 lg:order-1">
+                <div class="relative glass rounded-3xl p-6 sm:p-8 tilt overflow-hidden" style="min-height: 360px;">
+                    <div class="absolute -bottom-20 -left-20 w-64 h-64 rounded-full opacity-30" style="background:radial-gradient(circle,var(--c3),transparent 70%);"></div>
+                    <div class="relative">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Live on your biolink</div>
+                            <span class="flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full" style="background:rgba(74,222,128,.15);color:#4ade80">
+                                <span class="w-1.5 h-1.5 rounded-full pulse-dot" style="background:#4ade80"></span>7 events · last min
+                            </span>
+                        </div>
+
+                        <div class="buzz-feed">
+                            {{-- 1 · NEW FOLLOW with real avatar --}}
+                            <div class="buzz-card fresh">
+                                <span class="fresh-tag">✨ Just now</span>
+                                <div class="bz-follow">
+                                    <div class="bz-avatar">
+                                        <img src="/images/hero-roles/role_designer-200.jpg" alt="Sara">
+                                        <span class="on" aria-hidden="true"></span>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="name">Sara from Berlin</div>
+                                        <div class="meta"><i class="fas fa-user-plus text-[9px] mr-1" style="color:var(--c1)"></i>just followed you · 12s ago</div>
+                                    </div>
+                                    <a href="#" class="btn">Follow back</a>
+                                </div>
+                            </div>
+
+                            {{-- 2 · PURCHASE with product thumb + price --}}
+                            <div class="buzz-card">
+                                <div class="bz-buy">
+                                    <div class="bz-thumb">
+                                        <img src="/images/hero-roles/thumb_design-320.jpg" alt="Lightroom Pack">
+                                        <span class="tag">Preset</span>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="product">🛒 Lightroom Pack · Vol II</div>
+                                        <div class="who">bought by <b class="text-white">@nora.cph</b> · 42s ago</div>
+                                    </div>
+                                    <span class="price"><span class="d"></span>+$24.00</span>
+                                </div>
+                            </div>
+
+                            {{-- 3 · LIVE VIEWERS with bar --}}
+                            <div class="buzz-card">
+                                <div class="bz-views">
+                                    <div class="ic"><i class="fas fa-eye"></i></div>
+                                    <div class="min-w-0 w-full">
+                                        <div class="row">
+                                            <span><b>🇳🇬 Lagos</b> &amp; 5 cities viewing now</span>
+                                            <span class="num">+18</span>
+                                        </div>
+                                        <div class="track"><div class="fill"></div></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- 4 · TIP with spinning coin --}}
+                            <div class="buzz-card">
+                                <div class="bz-tip">
+                                    <div class="bz-coin">$</div>
+                                    <div class="min-w-0">
+                                        <div class="who"><b>@yuki.draws</b> sent you a tip</div>
+                                        <div class="msg">“Loved your latest pack — keep going!”</div>
+                                    </div>
+                                    <div class="amt">$5<small>.00</small></div>
+                                </div>
+                            </div>
+
+                            {{-- 5 · FORM submission --}}
+                            <div class="buzz-card">
+                                <div class="bz-form">
+                                    <div class="ic"><i class="fas fa-envelope-open-text"></i></div>
+                                    <div class="min-w-0">
+                                        <div class="who">Marco from Madrid · contact form</div>
+                                        <div class="subj">“Hi! Available for a wedding shoot in June?”</div>
+                                    </div>
+                                    <span class="pri">High</span>
+                                </div>
+                            </div>
+
+                            {{-- 6 · QR scan with sparkline --}}
+                            <div class="buzz-card">
+                                <div class="bz-qr">
+                                    <div class="ic"><i class="fas fa-qrcode"></i></div>
+                                    <div class="min-w-0">
+                                        <div class="label">QR · Studio poster scanned</div>
+                                        <div class="meta">+127 scans today · peak 4:20 pm</div>
+                                    </div>
+                                    <span class="spark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+                                </div>
+                            </div>
+
+                            {{-- 7 · GOAL hit (full-width progress) --}}
+                            <div class="buzz-card bz-goal">
+                                <div class="top">
+                                    <div class="trophy"><i class="fas fa-trophy text-sm"></i></div>
+                                    <div class="title">🎉 Monthly goal hit · 1,000 followers</div>
+                                    <div class="pct">100%</div>
+                                </div>
+                                <div class="track">
+                                    <div class="fill"></div>
+                                    <span class="conf" aria-hidden="true">🎊</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-center mt-4 text-[10px] text-gray-500 uppercase tracking-wider font-semibold">
+                            <i class="fas fa-circle-down mr-1 opacity-60"></i> 12 more events today
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="reveal rd-2 order-1 lg:order-2">
+                <div class="grid sm:grid-cols-2 gap-4">
+                    @foreach([
+                        ['fa-bolt','#ffc845','Real-time activity','Live signups, visits, purchases &amp; form fills.'],
+                        ['fa-toggle-on','#1bd4d9','Zero setup','Already integrated with your biolink — flip it on.'],
+                        ['fa-sliders','#e94e8c','Pick what shows','Choose events &amp; priorities; hide the rest.'],
+                        ['fa-user-secret','#7c3aed','Privacy-first','Names masked, locations coarse, dismissible.'],
+                    ] as $i => $f)
+                        <div class="reveal rd-{{ $i+1 }} glass rounded-2xl p-5 lift">
+                            <div class="w-11 h-11 rounded-xl flex items-center justify-center mb-3" style="background: linear-gradient(135deg, {{ $f[1] }}, var(--c3)); box-shadow: 0 12px 30px -12px {{ $f[1] }};">
+                                <i class="fas {{ $f[0] }} text-white"></i>
+                            </div>
+                            <h3 class="text-base font-bold mb-1">{!! $f[2] !!}</h3>
+                            <p class="text-xs text-gray-400 leading-relaxed">{!! $f[3] !!}</p>
+                        </div>
+                    @endforeach
+                </div>
+                <div class="reveal rd-5 mt-8">
+                    <a href="{{ route('site.buzz') }}" class="btn-bounce btn-glow inline-flex items-center justify-center gap-2 px-7 py-3.5 grad-bar text-white rounded-full text-sm font-bold">
+                        See how Buzz works <i class="fas fa-arrow-right text-xs"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
+</section>
+
+{{-- ============================ TESTIMONIALS ============================ --}}
+@php
+    $__landingTestimonials = (array) \App\Modules\Admin\Models\AppSetting::get('marketing_landing_testimonials', []);
+    if (empty($__landingTestimonials)) {
+        $__landingTestimonials = \App\Modules\Common\Support\SitePagesContent::testimonialsDefault();
+    }
+@endphp
+@include('public.partials.testimonials', [
+    'testimonials' => $__landingTestimonials,
+    'eyebrow' => 'Loved by creators',
+    'heading' => 'People are shipping their best link with 1INME.',
+])
+
+{{-- ============================ TESTIMONIAL MARQUEE ============================ --}}
+<section class="py-20 lg:py-24 relative overflow-hidden">
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12">
+            <h2 class="reveal text-3xl sm:text-4xl lg:text-5xl font-bold">Loved by people who <span class="grad-text">do the most.</span></h2>
+        </div>
+    </div>
+
+    <div class="overflow-hidden mb-4" style="mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);">
+        <div class="flex whitespace-nowrap marquee">
+            @php
+                $reviews = [
+                    ['1INME made it stupidly easy to put my podcast, shop and templates on one page.', 'Jane Doe', 'Creator', '#1bd4d9'],
+                    ['The QR codes paid for the plan in a week — I changed the destination 3 times without reprinting.', 'Marco P.', 'Café owner', '#e94e8c'],
+                    ['Finally I can see where my audience actually lives. Game changer.', 'Aisha K.', 'Travel writer', '#ffc845'],
+                    ['The Performance Coach is like having a growth marketer on speed-dial.', 'Devon S.', 'Indie founder', '#7c3aed'],
+                    ['Set up my whole agency contact page in 10 minutes.', 'Priya N.', 'Agency lead', '#ff8a3c'],
+                ];
+            @endphp
+            @for($i = 0; $i < 2; $i++)
+                @foreach($reviews as $r)
+                    <div class="inline-block w-[340px] sm:w-[400px] mx-3 align-top">
+                        <div class="glass rounded-3xl p-6 lift">
+                            <div class="flex text-base mb-3" style="color:var(--c5)"><i class="fas fa-star"></i><i class="fas fa-star ml-0.5"></i><i class="fas fa-star ml-0.5"></i><i class="fas fa-star ml-0.5"></i><i class="fas fa-star ml-0.5"></i></div>
+                            <p class="text-sm text-gray-200 mb-4 whitespace-normal">"{{ $r[0] }}"</p>
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white" style="background: linear-gradient(135deg, {{ $r[3] }}, var(--c2));">{{ strtoupper(substr($r[1],0,1)) }}</div>
+                                <div>
+                                    <div class="text-sm font-bold">{{ $r[1] }}</div>
+                                    <div class="text-[11px] text-gray-500">{{ $r[2] }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            @endfor
+        </div>
+    </div>
+    <div class="overflow-hidden" style="mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);">
+        <div class="flex whitespace-nowrap marquee-rev">
+            @for($i = 0; $i < 2; $i++)
+                @foreach(array_reverse($reviews) as $r)
+                    <div class="inline-block w-[340px] sm:w-[400px] mx-3 align-top">
+                        <div class="glass rounded-3xl p-6 lift">
+                            <div class="flex text-base mb-3" style="color:var(--c5)"><i class="fas fa-star"></i><i class="fas fa-star ml-0.5"></i><i class="fas fa-star ml-0.5"></i><i class="fas fa-star ml-0.5"></i><i class="fas fa-star ml-0.5"></i></div>
+                            <p class="text-sm text-gray-200 mb-4 whitespace-normal">"{{ $r[0] }}"</p>
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white" style="background: linear-gradient(135deg, {{ $r[3] }}, var(--c2));">{{ strtoupper(substr($r[1],0,1)) }}</div>
+                                <div>
+                                    <div class="text-sm font-bold">{{ $r[1] }}</div>
+                                    <div class="text-[11px] text-gray-500">{{ $r[2] }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            @endfor
+        </div>
+    </div>
+</section>
 
 {{-- ============================ 1 · BUILD ============================ --}}
 <section id="features" class="py-24 lg:py-32 relative overflow-hidden">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-16 max-w-3xl mx-auto">
-            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c1)">01 · Build</div>
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c1)">04 · Build</div>
             <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
                 A whole website,<br><span class="grad-text">drag-and-drop simple.</span>
             </h2>
@@ -3852,7 +4057,7 @@
 <section id="share" class="py-24 lg:py-32 relative overflow-hidden">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-16 max-w-3xl mx-auto">
-            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c3)">02 · Share</div>
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c3)">05 · Share</div>
             <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
                 Share your 1INME<br><span class="grad-text">anywhere you like.</span>
             </h2>
@@ -3955,7 +4160,7 @@
 <section class="py-24 lg:py-32 relative overflow-hidden">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-16 max-w-3xl mx-auto">
-            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c5)">03 · Grow</div>
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c5)">06 · Grow</div>
             <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
                 Live analytics with<br><span class="grad-text">a built-in coach.</span>
             </h2>
@@ -4753,6 +4958,39 @@
     </div>
 </section>
 
+{{-- ============================ HOW IT WORKS ============================ --}}
+<section id="how-it-works" class="py-24 lg:py-32 relative overflow-hidden">
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-16 max-w-3xl mx-auto">
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c2)">How it works</div>
+            <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
+                Three steps. <span class="grad-text">Zero friction.</span>
+            </h2>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            @foreach([
+                ['1','Sign up free','Email or phone — no card. You\'re live in under a minute.','fa-user-plus','#1bd4d9'],
+                ['2','Build your page','Drag &amp; drop blocks. Add short links, QR codes &amp; forms.','fa-grip-vertical','#7c3aed'],
+                ['3','Share &amp; grow','Share one URL everywhere. Watch live analytics roll in.','fa-rocket','#e94e8c'],
+            ] as $i => $s)
+                <div class="reveal rd-{{ $i+1 }} relative glass rounded-3xl p-7 tilt">
+                    <div class="absolute top-4 right-5 text-7xl font-bold opacity-10 grad-text">{{ $s[0] }}</div>
+                    <div class="relative w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style="background: linear-gradient(135deg, {{ $s[4] }}, var(--c2)); box-shadow: 0 12px 30px -10px {{ $s[4] }};"><i class="fas {{ $s[3] }} text-xl text-white"></i></div>
+                    <h3 class="relative text-xl font-bold mb-2">{!! $s[1] !!}</h3>
+                    <p class="relative text-sm text-gray-400">{!! $s[2] !!}</p>
+                </div>
+            @endforeach
+        </div>
+
+        <div class="reveal rd-4 mt-12 text-center">
+            <button type="button" @click="authTab='register'; authOpen=true" class="btn-bounce btn-glow inline-flex items-center justify-center gap-2 px-8 py-4 grad-bar text-white rounded-full text-base font-bold">
+                Try it free <i class="fas fa-arrow-right text-sm"></i>
+            </button>
+        </div>
+    </div>
+</section>
+
 {{-- ============================ AUDIENCE (CREATORS / BUSINESSES / NETWORKING) ============================ --}}
 @php
     $__audiences = [
@@ -4807,39 +5045,6 @@
                     </button>
                 </article>
             @endforeach
-        </div>
-    </div>
-</section>
-
-{{-- ============================ HOW IT WORKS ============================ --}}
-<section id="how-it-works" class="py-24 lg:py-32 relative overflow-hidden">
-    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-16 max-w-3xl mx-auto">
-            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c2)">How it works</div>
-            <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
-                Three steps. <span class="grad-text">Zero friction.</span>
-            </h2>
-        </div>
-
-        <div class="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            @foreach([
-                ['1','Sign up free','Email or phone — no card. You\'re live in under a minute.','fa-user-plus','#1bd4d9'],
-                ['2','Build your page','Drag &amp; drop blocks. Add short links, QR codes &amp; forms.','fa-grip-vertical','#7c3aed'],
-                ['3','Share &amp; grow','Share one URL everywhere. Watch live analytics roll in.','fa-rocket','#e94e8c'],
-            ] as $i => $s)
-                <div class="reveal rd-{{ $i+1 }} relative glass rounded-3xl p-7 tilt">
-                    <div class="absolute top-4 right-5 text-7xl font-bold opacity-10 grad-text">{{ $s[0] }}</div>
-                    <div class="relative w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style="background: linear-gradient(135deg, {{ $s[4] }}, var(--c2)); box-shadow: 0 12px 30px -10px {{ $s[4] }};"><i class="fas {{ $s[3] }} text-xl text-white"></i></div>
-                    <h3 class="relative text-xl font-bold mb-2">{!! $s[1] !!}</h3>
-                    <p class="relative text-sm text-gray-400">{!! $s[2] !!}</p>
-                </div>
-            @endforeach
-        </div>
-
-        <div class="reveal rd-4 mt-12 text-center">
-            <button type="button" @click="authTab='register'; authOpen=true" class="btn-bounce btn-glow inline-flex items-center justify-center gap-2 px-8 py-4 grad-bar text-white rounded-full text-base font-bold">
-                Try it free <i class="fas fa-arrow-right text-sm"></i>
-            </button>
         </div>
     </div>
 </section>
@@ -5027,255 +5232,6 @@
     </div>
 </section>
 
-{{-- ============================ BUZZ ============================ --}}
-<section id="buzz" class="py-24 lg:py-32 relative overflow-hidden">
-    <div class="absolute inset-0 -z-10" style="background:radial-gradient(60% 50% at 80% 30%, rgba(233,78,140,.15), transparent 70%);"></div>
-    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-14 max-w-3xl mx-auto">
-            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c3)">Buzz</div>
-            <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
-                Show visitors <span class="grad-text">real momentum.</span>
-            </h2>
-            <p class="reveal rd-2 text-lg text-gray-400">
-                Buzz is the social-proof widget already wired into every 1INME biolink. Live signups, visits and purchases pop up right on your page so visitors see the room is busy — and act.
-            </p>
-        </div>
-
-        <div class="grid lg:grid-cols-2 gap-10 items-center">
-            <div class="reveal rd-3 order-2 lg:order-1">
-                <div class="relative glass rounded-3xl p-6 sm:p-8 tilt overflow-hidden" style="min-height: 360px;">
-                    <div class="absolute -bottom-20 -left-20 w-64 h-64 rounded-full opacity-30" style="background:radial-gradient(circle,var(--c3),transparent 70%);"></div>
-                    <div class="relative">
-                        <div class="flex items-center justify-between mb-4">
-                            <div class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Live on your biolink</div>
-                            <span class="flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full" style="background:rgba(74,222,128,.15);color:#4ade80">
-                                <span class="w-1.5 h-1.5 rounded-full pulse-dot" style="background:#4ade80"></span>7 events · last min
-                            </span>
-                        </div>
-
-                        <div class="buzz-feed">
-                            {{-- 1 · NEW FOLLOW with real avatar --}}
-                            <div class="buzz-card fresh">
-                                <span class="fresh-tag">✨ Just now</span>
-                                <div class="bz-follow">
-                                    <div class="bz-avatar">
-                                        <img src="/images/hero-roles/role_designer-200.jpg" alt="Sara">
-                                        <span class="on" aria-hidden="true"></span>
-                                    </div>
-                                    <div class="min-w-0">
-                                        <div class="name">Sara from Berlin</div>
-                                        <div class="meta"><i class="fas fa-user-plus text-[9px] mr-1" style="color:var(--c1)"></i>just followed you · 12s ago</div>
-                                    </div>
-                                    <a href="#" class="btn">Follow back</a>
-                                </div>
-                            </div>
-
-                            {{-- 2 · PURCHASE with product thumb + price --}}
-                            <div class="buzz-card">
-                                <div class="bz-buy">
-                                    <div class="bz-thumb">
-                                        <img src="/images/hero-roles/thumb_design-320.jpg" alt="Lightroom Pack">
-                                        <span class="tag">Preset</span>
-                                    </div>
-                                    <div class="min-w-0">
-                                        <div class="product">🛒 Lightroom Pack · Vol II</div>
-                                        <div class="who">bought by <b class="text-white">@nora.cph</b> · 42s ago</div>
-                                    </div>
-                                    <span class="price"><span class="d"></span>+$24.00</span>
-                                </div>
-                            </div>
-
-                            {{-- 3 · LIVE VIEWERS with bar --}}
-                            <div class="buzz-card">
-                                <div class="bz-views">
-                                    <div class="ic"><i class="fas fa-eye"></i></div>
-                                    <div class="min-w-0 w-full">
-                                        <div class="row">
-                                            <span><b>🇳🇬 Lagos</b> &amp; 5 cities viewing now</span>
-                                            <span class="num">+18</span>
-                                        </div>
-                                        <div class="track"><div class="fill"></div></div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {{-- 4 · TIP with spinning coin --}}
-                            <div class="buzz-card">
-                                <div class="bz-tip">
-                                    <div class="bz-coin">$</div>
-                                    <div class="min-w-0">
-                                        <div class="who"><b>@yuki.draws</b> sent you a tip</div>
-                                        <div class="msg">“Loved your latest pack — keep going!”</div>
-                                    </div>
-                                    <div class="amt">$5<small>.00</small></div>
-                                </div>
-                            </div>
-
-                            {{-- 5 · FORM submission --}}
-                            <div class="buzz-card">
-                                <div class="bz-form">
-                                    <div class="ic"><i class="fas fa-envelope-open-text"></i></div>
-                                    <div class="min-w-0">
-                                        <div class="who">Marco from Madrid · contact form</div>
-                                        <div class="subj">“Hi! Available for a wedding shoot in June?”</div>
-                                    </div>
-                                    <span class="pri">High</span>
-                                </div>
-                            </div>
-
-                            {{-- 6 · QR scan with sparkline --}}
-                            <div class="buzz-card">
-                                <div class="bz-qr">
-                                    <div class="ic"><i class="fas fa-qrcode"></i></div>
-                                    <div class="min-w-0">
-                                        <div class="label">QR · Studio poster scanned</div>
-                                        <div class="meta">+127 scans today · peak 4:20 pm</div>
-                                    </div>
-                                    <span class="spark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
-                                </div>
-                            </div>
-
-                            {{-- 7 · GOAL hit (full-width progress) --}}
-                            <div class="buzz-card bz-goal">
-                                <div class="top">
-                                    <div class="trophy"><i class="fas fa-trophy text-sm"></i></div>
-                                    <div class="title">🎉 Monthly goal hit · 1,000 followers</div>
-                                    <div class="pct">100%</div>
-                                </div>
-                                <div class="track">
-                                    <div class="fill"></div>
-                                    <span class="conf" aria-hidden="true">🎊</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="text-center mt-4 text-[10px] text-gray-500 uppercase tracking-wider font-semibold">
-                            <i class="fas fa-circle-down mr-1 opacity-60"></i> 12 more events today
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="reveal rd-2 order-1 lg:order-2">
-                <div class="grid sm:grid-cols-2 gap-4">
-                    @foreach([
-                        ['fa-bolt','#ffc845','Real-time activity','Live signups, visits, purchases &amp; form fills.'],
-                        ['fa-toggle-on','#1bd4d9','Zero setup','Already integrated with your biolink — flip it on.'],
-                        ['fa-sliders','#e94e8c','Pick what shows','Choose events &amp; priorities; hide the rest.'],
-                        ['fa-user-secret','#7c3aed','Privacy-first','Names masked, locations coarse, dismissible.'],
-                    ] as $i => $f)
-                        <div class="reveal rd-{{ $i+1 }} glass rounded-2xl p-5 lift">
-                            <div class="w-11 h-11 rounded-xl flex items-center justify-center mb-3" style="background: linear-gradient(135deg, {{ $f[1] }}, var(--c3)); box-shadow: 0 12px 30px -12px {{ $f[1] }};">
-                                <i class="fas {{ $f[0] }} text-white"></i>
-                            </div>
-                            <h3 class="text-base font-bold mb-1">{!! $f[2] !!}</h3>
-                            <p class="text-xs text-gray-400 leading-relaxed">{!! $f[3] !!}</p>
-                        </div>
-                    @endforeach
-                </div>
-                <div class="reveal rd-5 mt-8">
-                    <a href="{{ route('site.buzz') }}" class="btn-bounce btn-glow inline-flex items-center justify-center gap-2 px-7 py-3.5 grad-bar text-white rounded-full text-sm font-bold">
-                        See how Buzz works <i class="fas fa-arrow-right text-xs"></i>
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-{{-- ============================ TESTIMONIAL MARQUEE ============================ --}}
-<section class="py-20 lg:py-24 relative overflow-hidden">
-    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-12">
-            <h2 class="reveal text-3xl sm:text-4xl lg:text-5xl font-bold">Loved by people who <span class="grad-text">do the most.</span></h2>
-        </div>
-    </div>
-
-    <div class="overflow-hidden mb-4" style="mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);">
-        <div class="flex whitespace-nowrap marquee">
-            @php
-                $reviews = [
-                    ['1INME made it stupidly easy to put my podcast, shop and templates on one page.', 'Jane Doe', 'Creator', '#1bd4d9'],
-                    ['The QR codes paid for the plan in a week — I changed the destination 3 times without reprinting.', 'Marco P.', 'Café owner', '#e94e8c'],
-                    ['Finally I can see where my audience actually lives. Game changer.', 'Aisha K.', 'Travel writer', '#ffc845'],
-                    ['The Performance Coach is like having a growth marketer on speed-dial.', 'Devon S.', 'Indie founder', '#7c3aed'],
-                    ['Set up my whole agency contact page in 10 minutes.', 'Priya N.', 'Agency lead', '#ff8a3c'],
-                ];
-            @endphp
-            @for($i = 0; $i < 2; $i++)
-                @foreach($reviews as $r)
-                    <div class="inline-block w-[340px] sm:w-[400px] mx-3 align-top">
-                        <div class="glass rounded-3xl p-6 lift">
-                            <div class="flex text-base mb-3" style="color:var(--c5)"><i class="fas fa-star"></i><i class="fas fa-star ml-0.5"></i><i class="fas fa-star ml-0.5"></i><i class="fas fa-star ml-0.5"></i><i class="fas fa-star ml-0.5"></i></div>
-                            <p class="text-sm text-gray-200 mb-4 whitespace-normal">"{{ $r[0] }}"</p>
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white" style="background: linear-gradient(135deg, {{ $r[3] }}, var(--c2));">{{ strtoupper(substr($r[1],0,1)) }}</div>
-                                <div>
-                                    <div class="text-sm font-bold">{{ $r[1] }}</div>
-                                    <div class="text-[11px] text-gray-500">{{ $r[2] }}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                @endforeach
-            @endfor
-        </div>
-    </div>
-    <div class="overflow-hidden" style="mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);">
-        <div class="flex whitespace-nowrap marquee-rev">
-            @for($i = 0; $i < 2; $i++)
-                @foreach(array_reverse($reviews) as $r)
-                    <div class="inline-block w-[340px] sm:w-[400px] mx-3 align-top">
-                        <div class="glass rounded-3xl p-6 lift">
-                            <div class="flex text-base mb-3" style="color:var(--c5)"><i class="fas fa-star"></i><i class="fas fa-star ml-0.5"></i><i class="fas fa-star ml-0.5"></i><i class="fas fa-star ml-0.5"></i><i class="fas fa-star ml-0.5"></i></div>
-                            <p class="text-sm text-gray-200 mb-4 whitespace-normal">"{{ $r[0] }}"</p>
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white" style="background: linear-gradient(135deg, {{ $r[3] }}, var(--c2));">{{ strtoupper(substr($r[1],0,1)) }}</div>
-                                <div>
-                                    <div class="text-sm font-bold">{{ $r[1] }}</div>
-                                    <div class="text-[11px] text-gray-500">{{ $r[2] }}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                @endforeach
-            @endfor
-        </div>
-    </div>
-</section>
-
-{{-- ============================ FAQ ============================ --}}
-<section class="pt-24 pb-12 lg:pt-28 lg:pb-14 relative overflow-hidden">
-    <div class="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-12">
-            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c4)">FAQ</div>
-            <h2 class="reveal rd-1 text-4xl sm:text-5xl font-bold tracking-tight mb-3">Questions? <span class="grad-text">Answered.</span></h2>
-            <p class="reveal rd-2 text-gray-400">Everything you might be wondering about 1INME.</p>
-        </div>
-
-        <div class="reveal rd-2 space-y-3">
-            @foreach([
-                ['Is there really a free plan?', 'Yes — our Free plan is forever free and lets you create biolinks, short links and dynamic QR codes.'],
-                ['Do I need a credit card to sign up?', 'No. Sign up with just your email or phone — no card required.'],
-                ['Can I use my own custom domain?', 'Yes. Paid plans let you connect a custom domain for your short links and biolink page.'],
-                ['How does the Performance Coach work?', 'It looks at your live analytics, finds the weakest links, and suggests one-click fixes — like swapping a low-CTR block or adding social proof.'],
-                ['Can I see who is visiting in real time?', 'Yes. Live visitor pins show you where your audience is right now on a world map.'],
-                ['How do I cancel?', 'You can downgrade to the Free plan or cancel from your account settings at any time.'],
-            ] as $f)
-                <details class="faq-item glass rounded-2xl px-5 py-4 hover:bg-white/[.06] transition-colors">
-                    <summary class="flex items-center justify-between gap-4">
-                        <span class="font-bold text-base sm:text-lg pr-4">{{ $f[0] }}</span>
-                        <span class="faq-icon w-7 h-7 rounded-full grad-bar text-white flex items-center justify-center font-bold flex-shrink-0">
-                            <i class="fas fa-plus text-xs"></i>
-                        </span>
-                    </summary>
-                    <p class="mt-3 text-sm text-gray-300 leading-relaxed">{{ $f[1] }}</p>
-                </details>
-            @endforeach
-        </div>
-    </div>
-</section>
-
 {{-- ============================ WHY 1INME (comparison) ============================ --}}
 @php
     $__whyRaw = \App\Modules\Admin\Models\AppSetting::get('marketing_why_comparison', null);
@@ -5443,35 +5399,6 @@
 </section>
 @endif
 
-{{-- ============================ FREE HERE / PAID THERE (lead-in to compare) ============================ --}}
-<section class="pt-4 pb-2 lg:pt-8 lg:pb-4 relative overflow-hidden" aria-label="Free here, paid elsewhere">
-    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="reveal glass rounded-3xl px-6 py-6 sm:px-8 sm:py-7 flex flex-col lg:flex-row items-center gap-5 lg:gap-7">
-            <div class="flex items-center gap-3 shrink-0">
-                <span class="w-11 h-11 rounded-2xl flex items-center justify-center grad-bar shadow-lg shadow-violet-500/30">
-                    <i class="fas fa-gift text-white"></i>
-                </span>
-                <div class="text-left">
-                    <div class="text-[11px] font-bold uppercase tracking-wider" style="color:var(--c5)">Free here, paid there</div>
-                    <div class="text-base sm:text-lg font-bold leading-tight">What costs extra elsewhere is on the <span class="grad-text">Free Forever</span> plan.</div>
-                </div>
-            </div>
-            <div class="flex flex-wrap items-center justify-center lg:justify-end gap-2 lg:ml-auto">
-                @foreach([
-                    ['fa-infinity',  'Unlimited links'],
-                    ['fa-message',   'Built-in DMs'],
-                    ['fa-bolt',      'AI Coach'],
-                    ['fa-mobile-screen', 'Native mobile app'],
-                ] as [$ic, $lbl])
-                    <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[.06] border border-white/10 text-xs sm:text-sm font-semibold text-white">
-                        <i class="fas {{ $ic }} text-[11px]" style="color:var(--c1)"></i> {{ $lbl }}
-                    </span>
-                @endforeach
-            </div>
-        </div>
-    </div>
-</section>
-
 {{-- ============================ HOW WE COMPARE ============================ --}}
 @include('public.partials._compare', ['compact' => true])
 @php
@@ -5624,6 +5551,35 @@
 </section>
 @endif
 
+{{-- ============================ FREE HERE / PAID THERE (lead-in to compare) ============================ --}}
+<section class="pt-4 pb-2 lg:pt-8 lg:pb-4 relative overflow-hidden" aria-label="Free here, paid elsewhere">
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="reveal glass rounded-3xl px-6 py-6 sm:px-8 sm:py-7 flex flex-col lg:flex-row items-center gap-5 lg:gap-7">
+            <div class="flex items-center gap-3 shrink-0">
+                <span class="w-11 h-11 rounded-2xl flex items-center justify-center grad-bar shadow-lg shadow-violet-500/30">
+                    <i class="fas fa-gift text-white"></i>
+                </span>
+                <div class="text-left">
+                    <div class="text-[11px] font-bold uppercase tracking-wider" style="color:var(--c5)">Free here, paid there</div>
+                    <div class="text-base sm:text-lg font-bold leading-tight">What costs extra elsewhere is on the <span class="grad-text">Free Forever</span> plan.</div>
+                </div>
+            </div>
+            <div class="flex flex-wrap items-center justify-center lg:justify-end gap-2 lg:ml-auto">
+                @foreach([
+                    ['fa-infinity',  'Unlimited links'],
+                    ['fa-message',   'Built-in DMs'],
+                    ['fa-bolt',      'AI Coach'],
+                    ['fa-mobile-screen', 'Native mobile app'],
+                ] as [$ic, $lbl])
+                    <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[.06] border border-white/10 text-xs sm:text-sm font-semibold text-white">
+                        <i class="fas {{ $ic }} text-[11px]" style="color:var(--c1)"></i> {{ $lbl }}
+                    </span>
+                @endforeach
+            </div>
+        </div>
+    </div>
+</section>
+
 {{-- ============================ PRICING ============================ --}}
 <section id="pricing" class="py-24 lg:py-32 relative overflow-hidden">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -5726,18 +5682,37 @@
     </div>
 </section>
 
-{{-- ============================ TESTIMONIALS ============================ --}}
-@php
-    $__landingTestimonials = (array) \App\Modules\Admin\Models\AppSetting::get('marketing_landing_testimonials', []);
-    if (empty($__landingTestimonials)) {
-        $__landingTestimonials = \App\Modules\Common\Support\SitePagesContent::testimonialsDefault();
-    }
-@endphp
-@include('public.partials.testimonials', [
-    'testimonials' => $__landingTestimonials,
-    'eyebrow' => 'Loved by creators',
-    'heading' => 'People are shipping their best link with 1INME.',
-])
+{{-- ============================ FAQ ============================ --}}
+<section class="pt-24 pb-12 lg:pt-28 lg:pb-14 relative overflow-hidden">
+    <div class="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12">
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c4)">FAQ</div>
+            <h2 class="reveal rd-1 text-4xl sm:text-5xl font-bold tracking-tight mb-3">Questions? <span class="grad-text">Answered.</span></h2>
+            <p class="reveal rd-2 text-gray-400">Everything you might be wondering about 1INME.</p>
+        </div>
+
+        <div class="reveal rd-2 space-y-3">
+            @foreach([
+                ['Is there really a free plan?', 'Yes — our Free plan is forever free and lets you create biolinks, short links and dynamic QR codes.'],
+                ['Do I need a credit card to sign up?', 'No. Sign up with just your email or phone — no card required.'],
+                ['Can I use my own custom domain?', 'Yes. Paid plans let you connect a custom domain for your short links and biolink page.'],
+                ['How does the Performance Coach work?', 'It looks at your live analytics, finds the weakest links, and suggests one-click fixes — like swapping a low-CTR block or adding social proof.'],
+                ['Can I see who is visiting in real time?', 'Yes. Live visitor pins show you where your audience is right now on a world map.'],
+                ['How do I cancel?', 'You can downgrade to the Free plan or cancel from your account settings at any time.'],
+            ] as $f)
+                <details class="faq-item glass rounded-2xl px-5 py-4 hover:bg-white/[.06] transition-colors">
+                    <summary class="flex items-center justify-between gap-4">
+                        <span class="font-bold text-base sm:text-lg pr-4">{{ $f[0] }}</span>
+                        <span class="faq-icon w-7 h-7 rounded-full grad-bar text-white flex items-center justify-center font-bold flex-shrink-0">
+                            <i class="fas fa-plus text-xs"></i>
+                        </span>
+                    </summary>
+                    <p class="mt-3 text-sm text-gray-300 leading-relaxed">{{ $f[1] }}</p>
+                </details>
+            @endforeach
+        </div>
+    </div>
+</section>
 
 {{-- ============================ FINAL CTA ============================ --}}
 <section class="py-24 lg:py-32 relative overflow-hidden">
@@ -5896,3 +5871,5 @@
 @include('common.partials.cookie-consent', ['surface' => 'site'])
 </body>
 </html>
+
+
