@@ -64,6 +64,8 @@
 .sa-form button{background:var(--sa-accent,#7c3aed);color:#fff;border:0;padding:8px;border-radius:8px;font-size:13px;cursor:pointer;font-weight:600}
 .sa-suggested{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 8px}
 .sa-suggested .sa-btn{font-size:11.5px}
+.sa-low-balance{display:none;margin:0 10px 6px;padding:7px 10px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:8px;color:#fde68a;font-size:11.5px;line-height:1.35}
+.sa-low-balance.sa-show{display:block}
 .sa-input-row{display:flex;gap:8px;padding:10px;border-top:1px solid rgba(255,255,255,.06)}
 .sa-input-row textarea{flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:#fff;padding:8px 10px;border-radius:10px;resize:none;font-size:13px;font-family:inherit;max-height:120px;min-height:36px}
 .sa-input-row button{background:var(--sa-accent,#7c3aed);border:0;color:#fff;padding:0 14px;border-radius:10px;cursor:pointer;font-size:14px}
@@ -162,6 +164,8 @@
   panel.appendChild(suggested);
   var body=el('div',{class:'sa-body',id:'sa-body'});
   panel.appendChild(body);
+  var lowBalance=el('div',{class:'sa-low-balance',id:'sa-low-balance'});
+  panel.appendChild(lowBalance);
   var inputRow=el('div',{class:'sa-input-row'});
   var ta=el('textarea',{rows:'1',placeholder:'Type a message…',id:'sa-input'});
   ta.addEventListener('keydown',function(e){
@@ -215,8 +219,23 @@
         var combined = [].concat(s.page_suggestions || [], s.starter_prompts || (cfg&&cfg.starter_prompts) || []);
         renderSuggested(combined);
         if(s.handed_off){ disableInput(true,'Your conversation is with our team — they will reply by email.'); }
+        renderLowBalance(s.low_balance);
         scrollBottom();
       });
+  }
+
+  // Pre-send credit warning. Server already decided whether to surface
+  // a number or just a generic hint (anonymous visitors never see the
+  // exact balance), so the widget just renders whatever message it
+  // gets back. Hides itself when the signal goes away.
+  function renderLowBalance(lb){
+    if(!lb || !lb.low || !lb.message){
+      lowBalance.classList.remove('sa-show');
+      lowBalance.textContent='';
+      return;
+    }
+    lowBalance.textContent = lb.message;
+    lowBalance.classList.add('sa-show');
   }
 
   function renderSuggested(arr){
@@ -408,6 +427,7 @@
               bubble.remove();
               if(parsed.assistant_message) renderMessage(parsed.assistant_message);
               if(parsed.handed_off) disableInput(true,'Our team will reply by email.');
+              if('low_balance' in parsed) renderLowBalance(parsed.low_balance);
             } else if(event==='error'){
               // Error is a terminal SSE event — mark the stream as
               // resolved so the r.done branch below does not also kick
@@ -491,6 +511,7 @@
     }
     if(res.assistant_message) renderMessage(res.assistant_message);
     if(res.handed_off) disableInput(true, 'Our team will reply by email.');
+    if('low_balance' in res) renderLowBalance(res.low_balance);
   }
 })();
 </script>

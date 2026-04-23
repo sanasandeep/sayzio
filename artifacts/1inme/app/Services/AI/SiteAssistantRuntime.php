@@ -32,6 +32,7 @@ class SiteAssistantRuntime
     public function __construct(
         protected OpenAiService $openai,
         protected AiMindQueryService $minds,
+        protected AiCreditService $credits,
     ) {}
 
     /**
@@ -81,7 +82,100 @@ class SiteAssistantRuntime
             'starter_prompts' => array_values((array) $cfg['starter_prompts']),
             'page_suggestions'=> $hint?->suggested_actions ?? [],
             'messages'        => $messages->values()->all(),
+            'low_balance'     => $this->lowBalanceSignal($conv, $user),
         ];
+    }
+
+    /**
+     * Compute a pre-send hint about whether the visitor's AI credit
+     * balance is close to running out, so the widget can warn before
+     * a streamed reply gets cut off mid-sentence.
+     *
+     * The exact balance is intentionally only exposed to signed-in
+     * visitors charging their own account — for anonymous marketing
+     * visitors that bill the platform admin we return only a boolean
+     * so we never leak the platform-wide remaining credit count.
+     *
+     * @return array{low:bool,remaining_replies:?int,avg_reply_credits:int,message:?string}
+     */
+    protected function lowBalanceSignal(SiteAssistantConversation $conv, ?User $user): array
+    {
+        $blank = ['low' => false, 'remaining_replies' => null, 'avg_reply_credits' => 0, 'message' => null];
+
+        $billingUser = $this->billingUser($user);
+        if (!$billingUser) return $blank;
+
+        try {
+            $balance = $this->credits->getBalance($billingUser);
+        } catch (\Throwable $e) {
+            return $blank;
+        }
+        if ($balance < 0) $balance = 0;
+
+        $avg = $this->estimateAverageReplyCredits($conv, $user);
+        if ($avg <= 0) return $blank;
+
+        // "Low" once the visitor has fewer than ~3 average replies left,
+        // matched to the same multiple we use to phrase the hint.
+        $threshold = $avg * 3;
+        $remaining = (int) floor($balance / $avg);
+
+        if ($balance >= $threshold) {
+            return ['low' => false, 'remaining_replies' => $user ? $remaining : null, 'avg_reply_credits' => $avg, 'message' => null];
+        }
+
+        // Anonymous visitors get a generic hint without a number.
+        if (!$user) {
+            return [
+                'low'               => true,
+                'remaining_replies' => null,
+                'avg_reply_credits' => $avg,
+                'message'           => 'Heads up — this chat is running low on credits and replies may be cut short soon.',
+            ];
+        }
+
+        $msg = $remaining <= 0
+            ? "You're out of credits — top up to keep chatting."
+            : ($remaining === 1
+                ? 'Only enough credits left for about 1 more reply — top up to keep chatting.'
+                : "Only enough credits left for about {$remaining} more replies — top up to keep chatting.");
+
+        return [
+            'low'               => true,
+            'remaining_replies' => $remaining,
+            'avg_reply_credits' => $avg,
+            'message'           => $msg,
+        ];
+    }
+
+    /**
+     * Estimate the credits an average assistant reply costs, so we can
+     * translate the raw balance into an approximate "replies left".
+     * Prefers this conversation's own history (most accurate to the
+     * current page/topic), falls back to the visitor's other site
+     * assistant conversations, then to a conservative default that
+     * roughly matches a short grounded reply.
+     */
+    protected function estimateAverageReplyCredits(SiteAssistantConversation $conv, ?User $user): int
+    {
+        $avg = (float) SiteAssistantMessage::where('conversation_id', $conv->id)
+            ->where('role', 'assistant')
+            ->where('credits_spent', '>', 0)
+            ->orderByDesc('id')->limit(20)->avg('credits_spent');
+        if ($avg > 0) return max(1, (int) round($avg));
+
+        if ($user) {
+            $avg = (float) SiteAssistantMessage::query()
+                ->whereIn('conversation_id', SiteAssistantConversation::where('user_id', $user->id)->pluck('id'))
+                ->where('role', 'assistant')
+                ->where('credits_spent', '>', 0)
+                ->orderByDesc('id')->limit(50)->avg('credits_spent');
+            if ($avg > 0) return max(1, (int) round($avg));
+        }
+
+        // Reasonable default for a short grounded reply when we have
+        // no historical signal yet (first turn of the first session).
+        return 50;
     }
 
     /**
@@ -310,6 +404,7 @@ class SiteAssistantRuntime
             'user_message'      => $this->serializeMessage($userMsg->fresh()),
             'assistant_message' => $this->serializeMessage($aiMsg),
             'handed_off'        => (bool) $conv->handed_off,
+            'low_balance'       => $this->lowBalanceSignal($conv, $user),
         ];
     }
 
@@ -612,6 +707,7 @@ class SiteAssistantRuntime
             'assistant_message' => $this->serializeMessage($aiMsg),
             'handed_off'        => (bool) $conv->handed_off,
             'conversation_id'   => (int) $conv->id,
+            'low_balance'       => $this->lowBalanceSignal($conv, $user),
         ]);
     }
 
