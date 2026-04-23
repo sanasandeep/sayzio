@@ -2,6 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import { Redirect, Tabs } from "expo-router";
 import { ActivityIndicator, Platform, View } from "react-native";
 
+import { VoiceAssistant } from "@/components/VoiceAssistant";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 
@@ -27,6 +28,7 @@ export default function SignedInTabsLayout() {
   if (!user) return <Redirect href="/(auth)" />;
 
   return (
+    <>
     <Tabs
       screenOptions={{
         headerShown: false,
@@ -96,5 +98,10 @@ export default function SignedInTabsLayout() {
         options={{ href: null }}
       />
     </Tabs>
+    {/* Floating tap-to-talk mic, mirrors the web's voice assistant
+        widget. Mounted at the tab layout level so it sits above every
+        signed-in main screen but disappears on auth / lock screens. */}
+    <VoiceAssistant />
+    </>
   );
 }

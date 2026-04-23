@@ -119,6 +119,13 @@ Route::prefix('v1')->group(function () {
         Route::put   ('/ai/{feature}/defaults',     [\App\Modules\Api\Controllers\AiMindPickerController::class, 'saveDefaults'])->whereIn('feature', ['persona', 'coach']);
         Route::delete('/ai/{feature}/defaults',     [\App\Modules\Api\Controllers\AiMindPickerController::class, 'clearDefaults'])->whereIn('feature', ['persona', 'coach']);
 
+        // Voice Assistant (mobile parity for the floating mic). Same
+        // orchestrator as the web — STT/LLM/TTS each charge their own
+        // ledger row (voice_stt / voice_llm / voice_tts). Throttled to
+        // match the web limit so abuse can't drain the user's credits.
+        Route::get ('/ai/voice/capabilities', [\App\Modules\Api\Controllers\VoiceAssistantController::class, 'capabilities']);
+        Route::post('/ai/voice/turn',         [\App\Modules\Api\Controllers\VoiceAssistantController::class, 'turn'])->middleware('throttle:30,1');
+
         // Ask Coach (mobile parity for the data-aware self-support chatbot).
         Route::get   ('/ai/ask-coach/threads',                       [\App\Modules\Api\Controllers\AskCoachController::class, 'threads']);
         Route::post  ('/ai/ask-coach/threads',                       [\App\Modules\Api\Controllers\AskCoachController::class, 'createThread']);

@@ -24,7 +24,8 @@
         "NSContactsUsageDescription": "1INME can read your contacts so you can save someone you just met as a contact card from their 1INME profile.",
         "NSLocationWhenInUseUsageDescription": "1INME records the approximate location of NFC tag writes so you can see where each tag was provisioned. This is optional and only used while the app is open.",
         "NFCReaderUsageDescription": "1INME writes your short link to NFC tags so a tap opens your profile.",
-        "NSFaceIDUsageDescription": "1INME uses Face ID so you can unlock the app without re-entering your code."
+        "NSFaceIDUsageDescription": "1INME uses Face ID so you can unlock the app without re-entering your code.",
+        "NSMicrophoneUsageDescription": "1INME records short voice clips when you tap the mic so the in-app assistant can transcribe what you said and reply by voice."
       }
     },
     "android": {
@@ -37,17 +38,27 @@
         "android.permission.NFC",
         "android.permission.READ_CONTACTS",
         "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.VIBRATE"
+        "android.permission.VIBRATE",
+        "android.permission.RECORD_AUDIO"
       ],
       "intentFilters": [
         {
           "action": "VIEW",
           "autoVerify": true,
           "data": [
-            { "scheme": "https", "host": "1inme.com" },
-            { "scheme": "https", "host": "www.1inme.com" }
+            {
+              "scheme": "https",
+              "host": "1inme.com"
+            },
+            {
+              "scheme": "https",
+              "host": "www.1inme.com"
+            }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
@@ -57,7 +68,9 @@
     "plugins": [
       [
         "expo-router",
-        { "origin": "https://1inme.com/" }
+        {
+          "origin": "https://1inme.com/"
+        }
       ],
       "expo-font",
       [
@@ -77,16 +90,28 @@
       "expo-secure-store",
       [
         "expo-local-authentication",
-        { "faceIDPermission": "1INME uses Face ID so you can unlock the app without re-entering your code." }
+        {
+          "faceIDPermission": "1INME uses Face ID so you can unlock the app without re-entering your code."
+        }
       ],
       "react-native-nfc-manager",
       [
         "expo-contacts",
-        { "contactsPermission": "1INME can read your contacts so you can save someone you just met as a contact card." }
+        {
+          "contactsPermission": "1INME can read your contacts so you can save someone you just met as a contact card."
+        }
       ],
       [
         "expo-location",
-        { "locationWhenInUsePermission": "1INME records the approximate location of NFC tag writes so you can see where each tag was provisioned." }
+        {
+          "locationWhenInUsePermission": "1INME records the approximate location of NFC tag writes so you can see where each tag was provisioned."
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "1INME records short voice clips when you tap the mic so the in-app assistant can transcribe what you said and reply by voice."
+        }
       ]
     ],
     "experiments": {

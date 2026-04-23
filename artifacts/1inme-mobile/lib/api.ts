@@ -246,6 +246,127 @@ export const aiMinds = {
   },
 };
 
+// ── Voice Assistant ───────────────────────────────────────────────
+// Mobile parity for the web's floating mic. The backend orchestrator
+// (Whisper → GPT tool loop → ElevenLabs) is the same — we just upload
+// the recorded audio file as multipart and play back the base64 mp3
+// the server returns.
+export type VoiceMessage = { role: "user" | "assistant"; content: string };
+export type VoicePendingConfirmation = {
+  tool: string;
+  description?: string | null;
+  arguments?: Record<string, unknown>;
+};
+export type VoiceCredits = {
+  stt: number;
+  llm: number;
+  tts: number;
+  total: number;
+};
+export type VoiceTurnResponse = {
+  transcript: string;
+  reply: string;
+  audio_base64: string | null;
+  tool_results: Array<Record<string, unknown>>;
+  pending_confirmations: VoicePendingConfirmation[];
+  credits: VoiceCredits;
+  balance: number;
+  messages: VoiceMessage[];
+};
+export type VoiceCapability = {
+  name: string;
+  description?: string;
+  destructive?: boolean;
+  category?: string;
+};
+export type VoiceCapabilities = {
+  enabled: boolean;
+  balance: number;
+  rate_limit: number;
+  pricing: {
+    stt_credits_per_minute: number;
+    tts_credits_per_1k_chars: number;
+  };
+  tools: Record<string, VoiceCapability[]>;
+  limitations: string[];
+};
+
+export const voiceAssistant = {
+  capabilities: () =>
+    apiFetch<VoiceCapabilities>("/ai/voice/capabilities"),
+
+  /**
+   * Upload a recorded clip and run one assistant turn.
+   *   `audioUri`  – local file:// uri returned by expo-audio.
+   *   `mimeType`  – best-guess mime ('audio/mp4' on iOS, 'audio/m4a'
+   *                 on Android by default).
+   *   `context`   – prior {messages} and confirmed_tools map; the same
+   *                 audio blob is replayed when the user confirms a
+   *                 destructive tool, exactly like the web widget.
+   */
+  turn: async (input: {
+    audioUri: string;
+    mimeType?: string;
+    context?: {
+      messages?: VoiceMessage[];
+      confirmed_tools?: Record<string, boolean>;
+    };
+  }): Promise<VoiceTurnResponse> => {
+    const url = `${getBaseUrl()}/api/v1/ai/voice/turn`;
+    const token = await getToken();
+    const fd = new FormData();
+    const mime = input.mimeType || "audio/m4a";
+    const ext = mime.includes("webm")
+      ? "webm"
+      : mime.includes("mp4") || mime.includes("m4a") || mime.includes("aac")
+        ? "m4a"
+        : mime.includes("3gpp") || mime.includes("amr")
+          ? "3gp"
+          : mime.includes("wav")
+            ? "wav"
+            : "audio";
+    // React Native's FormData accepts the {uri, name, type} shape.
+    fd.append("audio", {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore – RN-specific FormData entry.
+      uri: input.audioUri,
+      name: `voice.${ext}`,
+      type: mime,
+    } as any);
+    fd.append(
+      "context",
+      JSON.stringify({
+        messages: input.context?.messages ?? [],
+        confirmed_tools: input.context?.confirmed_tools ?? {},
+      }),
+    );
+
+    const headers: Record<string, string> = {
+      Accept: "application/json",
+      "User-Agent": MOBILE_USER_AGENT,
+      "X-1INME-Client": MOBILE_USER_AGENT,
+    };
+    if (token) headers.Authorization = `Bearer ${token}`;
+    // NB: do NOT set Content-Type — React Native fills in the
+    // multipart boundary for us when the body is a FormData.
+
+    const res = await fetch(url, { method: "POST", body: fd as any, headers });
+    const text = await res.text();
+    const body = text ? safeJson(text) : null;
+    if (!res.ok) {
+      const err: ApiError = {
+        status: res.status,
+        message:
+          (body && typeof body.error === "string" && body.error) ||
+          (body && typeof body.message === "string" && body.message) ||
+          `Voice request failed (${res.status})`,
+      };
+      throw err;
+    }
+    return body as VoiceTurnResponse;
+  },
+};
+
 function safeJson(text: string): any {
   try {
     return JSON.parse(text);
