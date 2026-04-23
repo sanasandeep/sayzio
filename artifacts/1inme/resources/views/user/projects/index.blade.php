@@ -39,7 +39,7 @@
             </div>
             <div class="flex items-center gap-1">
                 <a href="{{ route('user.projects.edit', $project) }}" class="p-2 text-white/30 hover:text-violet-400 rounded-xl"><i class="fas fa-edit text-xs"></i></a>
-                <form action="{{ route('user.projects.destroy', $project) }}" method="POST" onsubmit="return confirm('Delete this project? Links will be kept but unassigned.')">
+                <form action="{{ route('user.projects.destroy', $project) }}" method="POST" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this project?', message: 'Links will be kept but unassigned.', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                     @csrf @method('DELETE')
                     <button class="p-2 text-white/30 hover:text-red-400 rounded-xl"><i class="fas fa-trash text-xs"></i></button>
                 </form>

@@ -70,7 +70,7 @@
                         </button>
                     </form>
                     <a href="{{ route('user.social-proofs.edit', $p) }}" class="text-violet-300 hover:text-violet-200 px-2"><i class="fas fa-edit"></i></a>
-                    <form action="{{ route('user.social-proofs.destroy', $p) }}" method="POST" class="inline" onsubmit="return confirm('Delete this notification campaign?')">
+                    <form action="{{ route('user.social-proofs.destroy', $p) }}" method="POST" class="inline" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this notification campaign?', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                         @csrf @method('DELETE')
                         <button class="text-rose-400 hover:text-rose-300 px-2"><i class="fas fa-trash"></i></button>
                     </form>

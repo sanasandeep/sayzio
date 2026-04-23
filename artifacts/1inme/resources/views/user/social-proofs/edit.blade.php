@@ -615,11 +615,19 @@ function buzzEditor() {
         },
 
         remove(idx) {
-            if (!confirm('Remove this notification?')) return;
-            var removed = this.notifications.splice(idx, 1)[0];
-            // Clear the directory-badge pointer if it referenced the deleted row.
-            if (removed && this.directoryBadgeId === removed.id) this.directoryBadgeId = null;
-            this.livePreview();
+            var self = this;
+            window.themedConfirm({
+                title: 'Remove this notification?',
+                message: 'It will be deleted from this proof set when you save.',
+                confirmText: 'Remove',
+                confirmIcon: 'fa-trash',
+                iconClass: 'fa-trash',
+                onConfirm: function () {
+                    var removed = self.notifications.splice(idx, 1)[0];
+                    if (removed && self.directoryBadgeId === removed.id) self.directoryBadgeId = null;
+                    self.livePreview();
+                },
+            });
         },
 
         duplicate(idx) {

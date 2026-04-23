@@ -134,7 +134,7 @@
                     </button>
                     @endif
                     @if($__can('inbox.delete'))
-                    <form method="POST" action="{{ route('user.forms.destroy', $form) }}" onsubmit="return confirm('Delete this form and all its submissions? This cannot be undone.');">
+                    <form method="POST" action="{{ route('user.forms.destroy', $form) }}" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this form?', message: 'All of its submissions will be permanently deleted. This cannot be undone.', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                         @csrf @method('DELETE')
                         <button class="w-full text-left flex items-center gap-2.5 p-2.5 rounded-lg text-sm hover:translate-x-1 transition-all" style="background: rgba(239,68,68,0.08); color: #f87171;">
                             <i class="fas fa-trash text-xs"></i> Delete form

@@ -46,7 +46,7 @@
         </div>
         <form method="POST" action="{{ route('user.links.poll-votes.erase-voter', [$link, $block]) }}"
               class="flex flex-col sm:flex-row gap-2"
-              onsubmit="return confirm('Erase EVERY poll vote matching this voter, across all your polls? This cannot be undone.')">
+              onsubmit="return window.themedConfirmSubmit(this, {title: 'Erase every vote from this voter?', message: 'Every poll vote matching this voter, across all your polls, will be permanently deleted. This cannot be undone.', confirmText: 'Erase votes', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
             @csrf
             <input type="text" name="identifier" required maxlength="255"
                    placeholder="email@example.com, user id, or fingerprint"
@@ -141,7 +141,7 @@
                         @if($canUndo)
                             <form method="POST"
                                   action="{{ route('user.links.poll-votes.undo-reset', [$link, $block, $snap]) }}"
-                                  onsubmit="return confirm('Restore {{ $snap->total }} anonymized vote(s) from this snapshot? Restored votes will be tagged as “restored” and will not have voter identities.')">
+                                  onsubmit="return window.themedConfirmSubmit(this, {title: 'Restore {{ $snap->total }} vote(s)?', message: 'Restored votes will be tagged as &ldquo;restored&rdquo; and will not have voter identities.', confirmText: 'Restore', confirmIcon: 'fa-rotate-left', iconClass: 'fa-rotate-left'})">
                                 @csrf
                                 <button type="submit"
                                         class="px-3 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5"
@@ -229,7 +229,7 @@
                             <td class="py-3 text-xs" style="color: var(--text-muted);">{{ $v->created_at?->diffForHumans() }}</td>
                             <td class="py-3 pr-5 text-right">
                                 <form method="POST" action="{{ route('user.links.poll-votes.destroy', [$link, $block, $v]) }}" class="inline-block"
-                                      onsubmit="return confirm('Remove this vote?')">
+                                      onsubmit="return window.themedConfirmSubmit(this, {title: 'Remove this vote?', confirmText: 'Remove', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                                     @csrf @method('DELETE')
                                     <button class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-xs transition" style="background:rgba(239,68,68,.10);color:#ef4444;border:1px solid rgba(239,68,68,.20)" onmouseover="this.style.background='rgba(239,68,68,.20)'" onmouseout="this.style.background='rgba(239,68,68,.10)'" title="Remove">
                                         <i class="fas fa-trash"></i>

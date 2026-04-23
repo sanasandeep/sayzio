@@ -52,7 +52,7 @@
                                 <button class="px-3 py-1 rounded bg-purple-500 text-white text-xs">Save</button>
                             </form>
                         </details>
-                        <form method="POST" action="{{ route('admin.site-assistant.templates.destroy', $t) }}" class="inline" onsubmit="return confirm('Delete this template?')">
+                        <form method="POST" action="{{ route('admin.site-assistant.templates.destroy', $t) }}" class="inline" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this template?', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                             @csrf @method('DELETE')
                             <button class="text-red-300 text-xs">Delete</button>
                         </form>

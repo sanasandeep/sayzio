@@ -57,7 +57,7 @@
         <div class="flex items-center gap-2">
             <button type="submit" name="action" value="enable" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-xl text-sm font-medium">Enable</button>
             <button type="submit" name="action" value="disable" class="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1.5 rounded-xl text-sm font-medium">Disable</button>
-            <button type="submit" name="action" value="delete" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-xl text-sm font-medium" onclick="return confirm('Delete selected links?')">Delete</button>
+            <button type="submit" name="action" value="delete" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-xl text-sm font-medium" onclick="return window.themedConfirmAction(this, {title: 'Delete selected links?', message: 'This cannot be undone.', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">Delete</button>
         </div>
     </div>
 
@@ -114,7 +114,7 @@
                         <div class="flex items-center justify-end gap-2">
                             <a href="{{ route('admin.links.show', $link) }}" class="text-violet-400 hover:text-violet-300 text-sm">View</a>
                             <button type="button" class="text-yellow-600 hover:text-yellow-700 text-sm" onclick="document.getElementById('toggle-form-{{ $link->id }}').submit()">{{ $link->is_active ? 'Disable' : 'Enable' }}</button>
-                            <button type="button" class="text-red-400 hover:text-red-400 text-sm" onclick="if(confirm('Delete this link?')) document.getElementById('delete-form-{{ $link->id }}').submit()">Delete</button>
+                            <button type="button" class="text-red-400 hover:text-red-400 text-sm" onclick="return window.themedConfirmAction(this, {title: 'Delete this link?', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash', onConfirm: function(){ document.getElementById('delete-form-{{ $link->id }}').submit(); }})">Delete</button>
                         </div>
                     </td>
                 </tr>

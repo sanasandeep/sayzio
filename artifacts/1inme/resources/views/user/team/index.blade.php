@@ -74,7 +74,7 @@
                         <td class="px-4 py-3 text-right">
                             <button type="button" @click="openEdit({{ Js::from($editPayload) }})" class="text-xs text-primary-600 hover:underline mr-3">Edit</button>
                             <form method="POST" action="{{ route('user.team.members.remove', $m) }}" class="inline"
-                                  onsubmit="return confirm('Remove this member from the workspace?')">
+                                  onsubmit="return window.themedConfirmSubmit(this, {title: 'Remove this member?', message: 'They will lose access to this workspace.', confirmText: 'Remove', confirmIcon: 'fa-user-minus', iconClass: 'fa-user-minus'})">
                                 @csrf @method('DELETE')
                                 <button class="text-xs text-red-600 hover:underline">Remove</button>
                             </form>

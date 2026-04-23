@@ -136,7 +136,7 @@
                     @endcanInWorkspace
                     <button name="action" value="export"   class="px-3 py-1.5 rounded-lg text-xs" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-secondary);"><i class="fas fa-file-csv mr-1"></i>Export</button>
                     @canInWorkspace('inbox.delete')
-                    <button name="action" value="delete"   onclick="return confirm('Delete selected items?')" class="px-3 py-1.5 rounded-lg text-xs" style="background: rgba(239,68,68,0.1); color: #f87171;"><i class="fas fa-trash mr-1"></i>Delete</button>
+                    <button name="action" value="delete"   onclick="return window.themedConfirmAction(this, {title: 'Delete selected items?', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})" class="px-3 py-1.5 rounded-lg text-xs" style="background: rgba(239,68,68,0.1); color: #f87171;"><i class="fas fa-trash mr-1"></i>Delete</button>
                     @else
                     <button type="button" disabled class="px-3 py-1.5 rounded-lg text-xs cursor-not-allowed opacity-50" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);" title="Your role doesn't allow deleting inbox items"><i class="fas fa-lock mr-1"></i>Delete</button>
                     @endcanInWorkspace

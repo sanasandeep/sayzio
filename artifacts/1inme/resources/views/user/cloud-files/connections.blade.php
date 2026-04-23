@@ -45,7 +45,7 @@
                         <i class="fas fa-rotate mr-1"></i> Reconnect
                     </a>
                     <form method="POST" action="{{ route('user.cloud-files.connections.destroy', $conn) }}" class="flex-1"
-                          onsubmit="return confirm('Disconnect {{ $label }}? Files already in the library stay.')">
+                          onsubmit="return window.themedConfirmSubmit(this, {title: 'Disconnect {{ $label }}?', message: 'Files already in the library stay.', confirmText: 'Disconnect', confirmIcon: 'fa-link-slash', iconClass: 'fa-link-slash'})">
                         @csrf @method('DELETE')
                         <button class="w-full px-3 py-2 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-200 text-sm">
                             <i class="fas fa-unlink mr-1"></i> Disconnect

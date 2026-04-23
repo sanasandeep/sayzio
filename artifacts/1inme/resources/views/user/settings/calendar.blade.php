@@ -114,7 +114,7 @@
                                             </button>
                                         </form>
                                         <form method="POST" action="{{ route('user.calendar.destroy', $a) }}" class="inline-block ml-1"
-                                              onsubmit="return confirm('Disconnect this calendar? Mirrored events will remain but will no longer update.')">
+                                              onsubmit="return window.themedConfirmSubmit(this, {title: 'Disconnect this calendar?', message: 'Mirrored events will remain but will no longer update.', confirmText: 'Disconnect', confirmIcon: 'fa-link-slash', iconClass: 'fa-link-slash'})">
                                             @csrf @method('DELETE')
                                             <button class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-xs transition" style="background:rgba(239,68,68,.10);color:#ef4444;border:1px solid rgba(239,68,68,.20)" onmouseover="this.style.background='rgba(239,68,68,.20)'" onmouseout="this.style.background='rgba(239,68,68,.10)'" title="Disconnect">
                                                 <i class="fas fa-unlink"></i>

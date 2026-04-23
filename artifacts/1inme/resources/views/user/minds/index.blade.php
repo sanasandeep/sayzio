@@ -74,7 +74,7 @@
                             <form method="POST" action="{{ route('user.minds.refresh', $m) }}">@csrf
                                 <button class="px-3 py-1.5 text-xs rounded-lg bg-white/5 hover:bg-white/10 text-white/70" title="Re-ingest every source"><i class="fas fa-rotate"></i> Refresh all</button>
                             </form>
-                            <form method="POST" action="{{ route('user.minds.destroy', $m) }}" onsubmit="return confirm('Delete this mind and all its sources?')">
+                            <form method="POST" action="{{ route('user.minds.destroy', $m) }}" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this mind?', message: 'All of its sources will be removed too.', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                                 @csrf @method('DELETE')
                                 <button class="px-3 py-1.5 text-xs rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-300"><i class="fas fa-trash"></i></button>
                             </form>

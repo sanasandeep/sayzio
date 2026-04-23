@@ -136,7 +136,7 @@
                                 @endif
                             @endcanInWorkspace
                             @canInWorkspace('posts.delete')
-                                <form action="{{ route('user.posts.destroy', $post) }}" method="POST" onsubmit="return confirm('Delete this post?');">
+                                <form action="{{ route('user.posts.destroy', $post) }}" method="POST" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this post?', message: 'This cannot be undone.', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                                     @csrf @method('DELETE')
                                     <button class="text-xs text-rose-600 font-semibold">Delete</button>
                                 </form>

@@ -65,7 +65,7 @@
                             <form method="POST" action="{{ route('user.ai-personas.duplicate', $p) }}" class="inline">@csrf
                                 <button class="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-white"><i class="fas fa-copy"></i> Duplicate</button>
                             </form>
-                            <form method="POST" action="{{ route('user.ai-personas.destroy', $p) }}" class="inline" onsubmit="return confirm('Delete this Persona and all its versions?')">@csrf @method('DELETE')
+                            <form method="POST" action="{{ route('user.ai-personas.destroy', $p) }}" class="inline" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this Persona?', message: 'All of its versions will be removed too.', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">@csrf @method('DELETE')
                                 <button class="px-2 py-1 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-300"><i class="fas fa-trash"></i></button>
                             </form>
                         </div>

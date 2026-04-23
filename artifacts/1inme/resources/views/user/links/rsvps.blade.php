@@ -45,7 +45,7 @@
         </div>
         <form method="POST" action="{{ route('user.links.rsvps.erase-voter', $link) }}"
               class="flex flex-col sm:flex-row gap-2"
-              onsubmit="return confirm('Erase EVERY RSVP matching this guest, across all your event invites? This cannot be undone.')">
+              onsubmit="return window.themedConfirmSubmit(this, {title: 'Erase every RSVP from this guest?', message: 'Every RSVP matching this guest, across all your event invites, will be permanently deleted. This cannot be undone.', confirmText: 'Erase RSVPs', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
             @csrf
             <input type="email" name="identifier" required maxlength="255"
                    placeholder="email@example.com"
@@ -120,7 +120,7 @@
                             <td class="py-3 text-xs" style="color: var(--text-muted);">{{ $r->created_at?->diffForHumans() }}</td>
                             <td class="py-3 pr-5 text-right">
                                 <form method="POST" action="{{ route('user.links.rsvps.destroy', [$link, $r]) }}" class="inline-block"
-                                      onsubmit="return confirm('Remove this RSVP?')">
+                                      onsubmit="return window.themedConfirmSubmit(this, {title: 'Remove this RSVP?', confirmText: 'Remove', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                                     @csrf @method('DELETE')
                                     <button class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-xs transition" style="background:rgba(239,68,68,.10);color:#ef4444;border:1px solid rgba(239,68,68,.20)" onmouseover="this.style.background='rgba(239,68,68,.20)'" onmouseout="this.style.background='rgba(239,68,68,.10)'" title="Remove">
                                         <i class="fas fa-trash"></i>

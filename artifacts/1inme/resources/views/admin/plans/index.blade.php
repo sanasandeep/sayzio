@@ -57,7 +57,7 @@
                 </button>
             </form>
             @if($plan->users_count === 0)
-            <form action="{{ route('admin.plans.destroy', $plan) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure?')">
+            <form action="{{ route('admin.plans.destroy', $plan) }}" method="POST" class="inline" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this plan?', message: 'This cannot be undone.', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                 @csrf @method('DELETE')
                 <button type="submit" class="text-white/30 hover:text-red-400" title="Delete"><i class="fas fa-trash"></i></button>
             </form>

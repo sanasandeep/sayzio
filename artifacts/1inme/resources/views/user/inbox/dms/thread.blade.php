@@ -45,7 +45,7 @@
                 </form>
             @else
                 <form method="POST" action="{{ route('user.inbox.dms.block', $conversation->id) }}"
-                      onsubmit="return confirm('Block this conversation? The viewer will no longer be able to send you messages here.');"
+                      onsubmit="return window.themedConfirmSubmit(this, {title: 'Block this conversation?', message: 'The viewer will no longer be able to send you messages here.', confirmText: 'Block', confirmIcon: 'fa-ban', iconClass: 'fa-ban'})"
                       x-data="{ accountWide: false }">
                     @csrf
                     <label class="flex items-center gap-1 text-[11px] text-white/60 mr-2">

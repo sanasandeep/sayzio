@@ -45,7 +45,7 @@
                     <i class="fas {{ $pkg->is_archived ? 'fa-box-open' : 'fa-box-archive' }}"></i>
                 </button>
             </form>
-            <form action="{{ route('admin.coin-packages.destroy', $pkg) }}" method="POST" class="inline" onsubmit="return confirm('Delete this coin package?')">@csrf @method('DELETE')
+            <form action="{{ route('admin.coin-packages.destroy', $pkg) }}" method="POST" class="inline" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this coin package?', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">@csrf @method('DELETE')
                 <button class="text-white/30 hover:text-red-400" title="Delete"><i class="fas fa-trash"></i></button>
             </form>
         </div>

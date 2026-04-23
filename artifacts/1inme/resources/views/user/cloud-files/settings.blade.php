@@ -83,7 +83,7 @@
             {{-- Separate form so the DELETE method-spoof input lives at form
                  level, not nested inside a <button>. --}}
             <form method="POST" action="{{ route('user.cloud-files.settings.destroy', $provider) }}"
-                  onsubmit="return confirm('Remove {{ $label }} OAuth app from this workspace? All connections will stop working.')"
+                  onsubmit="return window.themedConfirmSubmit(this, {title: 'Remove the {{ $label }} OAuth app?', message: 'All connections to {{ $label }} for this workspace will stop working.', confirmText: 'Remove', confirmIcon: 'fa-link-slash', iconClass: 'fa-link-slash'})"
                   class="mt-2 text-right">
                 @csrf @method('DELETE')
                 <button type="submit" class="px-3 py-2 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-200 text-sm">

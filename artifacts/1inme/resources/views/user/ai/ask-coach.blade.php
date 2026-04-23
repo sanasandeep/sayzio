@@ -88,7 +88,7 @@
                     <a href="{{ route('user.ai.ask-coach.export', ['thread' => $active->id, 'format' => 'txt']) }}"
                        class="px-3 py-2 rounded-xl bg-white/10 text-white/80 text-xs hover:bg-white/20">.txt</a>
                     <form method="POST" action="{{ route('user.ai.ask-coach.destroy', $active->id) }}"
-                          onsubmit="return confirm('Delete this chat?');">
+                          onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this chat?', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                         @csrf
                         @method('DELETE')
                         <button class="px-3 py-2 rounded-xl bg-red-500/10 text-red-300 text-xs hover:bg-red-500/20">Delete</button>

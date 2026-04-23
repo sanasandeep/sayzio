@@ -43,7 +43,7 @@
                             @endif
                         </td>
                         <td class="p-3 text-right">
-                            <form method="POST" action="{{ route('admin.site-assistant.knowledge.reindex', $mind) }}" onsubmit="return confirm('Queue a full re-index for this knowledge base?');">
+                            <form method="POST" action="{{ route('admin.site-assistant.knowledge.reindex', $mind) }}" onsubmit="return window.themedConfirmSubmit(this, {title: 'Queue a full re-index?', message: 'Every source in this knowledge base will be re-indexed.', confirmText: 'Re-index', confirmIcon: 'fa-rotate', iconClass: 'fa-rotate'})">
                                 @csrf
                                 <button class="px-3 py-1.5 rounded-lg bg-white/10 text-white text-xs hover:bg-white/15">Re-index</button>
                             </form>

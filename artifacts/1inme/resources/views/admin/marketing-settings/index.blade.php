@@ -31,8 +31,17 @@
               testDefaults: @json($defaultsTest),
               whyDefaults: @json($defaultsWhy),
               resetTo(key, defaults) {
-                  if (!confirm("Reset this section to the shipped defaults? Your current rows will be replaced. You still need to click Save to keep the change.")) return;
-                  this[key] = JSON.parse(JSON.stringify(defaults));
+                  var self = this;
+                  window.themedConfirm({
+                      title: 'Reset this section?',
+                      message: 'Your current rows will be replaced with the shipped defaults. You still need to click Save to keep the change.',
+                      confirmText: 'Reset',
+                      confirmIcon: 'fa-rotate-left',
+                      iconClass: 'fa-rotate-left',
+                      onConfirm: function () {
+                          self[key] = JSON.parse(JSON.stringify(defaults));
+                      },
+                  });
               },
           }'
           class="space-y-6">

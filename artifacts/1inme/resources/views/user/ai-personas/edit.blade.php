@@ -296,7 +296,7 @@
                             </div>
                             @if($v->id !== $persona->active_version_id)
                                 <form method="POST" action="{{ route('user.ai-personas.rollback', [$persona, $v]) }}"
-                                      onsubmit="return confirm('Roll the live config back to v{{ $v->revision }}? A new version will be written.')">
+                                      onsubmit="return window.themedConfirmSubmit(this, {title: 'Roll back to v{{ $v->revision }}?', message: 'A new version will be written so you can roll forward again later.', confirmText: 'Roll back', confirmIcon: 'fa-rotate-left', iconClass: 'fa-rotate-left'})">
                                     @csrf
                                     <button class="text-[11px] px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-white">
                                         <i class="fas fa-undo"></i> Roll back

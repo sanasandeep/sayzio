@@ -59,7 +59,7 @@
                         @endif
                     </div>
                 </div>
-                <form method="POST" action="{{ route('user.contacts.biolink.detach', $contact) }}" onsubmit="return confirm('Detach this biolink? It will not auto-attach again on future syncs unless you re-attach.')">
+                <form method="POST" action="{{ route('user.contacts.biolink.detach', $contact) }}" onsubmit="return window.themedConfirmSubmit(this, {title: 'Detach this biolink?', message: 'It will not auto-attach again on future syncs unless you re-attach.', confirmText: 'Detach', confirmIcon: 'fa-link-slash', iconClass: 'fa-link-slash'})">
                     @csrf
                     <button class="px-3 py-1.5 rounded-lg text-xs font-medium" style="background:rgba(239,68,68,.10);color:#ef4444;border:1px solid rgba(239,68,68,.20)">
                         Detach

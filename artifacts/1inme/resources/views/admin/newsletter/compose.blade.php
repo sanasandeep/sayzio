@@ -22,7 +22,7 @@
 
     <div class="glass rounded-2xl p-6">
         <form id="newsletter-form" method="POST" action="{{ route('admin.newsletter.send') }}" class="space-y-4"
-              onsubmit="return confirm('Send this issue to {{ number_format($activeCount) }} active subscriber(s)?');">
+              onsubmit="return window.themedConfirmSubmit(this, {title: 'Send this issue?', message: 'It will be delivered to {{ number_format($activeCount) }} active subscriber(s).', confirmText: 'Send', confirmIcon: 'fa-paper-plane', iconClass: 'fa-paper-plane'})">
             @csrf
 
             <div class="text-sm text-white/60">

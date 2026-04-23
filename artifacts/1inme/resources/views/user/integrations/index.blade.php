@@ -117,7 +117,7 @@
                                     </button>
                                 </form>
                                 <form method="POST" action="{{ route('user.integrations.destroy', $c) }}"
-                                      onsubmit="return confirm('Delete this configuration? Anything that depends on it will fall back to defaults.');"
+                                      onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this configuration?', message: 'Anything that depends on it will fall back to defaults.', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})"
                                       class="ml-auto">
                                     @csrf @method('DELETE')
                                     <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"

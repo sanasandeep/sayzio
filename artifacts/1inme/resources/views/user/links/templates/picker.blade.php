@@ -78,7 +78,7 @@
                         @else
                             @php $hasBlocks = $link->biolinkBlocks()->exists(); @endphp
                             <form method="POST" action="{{ route('user.links.templates.apply-page', $link) }}"
-                                  @if($hasBlocks) onsubmit="return confirm('This will replace your existing blocks on this Link in Bio. Continue?');" @endif>
+                                  @if($hasBlocks) onsubmit="return window.themedConfirmSubmit(this, {title: 'Replace existing blocks?', message: 'This will replace your existing blocks on this Link in Bio.', confirmText: 'Replace', confirmIcon: 'fa-arrows-rotate', iconClass: 'fa-triangle-exclamation'})" @endif>
                                 @csrf
                                 <input type="hidden" name="template_id" value="{{ $tpl->id }}">
                                 @if($hasBlocks)<input type="hidden" name="confirm_overwrite" value="1">@endif

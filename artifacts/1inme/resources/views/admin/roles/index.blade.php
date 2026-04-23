@@ -28,7 +28,7 @@
             @if($role->slug !== 'super-admin')
             <div class="flex items-center gap-2">
                 <a href="{{ route('admin.roles.edit', $role) }}" class="text-white/30 hover:text-violet-400"><i class="fas fa-edit"></i></a>
-                <form action="{{ route('admin.roles.destroy', $role) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure?')">
+                <form action="{{ route('admin.roles.destroy', $role) }}" method="POST" class="inline" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this role?', message: 'This cannot be undone.', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                     @csrf @method('DELETE')
                     <button type="submit" class="text-white/30 hover:text-red-400"><i class="fas fa-trash"></i></button>
                 </form>

@@ -105,7 +105,7 @@
                                 <div class="inline-flex items-center gap-2 flex-wrap justify-end">
                                     @if($row['kind'] === 'user' && $row['owner'])
                                         <form method="POST" action="{{ route('admin.banned-names.notify-user', [$item, $row['owner']->id]) }}" class="inline"
-                                              onsubmit="return confirm('Send a system notification asking {{ $row['owner']->name ?: $row['label'] }} to change their handle?');">
+                                              onsubmit="return window.themedConfirmSubmit(this, {title: 'Notify {{ $row['owner']->name ?: $row['label'] }}?', message: 'A system notification will be sent asking them to change their handle.', confirmText: 'Send notification', confirmIcon: 'fa-bell', iconClass: 'fa-bell'})">
                                             @csrf
                                             <button type="submit"
                                                     class="px-2.5 py-1.5 rounded-lg text-xs bg-violet-500/15 hover:bg-violet-500/25 text-violet-200 border border-violet-500/30">

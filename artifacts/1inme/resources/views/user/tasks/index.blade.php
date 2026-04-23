@@ -106,7 +106,7 @@
                                 </button>
                             </form>
                             <form method="POST" action="{{ route('user.tasks.boards.destroy', $b) }}"
-                                  onsubmit="return confirm('Permanently delete this board and all its cards?');">
+                                  onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this board?', message: 'The board and all of its cards will be permanently deleted.', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                                 @csrf @method('DELETE')
                                 <button class="px-3 py-1.5 rounded-lg text-xs font-semibold"
                                         style="color:#ef4444;">

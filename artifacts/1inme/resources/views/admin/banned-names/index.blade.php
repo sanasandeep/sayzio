@@ -22,7 +22,7 @@
                     <i class="fas fa-file-import text-xs"></i> Bulk import
                 </a>
                 <form method="POST" action="{{ route('admin.banned-names.restore-defaults') }}"
-                      onsubmit="return confirm('Re-apply the curated default reserved list? Existing entries are kept untouched — only missing defaults will be added.');"
+                      onsubmit="return window.themedConfirmSubmit(this, {title: 'Re-apply the curated default list?', message: 'Existing entries are kept untouched — only missing defaults will be added.', confirmText: 'Re-apply defaults', confirmIcon: 'fa-rotate-left', iconClass: 'fa-rotate-left'})"
                       class="inline">
                     @csrf
                     <button type="submit"
@@ -261,7 +261,7 @@
                                     <i class="fas fa-pen text-[10px]"></i> Edit
                                 </a>
                                 <form method="POST" action="{{ route('admin.banned-names.destroy', $item) }}"
-                                      onsubmit="return confirm('Remove {{ $item->name }} from the banned list?');">
+                                      onsubmit="return window.themedConfirmSubmit(this, {title: 'Remove “{{ $item->name }}” from the banned list?', confirmText: 'Remove', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit"

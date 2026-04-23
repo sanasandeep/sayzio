@@ -118,7 +118,7 @@
                                     View
                                 </button>
                                 <form method="POST" action="{{ route('user.ai.persona.destroy', $persona) }}"
-                                      onsubmit="return confirm('Delete this persona?');">
+                                      onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this persona?', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                                     @csrf
                                     @method('DELETE')
                                     <button class="px-3 py-1.5 rounded-lg bg-red-600/20 border border-red-500/30 text-red-200 text-xs hover:bg-red-600/30">

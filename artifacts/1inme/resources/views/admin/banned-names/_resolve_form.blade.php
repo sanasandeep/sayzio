@@ -18,7 +18,7 @@
     </button>
     @if($allowRemove)
         <button type="submit" name="action" value="remove"
-                onclick="return confirm('{{ $removeLabel }}? This cannot be undone.');"
+                onclick="return window.themedConfirmAction(this, {title: '{{ $removeLabel }}?', message: 'This cannot be undone.', confirmText: '{{ $removeLabel }}', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})"
                 class="px-2.5 py-1.5 rounded-lg text-xs bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 inline-flex items-center gap-1.5">
             <i class="fas fa-trash text-[10px]"></i> {{ $removeLabel }}
         </button>

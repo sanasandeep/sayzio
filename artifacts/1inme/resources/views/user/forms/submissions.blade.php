@@ -53,7 +53,7 @@
         </div>
         <form method="POST" action="{{ route('user.forms.submissions.erase-submitter', $form) }}"
               class="flex flex-col sm:flex-row gap-2"
-              onsubmit="return confirm('Erase EVERY submission matching this submitter, across all your forms? This cannot be undone.')">
+              onsubmit="return window.themedConfirmSubmit(this, {title: 'Erase every submission from this submitter?', message: 'Every submission matching this submitter, across all your forms, will be permanently deleted. This cannot be undone.', confirmText: 'Erase submissions', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
             @csrf
             <input type="text" name="identifier" required maxlength="255"
                    placeholder="email@example.com, user id, or fingerprint"
@@ -117,7 +117,7 @@
                             <span class="font-mono">{{ $s->ip ?? '' }}</span>
                         </div>
                         @if($__can('inbox.delete'))
-                        <form method="POST" action="{{ route('user.forms.submissions.destroy', [$form, $s]) }}" onsubmit="return confirm('Delete this submission?');">
+                        <form method="POST" action="{{ route('user.forms.submissions.destroy', [$form, $s]) }}" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this submission?', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                             @csrf @method('DELETE')
                             <button class="w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" style="background: rgba(239,68,68,0.1); color: #f87171;"><i class="fas fa-trash"></i></button>
                         </form>

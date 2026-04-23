@@ -40,7 +40,7 @@
                 @endif
             </div>
             <form method="POST" action="{{ route('admin.site-pages.revisions.restore', [$page->slug, $revision->id]) }}"
-                  onsubmit="return confirm('Restore this revision? Your current content will be saved as a new revision first.')">
+                  onsubmit="return window.themedConfirmSubmit(this, {title: 'Restore this revision?', message: 'Your current content will be saved as a new revision first.', confirmText: 'Restore', confirmIcon: 'fa-rotate-left', iconClass: 'fa-rotate-left'})">
                 @csrf
                 <button type="submit" class="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-sm font-medium">
                     <i class="fas fa-clock-rotate-left mr-1"></i> Restore this revision

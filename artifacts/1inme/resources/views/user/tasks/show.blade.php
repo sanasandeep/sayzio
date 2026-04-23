@@ -64,7 +64,7 @@
                 <i class="fas fa-plus mr-1"></i> Add Column
             </button>
             <form action="{{ route('user.tasks.boards.archive', $board) }}" method="POST"
-                  onsubmit="return confirm('Archive this board? You can restore it later from the boards list.')">
+                  onsubmit="return window.themedConfirmSubmit(this, {title: 'Archive this board?', message: 'You can restore it later from the boards list.', confirmText: 'Archive', confirmIcon: 'fa-box-archive', iconClass: 'fa-box-archive'})">
                 @csrf
                 <button class="px-3 py-2 rounded-lg text-sm font-semibold border"
                         style="border-color: var(--border-strong); color: var(--text-primary);"
@@ -73,7 +73,7 @@
                 </button>
             </form>
             <form action="{{ route('user.tasks.boards.destroy', $board) }}" method="POST"
-                  onsubmit="return confirm('Permanently delete this board and all its cards?')">
+                  onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this board?', message: 'The board and all of its cards will be permanently deleted.', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                 @csrf @method('DELETE')
                 <button class="px-3 py-2 rounded-lg text-sm font-semibold"
                         style="color: #ef4444;"
@@ -828,7 +828,13 @@ function kanbanBoard(boardId) {
         },
 
         async destroyCard() {
-            if (!confirm('Delete this card?')) return;
+            if (!await window.themedConfirmAsync({
+                title: 'Delete this card?',
+                message: 'This permanently removes the card and its history.',
+                confirmText: 'Delete',
+                confirmIcon: 'fa-trash',
+                iconClass: 'fa-trash',
+            })) return;
             await this.fetchJson(`/user/tasks/cards/${this.card.id}`, { method: 'DELETE' });
             location.reload();
         },
@@ -844,7 +850,13 @@ function kanbanBoard(boardId) {
         },
 
         async deleteColumn(id) {
-            if (!confirm('Delete this column? Cards inside will be moved to the next column.')) return;
+            if (!await window.themedConfirmAsync({
+                title: 'Delete this column?',
+                message: 'Cards inside will be moved to the next column.',
+                confirmText: 'Delete',
+                confirmIcon: 'fa-trash',
+                iconClass: 'fa-trash',
+            })) return;
             const fd = new FormData(); fd.append('_token', this.csrf); fd.append('_method', 'DELETE');
             await fetch(`/user/tasks/columns/${id}`, { method: 'POST', body: fd, credentials: 'same-origin' });
             location.reload();

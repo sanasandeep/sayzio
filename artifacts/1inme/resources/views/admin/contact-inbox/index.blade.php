@@ -49,7 +49,7 @@
                                         <button type="submit" class="w-full px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-xs text-white/80">Archive</button>
                                     </form>
                                 @endif
-                                <form method="POST" action="{{ route('admin.contact-inbox.destroy', $m) }}" onsubmit="return confirm('Delete this message?')">@csrf @method('DELETE')
+                                <form method="POST" action="{{ route('admin.contact-inbox.destroy', $m) }}" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this message?', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">@csrf @method('DELETE')
                                     <button type="submit" class="w-full px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-300 rounded-lg text-xs">Delete</button>
                                 </form>
                             </div>

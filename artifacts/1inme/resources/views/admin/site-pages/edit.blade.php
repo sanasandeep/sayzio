@@ -279,7 +279,7 @@
                                 </label>
                                 <button type="button" @click="moveUp(i)" :disabled="i===0" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1" title="Move up"><i class="fas fa-arrow-up"></i></button>
                                 <button type="button" @click="moveDown(i)" :disabled="i===sections.length-1" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1" title="Move down"><i class="fas fa-arrow-down"></i></button>
-                                <button type="button" @click="if(confirm('Delete this section?')) sections.splice(i,1)" class="text-xs text-red-400 hover:text-red-300 px-1.5 py-1" title="Delete"><i class="fas fa-trash"></i></button>
+                                <button type="button" @click="window.themedConfirm({title:'Delete this section?', message:'It will be removed when you save the page.', confirmText:'Delete', confirmIcon:'fa-trash', iconClass:'fa-trash', onConfirm: () => sections.splice(i,1)})" class="text-xs text-red-400 hover:text-red-300 px-1.5 py-1" title="Delete"><i class="fas fa-trash"></i></button>
                             </div>
                         </div>
                         <input type="hidden" :name="'sections['+i+'][id]'" :value="s.id">
@@ -511,7 +511,7 @@
                             </a>
                             @if(!$loop->first)
                                 <form method="POST" action="{{ route('admin.site-pages.revisions.restore', [$page->slug, $rev->id]) }}"
-                                      onsubmit="return confirm('Restore this revision? Your current content will be saved as a new revision first.')">
+                                      onsubmit="return window.themedConfirmSubmit(this, {title: 'Restore this revision?', message: 'Your current content will be saved as a new revision first.', confirmText: 'Restore', confirmIcon: 'fa-rotate-left', iconClass: 'fa-rotate-left'})">
                                     @csrf
                                     <button type="submit" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-lg">
                                         <i class="fas fa-clock-rotate-left mr-1"></i>Restore
@@ -547,7 +547,7 @@
                             <textarea name="answer" required rows="3" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">{{ $f->answer }}</textarea>
                             <button type="submit" class="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 rounded-lg text-xs text-white">Save</button>
                         </form>
-                        <form method="POST" action="{{ route('admin.site-pages.faqs.destroy', $f) }}" onsubmit="return confirm('Delete this FAQ?')">
+                        <form method="POST" action="{{ route('admin.site-pages.faqs.destroy', $f) }}" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this FAQ?', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                             @csrf @method('DELETE')
                             <button type="submit" class="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg text-xs"><i class="fas fa-trash mr-1"></i>Delete</button>
                         </form>

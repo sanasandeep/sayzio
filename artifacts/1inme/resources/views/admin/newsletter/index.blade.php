@@ -129,7 +129,7 @@
                             </td>
                             <td class="py-2 pr-3 text-right">
                                 <form method="POST" action="{{ route('admin.newsletter.destroy', $s) }}"
-                                      onsubmit="return confirm('Delete this subscriber?');" class="inline">
+                                      onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this subscriber?', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})" class="inline">
                                     @csrf @method('DELETE')
                                     <button class="text-xs text-red-300 hover:text-red-200"><i class="fas fa-trash"></i></button>
                                 </form>

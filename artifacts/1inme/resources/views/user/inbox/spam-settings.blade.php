@@ -73,7 +73,7 @@
                 @foreach($customKeywordHits as $kw => $count)
                     <span class="inline-flex items-center text-xs pl-2 pr-1 py-1 rounded-lg" style="background: rgba(124,58,237,0.15); color: #c4b5fd;" title="Hit {{ $count }} {{ \Illuminate\Support\Str::plural('time', $count) }} in the last 30 days.">
                         <i class="fas fa-key text-[10px] mr-1 opacity-60"></i>{{ $kw }} <span class="opacity-70 ml-0.5">×{{ $count }}</span>
-                        <form method="POST" action="{{ route('user.inbox.spam-settings.disable-keyword') }}" class="inline ml-1.5" onsubmit="return confirm(@js('Stop blocking “' . $kw . '”?'))">
+                        <form method="POST" action="{{ route('user.inbox.spam-settings.disable-keyword') }}" class="inline ml-1.5" onsubmit="return window.themedConfirmSubmit(this, {title: 'Stop blocking this keyword?', message: @js('Stop blocking “' . $kw . '”?'), confirmText: 'Stop blocking', confirmIcon: 'fa-times'})">
                             @csrf
                             <input type="hidden" name="keyword" value="{{ $kw }}">
                             <button type="submit" class="px-1.5 rounded hover:bg-white/10" title="Stop blocking this keyword" aria-label="Stop blocking {{ $kw }}">
@@ -93,7 +93,7 @@
                 @foreach($defaultKeywordHits as $kw => $count)
                     <span class="inline-flex items-center text-xs pl-2 pr-1 py-1 rounded-lg" style="background: rgba(234,88,12,0.12); color: #fdba74;" title="Hit {{ $count }} {{ \Illuminate\Support\Str::plural('time', $count) }} in the last 30 days.">
                         <i class="fas fa-shield-alt text-[10px] mr-1 opacity-60"></i>{{ $kw }} <span class="opacity-70 ml-0.5">×{{ $count }}</span>
-                        <form method="POST" action="{{ route('user.inbox.spam-settings.disable-keyword') }}" class="inline ml-1.5" onsubmit="return confirm(@js('Stop blocking the default keyword “' . $kw . '”?'))">
+                        <form method="POST" action="{{ route('user.inbox.spam-settings.disable-keyword') }}" class="inline ml-1.5" onsubmit="return window.themedConfirmSubmit(this, {title: 'Stop blocking default keyword?', message: @js('Stop blocking the default keyword “' . $kw . '”?'), confirmText: 'Stop blocking', confirmIcon: 'fa-times'})">
                             @csrf
                             <input type="hidden" name="keyword" value="{{ $kw }}">
                             <button type="submit" class="px-1.5 rounded hover:bg-white/10" title="Stop blocking this default keyword" aria-label="Stop blocking {{ $kw }}">
@@ -158,7 +158,7 @@
                             @endif
                         </span>
                     </div>
-                    <form method="POST" action="{{ route('user.inbox.spam-settings.enable-default-keyword') }}" onsubmit="return confirm(@js('Re-enable the default keyword “' . $kw . '”? Future submissions matching it will be flagged again.'))">
+                    <form method="POST" action="{{ route('user.inbox.spam-settings.enable-default-keyword') }}" onsubmit="return window.themedConfirmSubmit(this, {title: 'Re-enable default keyword?', message: @js('Re-enable the default keyword “' . $kw . '”? Future submissions matching it will be flagged again.'), confirmText: 'Re-enable', confirmIcon: 'fa-rotate-left'})">
                         @csrf
                         <input type="hidden" name="keyword" value="{{ $kw }}">
                         <button type="submit" class="px-3 py-1 rounded-lg text-xs font-semibold transition hover:bg-white/10" style="background: var(--bg-glass-input); color: var(--text-secondary); border: 1px solid var(--border-glass);" title="Re-enable this default keyword">
@@ -235,7 +235,7 @@
                     @foreach($spam['blocked_keywords'] as $kw)
                         <span class="inline-flex items-center text-xs pl-2 pr-1 py-1 rounded-lg" style="background: rgba(124,58,237,0.15); color: #c4b5fd;">
                             <i class="fas fa-key text-[10px] mr-1 opacity-60"></i>{{ $kw }}
-                            <form method="POST" action="{{ route('user.inbox.spam-settings.disable-keyword') }}" class="inline ml-1.5" onsubmit="return confirm(@js('Stop blocking “' . $kw . '”?'))">
+                            <form method="POST" action="{{ route('user.inbox.spam-settings.disable-keyword') }}" class="inline ml-1.5" onsubmit="return window.themedConfirmSubmit(this, {title: 'Stop blocking this keyword?', message: @js('Stop blocking “' . $kw . '”?'), confirmText: 'Stop blocking', confirmIcon: 'fa-times'})">
                                 @csrf
                                 <input type="hidden" name="keyword" value="{{ $kw }}">
                                 <button type="submit" class="px-1.5 rounded hover:bg-white/10" title="Stop blocking this keyword" aria-label="Stop blocking {{ $kw }}">

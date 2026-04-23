@@ -23,7 +23,7 @@
         <div class="flex items-center gap-2">
             @if($canEdit)<a href="{{ route('user.vault.credentials.edit', $item) }}" class="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-sm">Edit</a>@endif
             @if($canDelete)
-                <form method="post" action="{{ route('user.vault.credentials.destroy', $item) }}" onsubmit="return confirm('Delete this credential?')">
+                <form method="post" action="{{ route('user.vault.credentials.destroy', $item) }}" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this credential?', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                     @csrf @method('DELETE')
                     <button class="px-3 py-2 rounded-lg bg-red-500/10 text-red-300 hover:bg-red-500/20 text-sm">Delete</button>
                 </form>
@@ -99,7 +99,13 @@ function vaultCredentialView(id) {
         async reveal() {
             if (this.shown) { this.shown = false; this.value = ''; this.revealedNotes = ''; this.revealedFields = []; return; }
             // Explicit confirm so a misclick doesn't reveal a secret + write an audit row.
-            if (!window.confirm('Reveal the password, notes and custom fields? This action is logged in the workspace audit trail.')) return;
+            if (!await window.themedConfirmAsync({
+                title: 'Reveal credential?',
+                message: 'Reveal the password, notes and custom fields? This action is logged in the workspace audit trail.',
+                confirmText: 'Reveal',
+                confirmIcon: 'fa-eye',
+                iconClass: 'fa-eye',
+            })) return;
             this.error = '';
             const r = await fetch(`/user/vault/credentials/${id}/reveal`, {
                 method: 'POST',

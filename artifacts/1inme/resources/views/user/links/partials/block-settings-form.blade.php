@@ -513,8 +513,11 @@ if (typeof window.resetPollVotesConfirm !== 'function') {
                     iconClass: 'fa-rotate-left',
                     onConfirm: onConfirm
                 });
-            } else if (window.confirm('Reset ' + countText + ' for this poll?')) {
-                onConfirm();
+            } else {
+                // themed-confirm helper is loaded via the user/admin layouts; if it
+                // is somehow missing, fail safe by skipping the destructive action
+                // rather than falling back to a native browser confirm.
+                if (window.console && console.warn) console.warn('themedConfirm unavailable; skipping poll reset.');
             }
         };
         run();

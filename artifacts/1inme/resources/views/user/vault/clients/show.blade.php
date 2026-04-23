@@ -22,7 +22,7 @@
         <div class="flex items-center gap-2">
             @if($canEdit)<a href="{{ route('user.vault.clients.edit', $item) }}" class="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-sm">Edit</a>@endif
             @if($canDelete)
-                <form method="post" action="{{ route('user.vault.clients.destroy', $item) }}" onsubmit="return confirm('Delete this client?')">
+                <form method="post" action="{{ route('user.vault.clients.destroy', $item) }}" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this client?', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                     @csrf @method('DELETE')
                     <button class="px-3 py-2 rounded-lg bg-red-500/10 text-red-300 hover:bg-red-500/20 text-sm">Delete</button>
                 </form>
@@ -115,7 +115,7 @@
                 <a href="{{ route('user.vault.attachments.download', $a) }}" class="text-blue-400 hover:underline">{{ $a->filename }}</a>
                 <span class="text-xs text-gray-500">{{ number_format($a->size / 1024, 1) }} KB</span>
                 @if($canDelete)
-                    <form method="post" action="{{ route('user.vault.attachments.destroy', $a) }}" onsubmit="return confirm('Remove?')">
+                    <form method="post" action="{{ route('user.vault.attachments.destroy', $a) }}" onsubmit="return window.themedConfirmSubmit(this, {title: 'Remove this attachment?', confirmText: 'Remove', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                         @csrf @method('DELETE')
                         <button class="text-red-400 text-xs">Remove</button>
                     </form>

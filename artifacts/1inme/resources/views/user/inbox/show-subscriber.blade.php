@@ -45,7 +45,7 @@
                             $confirmMsg = 'Stop blocking “' . $blockedKw . '”? Future submissions matching it won’t be flagged.'
                                 . ($kwHits > 0 ? ' Heads up: ' . $kwHitsLabel . ' Those would have landed in your inbox.' : '');
                         @endphp
-                        <form method="POST" action="{{ route('user.inbox.spam-settings.disable-keyword') }}" onsubmit="return confirm(@js($confirmMsg))">
+                        <form method="POST" action="{{ route('user.inbox.spam-settings.disable-keyword') }}" onsubmit="return window.themedConfirmSubmit(this, {title: 'Stop blocking this keyword?', message: @js($confirmMsg), confirmText: 'Stop blocking', confirmIcon: 'fa-shield-halved', iconClass: 'fa-shield-halved'})">
                             @csrf
                             <input type="hidden" name="keyword" value="{{ $blockedKw }}">
                             <button type="submit" class="px-2 py-0.5 rounded font-semibold underline" style="background: rgba(234,88,12,0.15);" title="Stop blocking this keyword for all future submissions">
@@ -241,7 +241,7 @@
             </button>
         </form>
         @endif
-        <form method="POST" action="{{ route('user.inbox.update', ['subscriber', $subscriber->id]) }}" onsubmit="return confirm('Delete this item?')">@csrf
+        <form method="POST" action="{{ route('user.inbox.update', ['subscriber', $subscriber->id]) }}" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this item?', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">@csrf
             <button name="action" value="delete" class="px-3 py-1.5 rounded-lg text-xs" style="background: rgba(239,68,68,0.1); color: #f87171;">
                 <i class="fas fa-trash mr-1"></i>Delete
             </button>

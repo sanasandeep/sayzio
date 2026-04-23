@@ -208,7 +208,7 @@
                                         </button>
                                     </form>
                                     <form method="POST" action="{{ route("user.social-accounts.destroy", $c) }}"
-                                          onsubmit="return confirm("Disconnect this account? Follow buttons that reference it will fall back to icon style.");">
+                                          onsubmit="return window.themedConfirmSubmit(this, {title: 'Disconnect this account?', message: 'Follow buttons that reference it will fall back to icon style.', confirmText: 'Disconnect', confirmIcon: 'fa-link-slash', iconClass: 'fa-link-slash'})">
                                         @csrf @method("DELETE")
                                         <button type="submit" title="Disconnect"
                                                 class="w-8 h-8 rounded-lg flex items-center justify-center text-xs"

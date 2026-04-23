@@ -170,7 +170,7 @@
                                 </span>
                                 @endif
                                 @if($__canDelete)
-                                <form method="POST" action="{{ route('user.subscribers.destroy', $sub) }}" onsubmit="return confirm('Remove this lead?')">
+                                <form method="POST" action="{{ route('user.subscribers.destroy', $sub) }}" onsubmit="return window.themedConfirmSubmit(this, {title: 'Remove this lead?', confirmText: 'Remove', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                                     @csrf @method('DELETE')
                                     <button type="submit" class="p-1.5 rounded-lg transition hover:bg-red-500/10" style="color: var(--text-muted);" title="Delete">
                                         <i class="fas fa-trash text-xs"></i>

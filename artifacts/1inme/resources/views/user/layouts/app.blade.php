@@ -1208,6 +1208,7 @@
 
     @include('common.partials.global-shortcuts')
     @include('partials.voice-assistant')
+    @include('user.links.partials.themed-confirm')
     @stack('scripts')
 </body>
 </html>

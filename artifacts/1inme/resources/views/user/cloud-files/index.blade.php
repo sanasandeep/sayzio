@@ -139,7 +139,7 @@
                                     </button>
                                     @if($canDelete)
                                         <form method="POST" action="{{ route('user.cloud-files.destroy', $f) }}"
-                                              onsubmit="return confirm('Remove this file from the workspace library? The original file in the cloud is not touched.')">
+                                              onsubmit="return window.themedConfirmSubmit(this, {title: 'Remove this file from the library?', message: 'The original file in the cloud is not touched.', confirmText: 'Remove', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                                             @csrf @method('DELETE')
                                             <button class="text-rose-300 hover:text-rose-200 text-xs"><i class="fas fa-trash"></i></button>
                                         </form>
@@ -217,7 +217,7 @@
                                         </button>
                                         @if($canDelete)
                                             <form method="POST" action="{{ route('user.cloud-files.destroy', $f) }}"
-                                                  onsubmit="return confirm('Remove this file from the workspace library? The original file in the cloud is not touched.')">
+                                                  onsubmit="return window.themedConfirmSubmit(this, {title: 'Remove this file from the library?', message: 'The original file in the cloud is not touched.', confirmText: 'Remove', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                                                 @csrf @method('DELETE')
                                                 <button class="text-rose-300 hover:text-rose-200 text-xs"><i class="fas fa-trash"></i></button>
                                             </form>

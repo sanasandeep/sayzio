@@ -296,7 +296,7 @@
                     </div>
                     @endif
                     @canInWorkspace('links.delete')
-                    <form action="{{ route('user.links.destroy', $link) }}" method="POST" onsubmit="return confirm('Delete this link?')">
+                    <form action="{{ route('user.links.destroy', $link) }}" method="POST" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this link?', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                         @csrf @method('DELETE')
                         <button class="p-1.5 rounded-md transition-all hover:bg-red-500/10" style="color: var(--text-faint);" title="Delete">
                             <i class="fas fa-trash text-xs hover:text-red-400"></i>

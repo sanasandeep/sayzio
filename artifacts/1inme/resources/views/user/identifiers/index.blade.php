@@ -34,7 +34,7 @@
                             </form>
                         @endif
                         @if(!$id->is_primary)
-                            <form method="POST" action="{{ route('user.identifiers.destroy', $id) }}" onsubmit="return confirm('Remove this identifier?');">@csrf @method('DELETE')
+                            <form method="POST" action="{{ route('user.identifiers.destroy', $id) }}" onsubmit="return window.themedConfirmSubmit(this, {title: 'Remove this identifier?', confirmText: 'Remove', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">@csrf @method('DELETE')
                                 <button class="text-xs px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-200 hover:bg-red-500/20">Remove</button>
                             </form>
                         @endif

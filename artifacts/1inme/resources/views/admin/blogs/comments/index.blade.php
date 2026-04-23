@@ -59,7 +59,7 @@
                             @if($c->status !== 'trash')
                                 <button form="cm-{{ $c->id }}-trash" class="px-2.5 py-1 rounded bg-white/10 hover:bg-white/15 text-white/80">Trash</button>
                             @endif
-                            <button form="cm-{{ $c->id }}-delete" class="px-2.5 py-1 rounded bg-red-500/20 hover:bg-red-500/30 text-red-300" onclick="return confirm('Delete forever?')">Delete</button>
+                            <button form="cm-{{ $c->id }}-delete" class="px-2.5 py-1 rounded bg-red-500/20 hover:bg-red-500/30 text-red-300" onclick="return window.themedConfirmAction(this, {title: 'Delete this comment forever?', message: 'This cannot be undone.', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">Delete</button>
                             <button type="button" @click="editOpen=!editOpen" class="px-2.5 py-1 rounded bg-sky-500/20 hover:bg-sky-500/30 text-sky-300">Edit</button>
                             @if(auth('admin')->user()->hasPermission('blogs.comments.reply') && !$c->parent_id)
                                 <button type="button" @click="replyOpen=!replyOpen" class="px-2.5 py-1 rounded bg-violet-500/20 hover:bg-violet-500/30 text-violet-300">Reply</button>

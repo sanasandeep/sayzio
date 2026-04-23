@@ -267,7 +267,7 @@
                             @if(!empty($ins['action']) && !empty($ins['action_label']) && !empty($link) && isset($ins['action']['type']))
                                 @php $act = $ins['action']; @endphp
                                 <form action="{{ route('user.links.coach-action', $link) }}" method="POST" class="pc-insight-action-form"
-                                      @if(!empty($act['confirm'])) onsubmit="return confirm(@js($act['confirm']));" @endif>
+                                      @if(!empty($act['confirm'])) onsubmit="return window.themedConfirmSubmit(this, {title: 'Apply this fix?', message: @js($act['confirm']), confirmText: 'Apply', confirmIcon: 'fa-wand-magic-sparkles', iconClass: 'fa-wand-magic-sparkles'})" @endif>
                                     @csrf
                                     <input type="hidden" name="action_type" value="{{ $act['type'] }}">
                                     @if(!empty($act['block_id']))

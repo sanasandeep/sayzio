@@ -75,7 +75,7 @@
                         <span class="px-3 py-1.5 rounded-lg text-xs cursor-not-allowed opacity-60 bg-violet-600/40 text-white" title="Your role doesn't allow verifying domains — ask a workspace admin"><i class="fas fa-lock mr-1"></i>Verify</span>
                     @endif
                     @if($__canEdit)
-                    <form method="POST" action="{{ route('user.domains.destroy', $d) }}" onsubmit="return confirm('Remove {{ $d->domain }}? Existing links bound to it will lose their custom host.');">@csrf @method('DELETE')
+                    <form method="POST" action="{{ route('user.domains.destroy', $d) }}" onsubmit="return window.themedConfirmSubmit(this, {title: 'Remove {{ $d->domain }}?', message: 'Existing links bound to it will lose their custom host.', confirmText: 'Remove', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">@csrf @method('DELETE')
                         <button type="submit" class="px-3 py-1.5 rounded-lg text-xs bg-red-600/20 text-red-400 hover:bg-red-600/30">Remove</button>
                     </form>
                     @else

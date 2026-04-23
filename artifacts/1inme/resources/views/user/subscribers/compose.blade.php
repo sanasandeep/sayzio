@@ -79,7 +79,7 @@
                 <i class="fas fa-history mr-1"></i>Message History
             </a>
             <button type="submit" class="px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:-translate-y-0.5 flex items-center gap-2" style="background: linear-gradient(135deg, #7c3aed, #8b5cf6);"
-                    onclick="return confirm('Send this message to all active leads in the selected channel?')">
+                    onclick="return window.themedConfirmAction(this, {title: 'Send this message?', message: 'It will go to all active leads in the selected channel.', confirmText: 'Send', confirmIcon: 'fa-paper-plane', iconClass: 'fa-paper-plane'})">
                 <i class="fas fa-paper-plane"></i>Send Message
             </button>
         </div>

@@ -11,7 +11,7 @@
             <h1 class="text-2xl font-bold text-white">AI Minds</h1>
             <p class="text-sm text-white/50 mt-1">Per-user knowledge bases and the platform default mind.</p>
         </div>
-        <form method="POST" action="{{ route('admin.ai-minds.reseed') }}" onsubmit="return confirm('Re-queue ingestion of every source on the platform default Mind?')">
+        <form method="POST" action="{{ route('admin.ai-minds.reseed') }}" onsubmit="return window.themedConfirmSubmit(this, {title: 'Re-queue every source?', message: 'Ingestion will be re-queued for every source on the platform default Mind.', confirmText: 'Re-queue', confirmIcon: 'fa-rotate', iconClass: 'fa-rotate'})">
             @csrf
             <button class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm"><i class="fas fa-rotate"></i> Re-seed default</button>
         </form>
@@ -152,7 +152,7 @@
                                     <button class="text-xs text-emerald-300 hover:underline">Enable</button>
                                 </form>
                             @elseif(!$m->isPlatform())
-                                <form method="POST" action="{{ route('admin.ai-minds.disable', $m) }}" class="flex gap-1 items-center" onsubmit="return confirm('Disable this Mind?')">
+                                <form method="POST" action="{{ route('admin.ai-minds.disable', $m) }}" class="flex gap-1 items-center" onsubmit="return window.themedConfirmSubmit(this, {title: 'Disable this Mind?', confirmText: 'Disable', confirmIcon: 'fa-ban', iconClass: 'fa-ban'})">
                                     @csrf
                                     <input name="reason" required maxlength="500" placeholder="Reason" class="bg-white/[0.04] border border-white/10 rounded px-2 py-1 text-xs text-white w-40">
                                     <button class="text-xs text-red-300 hover:underline">Disable</button>

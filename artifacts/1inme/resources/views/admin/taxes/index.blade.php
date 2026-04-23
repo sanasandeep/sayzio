@@ -37,7 +37,7 @@
                         <td class="px-4 py-2 text-center">{{ $row->is_active ? '✓' : '—' }}</td>
                         <td class="px-4 py-2 text-right space-x-2 whitespace-nowrap">
                             <a href="{{ route('admin.taxes.edit', $row) }}" class="text-violet-300 hover:text-violet-200">Edit</a>
-                            <form method="POST" action="{{ route('admin.taxes.destroy', $row) }}" class="inline" onsubmit="return confirm('Delete this jurisdiction?');">
+                            <form method="POST" action="{{ route('admin.taxes.destroy', $row) }}" class="inline" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this jurisdiction?', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                                 @csrf @method('DELETE')
                                 <button class="text-red-400 hover:text-red-300">Delete</button>
                             </form>

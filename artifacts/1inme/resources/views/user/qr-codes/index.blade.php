@@ -77,7 +77,7 @@
                         <form method="POST" action="{{ route('user.qr-codes.duplicate', $qr) }}">@csrf
                             <button type="submit" class="px-2.5 py-1.5 text-xs rounded-lg" style="background: var(--bg-glass-hover); color: var(--text-secondary);" title="Duplicate"><i class="fas fa-copy"></i></button>
                         </form>
-                        <form method="POST" action="{{ route('user.qr-codes.destroy', $qr) }}" onsubmit="return confirm('Delete this QR code?');">@csrf @method('DELETE')
+                        <form method="POST" action="{{ route('user.qr-codes.destroy', $qr) }}" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this QR code?', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">@csrf @method('DELETE')
                             <button type="submit" class="px-2.5 py-1.5 text-xs rounded-lg" style="background: var(--bg-glass-hover); color: var(--c-danger);" title="Delete"><i class="fas fa-trash"></i></button>
                         </form>
                     </div>

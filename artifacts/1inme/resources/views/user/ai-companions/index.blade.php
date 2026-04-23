@@ -69,7 +69,7 @@
                         <div class="flex items-center gap-1">
                             <a href="{{ route('user.ai-companions.conversations', $c) }}" class="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-white"><i class="fas fa-comment"></i> Logs</a>
                             <a href="{{ route('user.ai-companions.edit', $c) }}" class="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-white"><i class="fas fa-edit"></i> Edit</a>
-                            <form method="POST" action="{{ route('user.ai-companions.destroy', $c) }}" class="inline" onsubmit="return confirm('Delete this Companion and all its conversations?')">@csrf @method('DELETE')
+                            <form method="POST" action="{{ route('user.ai-companions.destroy', $c) }}" class="inline" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this Companion?', message: 'All of its conversations will be removed too.', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">@csrf @method('DELETE')
                                 <button class="px-2 py-1 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-300"><i class="fas fa-trash"></i></button>
                             </form>
                         </div>

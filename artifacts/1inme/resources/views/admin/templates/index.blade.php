@@ -91,7 +91,7 @@
                         </button>
                     </form>
                     <a href="{{ route('admin.templates.edit', ['kind' => $tab, 'id' => $tpl->id]) }}" class="text-white/30 hover:text-violet-400 p-1.5"><i class="fas fa-edit text-xs"></i></a>
-                    <form action="{{ route('admin.templates.destroy', ['kind' => $tab, 'id' => $tpl->id]) }}" method="POST" class="inline" onsubmit="return confirm('Delete this template?')">
+                    <form action="{{ route('admin.templates.destroy', ['kind' => $tab, 'id' => $tpl->id]) }}" method="POST" class="inline" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this template?', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                         @csrf @method('DELETE')
                         <button type="submit" class="text-white/30 hover:text-red-400 p-1.5"><i class="fas fa-trash text-xs"></i></button>
                     </form>

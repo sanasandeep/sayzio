@@ -105,7 +105,7 @@
                         @endif
                         <a href="{{ route('user.splash-pages.preview', $sp) }}" target="_blank" class="px-3 py-1.5 text-xs rounded-lg" style="background: var(--bg-glass-hover); color: var(--text-secondary);" title="Preview"><i class="fas fa-eye"></i></a>
                         @if($__canEdit)
-                            <form method="POST" action="{{ route('user.splash-pages.destroy', $sp) }}" onsubmit="return confirm('Delete this intro? Links using it will lose their intro.');">
+                            <form method="POST" action="{{ route('user.splash-pages.destroy', $sp) }}" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this intro?', message: 'Links using it will lose their intro.', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                                 @csrf @method('DELETE')
                                 <button type="submit" class="px-3 py-1.5 text-xs rounded-lg" style="background: var(--bg-glass-hover); color: var(--c-danger);" title="Delete"><i class="fas fa-trash"></i></button>
                             </form>

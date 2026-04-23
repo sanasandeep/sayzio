@@ -134,7 +134,7 @@
                                 @csrf
                                 <button class="px-2 py-1 rounded bg-white/10 text-white text-xs hover:bg-white/15">Re-ingest</button>
                             </form>
-                            <form method="POST" action="{{ route('admin.site-assistant.sources.destroy', $s) }}" class="inline" onsubmit="return confirm('Delete this knowledge source?');">
+                            <form method="POST" action="{{ route('admin.site-assistant.sources.destroy', $s) }}" class="inline" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this knowledge source?', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                                 @csrf @method('DELETE')
                                 <button class="px-2 py-1 rounded bg-red-500/20 text-red-200 text-xs hover:bg-red-500/30">Delete</button>
                             </form>

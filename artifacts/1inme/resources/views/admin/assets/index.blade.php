@@ -438,7 +438,13 @@ function adminAssetVault() {
             const msg = hasFiles
                 ? `"${f.name}" contains ${f.count} file(s). Delete folder AND all files inside?`
                 : `Delete empty folder "${f.name}"?`;
-            if (!confirm(msg)) return;
+            if (!await window.themedConfirmAsync({
+                title: hasFiles ? 'Delete folder and contents?' : 'Delete empty folder?',
+                message: msg,
+                confirmText: 'Delete',
+                confirmIcon: 'fa-trash',
+                iconClass: 'fa-folder-minus',
+            })) return;
             const url = `/admin/assets/folders/${f.id}` + (hasFiles ? '?cascade=1' : '');
             const r = await fetch(url, {
                 method: 'DELETE',
@@ -482,7 +488,13 @@ function adminAssetVault() {
         },
 
         async remove(a) {
-            if (!confirm(`Delete "${a.original_name}"?`)) return;
+            if (!await window.themedConfirmAsync({
+                title: 'Delete this asset?',
+                message: `Delete "${a.original_name}"? This cannot be undone.`,
+                confirmText: 'Delete',
+                confirmIcon: 'fa-trash',
+                iconClass: 'fa-trash',
+            })) return;
             const r = await fetch(`/admin/assets/${a.id}`, {
                 method: 'DELETE',
                 headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },

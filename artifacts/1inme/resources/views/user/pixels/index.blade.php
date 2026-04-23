@@ -67,7 +67,7 @@
                     <div class="flex items-center justify-end gap-2">
                         @if($__canEdit)
                             <a href="{{ route('user.pixels.edit', $pixel) }}" class="text-white/30 hover:text-violet-400" title="Edit"><i class="fas fa-edit"></i></a>
-                            <form action="{{ route('user.pixels.destroy', $pixel) }}" method="POST" onsubmit="return confirm('Delete this tracker?')">
+                            <form action="{{ route('user.pixels.destroy', $pixel) }}" method="POST" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this tracker?', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                                 @csrf @method('DELETE')
                                 <button class="text-white/30 hover:text-red-400" title="Delete"><i class="fas fa-trash"></i></button>
                             </form>

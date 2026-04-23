@@ -192,7 +192,7 @@
                         <form method="POST" action="{{ route('user.minds.sources.refresh', [$mind, $s]) }}">@csrf
                             <button class="text-xs text-white/60 hover:text-white px-2 py-1" title="Re-ingest"><i class="fas fa-rotate"></i></button>
                         </form>
-                        <form method="POST" action="{{ route('user.minds.sources.destroy', [$mind, $s]) }}" onsubmit="return confirm('Remove this source?')">
+                        <form method="POST" action="{{ route('user.minds.sources.destroy', [$mind, $s]) }}" onsubmit="return window.themedConfirmSubmit(this, {title: 'Remove this source?', confirmText: 'Remove', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                             @csrf @method('DELETE')
                             <button class="text-xs text-red-300/80 hover:text-red-200 px-2 py-1"><i class="fas fa-trash"></i></button>
                         </form>

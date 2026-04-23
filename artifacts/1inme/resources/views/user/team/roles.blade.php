@@ -93,7 +93,7 @@
     </form>
 
     <form id="reset-roles-form" method="POST" action="{{ route('user.team.roles.reset') }}" class="hidden"
-          onsubmit="return confirm('Reset every role back to the original defaults?')">
+          onsubmit="return window.themedConfirmSubmit(this, {title: 'Reset every role?', message: 'Each role will be restored to its original defaults.', confirmText: 'Reset roles', confirmIcon: 'fa-rotate-left', iconClass: 'fa-rotate-left'})">
         @csrf
     </form>
 

@@ -161,8 +161,15 @@
                 this.categories.push({ _key: nextKey(), id: '', icon: 'fa-circle', heading: '', intro: '', features: [] });
             },
             removeCategory(i) {
-                if (!confirm('Delete this category and all its features?')) return;
-                this.categories.splice(i, 1);
+                var self = this;
+                window.themedConfirm({
+                    title: 'Delete this category?',
+                    message: 'The category and all of its features will be removed when you save.',
+                    confirmText: 'Delete',
+                    confirmIcon: 'fa-trash',
+                    iconClass: 'fa-trash',
+                    onConfirm: function () { self.categories.splice(i, 1); },
+                });
             },
             moveCategory(i, dir) {
                 const j = i + dir;

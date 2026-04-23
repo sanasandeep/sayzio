@@ -64,7 +64,7 @@
               </form>
             @else
               <form method="POST" action="{{ route('user.billing.cancel') }}" class="d-inline"
-                    onsubmit="return confirm('Stop renewing at period end?');">@csrf
+                    onsubmit="return window.themedConfirmSubmit(this, {title: 'Stop renewing at period end?', message: 'You will keep paid features until the current period ends.', confirmText: 'Cancel renewal', confirmIcon: 'fa-circle-xmark', iconClass: 'fa-circle-xmark'})">@csrf
                 <button class="btn btn-outline-danger btn-sm">Cancel at period end</button>
               </form>
             @endif
@@ -114,7 +114,7 @@
             <a href="{{ route('user.invoices.pdf', $inv) }}" target="_blank">PDF</a>
             @if (in_array($inv->id, $refundableInvoices))
               <form method="POST" action="{{ route('user.billing.refund', $inv) }}" class="d-inline ms-2"
-                    onsubmit="return confirm('Refund and downgrade to Free?');">@csrf
+                    onsubmit="return window.themedConfirmSubmit(this, {title: 'Refund and downgrade to Free?', message: 'Your subscription will be refunded and the workspace will move to the Free plan.', confirmText: 'Refund &amp; downgrade', confirmIcon: 'fa-money-bill-wave', iconClass: 'fa-money-bill-wave'})">@csrf
                 <button class="btn btn-link btn-sm text-danger p-0">Refund &amp; downgrade</button>
               </form>
             @elseif ($inv->status === 'paid' && $inv->paid_at)

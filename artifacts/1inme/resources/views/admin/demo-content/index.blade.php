@@ -81,7 +81,7 @@
                 <li><span class="inline-block w-2 h-2 rounded-full bg-amber-400 mr-2"></span><strong>Subscribers-only</strong> — paid / subscribed</li>
             </ul>
             <form method="POST" action="{{ route('admin.demo-content.seed') }}"
-                  onsubmit="return confirm('Re-seed demo content? Any existing demo rows will be replaced.');">
+                  onsubmit="return window.themedConfirmSubmit(this, {title: 'Re-seed demo content?', message: 'Any existing demo rows will be replaced.', confirmText: 'Re-seed', confirmIcon: 'fa-rotate', iconClass: 'fa-rotate'})">
                 @csrf
                 <button class="w-full px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-semibold">
                     <i class="fas fa-magic mr-2"></i>Create / re-seed demo content
@@ -103,7 +103,7 @@
                 (<code>demo@1inme.com</code>) is preserved so you keep dashboard access.
             </p>
             <form method="POST" action="{{ route('admin.demo-content.wipe') }}"
-                  onsubmit="return confirm('Remove all demo content? This cannot be undone.');">
+                  onsubmit="return window.themedConfirmSubmit(this, {title: 'Remove all demo content?', message: 'This cannot be undone.', confirmText: 'Remove', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                 @csrf
                 <button class="w-full px-4 py-2.5 rounded-xl bg-rose-500 hover:bg-rose-400 text-white text-sm font-semibold">
                     <i class="fas fa-trash-can mr-2"></i>Wipe demo content

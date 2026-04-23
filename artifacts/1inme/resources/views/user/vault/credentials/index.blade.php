@@ -116,7 +116,13 @@ function vaultInlineReveal(id) {
         shown: false, value: '', clearTimer: null,
         async reveal() {
             if (this.shown) { this.shown = false; this.value = ''; if (this.clearTimer) clearTimeout(this.clearTimer); return; }
-            if (!window.confirm('Reveal this password? This action is logged in the workspace audit trail.')) return;
+            if (!await window.themedConfirmAsync({
+                title: 'Reveal password?',
+                message: 'Reveal this password? This action is logged in the workspace audit trail.',
+                confirmText: 'Reveal',
+                confirmIcon: 'fa-eye',
+                iconClass: 'fa-eye',
+            })) return;
             const r = await fetch(`/user/vault/credentials/${id}/reveal`, {
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content, 'Accept': 'application/json' },

@@ -64,7 +64,7 @@
                                     <i class="fas fa-paper-plane mr-1"></i>Send test
                                 </button>
                                 <button type="submit" form="del-{{ $d->id }}" class="px-4 py-2 text-xs rounded-lg font-semibold ml-auto"
-                                        onclick="return confirm('Delete this forwarding rule?')"
+                                        onclick="return window.themedConfirmAction(this, {title: 'Delete this forwarding rule?', message: 'This stops future emails from being forwarded to the configured destinations.', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})"
                                         style="background: rgba(239,68,68,0.15); color: #fca5a5;">
                                     Delete
                                 </button>

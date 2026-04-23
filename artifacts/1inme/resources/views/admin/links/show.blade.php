@@ -91,7 +91,7 @@
             {{ $link->is_active ? 'Disable Link' : 'Enable Link' }}
         </button>
     </form>
-    <form method="POST" action="{{ route('admin.links.destroy', $link) }}" class="inline" onsubmit="return confirm('Delete this link permanently?')">
+    <form method="POST" action="{{ route('admin.links.destroy', $link) }}" class="inline" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this link permanently?', message: 'This cannot be undone.', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
         @csrf @method('DELETE')
         <button type="submit" class="bg-red-500/100 hover:bg-red-600 text-white px-4 py-2 rounded-xl text-sm font-medium">Delete Link</button>
     </form>

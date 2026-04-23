@@ -63,4 +63,80 @@ if (typeof window.themedConfirm !== 'function') {
         okBtn.addEventListener('click', function () { close(); onConfirm(); });
     };
 }
+
+/**
+ * Themed replacement for `onsubmit="return confirm('...')"`.
+ *
+ * Usage in Blade:
+ *     <form ... onsubmit="return window.themedConfirmSubmit(this, {
+ *         title: 'Delete this post?',
+ *         message: 'This cannot be undone.',
+ *         confirmText: 'Delete',
+ *         confirmIcon: 'fa-trash',
+ *         iconClass: 'fa-trash'
+ *     })">
+ */
+if (typeof window.themedConfirmSubmit !== 'function') {
+    window.themedConfirmSubmit = function (form, opts) {
+        if (!form || form.dataset.themedConfirmed === '1') {
+            if (form) { form.dataset.themedConfirmed = ''; }
+            return true;
+        }
+        var o = {};
+        if (opts) { for (var k in opts) { if (Object.prototype.hasOwnProperty.call(opts, k)) o[k] = opts[k]; } }
+        var origConfirm = o.onConfirm;
+        o.onConfirm = function () {
+            if (typeof origConfirm === 'function') origConfirm();
+            form.dataset.themedConfirmed = '1';
+            if (typeof form.requestSubmit === 'function') { form.requestSubmit(); }
+            else { form.submit(); }
+        };
+        window.themedConfirm(o);
+        return false;
+    };
+}
+
+/**
+ * Themed replacement for `onclick="return confirm('...')"` on a submit button
+ * (or any button that triggers an action via subsequent code). Returns false
+ * to cancel the immediate action and runs `onConfirm` if the user accepts.
+ *
+ * If `onConfirm` is omitted, the helper will look for the closest <form> and
+ * submit it (mirroring the native browser behavior of a submit button).
+ */
+/**
+ * Promise-returning replacement for native `confirm()`. Resolves true if the
+ * user confirms, false if they cancel/escape/dismiss. Lets JS-level call sites
+ * keep their `if (!await window.themedConfirmAsync(...)) return;` shape.
+ */
+if (typeof window.themedConfirmAsync !== 'function') {
+    window.themedConfirmAsync = function (opts) {
+        return new Promise(function (resolve) {
+            var o = {};
+            if (opts) { for (var k in opts) { if (Object.prototype.hasOwnProperty.call(opts, k)) o[k] = opts[k]; } }
+            o.onConfirm = function () { resolve(true); };
+            o.onCancel = function () { resolve(false); };
+            window.themedConfirm(o);
+        });
+    };
+}
+
+if (typeof window.themedConfirmAction !== 'function') {
+    window.themedConfirmAction = function (el, opts) {
+        var o = {};
+        if (opts) { for (var k in opts) { if (Object.prototype.hasOwnProperty.call(opts, k)) o[k] = opts[k]; } }
+        if (typeof o.onConfirm !== 'function') {
+            o.onConfirm = function () {
+                var form = el && el.form ? el.form : (el && el.closest ? el.closest('form') : null);
+                if (form) {
+                    form.dataset.themedConfirmed = '1';
+                    if (typeof form.requestSubmit === 'function') { form.requestSubmit(); }
+                    else { form.submit(); }
+                }
+            };
+        }
+        window.themedConfirm(o);
+        return false;
+    };
+}
 </script>

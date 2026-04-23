@@ -59,7 +59,7 @@
                     <i class="fas {{ $addon->is_archived ? 'fa-box-open' : 'fa-box-archive' }}"></i>
                 </button>
             </form>
-            <form action="{{ route('admin.addons.destroy', $addon) }}" method="POST" class="inline" onsubmit="return confirm('Delete this addon? This cannot be undone.')">
+            <form action="{{ route('admin.addons.destroy', $addon) }}" method="POST" class="inline" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this addon?', message: 'This cannot be undone.', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                 @csrf @method('DELETE')
                 <button type="submit" class="text-white/30 hover:text-red-400" title="Delete"><i class="fas fa-trash"></i></button>
             </form>

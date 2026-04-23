@@ -42,7 +42,7 @@
             </div>
             <div class="flex items-center justify-end gap-2 pt-3 border-t border-white/5">
                 <a href="{{ route('admin.onboarding-slides.edit', $slide) }}" class="text-white/40 hover:text-violet-400" title="Edit"><i class="fas fa-edit"></i></a>
-                <form action="{{ route('admin.onboarding-slides.destroy', $slide) }}" method="POST" class="inline" onsubmit="return confirm('Delete this slide?')">@csrf @method('DELETE')
+                <form action="{{ route('admin.onboarding-slides.destroy', $slide) }}" method="POST" class="inline" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this slide?', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">@csrf @method('DELETE')
                     <button class="text-white/40 hover:text-red-400" title="Delete"><i class="fas fa-trash"></i></button>
                 </form>
             </div>

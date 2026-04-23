@@ -70,7 +70,7 @@
                         </button>
                     </form>
                     <form method="POST" action="{{ route('user.contacts.google.destroy', $googleAccount) }}"
-                          onsubmit="return confirm('Disconnect Google? Existing contacts will stay; future changes will not sync.')">
+                          onsubmit="return window.themedConfirmSubmit(this, {title: 'Disconnect Google?', message: 'Existing contacts will stay; future changes will not sync.', confirmText: 'Disconnect', confirmIcon: 'fa-link-slash', iconClass: 'fa-link-slash'})">
                         @csrf @method('DELETE')
                         <button class="w-full px-3 py-2 rounded-lg text-xs font-medium transition" style="background:rgba(239,68,68,.10);color:#ef4444;border:1px solid rgba(239,68,68,.20)">
                             <i class="fas fa-unlink mr-1"></i> Disconnect

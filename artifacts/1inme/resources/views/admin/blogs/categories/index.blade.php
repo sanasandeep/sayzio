@@ -39,7 +39,7 @@
                 </div>
                 <input type="text" name="description" value="{{ $c->description }}" placeholder="Description" class="sm:col-span-12 px-3 py-2 bg-white/5 border border-white/10 rounded text-white text-sm">
             </form>
-            <form method="POST" action="{{ route('admin.blogs.categories.destroy', $c) }}" class="text-right -mt-2" onsubmit="return confirm('Delete category?')">
+            <form method="POST" action="{{ route('admin.blogs.categories.destroy', $c) }}" class="text-right -mt-2" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this category?', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                 @csrf @method('DELETE')
                 <button class="text-[11px] text-red-300 hover:text-red-200">Delete</button>
             </form>

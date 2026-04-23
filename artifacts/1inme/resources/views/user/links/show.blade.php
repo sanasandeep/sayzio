@@ -609,7 +609,7 @@
     <span class="text-[10px] uppercase tracking-wider font-bold mr-1" style="color: var(--text-faint);"><i class="fas fa-triangle-exclamation text-amber-400"></i> Reset</span>
     @if($aliasFilter)
         <form method="POST" action="{{ route('user.links.reset-stats', $link) }}?alias={{ urlencode($aliasFilter) }}" class="inline"
-              onsubmit="return confirm('Delete ALL click data for /{{ $aliasFilter }} on this link?\n\nThis cannot be undone. Engagement sessions are preserved.');">
+              onsubmit="return window.themedConfirmSubmit(this, {title: 'Reset clicks for /{{ $aliasFilter }}?', message: 'All click data for this alias will be deleted. Engagement sessions are preserved. This cannot be undone.', confirmText: 'Reset clicks', confirmIcon: 'fa-eraser', iconClass: 'fa-eraser'})">
             @csrf
             @method('DELETE')
             <button type="submit" class="pill" style="background:rgba(245,158,11,0.15); color:#fbbf24; border-color:rgba(245,158,11,0.3);">
@@ -618,7 +618,7 @@
         </form>
     @endif
     <form method="POST" action="{{ route('user.links.reset-stats', $link) }}" class="inline"
-          onsubmit="return confirm('Delete ALL analytics data for this link?\n\n• Clicks\n• Page sessions\n• Block views\n\nThis cannot be undone.') && confirm('Are you absolutely sure? Type-check: this will wipe every analytics record for this link.');">
+          onsubmit="return window.themedConfirmSubmit(this, {title: 'Reset every analytics record?', messageHtml: 'This will permanently delete <strong>clicks</strong>, <strong>page sessions</strong> and <strong>block views</strong> for this link. This cannot be undone.', confirmText: 'Reset all stats', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
         @csrf
         @method('DELETE')
         <button type="submit" class="pill" style="background:rgba(239,68,68,0.15); color:#fca5a5; border-color:rgba(239,68,68,0.3);">
@@ -777,7 +777,7 @@
                             </form>
                         @else
                             <form method="POST" action="{{ route('user.bot-blocks.store') }}" class="shrink-0"
-                                  onsubmit="return confirm('Drop all future hits from {{ $row->family }} before they\'re recorded? You can undo this from the Blocked bots page.');">
+                                  onsubmit="return window.themedConfirmSubmit(this, {title: 'Block {{ $row->family }}?', message: 'All future hits from this bot will be dropped before being recorded. You can undo this from the Blocked bots page.', confirmText: 'Block', confirmIcon: 'fa-ban', iconClass: 'fa-ban'})">
                                 @csrf
                                 <input type="hidden" name="family" value="{{ $row->family }}"/>
                                 <button type="submit"

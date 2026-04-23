@@ -108,7 +108,7 @@
                         .txt
                     </a>
                     <form method="POST" action="{{ route('user.ai.companion.destroy', $active->id) }}"
-                          onsubmit="return confirm('Delete this conversation? This cannot be undone.');">
+                          onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this conversation?', message: 'This cannot be undone.', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                         @csrf
                         @method('DELETE')
                         <button class="px-3 py-2 rounded-xl bg-red-500/10 text-red-300 text-xs hover:bg-red-500/20">

@@ -91,13 +91,13 @@
                 <span class="px-3 flex items-center text-xs flex-shrink-0" style="color: var(--text-faint); border-right: 1px solid var(--border-glass); background: var(--bg-glass);">{{ $aliasHost }}/</span>
                 <a href="{{ url($a->alias) }}" target="_blank" class="flex-1 px-3 py-2 text-sm truncate" style="color: var(--text-primary);">{{ $a->alias }}</a>
                 <div class="flex items-center gap-0.5 pr-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
-                    <form method="POST" action="{{ route('user.links.aliases.promote', [$link, $a]) }}" class="inline" onsubmit="return confirm('Make this the primary alias? The current primary will become an alternative.')">
+                    <form method="POST" action="{{ route('user.links.aliases.promote', [$link, $a]) }}" class="inline" onsubmit="return window.themedConfirmSubmit(this, {title: 'Make this the primary alias?', message: 'The current primary will become an alternative.', confirmText: 'Make primary', confirmIcon: 'fa-star', iconClass: 'fa-star'})">
                         @csrf
                         <button type="submit" class="px-2 py-1 rounded hover:bg-amber-500/10" style="color: var(--text-faint);" title="Promote to primary">
                             <i class="fas fa-star text-[11px] hover:text-amber-400"></i>
                         </button>
                     </form>
-                    <form method="POST" action="{{ route('user.links.aliases.destroy', [$link, $a]) }}" class="inline" onsubmit="return confirm('Delete this alias? Anyone visiting it will get a 404.')">
+                    <form method="POST" action="{{ route('user.links.aliases.destroy', [$link, $a]) }}" class="inline" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this alias?', message: 'Anyone visiting it will get a 404.', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                         @csrf @method('DELETE')
                         <button type="submit" class="px-2 py-1 rounded hover:bg-red-500/10" style="color: var(--text-faint);" title="Delete">
                             <i class="fas fa-trash text-[11px] hover:text-red-400"></i>

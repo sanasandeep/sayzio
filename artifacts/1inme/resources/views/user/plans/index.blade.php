@@ -114,7 +114,7 @@
                     <i class="fas fa-edit mr-1.5"></i>Edit
                 </a>
                 @if($plan->users_count === 0)
-                <form action="{{ route('user.plans.destroy', $plan) }}" method="POST" class="flex-1" onsubmit="return confirm('Are you sure you want to delete this plan?')">
+                <form action="{{ route('user.plans.destroy', $plan) }}" method="POST" class="flex-1" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this plan?', message: 'This cannot be undone.', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                     @csrf @method('DELETE')
                     <button type="submit" class="w-full text-center text-xs font-semibold py-2 rounded-lg transition-all bg-red-500/10 text-red-400 hover:bg-red-500/20" style="border: 1px solid rgba(239,68,68,0.15);">
                         <i class="fas fa-trash mr-1.5"></i>Delete

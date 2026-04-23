@@ -492,8 +492,22 @@
 // Helper: submit an alias action by building a transient form (top-level,
 // not nested) so HTML doesn't auto-close the parent edit form.
 window.linkAliasAction = function (btn, method, confirmMsg) {
-    if (confirmMsg && !confirm(confirmMsg)) return;
     var action = btn.getAttribute('data-action');
+    var doIt = function () { window.linkAliasActionRun(btn, method, action); };
+    if (confirmMsg) {
+        window.themedConfirm({
+            title: 'Are you sure?',
+            message: confirmMsg,
+            confirmText: 'Continue',
+            confirmIcon: 'fa-check',
+            iconClass: 'fa-triangle-exclamation',
+            onConfirm: doIt,
+        });
+        return;
+    }
+    doIt();
+};
+window.linkAliasActionRun = function (btn, method, action) {
     var f = document.createElement('form');
     f.method = 'POST';
     f.action = action;

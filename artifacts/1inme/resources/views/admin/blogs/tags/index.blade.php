@@ -29,7 +29,7 @@
                     <span class="text-xs text-white/50 self-center">{{ $t->posts_count }}</span>
                     <button class="px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded text-xs text-white">Save</button>
                 </form>
-                <form method="POST" action="{{ route('admin.blogs.tags.destroy', $t) }}" onsubmit="return confirm('Delete tag?')">
+                <form method="POST" action="{{ route('admin.blogs.tags.destroy', $t) }}" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this tag?', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                     @csrf @method('DELETE')
                     <button class="px-3 py-1.5 bg-red-500/15 hover:bg-red-500/25 rounded text-xs text-red-300">Delete</button>
                 </form>

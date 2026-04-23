@@ -26,7 +26,7 @@
                 </div>
             </div>
         </form>
-        <form method="POST" action="{{ route('user.contacts.destroy', $contact) }}" class="mt-4" onsubmit="return confirm('Delete this contact? This will also remove it from Google on your next sync.')">
+        <form method="POST" action="{{ route('user.contacts.destroy', $contact) }}" class="mt-4" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this contact?', message: 'It will also be removed from Google on your next sync.', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
             @csrf @method('DELETE')
             <button type="submit" class="text-xs font-medium" style="color:#ef4444;"><i class="fas fa-trash mr-1"></i> Delete contact</button>
         </form>

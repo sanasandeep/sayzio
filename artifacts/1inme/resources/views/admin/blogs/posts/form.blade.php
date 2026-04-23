@@ -252,7 +252,7 @@ window.blogUploadCover = async function(input) {
     </form>
 
     @if($post->exists)
-        <form id="delete-form" method="POST" action="{{ route('admin.blogs.posts.destroy', $post) }}" class="hidden" onsubmit="return confirm('Delete this post permanently?')">@csrf @method('DELETE')</form>
+        <form id="delete-form" method="POST" action="{{ route('admin.blogs.posts.destroy', $post) }}" class="hidden" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this post permanently?', message: 'This cannot be undone.', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">@csrf @method('DELETE')</form>
     @endif
 </div>
 @endsection

@@ -66,7 +66,7 @@
                     @if(!$d->is_verified)
                         <button type="submit" form="vfy-{{ $d->id }}" class="px-2 py-1.5 rounded-md text-xs bg-violet-600 hover:bg-violet-700 text-white" title="Check CNAME via DNS">Verify</button>
                     @endif
-                    <button type="submit" form="del-{{ $d->id }}" class="px-2 py-1.5 rounded-md text-xs bg-red-600/20 text-red-400 hover:bg-red-600/30" onclick="return confirm('Remove this domain? Links bound to it will lose their host.')">Del</button>
+                    <button type="submit" form="del-{{ $d->id }}" class="px-2 py-1.5 rounded-md text-xs bg-red-600/20 text-red-400 hover:bg-red-600/30" onclick="return window.themedConfirmAction(this, {title: 'Remove this domain?', message: 'Links bound to it will lose their host.', confirmText: 'Remove', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">Del</button>
                 </div>
             </form>
             <form id="del-{{ $d->id }}" method="POST" action="{{ route('admin.domains.destroy', $d) }}">@csrf @method('DELETE')</form>
