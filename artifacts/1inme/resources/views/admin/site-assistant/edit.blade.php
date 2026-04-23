@@ -198,6 +198,236 @@
         </div>
 
         <div class="glass rounded-2xl border border-white/10 p-6 space-y-4">
+            <div class="flex items-start justify-between gap-3 flex-wrap">
+                <div>
+                    <h3 class="font-semibold text-white">Preview</h3>
+                    <p class="text-xs text-white/40">Live render of the greeting and starter prompts a visitor would see, using the unsaved values above. Pick a configured language or paste an <span class="font-mono">Accept-Language</span> header to test the matcher.</p>
+                </div>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs text-white/60 mb-1">Language</label>
+                    <select id="sa_preview_locale_select" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                        <option value="__default__">Default (no Accept-Language match)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-white/60 mb-1">Or Accept-Language header</label>
+                    <input type="text" id="sa_preview_accept" placeholder="e.g. fr-CA,fr;q=0.9,en;q=0.8" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white font-mono">
+                </div>
+            </div>
+            <div id="sa_preview_resolved" class="text-[11px] text-white/50">Showing default copy.</div>
+
+            <div id="sa_preview_widget" class="rounded-2xl border border-white/10 overflow-hidden" style="background:#0f172a;color:#e2e8f0;font-family:'Space Grotesk','system-ui',sans-serif;max-width:380px">
+                <div id="sa_preview_header" style="padding:14px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.06)">
+                    <div id="sa_preview_avatar" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff">★</div>
+                    <div>
+                        <h4 style="margin:0;font-size:14px;font-weight:600;color:#fff">{{ config('app.name') }}</h4>
+                        <div style="font-size:11px;opacity:.65">How can I help?</div>
+                    </div>
+                </div>
+                <div id="sa_preview_suggested" style="display:flex;flex-wrap:wrap;gap:6px;padding:8px 14px 0"></div>
+                <div id="sa_preview_body" style="padding:14px;display:flex;flex-direction:column;gap:10px;min-height:120px">
+                    <div id="sa_preview_greeting" style="align-self:flex-start;max-width:85%;padding:10px 12px;border-radius:14px;border-bottom-left-radius:4px;background:rgba(255,255,255,.06);color:#e2e8f0;font-size:13.5px;line-height:1.45;white-space:pre-wrap;word-wrap:break-word"></div>
+                </div>
+            </div>
+
+            <script>
+            (function () {
+                var form = document.querySelector('form[action$="/site-assistant"]') || document.querySelector('form');
+
+                function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, function(c){
+                    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; });
+                }
+                function mdLite(s){
+                    s = escapeHtml(s);
+                    s = s.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
+                    s = s.replace(/\*([^*]+)\*/g,'<em>$1</em>');
+                    s = s.replace(/`([^`]+)`/g,'<code>$1</code>');
+                    s = s.replace(/\n/g,'<br>');
+                    return s;
+                }
+
+                // Mirrors App\Modules\Common\Support\CookieConsentConfig::pickLocale
+                function pickLocale(available, acceptLanguage){
+                    if (!available || !available.length || !acceptLanguage) return null;
+                    var availMap = {}, availPrimary = {};
+                    available.forEach(function (code) {
+                        availMap[code.toLowerCase()] = code;
+                        var primary = code.toLowerCase().split('-')[0];
+                        if (!(primary in availPrimary)) availPrimary[primary] = code;
+                    });
+                    var entries = [];
+                    acceptLanguage.split(',').forEach(function (part) {
+                        part = part.trim(); if (!part) return;
+                        var q = 1.0, tag = part;
+                        if (part.indexOf(';') >= 0) {
+                            var bits = part.split(';');
+                            tag = bits.shift().trim();
+                            bits.forEach(function (p) {
+                                var m = p.match(/q=([0-9.]+)/);
+                                if (m) q = parseFloat(m[1]);
+                            });
+                        }
+                        if (tag === '*' || q <= 0) return;
+                        if (!/^[a-zA-Z]{1,8}(-[a-zA-Z0-9]{1,8})*$/.test(tag)) return;
+                        entries.push([tag, q]);
+                    });
+                    entries.sort(function (a, b) { return b[1] - a[1]; });
+                    for (var i = 0; i < entries.length; i++) {
+                        var low = entries[i][0].toLowerCase();
+                        if (availMap[low]) return availMap[low];
+                        var primary = low.split('-')[0];
+                        if (availPrimary[primary]) return availPrimary[primary];
+                    }
+                    return null;
+                }
+
+                function defaultGreeting(){
+                    var i = form.querySelector('input[name="greeting"]');
+                    return i ? i.value : '';
+                }
+                function defaultPrompts(){
+                    var ta = form.querySelector('textarea[name="starter_prompts_text"]');
+                    if (!ta) return [];
+                    return ta.value.split('\n').map(function (s) { return s.trim(); }).filter(Boolean).slice(0, 10);
+                }
+                function accent(){
+                    var i = form.querySelector('input[name="accent_color"]');
+                    var v = i ? i.value.trim() : '';
+                    return v || '#7c3aed';
+                }
+                function avatarUrl(){
+                    var i = form.querySelector('input[name="avatar_url"]');
+                    return i ? i.value.trim() : '';
+                }
+
+                // Mirror the backend's BCP-47 canonicalization (underscore →
+                // hyphen) so codes typed as `pt_BR` resolve through the
+                // Accept-Language matcher exactly the way they will after save.
+                function canonLocale(code){
+                    return String(code || '').replace(/_/g, '-').trim();
+                }
+
+                // Pull the current per-language config from the live form rows.
+                function localeRows(){
+                    var rows = form.querySelectorAll('#intro_locales .intro-locale-row');
+                    var out = {};
+                    rows.forEach(function (row) {
+                        var code = canonLocale(row.querySelector('[data-intro-locale-code]').value);
+                        if (!code) return;
+                        var greeting = (row.querySelector('[data-intro-greeting]').value || '').trim();
+                        var prompts = (row.querySelector('[data-intro-prompts]').value || '')
+                            .split('\n').map(function (s) { return s.trim(); }).filter(Boolean).slice(0, 10);
+                        if (!out[code]) out[code] = { greeting: '', prompts: [] };
+                        if (greeting) out[code].greeting = greeting;
+                        if (prompts.length) out[code].prompts = prompts;
+                    });
+                    return out;
+                }
+
+                var sel = document.getElementById('sa_preview_locale_select');
+                var accept = document.getElementById('sa_preview_accept');
+                var resolved = document.getElementById('sa_preview_resolved');
+                var greetEl = document.getElementById('sa_preview_greeting');
+                var suggested = document.getElementById('sa_preview_suggested');
+                var avatarEl = document.getElementById('sa_preview_avatar');
+
+                function refreshLocaleOptions(){
+                    var current = sel.value;
+                    var rows = localeRows();
+                    var codes = Object.keys(rows).sort();
+                    var html = '<option value="__default__">Default (no Accept-Language match)</option>';
+                    codes.forEach(function (c) {
+                        html += '<option value="' + escapeHtml(c) + '">' + escapeHtml(c) + '</option>';
+                    });
+                    sel.innerHTML = html;
+                    if (current && (current === '__default__' || codes.indexOf(current) >= 0)) sel.value = current;
+                }
+
+                function render(){
+                    var rows = localeRows();
+                    var available = Object.keys(rows);
+                    var picked = null;
+                    var note;
+
+                    var acceptVal = accept.value.trim();
+                    if (acceptVal) {
+                        picked = pickLocale(available, acceptVal);
+                        note = picked
+                            ? 'Accept-Language matched configured locale: ' + picked
+                            : 'No configured locale matched — showing default copy.';
+                    } else if (sel.value && sel.value !== '__default__' && available.indexOf(sel.value) >= 0) {
+                        // Direct selection from the dropdown — skip the matcher
+                        // entirely so locale codes that use `_` (allowed by the
+                        // form's pattern + canonicalized server-side) still
+                        // resolve here without round-tripping through pickLocale.
+                        picked = sel.value;
+                        note = 'Showing locale: ' + picked;
+                    } else {
+                        note = 'Showing default copy.';
+                    }
+                    resolved.textContent = note;
+
+                    var greeting = defaultGreeting();
+                    var prompts = defaultPrompts();
+                    if (picked && rows[picked]) {
+                        if (rows[picked].greeting) greeting = rows[picked].greeting;
+                        if (rows[picked].prompts.length) prompts = rows[picked].prompts;
+                    }
+
+                    var ac = accent();
+                    greetEl.innerHTML = mdLite(greeting || '(empty greeting)');
+                    if (!greeting) greetEl.style.opacity = '0.5'; else greetEl.style.opacity = '1';
+
+                    suggested.innerHTML = '';
+                    prompts.forEach(function (p) {
+                        var b = document.createElement('button');
+                        b.type = 'button';
+                        b.style.cssText = 'background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);color:#fff;padding:6px 12px;border-radius:999px;font-size:11.5px;cursor:default;font-family:inherit';
+                        b.textContent = p;
+                        b.addEventListener('mouseenter', function () { b.style.background = ac; b.style.borderColor = 'transparent'; });
+                        b.addEventListener('mouseleave', function () { b.style.background = 'rgba(255,255,255,.08)'; b.style.borderColor = 'rgba(255,255,255,.1)'; });
+                        suggested.appendChild(b);
+                    });
+
+                    var av = avatarUrl();
+                    if (av) {
+                        avatarEl.innerHTML = '';
+                        avatarEl.style.background = 'transparent';
+                        var img = document.createElement('img');
+                        img.src = av; img.alt = '';
+                        img.style.cssText = 'width:32px;height:32px;border-radius:50%;object-fit:cover';
+                        avatarEl.appendChild(img);
+                    } else {
+                        avatarEl.innerHTML = '★';
+                        avatarEl.style.background = 'rgba(255,255,255,.08)';
+                    }
+                }
+
+                // Re-render whenever any input in the form changes — cheap
+                // enough that we don't bother filtering by field name.
+                form.addEventListener('input', function () {
+                    refreshLocaleOptions();
+                    render();
+                });
+                // Row add/remove fires no input events, so observe DOM changes too.
+                var host = document.getElementById('intro_locales');
+                if (host && window.MutationObserver) {
+                    new MutationObserver(function () { refreshLocaleOptions(); render(); })
+                        .observe(host, { childList: true });
+                }
+                sel.addEventListener('change', render);
+                accept.addEventListener('input', render);
+
+                refreshLocaleOptions();
+                render();
+            })();
+            </script>
+        </div>
+
+        <div class="glass rounded-2xl border border-white/10 p-6 space-y-4">
             <h3 class="font-semibold text-white">Behavior</h3>
             <div>
                 <label class="block text-xs text-white/60 mb-1">System prompt</label>
