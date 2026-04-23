@@ -1506,11 +1506,11 @@
             animation: qrFloat 4s ease-in-out infinite;
         }
         @keyframes qrFloat { 0%,100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-6px) rotate(2deg); } }
-        .qr-dots {
+        .qr-svg {
             width: 100%; height: 100%;
-            background-image: radial-gradient(#0e0e10 1.5px, transparent 1.5px);
-            background-size: 7px 7px;
+            display: block;
             border-radius: 4px;
+            shape-rendering: geometricPrecision;
         }
         .qr-stage::after {
             content: ""; position: absolute;
@@ -3927,7 +3927,71 @@
                         <span class="qr-corner bl"></span>
                         <span class="qr-corner br"></span>
                         <span class="qr-scans-pill">+128 scans · today</span>
-                        <div class="qr-dots"></div>
+                        @php
+                            $qrSize = 29;
+                            $qrGrid = array_fill(0, $qrSize, array_fill(0, $qrSize, 0));
+                            $qrFinder = function (&$g, $ox, $oy) {
+                                for ($i = 0; $i < 7; $i++) {
+                                    for ($j = 0; $j < 7; $j++) {
+                                        $on = ($i === 0 || $i === 6 || $j === 0 || $j === 6)
+                                            || ($i >= 2 && $i <= 4 && $j >= 2 && $j <= 4);
+                                        $g[$oy + $i][$ox + $j] = $on ? 1 : 0;
+                                    }
+                                }
+                            };
+                            $qrFinder($qrGrid, 0, 0);
+                            $qrFinder($qrGrid, 22, 0);
+                            $qrFinder($qrGrid, 0, 22);
+                            for ($i = 0; $i < 5; $i++) {
+                                for ($j = 0; $j < 5; $j++) {
+                                    $on = ($i === 0 || $i === 4 || $j === 0 || $j === 4) || ($i === 2 && $j === 2);
+                                    $qrGrid[20 + $i][20 + $j] = $on ? 1 : 0;
+                                }
+                            }
+                            for ($i = 8; $i <= 20; $i++) {
+                                $qrGrid[6][$i] = ($i % 2 === 0) ? 1 : 0;
+                                $qrGrid[$i][6] = ($i % 2 === 0) ? 1 : 0;
+                            }
+                            $qrReserved = function ($x, $y) {
+                                if ($x < 8 && $y < 8) return true;
+                                if ($x >= 22 && $y < 8) return true;
+                                if ($x < 8 && $y >= 22) return true;
+                                if ($x >= 20 && $x < 25 && $y >= 20 && $y < 25) return true;
+                                if ($x === 6 || $y === 6) return true;
+                                return false;
+                            };
+                            mt_srand(20251128);
+                            for ($y = 0; $y < $qrSize; $y++) {
+                                for ($x = 0; $x < $qrSize; $x++) {
+                                    if (!$qrReserved($x, $y)) {
+                                        $qrGrid[$y][$x] = (mt_rand(0, 100) < 47) ? 1 : 0;
+                                    }
+                                }
+                            }
+                            for ($y = 12; $y <= 16; $y++) {
+                                for ($x = 12; $x <= 16; $x++) {
+                                    $qrGrid[$y][$x] = 0;
+                                }
+                            }
+                        @endphp
+                        <svg class="qr-svg" viewBox="0 0 29 29" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+                            <defs>
+                                <linearGradient id="qrLogoGrad" x1="0" y1="0" x2="1" y2="1">
+                                    <stop offset="0" stop-color="#e94e8c"/>
+                                    <stop offset="1" stop-color="#7c3aed"/>
+                                </linearGradient>
+                            </defs>
+                            @for ($y = 0; $y < $qrSize; $y++)
+                                @for ($x = 0; $x < $qrSize; $x++)
+                                    @if ($qrGrid[$y][$x])
+                                        <rect x="{{ $x }}" y="{{ $y }}" width="1.04" height="1.04" rx="0.18" ry="0.18" fill="#0e0e10"/>
+                                    @endif
+                                @endfor
+                            @endfor
+                            <rect x="11.4" y="11.4" width="6.2" height="6.2" rx="1.3" ry="1.3" fill="#fff"/>
+                            <rect x="12.1" y="12.1" width="4.8" height="4.8" rx="1" ry="1" fill="url(#qrLogoGrad)"/>
+                            <text x="14.5" y="15.95" text-anchor="middle" font-family="Inter,system-ui,-apple-system,sans-serif" font-weight="900" font-size="3.2" fill="#fff">1</text>
+                        </svg>
                     </div>
                 </div>
             </div>
