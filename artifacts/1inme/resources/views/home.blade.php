@@ -5597,173 +5597,6 @@
 </section>
 @endif
 
-{{-- ============================ WHY 1INME (comparison) ============================ --}}
-@php
-    $__whyRaw = \App\Modules\Admin\Models\AppSetting::get('marketing_why_comparison', null);
-    if ($__whyRaw === null) {
-        $__whyRows = \App\Modules\Common\Support\SitePagesContent::whyComparisonDefault();
-    } else {
-        $__whyRows = \App\Modules\Common\Support\SitePagesContent::normalizeWhyComparison((array) $__whyRaw);
-    }
-@endphp
-@if(!empty($__whyRows))
-@php
-    // Competitor names called out by this section. Source of truth lives in the
-    // shared compare partial; mirror them here so the rotating chip + per-card
-    // chips stay in sync without DB lookups.
-    $__whyRivals = ['Linktree', 'Bitly', 'Beacons', 'Carrd', 'Taplink', 'Stan'];
-@endphp
-<section id="why" class="why2-section pt-10 pb-20 lg:pt-14 lg:pb-28 relative overflow-hidden">
-    {{-- Decorative animated SVG blobs / grid --}}
-    <svg class="why2-bg-orb why2-bg-orb-a" viewBox="0 0 600 600" aria-hidden="true">
-        <defs>
-            <radialGradient id="why2OrbA" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stop-color="#a78bfa" stop-opacity=".55"/>
-                <stop offset="100%" stop-color="#a78bfa" stop-opacity="0"/>
-            </radialGradient>
-        </defs>
-        <circle cx="300" cy="300" r="280" fill="url(#why2OrbA)"/>
-    </svg>
-    <svg class="why2-bg-orb why2-bg-orb-b" viewBox="0 0 600 600" aria-hidden="true">
-        <defs>
-            <radialGradient id="why2OrbB" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stop-color="#ec4899" stop-opacity=".5"/>
-                <stop offset="100%" stop-color="#ec4899" stop-opacity="0"/>
-            </radialGradient>
-        </defs>
-        <circle cx="300" cy="300" r="280" fill="url(#why2OrbB)"/>
-    </svg>
-
-    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        {{-- Heading --}}
-        <div class="text-center mb-12 max-w-2xl mx-auto">
-            <div data-anim="fade-up" class="text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c4)">12 · Why 1INME</div>
-            <h2 data-anim="fade-up" class="text-4xl sm:text-5xl font-bold tracking-tight mb-4 relative inline-block">
-                One link.
-                <span class="grad-text relative">
-                    Everything you need.
-                    {{-- Animated underline that draws in on view --}}
-                    <svg class="why2-underline" viewBox="0 0 360 18" preserveAspectRatio="none" aria-hidden="true">
-                        <defs>
-                            <linearGradient id="why2UnderlineGrad" x1="0" y1="0" x2="1" y2="0">
-                                <stop offset="0%"   stop-color="#a78bfa"/>
-                                <stop offset="50%"  stop-color="#ec4899"/>
-                                <stop offset="100%" stop-color="#22d3ee"/>
-                            </linearGradient>
-                        </defs>
-                        <path d="M2 12 C 70 2, 200 22, 358 6" fill="none" stroke="url(#why2UnderlineGrad)" stroke-width="4" stroke-linecap="round"/>
-                    </svg>
-                </span>
-            </h2>
-            <p data-anim="fade-up" class="text-gray-400">
-                Linktree, Bitly, Beacons, Carrd, Taplink, Stan — they each do one slice.
-                <span class="text-white font-semibold">1INME does the whole stack.</span>
-            </p>
-
-            {{-- Rotating "vs" chip --}}
-            <div data-anim="fade-up"
-                 class="why2-vs mt-6 inline-flex items-center gap-2"
-                 x-data="{
-                     i: 0,
-                     names: @js($__whyRivals),
-                     start(){ setInterval(() => { this.i = (this.i + 1) % this.names.length }, 1800) }
-                 }"
-                 x-init="start()">
-                <span class="text-xs font-bold uppercase tracking-wider text-gray-500">Compare 1INME vs</span>
-                <span class="why2-vs-pill">
-                    <span class="why2-vs-dot" aria-hidden="true"></span>
-                    <span x-text="names[i]" class="why2-vs-name">Linktree</span>
-                </span>
-            </div>
-        </div>
-
-        {{-- Feature card grid --}}
-        <div class="why2-grid">
-            @foreach($__whyRows as $idx => $r)
-                @php
-                    $oursIsYes = strcasecmp(trim((string) $r['ours']), 'yes') === 0;
-                    // Rotate which 2 rival chips to highlight per card so the
-                    // section feels lively and competitor names appear all over.
-                    $rivalA = $__whyRivals[$idx % count($__whyRivals)];
-                    $rivalB = $__whyRivals[($idx + 2) % count($__whyRivals)];
-                @endphp
-                <article data-anim="fade-up" class="why2-card" style="--why2-delay: {{ ($idx % 6) * 80 }}ms">
-                    {{-- Animated gradient ring sweep --}}
-                    <span class="why2-card-glow" aria-hidden="true"></span>
-
-                    {{-- Number bubble --}}
-                    <div class="why2-num">
-                        <svg viewBox="0 0 40 40" width="40" height="40" aria-hidden="true">
-                            <defs>
-                                <linearGradient id="why2NumGrad{{ $idx }}" x1="0" y1="0" x2="1" y2="1">
-                                    <stop offset="0%" stop-color="#a78bfa"/>
-                                    <stop offset="100%" stop-color="#ec4899"/>
-                                </linearGradient>
-                            </defs>
-                            <circle cx="20" cy="20" r="18" fill="none" stroke="url(#why2NumGrad{{ $idx }})" stroke-width="2" class="why2-num-ring"/>
-                        </svg>
-                        <span>{{ str_pad((string)($idx + 1), 2, '0', STR_PAD_LEFT) }}</span>
-                    </div>
-
-                    <h3 class="why2-card-title">{{ $r['feature'] }}</h3>
-
-                    {{-- 1INME line with animated SVG check + highlight sweep --}}
-                    <div class="why2-row why2-row-ours">
-                        <span class="why2-tick" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
-                                <path class="why2-tick-path" d="M5 12.5l4.5 4.5L19 7"/>
-                            </svg>
-                        </span>
-                        <div class="why2-row-content">
-                            <span class="why2-row-label">1INME</span>
-                            <span class="why2-row-value">
-                                <span class="why2-hl">{{ $oursIsYes ? 'Yes' : $r['ours'] }}</span>
-                            </span>
-                        </div>
-                    </div>
-
-                    {{-- Competitor line --}}
-                    <div class="why2-row why2-row-them">
-                        <span class="why2-dash" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
-                                <path d="M6 12h12"/>
-                            </svg>
-                        </span>
-                        <div class="why2-row-content">
-                            <div class="why2-rival-chips">
-                                <span class="why2-chip">{{ $rivalA }}</span>
-                                <span class="why2-chip">{{ $rivalB }}</span>
-                                <span class="why2-chip why2-chip-more">+ others</span>
-                            </div>
-                            <span class="why2-row-value why2-row-value-them">{{ $r['theirs'] }}</span>
-                        </div>
-                    </div>
-                </article>
-            @endforeach
-        </div>
-
-        {{-- CTA to full breakdown --}}
-        <div data-anim="fade-up" class="text-center mt-10">
-            <a href="{{ url('/pricing') }}#compare" class="why2-cta">
-                <span class="why2-cta-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="3" width="18" height="18" rx="3"/>
-                        <path d="M3 9h18M9 3v18"/>
-                    </svg>
-                </span>
-                See the full feature-by-feature breakdown vs all 6 tools
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M5 12h14M13 5l7 7-7 7"/>
-                </svg>
-            </a>
-            <p class="text-xs text-gray-500 mt-3">
-                24 features &middot; 6 competitors &middot; updated regularly
-            </p>
-        </div>
-    </div>
-</section>
-@endif
-
 {{-- ============================ FREE HERE / PAID THERE (lead-in to compare) ============================ --}}
 <section class="pt-4 pb-2 lg:pt-8 lg:pb-4 relative overflow-hidden" aria-label="Free here, paid elsewhere">
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -5825,7 +5658,7 @@
 </section>
 
 {{-- ============================ HOW WE COMPARE ============================ --}}
-@include('public.partials._compare', ['compact' => true, 'eyebrowOverride' => '13 · How we compare'])
+@include('public.partials._compare', ['compact' => true, 'eyebrowOverride' => '12 · How we compare'])
 @php
     // Legacy inline arrays kept commented out — replaced by shared partial above.
     /*
@@ -5982,7 +5815,7 @@
         <div class="text-center mb-12 max-w-3xl mx-auto">
             <div class="reveal inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[.2em] mb-3 px-3 py-1 rounded-full" style="color:var(--c1); background: rgba(124,58,237,0.10);">
                 <span class="inline-block w-1.5 h-1.5 rounded-full" style="background:var(--c1)"></span>
-                14 · Pricing
+                13 · Pricing
             </div>
             <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">Simple, <span class="grad-text">transparent pricing.</span></h2>
             <p class="reveal rd-2 text-lg text-gray-400">Start free. Upgrade only when you outgrow it.</p>
