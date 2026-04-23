@@ -79,6 +79,88 @@
         @endif
     </div>
 
+    @php
+        $maxModelCutoff = $cutoffByModel->max('cutoffs') ?: 1;
+        $maxRouteCutoff = $cutoffByRoute->max('cutoffs') ?: 1;
+    @endphp
+    @if($cutoffTotal > 0)
+        <div class="grid lg:grid-cols-2 gap-6">
+            <div class="glass rounded-2xl border border-white/10 p-6">
+                <div class="flex items-baseline justify-between mb-4">
+                    <h3 class="font-semibold text-white">Cut-offs by model</h3>
+                    <span class="text-xs text-white/40">retry rate per row</span>
+                </div>
+                @if($cutoffByModel->isEmpty())
+                    <p class="text-sm text-white/40">No model metadata on the cut-offs in this window.</p>
+                @else
+                    <table class="w-full text-xs">
+                        <thead class="text-white/40">
+                            <tr>
+                                <th class="text-left font-normal pb-2">Model</th>
+                                <th class="text-right font-normal pb-2">Cut-offs</th>
+                                <th class="text-right font-normal pb-2">Retried</th>
+                                <th class="text-right font-normal pb-2">Retry rate</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-white/80">
+                            @foreach($cutoffByModel as $row)
+                                @php $w = max(4, (int) round(($row['cutoffs'] / $maxModelCutoff) * 100)); @endphp
+                                <tr class="border-t border-white/5">
+                                    <td class="py-2 pr-3">
+                                        <div class="font-mono truncate">{{ $row['label'] }}</div>
+                                        <div class="h-1 mt-1 rounded-full bg-white/5 overflow-hidden">
+                                            <div class="h-full bg-rose-500/70" style="width: {{ $w }}%"></div>
+                                        </div>
+                                    </td>
+                                    <td class="py-2 text-right whitespace-nowrap">{{ number_format($row['cutoffs']) }}</td>
+                                    <td class="py-2 text-right whitespace-nowrap text-white/50">{{ number_format($row['retried']) }}</td>
+                                    <td class="py-2 text-right whitespace-nowrap">{{ $row['rate'] === null ? '—' : $row['rate'].'%' }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                @endif
+            </div>
+
+            <div class="glass rounded-2xl border border-white/10 p-6">
+                <div class="flex items-baseline justify-between mb-4">
+                    <h3 class="font-semibold text-white">Cut-offs by route</h3>
+                    <span class="text-xs text-white/40">retry rate per row</span>
+                </div>
+                @if($cutoffByRoute->isEmpty())
+                    <p class="text-sm text-white/40">No route data on the cut-offs in this window.</p>
+                @else
+                    <table class="w-full text-xs">
+                        <thead class="text-white/40">
+                            <tr>
+                                <th class="text-left font-normal pb-2">Route</th>
+                                <th class="text-right font-normal pb-2">Cut-offs</th>
+                                <th class="text-right font-normal pb-2">Retried</th>
+                                <th class="text-right font-normal pb-2">Retry rate</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-white/80">
+                            @foreach($cutoffByRoute as $row)
+                                @php $w = max(4, (int) round(($row['cutoffs'] / $maxRouteCutoff) * 100)); @endphp
+                                <tr class="border-t border-white/5">
+                                    <td class="py-2 pr-3">
+                                        <div class="font-mono truncate">{{ $row['label'] }}</div>
+                                        <div class="h-1 mt-1 rounded-full bg-white/5 overflow-hidden">
+                                            <div class="h-full bg-rose-500/70" style="width: {{ $w }}%"></div>
+                                        </div>
+                                    </td>
+                                    <td class="py-2 text-right whitespace-nowrap">{{ number_format($row['cutoffs']) }}</td>
+                                    <td class="py-2 text-right whitespace-nowrap text-white/50">{{ number_format($row['retried']) }}</td>
+                                    <td class="py-2 text-right whitespace-nowrap">{{ $row['rate'] === null ? '—' : $row['rate'].'%' }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                @endif
+            </div>
+        </div>
+    @endif
+
     <div class="grid lg:grid-cols-2 gap-6">
         <div class="glass rounded-2xl border border-white/10 p-6">
             <h3 class="font-semibold text-white mb-4">Top routes</h3>

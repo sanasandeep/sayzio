@@ -558,6 +558,7 @@ class SiteAssistantController extends Controller
             ->whereRaw("meta->>'status' IN ('partial','failed')");
         $cutoffTotal = (int) (clone $cutoffBase)->count();
         $cutoffRetried = 0;
+        $retriedIds = [];
         if ($cutoffTotal > 0) {
             // Bound by $since to keep the scan proportional to the
             // window, and require the retry_of value to be a non-empty
@@ -570,6 +571,7 @@ class SiteAssistantController extends Controller
                 ->selectRaw("DISTINCT (meta->>'retry_of')::bigint AS rid")
                 ->pluck('rid')
                 ->filter()
+                ->map(fn ($v) => (int) $v)
                 ->all();
             if (!empty($retriedIds)) {
                 $cutoffRetried = (int) (clone $cutoffBase)->whereIn('id', $retriedIds)->count();
@@ -578,6 +580,61 @@ class SiteAssistantController extends Controller
         $cutoffRetryRate = $cutoffTotal > 0
             ? round(($cutoffRetried / $cutoffTotal) * 100, 1)
             : null;
+
+        // Break the cut-offs down by chat model and by last_route so
+        // admins can see *where* streams are flaking, not just whether.
+        // Each row carries its own retry rate (retried / cutoffs) so a
+        // chronically-abandoned upstream stands out from one that
+        // visitors patiently click through.
+        $retrySumExpr = empty($retriedIds)
+            ? '0'
+            : 'SUM(CASE WHEN m.id IN ('.implode(',', $retriedIds).') THEN 1 ELSE 0 END)';
+
+        $cutoffByModel = collect();
+        $cutoffByRoute = collect();
+        if ($cutoffTotal > 0) {
+            $cutoffByModel = \Illuminate\Support\Facades\DB::table('site_assistant_messages as m')
+                ->where('m.role', 'assistant')
+                ->where('m.created_at', '>=', $since)
+                ->whereRaw("m.meta->>'status' IN ('partial','failed')")
+                ->selectRaw("COALESCE(NULLIF(m.meta->>'model',''), '(unknown)') AS label,
+                             COUNT(*) AS cutoffs,
+                             {$retrySumExpr} AS retried")
+                ->groupBy('label')
+                ->orderByDesc('cutoffs')
+                ->limit(8)
+                ->get()
+                ->map(fn ($r) => [
+                    'label'   => (string) $r->label,
+                    'cutoffs' => (int) $r->cutoffs,
+                    'retried' => (int) $r->retried,
+                    'rate'    => $r->cutoffs > 0
+                        ? round(((int) $r->retried / (int) $r->cutoffs) * 100, 1)
+                        : null,
+                ]);
+
+            $cutoffByRoute = \Illuminate\Support\Facades\DB::table('site_assistant_messages as m')
+                ->join('site_assistant_conversations as c', 'c.id', '=', 'm.conversation_id')
+                ->where('m.role', 'assistant')
+                ->where('m.created_at', '>=', $since)
+                ->whereRaw("m.meta->>'status' IN ('partial','failed')")
+                ->whereNotNull('c.last_route')
+                ->selectRaw("c.last_route AS label,
+                             COUNT(*) AS cutoffs,
+                             {$retrySumExpr} AS retried")
+                ->groupBy('c.last_route')
+                ->orderByDesc('cutoffs')
+                ->limit(8)
+                ->get()
+                ->map(fn ($r) => [
+                    'label'   => (string) $r->label,
+                    'cutoffs' => (int) $r->cutoffs,
+                    'retried' => (int) $r->retried,
+                    'rate'    => $r->cutoffs > 0
+                        ? round(((int) $r->retried / (int) $r->cutoffs) * 100, 1)
+                        : null,
+                ]);
+        }
 
         return view('admin.site-assistant.analytics', [
             'days'              => $days,
@@ -591,6 +648,8 @@ class SiteAssistantController extends Controller
             'cutoffTotal'       => $cutoffTotal,
             'cutoffRetried'     => $cutoffRetried,
             'cutoffRetryRate'   => $cutoffRetryRate,
+            'cutoffByModel'     => $cutoffByModel,
+            'cutoffByRoute'     => $cutoffByRoute,
         ]);
     }
 
