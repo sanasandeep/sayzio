@@ -134,6 +134,15 @@ Schedule::command('site-assistant:check-cutoffs')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Daily (off-peak): trim old site_assistant_cutoff_alerts rows beyond
+// the retention window. The analytics page only shows the most recent
+// handful of alerts, so anything older is dead weight; without this
+// sweep the table would grow forever as alerts keep firing.
+Schedule::command('site-assistant:prune-cutoff-alerts --days=90')
+    ->dailyAt('03:45')
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Every minute: flip blog posts whose scheduled_at has elapsed from
 // status=scheduled to status=published. Cheap query (indexed status +
 // scheduled_at) so a per-minute cadence keeps the publish window tight.
