@@ -49,6 +49,9 @@ class VoiceAssistantController extends Controller
             $decoded = json_decode($data['context'], true);
             if (is_array($decoded)) $context = $decoded;
         }
+        // Mobile clients always come through this controller, so flag
+        // mobile-only tools (e.g. write_nfc_tag) as available.
+        $context['client_kind'] = 'mobile';
 
         try {
             $result = $this->voice->runTurn(
@@ -74,7 +77,7 @@ class VoiceAssistantController extends Controller
     {
         $user = $request->user();
         $isAdmin = $this->isAdmin($user);
-        $tools = $this->tools->visibleTo($user, $isAdmin);
+        $tools = $this->tools->visibleTo($user, $isAdmin, true);
 
         $grouped = [];
         foreach ($tools as $name => $spec) {

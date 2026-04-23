@@ -23,6 +23,21 @@ import {
   wallet as walletApi,
 } from "@/lib/api";
 
+/**
+ * Server stores raw feature codes (e.g. `voice_stt`); friendly labels
+ * make the transactions feed readable. Falls back to the raw code so
+ * new features still render without an app update.
+ */
+function prettyFeature(code: string | null | undefined): string | null {
+  if (!code) return null;
+  const map: Record<string, string> = {
+    voice_stt: "Voice transcription",
+    voice_llm: "Voice thinking",
+    voice_tts: "Voice speech",
+  };
+  return map[code] ?? code;
+}
+
 export default function AiCreditsScreen() {
   const colors = useColors();
   const router = useRouter();
@@ -295,7 +310,7 @@ export default function AiCreditsScreen() {
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.txType, { color: colors.foreground }]}>{tx.type}</Text>
                     <Text style={[styles.subtle, { color: colors.mutedForeground }]} numberOfLines={1}>
-                      {tx.feature ?? tx.reason ?? ""}
+                      {prettyFeature(tx.feature) ?? tx.reason ?? ""}
                       {tx.model ? ` · ${tx.model}` : ""}
                     </Text>
                   </View>

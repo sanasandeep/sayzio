@@ -72,6 +72,7 @@ class VoiceAssistantService
 
         $confirmedTools = (array) ($context['confirmed_tools'] ?? []);
         $priorMessages  = $this->sanitizeHistory($context['messages'] ?? []);
+        $isMobile       = ($context['client_kind'] ?? '') === 'mobile';
 
         // 1. STT
         $stt = $this->whisper->transcribe($user, $audio);
@@ -88,7 +89,7 @@ class VoiceAssistantService
             [['role' => 'user', 'content' => $userText]],
         );
 
-        $toolDefs = $this->tools->functionDefinitionsFor($user, $isAdmin);
+        $toolDefs = $this->tools->functionDefinitionsFor($user, $isAdmin, $isMobile);
         $llmCredits     = 0;
         $toolResults    = [];
         $pendingConfirm = [];
@@ -136,7 +137,7 @@ class VoiceAssistantService
                 $name = (string) ($call['function']['name'] ?? '');
                 $args = json_decode((string) ($call['function']['arguments'] ?? '{}'), true) ?: [];
                 $confirmed = (bool) ($confirmedTools[$name] ?? false);
-                $result = $this->tools->execute($user, $isAdmin, $name, $args, $confirmed);
+                $result = $this->tools->execute($user, $isAdmin, $name, $args, $confirmed, $isMobile);
 
                 if (!empty($result['confirm_required'])) {
                     $pendingConfirm[] = $result;

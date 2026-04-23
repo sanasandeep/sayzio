@@ -208,6 +208,25 @@ class VoiceToolRegistry
                 ],
             ],
 
+            // ── Mobile-only ─────────────────────────────────────
+            'write_nfc_tag' => [
+                'category'    => 'creator',
+                'role'        => 'user',
+                'permission'  => 'links.create',
+                'destructive' => true,
+                'mobile_only' => true,
+                'description' => 'Mobile-only: write one of the user\'s biolink URLs to a physical NFC tag. Requires confirmation; the user must hold the phone against the tag.',
+                'parameters'  => [
+                    'type' => 'object',
+                    'properties' => [
+                        'link_id' => ['type' => 'integer', 'description' => "Id of the user's link to encode."],
+                    ],
+                    'required' => ['link_id'],
+                    'additionalProperties' => false,
+                ],
+                'handler' => fn(User $u, array $args) => $this->doWriteNfc($u, $args),
+            ],
+
             // ── Admin ───────────────────────────────────────────
             'admin_grant_credits' => [
                 'category'    => 'admin',
@@ -229,11 +248,11 @@ class VoiceToolRegistry
     }
 
     /** Tools the given user is permitted to call, with handlers stripped. */
-    public function visibleTo(User $user, bool $isAdmin): array
+    public function visibleTo(User $user, bool $isAdmin, bool $isMobile = false): array
     {
         $out = [];
         foreach ($this->tools() as $name => $spec) {
-            if (!$this->userMay($user, $spec, $isAdmin)) continue;
+            if (!$this->userMay($user, $spec, $isAdmin, $isMobile)) continue;
             $out[$name] = [
                 'description' => $spec['description'],
                 'category'    => $spec['category'],
@@ -245,11 +264,11 @@ class VoiceToolRegistry
     }
 
     /** OpenAI function-calling schema list, filtered by permission. */
-    public function functionDefinitionsFor(User $user, bool $isAdmin): array
+    public function functionDefinitionsFor(User $user, bool $isAdmin, bool $isMobile = false): array
     {
         $defs = [];
         foreach ($this->tools() as $name => $spec) {
-            if (!$this->userMay($user, $spec, $isAdmin)) continue;
+            if (!$this->userMay($user, $spec, $isAdmin, $isMobile)) continue;
             $defs[] = [
                 'type' => 'function',
                 'function' => [
@@ -264,14 +283,14 @@ class VoiceToolRegistry
     }
 
     /** Run a tool by name. Re-checks permissions before executing. */
-    public function execute(User $user, bool $isAdmin, string $name, array $args, bool $confirmed = false): array
+    public function execute(User $user, bool $isAdmin, string $name, array $args, bool $confirmed = false, bool $isMobile = false): array
     {
         $tools = $this->tools();
         if (!isset($tools[$name])) {
             return ['error' => "Unknown tool '{$name}'."];
         }
         $spec = $tools[$name];
-        if (!$this->userMay($user, $spec, $isAdmin)) {
+        if (!$this->userMay($user, $spec, $isAdmin, $isMobile)) {
             return ['error' => "You don't have permission to use '{$name}'."];
         }
         if ($spec['destructive'] && !$confirmed) {
@@ -291,9 +310,12 @@ class VoiceToolRegistry
 
     // ── Permission helpers ────────────────────────────────────
 
-    protected function userMay(User $user, array $spec, bool $isAdmin): bool
+    protected function userMay(User $user, array $spec, bool $isAdmin, bool $isMobile = false): bool
     {
         if ($spec['role'] === 'admin' && !$isAdmin) return false;
+        // Mobile-only tools (e.g. NFC tag write) are hidden from the
+        // web client so the LLM never offers them where they cannot run.
+        if (!empty($spec['mobile_only']) && !$isMobile) return false;
         if (!empty($spec['permission'])) {
             // Owners and admins always pass workspace permission checks
             // inside WorkspacePermissions::userCan().
@@ -482,6 +504,36 @@ class VoiceToolRegistry
             return ['error' => "AI Studio '{$surface}' isn't available."];
         }
         return ['summary' => "Opening AI Studio: {$surface}.", 'navigate_to' => route($route)];
+    }
+
+    /**
+     * Build the payload the mobile client uses to open its NFC write
+     * sheet. We do not perform the actual NFC write here — the phone's
+     * NFC radio is the only thing that can — but we resolve the link's
+     * public URL on the server so the LLM can read it back to the user
+     * for confirmation, and so the mobile client doesn't need a second
+     * round trip.
+     */
+    protected function doWriteNfc(User $user, array $args): array
+    {
+        $id = (int) ($args['link_id'] ?? 0);
+        if ($id <= 0) return ['error' => 'I need a valid link id.'];
+        $link = \App\Modules\User\Models\Link::where('id', $id)
+            ->where('user_id', $user->id)
+            ->first();
+        if (!$link) return ['error' => "I couldn't find that link in your account."];
+
+        $alias = $link->alias;
+        $url   = $link->getShortUrl();
+        if (!$url) {
+            return ['error' => "That link doesn't have a public URL to write."];
+        }
+
+        return [
+            'summary'   => "Ready to write '{$alias}' to an NFC tag — hold the tag against the back of your phone.",
+            'data'      => ['link_id' => $id, 'alias' => $alias, 'url' => $url],
+            'nfc_write' => ['link_id' => $id, 'alias' => $alias, 'url' => $url],
+        ];
     }
 
     protected function doBillingSummary(User $user): array
