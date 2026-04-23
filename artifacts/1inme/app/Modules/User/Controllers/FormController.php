@@ -9,6 +9,7 @@ use App\Modules\User\Models\FormSubmission;
 use App\Modules\User\Models\Project;
 use App\Modules\User\Services\SpamChecker;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Http;
@@ -410,6 +411,61 @@ class FormController extends Controller
         Storage::disk('public')->deleteDirectory("forms/{$form->id}");
         $form->delete();
         return redirect()->route('user.forms.index')->with('success', 'Form deleted.');
+    }
+
+    /**
+     * Erase every form submission tied to a single submitter (by email or
+     * any other identifier present in the submission's data) across ALL
+     * forms owned by the current creator. Mirrors the poll-vote eraser
+     * for GDPR-style takedown requests.
+     *
+     * Form submissions don't have a dedicated user_id/fingerprint column,
+     * so we scan the JSONB `data` payload for any value that exactly
+     * matches the supplied identifier (case-insensitive). This catches
+     * the email field regardless of which key it lives under (email,
+     * Email, contact_email, etc.) and also matches numeric ids or
+     * fingerprints if a form happens to capture them.
+     */
+    public function eraseSubmitter(Request $request, Form $form)
+    {
+        $this->authorizeForm($request, $form);
+
+        $data = $request->validate([
+            'identifier' => ['required', 'string', 'max:255'],
+        ]);
+
+        $needle = trim($data['identifier']);
+
+        // Reach across every workspace owned by this creator (mirrors the
+        // poll-vote eraser, which also crosses workspace boundaries).
+        $ownedFormIds = Form::query()->withoutGlobalScope('workspace')
+            ->where('user_id', workspace_owner_id())
+            ->pluck('id');
+
+        $query = FormSubmission::query()
+            ->withoutGlobalScope('workspace')
+            ->whereIn('form_id', $ownedFormIds)
+            ->whereRaw(
+                "EXISTS (SELECT 1 FROM jsonb_each_text(data) WHERE LOWER(value) = ?)",
+                [mb_strtolower($needle)]
+            );
+
+        $count = (clone $query)->count();
+
+        if ($count === 0) {
+            return back()->with('error', 'No submissions matched “' . e($needle) . '”.');
+        }
+
+        $query->delete();
+
+        Log::info('form submitter erased', [
+            'creator_id' => workspace_owner_id(),
+            'identifier' => $needle,
+            'removed'    => $count,
+            'from_form'  => $form->id,
+        ]);
+
+        return back()->with('success', "Erased {$count} submission(s) tied to “{$needle}”.");
     }
 
     public function toggleActive(Request $request, Form $form)

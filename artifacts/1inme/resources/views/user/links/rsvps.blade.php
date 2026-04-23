@@ -23,6 +23,41 @@
     </div>
     @endif
 
+    @if(session('error'))
+    <div class="mb-6 px-4 py-3 rounded-xl text-sm font-medium" style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); color: #ef4444;">
+        <i class="fas fa-exclamation-circle mr-1.5"></i> {{ session('error') }}
+    </div>
+    @endif
+
+    {{-- Erase a single guest's RSVPs (GDPR-style takedown). Matches by
+         email across every Event Invite link this creator owns. --}}
+    <div class="card-premium p-5 mb-6">
+        <div class="flex items-start gap-3 mb-3">
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(239,68,68,0.15); color: #ef4444;">
+                <i class="fas fa-user-slash"></i>
+            </div>
+            <div>
+                <div class="text-sm font-semibold" style="color: var(--text-primary);">Erase a guest's RSVP history</div>
+                <div class="text-xs mt-0.5" style="color: var(--text-muted);">
+                    Removes every RSVP tied to a single guest across all of your event invites. Search by email.
+                </div>
+            </div>
+        </div>
+        <form method="POST" action="{{ route('user.links.rsvps.erase-voter', $link) }}"
+              class="flex flex-col sm:flex-row gap-2"
+              onsubmit="return confirm('Erase EVERY RSVP matching this guest, across all your event invites? This cannot be undone.')">
+            @csrf
+            <input type="email" name="identifier" required maxlength="255"
+                   placeholder="email@example.com"
+                   class="flex-1 px-3 py-2 rounded-lg text-sm"
+                   style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10); color: var(--text-primary);">
+            <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold inline-flex items-center justify-center gap-1.5"
+                    style="background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.25); color: #ef4444;">
+                <i class="fas fa-eraser"></i> Erase guest
+            </button>
+        </form>
+    </div>
+
     {{-- Stat tiles --}}
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         @php

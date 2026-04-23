@@ -235,6 +235,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('forms/{form}/submissions/{submission}', [FormController::class, 'showSubmission'])->middleware('workspace.can:inbox.view')->name('forms.submissions.show');
         Route::post('forms/{form}/submissions/{submission}/star', [FormController::class, 'toggleSubmissionStar'])->middleware('workspace.can:inbox.edit')->name('forms.submissions.star');
         Route::delete('forms/{form}/submissions/{submission}', [FormController::class, 'destroySubmission'])->middleware('workspace.can:inbox.delete')->name('forms.submissions.destroy');
+        Route::post('forms/{form}/submissions/erase-submitter', [FormController::class, 'eraseSubmitter'])->middleware('workspace.can:inbox.delete')->name('forms.submissions.erase-submitter');
 
         // Links: action-aware gating. Resource read endpoints (index/show/
         // create form/edit form) require `links.view`; mutations (store/update/
@@ -560,6 +561,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('links/{link}/rsvps',                    [RsvpController::class, 'index'])->middleware('workspace.can:followers.view')->name('links.rsvps.index');
         Route::get('links/{link}/rsvps/export',             [RsvpController::class, 'export'])->middleware('workspace.can:followers.view')->name('links.rsvps.export');
         Route::delete('links/{link}/rsvps/{rsvp}',          [RsvpController::class, 'destroy'])->middleware('workspace.can:followers.edit')->name('links.rsvps.destroy');
+        Route::post  ('links/{link}/rsvps/erase-voter',     [RsvpController::class, 'eraseVoter'])->middleware('workspace.can:followers.edit')->name('links.rsvps.erase-voter');
 
         // ===== Poll votes (per biolink-block) — followers feature.
         Route::get('links/{link}/blocks/{block}/poll-votes',          [PollVoteController::class, 'index'])->middleware('workspace.can:followers.view')->name('links.poll-votes.index');
