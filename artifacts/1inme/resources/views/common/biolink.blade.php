@@ -780,13 +780,18 @@
                 </div>
 
             @elseif($block->type === 'heading')
-                @php $hs = match($s['size'] ?? 'h2') { 'h1' => 'text-2xl md:text-3xl', 'h2' => 'text-xl md:text-2xl', 'h3' => 'text-lg md:text-xl', default => 'text-xl md:text-2xl' }; @endphp
-                <div class="mb-3 text-{{ $s['align'] ?? 'center' }}"><h2 class="{{ $hs }} font-bold">{{ $s['text'] ?? '' }}</h2></div>
-
-            @elseif($block->type === 'heading_gradient')
-                @php $hs = match($s['size'] ?? 'h2') { 'h1' => 'text-2xl md:text-3xl', 'h2' => 'text-xl md:text-2xl', 'h3' => 'text-lg md:text-xl', default => 'text-xl md:text-2xl' }; @endphp
+                @php
+                    $headingStyle = $s['style'] ?? 'plain';
+                    $hs = match($s['size'] ?? 'h2') { 'h1' => 'text-2xl md:text-3xl', 'h2' => 'text-xl md:text-2xl', 'h3' => 'text-lg md:text-xl', default => 'text-xl md:text-2xl' };
+                @endphp
                 <div class="mb-3 text-{{ $s['align'] ?? 'center' }}">
-                    <h2 class="{{ $hs }} font-bold bg-clip-text text-transparent" style="background-image: linear-gradient(to right, {{ $s['from_color'] ?? '#7c3aed' }}, {{ $s['to_color'] ?? '#ec4899' }});">{{ $s['text'] ?? '' }}</h2>
+                    @if($headingStyle === 'gradient')
+                        <h2 class="{{ $hs }} font-bold bg-clip-text text-transparent" style="background-image: linear-gradient(to right, {{ $s['from_color'] ?? '#7c3aed' }}, {{ $s['to_color'] ?? '#ec4899' }});">{{ $s['text'] ?? '' }}</h2>
+                    @elseif($headingStyle === 'animated')
+                        <h2 class="{{ $hs }} font-bold morph-text">{{ $s['text'] ?? '' }}</h2>
+                    @else
+                        <h2 class="{{ $hs }} font-bold">{{ $s['text'] ?? '' }}</h2>
+                    @endif
                 </div>
 
             @elseif($block->type === 'heading_logo')
@@ -795,10 +800,6 @@
                     @php $hs = match($s['size'] ?? 'h2') { 'h1' => 'text-2xl md:text-3xl', 'h2' => 'text-xl md:text-2xl', 'h3' => 'text-lg md:text-xl', default => 'text-xl md:text-2xl' }; @endphp
                     <h2 class="{{ $hs }} font-bold">{{ $s['text'] ?? '' }}</h2>
                 </div>
-
-            @elseif($block->type === 'heading_morph')
-                @php $hs = match($s['size'] ?? 'h1') { 'h1' => 'text-3xl md:text-4xl', 'h2' => 'text-2xl md:text-3xl', default => 'text-3xl md:text-4xl' }; @endphp
-                <div class="mb-3 text-{{ $s['align'] ?? 'center' }}"><h2 class="{{ $hs }} font-bold morph-text">{{ $s['text'] ?? '' }}</h2></div>
 
             @elseif($block->type === 'paragraph')
                 <div class="mb-4 text-{{ $s['align'] ?? 'center' }}"><p class="text-sm leading-relaxed" style="color: {{ $fontColor }}cc">{{ $s['text'] ?? '' }}</p></div>

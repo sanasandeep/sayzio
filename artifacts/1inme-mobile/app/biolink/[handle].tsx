@@ -177,8 +177,6 @@ function BlockView({ block, alias, allBlocks }: { block: BiolinkBlock; alias: st
   if (
     t === "heading" ||
     t === "title" ||
-    t === "heading_gradient" ||
-    t === "heading_morph" ||
     t === "heading_logo"
   ) {
     const text = pickStr(s, "text", "title", "heading");

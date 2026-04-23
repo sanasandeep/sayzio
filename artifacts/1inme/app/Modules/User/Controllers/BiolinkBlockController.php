@@ -926,10 +926,8 @@ class BiolinkBlockController extends Controller
         return match ($type) {
             'link' => ['url' => '', 'text' => 'My Link', 'icon' => '', 'thumbnail' => ''],
             'link_big' => ['url' => '', 'text' => 'My Link', 'description' => '', 'icon' => '', 'thumbnail' => '', 'bg_color' => '#7c3aed'],
-            'heading' => ['text' => 'Heading', 'size' => 'h2', 'align' => 'center'],
-            'heading_gradient' => ['text' => 'Gradient Heading', 'size' => 'h2', 'align' => 'center', 'from_color' => '#7c3aed', 'to_color' => '#ec4899'],
+            'heading' => ['text' => 'Heading', 'size' => 'h2', 'align' => 'center', 'style' => 'plain'],
             'heading_logo' => ['text' => 'Brand Name', 'logo_url' => '', 'size' => 'h2', 'align' => 'center'],
-            'heading_morph' => ['text' => 'Morph Text', 'size' => 'h1', 'align' => 'center'],
             'paragraph' => ['text' => 'Your text here...', 'align' => 'center'],
             'paragraph_rich' => ['html' => '<p>Your rich text content here...</p>'],
             'divider' => ['style' => 'solid', 'color' => 'rgba(255,255,255,0.1)'],

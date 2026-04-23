@@ -34,9 +34,9 @@ $labelClass = 'block text-xs mb-1';
     <div><label class="{{ $labelClass }}">Background Color</label><input type="color" name="settings[bg_color]" value="{{ $s['bg_color'] ?? '#7c3aed' }}" class="w-full h-10 rounded-xl cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
 </div>
 
-@elseif(in_array($block->type, ['heading', 'heading_gradient', 'heading_morph'], true))
+@elseif($block->type === 'heading')
 @php
-    $headingStyle = $s['style'] ?? match($block->type) { 'heading_gradient' => 'gradient', 'heading_morph' => 'animated', default => 'plain' };
+    $headingStyle = $s['style'] ?? 'plain';
 @endphp
 <div class="space-y-3" x-data="{ headingStyle: @js($headingStyle) }">
     <div><label class="{{ $labelClass }}">Text</label><input type="text" name="settings[text]" value="{{ $s['text'] ?? '' }}" class="{{ $inputClass }}"></div>

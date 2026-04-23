@@ -12,16 +12,9 @@
         @endif
     </div>
 
-@elseif($block->type === 'heading' || $block->type === 'heading_gradient' || $block->type === 'heading_morph')
+@elseif($block->type === 'heading')
     @php
-        $headingStyle = $s['style'] ?? null;
-        if (!$headingStyle) {
-            $headingStyle = match($block->type) {
-                'heading_gradient' => 'gradient',
-                'heading_morph'    => 'animated',
-                default            => 'plain',
-            };
-        }
+        $headingStyle = $s['style'] ?? 'plain';
         $hs = match($s['size'] ?? 'h2') { 'h1' => 'text-2xl md:text-3xl', 'h2' => 'text-xl md:text-2xl', 'h3' => 'text-lg md:text-xl', default => 'text-xl md:text-2xl' };
     @endphp
     <div class="mb-3 text-{{ $s['align'] ?? 'center' }}">

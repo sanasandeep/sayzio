@@ -473,7 +473,7 @@ $catColors = [
                                         <i class="fas fa-layer-group text-[9px] mr-1" style="color: var(--text-faint);"></i>{{ $block->children->count() }} block(s) inside{{ !empty($s['title']) ? ' — ' . $s['title'] : '' }}
                                     @elseif(in_array($block->type, ['link', 'link_big']))
                                         <i class="fas fa-globe text-[9px] mr-1" style="color: var(--text-faint);"></i>{{ $s['text'] ?? $s['url'] ?? 'No URL set' }}
-                                    @elseif(in_array($block->type, ['heading', 'heading_gradient', 'heading_logo', 'heading_morph']))
+                                    @elseif(in_array($block->type, ['heading', 'heading_logo']))
                                         <i class="fas fa-font text-[9px] mr-1" style="color: var(--text-faint);"></i>{{ $s['text'] ?? 'No text' }}
                                     @elseif($block->type === 'paragraph' || $block->type === 'paragraph_rich')
                                         {{ \Illuminate\Support\Str::limit($s['text'] ?? $s['html'] ?? 'No content', 60) }}

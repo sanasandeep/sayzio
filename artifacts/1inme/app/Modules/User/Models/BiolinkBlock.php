@@ -43,10 +43,6 @@ class BiolinkBlock extends Model
         'link_big'         => ['label' => 'Featured Link',       'icon' => 'fa-external-link-square-alt',   'category' => 'basic'],
         'heading'          => ['label' => 'Heading',             'icon' => 'fa-heading',                    'category' => 'basic'],
         'heading_logo'     => ['label' => 'Logo Heading',        'icon' => 'fa-image',                      'category' => 'basic'],
-        // Legacy: kept renderable for back-compat but hidden from gallery — both
-        // are now style options on the unified `heading` block (settings.style).
-        'heading_gradient' => ['label' => 'Gradient Heading',    'icon' => 'fa-font',                       'category' => 'basic', 'system' => true],
-        'heading_morph'    => ['label' => 'Animated Heading',    'icon' => 'fa-magic',                      'category' => 'basic', 'system' => true],
         'paragraph'        => ['label' => 'Text',                'icon' => 'fa-paragraph',                  'category' => 'basic'],
         'paragraph_rich'   => ['label' => 'Rich Text',           'icon' => 'fa-align-left',                 'category' => 'basic'],
         'markdown'         => ['label' => 'Markdown',            'icon' => 'fa-file-alt',                   'category' => 'basic'],

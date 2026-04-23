@@ -878,7 +878,7 @@ class LinkController extends Controller
                             'active_count' => 0, 'top_level_active_count' => 0,
                             'disabled_socials_block_id' => null];
         if ($link->type === 'biolink' && isset($blocksForLink)) {
-            $nonInteractive = ['heading', 'heading_gradient', 'heading_logo', 'heading_morph',
+            $nonInteractive = ['heading', 'heading_logo',
                 'paragraph', 'paragraph_rich', 'divider', 'spacer',
                 'verified_heading', 'verified_avatar', 'alert', 'badge', 'avatar'];
             $socialTypes = ['socials', 'socials_multi', 'socials_custom'];

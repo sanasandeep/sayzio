@@ -85,9 +85,9 @@ class CardTemplateSeeder extends Seeder
         $h = fn(string $text, string $size = 'h3', string $align = 'center', int $span = 12)
             => $this->child('heading', ['text' => $text, 'size' => $size, 'align' => $align], $span);
         $hg = fn(string $text, string $size = 'h2', string $align = 'center', int $span = 12)
-            => $this->child('heading_gradient', ['text' => $text, 'size' => $size, 'align' => $align], $span);
+            => $this->child('heading', ['text' => $text, 'size' => $size, 'align' => $align, 'style' => 'gradient'], $span);
         $hm = fn(string $text, string $size = 'h2', string $align = 'center', int $span = 12)
-            => $this->child('heading_morph', ['text' => $text, 'size' => $size, 'align' => $align], $span);
+            => $this->child('heading', ['text' => $text, 'size' => $size, 'align' => $align, 'style' => 'animated'], $span);
         $p  = fn(string $text, string $align = 'center', int $span = 12)
             => $this->child('paragraph', ['text' => $text, 'align' => $align], $span);
         $btn = fn(string $text, string $url = 'https://example.com', int $span = 12, string $icon = '')
