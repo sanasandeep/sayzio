@@ -41,6 +41,21 @@ class AiEngineController extends Controller
             'featureStatus'   => $featureStatus,
             'defaultFeatureModel' => AiEngineSettings::DEFAULT_FEATURE_MODEL,
             'featureModelHistory' => AiEngineSettings::recentFeatureModelChanges(20),
+
+            // Voice Assistant
+            'voiceEnabled'         => AiEngineSettings::voiceEnabled(),
+            'voicePlans'           => AiEngineSettings::voiceEnabledPlans(),
+            'maskedWhisperKey'     => AiEngineSettings::maskedWhisperKey(),
+            'hasWhisperKey'        => AiEngineSettings::whisperKey() !== null,
+            'whisperModel'         => AiEngineSettings::whisperModel(),
+            'voiceGptModel'        => AiEngineSettings::voiceGptModel(),
+            'maskedElevenKey'      => AiEngineSettings::maskedElevenLabsKey(),
+            'hasElevenKey'         => AiEngineSettings::elevenLabsKey() !== null,
+            'elevenVoiceId'        => AiEngineSettings::elevenLabsVoiceId(),
+            'elevenModel'          => AiEngineSettings::elevenLabsModel(),
+            'voicePriceStt'        => AiEngineSettings::voiceSttCreditsPerMinute(),
+            'voicePriceTts'        => AiEngineSettings::voiceTtsCreditsPer1kChars(),
+            'voiceRateLimit'       => AiEngineSettings::voiceTurnsPerMinute(),
         ]);
     }
 
@@ -64,6 +79,22 @@ class AiEngineController extends Controller
             'packs.*.wallet_cost'           => 'required_with:packs|integer|min:1',
             'feature_models'                => 'array',
             'feature_models.*'              => 'nullable|string|max:64',
+
+            // Voice Assistant
+            'voice_enabled'                 => 'nullable|boolean',
+            'voice_plans'                   => 'nullable|array',
+            'voice_plans.*'                 => 'nullable|string|max:64',
+            'whisper_api_key'               => 'nullable|string|max:255',
+            'clear_whisper_api_key'         => 'nullable|boolean',
+            'whisper_model'                 => 'nullable|string|max:64',
+            'voice_gpt_model'               => 'nullable|string|max:64',
+            'elevenlabs_api_key'            => 'nullable|string|max:255',
+            'clear_elevenlabs_api_key'      => 'nullable|boolean',
+            'elevenlabs_voice_id'           => 'nullable|string|max:64',
+            'elevenlabs_model'              => 'nullable|string|max:64',
+            'voice_price_stt'               => 'nullable|integer|min:0|max:100000',
+            'voice_price_tts'               => 'nullable|integer|min:0|max:100000',
+            'voice_rate_per_minute'         => 'nullable|integer|min:1|max:600',
         ]);
 
         // Validate that no AI feature ends up pointing at a missing,
@@ -143,6 +174,45 @@ class AiEngineController extends Controller
                 $admin?->id,
                 $admin?->name ?? $admin?->email
             );
+        }
+
+        // Voice Assistant settings
+        if ($request->has('voice_enabled')) {
+            AiEngineSettings::setVoiceEnabled($request->boolean('voice_enabled'));
+        }
+        if (array_key_exists('voice_plans', $data)) {
+            AiEngineSettings::setVoiceEnabledPlans(is_array($data['voice_plans']) ? $data['voice_plans'] : []);
+        }
+        if ($request->boolean('clear_whisper_api_key')) {
+            AiEngineSettings::setWhisperKey(null);
+        } elseif (!empty($data['whisper_api_key'])) {
+            AiEngineSettings::setWhisperKey($data['whisper_api_key']);
+        }
+        if (array_key_exists('whisper_model', $data)) {
+            AiEngineSettings::setWhisperModel($data['whisper_model']);
+        }
+        if (array_key_exists('voice_gpt_model', $data)) {
+            AiEngineSettings::setVoiceGptModel($data['voice_gpt_model']);
+        }
+        if ($request->boolean('clear_elevenlabs_api_key')) {
+            AiEngineSettings::setElevenLabsKey(null);
+        } elseif (!empty($data['elevenlabs_api_key'])) {
+            AiEngineSettings::setElevenLabsKey($data['elevenlabs_api_key']);
+        }
+        if (array_key_exists('elevenlabs_voice_id', $data)) {
+            AiEngineSettings::setElevenLabsVoiceId($data['elevenlabs_voice_id']);
+        }
+        if (array_key_exists('elevenlabs_model', $data)) {
+            AiEngineSettings::setElevenLabsModel($data['elevenlabs_model']);
+        }
+        if (isset($data['voice_price_stt'])) {
+            AiEngineSettings::setVoiceSttCreditsPerMinute((int) $data['voice_price_stt']);
+        }
+        if (isset($data['voice_price_tts'])) {
+            AiEngineSettings::setVoiceTtsCreditsPer1kChars((int) $data['voice_price_tts']);
+        }
+        if (isset($data['voice_rate_per_minute'])) {
+            AiEngineSettings::setVoiceTurnsPerMinute((int) $data['voice_rate_per_minute']);
         }
 
         return redirect()->route('admin.ai-engine.edit')

@@ -246,6 +246,104 @@
         </table>
     </div>
 
+    {{-- ── Voice Assistant ─────────────────────────────────── --}}
+    <div class="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-5">
+        <div class="flex items-start justify-between gap-4">
+            <div>
+                <h3 class="text-white text-base font-semibold">Voice Assistant</h3>
+                <p class="text-white/50 text-xs mt-1">Whisper transcribes, GPT reasons &amp; calls tools, ElevenLabs speaks. Each stage is metered separately on the AI credits ledger.</p>
+            </div>
+            <label class="inline-flex items-center gap-2 cursor-pointer">
+                <input type="hidden" name="voice_enabled" value="0">
+                <input type="checkbox" name="voice_enabled" value="1" {{ $voiceEnabled ? 'checked' : '' }}
+                       class="h-4 w-4 rounded border-white/20 bg-white/5 text-violet-500 focus:ring-violet-500">
+                <span class="text-white/80 text-sm">Enabled</span>
+            </label>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-4">
+            <div>
+                <label class="text-white/70 text-xs">Whisper API key</label>
+                @if($hasWhisperKey)
+                    <div class="flex items-center gap-2 mt-1">
+                        <code class="text-white/60 text-xs bg-white/5 border border-white/10 rounded px-2 py-1 flex-1">{{ $maskedWhisperKey }}</code>
+                        <label class="inline-flex items-center gap-1 text-xs text-red-300"><input type="checkbox" name="clear_whisper_api_key" value="1"> clear</label>
+                    </div>
+                @endif
+                <input type="password" name="whisper_api_key" placeholder="{{ $hasWhisperKey ? 'Replace key…' : 'sk-…' }}" autocomplete="new-password"
+                       class="mt-1 w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white text-sm">
+                <p class="text-white/40 text-[11px] mt-1">Falls back to the main OpenAI key when blank.</p>
+            </div>
+            <div>
+                <label class="text-white/70 text-xs">Whisper model</label>
+                <input type="text" name="whisper_model" value="{{ $whisperModel }}"
+                       class="mt-1 w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white text-sm">
+            </div>
+            <div>
+                <label class="text-white/70 text-xs">Voice GPT model (tool-calling)</label>
+                <input type="text" name="voice_gpt_model" value="{{ $voiceGptModel }}"
+                       class="mt-1 w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white text-sm">
+                <p class="text-white/40 text-[11px] mt-1">Cost is billed under <code>voice_llm</code> using the model's per-1k token rates.</p>
+            </div>
+            <div>
+                <label class="text-white/70 text-xs">ElevenLabs API key</label>
+                @if($hasElevenKey)
+                    <div class="flex items-center gap-2 mt-1">
+                        <code class="text-white/60 text-xs bg-white/5 border border-white/10 rounded px-2 py-1 flex-1">{{ $maskedElevenKey }}</code>
+                        <label class="inline-flex items-center gap-1 text-xs text-red-300"><input type="checkbox" name="clear_elevenlabs_api_key" value="1"> clear</label>
+                    </div>
+                @endif
+                <input type="password" name="elevenlabs_api_key" placeholder="{{ $hasElevenKey ? 'Replace key…' : 'xi-…' }}" autocomplete="new-password"
+                       class="mt-1 w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white text-sm">
+            </div>
+            <div>
+                <label class="text-white/70 text-xs">ElevenLabs voice id</label>
+                <input type="text" name="elevenlabs_voice_id" value="{{ $elevenVoiceId }}"
+                       class="mt-1 w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white text-sm">
+            </div>
+            <div>
+                <label class="text-white/70 text-xs">ElevenLabs model</label>
+                <input type="text" name="elevenlabs_model" value="{{ $elevenModel }}"
+                       class="mt-1 w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white text-sm">
+            </div>
+            <div>
+                <label class="text-white/70 text-xs">STT credits per minute of audio</label>
+                <input type="number" min="0" name="voice_price_stt" value="{{ $voicePriceStt }}"
+                       class="mt-1 w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white text-sm">
+            </div>
+            <div>
+                <label class="text-white/70 text-xs">TTS credits per 1 000 characters</label>
+                <input type="number" min="0" name="voice_price_tts" value="{{ $voicePriceTts }}"
+                       class="mt-1 w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white text-sm">
+            </div>
+            <div>
+                <label class="text-white/70 text-xs">Rate limit (turns / user / minute)</label>
+                <input type="number" min="1" max="600" name="voice_rate_per_minute" value="{{ $voiceRateLimit }}"
+                       class="mt-1 w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white text-sm">
+            </div>
+        </div>
+
+        @php
+            try { $allPlans = \App\Modules\Admin\Models\Plan::orderBy('name')->get(['slug','name']); }
+            catch (\Throwable $e) { $allPlans = collect(); }
+        @endphp
+        @if($allPlans->count())
+            <div>
+                <label class="text-white/70 text-xs">Allow Voice on plans <span class="text-white/40">(none ticked = all plans)</span></label>
+                <div class="mt-2 flex flex-wrap gap-3">
+                    @foreach($allPlans as $plan)
+                        <label class="inline-flex items-center gap-2 text-xs text-white/80 bg-white/5 border border-white/10 rounded-full px-3 py-1">
+                            <input type="checkbox" name="voice_plans[]" value="{{ $plan->slug }}"
+                                   @checked(in_array($plan->slug, $voicePlans, true))
+                                   class="h-3.5 w-3.5 rounded border-white/20 bg-white/5 text-violet-500">
+                            {{ $plan->name }}
+                        </label>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+    </div>
+
     <div class="flex items-center justify-between">
         <a href="{{ route('admin.ai-usage.index') }}" class="text-xs text-violet-300 hover:underline">
             View AI usage report →

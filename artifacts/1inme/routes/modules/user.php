@@ -380,6 +380,11 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::get   ('ask-coach/{thread}/export',              [\App\Modules\User\Controllers\AI\AskCoachController::class, 'export'])->whereNumber('thread')->name('ask-coach.export');
             Route::delete('ask-coach/{thread}',                     [\App\Modules\User\Controllers\AI\AskCoachController::class, 'destroy'])->whereNumber('thread')->name('ask-coach.destroy');
             Route::post  ('ask-coach/messages/{message}/feedback',  [\App\Modules\User\Controllers\AI\AskCoachController::class, 'feedback'])->whereNumber('message')->middleware('throttle:30,1')->name('ask-coach.feedback');
+
+            // Voice Assistant — floating mic on every page. STT/LLM/TTS
+            // are billed separately (`voice_stt`, `voice_llm`, `voice_tts`).
+            Route::get ('voice/capabilities', [\App\Modules\User\Controllers\AI\VoiceAssistantController::class, 'capabilities'])->name('voice.capabilities');
+            Route::post('voice/turn',         [\App\Modules\User\Controllers\AI\VoiceAssistantController::class, 'turn'])->middleware('throttle:30,1')->name('voice.turn');
         });
 
         // AI Minds — labelled knowledge bases (text/docs/FAQs/links/

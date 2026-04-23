@@ -29,6 +29,24 @@ class AiEngineSettings
     public const KEY_PACKS          = 'ai.credit_packs';
     public const KEY_FEATURE_MODELS = 'ai.feature_models';
 
+    // ── Voice Assistant (Whisper STT + GPT + ElevenLabs TTS) ──────
+    public const KEY_VOICE_ENABLED          = 'ai.voice.enabled';
+    public const KEY_VOICE_PLANS            = 'ai.voice.enabled_plans';
+    public const KEY_VOICE_WHISPER_KEY_ENC  = 'ai.voice.whisper_api_key_enc';
+    public const KEY_VOICE_WHISPER_MODEL    = 'ai.voice.whisper_model';
+    public const KEY_VOICE_GPT_MODEL        = 'ai.voice.gpt_model';
+    public const KEY_VOICE_ELEVEN_KEY_ENC   = 'ai.voice.elevenlabs_api_key_enc';
+    public const KEY_VOICE_ELEVEN_VOICE_ID  = 'ai.voice.elevenlabs_voice_id';
+    public const KEY_VOICE_ELEVEN_MODEL     = 'ai.voice.elevenlabs_model';
+    public const KEY_VOICE_PRICE_STT        = 'ai.voice.price.stt_credits_per_minute';
+    public const KEY_VOICE_PRICE_TTS        = 'ai.voice.price.tts_credits_per_1k_chars';
+    public const KEY_VOICE_RATE_PER_MINUTE  = 'ai.voice.rate.turns_per_minute';
+
+    public const DEFAULT_WHISPER_MODEL  = 'whisper-1';
+    public const DEFAULT_VOICE_GPT      = 'gpt-4o-mini';
+    public const DEFAULT_ELEVEN_MODEL   = 'eleven_turbo_v2_5';
+    public const DEFAULT_ELEVEN_VOICE   = 'EXAVITQu4vr4xnSDxMaL';
+
     /** Chat features whose model is admin-configurable. */
     public const FEATURES = ['mind', 'persona', 'companion', 'coach', 'ask_coach'];
 
@@ -394,5 +412,171 @@ PROMPT;
                 'message' => "Model \"{$name}\" is configured as {$cfg['kind']}, not chat."];
         }
         return ['ok' => true, 'level' => 'ok', 'message' => null];
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Voice Assistant accessors
+    // ─────────────────────────────────────────────────────────────
+
+    public static function voiceEnabled(): bool
+    {
+        return (bool) AppSetting::get(self::KEY_VOICE_ENABLED, false);
+    }
+
+    public static function setVoiceEnabled(bool $on): void
+    {
+        AppSetting::put(self::KEY_VOICE_ENABLED, $on);
+    }
+
+    /** @return list<string> Plan slugs allowed to use Voice; empty == all. */
+    public static function voiceEnabledPlans(): array
+    {
+        $val = AppSetting::get(self::KEY_VOICE_PLANS);
+        if (!is_array($val)) return [];
+        return array_values(array_filter(array_map('strval', $val), fn($s) => $s !== ''));
+    }
+
+    public static function setVoiceEnabledPlans(array $plans): void
+    {
+        $clean = array_values(array_unique(array_filter(array_map(
+            fn($s) => preg_replace('/[^a-z0-9_-]/i', '', (string) $s), $plans
+        ))));
+        AppSetting::put(self::KEY_VOICE_PLANS, $clean);
+    }
+
+    public static function voiceAllowedFor(\App\Modules\User\Models\User $user): bool
+    {
+        if (!self::voiceEnabled()) return false;
+        $allow = self::voiceEnabledPlans();
+        if (!$allow) return true;
+        $slug = $user->plan_id && $user->plan ? (string) $user->plan->slug : 'free';
+        return in_array($slug, $allow, true);
+    }
+
+    public static function whisperKey(): ?string
+    {
+        return self::decryptKey(self::KEY_VOICE_WHISPER_KEY_ENC) ?? self::openAiKey();
+    }
+
+    public static function setWhisperKey(?string $key): void
+    {
+        self::storeKey(self::KEY_VOICE_WHISPER_KEY_ENC, $key);
+    }
+
+    public static function maskedWhisperKey(): ?string
+    {
+        $enc = AppSetting::get(self::KEY_VOICE_WHISPER_KEY_ENC);
+        if (!$enc) return null;
+        $k = self::decryptKey(self::KEY_VOICE_WHISPER_KEY_ENC);
+        return $k ? 'sk-•••••••' . substr($k, -4) : null;
+    }
+
+    public static function whisperModel(): string
+    {
+        $v = AppSetting::get(self::KEY_VOICE_WHISPER_MODEL);
+        return is_string($v) && trim($v) !== '' ? trim($v) : self::DEFAULT_WHISPER_MODEL;
+    }
+
+    public static function setWhisperModel(?string $name): void
+    {
+        AppSetting::put(self::KEY_VOICE_WHISPER_MODEL, is_string($name) ? trim($name) : null);
+    }
+
+    public static function voiceGptModel(): string
+    {
+        $v = AppSetting::get(self::KEY_VOICE_GPT_MODEL);
+        return is_string($v) && trim($v) !== '' ? trim($v) : self::DEFAULT_VOICE_GPT;
+    }
+
+    public static function setVoiceGptModel(?string $name): void
+    {
+        AppSetting::put(self::KEY_VOICE_GPT_MODEL, is_string($name) ? trim($name) : null);
+    }
+
+    public static function elevenLabsKey(): ?string
+    {
+        return self::decryptKey(self::KEY_VOICE_ELEVEN_KEY_ENC);
+    }
+
+    public static function setElevenLabsKey(?string $key): void
+    {
+        self::storeKey(self::KEY_VOICE_ELEVEN_KEY_ENC, $key);
+    }
+
+    public static function maskedElevenLabsKey(): ?string
+    {
+        $k = self::elevenLabsKey();
+        if (!$k) return null;
+        return '•••••••' . substr($k, -4);
+    }
+
+    public static function elevenLabsVoiceId(): string
+    {
+        $v = AppSetting::get(self::KEY_VOICE_ELEVEN_VOICE_ID);
+        return is_string($v) && trim($v) !== '' ? trim($v) : self::DEFAULT_ELEVEN_VOICE;
+    }
+
+    public static function setElevenLabsVoiceId(?string $id): void
+    {
+        AppSetting::put(self::KEY_VOICE_ELEVEN_VOICE_ID, is_string($id) ? trim($id) : null);
+    }
+
+    public static function elevenLabsModel(): string
+    {
+        $v = AppSetting::get(self::KEY_VOICE_ELEVEN_MODEL);
+        return is_string($v) && trim($v) !== '' ? trim($v) : self::DEFAULT_ELEVEN_MODEL;
+    }
+
+    public static function setElevenLabsModel(?string $name): void
+    {
+        AppSetting::put(self::KEY_VOICE_ELEVEN_MODEL, is_string($name) ? trim($name) : null);
+    }
+
+    /** Credits charged per minute of audio sent to Whisper. */
+    public static function voiceSttCreditsPerMinute(): int
+    {
+        return max(0, (int) AppSetting::get(self::KEY_VOICE_PRICE_STT, 30));
+    }
+
+    public static function setVoiceSttCreditsPerMinute(int $n): void
+    {
+        AppSetting::put(self::KEY_VOICE_PRICE_STT, max(0, $n));
+    }
+
+    /** Credits charged per 1 000 characters of TTS reply. */
+    public static function voiceTtsCreditsPer1kChars(): int
+    {
+        return max(0, (int) AppSetting::get(self::KEY_VOICE_PRICE_TTS, 50));
+    }
+
+    public static function setVoiceTtsCreditsPer1kChars(int $n): void
+    {
+        AppSetting::put(self::KEY_VOICE_PRICE_TTS, max(0, $n));
+    }
+
+    public static function voiceTurnsPerMinute(): int
+    {
+        return max(1, (int) AppSetting::get(self::KEY_VOICE_RATE_PER_MINUTE, 12));
+    }
+
+    public static function setVoiceTurnsPerMinute(int $n): void
+    {
+        AppSetting::put(self::KEY_VOICE_RATE_PER_MINUTE, max(1, $n));
+    }
+
+    private static function decryptKey(string $key): ?string
+    {
+        $enc = AppSetting::get($key);
+        if (!$enc || !is_string($enc)) return null;
+        try { return Crypt::decryptString($enc); } catch (\Throwable $e) { return null; }
+    }
+
+    private static function storeKey(string $key, ?string $value): void
+    {
+        if ($value === null || $value === '') {
+            AppSetting::put($key, null);
+            return;
+        }
+        AppSetting::put($key, Crypt::encryptString($value));
     }
 }

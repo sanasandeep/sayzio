@@ -32,7 +32,25 @@ class AiCreditTransaction extends Model
     public const TYPES = ['purchase', 'spend', 'refund', 'grant', 'admin_adjustment'];
 
     /** Known AI features for filtering / reporting. */
-    public const FEATURES = ['mind', 'persona', 'companion', 'coach', 'ask_coach'];
+    public const FEATURES = ['mind', 'persona', 'companion', 'coach', 'ask_coach', 'voice_stt', 'voice_llm', 'voice_tts'];
+
+    /** Friendly labels for ledger surfaces. */
+    public const FEATURE_LABELS = [
+        'mind'      => 'AI Mind',
+        'persona'   => 'AI Persona',
+        'companion' => 'AI Companion',
+        'coach'     => 'AI Coach',
+        'ask_coach' => 'Ask Coach',
+        'voice_stt' => 'Voice — Transcription',
+        'voice_llm' => 'Voice — Reasoning',
+        'voice_tts' => 'Voice — Speech',
+    ];
+
+    public static function featureLabel(?string $feature): string
+    {
+        if (!$feature) return '—';
+        return self::FEATURE_LABELS[$feature] ?? ucwords(str_replace('_', ' ', $feature));
+    }
 
     public function balance() { return $this->belongsTo(AiCreditBalance::class, 'balance_id'); }
     public function user()    { return $this->belongsTo(User::class); }

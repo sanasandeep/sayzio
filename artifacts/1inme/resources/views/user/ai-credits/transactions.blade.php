@@ -62,7 +62,7 @@
                 <tr class="border-t border-white/5">
                     <td class="py-2 text-white/60">{{ $tx->created_at->format('Y-m-d H:i') }}</td>
                     <td><span class="px-2 py-0.5 rounded-full text-xs bg-white/10 text-white/70">{{ $tx->type }}</span></td>
-                    <td class="text-white/60 text-xs">{{ $tx->feature ?? '—' }}{{ $tx->model ? ' · '.$tx->model : '' }}</td>
+                    <td class="text-white/60 text-xs">{{ \App\Modules\User\Models\AiCreditTransaction::featureLabel($tx->feature) }}{{ $tx->model ? ' · '.$tx->model : '' }}</td>
                     <td class="text-right text-white/40 text-xs">{{ $tx->tokens_in ? number_format($tx->tokens_in) : '—' }}</td>
                     <td class="text-right text-white/40 text-xs">{{ $tx->tokens_out ? number_format($tx->tokens_out) : '—' }}</td>
                     <td class="text-right font-semibold {{ $tx->delta_credits >= 0 ? 'text-emerald-300' : 'text-red-300' }}">
