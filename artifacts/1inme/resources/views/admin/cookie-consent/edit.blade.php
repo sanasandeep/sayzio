@@ -55,7 +55,7 @@
         </div>
     </div>
 
-    <form method="POST" action="{{ route('admin.cookie-consent.update') }}" class="grid grid-cols-1 lg:grid-cols-[1fr,360px] gap-6" id="cookie-consent-form">
+    <form method="POST" action="{{ route('admin.cookie-consent.update') }}" enctype="multipart/form-data" class="grid grid-cols-1 lg:grid-cols-[1fr,360px] gap-6" id="cookie-consent-form">
         @csrf
         @method('PUT')
 
@@ -272,9 +272,21 @@
                         <input id="cc_logo_on" type="checkbox" name="header_logo_enabled" value="1" {{ $cfg['header_logo_enabled'] ? 'checked' : '' }}>
                         Show small logo / icon in prompt header
                     </label>
-                    <label class="block text-xs text-white/60">Logo image URL
-                        <input id="cc_logo_url" type="text" name="header_logo_url" value="{{ $cfg['header_logo_url'] }}" placeholder="/img/logo.png or https://..." class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
-                    </label>
+                    <div class="space-y-2">
+                        <div class="text-xs text-white/60">Logo image</div>
+                        @if(!empty($cfg['header_logo_url']))
+                            <div class="rounded-lg p-2 flex items-center gap-2" style="background:rgba(255,255,255,0.04); border:1px solid var(--border-glass);">
+                                <img src="{{ $cfg['header_logo_url'] }}" alt="Current header logo" class="h-8 w-8 object-contain rounded">
+                                <span class="text-[11px] text-white/50 truncate flex-1">{{ $cfg['header_logo_url'] }}</span>
+                            </div>
+                        @endif
+                        <input id="cc_logo_file" type="file" name="header_logo_file" accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                               class="block w-full text-xs text-white/70 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-violet-600 file:text-white hover:file:bg-violet-700 file:cursor-pointer">
+                        @error('header_logo_file')<p class="text-xs text-red-400">{{ $message }}</p>@enderror
+                        <label class="block text-[11px] text-white/40">Or paste a URL / path
+                            <input id="cc_logo_url" type="text" name="header_logo_url" value="{{ $cfg['header_logo_url'] }}" placeholder="/img/logo.png or https://..." class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white">
+                        </label>
+                    </div>
                 </div>
             </div>
 

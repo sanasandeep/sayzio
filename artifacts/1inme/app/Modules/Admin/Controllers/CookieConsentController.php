@@ -5,6 +5,7 @@ namespace App\Modules\Admin\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Common\Support\CookieConsentConfig;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 
 /**
  * Admin screen for the workspace-wide cookie-consent banner shown on the
@@ -51,6 +52,7 @@ class CookieConsentController extends Controller
             'entrance_delay'      => 'required|integer|min:0|max:30',
             'header_logo_enabled' => 'nullable|boolean',
             'header_logo_url'     => ['nullable', 'string', 'max:2000', 'regex:#^(/|https?://|data:image/)#i'],
+            'header_logo_file'    => ['nullable', 'file', 'mimes:png,jpg,jpeg,webp,svg', 'max:4096'],
             'show_policy_link'    => 'nullable|boolean',
             'show_reopen_button'  => 'nullable|boolean',
 
@@ -106,6 +108,25 @@ class CookieConsentController extends Controller
         }
 
         $payload = $data;
+
+        // If an admin uploaded an image, store it in the same public/branding
+        // bucket the brand logo / favicon uploader uses, and use its public
+        // path as the header_logo_url. Falls back to whatever is in the URL
+        // text field when no file is attached, so existing pasted URLs keep
+        // working unchanged.
+        if ($request->hasFile('header_logo_file')) {
+            $file = $request->file('header_logo_file');
+            $publicDir = public_path('branding');
+            if (!File::isDirectory($publicDir)) {
+                File::makeDirectory($publicDir, 0755, true);
+            }
+            $ext = strtolower($file->getClientOriginalExtension() ?: 'png');
+            $name = 'cookie-consent-logo-' . time() . '.' . $ext;
+            $file->move($publicDir, $name);
+            $payload['header_logo_url'] = '/branding/' . $name;
+        }
+        unset($payload['header_logo_file']);
+
         $payload['policy_version'] = $current['policy_version'] + ($bump ? 1 : 0);
 
         CookieConsentConfig::put($payload);
