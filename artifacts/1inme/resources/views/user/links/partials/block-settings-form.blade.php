@@ -468,12 +468,59 @@ function imageListUploader_{{ $gridImgId }}() {
         <p class="text-[11px] text-white/40 mt-1">Until this date/time, no one — including you — sees the tallies, even after they vote.</p>
     </div>
     @if($block->exists)
-        <a href="{{ route('user.links.poll-votes.index', [$block->link_id, $block->id]) }}"
-           class="inline-flex items-center gap-1.5 mt-3 text-xs text-violet-300 hover:text-violet-200">
-            <i class="fas fa-list-ol"></i> View &amp; export votes
-        </a>
+        <div class="mt-3 flex flex-wrap items-center gap-3">
+            <a href="{{ route('user.links.poll-votes.index', [$block->link_id, $block->id]) }}"
+               class="inline-flex items-center gap-1.5 text-xs text-violet-300 hover:text-violet-200">
+                <i class="fas fa-list-ol"></i> View &amp; export votes
+            </a>
+            {{-- Reset votes: clears all PollVote rows for this block while
+                 keeping the block id, settings, and analytics history intact. --}}
+            <button type="button"
+                    class="inline-flex items-center gap-1.5 text-xs text-red-300 hover:text-red-200"
+                    data-reset-poll-url="{{ route('user.links.poll-votes.reset', [$block->link_id, $block->id]) }}"
+                    onclick="resetPollVotes(event, this)">
+                <i class="fas fa-rotate-left"></i> Reset votes
+            </button>
+        </div>
     @endif
 </div>
+<script>
+if (typeof window.resetPollVotes !== 'function') {
+    window.resetPollVotes = function (e, btn) {
+        e.preventDefault();
+        if (!confirm('Clear all votes for this poll? The block and its settings stay; only the tally is reset. This cannot be undone.')) return;
+        var url = btn.getAttribute('data-reset-poll-url');
+        var token = (document.querySelector('meta[name="csrf-token"]') || {}).content;
+        btn.disabled = true;
+        var original = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Resetting…';
+        fetch(url, {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': token, 'Accept': 'application/json' },
+            credentials: 'same-origin'
+        })
+        .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { return { ok: r.ok, body: j }; }); })
+        .then(function (res) {
+            btn.disabled = false;
+            btn.innerHTML = original;
+            if (res.ok && res.body && res.body.success) {
+                if (typeof window.showToast === 'function') {
+                    window.showToast('Cleared ' + (res.body.deleted || 0) + ' poll vote(s).', 'success');
+                } else {
+                    alert('Cleared ' + (res.body.deleted || 0) + ' poll vote(s).');
+                }
+            } else {
+                alert('Could not reset poll votes. Please try again.');
+            }
+        })
+        .catch(function () {
+            btn.disabled = false;
+            btn.innerHTML = original;
+            alert('Could not reset poll votes. Please try again.');
+        });
+    };
+}
+</script>
 
 @elseif($block->type === 'testimonials')
 <div x-data="{ items: {{ json_encode($s['items'] ?? [['name'=>'','text'=>'','rating'=>5]]) }} }">

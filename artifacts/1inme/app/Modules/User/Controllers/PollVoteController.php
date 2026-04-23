@@ -207,4 +207,22 @@ class PollVoteController extends Controller
 
         return view('user.links.poll-vote-erasures', compact('link', 'block', 'erasures'));
     }
+
+    /**
+     * Wipe every PollVote row for this poll block while leaving the
+     * block (its id, settings, and analytics history) intact. Lets
+     * creators clear test/typo votes without losing the block.
+     */
+    public function reset(Request $request, Link $link, BiolinkBlock $block)
+    {
+        [$link, $block] = $this->resolve($request, $link, $block);
+
+        $deleted = $block->pollVotes()->delete();
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['success' => true, 'deleted' => $deleted]);
+        }
+
+        return back()->with('success', "Cleared {$deleted} poll vote(s).");
+    }
 }
