@@ -570,6 +570,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post  ('links/{link}/blocks/{block}/poll-votes/erase-voter',[PollVoteController::class, 'eraseVoter'])->middleware('workspace.can:followers.edit')->name('links.poll-votes.erase-voter');
         Route::get   ('links/{link}/blocks/{block}/poll-votes/erasures',  [PollVoteController::class, 'erasures'])->middleware('workspace.can:followers.view')->name('links.poll-votes.erasures');
         Route::post('links/{link}/blocks/{block}/poll-votes/reset',   [PollVoteController::class, 'reset'])->middleware('workspace.can:followers.edit')->name('links.poll-votes.reset');
+        Route::post('links/{link}/blocks/{block}/poll-votes/snapshots/{snapshot}/undo', [PollVoteController::class, 'undoReset'])->middleware('workspace.can:followers.edit')->name('links.poll-votes.undo-reset');
         Route::post('qrcode', [QrCodeController::class, 'generateStandalone'])->middleware('workspace.can:links.create')->name('qrcode.download');
         Route::get('qrcode/preview', [QrCodeController::class, 'previewStandalone'])->middleware('workspace.can:links.view')->name('qrcode.preview');
 

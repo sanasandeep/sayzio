@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\PollVote;
+use App\Modules\User\Models\PollVoteResetSnapshot;
 use App\Modules\User\Models\PollVoterErasure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -45,6 +46,15 @@ class PollVoteController extends Controller
             ->limit(5)
             ->get();
 
+        // Reset history for this poll block: each row records the per-option
+        // counts that existed immediately before the creator wiped the votes.
+        $resetSnapshots = PollVoteResetSnapshot::query()
+            ->with('creator:id,name')
+            ->where('block_id', $block->id)
+            ->orderByDesc('reset_at')
+            ->limit(10)
+            ->get();
+
         $settings = $block->settings ?? [];
         $options = $settings['options'] ?? [];
         $question = $settings['question'] ?? 'Poll';
@@ -71,7 +81,7 @@ class PollVoteController extends Controller
 
         return view('user.links.poll-votes', compact(
             'link', 'block', 'votes', 'breakdown', 'total', 'question',
-            'recentErasures'
+            'recentErasures', 'resetSnapshots'
         ));
     }
 
@@ -217,12 +227,121 @@ class PollVoteController extends Controller
     {
         [$link, $block] = $this->resolve($request, $link, $block);
 
-        $deleted = $block->pollVotes()->delete();
+        // Snapshot the current per-option counts BEFORE deleting so the
+        // creator can review what was wiped and (optionally) undo it.
+        $deleted = DB::transaction(function () use ($block, $link, $request) {
+            $counts = $block->pollVotes()
+                ->selectRaw('option_index, COUNT(*) as c')
+                ->groupBy('option_index')
+                ->pluck('c', 'option_index')
+                ->map(fn ($c) => (int) $c)
+                ->all();
+
+            $total = (int) array_sum($counts);
+
+            // Always record the snapshot — even for a zero-vote reset —
+            // so the audit trail is complete and never silently skips a
+            // click on the destructive button.
+            PollVoteResetSnapshot::create([
+                'creator_id' => $request->user()->id,
+                'link_id'    => $link->id,
+                'block_id'   => $block->id,
+                'counts'     => $counts,
+                'total'      => $total,
+                'reset_at'   => now(),
+                'ip_address' => $request->ip(),
+            ]);
+
+            return $block->pollVotes()->delete();
+        });
 
         if ($request->ajax() || $request->wantsJson()) {
             return response()->json(['success' => true, 'deleted' => $deleted]);
         }
 
         return back()->with('success', "Cleared {$deleted} poll vote(s).");
+    }
+
+    /**
+     * Recreate anonymized PollVote rows from a snapshot taken just before
+     * a reset. Each restored row is marked as a synthetic restore so it
+     * can never be confused with a real voter (no fingerprint, no IP,
+     * source = 'restored'). The snapshot is then marked as restored so
+     * it can't be replayed twice.
+     */
+    public function undoReset(Request $request, Link $link, BiolinkBlock $block, PollVoteResetSnapshot $snapshot)
+    {
+        [$link, $block] = $this->resolve($request, $link, $block);
+        abort_if($snapshot->block_id !== $block->id, 404);
+        abort_if($snapshot->creator_id !== $request->user()->id, 403);
+
+        if ($snapshot->restored_at !== null) {
+            return back()->with('error', 'This snapshot has already been restored.');
+        }
+
+        // Only the newest still-unrestored snapshot for this block is
+        // eligible. Enforced server-side so a hand-crafted POST can't
+        // restore an older snapshot out of order.
+        $newestUnrestoredId = PollVoteResetSnapshot::query()
+            ->where('block_id', $block->id)
+            ->whereNull('restored_at')
+            ->orderByDesc('reset_at')
+            ->value('id');
+
+        if ($newestUnrestoredId !== $snapshot->id) {
+            return back()->with('error', 'Only the most recent reset can be undone.');
+        }
+
+        $settings = $block->settings ?? [];
+        $options = $settings['options'] ?? [];
+        $now = now();
+
+        $restored = DB::transaction(function () use ($snapshot, $block, $link, $options, $now) {
+            // Atomic claim: only the request that flips restored_at from
+            // NULL to now() does the insert. A concurrent click loses
+            // the race and bails with zero rows restored.
+            $claimed = PollVoteResetSnapshot::where('id', $snapshot->id)
+                ->whereNull('restored_at')
+                ->update(['restored_at' => $now]);
+
+            if ($claimed === 0) {
+                return 0;
+            }
+
+            $rows = [];
+            foreach ((array) $snapshot->counts as $optionIndex => $count) {
+                $idx = (int) $optionIndex;
+                $label = $options[$idx] ?? null;
+                for ($i = 0; $i < (int) $count; $i++) {
+                    $rows[] = [
+                        'link_id'           => $link->id,
+                        'block_id'          => $block->id,
+                        'option_index'      => $idx,
+                        'option_label'      => $label,
+                        'user_id'           => null,
+                        'voter_fingerprint' => null,
+                        'source'            => 'restored',
+                        'ip_address'        => null,
+                        'user_agent'        => null,
+                        'created_at'        => $now,
+                        'updated_at'        => $now,
+                    ];
+                }
+            }
+
+            // Chunk the inserts so a snapshot with thousands of votes
+            // doesn't blow past MySQL's max placeholder count.
+            foreach (array_chunk($rows, 500) as $chunk) {
+                PollVote::insert($chunk);
+            }
+
+            return count($rows);
+        });
+
+        if ($restored === 0) {
+            return back()->with('error', 'This snapshot has already been restored.');
+        }
+
+        return back()->with('success', "Restored {$restored} anonymized poll vote(s) from the snapshot.");
     }
 }
