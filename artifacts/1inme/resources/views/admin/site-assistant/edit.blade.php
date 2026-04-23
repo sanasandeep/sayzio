@@ -97,6 +97,41 @@
                     <input type="text" maxlength="40" name="send_label" value="{{ $cfg['send_label'] ?? '' }}" placeholder="Send" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
                     <p class="text-xs text-white/40 mt-1">Label on the message-send button. Leave blank to use the built-in <code>Send</code>.</p>
                 </div>
+                <div>
+                    <label class="block text-xs text-white/60 mb-1">Header subheading</label>
+                    <input type="text" maxlength="120" name="assistant_subheading" value="{{ $cfg['assistant_subheading'] ?? '' }}" placeholder="How can I help?" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    <p class="text-xs text-white/40 mt-1">Small line under the assistant name in the chat header. Leave blank to use <code>How can I help?</code>.</p>
+                </div>
+                <div>
+                    <label class="block text-xs text-white/60 mb-1">Typing indicator</label>
+                    <input type="text" maxlength="80" name="assistant_typing" value="{{ $cfg['assistant_typing'] ?? '' }}" placeholder="Assistant is typing…" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    <p class="text-xs text-white/40 mt-1">Shown while waiting for the model. Leave blank to use <code>Assistant is typing…</code>.</p>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-xs text-white/60 mb-1">Handoff disabled-input note</label>
+                    <input type="text" maxlength="240" name="assistant_handoff_note" value="{{ $cfg['assistant_handoff_note'] ?? '' }}" placeholder="Our team will reply by email." class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    <p class="text-xs text-white/40 mt-1">Shown after the visitor has been handed off. Leave blank to use <code>Our team will reply by email.</code>.</p>
+                </div>
+                <div>
+                    <label class="block text-xs text-white/60 mb-1">Cut-off banner notice</label>
+                    <input type="text" maxlength="200" name="assistant_cutoff_notice" value="{{ $cfg['assistant_cutoff_notice'] ?? '' }}" placeholder="⚠ This reply was cut off —" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    <p class="text-xs text-white/40 mt-1">Shown when a streamed reply is interrupted. Leave blank to use <code>⚠ This reply was cut off —</code>.</p>
+                </div>
+                <div>
+                    <label class="block text-xs text-white/60 mb-1">Cut-off retry button</label>
+                    <input type="text" maxlength="40" name="assistant_cutoff_retry_label" value="{{ $cfg['assistant_cutoff_retry_label'] ?? '' }}" placeholder="Retry" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    <p class="text-xs text-white/40 mt-1">Label on the Retry button next to the cut-off notice. Leave blank to use <code>Retry</code>.</p>
+                </div>
+                <div>
+                    <label class="block text-xs text-white/60 mb-1">Network error toast</label>
+                    <input type="text" maxlength="200" name="assistant_error_network" value="{{ $cfg['assistant_error_network'] ?? '' }}" placeholder="Network error." class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    <p class="text-xs text-white/40 mt-1">Shown when the request fails to reach the server. Leave blank to use <code>Network error.</code>.</p>
+                </div>
+                <div>
+                    <label class="block text-xs text-white/60 mb-1">Generic error toast</label>
+                    <input type="text" maxlength="240" name="assistant_error_generic" value="{{ $cfg['assistant_error_generic'] ?? '' }}" placeholder="Sorry, something went wrong." class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    <p class="text-xs text-white/40 mt-1">Fallback when the server reports an error without copy. Leave blank to use <code>Sorry, something went wrong.</code>.</p>
+                </div>
             </div>
 
             <div class="pt-2 border-t border-white/10 space-y-3">
@@ -138,6 +173,27 @@
                                 <label class="block text-xs text-white/60">Send button label
                                     <input type="text" maxlength="40" data-intro-send class="mt-1 w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" placeholder="Send">
                                 </label>
+                                <label class="block text-xs text-white/60">Header subheading
+                                    <input type="text" maxlength="120" data-intro-subheading class="mt-1 w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" placeholder="How can I help?">
+                                </label>
+                                <label class="block text-xs text-white/60">Typing indicator
+                                    <input type="text" maxlength="80" data-intro-typing class="mt-1 w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" placeholder="Assistant is typing…">
+                                </label>
+                                <label class="block text-xs text-white/60 md:col-span-2">Handoff disabled-input note
+                                    <input type="text" maxlength="240" data-intro-handoff class="mt-1 w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" placeholder="Our team will reply by email.">
+                                </label>
+                                <label class="block text-xs text-white/60">Cut-off banner notice
+                                    <input type="text" maxlength="200" data-intro-cutoff class="mt-1 w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" placeholder="⚠ This reply was cut off —">
+                                </label>
+                                <label class="block text-xs text-white/60">Cut-off retry button
+                                    <input type="text" maxlength="40" data-intro-retry class="mt-1 w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" placeholder="Retry">
+                                </label>
+                                <label class="block text-xs text-white/60">Network error toast
+                                    <input type="text" maxlength="200" data-intro-err-net class="mt-1 w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" placeholder="Network error.">
+                                </label>
+                                <label class="block text-xs text-white/60">Generic error toast
+                                    <input type="text" maxlength="240" data-intro-err-gen class="mt-1 w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" placeholder="Sorry, something went wrong.">
+                                </label>
                             </div>
                         </div>
                     </div>
@@ -152,6 +208,13 @@
                     var seededPrompts     = @json((object)($cfg['starter_prompts_locales'] ?? new \stdClass()));
                     var seededPlaceholders = @json((object)($cfg['input_placeholder_locales'] ?? new \stdClass()));
                     var seededSendLabels   = @json((object)($cfg['send_label_locales'] ?? new \stdClass()));
+                    var seededSubheadings  = @json((object)($cfg['assistant_subheading_locales'] ?? new \stdClass()));
+                    var seededTyping       = @json((object)($cfg['assistant_typing_locales'] ?? new \stdClass()));
+                    var seededHandoff      = @json((object)($cfg['assistant_handoff_note_locales'] ?? new \stdClass()));
+                    var seededCutoff       = @json((object)($cfg['assistant_cutoff_notice_locales'] ?? new \stdClass()));
+                    var seededRetry        = @json((object)($cfg['assistant_cutoff_retry_label_locales'] ?? new \stdClass()));
+                    var seededErrNet       = @json((object)($cfg['assistant_error_network_locales'] ?? new \stdClass()));
+                    var seededErrGen       = @json((object)($cfg['assistant_error_generic_locales'] ?? new \stdClass()));
                     var seq = 0;
 
                     function bucketName(row) {
@@ -175,15 +238,33 @@
                         });
                     }
 
+                    // Map of [data-attr selector] → form field name, used
+                    // by rewire() so each chrome string posts under the
+                    // matching `[locale]` bucket. Mirrors the locale-keyed
+                    // arrays defined in SiteAssistantSettings::defaults().
+                    var CHROME_FIELDS = [
+                        ['[data-intro-greeting]',    'greeting_locales'],
+                        ['[data-intro-placeholder]', 'input_placeholder_locales'],
+                        ['[data-intro-send]',        'send_label_locales'],
+                        ['[data-intro-subheading]',  'assistant_subheading_locales'],
+                        ['[data-intro-typing]',      'assistant_typing_locales'],
+                        ['[data-intro-handoff]',     'assistant_handoff_note_locales'],
+                        ['[data-intro-cutoff]',      'assistant_cutoff_notice_locales'],
+                        ['[data-intro-retry]',       'assistant_cutoff_retry_label_locales'],
+                        ['[data-intro-err-net]',     'assistant_error_network_locales'],
+                        ['[data-intro-err-gen]',     'assistant_error_generic_locales']
+                    ];
+
                     function rewire(row) {
                         var bucket = bucketName(row);
-                        row.querySelector('[data-intro-greeting]').name = 'greeting_locales[' + bucket + ']';
-                        row.querySelector('[data-intro-placeholder]').name = 'input_placeholder_locales[' + bucket + ']';
-                        row.querySelector('[data-intro-send]').name = 'send_label_locales[' + bucket + ']';
+                        CHROME_FIELDS.forEach(function (pair) {
+                            var el = row.querySelector(pair[0]);
+                            if (el) el.name = pair[1] + '[' + bucket + ']';
+                        });
                         syncPromptInputs(row);
                     }
 
-                    function addRow(code, greeting, prompts, placeholder, sendLabel) {
+                    function addRow(code, greeting, prompts, placeholder, sendLabel, extras) {
                         if (host.querySelectorAll('.intro-locale-row').length >= 50) return;
                         var node = tpl.content.firstElementChild.cloneNode(true);
                         node.dataset.rowId = String(++seq);
@@ -197,6 +278,22 @@
                         promptsTa.value = (prompts && prompts.length) ? prompts.join('\n') : '';
                         phInput.value = placeholder || '';
                         sendInput.value = sendLabel || '';
+                        // Hydrate the chrome-string fields from the extras
+                        // map. Missing entries are tolerated so rows that
+                        // only override greeting/prompts still post cleanly.
+                        var chromeMap = {
+                            '[data-intro-subheading]': (extras && extras.subheading) || '',
+                            '[data-intro-typing]':     (extras && extras.typing) || '',
+                            '[data-intro-handoff]':    (extras && extras.handoff) || '',
+                            '[data-intro-cutoff]':     (extras && extras.cutoff) || '',
+                            '[data-intro-retry]':      (extras && extras.retry) || '',
+                            '[data-intro-err-net]':    (extras && extras.errNet) || '',
+                            '[data-intro-err-gen]':    (extras && extras.errGen) || ''
+                        };
+                        Object.keys(chromeMap).forEach(function (sel) {
+                            var el = node.querySelector(sel);
+                            if (el) el.value = chromeMap[sel];
+                        });
                         node.querySelector('[data-intro-locale-remove]').addEventListener('click', function () { node.remove(); });
                         codeInput.addEventListener('input', function () { rewire(node); });
                         promptsTa.addEventListener('input', function () { syncPromptInputs(node); });
@@ -204,10 +301,12 @@
                         rewire(node);
                     }
 
-                    if (addBtn) addBtn.addEventListener('click', function () { addRow('', '', null, '', ''); });
+                    if (addBtn) addBtn.addEventListener('click', function () { addRow('', '', null, '', '', null); });
 
                     var codes = {};
-                    [seededGreetings, seededPrompts, seededPlaceholders, seededSendLabels].forEach(function (m) {
+                    [seededGreetings, seededPrompts, seededPlaceholders, seededSendLabels,
+                     seededSubheadings, seededTyping, seededHandoff, seededCutoff,
+                     seededRetry, seededErrNet, seededErrGen].forEach(function (m) {
                         if (m && typeof m === 'object' && !Array.isArray(m)) {
                             Object.keys(m).forEach(function (c) { codes[c] = true; });
                         }
@@ -218,7 +317,16 @@
                             (seededGreetings && seededGreetings[code]) || '',
                             (seededPrompts && seededPrompts[code]) || null,
                             (seededPlaceholders && seededPlaceholders[code]) || '',
-                            (seededSendLabels && seededSendLabels[code]) || ''
+                            (seededSendLabels && seededSendLabels[code]) || '',
+                            {
+                                subheading: (seededSubheadings && seededSubheadings[code]) || '',
+                                typing:     (seededTyping       && seededTyping[code])       || '',
+                                handoff:    (seededHandoff      && seededHandoff[code])      || '',
+                                cutoff:     (seededCutoff       && seededCutoff[code])       || '',
+                                retry:      (seededRetry        && seededRetry[code])        || '',
+                                errNet:     (seededErrNet       && seededErrNet[code])       || '',
+                                errGen:     (seededErrGen       && seededErrGen[code])       || ''
+                            }
                         );
                     });
                 })();
@@ -253,7 +361,7 @@
                     <div id="sa_preview_avatar" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff">★</div>
                     <div>
                         <h4 style="margin:0;font-size:14px;font-weight:600;color:#fff">{{ config('app.name') }}</h4>
-                        <div style="font-size:11px;opacity:.65">How can I help?</div>
+                        <div id="sa_preview_subheading" style="font-size:11px;opacity:.65">How can I help?</div>
                     </div>
                 </div>
                 <div id="sa_preview_suggested" style="display:flex;flex-wrap:wrap;gap:6px;padding:8px 14px 0"></div>
@@ -410,13 +518,16 @@
                             .split('\n').map(function (s) { return s.trim(); }).filter(Boolean).slice(0, 10);
                         var phEl = row.querySelector('[data-intro-placeholder]');
                         var sendEl = row.querySelector('[data-intro-send]');
+                        var subEl = row.querySelector('[data-intro-subheading]');
                         var placeholder = phEl ? (phEl.value || '').trim() : '';
                         var sendLabel = sendEl ? (sendEl.value || '').trim() : '';
-                        if (!out[code]) out[code] = { greeting: '', prompts: [], placeholder: '', sendLabel: '' };
+                        var subheading = subEl ? (subEl.value || '').trim() : '';
+                        if (!out[code]) out[code] = { greeting: '', prompts: [], placeholder: '', sendLabel: '', subheading: '' };
                         if (greeting) out[code].greeting = greeting;
                         if (prompts.length) out[code].prompts = prompts;
                         if (placeholder) out[code].placeholder = placeholder;
                         if (sendLabel) out[code].sendLabel = sendLabel;
+                        if (subheading) out[code].subheading = subheading;
                     });
                     return out;
                 }
@@ -434,6 +545,12 @@
                     var v = i ? (i.value || '').trim() : '';
                     return v || BUILTIN_SEND_LABEL;
                 }
+                var BUILTIN_SUBHEADING = 'How can I help?';
+                function defaultSubheading(){
+                    var i = form.querySelector('input[name="assistant_subheading"]');
+                    var v = i ? (i.value || '').trim() : '';
+                    return v || BUILTIN_SUBHEADING;
+                }
 
                 var sel = document.getElementById('sa_preview_locale_select');
                 var accept = document.getElementById('sa_preview_accept');
@@ -445,6 +562,7 @@
                 var lbAnonymous = document.getElementById('sa_preview_low_balance_anonymous');
                 var previewInput = document.getElementById('sa_preview_input');
                 var previewSend = document.getElementById('sa_preview_send');
+                var previewSubheading = document.getElementById('sa_preview_subheading');
 
                 function refreshLocaleOptions(){
                     var current = sel.value;
@@ -491,17 +609,20 @@
                     var prompts = defaultPrompts();
                     var placeholder = defaultPlaceholder();
                     var sendLabel = defaultSendLabel();
+                    var subheading = defaultSubheading();
                     if (picked && rows[picked]) {
                         if (rows[picked].greeting) greeting = rows[picked].greeting;
                         if (rows[picked].prompts.length) prompts = rows[picked].prompts;
                         if (rows[picked].placeholder) placeholder = rows[picked].placeholder;
                         if (rows[picked].sendLabel) sendLabel = rows[picked].sendLabel;
+                        if (rows[picked].subheading) subheading = rows[picked].subheading;
                     }
                     if (previewInput) previewInput.setAttribute('placeholder', placeholder);
                     if (previewSend) {
                         previewSend.textContent = sendLabel;
                         previewSend.style.background = accent();
                     }
+                    if (previewSubheading) previewSubheading.textContent = subheading;
 
                     var ac = accent();
                     greetEl.innerHTML = mdLite(greeting || '(empty greeting)');

@@ -109,6 +109,27 @@ class SiteAssistantController extends Controller
             'send_label'                        => 'nullable|string|max:40',
             'send_label_locales'                => 'nullable|array|max:50',
             'send_label_locales.*'              => 'nullable|string|max:40',
+            'assistant_subheading'                  => 'nullable|string|max:120',
+            'assistant_subheading_locales'          => 'nullable|array|max:50',
+            'assistant_subheading_locales.*'        => 'nullable|string|max:120',
+            'assistant_typing'                      => 'nullable|string|max:80',
+            'assistant_typing_locales'              => 'nullable|array|max:50',
+            'assistant_typing_locales.*'            => 'nullable|string|max:80',
+            'assistant_handoff_note'                => 'nullable|string|max:240',
+            'assistant_handoff_note_locales'        => 'nullable|array|max:50',
+            'assistant_handoff_note_locales.*'      => 'nullable|string|max:240',
+            'assistant_cutoff_notice'               => 'nullable|string|max:200',
+            'assistant_cutoff_notice_locales'       => 'nullable|array|max:50',
+            'assistant_cutoff_notice_locales.*'     => 'nullable|string|max:200',
+            'assistant_cutoff_retry_label'          => 'nullable|string|max:40',
+            'assistant_cutoff_retry_label_locales'  => 'nullable|array|max:50',
+            'assistant_cutoff_retry_label_locales.*'=> 'nullable|string|max:40',
+            'assistant_error_network'               => 'nullable|string|max:200',
+            'assistant_error_network_locales'       => 'nullable|array|max:50',
+            'assistant_error_network_locales.*'     => 'nullable|string|max:200',
+            'assistant_error_generic'               => 'nullable|string|max:240',
+            'assistant_error_generic_locales'       => 'nullable|array|max:50',
+            'assistant_error_generic_locales.*'     => 'nullable|string|max:240',
         ]);
         $payload = [
             'enabled_marketing'       => $request->boolean('enabled_marketing'),
@@ -163,6 +184,34 @@ class SiteAssistantController extends Controller
             'send_label'                => mb_substr(trim((string) ($data['send_label'] ?? '')), 0, 40),
             'send_label_locales'        => SiteAssistantSettings::normalizeSendLabelLocales(
                 (array) $request->input('send_label_locales', [])
+            ),
+            'assistant_subheading'           => mb_substr(trim((string) ($data['assistant_subheading'] ?? '')), 0, 120),
+            'assistant_subheading_locales'   => SiteAssistantSettings::normalizeSubheadingLocales(
+                (array) $request->input('assistant_subheading_locales', [])
+            ),
+            'assistant_typing'               => mb_substr(trim((string) ($data['assistant_typing'] ?? '')), 0, 80),
+            'assistant_typing_locales'       => SiteAssistantSettings::normalizeTypingLocales(
+                (array) $request->input('assistant_typing_locales', [])
+            ),
+            'assistant_handoff_note'         => mb_substr(trim((string) ($data['assistant_handoff_note'] ?? '')), 0, 240),
+            'assistant_handoff_note_locales' => SiteAssistantSettings::normalizeHandoffNoteLocales(
+                (array) $request->input('assistant_handoff_note_locales', [])
+            ),
+            'assistant_cutoff_notice'        => mb_substr(trim((string) ($data['assistant_cutoff_notice'] ?? '')), 0, 200),
+            'assistant_cutoff_notice_locales'=> SiteAssistantSettings::normalizeCutoffNoticeLocales(
+                (array) $request->input('assistant_cutoff_notice_locales', [])
+            ),
+            'assistant_cutoff_retry_label'   => mb_substr(trim((string) ($data['assistant_cutoff_retry_label'] ?? '')), 0, 40),
+            'assistant_cutoff_retry_label_locales' => SiteAssistantSettings::normalizeCutoffRetryLabelLocales(
+                (array) $request->input('assistant_cutoff_retry_label_locales', [])
+            ),
+            'assistant_error_network'        => mb_substr(trim((string) ($data['assistant_error_network'] ?? '')), 0, 200),
+            'assistant_error_network_locales'=> SiteAssistantSettings::normalizeErrorNetworkLocales(
+                (array) $request->input('assistant_error_network_locales', [])
+            ),
+            'assistant_error_generic'        => mb_substr(trim((string) ($data['assistant_error_generic'] ?? '')), 0, 240),
+            'assistant_error_generic_locales'=> SiteAssistantSettings::normalizeErrorGenericLocales(
+                (array) $request->input('assistant_error_generic_locales', [])
             ),
         ];
         SiteAssistantSettings::update($payload);

@@ -94,11 +94,40 @@ class SiteAssistantSettings
             'input_placeholder_locales' => [],
             'send_label'                => '',
             'send_label_locales'        => [],
+            // Default + per-locale overrides for the rest of the chat
+            // chrome strings the visitor sees: the header subheading,
+            // the "Assistant is typing…" indicator, the disabled-input
+            // note shown after a handoff, the cut-off banner + Retry
+            // button, and the two generic error toasts. Same fallback
+            // chain as the placeholder/Send label fields above —
+            // per-locale override → admin default → built-in English
+            // copy — so visitors never see a blank string.
+            'assistant_subheading'                  => '',
+            'assistant_subheading_locales'          => [],
+            'assistant_typing'                      => '',
+            'assistant_typing_locales'              => [],
+            'assistant_handoff_note'                => '',
+            'assistant_handoff_note_locales'        => [],
+            'assistant_cutoff_notice'               => '',
+            'assistant_cutoff_notice_locales'       => [],
+            'assistant_cutoff_retry_label'          => '',
+            'assistant_cutoff_retry_label_locales'  => [],
+            'assistant_error_network'               => '',
+            'assistant_error_network_locales'       => [],
+            'assistant_error_generic'               => '',
+            'assistant_error_generic_locales'       => [],
         ];
     }
 
     public const DEFAULT_INPUT_PLACEHOLDER = 'Type a message…';
     public const DEFAULT_SEND_LABEL        = 'Send';
+    public const DEFAULT_SUBHEADING            = 'How can I help?';
+    public const DEFAULT_TYPING                = 'Assistant is typing…';
+    public const DEFAULT_HANDOFF_NOTE          = 'Our team will reply by email.';
+    public const DEFAULT_CUTOFF_NOTICE         = '⚠ This reply was cut off —';
+    public const DEFAULT_CUTOFF_RETRY_LABEL    = 'Retry';
+    public const DEFAULT_ERROR_NETWORK         = 'Network error.';
+    public const DEFAULT_ERROR_GENERIC         = 'Sorry, something went wrong.';
 
     public static function defaultSystemPrompt(): string
     {
@@ -513,6 +542,101 @@ P;
             $acceptLanguage
         );
     }
+
+    /**
+     * Resolve the locale-specific header subheading ("How can I
+     * help?"). Same fallback chain as {@see inputPlaceholderFor()}.
+     */
+    public static function subheadingFor(array $cfg, ?string $acceptLanguage = null): string
+    {
+        return self::resolveLocalizedShortString(
+            $cfg, 'assistant_subheading', 'assistant_subheading_locales',
+            self::DEFAULT_SUBHEADING, $acceptLanguage
+        );
+    }
+
+    /**
+     * Resolve the locale-specific "Assistant is typing…" indicator.
+     */
+    public static function typingIndicatorFor(array $cfg, ?string $acceptLanguage = null): string
+    {
+        return self::resolveLocalizedShortString(
+            $cfg, 'assistant_typing', 'assistant_typing_locales',
+            self::DEFAULT_TYPING, $acceptLanguage
+        );
+    }
+
+    /**
+     * Resolve the locale-specific "Our team will reply by email."
+     * note shown after a handoff disables the input row.
+     */
+    public static function handoffNoteFor(array $cfg, ?string $acceptLanguage = null): string
+    {
+        return self::resolveLocalizedShortString(
+            $cfg, 'assistant_handoff_note', 'assistant_handoff_note_locales',
+            self::DEFAULT_HANDOFF_NOTE, $acceptLanguage
+        );
+    }
+
+    /**
+     * Resolve the locale-specific cut-off banner notice text
+     * ("⚠ This reply was cut off —").
+     */
+    public static function cutoffNoticeFor(array $cfg, ?string $acceptLanguage = null): string
+    {
+        return self::resolveLocalizedShortString(
+            $cfg, 'assistant_cutoff_notice', 'assistant_cutoff_notice_locales',
+            self::DEFAULT_CUTOFF_NOTICE, $acceptLanguage
+        );
+    }
+
+    /**
+     * Resolve the locale-specific Retry button label on the cut-off
+     * banner.
+     */
+    public static function cutoffRetryLabelFor(array $cfg, ?string $acceptLanguage = null): string
+    {
+        return self::resolveLocalizedShortString(
+            $cfg, 'assistant_cutoff_retry_label', 'assistant_cutoff_retry_label_locales',
+            self::DEFAULT_CUTOFF_RETRY_LABEL, $acceptLanguage
+        );
+    }
+
+    /**
+     * Resolve the locale-specific "Network error." toast text.
+     */
+    public static function errorNetworkFor(array $cfg, ?string $acceptLanguage = null): string
+    {
+        return self::resolveLocalizedShortString(
+            $cfg, 'assistant_error_network', 'assistant_error_network_locales',
+            self::DEFAULT_ERROR_NETWORK, $acceptLanguage
+        );
+    }
+
+    /**
+     * Resolve the locale-specific generic error toast text
+     * ("Sorry, something went wrong.").
+     */
+    public static function errorGenericFor(array $cfg, ?string $acceptLanguage = null): string
+    {
+        return self::resolveLocalizedShortString(
+            $cfg, 'assistant_error_generic', 'assistant_error_generic_locales',
+            self::DEFAULT_ERROR_GENERIC, $acceptLanguage
+        );
+    }
+
+    /**
+     * Normalizers for the chrome-string locale maps. Each delegates to
+     * the shared short-string helper with a per-field max length so an
+     * over-long override doesn't blow out the bubble layout.
+     */
+    public static function normalizeSubheadingLocales(array $in): array       { return self::normalizeShortStringLocales($in, 120); }
+    public static function normalizeTypingLocales(array $in): array           { return self::normalizeShortStringLocales($in, 80); }
+    public static function normalizeHandoffNoteLocales(array $in): array      { return self::normalizeShortStringLocales($in, 240); }
+    public static function normalizeCutoffNoticeLocales(array $in): array     { return self::normalizeShortStringLocales($in, 200); }
+    public static function normalizeCutoffRetryLabelLocales(array $in): array { return self::normalizeShortStringLocales($in, 40); }
+    public static function normalizeErrorNetworkLocales(array $in): array     { return self::normalizeShortStringLocales($in, 200); }
+    public static function normalizeErrorGenericLocales(array $in): array     { return self::normalizeShortStringLocales($in, 240); }
 
     /**
      * Shared resolver for "[locale => string]" fields that also have a

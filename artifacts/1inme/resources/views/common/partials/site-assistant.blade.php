@@ -81,6 +81,22 @@
 .sa-launcher-wrap.sa-pos-left{left:20px}
 </style>
 <script>
+// Server-resolved localized chrome strings, exposed up front so the
+// initial DOM build (subheading) and any pre-bootstrap JS branches
+// (none today, but defensive for future async edits) use the
+// visitor's language instead of the English defaults. Bootstrap
+// later overwrites window.__SA_CHROME with the same values once the
+// fetch completes — keeping a single source of truth at runtime.
+window.__SA_SUBHEADING = @json(\App\Services\AI\SiteAssistantSettings::subheadingFor($__sa_cfg));
+window.__SA_CHROME = {
+  subheading:        @json(\App\Services\AI\SiteAssistantSettings::subheadingFor($__sa_cfg)),
+  typing_indicator:  @json(\App\Services\AI\SiteAssistantSettings::typingIndicatorFor($__sa_cfg)),
+  handoff_note:      @json(\App\Services\AI\SiteAssistantSettings::handoffNoteFor($__sa_cfg)),
+  cutoff_notice:     @json(\App\Services\AI\SiteAssistantSettings::cutoffNoticeFor($__sa_cfg)),
+  cutoff_retry_label:@json(\App\Services\AI\SiteAssistantSettings::cutoffRetryLabelFor($__sa_cfg)),
+  error_network:     @json(\App\Services\AI\SiteAssistantSettings::errorNetworkFor($__sa_cfg)),
+  error_generic:     @json(\App\Services\AI\SiteAssistantSettings::errorGenericFor($__sa_cfg))
+};
 (function(){
   var root=document.getElementById('site-assistant-root');
   if(!root) return;
@@ -90,6 +106,19 @@
   var token=localStorage.getItem(TOKEN_KEY)||'';
   var open=false, busy=false, bootstrapped=false, cfg=null, templates=[], unread=0;
   var messages=[];
+  // Localized chrome strings live here so every renderer reads from
+  // a single source — initialised from the server-rendered globals
+  // and then overwritten when bootstrap returns (admin edits made
+  // between render and open are picked up that way).
+  var CHROME = Object.assign({
+    subheading: 'How can I help?',
+    typing_indicator: 'Assistant is typing…',
+    handoff_note: 'Our team will reply by email.',
+    cutoff_notice: '⚠ This reply was cut off —',
+    cutoff_retry_label: 'Retry',
+    error_network: 'Network error.',
+    error_generic: 'Sorry, something went wrong.'
+  }, window.__SA_CHROME || {});
 
   function pageMeta(){
     return {
@@ -158,7 +187,13 @@
 
   var panel=el('div',{id:'sa-panel',class:pos,style:{'--sa-accent':ds.accent||'#7c3aed'}});
   var avatarHtml = ds.avatar ? '<img src="'+escapeHtml(ds.avatar)+'" alt="">' : '<div class="sa-avatar">★</div>';
-  var header=el('div',{class:'sa-header',html:avatarHtml+'<div><h4>'+escapeHtml(window.__SA_BRAND||'Assistant')+'</h4><div class="sa-sub" id="sa-sub">How can I help?</div></div>'});
+  // Subheading is rendered server-side using the localized
+  // `subheading` field exposed by the partial, so visitors with a
+  // non-English Accept-Language never see English chrome flash before
+  // bootstrap arrives. Bootstrap re-applies it (in case admin edits
+  // happened mid-pageload) but the initial value is already correct.
+  var subInit = (typeof window.__SA_SUBHEADING==='string' && window.__SA_SUBHEADING) ? window.__SA_SUBHEADING : 'How can I help?';
+  var header=el('div',{class:'sa-header',html:avatarHtml+'<div><h4>'+escapeHtml(window.__SA_BRAND||'Assistant')+'</h4><div class="sa-sub" id="sa-sub">'+escapeHtml(subInit)+'</div></div>'});
   var closeBtn=el('button',{class:'sa-close',type:'button','aria-label':'Close'},'×');
   closeBtn.onclick=function(){ togglePanel(false); };
   header.appendChild(closeBtn);
@@ -205,6 +240,18 @@
       .then(function(r){return r.json();})
       .then(function(data){
         cfg=data; templates=data.templates||[];
+        // Refresh the localized chrome cache from bootstrap so any
+        // edits since render-time are picked up. Each key is optional
+        // — missing keys keep the server-rendered initial value.
+        ['subheading','typing_indicator','handoff_note','cutoff_notice','cutoff_retry_label','error_network','error_generic'].forEach(function(k){
+          if(typeof data[k]==='string' && data[k]) CHROME[k]=data[k];
+        });
+        // Subheading is shown in the header until the first message is
+        // rendered, then replaced with the typing/handoff note. We
+        // re-apply it here too so admin edits made between render and
+        // open are picked up without a hard refresh.
+        var subEl=document.getElementById('sa-sub');
+        if(subEl && !data.greeting){ subEl.textContent = CHROME.subheading; }
         if(data.greeting){ document.getElementById('sa-sub').textContent=''; }
         // Apply localized chrome (placeholder + Send label) — falls
         // back to the English defaults already set on the elements
@@ -232,7 +279,7 @@
         // contextually relevant options first.
         var combined = [].concat(s.page_suggestions || [], s.starter_prompts || (cfg&&cfg.starter_prompts) || []);
         renderSuggested(combined);
-        if(s.handed_off){ disableInput(true,'Your conversation is with our team — they will reply by email.'); }
+        if(s.handed_off){ disableInput(true, CHROME.handoff_note); }
         renderLowBalance(s.low_balance);
         scrollBottom();
       });
@@ -374,7 +421,7 @@
   function scrollBottom(){ body.scrollTop=body.scrollHeight; }
 
   function appendTyping(){
-    var t=el('div',{class:'sa-typing',id:'sa-typing'},'Assistant is typing…');
+    var t=el('div',{class:'sa-typing',id:'sa-typing'}, CHROME.typing_indicator);
     body.appendChild(t); scrollBottom();
   }
   function removeTyping(){ var t=document.getElementById('sa-typing'); if(t) t.remove(); }
@@ -422,7 +469,7 @@
         .then(handleTurn)
         .catch(function(){
           removeTyping();
-          renderMessage({role:'assistant',content:'Network error.'});
+          renderMessage({role:'assistant',content: CHROME.error_network});
         });
     }
     return fetch(ds.streamUrl, {
@@ -467,7 +514,7 @@
               doneReceived=true;
               bubble.remove();
               if(parsed.assistant_message) renderMessage(parsed.assistant_message);
-              if(parsed.handed_off) disableInput(true,'Our team will reply by email.');
+              if(parsed.handed_off) disableInput(true, CHROME.handoff_note);
               if('low_balance' in parsed) renderLowBalance(parsed.low_balance);
             } else if(event==='error'){
               // Error is a terminal SSE event — mark the stream as
@@ -481,8 +528,8 @@
               if(parsed.partial && streamed){
                 var partialMsgId = parsed.assistant_message_id || null;
                 var note=el('div',{class:'sa-cutoff'});
-                note.appendChild(el('span',{},'⚠ This reply was cut off — '));
-                var retryBtn=el('button',{type:'button'},'Retry');
+                note.appendChild(el('span',{}, CHROME.cutoff_notice + ' '));
+                var retryBtn=el('button',{type:'button'}, CHROME.cutoff_retry_label);
                 retryBtn.onclick=function(){
                   if(busy) return;
                   retryBtn.disabled=true;
@@ -493,7 +540,7 @@
                 body.appendChild(note); scrollBottom();
               } else {
                 bubble.remove();
-                var d=el('div',{class:'sa-msg error'}, parsed.error||'Sorry, something went wrong.');
+                var d=el('div',{class:'sa-msg error'}, parsed.error || CHROME.error_generic);
                 body.appendChild(d); scrollBottom();
               }
             } else if(event==='user'){
@@ -533,7 +580,7 @@
       removeTyping();
       if(res && res.ok){
         renderMessage(res.assistant_message);
-        disableInput(true, 'Our team will reply by email.');
+        disableInput(true, CHROME.handoff_note);
       } else if(res && res.error){
         renderMessage({role:'assistant',content:res.error});
       }
@@ -546,12 +593,12 @@
       // Server may rotate the token (e.g. auth state changed) — adopt
       // the new one and tell the user to retry.
       if(res && res.visitor_token){ token=res.visitor_token; localStorage.setItem(TOKEN_KEY, token); }
-      var msg=(res&&res.error)||'Sorry, something went wrong.';
+      var msg=(res&&res.error) || CHROME.error_generic;
       var d=el('div',{class:'sa-msg error'},msg); body.appendChild(d); scrollBottom();
       return;
     }
     if(res.assistant_message) renderMessage(res.assistant_message);
-    if(res.handed_off) disableInput(true, 'Our team will reply by email.');
+    if(res.handed_off) disableInput(true, CHROME.handoff_note);
     if('low_balance' in res) renderLowBalance(res.low_balance);
   }
 })();

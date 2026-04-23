@@ -40,6 +40,20 @@ class SiteAssistantController extends Controller
             'starter_prompts'   => array_values((array) $cfg['starter_prompts']),
             'input_placeholder' => SiteAssistantSettings::inputPlaceholderFor($cfg),
             'send_label'        => SiteAssistantSettings::sendLabelFor($cfg),
+            // Localized chrome strings consumed by the widget JS so
+            // visitors with non-English Accept-Language headers don't
+            // see English copy in the typing indicator, the cut-off
+            // banner, the handoff disabled-input note, or the two
+            // generic error toasts. Subheading is also rendered
+            // server-side in the partial so it's correct before
+            // bootstrap arrives.
+            'subheading'             => SiteAssistantSettings::subheadingFor($cfg),
+            'typing_indicator'       => SiteAssistantSettings::typingIndicatorFor($cfg),
+            'handoff_note'           => SiteAssistantSettings::handoffNoteFor($cfg),
+            'cutoff_notice'          => SiteAssistantSettings::cutoffNoticeFor($cfg),
+            'cutoff_retry_label'     => SiteAssistantSettings::cutoffRetryLabelFor($cfg),
+            'error_network'          => SiteAssistantSettings::errorNetworkFor($cfg),
+            'error_generic'          => SiteAssistantSettings::errorGenericFor($cfg),
             'handoff_enabled'   => (bool) $cfg['handoff_enabled'],
             'templates'         => $this->runtime->listTemplates(),
         ]);
