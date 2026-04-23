@@ -3917,11 +3917,11 @@
             {{-- 3 · Dynamic QR codes --}}
             <div class="reveal rd-3 glass rounded-3xl p-7 tilt share-card">
                 <div class="absolute -top-10 -right-10 w-40 h-40 rounded-full opacity-30" style="background:var(--c3)"></div>
-                <div class="relative flex flex-col items-center text-center">
+                <div class="relative">
                     <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style="background:rgba(233,78,140,.2)"><i class="fas fa-qrcode text-xl" style="color:var(--c3)"></i></div>
                     <h3 class="text-xl font-bold mb-2">Dynamic QR codes</h3>
                     <p class="text-sm text-gray-400 mb-5">Print once, redirect forever. Change the destination without reprinting.</p>
-                    <div class="qr-stage" aria-hidden="true">
+                    <div class="qr-stage qr-stage--left" aria-hidden="true">
                         <span class="qr-corner tl"></span>
                         <span class="qr-corner tr"></span>
                         <span class="qr-corner bl"></span>
