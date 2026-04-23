@@ -668,6 +668,13 @@
         <div class="kpi-cell-head"><i class="fas fa-th-large"></i> Block clicks</div>
         <div class="kpi-cell-value">{{ number_format($blockClicksInRange) }}</div>
     </div>
+    @if($hasPollBlocks || $pollVotesInRange > 0)
+    <a href="#poll-engagement" class="kpi-cell kpi-cell-link"
+       title="Total poll responses across all poll blocks on this link in the selected date range. Click to jump to the per-poll breakdown.">
+        <div class="kpi-cell-head"><i class="fas fa-square-poll-vertical"></i> Poll votes</div>
+        <div class="kpi-cell-value">{{ number_format($pollVotesInRange) }}</div>
+    </a>
+    @endif
     <div class="kpi-cell">
         <div class="kpi-cell-head"><i class="fas fa-hourglass-half"></i> Engaged time</div>
         <div class="kpi-cell-value">{{ _fmtSecs($totalEngagedSeconds) }}</div>
@@ -1552,6 +1559,40 @@
     </div>
     @endif
 </div>
+
+@if($hasPollBlocks || $pollVotesInRange > 0)
+<div id="poll-engagement" class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#ec4899,#8b5cf6); --sc-glow: rgba(236,72,153,0.35); --sc-color: #f9a8d4; --sc-border: rgba(236,72,153,0.3);">
+    <div class="section-head">
+        <div class="section-title"><div class="section-icon"><i class="fas fa-square-poll-vertical"></i></div> Poll Engagement</div>
+        <span class="section-pill" title="Total poll responses across every poll block on this link in the selected range."><i class="fas fa-users"></i> {{ number_format($pollVotesInRange) }} total votes</span>
+    </div>
+    @if($pollBreakdown->isEmpty())
+        <p class="text-sm text-center py-8" style="color: var(--text-faint);">No poll responses recorded in this range yet.</p>
+    @else
+        @php $pollMax = $pollBreakdown->max('votes') ?: 1; @endphp
+        <div class="flex flex-col gap-2">
+            @foreach($pollBreakdown as $row)
+                @php $pct = round(($row->votes / $pollMax) * 100); @endphp
+                <a href="{{ route('user.links.poll-votes.index', [$link, $row->block_id]) }}"
+                   class="progress-row flex items-center gap-3 hover:no-underline"
+                   style="--pr-width: {{ $pct }}%; --pr-color: linear-gradient(90deg, rgba(236,72,153,0.18), rgba(139,92,246,0.10));"
+                   title="Open per-vote details for this poll">
+                    <span class="progress-favicon"><i class="fas fa-square-poll-vertical"></i></span>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-sm font-semibold truncate" style="color: var(--text-primary);">{{ $row->question }}</div>
+                        <div class="text-[10px]" style="color: var(--text-faint);">Block #{{ $row->block_id }}</div>
+                    </div>
+                    <div class="text-right tabular-nums">
+                        <div class="text-sm font-bold" style="color: var(--text-primary);">{{ number_format($row->votes) }}</div>
+                        <div class="text-[10px]" style="color: var(--text-faint);">votes</div>
+                    </div>
+                    <i class="fas fa-chevron-right text-[10px]" style="color: var(--text-faint);"></i>
+                </a>
+            @endforeach
+        </div>
+    @endif
+</div>
+@endif
 
 <div class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#14b8a6,#2dd4bf); --sc-glow: rgba(20,184,166,0.35); --sc-color: #5eead4; --sc-border: rgba(20,184,166,0.3);">
     <div class="section-head">

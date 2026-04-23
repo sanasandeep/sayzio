@@ -7,6 +7,7 @@ use App\Modules\Common\Services\CityLookupService;
 use App\Modules\Common\Services\AppLinkResolver;
 use App\Modules\User\Models\Follow;
 use App\Modules\User\Models\Link;
+use App\Modules\User\Models\PollVote;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserFile;
 use App\Modules\User\Models\Workspace;
@@ -453,6 +454,37 @@ class LinkController extends Controller
         $uniqueInRange = (clone $clicksQuery)->distinct('ip_address')->count('ip_address');
         $blockClicksInRange = (clone $clicksQuery)->whereNotNull('block_id')->count();
         $pageVisitsInRange = (clone $clicksQuery)->whereNull('block_id')->count();
+
+        // Poll-vote engagement for this link in the selected date range. Surfaced
+        // as a headline KPI alongside clicks so creators see polls in their main
+        // numbers, with a per-poll breakdown card linking to the existing
+        // per-block poll-votes page for drill-down.
+        $pollVotesQuery = PollVote::where('link_id', $link->id)
+            ->whereBetween('created_at', [$startDate, $endDate]);
+        $pollVotesInRange = (clone $pollVotesQuery)->count();
+
+        $pollVoteCountsByBlock = (clone $pollVotesQuery)
+            ->selectRaw('block_id, COUNT(*) as vote_count')
+            ->groupBy('block_id')
+            ->pluck('vote_count', 'block_id')
+            ->all();
+
+        // Always pull every poll block on this link so the breakdown surfaces
+        // zero-vote polls too. That keeps Poll Engagement a first-class metric
+        // (visible whenever the link has any poll blocks), not just when
+        // someone has already voted.
+        $pollBlocks = \App\Modules\User\Models\BiolinkBlock::where('link_id', $link->id)
+            ->where('type', 'poll')
+            ->get(['id', 'settings']);
+        $hasPollBlocks = $pollBlocks->isNotEmpty();
+        $pollBreakdown = $pollBlocks->map(function ($blk) use ($pollVoteCountsByBlock) {
+            $settings = $blk->settings ?? [];
+            return (object) [
+                'block_id' => $blk->id,
+                'question' => $settings['question'] ?? 'Poll',
+                'votes'    => (int) ($pollVoteCountsByBlock[$blk->id] ?? 0),
+            ];
+        })->sortByDesc('votes')->values();
 
         // Count of bot/scraper clicks that the global scope filtered out of the
         // numbers above. Surfaced on the analytics page as a small "X bot hits
@@ -941,6 +973,7 @@ class LinkController extends Controller
             'deviceStats', 'sourceStats', 'channelStats', 'languageStats', 'blockStats', 'utmStats',
             'recentClicks', 'totalInRange', 'uniqueInRange',
             'blockClicksInRange', 'pageVisitsInRange', 'botClicksInRange', 'botFamilyBreakdown',
+            'pollVotesInRange', 'pollBreakdown', 'hasPollBlocks',
             'period', 'groupBy', 'startDate', 'endDate',
             'totalSessions', 'avgSessionSeconds', 'totalEngagedSeconds',
             'bounceRate', 'blockEngagement', 'blockClickMap', 'blockMeta',
