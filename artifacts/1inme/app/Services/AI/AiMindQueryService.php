@@ -75,7 +75,7 @@ class AiMindQueryService
      * @param array<int,AiMind> $minds
      * @return array{
      *   context:string,
-     *   citations:array<int,array{id:int,title:string,type:string,mind_id:int,score:float,url:?string}>,
+     *   citations:array<int,array{id:int,title:string,type:string,mind_id:int,score:float,chunk_id:int,chunk_ord:int,url:?string}>,
      *   feature_snapshots:array<int,array{key:string,label:string,text:string}>,
      *   mind_stats:array<int,array{chunks_used:int,top_score:float}>,
      *   credits_spent:int,
@@ -166,12 +166,14 @@ class AiMindQueryService
             $src = AiMindSource::find($chunk->source_id);
             if ($src) {
                 $citations[] = [
-                    'id'      => (int) $src->id,
-                    'title'   => (string) $src->title,
-                    'type'    => (string) $src->type,
-                    'mind_id' => (int) $src->mind_id,
-                    'score'   => $score,
-                    'url'     => $src->url ? (string) $src->url : null,
+                    'id'        => (int) $src->id,
+                    'title'     => (string) $src->title,
+                    'type'      => (string) $src->type,
+                    'mind_id'   => (int) $src->mind_id,
+                    'score'     => $score,
+                    'chunk_id'  => (int) $chunk->id,
+                    'chunk_ord' => (int) $chunk->ord,
+                    'url'       => $src->url ? (string) $src->url : null,
                 ];
             }
         }
@@ -195,7 +197,7 @@ class AiMindQueryService
      * @param array<int,AiMind> $minds Knowledge bases to search.
      * @return array{
      *   answer:string,
-     *   citations:array<int,array{id:int,title:string,type:string,mind_id:int,score:float,url:?string}>,
+     *   citations:array<int,array{id:int,title:string,type:string,mind_id:int,score:float,chunk_id:int,chunk_ord:int,url:?string}>,
      *   credits_spent:int,
      *   tokens_in:int,
      *   tokens_out:int,

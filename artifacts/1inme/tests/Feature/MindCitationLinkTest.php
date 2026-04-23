@@ -82,7 +82,7 @@ class MindCitationLinkTest extends TestCase
             'body'    => 'VERIFIABLE-SOURCE-BODY-CONTENT',
             'status'  => AiMindSource::STATUS_READY,
         ]);
-        AiMindChunk::create([
+        $chunk = AiMindChunk::create([
             'mind_id'   => $mind->id,
             'source_id' => $src->id,
             'ord'       => 0,
@@ -91,13 +91,13 @@ class MindCitationLinkTest extends TestCase
             'embedding' => [1.0],
             'model'     => 'text-embedding-3-small',
         ]);
-        return [$mind, $src];
+        return [$mind, $src, $chunk];
     }
 
     public function test_persona_citation_renders_as_link_to_source_detail(): void
     {
         $user = $this->makeUser();
-        [$mind, $src] = $this->seedMindWithSource($user->id);
+        [$mind, $src, $chunk] = $this->seedMindWithSource($user->id);
 
         $this->actingAs($user)
             ->post(route('user.ai.persona.generate'), [
@@ -106,7 +106,8 @@ class MindCitationLinkTest extends TestCase
             ])
             ->assertRedirect(route('user.ai.persona.show'));
 
-        $href = route('user.minds.sources.show', ['mind' => $mind->id, 'source' => $src->id]);
+        $href = route('user.minds.sources.show', ['mind' => $mind->id, 'source' => $src->id])
+            . '?chunk=' . $chunk->id;
         $expected = 'href="' . e($href) . '"';
 
         $this->actingAs($user)
@@ -119,7 +120,7 @@ class MindCitationLinkTest extends TestCase
     public function test_coach_citation_renders_as_link_to_source_detail(): void
     {
         $user = $this->makeUser();
-        [$mind, $src] = $this->seedMindWithSource($user->id);
+        [$mind, $src, $chunk] = $this->seedMindWithSource($user->id);
 
         $ws = app(\App\Modules\User\Services\WorkspaceContext::class)->resolve($user);
         $link = Link::create([
@@ -139,7 +140,8 @@ class MindCitationLinkTest extends TestCase
             ])
             ->assertRedirect(route('user.ai.coach.show'));
 
-        $href = route('user.minds.sources.show', ['mind' => $mind->id, 'source' => $src->id]);
+        $href = route('user.minds.sources.show', ['mind' => $mind->id, 'source' => $src->id])
+            . '?chunk=' . $chunk->id;
         $expected = 'href="' . e($href) . '"';
 
         $this->actingAs($user)
@@ -169,6 +171,138 @@ class MindCitationLinkTest extends TestCase
         $this->actingAs($other)
             ->get(route('user.minds.sources.show', ['mind' => $mind->id, 'source' => $src->id]))
             ->assertForbidden();
+    }
+
+    public function test_source_detail_highlights_chunk_passage_in_text_body(): void
+    {
+        $user = $this->makeUser();
+        $mind = AiMind::create([
+            'user_id'     => $user->id,
+            'name'        => 'Highlight Mind',
+            'is_default'  => false,
+            'is_disabled' => false,
+        ]);
+        $src = AiMindSource::create([
+            'mind_id' => $mind->id,
+            'type'    => AiMindSource::TYPE_TEXT,
+            'title'   => 'Long form note',
+            'body'    => "Intro paragraph here.\n\nThis is the cited middle passage that\nshould light up.\n\nClosing words follow.",
+            'status'  => AiMindSource::STATUS_READY,
+        ]);
+        $chunk = AiMindChunk::create([
+            'mind_id'   => $mind->id,
+            'source_id' => $src->id,
+            'ord'       => 0,
+            // Whitespace-collapsed form, like the real chunker emits.
+            'content'   => 'This is the cited middle passage that should light up.',
+            'tokens'    => 10,
+            'embedding' => [1.0],
+            'model'     => 'text-embedding-3-small',
+        ]);
+
+        $resp = $this->actingAs($user)
+            ->get(route('user.minds.sources.show', ['mind' => $mind->id, 'source' => $src->id])
+                . '?chunk=' . $chunk->id)
+            ->assertOk();
+
+        $resp->assertSee('id="chunk-highlight"', false);
+        $resp->assertSee('<mark', false);
+        $resp->assertSee('cited middle passage');
+    }
+
+    public function test_source_detail_highlights_matching_faq_row(): void
+    {
+        $user = $this->makeUser();
+        $mind = AiMind::create([
+            'user_id'     => $user->id,
+            'name'        => 'FAQ Mind',
+            'is_default'  => false,
+            'is_disabled' => false,
+        ]);
+        $src = AiMindSource::create([
+            'mind_id' => $mind->id,
+            'type'    => AiMindSource::TYPE_FAQ,
+            'title'   => 'Pricing FAQ',
+            'body'    => json_encode([
+                ['q' => 'How much does it cost?', 'a' => 'Plans start at $9 per month.'],
+                ['q' => 'Do you offer refunds?',  'a' => 'Yes, within 30 days of purchase.'],
+            ]),
+            'status'  => AiMindSource::STATUS_READY,
+        ]);
+        $chunk = AiMindChunk::create([
+            'mind_id'   => $mind->id,
+            'source_id' => $src->id,
+            'ord'       => 1,
+            'content'   => 'Q: Do you offer refunds? A: Yes, within 30 days of purchase.',
+            'tokens'    => 10,
+            'embedding' => [1.0],
+            'model'     => 'text-embedding-3-small',
+        ]);
+
+        $resp = $this->actingAs($user)
+            ->get(route('user.minds.sources.show', ['mind' => $mind->id, 'source' => $src->id])
+                . '?chunk=' . $chunk->id)
+            ->assertOk();
+
+        $resp->assertSee('id="chunk-highlight"', false);
+        $resp->assertSee('Do you offer refunds?');
+    }
+
+    public function test_source_detail_falls_back_to_cited_passage_when_body_missing(): void
+    {
+        $user = $this->makeUser();
+        $mind = AiMind::create([
+            'user_id'     => $user->id,
+            'name'        => 'Doc Mind',
+            'is_default'  => false,
+            'is_disabled' => false,
+        ]);
+        // Document sources don't persist body text, so the highlighter
+        // can't pinpoint the chunk in the rendered view. We still want
+        // creators to see exactly what the citation pulled.
+        $src = AiMindSource::create([
+            'mind_id'      => $mind->id,
+            'type'         => AiMindSource::TYPE_DOCUMENT,
+            'title'        => 'Whitepaper.pdf',
+            'storage_disk' => 'local',
+            'storage_path' => 'ai-minds/0/whitepaper.pdf',
+            'mime'         => 'application/pdf',
+            'size_bytes'   => 1024,
+            'status'       => AiMindSource::STATUS_READY,
+        ]);
+        $chunk = AiMindChunk::create([
+            'mind_id'   => $mind->id,
+            'source_id' => $src->id,
+            'ord'       => 3,
+            'content'   => 'This exact passage was lifted from page 4 of the whitepaper.',
+            'tokens'    => 12,
+            'embedding' => [1.0],
+            'model'     => 'text-embedding-3-small',
+        ]);
+
+        $resp = $this->actingAs($user)
+            ->get(route('user.minds.sources.show', ['mind' => $mind->id, 'source' => $src->id])
+                . '?chunk=' . $chunk->id)
+            ->assertOk();
+
+        $resp->assertSee('Cited passage');
+        $resp->assertSee('lifted from page 4 of the whitepaper');
+        $resp->assertSee('id="chunk-highlight"', false);
+    }
+
+    public function test_source_detail_ignores_chunk_param_from_other_source(): void
+    {
+        $user = $this->makeUser();
+        [$mindA, $srcA] = $this->seedMindWithSource($user->id);
+        [$mindB, $srcB, $chunkB] = $this->seedMindWithSource($user->id);
+
+        // Chunk belongs to srcB but we request srcA's detail page.
+        $resp = $this->actingAs($user)
+            ->get(route('user.minds.sources.show', ['mind' => $mindA->id, 'source' => $srcA->id])
+                . '?chunk=' . $chunkB->id)
+            ->assertOk();
+
+        $resp->assertDontSee('id="chunk-highlight"', false);
     }
 
     public function test_source_detail_404_when_source_belongs_to_different_mind(): void

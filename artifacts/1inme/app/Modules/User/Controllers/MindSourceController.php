@@ -5,6 +5,7 @@ namespace App\Modules\User\Controllers;
 use App\Http\Controllers\Controller;
 use App\Jobs\IngestAiMindSourceJob;
 use App\Modules\User\Models\AiMind;
+use App\Modules\User\Models\AiMindChunk;
 use App\Modules\User\Models\AiMindSource;
 use App\Services\AI\AiEngineSettings;
 use App\Services\AI\AiMindFeatureAdapter;
@@ -35,9 +36,21 @@ class MindSourceController extends Controller
         }
         if ((int) $source->mind_id !== (int) $mind->id) abort(404);
 
+        // If a citation linked here with ?chunk=ID, look up that chunk so
+        // the view can scroll to and highlight the exact passage the AI
+        // pulled. Silently ignored if it doesn't belong to this source.
+        $highlightChunk = null;
+        $chunkId = (int) $request->query('chunk');
+        if ($chunkId > 0) {
+            $highlightChunk = AiMindChunk::where('id', $chunkId)
+                ->where('source_id', $source->id)
+                ->first();
+        }
+
         return view('user.minds.sources.show', [
-            'mind'   => $mind,
-            'source' => $source,
+            'mind'           => $mind,
+            'source'         => $source,
+            'highlightChunk' => $highlightChunk,
         ]);
     }
 

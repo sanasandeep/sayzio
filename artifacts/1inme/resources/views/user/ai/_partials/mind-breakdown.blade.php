@@ -58,7 +58,11 @@
                                     $c = $row['cite'];
                                     $cMid = (int) ($c['mind_id'] ?? 0);
                                     $cSid = (int) ($c['id'] ?? 0);
-                                    $href = ($cMid && $cSid) ? route('user.minds.sources.show', ['mind' => $cMid, 'source' => $cSid]) : null;
+                                    $cChunk = (int) ($c['chunk_id'] ?? 0);
+                                    $href = ($cMid && $cSid)
+                                        ? route('user.minds.sources.show', ['mind' => $cMid, 'source' => $cSid])
+                                          . ($cChunk ? ('?chunk=' . $cChunk) : '')
+                                        : null;
                                     $isLink = ($c['type'] ?? '') === 'link';
                                     $origUrl = $isLink ? ($c['url'] ?? null) : null;
                                 @endphp
@@ -96,7 +100,11 @@
                                 $c = $row['cite'];
                                 $cMid = (int) ($c['mind_id'] ?? 0);
                                 $cSid = (int) ($c['id'] ?? 0);
-                                $href = ($cMid && $cSid) ? route('user.minds.sources.show', ['mind' => $cMid, 'source' => $cSid]) : null;
+                                $cChunk = (int) ($c['chunk_id'] ?? 0);
+                                $href = ($cMid && $cSid)
+                                    ? route('user.minds.sources.show', ['mind' => $cMid, 'source' => $cSid])
+                                      . ($cChunk ? ('?chunk=' . $cChunk) : '')
+                                    : null;
                                 $isLink = ($c['type'] ?? '') === 'link';
                                 $origUrl = $isLink ? ($c['url'] ?? null) : null;
                             @endphp
@@ -133,7 +141,11 @@
                 @php
                     $cMid = (int) ($c['mind_id'] ?? 0);
                     $cSid = (int) ($c['id'] ?? 0);
-                    $href = ($cMid && $cSid) ? route('user.minds.sources.show', ['mind' => $cMid, 'source' => $cSid]) : null;
+                    $cChunk = (int) ($c['chunk_id'] ?? 0);
+                    $href = ($cMid && $cSid)
+                        ? route('user.minds.sources.show', ['mind' => $cMid, 'source' => $cSid])
+                          . ($cChunk ? ('?chunk=' . $cChunk) : '')
+                        : null;
                     $isLink = ($c['type'] ?? '') === 'link';
                     $origUrl = $isLink ? ($c['url'] ?? null) : null;
                 @endphp
