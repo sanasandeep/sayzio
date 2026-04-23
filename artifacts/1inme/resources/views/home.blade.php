@@ -5537,26 +5537,7 @@
 {{-- ============================ BY THE NUMBERS (stats strip) ============================ --}}
 <section id="stats" class="py-12 lg:py-16 relative overflow-hidden" aria-label="By the numbers">
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="reveal glass rounded-3xl p-6 sm:p-8 relative overflow-hidden">
-            <div class="absolute -top-20 -right-20 w-72 h-72 rounded-full opacity-25 blur-3xl" style="background: var(--c2);"></div>
-            <div class="absolute -bottom-20 -left-20 w-72 h-72 rounded-full opacity-20 blur-3xl" style="background: var(--c4);"></div>
-            <div class="relative grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-4 text-center">
-                @foreach([
-                    ['fa-link', '120K+', 'Active links', '#1bd4d9'],
-                    ['fa-globe', '180', 'Countries reached', '#7c3aed'],
-                    ['fa-bolt', '8.4M', 'Clicks routed / month', '#e94e8c'],
-                    ['fa-stopwatch', '< 90s', 'Avg time to first link', '#ff8a3c'],
-                ] as $i => $s)
-                    <div class="reveal rd-{{ ($i%4)+1 }}">
-                        <div class="w-12 h-12 rounded-2xl mx-auto mb-3 flex items-center justify-center" style="background: linear-gradient(135deg, {{ $s[3] }}, var(--c2)); box-shadow: 0 12px 30px -12px {{ $s[3] }};">
-                            <i class="fas {{ $s[0] }} text-white"></i>
-                        </div>
-                        <div class="text-2xl sm:text-3xl font-extrabold grad-text">{{ $s[1] }}</div>
-                        <div class="text-xs text-gray-400 mt-1">{{ $s[2] }}</div>
-                    </div>
-                @endforeach
-            </div>
-        </div>
+        @include('public.partials.marketing-stats')
     </div>
 </section>
 

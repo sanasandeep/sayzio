@@ -26,6 +26,7 @@ use App\Modules\Admin\Controllers\GatewaySettingsController;
 use App\Modules\Admin\Controllers\PendingPaymentController;
 use App\Modules\Admin\Controllers\DemoContentController;
 use App\Modules\Admin\Controllers\TestimonialController;
+use App\Modules\Admin\Controllers\SiteStatController;
 use App\Modules\Admin\Middleware\CheckPermission;
 
 Route::prefix('admin')->name('admin.')->group(function () {
@@ -282,6 +283,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::put('{testimonial}',        [TestimonialController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
             Route::post('{testimonial}/toggle', [TestimonialController::class, 'toggle'])->middleware(CheckPermission::class . ':settings.manage')->name('toggle');
             Route::delete('{testimonial}',     [TestimonialController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
+        });
+
+        Route::prefix('site-stats')->name('site-stats.')->group(function () {
+            Route::get('/',                 [SiteStatController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::get('create',            [SiteStatController::class, 'create'])->middleware(CheckPermission::class . ':settings.manage')->name('create');
+            Route::post('/',                [SiteStatController::class, 'store'])->middleware(CheckPermission::class . ':settings.manage')->name('store');
+            Route::get('{siteStat}/edit',   [SiteStatController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
+            Route::put('{siteStat}',        [SiteStatController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
+            Route::post('{siteStat}/toggle',[SiteStatController::class, 'toggle'])->middleware(CheckPermission::class . ':settings.manage')->name('toggle');
+            Route::delete('{siteStat}',     [SiteStatController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
         });
 
         Route::prefix('wallet-settings')->name('wallet-settings.')->group(function () {
