@@ -21,7 +21,7 @@
         @endforeach
     </form>
 
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <div class="glass rounded-2xl border border-white/10 p-5 text-center">
             <div class="text-2xl font-semibold text-white">{{ number_format($totalMsgs) }}</div>
             <div class="text-xs text-white/50 mt-1">User messages ({{ $days }}d)</div>
@@ -43,6 +43,16 @@
             </div>
             <div class="text-xs text-white/50 mt-1">Avg turns → handoff</div>
             <div class="text-[10px] text-white/30 mt-0.5">{{ number_format($handedOff) }} handed off</div>
+        </div>
+        <div class="glass rounded-2xl border border-white/10 p-5 text-center"
+             title="Of all partial/failed assistant streams in this window, the share that visitors clicked Retry on. A low retry rate (high abandon rate) usually means a flaky upstream call worth investigating.">
+            <div class="text-2xl font-semibold text-white">
+                {{ $cutoffRetryRate === null ? '—' : $cutoffRetryRate.'%' }}
+            </div>
+            <div class="text-xs text-white/50 mt-1">Cut-off retry rate</div>
+            <div class="text-[10px] text-white/30 mt-0.5">
+                {{ number_format($cutoffRetried) }} retried / {{ number_format($cutoffTotal) }} cut-offs
+            </div>
         </div>
     </div>
 

@@ -538,6 +538,39 @@ class SiteAssistantController extends Controller
                 ->values();
         }
 
+        // Cut-off retry rate: of all partial/failed assistant streams in
+        // the window, what fraction did the visitor click Retry on? A
+        // retry is a later user message whose meta.retry_of points back
+        // at the cut-off. A high *abandon* rate (low retry rate) is a
+        // strong signal that an upstream call is flaking out and worth
+        // investigating.
+        $cutoffBase = SiteAssistantMessage::query()
+            ->where('role', 'assistant')
+            ->where('created_at', '>=', $since)
+            ->whereRaw("meta->>'status' IN ('partial','failed')");
+        $cutoffTotal = (int) (clone $cutoffBase)->count();
+        $cutoffRetried = 0;
+        if ($cutoffTotal > 0) {
+            // Bound by $since to keep the scan proportional to the
+            // window, and require the retry_of value to be a non-empty
+            // string of digits before the bigint cast so malformed
+            // historical metadata can never raise a SQL cast error.
+            $retriedIds = SiteAssistantMessage::query()
+                ->where('role', 'user')
+                ->where('created_at', '>=', $since)
+                ->whereRaw("meta->>'retry_of' ~ '^[0-9]+$'")
+                ->selectRaw("DISTINCT (meta->>'retry_of')::bigint AS rid")
+                ->pluck('rid')
+                ->filter()
+                ->all();
+            if (!empty($retriedIds)) {
+                $cutoffRetried = (int) (clone $cutoffBase)->whereIn('id', $retriedIds)->count();
+            }
+        }
+        $cutoffRetryRate = $cutoffTotal > 0
+            ? round(($cutoffRetried / $cutoffTotal) * 100, 1)
+            : null;
+
         return view('admin.site-assistant.analytics', [
             'days'              => $days,
             'messagesPerDay'    => $messagesPerDay,
@@ -547,6 +580,9 @@ class SiteAssistantController extends Controller
             'avgTurnsToHandoff' => $avgTurnsToHandoff,
             'deflectionRate'    => $deflectionRate,
             'suggestions'       => $suggestions,
+            'cutoffTotal'       => $cutoffTotal,
+            'cutoffRetried'     => $cutoffRetried,
+            'cutoffRetryRate'   => $cutoffRetryRate,
         ]);
     }
 
