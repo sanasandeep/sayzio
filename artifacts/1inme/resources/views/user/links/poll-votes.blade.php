@@ -24,6 +24,41 @@
     </div>
     @endif
 
+    @if(session('error'))
+    <div class="mb-6 px-4 py-3 rounded-xl text-sm font-medium" style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); color: #ef4444;">
+        <i class="fas fa-exclamation-circle mr-1.5"></i> {{ session('error') }}
+    </div>
+    @endif
+
+    {{-- Erase a single voter's history (GDPR-style takedown). Matches across
+         every poll this creator owns, by email, user id, or fingerprint. --}}
+    <div class="card-premium p-5 mb-6">
+        <div class="flex items-start gap-3 mb-3">
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(239,68,68,0.15); color: #ef4444;">
+                <i class="fas fa-user-slash"></i>
+            </div>
+            <div>
+                <div class="text-sm font-semibold" style="color: var(--text-primary);">Erase a voter's poll history</div>
+                <div class="text-xs mt-0.5" style="color: var(--text-muted);">
+                    Removes every vote tied to a single voter across all of your polls. Search by email, user id, or fingerprint.
+                </div>
+            </div>
+        </div>
+        <form method="POST" action="{{ route('user.links.poll-votes.erase-voter', [$link, $block]) }}"
+              class="flex flex-col sm:flex-row gap-2"
+              onsubmit="return confirm('Erase EVERY poll vote matching this voter, across all your polls? This cannot be undone.')">
+            @csrf
+            <input type="text" name="identifier" required maxlength="255"
+                   placeholder="email@example.com, user id, or fingerprint"
+                   class="flex-1 px-3 py-2 rounded-lg text-sm"
+                   style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10); color: var(--text-primary);">
+            <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold inline-flex items-center justify-center gap-1.5"
+                    style="background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.25); color: #ef4444;">
+                <i class="fas fa-eraser"></i> Erase voter
+            </button>
+        </form>
+    </div>
+
     {{-- Per-option breakdown --}}
     <div class="card-premium p-5 mb-6">
         <div class="text-[11px] uppercase tracking-wider font-semibold mb-4" style="color: var(--text-muted);">

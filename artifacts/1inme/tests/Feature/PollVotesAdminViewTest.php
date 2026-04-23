@@ -132,4 +132,109 @@ class PollVotesAdminViewTest extends TestCase
         $this->assertNull(PollVote::find($vote->id));
         $this->assertEquals(1, PollVote::where('block_id', $block->id)->count());
     }
+
+    public function test_erase_voter_removes_all_matching_by_fingerprint_across_polls(): void
+    {
+        $owner = $this->makeUser();
+        [$bio, $block] = $this->setupPoll($owner);
+
+        // Second poll on a separate biolink owned by the same creator —
+        // the erase action should reach across polls/links.
+        $bio2 = Link::create([
+            'user_id' => $owner->id, 'type' => 'biolink',
+            'alias' => Link::generateAlias(), 'title' => 'Bio2',
+        ]);
+        $block2 = BiolinkBlock::create([
+            'link_id' => $bio2->id, 'type' => 'poll', 'sort_order' => 0,
+            'settings' => ['question' => 'Q2', 'options' => ['X', 'Y']],
+        ]);
+        PollVote::create([
+            'link_id' => $bio2->id, 'block_id' => $block2->id,
+            'option_index' => 0, 'option_label' => 'X',
+            'voter_fingerprint' => 'fpA', 'source' => 'biolink',
+        ]);
+        PollVote::create([
+            'link_id' => $bio2->id, 'block_id' => $block2->id,
+            'option_index' => 1, 'option_label' => 'Y',
+            'voter_fingerprint' => 'fpZ', 'source' => 'biolink',
+        ]);
+
+        $this->actingAs($owner)
+            ->post(route('user.links.poll-votes.erase-voter', [$bio, $block]),
+                ['identifier' => 'fpA'])
+            ->assertRedirect();
+
+        // Both fpA votes (across both polls) gone; fpB and fpZ untouched.
+        $this->assertEquals(0, PollVote::where('voter_fingerprint', 'fpA')->count());
+        $this->assertEquals(1, PollVote::where('voter_fingerprint', 'fpB')->count());
+        $this->assertEquals(1, PollVote::where('voter_fingerprint', 'fpZ')->count());
+    }
+
+    public function test_erase_voter_matches_by_email(): void
+    {
+        $owner = $this->makeUser();
+        [$bio, $block] = $this->setupPoll($owner);
+        $voter = $this->makeUser();
+        PollVote::create([
+            'link_id' => $bio->id, 'block_id' => $block->id,
+            'option_index' => 2, 'option_label' => 'C',
+            'user_id' => $voter->id,
+            'voter_fingerprint' => 'fpUser', 'source' => 'biolink',
+        ]);
+
+        $this->actingAs($owner)
+            ->post(route('user.links.poll-votes.erase-voter', [$bio, $block]),
+                ['identifier' => $voter->email])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertEquals(0, PollVote::where('user_id', $voter->id)->count());
+    }
+
+    public function test_erase_voter_does_not_touch_other_creators_polls(): void
+    {
+        $owner = $this->makeUser();
+        $other = $this->makeUser();
+        [$bio, $block] = $this->setupPoll($owner);
+        // A separate creator with a vote sharing the same fingerprint.
+        [$bio2, $block2] = $this->setupPoll($other);
+
+        $this->actingAs($owner)
+            ->post(route('user.links.poll-votes.erase-voter', [$bio, $block]),
+                ['identifier' => 'fpA'])
+            ->assertRedirect();
+
+        // Owner's fpA gone.
+        $this->assertEquals(0, PollVote::where('block_id', $block->id)
+            ->where('voter_fingerprint', 'fpA')->count());
+        // Other creator's fpA preserved.
+        $this->assertEquals(1, PollVote::where('block_id', $block2->id)
+            ->where('voter_fingerprint', 'fpA')->count());
+    }
+
+    public function test_erase_voter_blocks_other_users(): void
+    {
+        $owner = $this->makeUser();
+        $other = $this->makeUser();
+        [$bio, $block] = $this->setupPoll($owner);
+
+        $this->actingAs($other)
+            ->post(route('user.links.poll-votes.erase-voter', [$bio, $block]),
+                ['identifier' => 'fpA'])
+            ->assertForbidden();
+    }
+
+    public function test_erase_voter_reports_no_matches(): void
+    {
+        $owner = $this->makeUser();
+        [$bio, $block] = $this->setupPoll($owner);
+
+        $this->actingAs($owner)
+            ->post(route('user.links.poll-votes.erase-voter', [$bio, $block]),
+                ['identifier' => 'nope-not-a-real-fingerprint'])
+            ->assertRedirect()
+            ->assertSessionHas('error');
+
+        $this->assertEquals(2, PollVote::count());
+    }
 }

@@ -7,6 +7,8 @@ use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\PollVote;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PollVoteController extends Controller
@@ -104,5 +106,64 @@ class PollVoteController extends Controller
         $vote->delete();
 
         return back()->with('success', 'Vote removed.');
+    }
+
+    /**
+     * Erase every poll vote tied to a single voter (logged-in user_id,
+     * email, or anonymous fingerprint) across ALL polls owned by the
+     * current creator. Built for GDPR-style takedown requests.
+     */
+    public function eraseVoter(Request $request, Link $link, BiolinkBlock $block)
+    {
+        [$link, $block] = $this->resolve($request, $link, $block);
+
+        $data = $request->validate([
+            'identifier' => ['required', 'string', 'max:255'],
+        ]);
+
+        $needle = trim($data['identifier']);
+        $creatorId = $request->user()->id;
+
+        // Find every poll-vote row across every poll-block owned by this
+        // creator that matches the supplied identifier. We match on:
+        //   - exact user_id (numeric)
+        //   - exact email (via users join)
+        //   - exact voter_fingerprint
+        // Match every poll-vote whose owning link belongs to the creator.
+        // Skip the workspace global scope so the takedown reaches links
+        // across all of the creator's workspaces (the auth check below is
+        // simply link.user_id = current creator).
+        $ownedLinkIds = Link::query()->withoutGlobalScope('workspace')
+            ->where('user_id', $creatorId)->pluck('id');
+
+        $query = PollVote::query()
+            ->whereIn('link_id', $ownedLinkIds)
+            ->where(function ($q) use ($needle) {
+                $q->where('voter_fingerprint', $needle);
+                if (ctype_digit($needle)) {
+                    $q->orWhere('user_id', (int) $needle);
+                }
+                if (filter_var($needle, FILTER_VALIDATE_EMAIL)) {
+                    $q->orWhereIn('user_id', DB::table('users')
+                        ->where('email', $needle)->pluck('id'));
+                }
+            });
+
+        $count = (clone $query)->count();
+
+        if ($count === 0) {
+            return back()->with('error', 'No poll votes matched “' . e($needle) . '”.');
+        }
+
+        $query->delete();
+
+        Log::info('poll voter erased', [
+            'creator_id' => $creatorId,
+            'identifier' => $needle,
+            'removed'    => $count,
+            'from_block' => $block->id,
+        ]);
+
+        return back()->with('success', "Erased {$count} poll vote(s) tied to “{$needle}”.");
     }
 }
