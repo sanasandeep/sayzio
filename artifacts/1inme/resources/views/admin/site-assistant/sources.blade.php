@@ -89,12 +89,13 @@
                     <th class="text-left p-3">Page scope</th>
                     <th class="text-left p-3">Status</th>
                     <th class="text-right p-3">Chunks</th>
+                    <th class="text-right p-3" title="Assistant messages that cited this source since the start of the month">Used (mo.)</th>
                     <th class="p-3"></th>
                 </tr>
             </thead>
             <tbody>
                 @forelse($sources as $s)
-                    <tr class="border-t border-white/5 align-top">
+                    <tr id="source-{{ $s->id }}" class="border-t border-white/5 align-top target:bg-purple-500/10">
                         <td class="p-3 text-white">
                             <div class="font-medium">{{ $s->title }}</div>
                             @if($s->type === 'link' && $s->url)
@@ -120,6 +121,14 @@
                             @if($s->status_message)<div class="text-xs text-white/40 mt-1">{{ $s->status_message }}</div>@endif
                         </td>
                         <td class="p-3 text-right text-white/70">{{ (int) $s->chunks_count }}</td>
+                        <td class="p-3 text-right text-white/70">
+                            @php $usedN = (int) ($usageThisMonth[$s->id] ?? 0); @endphp
+                            @if($usedN > 0)
+                                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] bg-purple-500/15 text-purple-200" title="Used {{ $usedN }} time{{ $usedN === 1 ? '' : 's' }} this month">{{ $usedN }}</span>
+                            @else
+                                <span class="text-white/30 text-xs" title="Not cited yet this month">—</span>
+                            @endif
+                        </td>
                         <td class="p-3 text-right whitespace-nowrap">
                             <form method="POST" action="{{ route('admin.site-assistant.sources.reingest', $s) }}" class="inline">
                                 @csrf
@@ -132,7 +141,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="6" class="p-6 text-center text-white/50">No knowledge sources yet. Add your first URL or paste content above.</td></tr>
+                    <tr><td colspan="7" class="p-6 text-center text-white/50">No knowledge sources yet. Add your first URL or paste content above.</td></tr>
                 @endforelse
             </tbody>
         </table>

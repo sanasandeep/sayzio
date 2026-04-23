@@ -146,16 +146,59 @@ class SiteAssistantController extends Controller
     public function sources(Request $request)
     {
         $mind = SiteAssistantSettings::ensureAssistantMind();
-        $sources = \App\Modules\User\Models\AiMindSource::query()
+        $perPage = 50;
+        $baseQuery = \App\Modules\User\Models\AiMindSource::query()
             ->where('mind_id', $mind->id)
             ->whereIn('type', [
                 \App\Modules\User\Models\AiMindSource::TYPE_LINK,
                 \App\Modules\User\Models\AiMindSource::TYPE_TEXT,
                 \App\Modules\User\Models\AiMindSource::TYPE_DOCUMENT,
             ])
-            ->orderByDesc('id')
-            ->paginate(50);
-        return view('admin.site-assistant.sources', compact('mind', 'sources'));
+            ->orderByDesc('id');
+
+        // When the transcript viewer deep-links to a specific source
+        // (?focus=…), jump to whichever page that row lives on so the
+        // #source-{id} anchor actually resolves on screen.
+        $focusId = (int) $request->get('focus', 0);
+        if ($focusId > 0 && !$request->has('page')) {
+            $focusRow = (clone $baseQuery)->where('id', $focusId)->first();
+            if ($focusRow) {
+                $position = (clone $baseQuery)->where('id', '>', $focusRow->id)->count();
+                $page = intdiv($position, $perPage) + 1;
+                if ($page > 1) {
+                    $url = route('admin.site-assistant.sources', [
+                        'page'  => $page,
+                        'focus' => $focusId,
+                    ]).'#source-'.$focusId;
+                    return redirect()->to($url);
+                }
+            }
+        }
+
+        $sources = $baseQuery->paginate($perPage)->withQueryString();
+
+        // Tally how many assistant messages cited each source since the
+        // start of the current month. Citations are stored as a jsonb
+        // array on each message — expand with jsonb_array_elements so we
+        // can group by the source id without pulling rows into PHP.
+        $monthStart = now()->startOfMonth();
+        $usageRows = \Illuminate\Support\Facades\DB::select(
+            "SELECT (cit->>'id')::bigint AS source_id, COUNT(DISTINCT m.id) AS uses
+             FROM site_assistant_messages m
+             CROSS JOIN LATERAL jsonb_array_elements(m.citations) AS cit
+             WHERE m.role = 'assistant'
+               AND m.created_at >= ?
+               AND m.citations IS NOT NULL
+               AND jsonb_typeof(m.citations) = 'array'
+             GROUP BY source_id",
+            [$monthStart]
+        );
+        $usageThisMonth = [];
+        foreach ($usageRows as $row) {
+            $usageThisMonth[(int) $row->source_id] = (int) $row->uses;
+        }
+
+        return view('admin.site-assistant.sources', compact('mind', 'sources', 'usageThisMonth'));
     }
 
     public function storeSource(Request $request)
@@ -373,7 +416,31 @@ class SiteAssistantController extends Controller
     public function showConversation(SiteAssistantConversation $conversation)
     {
         $conversation->load(['messages' => fn ($q) => $q->orderBy('id')]);
-        return view('admin.site-assistant.conversation-show', compact('conversation'));
+
+        // Surface which Mind the dedicated assistant content lives in so
+        // the transcript view can flag citations sourced from it.
+        $assistantMindId = (int) (SiteAssistantSettings::get()['assistant_mind_id'] ?? 0);
+
+        // Map of source_id => still-exists flag, so the badge only links
+        // to the Knowledge Sources page when the row is still around.
+        $citedIds = [];
+        foreach ($conversation->messages as $m) {
+            foreach ((array) $m->citations as $c) {
+                $cid = (int) ($c['id'] ?? 0);
+                if ($cid > 0) $citedIds[$cid] = true;
+            }
+        }
+        $existingSourceIds = empty($citedIds)
+            ? []
+            : \App\Modules\User\Models\AiMindSource::query()
+                ->whereIn('id', array_keys($citedIds))
+                ->pluck('id')
+                ->all();
+        $existingSourceIds = array_flip(array_map('intval', $existingSourceIds));
+
+        return view('admin.site-assistant.conversation-show', compact(
+            'conversation', 'assistantMindId', 'existingSourceIds'
+        ));
     }
 
     public function disableConversation(SiteAssistantConversation $conversation)

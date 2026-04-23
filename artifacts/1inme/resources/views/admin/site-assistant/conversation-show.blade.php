@@ -52,7 +52,55 @@
                         <div class="mt-2 text-[11px] text-red-300/80"><span class="text-white/40">Stream error:</span> {{ $streamError }}</div>
                     @endif
                     @if($m->blocks)<details class="mt-2 text-xs text-white/50"><summary>Blocks</summary><pre class="overflow-auto">{{ json_encode($m->blocks, JSON_PRETTY_PRINT) }}</pre></details>@endif
-                    @if($m->citations)<details class="mt-2 text-xs text-white/50"><summary>Citations ({{ count($m->citations) }})</summary><pre class="overflow-auto">{{ json_encode($m->citations, JSON_PRETTY_PRINT) }}</pre></details>@endif
+                    @if($m->role !== 'user' && !empty($m->citations))
+                        <div class="mt-2 flex flex-wrap gap-1.5">
+                            @foreach($m->citations as $c)
+                                @php
+                                    $cid       = (int) ($c['id'] ?? 0);
+                                    $cTitle    = trim((string) ($c['title'] ?? '')) ?: ('Source #'.$cid);
+                                    $cType     = (string) ($c['type'] ?? '');
+                                    $cMindId   = (int) ($c['mind_id'] ?? 0);
+                                    $cScore    = isset($c['score']) ? (float) $c['score'] : null;
+                                    $cUrl      = (string) ($c['url'] ?? '');
+                                    $fromAsst  = $assistantMindId > 0 && $cMindId === $assistantMindId;
+                                    $exists    = isset($existingSourceIds[$cid]);
+                                    $jumpHref  = ($fromAsst && $exists)
+                                        ? route('admin.site-assistant.sources', ['focus' => $cid]).'#source-'.$cid
+                                        : null;
+                                    $tooltip   = $cTitle
+                                        .($cType ? "\nType: ".$cType : '')
+                                        .($cScore !== null ? "\nScore: ".number_format($cScore, 3) : '')
+                                        .($cUrl ? "\n".$cUrl : '')
+                                        .($fromAsst ? "\nFrom dedicated assistant Mind" : '');
+                                @endphp
+                                @if($jumpHref)
+                                    <a href="{{ $jumpHref }}" title="{{ $tooltip }}"
+                                       class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] border bg-purple-500/15 border-purple-400/40 text-purple-100 hover:bg-purple-500/25">
+                                        <span class="text-[9px] uppercase tracking-wide text-purple-300">Asst</span>
+                                        <span class="truncate max-w-[14rem]">{{ $cTitle }}</span>
+                                    </a>
+                                @elseif($fromAsst)
+                                    <span title="{{ $tooltip }}"
+                                          class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] border bg-purple-500/15 border-purple-400/40 text-purple-100">
+                                        <span class="text-[9px] uppercase tracking-wide text-purple-300">Asst</span>
+                                        <span class="truncate max-w-[14rem]">{{ $cTitle }}</span>
+                                        <span class="text-[9px] text-white/40">(deleted)</span>
+                                    </span>
+                                @elseif($cUrl)
+                                    <a href="{{ $cUrl }}" target="_blank" rel="noopener" title="{{ $tooltip }}"
+                                       class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] border bg-white/5 border-white/15 text-white/80 hover:bg-white/10">
+                                        <span class="truncate max-w-[14rem]">{{ $cTitle }}</span>
+                                    </a>
+                                @else
+                                    <span title="{{ $tooltip }}"
+                                          class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] border bg-white/5 border-white/15 text-white/80">
+                                        <span class="truncate max-w-[14rem]">{{ $cTitle }}</span>
+                                    </span>
+                                @endif
+                            @endforeach
+                        </div>
+                        <details class="mt-2 text-xs text-white/40"><summary>Raw citations ({{ count($m->citations) }})</summary><pre class="overflow-auto">{{ json_encode($m->citations, JSON_PRETTY_PRINT) }}</pre></details>
+                    @endif
                 </div>
             </div>
         @empty
