@@ -38,6 +38,29 @@ class HomeController extends Controller
         $plans = collect([$freePlan, $popularPlan])->filter()->unique('id')->values()
             ->map(function ($p) use ($user, $billing, $hasAddress, $currency) {
                 $monthly = PricingResolver::priceFor($p, $user, 'monthly');
+                $annual = PricingResolver::priceFor($p, $user, 'annual');
+                // Annual teaser payload: surfaced whenever both monthly AND
+                // annual rows exist for the resolved currency. The savings
+                // percentage is only meaningful when the annual price is
+                // genuinely cheaper than 12× monthly — otherwise we still
+                // show "Billed annually at X/yr" so visitors comparing on
+                // yearly cost always see the number, with `percent` = 0 so
+                // the view can hide the discount label.
+                // Stored in MINOR units so we don't reintroduce float math.
+                $annualTeaser = null;
+                $monthlyMinor = (int) $monthly['amount_minor'];
+                $annualMinor = (int) $annual['amount_minor'];
+                if ($monthlyMinor > 0 && $annualMinor > 0) {
+                    $fullYearMinor = $monthlyMinor * 12;
+                    $savedMinor = max(0, $fullYearMinor - $annualMinor);
+                    $annualTeaser = [
+                        'percent'         => $fullYearMinor > 0
+                            ? (int) round(($savedMinor / $fullYearMinor) * 100)
+                            : 0,
+                        'annual'          => $annual,
+                        'saved_formatted' => PricingResolver::money($savedMinor, $annual['currency']),
+                    ];
+                }
                 $tax = null;
                 if ($hasAddress && (int) $monthly['amount_minor'] > 0) {
                     $tax = TaxCalculator::calculate(
@@ -58,6 +81,7 @@ class HomeController extends Controller
                     'is_free'     => $monthly['amount_minor'] <= 0,
                     'is_popular'  => (bool) $p->is_popular,
                     'monthly'     => $monthly,
+                    'annual_teaser' => $annualTeaser,
                     'tax'         => $tax,
                 ];
             });

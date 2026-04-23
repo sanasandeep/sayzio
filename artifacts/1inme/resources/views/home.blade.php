@@ -5634,6 +5634,18 @@
                         @else
                             <div class="text-[11px] {{ $featured ? 'text-white/60' : 'text-gray-500' }} mb-1">+ taxes as applicable (shown at checkout)</div>
                         @endif
+                        @if(!empty($plan['annual_teaser']))
+                            @php $__hasDiscount = (int) $plan['annual_teaser']['percent'] > 0; @endphp
+                            <div class="mt-2 mb-1 inline-flex flex-wrap items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold {{ $featured ? 'bg-white/15 text-white' : ($__hasDiscount ? 'bg-emerald-500/15 text-emerald-300' : 'bg-white/[.06] text-gray-300') }}">
+                                <i class="fas {{ $__hasDiscount ? 'fa-tag' : 'fa-calendar-alt' }} text-[9px]"></i>
+                                @if($__hasDiscount)
+                                    <span>Save {{ $plan['annual_teaser']['percent'] }}% with annual</span>
+                                    <span class="font-semibold opacity-80">· {{ $plan['annual_teaser']['annual']['formatted'] }}/yr</span>
+                                @else
+                                    <span>Billed annually at {{ $plan['annual_teaser']['annual']['formatted'] }}/yr</span>
+                                @endif
+                            </div>
+                        @endif
                     @endif
                     <div class="text-sm mb-6 {{ $featured ? 'text-white/70' : 'text-gray-500' }}">{{ $plan['description'] ?: ($plan['is_free'] ? 'Forever free' : 'Per user, billed monthly') }}</div>
                     <ul class="space-y-3 mb-8">
