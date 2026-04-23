@@ -7,7 +7,10 @@ use App\Modules\Common\Services\LinkTrackingService;
 use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Follow;
 use App\Modules\User\Models\Link;
+use App\Modules\User\Models\PollVote;
+use App\Modules\User\Models\Rsvp;
 use App\Modules\User\Models\Subscriber;
+use App\Modules\User\Services\InboxForwarder;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 
@@ -192,5 +195,177 @@ class BiolinkController extends Controller
         }
 
         return $this->created(['subscribed' => true, 'creator_id' => $link->user_id]);
+    }
+
+    /**
+     * Record a poll vote from the mobile app for a poll-type biolink block.
+     * Persists the choice server-side so native viewers no longer need to
+     * bounce out to the web form. A second vote from the same viewer (same
+     * auth user, or same ip+ua hash for anonymous viewers) on the same block
+     * updates the existing row instead of creating a duplicate.
+     */
+    public function pollVote(Request $request, string $alias, int $blockId)
+    {
+        $link = Link::where('alias', $alias)->where('type', 'biolink')->first();
+        if (!$link || !$link->is_active) return $this->notFound('Biolink not found');
+        if (!$link->isAccessible()) return $this->notFound('Biolink not available');
+
+        $owner  = $link->user;
+        $viewer = $request->user();
+        $gate   = $this->checkVisibility($link, $viewer, $owner);
+        if ($gate !== null) {
+            return $this->fail($gate['message'], $gate['status'], $gate['code']);
+        }
+
+        $block = BiolinkBlock::where('id', $blockId)
+            ->where('link_id', $link->id)
+            ->where('type', 'poll')
+            ->first();
+        if (!$block) return $this->notFound('Poll not found');
+
+        $data = $request->validate([
+            'option_index' => ['required', 'integer', 'min:0', 'max:50'],
+            'option_label' => ['nullable', 'string', 'max:191'],
+        ]);
+
+        $settings = $block->settings ?? [];
+        $rawOptions = $settings['options'] ?? $settings['choices'] ?? $settings['items'] ?? [];
+        $options = [];
+        foreach ((array) $rawOptions as $opt) {
+            if (is_string($opt)) {
+                $options[] = $opt;
+            } elseif (is_array($opt)) {
+                $options[] = (string) ($opt['label'] ?? $opt['text'] ?? $opt['title'] ?? $opt['name'] ?? '');
+            }
+        }
+        if ($data['option_index'] >= count($options)) {
+            return $this->fail('Invalid option', 422, 'invalid_option');
+        }
+
+        $label = $data['option_label'] ?? $options[$data['option_index']] ?? null;
+
+        $fingerprint = $viewer
+            ? 'u:' . $viewer->id
+            : substr(hash('sha256', $request->ip() . '|' . ($request->userAgent() ?? '')), 0, 32);
+
+        $vote = PollVote::updateOrCreate(
+            [
+                'block_id'          => $block->id,
+                'voter_fingerprint' => $fingerprint,
+            ],
+            [
+                'link_id'      => $link->id,
+                'option_index' => (int) $data['option_index'],
+                'option_label' => $label,
+                'user_id'      => $viewer?->id,
+                'source'       => 'mobile_app',
+                'ip_address'   => $request->ip(),
+                'user_agent'   => substr((string) $request->userAgent(), 0, 500),
+            ]
+        );
+
+        // Mirror the in-page click counter so creator analytics still
+        // reflect the engagement, just like the web overlay would.
+        $this->trackingService->trackBlockClick(
+            $link, $block, '', $request, $alias, 'mobile_app'
+        );
+
+        return $this->ok([
+            'recorded'     => true,
+            'vote_id'      => $vote->id,
+            'option_index' => $vote->option_index,
+            'option_label' => $vote->option_label,
+        ]);
+    }
+
+    /**
+     * Submit an RSVP from the mobile biolink viewer. The mobile screen
+     * always operates on a biolink alias; the actual event lives on a
+     * separate ICS-type link referenced by the RSVP block's
+     * `event_link_id` setting (matching the web's biolink-block-render
+     * partial). We resolve the event link server-side from the block so
+     * the mobile client doesn't need to know its alias up front.
+     */
+    public function rsvpSubmit(Request $request, string $alias, int $blockId)
+    {
+        $biolink = Link::where('alias', $alias)->where('type', 'biolink')->first();
+        if (!$biolink || !$biolink->is_active) return $this->notFound('Biolink not found');
+        if (!$biolink->isAccessible()) return $this->notFound('Biolink not available');
+
+        $owner  = $biolink->user;
+        $viewer = $request->user();
+        $gate   = $this->checkVisibility($biolink, $viewer, $owner);
+        if ($gate !== null) {
+            return $this->fail($gate['message'], $gate['status'], $gate['code']);
+        }
+
+        $block = BiolinkBlock::where('id', $blockId)
+            ->where('link_id', $biolink->id)
+            ->where('type', 'rsvp')
+            ->first();
+        if (!$block) return $this->notFound('RSVP block not found');
+
+        $blockSettings = $block->settings ?? [];
+        $eventLinkId   = $blockSettings['event_link_id'] ?? null;
+        if (!$eventLinkId) {
+            return $this->fail('RSVP block is not configured for an event', 422, 'event_not_configured');
+        }
+
+        // Mirror the web partial: event link must belong to the same user
+        // and be an active ICS link with rsvp_enabled, otherwise refuse so
+        // creators can't be DM-spammed via cross-account block edits.
+        $link = Link::where('id', $eventLinkId)
+            ->where('user_id', $biolink->user_id)
+            ->where('type', 'ics')
+            ->first();
+        if (!$link || !$link->is_active) return $this->notFound('Event not found');
+        if (!$link->isAccessible()) return $this->notFound('Event not available');
+
+        $settings = $link->settings ?? [];
+        if (empty($settings['rsvp_enabled'])) {
+            return $this->fail('RSVPs are disabled for this event', 404, 'rsvp_disabled');
+        }
+
+        $allowPlusOnes = !empty($settings['rsvp_allow_plus_ones']);
+        $collectPhone  = !empty($settings['rsvp_collect_phone']);
+
+        $rules = [
+            'name'      => ['required', 'string', 'max:120'],
+            'email'     => ['nullable', 'email', 'max:160'],
+            'response'  => ['required', 'in:yes,no,maybe'],
+            'plus_ones' => ['nullable', 'integer', 'min:0', 'max:20'],
+            'message'   => ['nullable', 'string', 'max:1000'],
+        ];
+        if ($collectPhone) $rules['phone'] = ['nullable', 'string', 'max:40'];
+        $data = $request->validate($rules);
+
+        $rsvp = Rsvp::create([
+            'link_id'         => $link->id,
+            'source_block_id' => $block->id,
+            'name'            => $data['name'],
+            'email'           => $data['email'] ?? null,
+            'phone'           => $data['phone'] ?? null,
+            'response'        => $data['response'],
+            'plus_ones'       => $allowPlusOnes ? (int) ($data['plus_ones'] ?? 0) : 0,
+            'message'         => $data['message'] ?? null,
+            'source'          => 'mobile_app',
+            'ip_address'      => $request->ip(),
+            'user_agent'      => substr((string) $request->userAgent(), 0, 500),
+        ]);
+
+        // Account-level forwarding rules — same hook the web form uses so
+        // mobile RSVPs reach the creator's inbox/email/webhook destinations.
+        try {
+            $rsvp->setRelation('link', $link);
+            app(InboxForwarder::class)->dispatchForRsvp($link->user_id, $rsvp);
+        } catch (\Throwable $e) {
+            logger()->warning('Inbox forwarder (rsvp api) failed: ' . $e->getMessage());
+        }
+
+        return $this->created([
+            'recorded' => true,
+            'rsvp_id'  => $rsvp->id,
+            'response' => $rsvp->response,
+        ]);
     }
 }

@@ -11,6 +11,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -26,6 +27,8 @@ import {
   getBiolink,
   getRememberedBlockResponse,
   rememberBlockResponse,
+  submitPollVote,
+  submitRsvp,
   trackBiolinkBlockTap,
   trackBiolinkVisit,
 } from "@/lib/api/biolinks";
@@ -98,6 +101,354 @@ function openSafe(u: string, router: ReturnType<typeof useRouter>) {
 }
 
 type OpenEmbed = (opts: { url: string; title?: string; sandboxed?: boolean }) => void;
+type PaletteColors = ReturnType<typeof useColors>;
+
+// Inline poll voter — submits the chosen option to the new poll-vote API
+// and shows a "Thanks!" confirmation in place of bouncing to the WebView.
+function PollBlock({
+  block,
+  alias,
+  settings,
+  colors,
+}: {
+  block: BiolinkBlock;
+  alias: string;
+  settings: Record<string, unknown>;
+  colors: PaletteColors;
+}) {
+  const question = pickStr(settings, "question", "title", "text", "heading") ?? "Vote";
+  const rawOptions: unknown =
+    Array.isArray(settings.options) ? settings.options :
+    Array.isArray(settings.choices) ? settings.choices :
+    Array.isArray(settings.items) ? settings.items : [];
+  const options: string[] = (rawOptions as unknown[])
+    .map((o) => typeof o === "string" ? o : (typeof o === "object" && o ? (pickStr(o as Record<string, unknown>, "label", "text", "title", "name") ?? "") : ""))
+    .filter((x) => x.length > 0)
+    .slice(0, 8);
+
+  const [submitting, setSubmitting] = useState<number | null>(null);
+  const [votedIndex, setVotedIndex] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const remembered = useRememberedResponse(alias, block.id);
+
+  const onVote = useCallback(async (i: number, label: string) => {
+    if (submitting !== null) return;
+    setSubmitting(i);
+    setError(null);
+    try {
+      // The poll-vote endpoint already fires the same trackBlockClick the
+      // tap endpoint would, so we don't double-count by also pinging /tap
+      // here on success. We DO fall back to /tap on error so engagement
+      // analytics still register even when the vote API itself fails.
+      const res = await submitPollVote(alias, block.id, i, label);
+      setVotedIndex(res.option_index);
+      // Remember the picked label so a returning viewer sees the
+      // "Thanks for responding" card instead of the prompt again.
+      remembered.remember(label);
+    } catch (e) {
+      trackBiolinkBlockTap(alias, block.id, null);
+      const msg = (e && typeof e === "object" && "message" in e) ? String((e as { message: unknown }).message) : "Could not save your vote";
+      setError(msg);
+    } finally {
+      setSubmitting(null);
+    }
+  }, [alias, block.id, remembered, submitting]);
+
+  // If the viewer already responded on a previous session, skip straight
+  // to the "Thanks" card. Tapping "Change response" clears the remembered
+  // value and brings the live options back.
+  if (remembered.value !== null) {
+    return (
+      <RespondedCard
+        icon="📊"
+        title={question}
+        responseLabel={remembered.value}
+        onChange={remembered.forget}
+      />
+    );
+  }
+
+  // Wait for AsyncStorage to report back so a remembered viewer doesn't
+  // see the live options flash for a frame and double-submit.
+  if (!remembered.ready) {
+    return (
+      <View style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Text style={[styles.btnLabel, { color: colors.foreground, textAlign: "left" }]}>📊 {question}</Text>
+        <ActivityIndicator color={colors.primary} style={{ alignSelf: "flex-start", marginTop: 4 }} />
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <Text style={[styles.btnLabel, { color: colors.foreground, textAlign: "left" }]}>📊 {question}</Text>
+      {options.length > 0 ? (
+        options.map((opt, i) => {
+          const isVoted = votedIndex === i;
+          const isBusy = submitting === i;
+          return (
+            <Pressable
+              key={i}
+              disabled={submitting !== null || votedIndex !== null}
+              onPress={() => { void onVote(i, opt); }}
+              style={[
+                styles.pollOption,
+                {
+                  borderColor: isVoted ? "#7c3aed" : colors.border,
+                  backgroundColor: isVoted ? "#7c3aed22" : "transparent",
+                  opacity: submitting !== null && !isBusy ? 0.5 : 1,
+                },
+              ]}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Text style={[styles.body, { color: colors.foreground, textAlign: "left", fontSize: 14, flex: 1 }]}>
+                  {opt}
+                </Text>
+                {isBusy ? <ActivityIndicator size="small" color={colors.foreground} /> : null}
+                {isVoted ? <Feather name="check" size={16} color="#7c3aed" /> : null}
+              </View>
+            </Pressable>
+          );
+        })
+      ) : (
+        <Text style={[styles.body, { color: colors.mutedForeground, textAlign: "left", fontSize: 12 }]}>
+          No options configured.
+        </Text>
+      )}
+      {votedIndex !== null ? (
+        <Text style={[styles.body, { color: "#16a34a", textAlign: "left", fontSize: 12, marginTop: 4 }]}>
+          Thanks for voting!
+        </Text>
+      ) : null}
+      {error ? (
+        <Text style={[styles.body, { color: "#dc2626", textAlign: "left", fontSize: 12, marginTop: 4 }]}>
+          {error}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
+// Inline RSVP form — collects the response + minimum required fields and
+// posts to the native RSVP API instead of opening the WebView form.
+function RsvpBlock({
+  block,
+  alias,
+  settings,
+  colors,
+}: {
+  block: BiolinkBlock;
+  alias: string;
+  settings: Record<string, unknown>;
+  colors: PaletteColors;
+}) {
+  const title = pickStr(settings, "title", "heading", "event_title") ?? "RSVP";
+  const date = pickStr(settings, "date", "event_date", "starts_at");
+  const allowPlusOnes = pickBool(settings, "rsvp_allow_plus_ones", false)
+    || pickBool(settings, "allow_plus_ones", false);
+  const collectPhone = pickBool(settings, "rsvp_collect_phone", false)
+    || pickBool(settings, "collect_phone", false);
+
+  const responses: { key: "yes" | "maybe" | "no"; label: string; bg: string }[] = [
+    { key: "yes", label: "Going", bg: "#16a34a" },
+    { key: "maybe", label: "Maybe", bg: "#ca8a04" },
+    { key: "no", label: "Can't go", bg: "#64748b" },
+  ];
+
+  const [response, setResponse] = useState<"yes" | "maybe" | "no" | null>(null);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [plusOnes, setPlusOnes] = useState("0");
+  const [message, setMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const remembered = useRememberedResponse(alias, block.id);
+
+  const onPickResponse = useCallback((key: "yes" | "maybe" | "no") => {
+    setResponse(key);
+    setError(null);
+    // Fire the analytics ping when the user engages with a response so
+    // taps still flow into creator analytics like before.
+    trackBiolinkBlockTap(alias, block.id, null);
+  }, [alias, block.id]);
+
+  const onSubmit = useCallback(async () => {
+    if (!response) {
+      setError("Pick a response first.");
+      return;
+    }
+    if (!name.trim()) {
+      setError("Your name is required.");
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    try {
+      await submitRsvp(alias, block.id, {
+        name: name.trim(),
+        email: email.trim() || null,
+        phone: collectPhone ? (phone.trim() || null) : null,
+        response,
+        plus_ones: allowPlusOnes ? (Number.parseInt(plusOnes, 10) || 0) : 0,
+        message: message.trim() || null,
+      });
+      // Persist the human-readable label so a returning viewer sees the
+      // "Thanks for responding" card on next open instead of the form.
+      const picked = responses.find((r) => r.key === response);
+      remembered.remember(picked ? picked.label : response);
+    } catch (e) {
+      const msg = (e && typeof e === "object" && "message" in e) ? String((e as { message: unknown }).message) : "Could not submit RSVP";
+      setError(msg);
+    } finally {
+      setSubmitting(false);
+    }
+  }, [alias, allowPlusOnes, block.id, collectPhone, email, message, name, phone, plusOnes, remembered, response, responses]);
+
+  // If a previous session already RSVP'd (or we just submitted), show
+  // the shared "Thanks for responding" card with a "Change response"
+  // affordance instead of the form.
+  if (remembered.value !== null) {
+    return (
+      <RespondedCard
+        icon="📅"
+        title={title}
+        responseLabel={remembered.value}
+        onChange={remembered.forget}
+      />
+    );
+  }
+
+  // Wait for AsyncStorage so a remembered viewer doesn't see the form
+  // flash for a frame and accidentally double-submit.
+  if (!remembered.ready) {
+    return (
+      <View style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Text style={[styles.btnLabel, { color: colors.foreground, textAlign: "left" }]}>📅 {title}</Text>
+        <ActivityIndicator color={colors.primary} style={{ alignSelf: "flex-start", marginTop: 4 }} />
+      </View>
+    );
+  }
+
+  const inputStyle = {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    color: colors.foreground,
+    fontSize: 14,
+    marginTop: 6,
+  };
+
+  return (
+    <View style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <Text style={[styles.btnLabel, { color: colors.foreground, textAlign: "left" }]}>📅 {title}</Text>
+      {date ? (
+        <Text style={[styles.body, { color: colors.mutedForeground, textAlign: "left", fontSize: 12 }]}>{date}</Text>
+      ) : null}
+      <View style={styles.rsvpRow}>
+        {responses.map((r) => {
+          const isPicked = response === r.key;
+          return (
+            <Pressable
+              key={r.key}
+              onPress={() => onPickResponse(r.key)}
+              style={[
+                styles.rsvpBtn,
+                {
+                  backgroundColor: isPicked ? r.bg : "transparent",
+                  borderColor: r.bg,
+                },
+              ]}
+            >
+              <Text style={[styles.btnLabel, { color: isPicked ? "#fff" : r.bg, fontSize: 13 }]}>
+                {r.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+      {response ? (
+        <View style={{ marginTop: 6 }}>
+          <TextInput
+            value={name}
+            onChangeText={setName}
+            placeholder="Your name"
+            placeholderTextColor={colors.mutedForeground}
+            style={inputStyle}
+            autoCapitalize="words"
+            editable={!submitting}
+          />
+          <TextInput
+            value={email}
+            onChangeText={setEmail}
+            placeholder="Email (optional)"
+            placeholderTextColor={colors.mutedForeground}
+            style={inputStyle}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            editable={!submitting}
+          />
+          {collectPhone ? (
+            <TextInput
+              value={phone}
+              onChangeText={setPhone}
+              placeholder="Phone (optional)"
+              placeholderTextColor={colors.mutedForeground}
+              style={inputStyle}
+              keyboardType="phone-pad"
+              editable={!submitting}
+            />
+          ) : null}
+          {allowPlusOnes ? (
+            <TextInput
+              value={plusOnes}
+              onChangeText={(v) => setPlusOnes(v.replace(/[^0-9]/g, ""))}
+              placeholder="Plus-ones"
+              placeholderTextColor={colors.mutedForeground}
+              style={inputStyle}
+              keyboardType="number-pad"
+              editable={!submitting}
+            />
+          ) : null}
+          <TextInput
+            value={message}
+            onChangeText={setMessage}
+            placeholder="Message (optional)"
+            placeholderTextColor={colors.mutedForeground}
+            style={[inputStyle, { minHeight: 60 }]}
+            multiline
+            editable={!submitting}
+          />
+          <Pressable
+            onPress={() => { void onSubmit(); }}
+            disabled={submitting}
+            style={{
+              marginTop: 8,
+              backgroundColor: "#7c3aed",
+              borderRadius: 10,
+              paddingVertical: 10,
+              alignItems: "center",
+              opacity: submitting ? 0.6 : 1,
+            }}
+          >
+            {submitting ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={[styles.btnLabel, { color: "#fff", fontSize: 14 }]}>Send RSVP</Text>
+            )}
+          </Pressable>
+        </View>
+      ) : null}
+      {error ? (
+        <Text style={[styles.body, { color: "#dc2626", textAlign: "left", fontSize: 12, marginTop: 4 }]}>
+          {error}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
 
 // Render a small "Thanks for responding — you picked X" card that replaces
 // the live poll/RSVP options once the viewer has answered. Tapping the
@@ -171,146 +522,6 @@ function useRememberedResponse(alias: string, blockId: number) {
   return { value, ready, remember, forget };
 }
 
-function PollBlock({ block, alias, openEmbed }: { block: BiolinkBlock; alias: string; openEmbed: OpenEmbed }) {
-  const colors = useColors();
-  const s = block.settings ?? {};
-  const question = pickStr(s, "question", "title", "text", "heading") ?? "Vote";
-  const rawOptions: unknown =
-    Array.isArray(s.options) ? s.options :
-    Array.isArray(s.choices) ? s.choices :
-    Array.isArray(s.items) ? s.items : [];
-  const options: string[] = (rawOptions as unknown[])
-    .map((o) => typeof o === "string" ? o : (typeof o === "object" && o ? (pickStr(o as Record<string, unknown>, "label", "text", "title", "name") ?? "") : ""))
-    .filter((x) => x.length > 0)
-    .slice(0, 8);
-  const webUrl = publicBiolinkUrl(alias);
-  const remembered = useRememberedResponse(alias, block.id);
-
-  if (remembered.value !== null) {
-    return (
-      <RespondedCard
-        icon="📊"
-        title={question}
-        responseLabel={remembered.value}
-        onChange={remembered.forget}
-      />
-    );
-  }
-
-  // Hide the live options until AsyncStorage has reported back. Otherwise a
-  // viewer who already responded sees the prompt flash for a frame and
-  // could double-submit with a very fast tap before the "Thanks" card
-  // takes over.
-  if (!remembered.ready) {
-    return (
-      <View style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <Text style={[styles.btnLabel, { color: colors.foreground, textAlign: "left" }]}>📊 {question}</Text>
-        <ActivityIndicator color={colors.primary} style={{ alignSelf: "flex-start", marginTop: 4 }} />
-      </View>
-    );
-  }
-
-  return (
-    <View style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
-      <Text style={[styles.btnLabel, { color: colors.foreground, textAlign: "left" }]}>📊 {question}</Text>
-      {options.length > 0 ? (
-        options.map((opt, i) => {
-          // Carry the picked option through to the web page via query
-          // params so the existing poll handler knows which choice to
-          // record. Both index and label are passed for robustness; the
-          // server can use whichever matches its schema.
-          const sep = webUrl.includes("?") ? "&" : "?";
-          const optionUrl = `${webUrl}${sep}poll_block=${block.id}&option=${i}&choice=${encodeURIComponent(opt)}`;
-          return (
-            <Pressable
-              key={i}
-              onPress={() => {
-                trackBiolinkBlockTap(alias, block.id, optionUrl);
-                openEmbed({ url: optionUrl, title: question });
-                remembered.remember(opt);
-              }}
-              style={[styles.pollOption, { borderColor: colors.border }]}
-            >
-              <Text style={[styles.body, { color: colors.foreground, textAlign: "left", fontSize: 14 }]}>{opt}</Text>
-            </Pressable>
-          );
-        })
-      ) : (
-        <Text style={[styles.body, { color: colors.mutedForeground, textAlign: "left", fontSize: 12 }]}>
-          Tap to open this poll
-        </Text>
-      )}
-    </View>
-  );
-}
-
-function RsvpBlock({ block, alias, openEmbed }: { block: BiolinkBlock; alias: string; openEmbed: OpenEmbed }) {
-  const colors = useColors();
-  const s = block.settings ?? {};
-  const title = pickStr(s, "title", "heading", "event_title") ?? "RSVP";
-  const date = pickStr(s, "date", "event_date", "starts_at");
-  // Prefer a creator-supplied URL when present (e.g. block points at a
-  // different ICS link). Fall back to the canonical /{alias}/rsvp path
-  // served by RedirectController::rsvpForm.
-  const settingsUrl = pickStr(s, "url", "rsvp_url", "form_url");
-  const baseUrl = settingsUrl && isSafeUrl(settingsUrl)
-    ? settingsUrl
-    : `${publicBiolinkUrl(alias)}/rsvp`;
-  const responses: { key: "yes" | "maybe" | "no"; label: string; bg: string }[] = [
-    { key: "yes", label: "Going", bg: "#16a34a" },
-    { key: "maybe", label: "Maybe", bg: "#ca8a04" },
-    { key: "no", label: "Can't go", bg: "#64748b" },
-  ];
-  const remembered = useRememberedResponse(alias, block.id);
-
-  if (remembered.value !== null) {
-    return (
-      <RespondedCard
-        icon="📅"
-        title={title}
-        responseLabel={remembered.value}
-        onChange={remembered.forget}
-      />
-    );
-  }
-
-  // See PollBlock for why we wait on `ready` before exposing the response
-  // buttons — same flash/double-submit concern.
-  if (!remembered.ready) {
-    return (
-      <View style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <Text style={[styles.btnLabel, { color: colors.foreground, textAlign: "left" }]}>📅 {title}</Text>
-        <ActivityIndicator color={colors.primary} style={{ alignSelf: "flex-start", marginTop: 4 }} />
-      </View>
-    );
-  }
-
-  return (
-    <View style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
-      <Text style={[styles.btnLabel, { color: colors.foreground, textAlign: "left" }]}>📅 {title}</Text>
-      {date ? (
-        <Text style={[styles.body, { color: colors.mutedForeground, textAlign: "left", fontSize: 12 }]}>{date}</Text>
-      ) : null}
-      <View style={styles.rsvpRow}>
-        {responses.map((r) => (
-          <Pressable
-            key={r.key}
-            onPress={() => {
-              const sep = baseUrl.includes("?") ? "&" : "?";
-              const url = `${baseUrl}${sep}response=${r.key}`;
-              trackBiolinkBlockTap(alias, block.id, url);
-              openEmbed({ url, title });
-              remembered.remember(r.label);
-            }}
-            style={[styles.rsvpBtn, { backgroundColor: r.bg, borderColor: r.bg }]}
-          >
-            <Text style={[styles.btnLabel, { color: "#fff", fontSize: 13 }]}>{r.label}</Text>
-          </Pressable>
-        ))}
-      </View>
-    </View>
-  );
-}
 
 function BlockView({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock; alias: string; allBlocks: BiolinkBlock[]; openEmbed: OpenEmbed }) {
   const colors = useColors();
@@ -781,17 +992,21 @@ function BlockView({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock
   }
 
   // Native poll: render the question and tappable options. Selecting an
-  // option opens the poll's web page in an in-app WebView so the vote is
-  // recorded by the existing server-side handler (no separate API yet).
+  // option submits the vote directly to the API and shows an inline
+  // "Thanks!" confirmation — no WebView bounce.
   if (t === "poll") {
-    return <PollBlock block={block} alias={alias} openEmbed={openEmbed} />;
+    return (
+      <PollBlock block={block} alias={alias} settings={s} colors={colors} />
+    );
   }
 
-  // Native RSVP: show event title + Yes/Maybe/No response buttons. Tapping
-  // a response opens the RSVP page in-app where the user finishes the form
-  // (the response can be pre-filled via query string).
+  // Native RSVP: render an inline form (Yes/Maybe/No + name/email) that
+  // posts directly to the API and shows a "Thanks!" confirmation, instead
+  // of bouncing the user out to the WebView event form.
   if (t === "rsvp") {
-    return <RsvpBlock block={block} alias={alias} openEmbed={openEmbed} />;
+    return (
+      <RsvpBlock block={block} alias={alias} settings={s} colors={colors} />
+    );
   }
 
   if (t === "contact_form" || t === "form" || t === "quiz" || t === "review") {

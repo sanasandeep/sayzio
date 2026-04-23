@@ -132,3 +132,58 @@ export function trackBiolinkBlockTap(
     // Swallow — analytics is best-effort and must never disrupt the tap.
   });
 }
+
+// Submit a poll vote natively. The server dedupes by viewer (auth user
+// id when signed in, else ip+ua fingerprint) so re-tapping a different
+// option just updates the previous vote. Returns the recorded option.
+export async function submitPollVote(
+  alias: string,
+  blockId: number,
+  optionIndex: number,
+  optionLabel?: string,
+): Promise<{ option_index: number; option_label: string | null }> {
+  const res = await apiFetch<{
+    data: {
+      recorded: boolean;
+      vote_id: number;
+      option_index: number;
+      option_label: string | null;
+    };
+  }>(`/biolinks/${encodeURIComponent(alias)}/blocks/${blockId}/poll-vote`, {
+    method: "POST",
+    body: JSON.stringify({
+      option_index: optionIndex,
+      option_label: optionLabel ?? undefined,
+    }),
+  });
+  return {
+    option_index: res.data.option_index,
+    option_label: res.data.option_label,
+  };
+}
+
+export type RsvpSubmission = {
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  response: "yes" | "no" | "maybe";
+  plus_ones?: number | null;
+  message?: string | null;
+};
+
+// Submit an RSVP from a biolink's RSVP block. The server reads the block's
+// event_link_id setting and routes to the right ICS event, so the mobile
+// client only needs the biolink alias + block id.
+export async function submitRsvp(
+  alias: string,
+  blockId: number,
+  payload: RsvpSubmission,
+): Promise<{ rsvp_id: number; response: string }> {
+  const res = await apiFetch<{
+    data: { recorded: boolean; rsvp_id: number; response: string };
+  }>(`/biolinks/${encodeURIComponent(alias)}/blocks/${blockId}/rsvp`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return { rsvp_id: res.data.rsvp_id, response: res.data.response };
+}

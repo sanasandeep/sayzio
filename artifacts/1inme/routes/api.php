@@ -87,6 +87,22 @@ Route::prefix('v1')->group(function () {
         ->post('/biolinks/{alias}/blocks/{blockId}/tap', [BiolinkController::class, 'tap'])
         ->whereNumber('blockId');
 
+    // Native poll vote — mirrors the in-page poll UI but persists the vote
+    // server-side so the mobile app no longer has to bounce out to the web
+    // form to record it. Optional auth lets logged-in viewers be deduped by
+    // user_id; anonymous viewers fall back to an ip+ua fingerprint.
+    Route::middleware(['api.optional_auth', 'throttle:30,1'])
+        ->post('/biolinks/{alias}/blocks/{blockId}/poll-vote', [BiolinkController::class, 'pollVote'])
+        ->whereNumber('blockId');
+
+    // Native RSVP submission from a biolink RSVP block. The block resolves
+    // its event link server-side via settings.event_link_id so the mobile
+    // client only needs the biolink alias + block id (matching how the
+    // poll-vote endpoint is shaped).
+    Route::middleware(['api.optional_auth', 'throttle:10,1'])
+        ->post('/biolinks/{alias}/blocks/{blockId}/rsvp', [BiolinkController::class, 'rsvpSubmit'])
+        ->whereNumber('blockId');
+
     // Public read-only catalog
     Route::get('/plans', [PlanController::class, 'index']);
 
