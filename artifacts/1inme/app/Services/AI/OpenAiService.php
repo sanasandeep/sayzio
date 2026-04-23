@@ -178,6 +178,18 @@ class OpenAiService
         $tokensOut = 0;
         $callId    = null;
 
+        // Snapshot the visitor's balance up front so we can monitor
+        // running cost vs. remaining credits without hammering the
+        // ledger on every delta. The pre-call gate already proved the
+        // worst case fits, but the model may overshoot the estimate or
+        // ignore max_tokens — without this guard a longer-than-expected
+        // reply would silently push the balance below zero, charge for
+        // it, and leave the visitor unable to continue with no warning.
+        $startBalance = $this->credits->getBalance($user);
+        $hasRates     = ((int) $modelCfg['in_credits_per_1k']) > 0
+                     || ((int) $modelCfg['out_credits_per_1k']) > 0;
+        $exhausted    = false;
+
         while (!$body->eof()) {
             $chunk = $body->read(2048);
             if ($chunk === '') continue;
@@ -205,14 +217,45 @@ class OpenAiService
                         $tokensOut = (int) ($j['usage']['completion_tokens'] ?? $tokensOut);
                     }
                 }
+
+                // After draining each frame, check whether the running
+                // estimated cost has eaten through the visitor's balance.
+                // We use estimates here because OpenAI only sends the
+                // authoritative usage frame at the very end of the
+                // stream, which is too late to stop early.
+                if ($hasRates) {
+                    $runningIn  = $tokensIn  > 0 ? $tokensIn  : $estimatedIn;
+                    $runningOut = $tokensOut > 0 ? $tokensOut : $this->estimateTextTokens($content);
+                    $runningCost = $this->computeCost($modelCfg, $runningIn, $runningOut);
+                    if ($runningCost > $startBalance) {
+                        $exhausted = true;
+                        break;
+                    }
+                }
+            }
+            if ($exhausted) {
+                // Cut the upstream connection so we stop accruing tokens
+                // and the visitor doesn't keep watching text they cannot
+                // afford. The body close also lets the HTTP client tear
+                // down the socket promptly.
+                try { $body->close(); } catch (\Throwable $e) { /* best-effort */ }
+                break;
             }
         }
 
-        // Fall back to estimates if OpenAI omitted the usage frame.
+        // Fall back to estimates if OpenAI omitted the usage frame
+        // (always the case when we cut the stream short).
         if ($tokensIn  === 0) $tokensIn  = $estimatedIn;
         if ($tokensOut === 0) $tokensOut = $this->estimateTextTokens($content);
 
         $cost = $this->computeCost($modelCfg, $tokensIn, $tokensOut);
+        // Cap the charge at whatever the visitor actually had so we
+        // never write a transaction that drops the balance below zero
+        // because of a mid-stream cutoff. Anything above the start
+        // balance was effectively absorbed by us.
+        if ($exhausted && $cost > $startBalance) {
+            $cost = $startBalance;
+        }
         $tx = $cost > 0
             ? $this->credits->charge($user, $cost, [
                 'feature'    => $opts['feature'] ?? null,
@@ -223,16 +266,37 @@ class OpenAiService
                 'reason'     => $opts['reason'] ?? "OpenAI chat stream ({$model})",
                 'meta'       => array_merge(
                     is_array($opts['meta'] ?? null) ? $opts['meta'] : [],
-                    ['call_id' => $callId, 'streamed' => true],
+                    array_filter([
+                        'call_id'   => $callId,
+                        'streamed'  => true,
+                        'truncated' => $exhausted ? 'out_of_credits' : null,
+                    ], fn ($v) => $v !== null),
                 ),
             ])
             : null;
+
+        $creditsSpent = $tx ? (int) abs($tx->delta_credits) : 0;
+
+        if ($exhausted) {
+            // Surface a typed signal to the runtime so it can persist
+            // the partial transcript and emit a clear out-of-credits
+            // SSE error frame instead of letting the stream end with
+            // an unexplained gap.
+            throw new StreamCreditExhaustedException(
+                required: $cost > 0 ? $cost : 1,
+                balance: max(0, $startBalance - $creditsSpent),
+                partialContent: $content,
+                tokensIn: $tokensIn,
+                tokensOut: $tokensOut,
+                creditsSpent: $creditsSpent,
+            );
+        }
 
         return [
             'content'       => $content,
             'tokens_in'     => $tokensIn,
             'tokens_out'    => $tokensOut,
-            'credits_spent' => $tx ? (int) abs($tx->delta_credits) : 0,
+            'credits_spent' => $creditsSpent,
             'model'         => $model,
         ];
     }

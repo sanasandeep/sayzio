@@ -523,6 +523,30 @@ class SiteAssistantRuntime
                 $partial .= $delta;
                 $emit('token', ['delta' => $delta]);
             });
+        } catch (StreamCreditExhaustedException $e) {
+            // Stream was cut short because the visitor ran out of
+            // credits mid-reply. Persist whatever they actually saw
+            // (charged inside chatStream, capped to balance) and emit
+            // an explicit notice so the widget can show *why* the
+            // reply ended early instead of going silent.
+            $notice = 'Your reply was cut short — you have run out of credits.';
+            $this->persistFailedStreamMessage($conv, $e->partialContent, $notice, [
+                'reason'        => 'out_of_credits',
+                'credits_spent' => $e->creditsSpent,
+                'tokens_in'     => $e->tokensIn,
+                'tokens_out'    => $e->tokensOut,
+            ]);
+            // Bookkeeping: count credits we did manage to charge so the
+            // conversation total stays accurate.
+            if ($e->creditsSpent > 0) {
+                $conv->credits_spent = (int) $conv->credits_spent + $e->creditsSpent;
+                $conv->save();
+            }
+            $emit('error', [
+                'error'     => $notice,
+                'truncated' => 'out_of_credits',
+            ]);
+            return;
         } catch (InsufficientAiCreditsException $e) {
             $this->persistFailedStreamMessage($conv, $partial, 'The assistant is temporarily out of capacity.');
             $emit('error', [
@@ -687,18 +711,19 @@ class SiteAssistantRuntime
      * the attempt, but does not charge additional credits (chatStream
      * never returned a usage frame).
      */
-    protected function persistFailedStreamMessage(SiteAssistantConversation $conv, string $partial, string $error): void
+    protected function persistFailedStreamMessage(SiteAssistantConversation $conv, string $partial, string $error, array $extra = []): void
     {
         try {
-            DB::transaction(function () use ($conv, $partial, $error) {
+            DB::transaction(function () use ($conv, $partial, $error, $extra) {
                 SiteAssistantMessage::create([
                     'conversation_id' => $conv->id,
                     'role'            => 'assistant',
                     'content'         => $partial,
-                    'meta'            => ['stream' => [
+                    'credits_spent'   => (int) ($extra['credits_spent'] ?? 0),
+                    'meta'            => ['stream' => array_merge([
                         'status' => $partial !== '' ? 'partial' : 'failed',
                         'error'  => $error,
-                    ]],
+                    ], $extra)],
                 ]);
                 $conv->turns_count     = (int) $conv->turns_count + 1;
                 $conv->last_message_at = now();
