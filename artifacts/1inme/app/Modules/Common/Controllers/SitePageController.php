@@ -42,7 +42,51 @@ class SitePageController extends Controller
         $page = SitePage::where('slug', $slug)->firstOrFail();
 
         if ($slug === 'faqs') {
-            return view('public.faqs', ['page' => $page, 'faqs' => $page->faqs()]);
+            // Categorised structure lives in code; admin-edited Q/A in
+            // the DB. We merge: DB answers override code answers when
+            // the question text matches; any DB-only questions
+            // (renamed or freshly added by an admin) appear at the end
+            // under a dedicated "More from the team" group so they
+            // never disappear.
+            $dbItems = $page->faqs();
+            $dbByQuestion = [];
+            foreach ($dbItems as $row) {
+                $key = mb_strtolower(trim((string) $row->question));
+                if ($key === '') continue;
+                $dbByQuestion[$key] = [
+                    'q' => (string) $row->question,
+                    'a' => (string) $row->answer,
+                ];
+            }
+            $usedKeys = [];
+            $groups = [];
+            foreach (SitePagesContent::homepageFaqs() as $cat => $items) {
+                $rows = [];
+                foreach ($items as $pair) {
+                    $key = mb_strtolower(trim((string) $pair[0]));
+                    $usedKeys[$key] = true;
+                    $rows[] = [
+                        'q' => $pair[0],
+                        'a' => $dbByQuestion[$key]['a'] ?? $pair[1],
+                        'anchor' => \Illuminate\Support\Str::slug($pair[0]),
+                    ];
+                }
+                $groups[$cat] = $rows;
+            }
+            $extras = [];
+            foreach ($dbByQuestion as $key => $row) {
+                if (isset($usedKeys[$key])) continue;
+                if (trim($row['a']) === '') continue;
+                $extras[] = [
+                    'q' => $row['q'],
+                    'a' => $row['a'],
+                    'anchor' => \Illuminate\Support\Str::slug($row['q']),
+                ];
+            }
+            if (!empty($extras)) {
+                $groups['More from the team'] = $extras;
+            }
+            return view('public.faqs', ['page' => $page, 'groups' => $groups]);
         }
         if ($slug === 'contact') {
             $extra = is_array($page->extra) && !empty($page->extra)

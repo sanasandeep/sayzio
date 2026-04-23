@@ -220,18 +220,17 @@ class SitePagesSeeder extends Seeder
             $existing->save();
         }
 
-        $faqs = [
-            ['Is there a free plan?', 'Yes — our Free plan is forever free and lets you create biolinks, short links and QR codes.'],
-            ['Do I need a credit card to sign up?', 'No. Sign up with just your email or phone — no card required.'],
-            ['Can I use my own domain?', 'Yes. Paid plans let you connect a custom domain for your short links and biolink page.'],
-            ['How do I cancel?', 'You can downgrade to the Free plan or cancel from your account settings at any time.'],
-            ['Do you offer refunds?', 'Yes — see our Refunds Policy. New paid plan purchases are refundable within 7 days.'],
-        ];
-        foreach ($faqs as $i => [$q, $a]) {
-            FaqItem::updateOrCreate(
-                ['page_slug' => 'faqs', 'question' => $q],
-                ['answer' => $a, 'sort_order' => $i]
-            );
+        // Full categorised FAQ knowledge base — sourced from
+        // SitePagesContent::homepageFaqs() so the marketing site, the
+        // homepage block and the seeder share one source of truth.
+        $sort = 0;
+        foreach (SitePagesContent::homepageFaqs() as $cat => $items) {
+            foreach ($items as [$q, $a]) {
+                FaqItem::updateOrCreate(
+                    ['page_slug' => 'faqs', 'question' => $q],
+                    ['answer' => $a, 'sort_order' => $sort++]
+                );
+            }
         }
     }
 

@@ -3601,241 +3601,36 @@
     </script>
 </section>
 
-{{-- ============================ BUZZ ============================ --}}
-<section id="buzz" class="py-24 lg:py-32 relative overflow-hidden">
-    <div class="absolute inset-0 -z-10" style="background:radial-gradient(60% 50% at 80% 30%, rgba(233,78,140,.15), transparent 70%);"></div>
-    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-14 max-w-3xl mx-auto">
-            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c3)">Buzz</div>
-            <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
-                Show visitors <span class="grad-text">real momentum.</span>
-            </h2>
-            <p class="reveal rd-2 text-lg text-gray-400">
-                Buzz is the social-proof widget already wired into every 1INME biolink. Live signups, visits and purchases pop up right on your page so visitors see the room is busy — and act.
-            </p>
-        </div>
-
-        <div class="grid lg:grid-cols-2 gap-10 items-center">
-            <div class="reveal rd-3 order-2 lg:order-1">
-                <div class="relative glass rounded-3xl p-6 sm:p-8 tilt overflow-hidden" style="min-height: 360px;">
-                    <div class="absolute -bottom-20 -left-20 w-64 h-64 rounded-full opacity-30" style="background:radial-gradient(circle,var(--c3),transparent 70%);"></div>
-                    <div class="relative">
-                        <div class="flex items-center justify-between mb-4">
-                            <div class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Live on your biolink</div>
-                            <span class="flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full" style="background:rgba(74,222,128,.15);color:#4ade80">
-                                <span class="w-1.5 h-1.5 rounded-full pulse-dot" style="background:#4ade80"></span>7 events · last min
-                            </span>
-                        </div>
-
-                        <div class="buzz-feed">
-                            {{-- 1 · NEW FOLLOW with real avatar --}}
-                            <div class="buzz-card fresh">
-                                <span class="fresh-tag">✨ Just now</span>
-                                <div class="bz-follow">
-                                    <div class="bz-avatar">
-                                        <img src="/images/hero-roles/role_designer-200.jpg" alt="Sara">
-                                        <span class="on" aria-hidden="true"></span>
-                                    </div>
-                                    <div class="min-w-0">
-                                        <div class="name">Sara from Berlin</div>
-                                        <div class="meta"><i class="fas fa-user-plus text-[9px] mr-1" style="color:var(--c1)"></i>just followed you · 12s ago</div>
-                                    </div>
-                                    <a href="#" class="btn">Follow back</a>
-                                </div>
-                            </div>
-
-                            {{-- 2 · PURCHASE with product thumb + price --}}
-                            <div class="buzz-card">
-                                <div class="bz-buy">
-                                    <div class="bz-thumb">
-                                        <img src="/images/hero-roles/thumb_design-320.jpg" alt="Lightroom Pack">
-                                        <span class="tag">Preset</span>
-                                    </div>
-                                    <div class="min-w-0">
-                                        <div class="product">🛒 Lightroom Pack · Vol II</div>
-                                        <div class="who">bought by <b class="text-white">@nora.cph</b> · 42s ago</div>
-                                    </div>
-                                    <span class="price"><span class="d"></span>+$24.00</span>
-                                </div>
-                            </div>
-
-                            {{-- 3 · LIVE VIEWERS with bar --}}
-                            <div class="buzz-card">
-                                <div class="bz-views">
-                                    <div class="ic"><i class="fas fa-eye"></i></div>
-                                    <div class="min-w-0 w-full">
-                                        <div class="row">
-                                            <span><b>🇳🇬 Lagos</b> &amp; 5 cities viewing now</span>
-                                            <span class="num">+18</span>
-                                        </div>
-                                        <div class="track"><div class="fill"></div></div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {{-- 4 · TIP with spinning coin --}}
-                            <div class="buzz-card">
-                                <div class="bz-tip">
-                                    <div class="bz-coin">$</div>
-                                    <div class="min-w-0">
-                                        <div class="who"><b>@yuki.draws</b> sent you a tip</div>
-                                        <div class="msg">“Loved your latest pack — keep going!”</div>
-                                    </div>
-                                    <div class="amt">$5<small>.00</small></div>
-                                </div>
-                            </div>
-
-                            {{-- 5 · FORM submission --}}
-                            <div class="buzz-card">
-                                <div class="bz-form">
-                                    <div class="ic"><i class="fas fa-envelope-open-text"></i></div>
-                                    <div class="min-w-0">
-                                        <div class="who">Marco from Madrid · contact form</div>
-                                        <div class="subj">“Hi! Available for a wedding shoot in June?”</div>
-                                    </div>
-                                    <span class="pri">High</span>
-                                </div>
-                            </div>
-
-                            {{-- 6 · QR scan with sparkline --}}
-                            <div class="buzz-card">
-                                <div class="bz-qr">
-                                    <div class="ic"><i class="fas fa-qrcode"></i></div>
-                                    <div class="min-w-0">
-                                        <div class="label">QR · Studio poster scanned</div>
-                                        <div class="meta">+127 scans today · peak 4:20 pm</div>
-                                    </div>
-                                    <span class="spark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
-                                </div>
-                            </div>
-
-                            {{-- 7 · GOAL hit (full-width progress) --}}
-                            <div class="buzz-card bz-goal">
-                                <div class="top">
-                                    <div class="trophy"><i class="fas fa-trophy text-sm"></i></div>
-                                    <div class="title">🎉 Monthly goal hit · 1,000 followers</div>
-                                    <div class="pct">100%</div>
-                                </div>
-                                <div class="track">
-                                    <div class="fill"></div>
-                                    <span class="conf" aria-hidden="true">🎊</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="text-center mt-4 text-[10px] text-gray-500 uppercase tracking-wider font-semibold">
-                            <i class="fas fa-circle-down mr-1 opacity-60"></i> 12 more events today
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="reveal rd-2 order-1 lg:order-2">
-                <div class="grid sm:grid-cols-2 gap-4">
-                    @foreach([
-                        ['fa-bolt','#ffc845','Real-time activity','Live signups, visits, purchases &amp; form fills.'],
-                        ['fa-toggle-on','#1bd4d9','Zero setup','Already integrated with your biolink — flip it on.'],
-                        ['fa-sliders','#e94e8c','Pick what shows','Choose events &amp; priorities; hide the rest.'],
-                        ['fa-user-secret','#7c3aed','Privacy-first','Names masked, locations coarse, dismissible.'],
-                    ] as $i => $f)
-                        <div class="reveal rd-{{ $i+1 }} glass rounded-2xl p-5 lift">
-                            <div class="w-11 h-11 rounded-xl flex items-center justify-center mb-3" style="background: linear-gradient(135deg, {{ $f[1] }}, var(--c3)); box-shadow: 0 12px 30px -12px {{ $f[1] }};">
-                                <i class="fas {{ $f[0] }} text-white"></i>
-                            </div>
-                            <h3 class="text-base font-bold mb-1">{!! $f[2] !!}</h3>
-                            <p class="text-xs text-gray-400 leading-relaxed">{!! $f[3] !!}</p>
-                        </div>
-                    @endforeach
-                </div>
-                <div class="reveal rd-5 mt-8">
-                    <a href="{{ route('site.buzz') }}" class="btn-bounce btn-glow inline-flex items-center justify-center gap-2 px-7 py-3.5 grad-bar text-white rounded-full text-sm font-bold">
-                        See how Buzz works <i class="fas fa-arrow-right text-xs"></i>
-                    </a>
-                </div>
-            </div>
-        </div>
+{{-- ============================ MARQUEE STRIP ============================ --}}
+<div class="grad-bar py-4 overflow-hidden border-y border-white/10" aria-hidden="true">
+    <div class="flex whitespace-nowrap marquee">
+        @for($i = 0; $i < 2; $i++)
+        <span class="inline-flex items-center gap-8 mx-4">
+            @foreach([
+                ['fa-grip-vertical','Drag &amp; Drop Editor'],
+                ['fa-globe','Live Geo Heatmap'],
+                ['fa-bolt','Performance Coach'],
+                ['fa-link','Short Links'],
+                ['fa-qrcode','Dynamic QR Codes'],
+                ['fa-users','Follower System'],
+                ['fa-wpforms','Form Builder'],
+                ['fa-bullhorn','Social Proof'],
+                ['fa-address-book','Contacts Sync'],
+                ['fa-phone','Built-in Dialer'],
+            ] as $item)
+                <span class="text-sm font-bold uppercase tracking-wider flex items-center gap-2 text-white"><i class="fas {{ $item[0] }}"></i>{!! $item[1] !!}</span>
+                <span class="text-xl text-white/70">★</span>
+            @endforeach
+        </span>
+        @endfor
     </div>
-</section>
-
-{{-- ============================ TESTIMONIALS ============================ --}}
-@php
-    $__landingTestimonials = (array) \App\Modules\Admin\Models\AppSetting::get('marketing_landing_testimonials', []);
-    if (empty($__landingTestimonials)) {
-        $__landingTestimonials = \App\Modules\Common\Support\SitePagesContent::testimonialsDefault();
-    }
-@endphp
-@include('public.partials.testimonials', [
-    'testimonials' => $__landingTestimonials,
-    'eyebrow' => 'Loved by creators',
-    'heading' => 'People are shipping their best link with 1INME.',
-])
-
-{{-- ============================ TESTIMONIAL MARQUEE ============================ --}}
-<section class="py-20 lg:py-24 relative overflow-hidden">
-    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-12">
-            <h2 class="reveal text-3xl sm:text-4xl lg:text-5xl font-bold">Loved by people who <span class="grad-text">do the most.</span></h2>
-        </div>
-    </div>
-
-    <div class="overflow-hidden mb-4" style="mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);">
-        <div class="flex whitespace-nowrap marquee">
-            @php
-                $reviews = [
-                    ['1INME made it stupidly easy to put my podcast, shop and templates on one page.', 'Jane Doe', 'Creator', '#1bd4d9'],
-                    ['The QR codes paid for the plan in a week — I changed the destination 3 times without reprinting.', 'Marco P.', 'Café owner', '#e94e8c'],
-                    ['Finally I can see where my audience actually lives. Game changer.', 'Aisha K.', 'Travel writer', '#ffc845'],
-                    ['The Performance Coach is like having a growth marketer on speed-dial.', 'Devon S.', 'Indie founder', '#7c3aed'],
-                    ['Set up my whole agency contact page in 10 minutes.', 'Priya N.', 'Agency lead', '#ff8a3c'],
-                ];
-            @endphp
-            @for($i = 0; $i < 2; $i++)
-                @foreach($reviews as $r)
-                    <div class="inline-block w-[340px] sm:w-[400px] mx-3 align-top">
-                        <div class="glass rounded-3xl p-6 lift">
-                            <div class="flex text-base mb-3" style="color:var(--c5)"><i class="fas fa-star"></i><i class="fas fa-star ml-0.5"></i><i class="fas fa-star ml-0.5"></i><i class="fas fa-star ml-0.5"></i><i class="fas fa-star ml-0.5"></i></div>
-                            <p class="text-sm text-gray-200 mb-4 whitespace-normal">"{{ $r[0] }}"</p>
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white" style="background: linear-gradient(135deg, {{ $r[3] }}, var(--c2));">{{ strtoupper(substr($r[1],0,1)) }}</div>
-                                <div>
-                                    <div class="text-sm font-bold">{{ $r[1] }}</div>
-                                    <div class="text-[11px] text-gray-500">{{ $r[2] }}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                @endforeach
-            @endfor
-        </div>
-    </div>
-    <div class="overflow-hidden" style="mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);">
-        <div class="flex whitespace-nowrap marquee-rev">
-            @for($i = 0; $i < 2; $i++)
-                @foreach(array_reverse($reviews) as $r)
-                    <div class="inline-block w-[340px] sm:w-[400px] mx-3 align-top">
-                        <div class="glass rounded-3xl p-6 lift">
-                            <div class="flex text-base mb-3" style="color:var(--c5)"><i class="fas fa-star"></i><i class="fas fa-star ml-0.5"></i><i class="fas fa-star ml-0.5"></i><i class="fas fa-star ml-0.5"></i><i class="fas fa-star ml-0.5"></i></div>
-                            <p class="text-sm text-gray-200 mb-4 whitespace-normal">"{{ $r[0] }}"</p>
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white" style="background: linear-gradient(135deg, {{ $r[3] }}, var(--c2));">{{ strtoupper(substr($r[1],0,1)) }}</div>
-                                <div>
-                                    <div class="text-sm font-bold">{{ $r[1] }}</div>
-                                    <div class="text-[11px] text-gray-500">{{ $r[2] }}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                @endforeach
-            @endfor
-        </div>
-    </div>
-</section>
+</div>
 
 {{-- ============================ 1 · BUILD ============================ --}}
 <section id="features" class="py-24 lg:py-32 relative overflow-hidden">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-16 max-w-3xl mx-auto">
-            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c1)">04 · Build</div>
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c1)">01 · Build</div>
             <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
                 A whole website,<br><span class="grad-text">drag-and-drop simple.</span>
             </h2>
@@ -4057,7 +3852,7 @@
 <section id="share" class="py-24 lg:py-32 relative overflow-hidden">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-16 max-w-3xl mx-auto">
-            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c3)">05 · Share</div>
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c3)">02 · Share</div>
             <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
                 Share your 1INME<br><span class="grad-text">anywhere you like.</span>
             </h2>
@@ -4160,7 +3955,7 @@
 <section class="py-24 lg:py-32 relative overflow-hidden">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-16 max-w-3xl mx-auto">
-            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c5)">06 · Grow</div>
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c5)">03 · Grow</div>
             <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
                 Live analytics with<br><span class="grad-text">a built-in coach.</span>
             </h2>
@@ -4407,7 +4202,7 @@
 <section id="everything" class="py-24 lg:py-32 relative overflow-hidden" aria-labelledby="everything-h">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-14 max-w-3xl mx-auto">
-            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c5)">Everything you get</div>
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c5)">04 · Everything you get</div>
             <h2 id="everything-h" class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
                 One platform.<br><span class="grad-text">The whole growth stack.</span>
             </h2>
@@ -4875,7 +4670,7 @@
 
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-14 max-w-3xl mx-auto">
-            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:#7c3aed">AI suite</div>
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:#7c3aed">05 · AI suite</div>
             <h2 id="ai-suite-h" class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
                 Built-in AI that <span class="ai-shimmer">works the room</span> for you.
             </h2>
@@ -4958,39 +4753,6 @@
     </div>
 </section>
 
-{{-- ============================ HOW IT WORKS ============================ --}}
-<section id="how-it-works" class="py-24 lg:py-32 relative overflow-hidden">
-    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-16 max-w-3xl mx-auto">
-            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c2)">How it works</div>
-            <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
-                Three steps. <span class="grad-text">Zero friction.</span>
-            </h2>
-        </div>
-
-        <div class="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            @foreach([
-                ['1','Sign up free','Email or phone — no card. You\'re live in under a minute.','fa-user-plus','#1bd4d9'],
-                ['2','Build your page','Drag &amp; drop blocks. Add short links, QR codes &amp; forms.','fa-grip-vertical','#7c3aed'],
-                ['3','Share &amp; grow','Share one URL everywhere. Watch live analytics roll in.','fa-rocket','#e94e8c'],
-            ] as $i => $s)
-                <div class="reveal rd-{{ $i+1 }} relative glass rounded-3xl p-7 tilt">
-                    <div class="absolute top-4 right-5 text-7xl font-bold opacity-10 grad-text">{{ $s[0] }}</div>
-                    <div class="relative w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style="background: linear-gradient(135deg, {{ $s[4] }}, var(--c2)); box-shadow: 0 12px 30px -10px {{ $s[4] }};"><i class="fas {{ $s[3] }} text-xl text-white"></i></div>
-                    <h3 class="relative text-xl font-bold mb-2">{!! $s[1] !!}</h3>
-                    <p class="relative text-sm text-gray-400">{!! $s[2] !!}</p>
-                </div>
-            @endforeach
-        </div>
-
-        <div class="reveal rd-4 mt-12 text-center">
-            <button type="button" @click="authTab='register'; authOpen=true" class="btn-bounce btn-glow inline-flex items-center justify-center gap-2 px-8 py-4 grad-bar text-white rounded-full text-base font-bold">
-                Try it free <i class="fas fa-arrow-right text-sm"></i>
-            </button>
-        </div>
-    </div>
-</section>
-
 {{-- ============================ AUDIENCE (CREATORS / BUSINESSES / NETWORKING) ============================ --}}
 @php
     $__audiences = [
@@ -5023,7 +4785,7 @@
 <section id="audience" class="py-20 lg:py-28 relative overflow-hidden" aria-labelledby="audience-h">
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-12 max-w-2xl mx-auto">
-            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c3)">Who it&rsquo;s for</div>
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c3)">06 · Built for you</div>
             <h2 id="audience-h" class="reveal rd-1 text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-4">
                 Built for <span class="grad-text">creators, brands &amp; networking pros.</span>
             </h2>
@@ -5049,11 +4811,100 @@
     </div>
 </section>
 
+{{-- ============================ HOW IT WORKS (upgraded) ============================ --}}
+<style>
+    .hiw-track { position: relative; }
+    @media (min-width: 1024px) {
+        .hiw-track::before {
+            content: ""; position: absolute; left: 8%; right: 8%; top: 56px; height: 2px;
+            background: linear-gradient(90deg, rgba(124,58,237,0), #1bd4d9 18%, #7c3aed 50%, #e94e8c 82%, rgba(233,78,140,0));
+            opacity: .55; pointer-events: none;
+        }
+    }
+    .hiw-step { position: relative; transition: transform .35s ease, box-shadow .35s ease; }
+    .hiw-step:hover { transform: translateY(-6px); box-shadow: 0 30px 60px -30px rgba(124,58,237,.55); }
+    .hiw-icon-wrap { position: relative; width: 64px; height: 64px; border-radius: 22px; display:flex; align-items:center; justify-content:center; margin: 0 auto 1rem; box-shadow: 0 14px 30px -12px var(--hiw-color, #7c3aed); }
+    .hiw-icon-wrap::after {
+        content: ""; position: absolute; inset: -6px; border-radius: 26px;
+        border: 2px solid color-mix(in srgb, var(--hiw-color, #7c3aed) 50%, transparent);
+        opacity: .35; animation: hiwPulse 2.4s ease-in-out infinite;
+    }
+    .hiw-step:hover .hiw-icon-wrap::after { opacity: .8; }
+    @keyframes hiwPulse { 0%,100% { transform: scale(1); opacity: .25; } 50% { transform: scale(1.08); opacity: .65; } }
+    .hiw-num { position: absolute; top: 14px; right: 18px; font-size: 3.25rem; font-weight: 800; line-height: 1;
+        background: linear-gradient(135deg, var(--hiw-color, #7c3aed), #ec4899);
+        -webkit-background-clip: text; background-clip: text; color: transparent; opacity: .14;
+    }
+    .hiw-time {
+        display:inline-flex; align-items:center; gap:6px;
+        padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 700;
+        background: rgba(34,197,94,.12); color: #4ade80; border: 1px solid rgba(34,197,94,.25);
+        margin-bottom: 10px; letter-spacing: .04em;
+    }
+    .hiw-time i { font-size: 9px; }
+    .hiw-cta-wrap {
+        position: relative; padding: 1.75rem; border-radius: 1.75rem; overflow: hidden;
+        background: linear-gradient(135deg, rgba(124,58,237,.18), rgba(236,72,153,.14), rgba(34,211,238,.12));
+        border: 1px solid rgba(255,255,255,.08);
+    }
+    .hiw-cta-wrap::before {
+        content:""; position:absolute; inset:-1px; border-radius:inherit; pointer-events:none;
+        background: conic-gradient(from 180deg at 50% 50%, #7c3aed, #ec4899, #22d3ee, #7c3aed);
+        opacity:.18; filter: blur(20px);
+    }
+</style>
+<section id="how-it-works" class="py-20 lg:py-28 relative overflow-hidden">
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-14 max-w-3xl mx-auto">
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c2)">07 · How it works</div>
+            <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-4">
+                Live in <span class="grad-text">under 2 minutes.</span>
+            </h2>
+            <p class="reveal rd-2 text-lg text-gray-400">Four tiny steps from "I have an idea" to "share my link". No card, no setup call, no fuss.</p>
+        </div>
+
+        <div class="hiw-track grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto">
+            @foreach([
+                ['01','0:15','Sign up free','Email or one-tap Google. Pick your handle and you\'re in.','fa-user-plus','#1bd4d9'],
+                ['02','0:45','Build your page','Drag-and-drop blocks for socials, music, shop, video, forms.','fa-grip-vertical','#7c3aed'],
+                ['03','1:30','Share it everywhere','One link, branded short links and a dynamic QR for offline.','fa-share-nodes','#e94e8c'],
+                ['04','2:00','Watch it grow','Live analytics + an AI Coach that turns numbers into actions.','fa-chart-line','#ff8a3c'],
+            ] as $i => $s)
+                <div class="reveal rd-{{ ($i % 4)+1 }} hiw-step glass rounded-3xl p-6 text-center" style="--hiw-color: {{ $s[5] }}">
+                    <span class="hiw-num">{{ $s[0] }}</span>
+                    <div class="hiw-icon-wrap" style="background: linear-gradient(135deg, {{ $s[5] }}, var(--c2));"><i class="fas {{ $s[4] }} text-xl text-white"></i></div>
+                    <span class="hiw-time"><i class="fas fa-stopwatch"></i>{{ $s[1] }}</span>
+                    <h3 class="text-lg font-bold mb-1.5">{!! $s[2] !!}</h3>
+                    <p class="text-sm text-gray-400 leading-relaxed">{!! $s[3] !!}</p>
+                </div>
+            @endforeach
+        </div>
+
+        <div class="reveal rd-4 mt-12 max-w-3xl mx-auto">
+            <div class="hiw-cta-wrap relative flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="relative text-center sm:text-left">
+                    <div class="text-[11px] font-bold uppercase tracking-[.2em] mb-1" style="color:var(--c1)">Ready when you are</div>
+                    <div class="text-lg sm:text-xl font-bold text-white">Start free — no card needed.</div>
+                    <div class="text-xs text-gray-400 mt-0.5">Free Forever plan · Upgrade only when you outgrow it.</div>
+                </div>
+                <div class="relative flex flex-wrap items-center gap-3 shrink-0">
+                    <button type="button" @click="authTab='register'; authOpen=true" class="btn-bounce btn-glow inline-flex items-center gap-2 px-7 py-3.5 grad-bar text-white rounded-full text-sm font-bold">
+                        Start free — no card <i class="fas fa-arrow-right text-xs"></i>
+                    </button>
+                    <a href="{{ route('site.how-it-works') }}" class="inline-flex items-center gap-2 px-5 py-3 rounded-full glass text-white hover:bg-white/10 text-xs font-semibold transition-colors">
+                        Walk me through it <i class="fas fa-route text-[10px]"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
 {{-- ============================ WORKSPACE & TEAM ============================ --}}
 <section id="workspace-team" class="py-24 lg:py-32 relative overflow-hidden">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-14 max-w-3xl mx-auto">
-            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c1)">Workspace &amp; Team</div>
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c1)">08 · Workspace &amp; Team</div>
             <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
                 Run 1INME with <span class="grad-text">your whole team.</span>
             </h2>
@@ -5232,6 +5083,344 @@
     </div>
 </section>
 
+{{-- ============================ BUZZ ============================ --}}
+<section id="buzz" class="py-24 lg:py-32 relative overflow-hidden">
+    <div class="absolute inset-0 -z-10" style="background:radial-gradient(60% 50% at 80% 30%, rgba(233,78,140,.15), transparent 70%);"></div>
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-14 max-w-3xl mx-auto">
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c3)">09 · Buzz</div>
+            <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
+                Show visitors <span class="grad-text">real momentum.</span>
+            </h2>
+            <p class="reveal rd-2 text-lg text-gray-400">
+                Buzz is the social-proof widget already wired into every 1INME biolink. Live signups, visits and purchases pop up right on your page so visitors see the room is busy — and act.
+            </p>
+        </div>
+
+        <div class="grid lg:grid-cols-2 gap-10 items-center">
+            <div class="reveal rd-3 order-2 lg:order-1">
+                <div class="relative glass rounded-3xl p-6 sm:p-8 tilt overflow-hidden" style="min-height: 360px;">
+                    <div class="absolute -bottom-20 -left-20 w-64 h-64 rounded-full opacity-30" style="background:radial-gradient(circle,var(--c3),transparent 70%);"></div>
+                    <div class="relative">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Live on your biolink</div>
+                            <span class="flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full" style="background:rgba(74,222,128,.15);color:#4ade80">
+                                <span class="w-1.5 h-1.5 rounded-full pulse-dot" style="background:#4ade80"></span>7 events · last min
+                            </span>
+                        </div>
+
+                        <div class="buzz-feed">
+                            {{-- 1 · NEW FOLLOW with real avatar --}}
+                            <div class="buzz-card fresh">
+                                <span class="fresh-tag">✨ Just now</span>
+                                <div class="bz-follow">
+                                    <div class="bz-avatar">
+                                        <img src="/images/hero-roles/role_designer-200.jpg" alt="Sara">
+                                        <span class="on" aria-hidden="true"></span>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="name">Sara from Berlin</div>
+                                        <div class="meta"><i class="fas fa-user-plus text-[9px] mr-1" style="color:var(--c1)"></i>just followed you · 12s ago</div>
+                                    </div>
+                                    <a href="#" class="btn">Follow back</a>
+                                </div>
+                            </div>
+
+                            {{-- 2 · PURCHASE with product thumb + price --}}
+                            <div class="buzz-card">
+                                <div class="bz-buy">
+                                    <div class="bz-thumb">
+                                        <img src="/images/hero-roles/thumb_design-320.jpg" alt="Lightroom Pack">
+                                        <span class="tag">Preset</span>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="product">🛒 Lightroom Pack · Vol II</div>
+                                        <div class="who">bought by <b class="text-white">@nora.cph</b> · 42s ago</div>
+                                    </div>
+                                    <span class="price"><span class="d"></span>+$24.00</span>
+                                </div>
+                            </div>
+
+                            {{-- 3 · LIVE VIEWERS with bar --}}
+                            <div class="buzz-card">
+                                <div class="bz-views">
+                                    <div class="ic"><i class="fas fa-eye"></i></div>
+                                    <div class="min-w-0 w-full">
+                                        <div class="row">
+                                            <span><b>🇳🇬 Lagos</b> &amp; 5 cities viewing now</span>
+                                            <span class="num">+18</span>
+                                        </div>
+                                        <div class="track"><div class="fill"></div></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- 4 · TIP with spinning coin --}}
+                            <div class="buzz-card">
+                                <div class="bz-tip">
+                                    <div class="bz-coin">$</div>
+                                    <div class="min-w-0">
+                                        <div class="who"><b>@yuki.draws</b> sent you a tip</div>
+                                        <div class="msg">“Loved your latest pack — keep going!”</div>
+                                    </div>
+                                    <div class="amt">$5<small>.00</small></div>
+                                </div>
+                            </div>
+
+                            {{-- 5 · FORM submission --}}
+                            <div class="buzz-card">
+                                <div class="bz-form">
+                                    <div class="ic"><i class="fas fa-envelope-open-text"></i></div>
+                                    <div class="min-w-0">
+                                        <div class="who">Marco from Madrid · contact form</div>
+                                        <div class="subj">“Hi! Available for a wedding shoot in June?”</div>
+                                    </div>
+                                    <span class="pri">High</span>
+                                </div>
+                            </div>
+
+                            {{-- 6 · QR scan with sparkline --}}
+                            <div class="buzz-card">
+                                <div class="bz-qr">
+                                    <div class="ic"><i class="fas fa-qrcode"></i></div>
+                                    <div class="min-w-0">
+                                        <div class="label">QR · Studio poster scanned</div>
+                                        <div class="meta">+127 scans today · peak 4:20 pm</div>
+                                    </div>
+                                    <span class="spark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+                                </div>
+                            </div>
+
+                            {{-- 7 · GOAL hit (full-width progress) --}}
+                            <div class="buzz-card bz-goal">
+                                <div class="top">
+                                    <div class="trophy"><i class="fas fa-trophy text-sm"></i></div>
+                                    <div class="title">🎉 Monthly goal hit · 1,000 followers</div>
+                                    <div class="pct">100%</div>
+                                </div>
+                                <div class="track">
+                                    <div class="fill"></div>
+                                    <span class="conf" aria-hidden="true">🎊</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-center mt-4 text-[10px] text-gray-500 uppercase tracking-wider font-semibold">
+                            <i class="fas fa-circle-down mr-1 opacity-60"></i> 12 more events today
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="reveal rd-2 order-1 lg:order-2">
+                <div class="grid sm:grid-cols-2 gap-4">
+                    @foreach([
+                        ['fa-bolt','#ffc845','Real-time activity','Live signups, visits, purchases &amp; form fills.'],
+                        ['fa-toggle-on','#1bd4d9','Zero setup','Already integrated with your biolink — flip it on.'],
+                        ['fa-sliders','#e94e8c','Pick what shows','Choose events &amp; priorities; hide the rest.'],
+                        ['fa-user-secret','#7c3aed','Privacy-first','Names masked, locations coarse, dismissible.'],
+                    ] as $i => $f)
+                        <div class="reveal rd-{{ $i+1 }} glass rounded-2xl p-5 lift">
+                            <div class="w-11 h-11 rounded-xl flex items-center justify-center mb-3" style="background: linear-gradient(135deg, {{ $f[1] }}, var(--c3)); box-shadow: 0 12px 30px -12px {{ $f[1] }};">
+                                <i class="fas {{ $f[0] }} text-white"></i>
+                            </div>
+                            <h3 class="text-base font-bold mb-1">{!! $f[2] !!}</h3>
+                            <p class="text-xs text-gray-400 leading-relaxed">{!! $f[3] !!}</p>
+                        </div>
+                    @endforeach
+                </div>
+                <div class="reveal rd-5 mt-8">
+                    <a href="{{ route('site.buzz') }}" class="btn-bounce btn-glow inline-flex items-center justify-center gap-2 px-7 py-3.5 grad-bar text-white rounded-full text-sm font-bold">
+                        See how Buzz works <i class="fas fa-arrow-right text-xs"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{{-- ============================ TESTIMONIAL MARQUEE ============================ --}}
+<section class="py-20 lg:py-24 relative overflow-hidden">
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12">
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c5)">10 · Social proof</div>
+            <h2 class="reveal rd-1 text-3xl sm:text-4xl lg:text-5xl font-bold">Loved by people who <span class="grad-text">do the most.</span></h2>
+        </div>
+    </div>
+
+    <div class="overflow-hidden mb-4" style="mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);">
+        <div class="flex whitespace-nowrap marquee">
+            @php
+                $reviews = [
+                    ['1INME made it stupidly easy to put my podcast, shop and templates on one page.', 'Jane Doe', 'Creator', '#1bd4d9'],
+                    ['The QR codes paid for the plan in a week — I changed the destination 3 times without reprinting.', 'Marco P.', 'Café owner', '#e94e8c'],
+                    ['Finally I can see where my audience actually lives. Game changer.', 'Aisha K.', 'Travel writer', '#ffc845'],
+                    ['The Performance Coach is like having a growth marketer on speed-dial.', 'Devon S.', 'Indie founder', '#7c3aed'],
+                    ['Set up my whole agency contact page in 10 minutes.', 'Priya N.', 'Agency lead', '#ff8a3c'],
+                ];
+            @endphp
+            @for($i = 0; $i < 2; $i++)
+                @foreach($reviews as $r)
+                    <div class="inline-block w-[340px] sm:w-[400px] mx-3 align-top">
+                        <div class="glass rounded-3xl p-6 lift">
+                            <div class="flex text-base mb-3" style="color:var(--c5)"><i class="fas fa-star"></i><i class="fas fa-star ml-0.5"></i><i class="fas fa-star ml-0.5"></i><i class="fas fa-star ml-0.5"></i><i class="fas fa-star ml-0.5"></i></div>
+                            <p class="text-sm text-gray-200 mb-4 whitespace-normal">"{{ $r[0] }}"</p>
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white" style="background: linear-gradient(135deg, {{ $r[3] }}, var(--c2));">{{ strtoupper(substr($r[1],0,1)) }}</div>
+                                <div>
+                                    <div class="text-sm font-bold">{{ $r[1] }}</div>
+                                    <div class="text-[11px] text-gray-500">{{ $r[2] }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            @endfor
+        </div>
+    </div>
+    <div class="overflow-hidden" style="mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);">
+        <div class="flex whitespace-nowrap marquee-rev">
+            @for($i = 0; $i < 2; $i++)
+                @foreach(array_reverse($reviews) as $r)
+                    <div class="inline-block w-[340px] sm:w-[400px] mx-3 align-top">
+                        <div class="glass rounded-3xl p-6 lift">
+                            <div class="flex text-base mb-3" style="color:var(--c5)"><i class="fas fa-star"></i><i class="fas fa-star ml-0.5"></i><i class="fas fa-star ml-0.5"></i><i class="fas fa-star ml-0.5"></i><i class="fas fa-star ml-0.5"></i></div>
+                            <p class="text-sm text-gray-200 mb-4 whitespace-normal">"{{ $r[0] }}"</p>
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white" style="background: linear-gradient(135deg, {{ $r[3] }}, var(--c2));">{{ strtoupper(substr($r[1],0,1)) }}</div>
+                                <div>
+                                    <div class="text-sm font-bold">{{ $r[1] }}</div>
+                                    <div class="text-[11px] text-gray-500">{{ $r[2] }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            @endfor
+        </div>
+    </div>
+</section>
+
+{{-- ============================ FAQ (homepage — searchable, chip-filtered) ============================ --}}
+@php
+    $__homeFaqGroups = \App\Modules\Common\Support\SitePagesContent::homepageFaqs();
+    $__homeFaqHighlights = \App\Modules\Common\Support\SitePagesContent::homepageFaqHighlights();
+    $__faqJsonLd = [
+        '@context' => 'https://schema.org',
+        '@type'    => 'FAQPage',
+        'mainEntity' => array_map(function ($q) {
+            return [
+                '@type' => 'Question',
+                'name'  => $q['q'],
+                'acceptedAnswer' => ['@type' => 'Answer', 'text' => $q['a']],
+            ];
+        }, $__homeFaqHighlights),
+    ];
+@endphp
+<script type="application/ld+json">{!! json_encode($__faqJsonLd, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
+<section id="faq" class="pt-20 pb-12 lg:pt-24 lg:pb-14 relative overflow-hidden">
+    <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8"
+         x-data="{
+            q: '',
+            cat: 'All',
+            cats: ['All', @foreach(array_slice(array_keys($__homeFaqGroups), 0, 5) as $c)'{{ $c }}',@endforeach],
+            match(item) {
+                if (this.cat !== 'All' && item.dataset.category !== this.cat) return false;
+                if (!this.q.trim()) return true;
+                const t = (item.textContent || '').toLowerCase();
+                return t.includes(this.q.trim().toLowerCase());
+            },
+            apply() {
+                let visible = 0;
+                this.$root.querySelectorAll('[data-faq]').forEach(el => {
+                    const ok = this.match(el);
+                    el.style.display = ok ? '' : 'none';
+                    if (ok) visible++;
+                });
+                const empty = this.$root.querySelector('[data-faq-empty]');
+                if (empty) empty.style.display = visible === 0 ? '' : 'none';
+            }
+         }"
+         x-init="$nextTick(() => apply()); $watch('q', () => apply()); $watch('cat', () => apply())">
+        <div class="text-center mb-10">
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c4)">11 · FAQ</div>
+            <h2 class="reveal rd-1 text-4xl sm:text-5xl font-bold tracking-tight mb-3">Questions? <span class="grad-text">Answered.</span></h2>
+            <p class="reveal rd-2 text-gray-400">The most-asked ones, right here. Browse all 100+ if you want the deep dive.</p>
+        </div>
+
+        {{-- Search + chips --}}
+        <div class="reveal rd-2 mb-6 flex flex-col gap-3">
+            <label class="relative block">
+                <span class="absolute inset-y-0 left-4 flex items-center text-gray-500"><i class="fas fa-search"></i></span>
+                <input type="search" x-model="q" placeholder="Search the FAQ — try ‘custom domain’, ‘refund’, ‘QR code’…"
+                       class="w-full pl-11 pr-4 py-3.5 rounded-2xl bg-white/[.04] border border-white/10 focus:border-[#7c3aed] focus:ring-2 focus:ring-[#7c3aed]/30 outline-none text-sm text-white placeholder-gray-500"
+                       aria-label="Search FAQs">
+            </label>
+            <div class="flex flex-wrap gap-2 justify-center">
+                <template x-for="c in cats" :key="c">
+                    <button type="button" @click="cat = c"
+                            :class="cat === c ? 'grad-bar text-white shadow-lg shadow-[#7c3aed]/30' : 'bg-white/[.04] border border-white/10 text-gray-300 hover:text-white hover:bg-white/[.08]'"
+                            class="px-3.5 py-1.5 rounded-full text-xs font-bold transition-all">
+                        <span x-text="c"></span>
+                    </button>
+                </template>
+            </div>
+        </div>
+
+        <div class="reveal rd-3 space-y-3">
+            @foreach($__homeFaqHighlights as $f)
+                <details data-faq data-category="{{ $f['category'] }}" class="faq-item glass rounded-2xl px-5 py-4 hover:bg-white/[.06] transition-colors">
+                    <summary class="flex items-center justify-between gap-4 cursor-pointer">
+                        <span class="flex items-start gap-3 pr-4">
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full mt-0.5 shrink-0" style="background:rgba(124,58,237,.15); color:var(--c1)">{{ $f['category'] }}</span>
+                            <span class="font-bold text-base sm:text-lg">{{ $f['q'] }}</span>
+                        </span>
+                        <span class="faq-icon w-7 h-7 rounded-full grad-bar text-white flex items-center justify-center font-bold flex-shrink-0">
+                            <i class="fas fa-plus text-xs"></i>
+                        </span>
+                    </summary>
+                    <p class="mt-3 text-sm text-gray-300 leading-relaxed">{{ $f['a'] }}</p>
+                </details>
+            @endforeach
+            <div data-faq-empty class="hidden text-center text-sm text-gray-500 py-8">
+                No matches here — try the full FAQ for the long answer.
+            </div>
+        </div>
+
+        <div class="reveal rd-4 mt-8 text-center">
+            <a href="{{ route('site.faqs') }}" class="inline-flex items-center gap-2 px-6 py-3 rounded-full glass text-white hover:bg-white/10 text-sm font-semibold transition-colors">
+                Browse all 100+ answers <i class="fas fa-arrow-right text-xs"></i>
+            </a>
+        </div>
+    </div>
+</section>
+
+{{-- ============================ BY THE NUMBERS (stats strip) ============================ --}}
+<section id="stats" class="py-12 lg:py-16 relative overflow-hidden" aria-label="By the numbers">
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="reveal glass rounded-3xl p-6 sm:p-8 relative overflow-hidden">
+            <div class="absolute -top-20 -right-20 w-72 h-72 rounded-full opacity-25 blur-3xl" style="background: var(--c2);"></div>
+            <div class="absolute -bottom-20 -left-20 w-72 h-72 rounded-full opacity-20 blur-3xl" style="background: var(--c4);"></div>
+            <div class="relative grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-4 text-center">
+                @foreach([
+                    ['fa-link', '120K+', 'Active links', '#1bd4d9'],
+                    ['fa-globe', '180', 'Countries reached', '#7c3aed'],
+                    ['fa-bolt', '8.4M', 'Clicks routed / month', '#e94e8c'],
+                    ['fa-stopwatch', '< 90s', 'Avg time to first link', '#ff8a3c'],
+                ] as $i => $s)
+                    <div class="reveal rd-{{ ($i%4)+1 }}">
+                        <div class="w-12 h-12 rounded-2xl mx-auto mb-3 flex items-center justify-center" style="background: linear-gradient(135deg, {{ $s[3] }}, var(--c2)); box-shadow: 0 12px 30px -12px {{ $s[3] }};">
+                            <i class="fas {{ $s[0] }} text-white"></i>
+                        </div>
+                        <div class="text-2xl sm:text-3xl font-extrabold grad-text">{{ $s[1] }}</div>
+                        <div class="text-xs text-gray-400 mt-1">{{ $s[2] }}</div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    </div>
+</section>
+
 {{-- ============================ WHY 1INME (comparison) ============================ --}}
 @php
     $__whyRaw = \App\Modules\Admin\Models\AppSetting::get('marketing_why_comparison', null);
@@ -5272,7 +5461,7 @@
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {{-- Heading --}}
         <div class="text-center mb-12 max-w-2xl mx-auto">
-            <div data-anim="fade-up" class="text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c4)">Why 1INME</div>
+            <div data-anim="fade-up" class="text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c4)">12 · Why 1INME</div>
             <h2 data-anim="fade-up" class="text-4xl sm:text-5xl font-bold tracking-tight mb-4 relative inline-block">
                 One link.
                 <span class="grad-text relative">
@@ -5399,8 +5588,68 @@
 </section>
 @endif
 
+{{-- ============================ FREE HERE / PAID THERE (lead-in to compare) ============================ --}}
+<section class="pt-4 pb-2 lg:pt-8 lg:pb-4 relative overflow-hidden" aria-label="Free here, paid elsewhere">
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="reveal glass rounded-3xl px-6 py-6 sm:px-8 sm:py-7 flex flex-col lg:flex-row items-center gap-5 lg:gap-7">
+            <div class="flex items-center gap-3 shrink-0">
+                <span class="w-11 h-11 rounded-2xl flex items-center justify-center grad-bar shadow-lg shadow-violet-500/30">
+                    <i class="fas fa-gift text-white"></i>
+                </span>
+                <div class="text-left">
+                    <div class="text-[11px] font-bold uppercase tracking-wider" style="color:var(--c5)">Free here, paid there</div>
+                    <div class="text-base sm:text-lg font-bold leading-tight">What costs extra elsewhere is on the <span class="grad-text">Free Forever</span> plan.</div>
+                </div>
+            </div>
+            <div class="flex flex-wrap items-center justify-center lg:justify-end gap-2 lg:ml-auto">
+                @foreach([
+                    ['fa-infinity',  'Unlimited links'],
+                    ['fa-message',   'Built-in DMs'],
+                    ['fa-bolt',      'AI Coach'],
+                    ['fa-mobile-screen', 'Native mobile app'],
+                ] as [$ic, $lbl])
+                    <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[.06] border border-white/10 text-xs sm:text-sm font-semibold text-white">
+                        <i class="fas {{ $ic }} text-[11px]" style="color:var(--c1)"></i> {{ $lbl }}
+                    </span>
+                @endforeach
+            </div>
+        </div>
+    </div>
+</section>
+
+{{-- ============================ TRUST BAND (security & reliability) ============================ --}}
+<section class="py-12 lg:py-14 relative overflow-hidden" aria-label="Trust signals">
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="reveal glass rounded-3xl p-6 sm:p-8">
+            <div class="grid md:grid-cols-2 gap-6 items-center">
+                <div>
+                    <div class="text-[11px] font-bold uppercase tracking-[.2em] mb-2" style="color:var(--c1)">Built on trust</div>
+                    <h3 class="text-2xl sm:text-3xl font-bold text-white leading-tight">Your data stays <span class="grad-text">your data.</span></h3>
+                    <p class="text-sm text-gray-400 mt-2">Encrypted in transit and at rest, GDPR-friendly by default, no third-party trackers on your published pages — ever.</p>
+                </div>
+                <ul class="grid grid-cols-2 gap-3">
+                    @foreach([
+                        ['fa-shield-halved', '99.9% uptime', 'Multi-region edge'],
+                        ['fa-lock', 'TLS 1.3', 'End-to-end encrypted'],
+                        ['fa-user-shield', 'GDPR-ready', 'EU/UK SCCs in place'],
+                        ['fa-server', 'Daily backups', '30-day retention'],
+                    ] as $i => $t)
+                        <li class="flex items-center gap-3 p-3 rounded-2xl bg-white/[.04] border border-white/5">
+                            <span class="w-10 h-10 rounded-xl flex items-center justify-center grad-bar shrink-0"><i class="fas {{ $t[0] }} text-white text-sm"></i></span>
+                            <div>
+                                <div class="text-sm font-bold text-white leading-tight">{{ $t[1] }}</div>
+                                <div class="text-[11px] text-gray-400">{{ $t[2] }}</div>
+                            </div>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
 {{-- ============================ HOW WE COMPARE ============================ --}}
-@include('public.partials._compare', ['compact' => true])
+@include('public.partials._compare', ['compact' => true, 'eyebrowOverride' => '13 · How we compare'])
 @php
     // Legacy inline arrays kept commented out — replaced by shared partial above.
     /*
@@ -5551,48 +5800,19 @@
 </section>
 @endif
 
-{{-- ============================ FREE HERE / PAID THERE (lead-in to compare) ============================ --}}
-<section class="pt-4 pb-2 lg:pt-8 lg:pb-4 relative overflow-hidden" aria-label="Free here, paid elsewhere">
-    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="reveal glass rounded-3xl px-6 py-6 sm:px-8 sm:py-7 flex flex-col lg:flex-row items-center gap-5 lg:gap-7">
-            <div class="flex items-center gap-3 shrink-0">
-                <span class="w-11 h-11 rounded-2xl flex items-center justify-center grad-bar shadow-lg shadow-violet-500/30">
-                    <i class="fas fa-gift text-white"></i>
-                </span>
-                <div class="text-left">
-                    <div class="text-[11px] font-bold uppercase tracking-wider" style="color:var(--c5)">Free here, paid there</div>
-                    <div class="text-base sm:text-lg font-bold leading-tight">What costs extra elsewhere is on the <span class="grad-text">Free Forever</span> plan.</div>
-                </div>
-            </div>
-            <div class="flex flex-wrap items-center justify-center lg:justify-end gap-2 lg:ml-auto">
-                @foreach([
-                    ['fa-infinity',  'Unlimited links'],
-                    ['fa-message',   'Built-in DMs'],
-                    ['fa-bolt',      'AI Coach'],
-                    ['fa-mobile-screen', 'Native mobile app'],
-                ] as [$ic, $lbl])
-                    <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[.06] border border-white/10 text-xs sm:text-sm font-semibold text-white">
-                        <i class="fas {{ $ic }} text-[11px]" style="color:var(--c1)"></i> {{ $lbl }}
-                    </span>
-                @endforeach
-            </div>
-        </div>
-    </div>
-</section>
-
 {{-- ============================ PRICING ============================ --}}
-<section id="pricing" class="py-24 lg:py-32 relative overflow-hidden">
+<section id="pricing" class="py-24 lg:py-32 relative overflow-hidden" x-data="{ billing: 'monthly' }">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-12 max-w-3xl mx-auto">
             <div class="reveal inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[.2em] mb-3 px-3 py-1 rounded-full" style="color:var(--c1); background: rgba(124,58,237,0.10);">
                 <span class="inline-block w-1.5 h-1.5 rounded-full" style="background:var(--c1)"></span>
-                Pricing
+                14 · Pricing
             </div>
             <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">Simple, <span class="grad-text">transparent pricing.</span></h2>
             <p class="reveal rd-2 text-lg text-gray-400">Start free. Upgrade only when you outgrow it.</p>
         </div>
 
-        <div class="flex items-center justify-center mb-8">
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
             @include('public.pricing._currency_badge', [
                 'currency'       => $currency ?? 'USD',
                 'currencySource' => $currencySource ?? \App\Services\PricingResolver::SOURCE_GEO,
@@ -5600,6 +5820,21 @@
                 'switchRoute'    => 'upgrade.public.switch-currency',
                 'compact'        => true,
             ])
+
+            {{-- Monthly / Annual billing toggle --}}
+            <div class="inline-flex items-center gap-1 p-1 rounded-full glass border border-white/10" role="tablist" aria-label="Billing cadence">
+                <button type="button" role="tab" :aria-selected="billing === 'monthly'" @click="billing = 'monthly'"
+                        :class="billing === 'monthly' ? 'grad-bar text-white shadow-lg shadow-[#7c3aed]/30' : 'text-gray-300 hover:text-white'"
+                        class="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all">
+                    Monthly
+                </button>
+                <button type="button" role="tab" :aria-selected="billing === 'annual'" @click="billing = 'annual'"
+                        :class="billing === 'annual' ? 'grad-bar text-white shadow-lg shadow-[#7c3aed]/30' : 'text-gray-300 hover:text-white'"
+                        class="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1.5">
+                    Annual
+                    <span class="px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-400/20 text-emerald-300 border border-emerald-400/40">Save 2 months</span>
+                </button>
+            </div>
         </div>
 
         <div class="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
@@ -5619,9 +5854,30 @@
                         </div>
                         <div class="text-[11px] {{ $featured ? 'text-white/60' : 'text-gray-500' }} mb-1">No credit card required</div>
                     @else
+                        @php
+                            // Annual = 10× monthly (i.e. 2 months free) per the
+                            // FAQ promise. Pure UI estimate; checkout still
+                            // controls the actual cadence.
+                            $monthlyMinor = (int) ($plan['monthly']['amount_minor'] ?? 0);
+                            $currencyCode = (string) ($plan['monthly']['currency'] ?? 'USD');
+                            $annualEquivMonthlyMinor = (int) round($monthlyMinor * 10 / 12);
+                            $annualTotalMinor = $monthlyMinor * 10;
+                            $annualEquivPretty = \App\Services\PricingResolver::money($annualEquivMonthlyMinor, $currencyCode);
+                            $annualTotalPretty = \App\Services\PricingResolver::money($annualTotalMinor, $currencyCode);
+                        @endphp
                         <div class="text-[11px] uppercase tracking-wider font-semibold {{ $featured ? 'text-white/70' : 'text-gray-400' }} mb-1">Starts at</div>
-                        <div class="text-5xl font-bold mb-1 text-white leading-none">
+                        <div x-show="billing === 'monthly'" class="text-5xl font-bold mb-1 text-white leading-none">
                             {{ $plan['monthly']['formatted'] }}<span class="text-lg font-medium {{ $featured ? 'text-white/60' : 'text-gray-500' }}">/mo</span>
+                        </div>
+                        <div x-show="billing === 'annual'" x-cloak class="mb-1 leading-none">
+                            <div class="text-5xl font-bold text-white flex items-baseline gap-2">
+                                {{ $annualEquivPretty }}<span class="text-lg font-medium {{ $featured ? 'text-white/60' : 'text-gray-500' }}">/mo</span>
+                            </div>
+                            <div class="mt-1.5 flex items-center gap-2 text-[11px] {{ $featured ? 'text-white/80' : 'text-gray-400' }}">
+                                <span class="line-through opacity-70">{{ $plan['monthly']['formatted'] }}/mo</span>
+                                <span class="px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-400/25 text-emerald-200 border border-emerald-400/40">2 months free</span>
+                            </div>
+                            <div class="text-[11px] mt-1 {{ $featured ? 'text-white/70' : 'text-gray-500' }}">Billed yearly · {{ $annualTotalPretty }}/yr</div>
                         </div>
                         @if(!empty($plan['tax']))
                             @foreach($plan['tax']['tax_breakdown'] as $line)
@@ -5633,18 +5889,6 @@
                             @endif
                         @else
                             <div class="text-[11px] {{ $featured ? 'text-white/60' : 'text-gray-500' }} mb-1">+ taxes as applicable (shown at checkout)</div>
-                        @endif
-                        @if(!empty($plan['annual_teaser']))
-                            @php $__hasDiscount = (int) $plan['annual_teaser']['percent'] > 0; @endphp
-                            <div class="mt-2 mb-1 inline-flex flex-wrap items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold {{ $featured ? 'bg-white/15 text-white' : ($__hasDiscount ? 'bg-emerald-500/15 text-emerald-300' : 'bg-white/[.06] text-gray-300') }}">
-                                <i class="fas {{ $__hasDiscount ? 'fa-tag' : 'fa-calendar-alt' }} text-[9px]"></i>
-                                @if($__hasDiscount)
-                                    <span>Save {{ $plan['annual_teaser']['percent'] }}% with annual</span>
-                                    <span class="font-semibold opacity-80">· {{ $plan['annual_teaser']['annual']['formatted'] }}/yr</span>
-                                @else
-                                    <span>Billed annually at {{ $plan['annual_teaser']['annual']['formatted'] }}/yr</span>
-                                @endif
-                            </div>
                         @endif
                     @endif
                     <div class="text-sm mb-6 {{ $featured ? 'text-white/70' : 'text-gray-500' }}">{{ $plan['description'] ?: ($plan['is_free'] ? 'Forever free' : 'Per user, billed monthly') }}</div>
@@ -5658,10 +5902,7 @@
                             @endif
                         @endforeach
                     </ul>
-                    <button type="button" @click="authTab='register'; authOpen=true"
-                            data-mkt-source="landing_pricing_teaser"
-                            data-mkt-target="{{ $plan['is_free'] ? 'plan_free' : 'plan_paid' }}"
-                            class="btn-bounce block w-full py-3.5 text-center rounded-full text-sm font-bold transition-transform group-hover:scale-[1.02] {{ $featured ? 'bg-white text-[#7c3aed] hover:bg-gray-100' : 'grad-bar text-white' }}">
+                    <button type="button" @click="authTab='register'; authOpen=true" class="btn-bounce block w-full py-3.5 text-center rounded-full text-sm font-bold transition-transform group-hover:scale-[1.02] {{ $featured ? 'bg-white text-[#7c3aed] hover:bg-gray-100' : 'grad-bar text-white' }}">
                         {{ $plan['is_free'] ? 'Get started free' : 'Start free trial' }}
                     </button>
                 </div>
@@ -5680,55 +5921,47 @@
                         <p class="text-sm text-gray-400 mt-1">All tiers, coin packs and premium add-ons in one place.</p>
                     </div>
                     <div class="flex flex-wrap items-center justify-center lg:justify-end gap-3 shrink-0">
-                        <a href="{{ route('site.pricing') }}"
-                           data-mkt-source="landing_pricing_teaser" data-mkt-target="pricing"
-                           class="btn-bounce inline-flex items-center gap-2 px-6 py-3 rounded-full grad-bar text-white text-sm font-bold shadow-lg shadow-[#7c3aed]/30 hover:shadow-[#7c3aed]/50 transition-shadow">
+                        <a href="{{ route('site.pricing') }}" class="btn-bounce inline-flex items-center gap-2 px-6 py-3 rounded-full grad-bar text-white text-sm font-bold shadow-lg shadow-[#7c3aed]/30 hover:shadow-[#7c3aed]/50 transition-shadow">
                             <i class="fas fa-tags"></i> See all plans
                             <i class="fas fa-arrow-right text-xs ml-1"></i>
                         </a>
-                        <a href="{{ route('site.coins') }}"
-                           data-mkt-source="landing_pricing_teaser" data-mkt-target="coins"
-                           class="inline-flex items-center gap-2 px-5 py-3 rounded-full glass text-white hover:bg-white/10 text-sm font-semibold transition-colors">
+                        <a href="{{ route('site.coins') }}" class="inline-flex items-center gap-2 px-5 py-3 rounded-full glass text-white hover:bg-white/10 text-sm font-semibold transition-colors">
                             <i class="fas fa-coins text-amber-400"></i> Coin packages
                         </a>
-                        <a href="{{ route('site.premium-features') }}"
-                           data-mkt-source="landing_pricing_teaser" data-mkt-target="premium_features"
-                           class="inline-flex items-center gap-2 px-5 py-3 rounded-full glass text-white hover:bg-white/10 text-sm font-semibold transition-colors">
+                        <a href="{{ route('site.premium-features') }}" class="inline-flex items-center gap-2 px-5 py-3 rounded-full glass text-white hover:bg-white/10 text-sm font-semibold transition-colors">
                             <i class="fas fa-star text-amber-300"></i> Premium features
                         </a>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-</section>
 
-{{-- ============================ FAQ ============================ --}}
-<section class="pt-24 pb-12 lg:pt-28 lg:pb-14 relative overflow-hidden">
-    <div class="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-12">
-            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c4)">FAQ</div>
-            <h2 class="reveal rd-1 text-4xl sm:text-5xl font-bold tracking-tight mb-3">Questions? <span class="grad-text">Answered.</span></h2>
-            <p class="reveal rd-2 text-gray-400">Everything you might be wondering about 1INME.</p>
+        {{-- Pricing trust strip --}}
+        <div class="reveal mt-8 max-w-4xl mx-auto flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-xs sm:text-sm text-gray-300">
+            @foreach([
+                ['fa-shield-halved', 'Cancel any time'],
+                ['fa-rotate-left', '7-day refund window'],
+                ['fa-credit-card', 'Cards, PayPal, Apple Pay'],
+                ['fa-receipt', 'Tax-inclusive invoices'],
+            ] as $t)
+                <span class="inline-flex items-center gap-2"><i class="fas {{ $t[0] }} text-[11px]" style="color:var(--c1)"></i>{{ $t[1] }}</span>
+            @endforeach
         </div>
 
-        <div class="reveal rd-2 space-y-3">
+        {{-- Billing mini-FAQ --}}
+        <div class="reveal mt-10 max-w-3xl mx-auto grid sm:grid-cols-2 gap-3">
             @foreach([
-                ['Is there really a free plan?', 'Yes — our Free plan is forever free and lets you create biolinks, short links and dynamic QR codes.'],
-                ['Do I need a credit card to sign up?', 'No. Sign up with just your email or phone — no card required.'],
-                ['Can I use my own custom domain?', 'Yes. Paid plans let you connect a custom domain for your short links and biolink page.'],
-                ['How does the Performance Coach work?', 'It looks at your live analytics, finds the weakest links, and suggests one-click fixes — like swapping a low-CTR block or adding social proof.'],
-                ['Can I see who is visiting in real time?', 'Yes. Live visitor pins show you where your audience is right now on a world map.'],
-                ['How do I cancel?', 'You can downgrade to the Free plan or cancel from your account settings at any time.'],
-            ] as $f)
-                <details class="faq-item glass rounded-2xl px-5 py-4 hover:bg-white/[.06] transition-colors">
-                    <summary class="flex items-center justify-between gap-4">
-                        <span class="font-bold text-base sm:text-lg pr-4">{{ $f[0] }}</span>
-                        <span class="faq-icon w-7 h-7 rounded-full grad-bar text-white flex items-center justify-center font-bold flex-shrink-0">
-                            <i class="fas fa-plus text-xs"></i>
-                        </span>
+                ['Does the Free plan ever expire?', 'No. It is forever free — no trial countdown, no expiring features, no card on file.'],
+                ['Will I be charged tax?', 'Yes, where required — tax is shown at checkout and itemised on every invoice.'],
+                ['Can I cancel or downgrade later?', 'Any time, from your account. Changes take effect at the next billing period.'],
+                ['What payment methods do you accept?', 'Major cards, Apple Pay, Google Pay and PayPal in supported regions.'],
+            ] as $bf)
+                <details class="faq-item glass rounded-2xl px-5 py-3.5">
+                    <summary class="flex items-center justify-between gap-4 cursor-pointer">
+                        <span class="text-sm font-bold pr-4">{{ $bf[0] }}</span>
+                        <span class="faq-icon w-6 h-6 rounded-full grad-bar text-white flex items-center justify-center text-[10px] flex-shrink-0"><i class="fas fa-plus"></i></span>
                     </summary>
-                    <p class="mt-3 text-sm text-gray-300 leading-relaxed">{{ $f[1] }}</p>
+                    <p class="mt-2.5 text-xs text-gray-300 leading-relaxed">{{ $bf[1] }}</p>
                 </details>
             @endforeach
         </div>
@@ -5889,73 +6122,6 @@
         }
     });
 </script>
-
-{{-- ============================ MARKETING CTA TRACKING ============================
-     Records server-side click events for the landing pricing teaser CTAs
-     (drill-downs to /pricing, /coins, /premium-features and the two plan
-     buttons). Mirrors to GA4 + Meta Pixel when they're configured by the
-     marketing-tracking partial. Powers Admin → Marketing Events.
---}}
-<script>
-    (function () {
-        var ENDPOINT = @json(route('marketing-events.track'));
-
-        function postEvent(source, target) {
-            try {
-                var payload = JSON.stringify({ source: source, target: target });
-                if (navigator.sendBeacon) {
-                    var blob = new Blob([payload], { type: 'application/json' });
-                    if (navigator.sendBeacon(ENDPOINT, blob)) return;
-                }
-                fetch(ENDPOINT, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                    body: payload,
-                    keepalive: true,
-                    credentials: 'same-origin',
-                });
-            } catch (_) { /* best-effort */ }
-        }
-
-        function mirrorToPipelines(source, target) {
-            try {
-                if (typeof window.gtag === 'function') {
-                    window.gtag('event', 'marketing_cta_click', {
-                        event_category: 'marketing',
-                        event_label: source + ':' + target,
-                        cta_source: source,
-                        cta_target: target,
-                    });
-                } else if (Array.isArray(window.dataLayer)) {
-                    window.dataLayer.push({
-                        event: 'marketing_cta_click',
-                        cta_source: source,
-                        cta_target: target,
-                    });
-                }
-                if (typeof window.fbq === 'function') {
-                    window.fbq('trackCustom', 'MarketingCtaClick', {
-                        source: source,
-                        target: target,
-                    });
-                }
-            } catch (_) { /* best-effort */ }
-        }
-
-        document.addEventListener('click', function (e) {
-            var el = e.target.closest('[data-mkt-source][data-mkt-target]');
-            if (!el) return;
-            var source = el.getAttribute('data-mkt-source');
-            var target = el.getAttribute('data-mkt-target');
-            if (!source || !target) return;
-            postEvent(source, target);
-            mirrorToPipelines(source, target);
-        }, true);
-    })();
-</script>
-
 @include('common.partials.cookie-consent', ['surface' => 'site'])
 </body>
 </html>
-
-

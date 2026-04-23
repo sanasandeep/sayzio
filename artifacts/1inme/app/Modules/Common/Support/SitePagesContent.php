@@ -1209,6 +1209,177 @@ class SitePagesContent
     }
 
     /**
+     * The full categorised FAQ knowledge base shipped with the marketing
+     * site. Returned as ['Category' => [[question, answer], ...]]. Used by
+     * the public /faqs page, the homepage FAQ block, and the seeder.
+     */
+    public static function homepageFaqs(): array
+    {
+        return [
+            'Getting started' => [
+                ['Is there really a free plan?', 'Yes — the Free plan is free forever. No trial countdown, no surprise paywall, no credit card required to use it.'],
+                ['Do I need a credit card to sign up?', 'No. You can sign up with just an email or phone number and start building a biolink right away.'],
+                ['How long does it take to get my first link live?', 'Most people are live in under two minutes — pick a template, drop your socials in, and share the URL.'],
+                ['Can I import my existing Linktree or Beacons page?', 'Yes — paste your existing page URL into the importer and we will pull the blocks, icons and links into a starter page you can edit.'],
+                ['Do I need any design skills?', 'No. Every block is drag-and-drop with sensible defaults; the templates are professionally designed and fully editable.'],
+                ['What is a "biolink" exactly?', 'A biolink is a single mobile-first page that holds all your links, content and contact options — perfect for the link slot in your social bios.'],
+                ['Can I have more than one biolink page?', 'Yes — make as many as your plan allows. Use one per brand, project or campaign and switch between them in a click.'],
+                ['Will my page work on mobile?', 'Yes. Every page is mobile-first, with optional desktop-tuned layouts and per-block visibility for either device.'],
+                ['Can I preview my page before publishing?', 'Yes — the live preview updates as you edit, and an unpublished page is only visible to you and your team.'],
+                ['Is 1INME suitable for non-creators (small business, freelancers)?', 'Absolutely — it is designed for creators, freelancers, agencies, restaurants, coaches, networking pros and small businesses alike.'],
+            ],
+            'Biolinks' => [
+                ['What blocks can I add to a biolink?', 'Text, images, video, audio, products, donation buttons, social icons, embeds, forms, NFTs, calendars, maps, lead magnets and more.'],
+                ['Can I reorder or hide blocks?', 'Yes — drag to reorder, click to hide, or schedule blocks to appear and disappear on specific dates.'],
+                ['Can I sell products from my biolink?', 'Yes — add product blocks with images, pricing, variants, stock and Stripe-powered checkout.'],
+                ['Can I collect tips or donations?', 'Yes — add a tip jar block with custom amounts, suggested tiers and an optional thank-you message.'],
+                ['Can I embed a video or playlist?', 'Yes — paste a YouTube, Vimeo, Spotify, SoundCloud or Apple Music link and the embed renders inline.'],
+                ['Can I add a contact form to my biolink?', 'Yes — drop in a form block; submissions land in your contacts and can fire emails or webhooks.'],
+                ['Can I add multiple languages?', 'Yes — set a default language and add per-block translations; visitors see the version that matches their browser.'],
+                ['Can I theme my biolink to match my brand?', 'Yes — pick from premium themes or override colours, fonts, backgrounds, button shapes and animations.'],
+                ['Can I schedule a biolink to launch later?', 'Yes — schedule a publish date and time, and the page swaps from "draft" to "live" automatically.'],
+                ['Can I password-protect a biolink?', 'Yes — toggle on a password; visitors must enter it before the page renders.'],
+            ],
+            'Short links' => [
+                ['What is a branded short link?', 'A clean URL on your domain (or our default) that redirects to a long destination — repointable any time, no reprinting needed.'],
+                ['Can I use my own domain for short links?', 'Yes, on paid plans. Add a CNAME record and your links read https://yourbrand.co/launch instead of the default host.'],
+                ['Can I add UTMs automatically?', 'Yes — set per-link or per-domain UTM defaults and we append them on every redirect.'],
+                ['Can I expire a short link?', 'Yes — expire by date, by click count, by geo, or rotate to a fallback URL once a cap is hit.'],
+                ['Can I redirect by country, language or device?', 'Yes — add geo, language or device rules and route visitors to different destinations from the same short link.'],
+                ['Can I password-protect a short link?', 'Yes — visitors must enter a password before being redirected.'],
+                ['What link types do you support?', 'Standard redirects, file downloads, splash pages, iframes, deep links, vCards, calendar files, Wi-Fi credentials and more.'],
+                ['Can I A/B test short link destinations?', 'Yes — define multiple destinations with weights and we will split traffic and measure the winner.'],
+                ['What happens if a destination URL goes 404?', 'We detect broken targets and surface them in your dashboard so you can repoint without breaking shared links.'],
+                ['Are short links rate-limited?', 'No — redirects are served from the edge with no per-link click cap on any plan.'],
+            ],
+            'QR codes' => [
+                ['How do I generate a QR code?', 'Every link gets a QR code automatically — open the link, switch to the QR tab and download the size you need.'],
+                ['Can I customise the QR code design?', 'Yes — colours, dot styles, eye styles, your logo in the centre, and on-brand accent gradients.'],
+                ['What size should I download for print?', 'Use the SVG or 1024×1024 PNG for posters; the 512×512 PNG is plenty for stickers and packaging.'],
+                ['Can I change the QR destination after printing?', 'Yes — that is the whole point of dynamic QR codes. Re-point the link any time and the printed code keeps working.'],
+                ['Do QR scans count as clicks?', 'Yes — scans are tracked separately from web clicks, so you can compare offline vs online performance.'],
+                ['Can a QR open my biolink directly?', 'Yes — generate the QR for your biolink URL and any phone camera will open it instantly.'],
+                ['Do QR codes work without internet?', 'The scan does — but the destination needs internet, like any URL.'],
+                ['Can I batch-generate QR codes?', 'Yes — bulk-create dozens of links and export the QR codes as a zip in your preferred size.'],
+            ],
+            'Analytics & AI Coach' => [
+                ['What analytics do I get on the Free plan?', 'Real-time visitor count, geographic breakdown, device, referrer and per-block click-through — for life.'],
+                ['Can I see who is visiting in real time?', 'Yes — live visitor pins on a world map show exactly where your audience is right now.'],
+                ['How does the AI Performance Coach work?', 'It watches your live numbers, compares against best practice, and surfaces a small prioritised list of one-click fixes.'],
+                ['Can I export analytics?', 'Yes — CSV or JSON export of clicks, sessions and conversions, plus a webhook stream for real-time pipelines.'],
+                ['Do you respect Do Not Track?', 'Yes — visitors with Do Not Track enabled are counted anonymously without device fingerprints.'],
+                ['Can I track conversions (signups, sales)?', 'Yes — fire a tracking event from a thank-you page, a webhook, or our JavaScript SDK and conversions show up alongside clicks.'],
+                ['How is data different from Google Analytics?', 'Ours is link-level and visitor-friendly: cookieless by default, no third-party scripts on your page, ready in seconds.'],
+                ['Can I see which block converts best?', 'Yes — every block reports its own clicks, view rate and CTR so you can prune dead weight in seconds.'],
+                ['How long is analytics data retained?', 'Forever on paid plans; 12 months on Free. Exports work for the full retention window.'],
+                ['Can I share analytics with a client?', 'Yes — generate a read-only share link or invite the client to a workspace as a Viewer.'],
+            ],
+            'Team & workspaces' => [
+                ['What is a workspace?', 'A workspace is an isolated container for content, links, contacts and billing. Use one per brand, client or side project.'],
+                ['How many teammates can I invite?', 'Depends on your plan — Free supports just you, paid plans scale from 3 to unlimited seats.'],
+                ['What roles can I assign?', 'Owner, Admin, Editor, Viewer — each maps to a clear set of permissions across pages, links, contacts and billing.'],
+                ['Can I limit what a teammate sees?', 'Yes — Editors only see content, Viewers only see analytics, and granular permissions can lock down specific actions.'],
+                ['Can I switch workspaces quickly?', 'Yes — a switcher in the dashboard top bar jumps between workspaces in one click.'],
+                ['Is billing separate per workspace?', 'Yes — each workspace has its own plan and invoices, so agencies can bill clients separately.'],
+                ['Can I transfer ownership of a workspace?', 'Yes — Owners can hand off to another Admin from the workspace settings; the old Owner becomes an Admin.'],
+                ['Are actions audit-logged?', 'Yes — every important change is attributed to the teammate who made it, with a 90-day audit history on paid plans.'],
+                ['Can I work with freelancers without giving them my login?', 'Yes — invite them as a teammate; they get their own account and you can revoke access at any time.'],
+                ['Do teammates count against my page or link limits?', 'No — limits are per-workspace, not per-seat. Add seats freely without worrying about caps.'],
+            ],
+            'Billing & plans' => [
+                ['Does the Free plan ever expire?', 'No — it is free forever, with no trial countdown and no card on file.'],
+                ['Can I cancel any time?', 'Yes — cancel or downgrade from your account settings; changes take effect at the next billing period.'],
+                ['Do you offer refunds?', 'Yes — new paid plan purchases are refundable within 7 days. See our Refunds Policy for the details.'],
+                ['What payment methods do you accept?', 'Major credit and debit cards, Apple Pay, Google Pay and PayPal in supported regions.'],
+                ['Do you charge tax?', 'Yes, where required by law. Tax is shown at checkout and itemised on every invoice.'],
+                ['Are invoices available?', 'Yes — every charge generates a downloadable PDF invoice in your account, with company name and VAT/GST id support.'],
+                ['Can I switch from monthly to annual billing?', 'Yes — switch any time from billing settings; we credit the unused portion of your current period.'],
+                ['Do you offer discounts for annual billing?', 'Yes — annual plans typically include a 2-month discount versus paying monthly.'],
+                ['Do you offer discounts for non-profits or students?', 'Yes — verified non-profits and students get up to 50% off paid plans. Contact us with proof.'],
+                ['What happens if my payment fails?', 'We retry the charge a few times and email you. After 7 days of failed retries the workspace downgrades to the Free plan.'],
+                ['Can I change plans mid-cycle?', 'Yes — upgrades take effect immediately with a pro-rated charge; downgrades take effect at next renewal.'],
+                ['Will my links keep working if I downgrade?', 'Yes — your existing links keep working forever, even if you downgrade past the limits, but new links are blocked above the cap.'],
+            ],
+            'Custom domains' => [
+                ['Can I use my own domain for my biolink?', 'Yes, on paid plans. Connect a domain or subdomain via a CNAME record and your biolink lives at your URL.'],
+                ['Can I use my own domain for short links?', 'Yes — bring a custom domain and use it for branded short links across all your campaigns.'],
+                ['Do you provide an SSL certificate?', 'Yes — we provision and renew a free SSL certificate for every connected domain automatically.'],
+                ['Can I use the same domain for biolink and short links?', 'Yes — point the apex to your biolink and use a path or subdomain for short links.'],
+                ['How long does DNS propagation take?', 'Usually 5–30 minutes. We retry validation for up to 48 hours and email you when the certificate is live.'],
+                ['Can I use multiple custom domains?', 'Yes — add as many as your plan allows; each can be assigned to a different workspace or biolink.'],
+                ['Do I need to host anything?', 'No — we host the domain end to end. You only configure DNS at your registrar.'],
+                ['Can I set redirects from old URLs?', 'Yes — add 301 or 302 redirects from any path on your custom domain to any destination.'],
+            ],
+            'Security & privacy' => [
+                ['Is my data encrypted?', 'Yes — TLS 1.3 in transit and AES-256 at rest, with regular external audits.'],
+                ['Do you sell my data?', 'No — we never sell personal data and we do not run third-party advertising trackers on the pages you publish.'],
+                ['Are you GDPR-compliant?', 'Yes — we follow GDPR for EU/EEA and UK GDPR for the UK, including standard contractual clauses for international transfers.'],
+                ['Do you offer a Data Processing Agreement?', 'Yes — request our DPA from your account; we counter-sign and return it within a couple of business days.'],
+                ['How do I enable two-factor authentication?', 'Open security settings and add an authenticator app or SMS — required for Owners on paid plans.'],
+                ['Where is my data stored?', 'Primary storage is in the EU with replicated backups in additional regions; specifics are listed in our sub-processor register.'],
+                ['How do I report a security issue?', 'Email security@1inme.app with the details and we will respond within one business day. Responsible disclosures are eligible for a thank-you bounty.'],
+                ['Can visitors opt out of analytics?', 'Yes — DNT-enabled visitors are counted anonymously, and you can disable analytics entirely from your page settings.'],
+                ['How long are backups kept?', 'Daily backups are retained for 30 days, with a weekly snapshot held for 90 days.'],
+                ['Do you have a status page?', 'Yes — a public status page reports current uptime, scheduled maintenance and any historical incidents.'],
+            ],
+            'Mobile & integrations' => [
+                ['Is there a mobile app?', 'Yes — native iOS and Android apps let you edit pages, scan QR codes, manage contacts and reply to messages on the go.'],
+                ['Do you have an open API?', 'Yes — a documented REST API plus webhooks for every important event. Free for any plan that includes API access.'],
+                ['Do you integrate with Stripe?', 'Yes — connect your Stripe account to take payments for products, tips, donations and paid links.'],
+                ['Do you integrate with Mailchimp / Klaviyo?', 'Yes — sync new contacts and form submissions into either platform with a one-click integration.'],
+                ['Do you integrate with Google Sheets?', 'Yes — append form submissions or new contacts to a Google Sheet in real time.'],
+                ['Is there a Zapier app?', 'Yes — trigger Zaps from any 1INME event and call any 1INME action from a Zap.'],
+                ['Can I add a Facebook or Google Analytics pixel?', 'Yes — drop your pixel ID in once and it loads on every page or short link in the workspace.'],
+                ['Do you support webhooks for clicks and form submissions?', 'Yes — point a URL at any of our webhook events and receive a signed payload within seconds of the event.'],
+                ['Can I use 1INME with my CRM?', 'Yes — sync contacts to HubSpot, Pipedrive or Salesforce via native integrations or Zapier.'],
+                ['Can I disable integrations per workspace?', 'Yes — each workspace has its own integration settings and credentials.'],
+            ],
+            'Account & data' => [
+                ['How do I export my data?', 'From account settings, request an export — we package biolinks, links, contacts, analytics and files into a downloadable archive within minutes.'],
+                ['Can I delete my account?', 'Yes — request deletion from account settings; data is removed from active systems within 30 days and from backups within 90.'],
+                ['Can I deactivate without deleting?', 'Yes — deactivation hides your pages and pauses billing without deleting any data; reactivate any time.'],
+                ['Do you back up my data?', 'Yes — daily encrypted backups in multiple regions, with point-in-time restore for paid plans.'],
+                ['How do I change my email or password?', 'Update either from security settings; an email confirmation is required to change either.'],
+                ['What happens to my links if I close my account?', 'They stop resolving immediately. Visitors land on a "page not found" until you re-activate or migrate them.'],
+                ['Can I transfer ownership of a biolink to another account?', 'Yes — transfer ownership from page settings; the new owner accepts the transfer in their dashboard.'],
+                ['Are my pages discoverable on search engines?', 'They can be — pages set to public are indexed; private or password-protected pages are not.'],
+                ['Can I hide my page from the Discover directory?', 'Yes — toggle "Show me in Discover" off in profile settings and your page disappears from the directory within minutes.'],
+                ['How do I get human support?', 'Email support@1inme.app or use in-app chat — paid plans get priority response targets, with the Pro tier guaranteeing same-business-day replies.'],
+            ],
+        ];
+    }
+
+    /**
+     * The "best of" subset of FAQs surfaced inline on the homepage. Pulls
+     * one or two from each category so the homepage feels representative
+     * without overwhelming the visitor.
+     */
+    public static function homepageFaqHighlights(): array
+    {
+        $picks = [
+            'Getting started'        => ['Is there really a free plan?', 'Do I need a credit card to sign up?'],
+            'Biolinks'               => ['What blocks can I add to a biolink?'],
+            'Short links'            => ['Can I use my own domain for short links?'],
+            'QR codes'               => ['Can I change the QR destination after printing?'],
+            'Analytics & AI Coach'   => ['How does the AI Performance Coach work?', 'Can I see who is visiting in real time?'],
+            'Team & workspaces'      => ['Is billing separate per workspace?'],
+            'Billing & plans'        => ['Do you offer refunds?', 'Can I cancel any time?'],
+            'Custom domains'         => ['Can I use my own domain for my biolink?'],
+            'Security & privacy'    => ['Do you sell my data?'],
+        ];
+        $all = self::homepageFaqs();
+        $out = [];
+        foreach ($picks as $cat => $questions) {
+            foreach ($all[$cat] ?? [] as $pair) {
+                if (in_array($pair[0], $questions, true)) {
+                    $out[] = ['q' => $pair[0], 'a' => $pair[1], 'category' => $cat];
+                }
+            }
+        }
+        return $out;
+    }
+
+    /**
      * Definition of the supported social networks: app-setting key,
      * human label, and the FontAwesome brand icon class to render in the
      * public footer.

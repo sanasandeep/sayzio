@@ -88,7 +88,7 @@
 
         {{-- Heading --}}
         <div class="text-center mb-10 max-w-2xl mx-auto">
-            <div data-anim="fade-up" class="text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c4)">How we compare</div>
+            <div data-anim="fade-up" class="text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c4)">{{ $eyebrowOverride ?? 'How we compare' }}</div>
             <h2 data-anim="fade-up" class="text-4xl sm:text-5xl font-bold tracking-tight mb-4">
                 More features. <span class="grad-text">Better deal.</span>
             </h2>
