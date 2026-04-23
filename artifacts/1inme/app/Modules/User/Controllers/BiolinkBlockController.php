@@ -20,6 +20,31 @@ class BiolinkBlockController extends Controller
         $blockTypes = BiolinkBlock::TYPES;
         $blockCategories = BiolinkBlock::CATEGORIES;
 
+        // Poll tallies for this biolink's poll blocks. We collect every poll
+        // block id (top-level + children of card containers), then run a
+        // single aggregate query so the block list renders without N+1
+        // overhead even for biolinks with several polls.
+        $pollBlockIds = [];
+        foreach ($blocks as $b) {
+            if ($b->type === 'poll') $pollBlockIds[] = $b->id;
+            foreach ($b->children ?? [] as $c) {
+                if ($c->type === 'poll') $pollBlockIds[] = $c->id;
+            }
+        }
+        $pollTallies = [];
+        if (!empty($pollBlockIds)) {
+            $rows = \App\Modules\User\Models\PollVote::whereIn('block_id', $pollBlockIds)
+                ->selectRaw('block_id, option_index, COUNT(*) as c')
+                ->groupBy('block_id', 'option_index')
+                ->get();
+            foreach ($rows as $row) {
+                $bid = (int) $row->block_id;
+                $idx = (int) $row->option_index;
+                $pollTallies[$bid]['counts'][$idx] = (int) $row->c;
+                $pollTallies[$bid]['total'] = ($pollTallies[$bid]['total'] ?? 0) + (int) $row->c;
+            }
+        }
+
         $userForms = auth()->user()->forms()
             ->orderByDesc('id')
             ->get(['id', 'title', 'slug', 'is_active'])
@@ -55,7 +80,7 @@ class BiolinkBlockController extends Controller
             ])->values();
 
         return view('user.links.biolink-editor', compact(
-            'link', 'blocks', 'blockTypes', 'blockCategories', 'userForms', 'userBuzz', 'userCompanions'
+            'link', 'blocks', 'blockTypes', 'blockCategories', 'userForms', 'userBuzz', 'userCompanions', 'pollTallies'
         ));
     }
 

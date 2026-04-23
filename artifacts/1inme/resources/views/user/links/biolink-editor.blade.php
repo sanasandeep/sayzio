@@ -491,6 +491,8 @@ $catColors = [
                                         <i class="fas fa-arrows-alt-v text-[9px] mr-1" style="color: var(--text-faint);"></i>{{ $s['height'] ?? 20 }}px
                                     @elseif($block->type === 'divider')
                                         <i class="fas fa-minus text-[9px] mr-1" style="color: var(--text-faint);"></i>{{ ucfirst($s['style'] ?? 'solid') }} line
+                                    @elseif($block->type === 'poll')
+                                        <i class="fas fa-square-poll-vertical text-[9px] mr-1" style="color: var(--text-faint);"></i>{{ \Illuminate\Support\Str::limit($s['question'] ?? $s['title'] ?? 'Poll', 60) }}
                                     @else
                                         {{ ucfirst(str_replace('_', ' ', $block->type)) }} block
                                     @endif
@@ -509,6 +511,10 @@ $catColors = [
                                 </button>
                             </div>
                         </div>
+
+                        @if($block->type === 'poll')
+                            @include('user.links.partials.poll-results-panel', ['block' => $block, 'tally' => $pollTallies[$block->id] ?? null])
+                        @endif
 
                         @if($block->type === 'card')
                         <div class="card-children-area px-3 pb-3" x-data="{ cardExpanded: true }">
@@ -545,6 +551,9 @@ $catColors = [
                                                     <button class="block-action-btn delete-btn" style="width:22px;height:22px;" title="Delete" onclick="ajaxDeleteBlock(this, '{{ route('user.links.blocks.destroy', [$link, $child]) }}', {{ $child->id }})"><i class="fas fa-trash" style="font-size:8px;"></i></button>
                                                 </div>
                                             </div>
+                                            @if($child->type === 'poll')
+                                                @include('user.links.partials.poll-results-panel', ['block' => $child, 'tally' => $pollTallies[$child->id] ?? null, 'compact' => true])
+                                            @endif
                                             <div class="child-span-row px-2 pb-1.5">
                                                 <div class="flex items-center gap-1">
                                                     <span class="text-[8px] font-semibold flex-shrink-0" style="color: var(--text-faint);"><i class="fas fa-columns mr-0.5"></i>Width</span>
