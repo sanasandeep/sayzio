@@ -347,8 +347,22 @@
                             var v = f ? (f.value || '').trim() : '';
                             if (v) out[code][k] = v;
                         });
+                        var lbl = row.querySelector('[data-lb-topup-label]');
+                        var lblVal = lbl ? (lbl.value || '').trim() : '';
+                        if (lblVal) out[code].topup_label = lblVal;
                     });
                     return out;
+                }
+
+                // Default CTA label for the preview button — mirrors the
+                // runtime fallback chain: per-locale override → admin
+                // default → audience-specific built-in label.
+                function defaultTopupLabel(){
+                    var i = form.querySelector('input[name="low_balance_topup_label"]');
+                    return i ? (i.value || '').trim() : '';
+                }
+                function builtinTopupLabel(audience){
+                    return audience === 'anonymous' ? 'See plans' : 'Top up';
                 }
 
                 // Pull the current per-language config from the live form rows.
@@ -479,6 +493,7 @@
                         }
                     }
 
+                    var defLabel = defaultTopupLabel();
                     [['signed_in', lbSignedIn], ['anonymous', lbAnonymous]].forEach(function (pair) {
                         var audience = pair[0];
                         var box = pair[1];
@@ -495,6 +510,16 @@
                             msgEl.textContent = msg;
                             box.style.opacity = '1';
                         }
+                        // Resolve CTA label using the same fallback chain
+                        // as the runtime: per-locale override → admin
+                        // default → audience-specific built-in label.
+                        var label = builtinTopupLabel(audience);
+                        if (defLabel) label = defLabel;
+                        if (lbPicked && lbRows[lbPicked] && lbRows[lbPicked].topup_label) {
+                            label = lbRows[lbPicked].topup_label;
+                        }
+                        var ctaEl = box.querySelector('[data-lb-cta]');
+                        if (ctaEl) ctaEl.textContent = label;
                     });
                 }
 
@@ -687,6 +712,11 @@
                 <input type="text" maxlength="500" name="low_balance_message_anonymous" value="{{ $cfg['low_balance_message_anonymous'] }}" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
                 <p class="text-xs text-white/40 mt-1">No numbers are leaked to anonymous visitors — keep this generic.</p>
             </div>
+            <div>
+                <label class="block text-xs text-white/60 mb-1">CTA button label</label>
+                <input type="text" maxlength="60" name="low_balance_topup_label" value="{{ $cfg['low_balance_topup_label'] ?? '' }}" placeholder="Top up" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                <p class="text-xs text-white/40 mt-1">Replaces the default <code>Top up</code> (signed-in) and <code>See plans</code> (anonymous) labels on the bubble's button. Leave blank to keep the built-in labels.</p>
+            </div>
 
             <div class="pt-2 border-t border-white/10 space-y-3">
                 <div>
@@ -720,6 +750,9 @@
                             <label class="block text-xs text-white/60">Anonymous visitor message
                                 <input type="text" maxlength="500" data-lb-loc="anonymous" class="mt-1 w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
                             </label>
+                            <label class="block text-xs text-white/60 md:col-span-2">CTA button label
+                                <input type="text" maxlength="60" data-lb-topup-label class="mt-1 w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" placeholder="Top up">
+                            </label>
                         </div>
                     </div>
                 </template>
@@ -730,6 +763,7 @@
                     var tpl  = document.getElementById('lb_locale_row_tpl');
                     var addBtn = document.getElementById('lb_locale_add');
                     var seeded = @json((object)($cfg['low_balance_message_locales'] ?? new \stdClass()));
+                    var seededLabels = @json((object)($cfg['low_balance_topup_label_locales'] ?? new \stdClass()));
                     var KEYS = ['signed_in','anonymous'];
                     var seq = 0;
 
@@ -741,9 +775,11 @@
                             var k = el.getAttribute('data-lb-loc');
                             el.name = 'low_balance_message_locales[' + bucket + '][' + k + ']';
                         });
+                        var lbl = row.querySelector('[data-lb-topup-label]');
+                        if (lbl) lbl.name = 'low_balance_topup_label_locales[' + bucket + ']';
                     }
 
-                    function addRow(code, values) {
+                    function addRow(code, values, label) {
                         if (host.querySelectorAll('.lb-locale-row').length >= 50) return;
                         var node = tpl.content.firstElementChild.cloneNode(true);
                         node.dataset.rowId = String(++seq);
@@ -755,17 +791,29 @@
                                 if (f && values[k] != null) f.value = values[k];
                             });
                         }
+                        var lblInput = node.querySelector('[data-lb-topup-label]');
+                        if (lblInput && label != null) lblInput.value = label;
                         node.querySelector('[data-lb-locale-remove]').addEventListener('click', function () { node.remove(); });
                         codeInput.addEventListener('input', function () { rewire(node); });
                         host.appendChild(node);
                         rewire(node);
                     }
 
-                    if (addBtn) addBtn.addEventListener('click', function () { addRow('', null); });
+                    if (addBtn) addBtn.addEventListener('click', function () { addRow('', null, ''); });
 
+                    // Merge codes from both seed maps so a locale defined
+                    // only in the label map (or vice versa) still surfaces
+                    // a row admins can edit.
+                    var allCodes = {};
                     if (seeded && typeof seeded === 'object' && !Array.isArray(seeded)) {
-                        Object.keys(seeded).forEach(function (code) { addRow(code, seeded[code]); });
+                        Object.keys(seeded).forEach(function (c) { allCodes[c] = true; });
                     }
+                    if (seededLabels && typeof seededLabels === 'object' && !Array.isArray(seededLabels)) {
+                        Object.keys(seededLabels).forEach(function (c) { allCodes[c] = true; });
+                    }
+                    Object.keys(allCodes).sort().forEach(function (code) {
+                        addRow(code, seeded ? seeded[code] : null, (seededLabels && seededLabels[code]) || '');
+                    });
                 })();
                 </script>
             </div>

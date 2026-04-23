@@ -86,6 +86,9 @@ class SiteAssistantController extends Controller
             'low_balance_message_locales.*'            => 'array',
             'low_balance_message_locales.*.signed_in'  => 'nullable|string|max:500',
             'low_balance_message_locales.*.anonymous'  => 'nullable|string|max:500',
+            'low_balance_topup_label'                  => 'nullable|string|max:60',
+            'low_balance_topup_label_locales'          => 'nullable|array|max:50',
+            'low_balance_topup_label_locales.*'        => 'nullable|string|max:60',
             'starter_prompts'          => 'nullable|array',
             'starter_prompts.*'        => 'nullable|string|max:200',
             'cutoff_alert_enabled'             => 'nullable|boolean',
@@ -124,6 +127,10 @@ class SiteAssistantController extends Controller
             'low_balance_message_anonymous' => trim((string) ($data['low_balance_message_anonymous'] ?? '')),
             'low_balance_message_locales'   => SiteAssistantSettings::normalizeLowBalanceLocales(
                 (array) $request->input('low_balance_message_locales', [])
+            ),
+            'low_balance_topup_label'         => mb_substr(trim((string) ($data['low_balance_topup_label'] ?? '')), 0, 60),
+            'low_balance_topup_label_locales' => SiteAssistantSettings::normalizeTopupLabelLocales(
+                (array) $request->input('low_balance_topup_label_locales', [])
             ),
             'starter_prompts'         => array_values(array_filter(array_map(
                 fn ($s) => trim((string) $s),

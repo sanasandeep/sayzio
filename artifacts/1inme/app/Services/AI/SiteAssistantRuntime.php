@@ -130,6 +130,8 @@ class SiteAssistantRuntime
         // Anonymous visitors get a generic hint without a number, and a
         // pricing link instead of a direct top-up flow (they don't yet
         // have an account/wallet to credit).
+        $customLabel = SiteAssistantSettings::topupLabelFor($cfg);
+
         if (!$user) {
             $anonMsg = SiteAssistantSettings::lowBalanceMessageFor($cfg, 'anonymous');
             return [
@@ -138,7 +140,7 @@ class SiteAssistantRuntime
                 'avg_reply_credits' => $avg,
                 'message'           => $anonMsg !== '' ? $anonMsg : null,
                 'topup_url'         => $this->safeRoute('site.pricing'),
-                'topup_label'       => 'See plans',
+                'topup_label'       => $customLabel !== '' ? $customLabel : 'See plans',
             ];
         }
 
@@ -157,7 +159,7 @@ class SiteAssistantRuntime
             'avg_reply_credits' => $avg,
             'message'           => $msg,
             'topup_url'         => $this->safeRoute('user.ai-credits.show'),
-            'topup_label'       => 'Top up',
+            'topup_label'       => $customLabel !== '' ? $customLabel : 'Top up',
         ];
     }
 

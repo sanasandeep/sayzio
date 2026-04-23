@@ -46,6 +46,13 @@ class SiteAssistantSettings
             // Shape: ['fr' => ['signed_in' => '…', 'anonymous' => '…'], …]
             // Empty/missing entries fall back to the default English copy.
             'low_balance_message_locales' => [],
+            // CTA button label shown on the low-balance bubble. Empty
+            // means "use the audience-specific built-in default" (Top
+            // up for signed-in, See plans for anonymous). Per-locale
+            // overrides take precedence when they match the visitor's
+            // Accept-Language; otherwise this default is used.
+            'low_balance_topup_label'         => '',
+            'low_balance_topup_label_locales' => [],
             'starter_prompts'   => [
                 'What can I do on this page?',
                 'How does pricing work?',
@@ -235,6 +242,52 @@ P;
 
         $override = trim((string) ($locales[$picked][$audience] ?? ''));
         return $override !== '' ? $override : $default;
+    }
+
+    /**
+     * Normalize the per-locale CTA button label overrides posted from
+     * the admin form. Same shape rules as the greeting locales: BCP-47
+     * canonicalised codes, blanks dropped, capped at 50 entries, each
+     * label capped at 60 chars to keep the bubble layout tidy.
+     */
+    public static function normalizeTopupLabelLocales(array $in): array
+    {
+        $out = [];
+        foreach ($in as $code => $val) {
+            $canon = \App\Modules\Common\Support\CookieConsentConfig::canonicalLocale((string) $code);
+            if ($canon === null) continue;
+            $val = trim((string) $val);
+            if ($val === '') continue;
+            $out[$canon] = mb_substr($val, 0, 60);
+            if (count($out) >= 50) break;
+        }
+        ksort($out);
+        return $out;
+    }
+
+    /**
+     * Resolve the locale-specific CTA button label using the visitor's
+     * Accept-Language header. Falls back to the admin-configured
+     * default (`low_balance_topup_label`) when no locale override
+     * matches; returns an empty string when the admin hasn't set a
+     * default either, signalling callers to use the audience-specific
+     * built-in label (`Top up` / `See plans`).
+     */
+    public static function topupLabelFor(array $cfg, ?string $acceptLanguage = null): string
+    {
+        $default = trim((string) ($cfg['low_balance_topup_label'] ?? ''));
+
+        $locales = (array) ($cfg['low_balance_topup_label_locales'] ?? []);
+        if (empty($locales)) return $default;
+
+        $accept = self::resolveAcceptLanguage($acceptLanguage);
+        if (!$accept) return $default;
+
+        $picked = \App\Modules\Common\Support\CookieConsentConfig::pickLocale(array_keys($locales), $accept);
+        if ($picked === null) return $default;
+
+        $val = trim((string) ($locales[$picked] ?? ''));
+        return $val !== '' ? $val : $default;
     }
 
     /**
