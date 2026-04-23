@@ -144,5 +144,10 @@ class DatabaseSeeder extends Seeder
             'verification_token' => Str::random(32), 'cname_target' => $cnameTarget,
         ]);
         $bizDomain->plans()->sync([$businessPlan->id]);
+
+        // Marketing blog content. Idempotent (matches by slug) and runs
+        // last so it can attribute posts to the super-admin created above.
+        // Safe to call again from `db:seed --class=MarketingBlogPostsSeeder`.
+        $this->call(MarketingBlogPostsSeeder::class);
     }
 }
