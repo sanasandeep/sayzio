@@ -1287,11 +1287,11 @@ class SitePagesContent
                 ['Do teammates count against my page or link limits?', 'No — limits are per-workspace, not per-seat. Add seats freely without worrying about caps.'],
             ],
             'Billing & plans' => [
-                ['Does the Free plan ever expire?', 'No — it is free forever, with no trial countdown and no card on file.'],
-                ['Can I cancel any time?', 'Yes — cancel or downgrade from your account settings; changes take effect at the next billing period.'],
-                ['Do you offer refunds?', 'Yes — new paid plan purchases are refundable within 7 days. See our Refunds Policy for the details.'],
-                ['What payment methods do you accept?', 'Major credit and debit cards, Apple Pay, Google Pay and PayPal in supported regions.'],
-                ['Do you charge tax?', 'Yes, where required by law. Tax is shown at checkout and itemised on every invoice.'],
+                ['Does the Free plan ever expire?', 'No — the Free plan is free forever. There is no trial countdown, no automatic conversion to a paid plan, and no card on file required to sign up. You can stay on Free as long as you like; we will only ever ask for payment if you choose to upgrade.'],
+                ['Can I cancel or downgrade any time?', 'Yes — cancel or downgrade from your account billing settings in a couple of clicks. Cancellations take effect at the end of the current billing period, so you keep paid features until then and are not charged again. Downgrades follow the same rule: you keep your current plan until renewal, then drop to the lower tier (your existing links, pages and contacts stay intact even if you fall under the new limits).'],
+                ['Do you offer refunds?', 'Yes — new paid plan purchases are refundable in full within 7 days, no questions asked. Renewals are not automatically refundable, but if a renewal slipped past you and you did not use the service, contact us and we review it case by case. See our Refunds Policy for the full terms, including how prepaid add-ons and downgrades are handled.'],
+                ['What payment methods do you accept?', 'Major credit and debit cards (Visa, Mastercard, American Express, Discover), Apple Pay, Google Pay and PayPal in supported regions. SEPA Direct Debit and iDEAL are available for European customers on annual plans. All payments are processed by our PCI-compliant payment provider — we never see or store your full card number.'],
+                ['Will I be charged tax (VAT, GST, sales tax)?', 'Yes, where required by law. Sales tax, VAT or GST is calculated automatically based on the billing address you provide, shown clearly at checkout before you confirm, and itemised separately on every invoice. If you have a valid VAT or GST id, add it to your billing profile and we will reverse-charge or zero-rate the invoice where the rules allow.'],
                 ['Are invoices available?', 'Yes — every charge generates a downloadable PDF invoice in your account, with company name and VAT/GST id support.'],
                 ['Can I switch from monthly to annual billing?', 'Yes — switch any time from billing settings; we credit the unused portion of your current period.'],
                 ['Do you offer discounts for annual billing?', 'Yes — annual plans typically include a 2-month discount versus paying monthly.'],
@@ -1363,7 +1363,7 @@ class SitePagesContent
             'Biolinks'               => ['What blocks can I add to a biolink?'],
             'QR codes'               => ['Can I change the QR destination after printing?'],
             'Analytics & AI Coach'   => ['How does the AI Performance Coach work?'],
-            'Billing & plans'        => ['Can I cancel any time?'],
+            'Billing & plans'        => ['Can I cancel or downgrade any time?'],
             'Security & privacy'     => ['Do you sell my data?'],
         ];
         $all = self::homepageFaqs();
