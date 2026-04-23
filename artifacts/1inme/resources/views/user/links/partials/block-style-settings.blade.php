@@ -157,46 +157,44 @@
             </div>
             <input type="hidden" name="style[bg_opacity]" value="{{ $st['bg_opacity'] ?? 100 }}">
 
-            {{-- Effect --}}
-            <div x-data="{ effect: '{{ $st['effect'] ?? 'none' }}' }">
-                <label class="{{ $labelClass }}">Effect</label>
+            {{-- Glass preset (simplified). Advanced glass blur/opacity sliders
+                 still appear under "More options" for back-compat. --}}
+            <div>
+                <label class="{{ $labelClass }}">Glassmorphism</label>
                 <div class="grid grid-cols-3 gap-2">
-                    <label class="flex items-center justify-center gap-1.5 p-2 rounded-lg cursor-pointer transition-all text-[10px] font-bold" :style="effect === 'none' ? 'background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.3); color: #8b5cf6;' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);'">
-                        <input type="radio" name="style[effect]" value="none" x-model="effect" class="hidden"> None
-                    </label>
-                    <label class="flex items-center justify-center gap-1.5 p-2 rounded-lg cursor-pointer transition-all text-[10px] font-bold" :style="effect === 'glass' ? 'background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.3); color: #8b5cf6;' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);'">
-                        <input type="radio" name="style[effect]" value="glass" x-model="effect" class="hidden"> <i class="fas fa-gem text-[8px]"></i> Glass
-                    </label>
-                    <label class="flex items-center justify-center gap-1.5 p-2 rounded-lg cursor-pointer transition-all text-[10px] font-bold" :style="effect === 'gradient_border' ? 'background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.3); color: #8b5cf6;' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);'">
-                        <input type="radio" name="style[effect]" value="gradient_border" x-model="effect" class="hidden"> <i class="fas fa-circle-notch text-[8px]"></i> Gradient
-                    </label>
+                    @php $gp = $st['glass_preset'] ?? ''; @endphp
+                    @foreach(['off' => 'Off', 'light' => 'Light', 'heavy' => 'Heavy'] as $gpVal => $gpLabel)
+                        <label class="flex items-center justify-center p-2 rounded-lg cursor-pointer transition-all text-[10px] font-bold"
+                               style="{{ $gp === $gpVal ? 'background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.3); color: #8b5cf6;' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);' }}">
+                            <input type="radio" name="style[glass_preset]" value="{{ $gpVal }}" {{ $gp === $gpVal ? 'checked' : '' }} class="hidden"> {{ $gpLabel }}
+                        </label>
+                    @endforeach
                 </div>
-                <div x-show="effect === 'glass'" x-cloak class="grid grid-cols-2 gap-2 mt-2">
-                    <div>
-                        <label class="{{ $labelClass }}">Blur (px)</label>
-                        <input type="number" name="style[glass_blur]" value="{{ $st['glass_blur'] ?? 20 }}" min="0" max="100" class="{{ $inputClass }}">
-                    </div>
-                    <div>
-                        <label class="{{ $labelClass }}">Glass Opacity (%)</label>
-                        <input type="number" name="style[glass_opacity]" value="{{ $st['glass_opacity'] ?? 15 }}" min="0" max="100" class="{{ $inputClass }}">
-                    </div>
+                <p class="text-[9px] mt-1" style="color: var(--text-dimmed);">Use the gradient border in advanced options if needed.</p>
+            </div>
+
+            {{-- Shadow preset (simplified). Granular shadow_x/y/blur/spread
+                 remain editable under "More options" for back-compat. --}}
+            <div>
+                <label class="{{ $labelClass }}">Shadow</label>
+                <div class="grid grid-cols-4 gap-2">
+                    @php $sp = $st['shadow_preset'] ?? ''; @endphp
+                    @foreach(['none' => 'None', 'soft' => 'Soft', 'medium' => 'Medium', 'strong' => 'Strong'] as $spVal => $spLabel)
+                        <label class="flex items-center justify-center p-2 rounded-lg cursor-pointer transition-all text-[10px] font-bold"
+                               style="{{ $sp === $spVal ? 'background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.3); color: #8b5cf6;' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);' }}">
+                            <input type="radio" name="style[shadow_preset]" value="{{ $spVal }}" {{ $sp === $spVal ? 'checked' : '' }} class="hidden"> {{ $spLabel }}
+                        </label>
+                    @endforeach
                 </div>
             </div>
 
-            {{-- Shadow --}}
-            <div>
-                <label class="{{ $labelClass }}">Shadow</label>
-                <select name="style[shadow_type]" class="{{ $inputClass }}">
-                    @foreach($shadowTypes as $shVal => $shLabel)
-                    <option value="{{ $shVal }}" {{ ($st['shadow_type'] ?? 'none') === $shVal ? 'selected' : '' }}>{{ $shLabel }}</option>
-                    @endforeach
-                </select>
-                <input type="hidden" name="style[shadow_color]" value="{{ $st['shadow_color'] ?? '#000000' }}">
-                <input type="hidden" name="style[shadow_blur]" value="{{ $st['shadow_blur'] ?? 12 }}">
-                <input type="hidden" name="style[shadow_x]" value="{{ $st['shadow_x'] ?? 0 }}">
-                <input type="hidden" name="style[shadow_y]" value="{{ $st['shadow_y'] ?? 4 }}">
-                <input type="hidden" name="style[shadow_spread]" value="{{ $st['shadow_spread'] ?? 0 }}">
-            </div>
+            {{-- Round-trip the underlying values that the presets map onto so
+                 the form always posts a complete style payload. The advanced
+                 panel below exposes friendly inputs that override these. --}}
+            <input type="hidden" name="style[effect]" value="{{ $st['effect'] ?? 'none' }}">
+            <input type="hidden" name="style[shadow_type]" value="{{ $st['shadow_type'] ?? 'none' }}">
+            <input type="hidden" name="style[glass_blur]" value="{{ $st['glass_blur'] ?? 20 }}">
+            <input type="hidden" name="style[glass_opacity]" value="{{ $st['glass_opacity'] ?? 15 }}">
 
             {{-- Border Radius --}}
             <div>

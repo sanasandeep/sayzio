@@ -689,6 +689,7 @@ $catColors = [
                             $catColor = $catColors[$typeInfo['category']] ?? '#8b5cf6';
                             $blockLocked = !auth()->user()->userCanUseBlockType($typeKey);
                         @endphp
+                        @if(!empty($typeInfo['system'])) @continue @endif
                         <div x-show="(galleryCategory === 'all' || galleryCategory === '{{ $typeInfo['category'] }}') && (gallerySearch === '' || '{{ strtolower($typeInfo['label']) }}'.includes(gallerySearch.toLowerCase())) && !(_cardGalleryParentId && '{{ $typeKey }}' === 'card') && '{{ $typeInfo['category'] }}' !== 'verified'"
                              x-cloak>
                             @if($blockLocked)

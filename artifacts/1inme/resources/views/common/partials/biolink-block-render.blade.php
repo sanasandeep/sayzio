@@ -12,14 +12,26 @@
         @endif
     </div>
 
-@elseif($block->type === 'heading')
-    @php $hs = match($s['size'] ?? 'h2') { 'h1' => 'text-2xl md:text-3xl', 'h2' => 'text-xl md:text-2xl', 'h3' => 'text-lg md:text-xl', default => 'text-xl md:text-2xl' }; @endphp
-    <div class="mb-3 text-{{ $s['align'] ?? 'center' }}"><h2 class="{{ $hs }} font-bold">{{ $s['text'] ?? '' }}</h2></div>
-
-@elseif($block->type === 'heading_gradient')
-    @php $hs = match($s['size'] ?? 'h2') { 'h1' => 'text-2xl md:text-3xl', 'h2' => 'text-xl md:text-2xl', 'h3' => 'text-lg md:text-xl', default => 'text-xl md:text-2xl' }; @endphp
+@elseif($block->type === 'heading' || $block->type === 'heading_gradient' || $block->type === 'heading_morph')
+    @php
+        $headingStyle = $s['style'] ?? null;
+        if (!$headingStyle) {
+            $headingStyle = match($block->type) {
+                'heading_gradient' => 'gradient',
+                'heading_morph'    => 'animated',
+                default            => 'plain',
+            };
+        }
+        $hs = match($s['size'] ?? 'h2') { 'h1' => 'text-2xl md:text-3xl', 'h2' => 'text-xl md:text-2xl', 'h3' => 'text-lg md:text-xl', default => 'text-xl md:text-2xl' };
+    @endphp
     <div class="mb-3 text-{{ $s['align'] ?? 'center' }}">
-        <h2 class="{{ $hs }} font-bold bg-clip-text text-transparent" style="background-image: linear-gradient(to right, {{ $s['from_color'] ?? '#7c3aed' }}, {{ $s['to_color'] ?? '#ec4899' }});">{{ $s['text'] ?? '' }}</h2>
+        @if($headingStyle === 'gradient')
+            <h2 class="{{ $hs }} font-bold bg-clip-text text-transparent" style="background-image: linear-gradient(to right, {{ $s['from_color'] ?? '#7c3aed' }}, {{ $s['to_color'] ?? '#ec4899' }});">{{ $s['text'] ?? '' }}</h2>
+        @elseif($headingStyle === 'animated')
+            <h2 class="{{ $hs }} font-bold morph-text">{{ $s['text'] ?? '' }}</h2>
+        @else
+            <h2 class="{{ $hs }} font-bold">{{ $s['text'] ?? '' }}</h2>
+        @endif
     </div>
 
 @elseif($block->type === 'heading_logo')
@@ -29,10 +41,6 @@
         <h2 class="{{ $hs }} font-bold">{{ $s['text'] ?? '' }}</h2>
     </div>
 
-@elseif($block->type === 'heading_morph')
-    @php $hs = match($s['size'] ?? 'h1') { 'h1' => 'text-3xl md:text-4xl', 'h2' => 'text-2xl md:text-3xl', default => 'text-3xl md:text-4xl' }; @endphp
-    <div class="mb-3 text-{{ $s['align'] ?? 'center' }}"><h2 class="{{ $hs }} font-bold morph-text">{{ $s['text'] ?? '' }}</h2></div>
-
 @elseif($block->type === 'paragraph')
     <div class="mb-4 text-{{ $s['align'] ?? 'center' }}"><p class="text-sm leading-relaxed" style="color: {{ $fontColor }}cc">{{ $s['text'] ?? '' }}</p></div>
 
@@ -40,12 +48,32 @@
     <div class="mb-4 prose prose-invert prose-sm max-w-none">{!! strip_tags($s['html'] ?? '', '<p><br><a><strong><em><u><ul><ol><li><h1><h2><h3><h4><h5><h6><span><div><img><blockquote><hr>') !!}</div>
 
 @elseif($block->type === 'link')
-    <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
-       class="bio-btn block w-full px-6 py-3.5 mb-3 text-center font-medium transition-all duration-300 flex items-center justify-center gap-3">
-        @if(!empty($s['thumbnail']))<img src="{{ $s['thumbnail'] }}" class="w-6 h-6 rounded object-cover" alt="">
-        @elseif(!empty($s['icon']))<i class="{{ $s['icon'] }}"></i>@endif
-        <span>{{ $s['text'] ?? 'Link' }}</span>
-    </a>
+    @if(!empty($s['is_featured']))
+        @php $accent = $s['accent_color'] ?? '#f59e0b'; @endphp
+        <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
+           class="block w-full mb-3 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl relative"
+           style="background: linear-gradient(135deg, {{ $accent }} 0%, {{ $accent }}dd 100%); box-shadow: 0 8px 24px {{ $accent }}55;">
+            <div class="absolute top-2 right-2 px-2 py-0.5 text-[10px] font-bold rounded-full bg-white/25 text-white tracking-wide">
+                <i class="fas fa-thumbtack"></i> FEATURED
+            </div>
+            <div class="px-6 py-5 flex items-center gap-4">
+                @if(!empty($s['thumbnail']))<img src="{{ $s['thumbnail'] }}" class="w-12 h-12 rounded-xl object-cover" alt="">
+                @elseif(!empty($s['icon']))<div class="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center"><i class="{{ $s['icon'] }} text-xl text-white"></i></div>@endif
+                <div class="flex-1 min-w-0">
+                    <p class="font-semibold text-white truncate">{{ $s['text'] ?? 'Link' }}</p>
+                    @if(!empty($s['description']))<p class="text-xs text-white/80 mt-0.5 truncate">{{ $s['description'] }}</p>@endif
+                </div>
+                <i class="fas fa-arrow-right text-white/60"></i>
+            </div>
+        </a>
+    @else
+        <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
+           class="bio-btn block w-full px-6 py-3.5 mb-3 text-center font-medium transition-all duration-300 flex items-center justify-center gap-3">
+            @if(!empty($s['thumbnail']))<img src="{{ $s['thumbnail'] }}" class="w-6 h-6 rounded object-cover" alt="">
+            @elseif(!empty($s['icon']))<i class="{{ $s['icon'] }}"></i>@endif
+            <span>{{ $s['text'] ?? 'Link' }}</span>
+        </a>
+    @endif
 
 @elseif($block->type === 'link_big')
     <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
@@ -633,6 +661,207 @@
                 'action' => url('/' . $eventLink->alias . '/rsvp'),
                 'sourceTag' => 'biolink_block:' . $block->id,
             ])
+        @endif
+    </div>
+
+@elseif(in_array($block->type, ['buy_me_coffee', 'patreon', 'ko_fi'], true))
+    @php
+        $tipMeta = match($block->type) {
+            'buy_me_coffee' => ['base' => 'https://www.buymeacoffee.com/', 'icon' => 'fa-coffee',           'bg' => '#FFDD00', 'fg' => '#0D0C22', 'unit' => '☕', 'label' => 'Buy me a coffee'],
+            'patreon'       => ['base' => 'https://www.patreon.com/',      'icon' => 'fa-hand-holding-usd', 'bg' => '#F96854', 'fg' => '#fff',    'unit' => '★', 'label' => 'Become a patron'],
+            'ko_fi'         => ['base' => 'https://ko-fi.com/',            'icon' => 'fa-mug-hot',          'bg' => '#FF5E5B', 'fg' => '#fff',    'unit' => '☕', 'label' => 'Support on Ko-fi'],
+        };
+        $username = ltrim((string)($s['username'] ?? ''), '@/');
+        $tipUrl = $username !== '' ? $tipMeta['base'] . $username : '#';
+        // Inline widget preview: numeric "tip jar" amounts for buy_me_coffee
+        // and ko_fi (each becomes a deep-link); a single tier name preview
+        // chip for patreon. Defaults give a useful experience even when the
+        // creator hasn't customised them yet.
+        $amounts = is_array($s['amounts'] ?? null) ? array_values(array_filter(array_map('intval', $s['amounts']), fn($n) => $n > 0)) : [];
+        if (empty($amounts) && in_array($block->type, ['buy_me_coffee', 'ko_fi'], true)) {
+            $amounts = [1, 3, 5];
+        }
+        $tierName = trim((string)($s['tier_name'] ?? ''));
+    @endphp
+    <div class="mb-3 rounded-2xl overflow-hidden" style="background: {{ $tipMeta['bg'] }}; color: {{ $tipMeta['fg'] }};">
+        <a href="{{ $tipUrl }}" target="_blank" rel="noopener" class="block px-5 py-4 flex items-center gap-3">
+            <i class="fas {{ $tipMeta['icon'] }} text-2xl"></i>
+            <div class="flex-1 min-w-0">
+                <div class="font-semibold truncate">{{ $s['text'] ?? $tipMeta['label'] }}</div>
+                @if($username !== '')
+                    <div class="text-xs opacity-70 truncate">@{{ $username }}</div>
+                @endif
+            </div>
+            <i class="fas fa-arrow-right opacity-60"></i>
+        </a>
+        @if(!empty($s['description']))
+            <div class="px-5 pb-3 text-xs opacity-80">{{ $s['description'] }}</div>
+        @endif
+        @if($block->type === 'patreon' && $tierName !== '')
+            <div class="px-5 pb-4">
+                <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold" style="background: rgba(0,0,0,.2);">
+                    <i class="fas fa-crown"></i> {{ $tierName }} tier
+                </span>
+            </div>
+        @elseif(in_array($block->type, ['buy_me_coffee', 'ko_fi'], true) && $username !== '' && !empty($amounts))
+            <div class="px-5 pb-4 flex flex-wrap gap-2">
+                @foreach(array_slice($amounts, 0, 4) as $amt)
+                    <a href="{{ $tipUrl }}/{{ $block->type === 'ko_fi' ? '?amount=' . $amt : (int)$amt }}"
+                       target="_blank" rel="noopener"
+                       class="px-3 py-1.5 rounded-full text-xs font-semibold transition hover:-translate-y-0.5"
+                       style="background: rgba(0,0,0,.18); color: inherit;">
+                        {{ $tipMeta['unit'] }} ${{ (int)$amt }}
+                    </a>
+                @endforeach
+            </div>
+        @endif
+    </div>
+
+@elseif($block->type === 'latest_youtube')
+    @php
+        app(\App\Modules\User\Services\BiolinkLatestContentService::class)->refreshIfStale($block);
+        $s = $block->settings ?? $s;
+        $vid = $s['video_id'] ?? '';
+    @endphp
+    <div class="mb-4 glass-block rounded-xl overflow-hidden">
+        @if($vid)
+            <div class="relative" style="padding-bottom:56.25%; height:0;">
+                <iframe src="https://www.youtube.com/embed/{{ $vid }}" frameborder="0" allow="accelerometer; clipboard-write; encrypted-media; picture-in-picture" allowfullscreen
+                        class="absolute inset-0 w-full h-full"></iframe>
+            </div>
+            @if(!empty($s['title']))<div class="p-3 text-sm font-medium">{{ $s['title'] }}</div>@endif
+        @elseif(!empty($s['channel']))
+            <a href="https://youtube.com/{{ ltrim($s['channel'], '@/') }}" target="_blank" rel="noopener" class="block p-4 text-center">
+                <i class="fab fa-youtube text-3xl text-red-500 mb-2"></i>
+                <div class="text-sm font-medium">Latest from @{{ ltrim($s['channel'], '@/') }}</div>
+                <div class="text-xs opacity-60 mt-1">Open channel</div>
+            </a>
+        @else
+            <div class="p-4 text-center text-xs text-white/40">Add a YouTube channel handle</div>
+        @endif
+    </div>
+
+@elseif($block->type === 'latest_instagram')
+    @php
+        app(\App\Modules\User\Services\BiolinkLatestContentService::class)->refreshIfStale($block);
+        $s = $block->settings ?? $s;
+        $url = $s['post_url'] ?? '';
+    @endphp
+    <div class="mb-4 glass-block rounded-xl overflow-hidden">
+        @if($url)
+            <a href="{{ $url }}" target="_blank" rel="noopener" class="block">
+                @if(!empty($s['thumbnail']))
+                    <img src="{{ $s['thumbnail'] }}" alt="" class="w-full object-cover" style="aspect-ratio:1/1;">
+                @else
+                    <div class="flex items-center justify-center text-white/40 bg-gradient-to-br from-pink-500/20 to-purple-500/20" style="aspect-ratio:1/1;">
+                        <i class="fab fa-instagram text-5xl"></i>
+                    </div>
+                @endif
+                @if(!empty($s['caption']))<div class="p-3 text-sm line-clamp-2">{{ $s['caption'] }}</div>@endif
+            </a>
+        @elseif(!empty($s['handle']))
+            <a href="https://instagram.com/{{ ltrim($s['handle'], '@/') }}" target="_blank" rel="noopener" class="block p-4 text-center">
+                <i class="fab fa-instagram text-3xl mb-2" style="color:#E1306C"></i>
+                <div class="text-sm font-medium">@{{ ltrim($s['handle'], '@/') }} on Instagram</div>
+            </a>
+        @else
+            <div class="p-4 text-center text-xs text-white/40">Add an Instagram handle</div>
+        @endif
+    </div>
+
+@elseif($block->type === 'featured_pin')
+    <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
+       class="bio-btn block w-full mb-3 transition-all duration-300 relative overflow-hidden"
+       style="background: linear-gradient(135deg, {{ $s['accent_color'] ?? '#f59e0b' }}, {{ $s['accent_color'] ?? '#f59e0b' }}cc); color:#fff;">
+        <div class="absolute top-0 right-3 -translate-y-0 px-2 py-0.5 rounded-b-md text-[10px] font-bold uppercase tracking-wider" style="background: rgba(0,0,0,.35);">
+            <i class="fas fa-thumbtack mr-1"></i>Featured
+        </div>
+        <div class="flex items-center gap-3 px-5 py-4">
+            @if(!empty($s['thumbnail']))
+                <img src="{{ $s['thumbnail'] }}" alt="" class="w-12 h-12 rounded-lg object-cover flex-shrink-0">
+            @elseif(!empty($s['icon']))
+                <i class="fas {{ $s['icon'] }} text-2xl flex-shrink-0"></i>
+            @endif
+            <div class="text-left flex-1 min-w-0">
+                <div class="font-semibold truncate">{{ $s['text'] ?? 'Featured' }}</div>
+                @if(!empty($s['description']))<div class="text-xs opacity-90 truncate">{{ $s['description'] }}</div>@endif
+            </div>
+            <i class="fas fa-arrow-right opacity-70 flex-shrink-0"></i>
+        </div>
+    </a>
+
+@elseif($block->type === 'calendly_embed')
+    @if(!empty($s['url']))
+        @php
+            $u = $s['url'];
+            $params = [];
+            if (!empty($s['hide_event_details'])) $params['hide_event_type_details'] = 1;
+            if (!empty($s['hide_cookie_banner'])) $params['hide_gdpr_banner'] = 1;
+            $sep = str_contains($u, '?') ? '&' : '?';
+            if (!empty($params)) $u .= $sep . http_build_query($params);
+            $h = (int)($s['height'] ?? 700);
+        @endphp
+        <div class="mb-4 glass-block rounded-xl overflow-hidden">
+            <iframe src="{{ $u }}" frameborder="0" class="w-full" style="height: {{ $h }}px;" loading="lazy"></iframe>
+        </div>
+    @else
+        <div class="mb-4 glass-block rounded-xl p-4 text-center text-xs text-white/40">Add your Calendly URL</div>
+    @endif
+
+@elseif($block->type === 'map_location')
+    @php
+        $addr = trim($s['address'] ?? '');
+        $lat = is_numeric($s['lat'] ?? null) ? (float)$s['lat'] : null;
+        $lng = is_numeric($s['lng'] ?? null) ? (float)$s['lng'] : null;
+        $zoom = max(1, min(19, (int)($s['zoom'] ?? 15)));
+        // lat/lng (when both provided) take precedence — they pin the marker
+        // exactly. Otherwise we let the static-map service geocode the
+        // address. No Google API key is required either way.
+        if ($lat !== null && $lng !== null) {
+            $center  = sprintf('%.6f,%.6f', $lat, $lng);
+            $staticMap = "https://staticmap.openstreetmap.de/staticmap.php?center={$center}&zoom={$zoom}&size=600x260&markers={$center},red-pushpin";
+            $mapsUrl   = "https://www.google.com/maps/search/?api=1&query=" . urlencode($center);
+            $dirUrl    = "https://www.google.com/maps/dir/?api=1&destination=" . urlencode($center);
+            $hasLoc = true;
+        } elseif ($addr !== '') {
+            $staticMap = 'https://staticmap.openstreetmap.de/staticmap.php?center=' . urlencode($addr) . "&zoom={$zoom}&size=600x260&markers=" . urlencode($addr) . ',red-pushpin';
+            $mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' . urlencode($addr);
+            $dirUrl  = 'https://www.google.com/maps/dir/?api=1&destination=' . urlencode($addr);
+            $hasLoc = true;
+        } else {
+            $staticMap = $mapsUrl = $dirUrl = '';
+            $hasLoc = false;
+        }
+    @endphp
+    <div class="mb-4 glass-block rounded-xl overflow-hidden">
+        @if($hasLoc)
+            <a href="{{ $mapsUrl }}" target="_blank" rel="noopener" class="block">
+                <img src="{{ $staticMap }}"
+                     alt="Map of {{ $s['label'] ?: ($addr ?: 'location') }}"
+                     class="w-full"
+                     style="height: 220px; object-fit: cover; background: #1f2937;"
+                     loading="lazy"
+                     onerror="this.style.display='none'">
+            </a>
+            <div class="p-3 flex items-center justify-between gap-2">
+                <div class="text-sm font-medium truncate">
+                    <i class="fas fa-map-pin mr-1 text-rose-400"></i>{{ $s['label'] ?: $addr }}
+                </div>
+                <div class="flex gap-2">
+                    <a href="{{ $mapsUrl }}" target="_blank" rel="noopener"
+                       class="text-xs px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 whitespace-nowrap">
+                        <i class="fas fa-map mr-1"></i>Open in Maps
+                    </a>
+                    @if(!empty($s['show_directions']))
+                        <a href="{{ $dirUrl }}" target="_blank" rel="noopener"
+                           class="text-xs px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 whitespace-nowrap">
+                            <i class="fas fa-directions mr-1"></i>Directions
+                        </a>
+                    @endif
+                </div>
+            </div>
+        @else
+            <div class="p-4 text-center text-xs text-white/40">Add an address to show a map</div>
         @endif
     </div>
 

@@ -783,9 +783,19 @@ class BiolinkBlockController extends Controller
 
     public function sanitizeSettings(string $type, array $settings): array
     {
+        // Tip-jar blocks: convert "amounts_csv" form input into a numeric
+        // array, dropping non-positive values and capping at 6 entries.
+        if (in_array($type, ['buy_me_coffee', 'ko_fi'], true) && array_key_exists('amounts_csv', $settings)) {
+            $raw = (string) $settings['amounts_csv'];
+            $parsed = array_values(array_filter(array_map('intval', preg_split('/[,\s]+/', $raw, -1, PREG_SPLIT_NO_EMPTY)), fn ($n) => $n > 0));
+            $settings['amounts'] = array_slice($parsed, 0, 6);
+            unset($settings['amounts_csv']);
+        }
+
         $urlFields = ['url', 'link', 'thumbnail', 'image', 'image_url', 'video_url',
                        'audio_url', 'file_url', 'embed_url', 'logo_url', 'cover',
-                       'website', 'avatar'];
+                       'website', 'avatar', 'post_url', 'buy_url',
+                       'destination_url', 'href'];
         foreach ($urlFields as $field) {
             if (isset($settings[$field]) && $settings[$field] !== '') {
                 $settings[$field] = $this->sanitizeUrl($settings[$field]);
@@ -1053,6 +1063,15 @@ class BiolinkBlockController extends Controller
 
             'map' => ['address' => '', 'zoom' => 14],
             'yandex_maps' => ['address' => '', 'zoom' => 14],
+            'map_location' => ['address' => '', 'lat' => '', 'lng' => '', 'label' => '', 'zoom' => 15, 'show_directions' => true],
+
+            'buy_me_coffee' => ['username' => '', 'text' => 'Buy me a coffee', 'description' => '', 'amounts' => [1, 3, 5]],
+            'patreon' => ['username' => '', 'text' => 'Become a patron', 'description' => '', 'tier_name' => ''],
+            'ko_fi' => ['username' => '', 'text' => 'Support me on Ko-fi', 'description' => '', 'amounts' => [3, 5, 10]],
+            'latest_youtube' => ['channel' => '', 'video_id' => '', 'title' => '', 'thumbnail' => '', 'cached_at' => null],
+            'latest_instagram' => ['handle' => '', 'post_url' => '', 'thumbnail' => '', 'caption' => '', 'cached_at' => null],
+            'featured_pin' => ['text' => 'Featured', 'description' => '', 'url' => '', 'icon' => 'fa-thumbtack', 'thumbnail' => '', 'accent_color' => '#f59e0b'],
+            'calendly_embed' => ['url' => '', 'height' => 700, 'hide_event_details' => false, 'hide_cookie_banner' => true],
 
             'vcard' => ['name' => '', 'email' => '', 'phone' => '', 'company' => '', 'title' => '', 'website' => ''],
             'avatar' => ['url' => '', 'size' => 96, 'rounded' => true],
@@ -1125,6 +1144,8 @@ class BiolinkBlockController extends Controller
             'font_style' => ['normal', 'italic'],
             'border_style' => ['none', 'solid', 'dashed', 'dotted', 'double', 'groove', 'ridge'],
             'shadow_type' => ['none', 'soft', 'hard', 'neon', 'glow', 'neumorphic', 'inset'],
+            'shadow_preset' => ['none', 'soft', 'medium', 'strong'],
+            'glass_preset' => ['off', 'light', 'heavy'],
             'display_mode' => ['card', 'content'],
             'effect' => ['none', 'glass', 'gradient_border'],
         ];

@@ -42,9 +42,11 @@ class BiolinkBlock extends Model
         'link'             => ['label' => 'Link Button',         'icon' => 'fa-link',                       'category' => 'basic'],
         'link_big'         => ['label' => 'Featured Link',       'icon' => 'fa-external-link-square-alt',   'category' => 'basic'],
         'heading'          => ['label' => 'Heading',             'icon' => 'fa-heading',                    'category' => 'basic'],
-        'heading_gradient' => ['label' => 'Gradient Heading',    'icon' => 'fa-font',                       'category' => 'basic'],
         'heading_logo'     => ['label' => 'Logo Heading',        'icon' => 'fa-image',                      'category' => 'basic'],
-        'heading_morph'    => ['label' => 'Animated Heading',    'icon' => 'fa-magic',                      'category' => 'basic'],
+        // Legacy: kept renderable for back-compat but hidden from gallery — both
+        // are now style options on the unified `heading` block (settings.style).
+        'heading_gradient' => ['label' => 'Gradient Heading',    'icon' => 'fa-font',                       'category' => 'basic', 'system' => true],
+        'heading_morph'    => ['label' => 'Animated Heading',    'icon' => 'fa-magic',                      'category' => 'basic', 'system' => true],
         'paragraph'        => ['label' => 'Text',                'icon' => 'fa-paragraph',                  'category' => 'basic'],
         'paragraph_rich'   => ['label' => 'Rich Text',           'icon' => 'fa-align-left',                 'category' => 'basic'],
         'markdown'         => ['label' => 'Markdown',            'icon' => 'fa-file-alt',                   'category' => 'basic'],
@@ -100,6 +102,12 @@ class BiolinkBlock extends Model
         'coupon'           => ['label' => 'Coupon',              'icon' => 'fa-ticket-alt',                 'category' => 'business'],
         'one_time_offer'   => ['label' => 'Limited Offer',       'icon' => 'fa-fire',                       'category' => 'business'],
         'paypal'           => ['label' => 'PayPal',              'icon' => 'fa-credit-card',                'category' => 'business'],
+        'buy_me_coffee'    => ['label' => 'Buy Me a Coffee',     'icon' => 'fa-coffee',                     'category' => 'business'],
+        'patreon'          => ['label' => 'Patreon',             'icon' => 'fa-hand-holding-usd',           'category' => 'business'],
+        'ko_fi'            => ['label' => 'Ko-fi',               'icon' => 'fa-mug-hot',                    'category' => 'business'],
+        // featured_pin is a back-compat alias; the canonical way to mark a
+        // link as featured is now the `is_featured` flag on a regular link.
+        'featured_pin'     => ['label' => 'Featured Pinned Link','icon' => 'fa-thumbtack',                  'category' => 'basic', 'system' => true],
 
         // ── Contact & Lead Capture ────────────────────────────────────
         'email_collector'           => ['label' => 'Email Collector',       'icon' => 'fa-envelope',           'category' => 'contact'],
@@ -117,6 +125,7 @@ class BiolinkBlock extends Model
         'socials_multi'    => ['label' => 'Social Hub',          'icon' => 'fa-users',                      'category' => 'social'],
         'socials_custom'   => ['label' => 'Custom Social Icons', 'icon' => 'fa-paint-brush',                'category' => 'social'],
         'instagram_media'  => ['label' => 'Instagram Post',      'icon' => 'fa-camera-retro',               'category' => 'social'],
+        'latest_instagram' => ['label' => 'Latest Instagram Post','icon' => 'fa-instagram',                 'category' => 'social'],
         'tiktok_video'     => ['label' => 'TikTok Video',        'icon' => 'fa-music',                      'category' => 'social'],
         'tiktok_profile'   => ['label' => 'TikTok Profile',      'icon' => 'fa-user',                       'category' => 'social'],
         'twitter_profile'  => ['label' => 'X / Twitter Profile', 'icon' => 'fa-user-circle',                'category' => 'social'],
@@ -137,6 +146,7 @@ class BiolinkBlock extends Model
         // ── Video Platforms ───────────────────────────────────────────
         'youtube'          => ['label' => 'YouTube',             'icon' => 'fa-play-circle',                'category' => 'video_platforms'],
         'youtube_feed'     => ['label' => 'YouTube Feed',        'icon' => 'fa-th-list',                    'category' => 'video_platforms'],
+        'latest_youtube'   => ['label' => 'Latest YouTube Video','icon' => 'fa-youtube',                    'category' => 'video_platforms'],
         'vimeo'            => ['label' => 'Vimeo',               'icon' => 'fa-play',                       'category' => 'video_platforms'],
         'twitch'           => ['label' => 'Twitch',              'icon' => 'fa-gamepad',                    'category' => 'video_platforms'],
         'kick'             => ['label' => 'Kick',                'icon' => 'fa-bolt',                       'category' => 'video_platforms'],
@@ -162,6 +172,8 @@ class BiolinkBlock extends Model
         'form'             => ['label' => '1INME Form',          'icon' => 'fa-clipboard-list',             'category' => 'integrations'],
         'typeform'         => ['label' => 'Typeform',            'icon' => 'fa-clipboard-list',             'category' => 'integrations'],
         'calendly'         => ['label' => 'Calendly',            'icon' => 'fa-calendar-check',             'category' => 'integrations'],
+        'calendly_embed'   => ['label' => 'Booking (Inline)',    'icon' => 'fa-calendar-alt',               'category' => 'integrations'],
+        'map_location'    => ['label' => 'Map / Location',       'icon' => 'fa-map-pin',                    'category' => 'maps'],
         'discord_server'   => ['label' => 'Discord Server',      'icon' => 'fa-hashtag',                    'category' => 'integrations'],
         'facebook_post'    => ['label' => 'Facebook Post',       'icon' => 'fa-thumbs-up',                  'category' => 'integrations'],
         'reddit_post'      => ['label' => 'Reddit Post',         'icon' => 'fa-comment-alt',                'category' => 'integrations'],
@@ -202,6 +214,12 @@ class BiolinkBlock extends Model
         'effect' => 'none',
         'glass_blur' => 20,
         'glass_opacity' => 15,
+        // Simplified presets that map to the granular fields below at render
+        // time. UI now exposes only these — raw shadow_x/y/blur/spread and
+        // glass_blur/glass_opacity remain writable for back-compat with
+        // saved blocks (and the legacy "More options" panel).
+        'shadow_preset' => '',  // '', 'none', 'soft', 'medium', 'strong'
+        'glass_preset' => '',   // '', 'off', 'light', 'heavy'
         'padding' => '',
         'padding_top' => '',
         'padding_bottom' => '',
@@ -344,6 +362,56 @@ class BiolinkBlock extends Model
             $style = array_merge($style, array_filter($blockStyle, fn($v) => $v !== '' && $v !== null));
         }
         unset($style['apply_to_all']);
+        $style = self::expandStylePresets($style);
+        return $style;
+    }
+
+    /**
+     * Translate the simplified shadow_preset / glass_preset values into the
+     * granular shadow_* and glass_* fields the renderer already consumes.
+     *
+     * Picking a preset is an explicit user choice, so it always wins over
+     * STYLE_DEFAULTS / global theme values. Users who want fully custom
+     * shadows simply leave the preset blank ("Custom") and edit the raw
+     * fields under "More options" — those raw fields are also preserved
+     * intact when a preset is later cleared.
+     */
+    public static function expandStylePresets(array $style): array
+    {
+        $shadowPreset = $style['shadow_preset'] ?? '';
+        if ($shadowPreset !== '') {
+            $map = [
+                'none'   => ['shadow_type' => 'none', 'shadow_x' => 0, 'shadow_y' => 0, 'shadow_blur' => 0, 'shadow_spread' => 0, 'shadow_color' => '#00000000'],
+                'soft'   => ['shadow_type' => 'soft', 'shadow_x' => 0, 'shadow_y' => 4,  'shadow_blur' => 12, 'shadow_spread' => 0, 'shadow_color' => '#0000001f'],
+                'medium' => ['shadow_type' => 'soft', 'shadow_x' => 0, 'shadow_y' => 6,  'shadow_blur' => 20, 'shadow_spread' => 0, 'shadow_color' => '#00000033'],
+                'strong' => ['shadow_type' => 'hard', 'shadow_x' => 0, 'shadow_y' => 10, 'shadow_blur' => 32, 'shadow_spread' => 0, 'shadow_color' => '#00000055'],
+            ];
+            if (isset($map[$shadowPreset])) {
+                // Presets are authoritative — overwrite even when defaults or
+                // theme already populated the granular fields.
+                foreach ($map[$shadowPreset] as $k => $v) {
+                    $style[$k] = $v;
+                }
+            }
+        }
+
+        $glassPreset = $style['glass_preset'] ?? '';
+        if ($glassPreset !== '') {
+            $map = [
+                'off'   => ['effect' => 'none', 'glass_blur' => 0,  'glass_opacity' => 0],
+                'light' => ['effect' => 'glass', 'glass_blur' => 12, 'glass_opacity' => 8],
+                'heavy' => ['effect' => 'glass', 'glass_blur' => 28, 'glass_opacity' => 18],
+            ];
+            if (isset($map[$glassPreset])) {
+                foreach ($map[$glassPreset] as $k => $v) {
+                    // Don't clobber explicit gradient_border — that's a
+                    // different visual treatment, not a glass choice.
+                    if ($k === 'effect' && ($style['effect'] ?? '') === 'gradient_border') continue;
+                    $style[$k] = $v;
+                }
+            }
+        }
+
         return $style;
     }
 

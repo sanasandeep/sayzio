@@ -8,11 +8,20 @@ $labelClass = 'block text-xs mb-1';
 <div class="block-settings-form">
 
 @if($block->type === 'link')
-<div class="space-y-3">
+<div class="space-y-3" x-data="{ featured: {{ !empty($s['is_featured']) ? 'true' : 'false' }} }">
     <div><label class="{{ $labelClass }}">Link Text</label><input type="text" name="settings[text]" value="{{ $s['text'] ?? '' }}" class="{{ $inputClass }}"></div>
     <div><label class="{{ $labelClass }}">URL</label><input type="url" name="settings[url]" value="{{ $s['url'] ?? '' }}" placeholder="https://" class="{{ $inputClass }}"></div>
     @include('user.links.partials.icon-picker', ['fieldName' => 'settings[icon]', 'currentValue' => $s['icon'] ?? '', 'labelText' => 'Icon', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
     @include('user.links.partials.file-upload-field', ['fieldName' => 'settings[thumbnail]', 'currentValue' => $s['thumbnail'] ?? '', 'acceptTypes' => 'image', 'labelText' => 'Thumbnail', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
+    <label class="flex items-center gap-2 text-xs text-white/60">
+        <input type="hidden" name="settings[is_featured]" value="0">
+        <input type="checkbox" name="settings[is_featured]" value="1" x-model="featured" class="rounded text-violet-500" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
+        <i class="fas fa-thumbtack text-amber-400"></i> Mark as featured (pinned style)
+    </label>
+    <div x-show="featured" x-cloak class="space-y-2 pl-2 border-l-2 border-amber-400/30">
+        <div><label class="{{ $labelClass }}">Featured Description (optional)</label><input type="text" name="settings[description]" value="{{ $s['description'] ?? '' }}" class="{{ $inputClass }}"></div>
+        <div><label class="{{ $labelClass }}">Accent Color</label><input type="color" name="settings[accent_color]" value="{{ $s['accent_color'] ?? '#f59e0b' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
+    </div>
 </div>
 
 @elseif($block->type === 'link_big')
@@ -25,19 +34,21 @@ $labelClass = 'block text-xs mb-1';
     <div><label class="{{ $labelClass }}">Background Color</label><input type="color" name="settings[bg_color]" value="{{ $s['bg_color'] ?? '#7c3aed' }}" class="w-full h-10 rounded-xl cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
 </div>
 
-@elseif($block->type === 'heading')
-<div class="space-y-3">
+@elseif(in_array($block->type, ['heading', 'heading_gradient', 'heading_morph'], true))
+@php
+    $headingStyle = $s['style'] ?? match($block->type) { 'heading_gradient' => 'gradient', 'heading_morph' => 'animated', default => 'plain' };
+@endphp
+<div class="space-y-3" x-data="{ headingStyle: @js($headingStyle) }">
     <div><label class="{{ $labelClass }}">Text</label><input type="text" name="settings[text]" value="{{ $s['text'] ?? '' }}" class="{{ $inputClass }}"></div>
-    <div class="grid grid-cols-2 gap-3">
-        <div><label class="{{ $labelClass }}">Size</label><select name="settings[size]" class="{{ $selectClass }}"><option value="h1" {{ ($s['size'] ?? '') === 'h1' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">H1</option><option value="h2" {{ ($s['size'] ?? '') === 'h2' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">H2</option><option value="h3" {{ ($s['size'] ?? '') === 'h3' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">H3</option></select></div>
-        <div><label class="{{ $labelClass }}">Align</label><select name="settings[align]" class="{{ $selectClass }}"><option value="left" {{ ($s['align'] ?? '') === 'left' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Left</option><option value="center" {{ ($s['align'] ?? '') === 'center' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Center</option><option value="right" {{ ($s['align'] ?? '') === 'right' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Right</option></select></div>
+    <div>
+        <label class="{{ $labelClass }}">Style</label>
+        <select name="settings[style]" x-model="headingStyle" class="{{ $selectClass }}">
+            <option value="plain" style="background: var(--bg-body); color: var(--text-primary);">Plain</option>
+            <option value="gradient" style="background: var(--bg-body); color: var(--text-primary);">Gradient</option>
+            <option value="animated" style="background: var(--bg-body); color: var(--text-primary);">Animated</option>
+        </select>
     </div>
-</div>
-
-@elseif($block->type === 'heading_gradient')
-<div class="space-y-3">
-    <div><label class="{{ $labelClass }}">Text</label><input type="text" name="settings[text]" value="{{ $s['text'] ?? '' }}" class="{{ $inputClass }}"></div>
-    <div class="grid grid-cols-2 gap-3">
+    <div class="grid grid-cols-2 gap-3" x-show="headingStyle === 'gradient'" x-cloak>
         <div><label class="{{ $labelClass }}">From Color</label><input type="color" name="settings[from_color]" value="{{ $s['from_color'] ?? '#7c3aed' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
         <div><label class="{{ $labelClass }}">To Color</label><input type="color" name="settings[to_color]" value="{{ $s['to_color'] ?? '#ec4899' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
     </div>
@@ -53,15 +64,6 @@ $labelClass = 'block text-xs mb-1';
     @include('user.links.partials.file-upload-field', ['fieldName' => 'settings[logo_url]', 'currentValue' => $s['logo_url'] ?? '', 'acceptTypes' => 'image', 'labelText' => 'Logo', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
     <div class="grid grid-cols-2 gap-3">
         <div><label class="{{ $labelClass }}">Size</label><select name="settings[size]" class="{{ $selectClass }}"><option value="h1" {{ ($s['size'] ?? '') === 'h1' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">H1</option><option value="h2" {{ ($s['size'] ?? '') === 'h2' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">H2</option><option value="h3" {{ ($s['size'] ?? '') === 'h3' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">H3</option></select></div>
-        <div><label class="{{ $labelClass }}">Align</label><select name="settings[align]" class="{{ $selectClass }}"><option value="center" {{ ($s['align'] ?? '') === 'center' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Center</option><option value="left" {{ ($s['align'] ?? '') === 'left' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Left</option></select></div>
-    </div>
-</div>
-
-@elseif($block->type === 'heading_morph')
-<div class="space-y-3">
-    <div><label class="{{ $labelClass }}">Text</label><input type="text" name="settings[text]" value="{{ $s['text'] ?? '' }}" class="{{ $inputClass }}"></div>
-    <div class="grid grid-cols-2 gap-3">
-        <div><label class="{{ $labelClass }}">Size</label><select name="settings[size]" class="{{ $selectClass }}"><option value="h1" {{ ($s['size'] ?? '') === 'h1' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">H1</option><option value="h2" {{ ($s['size'] ?? '') === 'h2' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">H2</option></select></div>
         <div><label class="{{ $labelClass }}">Align</label><select name="settings[align]" class="{{ $selectClass }}"><option value="center" {{ ($s['align'] ?? '') === 'center' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Center</option><option value="left" {{ ($s['align'] ?? '') === 'left' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Left</option></select></div>
     </div>
 </div>
@@ -831,6 +833,79 @@ function imageListUploader_{{ $gridImgId }}() {
         </select>
         <p class="text-xs text-white/40 mt-2"><i class="fas fa-info-circle mr-1"></i> The notification will appear as a floating widget on the biolink page.</p>
     @endif
+
+@elseif(in_array($block->type, ['buy_me_coffee', 'patreon', 'ko_fi'], true))
+@php
+    $tipLabel = match($block->type) { 'buy_me_coffee' => 'Buy Me a Coffee username', 'patreon' => 'Patreon username', default => 'Ko-fi username' };
+@endphp
+<div class="space-y-3">
+    <div><label class="{{ $labelClass }}">{{ $tipLabel }}</label><input type="text" name="settings[username]" value="{{ $s['username'] ?? '' }}" placeholder="yourname" class="{{ $inputClass }}"></div>
+    <div><label class="{{ $labelClass }}">Button Text</label><input type="text" name="settings[text]" value="{{ $s['text'] ?? 'Support me' }}" class="{{ $inputClass }}"></div>
+    <div><label class="{{ $labelClass }}">Description (optional)</label><input type="text" name="settings[description]" value="{{ $s['description'] ?? '' }}" class="{{ $inputClass }}"></div>
+    @if($block->type === 'patreon')
+        <div>
+            <label class="{{ $labelClass }}">Featured tier name (optional)</label>
+            <input type="text" name="settings[tier_name]" value="{{ $s['tier_name'] ?? '' }}" placeholder="e.g. Gold supporter" class="{{ $inputClass }}">
+            <p class="text-[11px] text-white/40 mt-1">Shown as a chip under the Patreon button.</p>
+        </div>
+    @else
+        @php $amts = is_array($s['amounts'] ?? null) ? implode(',', array_map('intval', $s['amounts'])) : ''; @endphp
+        <div>
+            <label class="{{ $labelClass }}">Quick tip amounts (USD, comma-separated)</label>
+            <input type="text" name="settings[amounts_csv]" value="{{ $amts }}" placeholder="1, 3, 5" class="{{ $inputClass }}">
+            <p class="text-[11px] text-white/40 mt-1">Renders inline tip-jar buttons. Leave blank for sensible defaults.</p>
+        </div>
+    @endif
+</div>
+
+@elseif($block->type === 'latest_youtube')
+<div class="space-y-3">
+    <div><label class="{{ $labelClass }}">YouTube channel handle</label><input type="text" name="settings[channel]" value="{{ $s['channel'] ?? '' }}" placeholder="@yourchannel" class="{{ $inputClass }}"></div>
+    <div><label class="{{ $labelClass }}">Pinned video ID (optional)</label><input type="text" name="settings[video_id]" value="{{ $s['video_id'] ?? '' }}" placeholder="dQw4w9WgXcQ" class="{{ $inputClass }}"></div>
+    <div><label class="{{ $labelClass }}">Override title (optional)</label><input type="text" name="settings[title]" value="{{ $s['title'] ?? '' }}" class="{{ $inputClass }}"></div>
+    <p class="text-xs text-white/40">The latest video is auto-fetched from the channel's public RSS feed and refreshed every few hours — no API key needed. Pin a specific video ID to override.</p>
+</div>
+
+@elseif($block->type === 'latest_instagram')
+<div class="space-y-3">
+    <div><label class="{{ $labelClass }}">Instagram handle</label><input type="text" name="settings[handle]" value="{{ $s['handle'] ?? '' }}" placeholder="@yourhandle" class="{{ $inputClass }}"></div>
+    <div><label class="{{ $labelClass }}">Pinned post URL (optional)</label><input type="url" name="settings[post_url]" value="{{ $s['post_url'] ?? '' }}" placeholder="https://instagram.com/p/..." class="{{ $inputClass }}"></div>
+    @include('user.links.partials.file-upload-field', ['fieldName' => 'settings[thumbnail]', 'currentValue' => $s['thumbnail'] ?? '', 'acceptTypes' => 'image', 'labelText' => 'Thumbnail', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
+    <div><label class="{{ $labelClass }}">Caption (optional)</label><input type="text" name="settings[caption]" value="{{ $s['caption'] ?? '' }}" class="{{ $inputClass }}"></div>
+</div>
+
+@elseif($block->type === 'featured_pin')
+<div class="space-y-3">
+    <div><label class="{{ $labelClass }}">Title</label><input type="text" name="settings[text]" value="{{ $s['text'] ?? 'Featured' }}" class="{{ $inputClass }}"></div>
+    <div><label class="{{ $labelClass }}">Description</label><input type="text" name="settings[description]" value="{{ $s['description'] ?? '' }}" class="{{ $inputClass }}"></div>
+    <div><label class="{{ $labelClass }}">URL</label><input type="url" name="settings[url]" value="{{ $s['url'] ?? '' }}" class="{{ $inputClass }}"></div>
+    @include('user.links.partials.file-upload-field', ['fieldName' => 'settings[thumbnail]', 'currentValue' => $s['thumbnail'] ?? '', 'acceptTypes' => 'image', 'labelText' => 'Thumbnail (optional)', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
+    <div class="grid grid-cols-2 gap-3">
+        @include('user.links.partials.icon-picker', ['fieldName' => 'settings[icon]', 'currentValue' => $s['icon'] ?? 'fa-thumbtack', 'labelText' => 'Icon', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
+        <div><label class="{{ $labelClass }}">Accent Color</label><input type="color" name="settings[accent_color]" value="{{ $s['accent_color'] ?? '#f59e0b' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
+    </div>
+</div>
+
+@elseif($block->type === 'calendly_embed')
+<div class="space-y-3">
+    <div><label class="{{ $labelClass }}">Calendly URL</label><input type="url" name="settings[url]" value="{{ $s['url'] ?? '' }}" placeholder="https://calendly.com/you/30min" class="{{ $inputClass }}"></div>
+    <div><label class="{{ $labelClass }}">Embed Height (px)</label><input type="number" name="settings[height]" value="{{ $s['height'] ?? 700 }}" min="400" max="1400" class="{{ $inputClass }}"></div>
+    <label class="flex items-center gap-2 text-xs text-white/60"><input type="hidden" name="settings[hide_event_details]" value="0"><input type="checkbox" name="settings[hide_event_details]" value="1" {{ !empty($s['hide_event_details']) ? 'checked' : '' }} class="rounded text-violet-500">Hide event details</label>
+    <label class="flex items-center gap-2 text-xs text-white/60"><input type="hidden" name="settings[hide_cookie_banner]" value="0"><input type="checkbox" name="settings[hide_cookie_banner]" value="1" {{ ($s['hide_cookie_banner'] ?? true) ? 'checked' : '' }} class="rounded text-violet-500">Hide cookie banner</label>
+</div>
+
+@elseif($block->type === 'map_location')
+<div class="space-y-3">
+    <div><label class="{{ $labelClass }}">Address</label><input type="text" name="settings[address]" value="{{ $s['address'] ?? '' }}" placeholder="123 Main St, City" class="{{ $inputClass }}"></div>
+    <div class="grid grid-cols-2 gap-2">
+        <div><label class="{{ $labelClass }}">Latitude (optional)</label><input type="text" name="settings[lat]" value="{{ $s['lat'] ?? '' }}" placeholder="37.7749" class="{{ $inputClass }}"></div>
+        <div><label class="{{ $labelClass }}">Longitude (optional)</label><input type="text" name="settings[lng]" value="{{ $s['lng'] ?? '' }}" placeholder="-122.4194" class="{{ $inputClass }}"></div>
+    </div>
+    <p class="text-[11px] text-white/40 -mt-1">If both lat/lng are set they take precedence over the address (useful for pin-precise pinning).</p>
+    <div><label class="{{ $labelClass }}">Display Label (optional)</label><input type="text" name="settings[label]" value="{{ $s['label'] ?? '' }}" class="{{ $inputClass }}"></div>
+    <div><label class="{{ $labelClass }}">Zoom</label><input type="number" name="settings[zoom]" value="{{ $s['zoom'] ?? 15 }}" min="1" max="20" class="{{ $inputClass }}"></div>
+    <label class="flex items-center gap-2 text-xs text-white/60"><input type="hidden" name="settings[show_directions]" value="0"><input type="checkbox" name="settings[show_directions]" value="1" {{ ($s['show_directions'] ?? true) ? 'checked' : '' }} class="rounded text-violet-500">Show "Directions" button</label>
+</div>
 
 @else
 <p class="text-xs text-white/20">Configure this block's settings below.</p>
