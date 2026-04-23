@@ -22,7 +22,8 @@
      data-message-url="{{ url('/assistant/message') }}"
      data-stream-url="{{ url('/assistant/stream') }}"
      data-choice-url="{{ url('/assistant/choice') }}"
-     data-handoff-url="{{ url('/assistant/handoff') }}">
+     data-handoff-url="{{ url('/assistant/handoff') }}"
+     data-low-balance-click-url="{{ url('/assistant/low-balance-click') }}">
 </div>
 <style>
 #sa-launcher{position:fixed;bottom:20px;width:56px;height:56px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;box-shadow:0 12px 30px rgba(0,0,0,.35);z-index:99999;border:0;transition:transform .2s}
@@ -247,6 +248,22 @@
         target: '_self',
         rel: 'noopener'
       }, lb.topup_label || 'Top up');
+      cta.addEventListener('click', function(){
+        // Fire-and-forget tracking beacon. `keepalive:true` lets the
+        // request complete after the page starts navigating away so
+        // we don't block the click or lose the event on fast nav.
+        try {
+          fetch(ds.lowBalanceClickUrl, {
+            method:'POST', credentials:'same-origin', keepalive:true,
+            headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrf,'Accept':'application/json'},
+            body: JSON.stringify({
+              visitor_token: token || '',
+              surface: SURFACE || undefined,
+              target_url: lb.topup_url
+            })
+          });
+        } catch(e) {}
+      });
       lowBalance.appendChild(cta);
     }
     lowBalance.classList.add('sa-show');

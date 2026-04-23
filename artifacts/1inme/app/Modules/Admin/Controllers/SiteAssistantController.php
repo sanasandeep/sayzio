@@ -726,6 +726,21 @@ class SiteAssistantController extends Controller
                 ]);
         }
 
+        // Low-balance CTA click-through. Counts clicks on the
+        // "Top up / See plans" hint shown above the chat input,
+        // broken down by surface so we can see whether the hint
+        // works better for marketing visitors or signed-in users.
+        $lbClickRows = \App\Modules\Common\Models\SiteAssistantLowBalanceClick::query()
+            ->where('occurred_at', '>=', $since)
+            ->selectRaw('surface, COUNT(*) AS c')
+            ->groupBy('surface')
+            ->pluck('c', 'surface');
+        $lbClicksBySurface = [
+            'marketing' => (int) ($lbClickRows['marketing'] ?? 0),
+            'app'       => (int) ($lbClickRows['app'] ?? 0),
+        ];
+        $lbClicksTotal = $lbClicksBySurface['marketing'] + $lbClicksBySurface['app'];
+
         return view('admin.site-assistant.analytics', [
             'days'              => $days,
             'messagesPerDay'    => $messagesPerDay,
@@ -740,6 +755,8 @@ class SiteAssistantController extends Controller
             'cutoffRetryRate'   => $cutoffRetryRate,
             'cutoffByModel'     => $cutoffByModel,
             'cutoffByRoute'     => $cutoffByRoute,
+            'lbClicksTotal'     => $lbClicksTotal,
+            'lbClicksBySurface' => $lbClicksBySurface,
         ]);
     }
 

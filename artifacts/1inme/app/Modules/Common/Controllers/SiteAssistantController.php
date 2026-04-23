@@ -3,6 +3,8 @@
 namespace App\Modules\Common\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Common\Models\SiteAssistantConversation;
+use App\Modules\Common\Models\SiteAssistantLowBalanceClick;
 use App\Services\AI\SiteAssistantRuntime;
 use App\Services\AI\SiteAssistantSettings;
 use Illuminate\Http\Request;
@@ -143,6 +145,52 @@ class SiteAssistantController extends Controller
             $data['visitor_token'], $request->user(), $surface,
             (array) ($data['page'] ?? []), $label, $data['choice'], $this->visitorMeta($request)
         ));
+    }
+
+    /**
+     * Records a click on the low-balance CTA shown above the chat input
+     * (Top up / See plans). Fires from the widget as a keepalive POST so
+     * the navigation isn't blocked. We only record the surface, the
+     * target URL, and the conversation/user the click happened in — no
+     * payload from the page itself, so this stays cheap and safe.
+     */
+    public function lowBalanceClick(Request $request)
+    {
+        $data = $request->validate([
+            'visitor_token' => 'nullable|string|max:64',
+            'surface'       => 'nullable|in:marketing,app',
+            'target_url'    => 'required|string|max:500',
+        ]);
+        $surface = $this->detectSurface($request);
+        $user    = $request->user();
+
+        $conversationId = null;
+        $token = trim((string) ($data['visitor_token'] ?? ''));
+        if ($token !== '' && preg_match('/^[A-Za-z0-9_\-]{8,64}$/', $token)) {
+            $conv = SiteAssistantConversation::query()
+                ->where('visitor_token', $token)
+                ->orderByDesc('id')
+                ->first();
+            if ($conv) {
+                // Defence in depth: only attribute the click to a
+                // conversation if it actually belongs to the same
+                // visitor (signed-in user, or anonymous with no user).
+                if (!$user || (int) $conv->user_id === (int) $user->id || $conv->user_id === null) {
+                    $conversationId = (int) $conv->id;
+                }
+            }
+        }
+
+        SiteAssistantLowBalanceClick::create([
+            'conversation_id' => $conversationId,
+            'user_id'         => $user?->id,
+            'surface'         => $surface,
+            'target_url'      => mb_substr((string) $data['target_url'], 0, 500),
+            'ip_address'      => $request->ip(),
+            'occurred_at'     => now(),
+        ]);
+
+        return response()->json(['ok' => true]);
     }
 
     public function handoff(Request $request)

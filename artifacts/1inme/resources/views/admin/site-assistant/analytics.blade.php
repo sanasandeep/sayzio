@@ -54,6 +54,14 @@
                 {{ number_format($cutoffRetried) }} retried / {{ number_format($cutoffTotal) }} cut-offs
             </div>
         </div>
+        <div class="glass rounded-2xl border border-white/10 p-5 text-center"
+             title="Clicks on the low-balance CTA shown above the chat input (Top up / See plans). Use this to tell whether the hint actually moves visitors toward a top-up or pricing page.">
+            <div class="text-2xl font-semibold text-white">{{ number_format($lbClicksTotal) }}</div>
+            <div class="text-xs text-white/50 mt-1">Low-balance CTA clicks</div>
+            <div class="text-[10px] text-white/30 mt-0.5">
+                {{ number_format($lbClicksBySurface['app']) }} app · {{ number_format($lbClicksBySurface['marketing']) }} marketing
+            </div>
+        </div>
     </div>
 
     <div class="glass rounded-2xl border border-white/10 p-6">
