@@ -44,6 +44,10 @@
 .sa-msg.user{align-self:flex-end;background:var(--sa-accent,#7c3aed);color:#fff;border-bottom-right-radius:4px}
 .sa-msg.assistant{align-self:flex-start;background:rgba(255,255,255,.06);color:#e2e8f0;border-bottom-left-radius:4px}
 .sa-msg.error{align-self:center;background:rgba(239,68,68,.12);color:#fca5a5;font-size:12px;border-radius:8px}
+.sa-cutoff{align-self:flex-start;display:flex;align-items:center;gap:8px;font-size:11.5px;color:#fbbf24;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);padding:6px 10px;border-radius:8px;margin-top:-2px;max-width:85%}
+.sa-cutoff button{background:rgba(251,191,36,.18);border:1px solid rgba(251,191,36,.35);color:#fde68a;font-size:11.5px;padding:3px 10px;border-radius:999px;cursor:pointer;font-family:inherit}
+.sa-cutoff button:hover{background:rgba(251,191,36,.32)}
+.sa-cutoff button:disabled{opacity:.5;cursor:not-allowed}
 .sa-blocks{display:flex;flex-direction:column;gap:8px;margin-top:8px}
 .sa-buttons{display:flex;flex-wrap:wrap;gap:6px}
 .sa-btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);color:#fff;padding:6px 12px;border-radius:999px;font-size:12px;cursor:pointer}
@@ -323,6 +327,15 @@
     streamMessage(text).finally(function(){ busy=false; sendBtn.disabled=false; });
   }
 
+  // Retry a previous prompt after a mid-stream cutoff. Reuses the same
+  // text without re-rendering the visitor's message bubble (it's still
+  // visible above the cut-off reply).
+  function retryPrompt(text){
+    if(busy || !text) return;
+    busy=true; sendBtn.disabled=true;
+    streamMessage(text).finally(function(){ busy=false; sendBtn.disabled=false; });
+  }
+
   // Streaming via fetch + ReadableStream so the assistant reply paints
   // word-by-word. We pre-render an empty assistant bubble and append
   // each token as it arrives. Final `done` event swaps the bubble's
@@ -394,11 +407,31 @@
               if(parsed.assistant_message) renderMessage(parsed.assistant_message);
               if(parsed.handed_off) disableInput(true,'Our team will reply by email.');
             } else if(event==='error'){
+              // Error is a terminal SSE event — mark the stream as
+              // resolved so the r.done branch below does not also kick
+              // off the non-streaming fallback.
               doneReceived=true;
-              bubble.remove();
               if(parsed.visitor_token){ token=parsed.visitor_token; localStorage.setItem(TOKEN_KEY, token); }
-              var d=el('div',{class:'sa-msg error'}, parsed.error||'Sorry, something went wrong.');
-              body.appendChild(d); scrollBottom();
+              // If the server already streamed some tokens before failing,
+              // keep the partial bubble in view and offer a retry. Otherwise
+              // fall back to the centered error toast as before.
+              if(parsed.partial && streamed){
+                var note=el('div',{class:'sa-cutoff'});
+                note.appendChild(el('span',{},'⚠ This reply was cut off — '));
+                var retryBtn=el('button',{type:'button'},'Retry');
+                retryBtn.onclick=function(){
+                  if(busy) return;
+                  retryBtn.disabled=true;
+                  note.remove(); bubble.remove();
+                  retryPrompt(text);
+                };
+                note.appendChild(retryBtn);
+                body.appendChild(note); scrollBottom();
+              } else {
+                bubble.remove();
+                var d=el('div',{class:'sa-msg error'}, parsed.error||'Sorry, something went wrong.');
+                body.appendChild(d); scrollBottom();
+              }
             } else if(event==='user'){
               // user_message acks — already rendered locally.
             }

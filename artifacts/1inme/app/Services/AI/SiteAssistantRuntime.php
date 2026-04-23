@@ -525,11 +525,17 @@ class SiteAssistantRuntime
             });
         } catch (InsufficientAiCreditsException $e) {
             $this->persistFailedStreamMessage($conv, $partial, 'The assistant is temporarily out of capacity.');
-            $emit('error', ['error' => 'The assistant is temporarily out of capacity.']); return;
+            $emit('error', [
+                'error'   => 'The assistant is temporarily out of capacity.',
+                'partial' => $partial !== '',
+            ]); return;
         } catch (\Throwable $e) {
             report($e);
             $this->persistFailedStreamMessage($conv, $partial, 'The assistant could not respond right now.');
-            $emit('error', ['error' => 'The assistant could not respond right now.']); return;
+            $emit('error', [
+                'error'   => 'The assistant could not respond right now.',
+                'partial' => $partial !== '',
+            ]); return;
         }
 
         $answer = (string) $result['content'];
