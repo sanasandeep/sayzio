@@ -2644,7 +2644,11 @@ document.addEventListener('DOMContentLoaded', function () {
     @if(!$browserStats->isEmpty())doughnut('browserChart', @json($browserStats->pluck('browser')), @json($browserStats->pluck('count')));@endif
     @if(!$osStats->isEmpty())doughnut('osChart', @json($osStats->pluck('os')), @json($osStats->pluck('count')));@endif
     @if(!$deviceStats->isEmpty())doughnut('deviceChart', @json($deviceStats->pluck('device_type')), @json($deviceStats->pluck('count')));@endif
-    @if(!$sourceStats->isEmpty())doughnut('sourceChart', @json($sourceStats->pluck('source')->map(fn($s) => ['mobile_app' => 'Mobile app', 'web' => 'Web', 'unknown' => 'Unknown'][$s] ?? ucfirst(str_replace('_', ' ', $s)))), @json($sourceStats->pluck('count')));@endif
+    @php
+        $__sourceLabelMap = ['mobile_app' => 'Mobile app', 'web' => 'Web', 'unknown' => 'Unknown'];
+        $__sourceChartLabels = $sourceStats->pluck('source')->map(fn($s) => $__sourceLabelMap[$s] ?? ucfirst(str_replace('_', ' ', $s)))->values();
+    @endphp
+    @if(!$sourceStats->isEmpty())doughnut('sourceChart', @json($__sourceChartLabels), @json($sourceStats->pluck('count')));@endif
 });
 </script>
 

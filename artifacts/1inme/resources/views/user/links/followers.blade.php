@@ -169,6 +169,8 @@
     $retFollowers = $retentionSeries['followers'];
     $retNonFollowers = $retentionSeries['nonfollowers'];
     $hasRetentionData = $retFollowers['week1_count'] > 0 || $retNonFollowers['week1_count'] > 0;
+    $__retFollowersPct = $retFollowers['pct'] ?? [0, 0, 0, 0];
+    $__retNonFollowersPct = $retNonFollowers['pct'] ?? [0, 0, 0, 0];
 @endphp
 <div class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#06b6d4,#8b5cf6); --sc-glow: rgba(6,182,212,0.35);">
     <div class="section-title mb-4">
@@ -337,7 +339,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 datasets: [
                     {
                         label: 'Followers',
-                        data: @json($retFollowers['pct'] ?? [0,0,0,0]),
+                        data: @json($__retFollowersPct),
                         borderColor: '#8b5cf6',
                         backgroundColor: rg1,
                         tension: 0.4, fill: true, borderWidth: 2.5,
@@ -347,7 +349,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     },
                     {
                         label: 'Non-followers',
-                        data: @json($retNonFollowers['pct'] ?? [0,0,0,0]),
+                        data: @json($__retNonFollowersPct),
                         borderColor: '#34d399',
                         backgroundColor: rg2,
                         tension: 0.4, fill: true, borderWidth: 2.5,
