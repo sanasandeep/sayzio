@@ -39,7 +39,8 @@ class WhisperService
         $estSec = $this->estimateDurationSeconds($audio);
         $estMin = max(1, (int) ceil($estSec / 60));
         $worstCase = $estMin * AiEngineSettings::voiceSttCreditsPerMinute();
-        if ($worstCase > 0) $this->ensureCanAfford($user, $worstCase);
+        $noCharge = !empty($opts['no_charge']);
+        if (!$noCharge && $worstCase > 0) $this->ensureCanAfford($user, $worstCase);
 
         $key = AiEngineSettings::whisperKey();
         if (!$key) {
@@ -67,7 +68,7 @@ class WhisperService
         $minutes = max(1, (int) ceil($duration / 60));
         $cost    = $minutes * AiEngineSettings::voiceSttCreditsPerMinute();
 
-        $tx = $cost > 0
+        $tx = ($cost > 0 && !$noCharge)
             ? $this->credits->charge($user, $cost, [
                 'feature' => 'voice_stt',
                 'related_id' => $opts['related_id'] ?? null,

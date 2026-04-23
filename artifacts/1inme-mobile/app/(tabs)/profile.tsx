@@ -27,11 +27,13 @@ import {
   formatIdleTimeout,
   formatLockWarningLead,
   getLastCustomIdleTimeoutMs,
+  getVoiceWakeWordEnabled,
   IDLE_TIMEOUT_CUSTOM_MAX_MS,
   IDLE_TIMEOUT_CUSTOM_MIN_MS,
   IDLE_TIMEOUT_PRESETS_MS,
   LOCK_WARNING_LEAD_PRESETS_MS,
   setLastCustomIdleTimeoutMs,
+  setVoiceWakeWordEnabled,
   type ThemePref,
 } from "@/lib/secure";
 
@@ -139,6 +141,8 @@ export default function Profile() {
   const [coinBalance, setCoinBalance] = useState<number | null>(null);
   const [aiCreditBalance, setAiCreditBalance] = useState<number | null>(null);
   const [biometricBusy, setBiometricBusy] = useState(false);
+  const [wakeWordEnabled, setWakeWordEnabledState] = useState(false);
+  const [wakeWordBusy, setWakeWordBusy] = useState(false);
   const [customPickerOpen, setCustomPickerOpen] = useState(false);
   const [customAmount, setCustomAmount] = useState("30");
   const [customUnit, setCustomUnit] = useState<CustomUnit>("sec");
@@ -235,6 +239,37 @@ export default function Profile() {
       refreshBiometricCapability().catch(() => {});
     }, [refreshBiometricCapability]),
   );
+
+  // Load the persisted wake-word toggle and refresh on focus so changes
+  // made elsewhere (e.g. the Voice sheet) reflect here too.
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      void getVoiceWakeWordEnabled().then((v) => {
+        if (!cancelled) setWakeWordEnabledState(v);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }, []),
+  );
+
+  const onToggleWakeWord = useCallback(async () => {
+    if (wakeWordBusy) return;
+    setWakeWordBusy(true);
+    try {
+      const next = !wakeWordEnabled;
+      await setVoiceWakeWordEnabled(next);
+      setWakeWordEnabledState(next);
+    } catch (e) {
+      Alert.alert(
+        "Couldn't save",
+        e instanceof Error ? e.message : "Please try again.",
+      );
+    } finally {
+      setWakeWordBusy(false);
+    }
+  }, [wakeWordBusy, wakeWordEnabled]);
 
   const onToggleBiometric = useCallback(async () => {
     if (biometricBusy) return;
@@ -525,6 +560,60 @@ export default function Profile() {
                       : biometricEnabled
                         ? "On"
                         : "Off"}
+                  </Text>
+                )}
+              </Pressable>
+            ) : null}
+            {Platform.OS !== "web" ? (
+              <Pressable
+                onPress={onToggleWakeWord}
+                disabled={wakeWordBusy}
+                style={({ pressed }) => [
+                  styles.listItem,
+                  {
+                    borderTopWidth: StyleSheet.hairlineWidth,
+                    borderTopColor: colors.border,
+                    opacity: pressed ? 0.7 : 1,
+                  },
+                ]}
+                accessibilityRole="switch"
+                accessibilityState={{ checked: wakeWordEnabled }}
+              >
+                <Feather name="mic" size={18} color={colors.primary} />
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={[styles.listLabel, { color: colors.foreground }]}
+                  >
+                    Wake on &ldquo;Hey 1INME&rdquo;
+                  </Text>
+                  <Text
+                    style={[
+                      styles.helper,
+                      { color: colors.mutedForeground },
+                    ]}
+                  >
+                    {wakeWordEnabled
+                      ? "On — listens while the app is open. Wake checks don't use AI credits."
+                      : "Off — tap the floating mic to start the Voice Assistant."}
+                  </Text>
+                </View>
+                {wakeWordBusy ? (
+                  <ActivityIndicator color={colors.primary} />
+                ) : (
+                  <Text
+                    style={[
+                      styles.statusPill,
+                      {
+                        color: wakeWordEnabled
+                          ? colors.primary
+                          : colors.mutedForeground,
+                        backgroundColor: wakeWordEnabled
+                          ? colors.primary + "1a"
+                          : colors.border + "55",
+                      },
+                    ]}
+                  >
+                    {wakeWordEnabled ? "On" : "Off"}
                   </Text>
                 )}
               </Pressable>

@@ -19,6 +19,7 @@ import {
 import {
   ActivityIndicator,
   Alert,
+  AppState,
   Modal,
   Platform,
   Pressable,
@@ -39,7 +40,12 @@ import {
   type VoiceTurnResponse,
   fetchCapabilities,
   runTurn,
+  wakeCheck,
 } from "@/lib/api/voice";
+import {
+  getVoiceWakeWordEnabled,
+  onVoiceWakeWordEnabledChange,
+} from "@/lib/secure";
 
 type Phase = "idle" | "listening" | "processing" | "speaking";
 type View_ = "session" | "help";
@@ -116,7 +122,51 @@ export function VoiceAssistant() {
   } | null>(null);
 
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  // Separate, lower-quality recorder dedicated to wake-phrase snippets
+  // so it never collides with the in-session recorder above.
+  const wakeRecorder = useAudioRecorder(RecordingPresets.LOW_QUALITY);
   const player = useAudioPlayer(audioPath ? { uri: audioPath } : null);
+
+  const [wakeWordEnabled, setWakeWordEnabled] = useState(false);
+  // Mirror in a ref for the long-running wake loop so it can read the
+  // latest values without being torn down on every state change.
+  const wakeEnabledRef = useRef(false);
+  const sheetOpenRef = useRef(false);
+  // When the wake loop matches, it sets this flag and opens the sheet.
+  // A separate effect watches `open` flipping true and starts a real
+  // turn — doing it inline would race with the wake-effect cleanup
+  // that fires when `open` flips, swallowing the auto-start.
+  const pendingAutoStartRef = useRef(false);
+  useEffect(() => { wakeEnabledRef.current = wakeWordEnabled; }, [wakeWordEnabled]);
+  useEffect(() => { sheetOpenRef.current = open; }, [open]);
+
+  // Keep the in-memory wake-word toggle in sync with persisted state.
+  // We must NOT depend on `open` here — that would tear down the
+  // subscription whenever the sheet opens/closes. Instead we:
+  //   1. Read once on mount.
+  //   2. Subscribe to in-process changes (e.g. flipped from Settings).
+  //   3. Re-read whenever the app foregrounds, in case storage was
+  //      mutated while we were backgrounded.
+  useEffect(() => {
+    let cancelled = false;
+    void getVoiceWakeWordEnabled().then((v) => {
+      if (!cancelled) setWakeWordEnabled(v);
+    });
+    const off = onVoiceWakeWordEnabledChange((v) => {
+      if (!cancelled) setWakeWordEnabled(v);
+    });
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state !== "active") return;
+      void getVoiceWakeWordEnabled().then((v) => {
+        if (!cancelled) setWakeWordEnabled(v);
+      });
+    });
+    return () => {
+      cancelled = true;
+      off();
+      sub.remove();
+    };
+  }, []);
 
   // Auto-play the latest TTS clip whenever the path changes.
   useEffect(() => {
@@ -292,6 +342,123 @@ export function VoiceAssistant() {
       setPhase("idle");
     }
   }, [phase, recorder, sendClip]);
+
+  /**
+   * Wake-word listener loop. While enabled and the sheet is closed,
+   * we continuously record short ~2s audio snippets and ship them to
+   * the server-side wake-phrase detector. The detector runs Whisper
+   * but does NOT bill the user's credit ledger — only a real turn
+   * (started after a wake match) costs voice_stt credits.
+   *
+   * The loop intentionally runs in the foreground only — it is torn
+   * down whenever wake-word listening is disabled, the user opens the
+   * sheet, or the component unmounts.
+   */
+  useEffect(() => {
+    if (!wakeWordEnabled) return;
+    if (Platform.OS === "web") return; // recording not supported in preview
+    if (open) return;
+
+    let cancelled = false;
+    const SNIPPET_MS = 2000;
+    const COOLDOWN_MS = 350;
+    const FAILURE_BACKOFF_MS = 4000;
+
+    const sleep = (ms: number) =>
+      new Promise<void>((res) => setTimeout(res, ms));
+
+    const loop = async () => {
+      // Bail early if the OS denies the mic — we don't want to keep
+      // poking permissions on every iteration.
+      try {
+        const perm = await AudioModule.requestRecordingPermissionsAsync();
+        if (!perm.granted) return;
+        await setAudioModeAsync({
+          allowsRecording: true,
+          playsInSilentMode: true,
+        });
+      } catch {
+        return;
+      }
+
+      while (!cancelled && wakeEnabledRef.current && !sheetOpenRef.current) {
+        try {
+          await wakeRecorder.prepareToRecordAsync();
+          wakeRecorder.record();
+          await sleep(SNIPPET_MS);
+          if (cancelled) break;
+          await wakeRecorder.stop();
+          const uri = wakeRecorder.uri;
+          if (!uri) {
+            await sleep(FAILURE_BACKOFF_MS);
+            continue;
+          }
+          const ext = uri.split(".").pop()?.toLowerCase() ?? "m4a";
+          const mime = ext === "caf"
+            ? "audio/x-caf"
+            : ext === "wav"
+            ? "audio/wav"
+            : ext === "webm"
+            ? "audio/webm"
+            : ext === "mp3"
+            ? "audio/mpeg"
+            : "audio/mp4";
+
+          const out = await wakeCheck({
+            uri,
+            mime,
+            filename: `wake-${Date.now()}.${ext}`,
+          });
+          // Best-effort cleanup — old snippets are throwaway.
+          try { await FileSystem.deleteAsync(uri, { idempotent: true }); } catch { /* noop */ }
+
+          if (cancelled || sheetOpenRef.current) break;
+          if (out.matched) {
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            // Hand off to the auto-start effect below — opening the
+            // sheet here would otherwise tear down this effect and
+            // cancel any inline startListening() call.
+            pendingAutoStartRef.current = true;
+            setView("session");
+            setOpen(true);
+            break;
+          }
+          await sleep(COOLDOWN_MS);
+        } catch {
+          // Recorder hiccup — back off briefly so we don't spin.
+          try { await wakeRecorder.stop().catch(() => undefined); } catch { /* noop */ }
+          await sleep(FAILURE_BACKOFF_MS);
+        }
+      }
+    };
+
+    void loop();
+
+    return () => {
+      cancelled = true;
+      try {
+        if (wakeRecorder.isRecording) {
+          void wakeRecorder.stop().catch(() => undefined);
+        }
+      } catch { /* noop */ }
+    };
+  }, [wakeWordEnabled, open, wakeRecorder, startListening]);
+
+  /**
+   * Auto-start a session turn when a wake match opened the sheet.
+   * Runs in its own effect so the wake loop's cleanup (triggered by
+   * `open` flipping true) doesn't race with — and cancel — the call
+   * to `startListening()`.
+   */
+  useEffect(() => {
+    if (!open) return;
+    if (!pendingAutoStartRef.current) return;
+    pendingAutoStartRef.current = false;
+    // Slight defer so the modal mount/animation completes before iOS
+    // is asked to switch audio routes for recording.
+    const t = setTimeout(() => { void startListening(); }, 250);
+    return () => clearTimeout(t);
+  }, [open, startListening]);
 
   /** Tap-to-toggle handler. Long-press uses startListening/stopAndSend. */
   const onMicTap = useCallback(() => {

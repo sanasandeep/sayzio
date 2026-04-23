@@ -6,6 +6,7 @@ const USER_KEY = "1inme.auth.user";
 const ONBOARDING_KEY = "1inme.onboarding.complete";
 const THEME_KEY = "1inme.theme";
 const BIOMETRIC_ENABLED_KEY = "1inme.auth.biometric.enabled";
+const VOICE_WAKE_WORD_ENABLED_KEY = "1inme.voice.wakeWord.enabled";
 const BIOMETRIC_PROMPT_DISMISSED_KEY = "1inme.auth.biometric.prompt.dismissed";
 const IDLE_TIMEOUT_MS_KEY = "1inme.auth.idle.timeout.ms";
 const LAST_CUSTOM_IDLE_TIMEOUT_MS_KEY = "1inme.auth.idle.timeout.lastCustom.ms";
@@ -104,6 +105,29 @@ export const getBiometricEnabled = async () =>
   (await getItem(BIOMETRIC_ENABLED_KEY)) === "1";
 export const setBiometricEnabled = (v: boolean) =>
   setItem(BIOMETRIC_ENABLED_KEY, v ? "1" : null);
+
+// Wake-word listening for the Voice Assistant. Off by default — the
+// user must explicitly opt in from Settings because it keeps the mic
+// hot in the foreground.
+export const getVoiceWakeWordEnabled = async () =>
+  (await getItem(VOICE_WAKE_WORD_ENABLED_KEY)) === "1";
+export const setVoiceWakeWordEnabled = async (v: boolean) => {
+  await setItem(VOICE_WAKE_WORD_ENABLED_KEY, v ? "1" : null);
+  // Notify in-process subscribers (e.g. the floating Voice Assistant)
+  // so toggling from Settings starts/stops the wake loop immediately
+  // rather than waiting for the next mount or focus cycle.
+  for (const fn of voiceWakeWordListeners) {
+    try { fn(v); } catch { /* noop */ }
+  }
+};
+
+const voiceWakeWordListeners = new Set<(v: boolean) => void>();
+export function onVoiceWakeWordEnabledChange(
+  listener: (v: boolean) => void,
+): () => void {
+  voiceWakeWordListeners.add(listener);
+  return () => voiceWakeWordListeners.delete(listener);
+}
 
 export const getBiometricPromptDismissed = async () =>
   (await getItem(BIOMETRIC_PROMPT_DISMISSED_KEY)) === "1";

@@ -104,6 +104,52 @@ export async function fetchCapabilities(): Promise<VoiceCapabilities> {
   return jsonGet<VoiceCapabilities>("/ai/voice/capabilities");
 }
 
+export type WakeCheckResponse = {
+  matched: boolean;
+  transcript?: string;
+};
+
+/**
+ * Send a tiny audio snippet (~1.5–2.5s) to the server-side wake-phrase
+ * detector. Returns `{ matched }` so the caller can pop the voice
+ * sheet and immediately start a real turn. The server runs Whisper
+ * but does NOT charge the user's credit ledger for these checks.
+ */
+export async function wakeCheck(args: {
+  uri: string;
+  mime: string;
+  filename: string;
+}): Promise<WakeCheckResponse> {
+  const token = await getToken();
+  const form = new FormData();
+  form.append("audio", {
+    uri: args.uri,
+    name: args.filename,
+    type: args.mime,
+  } as unknown as Blob);
+
+  const res = await fetch(`${getBaseUrl()}/api/v1/ai/voice/wake-check`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "User-Agent": MOBILE_USER_AGENT,
+      "X-1INME-Client": MOBILE_USER_AGENT,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: form as unknown as BodyInit,
+  });
+  if (!res.ok) {
+    // Wake checks must never throw — a 4xx/5xx just means "no wake".
+    return { matched: false };
+  }
+  const text = await res.text();
+  const body = text ? safeJson(text) : null;
+  return {
+    matched: !!(body && body.matched),
+    transcript: typeof body?.transcript === "string" ? body.transcript : "",
+  };
+}
+
 /**
  * Upload a recorded audio clip and run a voice turn. Multipart upload
  * — `apiFetch` only handles JSON, so we hand-roll the request here.

@@ -99,7 +99,7 @@ class VoiceAssistantController extends Controller
             'tools'        => $grouped,
             'limitations'  => [
                 'No phone calls or outbound dialing — voice only runs inside the web app.',
-                'No always-listening wake word; press the mic to start a turn.',
+                'Wake word listening only works on the mobile app while it\'s open in the foreground — the web app still requires you to press the mic.',
                 'Cannot edit invoices, tax info, or other legal/billing documents.',
                 'No raw SQL or database access — only the allow-listed tools above.',
                 'Cannot deploy code, change infrastructure, or reset other users\' passwords.',

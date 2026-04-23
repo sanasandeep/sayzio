@@ -125,6 +125,11 @@ Route::prefix('v1')->group(function () {
         // match the web limit so abuse can't drain the user's credits.
         Route::get ('/ai/voice/capabilities', [\App\Modules\Api\Controllers\VoiceAssistantController::class, 'capabilities']);
         Route::post('/ai/voice/turn',         [\App\Modules\Api\Controllers\VoiceAssistantController::class, 'turn'])->middleware('throttle:30,1');
+        // Wake-word check: short audio clip in, {matched, transcript} out.
+        // Heavily throttled — a misbehaving foreground listener could
+        // otherwise hammer Whisper and rack up upstream API costs even
+        // though we never bill the user's credit ledger for this.
+        Route::post('/ai/voice/wake-check',   [\App\Modules\Api\Controllers\VoiceAssistantController::class, 'wakeCheck'])->middleware('throttle:60,1');
 
         // Ask Coach (mobile parity for the data-aware self-support chatbot).
         Route::get   ('/ai/ask-coach/threads',                       [\App\Modules\Api\Controllers\AskCoachController::class, 'threads']);
