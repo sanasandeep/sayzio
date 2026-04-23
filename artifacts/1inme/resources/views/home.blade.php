@@ -5528,7 +5528,7 @@
 
         <div class="reveal rd-4 mt-6 text-center">
             <a href="{{ route('site.faqs') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-violet-300 hover:text-violet-200 transition">
-                Browse all 100+ answers <i class="fas fa-arrow-right text-xs"></i>
+                Browse all answers <i class="fas fa-arrow-right text-xs"></i>
             </a>
         </div>
     </div>
