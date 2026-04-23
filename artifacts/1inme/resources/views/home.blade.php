@@ -1495,6 +1495,73 @@
         .sl-spark i:nth-child(6) { height: 95%; animation-delay: .75s; }
         @keyframes slSpark { 50% { transform: scaleY(.5); opacity: 1; } }
 
+        /* Themes card · swatches & font pills */
+        .th-swatch {
+            width: 26px; height: 26px; border-radius: 8px;
+            display: inline-block;
+            box-shadow: 0 4px 10px -4px rgba(0,0,0,.5), inset 0 0 0 1.5px rgba(255,255,255,.12);
+            transition: transform .25s ease;
+            cursor: default;
+        }
+        .th-swatch:hover { transform: translateY(-2px) scale(1.06); }
+        .th-pill {
+            display: inline-flex; align-items: center; gap: 4px;
+            font-size: 11px; font-weight: 700;
+            color: #d1d5db;
+            padding: 4px 10px; border-radius: 999px;
+            background: rgba(255,255,255,.05);
+            border: 1px solid rgba(255,255,255,.08);
+        }
+        .th-pill--accent { background: linear-gradient(135deg, rgba(27,212,217,.18), rgba(124,58,237,.18)); color: #a5f3fc; border-color: rgba(27,212,217,.35); }
+
+        /* Mobile-first card · phone mock + stats */
+        .mf-mock { display: grid; grid-template-columns: 92px 1fr; gap: 16px; align-items: center; }
+        .mf-phone {
+            position: relative;
+            width: 92px; height: 158px;
+            background: linear-gradient(160deg, #18181b, #0e0e10);
+            border: 1.5px solid rgba(255,255,255,.08);
+            border-radius: 18px;
+            padding: 14px 10px 10px;
+            box-shadow: 0 18px 36px -18px rgba(233,78,140,.55), inset 0 0 0 1px rgba(255,255,255,.03);
+            overflow: hidden;
+        }
+        .mf-notch {
+            position: absolute; top: 5px; left: 50%; transform: translateX(-50%);
+            width: 28px; height: 4px; border-radius: 4px;
+            background: rgba(255,255,255,.18);
+        }
+        .mf-avatar {
+            width: 28px; height: 28px; border-radius: 50%;
+            margin: 4px auto 6px;
+            background: linear-gradient(135deg, var(--c3), var(--c2));
+            box-shadow: 0 0 0 2px rgba(255,255,255,.06);
+        }
+        .mf-name { width: 60%; height: 6px; margin: 0 auto 3px; border-radius: 3px; background: rgba(255,255,255,.7); }
+        .mf-handle { width: 38%; height: 4px; margin: 0 auto 9px; border-radius: 3px; background: rgba(255,255,255,.25); }
+        .mf-btn {
+            height: 14px; width: 100%;
+            margin-bottom: 6px;
+            border-radius: 7px;
+            background: linear-gradient(90deg, rgba(124,58,237,.55), rgba(233,78,140,.5));
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+        }
+        .mf-stats { display: grid; grid-template-columns: 1fr; gap: 8px; }
+        .mf-stats > div {
+            display: flex; flex-direction: column;
+            padding: 8px 12px;
+            background: rgba(255,255,255,.04);
+            border: 1px solid rgba(255,255,255,.06);
+            border-radius: 10px;
+        }
+        .mf-stats strong {
+            font-size: 16px; font-weight: 800; line-height: 1;
+            background: linear-gradient(90deg, var(--c1), var(--c3));
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .mf-stats span { font-size: 10px; color: #9ca3af; margin-top: 2px; text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+
         /* QR · scanning beam */
         .qr-stage {
             position: relative;
@@ -3829,21 +3896,64 @@
                 </div>
             </div>
 
-            <div class="reveal rd-2 lg:col-span-5 grid grid-cols-1 gap-6">
-                <div class="glass rounded-3xl p-6 lift">
-                    <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style="background:rgba(27,212,217,.2)"><i class="fas fa-palette text-xl" style="color:var(--c1)"></i></div>
-                    <h3 class="text-lg font-bold mb-2">Themes &amp; design controls</h3>
-                    <p class="text-sm text-gray-400">Pick from beautiful presets, then tweak fonts, colours and layouts to match your vibe.</p>
+            <div class="reveal rd-2 lg:col-span-5 grid grid-cols-1 gap-6 auto-rows-fr">
+                {{-- Themes & design controls --}}
+                <div class="glass rounded-3xl p-6 lift relative overflow-hidden flex flex-col">
+                    <div class="absolute -top-8 -right-8 w-32 h-32 rounded-full opacity-25" style="background:var(--c1)"></div>
+                    <div class="relative flex flex-col flex-1">
+                        <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style="background:rgba(27,212,217,.2)"><i class="fas fa-palette text-xl" style="color:var(--c1)"></i></div>
+                        <h3 class="text-lg font-bold mb-2">Themes &amp; design controls</h3>
+                        <p class="text-sm text-gray-400 mb-5">Pick from beautiful presets, then fine-tune fonts, colours and layouts to match your vibe.</p>
+
+                        <div class="mt-auto space-y-3">
+                            {{-- Theme preset swatches --}}
+                            <div class="flex items-center gap-2">
+                                <span class="th-swatch" style="background:linear-gradient(135deg,#1bd4d9,#7c3aed)" title="Aurora"></span>
+                                <span class="th-swatch" style="background:linear-gradient(135deg,#e94e8c,#ff8a3c)" title="Sunset"></span>
+                                <span class="th-swatch" style="background:linear-gradient(135deg,#0e0e10,#3f3f46);border:1px solid rgba(255,255,255,.15)" title="Noir"></span>
+                                <span class="th-swatch" style="background:linear-gradient(135deg,#fef3c7,#f59e0b)" title="Sand"></span>
+                                <span class="th-swatch" style="background:linear-gradient(135deg,#a7f3d0,#10b981)" title="Mint"></span>
+                                <span class="th-swatch" style="background:linear-gradient(135deg,#dbeafe,#3b82f6)" title="Sky"></span>
+                                <span class="text-[11px] font-bold text-gray-500 ml-1">+24</span>
+                            </div>
+                            {{-- Font + radius row --}}
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="th-pill" style="font-family:'Inter',sans-serif">Aa Inter</span>
+                                <span class="th-pill" style="font-family:Georgia,serif">Aa Serif</span>
+                                <span class="th-pill" style="font-family:'Courier New',monospace">Aa Mono</span>
+                                <span class="th-pill th-pill--accent"><i class="fas fa-circle-half-stroke text-[9px]"></i> Round</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="glass rounded-3xl p-6 lift">
-                    <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style="background:rgba(124,58,237,.25)"><i class="fas fa-link text-xl" style="color:#c4b5fd"></i></div>
-                    <h3 class="text-lg font-bold mb-2">Custom domains</h3>
-                    <p class="text-sm text-gray-400">Connect your own domain on paid plans for short links and biolink pages.</p>
-                </div>
-                <div class="glass rounded-3xl p-6 lift">
-                    <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style="background:rgba(233,78,140,.2)"><i class="fas fa-mobile-screen text-xl" style="color:var(--c3)"></i></div>
-                    <h3 class="text-lg font-bold mb-2">Mobile-first by default</h3>
-                    <p class="text-sm text-gray-400">Every theme looks razor-sharp on small screens — that's where your audience is.</p>
+
+                {{-- Mobile-first by default --}}
+                <div class="glass rounded-3xl p-6 lift relative overflow-hidden flex flex-col">
+                    <div class="absolute -top-8 -right-8 w-32 h-32 rounded-full opacity-25" style="background:var(--c3)"></div>
+                    <div class="relative flex flex-col flex-1">
+                        <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style="background:rgba(233,78,140,.2)"><i class="fas fa-mobile-screen text-xl" style="color:var(--c3)"></i></div>
+                        <h3 class="text-lg font-bold mb-2">Mobile-first by default</h3>
+                        <p class="text-sm text-gray-400 mb-5">Every theme looks razor-sharp on small screens — that’s where your audience actually is.</p>
+
+                        <div class="mt-auto mf-mock" aria-hidden="true">
+                            {{-- Tiny phone mockup --}}
+                            <div class="mf-phone">
+                                <div class="mf-notch"></div>
+                                <div class="mf-avatar"></div>
+                                <div class="mf-name"></div>
+                                <div class="mf-handle"></div>
+                                <div class="mf-btn"></div>
+                                <div class="mf-btn" style="width:78%"></div>
+                                <div class="mf-btn" style="width:65%"></div>
+                            </div>
+                            {{-- Stats --}}
+                            <div class="mf-stats">
+                                <div><strong>92%</strong><span>mobile traffic</span></div>
+                                <div><strong>&lt;1.2s</strong><span>load time</span></div>
+                                <div><strong>100</strong><span>Lighthouse</span></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
