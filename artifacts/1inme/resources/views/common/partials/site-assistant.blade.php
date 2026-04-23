@@ -331,16 +331,46 @@
     var bubble=el('div',{class:'sa-msg assistant'},'');
     body.appendChild(bubble); scrollBottom();
     var streamed='';
+    var doneReceived=false;
+    var fellBack=false;
+    // Fallback to the non-streaming /assistant/message endpoint when SSE
+    // is unavailable (corporate proxies that strip event-stream, older
+    // browsers without ReadableStream, upstream errors, or the
+    // connection drops mid-stream). The fellBack guard makes the retry
+    // idempotent so we never double-POST or double-render.
+    function fallback(){
+      if(fellBack || doneReceived) return;
+      fellBack=true;
+      if(bubble && bubble.parentNode) bubble.remove();
+      appendTyping();
+      return jpost(ds.messageUrl, { visitor_token: token, message: text, page: pageMeta() })
+        .then(handleTurn)
+        .catch(function(){
+          removeTyping();
+          renderMessage({role:'assistant',content:'Network error.'});
+        });
+    }
     return fetch(ds.streamUrl, {
       method:'POST', credentials:'same-origin',
       headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrf,'Accept':'text/event-stream'},
       body: JSON.stringify({ visitor_token: token, message: text, page: pageMeta(), surface: SURFACE || undefined })
     }).then(function(res){
-      if(!res.ok || !res.body){ bubble.remove(); renderMessage({role:'assistant',content:'Network error.'}); return; }
+      var ct=(res.headers && res.headers.get && res.headers.get('Content-Type'))||'';
+      if(!res.ok || !res.body || ct.indexOf('text/event-stream')<0){
+        return fallback();
+      }
       var reader=res.body.getReader(), dec=new TextDecoder(), buf='';
       function pump(){
         return reader.read().then(function(r){
-          if(r.done) return;
+          if(r.done){
+            // Stream closed without a `done` event. Either the proxy
+            // buffered and dropped the event-stream entirely, or the
+            // upstream connection was cut mid-reply. In both cases we
+            // fall back to /assistant/message so the user still gets a
+            // complete answer instead of a truncated bubble.
+            if(!doneReceived) return fallback();
+            return;
+          }
           buf += dec.decode(r.value, {stream:true});
           var idx;
           while((idx = buf.indexOf('\n\n')) >= 0){
@@ -359,10 +389,12 @@
               bubble.innerHTML = mdLite(visible);
               scrollBottom();
             } else if(event==='done'){
+              doneReceived=true;
               bubble.remove();
               if(parsed.assistant_message) renderMessage(parsed.assistant_message);
               if(parsed.handed_off) disableInput(true,'Our team will reply by email.');
             } else if(event==='error'){
+              doneReceived=true;
               bubble.remove();
               if(parsed.visitor_token){ token=parsed.visitor_token; localStorage.setItem(TOKEN_KEY, token); }
               var d=el('div',{class:'sa-msg error'}, parsed.error||'Sorry, something went wrong.');
@@ -376,8 +408,9 @@
       }
       return pump();
     }).catch(function(){
-      bubble.remove();
-      renderMessage({role:'assistant',content:'Network error.'});
+      // Network failure on the SSE request — try the legacy endpoint
+      // before surfacing any error to the user.
+      return fallback();
     });
   }
 
