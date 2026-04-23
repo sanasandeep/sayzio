@@ -15,7 +15,7 @@
     <div class="glass rounded-2xl border border-white/10 p-6 space-y-2">
         <h3 class="font-semibold text-white">Custom content for the assistant</h3>
         <p class="text-sm text-white/60">
-            Add URLs or paste text the assistant should learn from. Sources are chunked, embedded, and stored in the
+            Add URLs, paste text, or upload documents (PDF, DOCX, PPTX, RTF, TXT, MD) the assistant should learn from. Sources are chunked, embedded, and stored in the
             <span class="text-white">{{ $mind->name }}</span> knowledge base. Optionally scope a source to a specific
             marketing page so the assistant prefers it when a visitor is on that page.
         </p>
@@ -27,7 +27,7 @@
 
     <div class="glass rounded-2xl border border-white/10 p-6">
         <h3 class="font-semibold text-white mb-4">Add a new source</h3>
-        <form method="POST" action="{{ route('admin.site-assistant.sources.store') }}" class="space-y-4">
+        <form method="POST" action="{{ route('admin.site-assistant.sources.store') }}" enctype="multipart/form-data" class="space-y-4">
             @csrf
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
@@ -35,6 +35,7 @@
                     <select name="kind" id="sa-source-kind" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
                         <option value="url">URL (web page)</option>
                         <option value="text">Pasted text</option>
+                        <option value="document">Document (PDF, DOCX, PPTX, RTF, TXT, MD)</option>
                     </select>
                 </div>
                 <div class="md:col-span-2">
@@ -49,6 +50,11 @@
             <div id="sa-source-text-row" style="display:none;">
                 <label class="block text-xs text-white/60 mb-1">Pasted content</label>
                 <textarea name="body" rows="6" maxlength="50000" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" placeholder="Paste FAQ answers, product details, policies…">{{ old('body') }}</textarea>
+            </div>
+            <div id="sa-source-file-row" style="display:none;">
+                <label class="block text-xs text-white/60 mb-1">Document</label>
+                <input type="file" name="file" accept=".pdf,.docx,.doc,.rtf,.pptx,.txt,.md" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                <p class="text-[11px] text-white/40 mt-1">Up to 25 MB. Supported: PDF, DOCX, DOC, RTF, PPTX, TXT, MD. Scanned PDFs use OCR fallback.</p>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
@@ -97,7 +103,7 @@
                                 <div class="text-xs text-white/40 truncate max-w-xs">{{ \Illuminate\Support\Str::limit(strip_tags($s->body), 90) }}</div>
                             @endif
                         </td>
-                        <td class="p-3 text-white/70">{{ $s->type === 'link' ? 'URL' : 'Text' }}</td>
+                        <td class="p-3 text-white/70">{{ $s->type === 'link' ? 'URL' : ($s->type === 'document' ? 'Document' : 'Text') }}</td>
                         <td class="p-3 text-white/70">
                             @if($s->page_pattern)
                                 <code class="text-purple-200">{{ $s->page_pattern }}</code>
@@ -140,9 +146,11 @@
     var sel = document.getElementById('sa-source-kind');
     var urlRow = document.getElementById('sa-source-url-row');
     var textRow = document.getElementById('sa-source-text-row');
+    var fileRow = document.getElementById('sa-source-file-row');
     function sync() {
-        if (sel.value === 'url') { urlRow.style.display=''; textRow.style.display='none'; }
-        else { urlRow.style.display='none'; textRow.style.display=''; }
+        urlRow.style.display = sel.value === 'url' ? '' : 'none';
+        textRow.style.display = sel.value === 'text' ? '' : 'none';
+        fileRow.style.display = sel.value === 'document' ? '' : 'none';
     }
     sel.addEventListener('change', sync);
     sync();

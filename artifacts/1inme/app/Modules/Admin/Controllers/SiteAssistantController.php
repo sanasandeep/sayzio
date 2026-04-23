@@ -151,6 +151,7 @@ class SiteAssistantController extends Controller
             ->whereIn('type', [
                 \App\Modules\User\Models\AiMindSource::TYPE_LINK,
                 \App\Modules\User\Models\AiMindSource::TYPE_TEXT,
+                \App\Modules\User\Models\AiMindSource::TYPE_DOCUMENT,
             ])
             ->orderByDesc('id')
             ->paginate(50);
@@ -160,10 +161,11 @@ class SiteAssistantController extends Controller
     public function storeSource(Request $request)
     {
         $data = $request->validate([
-            'kind'              => ['required', Rule::in(['url', 'text'])],
+            'kind'              => ['required', Rule::in(['url', 'text', 'document'])],
             'title'             => 'required|string|max:200',
             'url'               => 'nullable|url|max:2048',
             'body'              => 'nullable|string|max:50000',
+            'file'              => 'nullable|file|max:25600|mimes:pdf,docx,doc,rtf,pptx,txt,md',
             'page_pattern'      => 'nullable|string|max:200',
             'assistant_surface' => ['nullable', Rule::in(['marketing', 'app', 'any'])],
             'refresh_minutes'   => 'nullable|integer|min:15|max:43200',
@@ -184,7 +186,7 @@ class SiteAssistantController extends Controller
                 'refresh_minutes'   => $data['refresh_minutes'] ?? (60 * 24),
                 'status'            => \App\Modules\User\Models\AiMindSource::STATUS_QUEUED,
             ]);
-        } else {
+        } elseif ($data['kind'] === 'text') {
             if (empty($data['body'])) {
                 return back()->withErrors(['body' => 'Pasted content is required for text sources.'])->withInput();
             }
@@ -193,6 +195,25 @@ class SiteAssistantController extends Controller
                 'type'              => \App\Modules\User\Models\AiMindSource::TYPE_TEXT,
                 'title'             => $data['title'],
                 'body'              => $data['body'],
+                'page_pattern'      => $data['page_pattern'] ?: null,
+                'assistant_surface' => $data['assistant_surface'] ?: null,
+                'status'            => \App\Modules\User\Models\AiMindSource::STATUS_QUEUED,
+            ]);
+        } else {
+            if (!$request->hasFile('file')) {
+                return back()->withErrors(['file' => 'A file is required for document sources.'])->withInput();
+            }
+            $file = $request->file('file');
+            $disk = 'local';
+            $path = $file->store('ai-minds/' . $mind->id, $disk);
+            $source = \App\Modules\User\Models\AiMindSource::create([
+                'mind_id'           => $mind->id,
+                'type'              => \App\Modules\User\Models\AiMindSource::TYPE_DOCUMENT,
+                'title'             => $data['title'],
+                'storage_disk'      => $disk,
+                'storage_path'      => $path,
+                'mime'              => (string) $file->getMimeType(),
+                'size_bytes'        => (int) $file->getSize(),
                 'page_pattern'      => $data['page_pattern'] ?: null,
                 'assistant_surface' => $data['assistant_surface'] ?: null,
                 'status'            => \App\Modules\User\Models\AiMindSource::STATUS_QUEUED,
@@ -215,6 +236,13 @@ class SiteAssistantController extends Controller
     {
         $mindId = (int) (SiteAssistantSettings::get()['assistant_mind_id'] ?? 0);
         abort_unless($mindId > 0 && (int) $source->mind_id === $mindId, 404);
+        if ($source->type === \App\Modules\User\Models\AiMindSource::TYPE_DOCUMENT && $source->storage_path) {
+            try {
+                \Illuminate\Support\Facades\Storage::disk($source->storage_disk ?: 'local')->delete($source->storage_path);
+            } catch (\Throwable $e) {
+                // Best-effort cleanup; orphan file is acceptable.
+            }
+        }
         $source->delete();
         return back()->with('success', 'Knowledge source deleted.');
     }
