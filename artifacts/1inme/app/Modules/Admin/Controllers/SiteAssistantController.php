@@ -4,6 +4,7 @@ namespace App\Modules\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Common\Models\SiteAssistantConversation;
+use App\Modules\Common\Models\SiteAssistantCutoffAlert;
 use App\Modules\Common\Models\SiteAssistantMessage;
 use App\Modules\Common\Models\SiteAssistantPageHint;
 use App\Modules\Common\Models\SiteAssistantResponseTemplate;
@@ -741,6 +742,15 @@ class SiteAssistantController extends Controller
         ];
         $lbClicksTotal = $lbClicksBySurface['marketing'] + $lbClicksBySurface['app'];
 
+        // Recent cut-off alerts that the scheduler has dispatched.
+        // Shown in a compact panel beside the cut-off retry tile so
+        // admins have a trail of when the alert system fired and how
+        // bad each window was, instead of the alerts being write-only.
+        $recentAlerts = SiteAssistantCutoffAlert::query()
+            ->orderByDesc('dispatched_at')
+            ->limit(8)
+            ->get();
+
         return view('admin.site-assistant.analytics', [
             'days'              => $days,
             'messagesPerDay'    => $messagesPerDay,
@@ -757,6 +767,7 @@ class SiteAssistantController extends Controller
             'cutoffByRoute'     => $cutoffByRoute,
             'lbClicksTotal'     => $lbClicksTotal,
             'lbClicksBySurface' => $lbClicksBySurface,
+            'recentAlerts'      => $recentAlerts,
         ]);
     }
 

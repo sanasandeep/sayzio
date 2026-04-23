@@ -66,6 +66,36 @@
 
     <div class="glass rounded-2xl border border-white/10 p-6">
         <div class="flex items-baseline justify-between mb-4">
+            <h3 class="font-semibold text-white">Recent cut-off alerts</h3>
+            <span class="text-xs text-white/40">last {{ $recentAlerts->count() }} dispatched</span>
+        </div>
+        @if($recentAlerts->isEmpty())
+            <p class="text-sm text-white/40">No cut-off alerts have been dispatched yet.</p>
+        @else
+            <ul class="divide-y divide-white/5 text-sm">
+                @foreach($recentAlerts as $a)
+                    <li class="py-2 flex items-center justify-between gap-4">
+                        <div class="min-w-0">
+                            <div class="text-white/80">
+                                <span class="font-semibold text-rose-300">{{ $a->abandon_rate }}% abandon</span>
+                                <span class="text-white/40">· threshold {{ $a->threshold }}%</span>
+                            </div>
+                            <div class="text-[11px] text-white/40 mt-0.5">
+                                {{ number_format($a->total) }} cut-offs · {{ number_format($a->retried) }} retried · {{ $a->window_hours }}h window
+                            </div>
+                        </div>
+                        <div class="text-right text-xs text-white/50 whitespace-nowrap"
+                             title="{{ optional($a->dispatched_at)->toDayDateTimeString() }}">
+                            {{ optional($a->dispatched_at)->diffForHumans() }}
+                        </div>
+                    </li>
+                @endforeach
+            </ul>
+        @endif
+    </div>
+
+    <div class="glass rounded-2xl border border-white/10 p-6">
+        <div class="flex items-baseline justify-between mb-4">
             <h3 class="font-semibold text-white">Messages per day</h3>
             <span class="text-xs text-white/40">peak {{ number_format($maxDay) }}/day</span>
         </div>

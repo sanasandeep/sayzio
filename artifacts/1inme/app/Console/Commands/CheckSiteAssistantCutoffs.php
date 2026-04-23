@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Modules\Common\Models\SiteAssistantCutoffAlert;
 use App\Modules\Common\Models\SiteAssistantMessage;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserNotification;
@@ -187,6 +188,24 @@ class CheckSiteAssistantCutoffs extends Command
             'cutoff_alert_last_sent_at' => now()->toIso8601String(),
             'cutoff_alerting'           => true,
         ]);
+
+        // Persist a row so the analytics dashboard can show admins a
+        // trail of recent alerts (timestamp, abandon rate, sample
+        // size) instead of the alert system being a black box.
+        try {
+            SiteAssistantCutoffAlert::create([
+                'dispatched_at'    => now(),
+                'abandon_rate'     => $abandonRate,
+                'threshold'        => $threshold,
+                'total'            => $total,
+                'retried'          => $retried,
+                'window_hours'     => 24,
+                'in_app_delivered' => $inAppDelivered,
+                'emails_sent'      => $emailsSent,
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('site-assistant cut-off alert history write failed: ' . $e->getMessage());
+        }
 
         $this->info("Alert dispatched — in-app: {$inAppDelivered}, email: {$emailsSent}.");
         return self::SUCCESS;
