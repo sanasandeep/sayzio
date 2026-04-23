@@ -24,30 +24,39 @@
             <div class="absolute -top-24 -right-24 w-80 h-80 rounded-full opacity-25 blur-3xl" style="background: var(--c2);"></div>
             <div class="absolute -bottom-24 -left-24 w-80 h-80 rounded-full opacity-20 blur-3xl" style="background: var(--c4);"></div>
 
-            <div class="relative grid gap-6 sm:gap-8" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
-                @foreach($__stats as $i => $stat)
-                    @php
-                        $target = $stat->numericTarget();
-                        $hasNumeric = $target !== null && str_contains($stat->value, (string) (int) $target) ? true : ($target !== null);
-                    @endphp
-                    <div class="reveal rd-{{ ($i%4)+1 }} text-center group">
-                        <div class="relative inline-flex items-center justify-center mb-4">
-                            <div class="absolute inset-0 rounded-2xl blur-xl opacity-60 group-hover:opacity-90 transition" style="background: {{ $stat->color }};"></div>
-                            <div class="relative w-14 h-14 rounded-2xl flex items-center justify-center border border-white/15"
-                                 style="background: linear-gradient(135deg, {{ $stat->color }}, rgba(124,58,237,.85)); box-shadow: 0 12px 36px -12px {{ $stat->color }};">
-                                <i class="fas {{ $stat->icon }} text-white text-lg"></i>
+            @php $__count = $__stats->count(); @endphp
+            <div class="relative -mx-2 sm:mx-0">
+                <div class="flex md:grid gap-3 sm:gap-5 md:gap-6 overflow-x-auto md:overflow-visible snap-x snap-mandatory scroll-smooth px-2 sm:px-0 pb-2 md:pb-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+                     style="grid-template-columns: repeat({{ max(1, $__count) }}, minmax(0, 1fr));">
+                    @foreach($__stats as $i => $stat)
+                        @php
+                            $target = $stat->numericTarget();
+                            $hasNumeric = $target !== null;
+                        @endphp
+                        <div class="reveal rd-{{ ($i%4)+1 }} text-center group shrink-0 snap-center w-[42%] xs:w-[36%] sm:w-[28%] md:w-auto">
+                            <div class="relative inline-flex items-center justify-center mb-2 sm:mb-3 md:mb-4">
+                                <div class="absolute inset-0 rounded-xl sm:rounded-2xl blur-xl opacity-60 group-hover:opacity-90 transition" style="background: {{ $stat->color }};"></div>
+                                <div class="relative w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center border border-white/15"
+                                     style="background: linear-gradient(135deg, {{ $stat->color }}, rgba(124,58,237,.85)); box-shadow: 0 12px 36px -12px {{ $stat->color }};">
+                                    <i class="fas {{ $stat->icon }} text-white text-sm sm:text-base md:text-lg"></i>
+                                </div>
                             </div>
+                            <div class="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight grad-text leading-none whitespace-nowrap">
+                                <span class="js-stat-count"
+                                      data-target="{{ $target !== null ? (int) $target : '' }}"
+                                      data-display="{{ $stat->value }}"
+                                      data-duration="1600">{{ $hasNumeric ? '0' : $stat->value }}</span><span class="text-white/80">{{ $stat->suffix }}</span>
+                            </div>
+                            <div class="mt-1.5 sm:mt-2 text-[10px] sm:text-xs md:text-sm text-gray-400 uppercase tracking-wider leading-tight">{{ $stat->label }}</div>
+                            <div class="mx-auto mt-2 sm:mt-3 h-1 w-10 sm:w-14 md:w-16 rounded-full" style="background: linear-gradient(90deg, {{ $stat->color }}, transparent);"></div>
                         </div>
-                        <div class="text-3xl sm:text-4xl font-extrabold tracking-tight grad-text leading-none">
-                            <span class="js-stat-count"
-                                  data-target="{{ $target !== null ? (int) $target : '' }}"
-                                  data-display="{{ $stat->value }}"
-                                  data-duration="1600">{{ $hasNumeric ? '0' : $stat->value }}</span><span class="text-white/80">{{ $stat->suffix }}</span>
-                        </div>
-                        <div class="mt-2 text-xs sm:text-sm text-gray-400 uppercase tracking-wider">{{ $stat->label }}</div>
-                        <div class="mx-auto mt-3 h-1 w-16 rounded-full" style="background: linear-gradient(90deg, {{ $stat->color }}, transparent);"></div>
-                    </div>
-                @endforeach
+                    @endforeach
+                </div>
+                <div class="md:hidden flex justify-center gap-1.5 mt-3" aria-hidden="true">
+                    @for($i = 0; $i < min(5, $__count); $i++)
+                        <span class="w-1.5 h-1.5 rounded-full bg-white/25"></span>
+                    @endfor
+                </div>
             </div>
         </div>
     </div>
