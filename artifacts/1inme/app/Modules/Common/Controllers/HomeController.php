@@ -86,35 +86,24 @@ class HomeController extends Controller
                 ];
             });
 
-        // Slot-aware homepage blog blocks. The "hero" slot is a single
-        // headline post; the "carousel" slot powers the multi-card row.
-        // Each slot is independent so admins can fill one without the
-        // other and the missing slot is hidden gracefully.
-        $featuredHeroPost  = null;
+        // Featured-post carousel for the landing page. The marketing
+        // seeder flags the top 3 posts with `is_featured_home` (across
+        // both `hero` and `carousel` slots) — we surface all of them in
+        // a single small carousel/grid below the fold so new content
+        // gets immediate visibility from the homepage.
         $featuredBlogPosts = collect();
         try {
-            $featuredHeroPost = \App\Modules\Common\Models\BlogPost::published()
-                ->featured()
-                ->where('featured_slot', 'hero')
-                ->with('category', 'author')
-                ->orderByDesc('published_at')
-                ->first();
-
             $featuredBlogPosts = \App\Modules\Common\Models\BlogPost::published()
                 ->featured()
-                ->where(function ($q) {
-                    $q->where('featured_slot', 'carousel')
-                      ->orWhereNull('featured_slot');
-                })
-                ->when($featuredHeroPost, fn($q) => $q->where('id', '!=', $featuredHeroPost->id))
-                ->with('category')
+                ->with('category', 'author')
+                ->orderByRaw("CASE WHEN featured_slot = 'hero' THEN 0 WHEN featured_slot = 'carousel' THEN 1 ELSE 2 END")
                 ->orderByDesc('published_at')
                 ->take(3)
                 ->get();
         } catch (\Throwable $e) {
-            // Blogs migration not run yet — silently skip both slots.
+            // Blogs migration not run yet — silently skip the carousel.
         }
 
-        return view('home', compact('plans', 'currency', 'currencySource', 'user', 'hasAddress', 'featuredBlogPosts', 'featuredHeroPost'));
+        return view('home', compact('plans', 'currency', 'currencySource', 'user', 'hasAddress', 'featuredBlogPosts'));
     }
 }
