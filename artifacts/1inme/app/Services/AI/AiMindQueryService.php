@@ -90,7 +90,7 @@ class AiMindQueryService
      *   user. For user-owned Minds the snapshot still resolves to
      *   the Mind's owner, which is unchanged.
      */
-    public function retrieveContext(User $user, array $minds, string $query, array $embedOverrides = [], ?User $contextUser = null): array
+    public function retrieveContext(User $user, array $minds, string $query, array $embedOverrides = [], ?User $contextUser = null, array $preferredSourceIds = []): array
     {
         $query = trim($query);
         $minds = array_values(array_filter($minds, fn($m) => $m && !$m->is_disabled));
@@ -123,10 +123,18 @@ class AiMindQueryService
             ->whereIn('mind_id', collect($minds)->pluck('id'))
             ->limit(2000)
             ->get(['id','mind_id','source_id','content','tokens','embedding','ord']);
+        // Sources flagged as "preferred" (e.g. admin-curated content
+        // scoped to the visitor's current marketing page) get a fixed
+        // similarity boost so their chunks rise above generic Mind
+        // content when both are plausible matches.
+        $preferred = array_flip(array_map('intval', $preferredSourceIds));
         $scored = [];
         foreach ($candidates as $c) {
             $vec = is_array($c->embedding) ? $c->embedding : [];
             $score = $vec ? $this->cosine($queryVec, $vec) : 0.0;
+            if (isset($preferred[(int) $c->source_id])) {
+                $score += 0.15;
+            }
             $scored[] = ['c' => $c, 'score' => $score];
         }
         usort($scored, fn($a, $b) => $b['score'] <=> $a['score']);

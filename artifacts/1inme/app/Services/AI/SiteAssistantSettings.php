@@ -24,6 +24,7 @@ class SiteAssistantSettings
             'system_prompt'     => self::defaultSystemPrompt(),
             'model'             => '', // empty = fall back to feature-mapped chat model
             'mind_ids'          => [], // empty = use platform-default minds
+            'assistant_mind_id' => null, // platform Mind that holds admin-curated assistant knowledge sources (auto-created on first use)
             'temperature'       => 0.4,
             'max_tokens'        => 800,
             'billing_user_id'   => null, // platform user that pays for anonymous turns
@@ -105,6 +106,38 @@ P;
         return (int) \App\Modules\Common\Models\SiteAssistantMessage::where(
             'created_at', '>=', now()->startOfMonth()
         )->sum('credits_spent');
+    }
+
+    /**
+     * Resolve (and lazily create) the dedicated platform Mind that
+     * stores admin-curated knowledge for the Site Assistant. Sources
+     * added under "Knowledge Sources" land here so the runtime can
+     * always include them in retrieval, even when no platform Mind has
+     * been pinned via `mind_ids`.
+     */
+    public static function ensureAssistantMind(): \App\Modules\User\Models\AiMind
+    {
+        $cfg = self::get();
+        $id  = (int) ($cfg['assistant_mind_id'] ?? 0);
+        if ($id > 0) {
+            $mind = \App\Modules\User\Models\AiMind::query()->whereNull('user_id')->find($id);
+            if ($mind) return $mind;
+        }
+        $mind = \App\Modules\User\Models\AiMind::query()
+            ->whereNull('user_id')
+            ->where('name', 'Site Assistant Knowledge')
+            ->first();
+        if (!$mind) {
+            $mind = \App\Modules\User\Models\AiMind::create([
+                'user_id'     => null,
+                'name'        => 'Site Assistant Knowledge',
+                'description' => 'Admin-curated URLs and pasted content for the site-wide AI assistant. Sources can be scoped to specific marketing pages.',
+                'is_default'  => false,
+                'is_disabled' => false,
+            ]);
+        }
+        self::update(['assistant_mind_id' => (int) $mind->id]);
+        return $mind;
     }
 
     public static function isOverBudget(): bool

@@ -135,6 +135,90 @@ class SiteAssistantController extends Controller
         return back()->with('success', "Re-index queued for \"{$mind->name}\".");
     }
 
+    // ── Knowledge Sources (per-page custom content) ───────────
+    /**
+     * List the URLs / pasted text the admin has curated for the
+     * site-wide assistant. These all live in a dedicated platform Mind
+     * (auto-created on first use). Each source can optionally be
+     * scoped to a route name pattern OR URL path so the runtime can
+     * prefer it on the matching marketing page.
+     */
+    public function sources(Request $request)
+    {
+        $mind = SiteAssistantSettings::ensureAssistantMind();
+        $sources = \App\Modules\User\Models\AiMindSource::query()
+            ->where('mind_id', $mind->id)
+            ->whereIn('type', [
+                \App\Modules\User\Models\AiMindSource::TYPE_LINK,
+                \App\Modules\User\Models\AiMindSource::TYPE_TEXT,
+            ])
+            ->orderByDesc('id')
+            ->paginate(50);
+        return view('admin.site-assistant.sources', compact('mind', 'sources'));
+    }
+
+    public function storeSource(Request $request)
+    {
+        $data = $request->validate([
+            'kind'              => ['required', Rule::in(['url', 'text'])],
+            'title'             => 'required|string|max:200',
+            'url'               => 'nullable|url|max:2048',
+            'body'              => 'nullable|string|max:50000',
+            'page_pattern'      => 'nullable|string|max:200',
+            'assistant_surface' => ['nullable', Rule::in(['marketing', 'app', 'any'])],
+            'refresh_minutes'   => 'nullable|integer|min:15|max:43200',
+        ]);
+        $mind = SiteAssistantSettings::ensureAssistantMind();
+
+        if ($data['kind'] === 'url') {
+            if (empty($data['url'])) {
+                return back()->withErrors(['url' => 'A URL is required for link sources.'])->withInput();
+            }
+            $source = \App\Modules\User\Models\AiMindSource::create([
+                'mind_id'           => $mind->id,
+                'type'              => \App\Modules\User\Models\AiMindSource::TYPE_LINK,
+                'title'             => $data['title'],
+                'url'               => $data['url'],
+                'page_pattern'      => $data['page_pattern'] ?: null,
+                'assistant_surface' => $data['assistant_surface'] ?: null,
+                'refresh_minutes'   => $data['refresh_minutes'] ?? (60 * 24),
+                'status'            => \App\Modules\User\Models\AiMindSource::STATUS_QUEUED,
+            ]);
+        } else {
+            if (empty($data['body'])) {
+                return back()->withErrors(['body' => 'Pasted content is required for text sources.'])->withInput();
+            }
+            $source = \App\Modules\User\Models\AiMindSource::create([
+                'mind_id'           => $mind->id,
+                'type'              => \App\Modules\User\Models\AiMindSource::TYPE_TEXT,
+                'title'             => $data['title'],
+                'body'              => $data['body'],
+                'page_pattern'      => $data['page_pattern'] ?: null,
+                'assistant_surface' => $data['assistant_surface'] ?: null,
+                'status'            => \App\Modules\User\Models\AiMindSource::STATUS_QUEUED,
+            ]);
+        }
+        \App\Jobs\IngestAiMindSourceJob::dispatch($source->id);
+        return back()->with('success', 'Knowledge source added — ingestion queued.');
+    }
+
+    public function reingestSource(\App\Modules\User\Models\AiMindSource $source)
+    {
+        $mindId = (int) (SiteAssistantSettings::get()['assistant_mind_id'] ?? 0);
+        abort_unless($mindId > 0 && (int) $source->mind_id === $mindId, 404);
+        $source->forceFill(['status' => \App\Modules\User\Models\AiMindSource::STATUS_QUEUED])->save();
+        \App\Jobs\IngestAiMindSourceJob::dispatch($source->id);
+        return back()->with('success', 'Re-ingestion queued.');
+    }
+
+    public function destroySource(\App\Modules\User\Models\AiMindSource $source)
+    {
+        $mindId = (int) (SiteAssistantSettings::get()['assistant_mind_id'] ?? 0);
+        abort_unless($mindId > 0 && (int) $source->mind_id === $mindId, 404);
+        $source->delete();
+        return back()->with('success', 'Knowledge source deleted.');
+    }
+
     // ── Page hints ────────────────────────────────────────────
     public function hints()
     {

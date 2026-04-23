@@ -348,6 +348,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
             // Usage analytics — messages/day, top routes, deflection
             // rate, and the questions that triggered handoffs.
             Route::get  ('analytics',                [\App\Modules\Admin\Controllers\SiteAssistantController::class, 'analytics'])->middleware(CheckPermission::class . ':settings.manage')->name('analytics');
+
+            // Per-page custom content the assistant trains on. Sources
+            // are stored in a dedicated platform Mind and may be scoped
+            // to a route/path so the runtime prefers them on the page.
+            Route::get   ('sources',                    [\App\Modules\Admin\Controllers\SiteAssistantController::class, 'sources'])->middleware(CheckPermission::class . ':settings.manage')->name('sources');
+            Route::post  ('sources',                    [\App\Modules\Admin\Controllers\SiteAssistantController::class, 'storeSource'])->middleware(CheckPermission::class . ':settings.manage')->name('sources.store');
+            Route::post  ('sources/{source}/reingest',  [\App\Modules\Admin\Controllers\SiteAssistantController::class, 'reingestSource'])->middleware(CheckPermission::class . ':settings.manage')->whereNumber('source')->name('sources.reingest');
+            Route::delete('sources/{source}',           [\App\Modules\Admin\Controllers\SiteAssistantController::class, 'destroySource'])->middleware(CheckPermission::class . ':settings.manage')->whereNumber('source')->name('sources.destroy');
         });
 
         // AI Personas — per-user list, plan caps, abuse disable.

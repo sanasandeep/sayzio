@@ -27,6 +27,7 @@ class AiMindSource extends Model
 
     protected $fillable = [
         'mind_id', 'type', 'title', 'body', 'url', 'feature_key',
+        'page_pattern', 'assistant_surface',
         'storage_disk', 'storage_path', 'mime', 'size_bytes',
         'status', 'status_message', 'chunks_count',
         'refresh_minutes', 'last_ingested_at', 'next_refresh_at', 'meta',

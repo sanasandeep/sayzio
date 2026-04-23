@@ -200,7 +200,8 @@ class SiteAssistantRuntime
                     // for anonymous). NEVER pass $billingUser here —
                     // doing so would leak the billing admin's private
                     // feature data into anonymous transcripts.
-                    $user
+                    $user,
+                    $this->preferredSourceIdsForPage($cfg, $surface, $page)
                 );
                 $knowledgeBlock = (string) ($retrieved['context'] ?? '');
                 $citations = (array) ($retrieved['citations'] ?? []);
@@ -467,7 +468,8 @@ class SiteAssistantRuntime
                     ],
                     // See turn(): only the authenticated visitor can
                     // ground feature snapshots from platform Minds.
-                    $user
+                    $user,
+                    $this->preferredSourceIdsForPage($cfg, $surface, $page)
                 );
                 $knowledgeBlock = (string) ($retrieved['context'] ?? '');
                 $citations = (array) ($retrieved['citations'] ?? []);
@@ -596,6 +598,20 @@ class SiteAssistantRuntime
                 $merged[] = $m;
             }
         }
+        // Always include the dedicated assistant Mind (admin-curated
+        // URLs / pasted content from the Knowledge Sources page) when
+        // it has been initialised and not disabled.
+        $assistantMindId = (int) ($cfg['assistant_mind_id'] ?? 0);
+        if ($assistantMindId > 0) {
+            $assistantMind = \App\Modules\User\Models\AiMind::query()
+                ->whereKey($assistantMindId)
+                ->whereNull('user_id')
+                ->where('is_disabled', false)
+                ->first();
+            if ($assistantMind) {
+                $merged[] = $assistantMind;
+            }
+        }
         $seen = []; $out = [];
         foreach ($merged as $m) {
             if (isset($seen[$m->id])) continue;
@@ -603,6 +619,41 @@ class SiteAssistantRuntime
             $out[] = $m;
         }
         return $out;
+    }
+
+    /**
+     * Resolve the ids of admin-curated assistant sources whose
+     * page_pattern matches the visitor's current route or path. The
+     * runtime passes these to AiMindQueryService::retrieveContext()
+     * so their chunks get a similarity boost — that's how a marketing
+     * page's custom content gets preferred over generic platform Minds.
+     *
+     * @return array<int,int>
+     */
+    protected function preferredSourceIdsForPage(array $cfg, string $surface, array $page): array
+    {
+        $assistantMindId = (int) ($cfg['assistant_mind_id'] ?? 0);
+        if ($assistantMindId <= 0) return [];
+        $candidates = \App\Modules\User\Models\AiMindSource::query()
+            ->where('mind_id', $assistantMindId)
+            ->whereNotNull('page_pattern')
+            ->where(function ($q) use ($surface) {
+                $q->whereNull('assistant_surface')
+                  ->orWhere('assistant_surface', 'any')
+                  ->orWhere('assistant_surface', $surface);
+            })
+            ->get(['id', 'page_pattern']);
+        $route = (string) ($page['route'] ?? '');
+        $path  = (string) ($page['path'] ?? '');
+        $ids = [];
+        foreach ($candidates as $c) {
+            $p = (string) $c->page_pattern;
+            if ($p === '') continue;
+            if (fnmatch($p, $route) || fnmatch($p, $path)) {
+                $ids[] = (int) $c->id;
+            }
+        }
+        return $ids;
     }
 
     public function listTemplates(): array
