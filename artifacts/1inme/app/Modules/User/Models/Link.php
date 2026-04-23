@@ -84,6 +84,11 @@ protected $fillable = [
         return $this->hasMany(Rsvp::class);
     }
 
+    public function pollVotes()
+    {
+        return $this->hasMany(PollVote::class);
+    }
+
     public function biolinkBlocks()
     {
         return $this->hasMany(BiolinkBlock::class)->orderBy('sort_order');

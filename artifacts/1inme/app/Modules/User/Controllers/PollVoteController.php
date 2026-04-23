@@ -1,0 +1,108 @@
+<?php
+
+namespace App\Modules\User\Controllers;
+
+use App\Http\Controllers\Controller;
+use App\Modules\User\Models\BiolinkBlock;
+use App\Modules\User\Models\Link;
+use App\Modules\User\Models\PollVote;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+
+class PollVoteController extends Controller
+{
+    /**
+     * Authorize that the link belongs to the current user, the block
+     * belongs to that link, and the block is actually a poll. Returns
+     * the validated [link, block] pair so each action stays thin.
+     */
+    private function resolve(Request $request, Link $link, BiolinkBlock $block): array
+    {
+        abort_if($link->user_id !== $request->user()->id, 403);
+        abort_if($block->link_id !== $link->id, 404);
+        abort_if($block->type !== 'poll', 404);
+
+        return [$link, $block];
+    }
+
+    public function index(Request $request, Link $link, BiolinkBlock $block)
+    {
+        [$link, $block] = $this->resolve($request, $link, $block);
+
+        $votes = $block->pollVotes()
+            ->with('user:id,name,email')
+            ->orderByDesc('created_at')
+            ->paginate(50);
+
+        $settings = $block->settings ?? [];
+        $options = $settings['options'] ?? [];
+        $question = $settings['question'] ?? 'Poll';
+
+        // Tally per option, indexed by option_index so options without
+        // any votes still show up at zero in the breakdown.
+        $rawCounts = $block->pollVotes()
+            ->selectRaw('option_index, COUNT(*) as c')
+            ->groupBy('option_index')
+            ->pluck('c', 'option_index')
+            ->all();
+
+        $total = array_sum($rawCounts);
+        $breakdown = [];
+        foreach ($options as $i => $label) {
+            $count = (int) ($rawCounts[$i] ?? 0);
+            $breakdown[] = [
+                'index' => $i,
+                'label' => $label,
+                'count' => $count,
+                'pct'   => $total > 0 ? round($count * 100 / $total) : 0,
+            ];
+        }
+
+        return view('user.links.poll-votes', compact(
+            'link', 'block', 'votes', 'breakdown', 'total', 'question'
+        ));
+    }
+
+    public function export(Request $request, Link $link, BiolinkBlock $block): StreamedResponse
+    {
+        [$link, $block] = $this->resolve($request, $link, $block);
+
+        $filename = 'poll-votes-' . $link->alias . '-block' . $block->id
+            . '-' . now()->format('Ymd-His') . '.csv';
+
+        return response()->streamDownload(function () use ($block) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, [
+                'Option index', 'Option label', 'Voter name', 'Voter email',
+                'Voter fingerprint', 'Source', 'IP address', 'Submitted at',
+            ]);
+            $block->pollVotes()->with('user:id,name,email')
+                ->orderBy('created_at')
+                ->chunk(500, function ($rows) use ($out) {
+                    foreach ($rows as $v) {
+                        fputcsv($out, [
+                            $v->option_index,
+                            $v->option_label,
+                            $v->user?->name,
+                            $v->user?->email,
+                            $v->voter_fingerprint,
+                            $v->source,
+                            $v->ip_address,
+                            $v->created_at?->toDateTimeString(),
+                        ]);
+                    }
+                });
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv']);
+    }
+
+    public function destroy(Request $request, Link $link, BiolinkBlock $block, PollVote $vote)
+    {
+        [$link, $block] = $this->resolve($request, $link, $block);
+        abort_if($vote->block_id !== $block->id, 404);
+
+        $vote->delete();
+
+        return back()->with('success', 'Vote removed.');
+    }
+}

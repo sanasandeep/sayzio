@@ -21,6 +21,11 @@ class BiolinkBlock extends Model
         ];
     }
 
+    public function pollVotes()
+    {
+        return $this->hasMany(PollVote::class, 'block_id');
+    }
+
     public const CATEGORIES = [
         'basic'           => 'Essentials',
         'layout'          => 'Layout & Profile',

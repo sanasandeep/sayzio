@@ -30,4 +30,9 @@ class PollVote extends Model
     {
         return $this->belongsTo(BiolinkBlock::class, 'block_id');
     }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }

@@ -16,6 +16,7 @@ use App\Modules\User\Controllers\BiolinkBlockController;
 use App\Modules\User\Controllers\BiolinkWizardController;
 use App\Modules\User\Controllers\CalendarAccountController;
 use App\Modules\User\Controllers\RsvpController;
+use App\Modules\User\Controllers\PollVoteController;
 use App\Modules\User\Controllers\UserFileController;
 use App\Modules\User\Controllers\PlanManagementController;
 use App\Modules\User\Controllers\SubscriberController;
@@ -559,6 +560,11 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('links/{link}/rsvps',                    [RsvpController::class, 'index'])->middleware('workspace.can:followers.view')->name('links.rsvps.index');
         Route::get('links/{link}/rsvps/export',             [RsvpController::class, 'export'])->middleware('workspace.can:followers.view')->name('links.rsvps.export');
         Route::delete('links/{link}/rsvps/{rsvp}',          [RsvpController::class, 'destroy'])->middleware('workspace.can:followers.edit')->name('links.rsvps.destroy');
+
+        // ===== Poll votes (per biolink-block) — followers feature.
+        Route::get('links/{link}/blocks/{block}/poll-votes',          [PollVoteController::class, 'index'])->middleware('workspace.can:followers.view')->name('links.poll-votes.index');
+        Route::get('links/{link}/blocks/{block}/poll-votes/export',   [PollVoteController::class, 'export'])->middleware('workspace.can:followers.view')->name('links.poll-votes.export');
+        Route::delete('links/{link}/blocks/{block}/poll-votes/{vote}',[PollVoteController::class, 'destroy'])->middleware('workspace.can:followers.edit')->name('links.poll-votes.destroy');
         Route::post('qrcode', [QrCodeController::class, 'generateStandalone'])->middleware('workspace.can:links.create')->name('qrcode.download');
         Route::get('qrcode/preview', [QrCodeController::class, 'previewStandalone'])->middleware('workspace.can:links.view')->name('qrcode.preview');
 

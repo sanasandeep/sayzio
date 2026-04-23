@@ -446,6 +446,12 @@ function imageListUploader_{{ $gridImgId }}() {
         <div class="flex gap-2 mb-2"><input type="text" x-model="options[i]" :name="'settings[options]['+i+']'" class="{{ $inputClass }}"><button type="button" @click="options.splice(i,1)" class="text-red-400/60 hover:text-red-400 px-2"><i class="fas fa-times text-xs"></i></button></div>
     </template>
     <button type="button" @click="options.push('')" class="text-xs text-violet-400 hover:text-violet-300"><i class="fas fa-plus mr-1"></i>Add Option</button>
+    @if($block->exists)
+        <a href="{{ route('user.links.poll-votes.index', [$block->link_id, $block->id]) }}"
+           class="inline-flex items-center gap-1.5 mt-3 text-xs text-violet-300 hover:text-violet-200">
+            <i class="fas fa-list-ol"></i> View &amp; export votes
+        </a>
+    @endif
 </div>
 
 @elseif($block->type === 'testimonials')
