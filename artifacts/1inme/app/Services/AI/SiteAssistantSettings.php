@@ -72,6 +72,11 @@ class SiteAssistantSettings
             // Empty/missing entries fall back to the default English copy.
             'greeting_locales'        => [],
             'starter_prompts_locales' => [],
+            // Optional per-locale overrides for the assistant system
+            // prompt that steers the model. Shape: ['fr' => '…', …].
+            // Empty/missing entries fall back to the default English
+            // `system_prompt` above.
+            'system_prompt_locales'   => [],
         ];
     }
 
@@ -278,6 +283,48 @@ P;
         }
         ksort($out);
         return $out;
+    }
+
+    /**
+     * Normalize the per-locale system prompt overrides posted from the
+     * admin form. BCP-47 canonicalised codes; blanks dropped; capped
+     * at 50 entries; each prompt capped at 8000 chars to mirror the
+     * default `system_prompt` field length.
+     */
+    public static function normalizeSystemPromptLocales(array $in): array
+    {
+        $out = [];
+        foreach ($in as $code => $val) {
+            $canon = \App\Modules\Common\Support\CookieConsentConfig::canonicalLocale((string) $code);
+            if ($canon === null) continue;
+            $val = trim((string) $val);
+            if ($val === '') continue;
+            $out[$canon] = mb_substr($val, 0, 8000);
+            if (count($out) >= 50) break;
+        }
+        ksort($out);
+        return $out;
+    }
+
+    /**
+     * Resolve the locale-specific system prompt using the visitor's
+     * Accept-Language header, falling back to the default English copy
+     * (`system_prompt`) when no locale override matches.
+     */
+    public static function systemPromptFor(array $cfg, ?string $acceptLanguage = null): string
+    {
+        $default = (string) ($cfg['system_prompt'] ?? '');
+        $locales = (array) ($cfg['system_prompt_locales'] ?? []);
+        if (empty($locales)) return $default;
+
+        $accept = self::resolveAcceptLanguage($acceptLanguage);
+        if (!$accept) return $default;
+
+        $picked = \App\Modules\Common\Support\CookieConsentConfig::pickLocale(array_keys($locales), $accept);
+        if ($picked === null) return $default;
+
+        $val = trim((string) ($locales[$picked] ?? ''));
+        return $val !== '' ? $val : $default;
     }
 
     /**

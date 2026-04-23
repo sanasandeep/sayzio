@@ -98,6 +98,8 @@ class SiteAssistantController extends Controller
             'starter_prompts_locales'           => 'nullable|array|max:50',
             'starter_prompts_locales.*'         => 'array',
             'starter_prompts_locales.*.*'       => 'nullable|string|max:200',
+            'system_prompt_locales'             => 'nullable|array|max:50',
+            'system_prompt_locales.*'           => 'nullable|string|max:8000',
         ]);
         $payload = [
             'enabled_marketing'       => $request->boolean('enabled_marketing'),
@@ -137,6 +139,9 @@ class SiteAssistantController extends Controller
             ),
             'starter_prompts_locales' => SiteAssistantSettings::normalizeStarterPromptsLocales(
                 (array) $request->input('starter_prompts_locales', [])
+            ),
+            'system_prompt_locales'   => SiteAssistantSettings::normalizeSystemPromptLocales(
+                (array) $request->input('system_prompt_locales', [])
             ),
         ];
         SiteAssistantSettings::update($payload);

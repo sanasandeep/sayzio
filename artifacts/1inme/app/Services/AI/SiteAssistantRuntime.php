@@ -302,7 +302,7 @@ class SiteAssistantRuntime
 
         // Build prompt
         $hint = SiteAssistantPageHint::resolve($page['route'] ?? null, $page['path'] ?? null, $surface);
-        $systemPrompt = (string) $cfg['system_prompt'];
+        $systemPrompt = SiteAssistantSettings::systemPromptFor($cfg);
 
         $contextBlock = $this->buildPageContextBlock($surface, $page, $hint);
 
@@ -636,7 +636,7 @@ class SiteAssistantRuntime
             foreach ($tplKeys as $k => $label) $tplBlock .= " - {$k}: {$label}\n";
         }
 
-        $messages = [['role' => 'system', 'content' => (string) $cfg['system_prompt']]];
+        $messages = [['role' => 'system', 'content' => SiteAssistantSettings::systemPromptFor($cfg)]];
         if ($tplBlock !== '') $messages[] = ['role' => 'system', 'content' => $tplBlock];
         if ($contextBlock !== '') $messages[] = ['role' => 'system', 'content' => "Page context:\n" . $contextBlock];
         if ($user) {
