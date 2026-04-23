@@ -177,6 +177,88 @@
                 <input type="text" maxlength="500" name="low_balance_message_anonymous" value="{{ $cfg['low_balance_message_anonymous'] }}" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
                 <p class="text-xs text-white/40 mt-1">No numbers are leaked to anonymous visitors — keep this generic.</p>
             </div>
+
+            <div class="pt-2 border-t border-white/10 space-y-3">
+                <div>
+                    <h4 class="text-sm font-semibold text-white">Per-language translations</h4>
+                    <p class="text-xs text-white/40">Visitors are matched to the closest language from their browser's <span class="font-mono text-white/60">Accept-Language</span> header (e.g. <span class="font-mono text-white/60">fr-CA</span> falls back to <span class="font-mono text-white/60">fr</span>). Any field left blank uses the default copy above. Use BCP-47 codes like <span class="font-mono text-white/60">fr</span>, <span class="font-mono text-white/60">es</span>, <span class="font-mono text-white/60">pt-BR</span>, <span class="font-mono text-white/60">zh-CN</span>.</p>
+                </div>
+
+                <div id="lb_locales" class="space-y-3"></div>
+
+                <div class="flex items-center gap-3">
+                    <button type="button" id="lb_locale_add" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-purple-500/15 border border-purple-500/35 text-purple-200">
+                        + Add language
+                    </button>
+                    <span class="text-[11px] text-white/40">Up to 50 languages.</span>
+                </div>
+
+                <template id="lb_locale_row_tpl">
+                    <div class="lb-locale-row rounded-xl p-4 bg-white/5 border border-white/10">
+                        <div class="flex items-center justify-between gap-3 mb-3">
+                            <label class="block text-xs text-white/60 flex-1 max-w-[240px]">Language code (BCP-47)
+                                <input type="text" data-lb-locale-code value="" placeholder="fr or pt-BR"
+                                    class="mt-1 w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white font-mono"
+                                    pattern="[A-Za-z]{2,3}([-_][A-Za-z]{2,4})?">
+                            </label>
+                            <button type="button" data-lb-locale-remove class="text-xs text-red-300 hover:text-red-200 px-2 py-1">Remove</button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <label class="block text-xs text-white/60">Signed-in message
+                                <input type="text" maxlength="500" data-lb-loc="signed_in" class="mt-1 w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                            </label>
+                            <label class="block text-xs text-white/60">Anonymous visitor message
+                                <input type="text" maxlength="500" data-lb-loc="anonymous" class="mt-1 w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                            </label>
+                        </div>
+                    </div>
+                </template>
+
+                <script>
+                (function () {
+                    var host = document.getElementById('lb_locales');
+                    var tpl  = document.getElementById('lb_locale_row_tpl');
+                    var addBtn = document.getElementById('lb_locale_add');
+                    var seeded = @json((object)($cfg['low_balance_message_locales'] ?? new \stdClass()));
+                    var KEYS = ['signed_in','anonymous'];
+                    var seq = 0;
+
+                    function rewire(row) {
+                        var codeInput = row.querySelector('[data-lb-locale-code]');
+                        var raw = (codeInput.value || '').trim();
+                        var bucket = raw === '' ? '__pending_' + (row.dataset.rowId || '0') : raw;
+                        row.querySelectorAll('[data-lb-loc]').forEach(function (el) {
+                            var k = el.getAttribute('data-lb-loc');
+                            el.name = 'low_balance_message_locales[' + bucket + '][' + k + ']';
+                        });
+                    }
+
+                    function addRow(code, values) {
+                        if (host.querySelectorAll('.lb-locale-row').length >= 50) return;
+                        var node = tpl.content.firstElementChild.cloneNode(true);
+                        node.dataset.rowId = String(++seq);
+                        var codeInput = node.querySelector('[data-lb-locale-code]');
+                        codeInput.value = code || '';
+                        if (values && typeof values === 'object') {
+                            KEYS.forEach(function (k) {
+                                var f = node.querySelector('[data-lb-loc="' + k + '"]');
+                                if (f && values[k] != null) f.value = values[k];
+                            });
+                        }
+                        node.querySelector('[data-lb-locale-remove]').addEventListener('click', function () { node.remove(); });
+                        codeInput.addEventListener('input', function () { rewire(node); });
+                        host.appendChild(node);
+                        rewire(node);
+                    }
+
+                    if (addBtn) addBtn.addEventListener('click', function () { addRow('', null); });
+
+                    if (seeded && typeof seeded === 'object' && !Array.isArray(seeded)) {
+                        Object.keys(seeded).forEach(function (code) { addRow(code, seeded[code]); });
+                    }
+                })();
+                </script>
+            </div>
         </div>
 
         <div class="glass rounded-2xl border border-white/10 p-6 space-y-3">

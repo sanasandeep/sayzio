@@ -81,6 +81,10 @@ class SiteAssistantController extends Controller
             'low_balance_default_credits'    => 'nullable|integer|min:1|max:100000',
             'low_balance_message_signed_in'  => 'nullable|string|max:500',
             'low_balance_message_anonymous'  => 'nullable|string|max:500',
+            'low_balance_message_locales'              => 'nullable|array|max:50',
+            'low_balance_message_locales.*'            => 'array',
+            'low_balance_message_locales.*.signed_in'  => 'nullable|string|max:500',
+            'low_balance_message_locales.*.anonymous'  => 'nullable|string|max:500',
             'starter_prompts'          => 'nullable|array',
             'starter_prompts.*'        => 'nullable|string|max:200',
         ]);
@@ -105,6 +109,9 @@ class SiteAssistantController extends Controller
             'low_balance_default_credits'   => max(1, (int) ($data['low_balance_default_credits'] ?? 50)),
             'low_balance_message_signed_in' => trim((string) ($data['low_balance_message_signed_in'] ?? '')),
             'low_balance_message_anonymous' => trim((string) ($data['low_balance_message_anonymous'] ?? '')),
+            'low_balance_message_locales'   => SiteAssistantSettings::normalizeLowBalanceLocales(
+                (array) $request->input('low_balance_message_locales', [])
+            ),
             'starter_prompts'         => array_values(array_filter(array_map(
                 fn ($s) => trim((string) $s),
                 (array) ($data['starter_prompts'] ?? [])

@@ -42,6 +42,10 @@ class SiteAssistantSettings
                 'Only enough credits left for about {remaining} more replies — top up to keep chatting.',
             'low_balance_message_anonymous' =>
                 'Heads up — this chat is running low on credits and replies may be cut short soon.',
+            // Optional per-locale overrides for the two messages above.
+            // Shape: ['fr' => ['signed_in' => '…', 'anonymous' => '…'], …]
+            // Empty/missing entries fall back to the default English copy.
+            'low_balance_message_locales' => [],
             'starter_prompts'   => [
                 'What can I do on this page?',
                 'How does pricing work?',
@@ -148,6 +152,69 @@ P;
         }
         self::update(['assistant_mind_id' => (int) $mind->id]);
         return $mind;
+    }
+
+    /**
+     * Normalize the per-locale low-balance message overrides posted from
+     * the admin form. Locale codes are canonicalised to BCP-47 form
+     * (`fr`, `pt-BR`); malformed codes are dropped silently. Empty
+     * `signed_in`/`anonymous` values are stripped so they fall back to
+     * the default copy at render time. Capped at 50 entries to keep
+     * the settings blob small.
+     */
+    public static function normalizeLowBalanceLocales(array $in): array
+    {
+        $out = [];
+        foreach ($in as $code => $row) {
+            if (!is_array($row)) continue;
+            $canon = \App\Modules\Common\Support\CookieConsentConfig::canonicalLocale((string) $code);
+            if ($canon === null) continue;
+            $entry = [];
+            foreach (['signed_in', 'anonymous'] as $k) {
+                if (!array_key_exists($k, $row)) continue;
+                $val = trim((string) $row[$k]);
+                if ($val === '') continue;
+                $entry[$k] = mb_substr($val, 0, 500);
+            }
+            if (!empty($entry)) $out[$canon] = $entry;
+            if (count($out) >= 50) break;
+        }
+        ksort($out);
+        return $out;
+    }
+
+    /**
+     * Resolve the locale-specific low-balance message for the given
+     * audience (`signed_in` or `anonymous`) using the visitor's
+     * Accept-Language header. Falls back to the default English copy
+     * stored in `low_balance_message_<audience>` when no locale override
+     * matches. When $acceptLanguage is null, the current request's
+     * header is used.
+     */
+    public static function lowBalanceMessageFor(array $cfg, string $audience, ?string $acceptLanguage = null): string
+    {
+        $defaultKey = $audience === 'signed_in'
+            ? 'low_balance_message_signed_in'
+            : 'low_balance_message_anonymous';
+        $default = trim((string) ($cfg[$defaultKey] ?? ''));
+
+        $locales = (array) ($cfg['low_balance_message_locales'] ?? []);
+        if (empty($locales)) return $default;
+
+        if ($acceptLanguage === null && function_exists('request')) {
+            try {
+                $acceptLanguage = (string) (request()->server('HTTP_ACCEPT_LANGUAGE') ?? '');
+            } catch (\Throwable $e) {
+                $acceptLanguage = '';
+            }
+        }
+        if (!$acceptLanguage) return $default;
+
+        $picked = \App\Modules\Common\Support\CookieConsentConfig::pickLocale(array_keys($locales), $acceptLanguage);
+        if ($picked === null) return $default;
+
+        $override = trim((string) ($locales[$picked][$audience] ?? ''));
+        return $override !== '' ? $override : $default;
     }
 
     public static function isOverBudget(): bool

@@ -131,7 +131,7 @@ class SiteAssistantRuntime
         // pricing link instead of a direct top-up flow (they don't yet
         // have an account/wallet to credit).
         if (!$user) {
-            $anonMsg = trim((string) ($cfg['low_balance_message_anonymous'] ?? ''));
+            $anonMsg = SiteAssistantSettings::lowBalanceMessageFor($cfg, 'anonymous');
             return [
                 'low'               => true,
                 'remaining_replies' => null,
@@ -142,7 +142,7 @@ class SiteAssistantRuntime
             ];
         }
 
-        $template = trim((string) ($cfg['low_balance_message_signed_in'] ?? ''));
+        $template = SiteAssistantSettings::lowBalanceMessageFor($cfg, 'signed_in');
         $msg = $template !== ''
             ? strtr($template, [
                 '{remaining}' => (string) max(0, $remaining),
