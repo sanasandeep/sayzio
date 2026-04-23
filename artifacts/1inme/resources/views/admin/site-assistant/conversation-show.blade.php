@@ -38,8 +38,10 @@
                                 <span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 normal-case tracking-normal" title="Stream broke mid-reply — the visitor only saw what is shown above.">partial stream</span>
                             @elseif($streamStatus === 'failed')
                                 <span class="px-1.5 py-0.5 rounded bg-red-500/20 text-red-300 normal-case tracking-normal" title="Stream failed before any tokens reached the visitor.">stream failed</span>
-                            @else
+                            @elseif($streamStatus === 'classic')
                                 <span class="px-1.5 py-0.5 rounded bg-white/10 text-white/60 normal-case tracking-normal" title="Returned in a single non-streaming response.">classic</span>
+                            @else
+                                <span class="px-1.5 py-0.5 rounded bg-slate-500/20 text-slate-300 normal-case tracking-normal" title="This reply pre-dates delivery-mode tracking — we can't tell whether it was streamed or returned in one shot.">unknown</span>
                             @endif
                         @endif
                     </div>

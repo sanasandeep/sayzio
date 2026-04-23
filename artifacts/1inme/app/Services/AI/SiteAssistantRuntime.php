@@ -293,6 +293,10 @@ class SiteAssistantRuntime
                 'blocks'          => $blocks['blocks'] ?? null,
                 'citations'       => $citations,
                 'credits_spent'   => (int) ($result['credits_spent'] ?? 0),
+                // Explicit marker so admin transcript can distinguish a
+                // truly non-streamed reply from a historical row whose
+                // delivery mode was never recorded ("unknown").
+                'meta'            => ['stream' => ['status' => 'classic']],
             ]);
             $conv->turns_count     = (int) $conv->turns_count + 1;
             $conv->credits_spent   = (int) $conv->credits_spent + (int) ($result['credits_spent'] ?? 0);
@@ -382,7 +386,12 @@ class SiteAssistantRuntime
             'conversation_id' => $conv->id,
             'role'            => 'assistant',
             'content'         => "Thanks {$name} — our team has your message and will reply at {$email} shortly.",
-            'meta'            => ['handoff' => true, 'contact_message_id' => $contact->id],
+            'meta'            => [
+                'handoff'            => true,
+                'contact_message_id' => $contact->id,
+                // Synthetic confirmation, never streamed.
+                'stream'             => ['status' => 'classic'],
+            ],
         ]);
 
         return [
