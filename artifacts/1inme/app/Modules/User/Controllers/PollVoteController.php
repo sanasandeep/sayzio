@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\PollVote;
+use App\Modules\User\Models\PollVoterErasure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -36,6 +37,14 @@ class PollVoteController extends Controller
             ->orderByDesc('created_at')
             ->paginate(50);
 
+        // Most-recent erasures by this creator (across all their polls) so
+        // they can prove a takedown happened directly from the votes screen.
+        $recentErasures = PollVoterErasure::query()
+            ->where('creator_id', $request->user()->id)
+            ->orderByDesc('created_at')
+            ->limit(5)
+            ->get();
+
         $settings = $block->settings ?? [];
         $options = $settings['options'] ?? [];
         $question = $settings['question'] ?? 'Poll';
@@ -61,7 +70,8 @@ class PollVoteController extends Controller
         }
 
         return view('user.links.poll-votes', compact(
-            'link', 'block', 'votes', 'breakdown', 'total', 'question'
+            'link', 'block', 'votes', 'breakdown', 'total', 'question',
+            'recentErasures'
         ));
     }
 
@@ -155,7 +165,21 @@ class PollVoteController extends Controller
             return back()->with('error', 'No poll votes matched “' . e($needle) . '”.');
         }
 
-        $query->delete();
+        // Wrap the delete + audit insert in a transaction so we can never
+        // remove votes without leaving the matching proof-of-takedown row.
+        DB::transaction(function () use ($query, $creatorId, $link, $block, $needle, $count, $request) {
+            $query->delete();
+
+            PollVoterErasure::create([
+                'creator_id'    => $creatorId,
+                'link_id'       => $link->id,
+                'block_id'      => $block->id,
+                'identifier'    => $needle,
+                'removed_count' => $count,
+                'ip_address'    => $request->ip(),
+                'created_at'    => now(),
+            ]);
+        });
 
         Log::info('poll voter erased', [
             'creator_id' => $creatorId,
@@ -165,5 +189,22 @@ class PollVoteController extends Controller
         ]);
 
         return back()->with('success', "Erased {$count} poll vote(s) tied to “{$needle}”.");
+    }
+
+    /**
+     * Dedicated audit screen showing every voter-erasure this creator has
+     * performed across all of their polls. Older entries page through here.
+     */
+    public function erasures(Request $request, Link $link, BiolinkBlock $block)
+    {
+        [$link, $block] = $this->resolve($request, $link, $block);
+
+        $erasures = PollVoterErasure::query()
+            ->with(['link:id,alias,title', 'block:id,link_id'])
+            ->where('creator_id', $request->user()->id)
+            ->orderByDesc('created_at')
+            ->paginate(50);
+
+        return view('user.links.poll-vote-erasures', compact('link', 'block', 'erasures'));
     }
 }

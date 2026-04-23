@@ -57,6 +57,41 @@
                 <i class="fas fa-eraser"></i> Erase voter
             </button>
         </form>
+
+        {{-- Recent erasures: proves a takedown happened, in-app and not just
+             buried in the application log file. Full history lives at the
+             dedicated audit screen linked at the bottom. --}}
+        <div class="mt-5 pt-4" style="border-top: 1px solid rgba(255,255,255,0.06);">
+            <div class="flex items-center justify-between mb-2">
+                <div class="text-[11px] uppercase tracking-wider font-semibold" style="color: var(--text-muted);">
+                    Recent erasures
+                </div>
+                <a href="{{ route('user.links.poll-votes.erasures', [$link, $block]) }}"
+                   class="text-xs font-semibold inline-flex items-center gap-1 hover:underline" style="color: #a78bfa;">
+                    Full history <i class="fas fa-arrow-right text-[10px]"></i>
+                </a>
+            </div>
+            @if($recentErasures->isEmpty())
+                <p class="text-xs" style="color: var(--text-muted);">
+                    No voters have been erased yet. Each takedown will be recorded here.
+                </p>
+            @else
+                <ul class="space-y-1.5">
+                    @foreach($recentErasures as $e)
+                        <li class="flex items-center justify-between gap-3 text-xs px-3 py-2 rounded-lg"
+                            style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);">
+                            <div class="min-w-0 flex-1">
+                                <span class="font-semibold" style="color: var(--text-primary);">{{ $e->identifier }}</span>
+                                <span style="color: var(--text-muted);">— {{ $e->removed_count }} {{ \Illuminate\Support\Str::plural('vote', $e->removed_count) }} removed</span>
+                            </div>
+                            <span class="flex-shrink-0" style="color: var(--text-faint);" title="{{ $e->created_at?->toDateTimeString() }}">
+                                {{ $e->created_at?->diffForHumans() }}
+                            </span>
+                        </li>
+                    @endforeach
+                </ul>
+            @endif
+        </div>
     </div>
 
     {{-- Per-option breakdown --}}
