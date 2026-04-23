@@ -498,6 +498,11 @@ class SiteAssistantRuntime
 
         $model = $this->modelFor($cfg);
 
+        // Mirror tokens into a local buffer so that, if the upstream
+        // request errors mid-stream, we can still persist whatever the
+        // visitor actually saw and flag it as a partial/failed turn for
+        // admin debugging.
+        $partial = '';
         try {
             $result = $this->openai->chatStream($billingUser, $model, $messages, [
                 'temperature' => (float) ($cfg['temperature'] ?? 0.4),
@@ -505,13 +510,16 @@ class SiteAssistantRuntime
                 'feature'     => 'site_assistant',
                 'related_id'  => (int) $conv->id,
                 'reason'      => 'Site assistant turn (stream)',
-            ], function (string $delta) use ($emit) {
+            ], function (string $delta) use ($emit, &$partial) {
+                $partial .= $delta;
                 $emit('token', ['delta' => $delta]);
             });
         } catch (InsufficientAiCreditsException $e) {
+            $this->persistFailedStreamMessage($conv, $partial, 'The assistant is temporarily out of capacity.');
             $emit('error', ['error' => 'The assistant is temporarily out of capacity.']); return;
         } catch (\Throwable $e) {
             report($e);
+            $this->persistFailedStreamMessage($conv, $partial, 'The assistant could not respond right now.');
             $emit('error', ['error' => 'The assistant could not respond right now.']); return;
         }
 
@@ -530,6 +538,7 @@ class SiteAssistantRuntime
                 'blocks'          => $blocks['blocks'] ?? null,
                 'citations'       => $citations,
                 'credits_spent'   => (int) ($result['credits_spent'] ?? 0),
+                'meta'            => ['stream' => ['status' => 'streamed']],
             ]);
             $conv->turns_count   = (int) $conv->turns_count + 1;
             $conv->credits_spent = (int) $conv->credits_spent + (int) ($result['credits_spent'] ?? 0);
@@ -654,6 +663,35 @@ class SiteAssistantRuntime
             }
         }
         return $ids;
+    }
+
+    /**
+     * Persist a partial/failed streamed assistant turn so admin staff
+     * can see exactly what (if anything) the visitor saw before the
+     * stream broke. Bumps `turns_count` so the conversation reflects
+     * the attempt, but does not charge additional credits (chatStream
+     * never returned a usage frame).
+     */
+    protected function persistFailedStreamMessage(SiteAssistantConversation $conv, string $partial, string $error): void
+    {
+        try {
+            DB::transaction(function () use ($conv, $partial, $error) {
+                SiteAssistantMessage::create([
+                    'conversation_id' => $conv->id,
+                    'role'            => 'assistant',
+                    'content'         => $partial,
+                    'meta'            => ['stream' => [
+                        'status' => $partial !== '' ? 'partial' : 'failed',
+                        'error'  => $error,
+                    ]],
+                ]);
+                $conv->turns_count     = (int) $conv->turns_count + 1;
+                $conv->last_message_at = now();
+                $conv->save();
+            });
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     public function listTemplates(): array
