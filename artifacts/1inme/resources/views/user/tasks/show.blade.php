@@ -508,12 +508,13 @@ function kanbanBoard(boardId) {
         drawerOpen: false,
         showAddColumn: false,
         newLabelOpen: false,
-        boardLabels: {!! json_encode($board->labels->map(fn($l) => ['id'=>$l->id,'name'=>$l->name,'color'=>$l->color])) !!},
-        boardMembers: {!! json_encode($members->map(fn($m) => [
+        boardLabels: @json($board->labels->map(fn($l) => ['id'=>$l->id,'name'=>$l->name,'color'=>$l->color])),
+        @php($_boardMembers = $members->map(fn($m) => [
             'id' => $m->id,
             'name' => $m->name,
             'mention_token' => mb_strtolower(preg_replace('/\s+/', '', (string) $m->name)),
-        ])) !!},
+        ]))
+        boardMembers: @json($_boardMembers),
         filters: { search: '', assignee: '', label: '', due: '' },
         card: null,
         cardTab: 'comments',
