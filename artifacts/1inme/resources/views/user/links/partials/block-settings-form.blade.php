@@ -478,6 +478,7 @@ function imageListUploader_{{ $gridImgId }}() {
             <button type="button"
                     class="inline-flex items-center gap-1.5 text-xs text-red-300 hover:text-red-200"
                     data-reset-poll-url="{{ route('user.links.poll-votes.reset', [$block->link_id, $block->id]) }}"
+                    data-reset-poll-count="{{ $block->pollVotes()->count() }}"
                     onclick="resetPollVotes(event, this)">
                 <i class="fas fa-rotate-left"></i> Reset votes
             </button>
@@ -485,38 +486,81 @@ function imageListUploader_{{ $gridImgId }}() {
     @endif
 </div>
 <script>
+if (typeof window.resetPollVotesToast !== 'function') {
+    window.resetPollVotesToast = function (msg, type) {
+        if (typeof window.showToast === 'function') { window.showToast(msg, type); return; }
+        var colors = { success: 'linear-gradient(135deg, #10b981, #059669)', error: 'linear-gradient(135deg, #ef4444, #dc2626)', info: 'linear-gradient(135deg, #8b5cf6, #7c3aed)' };
+        var icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', info: 'fa-info-circle' };
+        var t = document.createElement('div');
+        t.className = 'fixed bottom-4 right-4 z-[10001] px-4 py-2.5 rounded-xl text-xs font-medium text-white shadow-lg transition-all';
+        t.style.cssText = 'background:' + (colors[type] || colors.info) + ';';
+        t.innerHTML = '<i class="fas ' + (icons[type] || icons.info) + ' mr-1.5"></i>' + msg;
+        document.body.appendChild(t);
+        setTimeout(function () { t.style.opacity = '0'; setTimeout(function () { t.remove(); }, 300); }, 2500);
+    };
+}
+if (typeof window.resetPollVotesConfirm !== 'function') {
+    window.resetPollVotesConfirm = function (count, onConfirm) {
+        var overlay = document.createElement('div');
+        overlay.className = 'fixed inset-0 z-[10000] flex items-center justify-center p-4';
+        overlay.style.cssText = 'background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);';
+        var countText = count === 1 ? '1 vote' : (count + ' votes');
+        overlay.innerHTML = '' +
+            '<div class="rounded-2xl p-5 max-w-sm w-full shadow-2xl" style="background: var(--bg-body, #0f0f1a); border: 1px solid var(--border-glass, rgba(255,255,255,0.1)); color: var(--text-primary, #fff);">' +
+                '<div class="flex items-start gap-3 mb-3">' +
+                    '<div class="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center" style="background: rgba(239,68,68,0.15); color: #f87171;">' +
+                        '<i class="fas fa-rotate-left"></i>' +
+                    '</div>' +
+                    '<div class="flex-1">' +
+                        '<h3 class="text-sm font-semibold">Reset poll votes?</h3>' +
+                        '<p class="text-xs mt-1" style="color: var(--text-faint, rgba(255,255,255,0.6));">This will permanently delete <strong data-reset-count>' + countText + '</strong> for this poll. The block and its settings stay, but the tally cannot be recovered.</p>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="flex justify-end gap-2 mt-4">' +
+                    '<button type="button" data-reset-cancel class="px-3 py-1.5 rounded-lg text-xs font-medium" style="background: var(--bg-glass-input, rgba(255,255,255,0.05)); color: var(--text-primary, #fff); border: 1px solid var(--border-glass, rgba(255,255,255,0.1));">Cancel</button>' +
+                    '<button type="button" data-reset-confirm class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white" style="background: linear-gradient(135deg, #ef4444, #dc2626);"><i class="fas fa-rotate-left mr-1"></i>Reset votes</button>' +
+                '</div>' +
+            '</div>';
+        document.body.appendChild(overlay);
+        var close = function () { overlay.remove(); document.removeEventListener('keydown', onKey); };
+        var onKey = function (ev) { if (ev.key === 'Escape') close(); };
+        document.addEventListener('keydown', onKey);
+        overlay.addEventListener('click', function (ev) { if (ev.target === overlay) close(); });
+        overlay.querySelector('[data-reset-cancel]').addEventListener('click', close);
+        overlay.querySelector('[data-reset-confirm]').addEventListener('click', function () { close(); onConfirm(); });
+    };
+}
 if (typeof window.resetPollVotes !== 'function') {
     window.resetPollVotes = function (e, btn) {
         e.preventDefault();
-        if (!confirm('Clear all votes for this poll? The block and its settings stay; only the tally is reset. This cannot be undone.')) return;
-        var url = btn.getAttribute('data-reset-poll-url');
-        var token = (document.querySelector('meta[name="csrf-token"]') || {}).content;
-        btn.disabled = true;
-        var original = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Resetting…';
-        fetch(url, {
-            method: 'POST',
-            headers: { 'X-CSRF-TOKEN': token, 'Accept': 'application/json' },
-            credentials: 'same-origin'
-        })
-        .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { return { ok: r.ok, body: j }; }); })
-        .then(function (res) {
-            btn.disabled = false;
-            btn.innerHTML = original;
-            if (res.ok && res.body && res.body.success) {
-                if (typeof window.showToast === 'function') {
-                    window.showToast('Cleared ' + (res.body.deleted || 0) + ' poll vote(s).', 'success');
+        var count = parseInt(btn.getAttribute('data-reset-poll-count') || '0', 10) || 0;
+        window.resetPollVotesConfirm(count, function () {
+            var url = btn.getAttribute('data-reset-poll-url');
+            var token = (document.querySelector('meta[name="csrf-token"]') || {}).content;
+            btn.disabled = true;
+            var original = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Resetting…';
+            fetch(url, {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': token, 'Accept': 'application/json' },
+                credentials: 'same-origin'
+            })
+            .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { return { ok: r.ok, body: j }; }); })
+            .then(function (res) {
+                btn.disabled = false;
+                btn.innerHTML = original;
+                if (res.ok && res.body && res.body.success) {
+                    btn.setAttribute('data-reset-poll-count', '0');
+                    window.resetPollVotesToast('Cleared ' + (res.body.deleted || 0) + ' poll vote(s).', 'success');
                 } else {
-                    alert('Cleared ' + (res.body.deleted || 0) + ' poll vote(s).');
+                    window.resetPollVotesToast('Could not reset poll votes. Please try again.', 'error');
                 }
-            } else {
-                alert('Could not reset poll votes. Please try again.');
-            }
-        })
-        .catch(function () {
-            btn.disabled = false;
-            btn.innerHTML = original;
-            alert('Could not reset poll votes. Please try again.');
+            })
+            .catch(function () {
+                btn.disabled = false;
+                btn.innerHTML = original;
+                window.resetPollVotesToast('Could not reset poll votes. Please try again.', 'error');
+            });
         });
     };
 }
