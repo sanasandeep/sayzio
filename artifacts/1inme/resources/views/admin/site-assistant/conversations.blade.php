@@ -11,8 +11,38 @@
         <input name="search" value="{{ request('search') }}" placeholder="Search by email, name, route…" class="bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white flex-1 min-w-[200px]">
         <label class="flex items-center gap-2 text-sm text-white/70"><input type="checkbox" name="handed_off" value="1" {{ request('handed_off')?'checked':'' }}> Handed off</label>
         <label class="flex items-center gap-2 text-sm text-white/70"><input type="checkbox" name="disabled" value="1" {{ request('disabled')?'checked':'' }}> Disabled</label>
+        {{-- Preserve analytics deep-link filters across the in-page filter form. --}}
+        @if(!empty($activeFilters['cutoffs']))<input type="hidden" name="cutoffs" value="1">@endif
+        @if(!is_null($activeFilters['model'] ?? null))<input type="hidden" name="model" value="{{ $activeFilters['model'] }}">@endif
+        @if(!empty($activeFilters['route']))<input type="hidden" name="route" value="{{ $activeFilters['route'] }}">@endif
+        @if(!empty($activeFilters['days']))<input type="hidden" name="days" value="{{ $activeFilters['days'] }}">@endif
         <button class="px-4 py-2 rounded-xl bg-white/10 text-sm text-white">Filter</button>
     </form>
+
+    @php
+        $hasDeepFilter = !empty($activeFilters['cutoffs'])
+            || !is_null($activeFilters['model'] ?? null)
+            || !empty($activeFilters['route'])
+            || !empty($activeFilters['days']);
+    @endphp
+    @if($hasDeepFilter)
+        <div class="flex flex-wrap items-center gap-2 text-xs">
+            <span class="text-white/50">Filtered from analytics:</span>
+            @if(!empty($activeFilters['cutoffs']))
+                <span class="px-2 py-1 rounded-md bg-rose-500/15 text-rose-300 border border-rose-500/20">cut-offs only</span>
+            @endif
+            @if(!is_null($activeFilters['model'] ?? null))
+                <span class="px-2 py-1 rounded-md bg-white/5 text-white/80 border border-white/10 font-mono">model: {{ $activeFilters['model'] === '' ? '(unknown)' : $activeFilters['model'] }}</span>
+            @endif
+            @if(!empty($activeFilters['route']))
+                <span class="px-2 py-1 rounded-md bg-white/5 text-white/80 border border-white/10 font-mono">route: {{ $activeFilters['route'] }}</span>
+            @endif
+            @if(!empty($activeFilters['days']))
+                <span class="px-2 py-1 rounded-md bg-white/5 text-white/80 border border-white/10">last {{ $activeFilters['days'] }}d</span>
+            @endif
+            <a href="{{ route('admin.site-assistant.conversations') }}" class="px-2 py-1 rounded-md bg-white/5 text-white/60 hover:text-white border border-white/10">Clear</a>
+        </div>
+    @endif
 
     <div class="glass rounded-2xl border border-white/10 overflow-hidden">
         <table class="w-full text-sm">

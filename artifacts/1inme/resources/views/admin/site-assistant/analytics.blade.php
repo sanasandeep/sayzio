@@ -104,10 +104,19 @@
                         </thead>
                         <tbody class="text-white/80">
                             @foreach($cutoffByModel as $row)
-                                @php $w = max(4, (int) round(($row['cutoffs'] / $maxModelCutoff) * 100)); @endphp
-                                <tr class="border-t border-white/5">
+                                @php
+                                    $w = max(4, (int) round(($row['cutoffs'] / $maxModelCutoff) * 100));
+                                    $href = route('admin.site-assistant.conversations', [
+                                        'cutoffs' => 1,
+                                        'model'   => $row['label'],
+                                        'days'    => $days,
+                                    ]);
+                                @endphp
+                                <tr class="cutoff-row border-t border-white/5 hover:bg-white/5 cursor-pointer group"
+                                    data-href="{{ $href }}"
+                                    title="View cut-off transcripts for {{ $row['label'] }}">
                                     <td class="py-2 pr-3">
-                                        <div class="font-mono truncate">{{ $row['label'] }}</div>
+                                        <a href="{{ $href }}" class="block font-mono truncate text-white group-hover:text-purple-300">{{ $row['label'] }}</a>
                                         <div class="h-1 mt-1 rounded-full bg-white/5 overflow-hidden">
                                             <div class="h-full bg-rose-500/70" style="width: {{ $w }}%"></div>
                                         </div>
@@ -141,10 +150,19 @@
                         </thead>
                         <tbody class="text-white/80">
                             @foreach($cutoffByRoute as $row)
-                                @php $w = max(4, (int) round(($row['cutoffs'] / $maxRouteCutoff) * 100)); @endphp
-                                <tr class="border-t border-white/5">
+                                @php
+                                    $w = max(4, (int) round(($row['cutoffs'] / $maxRouteCutoff) * 100));
+                                    $href = route('admin.site-assistant.conversations', [
+                                        'cutoffs' => 1,
+                                        'route'   => $row['label'],
+                                        'days'    => $days,
+                                    ]);
+                                @endphp
+                                <tr class="cutoff-row border-t border-white/5 hover:bg-white/5 cursor-pointer group"
+                                    data-href="{{ $href }}"
+                                    title="View cut-off transcripts for {{ $row['label'] }}">
                                     <td class="py-2 pr-3">
-                                        <div class="font-mono truncate">{{ $row['label'] }}</div>
+                                        <a href="{{ $href }}" class="block font-mono truncate text-white group-hover:text-purple-300">{{ $row['label'] }}</a>
                                         <div class="h-1 mt-1 rounded-full bg-white/5 overflow-hidden">
                                             <div class="h-full bg-rose-500/70" style="width: {{ $w }}%"></div>
                                         </div>
@@ -159,6 +177,19 @@
                 @endif
             </div>
         </div>
+        {{-- Delegated row click: anywhere in the row navigates to the
+             pre-filtered transcripts (the inner anchor still works for
+             keyboard / middle-click). Skips clicks that originated on
+             the anchor so we don't double-fire. --}}
+        <script>
+            document.querySelectorAll('.cutoff-row').forEach(function (tr) {
+                tr.addEventListener('click', function (e) {
+                    if (e.target.closest('a')) return;
+                    var href = tr.getAttribute('data-href');
+                    if (href) window.location = href;
+                });
+            });
+        </script>
     @endif
 
     <div class="grid lg:grid-cols-2 gap-6">

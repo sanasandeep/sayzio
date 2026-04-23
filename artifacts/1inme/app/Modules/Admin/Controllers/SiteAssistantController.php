@@ -412,6 +412,18 @@ class SiteAssistantController extends Controller
     }
 
     // ── Conversations browser ─────────────────────────────────
+    /**
+     * Lists conversations, with optional filters used by the analytics
+     * deep-links so admins can jump from a flaky model/route row
+     * straight to the cut-off transcripts behind it:
+     *   - days=N         narrow last_message_at to the last N days
+     *   - cutoffs=1      only convs containing a partial/failed
+     *                    assistant message in the window
+     *   - model=<label>  combined with cutoffs, requires the cut-off
+     *                    message's meta.model to match (use the
+     *                    literal "(unknown)" for missing model meta)
+     *   - route=<label>  match the conversation's last_route exactly
+     */
     public function conversations(Request $request)
     {
         $q = SiteAssistantConversation::query()->latest('last_message_at');
@@ -424,8 +436,49 @@ class SiteAssistantController extends Controller
         }
         if ($request->boolean('handed_off')) $q->where('handed_off', true);
         if ($request->boolean('disabled'))   $q->where('is_disabled', true);
+
+        $days = (int) $request->get('days', 0);
+        $days = ($days >= 1 && $days <= 365) ? $days : 0;
+        $since = $days > 0 ? now()->subDays($days - 1)->startOfDay() : null;
+        if ($since) {
+            $q->where('last_message_at', '>=', $since);
+        }
+
+        $route = trim((string) $request->get('route', ''));
+        if ($route !== '') {
+            $q->where('last_route', $route);
+        }
+
+        $model = $request->has('model') ? (string) $request->get('model') : null;
+        $cutoffsOnly = $request->boolean('cutoffs') || $model !== null;
+        if ($cutoffsOnly) {
+            $q->whereExists(function ($sub) use ($model, $since) {
+                $sub->select(\Illuminate\Support\Facades\DB::raw(1))
+                    ->from('site_assistant_messages as m')
+                    ->whereColumn('m.conversation_id', 'site_assistant_conversations.id')
+                    ->where('m.role', 'assistant')
+                    ->whereRaw("m.meta->>'status' IN ('partial','failed')");
+                if ($since) {
+                    $sub->where('m.created_at', '>=', $since);
+                }
+                if ($model !== null) {
+                    if ($model === '' || $model === '(unknown)') {
+                        $sub->whereRaw("(m.meta->>'model' IS NULL OR m.meta->>'model' = '')");
+                    } else {
+                        $sub->whereRaw("m.meta->>'model' = ?", [$model]);
+                    }
+                }
+            });
+        }
+
         $conversations = $q->paginate(25)->withQueryString();
-        return view('admin.site-assistant.conversations', compact('conversations'));
+        $activeFilters = [
+            'days'    => $days,
+            'cutoffs' => $cutoffsOnly,
+            'model'   => $model,
+            'route'   => $route !== '' ? $route : null,
+        ];
+        return view('admin.site-assistant.conversations', compact('conversations', 'activeFilters'));
     }
 
     public function showConversation(SiteAssistantConversation $conversation)
