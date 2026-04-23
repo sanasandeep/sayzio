@@ -14,7 +14,7 @@
         <select name="feature" class="bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-white text-sm">
             <option value="">All</option>
             @foreach($features as $f)
-                <option value="{{ $f }}" {{ $feature === $f ? 'selected' : '' }}>{{ $f }}</option>
+                <option value="{{ $f }}" {{ $feature === $f ? 'selected' : '' }}>{{ \App\Modules\User\Models\AiCreditTransaction::featureLabel($f) }}</option>
             @endforeach
         </select>
     </div>
@@ -55,7 +55,8 @@
                 <tr class="border-t border-white/5">
                     <td class="py-2 text-white">
                         <a href="{{ route('admin.ai-usage.index', ['days' => $days, 'feature' => $f->feature]) }}"
-                           class="text-violet-300 hover:underline">{{ $f->feature }}</a>
+                           class="text-violet-300 hover:underline">{{ \App\Modules\User\Models\AiCreditTransaction::featureLabel($f->feature) }}</a>
+                        <span class="text-[10px] text-white/30 ml-1">{{ $f->feature }}</span>
                     </td>
                     <td class="text-right text-white/70">{{ number_format($f->calls) }}</td>
                     <td class="text-right text-white/70">{{ number_format($f->users) }}</td>
