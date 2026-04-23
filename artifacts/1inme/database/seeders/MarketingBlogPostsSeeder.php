@@ -10,6 +10,7 @@ use App\Modules\Common\Models\BlogTag;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
@@ -73,7 +74,7 @@ class MarketingBlogPostsSeeder extends Seeder
                     'title'             => $def['title'],
                     'excerpt'           => $excerpt,
                     'body_html'         => $bodyHtml,
-                    'cover_image'       => $def['cover_image'] ?? $this->placeholderCover($def['title']),
+                    'cover_image'       => $def['cover_image'] ?? $this->brandedCover($def['slug']),
                     'category_id'       => $cat?->id,
                     'author_id'         => $author?->id,
                     'status'            => 'published',
@@ -170,6 +171,15 @@ class MarketingBlogPostsSeeder extends Seeder
         $out = [];
         foreach ($defs as $key => $d) {
             $slug = Str::slug($d['name']);
+            // Branded category cover SVG generated alongside the post heroes
+            // (storage/app/public/blogs/categories/{slug}.svg). Only set it
+            // when the file actually exists so future custom categories
+            // don't end up with broken image URLs.
+            $coverRel = 'blogs/categories/' . $slug . '.svg';
+            $cover = Storage::disk('public')->exists($coverRel)
+                ? '/storage/' . $coverRel
+                : null;
+
             $out[$key] = BlogCategory::updateOrCreate(
                 ['slug' => $slug],
                 [
@@ -177,6 +187,7 @@ class MarketingBlogPostsSeeder extends Seeder
                     'color'       => $d['color'],
                     'sort_order'  => $d['sort'],
                     'description' => $d['desc'],
+                    'cover_image' => $cover,
                 ]
             );
         }
@@ -211,11 +222,23 @@ class MarketingBlogPostsSeeder extends Seeder
         return implode("\n", $parts);
     }
 
-    private function placeholderCover(string $title): string
+    /**
+     * Returns the URL for a branded, on-brand hero image that lives in the
+     * public storage disk (storage/app/public/blogs/posts/{slug}.svg, served
+     * via the /storage symlink). Each of the seeded posts has a matching
+     * SVG generated up front so the public blog renders branded artwork
+     * instead of generic placeholder photos. If for some reason the file
+     * is missing (e.g. someone added a post but didn't regenerate the
+     * artwork), we fall back to a generic branded cover (the Biolinks
+     * category SVG) so the page never renders a broken image.
+     */
+    private function brandedCover(string $slug): string
     {
-        // Deterministic placeholder image so re-runs don't churn the value.
-        $seed = Str::slug($title);
-        return 'https://picsum.photos/seed/' . $seed . '/1600/900';
+        $rel = 'blogs/posts/' . $slug . '.svg';
+        if (Storage::disk('public')->exists($rel)) {
+            return '/storage/' . $rel;
+        }
+        return '/storage/blogs/categories/biolinks.svg';
     }
 
     /**
