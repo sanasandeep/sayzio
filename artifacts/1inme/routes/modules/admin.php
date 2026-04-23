@@ -25,6 +25,7 @@ use App\Modules\Admin\Controllers\TaxController;
 use App\Modules\Admin\Controllers\GatewaySettingsController;
 use App\Modules\Admin\Controllers\PendingPaymentController;
 use App\Modules\Admin\Controllers\DemoContentController;
+use App\Modules\Admin\Controllers\TestimonialController;
 use App\Modules\Admin\Middleware\CheckPermission;
 
 Route::prefix('admin')->name('admin.')->group(function () {
@@ -271,6 +272,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('{onboardingSlide}/edit',  [OnboardingSlideController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
             Route::put('{onboardingSlide}',       [OnboardingSlideController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
             Route::delete('{onboardingSlide}',    [OnboardingSlideController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
+        });
+
+        Route::prefix('testimonials')->name('testimonials.')->group(function () {
+            Route::get('/',                    [TestimonialController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::get('create',               [TestimonialController::class, 'create'])->middleware(CheckPermission::class . ':settings.manage')->name('create');
+            Route::post('/',                   [TestimonialController::class, 'store'])->middleware(CheckPermission::class . ':settings.manage')->name('store');
+            Route::get('{testimonial}/edit',   [TestimonialController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
+            Route::put('{testimonial}',        [TestimonialController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
+            Route::post('{testimonial}/toggle', [TestimonialController::class, 'toggle'])->middleware(CheckPermission::class . ':settings.manage')->name('toggle');
+            Route::delete('{testimonial}',     [TestimonialController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
         });
 
         Route::prefix('wallet-settings')->name('wallet-settings.')->group(function () {

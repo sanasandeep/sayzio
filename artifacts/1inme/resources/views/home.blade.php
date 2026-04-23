@@ -5424,57 +5424,67 @@
         </div>
     </div>
 
-    <div class="overflow-hidden mb-4" style="mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);">
-        <div class="flex whitespace-nowrap marquee">
-            @php
-                $reviews = [
-                    ['1INME made it stupidly easy to put my podcast, shop and templates on one page.', 'Jane Doe', 'Creator', '#1bd4d9'],
-                    ['The QR codes paid for the plan in a week — I changed the destination 3 times without reprinting.', 'Marco P.', 'Café owner', '#e94e8c'],
-                    ['Finally I can see where my audience actually lives. Game changer.', 'Aisha K.', 'Travel writer', '#ffc845'],
-                    ['The Performance Coach is like having a growth marketer on speed-dial.', 'Devon S.', 'Indie founder', '#7c3aed'],
-                    ['Set up my whole agency contact page in 10 minutes.', 'Priya N.', 'Agency lead', '#ff8a3c'],
-                ];
-            @endphp
-            @for($i = 0; $i < 2; $i++)
-                @foreach($reviews as $r)
-                    <div class="inline-block w-[340px] sm:w-[400px] mx-3 align-top">
-                        <div class="glass rounded-3xl p-6 lift">
-                            <div class="flex text-base mb-3" style="color:var(--c5)"><i class="fas fa-star"></i><i class="fas fa-star ml-0.5"></i><i class="fas fa-star ml-0.5"></i><i class="fas fa-star ml-0.5"></i><i class="fas fa-star ml-0.5"></i></div>
-                            <p class="text-sm text-gray-200 mb-4 whitespace-normal">"{{ $r[0] }}"</p>
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white" style="background: linear-gradient(135deg, {{ $r[3] }}, var(--c2));">{{ strtoupper(substr($r[1],0,1)) }}</div>
-                                <div>
-                                    <div class="text-sm font-bold">{{ $r[1] }}</div>
-                                    <div class="text-[11px] text-gray-500">{{ $r[2] }}</div>
+    @php
+        try {
+            $__topReviews    = \App\Modules\Admin\Models\Testimonial::active()->where('row', 'top')->ordered()->get();
+            $__bottomReviews = \App\Modules\Admin\Models\Testimonial::active()->where('row', 'bottom')->ordered()->get();
+        } catch (\Throwable $e) {
+            $__topReviews = collect();
+            $__bottomReviews = collect();
+        }
+    @endphp
+
+    @if($__topReviews->isNotEmpty())
+        <div class="overflow-hidden mb-4" style="mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);">
+            <div class="flex whitespace-nowrap marquee">
+                @for($i = 0; $i < 2; $i++)
+                    @foreach($__topReviews as $r)
+                        <div class="inline-block w-[340px] sm:w-[400px] mx-3 align-top">
+                            <div class="glass rounded-3xl p-6 lift">
+                                <div class="flex text-base mb-3" style="color:var(--c5)">
+                                    @for($s = 0; $s < $r->rating; $s++)<i class="fas fa-star {{ $s ? 'ml-0.5' : '' }}"></i>@endfor
+                                </div>
+                                <p class="text-sm text-gray-200 mb-4 whitespace-normal">&ldquo;{{ $r->quote }}&rdquo;</p>
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white" style="background: linear-gradient(135deg, {{ $r->accent_color }}, var(--c2));">{{ $r->initial() }}</div>
+                                    <div>
+                                        <div class="text-sm font-bold">{{ $r->author_name }}</div>
+                                        <div class="text-[11px] text-gray-500">{{ $r->author_role }}</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                @endforeach
-            @endfor
+                    @endforeach
+                @endfor
+            </div>
         </div>
-    </div>
-    <div class="overflow-hidden" style="mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);">
-        <div class="flex whitespace-nowrap marquee-rev">
-            @for($i = 0; $i < 2; $i++)
-                @foreach(array_reverse($reviews) as $r)
-                    <div class="inline-block w-[340px] sm:w-[400px] mx-3 align-top">
-                        <div class="glass rounded-3xl p-6 lift">
-                            <div class="flex text-base mb-3" style="color:var(--c5)"><i class="fas fa-star"></i><i class="fas fa-star ml-0.5"></i><i class="fas fa-star ml-0.5"></i><i class="fas fa-star ml-0.5"></i><i class="fas fa-star ml-0.5"></i></div>
-                            <p class="text-sm text-gray-200 mb-4 whitespace-normal">"{{ $r[0] }}"</p>
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white" style="background: linear-gradient(135deg, {{ $r[3] }}, var(--c2));">{{ strtoupper(substr($r[1],0,1)) }}</div>
-                                <div>
-                                    <div class="text-sm font-bold">{{ $r[1] }}</div>
-                                    <div class="text-[11px] text-gray-500">{{ $r[2] }}</div>
+    @endif
+
+    @if($__bottomReviews->isNotEmpty())
+        <div class="overflow-hidden" style="mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);">
+            <div class="flex whitespace-nowrap marquee-rev">
+                @for($i = 0; $i < 2; $i++)
+                    @foreach($__bottomReviews as $r)
+                        <div class="inline-block w-[340px] sm:w-[400px] mx-3 align-top">
+                            <div class="glass rounded-3xl p-6 lift">
+                                <div class="flex text-base mb-3" style="color:var(--c5)">
+                                    @for($s = 0; $s < $r->rating; $s++)<i class="fas fa-star {{ $s ? 'ml-0.5' : '' }}"></i>@endfor
+                                </div>
+                                <p class="text-sm text-gray-200 mb-4 whitespace-normal">&ldquo;{{ $r->quote }}&rdquo;</p>
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white" style="background: linear-gradient(135deg, {{ $r->accent_color }}, var(--c2));">{{ $r->initial() }}</div>
+                                    <div>
+                                        <div class="text-sm font-bold">{{ $r->author_name }}</div>
+                                        <div class="text-[11px] text-gray-500">{{ $r->author_role }}</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                @endforeach
-            @endfor
+                    @endforeach
+                @endfor
+            </div>
         </div>
-    </div>
+    @endif
 </section>
 
 {{-- ============================ FAQ (homepage — searchable, chip-filtered) ============================ --}}

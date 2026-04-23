@@ -114,6 +114,14 @@
             <span class="sidebar-tooltip">Onboarding Slides</span>
         </a>
 
+        <a href="{{ route('admin.testimonials.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.testimonials.*') ? 'active' : '' }}"
+           style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-quote-right"></i></div>
+            <span class="nav-label">Testimonials</span>
+            <span class="sidebar-tooltip">Testimonials</span>
+        </a>
+
         <a href="{{ route('admin.templates.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.templates.*') ? 'active' : '' }}"
            style="--nav-tint:#ec4899; --nav-tint-soft:rgba(236,72,153,0.12);">
