@@ -101,9 +101,9 @@
                         <input type="checkbox" name="is_popular" value="1"
                                {{ old('is_popular') ? 'checked' : '' }}
                                class="rounded border-white/10 text-violet-400">
-                        Most popular
+                        Show as Most Popular on homepage
                     </label>
-                    <p class="text-[10px] text-white/30 mt-1 ml-2">Highlights this plan on the landing page and mobile Upgrade screen. Only one plan can be marked popular at a time — saving will clear the flag on any other plan.</p>
+                    <p class="text-[10px] text-white/30 mt-1 ml-2">Highlights this plan as the second card in the landing-page pricing block (and the mobile Upgrade screen). Only one plan can be marked popular at a time — saving will clear the flag on any other plan.</p>
                 </div>
 
                 <div class="border-t border-white/10 pt-5">

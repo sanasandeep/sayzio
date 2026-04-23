@@ -14,7 +14,14 @@
     @foreach($plans as $plan)
     <div class="glass rounded-2xl border border-white/10  p-6 {{ $plan->is_archived ? 'opacity-60' : '' }}">
         <div class="flex items-center justify-between mb-2">
-            <h3 class="font-semibold text-white">{{ $plan->name }}</h3>
+            <h3 class="font-semibold text-white flex items-center gap-2">
+                {{ $plan->name }}
+                @if($plan->is_popular)
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-violet-500/15 text-violet-300" title="Shown as Most Popular on the homepage">
+                        <i class="fas fa-star mr-1"></i>Most Popular
+                    </span>
+                @endif
+            </h3>
             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
                 {{ $plan->status === 'active' && !$plan->is_archived ? 'bg-emerald-500/10 text-emerald-400' : 'bg-white/10 text-white/60' }}">
                 {{ $plan->is_archived ? 'Archived' : ucfirst($plan->status) }}
