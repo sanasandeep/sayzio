@@ -19,6 +19,8 @@
     $twTitle = $twSettings['title'] ?? $ogTitle;
     $twDesc = $twSettings['description'] ?? $ogDesc;
     $metaLang = $metaSettings['language'] ?? 'en';
+    $__ccViewerId = \App\Modules\Common\Services\ViewerSession::id() ?: optional(request()->user())->id;
+    $__ccIsOwner  = $__ccViewerId && (int) $__ccViewerId === (int) ($link->user_id ?? 0);
 @endphp
 <!DOCTYPE html>
 <html lang="{{ $metaLang }}">
@@ -1940,6 +1942,22 @@
             @else
             <p class="text-center text-xs mt-10" style="color: {{ $fontColor }}33">Powered by 1INME</p>
             @endif
+
+            @if(!$__ccIsOwner && \App\Modules\Common\Support\CookieConsentConfig::shouldRender('biolink'))
+                @php
+                    $__ccCfgBio = \App\Modules\Common\Support\CookieConsentConfig::get();
+                    $__ccPolicyBio = $__ccCfgBio['copy']['policy_link_url'] ?? '/cookies';
+                @endphp
+                <p class="text-center text-xs mt-3">
+                    <a href="{{ $__ccPolicyBio }}"
+                       class="cc-footer-link"
+                       style="color: {{ $fontColor }}66;"
+                       aria-label="{{ $__ccCfgBio['copy']['reopen_link_label'] ?? 'Cookie preferences' }}"
+                       onclick="if(window.openCookiePreferences){return window.openCookiePreferences(event);}">
+                        {{ $__ccCfgBio['copy']['reopen_link_label'] ?? 'Cookie preferences' }}
+                    </a>
+                </p>
+            @endif
         @endif
     </div>
 
@@ -2205,10 +2223,6 @@
 
     @include('common.partials.pixel-scripts', ['link' => $link])
 
-    @php
-        $__ccViewerId = \App\Modules\Common\Services\ViewerSession::id() ?: optional(request()->user())->id;
-        $__ccIsOwner  = $__ccViewerId && (int) $__ccViewerId === (int) ($link->user_id ?? 0);
-    @endphp
     @include('common.partials.cookie-consent', ['surface' => 'biolink', 'isOwner' => $__ccIsOwner])
 
     <script>

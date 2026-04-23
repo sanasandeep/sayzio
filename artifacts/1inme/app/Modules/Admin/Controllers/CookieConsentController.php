@@ -24,6 +24,12 @@ class CookieConsentController extends Controller
 
     public function update(Request $request)
     {
+        $layouts   = implode(',', CookieConsentConfig::LAYOUTS);
+        $positions = implode(',', CookieConsentConfig::POSITIONS);
+        $sizes     = implode(',', CookieConsentConfig::SIZES);
+        $btnStyles = implode(',', CookieConsentConfig::BTN_STYLES);
+        $anims     = implode(',', CookieConsentConfig::ANIMATIONS);
+
         $data = $request->validate([
             'enabled'             => 'nullable|boolean',
             'scope_marketing'     => 'nullable|boolean',
@@ -34,12 +40,37 @@ class CookieConsentController extends Controller
             'geo_countries'       => 'nullable|string|max:1000',
             'scroll_acceptance'   => 'nullable|boolean',
             'block_until_consent' => 'nullable|boolean',
-            'layout'              => 'required|in:modal,banner,corner',
-            'position'            => 'required|in:bottom-center,bottom-left,bottom-right,top-center',
+            'layout'              => 'required|in:' . $layouts,
+            'position'            => 'required|in:' . $positions,
+            'size'                => 'required|in:' . $sizes,
+            'max_width'           => 'required|integer|min:280|max:960',
+            'radius'              => 'required|integer|min:0|max:40',
             'theme'               => 'required|in:auto,light,dark',
             'accent'              => ['required', 'string', 'regex:/^#[0-9a-fA-F]{3,8}$/'],
+            'animation'           => 'required|in:' . $anims,
+            'entrance_delay'      => 'required|integer|min:0|max:30',
+            'header_logo_enabled' => 'nullable|boolean',
+            'header_logo_url'     => ['nullable', 'string', 'max:2000', 'regex:#^(/|https?://|data:image/)#i'],
+            'show_policy_link'    => 'nullable|boolean',
             'show_reopen_button'  => 'nullable|boolean',
-            'copy'                => 'array',
+
+            'buttons'                       => 'array',
+            'buttons.*.bg'                  => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{3,8}$/'],
+            'buttons.*.text'                => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{3,8}$/'],
+            'buttons.*.style'               => 'nullable|in:' . $btnStyles,
+
+            'backdrop'        => 'array',
+            'backdrop.show'   => 'nullable|boolean',
+            'backdrop.dim'    => 'nullable|integer|min:0|max:100',
+            'backdrop.blur'   => 'nullable|boolean',
+
+            'surface_overrides'                  => 'array',
+            'surface_overrides.site.layout'      => 'nullable|in:,' . $layouts,
+            'surface_overrides.site.position'    => 'nullable|in:,' . $positions,
+            'surface_overrides.biolink.layout'   => 'nullable|in:,' . $layouts,
+            'surface_overrides.biolink.position' => 'nullable|in:,' . $positions,
+
+            'copy'                   => 'array',
             'copy.title'             => 'nullable|string|max:200',
             'copy.body'              => 'nullable|string|max:2000',
             'copy.accept_all'        => 'nullable|string|max:60',
@@ -48,13 +79,16 @@ class CookieConsentController extends Controller
             'copy.save'              => 'nullable|string|max:60',
             'copy.policy_link_label' => 'nullable|string|max:80',
             'copy.policy_link_url'   => ['nullable', 'string', 'max:500', 'regex:#^(/|https?://)#i'],
-            'categories'             => 'array',
+            'copy.reopen_link_label' => 'nullable|string|max:80',
+
+            'categories'               => 'array',
             'categories.*.id'          => 'required|in:analytics,marketing,functional',
             'categories.*.name'        => 'nullable|string|max:80',
             'categories.*.description' => 'nullable|string|max:1000',
             'categories.*.cookies'     => 'nullable|string|max:2000',
             'categories.*.default_on'  => 'nullable|boolean',
-            'bump_version'         => 'nullable|boolean',
+
+            'bump_version' => 'nullable|boolean',
         ]);
 
         $current = CookieConsentConfig::get();

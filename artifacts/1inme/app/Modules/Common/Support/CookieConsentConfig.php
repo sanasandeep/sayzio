@@ -17,6 +17,21 @@ class CookieConsentConfig
 {
     public const SETTING_KEY = 'cookie_consent_config';
 
+    public const LAYOUTS   = ['modal', 'banner', 'corner', 'inline', 'pill', 'takeover'];
+    public const POSITIONS = [
+        'bottom-center', 'bottom-left', 'bottom-right',
+        'top-center', 'top-left', 'top-right',
+        'middle-left', 'middle-right',
+    ];
+    public const SIZES        = ['compact', 'default', 'wide'];
+    public const BTN_STYLES   = ['solid', 'outline', 'link'];
+    public const ANIMATIONS   = ['none', 'fade', 'slide-up', 'slide-down'];
+    public const THEMES       = ['auto', 'light', 'dark'];
+    public const GEO_SCOPES   = ['all', 'eu', 'custom'];
+
+    /** Layouts where the position picker is meaningful. */
+    public const POSITIONABLE_LAYOUTS = ['banner', 'corner', 'pill'];
+
     /** EU/EEA + UK ISO-3166 alpha-2 codes used by the `eu` geo scope. */
     public const EU_COUNTRIES = [
         'AT','BE','BG','HR','CY','CZ','DK','EE','FI','FR','DE','GR','HU','IE',
@@ -37,11 +52,47 @@ class CookieConsentConfig
             'geo_countries'       => [],        // ISO codes when geo_scope === 'custom'
             'scroll_acceptance'   => false,
             'block_until_consent' => true,
-            'layout'              => 'modal',   // 'modal' | 'banner' | 'corner'
-            'position'            => 'bottom-center', // applies to banner/corner
-            'theme'               => 'auto',    // 'auto' | 'light' | 'dark'
+            'layout'              => 'modal',
+            'position'            => 'bottom-center',
+            'size'                => 'default', // 'compact' | 'default' | 'wide'
+            'max_width'           => 440,       // px clamp for non-takeover layouts
+            'radius'              => 16,        // border-radius in px
+            'theme'               => 'auto',
             'accent'              => '#7c3aed',
-            'show_reopen_button'  => true,
+
+            // Independent button styling. Each entry: bg, text, style.
+            'buttons' => [
+                'primary'   => ['bg' => '#7c3aed', 'text' => '#ffffff', 'style' => 'solid'],
+                'secondary' => ['bg' => '#ffffff', 'text' => '#111827', 'style' => 'outline'],
+                'tertiary'  => ['bg' => '#7c3aed', 'text' => '#7c3aed', 'style' => 'link'],
+            ],
+
+            // Backdrop (modal / takeover layouts).
+            'backdrop' => [
+                'show' => true,
+                'dim'  => 55,    // 0..100, alpha % for the dimming layer
+                'blur' => false, // backdrop blur on/off
+            ],
+
+            // Per-surface layout/position overrides. Empty string = inherit.
+            'surface_overrides' => [
+                'site'    => ['layout' => '', 'position' => ''],
+                'biolink' => ['layout' => '', 'position' => ''],
+            ],
+
+            'animation'      => 'fade', // none | fade | slide-up | slide-down
+            'entrance_delay' => 0,      // seconds, 0..30
+
+            // Optional header brand image inside the prompt.
+            'header_logo_enabled' => false,
+            'header_logo_url'     => '',
+
+            'show_policy_link' => true,
+
+            // Legacy floating reopen icon — retired in favor of footer link.
+            // Defaults to false so existing tenants don't suddenly see it.
+            'show_reopen_button'  => false,
+
             'copy' => [
                 'title'             => 'We use cookies',
                 'body'              => 'We use cookies to keep this site running, understand how it is used, and (with your permission) to power analytics and marketing. Choose what you are happy with.',
@@ -51,6 +102,7 @@ class CookieConsentConfig
                 'save'              => 'Save preferences',
                 'policy_link_label' => 'Cookie policy',
                 'policy_link_url'   => '/cookies',
+                'reopen_link_label' => 'Cookie preferences',
             ],
             'categories' => [
                 [
@@ -94,6 +146,20 @@ class CookieConsentConfig
     }
 
     /**
+     * Resolve the effective layout/position for a given surface, applying
+     * any per-surface override on top of the global layout/position.
+     */
+    public static function effectiveFor(array $cfg, string $surface): array
+    {
+        $ovr = $cfg['surface_overrides'][$surface] ?? [];
+        $layout = !empty($ovr['layout']) && in_array($ovr['layout'], self::LAYOUTS, true)
+            ? $ovr['layout'] : $cfg['layout'];
+        $position = !empty($ovr['position']) && in_array($ovr['position'], self::POSITIONS, true)
+            ? $ovr['position'] : $cfg['position'];
+        return ['layout' => $layout, 'position' => $position];
+    }
+
+    /**
      * Validate + clean an incoming admin payload before it is persisted.
      * Anything missing falls back to the current value (or defaults).
      */
@@ -101,19 +167,12 @@ class CookieConsentConfig
     {
         $cur = self::get();
 
-        $allowedLayouts   = ['modal', 'banner', 'corner'];
-        $allowedPositions = ['bottom-center', 'bottom-left', 'bottom-right', 'top-center'];
-        $allowedThemes    = ['auto', 'light', 'dark'];
-        $allowedScopes    = ['all', 'eu', 'custom'];
-
-        // Resolve each field once into a local — avoids the previous
-        // `in_array($in['x'] ?? $cur['x']) ? $in['x'] : default` pattern,
-        // which could touch a missing $in[] index when only a partial
-        // payload (e.g. just `categories`) is normalized.
         $geoScope = $in['geo_scope'] ?? $cur['geo_scope'];
         $layout   = $in['layout']    ?? $cur['layout'];
         $position = $in['position']  ?? $cur['position'];
         $theme    = $in['theme']     ?? $cur['theme'];
+        $size     = $in['size']      ?? $cur['size'];
+        $anim     = $in['animation'] ?? $cur['animation'];
 
         $out = [
             'enabled'             => self::bool($in['enabled'] ?? $cur['enabled']),
@@ -122,14 +181,25 @@ class CookieConsentConfig
             'policy_version'      => max(1, (int) ($in['policy_version'] ?? $cur['policy_version'])),
             'remember_days'       => max(1, min(730, (int) ($in['remember_days'] ?? $cur['remember_days']))),
             'reprompt_on_change'  => self::bool($in['reprompt_on_change'] ?? $cur['reprompt_on_change']),
-            'geo_scope'           => in_array($geoScope, $allowedScopes, true) ? $geoScope : 'all',
+            'geo_scope'           => in_array($geoScope, self::GEO_SCOPES, true) ? $geoScope : 'all',
             'geo_countries'       => self::countryList($in['geo_countries'] ?? $cur['geo_countries']),
             'scroll_acceptance'   => self::bool($in['scroll_acceptance'] ?? $cur['scroll_acceptance']),
             'block_until_consent' => self::bool($in['block_until_consent'] ?? $cur['block_until_consent']),
-            'layout'              => in_array($layout, $allowedLayouts, true) ? $layout : 'modal',
-            'position'            => in_array($position, $allowedPositions, true) ? $position : 'bottom-center',
-            'theme'               => in_array($theme, $allowedThemes, true) ? $theme : 'auto',
+            'layout'              => in_array($layout, self::LAYOUTS, true) ? $layout : 'modal',
+            'position'            => in_array($position, self::POSITIONS, true) ? $position : 'bottom-center',
+            'size'                => in_array($size, self::SIZES, true) ? $size : 'default',
+            'max_width'           => max(280, min(960, (int) ($in['max_width'] ?? $cur['max_width']))),
+            'radius'              => max(0, min(40, (int) ($in['radius'] ?? $cur['radius']))),
+            'theme'               => in_array($theme, self::THEMES, true) ? $theme : 'auto',
             'accent'              => self::color($in['accent'] ?? $cur['accent']),
+            'buttons'             => self::normalizeButtons((array) ($in['buttons'] ?? $cur['buttons']), $cur['buttons']),
+            'backdrop'            => self::normalizeBackdrop((array) ($in['backdrop'] ?? $cur['backdrop']), $cur['backdrop']),
+            'surface_overrides'   => self::normalizeSurfaceOverrides((array) ($in['surface_overrides'] ?? $cur['surface_overrides'])),
+            'animation'           => in_array($anim, self::ANIMATIONS, true) ? $anim : 'fade',
+            'entrance_delay'      => max(0, min(30, (int) ($in['entrance_delay'] ?? $cur['entrance_delay']))),
+            'header_logo_enabled' => self::bool($in['header_logo_enabled'] ?? $cur['header_logo_enabled']),
+            'header_logo_url'     => self::url($in['header_logo_url'] ?? $cur['header_logo_url']),
+            'show_policy_link'    => self::bool($in['show_policy_link'] ?? $cur['show_policy_link']),
             'show_reopen_button'  => self::bool($in['show_reopen_button'] ?? $cur['show_reopen_button']),
             'copy'                => self::normalizeCopy((array) ($in['copy'] ?? $cur['copy'])),
             'categories'          => self::normalizeCategories((array) ($in['categories'] ?? $cur['categories'])),
@@ -150,6 +220,14 @@ class CookieConsentConfig
         return preg_match('/^#[0-9a-fA-F]{3,8}$/', $v) ? $v : '#7c3aed';
     }
 
+    private static function url($v): string
+    {
+        $v = trim((string) $v);
+        if ($v === '') return '';
+        if (preg_match('#^(/|https?://|data:image/)#i', $v)) return mb_substr($v, 0, 2000);
+        return '';
+    }
+
     private static function countryList($v): array
     {
         if (is_string($v)) {
@@ -161,6 +239,47 @@ class CookieConsentConfig
             if (preg_match('/^[A-Z]{2}$/', $c)) $codes[$c] = true;
         }
         return array_keys($codes);
+    }
+
+    private static function normalizeButtons(array $in, array $cur): array
+    {
+        $roles = ['primary', 'secondary', 'tertiary'];
+        $out = [];
+        foreach ($roles as $role) {
+            $row = (array) ($in[$role] ?? $cur[$role] ?? []);
+            $curRow = (array) ($cur[$role] ?? []);
+            $style = $row['style'] ?? ($curRow['style'] ?? 'solid');
+            $out[$role] = [
+                'bg'    => self::color($row['bg']   ?? ($curRow['bg']   ?? '#7c3aed')),
+                'text'  => self::color($row['text'] ?? ($curRow['text'] ?? '#ffffff')),
+                'style' => in_array($style, self::BTN_STYLES, true) ? $style : 'solid',
+            ];
+        }
+        return $out;
+    }
+
+    private static function normalizeBackdrop(array $in, array $cur): array
+    {
+        return [
+            'show' => self::bool($in['show'] ?? $cur['show'] ?? true),
+            'dim'  => max(0, min(100, (int) ($in['dim'] ?? $cur['dim'] ?? 55))),
+            'blur' => self::bool($in['blur'] ?? $cur['blur'] ?? false),
+        ];
+    }
+
+    private static function normalizeSurfaceOverrides(array $in): array
+    {
+        $out = [];
+        foreach (['site', 'biolink'] as $surface) {
+            $row = (array) ($in[$surface] ?? []);
+            $layout   = (string) ($row['layout']   ?? '');
+            $position = (string) ($row['position'] ?? '');
+            $out[$surface] = [
+                'layout'   => in_array($layout, self::LAYOUTS, true) ? $layout : '',
+                'position' => in_array($position, self::POSITIONS, true) ? $position : '',
+            ];
+        }
+        return $out;
     }
 
     private static function normalizeCopy(array $copy): array

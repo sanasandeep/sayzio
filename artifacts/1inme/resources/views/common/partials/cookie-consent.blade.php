@@ -19,8 +19,10 @@
 @endphp
 @if($cc)
 @php
+    $effective = CookieConsentConfig::effectiveFor($cc, $surface);
     $cfgJson = [
         'enabled'             => true,
+        'surface'             => $surface,
         'policyVersion'       => $cc['policy_version'],
         'rememberDays'        => $cc['remember_days'],
         'repromptOnChange'    => $cc['reprompt_on_change'],
@@ -29,11 +31,20 @@
         'requestCountry'      => $cfCountry ?: null,
         'scrollAcceptance'    => $cc['scroll_acceptance'],
         'blockUntilConsent'   => $cc['block_until_consent'],
-        'layout'              => $cc['layout'],
-        'position'            => $cc['position'],
+        'layout'              => $effective['layout'],
+        'position'            => $effective['position'],
+        'size'                => $cc['size'],
+        'maxWidth'            => $cc['max_width'],
+        'radius'              => $cc['radius'],
         'theme'               => $cc['theme'],
         'accent'              => $cc['accent'],
-        'showReopenButton'    => $cc['show_reopen_button'],
+        'buttons'             => $cc['buttons'],
+        'backdrop'            => $cc['backdrop'],
+        'animation'           => $cc['animation'],
+        'entranceDelay'       => $cc['entrance_delay'],
+        'headerLogoEnabled'   => $cc['header_logo_enabled'],
+        'headerLogoUrl'       => $cc['header_logo_url'],
+        'showPolicyLink'      => $cc['show_policy_link'],
         'copy'                => $cc['copy'],
         'categories'          => array_values($cc['categories']),
         'cookieName'          => '1inme_cookie_consent',
@@ -43,22 +54,34 @@
     .cc-host * { box-sizing: border-box; }
     .cc-host {
         position: fixed; z-index: 2147483600; font-family: 'Space Grotesk', system-ui, sans-serif;
+        pointer-events: none;
     }
+    .cc-host .cc-card,
+    .cc-host .cc-backdrop,
+    .cc-host .cc-pos { pointer-events: auto; }
+
+    .cc-backdrop {
+        position: absolute; inset: 0; background: rgba(8,10,20,0.55);
+    }
+
+    .cc-pos { position: absolute; }
     .cc-card {
         background: var(--cc-bg, #ffffff); color: var(--cc-fg, #111827);
         border: 1px solid var(--cc-border, rgba(0,0,0,0.08));
-        border-radius: 16px; box-shadow: 0 24px 60px rgba(0,0,0,0.25);
-        padding: 18px 18px 14px; max-width: 440px; width: calc(100vw - 24px);
+        border-radius: var(--cc-radius, 16px);
+        box-shadow: 0 24px 60px rgba(0,0,0,0.25);
+        padding: 18px 18px 14px;
     }
-    .cc-card.cc-banner { max-width: none; width: 100%; }
-    .cc-card h3 { margin: 0 0 6px; font-size: 16px; font-weight: 600; }
+    .cc-card.cc-stretch { width: 100%; }
+    .cc-header { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+    .cc-header img.cc-logo { width: 26px; height: 26px; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
+    .cc-card h3 { margin: 0; font-size: 16px; font-weight: 600; }
     .cc-card p { margin: 0 0 12px; font-size: 13px; line-height: 1.55; color: var(--cc-muted, #4b5563); }
     .cc-card a.cc-policy { color: var(--cc-accent, #7c3aed); text-decoration: underline; }
+
     .cc-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-    .cc-btn { border-radius: 10px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; border: 0; font-family: inherit; }
-    .cc-btn-primary { background: var(--cc-accent, #7c3aed); color: #fff; }
-    .cc-btn-secondary { background: transparent; color: var(--cc-fg, #111827); border: 1px solid var(--cc-border, rgba(0,0,0,0.12)); }
-    .cc-btn-link { background: transparent; color: var(--cc-muted, #4b5563); padding: 8px 8px; }
+    .cc-btn { border-radius: 10px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; line-height: 1.2; }
+
     .cc-cats { margin: 4px 0 12px; display: grid; gap: 8px; max-height: 250px; overflow-y: auto; }
     .cc-cat { padding: 10px 12px; border: 1px solid var(--cc-border, rgba(0,0,0,0.08)); border-radius: 10px; }
     .cc-cat-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
@@ -73,33 +96,93 @@
     .cc-switch input:checked + .cc-slider:before { transform: translateX(16px); }
     .cc-switch input:disabled + .cc-slider { opacity: 0.5; cursor: not-allowed; }
 
-    .cc-host[data-layout="modal"] {
-        inset: 0; display: flex; align-items: center; justify-content: center;
-        background: rgba(8, 10, 20, 0.55); padding: 12px;
+    /* Inline bar variant: slim row pinned to the bottom edge. */
+    .cc-card.cc-inline {
+        display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 0;
     }
+    .cc-card.cc-inline .cc-inline-text { flex: 1; min-width: 0; }
+    .cc-card.cc-inline h3 { font-size: 13px; font-weight: 600; display: inline; margin-right: 6px; }
+    .cc-card.cc-inline p { display: inline; font-size: 12.5px; margin: 0; }
+    .cc-card.cc-inline .cc-actions { flex-shrink: 0; }
+
+    /* Pill variant: compact floating badge with title + actions. */
+    .cc-card.cc-pill {
+        border-radius: 999px; padding: 8px 8px 8px 18px;
+        display: flex; align-items: center; gap: 12px;
+    }
+    .cc-card.cc-pill h3 { font-size: 13.5px; font-weight: 600; }
+    .cc-card.cc-pill p { display: none; }
+    .cc-card.cc-pill .cc-actions { flex-shrink: 0; }
+    .cc-card.cc-pill .cc-btn { padding: 6px 12px; font-size: 12.5px; border-radius: 999px; }
+
+    /* Takeover layout: full-screen container, card centered. */
+    .cc-host[data-layout="takeover"] {
+        inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px;
+    }
+    .cc-host[data-layout="takeover"] .cc-card {
+        max-width: var(--cc-card-max, 560px); width: 100%;
+        padding: 28px 28px 22px;
+    }
+
+    .cc-host[data-layout="modal"] {
+        inset: 0; display: flex; align-items: center; justify-content: center; padding: 12px;
+    }
+    .cc-host[data-layout="modal"] .cc-card {
+        max-width: var(--cc-card-max, 440px); width: calc(100vw - 24px);
+    }
+
     .cc-host[data-layout="banner"] { left: 0; right: 0; padding: 12px; }
-    .cc-host[data-layout="banner"][data-position="bottom-center"],
-    .cc-host[data-layout="banner"][data-position="bottom-left"],
-    .cc-host[data-layout="banner"][data-position="bottom-right"] { bottom: 0; }
-    .cc-host[data-layout="banner"][data-position="top-center"] { top: 0; }
-    .cc-host[data-layout="corner"] { padding: 12px; }
-    .cc-host[data-layout="corner"][data-position="bottom-center"] { left: 50%; transform: translateX(-50%); bottom: 0; }
-    .cc-host[data-layout="corner"][data-position="bottom-left"]   { left: 0; bottom: 0; }
-    .cc-host[data-layout="corner"][data-position="bottom-right"]  { right: 0; bottom: 0; }
-    .cc-host[data-layout="corner"][data-position="top-center"]    { left: 50%; transform: translateX(-50%); top: 0; }
+    .cc-host[data-layout="banner"][data-position^="bottom"] { bottom: 0; }
+    .cc-host[data-layout="banner"][data-position^="top"]    { top: 0; }
+    .cc-host[data-layout="banner"][data-position^="middle"] { top: 50%; transform: translateY(-50%); }
+
+    .cc-host[data-layout="inline"] { left: 0; right: 0; bottom: 0; padding: 0; }
+
+    .cc-host[data-layout="corner"], .cc-host[data-layout="pill"] { padding: 12px; }
+
+    /* Position helpers shared by corner + pill */
+    .cc-host[data-layout="corner"] .cc-card,
+    .cc-host[data-layout="pill"]   .cc-card { max-width: var(--cc-card-max, 360px); }
+    .cc-host[data-layout="corner"][data-position="bottom-center"],
+    .cc-host[data-layout="pill"][data-position="bottom-center"]   { left: 50%; transform: translateX(-50%); bottom: 0; }
+    .cc-host[data-layout="corner"][data-position="bottom-left"],
+    .cc-host[data-layout="pill"][data-position="bottom-left"]     { left: 0; bottom: 0; }
+    .cc-host[data-layout="corner"][data-position="bottom-right"],
+    .cc-host[data-layout="pill"][data-position="bottom-right"]    { right: 0; bottom: 0; }
+    .cc-host[data-layout="corner"][data-position="top-center"],
+    .cc-host[data-layout="pill"][data-position="top-center"]      { left: 50%; transform: translateX(-50%); top: 0; }
+    .cc-host[data-layout="corner"][data-position="top-left"],
+    .cc-host[data-layout="pill"][data-position="top-left"]        { left: 0; top: 0; }
+    .cc-host[data-layout="corner"][data-position="top-right"],
+    .cc-host[data-layout="pill"][data-position="top-right"]       { right: 0; top: 0; }
+    .cc-host[data-layout="corner"][data-position="middle-left"],
+    .cc-host[data-layout="pill"][data-position="middle-left"]     { left: 0; top: 50%; transform: translateY(-50%); }
+    .cc-host[data-layout="corner"][data-position="middle-right"],
+    .cc-host[data-layout="pill"][data-position="middle-right"]    { right: 0; top: 50%; transform: translateY(-50%); }
 
     .cc-host[data-theme="dark"] .cc-card,
     .cc-host[data-theme="auto"].cc-is-dark .cc-card {
         --cc-bg: #111827; --cc-fg: #f9fafb; --cc-muted: #9ca3af; --cc-border: rgba(255,255,255,0.10);
     }
 
-    .cc-reopen {
-        position: fixed; bottom: 14px; left: 14px; z-index: 2147483500;
-        background: var(--cc-accent, #7c3aed); color: #fff; border: 0; border-radius: 999px;
-        width: 38px; height: 38px; cursor: pointer; box-shadow: 0 8px 24px rgba(0,0,0,0.25);
-        display: none; align-items: center; justify-content: center; font-size: 16px;
+    /* Animations */
+    @keyframes cc-fade { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes cc-slide-up { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes cc-slide-down { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: translateY(0); } }
+    .cc-host[data-anim="fade"]       .cc-card { animation: cc-fade .25s ease both; }
+    .cc-host[data-anim="slide-up"]   .cc-card { animation: cc-slide-up .28s ease both; }
+    .cc-host[data-anim="slide-down"] .cc-card { animation: cc-slide-down .28s ease both; }
+    .cc-host[data-anim="fade"]       .cc-backdrop { animation: cc-fade .25s ease both; }
+    .cc-host[data-anim="slide-up"]   .cc-backdrop { animation: cc-fade .25s ease both; }
+    .cc-host[data-anim="slide-down"] .cc-backdrop { animation: cc-fade .25s ease both; }
+
+    /* Footer reopen link is rendered inside the page footer; the
+       legacy floating cookie icon has been retired. */
+    .cc-footer-link {
+        background: transparent; border: 0; padding: 0; margin: 0;
+        font: inherit; color: inherit; cursor: pointer; text-decoration: underline;
     }
-    .cc-reopen.cc-show { display: inline-flex; }
+    .cc-footer-link:focus-visible { outline: 2px solid var(--cc-accent, #7c3aed); outline-offset: 2px; border-radius: 4px; }
 </style>
 <script>
 window.__cookieConsent = window.__cookieConsent || (function(){
@@ -131,20 +214,15 @@ window.__cookieConsent = window.__cookieConsent || (function(){
     function inGeoScope() {
         if (cfg.geoScope === 'all') return true;
         const list = cfg.geoCountries || [];
-        if (!cfg.requestCountry) {
-            // No country header — fail open (show prompt) since we can't prove they're outside scope.
-            return true;
-        }
+        if (!cfg.requestCountry) return true; // fail open
         return list.indexOf((cfg.requestCountry || '').toUpperCase()) !== -1;
     }
 
     const state = {
         decision: readDecision(),
         host: null,
-        reopenBtn: null,
     };
 
-    // Apply pending scripts when consent is granted for a category.
     function activateCategory(cat) {
         document.querySelectorAll('script[type="text/plain"][data-consent-category="' + cat + '"]').forEach(function(s){
             const fresh = document.createElement('script');
@@ -178,36 +256,92 @@ window.__cookieConsent = window.__cookieConsent || (function(){
         cfg.categories.forEach(c => { o[c.id] = !!c.default_on; });
         return o;
     }
-    function acceptAll() {
-        const o = {}; allCats().forEach(c => o[c] = true); persist(o); hide();
-    }
-    function rejectAll() {
-        const o = {}; allCats().forEach(c => o[c] = false); persist(o); hide();
-    }
+    function acceptAll() { const o = {}; allCats().forEach(c => o[c] = true);  persist(o); hide(); }
+    function rejectAll() { const o = {}; allCats().forEach(c => o[c] = false); persist(o); hide(); }
 
     function escapeHtml(s){return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
+    function btnInlineStyle(role) {
+        const b = (cfg.buttons || {})[role] || {};
+        const style = b.style || 'solid';
+        if (style === 'outline') return `background:transparent; color:${b.bg}; border:1.5px solid ${b.bg};`;
+        if (style === 'link')    return `background:transparent; color:${b.bg}; border:0; text-decoration:underline; padding:8px 8px;`;
+        return `background:${b.bg}; color:${b.text}; border:0;`;
+    }
+
     function buildHost() {
+        // One-shot overrides (e.g. inline/pill -> modal for the customize sheet) take effect for this render only;
+        // cfg itself is left untouched so subsequent reopens use the admin-configured layout.
+        const liveLayout   = state.layoutOverride   || cfg.layout;
+        const livePosition = state.positionOverride || cfg.position;
         const host = document.createElement('div');
         host.className = 'cc-host';
-        host.setAttribute('data-layout', cfg.layout);
-        host.setAttribute('data-position', cfg.position);
+        host.setAttribute('role', 'dialog');
+        host.setAttribute('aria-modal', 'true');
+        host.setAttribute('aria-label', cfg.copy.title || 'Cookie preferences');
+        host.setAttribute('data-layout', liveLayout);
+        host.setAttribute('data-position', livePosition);
         host.setAttribute('data-theme', cfg.theme);
+        host.setAttribute('data-anim', cfg.animation || 'none');
         host.style.setProperty('--cc-accent', cfg.accent);
+        host.style.setProperty('--cc-radius', (cfg.radius|0) + 'px');
+
+        // size → max-width
+        const sizeShrink = cfg.size === 'compact' ? 0.85 : (cfg.size === 'wide' ? 1.15 : 1);
+        host.style.setProperty('--cc-card-max', Math.round((cfg.maxWidth || 440) * sizeShrink) + 'px');
+
         if (cfg.theme === 'auto') {
             try {
                 if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) host.classList.add('cc-is-dark');
             } catch (e) {}
         }
 
-        const card = document.createElement('div');
-        card.className = 'cc-card' + (cfg.layout === 'banner' ? ' cc-banner' : '');
-        const initial = state.decision ? state.decision.c : defaultConsents();
+        // Backdrop only for modal/takeover.
+        const wantsBackdrop = (liveLayout === 'modal' || liveLayout === 'takeover') && cfg.backdrop && cfg.backdrop.show;
+        if (wantsBackdrop) {
+            const bd = document.createElement('div');
+            bd.className = 'cc-backdrop';
+            const dim = Math.max(0, Math.min(100, cfg.backdrop.dim|0)) / 100;
+            bd.style.background = `rgba(8,10,20,${dim})`;
+            if (cfg.backdrop.blur) {
+                bd.style.backdropFilter = 'blur(6px)';
+                bd.style.webkitBackdropFilter = 'blur(6px)';
+            }
+            host.appendChild(bd);
+        }
 
+        const card = document.createElement('div');
+        card.className = 'cc-card';
+        if (liveLayout === 'banner')   card.classList.add('cc-stretch');
+        if (liveLayout === 'inline')   card.classList.add('cc-inline');
+        if (liveLayout === 'pill')     card.classList.add('cc-pill');
+
+        const initial = state.decision ? state.decision.c : defaultConsents();
         const policyHref = escapeHtml(cfg.copy.policy_link_url || '/cookies');
-        card.innerHTML = `
-            <h3>${escapeHtml(cfg.copy.title)}</h3>
-            <p>${escapeHtml(cfg.copy.body)} <a class="cc-policy" href="${policyHref}">${escapeHtml(cfg.copy.policy_link_label)}</a>.</p>
+        const showPolicy = cfg.showPolicyLink !== false;
+        const policyHtml = showPolicy
+            ? ` <a class="cc-policy" href="${policyHref}">${escapeHtml(cfg.copy.policy_link_label)}</a>.`
+            : '';
+
+        const headerHtml = (cfg.headerLogoEnabled && cfg.headerLogoUrl)
+            ? `<div class="cc-header"><img class="cc-logo" src="${escapeHtml(cfg.headerLogoUrl)}" alt=""><h3>${escapeHtml(cfg.copy.title)}</h3></div>`
+            : `<h3 style="margin-bottom:6px;">${escapeHtml(cfg.copy.title)}</h3>`;
+
+        let mainHtml;
+        if (liveLayout === 'inline') {
+            mainHtml = `
+                <div class="cc-inline-text">
+                    <h3>${escapeHtml(cfg.copy.title)}</h3>
+                    <p>${escapeHtml(cfg.copy.body)}${policyHtml}</p>
+                </div>`;
+        } else if (liveLayout === 'pill') {
+            mainHtml = `<h3>${escapeHtml(cfg.copy.title)}</h3>`;
+        } else {
+            mainHtml = `${headerHtml}
+                <p>${escapeHtml(cfg.copy.body)}${policyHtml}</p>`;
+        }
+
+        const catsHtml = `
             <div class="cc-cats" hidden>
                 <div class="cc-cat" style="opacity:.85">
                     <div class="cc-cat-head">
@@ -229,14 +363,18 @@ window.__cookieConsent = window.__cookieConsent || (function(){
                         </label>
                     </div>
                 </div>`).join('')}
-            </div>
+            </div>`;
+
+        const actionsHtml = `
             <div class="cc-actions">
-                <button type="button" class="cc-btn cc-btn-primary" data-act="accept">${escapeHtml(cfg.copy.accept_all)}</button>
-                <button type="button" class="cc-btn cc-btn-secondary" data-act="reject">${escapeHtml(cfg.copy.reject_all)}</button>
-                <button type="button" class="cc-btn cc-btn-link" data-act="customize">${escapeHtml(cfg.copy.customize)}</button>
-                <button type="button" class="cc-btn cc-btn-secondary" data-act="save" hidden>${escapeHtml(cfg.copy.save)}</button>
-            </div>
-        `;
+                <button type="button" class="cc-btn" data-act="accept" style="${btnInlineStyle('primary')}">${escapeHtml(cfg.copy.accept_all)}</button>
+                <button type="button" class="cc-btn" data-act="reject" style="${btnInlineStyle('secondary')}">${escapeHtml(cfg.copy.reject_all)}</button>
+                <button type="button" class="cc-btn" data-act="customize" style="${btnInlineStyle('tertiary')}">${escapeHtml(cfg.copy.customize)}</button>
+                <button type="button" class="cc-btn" data-act="save" hidden style="${btnInlineStyle('primary')}">${escapeHtml(cfg.copy.save)}</button>
+            </div>`;
+
+        // Inline / pill don't show the cats list — switch to modal-style if customize is hit.
+        card.innerHTML = mainHtml + (liveLayout === 'pill' || liveLayout === 'inline' ? '' : catsHtml) + actionsHtml;
         host.appendChild(card);
 
         card.addEventListener('click', function(ev){
@@ -246,6 +384,24 @@ window.__cookieConsent = window.__cookieConsent || (function(){
             if (act === 'accept') acceptAll();
             else if (act === 'reject') rejectAll();
             else if (act === 'customize') {
+                // For inline/pill, re-render as modal so visitors can actually toggle categories.
+                // Use a one-shot override instead of mutating cfg, so any later reopen still uses the original layout.
+                if (liveLayout === 'inline' || liveLayout === 'pill') {
+                    host.remove(); state.host = null;
+                    state.layoutOverride = 'modal';
+                    state.positionOverride = 'bottom-center';
+                    show();
+                    // Auto-open the categories list in the new modal.
+                    requestAnimationFrame(() => {
+                        const newCats = state.host && state.host.querySelector('.cc-cats');
+                        const newCustomize = state.host && state.host.querySelector('[data-act="customize"]');
+                        const newSave = state.host && state.host.querySelector('[data-act="save"]');
+                        if (newCats) newCats.hidden = false;
+                        if (newCustomize) newCustomize.hidden = true;
+                        if (newSave) newSave.hidden = false;
+                    });
+                    return;
+                }
                 card.querySelector('.cc-cats').hidden = false;
                 t.hidden = true;
                 card.querySelector('[data-act="save"]').hidden = false;
@@ -275,36 +431,20 @@ window.__cookieConsent = window.__cookieConsent || (function(){
     }
     function hide() {
         if (state.host) { state.host.remove(); state.host = null; }
-        ensureReopen();
-    }
-    function ensureReopen() {
-        if (!cfg.showReopenButton) return;
-        if (state.reopenBtn) { state.reopenBtn.classList.add('cc-show'); return; }
-        const b = document.createElement('button');
-        b.type = 'button';
-        b.className = 'cc-reopen cc-show';
-        b.title = 'Manage cookie preferences';
-        b.innerHTML = '<i class="fas fa-cookie-bite"></i>';
-        b.style.setProperty('--cc-accent', cfg.accent);
-        b.addEventListener('click', function(){ b.classList.remove('cc-show'); show(); });
-        document.body.appendChild(b);
-        state.reopenBtn = b;
     }
 
     function init() {
-        // Apply previously stored consents to scripts that loaded with this page.
         if (state.decision && state.decision.c) {
             applyConsents(state.decision.c);
-            ensureReopen();
             return;
         }
         if (!inGeoScope()) {
-            // Outside scope → treat as "everything allowed" so legitimate analytics still run.
             const o = {}; allCats().forEach(c => o[c] = true);
             applyConsents(o);
             return;
         }
-        show();
+        const delay = Math.max(0, Math.min(30, (cfg.entranceDelay|0))) * 1000;
+        if (delay > 0) setTimeout(show, delay); else show();
     }
     return {
         init: init,
@@ -312,6 +452,14 @@ window.__cookieConsent = window.__cookieConsent || (function(){
         clear: function(){ clearCookie(COOKIE); state.decision = null; },
     };
 })();
+
+// Public hook for the footer "Cookie preferences" link.
+window.openCookiePreferences = function(ev){
+    if (ev && ev.preventDefault) ev.preventDefault();
+    try { window.__cookieConsent.open(); } catch (e) {}
+    return false;
+};
+
 document.addEventListener('DOMContentLoaded', function(){ try { window.__cookieConsent.init(); } catch(e) { console && console.warn && console.warn('cookie-consent', e); } });
 </script>
 @endif

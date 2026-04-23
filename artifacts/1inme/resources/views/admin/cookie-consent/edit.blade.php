@@ -8,6 +8,25 @@
     $catById = collect($cfg['categories'])->keyBy('id');
     $allCats = ['analytics', 'marketing', 'functional'];
     $catNames = ['analytics' => 'Analytics', 'marketing' => 'Marketing', 'functional' => 'Functional / Personalization'];
+    $layoutLabels = [
+        'modal'    => 'Centered modal',
+        'banner'   => 'Bottom/top banner',
+        'corner'   => 'Corner card',
+        'inline'   => 'Inline bar (slim)',
+        'pill'     => 'Floating pill',
+        'takeover' => 'Full-screen takeover',
+    ];
+    $positionLabels = [
+        'bottom-center' => 'Bottom center',
+        'bottom-left'   => 'Bottom left',
+        'bottom-right'  => 'Bottom right',
+        'top-center'    => 'Top center',
+        'top-left'      => 'Top left',
+        'top-right'     => 'Top right',
+        'middle-left'   => 'Middle left',
+        'middle-right'  => 'Middle right',
+    ];
+    $btnLabels = ['primary' => 'Primary (Accept)', 'secondary' => 'Secondary (Reject)', 'tertiary' => 'Tertiary (Customize/Save)'];
 @endphp
 
 @section('content')
@@ -111,25 +130,47 @@
                     <label class="md:col-span-2 block text-xs text-white/60">Cookie policy URL
                         <input type="text" name="copy[policy_link_url]" value="{{ $cfg['copy']['policy_link_url'] }}" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" placeholder="/cookies or https://...">
                     </label>
+                    <label class="block text-xs text-white/60">Footer reopen link label
+                        <input type="text" name="copy[reopen_link_label]" value="{{ $cfg['copy']['reopen_link_label'] }}" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" placeholder="Cookie preferences">
+                    </label>
+                    <label class="flex items-end gap-2 text-sm text-white/80">
+                        <input type="hidden" name="show_policy_link" value="0">
+                        <input type="checkbox" name="show_policy_link" value="1" {{ $cfg['show_policy_link'] ? 'checked' : '' }}>
+                        Show "{{ $cfg['copy']['policy_link_label'] }}" link in prompt
+                    </label>
                 </div>
             </div>
 
             <div class="glass rounded-2xl p-6 space-y-4">
-                <h2 class="text-base font-semibold text-white">Appearance</h2>
+                <h2 class="text-base font-semibold text-white">Layout &amp; position</h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <label class="block text-xs text-white/60">Layout
                         <select id="cc_layout" name="layout" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
-                            @foreach(['modal'=>'Centered modal','banner'=>'Bottom banner','corner'=>'Corner card'] as $k=>$v)
+                            @foreach($layoutLabels as $k=>$v)
                                 <option value="{{ $k }}" {{ $cfg['layout']===$k ? 'selected' : '' }}>{{ $v }}</option>
                             @endforeach
                         </select>
                     </label>
-                    <label class="block text-xs text-white/60">Position (banner/corner)
+                    <label class="block text-xs text-white/60" id="cc_position_wrap">Position
                         <select id="cc_position" name="position" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
-                            @foreach(['bottom-center'=>'Bottom centered','bottom-left'=>'Bottom left','bottom-right'=>'Bottom right','top-center'=>'Top centered'] as $k=>$v)
+                            @foreach($positionLabels as $k=>$v)
                                 <option value="{{ $k }}" {{ $cfg['position']===$k ? 'selected' : '' }}>{{ $v }}</option>
                             @endforeach
                         </select>
+                        <span class="text-[10px] text-white/40 mt-1 block">Applies to banner / corner / pill layouts.</span>
+                    </label>
+                    <label class="block text-xs text-white/60">Size
+                        <select id="cc_size" name="size" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                            @foreach(['compact'=>'Compact','default'=>'Default','wide'=>'Wide'] as $k=>$v)
+                                <option value="{{ $k }}" {{ $cfg['size']===$k ? 'selected' : '' }}>{{ $v }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                    <label class="block text-xs text-white/60">Max width (px)
+                        <input id="cc_maxw" type="number" min="280" max="960" name="max_width" value="{{ $cfg['max_width'] }}" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    </label>
+                    <label class="block text-xs text-white/60">Corner radius (px)
+                        <input id="cc_radius" type="number" min="0" max="40" name="radius" value="{{ $cfg['radius'] }}" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
                     </label>
                     <label class="block text-xs text-white/60">Theme
                         <select id="cc_theme" name="theme" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
@@ -138,13 +179,101 @@
                             @endforeach
                         </select>
                     </label>
-                    <label class="block text-xs text-white/60">Accent color
-                        <input id="cc_accent" type="color" name="accent" value="{{ $cfg['accent'] }}" class="mt-1 w-full h-9 bg-white/5 border border-white/10 rounded-lg cursor-pointer">
+                </div>
+
+                <div class="border-t border-white/5 pt-4">
+                    <div class="text-xs uppercase tracking-wider text-white/40 font-semibold mb-2">Per-surface override</div>
+                    <p class="text-[11px] text-white/40 mb-3">Leave on "Inherit" to use the global layout/position above. Useful if you want, e.g. a slim inline bar on biolinks but a centered modal on the marketing site.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        @foreach(['site' => 'Marketing site', 'biolink' => 'Public biolinks'] as $sk => $sl)
+                            <div class="rounded-lg p-3" style="background:rgba(255,255,255,0.03); border:1px solid var(--border-glass);">
+                                <div class="text-xs font-semibold text-white/80 mb-2">{{ $sl }}</div>
+                                <label class="block text-[11px] text-white/50 mb-2">Layout
+                                    <select name="surface_overrides[{{ $sk }}][layout]" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white">
+                                        <option value="">Inherit</option>
+                                        @foreach($layoutLabels as $k=>$v)
+                                            <option value="{{ $k }}" {{ ($cfg['surface_overrides'][$sk]['layout'] ?? '')===$k ? 'selected' : '' }}>{{ $v }}</option>
+                                        @endforeach
+                                    </select>
+                                </label>
+                                <label class="block text-[11px] text-white/50">Position
+                                    <select name="surface_overrides[{{ $sk }}][position]" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white">
+                                        <option value="">Inherit</option>
+                                        @foreach($positionLabels as $k=>$v)
+                                            <option value="{{ $k }}" {{ ($cfg['surface_overrides'][$sk]['position'] ?? '')===$k ? 'selected' : '' }}>{{ $v }}</option>
+                                        @endforeach
+                                    </select>
+                                </label>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass rounded-2xl p-6 space-y-4">
+                <h2 class="text-base font-semibold text-white">Buttons</h2>
+                <p class="text-xs text-white/50">Style each button role independently. "Link" style strips the background and shows the text only.</p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    @foreach(['primary','secondary','tertiary'] as $role)
+                        @php $b = $cfg['buttons'][$role]; @endphp
+                        <div class="rounded-lg p-3" style="background:rgba(255,255,255,0.03); border:1px solid var(--border-glass);">
+                            <div class="text-xs font-semibold text-white/80 mb-2">{{ $btnLabels[$role] }}</div>
+                            <label class="block text-[11px] text-white/50 mb-2">Background
+                                <input id="cc_btn_{{ $role }}_bg" type="color" name="buttons[{{ $role }}][bg]" value="{{ $b['bg'] }}" class="mt-1 w-full h-8 bg-white/5 border border-white/10 rounded cursor-pointer">
+                            </label>
+                            <label class="block text-[11px] text-white/50 mb-2">Text
+                                <input id="cc_btn_{{ $role }}_text" type="color" name="buttons[{{ $role }}][text]" value="{{ $b['text'] }}" class="mt-1 w-full h-8 bg-white/5 border border-white/10 rounded cursor-pointer">
+                            </label>
+                            <label class="block text-[11px] text-white/50">Style
+                                <select id="cc_btn_{{ $role }}_style" name="buttons[{{ $role }}][style]" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white">
+                                    @foreach(['solid'=>'Solid','outline'=>'Outline','link'=>'Link'] as $k=>$v)
+                                        <option value="{{ $k }}" {{ $b['style']===$k ? 'selected' : '' }}>{{ $v }}</option>
+                                    @endforeach
+                                </select>
+                            </label>
+                        </div>
+                    @endforeach
+                </div>
+                <label class="block text-xs text-white/60 max-w-[200px]">Accent (links / switches)
+                    <input id="cc_accent" type="color" name="accent" value="{{ $cfg['accent'] }}" class="mt-1 w-full h-9 bg-white/5 border border-white/10 rounded-lg cursor-pointer">
+                </label>
+            </div>
+
+            <div class="glass rounded-2xl p-6 space-y-4">
+                <h2 class="text-base font-semibold text-white">Backdrop &amp; animation</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <label class="flex items-center gap-2 text-sm text-white/80 mt-5">
+                        <input type="hidden" name="backdrop[show]" value="0">
+                        <input id="cc_bd_show" type="checkbox" name="backdrop[show]" value="1" {{ $cfg['backdrop']['show'] ? 'checked' : '' }}>
+                        Show backdrop (modal / takeover)
                     </label>
-                    <label class="md:col-span-2 flex items-center gap-2 text-sm text-white/80 mt-6">
-                        <input type="hidden" name="show_reopen_button" value="0">
-                        <input type="checkbox" name="show_reopen_button" value="1" {{ $cfg['show_reopen_button'] ? 'checked' : '' }}>
-                        Show floating "manage cookies" reopen button after dismissal
+                    <label class="block text-xs text-white/60">Backdrop dim (%)
+                        <input id="cc_bd_dim" type="number" min="0" max="100" name="backdrop[dim]" value="{{ $cfg['backdrop']['dim'] }}" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    </label>
+                    <label class="flex items-center gap-2 text-sm text-white/80 mt-5">
+                        <input type="hidden" name="backdrop[blur]" value="0">
+                        <input id="cc_bd_blur" type="checkbox" name="backdrop[blur]" value="1" {{ $cfg['backdrop']['blur'] ? 'checked' : '' }}>
+                        Blur the backdrop
+                    </label>
+                    <label class="block text-xs text-white/60">Animation
+                        <select id="cc_anim" name="animation" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                            @foreach(['none'=>'None','fade'=>'Fade','slide-up'=>'Slide up','slide-down'=>'Slide down'] as $k=>$v)
+                                <option value="{{ $k }}" {{ $cfg['animation']===$k ? 'selected' : '' }}>{{ $v }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                    <label class="block text-xs text-white/60">Entrance delay (s)
+                        <input type="number" min="0" max="30" name="entrance_delay" value="{{ $cfg['entrance_delay'] }}" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    </label>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-white/5">
+                    <label class="flex items-center gap-2 text-sm text-white/80">
+                        <input type="hidden" name="header_logo_enabled" value="0">
+                        <input id="cc_logo_on" type="checkbox" name="header_logo_enabled" value="1" {{ $cfg['header_logo_enabled'] ? 'checked' : '' }}>
+                        Show small logo / icon in prompt header
+                    </label>
+                    <label class="block text-xs text-white/60">Logo image URL
+                        <input id="cc_logo_url" type="text" name="header_logo_url" value="{{ $cfg['header_logo_url'] }}" placeholder="/img/logo.png or https://..." class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
                     </label>
                 </div>
             </div>
@@ -188,6 +317,13 @@
                 </div>
             </div>
 
+            <div class="glass rounded-2xl p-6 space-y-3">
+                <h2 class="text-base font-semibold text-white">Reopen link</h2>
+                <p class="text-xs text-white/50">A "{{ $cfg['copy']['reopen_link_label'] }}" text link is added to the marketing site footer and the public biolink footer area whenever consent is enabled for that surface. Visitors click it to reopen this prompt. The previous floating cookie icon has been retired.</p>
+                {{-- show_reopen_button is hard-pinned to false; the field is retained in the schema for back-compat with old payloads. --}}
+                <input type="hidden" name="show_reopen_button" value="0">
+            </div>
+
             <div class="flex items-center gap-3 pt-2">
                 <button type="submit" class="px-6 py-2.5 bg-violet-600 text-white rounded-xl font-medium hover:bg-violet-700">
                     Save settings
@@ -197,10 +333,18 @@
         </div>
 
         <div class="space-y-3">
-            <div class="text-xs uppercase tracking-wider text-white/40 font-semibold">Live preview</div>
-            <div id="cc_preview_wrap" class="rounded-2xl p-4 min-h-[420px] relative overflow-hidden" style="background:#0d1322; border:1px solid var(--border-glass);">
+            <div class="flex items-center justify-between">
+                <div class="text-xs uppercase tracking-wider text-white/40 font-semibold">Live preview</div>
+                <div class="flex items-center gap-1 text-[11px]">
+                    <button type="button" data-cc-surface="site"    class="cc-surface-tab px-2 py-1 rounded-md bg-violet-600/30 text-violet-200">Site</button>
+                    <button type="button" data-cc-surface="biolink" class="cc-surface-tab px-2 py-1 rounded-md bg-white/5 text-white/60">Biolink</button>
+                </div>
+            </div>
+            <div id="cc_preview_wrap" class="rounded-2xl p-4 min-h-[480px] relative overflow-hidden" style="background:#0d1322; border:1px solid var(--border-glass);">
                 <div class="absolute inset-0 opacity-30" style="background: radial-gradient(circle at top right, #312e81, transparent 60%);"></div>
+                <div id="cc_backdrop" class="absolute inset-0" style="display:none;"></div>
                 <div id="cc_preview" class="relative h-full"></div>
+                <div id="cc_preview_meta" class="absolute bottom-2 right-3 text-[10px] text-white/30 font-mono"></div>
             </div>
         </div>
     </form>
@@ -210,12 +354,48 @@
 (function() {
     const $ = (id) => document.getElementById(id);
     const preview = $('cc_preview');
+    const backdrop = $('cc_backdrop');
+    const POSITIONABLE = ['banner', 'corner', 'pill'];
+
+    function escapeHtml(s){return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+    function btnCss(role) {
+        const bg = $('cc_btn_'+role+'_bg').value;
+        const fg = $('cc_btn_'+role+'_text').value;
+        const style = $('cc_btn_'+role+'_style').value;
+        if (style === 'outline') return `background:transparent; color:${bg}; border:1.5px solid ${bg};`;
+        if (style === 'link')    return `background:transparent; color:${bg}; border:0; text-decoration:underline;`;
+        return `background:${bg}; color:${fg}; border:0;`;
+    }
+
+    let activeSurface = 'site';
+    document.querySelectorAll('.cc-surface-tab').forEach(b => {
+        b.addEventListener('click', () => {
+            activeSurface = b.getAttribute('data-cc-surface');
+            document.querySelectorAll('.cc-surface-tab').forEach(x => {
+                const on = x.getAttribute('data-cc-surface') === activeSurface;
+                x.className = 'cc-surface-tab px-2 py-1 rounded-md ' + (on ? 'bg-violet-600/30 text-violet-200' : 'bg-white/5 text-white/60');
+            });
+            build();
+        });
+    });
+
+    function effective(field) {
+        const sel = document.querySelector(`[name="surface_overrides[${activeSurface}][${field}]"]`);
+        const v = sel ? sel.value : '';
+        return v || $('cc_' + (field === 'layout' ? 'layout' : 'position')).value;
+    }
+
+    let animTick = 0;
     function build() {
-        const layout = $('cc_layout').value;
-        const position = $('cc_position').value;
+        const layout = effective('layout');
+        const position = effective('position');
         const theme = $('cc_theme').value;
         const accent = $('cc_accent').value;
-        const dark = theme === 'dark' || (theme === 'auto');
+        const size = $('cc_size').value;
+        const maxw = parseInt($('cc_maxw').value, 10) || 440;
+        const radius = parseInt($('cc_radius').value, 10) || 16;
+        const dark = theme === 'dark' || theme === 'auto';
         const bg = dark ? '#111827' : '#ffffff';
         const fg = dark ? '#f9fafb' : '#111827';
         const muted = dark ? '#9ca3af' : '#4b5563';
@@ -226,37 +406,110 @@
         const reject = $('cc_reject').value || 'Reject all';
         const customize = $('cc_customize').value || 'Customize';
         const linkLabel = $('cc_link_label').value || 'Cookie policy';
+        const showPolicy = document.querySelector('[name="show_policy_link"][type="checkbox"]').checked;
+        const anim = $('cc_anim').value || 'none';
+        const delay = parseInt(document.querySelector('[name="entrance_delay"]').value, 10) || 0;
+        const logoOn = $('cc_logo_on').checked;
+        const logoUrl = $('cc_logo_url').value;
+        const bdShow = $('cc_bd_show').checked;
+        const bdDim = (parseInt($('cc_bd_dim').value, 10) || 0) / 100;
+        const bdBlur = $('cc_bd_blur').checked;
+
+        // Disable position picker for layouts where it's irrelevant.
+        const posSel = $('cc_position');
+        const irrelevant = !POSITIONABLE.includes(layout);
+        posSel.disabled = irrelevant;
+        posSel.style.opacity = irrelevant ? '0.4' : '1';
+
+        // Backdrop preview
+        if ((layout === 'modal' || layout === 'takeover') && bdShow) {
+            backdrop.style.display = 'block';
+            backdrop.style.background = `rgba(8,10,20,${bdDim})`;
+            backdrop.style.backdropFilter = bdBlur ? 'blur(6px)' : 'none';
+            backdrop.style.webkitBackdropFilter = bdBlur ? 'blur(6px)' : 'none';
+        } else {
+            backdrop.style.display = 'none';
+        }
+
+        const widthByLayout = {
+            modal: Math.min(maxw, 420),
+            banner: 0,
+            corner: Math.min(maxw, 360),
+            inline: 0,
+            pill: Math.min(maxw, 480),
+            takeover: 0,
+        };
+        const sizeShrink = size === 'compact' ? 0.85 : (size === 'wide' ? 1.15 : 1);
 
         let style = '';
         if (layout === 'modal') {
-            style = 'position:absolute; inset:auto; left:50%; top:50%; transform:translate(-50%,-50%); width:88%; max-width:420px;';
+            style = `position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:88%; max-width:${Math.round(widthByLayout.modal * sizeShrink)}px;`;
+        } else if (layout === 'takeover') {
+            style = `position:absolute; inset:18px; display:flex; align-items:center; justify-content:center; padding:24px;`;
         } else if (layout === 'banner') {
             const top = position.startsWith('top');
-            style = `position:absolute; left:12px; right:12px; ${top?'top:12px;':'bottom:12px;'}`;
-        } else {
-            // corner
-            const top = position.startsWith('top');
-            const right = position.endsWith('right');
-            const left = position.endsWith('left');
-            const center = position.endsWith('center');
+            style = `position:absolute; left:8px; right:8px; ${top?'top:8px;':'bottom:8px;'}`;
+        } else if (layout === 'inline') {
+            style = `position:absolute; left:0; right:0; bottom:0; padding:8px 10px;`;
+        } else if (layout === 'pill') {
+            const top = position.startsWith('top'); const right = position.endsWith('right'); const left = position.endsWith('left'); const center = position.endsWith('center'); const middle = position.startsWith('middle');
             const horiz = center ? 'left:50%; transform:translateX(-50%);' : (right ? 'right:12px;' : 'left:12px;');
-            style = `position:absolute; ${top?'top:12px;':'bottom:12px;'} ${horiz} max-width:340px;`;
+            const vert = middle ? 'top:50%;' : (top ? 'top:12px;' : 'bottom:12px;');
+            style = `position:absolute; ${vert} ${horiz} max-width:${Math.round(widthByLayout.pill * sizeShrink)}px;`;
+        } else { // corner
+            const top = position.startsWith('top'); const right = position.endsWith('right'); const left = position.endsWith('left'); const center = position.endsWith('center'); const middle = position.startsWith('middle');
+            const horiz = center ? 'left:50%; transform:translateX(-50%);' : (right ? 'right:12px;' : 'left:12px;');
+            const vert = middle ? 'top:50%;' : (top ? 'top:12px;' : 'bottom:12px;');
+            style = `position:absolute; ${vert} ${horiz} max-width:${Math.round(widthByLayout.corner * sizeShrink)}px;`;
         }
 
+        const cardW = (layout === 'banner' || layout === 'inline') ? 'width:100%;' : '';
+        const cardR = layout === 'pill' ? Math.max(radius, 24) + 'px' : radius + 'px';
+        const cardPad = layout === 'inline' ? '10px 14px' : (layout === 'pill' ? '10px 16px' : '18px 18px 14px');
+
+        const logoHtml = (logoOn && logoUrl) ? `<img src="${escapeHtml(logoUrl)}" alt="" style="width:22px; height:22px; border-radius:6px; object-fit:cover; margin-right:8px; vertical-align:middle;">` : '';
+        const policyHtml = showPolicy ? ` <a href="#" style="color:${accent}; text-decoration:underline;">${escapeHtml(linkLabel)}</a>.` : '';
+        const bodyHtml = layout === 'inline'
+            ? `<span style="font-size:12px; color:${muted}; margin-right:10px;">${escapeHtml(title)} — ${escapeHtml(body).slice(0,80)}…${policyHtml}</span>`
+            : (layout === 'pill'
+                ? `<span style="font-size:12.5px; color:${fg};">${escapeHtml(title)}</span>`
+                : `<div style="font-weight:600; font-size:15px; margin-bottom:6px;">${logoHtml}${escapeHtml(title)}</div>
+                   <div style="font-size:12.5px; line-height:1.5; color:${muted}; margin-bottom:12px;">${escapeHtml(body)}${policyHtml}</div>`);
+
+        // Animation styles, replayed on every build by stamping a unique name.
+        animTick++;
+        const animKey = `cc_anim_${animTick}`;
+        let animCss = '';
+        if (anim === 'fade') {
+            animCss = `@keyframes ${animKey} { from { opacity:0 } to { opacity:1 } } animation:${animKey} .35s ease both;`;
+        } else if (anim === 'slide-up') {
+            animCss = `@keyframes ${animKey} { from { opacity:0; transform:translateY(16px) } to { opacity:1; transform:translateY(0) } } animation:${animKey} .35s ease both;`;
+        } else if (anim === 'slide-down') {
+            animCss = `@keyframes ${animKey} { from { opacity:0; transform:translateY(-16px) } to { opacity:1; transform:translateY(0) } } animation:${animKey} .35s ease both;`;
+        }
+        const keyframes = animCss.split('}')[0] + (animCss ? '} ' : '');
+        const animInline = animCss ? animCss.split('} ')[1] || '' : '';
+
         preview.innerHTML = `
-          <div style="${style} background:${bg}; color:${fg}; border:1px solid ${border}; border-radius:14px; box-shadow:0 18px 48px rgba(0,0,0,0.3); padding:18px 18px 14px; font-family:'Space Grotesk',sans-serif;">
-            <div style="font-weight:600; font-size:15px; margin-bottom:6px;">${escapeHtml(title)}</div>
-            <div style="font-size:12.5px; line-height:1.5; color:${muted}; margin-bottom:12px;">${escapeHtml(body)}
-              <a href="#" style="color:${accent}; text-decoration:underline;">${escapeHtml(linkLabel)}</a>.
-            </div>
-            <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              <button type="button" style="background:${accent}; color:#fff; border:0; padding:8px 14px; border-radius:10px; font-size:12.5px; font-weight:600; cursor:pointer;">${escapeHtml(accept)}</button>
-              <button type="button" style="background:transparent; color:${fg}; border:1px solid ${border}; padding:8px 14px; border-radius:10px; font-size:12.5px; font-weight:500; cursor:pointer;">${escapeHtml(reject)}</button>
-              <button type="button" style="background:transparent; color:${muted}; border:0; padding:8px 8px; border-radius:10px; font-size:12.5px; font-weight:500; cursor:pointer;">${escapeHtml(customize)}</button>
+          ${anim !== 'none' ? `<style>${keyframes}</style>` : ''}
+          <div style="${style}">
+            <div style="${cardW} background:${bg}; color:${fg}; border:1px solid ${border}; border-radius:${cardR}; box-shadow:0 18px 48px rgba(0,0,0,0.3); padding:${cardPad}; font-family:'Space Grotesk',sans-serif; ${animInline}">
+              ${bodyHtml}
+              <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                <button type="button" style="${btnCss('primary')} padding:8px 14px; border-radius:10px; font-size:12.5px; font-weight:600; cursor:pointer;">${escapeHtml(accept)}</button>
+                <button type="button" style="${btnCss('secondary')} padding:8px 14px; border-radius:10px; font-size:12.5px; font-weight:500; cursor:pointer;">${escapeHtml(reject)}</button>
+                <button type="button" style="${btnCss('tertiary')} padding:8px 8px; border-radius:10px; font-size:12.5px; font-weight:500; cursor:pointer;">${escapeHtml(customize)}</button>
+              </div>
             </div>
           </div>`;
+
+        const meta = document.getElementById('cc_preview_meta');
+        if (meta) {
+            const ovr = document.querySelector(`[name="surface_overrides[${activeSurface}][layout]"]`).value;
+            meta.textContent = `${activeSurface} · ${layout}/${position}${ovr ? ' · override' : ''}${delay ? ' · ' + delay + 's delay' : ''}`;
+        }
     }
-    function escapeHtml(s){return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
     document.querySelectorAll('#cookie-consent-form input, #cookie-consent-form select, #cookie-consent-form textarea').forEach(el => {
         el.addEventListener('input', build);
         el.addEventListener('change', build);

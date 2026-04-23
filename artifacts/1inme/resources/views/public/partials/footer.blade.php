@@ -120,5 +120,19 @@
     </div>
     <div class="border-t border-white/5 py-5 text-center text-xs text-gray-500">
         © {{ date('Y') }} {{ config('app.name', '1INME') }}. All rights reserved.
+        @php
+            $__ccCfg = \App\Modules\Common\Support\CookieConsentConfig::shouldRender('site')
+                ? \App\Modules\Common\Support\CookieConsentConfig::get() : null;
+        @endphp
+        @if($__ccCfg)
+            @php $__ccPolicy = $__ccCfg['copy']['policy_link_url'] ?? '/cookies'; @endphp
+            <span class="mx-2 text-white/20">·</span>
+            <a href="{{ $__ccPolicy }}"
+               class="cc-footer-link text-gray-400 hover:text-white"
+               aria-label="{{ $__ccCfg['copy']['reopen_link_label'] ?? 'Cookie preferences' }}"
+               onclick="if(window.openCookiePreferences){return window.openCookiePreferences(event);}">
+                {{ $__ccCfg['copy']['reopen_link_label'] ?? 'Cookie preferences' }}
+            </a>
+        @endif
     </div>
 </footer>

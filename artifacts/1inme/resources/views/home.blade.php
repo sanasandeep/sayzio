@@ -6115,7 +6115,23 @@
         </div>
         <div class="border-t border-white/5 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3">
             <p class="text-sm text-gray-600">&copy; {{ date('Y') }} 1INME. All rights reserved.</p>
-            <p class="text-xs text-gray-600">One link to everything.</p>
+            <div class="flex items-center gap-3 text-xs text-gray-600">
+                @php
+                    $__ccCfgHome = \App\Modules\Common\Support\CookieConsentConfig::shouldRender('site')
+                        ? \App\Modules\Common\Support\CookieConsentConfig::get() : null;
+                @endphp
+                @if($__ccCfgHome)
+                    @php $__ccPolicyHome = $__ccCfgHome['copy']['policy_link_url'] ?? '/cookies'; @endphp
+                    <a href="{{ $__ccPolicyHome }}"
+                       class="cc-footer-link text-gray-500 hover:text-white"
+                       aria-label="{{ $__ccCfgHome['copy']['reopen_link_label'] ?? 'Cookie preferences' }}"
+                       onclick="if(window.openCookiePreferences){return window.openCookiePreferences(event);}">
+                        {{ $__ccCfgHome['copy']['reopen_link_label'] ?? 'Cookie preferences' }}
+                    </a>
+                    <span class="text-white/10">·</span>
+                @endif
+                <p>One link to everything.</p>
+            </div>
         </div>
     </div>
 </footer>
