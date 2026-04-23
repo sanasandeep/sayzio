@@ -23,6 +23,11 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        \Illuminate\Support\Facades\View::composer(
+            array_keys(\App\Modules\Common\Services\BlogCtaComposer::VIEW_TO_SLUG),
+            \App\Modules\Common\Services\BlogCtaComposer::class
+        );
+
         // Note: App\Listeners\IssueInvoiceOnSubscriptionActivated is wired to
         // App\Events\SubscriptionActivated by Laravel's event auto-discovery
         // (typed handle() method on a class under app/Listeners). An explicit

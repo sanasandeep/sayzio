@@ -47,7 +47,20 @@ class SitePageController extends Controller
             'creators_feed_show_pinned' => (bool) AppSetting::get('creators_feed_show_pinned', true),
             'error_404_suggestions_enabled' => (bool) AppSetting::get(PathSuggester::SETTING_KEY, true),
         ];
-        return view('admin.site-pages.edit', compact('page', 'faqs', 'settings', 'featuresCategories', 'revisions'));
+        // Lightweight blog data for the per-page "Related blog posts" block.
+        $blogCategories = collect();
+        $blogPosts      = collect();
+        try {
+            $blogCategories = \App\Modules\Common\Models\BlogCategory::orderBy('name')->get(['id', 'name']);
+            $blogPosts      = \App\Modules\Common\Models\BlogPost::published()
+                ->orderByDesc('published_at')->take(50)->get(['id', 'title', 'slug']);
+        } catch (\Throwable $e) {
+            // blogs migration not yet run
+        }
+        return view('admin.site-pages.edit', compact(
+            'page', 'faqs', 'settings', 'featuresCategories', 'revisions',
+            'blogCategories', 'blogPosts'
+        ));
     }
 
     public function update(Request $request, string $slug)
@@ -73,6 +86,12 @@ class SitePageController extends Controller
             'cta_url' => ['nullable', 'string', 'max:500', 'regex:#^(/|https?://)#i'],
             'error_404_suggestions_enabled' => 'nullable|boolean',
             'extra' => 'nullable|array',
+            'extra.blog_block.enabled'     => 'nullable|boolean',
+            'extra.blog_block.heading'     => 'nullable|string|max:200',
+            'extra.blog_block.category_id' => 'nullable|integer|exists:blog_categories,id',
+            'extra.blog_block.post_ids'    => 'nullable|array|max:6',
+            'extra.blog_block.post_ids.*'  => 'integer|exists:blog_posts,id',
+            'extra.blog_block.limit'       => 'nullable|integer|min:1|max:6',
         ];
         if ($slug === 'about') {
             $rules['extra.founder']                       = 'nullable|array';
@@ -180,6 +199,23 @@ class SitePageController extends Controller
             $payload['extra'] = SitePagesContent::normalizeAboutExtra((array) ($data['extra'] ?? []));
         } elseif ($slug === 'contact') {
             $payload['extra'] = SitePagesContent::normalizeContactExtra((array) ($data['extra'] ?? []));
+        }
+        // Persist the optional Related-blog-posts block on any site page.
+        // Lives under extra.blog_block so it composes with about/contact extras.
+        $blogBlock = $request->input('extra.blog_block');
+        if (is_array($blogBlock)) {
+            $existing = is_array($payload['extra'] ?? null)
+                ? $payload['extra']
+                : (is_array($page->extra) ? $page->extra : []);
+            $existing['blog_block'] = [
+                'enabled'     => (bool) ($blogBlock['enabled'] ?? false),
+                'heading'     => trim((string) ($blogBlock['heading'] ?? '')) ?: null,
+                'category_id' => isset($blogBlock['category_id']) && $blogBlock['category_id'] !== ''
+                                  ? (int) $blogBlock['category_id'] : null,
+                'post_ids'    => array_values(array_filter(array_map('intval', (array) ($blogBlock['post_ids'] ?? [])))),
+                'limit'       => max(1, min(6, (int) ($blogBlock['limit'] ?? 3))),
+            ];
+            $payload['extra'] = $existing;
         }
         $previous = $this->captureState($page);
         $page->update($payload);

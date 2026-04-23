@@ -5421,6 +5421,59 @@
     </div>
 </section>
 
+{{-- ============================ FROM THE BLOG (HERO SLOT) ============================ --}}
+@if(!empty($featuredHeroPost))
+<section class="pt-24 pb-6 lg:pt-28 lg:pb-8 relative overflow-hidden">
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <a href="{{ route('site.blogs.show', $featuredHeroPost->slug) }}" class="group grid lg:grid-cols-2 gap-8 items-center bg-white/[0.03] border border-white/10 rounded-3xl overflow-hidden hover:border-violet-500/40 transition">
+            @if($featuredHeroPost->cover_image)
+                <div class="aspect-[16/10] lg:aspect-auto lg:h-full bg-white/5 overflow-hidden">
+                    <img src="{{ $featuredHeroPost->cover_image }}" alt="" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                </div>
+            @else
+                <div class="aspect-[16/10] lg:aspect-auto lg:h-full" style="background:linear-gradient(135deg, rgba(124,58,237,.35), rgba(56,189,248,.22));"></div>
+            @endif
+            <div class="p-6 sm:p-8 lg:p-10">
+                <div class="text-[11px] font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c4)">Featured story</div>
+                @if($featuredHeroPost->category)
+                    <span class="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full" style="background: {{ $featuredHeroPost->category->color ? $featuredHeroPost->category->color . '22' : 'rgba(124,58,237,.15)' }}; color: {{ $featuredHeroPost->category->color ?: '#a78bfa' }};">{{ $featuredHeroPost->category->name }}</span>
+                @endif
+                <h2 class="mt-3 text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-white group-hover:text-violet-200 transition">{{ $featuredHeroPost->title }}</h2>
+                @if($featuredHeroPost->excerpt)
+                    <p class="mt-3 text-gray-400">{{ $featuredHeroPost->excerpt }}</p>
+                @endif
+                <div class="mt-5 flex items-center gap-3 text-xs text-white/50">
+                    <span>{{ optional($featuredHeroPost->published_at)->format('M j, Y') }}</span>
+                    <span>·</span>
+                    <span>{{ $featuredHeroPost->reading_time_min }} min read</span>
+                </div>
+            </div>
+        </a>
+    </div>
+</section>
+@endif
+
+{{-- ============================ FROM THE BLOG (CAROUSEL SLOT) ============================ --}}
+@if(!empty($featuredBlogPosts) && $featuredBlogPosts->count())
+<section class="pt-24 pb-12 lg:pt-28 lg:pb-14 relative overflow-hidden">
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12">
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c4)">From the blog</div>
+            <h2 class="reveal rd-1 text-4xl sm:text-5xl font-bold tracking-tight mb-3">Stories &amp; <span class="grad-text">playbooks.</span></h2>
+            <p class="reveal rd-2 text-gray-400">Tips, product news and creator deep-dives — fresh from the 1INME team.</p>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-6">
+            @foreach($featuredBlogPosts as $post)
+                <a href="{{ route('site.blogs.show', $post->slug) }}" class="group block bg-white/[0.03] border border-white/10 rounded-2xl overflow-hidden hover:border-violet-500/40 transition reveal rd-{{ $loop->iteration + 1 }}">
+                    @if($post->cover_image)
+                        <div class="aspect-[16/9] bg-white/5 overflow-hidden">
+                            <img src="{{ $post->cover_image }}" alt="" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                        </div>
+                    @else
+                        <div class="aspect-[16/9]" style="background:linear-gradient(135deg, rgba(124,58,237,.25), rgba(56,189,248,.18));"></div>
+                    @endif
+
 {{-- ============================ WHY 1INME (comparison) ============================ --}}
 @php
     $__whyRaw = \App\Modules\Admin\Models\AppSetting::get('marketing_why_comparison', null);

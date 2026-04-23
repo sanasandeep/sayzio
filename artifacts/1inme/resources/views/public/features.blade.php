@@ -186,6 +186,8 @@
     </div>
 </section>
 
+@include('public.blogs.partials.latest-cta')
+
 @include('public.partials.newsletter-cta', [
     'heading' => 'Want a heads-up when we ship new features?',
     'subtext' => 'Join the 1INME newsletter for product updates, growth playbooks for creators, and the occasional template — once a month.',

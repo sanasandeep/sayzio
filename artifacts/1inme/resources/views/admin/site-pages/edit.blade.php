@@ -377,6 +377,54 @@
             @include('admin.site-pages.partials.contact-editor', ['page' => $page])
         @endif
 
+        @php
+            $blogBlock = (array) (data_get($page, 'extra.blog_block') ?? []);
+            $bbEnabled = (bool) ($blogBlock['enabled'] ?? false);
+            $bbHeading = (string) ($blogBlock['heading'] ?? 'Related from the blog');
+            $bbCatId   = $blogBlock['category_id'] ?? null;
+            $bbPostIds = (array) ($blogBlock['post_ids'] ?? []);
+            $bbLimit   = (int) ($blogBlock['limit'] ?? 3);
+        @endphp
+        <details class="glass rounded-2xl p-5" @if($bbEnabled) open @endif>
+            <summary class="cursor-pointer text-sm font-semibold text-white">Related blog posts block</summary>
+            <p class="text-xs text-white/50 mt-1 mb-4">Show a "Related from the blog" panel below the page content. Pick specific posts, a category, or both.</p>
+            <div class="space-y-4">
+                <label class="flex items-center gap-2 text-sm text-white/80">
+                    <input type="hidden" name="extra[blog_block][enabled]" value="0">
+                    <input type="checkbox" name="extra[blog_block][enabled]" value="1" @checked($bbEnabled) class="rounded border-white/20 bg-white/5">
+                    Show this block on the public page
+                </label>
+                <div>
+                    <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5">Heading</label>
+                    <input type="text" name="extra[blog_block][heading]" value="{{ old('extra.blog_block.heading', $bbHeading) }}" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm">
+                </div>
+                <div class="grid sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5">From category (optional)</label>
+                        <select name="extra[blog_block][category_id]" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm">
+                            <option value="">— Any —</option>
+                            @foreach($blogCategories ?? [] as $c)
+                                <option value="{{ $c->id }}" @selected((int) old('extra.blog_block.category_id', $bbCatId) === (int) $c->id)>{{ $c->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5">How many posts to show</label>
+                        <input type="number" min="1" max="6" name="extra[blog_block][limit]" value="{{ old('extra.blog_block.limit', $bbLimit) }}" class="w-32 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5">Pick specific posts (optional, overrides category)</label>
+                    <select name="extra[blog_block][post_ids][]" multiple size="6" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm">
+                        @foreach($blogPosts ?? [] as $p)
+                            <option value="{{ $p->id }}" @selected(in_array((int) $p->id, array_map('intval', (array) old('extra.blog_block.post_ids', $bbPostIds)), true))>{{ $p->title }}</option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-[11px] text-white/40">Hold Ctrl/Cmd to select up to 6 posts.</p>
+                </div>
+            </div>
+        </details>
+
         <div class="pt-4 border-t border-white/10 flex items-center justify-between">
             @if(in_array($page->slug, $errorSlugs))
                 <span class="text-xs text-white/40">Shown automatically when visitors hit a {{ $errorLabels[$page->slug] }} response.</span>

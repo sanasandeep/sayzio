@@ -86,6 +86,35 @@ class HomeController extends Controller
                 ];
             });
 
-        return view('home', compact('plans', 'currency', 'currencySource', 'user', 'hasAddress'));
+        // Slot-aware homepage blog blocks. The "hero" slot is a single
+        // headline post; the "carousel" slot powers the multi-card row.
+        // Each slot is independent so admins can fill one without the
+        // other and the missing slot is hidden gracefully.
+        $featuredHeroPost  = null;
+        $featuredBlogPosts = collect();
+        try {
+            $featuredHeroPost = \App\Modules\Common\Models\BlogPost::published()
+                ->featured()
+                ->where('featured_slot', 'hero')
+                ->with('category', 'author')
+                ->orderByDesc('published_at')
+                ->first();
+
+            $featuredBlogPosts = \App\Modules\Common\Models\BlogPost::published()
+                ->featured()
+                ->where(function ($q) {
+                    $q->where('featured_slot', 'carousel')
+                      ->orWhereNull('featured_slot');
+                })
+                ->when($featuredHeroPost, fn($q) => $q->where('id', '!=', $featuredHeroPost->id))
+                ->with('category')
+                ->orderByDesc('published_at')
+                ->take(3)
+                ->get();
+        } catch (\Throwable $e) {
+            // Blogs migration not run yet — silently skip both slots.
+        }
+
+        return view('home', compact('plans', 'currency', 'currencySource', 'user', 'hasAddress', 'featuredBlogPosts', 'featuredHeroPost'));
     }
 }

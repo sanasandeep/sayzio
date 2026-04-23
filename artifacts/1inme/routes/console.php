@@ -123,3 +123,11 @@ Schedule::command('minds:refresh-links')
     ->everyFifteenMinutes()
     ->withoutOverlapping()
     ->onOneServer();
+
+// Every minute: flip blog posts whose scheduled_at has elapsed from
+// status=scheduled to status=published. Cheap query (indexed status +
+// scheduled_at) so a per-minute cadence keeps the publish window tight.
+Schedule::command('blogs:publish-scheduled')
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->onOneServer();

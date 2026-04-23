@@ -331,6 +331,51 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('/', [\App\Modules\Admin\Controllers\NotificationController::class, 'send'])->middleware(CheckPermission::class . ':users.edit')->name('send');
         });
 
+        Route::prefix('blogs')->name('blogs.')->group(function () {
+            Route::get('/', fn () => redirect()->route('admin.blogs.posts.index'))->middleware(CheckPermission::class . ':blogs.view')->name('index');
+
+            Route::prefix('posts')->name('posts.')->group(function () {
+                Route::get   ('/',                [\App\Modules\Admin\Controllers\Blog\PostController::class, 'index'])  ->middleware(CheckPermission::class . ':blogs.view')   ->name('index');
+                Route::get   ('create',           [\App\Modules\Admin\Controllers\Blog\PostController::class, 'create']) ->middleware(CheckPermission::class . ':blogs.manage') ->name('create');
+                Route::post  ('/',                [\App\Modules\Admin\Controllers\Blog\PostController::class, 'store'])  ->middleware(CheckPermission::class . ':blogs.manage') ->name('store');
+                Route::post  ('bulk',             [\App\Modules\Admin\Controllers\Blog\PostController::class, 'bulk'])   ->middleware(CheckPermission::class . ':blogs.manage') ->name('bulk');
+                Route::post  ('upload',           [\App\Modules\Admin\Controllers\Blog\PostController::class, 'upload']) ->middleware(CheckPermission::class . ':blogs.manage') ->name('upload');
+                Route::get   ('{post}/edit',      [\App\Modules\Admin\Controllers\Blog\PostController::class, 'edit'])   ->middleware(CheckPermission::class . ':blogs.manage') ->name('edit');
+                Route::put   ('{post}',           [\App\Modules\Admin\Controllers\Blog\PostController::class, 'update']) ->middleware(CheckPermission::class . ':blogs.manage') ->name('update');
+                Route::delete('{post}',           [\App\Modules\Admin\Controllers\Blog\PostController::class, 'destroy'])->middleware(CheckPermission::class . ':blogs.manage') ->name('destroy');
+            });
+
+            Route::prefix('categories')->name('categories.')->group(function () {
+                Route::get   ('/',             [\App\Modules\Admin\Controllers\Blog\CategoryController::class, 'index'])  ->middleware(CheckPermission::class . ':blogs.view')   ->name('index');
+                Route::post  ('/',             [\App\Modules\Admin\Controllers\Blog\CategoryController::class, 'store'])  ->middleware(CheckPermission::class . ':blogs.manage') ->name('store');
+                Route::put   ('{category}',    [\App\Modules\Admin\Controllers\Blog\CategoryController::class, 'update']) ->middleware(CheckPermission::class . ':blogs.manage') ->name('update');
+                Route::delete('{category}',    [\App\Modules\Admin\Controllers\Blog\CategoryController::class, 'destroy'])->middleware(CheckPermission::class . ':blogs.manage') ->name('destroy');
+            });
+
+            Route::prefix('tags')->name('tags.')->group(function () {
+                Route::get   ('/',        [\App\Modules\Admin\Controllers\Blog\TagController::class, 'index'])  ->middleware(CheckPermission::class . ':blogs.view')   ->name('index');
+                Route::post  ('/',        [\App\Modules\Admin\Controllers\Blog\TagController::class, 'store'])  ->middleware(CheckPermission::class . ':blogs.manage') ->name('store');
+                Route::put   ('{tag}',    [\App\Modules\Admin\Controllers\Blog\TagController::class, 'update']) ->middleware(CheckPermission::class . ':blogs.manage') ->name('update');
+                Route::delete('{tag}',    [\App\Modules\Admin\Controllers\Blog\TagController::class, 'destroy'])->middleware(CheckPermission::class . ':blogs.manage') ->name('destroy');
+            });
+
+            Route::prefix('comments')->name('comments.')->group(function () {
+                Route::get   ('/',                  [\App\Modules\Admin\Controllers\Blog\CommentController::class, 'index'])  ->middleware(CheckPermission::class . ':blogs.comments.moderate')->name('index');
+                Route::post  ('bulk',               [\App\Modules\Admin\Controllers\Blog\CommentController::class, 'bulk'])   ->middleware(CheckPermission::class . ':blogs.comments.moderate')->name('bulk');
+                Route::post  ('{comment}',          [\App\Modules\Admin\Controllers\Blog\CommentController::class, 'update']) ->middleware(CheckPermission::class . ':blogs.comments.moderate')->name('update');
+                Route::post  ('{comment}/edit',     [\App\Modules\Admin\Controllers\Blog\CommentController::class, 'edit'])   ->middleware(CheckPermission::class . ':blogs.comments.moderate')->name('edit');
+                Route::post  ('{comment}/reply',    [\App\Modules\Admin\Controllers\Blog\CommentController::class, 'reply'])  ->middleware(CheckPermission::class . ':blogs.comments.reply')   ->name('reply');
+                Route::delete('{comment}',          [\App\Modules\Admin\Controllers\Blog\CommentController::class, 'destroy'])->middleware(CheckPermission::class . ':blogs.comments.moderate')->name('destroy');
+            });
+
+            Route::prefix('settings')->name('settings.')->group(function () {
+                Route::get ('/', [\App\Modules\Admin\Controllers\Blog\SettingController::class, 'edit'])  ->middleware(CheckPermission::class . ':blogs.manage')->name('edit');
+                Route::post('/', [\App\Modules\Admin\Controllers\Blog\SettingController::class, 'update'])->middleware(CheckPermission::class . ':blogs.manage')->name('update');
+            });
+
+            Route::get('authors', [\App\Modules\Admin\Controllers\Blog\AuthorController::class, 'index'])->middleware(CheckPermission::class . ':blogs.view')->name('authors.index');
+        });
+
         Route::prefix('users')->name('users.')->group(function () {
             Route::get('/', [UserManagementController::class, 'index'])->middleware(CheckPermission::class . ':users.view')->name('index');
             Route::get('{user}', [UserManagementController::class, 'show'])->middleware(CheckPermission::class . ':users.view')->name('show');

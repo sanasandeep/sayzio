@@ -264,4 +264,6 @@
         </div>
     </div>
 </section>
+
+@include('public.blogs.partials.latest-cta')
 @endsection

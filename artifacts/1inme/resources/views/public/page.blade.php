@@ -27,4 +27,46 @@
         @endif
     </div>
 </section>
+
+@php
+    $bb = (array) (data_get($page, 'extra.blog_block') ?? []);
+    $relatedBlog = collect();
+    if (!empty($bb['enabled'])) {
+        try {
+            $limit = (int) max(1, min(6, $bb['limit'] ?? 3));
+            $ids   = array_values(array_filter(array_map('intval', (array) ($bb['post_ids'] ?? []))));
+            $q = \App\Modules\Common\Models\BlogPost::published()->with('category');
+            if (!empty($ids)) {
+                $q->whereIn('id', $ids);
+            } elseif (!empty($bb['category_id'])) {
+                $q->where('category_id', (int) $bb['category_id']);
+            }
+            $relatedBlog = $q->orderByDesc('published_at')->take($limit)->get();
+        } catch (\Throwable $e) {
+            $relatedBlog = collect();
+        }
+    }
+@endphp
+@if($relatedBlog->count())
+    <section class="pb-20">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-xl sm:text-2xl font-bold text-white mb-6">{{ $bb['heading'] ?? 'Related from the blog' }}</h2>
+            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                @foreach($relatedBlog as $p)
+                    <a href="{{ route('site.blogs.show', $p->slug) }}" class="block bg-white/[0.04] hover:bg-white/[0.07] border border-white/10 rounded-2xl overflow-hidden transition">
+                        @if($p->cover_image)
+                            <div class="aspect-[16/9] bg-white/5 overflow-hidden"><img src="{{ $p->cover_image }}" alt="" loading="lazy" class="w-full h-full object-cover"></div>
+                        @endif
+                        <div class="p-4">
+                            @if($p->category)<span class="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full" style="background: {{ $p->category->color ? $p->category->color . '22' : 'rgba(124,58,237,.15)' }}; color: {{ $p->category->color ?: '#a78bfa' }};">{{ $p->category->name }}</span>@endif
+                            <h3 class="mt-2 text-sm font-semibold text-white line-clamp-2">{{ $p->title }}</h3>
+                            @if($p->excerpt)<p class="mt-1 text-xs text-white/60 line-clamp-2">{{ $p->excerpt }}</p>@endif
+                            <p class="mt-3 text-[11px] text-white/40">{{ optional($p->published_at)->format('M j, Y') }} · {{ $p->reading_time_min }} min</p>
+                        </div>
+                    </a>
+                @endforeach
+            </div>
+        </div>
+    </section>
+@endif
 @endsection

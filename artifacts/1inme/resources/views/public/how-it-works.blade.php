@@ -155,6 +155,8 @@
     </div>
 </section>
 
+@include('public.blogs.partials.latest-cta')
+
 @include('public.partials.newsletter-cta', [
     'heading' => 'Get tips and templates straight to your inbox.',
     'subtext' => 'Once-a-month notes on what is working for creators on 1INME — actionable, no fluff, unsubscribe any time.',

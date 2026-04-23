@@ -202,6 +202,16 @@
             <span class="sidebar-tooltip">Site Pages</span>
         </a>
 
+        @if(auth('admin')->user() && auth('admin')->user()->hasAnyPermission(['blogs.view','blogs.manage','blogs.publish','blogs.comments.moderate']))
+            <a href="{{ route('admin.blogs.posts.index') }}"
+               class="sidebar-link {{ request()->routeIs('admin.blogs.*') ? 'active' : '' }}"
+               style="--nav-tint:#ec4899; --nav-tint-soft:rgba(236,72,153,0.12);">
+                <div class="nav-icon-wrap"><i class="fas fa-feather-pointed"></i></div>
+                <span class="nav-label">Blog</span>
+                <span class="sidebar-tooltip">Blog</span>
+            </a>
+        @endif
+
         <a href="{{ route('admin.marketing-settings.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.marketing-settings.*') ? 'active' : '' }}"
            style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">
