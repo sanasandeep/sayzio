@@ -22,7 +22,10 @@ import { getBaseUrl } from "@/lib/api";
 import {
   type BiolinkBlock,
   type BiolinkPayload,
+  forgetBlockResponse,
   getBiolink,
+  getRememberedBlockResponse,
+  rememberBlockResponse,
   trackBiolinkBlockTap,
   trackBiolinkVisit,
 } from "@/lib/api/biolinks";
@@ -95,6 +98,219 @@ function openSafe(u: string, router: ReturnType<typeof useRouter>) {
 }
 
 type OpenEmbed = (opts: { url: string; title?: string; sandboxed?: boolean }) => void;
+
+// Render a small "Thanks for responding — you picked X" card that replaces
+// the live poll/RSVP options once the viewer has answered. Tapping the
+// "Change response" affordance clears the remembered choice so the original
+// options come back. Used by both the poll and RSVP block branches.
+function RespondedCard({
+  icon,
+  title,
+  responseLabel,
+  onChange,
+}: {
+  icon: string;
+  title: string;
+  responseLabel: string;
+  onChange: () => void;
+}) {
+  const colors = useColors();
+  return (
+    <View style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <Text style={[styles.btnLabel, { color: colors.foreground, textAlign: "left" }]}>
+        {icon} {title}
+      </Text>
+      <Text style={[styles.body, { color: colors.foreground, textAlign: "left", fontSize: 14 }]}>
+        Thanks for responding — you picked “{responseLabel}”.
+      </Text>
+      <Pressable onPress={onChange} hitSlop={8} style={{ alignSelf: "flex-start" }}>
+        <Text style={[styles.body, { color: colors.primary, textAlign: "left", fontSize: 13 }]}>
+          Change response
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
+
+// Loads any remembered response for (alias, blockId) from AsyncStorage and
+// exposes setters/clearers that update both storage and local state in
+// lockstep, so the poll/RSVP branches can flip to the "Thanks" card the
+// moment a viewer taps a choice — and back to the live options if they
+// hit "Change response".
+function useRememberedResponse(alias: string, blockId: number) {
+  const [value, setValue] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    setReady(false);
+    getRememberedBlockResponse(alias, blockId)
+      .then((v) => {
+        if (!cancelled) {
+          setValue(v);
+          setReady(true);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setReady(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [alias, blockId]);
+  const remember = useCallback(
+    (v: string) => {
+      setValue(v);
+      void rememberBlockResponse(alias, blockId, v);
+    },
+    [alias, blockId],
+  );
+  const forget = useCallback(() => {
+    setValue(null);
+    void forgetBlockResponse(alias, blockId);
+  }, [alias, blockId]);
+  return { value, ready, remember, forget };
+}
+
+function PollBlock({ block, alias, openEmbed }: { block: BiolinkBlock; alias: string; openEmbed: OpenEmbed }) {
+  const colors = useColors();
+  const s = block.settings ?? {};
+  const question = pickStr(s, "question", "title", "text", "heading") ?? "Vote";
+  const rawOptions: unknown =
+    Array.isArray(s.options) ? s.options :
+    Array.isArray(s.choices) ? s.choices :
+    Array.isArray(s.items) ? s.items : [];
+  const options: string[] = (rawOptions as unknown[])
+    .map((o) => typeof o === "string" ? o : (typeof o === "object" && o ? (pickStr(o as Record<string, unknown>, "label", "text", "title", "name") ?? "") : ""))
+    .filter((x) => x.length > 0)
+    .slice(0, 8);
+  const webUrl = publicBiolinkUrl(alias);
+  const remembered = useRememberedResponse(alias, block.id);
+
+  if (remembered.value !== null) {
+    return (
+      <RespondedCard
+        icon="📊"
+        title={question}
+        responseLabel={remembered.value}
+        onChange={remembered.forget}
+      />
+    );
+  }
+
+  // Hide the live options until AsyncStorage has reported back. Otherwise a
+  // viewer who already responded sees the prompt flash for a frame and
+  // could double-submit with a very fast tap before the "Thanks" card
+  // takes over.
+  if (!remembered.ready) {
+    return (
+      <View style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Text style={[styles.btnLabel, { color: colors.foreground, textAlign: "left" }]}>📊 {question}</Text>
+        <ActivityIndicator color={colors.primary} style={{ alignSelf: "flex-start", marginTop: 4 }} />
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <Text style={[styles.btnLabel, { color: colors.foreground, textAlign: "left" }]}>📊 {question}</Text>
+      {options.length > 0 ? (
+        options.map((opt, i) => {
+          // Carry the picked option through to the web page via query
+          // params so the existing poll handler knows which choice to
+          // record. Both index and label are passed for robustness; the
+          // server can use whichever matches its schema.
+          const sep = webUrl.includes("?") ? "&" : "?";
+          const optionUrl = `${webUrl}${sep}poll_block=${block.id}&option=${i}&choice=${encodeURIComponent(opt)}`;
+          return (
+            <Pressable
+              key={i}
+              onPress={() => {
+                trackBiolinkBlockTap(alias, block.id, optionUrl);
+                openEmbed({ url: optionUrl, title: question });
+                remembered.remember(opt);
+              }}
+              style={[styles.pollOption, { borderColor: colors.border }]}
+            >
+              <Text style={[styles.body, { color: colors.foreground, textAlign: "left", fontSize: 14 }]}>{opt}</Text>
+            </Pressable>
+          );
+        })
+      ) : (
+        <Text style={[styles.body, { color: colors.mutedForeground, textAlign: "left", fontSize: 12 }]}>
+          Tap to open this poll
+        </Text>
+      )}
+    </View>
+  );
+}
+
+function RsvpBlock({ block, alias, openEmbed }: { block: BiolinkBlock; alias: string; openEmbed: OpenEmbed }) {
+  const colors = useColors();
+  const s = block.settings ?? {};
+  const title = pickStr(s, "title", "heading", "event_title") ?? "RSVP";
+  const date = pickStr(s, "date", "event_date", "starts_at");
+  // Prefer a creator-supplied URL when present (e.g. block points at a
+  // different ICS link). Fall back to the canonical /{alias}/rsvp path
+  // served by RedirectController::rsvpForm.
+  const settingsUrl = pickStr(s, "url", "rsvp_url", "form_url");
+  const baseUrl = settingsUrl && isSafeUrl(settingsUrl)
+    ? settingsUrl
+    : `${publicBiolinkUrl(alias)}/rsvp`;
+  const responses: { key: "yes" | "maybe" | "no"; label: string; bg: string }[] = [
+    { key: "yes", label: "Going", bg: "#16a34a" },
+    { key: "maybe", label: "Maybe", bg: "#ca8a04" },
+    { key: "no", label: "Can't go", bg: "#64748b" },
+  ];
+  const remembered = useRememberedResponse(alias, block.id);
+
+  if (remembered.value !== null) {
+    return (
+      <RespondedCard
+        icon="📅"
+        title={title}
+        responseLabel={remembered.value}
+        onChange={remembered.forget}
+      />
+    );
+  }
+
+  // See PollBlock for why we wait on `ready` before exposing the response
+  // buttons — same flash/double-submit concern.
+  if (!remembered.ready) {
+    return (
+      <View style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Text style={[styles.btnLabel, { color: colors.foreground, textAlign: "left" }]}>📅 {title}</Text>
+        <ActivityIndicator color={colors.primary} style={{ alignSelf: "flex-start", marginTop: 4 }} />
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <Text style={[styles.btnLabel, { color: colors.foreground, textAlign: "left" }]}>📅 {title}</Text>
+      {date ? (
+        <Text style={[styles.body, { color: colors.mutedForeground, textAlign: "left", fontSize: 12 }]}>{date}</Text>
+      ) : null}
+      <View style={styles.rsvpRow}>
+        {responses.map((r) => (
+          <Pressable
+            key={r.key}
+            onPress={() => {
+              const sep = baseUrl.includes("?") ? "&" : "?";
+              const url = `${baseUrl}${sep}response=${r.key}`;
+              trackBiolinkBlockTap(alias, block.id, url);
+              openEmbed({ url, title });
+              remembered.remember(r.label);
+            }}
+            style={[styles.rsvpBtn, { backgroundColor: r.bg, borderColor: r.bg }]}
+          >
+            <Text style={[styles.btnLabel, { color: "#fff", fontSize: 13 }]}>{r.label}</Text>
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
+}
 
 function BlockView({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock; alias: string; allBlocks: BiolinkBlock[]; openEmbed: OpenEmbed }) {
   const colors = useColors();
@@ -568,91 +784,14 @@ function BlockView({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock
   // option opens the poll's web page in an in-app WebView so the vote is
   // recorded by the existing server-side handler (no separate API yet).
   if (t === "poll") {
-    const question = pickStr(s, "question", "title", "text", "heading") ?? "Vote";
-    const rawOptions: unknown =
-      Array.isArray(s.options) ? s.options :
-      Array.isArray(s.choices) ? s.choices :
-      Array.isArray(s.items) ? s.items : [];
-    const options: string[] = (rawOptions as unknown[])
-      .map((o) => typeof o === "string" ? o : (typeof o === "object" && o ? (pickStr(o as Record<string, unknown>, "label", "text", "title", "name") ?? "") : ""))
-      .filter((x) => x.length > 0)
-      .slice(0, 8);
-    const webUrl = publicBiolinkUrl(alias);
-    return (
-      <View style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <Text style={[styles.btnLabel, { color: colors.foreground, textAlign: "left" }]}>📊 {question}</Text>
-        {options.length > 0 ? (
-          options.map((opt, i) => {
-            // Carry the picked option through to the web page via query
-            // params so the existing poll handler knows which choice to
-            // record. Both index and label are passed for robustness; the
-            // server can use whichever matches its schema.
-            const sep = webUrl.includes("?") ? "&" : "?";
-            const optionUrl = `${webUrl}${sep}poll_block=${block.id}&option=${i}&choice=${encodeURIComponent(opt)}`;
-            return (
-              <Pressable
-                key={i}
-                onPress={() => {
-                  trackBiolinkBlockTap(alias, block.id, optionUrl);
-                  openEmbed({ url: optionUrl, title: question });
-                }}
-                style={[styles.pollOption, { borderColor: colors.border }]}
-              >
-                <Text style={[styles.body, { color: colors.foreground, textAlign: "left", fontSize: 14 }]}>{opt}</Text>
-              </Pressable>
-            );
-          })
-        ) : (
-          <Text style={[styles.body, { color: colors.mutedForeground, textAlign: "left", fontSize: 12 }]}>
-            Tap to open this poll
-          </Text>
-        )}
-      </View>
-    );
+    return <PollBlock block={block} alias={alias} openEmbed={openEmbed} />;
   }
 
   // Native RSVP: show event title + Yes/Maybe/No response buttons. Tapping
   // a response opens the RSVP page in-app where the user finishes the form
   // (the response can be pre-filled via query string).
   if (t === "rsvp") {
-    const title = pickStr(s, "title", "heading", "event_title") ?? "RSVP";
-    const date = pickStr(s, "date", "event_date", "starts_at");
-    // Prefer a creator-supplied URL when present (e.g. block points at a
-    // different ICS link). Fall back to the canonical /{alias}/rsvp path
-    // served by RedirectController::rsvpForm.
-    const settingsUrl = pickStr(s, "url", "rsvp_url", "form_url");
-    const baseUrl = settingsUrl && isSafeUrl(settingsUrl)
-      ? settingsUrl
-      : `${publicBiolinkUrl(alias)}/rsvp`;
-    const responses: { key: "yes" | "maybe" | "no"; label: string; bg: string }[] = [
-      { key: "yes", label: "Going", bg: "#16a34a" },
-      { key: "maybe", label: "Maybe", bg: "#ca8a04" },
-      { key: "no", label: "Can't go", bg: "#64748b" },
-    ];
-    return (
-      <View style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <Text style={[styles.btnLabel, { color: colors.foreground, textAlign: "left" }]}>📅 {title}</Text>
-        {date ? (
-          <Text style={[styles.body, { color: colors.mutedForeground, textAlign: "left", fontSize: 12 }]}>{date}</Text>
-        ) : null}
-        <View style={styles.rsvpRow}>
-          {responses.map((r) => (
-            <Pressable
-              key={r.key}
-              onPress={() => {
-                const sep = baseUrl.includes("?") ? "&" : "?";
-                const url = `${baseUrl}${sep}response=${r.key}`;
-                trackBiolinkBlockTap(alias, block.id, url);
-                openEmbed({ url, title });
-              }}
-              style={[styles.rsvpBtn, { backgroundColor: r.bg, borderColor: r.bg }]}
-            >
-              <Text style={[styles.btnLabel, { color: "#fff", fontSize: 13 }]}>{r.label}</Text>
-            </Pressable>
-          ))}
-        </View>
-      </View>
-    );
+    return <RsvpBlock block={block} alias={alias} openEmbed={openEmbed} />;
   }
 
   if (t === "contact_form" || t === "form" || t === "quiz" || t === "review") {

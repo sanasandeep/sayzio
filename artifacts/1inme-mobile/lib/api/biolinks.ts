@@ -1,3 +1,5 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import { apiFetch } from "@/lib/api";
 
 export type BiolinkBlock = {
@@ -56,6 +58,56 @@ export function trackBiolinkVisit(alias: string): void {
   }).catch(() => {
     // Swallow — analytics must never disrupt the page load.
   });
+}
+
+// Local memory of "I already responded to this poll/RSVP" so a viewer who
+// reopens a creator's biolink doesn't see the same prompt again. The web
+// version uses the Laravel session for this; mobile has no shared cookie
+// jar with the WebView, so we persist a small per-(alias, block) marker
+// in AsyncStorage instead. Storing the chosen label (not just a flag)
+// lets us echo it back on the "Thanks for responding" card.
+const RESPONSE_KEY_PREFIX = "biolink:response:v1:";
+
+function responseKey(alias: string, blockId: number): string {
+  return `${RESPONSE_KEY_PREFIX}${alias}:${blockId}`;
+}
+
+export async function getRememberedBlockResponse(
+  alias: string,
+  blockId: number,
+): Promise<string | null> {
+  if (!alias || !Number.isFinite(blockId)) return null;
+  try {
+    return await AsyncStorage.getItem(responseKey(alias, blockId));
+  } catch {
+    return null;
+  }
+}
+
+export async function rememberBlockResponse(
+  alias: string,
+  blockId: number,
+  value: string,
+): Promise<void> {
+  if (!alias || !Number.isFinite(blockId)) return;
+  try {
+    await AsyncStorage.setItem(responseKey(alias, blockId), value);
+  } catch {
+    // Persistence is best-effort — failing here just means the viewer
+    // will see the prompt again next time, which is no worse than today.
+  }
+}
+
+export async function forgetBlockResponse(
+  alias: string,
+  blockId: number,
+): Promise<void> {
+  if (!alias || !Number.isFinite(blockId)) return;
+  try {
+    await AsyncStorage.removeItem(responseKey(alias, blockId));
+  } catch {
+    // No-op — see rememberBlockResponse comment.
+  }
 }
 
 // Best-effort block tap tracking. Mirrors the web's per-block click tracker
