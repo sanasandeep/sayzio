@@ -171,6 +171,11 @@
   var lowBalance=el('div',{class:'sa-low-balance',id:'sa-low-balance'});
   panel.appendChild(lowBalance);
   var inputRow=el('div',{class:'sa-input-row'});
+  // Initial placeholder/label use the built-in English defaults; the
+  // bootstrap response (which honours admin per-locale overrides via
+  // the visitor's Accept-Language header) updates these as soon as it
+  // arrives so visitors with non-English browsers don't see English
+  // chrome flash before the localized strings come in.
   var ta=el('textarea',{rows:'1',placeholder:'Type a message…',id:'sa-input'});
   ta.addEventListener('keydown',function(e){
     if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendMessage(); }
@@ -201,6 +206,11 @@
       .then(function(data){
         cfg=data; templates=data.templates||[];
         if(data.greeting){ document.getElementById('sa-sub').textContent=''; }
+        // Apply localized chrome (placeholder + Send label) — falls
+        // back to the English defaults already set on the elements
+        // when the admin hasn't customized them.
+        if(data.input_placeholder){ ta.setAttribute('placeholder', data.input_placeholder); }
+        if(data.send_label){ sendBtn.textContent = data.send_label; }
         return jpost(ds.sessionUrl,{ visitor_token: token, page: pageMeta() });
       })
       .then(function(s){

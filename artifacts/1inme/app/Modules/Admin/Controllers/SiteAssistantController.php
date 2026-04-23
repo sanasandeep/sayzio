@@ -103,6 +103,12 @@ class SiteAssistantController extends Controller
             'starter_prompts_locales.*.*'       => 'nullable|string|max:200',
             'system_prompt_locales'             => 'nullable|array|max:50',
             'system_prompt_locales.*'           => 'nullable|string|max:8000',
+            'input_placeholder'                 => 'nullable|string|max:120',
+            'input_placeholder_locales'         => 'nullable|array|max:50',
+            'input_placeholder_locales.*'       => 'nullable|string|max:120',
+            'send_label'                        => 'nullable|string|max:40',
+            'send_label_locales'                => 'nullable|array|max:50',
+            'send_label_locales.*'              => 'nullable|string|max:40',
         ]);
         $payload = [
             'enabled_marketing'       => $request->boolean('enabled_marketing'),
@@ -149,6 +155,14 @@ class SiteAssistantController extends Controller
             ),
             'system_prompt_locales'   => SiteAssistantSettings::normalizeSystemPromptLocales(
                 (array) $request->input('system_prompt_locales', [])
+            ),
+            'input_placeholder'         => mb_substr(trim((string) ($data['input_placeholder'] ?? '')), 0, 120),
+            'input_placeholder_locales' => SiteAssistantSettings::normalizeInputPlaceholderLocales(
+                (array) $request->input('input_placeholder_locales', [])
+            ),
+            'send_label'                => mb_substr(trim((string) ($data['send_label'] ?? '')), 0, 40),
+            'send_label_locales'        => SiteAssistantSettings::normalizeSendLabelLocales(
+                (array) $request->input('send_label_locales', [])
             ),
         ];
         SiteAssistantSettings::update($payload);

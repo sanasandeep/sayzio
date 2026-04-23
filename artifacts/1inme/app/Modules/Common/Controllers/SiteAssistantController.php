@@ -38,6 +38,8 @@ class SiteAssistantController extends Controller
             'avatar_url'        => $cfg['avatar_url'],
             'greeting'          => $cfg['greeting'],
             'starter_prompts'   => array_values((array) $cfg['starter_prompts']),
+            'input_placeholder' => SiteAssistantSettings::inputPlaceholderFor($cfg),
+            'send_label'        => SiteAssistantSettings::sendLabelFor($cfg),
             'handoff_enabled'   => (bool) $cfg['handoff_enabled'],
             'templates'         => $this->runtime->listTemplates(),
         ]);

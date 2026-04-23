@@ -84,8 +84,21 @@ class SiteAssistantSettings
             // Empty/missing entries fall back to the default English
             // `system_prompt` above.
             'system_prompt_locales'   => [],
+            // Default + per-locale overrides for the chat textarea
+            // placeholder and Send button label. Empty default falls
+            // back to the built-in English copy ("Type a message…" /
+            // "Send"). Per-locale overrides resolve via the visitor's
+            // Accept-Language header, same as the greeting/system
+            // prompt locales above.
+            'input_placeholder'         => '',
+            'input_placeholder_locales' => [],
+            'send_label'                => '',
+            'send_label_locales'        => [],
         ];
     }
+
+    public const DEFAULT_INPUT_PLACEHOLDER = 'Type a message…';
+    public const DEFAULT_SEND_LABEL        = 'Send';
 
     public static function defaultSystemPrompt(): string
     {
@@ -426,6 +439,103 @@ P;
             (array) ($locales[$picked] ?? [])
         )));
         return !empty($list) ? $list : $default;
+    }
+
+    /**
+     * Normalize the per-locale overrides for the chat input placeholder.
+     * Same shape rules as {@see normalizeTopupLabelLocales()}: BCP-47
+     * canonicalised codes, blanks dropped, capped at 50 entries, each
+     * value capped at 120 chars to keep the input chrome tidy.
+     */
+    public static function normalizeInputPlaceholderLocales(array $in): array
+    {
+        return self::normalizeShortStringLocales($in, 120);
+    }
+
+    /**
+     * Normalize the per-locale overrides for the Send button label.
+     * Capped at 40 chars so the button doesn't blow out the input row.
+     */
+    public static function normalizeSendLabelLocales(array $in): array
+    {
+        return self::normalizeShortStringLocales($in, 40);
+    }
+
+    /**
+     * Shared helper: normalize a flat per-locale string map. Used by
+     * the input placeholder and Send label locale fields, which both
+     * have the same `[locale => string]` shape.
+     */
+    protected static function normalizeShortStringLocales(array $in, int $maxLen): array
+    {
+        $out = [];
+        foreach ($in as $code => $val) {
+            $canon = \App\Modules\Common\Support\CookieConsentConfig::canonicalLocale((string) $code);
+            if ($canon === null) continue;
+            $val = trim((string) $val);
+            if ($val === '') continue;
+            $out[$canon] = mb_substr($val, 0, $maxLen);
+            if (count($out) >= 50) break;
+        }
+        ksort($out);
+        return $out;
+    }
+
+    /**
+     * Resolve the locale-specific input placeholder using the visitor's
+     * Accept-Language header. Falls back to the admin-configured
+     * default (`input_placeholder`) and finally to the built-in English
+     * copy (`Type a message…`) so the widget never renders blank.
+     */
+    public static function inputPlaceholderFor(array $cfg, ?string $acceptLanguage = null): string
+    {
+        return self::resolveLocalizedShortString(
+            $cfg,
+            'input_placeholder',
+            'input_placeholder_locales',
+            self::DEFAULT_INPUT_PLACEHOLDER,
+            $acceptLanguage
+        );
+    }
+
+    /**
+     * Resolve the locale-specific Send button label. Same fallback
+     * chain as {@see inputPlaceholderFor()} — admin default, then the
+     * built-in English copy (`Send`).
+     */
+    public static function sendLabelFor(array $cfg, ?string $acceptLanguage = null): string
+    {
+        return self::resolveLocalizedShortString(
+            $cfg,
+            'send_label',
+            'send_label_locales',
+            self::DEFAULT_SEND_LABEL,
+            $acceptLanguage
+        );
+    }
+
+    /**
+     * Shared resolver for "[locale => string]" fields that also have a
+     * scalar default. Matches the visitor's Accept-Language header
+     * against the override keys; falls back to the admin default; then
+     * to the built-in English copy.
+     */
+    protected static function resolveLocalizedShortString(array $cfg, string $defaultKey, string $localesKey, string $builtin, ?string $acceptLanguage): string
+    {
+        $default = trim((string) ($cfg[$defaultKey] ?? ''));
+        if ($default === '') $default = $builtin;
+
+        $locales = (array) ($cfg[$localesKey] ?? []);
+        if (empty($locales)) return $default;
+
+        $accept = self::resolveAcceptLanguage($acceptLanguage);
+        if (!$accept) return $default;
+
+        $picked = \App\Modules\Common\Support\CookieConsentConfig::pickLocale(array_keys($locales), $accept);
+        if ($picked === null) return $default;
+
+        $val = trim((string) ($locales[$picked] ?? ''));
+        return $val !== '' ? $val : $default;
     }
 
     /**

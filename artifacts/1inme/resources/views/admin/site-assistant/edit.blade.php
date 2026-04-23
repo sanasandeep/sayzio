@@ -86,6 +86,19 @@
                 </script>
             </div>
 
+            <div class="grid md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs text-white/60 mb-1">Input placeholder</label>
+                    <input type="text" maxlength="120" name="input_placeholder" value="{{ $cfg['input_placeholder'] ?? '' }}" placeholder="Type a message…" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    <p class="text-xs text-white/40 mt-1">Shown inside the chat textarea. Leave blank to use the built-in <code>Type a message…</code>.</p>
+                </div>
+                <div>
+                    <label class="block text-xs text-white/60 mb-1">Send button label</label>
+                    <input type="text" maxlength="40" name="send_label" value="{{ $cfg['send_label'] ?? '' }}" placeholder="Send" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    <p class="text-xs text-white/40 mt-1">Label on the message-send button. Leave blank to use the built-in <code>Send</code>.</p>
+                </div>
+            </div>
+
             <div class="pt-2 border-t border-white/10 space-y-3">
                 <div>
                     <h4 class="text-sm font-semibold text-white">Per-language greeting & starter prompts</h4>
@@ -118,6 +131,14 @@
                             <label class="block text-xs text-white/60">Starter prompts (one per line, up to 10)
                                 <textarea rows="3" data-intro-prompts class="mt-1 w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"></textarea>
                             </label>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <label class="block text-xs text-white/60">Input placeholder
+                                    <input type="text" maxlength="120" data-intro-placeholder class="mt-1 w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" placeholder="Type a message…">
+                                </label>
+                                <label class="block text-xs text-white/60">Send button label
+                                    <input type="text" maxlength="40" data-intro-send class="mt-1 w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" placeholder="Send">
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </template>
@@ -127,8 +148,10 @@
                     var host = document.getElementById('intro_locales');
                     var tpl  = document.getElementById('intro_locale_row_tpl');
                     var addBtn = document.getElementById('intro_locale_add');
-                    var seededGreetings = @json((object)($cfg['greeting_locales'] ?? new \stdClass()));
-                    var seededPrompts   = @json((object)($cfg['starter_prompts_locales'] ?? new \stdClass()));
+                    var seededGreetings   = @json((object)($cfg['greeting_locales'] ?? new \stdClass()));
+                    var seededPrompts     = @json((object)($cfg['starter_prompts_locales'] ?? new \stdClass()));
+                    var seededPlaceholders = @json((object)($cfg['input_placeholder_locales'] ?? new \stdClass()));
+                    var seededSendLabels   = @json((object)($cfg['send_label_locales'] ?? new \stdClass()));
                     var seq = 0;
 
                     function bucketName(row) {
@@ -154,21 +177,26 @@
 
                     function rewire(row) {
                         var bucket = bucketName(row);
-                        var g = row.querySelector('[data-intro-greeting]');
-                        g.name = 'greeting_locales[' + bucket + ']';
+                        row.querySelector('[data-intro-greeting]').name = 'greeting_locales[' + bucket + ']';
+                        row.querySelector('[data-intro-placeholder]').name = 'input_placeholder_locales[' + bucket + ']';
+                        row.querySelector('[data-intro-send]').name = 'send_label_locales[' + bucket + ']';
                         syncPromptInputs(row);
                     }
 
-                    function addRow(code, greeting, prompts) {
+                    function addRow(code, greeting, prompts, placeholder, sendLabel) {
                         if (host.querySelectorAll('.intro-locale-row').length >= 50) return;
                         var node = tpl.content.firstElementChild.cloneNode(true);
                         node.dataset.rowId = String(++seq);
                         var codeInput = node.querySelector('[data-intro-locale-code]');
                         var greetInput = node.querySelector('[data-intro-greeting]');
                         var promptsTa = node.querySelector('[data-intro-prompts]');
+                        var phInput = node.querySelector('[data-intro-placeholder]');
+                        var sendInput = node.querySelector('[data-intro-send]');
                         codeInput.value = code || '';
                         greetInput.value = greeting || '';
                         promptsTa.value = (prompts && prompts.length) ? prompts.join('\n') : '';
+                        phInput.value = placeholder || '';
+                        sendInput.value = sendLabel || '';
                         node.querySelector('[data-intro-locale-remove]').addEventListener('click', function () { node.remove(); });
                         codeInput.addEventListener('input', function () { rewire(node); });
                         promptsTa.addEventListener('input', function () { syncPromptInputs(node); });
@@ -176,20 +204,21 @@
                         rewire(node);
                     }
 
-                    if (addBtn) addBtn.addEventListener('click', function () { addRow('', '', null); });
+                    if (addBtn) addBtn.addEventListener('click', function () { addRow('', '', null, '', ''); });
 
                     var codes = {};
-                    if (seededGreetings && typeof seededGreetings === 'object' && !Array.isArray(seededGreetings)) {
-                        Object.keys(seededGreetings).forEach(function (c) { codes[c] = true; });
-                    }
-                    if (seededPrompts && typeof seededPrompts === 'object' && !Array.isArray(seededPrompts)) {
-                        Object.keys(seededPrompts).forEach(function (c) { codes[c] = true; });
-                    }
+                    [seededGreetings, seededPrompts, seededPlaceholders, seededSendLabels].forEach(function (m) {
+                        if (m && typeof m === 'object' && !Array.isArray(m)) {
+                            Object.keys(m).forEach(function (c) { codes[c] = true; });
+                        }
+                    });
                     Object.keys(codes).sort().forEach(function (code) {
                         addRow(
                             code,
                             (seededGreetings && seededGreetings[code]) || '',
-                            (seededPrompts && seededPrompts[code]) || null
+                            (seededPrompts && seededPrompts[code]) || null,
+                            (seededPlaceholders && seededPlaceholders[code]) || '',
+                            (seededSendLabels && seededSendLabels[code]) || ''
                         );
                     });
                 })();
@@ -235,6 +264,10 @@
                     <span style="display:inline-block;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;opacity:.7;color:#fde68a">Signed-in</span>
                     <span data-lb-msg style="flex:1;min-width:0;word-wrap:break-word"></span>
                     <span data-lb-cta role="button" aria-disabled="true" style="flex-shrink:0;background:rgba(251,191,36,.22);border:1px solid rgba(251,191,36,.45);color:#fde68a;font-size:11.5px;font-weight:600;padding:4px 10px;border-radius:999px;text-decoration:none;font-family:inherit;cursor:default;white-space:nowrap">Top up</span>
+                </div>
+                <div id="sa_preview_input_row" style="display:flex;gap:8px;padding:10px;border-top:1px solid rgba(255,255,255,.06)">
+                    <textarea id="sa_preview_input" rows="1" disabled placeholder="Type a message…" style="flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:#fff;padding:8px 10px;border-radius:10px;resize:none;font-size:13px;font-family:inherit;min-height:36px"></textarea>
+                    <button id="sa_preview_send" type="button" disabled style="background:#7c3aed;border:0;color:#fff;padding:0 14px;border-radius:10px;font-size:14px;cursor:default">Send</button>
                 </div>
                 <div id="sa_preview_low_balance_anonymous" data-audience="anonymous" style="margin:0 10px 10px;padding:7px 10px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:8px;color:#fde68a;font-size:11.5px;line-height:1.35;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
                     <span style="display:inline-block;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;opacity:.7;color:#fde68a">Anonymous</span>
@@ -375,11 +408,31 @@
                         var greeting = (row.querySelector('[data-intro-greeting]').value || '').trim();
                         var prompts = (row.querySelector('[data-intro-prompts]').value || '')
                             .split('\n').map(function (s) { return s.trim(); }).filter(Boolean).slice(0, 10);
-                        if (!out[code]) out[code] = { greeting: '', prompts: [] };
+                        var phEl = row.querySelector('[data-intro-placeholder]');
+                        var sendEl = row.querySelector('[data-intro-send]');
+                        var placeholder = phEl ? (phEl.value || '').trim() : '';
+                        var sendLabel = sendEl ? (sendEl.value || '').trim() : '';
+                        if (!out[code]) out[code] = { greeting: '', prompts: [], placeholder: '', sendLabel: '' };
                         if (greeting) out[code].greeting = greeting;
                         if (prompts.length) out[code].prompts = prompts;
+                        if (placeholder) out[code].placeholder = placeholder;
+                        if (sendLabel) out[code].sendLabel = sendLabel;
                     });
                     return out;
+                }
+
+                // Built-in fallbacks mirror SiteAssistantSettings::DEFAULT_*.
+                var BUILTIN_PLACEHOLDER = 'Type a message…';
+                var BUILTIN_SEND_LABEL = 'Send';
+                function defaultPlaceholder(){
+                    var i = form.querySelector('input[name="input_placeholder"]');
+                    var v = i ? (i.value || '').trim() : '';
+                    return v || BUILTIN_PLACEHOLDER;
+                }
+                function defaultSendLabel(){
+                    var i = form.querySelector('input[name="send_label"]');
+                    var v = i ? (i.value || '').trim() : '';
+                    return v || BUILTIN_SEND_LABEL;
                 }
 
                 var sel = document.getElementById('sa_preview_locale_select');
@@ -390,6 +443,8 @@
                 var avatarEl = document.getElementById('sa_preview_avatar');
                 var lbSignedIn = document.getElementById('sa_preview_low_balance_signed_in');
                 var lbAnonymous = document.getElementById('sa_preview_low_balance_anonymous');
+                var previewInput = document.getElementById('sa_preview_input');
+                var previewSend = document.getElementById('sa_preview_send');
 
                 function refreshLocaleOptions(){
                     var current = sel.value;
@@ -434,9 +489,18 @@
 
                     var greeting = defaultGreeting();
                     var prompts = defaultPrompts();
+                    var placeholder = defaultPlaceholder();
+                    var sendLabel = defaultSendLabel();
                     if (picked && rows[picked]) {
                         if (rows[picked].greeting) greeting = rows[picked].greeting;
                         if (rows[picked].prompts.length) prompts = rows[picked].prompts;
+                        if (rows[picked].placeholder) placeholder = rows[picked].placeholder;
+                        if (rows[picked].sendLabel) sendLabel = rows[picked].sendLabel;
+                    }
+                    if (previewInput) previewInput.setAttribute('placeholder', placeholder);
+                    if (previewSend) {
+                        previewSend.textContent = sendLabel;
+                        previewSend.style.background = accent();
                     }
 
                     var ac = accent();
