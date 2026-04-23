@@ -5628,7 +5628,10 @@
 <section id="pricing" class="py-24 lg:py-32 relative overflow-hidden">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-12 max-w-3xl mx-auto">
-            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c1)">Pricing</div>
+            <div class="reveal inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[.2em] mb-3 px-3 py-1 rounded-full" style="color:var(--c1); background: rgba(124,58,237,0.10);">
+                <span class="inline-block w-1.5 h-1.5 rounded-full" style="background:var(--c1)"></span>
+                Pricing
+            </div>
             <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">Simple, <span class="grad-text">transparent pricing.</span></h2>
             <p class="reveal rd-2 text-lg text-gray-400">Start free. Upgrade only when you outgrow it.</p>
         </div>
@@ -5646,15 +5649,24 @@
         <div class="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
             @foreach($plans as $i => $plan)
                 @php $featured = !empty($plan['is_popular']) || (!$plan['is_free'] && $i > 0); $f = $plan['features']; @endphp
-                <div class="reveal rd-{{ $i + 1 }} lift relative rounded-3xl p-8 {{ $featured ? 'text-white shadow-2xl shadow-[#7c3aed]/30 scale-[1.03]' : 'glass' }}" @if($featured) style="background: linear-gradient(150deg, var(--c2), var(--c3) 60%, var(--c4));" @endif>
+                <div class="reveal rd-{{ $i + 1 }} lift group relative rounded-3xl p-8 transition-all duration-300 hover:-translate-y-1 {{ $featured ? 'text-white shadow-2xl shadow-[#7c3aed]/40 scale-[1.03] hover:shadow-[#7c3aed]/60' : 'glass hover:shadow-xl hover:shadow-[#7c3aed]/10' }}" @if($featured) style="background: linear-gradient(150deg, var(--c2), var(--c3) 60%, var(--c4));" @else style="border: 1px solid rgba(255,255,255,0.08);" @endif>
                     @if($featured)
-                        <div class="absolute -top-3 right-6 px-3 py-1 grad-bar text-white text-[10px] font-bold rounded-full uppercase tracking-wider">Most popular</div>
+                        <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-white text-[#7c3aed] text-[11px] font-extrabold rounded-full uppercase tracking-wider shadow-lg flex items-center gap-1.5">
+                            <i class="fas fa-star text-[9px]"></i> Most popular
+                        </div>
                     @endif
-                    <div class="text-xs font-bold uppercase tracking-wider mb-2 {{ $featured ? 'text-white/80' : 'text-gray-400' }}">{{ $plan['name'] }}</div>
-                    <div class="text-5xl font-bold mb-1 text-white">
-                        {{ $plan['monthly']['formatted'] }}@unless($plan['is_free'])<span class="text-lg font-medium {{ $featured ? 'text-white/60' : 'text-gray-500' }}">/mo</span>@endunless
-                    </div>
-                    @unless($plan['is_free'])
+                    <div class="text-xs font-bold uppercase tracking-wider mb-3 {{ $featured ? 'text-white/80' : 'text-gray-400' }}">{{ $plan['name'] }}</div>
+
+                    @if($plan['is_free'])
+                        <div class="mb-1 flex items-baseline gap-3">
+                            <span class="inline-flex items-center px-4 py-1.5 rounded-2xl text-3xl sm:text-4xl font-extrabold tracking-tight grad-text" style="background: rgba(124,58,237,0.10); letter-spacing: 0.05em;">FREE</span>
+                        </div>
+                        <div class="text-[11px] {{ $featured ? 'text-white/60' : 'text-gray-500' }} mb-1">No credit card required</div>
+                    @else
+                        <div class="text-[11px] uppercase tracking-wider font-semibold {{ $featured ? 'text-white/70' : 'text-gray-400' }} mb-1">Starts at</div>
+                        <div class="text-5xl font-bold mb-1 text-white leading-none">
+                            {{ $plan['monthly']['formatted'] }}<span class="text-lg font-medium {{ $featured ? 'text-white/60' : 'text-gray-500' }}">/mo</span>
+                        </div>
                         @if(!empty($plan['tax']))
                             @foreach($plan['tax']['tax_breakdown'] as $line)
                                 <div class="text-[11px] {{ $featured ? 'text-white/70' : 'text-gray-500' }}">+ {{ $line['label'] }} {{ \App\Services\PricingResolver::money((int) $line['amount_minor'], $plan['monthly']['currency']) }}</div>
@@ -5666,7 +5678,7 @@
                         @else
                             <div class="text-[11px] {{ $featured ? 'text-white/60' : 'text-gray-500' }} mb-1">+ taxes as applicable (shown at checkout)</div>
                         @endif
-                    @endunless
+                    @endif
                     <div class="text-sm mb-6 {{ $featured ? 'text-white/70' : 'text-gray-500' }}">{{ $plan['description'] ?: ($plan['is_free'] ? 'Forever free' : 'Per user, billed monthly') }}</div>
                     <ul class="space-y-3 mb-8">
                         @foreach(['max_links' => 'links', 'max_biolinks' => 'bio pages', 'storage_limit_mb' => 'MB storage', 'contacts_max' => 'contacts'] as $key => $label)
@@ -5678,26 +5690,37 @@
                             @endif
                         @endforeach
                     </ul>
-                    <button type="button" @click="authTab='register'; authOpen=true" class="btn-bounce block w-full py-3.5 text-center rounded-full text-sm font-bold {{ $featured ? 'bg-white text-[#7c3aed] hover:bg-gray-100' : 'grad-bar text-white' }}">
+                    <button type="button" @click="authTab='register'; authOpen=true" class="btn-bounce block w-full py-3.5 text-center rounded-full text-sm font-bold transition-transform group-hover:scale-[1.02] {{ $featured ? 'bg-white text-[#7c3aed] hover:bg-gray-100' : 'grad-bar text-white' }}">
                         {{ $plan['is_free'] ? 'Get started free' : 'Start free trial' }}
                     </button>
                 </div>
             @endforeach
         </div>
 
-        {{-- Drill-down links to the dedicated pricing pages --}}
-        <div class="mt-12 text-center">
-            <p class="text-gray-400 text-sm uppercase tracking-wider mb-4">Want the full picture?</p>
-            <div class="flex flex-wrap items-center justify-center gap-3">
-                <a href="{{ route('site.pricing') }}" class="inline-flex items-center gap-2 px-6 py-3 rounded-full grad-bar text-white text-sm font-bold">
-                    <i class="fas fa-tags"></i> See all plans
-                </a>
-                <a href="{{ route('site.coins') }}" class="inline-flex items-center gap-2 px-6 py-3 rounded-full glass text-white hover:bg-white/10 text-sm font-medium">
-                    <i class="fas fa-coins text-amber-400"></i> Browse coin packages
-                </a>
-                <a href="{{ route('site.premium-features') }}" class="inline-flex items-center gap-2 px-6 py-3 rounded-full glass text-white hover:bg-white/10 text-sm font-medium">
-                    <i class="fas fa-star"></i> Premium features
-                </a>
+        {{-- Drill-down to the dedicated pricing pages --}}
+        <div class="mt-14 max-w-4xl mx-auto">
+            <div class="reveal relative rounded-3xl p-6 sm:p-8 overflow-hidden" style="background: linear-gradient(135deg, rgba(124,58,237,0.12), rgba(236,72,153,0.10)); border: 1px solid rgba(255,255,255,0.10);">
+                <div class="absolute -top-16 -right-16 w-48 h-48 rounded-full opacity-30 blur-3xl" style="background: var(--c2);"></div>
+                <div class="absolute -bottom-16 -left-16 w-48 h-48 rounded-full opacity-30 blur-3xl" style="background: var(--c4);"></div>
+                <div class="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                    <div class="text-center lg:text-left">
+                        <div class="text-[11px] font-bold uppercase tracking-[.2em] mb-2" style="color:var(--c1)">Want the full picture?</div>
+                        <h3 class="text-2xl sm:text-3xl font-bold text-white">Compare every plan, perk &amp; price.</h3>
+                        <p class="text-sm text-gray-400 mt-1">All tiers, coin packs and premium add-ons in one place.</p>
+                    </div>
+                    <div class="flex flex-wrap items-center justify-center lg:justify-end gap-3 shrink-0">
+                        <a href="{{ route('site.pricing') }}" class="btn-bounce inline-flex items-center gap-2 px-6 py-3 rounded-full grad-bar text-white text-sm font-bold shadow-lg shadow-[#7c3aed]/30 hover:shadow-[#7c3aed]/50 transition-shadow">
+                            <i class="fas fa-tags"></i> See all plans
+                            <i class="fas fa-arrow-right text-xs ml-1"></i>
+                        </a>
+                        <a href="{{ route('site.coins') }}" class="inline-flex items-center gap-2 px-5 py-3 rounded-full glass text-white hover:bg-white/10 text-sm font-semibold transition-colors">
+                            <i class="fas fa-coins text-amber-400"></i> Coin packages
+                        </a>
+                        <a href="{{ route('site.premium-features') }}" class="inline-flex items-center gap-2 px-5 py-3 rounded-full glass text-white hover:bg-white/10 text-sm font-semibold transition-colors">
+                            <i class="fas fa-star text-amber-300"></i> Premium features
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
