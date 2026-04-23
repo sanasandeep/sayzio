@@ -28,6 +28,13 @@ return new class extends Migration {
         if (!Schema::hasTable('site_assistant_messages')) {
             return;
         }
+        // jsonb operators are Postgres-only. On other drivers (SQLite
+        // for the test suite, MySQL for legacy installs) we have no
+        // pre-existing rows to backfill anyway since this column was
+        // introduced together with the stream marker.
+        if (DB::connection()->getDriverName() !== 'pgsql') {
+            return;
+        }
 
         DB::statement(<<<'SQL'
             UPDATE site_assistant_messages
@@ -45,6 +52,9 @@ return new class extends Migration {
     public function down(): void
     {
         if (!Schema::hasTable('site_assistant_messages')) {
+            return;
+        }
+        if (DB::connection()->getDriverName() !== 'pgsql') {
             return;
         }
 
