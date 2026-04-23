@@ -5,6 +5,7 @@
 
 @section('content')
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
+@include('user.links.partials.themed-confirm')
 
 <style>
     .block-card {
@@ -1255,25 +1256,33 @@ function ajaxToggleBlock(btn, url, blockId) {
 }
 
 function ajaxDeleteBlock(btn, url, blockId) {
-    if (!confirm('Delete this block?')) return;
-    btn.disabled = true;
-    fetch(url, {
-        method: 'DELETE',
-        headers: { 'X-CSRF-TOKEN': _csrfToken(), 'Accept': 'application/json' }
-    }).then(function(r) { return r.json(); }).then(function(data) {
-        if (data.success) {
-            var card = document.querySelector('.block-card[data-block-id="' + blockId + '"]');
-            var wrapper = card ? (card.closest('.block-card-wrapper') || card) : null;
-            if (wrapper) { wrapper.style.transition = 'all 0.3s'; wrapper.style.opacity = '0'; wrapper.style.transform = 'translateX(-20px)'; setTimeout(function() { wrapper.remove(); }, 300); }
-            var tmpl = document.getElementById('editForm_' + blockId);
-            if (tmpl) tmpl.remove();
-            showToast('Block deleted', 'success');
-            refreshPreview();
-        } else {
-            btn.disabled = false;
-            showToast(data.error || 'Failed to delete', 'error');
+    window.themedConfirm({
+        title: 'Delete this block?',
+        message: 'This permanently removes the block from your page. This cannot be undone.',
+        confirmText: 'Delete block',
+        confirmIcon: 'fa-trash',
+        iconClass: 'fa-trash',
+        onConfirm: function () {
+            btn.disabled = true;
+            fetch(url, {
+                method: 'DELETE',
+                headers: { 'X-CSRF-TOKEN': _csrfToken(), 'Accept': 'application/json' }
+            }).then(function(r) { return r.json(); }).then(function(data) {
+                if (data.success) {
+                    var card = document.querySelector('.block-card[data-block-id="' + blockId + '"]');
+                    var wrapper = card ? (card.closest('.block-card-wrapper') || card) : null;
+                    if (wrapper) { wrapper.style.transition = 'all 0.3s'; wrapper.style.opacity = '0'; wrapper.style.transform = 'translateX(-20px)'; setTimeout(function() { wrapper.remove(); }, 300); }
+                    var tmpl = document.getElementById('editForm_' + blockId);
+                    if (tmpl) tmpl.remove();
+                    showToast('Block deleted', 'success');
+                    refreshPreview();
+                } else {
+                    btn.disabled = false;
+                    showToast(data.error || 'Failed to delete', 'error');
+                }
+            }).catch(function() { btn.disabled = false; showToast('Failed to delete', 'error'); });
         }
-    }).catch(function() { btn.disabled = false; showToast('Failed to delete', 'error'); });
+    });
 }
 
 var _cardGalleryParentId = null;

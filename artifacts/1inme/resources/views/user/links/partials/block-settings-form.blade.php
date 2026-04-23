@@ -501,33 +501,23 @@ if (typeof window.resetPollVotesToast !== 'function') {
 }
 if (typeof window.resetPollVotesConfirm !== 'function') {
     window.resetPollVotesConfirm = function (count, onConfirm) {
-        var overlay = document.createElement('div');
-        overlay.className = 'fixed inset-0 z-[10000] flex items-center justify-center p-4';
-        overlay.style.cssText = 'background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);';
         var countText = count === 1 ? '1 vote' : (count + ' votes');
-        overlay.innerHTML = '' +
-            '<div class="rounded-2xl p-5 max-w-sm w-full shadow-2xl" style="background: var(--bg-body, #0f0f1a); border: 1px solid var(--border-glass, rgba(255,255,255,0.1)); color: var(--text-primary, #fff);">' +
-                '<div class="flex items-start gap-3 mb-3">' +
-                    '<div class="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center" style="background: rgba(239,68,68,0.15); color: #f87171;">' +
-                        '<i class="fas fa-rotate-left"></i>' +
-                    '</div>' +
-                    '<div class="flex-1">' +
-                        '<h3 class="text-sm font-semibold">Reset poll votes?</h3>' +
-                        '<p class="text-xs mt-1" style="color: var(--text-faint, rgba(255,255,255,0.6));">This will permanently delete <strong data-reset-count>' + countText + '</strong> for this poll. The block and its settings stay, but the tally cannot be recovered.</p>' +
-                    '</div>' +
-                '</div>' +
-                '<div class="flex justify-end gap-2 mt-4">' +
-                    '<button type="button" data-reset-cancel class="px-3 py-1.5 rounded-lg text-xs font-medium" style="background: var(--bg-glass-input, rgba(255,255,255,0.05)); color: var(--text-primary, #fff); border: 1px solid var(--border-glass, rgba(255,255,255,0.1));">Cancel</button>' +
-                    '<button type="button" data-reset-confirm class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white" style="background: linear-gradient(135deg, #ef4444, #dc2626);"><i class="fas fa-rotate-left mr-1"></i>Reset votes</button>' +
-                '</div>' +
-            '</div>';
-        document.body.appendChild(overlay);
-        var close = function () { overlay.remove(); document.removeEventListener('keydown', onKey); };
-        var onKey = function (ev) { if (ev.key === 'Escape') close(); };
-        document.addEventListener('keydown', onKey);
-        overlay.addEventListener('click', function (ev) { if (ev.target === overlay) close(); });
-        overlay.querySelector('[data-reset-cancel]').addEventListener('click', close);
-        overlay.querySelector('[data-reset-confirm]').addEventListener('click', function () { close(); onConfirm(); });
+        var escapeHtml = function (s) { return String(s).replace(/[&<>"']/g, function (c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); };
+        var run = function () {
+            if (typeof window.themedConfirm === 'function') {
+                window.themedConfirm({
+                    title: 'Reset poll votes?',
+                    messageHtml: 'This will permanently delete <strong>' + escapeHtml(countText) + '</strong> for this poll. The block and its settings stay, but the tally cannot be recovered.',
+                    confirmText: 'Reset votes',
+                    confirmIcon: 'fa-rotate-left',
+                    iconClass: 'fa-rotate-left',
+                    onConfirm: onConfirm
+                });
+            } else if (window.confirm('Reset ' + countText + ' for this poll?')) {
+                onConfirm();
+            }
+        };
+        run();
     };
 }
 if (typeof window.resetPollVotes !== 'function') {
