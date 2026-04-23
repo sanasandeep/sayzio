@@ -96,11 +96,11 @@ class SiteAssistantRuntime
      * visitors that bill the platform admin we return only a boolean
      * so we never leak the platform-wide remaining credit count.
      *
-     * @return array{low:bool,remaining_replies:?int,avg_reply_credits:int,message:?string}
+     * @return array{low:bool,remaining_replies:?int,avg_reply_credits:int,message:?string,topup_url:?string,topup_label:?string}
      */
     protected function lowBalanceSignal(SiteAssistantConversation $conv, ?User $user): array
     {
-        $blank = ['low' => false, 'remaining_replies' => null, 'avg_reply_credits' => 0, 'message' => null];
+        $blank = ['low' => false, 'remaining_replies' => null, 'avg_reply_credits' => 0, 'message' => null, 'topup_url' => null, 'topup_label' => null];
 
         $billingUser = $this->billingUser($user);
         if (!$billingUser) return $blank;
@@ -124,10 +124,12 @@ class SiteAssistantRuntime
         $remaining  = (int) floor($balance / $avg);
 
         if ($balance >= $threshold) {
-            return ['low' => false, 'remaining_replies' => $user ? $remaining : null, 'avg_reply_credits' => $avg, 'message' => null];
+            return ['low' => false, 'remaining_replies' => $user ? $remaining : null, 'avg_reply_credits' => $avg, 'message' => null, 'topup_url' => null, 'topup_label' => null];
         }
 
-        // Anonymous visitors get a generic hint without a number.
+        // Anonymous visitors get a generic hint without a number, and a
+        // pricing link instead of a direct top-up flow (they don't yet
+        // have an account/wallet to credit).
         if (!$user) {
             $anonMsg = trim((string) ($cfg['low_balance_message_anonymous'] ?? ''));
             return [
@@ -135,6 +137,8 @@ class SiteAssistantRuntime
                 'remaining_replies' => null,
                 'avg_reply_credits' => $avg,
                 'message'           => $anonMsg !== '' ? $anonMsg : null,
+                'topup_url'         => $this->safeRoute('site.pricing'),
+                'topup_label'       => 'See plans',
             ];
         }
 
@@ -152,7 +156,22 @@ class SiteAssistantRuntime
             'remaining_replies' => $remaining,
             'avg_reply_credits' => $avg,
             'message'           => $msg,
+            'topup_url'         => $this->safeRoute('user.ai-credits.show'),
+            'topup_label'       => 'Top up',
         ];
+    }
+
+    /**
+     * Resolve a named route without throwing if the route is missing in
+     * a given environment (e.g. test boot without full route cache).
+     */
+    protected function safeRoute(string $name): ?string
+    {
+        try {
+            return route($name);
+        } catch (\Throwable $e) {
+            return null;
+        }
     }
 
     /**

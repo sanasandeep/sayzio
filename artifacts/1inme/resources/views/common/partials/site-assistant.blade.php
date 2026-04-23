@@ -64,8 +64,11 @@
 .sa-form button{background:var(--sa-accent,#7c3aed);color:#fff;border:0;padding:8px;border-radius:8px;font-size:13px;cursor:pointer;font-weight:600}
 .sa-suggested{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 8px}
 .sa-suggested .sa-btn{font-size:11.5px}
-.sa-low-balance{display:none;margin:0 10px 6px;padding:7px 10px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:8px;color:#fde68a;font-size:11.5px;line-height:1.35}
-.sa-low-balance.sa-show{display:block}
+.sa-low-balance{display:none;margin:0 10px 6px;padding:7px 10px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:8px;color:#fde68a;font-size:11.5px;line-height:1.35;align-items:center;gap:8px;flex-wrap:wrap}
+.sa-low-balance.sa-show{display:flex}
+.sa-low-balance .sa-lb-msg{flex:1;min-width:0}
+.sa-low-balance .sa-lb-cta{flex-shrink:0;background:rgba(251,191,36,.22);border:1px solid rgba(251,191,36,.45);color:#fde68a;font-size:11.5px;font-weight:600;padding:4px 10px;border-radius:999px;text-decoration:none;font-family:inherit;cursor:pointer;white-space:nowrap}
+.sa-low-balance .sa-lb-cta:hover{background:rgba(251,191,36,.36);color:#fff}
 .sa-input-row{display:flex;gap:8px;padding:10px;border-top:1px solid rgba(255,255,255,.06)}
 .sa-input-row textarea{flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:#fff;padding:8px 10px;border-radius:10px;resize:none;font-size:13px;font-family:inherit;max-height:120px;min-height:36px}
 .sa-input-row button{background:var(--sa-accent,#7c3aed);border:0;color:#fff;padding:0 14px;border-radius:10px;cursor:pointer;font-size:14px}
@@ -231,10 +234,21 @@
   function renderLowBalance(lb){
     if(!lb || !lb.low || !lb.message){
       lowBalance.classList.remove('sa-show');
-      lowBalance.textContent='';
+      lowBalance.innerHTML='';
       return;
     }
-    lowBalance.textContent = lb.message;
+    lowBalance.innerHTML='';
+    var msgEl=el('span',{class:'sa-lb-msg'}, lb.message);
+    lowBalance.appendChild(msgEl);
+    if(lb.topup_url){
+      var cta=el('a',{
+        class:'sa-lb-cta',
+        href: lb.topup_url,
+        target: '_self',
+        rel: 'noopener'
+      }, lb.topup_label || 'Top up');
+      lowBalance.appendChild(cta);
+    }
     lowBalance.classList.add('sa-show');
   }
 
