@@ -7,6 +7,7 @@ use App\Modules\User\Services\WorkspacePermissions;
 use App\Services\AI\AiCreditService;
 use App\Services\Billing\WalletService;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
@@ -140,10 +141,7 @@ class VoiceToolRegistry
                 'destructive' => true,
                 'description' => 'Send the follower digest right now. Requires confirmation.',
                 'parameters'  => ['type' => 'object', 'properties' => (object) [], 'additionalProperties' => false],
-                'handler' => fn(User $u) => [
-                    'summary'     => 'Digest send queued. Open the Followers page to monitor delivery.',
-                    'navigate_to' => Route::has('user.followers.index') ? route('user.followers.index') : null,
-                ],
+                'handler' => fn(User $u) => $this->doSendDigest($u),
             ],
 
             // ── AI Studio ───────────────────────────────────────
@@ -225,12 +223,7 @@ class VoiceToolRegistry
                     'required' => ['user_id', 'credits'],
                     'additionalProperties' => false,
                 ],
-                'handler' => fn(User $u, array $args) => [
-                    'summary'     => "Open the user's profile in admin to confirm a grant of {$args['credits']} credits.",
-                    'navigate_to' => Route::has('admin.users.edit')
-                        ? route('admin.users.edit', $args['user_id'])
-                        : route('admin.dashboard'),
-                ],
+                'handler' => fn(User $u, array $args) => $this->doAdminGrantCredits($u, $args),
             ],
         ];
     }
@@ -427,6 +420,50 @@ class VoiceToolRegistry
         return [
             'summary'     => "Deleted link #{$id}.",
             'navigate_to' => route('user.links.index'),
+        ];
+    }
+
+    protected function doSendDigest(User $user): array
+    {
+        // Dispatch the existing follower-digest console command for this
+        // user only. --any-hour bypasses the preferred-hour gate so the
+        // digest goes out immediately, --force ignores the once-per-day
+        // idempotency guard so repeated explicit requests still send.
+        try {
+            Artisan::call('followers:send-digest', [
+                '--user'     => $user->id,
+                '--any-hour' => true,
+                '--force'    => true,
+            ]);
+        } catch (\Throwable $e) {
+            return ['error' => "Couldn't queue your digest: {$e->getMessage()}"];
+        }
+        return [
+            'summary'     => 'Digest send queued. Open the Followers page to monitor delivery.',
+            'navigate_to' => Route::has('user.followers.index') ? route('user.followers.index') : null,
+        ];
+    }
+
+    protected function doAdminGrantCredits(User $admin, array $args): array
+    {
+        $targetId = (int) ($args['user_id'] ?? 0);
+        $credits  = (int) ($args['credits'] ?? 0);
+        if ($targetId <= 0) return ['error' => 'I need a valid user id.'];
+        if ($credits  <= 0) return ['error' => 'Credit amount must be positive.'];
+
+        $target = User::find($targetId);
+        if (!$target) return ['error' => "I couldn't find that user."];
+
+        $this->credits->grant($target, $credits, [
+            'feature'  => 'voice_admin_grant',
+            'admin_id' => $admin->id,
+        ]);
+
+        return [
+            'summary'     => "Granted {$credits} AI credits to {$target->email}.",
+            'navigate_to' => Route::has('admin.users.edit')
+                ? route('admin.users.edit', $targetId)
+                : route('admin.dashboard'),
         ];
     }
 
