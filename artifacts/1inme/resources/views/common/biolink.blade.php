@@ -1272,16 +1272,72 @@
                 </div>
 
             @elseif($block->type === 'poll')
-                <div class="mb-4 glass-block rounded-xl p-5" x-data="{ voted: null }">
+                {{-- Live poll: persists each vote to /api/v1/biolinks/{alias}/blocks/{id}/poll-vote
+                     and then swaps the button list out for tally bars fetched from the matching
+                     /poll-results endpoint, so viewers can immediately see how their pick compares.
+                     If the results fetch fails, the option list stays visible with the picked
+                     option highlighted (and a small "Thanks for voting" hint) instead of an error wall. --}}
+                <div class="mb-4 glass-block rounded-xl p-5"
+                     x-data="biolinkPoll({
+                        alias: @js($link->alias),
+                        blockId: {{ (int) $block->id }},
+                        options: @js(array_values((array) ($s['options'] ?? []))),
+                     })"
+                     x-init="init()">
                     <p class="text-sm font-semibold mb-3">{{ $s['question'] ?? '' }}</p>
-                    <div class="space-y-2">
-                        @foreach(($s['options'] ?? []) as $i => $opt)
-                        <button @click="voted = {{ $i }}" class="w-full text-left px-4 py-2.5 rounded-xl text-sm transition-all"
-                                :class="voted === {{ $i }} ? 'bg-purple-500/30 border border-purple-400/40' : 'bg-white/5 border border-white/10 hover:bg-white/10'">
-                            <span class="flex items-center gap-2"><span class="w-4 h-4 rounded-full border-2 flex items-center justify-center" :class="voted === {{ $i }} ? 'border-purple-400' : 'border-white/30'"><span x-show="voted === {{ $i }}" class="w-2 h-2 rounded-full bg-purple-400"></span></span>{{ $opt }}</span>
-                        </button>
-                        @endforeach
-                    </div>
+                    <template x-if="!results">
+                        <div class="space-y-2">
+                            @foreach(($s['options'] ?? []) as $i => $opt)
+                            <button type="button"
+                                    @click="vote({{ $i }}, @js($opt))"
+                                    :disabled="submitting !== null"
+                                    class="w-full text-left px-4 py-2.5 rounded-xl text-sm transition-all disabled:opacity-60"
+                                    :class="voted === {{ $i }} ? 'bg-purple-500/30 border border-purple-400/40' : 'bg-white/5 border border-white/10 hover:bg-white/10'">
+                                <span class="flex items-center gap-2">
+                                    <span class="w-4 h-4 rounded-full border-2 flex items-center justify-center"
+                                          :class="voted === {{ $i }} ? 'border-purple-400' : 'border-white/30'">
+                                        <span x-show="voted === {{ $i }}" class="w-2 h-2 rounded-full bg-purple-400"></span>
+                                    </span>
+                                    <span class="flex-1">{{ $opt }}</span>
+                                    <template x-if="submitting === {{ $i }}">
+                                        <i class="fas fa-spinner fa-spin text-xs text-white/60"></i>
+                                    </template>
+                                </span>
+                            </button>
+                            @endforeach
+                        </div>
+                    </template>
+                    <template x-if="results">
+                        <div>
+                            <p class="text-xs mb-2" style="color:{{ $fontColor }}88">
+                                <span x-text="results.total_votes"></span>
+                                <span x-text="results.total_votes === 1 ? 'vote' : 'votes'"></span>
+                            </p>
+                            <div class="space-y-2">
+                                <template x-for="opt in results.options" :key="opt.index">
+                                    <div class="relative w-full px-4 py-2.5 rounded-xl text-sm overflow-hidden border"
+                                         :class="opt.index === voted ? 'border-purple-400/50' : 'border-white/10'">
+                                        <div class="absolute inset-y-0 left-0 transition-all"
+                                             :style="`width:${Math.max(0, Math.min(100, opt.percent))}%; background-color:${opt.index === voted ? 'rgba(124,58,237,0.35)' : 'rgba(124,58,237,0.15)'}`"></div>
+                                        <div class="relative flex items-center gap-2">
+                                            <span class="flex-1 truncate" x-text="opt.label"></span>
+                                            <template x-if="opt.index === voted">
+                                                <i class="fas fa-check text-xs text-purple-300"></i>
+                                            </template>
+                                            <span class="text-xs font-semibold tabular-nums" x-text="opt.percent + '%'"></span>
+                                            <span class="text-[10px] tabular-nums" style="color:{{ $fontColor }}66" x-text="opt.count"></span>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                    <template x-if="!results && voted !== null && !error">
+                        <p class="text-xs mt-2 text-green-300">Thanks for voting!</p>
+                    </template>
+                    <template x-if="error">
+                        <p class="text-xs mt-2 text-red-300" x-text="error"></p>
+                    </template>
                 </div>
 
             @elseif($block->type === 'testimonials')
@@ -1966,6 +2022,58 @@
 
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <script>
+    // Live poll component: posts the picked option to the JSON poll-vote
+    // endpoint and then fetches the aggregated tallies so viewers see
+    // counts/bars instead of a generic "Thanks!" message.
+    function biolinkPoll(opts) {
+        return {
+            alias: opts.alias,
+            blockId: opts.blockId,
+            options: Array.isArray(opts.options) ? opts.options : [],
+            voted: null,
+            submitting: null,
+            results: null,
+            error: '',
+            init() { /* nothing to fetch upfront — results are pulled after voting */ },
+            async vote(i, label) {
+                if (this.submitting !== null) return;
+                this.submitting = i;
+                this.error = '';
+                try {
+                    const r = await fetch(`/api/v1/biolinks/${encodeURIComponent(this.alias)}/blocks/${this.blockId}/poll-vote`, {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                        body: JSON.stringify({ option_index: i, option_label: typeof label === 'string' ? label : null }),
+                    });
+                    if (!r.ok) throw new Error('vote failed');
+                    this.voted = i;
+                    await this.loadResults();
+                } catch (e) {
+                    this.error = 'Could not save your vote. Please try again.';
+                } finally {
+                    this.submitting = null;
+                }
+            },
+            async loadResults() {
+                try {
+                    const r = await fetch(`/api/v1/biolinks/${encodeURIComponent(this.alias)}/blocks/${this.blockId}/poll-results`, {
+                        method: 'GET',
+                        credentials: 'same-origin',
+                        headers: { 'Accept': 'application/json' },
+                    });
+                    if (!r.ok) return;
+                    const json = await r.json();
+                    if (json && json.data && Array.isArray(json.data.options)) {
+                        this.results = json.data;
+                    }
+                } catch (_) {
+                    /* swallow — vote is already recorded */
+                }
+            },
+        };
+    }
+
     function countdown(target) {
         return {
             days: 0, hours: 0, minutes: 0, seconds: 0, interval: null,

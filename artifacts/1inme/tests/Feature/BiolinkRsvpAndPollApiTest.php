@@ -71,6 +71,43 @@ class BiolinkRsvpAndPollApiTest extends TestCase
         $this->postJson($url, ['option_index' => 99])->assertStatus(422);
     }
 
+    public function test_poll_results_aggregates_per_option_and_respects_visibility(): void
+    {
+        $user = $this->makeUser();
+        $bio  = $this->makeBiolink($user);
+        $block = BiolinkBlock::create([
+            'link_id'    => $bio->id,
+            'type'       => 'poll',
+            'sort_order' => 0,
+            'settings'   => ['question' => 'Pick one', 'options' => ['A', 'B', 'C']],
+        ]);
+
+        // Seed three votes from distinct fingerprints so the unique
+        // (block_id, voter_fingerprint) constraint isn't tripped.
+        PollVote::create(['block_id' => $block->id, 'link_id' => $bio->id, 'option_index' => 0, 'option_label' => 'A', 'voter_fingerprint' => 'f1', 'source' => 'web']);
+        PollVote::create(['block_id' => $block->id, 'link_id' => $bio->id, 'option_index' => 1, 'option_label' => 'B', 'voter_fingerprint' => 'f2', 'source' => 'web']);
+        PollVote::create(['block_id' => $block->id, 'link_id' => $bio->id, 'option_index' => 1, 'option_label' => 'B', 'voter_fingerprint' => 'f3', 'source' => 'web']);
+
+        $resp = $this->getJson("/api/v1/biolinks/{$bio->alias}/blocks/{$block->id}/poll-results");
+        $resp->assertOk();
+        $data = $resp->json('data');
+
+        $this->assertSame($block->id, $data['block_id']);
+        $this->assertSame(3, $data['total_votes']);
+        $this->assertCount(3, $data['options']);
+        $this->assertSame(1, $data['options'][0]['count']);
+        $this->assertSame(2, $data['options'][1]['count']);
+        $this->assertSame(0, $data['options'][2]['count']);
+        $this->assertSame(33, $data['options'][0]['percent']);
+        $this->assertSame(67, $data['options'][1]['percent']);
+
+        // Now lock the biolink to followers — anonymous viewer must be
+        // refused, just like the page itself.
+        $bio->forceFill(['visibility' => 'followers'])->save();
+        $this->getJson("/api/v1/biolinks/{$bio->alias}/blocks/{$block->id}/poll-results")
+            ->assertStatus(401);
+    }
+
     public function test_rsvp_submission_resolves_event_link_via_block(): void
     {
         $user = $this->makeUser();

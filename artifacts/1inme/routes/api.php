@@ -95,6 +95,13 @@ Route::prefix('v1')->group(function () {
         ->post('/biolinks/{alias}/blocks/{blockId}/poll-vote', [BiolinkController::class, 'pollVote'])
         ->whereNumber('blockId');
 
+    // Aggregated tallies for a poll block. Surfaced to viewers right
+    // after they vote (and to viewers who already voted) so they can
+    // see how their pick compares. Visibility-gated like the page.
+    Route::middleware(['api.optional_auth', 'throttle:60,1'])
+        ->get('/biolinks/{alias}/blocks/{blockId}/poll-results', [BiolinkController::class, 'pollResults'])
+        ->whereNumber('blockId');
+
     // Native RSVP submission from a biolink RSVP block. The block resolves
     // its event link server-side via settings.event_link_id so the mobile
     // client only needs the biolink alias + block id (matching how the

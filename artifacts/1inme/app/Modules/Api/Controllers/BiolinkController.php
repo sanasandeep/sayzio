@@ -279,6 +279,77 @@ class BiolinkController extends Controller
     }
 
     /**
+     * Return aggregated tallies for a poll block so viewers can see how
+     * their pick compares to everyone else's. Mirrors the visibility gate
+     * used by the page itself: a poll on a follower-gated biolink is only
+     * readable by the owner, registered followers, etc. Results include
+     * every configured option (even ones with zero votes); votes whose
+     * option_index no longer maps to a current option (e.g. the creator
+     * removed it later) are dropped so percentages still add up to 100.
+     */
+    public function pollResults(Request $request, string $alias, int $blockId)
+    {
+        $link = Link::where('alias', $alias)->where('type', 'biolink')->first();
+        if (!$link || !$link->is_active) return $this->notFound('Biolink not found');
+        if (!$link->isAccessible()) return $this->notFound('Biolink not available');
+
+        $owner  = $link->user;
+        $viewer = $request->user();
+        $gate   = $this->checkVisibility($link, $viewer, $owner);
+        if ($gate !== null) {
+            return $this->fail($gate['message'], $gate['status'], $gate['code']);
+        }
+
+        $block = BiolinkBlock::where('id', $blockId)
+            ->where('link_id', $link->id)
+            ->where('type', 'poll')
+            ->first();
+        if (!$block) return $this->notFound('Poll not found');
+
+        $settings = $block->settings ?? [];
+        $rawOptions = $settings['options'] ?? $settings['choices'] ?? $settings['items'] ?? [];
+        $labels = [];
+        foreach ((array) $rawOptions as $opt) {
+            if (is_string($opt)) {
+                $labels[] = $opt;
+            } elseif (is_array($opt)) {
+                $labels[] = (string) ($opt['label'] ?? $opt['text'] ?? $opt['title'] ?? $opt['name'] ?? '');
+            }
+        }
+
+        $counts = PollVote::where('block_id', $block->id)
+            ->selectRaw('option_index, COUNT(*) as c')
+            ->groupBy('option_index')
+            ->pluck('c', 'option_index')
+            ->all();
+
+        // Only sum votes that still map to a current option — otherwise
+        // a creator who shrunk the option list would see percentages that
+        // don't add up to 100 with no row to explain the missing share.
+        $options = [];
+        $total = 0;
+        foreach ($labels as $i => $label) {
+            $count = (int) ($counts[$i] ?? 0);
+            $total += $count;
+            $options[] = [
+                'index' => $i,
+                'label' => (string) $label,
+                'count' => $count,
+            ];
+        }
+        foreach ($options as &$row) {
+            $row['percent'] = $total > 0 ? (int) round(($row['count'] / $total) * 100) : 0;
+        }
+        unset($row);
+
+        return $this->ok([
+            'block_id'    => $block->id,
+            'total_votes' => $total,
+            'options'     => $options,
+        ]);
+    }
+
+    /**
      * Submit an RSVP from the mobile biolink viewer. The mobile screen
      * always operates on a biolink alias; the actual event lives on a
      * separate ICS-type link referenced by the RSVP block's

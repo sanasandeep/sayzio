@@ -25,7 +25,9 @@ import {
   type BiolinkPayload,
   forgetBlockResponse,
   getBiolink,
+  getPollResults,
   getRememberedBlockResponse,
+  type PollResults,
   rememberBlockResponse,
   submitPollVote,
   submitRsvp,
@@ -129,7 +131,23 @@ function PollBlock({
   const [submitting, setSubmitting] = useState<number | null>(null);
   const [votedIndex, setVotedIndex] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [results, setResults] = useState<PollResults | null>(null);
+  const [resultsLoading, setResultsLoading] = useState(false);
   const remembered = useRememberedResponse(alias, block.id);
+
+  // Fetch the live tally (best-effort: a failure just falls back to the
+  // legacy "Thanks for voting!" message rather than blocking the UI).
+  const loadResults = useCallback(async () => {
+    setResultsLoading(true);
+    try {
+      const r = await getPollResults(alias, block.id);
+      setResults(r);
+    } catch {
+      /* keep prior results, if any */
+    } finally {
+      setResultsLoading(false);
+    }
+  }, [alias, block.id]);
 
   const onVote = useCallback(async (i: number, label: string) => {
     if (submitting !== null) return;
@@ -143,8 +161,9 @@ function PollBlock({
       const res = await submitPollVote(alias, block.id, i, label);
       setVotedIndex(res.option_index);
       // Remember the picked label so a returning viewer sees the
-      // "Thanks for responding" card instead of the prompt again.
+      // results card instead of the prompt again.
       remembered.remember(label);
+      void loadResults();
     } catch (e) {
       trackBiolinkBlockTap(alias, block.id, null);
       const msg = (e && typeof e === "object" && "message" in e) ? String((e as { message: unknown }).message) : "Could not save your vote";
@@ -152,18 +171,44 @@ function PollBlock({
     } finally {
       setSubmitting(null);
     }
-  }, [alias, block.id, remembered, submitting]);
+  }, [alias, block.id, loadResults, remembered, submitting]);
 
-  // If the viewer already responded on a previous session, skip straight
-  // to the "Thanks" card. Tapping "Change response" clears the remembered
-  // value and brings the live options back.
+  // For viewers who already voted in a previous session, kick off a
+  // tally fetch immediately so they land on the results view.
+  useEffect(() => {
+    if (remembered.ready && remembered.value !== null && results === null && !resultsLoading) {
+      void loadResults();
+    }
+  }, [loadResults, remembered.ready, remembered.value, results, resultsLoading]);
+
+  // If the viewer already responded on a previous session, show the live
+  // tallies (or the responded card while they load). Tapping "Change
+  // response" clears the remembered value and brings the live options back.
   if (remembered.value !== null) {
+    if (results) {
+      return (
+        <PollResultsCard
+          question={question}
+          results={results}
+          pickedLabel={remembered.value}
+          onChange={() => {
+            remembered.forget();
+            setResults(null);
+            setVotedIndex(null);
+          }}
+          colors={colors}
+        />
+      );
+    }
     return (
       <RespondedCard
         icon="📊"
         title={question}
         responseLabel={remembered.value}
-        onChange={remembered.forget}
+        onChange={() => {
+          remembered.forget();
+          setResults(null);
+        }}
       />
     );
   }
@@ -475,6 +520,82 @@ function RespondedCard({
         Thanks for responding — you picked “{responseLabel}”.
       </Text>
       <Pressable onPress={onChange} hitSlop={8} style={{ alignSelf: "flex-start" }}>
+        <Text style={[styles.body, { color: colors.primary, textAlign: "left", fontSize: 13 }]}>
+          Change response
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
+
+// Render the live tally bars after a viewer has voted. Highlights the
+// option the viewer picked with a stronger fill so they can spot their
+// own choice within the chart at a glance.
+function PollResultsCard({
+  question,
+  results,
+  pickedLabel,
+  onChange,
+  colors,
+}: {
+  question: string;
+  results: PollResults;
+  pickedLabel: string;
+  onChange: () => void;
+  colors: PaletteColors;
+}) {
+  const total = results.total_votes;
+  return (
+    <View style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <Text style={[styles.btnLabel, { color: colors.foreground, textAlign: "left" }]}>📊 {question}</Text>
+      <Text style={[styles.body, { color: colors.mutedForeground, textAlign: "left", fontSize: 12 }]}>
+        {total === 1 ? "1 vote" : `${total} votes`}
+      </Text>
+      {results.options.length > 0 ? (
+        results.options.map((opt) => {
+          const isPicked = opt.label === pickedLabel;
+          return (
+            <View
+              key={opt.index}
+              style={[
+                styles.pollOption,
+                {
+                  borderColor: isPicked ? "#7c3aed" : colors.border,
+                  backgroundColor: "transparent",
+                  overflow: "hidden",
+                  position: "relative",
+                },
+              ]}
+            >
+              <View
+                style={{
+                  position: "absolute",
+                  left: 0, top: 0, bottom: 0,
+                  width: `${Math.max(0, Math.min(100, opt.percent))}%`,
+                  backgroundColor: isPicked ? "#7c3aed44" : "#7c3aed1f",
+                }}
+              />
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Text style={[styles.body, { color: colors.foreground, textAlign: "left", fontSize: 14, flex: 1 }]} numberOfLines={2}>
+                  {opt.label}
+                </Text>
+                {isPicked ? <Feather name="check" size={14} color="#7c3aed" /> : null}
+                <Text style={[styles.body, { color: colors.foreground, textAlign: "right", fontSize: 13, fontWeight: "600" }]}>
+                  {opt.percent}%
+                </Text>
+                <Text style={[styles.body, { color: colors.mutedForeground, textAlign: "right", fontSize: 11, minWidth: 26 }]}>
+                  {opt.count}
+                </Text>
+              </View>
+            </View>
+          );
+        })
+      ) : (
+        <Text style={[styles.body, { color: colors.mutedForeground, textAlign: "left", fontSize: 12 }]}>
+          No options configured.
+        </Text>
+      )}
+      <Pressable onPress={onChange} hitSlop={8} style={{ alignSelf: "flex-start", marginTop: 4 }}>
         <Text style={[styles.body, { color: colors.primary, textAlign: "left", fontSize: 13 }]}>
           Change response
         </Text>

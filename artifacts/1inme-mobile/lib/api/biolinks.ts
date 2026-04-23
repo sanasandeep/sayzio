@@ -162,6 +162,27 @@ export async function submitPollVote(
   };
 }
 
+export type PollResults = {
+  block_id: number;
+  total_votes: number;
+  options: { index: number; label: string; count: number; percent: number }[];
+};
+
+// Fetch aggregated tallies for a poll block. Used right after a viewer
+// votes (and on first render for viewers who already voted in a previous
+// session) so they can see how their pick compares to the rest. Returns
+// every configured option, even those with zero votes, so the bar list
+// stays stable between fetches.
+export async function getPollResults(
+  alias: string,
+  blockId: number,
+): Promise<PollResults> {
+  const res = await apiFetch<{ data: PollResults }>(
+    `/biolinks/${encodeURIComponent(alias)}/blocks/${blockId}/poll-results`,
+  );
+  return res.data;
+}
+
 export type RsvpSubmission = {
   name: string;
   email?: string | null;
