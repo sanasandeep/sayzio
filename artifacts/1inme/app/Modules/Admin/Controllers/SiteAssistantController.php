@@ -276,6 +276,101 @@ class SiteAssistantController extends Controller
         return back()->with('success', 'Conversation re-enabled.');
     }
 
+    // ── Analytics ─────────────────────────────────────────────
+    /**
+     * Small analytics dashboard for site-assistant usage. Surfaces
+     * messages/day, top routes the assistant is used on, average turns
+     * before a handoff, deflection rate, and the most common questions
+     * that triggered a handoff (so admins can feed them back into
+     * page hints / response templates).
+     */
+    public function analytics(Request $request)
+    {
+        $days = (int) $request->get('days', 30);
+        $days = max(7, min(90, $days));
+        $since = now()->subDays($days - 1)->startOfDay();
+
+        // Messages per day (user turns) — PostgreSQL date_trunc.
+        $rows = SiteAssistantMessage::query()
+            ->where('role', 'user')
+            ->where('created_at', '>=', $since)
+            ->selectRaw("to_char(created_at, 'YYYY-MM-DD') AS day, COUNT(*) AS c")
+            ->groupBy('day')->orderBy('day')
+            ->pluck('c', 'day')->all();
+        $messagesPerDay = [];
+        for ($i = 0; $i < $days; $i++) {
+            $d = $since->copy()->addDays($i)->format('Y-m-d');
+            $messagesPerDay[] = [
+                'day'   => $d,
+                'count' => (int) ($rows[$d] ?? 0),
+            ];
+        }
+
+        // Top routes the widget is being opened on.
+        $topRoutes = SiteAssistantConversation::query()
+            ->whereNotNull('last_route')
+            ->where('last_message_at', '>=', $since)
+            ->selectRaw('last_route, COUNT(*) AS c, SUM(turns_count) AS turns')
+            ->groupBy('last_route')->orderByDesc('c')
+            ->limit(10)->get();
+
+        // Conversation-level signals over the window.
+        $convQuery = SiteAssistantConversation::query()
+            ->where('last_message_at', '>=', $since)
+            ->where('turns_count', '>', 0);
+        $totalConvs   = (int) (clone $convQuery)->count();
+        $handedOff    = (int) (clone $convQuery)->where('handed_off', true)->count();
+        $avgTurnsToHandoff = (float) (clone $convQuery)->where('handed_off', true)->avg('turns_count');
+        $deflectionRate = $totalConvs > 0
+            ? round((($totalConvs - $handedOff) / $totalConvs) * 100, 1)
+            : null;
+
+        // Most common questions that triggered a handoff. We grab the
+        // user messages from handed-off conversations, normalize the
+        // text, and count duplicates so admins can see what's slipping
+        // through. Capped to keep memory bounded on busy installs.
+        $handoffConvIds = SiteAssistantConversation::query()
+            ->where('last_message_at', '>=', $since)
+            ->where('handed_off', true)
+            ->pluck('id');
+
+        $suggestions = collect();
+        if ($handoffConvIds->isNotEmpty()) {
+            $userMsgs = SiteAssistantMessage::query()
+                ->whereIn('conversation_id', $handoffConvIds)
+                ->where('role', 'user')
+                ->whereNotNull('content')
+                ->orderByDesc('id')
+                ->limit(2000)
+                ->pluck('content');
+            $buckets = [];
+            foreach ($userMsgs as $raw) {
+                $norm = mb_strtolower(trim(preg_replace('/\s+/', ' ', (string) $raw)));
+                if ($norm === '' || mb_strlen($norm) < 3) continue;
+                $key = mb_substr($norm, 0, 160);
+                if (!isset($buckets[$key])) {
+                    $buckets[$key] = ['sample' => trim(mb_substr((string) $raw, 0, 200)), 'count' => 0];
+                }
+                $buckets[$key]['count']++;
+            }
+            $suggestions = collect($buckets)
+                ->sortByDesc('count')
+                ->take(15)
+                ->values();
+        }
+
+        return view('admin.site-assistant.analytics', [
+            'days'              => $days,
+            'messagesPerDay'    => $messagesPerDay,
+            'topRoutes'         => $topRoutes,
+            'totalConvs'        => $totalConvs,
+            'handedOff'         => $handedOff,
+            'avgTurnsToHandoff' => $avgTurnsToHandoff,
+            'deflectionRate'    => $deflectionRate,
+            'suggestions'       => $suggestions,
+        ]);
+    }
+
     protected function totals(): array
     {
         return [

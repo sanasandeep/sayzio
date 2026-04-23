@@ -344,6 +344,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
             // Mind CRUD stays in the existing AI Mind admin module.
             Route::get  ('knowledge',                [\App\Modules\Admin\Controllers\SiteAssistantController::class, 'knowledge'])->middleware(CheckPermission::class . ':settings.manage')->name('knowledge');
             Route::post ('knowledge/{mind}/reindex', [\App\Modules\Admin\Controllers\SiteAssistantController::class, 'reindexKnowledge'])->middleware(CheckPermission::class . ':settings.manage')->whereNumber('mind')->name('knowledge.reindex');
+
+            // Usage analytics — messages/day, top routes, deflection
+            // rate, and the questions that triggered handoffs.
+            Route::get  ('analytics',                [\App\Modules\Admin\Controllers\SiteAssistantController::class, 'analytics'])->middleware(CheckPermission::class . ':settings.manage')->name('analytics');
         });
 
         // AI Personas — per-user list, plan caps, abuse disable.

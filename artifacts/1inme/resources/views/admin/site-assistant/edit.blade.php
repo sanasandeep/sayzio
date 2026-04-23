@@ -25,6 +25,7 @@
         <a href="{{ route('admin.site-assistant.hints') }}" class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-sm text-white">Page Hints</a>
         <a href="{{ route('admin.site-assistant.templates') }}" class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-sm text-white">Response Templates</a>
         <a href="{{ route('admin.site-assistant.conversations') }}" class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-sm text-white">Conversations</a>
+        <a href="{{ route('admin.site-assistant.analytics') }}" class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-sm text-white">Analytics</a>
     </div>
 
     <form method="POST" action="{{ route('admin.site-assistant.update') }}" class="space-y-6">
