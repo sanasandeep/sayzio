@@ -81,6 +81,38 @@ class SitePageController extends Controller
         if ($slug === 'buzz') {
             return view('public.buzz', ['page' => $page]);
         }
+        if (in_array($slug, SitePagesContent::aiProductSlugs(), true)) {
+            $featureKey = match ($slug) {
+                'ai-chatbot'         => 'ai_chatbot',
+                'ai-agent'           => 'ai_agent',
+                'ai-widget'          => 'ai_widget',
+                'ai-voice-assistant' => 'ai_voice_assistant',
+                default              => null,
+            };
+            $unlockedOn = [];
+            if ($featureKey) {
+                $plans = \App\Modules\Admin\Models\Plan::active()->ordered()->get();
+                $map = \App\Modules\Common\Support\PremiumFeatures::unlocksByFeature($plans);
+                $slugsUnlocked = $map[$featureKey] ?? [];
+                foreach ($plans as $p) {
+                    if (in_array($p->slug, $slugsUnlocked, true)) {
+                        $unlockedOn[] = $p->name;
+                    }
+                }
+            }
+            $faqs = SitePagesContent::aiProductFaqs($slug);
+            $testimonials = (array) \App\Modules\Admin\Models\AppSetting::get('marketing_features_testimonials', []);
+            if (empty($testimonials)) {
+                $testimonials = SitePagesContent::testimonialsDefault();
+            }
+            return view('public.ai-product', [
+                'page'         => $page,
+                'aiSlug'       => $slug,
+                'unlockedOn'   => $unlockedOn,
+                'faqs'         => $faqs,
+                'testimonials' => $testimonials,
+            ]);
+        }
         return view('public.page', ['page' => $page]);
     }
 

@@ -129,6 +129,16 @@ class SitePagesSeeder extends Seeder
         $policySlugs = SitePagesContent::policySlugs();
 
         $pages = $extra;
+        foreach (SitePagesContent::aiProductsDefault() as $slug => $data) {
+            $pages[] = [
+                'slug' => $slug,
+                'title' => $data['title'],
+                'meta_description' => $data['meta_description'] ?? null,
+                'sections' => $data['sections'],
+                'cta_label' => $data['cta_label'] ?? null,
+                'cta_url' => $data['cta_url'] ?? null,
+            ];
+        }
         foreach ($rich as $slug => $data) {
             // Policy slugs are seeded from policyDefaults below with the
             // richer schema (intro, last_updated, stable section ids).

@@ -471,9 +471,143 @@ class SitePagesContent
     {
         return [
             'features', 'how-it-works', 'workspace-team', 'buzz',
+            'ai-chatbot', 'ai-agent', 'ai-widget', 'ai-voice-assistant',
             'discovery', 'creators-feed', 'faqs',
             'about', 'contact',
             'terms', 'refunds', 'privacy', 'gdpr', 'cookies',
+        ];
+    }
+
+    /**
+     * The four AI suite marketing pages. Each entry is admin-editable
+     * via the standard SitePage editor (title, meta_description,
+     * sections [heading/body], cta_label, cta_url).
+     */
+    public static function aiProductSlugs(): array
+    {
+        return ['ai-chatbot', 'ai-agent', 'ai-widget', 'ai-voice-assistant'];
+    }
+
+    /**
+     * Default content for the four AI suite product pages. Returned as a
+     * slug-keyed array so the seeder and migration can iterate it. Each
+     * entry follows the standard SitePage shape (title, meta_description,
+     * sections, cta_label, cta_url) plus an `extra` block that holds the
+     * marketing-only fields (eyebrow, hero tagline, FAQ list and feature
+     * key for plan gating) used by the shared ai-product blade.
+     */
+    public static function aiProductsDefault(): array
+    {
+        return [
+            'ai-chatbot' => [
+                'title' => 'AI Chatbot',
+                'meta_description' => 'Drop a 24/7 AI chatbot onto your biolink that answers visitor questions in your voice, captures leads and books calls — no scripts to write.',
+                'cta_label' => 'Add an AI chatbot to my page',
+                'cta_url' => '/register',
+                'sections' => [
+                    ['heading' => 'Always on, always on-brand', 'body' => 'A trained AI chatbot greets every visitor, answers in your tone, and never logs off. Train it on your bio, your FAQs, your products and your past replies — and it stays in character on every conversation.'],
+                    ['heading' => 'Train it on what you already have', 'body' => 'Point it at your biolink content, paste in your product copy, upload PDFs and link your FAQ page. The chatbot learns from the same source material your audience already trusts, so the answers stay accurate and on-brand.'],
+                    ['heading' => 'Captures leads while you sleep', 'body' => 'When a visitor shows buying intent, the chatbot asks for the right details — name, email, what they want — and drops them straight into your contacts list, tagged and ready for follow-up.'],
+                    ['heading' => 'Books calls without back-and-forth', 'body' => 'Connect a calendar and the chatbot can offer real availability, hand off to your booking link, and confirm by email so visitors leave with a slot, not a maybe.'],
+                    ['heading' => 'Hand-off to a human', 'body' => 'When a question is out of scope, the chatbot quietly escalates the thread to your unified inbox so you can take over from where it left off — visitor never has to repeat themselves.'],
+                    ['heading' => 'You stay in control', 'body' => 'Review every conversation, tweak the tone, blacklist topics and set guardrails. Turn the chatbot off for a campaign or pause it overnight — your settings, your call.'],
+                ],
+            ],
+            'ai-agent' => [
+                'title' => 'AI Agent',
+                'meta_description' => 'A multi-step AI agent that runs real tasks for you — qualifying leads, drafting outreach, updating your CRM and following up on its own.',
+                'cta_label' => 'Put an AI agent to work',
+                'cta_url' => '/register',
+                'sections' => [
+                    ['heading' => 'A teammate, not just a chatbot', 'body' => "Where a chatbot answers questions, the AI agent gets things done. Hand it a goal — qualify this lead, follow up on this thread, draft this campaign — and it strings together the steps to deliver a result, not just a reply."],
+                    ['heading' => 'Connects your tools', 'body' => 'Wire the agent into your contacts, calendar, inbox and short-link library. It reads, writes and updates across all of them so your data stays in one place and your follow-ups stay coordinated.'],
+                    ['heading' => 'Runs playbooks you can edit', 'body' => "Start from ready-made playbooks — lead qualification, abandoned form recovery, post-event follow-up — then tweak the steps in plain English. No code, no JSON, just the way you'd brief a teammate."],
+                    ['heading' => 'Knows when to ask', 'body' => "The agent flags judgement calls and asks for confirmation before sending the first email or booking a meeting. You stay in the loop on the moves that matter and the routine work just gets done."],
+                    ['heading' => 'Memory that compounds', 'body' => "Every conversation, every contact, every result feeds back into the agent's memory so it keeps getting better at how you work — without you having to retrain it from scratch."],
+                    ['heading' => 'Full audit trail', 'body' => 'Every action the agent takes is logged with the prompt, the inputs, the output and the result, so you can review what happened, roll back a step, or share the trail with your team.'],
+                ],
+            ],
+            'ai-widget' => [
+                'title' => 'AI Widget',
+                'meta_description' => 'Embed an AI assistant on any website with a single snippet — answers visitor questions, captures leads and routes hot ones to your inbox.',
+                'cta_label' => 'Embed an AI widget on my site',
+                'cta_url' => '/register',
+                'sections' => [
+                    ['heading' => 'One snippet, any site', 'body' => "Paste a one-line embed snippet on your WordPress, Shopify, Webflow, Squarespace or custom site and the AI widget pops up in the corner — ready to chat with every visitor."],
+                    ['heading' => 'Looks like part of your brand', 'body' => 'Match colours, font, position, avatar and greeting so the widget feels native to your site. Light, dark and glass themes ship out of the box, with full CSS overrides for advanced theming.'],
+                    ['heading' => 'Trained on your content', 'body' => "Point it at any number of pages, upload product sheets and PDFs, and the widget answers from your real material — no hallucinated specs, no off-topic chatter."],
+                    ['heading' => 'Captures leads in context', 'body' => "When a visitor shows intent, the widget asks for the right info, drops the contact straight into your 1INME inbox, and tags the thread with the page they were on so you have full context."],
+                    ['heading' => 'Multi-language out of the box', 'body' => "The widget detects the visitor's language and replies in kind — English, Spanish, French, German, Portuguese, Italian, Arabic, Hindi and more — so you can serve a global audience without spinning up extra setups."],
+                    ['heading' => 'Privacy-first analytics', 'body' => "See conversation volume, top intents, conversion to lead and drop-off — without logging anything you don't need. Visitors can clear their session in one tap, and you control retention windows."],
+                ],
+            ],
+            'ai-voice-assistant' => [
+                'title' => 'AI Voice Assistant',
+                'meta_description' => "An AI voice assistant that picks up calls to your bio, answers in your voice, qualifies the caller and books or routes them — no missed leads.",
+                'cta_label' => 'Turn on AI voice on my number',
+                'cta_url' => '/register',
+                'sections' => [
+                    ['heading' => 'Never miss another call', 'body' => "Point a number at your AI voice assistant and it picks up every call — day, night, weekend — answers in your voice and handles the basics so leads never bounce to voicemail."],
+                    ['heading' => 'Sounds like you, not a robot', 'body' => "Pick from a library of natural voices or clone your own from a short sample. The assistant speaks at a normal cadence, uses your wording, and feels like a real receptionist instead of a hold-music menu."],
+                    ['heading' => 'Qualifies and routes', 'body' => "Trained on your services, prices and availability, the assistant answers the common questions, qualifies the caller, and either books a slot, takes a message or warm-transfers the call to your phone — based on rules you set."],
+                    ['heading' => 'Books real meetings', 'body' => "Connect a calendar and the assistant offers genuine open slots, confirms by SMS and email, and adds the event to both calendars — so callers leave the line with an actual time, not a callback promise."],
+                    ['heading' => 'Full transcript and recap', 'body' => "Every call gets a typed transcript, a one-paragraph recap, the contact details captured and the next step — delivered to your unified inbox so nothing falls through the cracks."],
+                    ['heading' => 'You stay in control', 'body' => "Listen to recordings, edit the script, change voices, and set blackout hours when the assistant should hand straight to voicemail. Turn it off any time without losing the history."],
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * Per-product FAQ entries for each AI suite marketing page. Keyed by
+     * slug — returns a small list of {q, a} rows used by the shared
+     * ai-product blade. Kept here so admins/devs can tune copy without
+     * touching the template.
+     */
+    public static function aiProductFaqs(string $slug): array
+    {
+        $common = [
+            ['q' => 'Do I need to write any prompts or code?', 'a' => 'No. You point it at your biolink, your site or your inbox, set a tone, and it learns from your existing content. You can refine answers from the dashboard at any time.'],
+            ['q' => 'What languages does it support?', 'a' => 'Out of the box it understands and replies in 30+ languages and auto-detects what each visitor uses, so you can serve a global audience without setting up separate flows.'],
+            ['q' => 'Can I hand off to a human?', 'a' => 'Yes. Every conversation can escalate to your unified inbox the moment a visitor asks for a person, books a call, or hits a topic you mark as human-only.'],
+            ['q' => 'How is my plan billed for usage?', 'a' => 'Each plan includes a monthly conversation allowance. If you grow past it, you can top up with credits or upgrade — no surprise charges.'],
+        ];
+        $extra = [
+            'ai-chatbot' => [
+                ['q' => 'Where does the chatbot show up?', 'a' => 'It lives directly on your 1INME biolink as a chat bubble visitors can open from any device — no separate page or login required.'],
+            ],
+            'ai-agent' => [
+                ['q' => 'What kind of tasks can the agent run?', 'a' => 'Multi-step playbooks like qualifying inbound leads, drafting follow-up sequences, updating contact fields, and scheduling calls — chained together without you in the loop.'],
+            ],
+            'ai-widget' => [
+                ['q' => 'Does the widget work on any website?', 'a' => 'Yes. Drop the snippet into any HTML site (WordPress, Shopify, Webflow, custom) and the widget loads asynchronously — no impact on page speed.'],
+            ],
+            'ai-voice-assistant' => [
+                ['q' => 'Do I get a phone number?', 'a' => 'Yes — we provision a number for you in supported regions. You can also forward an existing number to it so the assistant only answers when you would have missed the call.'],
+            ],
+        ];
+        return array_merge($extra[$slug] ?? [], $common);
+    }
+
+    /**
+     * AI suite category card for the dedicated /features page. Returned
+     * separately so the migration that backfills the AI suite onto the
+     * existing features SitePage can append it idempotently without
+     * pulling in the full features defaults.
+     */
+    public static function aiSuiteFeaturesCategory(): array
+    {
+        return [
+            'id' => 'ai-suite',
+            'icon' => 'fa-robot',
+            'heading' => 'AI suite',
+            'intro' => 'A set of AI products that plug into your 1INME — a chatbot for your biolink, an agent that runs multi-step tasks, an embeddable widget for any site, and a voice assistant that picks up your calls.',
+            'features' => [
+                ['name' => 'AI Chatbot', 'description' => 'Trained 24/7 chatbot on your biolink that answers in your voice, captures leads and hands off to a human when needed.', 'link' => '/ai-chatbot'],
+                ['name' => 'AI Agent', 'description' => 'A multi-step agent that runs playbooks across your contacts, inbox and calendar — qualifying leads and following up on its own.', 'link' => '/ai-agent'],
+                ['name' => 'AI Widget', 'description' => 'Embeddable AI assistant for any website — answers questions, captures leads and routes the hot ones to your unified inbox.', 'link' => '/ai-widget'],
+                ['name' => 'AI Voice Assistant', 'description' => 'AI receptionist that picks up calls to your number, qualifies callers and books or routes them — never a missed lead.', 'link' => '/ai-voice-assistant'],
+            ],
         ];
     }
 
@@ -487,6 +621,7 @@ class SitePagesContent
     public static function featuresCategoriesDefault(): array
     {
         return [
+            self::aiSuiteFeaturesCategory(),
             [
                 'id' => 'biolink',
                 'icon' => 'fa-square-share-nodes',
@@ -733,17 +868,20 @@ class SitePagesContent
             }
             $features = [];
             foreach ((array) ($cat['features'] ?? []) as $f) {
+                $link = '';
                 if (is_array($f) && array_is_list($f) && count($f) >= 2) {
                     $name = trim((string) $f[0]);
                     $desc = trim((string) $f[1]);
+                    $link = trim((string) ($f[2] ?? ''));
                 } else {
                     $name = trim((string) ($f['name'] ?? ''));
                     $desc = trim((string) ($f['description'] ?? ''));
+                    $link = trim((string) ($f['link'] ?? ''));
                 }
                 if ($name === '' && $desc === '') {
                     continue;
                 }
-                $features[] = ['name' => $name, 'description' => $desc];
+                $features[] = ['name' => $name, 'description' => $desc, 'link' => $link];
             }
             if ($heading === '' && $intro === '' && empty($features)) {
                 continue;

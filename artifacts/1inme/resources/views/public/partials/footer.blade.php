@@ -51,6 +51,10 @@
                 <li><a href="{{ route('site.coins') }}" class="hover:text-white">Coin packages</a></li>
                 <li><a href="{{ route('site.premium-features') }}" class="hover:text-white">Premium features</a></li>
                 <li><a href="{{ route('site.api-docs') }}" class="hover:text-white">API</a></li>
+                <li><a href="{{ route('site.ai-chatbot') }}" class="hover:text-white">AI Chatbot</a></li>
+                <li><a href="{{ route('site.ai-agent') }}" class="hover:text-white">AI Agent</a></li>
+                <li><a href="{{ route('site.ai-widget') }}" class="hover:text-white">AI Widget</a></li>
+                <li><a href="{{ route('site.ai-voice-assistant') }}" class="hover:text-white">AI Voice Assistant</a></li>
             </ul>
         </div>
         <div>

@@ -41,6 +41,24 @@
                             <i class="fas fa-code text-violet-400 mt-1"></i>
                             <span><span class="block text-sm font-semibold text-white">API</span><span class="block text-xs text-gray-500">Build with 1INME</span></span>
                         </a>
+                        <div class="my-1 border-t border-white/5"></div>
+                        <div class="px-3 pt-1.5 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">AI suite</div>
+                        <a href="{{ route('site.ai-chatbot') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
+                            <i class="fas fa-comments text-violet-400 mt-1"></i>
+                            <span><span class="block text-sm font-semibold text-white">AI Chatbot</span><span class="block text-xs text-gray-500">24/7 chat on your biolink</span></span>
+                        </a>
+                        <a href="{{ route('site.ai-agent') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
+                            <i class="fas fa-robot text-violet-400 mt-1"></i>
+                            <span><span class="block text-sm font-semibold text-white">AI Agent</span><span class="block text-xs text-gray-500">Runs multi-step tasks for you</span></span>
+                        </a>
+                        <a href="{{ route('site.ai-widget') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
+                            <i class="fas fa-window-restore text-violet-400 mt-1"></i>
+                            <span><span class="block text-sm font-semibold text-white">AI Widget</span><span class="block text-xs text-gray-500">Embed on any website</span></span>
+                        </a>
+                        <a href="{{ route('site.ai-voice-assistant') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
+                            <i class="fas fa-headset text-violet-400 mt-1"></i>
+                            <span><span class="block text-sm font-semibold text-white">AI Voice Assistant</span><span class="block text-xs text-gray-500">Picks up calls in your voice</span></span>
+                        </a>
                     </div>
                 </div>
 
@@ -73,6 +91,7 @@
                     </div>
                 </div>
 
+                <a href="{{ route('site.features') }}" class="px-3 py-2 text-sm text-gray-300 hover:text-violet-400 whitespace-nowrap">Features</a>
                 <a href="{{ route('site.pricing') }}" class="px-3 py-2 text-sm text-gray-300 hover:text-violet-400 whitespace-nowrap">Pricing</a>
                 <a href="{{ route('site.coins') }}" class="px-3 py-2 text-sm text-gray-300 hover:text-violet-400 whitespace-nowrap">Coins</a>
                 <a href="{{ route('site.premium-features') }}" class="px-3 py-2 text-sm text-gray-300 hover:text-violet-400 whitespace-nowrap">Premium</a>
@@ -128,6 +147,12 @@
             <a href="{{ route('site.how-it-works') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">How it works</a>
             <a href="{{ route('site.workspace-team') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Workspace &amp; Team</a>
             <a href="{{ route('site.api-docs') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">API</a>
+
+            <div class="px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">AI suite</div>
+            <a href="{{ route('site.ai-chatbot') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">AI Chatbot</a>
+            <a href="{{ route('site.ai-agent') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">AI Agent</a>
+            <a href="{{ route('site.ai-widget') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">AI Widget</a>
+            <a href="{{ route('site.ai-voice-assistant') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">AI Voice Assistant</a>
 
             <div class="px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">Solutions</div>
             <a href="{{ route('site.services') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Use cases</a>

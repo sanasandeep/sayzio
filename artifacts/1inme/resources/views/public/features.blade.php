@@ -126,15 +126,25 @@
             </div>
             <div class="rounded-xl border border-white/5 bg-black/10 overflow-hidden">
                 @foreach($cat['features'] as $feat)
+                    @php $featLink = is_array($feat) ? trim((string) ($feat['link'] ?? '')) : ''; @endphp
                     <div class="feature-row grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-6 px-5 py-4">
                         <div class="md:col-span-1">
                             <div class="flex items-start gap-2">
                                 <i class="fas fa-circle-check text-violet-400 mt-1 text-sm"></i>
-                                <div class="font-semibold text-white">{{ $featureName($feat) }}</div>
+                                <div class="font-semibold text-white">
+                                    @if($featLink !== '')
+                                        <a href="{{ $featLink }}" class="hover:text-violet-300 underline-offset-4 hover:underline">{{ $featureName($feat) }}</a>
+                                    @else
+                                        {{ $featureName($feat) }}
+                                    @endif
+                                </div>
                             </div>
                         </div>
                         <div class="md:col-span-2 text-gray-400 text-sm leading-relaxed md:pt-0.5">
                             {{ $featureDescription($feat) }}
+                            @if($featLink !== '')
+                                <a href="{{ $featLink }}" class="ml-1 text-violet-300 hover:text-violet-200 font-semibold">Learn more <i class="fas fa-arrow-right text-[10px]"></i></a>
+                            @endif
                         </div>
                     </div>
                 @endforeach

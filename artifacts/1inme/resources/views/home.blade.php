@@ -4336,6 +4336,74 @@
     </div>
 </section>
 
+{{-- ============================ AI SUITE ============================ --}}
+@php
+    $__aiProducts = [
+        [
+            'eyebrow' => 'AI Chatbot',
+            'title'   => 'A 24/7 chatbot trained on your biolink.',
+            'desc'    => 'Greets every visitor in your voice, answers from your real content, captures leads and books calls — never asleep.',
+            'icon'    => 'fa-comments',
+            'color'   => '#7c3aed',
+            'route'   => 'site.ai-chatbot',
+        ],
+        [
+            'eyebrow' => 'AI Agent',
+            'title'   => 'A teammate that runs multi-step tasks.',
+            'desc'    => 'Qualifies leads, drafts outreach, updates your contacts and follows up — across your inbox, calendar and CRM.',
+            'icon'    => 'fa-robot',
+            'color'   => '#1bd4d9',
+            'route'   => 'site.ai-agent',
+        ],
+        [
+            'eyebrow' => 'AI Widget',
+            'title'   => 'Embed an AI assistant on any website.',
+            'desc'    => 'One snippet on WordPress, Shopify, Webflow or your custom site — answers questions and routes hot leads to your inbox.',
+            'icon'    => 'fa-window-restore',
+            'color'   => '#e94e8c',
+            'route'   => 'site.ai-widget',
+        ],
+        [
+            'eyebrow' => 'AI Voice Assistant',
+            'title'   => 'Picks up calls in your voice.',
+            'desc'    => 'AI receptionist that answers your number, qualifies callers, books real meetings and warm-transfers when it matters.',
+            'icon'    => 'fa-headset',
+            'color'   => '#ff8a3c',
+            'route'   => 'site.ai-voice-assistant',
+        ],
+    ];
+@endphp
+<section id="ai-suite" class="py-24 lg:py-32 relative overflow-hidden" aria-labelledby="ai-suite-h">
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-14 max-w-3xl mx-auto">
+            <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:#7c3aed">AI suite</div>
+            <h2 id="ai-suite-h" class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
+                Built-in AI that <span class="grad-text">works the room</span> for you.
+            </h2>
+            <p class="reveal rd-2 text-lg text-gray-400">
+                A chatbot for your biolink, an agent that runs playbooks, an embeddable widget for any site, and a voice assistant that picks up your calls — all under one login.
+            </p>
+        </div>
+
+        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            @foreach($__aiProducts as $i => $a)
+                <a href="{{ route($a['route']) }}" class="reveal rd-{{ ($i % 4) + 1 }} glass rounded-3xl p-6 lift relative overflow-hidden block group">
+                    <div class="absolute -top-12 -right-12 w-40 h-40 rounded-full opacity-20" style="background:radial-gradient(circle, {{ $a['color'] }}, transparent 70%);"></div>
+                    <div class="relative w-12 h-12 rounded-2xl flex items-center justify-center mb-4 text-white" style="background: linear-gradient(135deg, {{ $a['color'] }}, var(--c2)); box-shadow: 0 12px 30px -12px {{ $a['color'] }};">
+                        <i class="fas {{ $a['icon'] }}"></i>
+                    </div>
+                    <div class="relative text-[11px] font-bold uppercase tracking-wider mb-1" style="color: {{ $a['color'] }};">{{ $a['eyebrow'] }}</div>
+                    <h3 class="relative text-lg font-bold mb-3 leading-snug">{{ $a['title'] }}</h3>
+                    <p class="relative text-sm text-gray-400 leading-relaxed mb-5">{{ $a['desc'] }}</p>
+                    <span class="relative inline-flex items-center gap-1.5 text-xs font-semibold" style="color: {{ $a['color'] }};">
+                        Learn more <i class="fas fa-arrow-right text-[10px] group-hover:translate-x-0.5 transition"></i>
+                    </span>
+                </a>
+            @endforeach
+        </div>
+    </div>
+</section>
+
 {{-- ============================ AUDIENCE (CREATORS / BUSINESSES / NETWORKING) ============================ --}}
 @php
     $__audiences = [

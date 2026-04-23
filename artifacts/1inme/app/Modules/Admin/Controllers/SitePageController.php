@@ -255,6 +255,7 @@ class SitePageController extends Controller
             'categories.*.features' => 'array',
             'categories.*.features.*.name' => 'nullable|string|max:200',
             'categories.*.features.*.description' => 'nullable|string|max:2000',
+            'categories.*.features.*.link' => ['nullable', 'string', 'max:500', 'regex:#^(/|https?://)#i'],
         ]);
 
         $sections = SitePagesContent::normalizeFeaturesCategories(

@@ -59,6 +59,12 @@ class PremiumFeatures
 
             // ---- Selling ----
             ['key' => 'ecommerce', 'group' => 'Selling', 'name' => 'Sell from your bio', 'description' => 'Add product blocks with prices and checkout to your biolink pages so you can sell directly from your link.'],
+
+            // ---- AI suite ----
+            ['key' => 'ai_chatbot', 'group' => 'AI suite', 'name' => 'AI Chatbot', 'description' => 'A 24/7 AI chatbot on your biolink that answers visitor questions in your voice, captures leads and books calls.'],
+            ['key' => 'ai_agent', 'group' => 'AI suite', 'name' => 'AI Agent', 'description' => 'A multi-step AI agent that runs playbooks across your contacts, inbox and calendar — qualifying leads and following up on its own.'],
+            ['key' => 'ai_widget', 'group' => 'AI suite', 'name' => 'AI Widget', 'description' => 'Embed an AI assistant on any external site with a single snippet — answers questions and captures leads into your unified inbox.'],
+            ['key' => 'ai_voice_assistant', 'group' => 'AI suite', 'name' => 'AI Voice Assistant', 'description' => 'AI receptionist that picks up calls to your number, qualifies callers and books or routes them — no missed leads.'],
         ];
     }
 

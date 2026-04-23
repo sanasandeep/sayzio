@@ -111,6 +111,8 @@
                                            class="md:col-span-1 px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white">
                                     <textarea :name="'categories['+ci+'][features]['+fi+'][description]'" x-model="feat.description" rows="2" placeholder="Short description"
                                               class="md:col-span-2 px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white"></textarea>
+                                    <input type="text" :name="'categories['+ci+'][features]['+fi+'][link]'" x-model="feat.link" placeholder="Optional link (e.g. /ai-chatbot or https://…)"
+                                           class="md:col-span-3 px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg text-[11px] text-white/80">
                                 </div>
                                 <div class="flex flex-col gap-1 shrink-0">
                                     <button type="button" @click="moveFeature(ci, fi, -1)" :disabled="fi===0" class="text-[11px] text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5" title="Move up"><i class="fas fa-arrow-up"></i></button>
@@ -150,6 +152,7 @@
                     _key: nextKey(),
                     name: f.name || '',
                     description: f.description || '',
+                    link: f.link || '',
                 })),
             })),
             dragCat: { from: null },
@@ -168,7 +171,7 @@
                 this.categories.splice(j, 0, item);
             },
             addFeature(ci) {
-                this.categories[ci].features.push({ _key: nextKey(), name: '', description: '' });
+                this.categories[ci].features.push({ _key: nextKey(), name: '', description: '', link: '' });
             },
             removeFeature(ci, fi) {
                 this.categories[ci].features.splice(fi, 1);
