@@ -5319,77 +5319,30 @@
     ];
 @endphp
 <script type="application/ld+json">{!! json_encode($__faqJsonLd, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-<section id="faq" class="pt-20 pb-12 lg:pt-24 lg:pb-14 relative overflow-hidden">
-    <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8"
-         x-data="{
-            q: '',
-            cat: 'All',
-            cats: ['All', @foreach(array_slice(array_keys($__homeFaqGroups), 0, 5) as $c)'{{ $c }}',@endforeach],
-            match(item) {
-                if (this.cat !== 'All' && item.dataset.category !== this.cat) return false;
-                if (!this.q.trim()) return true;
-                const t = (item.textContent || '').toLowerCase();
-                return t.includes(this.q.trim().toLowerCase());
-            },
-            apply() {
-                let visible = 0;
-                this.$root.querySelectorAll('[data-faq]').forEach(el => {
-                    const ok = this.match(el);
-                    el.style.display = ok ? '' : 'none';
-                    if (ok) visible++;
-                });
-                const empty = this.$root.querySelector('[data-faq-empty]');
-                if (empty) empty.style.display = visible === 0 ? '' : 'none';
-            }
-         }"
-         x-init="$nextTick(() => apply()); $watch('q', () => apply()); $watch('cat', () => apply())">
-        <div class="text-center mb-10">
+<section id="faq" class="pt-16 pb-10 lg:pt-20 lg:pb-12 relative overflow-hidden">
+    <div class="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-8">
             <div class="reveal text-xs font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c4)">11 · FAQ</div>
-            <h2 class="reveal rd-1 text-4xl sm:text-5xl font-bold tracking-tight mb-3">Questions? <span class="grad-text">Answered.</span></h2>
-            <p class="reveal rd-2 text-gray-400">The most-asked ones, right here. Browse all 100+ if you want the deep dive.</p>
-        </div>
-
-        {{-- Search + chips --}}
-        <div class="reveal rd-2 mb-6 flex flex-col gap-3">
-            <label class="relative block">
-                <span class="absolute inset-y-0 left-4 flex items-center text-gray-500"><i class="fas fa-search"></i></span>
-                <input type="search" x-model="q" placeholder="Search the FAQ — try ‘custom domain’, ‘refund’, ‘QR code’…"
-                       class="w-full pl-11 pr-4 py-3.5 rounded-2xl bg-white/[.04] border border-white/10 focus:border-[#7c3aed] focus:ring-2 focus:ring-[#7c3aed]/30 outline-none text-sm text-white placeholder-gray-500"
-                       aria-label="Search FAQs">
-            </label>
-            <div class="flex flex-wrap gap-2 justify-center">
-                <template x-for="c in cats" :key="c">
-                    <button type="button" @click="cat = c"
-                            :class="cat === c ? 'grad-bar text-white shadow-lg shadow-[#7c3aed]/30' : 'bg-white/[.04] border border-white/10 text-gray-300 hover:text-white hover:bg-white/[.08]'"
-                            class="px-3.5 py-1.5 rounded-full text-xs font-bold transition-all">
-                        <span x-text="c"></span>
-                    </button>
-                </template>
-            </div>
+            <h2 class="reveal rd-1 text-3xl sm:text-4xl font-bold tracking-tight mb-2">Questions? <span class="grad-text">Answered.</span></h2>
+            <p class="reveal rd-2 text-sm text-gray-400">A quick highlight reel — the full searchable library lives on the FAQ page.</p>
         </div>
 
         <div class="reveal rd-3 space-y-3">
             @foreach($__homeFaqHighlights as $f)
-                <details data-faq data-category="{{ $f['category'] }}" class="faq-item glass rounded-2xl px-5 py-4 hover:bg-white/[.06] transition-colors">
+                <details class="faq-item glass rounded-2xl px-5 py-4 hover:bg-white/[.06] transition-colors">
                     <summary class="flex items-center justify-between gap-4 cursor-pointer">
-                        <span class="flex items-start gap-3 pr-4">
-                            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full mt-0.5 shrink-0" style="background:rgba(124,58,237,.15); color:var(--c1)">{{ $f['category'] }}</span>
-                            <span class="font-bold text-base sm:text-lg">{{ $f['q'] }}</span>
-                        </span>
-                        <span class="faq-icon w-7 h-7 rounded-full grad-bar text-white flex items-center justify-center font-bold flex-shrink-0">
-                            <i class="fas fa-plus text-xs"></i>
+                        <span class="font-semibold text-sm sm:text-base pr-4">{{ $f['q'] }}</span>
+                        <span class="faq-icon w-6 h-6 rounded-full grad-bar text-white flex items-center justify-center font-bold flex-shrink-0">
+                            <i class="fas fa-plus text-[10px]"></i>
                         </span>
                     </summary>
                     <p class="mt-3 text-sm text-gray-300 leading-relaxed">{{ $f['a'] }}</p>
                 </details>
             @endforeach
-            <div data-faq-empty class="hidden text-center text-sm text-gray-500 py-8">
-                No matches here — try the full FAQ for the long answer.
-            </div>
         </div>
 
-        <div class="reveal rd-4 mt-8 text-center">
-            <a href="{{ route('site.faqs') }}" class="inline-flex items-center gap-2 px-6 py-3 rounded-full glass text-white hover:bg-white/10 text-sm font-semibold transition-colors">
+        <div class="reveal rd-4 mt-6 text-center">
+            <a href="{{ route('site.faqs') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-violet-300 hover:text-violet-200 transition">
                 Browse all 100+ answers <i class="fas fa-arrow-right text-xs"></i>
             </a>
         </div>
@@ -5424,7 +5377,7 @@
 
 {{-- ============================ FEATURED POSTS CAROUSEL ============================ --}}
 @if(!empty($featuredBlogPosts) && $featuredBlogPosts->count())
-<section class="pt-24 pb-12 lg:pt-28 lg:pb-14 relative overflow-hidden">
+<section class="pt-14 pb-12 lg:pt-16 lg:pb-14 relative overflow-hidden">
     <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-end justify-between mb-10 gap-6 flex-wrap">
             <div>
@@ -5858,7 +5811,7 @@
 @endif
 
 {{-- ============================ PRICING ============================ --}}
-<section id="pricing" class="py-24 lg:py-32 relative overflow-hidden" x-data="{ billing: 'monthly' }">
+<section id="pricing" class="py-20 lg:py-24 relative overflow-hidden" x-data="{ billing: 'monthly' }">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-12 max-w-3xl mx-auto">
             <div class="reveal inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[.2em] mb-3 px-3 py-1 rounded-full" style="color:var(--c1); background: rgba(124,58,237,0.10);">
@@ -5897,7 +5850,7 @@
         <div class="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
             @foreach($plans as $i => $plan)
                 @php $featured = !empty($plan['is_popular']) || (!$plan['is_free'] && $i > 0); $f = $plan['features']; @endphp
-                <div class="reveal rd-{{ $i + 1 }} lift group relative rounded-3xl p-8 transition-all duration-300 hover:-translate-y-1 {{ $featured ? 'text-white shadow-2xl shadow-[#7c3aed]/40 scale-[1.03] hover:shadow-[#7c3aed]/60' : 'glass hover:shadow-xl hover:shadow-[#7c3aed]/10' }}" @if($featured) style="background: linear-gradient(150deg, var(--c2), var(--c3) 60%, var(--c4));" @else style="border: 1px solid rgba(255,255,255,0.08);" @endif>
+                <div class="reveal rd-{{ $i + 1 }} lift group relative rounded-3xl p-8 transition-all duration-300 hover:-translate-y-1 {{ $featured ? 'text-white shadow-2xl shadow-[#7c3aed]/40 md:scale-[1.03] hover:shadow-[#7c3aed]/60' : 'glass hover:shadow-xl hover:shadow-[#7c3aed]/10' }}" @if($featured) style="background: linear-gradient(150deg, var(--c2), var(--c3) 60%, var(--c4));" @else style="border: 1px solid rgba(255,255,255,0.08);" @endif>
                     @if($featured)
                         <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-white text-[#7c3aed] text-[11px] font-extrabold rounded-full uppercase tracking-wider shadow-lg flex items-center gap-1.5">
                             <i class="fas fa-star text-[9px]"></i> Most popular
@@ -5907,7 +5860,7 @@
 
                     @if($plan['is_free'])
                         <div class="mb-1 flex items-baseline gap-3">
-                            <span class="inline-flex items-center px-4 py-1.5 rounded-2xl text-3xl sm:text-4xl font-extrabold tracking-tight grad-text" style="background: rgba(124,58,237,0.10); letter-spacing: 0.05em;">FREE</span>
+                            <span class="inline-flex items-center px-4 py-1.5 rounded-2xl text-3xl sm:text-4xl font-extrabold tracking-tight text-white" style="background: linear-gradient(135deg, var(--c2), var(--c4)); letter-spacing: 0.05em;">FREE</span>
                         </div>
                         <div class="text-[11px] {{ $featured ? 'text-white/60' : 'text-gray-500' }} mb-1">No credit card required</div>
                     @else
@@ -5966,34 +5919,7 @@
             @endforeach
         </div>
 
-        {{-- Drill-down to the dedicated pricing pages --}}
-        <div class="mt-14 max-w-4xl mx-auto">
-            <div class="reveal relative rounded-3xl p-6 sm:p-8 overflow-hidden" style="background: linear-gradient(135deg, rgba(124,58,237,0.12), rgba(236,72,153,0.10)); border: 1px solid rgba(255,255,255,0.10);">
-                <div class="absolute -top-16 -right-16 w-48 h-48 rounded-full opacity-30 blur-3xl" style="background: var(--c2);"></div>
-                <div class="absolute -bottom-16 -left-16 w-48 h-48 rounded-full opacity-30 blur-3xl" style="background: var(--c4);"></div>
-                <div class="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-                    <div class="text-center lg:text-left">
-                        <div class="text-[11px] font-bold uppercase tracking-[.2em] mb-2" style="color:var(--c1)">Want the full picture?</div>
-                        <h3 class="text-2xl sm:text-3xl font-bold text-white">Compare every plan, perk &amp; price.</h3>
-                        <p class="text-sm text-gray-400 mt-1">All tiers, coin packs and premium add-ons in one place.</p>
-                    </div>
-                    <div class="flex flex-wrap items-center justify-center lg:justify-end gap-3 shrink-0">
-                        <a href="{{ route('site.pricing') }}" class="btn-bounce inline-flex items-center gap-2 px-6 py-3 rounded-full grad-bar text-white text-sm font-bold shadow-lg shadow-[#7c3aed]/30 hover:shadow-[#7c3aed]/50 transition-shadow">
-                            <i class="fas fa-tags"></i> See all plans
-                            <i class="fas fa-arrow-right text-xs ml-1"></i>
-                        </a>
-                        <a href="{{ route('site.coins') }}" class="inline-flex items-center gap-2 px-5 py-3 rounded-full glass text-white hover:bg-white/10 text-sm font-semibold transition-colors">
-                            <i class="fas fa-coins text-amber-400"></i> Coin packages
-                        </a>
-                        <a href="{{ route('site.premium-features') }}" class="inline-flex items-center gap-2 px-5 py-3 rounded-full glass text-white hover:bg-white/10 text-sm font-semibold transition-colors">
-                            <i class="fas fa-star text-amber-300"></i> Premium features
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {{-- Pricing trust strip --}}
+        {{-- Pricing trust strip — sits directly under the cards as a slim reassurance row --}}
         <div class="reveal mt-8 max-w-4xl mx-auto flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-xs sm:text-sm text-gray-300">
             @foreach([
                 ['fa-shield-halved', 'Cancel any time'],
@@ -6005,43 +5931,53 @@
             @endforeach
         </div>
 
-        {{-- Billing mini-FAQ --}}
-        <div class="reveal mt-10 max-w-3xl mx-auto grid sm:grid-cols-2 gap-3">
-            @foreach([
-                ['Does the Free plan ever expire?', 'No. It is forever free — no trial countdown, no expiring features, no card on file.'],
-                ['Will I be charged tax?', 'Yes, where required — tax is shown at checkout and itemised on every invoice.'],
-                ['Can I cancel or downgrade later?', 'Any time, from your account. Changes take effect at the next billing period.'],
-                ['What payment methods do you accept?', 'Major cards, Apple Pay, Google Pay and PayPal in supported regions.'],
-            ] as $bf)
-                <details class="faq-item glass rounded-2xl px-5 py-3.5">
-                    <summary class="flex items-center justify-between gap-4 cursor-pointer">
-                        <span class="text-sm font-bold pr-4">{{ $bf[0] }}</span>
-                        <span class="faq-icon w-6 h-6 rounded-full grad-bar text-white flex items-center justify-center text-[10px] flex-shrink-0"><i class="fas fa-plus"></i></span>
-                    </summary>
-                    <p class="mt-2.5 text-xs text-gray-300 leading-relaxed">{{ $bf[1] }}</p>
-                </details>
-            @endforeach
+        {{-- Slim "more pricing details" link row — replaces the previous oversized drill-down card. --}}
+        <div class="reveal mt-6 max-w-4xl mx-auto flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-gray-400">
+            <span class="text-gray-500">More pricing details:</span>
+            <a href="{{ route('site.pricing') }}" class="inline-flex items-center gap-1.5 text-violet-300 hover:text-violet-200 font-semibold transition">
+                <i class="fas fa-tags text-[11px]"></i> Compare all plans
+            </a>
+            <span class="text-gray-700">·</span>
+            <a href="{{ route('site.coins') }}" class="inline-flex items-center gap-1.5 text-violet-300 hover:text-violet-200 font-semibold transition">
+                <i class="fas fa-coins text-[11px] text-amber-400"></i> Coin packages
+            </a>
+            <span class="text-gray-700">·</span>
+            <a href="{{ route('site.premium-features') }}" class="inline-flex items-center gap-1.5 text-violet-300 hover:text-violet-200 font-semibold transition">
+                <i class="fas fa-star text-[11px] text-amber-300"></i> Premium features
+            </a>
         </div>
     </div>
 </section>
 
 {{-- ============================ FINAL CTA ============================ --}}
-<section class="py-24 lg:py-32 relative overflow-hidden">
-    <div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h2 class="reveal text-4xl sm:text-5xl lg:text-7xl font-bold mb-6 leading-tight">
-            Your audience is<br>
-            <span class="grad-text">already searching for you.</span>
-        </h2>
-        <p class="reveal rd-1 text-lg text-gray-400 mb-10 max-w-xl mx-auto">
-            Build the page. Share the link. Watch them show up — live on a map.
-        </p>
-        <div class="reveal rd-2 flex flex-col sm:flex-row gap-3 justify-center">
-            <button type="button" @click="authTab='register'; authOpen=true" class="btn-bounce btn-glow inline-flex items-center gap-2 px-10 py-5 grad-bar text-white rounded-full text-lg font-bold">
-                Sign up free <i class="fas fa-arrow-right"></i>
-            </button>
-            <a href="#features" class="btn-bounce inline-flex items-center gap-2 px-10 py-5 glass-2 text-white rounded-full text-lg font-bold">
-                See features
-            </a>
+{{-- Visually distinct from the gradient hero blocks above: a single asymmetric
+     glass card with a left-aligned headline + right-aligned action, so the
+     closing run reads as "cards → trust strip → links → one final CTA". --}}
+<section class="py-16 lg:py-20 relative overflow-hidden">
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="reveal glass rounded-[2rem] p-8 sm:p-12 relative overflow-hidden border border-white/10">
+            <div class="absolute -top-24 -right-20 w-80 h-80 rounded-full opacity-30 blur-3xl" style="background: var(--c2);"></div>
+            <div class="absolute -bottom-24 -left-20 w-80 h-80 rounded-full opacity-25 blur-3xl" style="background: var(--c4);"></div>
+
+            <div class="relative grid lg:grid-cols-[1fr_auto] gap-8 lg:gap-10 items-center">
+                <div class="text-center lg:text-left">
+                    <div class="text-[11px] font-bold uppercase tracking-[.2em] mb-3" style="color:var(--c5)">Ready when you are</div>
+                    <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight">
+                        Your audience is <span class="grad-text">already searching for you.</span>
+                    </h2>
+                    <p class="text-base text-gray-400 mt-4 max-w-xl mx-auto lg:mx-0">
+                        Build the page. Share the link. Watch them show up — live on a map.
+                    </p>
+                </div>
+                <div class="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0 items-stretch sm:justify-center lg:items-stretch">
+                    <button type="button" @click="authTab='register'; authOpen=true" class="btn-bounce btn-glow inline-flex items-center justify-center gap-2 px-8 py-4 grad-bar text-white rounded-full text-base font-bold whitespace-nowrap">
+                        Sign up free <i class="fas fa-arrow-right text-xs"></i>
+                    </button>
+                    <a href="#features" class="btn-bounce inline-flex items-center justify-center gap-2 px-8 py-4 glass-2 text-white rounded-full text-base font-bold whitespace-nowrap">
+                        See features
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 </section>

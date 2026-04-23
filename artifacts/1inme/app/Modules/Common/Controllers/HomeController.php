@@ -86,6 +86,40 @@ class HomeController extends Controller
                 ];
             });
 
+        // The homepage pricing block is designed around two side-by-side
+        // cards (Free + Popular). When the DB doesn't have both — empty
+        // catalogue, single seeded plan, or every paid plan archived —
+        // top up the missing card(s) with sensible static defaults so
+        // the section is never blank or lopsided.
+        $fallbackCurrency = $currency ?: 'USD';
+        $hasFree = $plans->contains(fn ($p) => !empty($p['is_free']));
+        $hasPaid = $plans->contains(fn ($p) => empty($p['is_free']));
+        if (!$hasFree) {
+            $plans->prepend([
+                'name'        => 'Free',
+                'description' => 'Forever free — no card required',
+                'features'    => ['max_links' => 5, 'max_biolinks' => 1, 'storage_limit_mb' => 100],
+                'is_free'     => true,
+                'is_popular'  => false,
+                'monthly'     => ['amount_minor' => 0, 'currency' => $fallbackCurrency, 'formatted' => 'FREE'],
+                'annual_teaser' => null,
+                'tax'         => null,
+            ]);
+        }
+        if (!$hasPaid) {
+            $plans->push([
+                'name'        => 'Pro',
+                'description' => 'Per user, billed monthly',
+                'features'    => ['max_links' => -1, 'max_biolinks' => -1, 'storage_limit_mb' => 5000, 'contacts_max' => -1],
+                'is_free'     => false,
+                'is_popular'  => true,
+                'monthly'     => ['amount_minor' => 900, 'currency' => $fallbackCurrency, 'formatted' => PricingResolver::money(900, $fallbackCurrency)],
+                'annual_teaser' => null,
+                'tax'         => null,
+            ]);
+        }
+        $plans = $plans->values();
+
         // Featured-post carousel for the landing page. The marketing
         // seeder flags the top 3 posts with `is_featured_home` (across
         // both `hero` and `carousel` slots) — we surface all of them in

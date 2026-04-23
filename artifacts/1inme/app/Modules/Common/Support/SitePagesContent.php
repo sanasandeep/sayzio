@@ -1356,16 +1356,15 @@ class SitePagesContent
      */
     public static function homepageFaqHighlights(): array
     {
+        // Curated 6-question shortlist for the homepage. Search + the
+        // full 100+ catalogue live on the dedicated /faqs page.
         $picks = [
-            'Getting started'        => ['Is there really a free plan?', 'Do I need a credit card to sign up?'],
+            'Getting started'        => ['Is there really a free plan?'],
             'Biolinks'               => ['What blocks can I add to a biolink?'],
-            'Short links'            => ['Can I use my own domain for short links?'],
             'QR codes'               => ['Can I change the QR destination after printing?'],
-            'Analytics & AI Coach'   => ['How does the AI Performance Coach work?', 'Can I see who is visiting in real time?'],
-            'Team & workspaces'      => ['Is billing separate per workspace?'],
-            'Billing & plans'        => ['Do you offer refunds?', 'Can I cancel any time?'],
-            'Custom domains'         => ['Can I use my own domain for my biolink?'],
-            'Security & privacy'    => ['Do you sell my data?'],
+            'Analytics & AI Coach'   => ['How does the AI Performance Coach work?'],
+            'Billing & plans'        => ['Can I cancel any time?'],
+            'Security & privacy'     => ['Do you sell my data?'],
         ];
         $all = self::homepageFaqs();
         $out = [];
