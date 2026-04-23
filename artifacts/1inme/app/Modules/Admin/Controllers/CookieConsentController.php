@@ -53,6 +53,7 @@ class CookieConsentController extends Controller
             'header_logo_enabled' => 'nullable|boolean',
             'header_logo_url'     => ['nullable', 'string', 'max:2000', 'regex:#^(/|https?://|data:image/)#i'],
             'header_logo_file'    => ['nullable', 'file', 'mimes:png,jpg,jpeg,webp,svg', 'max:4096'],
+            'remove_header_logo'  => 'nullable|boolean',
             'show_policy_link'    => 'nullable|boolean',
             'show_reopen_button'  => 'nullable|boolean',
 
@@ -108,6 +109,24 @@ class CookieConsentController extends Controller
         }
 
         $payload = $data;
+
+        // Explicit removal via the "Remove" button next to the preview.
+        // Clears the stored URL and, if the previous logo was an uploaded
+        // file in public/branding, deletes it from disk too. A new upload
+        // in the same submit takes precedence over the removal.
+        if (!$request->hasFile('header_logo_file') && $request->boolean('remove_header_logo')) {
+            $oldUrl = $current['header_logo_url'] ?? '';
+            if (is_string($oldUrl) && str_starts_with($oldUrl, '/branding/')) {
+                $oldPath = public_path(ltrim($oldUrl, '/'));
+                $realBase = realpath(public_path('branding'));
+                $realFile = realpath($oldPath);
+                if ($realBase && $realFile && str_starts_with($realFile, $realBase . DIRECTORY_SEPARATOR) && File::isFile($realFile)) {
+                    File::delete($realFile);
+                }
+            }
+            $payload['header_logo_url'] = '';
+        }
+        unset($payload['remove_header_logo']);
 
         // If an admin uploaded an image, store it in the same public/branding
         // bucket the brand logo / favicon uploader uses, and use its public

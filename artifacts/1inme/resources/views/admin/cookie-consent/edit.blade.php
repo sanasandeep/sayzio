@@ -274,10 +274,16 @@
                     </label>
                     <div class="space-y-2">
                         <div class="text-xs text-white/60">Logo image</div>
+                        <input type="hidden" name="remove_header_logo" id="cc_logo_remove" value="0">
                         @if(!empty($cfg['header_logo_url']))
-                            <div class="rounded-lg p-2 flex items-center gap-2" style="background:rgba(255,255,255,0.04); border:1px solid var(--border-glass);">
+                            <div id="cc_logo_preview" class="rounded-lg p-2 flex items-center gap-2" style="background:rgba(255,255,255,0.04); border:1px solid var(--border-glass);">
                                 <img src="{{ $cfg['header_logo_url'] }}" alt="Current header logo" class="h-8 w-8 object-contain rounded">
                                 <span class="text-[11px] text-white/50 truncate flex-1">{{ $cfg['header_logo_url'] }}</span>
+                                <button type="button" id="cc_logo_remove_btn"
+                                        class="px-2 py-1 rounded-md text-[11px] font-medium whitespace-nowrap"
+                                        style="background: rgba(239,68,68,0.10); border: 1px solid rgba(239,68,68,0.30); color: #fca5a5;">
+                                    <i class="fas fa-times mr-1"></i>Remove
+                                </button>
                             </div>
                         @endif
                         <input id="cc_logo_file" type="file" name="header_logo_file" accept="image/png,image/jpeg,image/webp,image/svg+xml"
@@ -286,6 +292,9 @@
                         <label class="block text-[11px] text-white/40">Or paste a URL / path
                             <input id="cc_logo_url" type="text" name="header_logo_url" value="{{ $cfg['header_logo_url'] }}" placeholder="/img/logo.png or https://..." class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white">
                         </label>
+                        <p id="cc_logo_remove_hint" class="text-[11px] text-amber-300/80 hidden">
+                            Logo will be removed when you save.
+                        </p>
                     </div>
                 </div>
             </div>
@@ -526,6 +535,37 @@
         el.addEventListener('input', build);
         el.addEventListener('change', build);
     });
+
+    const removeBtn = $('cc_logo_remove_btn');
+    if (removeBtn) {
+        const urlInput = $('cc_logo_url');
+        const fileInput = $('cc_logo_file');
+        const flagInput = $('cc_logo_remove');
+        const hint = $('cc_logo_remove_hint');
+
+        const cancelRemoval = () => {
+            if (!flagInput || flagInput.value !== '1') return;
+            flagInput.value = '0';
+            if (hint) hint.classList.add('hidden');
+        };
+
+        removeBtn.addEventListener('click', () => {
+            if (flagInput) flagInput.value = '1';
+            if (urlInput) urlInput.value = '';
+            if (fileInput) fileInput.value = '';
+            const previewEl = $('cc_logo_preview');
+            if (previewEl) previewEl.remove();
+            if (hint) hint.classList.remove('hidden');
+            build();
+        });
+
+        // If the admin changes their mind and types a URL or picks a new
+        // file after clicking Remove, drop the removal flag so the new
+        // value is what actually gets saved.
+        if (urlInput) urlInput.addEventListener('input', () => { if (urlInput.value.trim() !== '') cancelRemoval(); });
+        if (fileInput) fileInput.addEventListener('change', () => { if (fileInput.files && fileInput.files.length > 0) cancelRemoval(); });
+    }
+
     build();
 })();
 </script>
