@@ -5846,9 +5846,22 @@
             </div>
         </div>
 
+        @php
+            $freePlans = collect($plans)->filter(fn($p) => !empty($p['is_free']))->values();
+            $paidPlans = collect($plans)->reject(fn($p) => !empty($p['is_free']))->values();
+            $cheapestPaid = $paidPlans->sortBy(fn($p) => (int) ($p['monthly']['amount_minor'] ?? PHP_INT_MAX))->first();
+            $premiumHighlights = [
+                ['fa-infinity',          'Unlimited links & bio pages'],
+                ['fa-chart-line',        'Advanced analytics & A/B tests'],
+                ['fa-users',             'Team seats & roles'],
+                ['fa-globe',             'Custom domains'],
+                ['fa-robot',             'AI Coach + AI replies'],
+                ['fa-shield-halved',     'Priority support'],
+            ];
+        @endphp
         <div class="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            @foreach($plans as $i => $plan)
-                @php $featured = !empty($plan['is_popular']) || (!$plan['is_free'] && $i > 0); $f = $plan['features']; @endphp
+            @foreach($freePlans as $i => $plan)
+                @php $featured = false; $f = $plan['features']; @endphp
                 <div class="reveal rd-{{ $i + 1 }} lift group relative rounded-3xl p-8 transition-all duration-300 hover:-translate-y-1 {{ $featured ? 'text-white shadow-2xl shadow-[#7c3aed]/40 md:scale-[1.03] hover:shadow-[#7c3aed]/60' : 'glass hover:shadow-xl hover:shadow-[#7c3aed]/10' }}" @if($featured) style="background: linear-gradient(150deg, var(--c2), var(--c3) 60%, var(--c4));" @else style="border: 1px solid rgba(255,255,255,0.08);" @endif>
                     @if($featured)
                         <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-white text-[#7c3aed] text-[11px] font-extrabold rounded-full uppercase tracking-wider shadow-lg flex items-center gap-1.5">
@@ -5916,14 +5929,53 @@
                     </button>
                 </div>
             @endforeach
+
+            {{-- Premium promo card (replaces the directly-rendered "Most popular" plan).
+                 Highlights premium features and links to the full /pricing page. --}}
+            <a href="{{ route('site.pricing') }}"
+               class="reveal rd-2 lift group relative rounded-3xl p-8 text-white shadow-2xl shadow-[#7c3aed]/40 md:scale-[1.03] hover:shadow-[#7c3aed]/60 transition-all duration-300 hover:-translate-y-1 block overflow-hidden"
+               style="background: linear-gradient(150deg, var(--c2), var(--c3) 60%, var(--c4));">
+                <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-white text-[#7c3aed] text-[11px] font-extrabold rounded-full uppercase tracking-wider shadow-lg flex items-center gap-1.5">
+                    <i class="fas fa-crown text-[9px]"></i> Premium
+                </div>
+                <div class="absolute -top-16 -right-16 w-56 h-56 rounded-full bg-white/15 blur-3xl pointer-events-none"></div>
+                <div class="absolute -bottom-16 -left-16 w-56 h-56 rounded-full bg-white/10 blur-3xl pointer-events-none"></div>
+
+                <div class="relative">
+                    <div class="text-xs font-bold uppercase tracking-wider text-white/80 mb-3">Premium features</div>
+                    <h3 class="text-2xl sm:text-3xl font-extrabold leading-tight mb-2">Built for serious creators &amp; teams.</h3>
+                    <p class="text-sm text-white/80 mb-6">Everything in Free, plus the tools you grow into.</p>
+
+                    <ul class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3 mb-8">
+                        @foreach($premiumHighlights as $h)
+                            <li class="flex items-center gap-2 text-sm text-white">
+                                <span class="inline-flex w-7 h-7 rounded-lg bg-white/15 items-center justify-center shrink-0">
+                                    <i class="fas {{ $h[0] }} text-[12px]"></i>
+                                </span>
+                                <span class="leading-tight">{{ $h[1] }}</span>
+                            </li>
+                        @endforeach
+                    </ul>
+
+                    @if($cheapestPaid)
+                        <div class="flex items-baseline gap-2 mb-5">
+                            <span class="text-[11px] uppercase tracking-wider font-semibold text-white/70">Plans starting from</span>
+                            <span class="text-2xl font-extrabold leading-none">{{ $cheapestPaid['monthly']['formatted'] }}</span>
+                            <span class="text-xs text-white/70">/mo</span>
+                        </div>
+                    @endif
+
+                    <span class="btn-bounce inline-flex items-center justify-center gap-2 w-full py-3.5 text-center rounded-full text-sm font-bold bg-white text-[#7c3aed] hover:bg-gray-100 transition-transform group-hover:scale-[1.02]">
+                        Explore premium plans <i class="fas fa-arrow-right text-xs"></i>
+                    </span>
+                </div>
+            </a>
         </div>
 
         {{-- Pricing trust strip — sits directly under the cards as a slim reassurance row --}}
         <div class="reveal mt-8 max-w-4xl mx-auto flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-xs sm:text-sm text-gray-300">
             @foreach([
                 ['fa-shield-halved', 'Cancel any time'],
-                ['fa-rotate-left', '7-day refund window'],
-                ['fa-credit-card', 'Cards, PayPal, Apple Pay'],
                 ['fa-receipt', 'Tax-inclusive invoices'],
             ] as $t)
                 <span class="inline-flex items-center gap-2"><i class="fas {{ $t[0] }} text-[11px]" style="color:var(--c1)"></i>{{ $t[1] }}</span>
