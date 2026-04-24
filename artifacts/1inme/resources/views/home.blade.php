@@ -218,6 +218,38 @@
         /* ============ Drawn underline ============ */
         .draw-line { stroke-dasharray: 220; stroke-dashoffset: 220; animation: drawLine 1.6s 1s ease-out forwards; }
 
+        /* ============ Pricing card sparkles & shimmer ============ */
+        .free-spark, .prem-spark {
+            position: absolute; width: 10px; height: 10px; border-radius: 50%;
+            background: radial-gradient(circle, #fff 0%, rgba(255,255,255,.6) 40%, transparent 70%);
+            opacity: 0; pointer-events: none;
+            animation: sparkPulse 3.4s ease-in-out infinite;
+            filter: drop-shadow(0 0 6px rgba(255,255,255,.7));
+        }
+        .prem-spark { width: 8px; height: 8px; }
+        @keyframes sparkPulse {
+            0%, 100% { opacity: 0; transform: scale(.4); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        /* Diagonal shimmer sweep across the premium card */
+        .prem-shimmer::before {
+            content: ""; position: absolute; inset: 0;
+            background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,.18) 48%, rgba(255,255,255,.30) 50%, rgba(255,255,255,.18) 52%, transparent 70%);
+            transform: translateX(-100%);
+            animation: premSweep 5.5s ease-in-out infinite;
+        }
+        @keyframes premSweep {
+            0% { transform: translateX(-100%); }
+            55%, 100% { transform: translateX(120%); }
+        }
+
+        /* Premium feature blocks subtle entrance + icon halo on hover */
+        .prem-feat { opacity: 0; transform: translateY(6px); animation: premFeatIn .55s ease-out forwards; }
+        @keyframes premFeatIn { to { opacity: 1; transform: translateY(0); } }
+        .prem-feat:hover .prem-feat-ico { box-shadow: 0 0 0 2px rgba(255,255,255,.25), 0 8px 22px -6px rgba(255,255,255,.35); transform: rotate(-6deg) scale(1.08); }
+
+
         /* ============ Logo gradient text ============ */
         .grad-text {
             background: linear-gradient(95deg, var(--c1), var(--c2) 30%, var(--c3) 55%, var(--c4) 78%, var(--c5));
@@ -5862,19 +5894,40 @@
         <div class="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
             @foreach($freePlans as $i => $plan)
                 @php $featured = false; $f = $plan['features']; @endphp
-                <div class="reveal rd-{{ $i + 1 }} lift group relative rounded-3xl p-8 transition-all duration-300 hover:-translate-y-1 {{ $featured ? 'text-white shadow-2xl shadow-[#7c3aed]/40 md:scale-[1.03] hover:shadow-[#7c3aed]/60' : 'glass hover:shadow-xl hover:shadow-[#7c3aed]/10' }}" @if($featured) style="background: linear-gradient(150deg, var(--c2), var(--c3) 60%, var(--c4));" @else style="border: 1px solid rgba(255,255,255,0.08);" @endif>
-                    @if($featured)
-                        <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-white text-[#7c3aed] text-[11px] font-extrabold rounded-full uppercase tracking-wider shadow-lg flex items-center gap-1.5">
-                            <i class="fas fa-star text-[9px]"></i> Most popular
-                        </div>
-                    @endif
-                    <div class="text-xs font-bold uppercase tracking-wider mb-3 {{ $featured ? 'text-white/80' : 'text-gray-400' }}">{{ $plan['name'] }}</div>
+                <div class="reveal rd-{{ $i + 1 }} lift group relative rounded-3xl p-8 transition-all duration-300 hover:-translate-y-1 glass hover:shadow-xl hover:shadow-[#7c3aed]/10 overflow-hidden" style="border: 1px solid rgba(255,255,255,0.08);">
+                    {{-- Animated background blobs --}}
+                    <div class="absolute -top-24 -right-24 w-72 h-72 rounded-full opacity-25 blur-3xl pointer-events-none" style="background: radial-gradient(circle, var(--c2), transparent 70%); animation: floatA 9s ease-in-out infinite;"></div>
+                    <div class="absolute -bottom-24 -left-24 w-72 h-72 rounded-full opacity-20 blur-3xl pointer-events-none" style="background: radial-gradient(circle, var(--c4), transparent 70%); animation: floatB 11s ease-in-out infinite;"></div>
+                    {{-- Sparkles --}}
+                    <span class="free-spark" style="top:14%;left:82%; animation-delay:0s"></span>
+                    <span class="free-spark" style="top:46%;left:6%;  animation-delay:1.4s"></span>
+                    <span class="free-spark" style="top:70%;left:88%; animation-delay:.7s"></span>
+
+                    <div class="relative">
+                    <div class="text-xs font-bold uppercase tracking-wider mb-3 text-gray-400 flex items-center gap-2">
+                        <span class="inline-flex w-5 h-5 rounded-full grad-bar items-center justify-center"><i class="fas fa-gift text-[8px] text-white"></i></span>
+                        {{ $plan['name'] }}
+                    </div>
 
                     @if($plan['is_free'])
-                        <div class="mb-1 flex items-baseline gap-3">
-                            <span class="inline-flex items-center px-4 py-1.5 rounded-2xl text-3xl sm:text-4xl font-extrabold tracking-tight text-white" style="background: linear-gradient(135deg, var(--c2), var(--c4)); letter-spacing: 0.05em;">FREE</span>
+                        <div class="mb-4 flex items-center gap-4 flex-wrap">
+                            <div class="free-pill-wrap relative inline-flex">
+                                {{-- Pulsing glow halo --}}
+                                <span class="absolute -inset-2 rounded-3xl opacity-40 blur-xl pointer-events-none" style="background: linear-gradient(135deg, var(--c1), var(--c2), var(--c3), var(--c4)); animation: pulseDot 2.4s ease-in-out infinite;"></span>
+                                {{-- The actual pill --}}
+                                <span class="relative inline-flex items-center px-5 py-2 rounded-2xl text-3xl sm:text-4xl font-extrabold tracking-tight text-white" style="background: linear-gradient(135deg, var(--c2), var(--c3) 50%, var(--c4)); letter-spacing: 0.05em;">
+                                    FREE
+                                    <i class="fas fa-sparkles ml-1.5 text-xs" style="animation: wiggle 2s ease-in-out infinite;"></i>
+                                </span>
+                            </div>
+                            <div class="leading-tight">
+                                <div class="text-[10px] uppercase tracking-wider font-bold flex items-center gap-1.5" style="color:#4ade80">
+                                    <span class="relative flex w-2 h-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span></span>
+                                    Forever
+                                </div>
+                                <div class="text-[11px] text-gray-400 mt-0.5">No card. No expiry.</div>
+                            </div>
                         </div>
-                        <div class="text-[11px] {{ $featured ? 'text-white/60' : 'text-gray-500' }} mb-1">No credit card required</div>
                     @else
                         @php
                             // Annual = 10× monthly (i.e. 2 months free) per the
@@ -5913,63 +5966,110 @@
                             <div class="text-[11px] {{ $featured ? 'text-white/60' : 'text-gray-500' }} mb-1">+ taxes as applicable (shown at checkout)</div>
                         @endif
                     @endif
-                    <div class="text-sm mb-6 {{ $featured ? 'text-white/70' : 'text-gray-500' }}">{{ $plan['description'] ?: ($plan['is_free'] ? 'Forever free' : 'Per user, billed monthly') }}</div>
-                    <ul class="space-y-3 mb-8">
-                        @foreach(['max_links' => 'links', 'max_biolinks' => 'bio pages', 'storage_limit_mb' => 'MB storage', 'contacts_max' => 'contacts'] as $key => $label)
+                    @if(!$plan['is_free'] && !empty($plan['description']))
+                        <div class="text-sm mb-5 text-gray-400">{{ $plan['description'] }}</div>
+                    @endif
+
+                    {{-- Feature blocks (richer than plain bullets) --}}
+                    <div class="space-y-2 mb-5">
+                        @foreach(['max_links' => ['fa-link', 'links'], 'max_biolinks' => ['fa-id-card', 'bio pages'], 'storage_limit_mb' => ['fa-database', 'MB storage'], 'contacts_max' => ['fa-address-book', 'contacts']] as $key => $meta)
                             @if(isset($f[$key]))
-                                <li class="flex items-center gap-2 text-sm text-white">
-                                    <i class="fas fa-check text-xs {{ $featured ? 'text-white' : '' }}" @unless($featured) style="color:var(--c1)" @endunless></i>
-                                    {{ (int) $f[$key] === -1 ? 'Unlimited' : number_format((int) $f[$key]) }} {{ $label }}
-                                </li>
+                                <div class="free-row flex items-center gap-3 p-2.5 rounded-xl bg-white/[.04] border border-white/5 hover:border-white/15 hover:bg-white/[.06] transition group/row">
+                                    <span class="w-9 h-9 rounded-lg flex items-center justify-center grad-bar shrink-0 group-hover/row:scale-110 transition" style="box-shadow: 0 8px 20px -8px rgba(124,58,237,.6);">
+                                        <i class="fas {{ $meta[0] }} text-white text-[12px]"></i>
+                                    </span>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="text-sm font-bold text-white leading-tight">{{ (int) $f[$key] === -1 ? 'Unlimited' : number_format((int) $f[$key]) }} {{ $meta[1] }}</div>
+                                        <div class="text-[10px] text-gray-500 uppercase tracking-wider">Included on Free</div>
+                                    </div>
+                                    <i class="fas fa-check text-xs" style="color:var(--c1)"></i>
+                                </div>
                             @endif
                         @endforeach
-                    </ul>
-                    <button type="button" @click="authTab='register'; authOpen=true" class="btn-bounce block w-full py-3.5 text-center rounded-full text-sm font-bold transition-transform group-hover:scale-[1.02] {{ $featured ? 'bg-white text-[#7c3aed] hover:bg-gray-100' : 'grad-bar text-white' }}">
-                        {{ $plan['is_free'] ? 'Get started free' : 'Start free trial' }}
+                    </div>
+
+                    {{-- 0% reassurance strip --}}
+                    <div class="grid grid-cols-3 gap-2 mb-6 px-3 py-3 rounded-xl bg-emerald-500/[.06] border border-emerald-500/15">
+                        @foreach([['0%', 'Card'], ['0%', 'Trial'], ['100%', 'Yours']] as $z)
+                            <div class="text-center">
+                                <div class="text-base font-extrabold text-emerald-300 leading-none">{{ $z[0] }}</div>
+                                <div class="text-[9px] uppercase tracking-wider text-emerald-200/70 mt-0.5">{{ $z[1] }}</div>
+                            </div>
+                        @endforeach
+                    </div>
+
+                    <button type="button" @click="authTab='register'; authOpen=true" class="btn-bounce block w-full py-3.5 text-center rounded-full text-sm font-bold transition-transform group-hover:scale-[1.02] grad-bar text-white">
+                        Get started free <i class="fas fa-arrow-right text-xs ml-1"></i>
                     </button>
+                    </div>{{-- /.relative --}}
                 </div>
             @endforeach
 
-            {{-- Premium promo card (replaces the directly-rendered "Most popular" plan).
-                 Highlights premium features and links to the full /pricing page. --}}
-            <a href="{{ route('site.pricing') }}"
-               class="reveal rd-2 lift group relative rounded-3xl p-8 text-white shadow-2xl shadow-[#7c3aed]/40 md:scale-[1.03] hover:shadow-[#7c3aed]/60 transition-all duration-300 hover:-translate-y-1 block overflow-hidden"
-               style="background: linear-gradient(150deg, var(--c2), var(--c3) 60%, var(--c4));">
-                <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-white text-[#7c3aed] text-[11px] font-extrabold rounded-full uppercase tracking-wider shadow-lg flex items-center gap-1.5">
-                    <i class="fas fa-crown text-[9px]"></i> Premium
+            {{-- Premium promo card. Outer wrapper isolates the badge so the inner
+                 link can use overflow-hidden for blob effects without clipping it. --}}
+            <div class="relative reveal rd-2 md:scale-[1.03]">
+                {{-- Floating badge --}}
+                <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+                    <div class="px-4 py-1.5 bg-white text-[#7c3aed] text-[11px] font-extrabold rounded-full uppercase tracking-wider shadow-lg flex items-center gap-1.5" style="box-shadow: 0 8px 24px -8px rgba(124,58,237,.6), 0 0 0 4px rgba(255,255,255,.08);">
+                        <i class="fas fa-crown text-[10px]" style="animation: wiggle 2.4s ease-in-out infinite; transform-origin: 50% 80%;"></i>
+                        Premium
+                    </div>
                 </div>
-                <div class="absolute -top-16 -right-16 w-56 h-56 rounded-full bg-white/15 blur-3xl pointer-events-none"></div>
-                <div class="absolute -bottom-16 -left-16 w-56 h-56 rounded-full bg-white/10 blur-3xl pointer-events-none"></div>
 
-                <div class="relative">
-                    <div class="text-xs font-bold uppercase tracking-wider text-white/80 mb-3">Premium features</div>
-                    <h3 class="text-2xl sm:text-3xl font-extrabold leading-tight mb-2">Built for serious creators &amp; teams.</h3>
-                    <p class="text-sm text-white/80 mb-6">Everything in Free, plus the tools you grow into.</p>
+                <a href="{{ route('site.pricing') }}"
+                   class="lift group relative block rounded-3xl p-8 pt-9 text-white shadow-2xl shadow-[#7c3aed]/40 hover:shadow-[#7c3aed]/60 transition-all duration-300 hover:-translate-y-1 overflow-hidden"
+                   style="background: linear-gradient(150deg, var(--c2), var(--c3) 60%, var(--c4));">
+                    {{-- Ambient blobs --}}
+                    <div class="absolute -top-16 -right-16 w-56 h-56 rounded-full bg-white/15 blur-3xl pointer-events-none" style="animation: floatA 10s ease-in-out infinite;"></div>
+                    <div class="absolute -bottom-16 -left-16 w-56 h-56 rounded-full bg-white/10 blur-3xl pointer-events-none" style="animation: floatB 12s ease-in-out infinite;"></div>
+                    {{-- Diagonal shimmer sweep --}}
+                    <div class="absolute inset-0 prem-shimmer pointer-events-none"></div>
+                    {{-- Sparkles --}}
+                    <span class="prem-spark" style="top:18%;left:88%; animation-delay:0s"></span>
+                    <span class="prem-spark" style="top:50%;left:6%;  animation-delay:1.1s"></span>
+                    <span class="prem-spark" style="top:78%;left:84%; animation-delay:.6s"></span>
 
-                    <ul class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3 mb-8">
-                        @foreach($premiumHighlights as $h)
-                            <li class="flex items-center gap-2 text-sm text-white">
-                                <span class="inline-flex w-7 h-7 rounded-lg bg-white/15 items-center justify-center shrink-0">
-                                    <i class="fas {{ $h[0] }} text-[12px]"></i>
-                                </span>
-                                <span class="leading-tight">{{ $h[1] }}</span>
-                            </li>
-                        @endforeach
-                    </ul>
+                    <div class="relative">
+                        <div class="text-xs font-bold uppercase tracking-wider text-white/80 mb-3">Premium features</div>
+                        <h3 class="text-2xl sm:text-3xl font-extrabold leading-tight mb-2">
+                            Built for serious <span class="relative inline-block">creators &amp; teams.<span class="absolute left-0 right-0 -bottom-1 h-[3px] rounded-full bg-white/40"></span></span>
+                        </h3>
+                        <p class="text-sm text-white/80 mb-6">Everything in Free, plus the tools you grow into.</p>
 
-                    @if($cheapestPaid)
-                        <div class="flex items-baseline gap-2 mb-5">
-                            <span class="text-[11px] uppercase tracking-wider font-semibold text-white/70">Plans starting from</span>
-                            <span class="text-2xl font-extrabold leading-none">{{ $cheapestPaid['monthly']['formatted'] }}</span>
-                            <span class="text-xs text-white/70">/mo</span>
+                        {{-- Each feature is its own animated block --}}
+                        <div class="grid grid-cols-2 gap-2 mb-6">
+                            @foreach($premiumHighlights as $hi => $h)
+                                <div class="prem-feat relative rounded-xl p-3 bg-white/[.12] backdrop-blur-sm border border-white/15 hover:bg-white/[.22] hover:-translate-y-0.5 transition-all duration-200" style="animation-delay: {{ $hi * 90 }}ms">
+                                    <span class="absolute top-1.5 right-2 text-[8px] font-bold text-white/45 tracking-wider">0{{ $hi + 1 }}</span>
+                                    <div class="flex items-start gap-2">
+                                        <span class="prem-feat-ico w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center shrink-0 transition">
+                                            <i class="fas {{ $h[0] }} text-[13px]"></i>
+                                        </span>
+                                        <span class="text-[12px] font-semibold leading-snug pt-1">{{ $h[1] }}</span>
+                                    </div>
+                                </div>
+                            @endforeach
                         </div>
-                    @endif
 
-                    <span class="btn-bounce inline-flex items-center justify-center gap-2 w-full py-3.5 text-center rounded-full text-sm font-bold bg-white text-[#7c3aed] hover:bg-gray-100 transition-transform group-hover:scale-[1.02]">
-                        Explore premium plans <i class="fas fa-arrow-right text-xs"></i>
-                    </span>
-                </div>
-            </a>
+                        @if($cheapestPaid)
+                            <div class="flex items-center justify-between gap-3 mb-5 p-3 rounded-xl bg-white/15 backdrop-blur-sm border border-white/20">
+                                <div class="leading-tight">
+                                    <div class="text-[10px] uppercase tracking-wider font-bold text-white/70">Plans starting from</div>
+                                    <div class="flex items-baseline gap-1">
+                                        <span class="text-2xl font-extrabold">{{ $cheapestPaid['monthly']['formatted'] }}</span>
+                                        <span class="text-xs text-white/70">/mo</span>
+                                    </div>
+                                </div>
+                                <span class="text-[10px] px-2 py-1 rounded-full bg-emerald-300/30 text-emerald-50 font-bold uppercase tracking-wider whitespace-nowrap">Cancel anytime</span>
+                            </div>
+                        @endif
+
+                        <span class="btn-bounce inline-flex items-center justify-center gap-2 w-full py-3.5 text-center rounded-full text-sm font-bold bg-white text-[#7c3aed] hover:bg-gray-100 transition-transform group-hover:scale-[1.02]">
+                            Explore premium plans <i class="fas fa-arrow-right text-xs transition-transform group-hover:translate-x-1"></i>
+                        </span>
+                    </div>
+                </a>
+            </div>
         </div>
 
         {{-- Pricing trust strip — sits directly under the cards as a slim reassurance row --}}
