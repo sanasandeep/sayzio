@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\Addon;
 use App\Modules\Admin\Models\Plan;
 use App\Modules\User\Models\BillingAddress;
+use App\Services\BillingCyclePreference;
 use App\Services\PlanRecommender;
 use App\Services\PricingResolver;
 use App\Services\TaxCalculator;
@@ -18,7 +19,13 @@ class UpgradeController extends Controller
     public function show(Request $request)
     {
         $user = $request->user();
-        $cycle = $request->query('cycle', 'monthly') === 'annual' ? 'annual' : 'monthly';
+        // Persist the visitor's billing-cycle choice across pages — a
+        // visitor who picked Annual on /pricing should still be on
+        // Annual when they land here via the menu / refresh / a return
+        // visit, not just when they clicked a CTA carrying `?cycle=`.
+        // See BillingCyclePreference for the resolution chain.
+        $cycle = BillingCyclePreference::resolve($request);
+        Cookie::queue(BillingCyclePreference::remember($cycle));
         $currency = PricingResolver::currencyForUser($user);
         $currencySource = PricingResolver::currencySourceForUser($user);
 

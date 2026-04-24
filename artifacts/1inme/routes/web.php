@@ -111,6 +111,14 @@ Route::controller(\App\Modules\Common\Controllers\SitePageController::class)->gr
     Route::view('/docs/api', 'public.api-docs')->name('site.api-docs');
     Route::get('/services', fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('services'))->name('site.services');
     Route::get('/pricing',          [\App\Modules\Common\Controllers\PricingPagesController::class, 'plans'])   ->name('site.pricing');
+    // Lightweight AJAX target the /pricing Alpine toggle pings whenever
+    // the visitor flips Monthly ↔ Annual. The page itself doesn't
+    // navigate on toggle, so this is what makes the choice survive a
+    // refresh / menu navigation. CSRF stays on (token is in the page
+    // meta tag and forwarded by the fetch call).
+    Route::post('/pricing/billing-cycle', [\App\Modules\Common\Controllers\PricingPagesController::class, 'rememberCycle'])
+        ->middleware('throttle:30,1')
+        ->name('site.pricing.cycle');
     Route::get('/coins', function () {
         return redirect()->route('site.pricing', ['view' => 'coins'], 301);
     })->name('site.coins');

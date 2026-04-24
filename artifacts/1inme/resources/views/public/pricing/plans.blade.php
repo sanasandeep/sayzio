@@ -122,6 +122,25 @@
             const r = c === 'annual' ? plan.annual : plan.monthly;
             return r && r.formatted ? r.formatted : '—';
         },
+        rememberCycle(c){
+            // Persist the chosen cycle server-side so a refresh, menu
+            // navigation, or return visit lands on the same toggle.
+            // Best-effort — we never block the UI on the response.
+            const url = '{{ route('site.pricing.cycle') }}';
+            const token = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
+            const data = new FormData();
+            data.append('cycle', c);
+            data.append('_token', token);
+            try {
+                fetch(url, {
+                    method: 'POST',
+                    body: data,
+                    credentials: 'same-origin',
+                    keepalive: true,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                });
+            } catch (e) { /* swallow — UX must not depend on persistence */ }
+        },
         trackCoinsView(){
             const url = '{{ route('marketing-events.track') }}';
             const data = new FormData();
@@ -135,7 +154,7 @@
         }
     }"
     x-init="
-        $watch('cycle', () => priceKey++);
+        $watch('cycle', (val) => { priceKey++; rememberCycle(val); });
         // Coin packages no longer live behind a tab toggle; instead
         // we fire the marketing event when the coins section either
         // is the deep-linked target on load or scrolls into view.

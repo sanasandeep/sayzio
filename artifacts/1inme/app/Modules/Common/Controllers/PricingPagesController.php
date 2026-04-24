@@ -8,10 +8,12 @@ use App\Modules\Admin\Models\Plan;
 use App\Modules\Common\Support\PremiumFeatures;
 use App\Modules\User\Models\BillingAddress;
 use App\Services\Billing\WalletService;
+use App\Services\BillingCyclePreference;
 use App\Services\PlanRecommender;
 use App\Services\PricingResolver;
 use App\Services\TaxCalculator;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cookie;
 
 /**
  * Public marketing pages for plans, coin packages, and premium feature
@@ -24,7 +26,14 @@ class PricingPagesController extends Controller
     public function plans(Request $request)
     {
         $user = $request->user();
-        $cycle = $request->query('cycle', 'monthly') === 'annual' ? 'annual' : 'monthly';
+        // Honor the visitor's last-chosen billing cycle (query param,
+        // session, or long-lived cookie) so navigating from /user/upgrade
+        // back to /pricing — or returning days later — keeps them on the
+        // cycle they were viewing. See BillingCyclePreference for the
+        // full precedence chain. We re-persist on every request so a
+        // fresh `?cycle=` always wins and stays sticky.
+        $cycle = BillingCyclePreference::resolve($request);
+        Cookie::queue(BillingCyclePreference::remember($cycle));
         $currency = PricingResolver::currencyForUser($user);
         $currencySource = PricingResolver::currencySourceForUser($user);
 
@@ -82,6 +91,28 @@ class PricingPagesController extends Controller
             'wallet_enabled'=> WalletService::isEnabled(),
             'recommendation'=> $recommendation,
         ]);
+    }
+
+    /**
+     * Lightweight endpoint the /pricing Alpine toggle pings whenever a
+     * visitor flips between Monthly and Annual without navigating away.
+     * The toggle is JS-only (no page reload), so without this ping the
+     * choice would only persist when the visitor clicked a CTA. Storing
+     * it on every flip means a refresh — or a return visit days later —
+     * lands them back on the cycle they last picked.
+     *
+     * Returns 204 No Content so `fetch(...)` callers don't have to
+     * decode a body. The cookie is queued onto the response.
+     */
+    public function rememberCycle(Request $request)
+    {
+        $data = $request->validate([
+            'cycle' => 'required|in:monthly,annual',
+        ]);
+
+        Cookie::queue(BillingCyclePreference::remember($data['cycle']));
+
+        return response()->noContent();
     }
 
     public function features(Request $request)
