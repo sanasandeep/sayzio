@@ -148,6 +148,15 @@ Route::get('/newsletter/unsubscribe/{subscriber}', [\App\Modules\Common\Controll
 Route::post('/newsletter/unsubscribe/{subscriber}', [\App\Modules\Common\Controllers\NewsletterController::class, 'unsubscribe'])
     ->name('site.newsletter.unsubscribe.post')->middleware('throttle:600,1');
 
+// ---- Public Unsubscribe Center (3-way Subscribe block "Manage subscriptions") ----
+Route::get ('/subscriptions/manage',
+    [\App\Modules\Common\Controllers\SubscriptionsController::class, 'manage'])
+    ->name('site.subscriptions.manage');
+Route::post('/subscriptions/manage/send-link',
+    [\App\Modules\Common\Controllers\SubscriptionsController::class, 'sendLink'])
+    ->name('site.subscriptions.manage.send')
+    ->middleware('throttle:10,10');
+
 // ---- Public Blogs (must precede the catch-all /{alias} routes) ----
 Route::prefix('blogs')->name('site.blogs.')->controller(\App\Modules\Common\Controllers\BlogController::class)->group(function () {
     Route::get('/',                'index')->name('index');

@@ -462,4 +462,10 @@
 @endforeach
 
 @include('public.blogs.partials.latest-cta')
+
+@include('public.partials.subscribe-block', [
+    'heading' => 'Stay close to the 1INME story.',
+    'subtext' => 'Pick the channel that fits — email, WhatsApp Channel, or DM. Updates from the team and what we are building next.',
+    'source'  => 'about',
+])
 @endsection

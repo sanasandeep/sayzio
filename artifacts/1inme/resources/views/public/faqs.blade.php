@@ -211,4 +211,10 @@
         </div>
     </div>
 </section>
+
+@include('public.partials.subscribe-block', [
+    'heading' => 'More questions? Stay in the loop.',
+    'subtext' => 'Pick how you want to hear from us — email, WhatsApp Channel, or DM. We answer questions, ship features and share playbooks.',
+    'source'  => 'faqs',
+])
 @endsection

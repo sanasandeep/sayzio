@@ -26,4 +26,10 @@
         @endif
     </div>
 </section>
+
+@include('public.partials.subscribe-block', [
+    'heading' => 'Get new posts on this tag.',
+    'subtext' => 'Pick email, WhatsApp Channel, or DM and we will send you new articles as they go live.',
+    'source'  => 'blogs-tag',
+])
 @endsection

@@ -101,4 +101,10 @@
         </div>
     </div>
 </section>
+
+@include('public.partials.subscribe-block', [
+    'heading' => 'See what 1INME ships next.',
+    'subtext' => 'Use cases, templates, and playbooks for your industry — straight to email, WhatsApp Channel, or DM.',
+    'source'  => 'services',
+])
 @endsection

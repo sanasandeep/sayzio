@@ -35,4 +35,10 @@
         @endif
     </div>
 </section>
+
+@include('public.partials.subscribe-block', [
+    'heading' => 'Get new posts in this category.',
+    'subtext' => 'Pick email, WhatsApp Channel, or DM and we will send you new articles as they go live.',
+    'source'  => 'blogs-category',
+])
 @endsection

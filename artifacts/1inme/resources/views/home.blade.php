@@ -6133,6 +6133,13 @@
     </div>
 </section>
 
+{{-- ============================ SUBSCRIBE BLOCK ============================ --}}
+@include('public.partials.subscribe-block', [
+    'heading' => 'Get the 1INME drop, your way.',
+    'subtext' => 'Pick the channel that fits — email, WhatsApp Channel, or DM. Product updates, growth playbooks for creators, and the occasional template — once a month.',
+    'source'  => 'home',
+])
+
 {{-- ============================ FOOTER ============================ --}}
 <footer class="bg-[#08020f] text-white pt-16 pb-8 border-t border-white/5">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -184,4 +184,10 @@
         </div>
     @endif
 </article>
+
+@include('public.partials.subscribe-block', [
+    'heading' => 'Liked this post? Get the next one.',
+    'subtext' => 'Pick email, WhatsApp Channel, or DM and we will send you new posts as they go live.',
+    'source'  => 'blogs-show',
+])
 @endsection

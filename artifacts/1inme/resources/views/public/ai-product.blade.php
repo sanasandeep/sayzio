@@ -209,9 +209,9 @@
     </div>
 </section>
 
-@include('public.partials.newsletter-cta', [
+@include('public.partials.subscribe-block', [
     'heading' => 'New AI features, the moment they ship.',
-    'subtext' => 'Once-a-month notes on the AI suite — what is new, how creators are using it, no fluff.',
-    'source'  => $slug . '-cta',
+    'subtext' => 'Pick how you want to hear from us — email, WhatsApp Channel, or DM. Once-a-month notes on the AI suite, no fluff.',
+    'source'  => $slug,
 ])
 @endsection

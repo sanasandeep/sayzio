@@ -92,4 +92,10 @@
         @endif
     </div>
 </section>
+
+@include('public.partials.subscribe-block', [
+    'heading' => 'Discover new creators every week.',
+    'subtext' => 'Subscribe by email, WhatsApp Channel, or DM and get fresh creator picks plus product updates.',
+    'source'  => 'discovery',
+])
 @endsection

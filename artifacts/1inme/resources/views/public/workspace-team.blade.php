@@ -124,4 +124,10 @@
         </div>
     </div>
 </section>
+
+@include('public.partials.subscribe-block', [
+    'heading' => 'Workspace updates, the way you like them.',
+    'subtext' => 'Pick email, WhatsApp Channel, or DM and we will keep you posted on team features and admin tools.',
+    'source'  => 'workspace-team',
+])
 @endsection

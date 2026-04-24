@@ -172,4 +172,10 @@
         </div>
     </div>
 </section>
+
+@include('public.partials.subscribe-block', [
+    'heading' => 'Follow 1INME news as it happens.',
+    'subtext' => 'Press, partnerships, and product launches — pick email, WhatsApp Channel, or DM.',
+    'source'  => 'buzz',
+])
 @endsection

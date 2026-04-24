@@ -157,9 +157,9 @@
 
 @include('public.blogs.partials.latest-cta')
 
-@include('public.partials.newsletter-cta', [
-    'heading' => 'Get tips and templates straight to your inbox.',
-    'subtext' => 'Once-a-month notes on what is working for creators on 1INME — actionable, no fluff, unsubscribe any time.',
-    'source'  => 'how-it-works-cta',
+@include('public.partials.subscribe-block', [
+    'heading' => 'Get tips and templates the way you like them.',
+    'subtext' => 'Once-a-month notes on what is working for creators on 1INME — pick email, WhatsApp Channel, or 1:1 DM. Actionable, no fluff, opt out any time.',
+    'source'  => 'how-it-works',
 ])
 @endsection

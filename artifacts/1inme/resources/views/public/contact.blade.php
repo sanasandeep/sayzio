@@ -218,6 +218,12 @@
         </div>
     </div>
 </section>
+
+@include('public.partials.subscribe-block', [
+    'heading' => 'Or reach us on the channel that suits you.',
+    'subtext' => 'Subscribe by email, follow our WhatsApp Channel for short broadcasts, or DM us for a 1:1 conversation.',
+    'source'  => 'contact',
+])
 @endsection
 
 @push('head')

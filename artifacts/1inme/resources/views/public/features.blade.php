@@ -250,10 +250,10 @@
 
 @include('public.blogs.partials.latest-cta')
 
-@include('public.partials.newsletter-cta', [
+@include('public.partials.subscribe-block', [
     'heading' => 'Want a heads-up when we ship new features?',
-    'subtext' => 'Join the 1INME newsletter for product updates, growth playbooks for creators, and the occasional template — once a month.',
-    'source'  => 'features-cta',
+    'subtext' => 'Pick the channel that fits — email, WhatsApp Channel, or DM. Product updates, playbooks, and the occasional template. No spam, opt out any time.',
+    'source'  => 'features',
 ])
 @endsection
 

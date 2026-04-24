@@ -707,4 +707,10 @@
      for plans). We force the compact path so visitors only see the more
      creative 1-on-1 rival selector. --}}
 @include('public.partials._compare', ['compact' => true, 'anchorId' => 'compare'])
+
+@include('public.partials.subscribe-block', [
+    'heading' => 'Pricing changes, deals, and new plans.',
+    'subtext' => 'Be the first to know about coin packages and seasonal offers — pick email, WhatsApp Channel, or DM.',
+    'source'  => 'pricing',
+])
 @endsection
