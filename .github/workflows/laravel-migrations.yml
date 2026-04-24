@@ -7,6 +7,22 @@ name: Laravel migrations (PostgreSQL)
 # when the workflow / Composer manifest itself is touched, since both can
 # break the migration pipeline).
 #
+# After the fresh run, the job *also* exercises every `down()` by issuing
+# `php artisan migrate:reset --force` and then re-applying everything with
+# `php artisan migrate --force`. A broken `down()` (wrong column name in
+# `dropColumn`, missing driver guard symmetric to `up()`, dependent FK left
+# in place, …) only surfaces when someone tries to roll back in production —
+# at the worst possible moment. Catching it here means rollbacks stay safe.
+#
+# Backfill / seed migrations whose down() intentionally does nothing (because
+# reverting would discard admin-edited or recovered data) live as documented
+# no-ops in their own files; they trivially succeed under `migrate:reset` and
+# require no special skipping here. See, for example:
+#   - 2026_04_17_120100_backfill_disabled_splash_pages.php
+#   - 2026_04_28_010100_backfill_user_country_from_phone_hint.php
+#   - 2026_05_02_000002_backfill_default_workspaces.php
+#   - 2026_11_20_000001_backfill_contact_extra_with_hardcoded_copy.php
+#
 # The original regression that motivated this check was a PDO `?` placeholder
 # colliding with the Postgres jsonb `?` operator in
 # 2026_11_12_000001_backfill_site_assistant_message_stream_status — it crashed
@@ -105,3 +121,19 @@ jobs:
 
       - name: Run migrations from scratch (the actual guard)
         run: php artisan migrate:fresh --force
+
+      - name: Roll every migration back (exercise down())
+        # `migrate:fresh` ran everything as a single batch, so `migrate:reset`
+        # walks the full chain in reverse and fails the build the moment any
+        # `down()` raises — dropping a column that doesn't exist, hitting a
+        # Postgres-specific construct without a driver guard, leaving an FK
+        # behind, etc. This is the symmetric counterpart to the migrate:fresh
+        # guard above.
+        run: php artisan migrate:reset --force
+
+      - name: Re-apply every migration on the now-empty schema
+        # Belt-and-braces: confirm the rolled-back database is genuinely a
+        # clean slate that `migrate` can rebuild. Catches down() methods that
+        # "succeed" but leave behind tables, types, sequences or indexes that
+        # then collide on the next up().
+        run: php artisan migrate --force
