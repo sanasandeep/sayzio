@@ -45,7 +45,7 @@ return new class extends Migration {
                 true
             )
             WHERE role = 'assistant'
-              AND (meta IS NULL OR NOT (meta ? 'stream'))
+              AND (meta IS NULL OR NOT jsonb_exists(meta, 'stream'))
         SQL);
     }
 
