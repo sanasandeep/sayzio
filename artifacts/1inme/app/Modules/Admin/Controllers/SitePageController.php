@@ -137,6 +137,13 @@ class SitePageController extends Controller
             // and duplicate slugs are dropped, missing slugs are appended.
             $rules['extra.section_order']   = 'nullable|array|max:7';
             $rules['extra.section_order.*'] = ['nullable', 'string', 'in:' . implode(',', SitePagesContent::aboutLowerSectionSlugs())];
+            // Per-section visibility map (slug => bool). The map is
+            // canonicalised in normalizeAboutExtra(): unknown keys are
+            // dropped and missing slugs default to visible (true).
+            $rules['extra.section_visibility'] = 'nullable|array';
+            foreach (SitePagesContent::aboutLowerSectionSlugs() as $visSlug) {
+                $rules['extra.section_visibility.' . $visSlug] = 'nullable|boolean';
+            }
             // Bottom call-to-action block.
             $rules['extra.cta']                           = 'nullable|array';
             $rules['extra.cta.heading']                   = 'nullable|string|max:200';

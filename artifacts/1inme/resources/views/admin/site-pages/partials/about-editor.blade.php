@@ -47,13 +47,26 @@
             $aboutSectionOrder[] = $slug;
         }
     }
-    // Hand the editor a list of {slug, label, desc} so Alpine can render
-    // each card without re-doing the lookup in the template.
-    $aboutSectionOrderItems = array_map(function ($slug) use ($aboutSectionLabels) {
+    // Build the per-section visibility map alongside the order. Saved
+    // values win; anything missing defaults to visible (true) so a row
+    // never silently disappears just because the slug was added later.
+    $savedSectionVisibility = (array)($aboutExtra['section_visibility'] ?? []);
+    $aboutSectionVisibility = [];
+    foreach ($aboutSectionOrderSlugs as $slug) {
+        if (array_key_exists($slug, $savedSectionVisibility)) {
+            $aboutSectionVisibility[$slug] = filter_var($savedSectionVisibility[$slug], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? true;
+        } else {
+            $aboutSectionVisibility[$slug] = true;
+        }
+    }
+    // Hand the editor a list of {slug, label, desc, visible} so Alpine
+    // can render each card without re-doing the lookup in the template.
+    $aboutSectionOrderItems = array_map(function ($slug) use ($aboutSectionLabels, $aboutSectionVisibility) {
         return [
-            'slug'  => $slug,
-            'label' => $aboutSectionLabels[$slug]['label'] ?? $slug,
-            'desc'  => $aboutSectionLabels[$slug]['desc'] ?? '',
+            'slug'    => $slug,
+            'label'   => $aboutSectionLabels[$slug]['label'] ?? $slug,
+            'desc'    => $aboutSectionLabels[$slug]['desc'] ?? '',
+            'visible' => (bool) ($aboutSectionVisibility[$slug] ?? true),
         ];
     }, $aboutSectionOrder);
 @endphp
@@ -604,14 +617,15 @@
                 const defaults = {{ json_encode($aboutSectionOrderSlugs) }};
                 const labels = {{ json_encode($aboutSectionLabels) }};
                 this.items = defaults.map(function(s){
-                    return { slug: s, label: (labels[s] && labels[s].label) || s, desc: (labels[s] && labels[s].desc) || '' };
+                    return { slug: s, label: (labels[s] && labels[s].label) || s, desc: (labels[s] && labels[s].desc) || '', visible: true };
                 });
-            }
+            },
+            toggleVisible(i){ this.items[i].visible = !this.items[i].visible; }
         }">
         <div class="flex items-center justify-between mb-2">
             <div>
                 <h3 class="text-sm font-semibold text-white">Section order</h3>
-                <p class="text-xs text-white/50">Drag the cards (or use the arrows) to change the order of the lower sections of /about. The hero, stats, values and story-images blocks above always stay where they are.</p>
+                <p class="text-xs text-white/50">Drag the cards (or use the arrows) to change the order of the lower sections of /about, and use the toggle to show or hide each one without losing its content. The hero, stats, values and story-images blocks above always stay where they are.</p>
             </div>
             <button type="button" @click="resetOrder()" class="text-xs px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-white"><i class="fas fa-rotate-left mr-1"></i>Reset to default</button>
         </div>
@@ -627,16 +641,33 @@
                     :class="{
                         'opacity-50': dragIndex === i,
                         'border-violet-400/60 bg-violet-500/10': overIndex === i && dragIndex !== null && dragIndex !== i,
+                        'opacity-60': !s.visible && dragIndex !== i,
                     }"
                 >
                     <input type="hidden" name="extra[section_order][]" :value="s.slug">
+                    {{-- Always submit a value for every slug so the server map is complete:
+                         a "1" when visible, "0" when hidden. --}}
+                    <input type="hidden" :name="'extra[section_visibility][' + s.slug + ']'" :value="s.visible ? '1' : '0'">
                     <i class="fas fa-grip-vertical text-white/40 cursor-move" title="Drag to reorder"></i>
                     <span class="inline-flex items-center justify-center w-6 h-6 rounded-md bg-violet-500/20 border border-violet-400/30 text-[11px] font-semibold text-violet-200" x-text="i + 1"></span>
                     <div class="flex-1 min-w-0">
-                        <div class="text-sm text-white font-medium" x-text="s.label"></div>
+                        <div class="text-sm font-medium flex items-center gap-2" :class="s.visible ? 'text-white' : 'text-white/60'">
+                            <span x-text="s.label"></span>
+                            <span x-show="!s.visible" class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/10 text-white/60 border border-white/10">Hidden</span>
+                        </div>
                         <div class="text-[11px] text-white/50 truncate" x-text="s.desc"></div>
                     </div>
                     <div class="flex items-center gap-1 shrink-0">
+                        {{-- Visibility toggle: button-styled switch so it works without extra CSS. --}}
+                        <button type="button" @click="toggleVisible(i)"
+                            :title="s.visible ? 'Hide this section on /about' : 'Show this section on /about'"
+                            :aria-pressed="s.visible ? 'true' : 'false'"
+                            class="relative inline-flex h-5 w-9 items-center rounded-full transition mr-1"
+                            :class="s.visible ? 'bg-violet-500' : 'bg-white/15'">
+                            <span class="sr-only">Toggle visibility</span>
+                            <span class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition"
+                                :class="s.visible ? 'translate-x-4' : 'translate-x-0.5'"></span>
+                        </button>
                         <button type="button" @click="moveUp(i)" :disabled="i===0" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1" title="Move up"><i class="fas fa-arrow-up"></i></button>
                         <button type="button" @click="moveDown(i)" :disabled="i===items.length-1" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1" title="Move down"><i class="fas fa-arrow-down"></i></button>
                     </div>
@@ -645,6 +676,8 @@
         </ul>
         @error('extra.section_order')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
         @error('extra.section_order.*')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+        @error('extra.section_visibility')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+        @error('extra.section_visibility.*')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
     </div>
 
     {{-- ========== BOTTOM CTA ========== --}}

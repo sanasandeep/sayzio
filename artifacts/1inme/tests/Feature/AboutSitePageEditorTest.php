@@ -285,6 +285,72 @@ class AboutSitePageEditorTest extends TestCase
         $publicResp->assertSee(route('site.contact'), false);
     }
 
+    public function test_admin_can_hide_individual_lower_about_sections(): void
+    {
+        $admin = $this->makeAdmin();
+        $page  = $this->makeAboutPage();
+
+        // Hide the founder + co-founders + cta sections; the rest stay
+        // visible. We submit a string '0'/'1' (matches the editor's
+        // hidden inputs) to make sure the validator + normalizer accept
+        // both shapes.
+        $payload = $this->fullPayload();
+        $payload['extra']['section_visibility'] = [
+            'story'       => '1',
+            'team_band'   => '1',
+            'founder'     => '0',
+            'co_founders' => '0',
+            'team'        => '1',
+            'milestones'  => '1',
+            'cta'         => '0',
+        ];
+
+        $resp = $this->actingAs($admin, 'admin')
+            ->put('/admin/site-pages/about', $payload);
+        $resp->assertRedirect(route('admin.site-pages.edit', 'about'));
+        $resp->assertSessionHasNoErrors();
+
+        $page->refresh();
+        $stored = $page->extra;
+        $this->assertIsArray($stored);
+        $this->assertArrayHasKey('section_visibility', $stored);
+        // Booleans are normalized to real booleans.
+        $this->assertTrue($stored['section_visibility']['story']);
+        $this->assertFalse($stored['section_visibility']['founder']);
+        $this->assertFalse($stored['section_visibility']['co_founders']);
+        $this->assertFalse($stored['section_visibility']['cta']);
+        $this->assertTrue($stored['section_visibility']['team']);
+
+        // Public /about must skip the hidden sections entirely while
+        // still rendering the visible ones.
+        $publicResp = $this->get('/about');
+        $publicResp->assertOk();
+        $publicResp->assertSee('Karthik Rao', false);    // team — visible
+        $publicResp->assertSee('Launch', false);          // milestones — visible
+        $publicResp->assertDontSee('Aarav Reddy', false); // founder — hidden
+        $publicResp->assertDontSee('Meera Iyer', false);  // co-founder — hidden
+        $publicResp->assertDontSee('Build with us', false); // CTA heading — hidden
+        $publicResp->assertDontSee('Start now', false);     // CTA primary — hidden
+
+        // Re-saving without a section_visibility key (e.g. an older
+        // payload) must keep all sections visible — the default — so an
+        // upgrade path never silently hides anything.
+        $payloadWithout = $this->fullPayload();
+        $this->assertArrayNotHasKey('section_visibility', $payloadWithout['extra']);
+        $this->actingAs($admin, 'admin')
+            ->put('/admin/site-pages/about', $payloadWithout)
+            ->assertRedirect(route('admin.site-pages.edit', 'about'))
+            ->assertSessionHasNoErrors();
+        $page->refresh();
+        foreach (SitePagesContent::aboutLowerSectionSlugs() as $slug) {
+            $this->assertTrue(
+                $page->extra['section_visibility'][$slug] ?? null,
+                "Section '$slug' should default to visible when no visibility map is submitted."
+            );
+        }
+        $this->get('/about')->assertSee('Aarav Reddy', false);
+    }
+
     public function test_about_extra_validation_rejects_bad_urls_and_over_limits(): void
     {
         $admin = $this->makeAdmin();

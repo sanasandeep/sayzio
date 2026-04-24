@@ -127,6 +127,25 @@
         $lowerOrder = $defaultLowerOrder;
     }
 
+    // Per-section visibility map. Admins can toggle individual lower
+    // sections off without losing their content; missing or non-bool
+    // entries default to visible (true) so a stale/partial value never
+    // silently hides a section.
+    $savedSectionVisibility = (array)($extraArr['section_visibility'] ?? []);
+    $sectionVisible = [];
+    foreach ($defaultLowerOrder as $slugCandidate) {
+        if (array_key_exists($slugCandidate, $savedSectionVisibility)) {
+            $sectionVisible[$slugCandidate] = filter_var($savedSectionVisibility[$slugCandidate], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? true;
+        } else {
+            $sectionVisible[$slugCandidate] = true;
+        }
+    }
+    // Drop any slug whose visibility is false so the @switch loop below
+    // never even renders (or reserves spacing for) a hidden section.
+    $lowerOrder = array_values(array_filter($lowerOrder, function ($slugCandidate) use ($sectionVisible) {
+        return $sectionVisible[$slugCandidate] ?? true;
+    }));
+
     $personPhoto = function (array $p) {
         $url = trim((string)($p['photo'] ?? ''));
         return $url !== '' ? $url : null;

@@ -968,6 +968,7 @@ class SitePagesContent
                 'milestones_subtitle'=> 'A short history of how we got here.',
             ],
             'section_order' => self::aboutLowerSectionSlugs(),
+            'section_visibility' => array_fill_keys(self::aboutLowerSectionSlugs(), true),
             'cta' => [
                 'heading'         => 'Want to build with us?',
                 'body'            => 'Whether you are a creator with feedback or a developer who wants to join, we love hearing from you.',
@@ -1209,17 +1210,35 @@ class SitePagesContent
             }
         }
 
+        // --- Per-section visibility toggle ---
+        // Admins can hide individual lower /about sections without
+        // wiping their content. We accept a slug => bool map, drop
+        // unknown slugs, coerce values to real booleans, and default
+        // any missing slug to visible (true) so a partial submission
+        // never silently hides a section.
+        $visibilityIn = (array) ($input['section_visibility'] ?? []);
+        $sectionVisibility = [];
+        foreach ($validSlugs as $slug) {
+            if (array_key_exists($slug, $visibilityIn)) {
+                $bool = filter_var($visibilityIn[$slug], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+                $sectionVisibility[$slug] = $bool === null ? true : $bool;
+            } else {
+                $sectionVisibility[$slug] = true;
+            }
+        }
+
         return [
-            'hero'           => $hero,
-            'values'         => $values,
-            'story_images'   => $storyImages,
-            'section_titles' => $sectionTitles,
-            'section_order'  => $sectionOrder,
-            'cta'            => $cta,
-            'founder'        => $founder,
-            'co_founders'    => $coFounders,
-            'team'           => $team,
-            'milestones'     => $milestones,
+            'hero'               => $hero,
+            'values'             => $values,
+            'story_images'       => $storyImages,
+            'section_titles'     => $sectionTitles,
+            'section_order'      => $sectionOrder,
+            'section_visibility' => $sectionVisibility,
+            'cta'                => $cta,
+            'founder'            => $founder,
+            'co_founders'        => $coFounders,
+            'team'               => $team,
+            'milestones'         => $milestones,
         ];
     }
 
