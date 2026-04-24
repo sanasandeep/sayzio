@@ -1,8 +1,8 @@
-name: Laravel migrations (PostgreSQL)
+name: Laravel migrations
 
 # Catch broken database migrations before they ship.
 #
-# Runs `php artisan migrate:fresh --force` against a real PostgreSQL service
+# Runs `php artisan migrate:fresh --force` against a real database service
 # whenever anything under artifacts/1inme/database/migrations/ changes (or
 # when the workflow / Composer manifest itself is touched, since both can
 # break the migration pipeline).
@@ -13,6 +13,16 @@ name: Laravel migrations (PostgreSQL)
 # `dropColumn`, missing driver guard symmetric to `up()`, dependent FK left
 # in place, …) only surfaces when someone tries to roll back in production —
 # at the worst possible moment. Catching it here means rollbacks stay safe.
+#
+# We run the same up()/down()/up() cycle against multiple database engines
+# via a matrix. Self-hosters and some staging environments still run on
+# MySQL/MariaDB, where Laravel's grammars differ in non-trivial ways from
+# Postgres (JSON column handling, generated columns, FULLTEXT indexes, FK
+# drop syntax, jsonb `?` operator vs. PDO `?` placeholder, …). A migration
+# could pass on Postgres and still crash on a MySQL install. Running the
+# whole cycle against both engines surfaces that entire class of regression
+# automatically. The matrix is structured so adding a third driver later
+# (sqlite, mariadb, …) is a one-entry change — see `matrix.include` below.
 #
 # Backfill / seed migrations whose down() intentionally does nothing (because
 # reverting would discard admin-edited or recovered data) live as documented
@@ -27,7 +37,7 @@ name: Laravel migrations (PostgreSQL)
 # colliding with the Postgres jsonb `?` operator in
 # 2026_11_12_000001_backfill_site_assistant_message_stream_status — it crashed
 # `php artisan migrate` on every fresh install but went unnoticed because no
-# automated job runs migrations from scratch on Postgres.
+# automated job ran migrations from scratch on Postgres.
 
 on:
   push:
@@ -46,24 +56,62 @@ on:
   workflow_dispatch:
 
 jobs:
-  migrate-fresh-postgres:
-    name: migrate:fresh against PostgreSQL
+  migrate:
+    name: migrate cycle (${{ matrix.display_name }})
     runs-on: ubuntu-latest
 
+    # `fail-fast: false` so a regression on one engine never masks a
+    # regression on another — we want to see *every* failing driver in the
+    # same run, not just the first one to die.
+    strategy:
+      fail-fast: false
+      matrix:
+        # To add a third driver later (sqlite, mariadb, mssql, …), append one
+        # `include:` entry below — no other workflow changes required.
+        include:
+          - driver: pgsql
+            display_name: PostgreSQL
+            image: postgres:16
+            port: 5432
+            php_db_extensions: pdo_pgsql, pgsql
+            db_username: postgres
+            db_password: password
+            health_cmd: pg_isready -U postgres
+          - driver: mysql
+            display_name: MySQL
+            image: mysql:8.0
+            port: 3306
+            php_db_extensions: pdo_mysql, mysqli
+            db_username: root
+            db_password: password
+            # `mysqladmin ping` succeeds as soon as the server is accepting
+            # connections, which is what we actually care about (vs. just the
+            # port being bound).
+            health_cmd: mysqladmin ping -h 127.0.0.1 -uroot -ppassword --silent
+
     services:
-      postgres:
-        image: postgres:16
+      # Single logical "db" service whose image and health probe come from
+      # the matrix entry. We deliberately set the bootstrap env vars for
+      # *both* Postgres and MySQL here — each image only honors its own
+      # variables and silently ignores the rest, which keeps the YAML free
+      # of per-driver service blocks.
+      db:
+        image: ${{ matrix.image }}
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: password
           POSTGRES_DB: onein_me_ci
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: onein_me_ci
+          MARIADB_ROOT_PASSWORD: password
+          MARIADB_DATABASE: onein_me_ci
         ports:
-          - 5432:5432
+          - ${{ matrix.port }}:${{ matrix.port }}
         options: >-
-          --health-cmd "pg_isready -U postgres"
+          --health-cmd "${{ matrix.health_cmd }}"
           --health-interval 5s
           --health-timeout 5s
-          --health-retries 10
+          --health-retries 20
 
     defaults:
       run:
@@ -77,7 +125,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          extensions: mbstring, intl, pdo, pdo_pgsql, pgsql, bcmath, gd, zip
+          extensions: mbstring, intl, pdo, ${{ matrix.php_db_extensions }}, bcmath, gd, zip
           coverage: none
           tools: composer:v2
 
@@ -96,28 +144,31 @@ jobs:
         run: |
           cp .env.example .env
           php artisan key:generate
-          # Point the app at the Postgres service spun up above.
-          sed -i 's|^DB_CONNECTION=.*|DB_CONNECTION=pgsql|' .env
+          # Point the app at the database service spun up above.
+          sed -i 's|^DB_CONNECTION=.*|DB_CONNECTION=${{ matrix.driver }}|' .env
           sed -i 's|^DB_HOST=.*|DB_HOST=127.0.0.1|' .env
-          sed -i 's|^DB_PORT=.*|DB_PORT=5432|' .env
+          sed -i 's|^DB_PORT=.*|DB_PORT=${{ matrix.port }}|' .env
           sed -i 's|^DB_DATABASE=.*|DB_DATABASE=onein_me_ci|' .env
-          sed -i 's|^DB_USERNAME=.*|DB_USERNAME=postgres|' .env
-          sed -i 's|^DB_PASSWORD=.*|DB_PASSWORD=password|' .env
+          sed -i 's|^DB_USERNAME=.*|DB_USERNAME=${{ matrix.db_username }}|' .env
+          sed -i 's|^DB_PASSWORD=.*|DB_PASSWORD=${{ matrix.db_password }}|' .env
 
-      - name: Wait for PostgreSQL to accept connections
+      - name: Wait for ${{ matrix.display_name }} to accept connections
+        # GitHub Actions already gates the job on the service container's
+        # health-cmd passing, but we keep an explicit, driver-agnostic TCP
+        # check as a belt-and-braces guard. Bash's built-in /dev/tcp avoids
+        # depending on a client binary (psql, mysqladmin, …) being on the
+        # runner image.
         run: |
-          for i in {1..30}; do
-            if pg_isready -h 127.0.0.1 -p 5432 -U postgres; then
-              echo "Postgres is ready."
+          for i in {1..60}; do
+            if (echo > /dev/tcp/127.0.0.1/${{ matrix.port }}) 2>/dev/null; then
+              echo "${{ matrix.display_name }} is accepting connections on port ${{ matrix.port }}."
               exit 0
             fi
-            echo "Waiting for Postgres... ($i)"
+            echo "Waiting for ${{ matrix.display_name }}... ($i)"
             sleep 1
           done
-          echo "Postgres never became ready" >&2
+          echo "${{ matrix.display_name }} never became ready" >&2
           exit 1
-        env:
-          PGPASSWORD: password
 
       - name: Run migrations from scratch (the actual guard)
         run: php artisan migrate:fresh --force
@@ -126,9 +177,9 @@ jobs:
         # `migrate:fresh` ran everything as a single batch, so `migrate:reset`
         # walks the full chain in reverse and fails the build the moment any
         # `down()` raises — dropping a column that doesn't exist, hitting a
-        # Postgres-specific construct without a driver guard, leaving an FK
-        # behind, etc. This is the symmetric counterpart to the migrate:fresh
-        # guard above.
+        # driver-specific construct without a guard, leaving an FK behind,
+        # etc. This is the symmetric counterpart to the migrate:fresh guard
+        # above.
         run: php artisan migrate:reset --force
 
       - name: Re-apply every migration on the now-empty schema
