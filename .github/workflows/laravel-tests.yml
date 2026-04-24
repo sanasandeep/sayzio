@@ -1,0 +1,118 @@
+name: Laravel tests (PostgreSQL)
+
+# Run the full PHPUnit suite on every change to the 1inme Laravel app.
+#
+# Sibling to laravel-migrations.yml: that workflow guards the migration
+# pipeline by running `migrate:fresh` against a real Postgres service, but
+# the actual model / controller / feature tests under artifacts/1inme/tests/
+# were never executed automatically — so regressions in business logic
+# could ship unnoticed. This workflow closes that gap by running
+# `php artisan test` against the same PostgreSQL service.
+#
+# We deliberately point the suite at Postgres (rather than the sqlite
+# in-memory default baked into phpunit.xml) so the tests exercise the same
+# database engine production runs against — the original Postgres-only
+# regressions (e.g. jsonb `?` operator collisions) were exactly the kind
+# of thing a sqlite-backed suite would silently miss.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'artifacts/1inme/**'
+      - '.github/workflows/laravel-tests.yml'
+  pull_request:
+    paths:
+      - 'artifacts/1inme/**'
+      - '.github/workflows/laravel-tests.yml'
+  workflow_dispatch:
+
+jobs:
+  phpunit-postgres:
+    name: php artisan test against PostgreSQL
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: onein_me_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    defaults:
+      run:
+        working-directory: artifacts/1inme
+
+    env:
+      # Push the database config into the process environment so it wins
+      # over both the .env file and the sqlite defaults hard-coded in
+      # phpunit.xml (PHPUnit's <env> elements do not override values that
+      # are already set in the environment unless force="true").
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: onein_me_ci
+      DB_USERNAME: postgres
+      DB_PASSWORD: password
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, intl, pdo, pdo_pgsql, pgsql, bcmath, gd, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: artifacts/1inme/vendor
+          key: composer-${{ runner.os }}-php8.3-${{ hashFiles('artifacts/1inme/composer.lock') }}
+          restore-keys: |
+            composer-${{ runner.os }}-php8.3-
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare .env for CI
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          # Mirror the env vars above into .env so anything that reads the
+          # file directly (rather than getenv()) still hits Postgres.
+          sed -i 's|^DB_CONNECTION=.*|DB_CONNECTION=pgsql|' .env
+          sed -i 's|^DB_HOST=.*|DB_HOST=127.0.0.1|' .env
+          sed -i 's|^DB_PORT=.*|DB_PORT=5432|' .env
+          sed -i 's|^DB_DATABASE=.*|DB_DATABASE=onein_me_ci|' .env
+          sed -i 's|^DB_USERNAME=.*|DB_USERNAME=postgres|' .env
+          sed -i 's|^DB_PASSWORD=.*|DB_PASSWORD=password|' .env
+
+      - name: Wait for PostgreSQL to accept connections
+        run: |
+          for i in {1..30}; do
+            if pg_isready -h 127.0.0.1 -p 5432 -U postgres; then
+              echo "Postgres is ready."
+              exit 0
+            fi
+            echo "Waiting for Postgres... ($i)"
+            sleep 1
+          done
+          echo "Postgres never became ready" >&2
+          exit 1
+        env:
+          PGPASSWORD: password
+
+      - name: Run PHPUnit suite (the actual guard)
+        run: php artisan test
