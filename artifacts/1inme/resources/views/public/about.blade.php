@@ -4,10 +4,101 @@
     $sections = $page->visibleSections();
     $intro = $sections[0] ?? null;
     $story = array_slice($sections, 1);
-    $founder = $extra['founder'] ?? [];
-    $coFounders = $extra['co_founders'] ?? [];
-    $team = $extra['team'] ?? [];
-    $milestones = $extra['milestones'] ?? [];
+    $extraArr = is_array($extra ?? null) ? $extra : [];
+    $founder = $extraArr['founder'] ?? [];
+    $coFounders = $extraArr['co_founders'] ?? [];
+    $team = $extraArr['team'] ?? [];
+    $milestones = $extraArr['milestones'] ?? [];
+
+    // New editable groups — every leaf has a literal fallback so the
+    // page keeps rendering even if the admin blanks a field or the
+    // entire $extra column is empty (fresh install).
+    $hero          = is_array($extraArr['hero']           ?? null) ? $extraArr['hero']           : [];
+    $valuesCfg     = is_array($extraArr['values']         ?? null) ? $extraArr['values']         : [];
+    $storyImages   = is_array($extraArr['story_images']   ?? null) ? $extraArr['story_images']   : [];
+    $sectionTitles = is_array($extraArr['section_titles'] ?? null) ? $extraArr['section_titles'] : [];
+    $ctaCfg        = is_array($extraArr['cta']            ?? null) ? $extraArr['cta']            : [];
+
+    $or = function ($v, $fallback) {
+        $v = is_string($v) ? trim($v) : $v;
+        return ($v === '' || $v === null) ? $fallback : $v;
+    };
+
+    // Hero defaults (single source of truth for the literal fallbacks).
+    $heroBadgeLabel    = $or($hero['badge_label']       ?? '', 'About');
+    $heroBadgeIcon     = $or($hero['badge_icon']        ?? '', 'fa-heart');
+    $heroSideImage     = $or($hero['side_image']        ?? '', asset('images/marketing/about/hero.png'));
+    $heroSideImageAlt  = $or($hero['side_image_alt']    ?? '', 'The 1INME studio in Hyderabad');
+    $heroLocTitle      = $or($hero['location_title']    ?? '', 'Hyderabad · India');
+    $heroLocSubtitle   = $or($hero['location_subtitle'] ?? '', 'Remote-friendly');
+    $heroLocIcon       = $or($hero['location_icon']     ?? '', 'fa-location-dot');
+
+    $defaultHeroStats = [
+        ['value' => '120000', 'suffix' => '+', 'label' => 'Creators served', 'visible' => true],
+        ['value' => '3',      'suffix' => '',  'label' => 'Years young',     'visible' => true],
+        ['value' => '9',      'suffix' => '',  'label' => 'Teammates',       'visible' => true],
+    ];
+    $heroStats = (array)($hero['stats'] ?? $defaultHeroStats);
+    $visibleHeroStats = [];
+    foreach ($heroStats as $s) {
+        if (!is_array($s)) continue;
+        $value = trim((string)($s['value'] ?? ''));
+        $label = trim((string)($s['label'] ?? ''));
+        $visible = array_key_exists('visible', $s) ? (bool)$s['visible'] : true;
+        if (!$visible) continue;
+        if ($value === '' && $label === '') continue;
+        $visibleHeroStats[] = [
+            'value'  => $value,
+            'suffix' => (string)($s['suffix'] ?? ''),
+            'label'  => $label,
+        ];
+    }
+
+    // Values section defaults.
+    $valuesHeading    = $or($valuesCfg['heading']    ?? '', 'What we believe in');
+    $valuesSubheading = $or($valuesCfg['subheading'] ?? '', 'Four ideas that show up in every line of code, support reply, and roadmap call.');
+    $defaultValueCards = [
+        ['icon' => 'fa-bolt',          'title' => 'Ship fast, ship calm', 'desc' => 'New things every week, never on a Friday at 5pm.'],
+        ['icon' => 'fa-users',         'title' => 'Creators first',       'desc' => 'Every line of code earns its keep by helping a creator.'],
+        ['icon' => 'fa-shield-halved', 'title' => 'Privacy by default',   'desc' => 'No spying, no shady resale, no dark patterns.'],
+        ['icon' => 'fa-globe',         'title' => 'Built remote-first',   'desc' => 'A small team across three timezones, talking by writing.'],
+    ];
+    // If the admin removed all four cards (key present, empty array),
+    // hide the row entirely. If the key is absent, fall back to defaults.
+    if (array_key_exists('cards', $valuesCfg) && is_array($valuesCfg['cards'])) {
+        $valueCards = array_values($valuesCfg['cards']);
+    } else {
+        $valueCards = $defaultValueCards;
+    }
+
+    // Story images.
+    $storyOffice = is_array($storyImages['office']    ?? null) ? $storyImages['office']    : [];
+    $storyValues = is_array($storyImages['values']    ?? null) ? $storyImages['values']    : [];
+    $storyTeam   = is_array($storyImages['team_band'] ?? null) ? $storyImages['team_band'] : [];
+    $officeUrl   = $or($storyOffice['url'] ?? '', asset('images/marketing/about/office.png'));
+    $officeAlt   = $or($storyOffice['alt'] ?? '', 'Our office');
+    $valuesUrl   = $or($storyValues['url'] ?? '', asset('images/marketing/about/values.png'));
+    $valuesAlt   = $or($storyValues['alt'] ?? '', 'Working at 1INME');
+    $teamBandUrl = $or($storyTeam['url']   ?? '', asset('images/marketing/about/team.png'));
+    $teamBandAlt = $or($storyTeam['alt']   ?? '', 'The 1INME team');
+
+    // Lower section titles.
+    $founderTitle           = $or($sectionTitles['founder']             ?? '', 'Meet the founder');
+    $coFoundersTitle        = $or($sectionTitles['co_founders']         ?? '', 'Co-founders');
+    $teamTitle              = $or($sectionTitles['team_title']          ?? '', 'The team');
+    $teamSubtitle           = $or($sectionTitles['team_subtitle']       ?? '', 'The folks shipping 1INME every week.');
+    $milestonesTitle        = $or($sectionTitles['milestones_title']    ?? '', 'Milestones');
+    $milestonesSubtitle     = $or($sectionTitles['milestones_subtitle'] ?? '', 'A short history of how we got here.');
+
+    // CTA: empty URL falls back to the named route.
+    $ctaHeading    = $or($ctaCfg['heading']         ?? '', 'Want to build with us?');
+    $ctaBody       = $or($ctaCfg['body']            ?? '', 'Whether you are a creator with feedback or a developer who wants to join, we love hearing from you.');
+    $ctaPrimaryLbl = $or($ctaCfg['primary_label']   ?? '', 'Try 1INME free');
+    $ctaPrimaryUrl = trim((string)($ctaCfg['primary_url']   ?? ''));
+    if ($ctaPrimaryUrl === '') $ctaPrimaryUrl = route('register.page');
+    $ctaSecondaryLbl = $or($ctaCfg['secondary_label'] ?? '', 'Say hello');
+    $ctaSecondaryUrl = trim((string)($ctaCfg['secondary_url'] ?? ''));
+    if ($ctaSecondaryUrl === '') $ctaSecondaryUrl = route('site.contact');
 
     $personPhoto = function (array $p) {
         $url = trim((string)($p['photo'] ?? ''));
@@ -28,12 +119,6 @@
         return strlen($date) <= 7 ? date('M Y', $ts) : date('M j, Y', $ts);
     };
     $defaultFounderPhoto = asset('images/marketing/about/founder.png');
-    $valueCards = [
-        ['icon' => 'fa-bolt',         'title' => 'Ship fast, ship calm', 'desc' => 'New things every week, never on a Friday at 5pm.'],
-        ['icon' => 'fa-users',        'title' => 'Creators first',       'desc' => 'Every line of code earns its keep by helping a creator.'],
-        ['icon' => 'fa-shield-halved','title' => 'Privacy by default',   'desc' => 'No spying, no shady resale, no dark patterns.'],
-        ['icon' => 'fa-globe',        'title' => 'Built remote-first',   'desc' => 'A small team across three timezones, talking by writing.'],
-    ];
 @endphp
 
 {{-- HERO --}}
@@ -41,9 +126,11 @@
     <div class="mesh-bg"></div>
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-10 items-center">
         <div data-anim="fade-right">
-            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-400/20 text-xs text-violet-300 uppercase tracking-wider font-semibold">
-                <i class="fas fa-heart text-[10px]"></i> About
-            </span>
+            @if($heroBadgeLabel !== '')
+                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-400/20 text-xs text-violet-300 uppercase tracking-wider font-semibold">
+                    @if($heroBadgeIcon !== '')<i class="fas {{ $heroBadgeIcon }} text-[10px]"></i>@endif {{ $heroBadgeLabel }}
+                </span>
+            @endif
             <h1 class="mt-5 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05]">
                 {{ $intro['heading'] ?? $page->title }}
             </h1>
@@ -52,22 +139,41 @@
             @elseif($page->meta_description)
                 <p class="mt-5 text-lg text-gray-400 max-w-xl leading-relaxed">{{ $page->meta_description }}</p>
             @endif
-            <div class="mt-8 flex items-center gap-6 text-sm" data-anim="fade-up" data-stagger>
-                <div><div class="text-3xl font-bold"><span data-count="120000" data-count-suffix="+"></span></div><div class="text-xs uppercase tracking-wider text-gray-500 mt-0.5">Creators served</div></div>
-                <div class="w-px h-10 bg-white/10"></div>
-                <div><div class="text-3xl font-bold"><span data-count="3"></span></div><div class="text-xs uppercase tracking-wider text-gray-500 mt-0.5">Years young</div></div>
-                <div class="w-px h-10 bg-white/10 hidden sm:block"></div>
-                <div class="hidden sm:block"><div class="text-3xl font-bold"><span data-count="9"></span></div><div class="text-xs uppercase tracking-wider text-gray-500 mt-0.5">Teammates</div></div>
-            </div>
+            @if(!empty($visibleHeroStats))
+                <div class="mt-8 flex items-center gap-6 text-sm" data-anim="fade-up" data-stagger>
+                    @foreach($visibleHeroStats as $i => $s)
+                        @if($i > 0)
+                            <div class="w-px h-10 bg-white/10 {{ $i >= 2 ? 'hidden sm:block' : '' }}"></div>
+                        @endif
+                        <div class="{{ $i >= 2 ? 'hidden sm:block' : '' }}">
+                            <div class="text-3xl font-bold">
+                                @if(is_numeric($s['value']))
+                                    <span data-count="{{ $s['value'] }}"@if($s['suffix'] !== '') data-count-suffix="{{ $s['suffix'] }}"@endif></span>
+                                @else
+                                    {{ $s['value'] }}{{ $s['suffix'] }}
+                                @endif
+                            </div>
+                            @if($s['label'] !== '')
+                                <div class="text-xs uppercase tracking-wider text-gray-500 mt-0.5">{{ $s['label'] }}</div>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            @endif
         </div>
         <div data-anim="fade-left" data-tilt="5" class="relative">
             <div class="img-frame img-tilt aspect-[16/10]">
-                <img src="{{ asset('images/marketing/about/hero.png') }}" alt="The 1INME studio in Hyderabad">
+                <img src="{{ $heroSideImage }}" alt="{{ $heroSideImageAlt }}">
             </div>
-            <div class="absolute -bottom-5 -left-5 bg-[#11101c] border border-white/10 rounded-2xl p-3 pr-4 flex items-center gap-3 shadow-2xl float-y">
-                <i class="fas fa-location-dot text-violet-400"></i>
-                <div class="text-xs"><div class="font-semibold text-white">Hyderabad · India</div><div class="text-gray-400">Remote-friendly</div></div>
-            </div>
+            @if($heroLocTitle !== '' || $heroLocSubtitle !== '')
+                <div class="absolute -bottom-5 -left-5 bg-[#11101c] border border-white/10 rounded-2xl p-3 pr-4 flex items-center gap-3 shadow-2xl float-y">
+                    @if($heroLocIcon !== '')<i class="fas {{ $heroLocIcon }} text-violet-400"></i>@endif
+                    <div class="text-xs">
+                        @if($heroLocTitle !== '')<div class="font-semibold text-white">{{ $heroLocTitle }}</div>@endif
+                        @if($heroLocSubtitle !== '')<div class="text-gray-400">{{ $heroLocSubtitle }}</div>@endif
+                    </div>
+                </div>
+            @endif
         </div>
     </div>
 </section>
@@ -75,25 +181,29 @@
 @include('public.partials.marketing-stats')
 
 {{-- VALUES --}}
+@if(!empty($valueCards))
 <section class="pb-20">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-10" data-anim="fade-up">
-            <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">What we believe in</h2>
-            <p class="mt-3 text-gray-400 max-w-2xl mx-auto">Four ideas that show up in every line of code, support reply, and roadmap call.</p>
-        </div>
+        @if($valuesHeading !== '' || $valuesSubheading !== '')
+            <div class="text-center mb-10" data-anim="fade-up">
+                @if($valuesHeading !== '')<h2 class="text-3xl sm:text-4xl font-bold tracking-tight">{{ $valuesHeading }}</h2>@endif
+                @if($valuesSubheading !== '')<p class="mt-3 text-gray-400 max-w-2xl mx-auto">{{ $valuesSubheading }}</p>@endif
+            </div>
+        @endif
         <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5" data-anim="fade-up" data-stagger>
             @foreach($valueCards as $v)
                 <div class="bg-white/[0.03] hover:bg-white/[0.05] border border-white/10 hover:border-violet-400/40 rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1">
                     <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-violet-500/30 to-fuchsia-500/15 border border-violet-400/30 flex items-center justify-center text-violet-200 mb-4">
-                        <i class="fas {{ $v['icon'] }}"></i>
+                        <i class="fas {{ $v['icon'] ?? 'fa-circle-dot' }}"></i>
                     </div>
-                    <h3 class="text-base font-bold text-white">{{ $v['title'] }}</h3>
-                    <p class="mt-2 text-sm text-gray-400 leading-relaxed">{{ $v['desc'] }}</p>
+                    @if(!empty($v['title']))<h3 class="text-base font-bold text-white">{{ $v['title'] }}</h3>@endif
+                    @if(!empty($v['desc']))<p class="mt-2 text-sm text-gray-400 leading-relaxed">{{ $v['desc'] }}</p>@endif
                 </div>
             @endforeach
         </div>
     </div>
 </section>
+@endif
 
 {{-- STORY --}}
 @if(!empty($story))
@@ -111,10 +221,10 @@
         </div>
         <div class="space-y-5 lg:sticky lg:top-24">
             <div class="img-frame aspect-[4/3]" data-anim="fade-left" data-tilt="4">
-                <img src="{{ asset('images/marketing/about/office.png') }}" alt="Our office">
+                <img src="{{ $officeUrl }}" alt="{{ $officeAlt }}">
             </div>
             <div class="img-frame aspect-[4/3]" data-anim="fade-left" data-tilt="4">
-                <img src="{{ asset('images/marketing/about/values.png') }}" alt="Working at 1INME">
+                <img src="{{ $valuesUrl }}" alt="{{ $valuesAlt }}">
             </div>
         </div>
     </div>
@@ -125,7 +235,7 @@
 <section class="pb-20">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="img-frame aspect-[16/7]" data-anim="fade-up" data-tilt="3">
-            <img src="{{ asset('images/marketing/about/team.png') }}" alt="The 1INME team">
+            <img src="{{ $teamBandUrl }}" alt="{{ $teamBandAlt }}">
         </div>
     </div>
 </section>
@@ -134,7 +244,9 @@
 @if(!empty($founder['name']) || !empty($founder['bio']))
 <section class="pb-16">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8" data-anim="fade-up">
-        <h2 class="text-3xl sm:text-4xl font-bold text-center mb-8 tracking-tight">Meet the founder</h2>
+        @if($founderTitle !== '')
+            <h2 class="text-3xl sm:text-4xl font-bold text-center mb-8 tracking-tight">{{ $founderTitle }}</h2>
+        @endif
         <div class="bg-gradient-to-br from-violet-500/10 to-fuchsia-500/5 border border-white/10 rounded-3xl p-6 sm:p-10 grid sm:grid-cols-[auto_1fr] gap-6 sm:gap-10 items-center">
             <div class="shrink-0 mx-auto sm:mx-0">
                 @php $founderPhoto = $personPhoto($founder) ?? $defaultFounderPhoto; @endphp
@@ -174,7 +286,9 @@
 @if(!empty($coFounders))
 <section class="pb-16">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-3xl sm:text-4xl font-bold text-center mb-8 tracking-tight" data-anim="fade-up">Co-founders</h2>
+        @if($coFoundersTitle !== '')
+            <h2 class="text-3xl sm:text-4xl font-bold text-center mb-8 tracking-tight" data-anim="fade-up">{{ $coFoundersTitle }}</h2>
+        @endif
         <div class="grid sm:grid-cols-2 md:grid-cols-3 gap-5" data-anim="fade-up" data-stagger>
             @foreach($coFounders as $p)
                 <div class="bg-white/[0.03] border border-white/10 rounded-2xl p-6 text-center hover:border-violet-400/40 transition hover:-translate-y-1 duration-300">
@@ -206,8 +320,12 @@
 @if(!empty($team))
 <section class="pb-16">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-3xl sm:text-4xl font-bold text-center mb-2 tracking-tight" data-anim="fade-up">The team</h2>
-        <p class="text-center text-gray-400 mb-8" data-anim="fade-up">The folks shipping 1INME every week.</p>
+        @if($teamTitle !== '')
+            <h2 class="text-3xl sm:text-4xl font-bold text-center mb-2 tracking-tight" data-anim="fade-up">{{ $teamTitle }}</h2>
+        @endif
+        @if($teamSubtitle !== '')
+            <p class="text-center text-gray-400 mb-8" data-anim="fade-up">{{ $teamSubtitle }}</p>
+        @endif
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4" data-anim="fade-up" data-stagger>
             @foreach($team as $p)
                 <div class="bg-white/[0.03] border border-white/10 rounded-xl p-4 text-center hover:bg-white/[0.05] hover:border-violet-400/40 transition">
@@ -232,8 +350,12 @@
 @if(!empty($milestones))
 <section class="pb-24">
     <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8" data-anim="fade-up">
-        <h2 class="text-3xl sm:text-4xl font-bold text-center mb-2 tracking-tight">Milestones</h2>
-        <p class="text-center text-gray-400 mb-10">A short history of how we got here.</p>
+        @if($milestonesTitle !== '')
+            <h2 class="text-3xl sm:text-4xl font-bold text-center mb-2 tracking-tight">{{ $milestonesTitle }}</h2>
+        @endif
+        @if($milestonesSubtitle !== '')
+            <p class="text-center text-gray-400 mb-10">{{ $milestonesSubtitle }}</p>
+        @endif
         <ol class="relative border-l border-violet-400/30 pl-6 ml-2 space-y-8">
             @foreach($milestones as $m)
                 <li class="relative" data-anim="fade-right">
@@ -256,12 +378,22 @@
         <div class="grad-border rounded-3xl p-8 sm:p-12 text-center relative overflow-hidden" data-anim="fade-up">
             <div class="mesh-bg opacity-50"></div>
             <div class="relative">
-                <h3 class="text-3xl sm:text-4xl font-bold tracking-tight">Want to build with us?</h3>
-                <p class="mt-4 text-gray-300 max-w-2xl mx-auto">Whether you are a creator with feedback or a developer who wants to join, we love hearing from you.</p>
-                <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
-                    <a href="{{ route('register.page') }}" class="px-7 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold">Try 1INME free</a>
-                    <a href="{{ route('site.contact') }}" class="px-6 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">Say hello</a>
-                </div>
+                @if($ctaHeading !== '')
+                    <h3 class="text-3xl sm:text-4xl font-bold tracking-tight">{{ $ctaHeading }}</h3>
+                @endif
+                @if($ctaBody !== '')
+                    <p class="mt-4 text-gray-300 max-w-2xl mx-auto">{{ $ctaBody }}</p>
+                @endif
+                @if($ctaPrimaryLbl !== '' || $ctaSecondaryLbl !== '')
+                    <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
+                        @if($ctaPrimaryLbl !== '')
+                            <a href="{{ $ctaPrimaryUrl }}" class="px-7 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-full text-sm font-bold">{{ $ctaPrimaryLbl }}</a>
+                        @endif
+                        @if($ctaSecondaryLbl !== '')
+                            <a href="{{ $ctaSecondaryUrl }}" class="px-6 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">{{ $ctaSecondaryLbl }}</a>
+                        @endif
+                    </div>
+                @endif
             </div>
         </div>
     </div>

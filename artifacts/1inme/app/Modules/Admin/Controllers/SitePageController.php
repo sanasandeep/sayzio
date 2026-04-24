@@ -94,6 +94,53 @@ class SitePageController extends Controller
             'extra.blog_block.limit'       => 'nullable|integer|min:1|max:6',
         ];
         if ($slug === 'about') {
+            // Hero block (badge, side image, location card, three stats).
+            $rules['extra.hero']                          = 'nullable|array';
+            $rules['extra.hero.badge_label']              = 'nullable|string|max:60';
+            $rules['extra.hero.badge_icon']               = 'nullable|string|max:60';
+            $rules['extra.hero.side_image']               = ['nullable', 'string', 'max:1000', 'regex:#^(/|https?://)#i'];
+            $rules['extra.hero.side_image_alt']           = 'nullable|string|max:200';
+            $rules['extra.hero.location_title']           = 'nullable|string|max:120';
+            $rules['extra.hero.location_subtitle']        = 'nullable|string|max:120';
+            $rules['extra.hero.location_icon']            = 'nullable|string|max:60';
+            $rules['extra.hero.stats']                    = 'nullable|array|max:6';
+            $rules['extra.hero.stats.*.value']            = 'nullable|string|max:40';
+            $rules['extra.hero.stats.*.suffix']           = 'nullable|string|max:10';
+            $rules['extra.hero.stats.*.label']            = 'nullable|string|max:120';
+            $rules['extra.hero.stats.*.visible']          = 'nullable|boolean';
+            // Values section (heading + repeatable cards).
+            $rules['extra.values']                        = 'nullable|array';
+            $rules['extra.values.heading']                = 'nullable|string|max:200';
+            $rules['extra.values.subheading']             = 'nullable|string|max:500';
+            $rules['extra.values.cards']                  = 'nullable|array|max:8';
+            $rules['extra.values.cards.*.icon']           = 'nullable|string|max:60';
+            $rules['extra.values.cards.*.title']          = 'nullable|string|max:200';
+            $rules['extra.values.cards.*.desc']           = 'nullable|string|max:500';
+            // Story images: office, values, team band.
+            $rules['extra.story_images']                  = 'nullable|array';
+            $rules['extra.story_images.office.url']       = ['nullable', 'string', 'max:1000', 'regex:#^(/|https?://)#i'];
+            $rules['extra.story_images.office.alt']       = 'nullable|string|max:200';
+            $rules['extra.story_images.values.url']       = ['nullable', 'string', 'max:1000', 'regex:#^(/|https?://)#i'];
+            $rules['extra.story_images.values.alt']       = 'nullable|string|max:200';
+            $rules['extra.story_images.team_band.url']    = ['nullable', 'string', 'max:1000', 'regex:#^(/|https?://)#i'];
+            $rules['extra.story_images.team_band.alt']    = 'nullable|string|max:200';
+            // Lower-section titles / subtitles.
+            $rules['extra.section_titles']                = 'nullable|array';
+            $rules['extra.section_titles.founder']             = 'nullable|string|max:200';
+            $rules['extra.section_titles.co_founders']         = 'nullable|string|max:200';
+            $rules['extra.section_titles.team_title']          = 'nullable|string|max:200';
+            $rules['extra.section_titles.team_subtitle']       = 'nullable|string|max:300';
+            $rules['extra.section_titles.milestones_title']    = 'nullable|string|max:200';
+            $rules['extra.section_titles.milestones_subtitle'] = 'nullable|string|max:300';
+            // Bottom call-to-action block.
+            $rules['extra.cta']                           = 'nullable|array';
+            $rules['extra.cta.heading']                   = 'nullable|string|max:200';
+            $rules['extra.cta.body']                      = 'nullable|string|max:1000';
+            $rules['extra.cta.primary_label']             = 'nullable|string|max:120';
+            $rules['extra.cta.primary_url']               = ['nullable', 'string', 'max:500', 'regex:#^(/|https?://)#i'];
+            $rules['extra.cta.secondary_label']           = 'nullable|string|max:120';
+            $rules['extra.cta.secondary_url']             = ['nullable', 'string', 'max:500', 'regex:#^(/|https?://)#i'];
+
             $rules['extra.founder']                       = 'nullable|array';
             $rules['extra.founder.name']                  = 'nullable|string|max:120';
             $rules['extra.founder.role']                  = 'nullable|string|max:120';

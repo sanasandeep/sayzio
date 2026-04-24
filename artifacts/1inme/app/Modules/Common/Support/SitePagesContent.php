@@ -920,6 +920,51 @@ class SitePagesContent
     public static function aboutExtraDefault(): array
     {
         return [
+            'hero' => [
+                'badge_label'      => 'About',
+                'badge_icon'       => 'fa-heart',
+                'side_image'       => '',
+                'side_image_alt'   => 'The 1INME studio in Hyderabad',
+                'location_title'   => 'Hyderabad · India',
+                'location_subtitle'=> 'Remote-friendly',
+                'location_icon'    => 'fa-location-dot',
+                'stats' => [
+                    ['value' => '120000', 'suffix' => '+', 'label' => 'Creators served', 'visible' => true],
+                    ['value' => '3',      'suffix' => '',  'label' => 'Years young',    'visible' => true],
+                    ['value' => '9',      'suffix' => '',  'label' => 'Teammates',      'visible' => true],
+                ],
+            ],
+            'values' => [
+                'heading'    => 'What we believe in',
+                'subheading' => 'Four ideas that show up in every line of code, support reply, and roadmap call.',
+                'cards' => [
+                    ['icon' => 'fa-bolt',          'title' => 'Ship fast, ship calm', 'desc' => 'New things every week, never on a Friday at 5pm.'],
+                    ['icon' => 'fa-users',         'title' => 'Creators first',       'desc' => 'Every line of code earns its keep by helping a creator.'],
+                    ['icon' => 'fa-shield-halved', 'title' => 'Privacy by default',   'desc' => 'No spying, no shady resale, no dark patterns.'],
+                    ['icon' => 'fa-globe',         'title' => 'Built remote-first',   'desc' => 'A small team across three timezones, talking by writing.'],
+                ],
+            ],
+            'story_images' => [
+                'office'    => ['url' => '', 'alt' => 'Our office'],
+                'values'    => ['url' => '', 'alt' => 'Working at 1INME'],
+                'team_band' => ['url' => '', 'alt' => 'The 1INME team'],
+            ],
+            'section_titles' => [
+                'founder'            => 'Meet the founder',
+                'co_founders'        => 'Co-founders',
+                'team_title'         => 'The team',
+                'team_subtitle'      => 'The folks shipping 1INME every week.',
+                'milestones_title'   => 'Milestones',
+                'milestones_subtitle'=> 'A short history of how we got here.',
+            ],
+            'cta' => [
+                'heading'         => 'Want to build with us?',
+                'body'            => 'Whether you are a creator with feedback or a developer who wants to join, we love hearing from you.',
+                'primary_label'   => 'Try 1INME free',
+                'primary_url'     => '',
+                'secondary_label' => 'Say hello',
+                'secondary_url'   => '',
+            ],
             'founder' => [
                 'name'   => 'Aarav Reddy',
                 'role'   => 'Founder & CEO',
@@ -997,6 +1042,97 @@ class SitePagesContent
      */
     public static function normalizeAboutExtra(array $input): array
     {
+        // --- Hero (badge, side image, location card, three stats) ---
+        $heroIn = (array) ($input['hero'] ?? []);
+        $statsIn = (array) ($heroIn['stats'] ?? []);
+        $stats = [];
+        foreach (array_values($statsIn) as $row) {
+            if (!is_array($row)) continue;
+            $value = trim((string) ($row['value'] ?? ''));
+            $suffix = trim((string) ($row['suffix'] ?? ''));
+            $label = trim((string) ($row['label'] ?? ''));
+            // A row is fully-empty if it has no value AND no label — drop it.
+            if ($value === '' && $label === '' && $suffix === '') continue;
+            $visibleRaw = $row['visible'] ?? true;
+            $stats[] = [
+                'value'   => mb_substr($value, 0, 40),
+                'suffix'  => mb_substr($suffix, 0, 10),
+                'label'   => mb_substr($label, 0, 120),
+                'visible' => filter_var($visibleRaw, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? true,
+            ];
+            if (count($stats) >= 6) break;
+        }
+        $hero = [
+            'badge_label'       => trim((string) ($heroIn['badge_label'] ?? '')),
+            'badge_icon'        => trim((string) ($heroIn['badge_icon'] ?? '')),
+            'side_image'        => trim((string) ($heroIn['side_image'] ?? '')),
+            'side_image_alt'    => trim((string) ($heroIn['side_image_alt'] ?? '')),
+            'location_title'    => trim((string) ($heroIn['location_title'] ?? '')),
+            'location_subtitle' => trim((string) ($heroIn['location_subtitle'] ?? '')),
+            'location_icon'     => trim((string) ($heroIn['location_icon'] ?? '')),
+            'stats'             => $stats,
+        ];
+
+        // --- Values (heading + repeatable cards) ---
+        $valuesIn = (array) ($input['values'] ?? []);
+        $cardsIn = (array) ($valuesIn['cards'] ?? []);
+        $cards = [];
+        foreach (array_values($cardsIn) as $row) {
+            if (!is_array($row)) continue;
+            $icon = trim((string) ($row['icon'] ?? ''));
+            $title = trim((string) ($row['title'] ?? ''));
+            $desc = trim((string) ($row['desc'] ?? ''));
+            if ($icon === '' && $title === '' && $desc === '') continue;
+            $cards[] = [
+                'icon'  => mb_substr($icon, 0, 60),
+                'title' => mb_substr($title, 0, 200),
+                'desc'  => mb_substr($desc, 0, 500),
+            ];
+            if (count($cards) >= 8) break;
+        }
+        $values = [
+            'heading'    => trim((string) ($valuesIn['heading'] ?? '')),
+            'subheading' => trim((string) ($valuesIn['subheading'] ?? '')),
+            'cards'      => $cards,
+        ];
+
+        // --- Story images (office + values + team band) ---
+        $storyIn = (array) ($input['story_images'] ?? []);
+        $cleanImage = function ($v): array {
+            $v = is_array($v) ? $v : [];
+            return [
+                'url' => trim((string) ($v['url'] ?? '')),
+                'alt' => trim((string) ($v['alt'] ?? '')),
+            ];
+        };
+        $storyImages = [
+            'office'    => $cleanImage($storyIn['office']    ?? []),
+            'values'    => $cleanImage($storyIn['values']    ?? []),
+            'team_band' => $cleanImage($storyIn['team_band'] ?? []),
+        ];
+
+        // --- Section titles for the lower four sections ---
+        $titlesIn = (array) ($input['section_titles'] ?? []);
+        $sectionTitles = [
+            'founder'             => trim((string) ($titlesIn['founder']             ?? '')),
+            'co_founders'         => trim((string) ($titlesIn['co_founders']         ?? '')),
+            'team_title'          => trim((string) ($titlesIn['team_title']          ?? '')),
+            'team_subtitle'       => trim((string) ($titlesIn['team_subtitle']       ?? '')),
+            'milestones_title'    => trim((string) ($titlesIn['milestones_title']    ?? '')),
+            'milestones_subtitle' => trim((string) ($titlesIn['milestones_subtitle'] ?? '')),
+        ];
+
+        // --- Bottom CTA block ---
+        $ctaIn = (array) ($input['cta'] ?? []);
+        $cta = [
+            'heading'         => trim((string) ($ctaIn['heading']         ?? '')),
+            'body'            => trim((string) ($ctaIn['body']            ?? '')),
+            'primary_label'   => trim((string) ($ctaIn['primary_label']   ?? '')),
+            'primary_url'     => trim((string) ($ctaIn['primary_url']     ?? '')),
+            'secondary_label' => trim((string) ($ctaIn['secondary_label'] ?? '')),
+            'secondary_url'   => trim((string) ($ctaIn['secondary_url']   ?? '')),
+        ];
+
         $founderIn = (array) ($input['founder'] ?? []);
         $founder = [
             'name'  => trim((string) ($founderIn['name']  ?? '')),
@@ -1037,10 +1173,15 @@ class SitePagesContent
         }
 
         return [
-            'founder'     => $founder,
-            'co_founders' => $coFounders,
-            'team'        => $team,
-            'milestones'  => $milestones,
+            'hero'           => $hero,
+            'values'         => $values,
+            'story_images'   => $storyImages,
+            'section_titles' => $sectionTitles,
+            'cta'            => $cta,
+            'founder'        => $founder,
+            'co_founders'    => $coFounders,
+            'team'           => $team,
+            'milestones'     => $milestones,
         ];
     }
 

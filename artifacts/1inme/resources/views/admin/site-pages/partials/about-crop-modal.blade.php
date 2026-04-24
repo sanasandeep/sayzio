@@ -11,7 +11,7 @@
             <h4 class="text-sm font-semibold text-white">Crop photo</h4>
             <button type="button" @click="cancelCrop()" class="text-white/60 hover:text-white" title="Close"><i class="fas fa-times"></i></button>
         </div>
-        <p class="text-xs text-white/50 mb-3">Drag the photo and use the slider to zoom. The card on /about is shown as a circle, so the area inside the ring is what visitors will see.</p>
+        <p class="text-xs text-white/50 mb-3" x-text="isCircle ? 'Drag the photo and use the slider to zoom. The card on /about is shown as a circle, so the area inside the ring is what visitors will see.' : 'Drag the photo and use the slider to zoom. The area inside the frame is what visitors will see on /about.'"></p>
         <div class="mx-auto bg-black border border-white/10 rounded-lg overflow-hidden relative select-none touch-none cursor-move"
              :style="`width:${vpW}px;height:${vpH}px;`"
              @mousedown="startDrag($event)"
@@ -24,7 +24,7 @@
                 <img :src="previewUrl" :crossorigin="previewUrl && previewUrl.indexOf('blob:') === 0 ? null : 'anonymous'" alt="" draggable="false" class="absolute left-1/2 top-1/2 max-w-none pointer-events-none" :style="imgStyle">
             </template>
             <div class="absolute inset-0 pointer-events-none">
-                <div class="absolute inset-0 rounded-full ring-2 ring-white/70 shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]"></div>
+                <div class="absolute inset-0 ring-2 ring-white/70 shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]" :class="isCircle ? 'rounded-full' : 'rounded-md'"></div>
             </div>
         </div>
         <div class="mt-3 flex items-center gap-2">

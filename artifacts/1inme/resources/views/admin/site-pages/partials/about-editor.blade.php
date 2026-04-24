@@ -3,6 +3,14 @@
     $aboutExtra = old('extra', is_array($page->extra) && !empty($page->extra)
         ? \App\Modules\Common\Support\SitePagesContent::normalizeAboutExtra($page->extra)
         : $aboutDefaults);
+    $aboutHero = array_replace_recursive($aboutDefaults['hero'], (array)($aboutExtra['hero'] ?? []));
+    // Repeatable hero stats: prefer admin-saved values, otherwise use defaults so the editor renders three rows.
+    $aboutHeroStats = array_values((array)($aboutExtra['hero']['stats'] ?? $aboutDefaults['hero']['stats']));
+    $aboutValues = array_replace($aboutDefaults['values'], array_intersect_key((array)($aboutExtra['values'] ?? []), ['heading' => 1, 'subheading' => 1]));
+    $aboutValueCards = array_values((array)($aboutExtra['values']['cards'] ?? $aboutDefaults['values']['cards']));
+    $aboutStoryImages = array_replace_recursive($aboutDefaults['story_images'], (array)($aboutExtra['story_images'] ?? []));
+    $aboutSectionTitles = array_replace($aboutDefaults['section_titles'], (array)($aboutExtra['section_titles'] ?? []));
+    $aboutCta = array_replace($aboutDefaults['cta'], (array)($aboutExtra['cta'] ?? []));
     $founder = $aboutExtra['founder'] ?? $aboutDefaults['founder'];
     $coFounders = array_values((array)($aboutExtra['co_founders'] ?? []));
     $teamRows = array_values((array)($aboutExtra['team'] ?? []));
@@ -21,8 +29,10 @@
         window.aboutPhotoUploader = function (config) {
             const aspect = (config && config.aspect) || 1;
             const outputSize = (config && config.outputSize) || 800;
+            const isCircle = (config && config.isCircle !== undefined) ? !!config.isCircle : true;
             const viewport = 320;
             return {
+                isCircle: isCircle,
                 uploading: false,
                 progress: 0,
                 error: '',
@@ -279,6 +289,284 @@
 @endonce
 
 <div class="pt-2 border-t border-white/10 space-y-6">
+
+    {{-- ========== HERO ========== --}}
+    <div>
+        <h3 class="text-sm font-semibold text-white">Hero</h3>
+        <p class="text-xs text-white/50 mb-3">Top of /about — badge pill, side image, location card and the small stats trio.</p>
+        <div class="bg-white/5 border border-white/10 rounded-xl p-4 space-y-4">
+            <div class="grid sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Badge label</label>
+                    <input type="text" name="extra[hero][badge_label]" value="{{ $aboutHero['badge_label'] }}" maxlength="60" placeholder="About" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                    @error('extra.hero.badge_label')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Badge icon (FontAwesome class)</label>
+                    <input type="text" name="extra[hero][badge_icon]" value="{{ $aboutHero['badge_icon'] }}" maxlength="60" placeholder="fa-heart" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white font-mono">
+                    @error('extra.hero.badge_icon')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                </div>
+            </div>
+
+            <div x-data="{ url: @js((string)($aboutHero['side_image'] ?? '')) }">
+                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Hero side image <span class="normal-case tracking-normal text-white/40">(16:10)</span></label>
+                <div x-data="aboutPhotoUploader({ get: () => url, set: (v) => url = v, aspect: 16/10, outputSize: 1200, isCircle: false })" class="space-y-2">
+                    <div class="flex items-start gap-3">
+                        <div class="shrink-0 text-center">
+                            <template x-if="url">
+                                <img :src="url" alt="" class="w-40 h-25 object-cover rounded-md border border-white/10 bg-white/5" style="height:100px" x-on:error="$el.style.display='none'">
+                            </template>
+                            <template x-if="!url">
+                                <div class="w-40 rounded-md border-2 border-dashed border-white/15 bg-white/5 flex items-center justify-center text-[10px] text-white/40 text-center px-2" style="height:100px">Falls back to bundled hero.png</div>
+                            </template>
+                            <div class="text-[10px] text-white/40 mt-1">Live preview</div>
+                        </div>
+                        <div class="flex-1 space-y-2">
+                            <input type="url" name="extra[hero][side_image]" x-model="url" placeholder="https://… or /storage/… (or upload below)" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                            @error('extra.hero.side_image')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <button type="button" @click="pickFile()" :disabled="uploading" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1">
+                                    <i class="fas fa-upload"></i>
+                                    <span x-text="uploading ? ('Uploading… ' + progress + '%') : 'Upload image'"></span>
+                                </button>
+                                <button type="button" x-show="url" @click="recropFromUrl()" :disabled="uploading" class="text-xs px-3 py-1.5 bg-white/10 hover:bg-white/20 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1"><i class="fas fa-crop"></i><span>Re-crop current photo</span></button>
+                                <button type="button" x-show="url" @click="clear()" class="text-xs px-2 py-1.5 text-white/60 hover:text-white"><i class="fas fa-times mr-1"></i>Remove</button>
+                            </div>
+                            <p x-show="error" x-text="error" class="text-xs text-red-400"></p>
+                        </div>
+                    </div>
+                    <input type="file" x-ref="fileInput" @change="handleFile($event)" accept="image/*" class="hidden">
+                    @include('admin.site-pages.partials.about-crop-modal')
+                </div>
+                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 mt-2">Hero side image alt text</label>
+                <input type="text" name="extra[hero][side_image_alt]" value="{{ $aboutHero['side_image_alt'] }}" maxlength="200" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                @error('extra.hero.side_image_alt')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+            </div>
+
+            <div class="grid sm:grid-cols-3 gap-3">
+                <div>
+                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Floating card title</label>
+                    <input type="text" name="extra[hero][location_title]" value="{{ $aboutHero['location_title'] }}" maxlength="120" placeholder="Hyderabad · India" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                    @error('extra.hero.location_title')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Floating card subtitle</label>
+                    <input type="text" name="extra[hero][location_subtitle]" value="{{ $aboutHero['location_subtitle'] }}" maxlength="120" placeholder="Remote-friendly" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                    @error('extra.hero.location_subtitle')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Floating card icon</label>
+                    <input type="text" name="extra[hero][location_icon]" value="{{ $aboutHero['location_icon'] }}" maxlength="60" placeholder="fa-location-dot" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white font-mono">
+                    @error('extra.hero.location_icon')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                </div>
+            </div>
+
+            <div x-data="{ rows: {{ json_encode($aboutHeroStats) }}, moveUp(i){ if(i>0){ const a=this.rows; [a[i-1],a[i]]=[a[i],a[i-1]]; } }, moveDown(i){ const a=this.rows; if(i<a.length-1){ [a[i+1],a[i]]=[a[i],a[i+1]]; } } }">
+                <div class="flex items-center justify-between mb-2">
+                    <div>
+                        <label class="text-[10px] uppercase tracking-wider text-white/40">Hero stats trio</label>
+                        <p class="text-[11px] text-white/40">Numeric values animate; non-numeric values are shown as plain text.</p>
+                    </div>
+                    <button type="button" @click="if(rows.length<6) rows.push({value:'',suffix:'',label:'',visible:true})" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 rounded-lg text-white" :disabled="rows.length>=6"><i class="fas fa-plus mr-1"></i>Add stat</button>
+                </div>
+                <template x-for="(s, i) in rows" :key="i">
+                    <div class="bg-white/[0.04] border border-white/10 rounded-lg p-3 mb-2 space-y-2" :class="{'opacity-50': !s.visible}">
+                        <div class="flex items-center justify-between gap-2 flex-wrap">
+                            <span class="text-[10px] uppercase tracking-wider text-white/40">Stat <span x-text="i+1"></span></span>
+                            <div class="flex items-center gap-2">
+                                <label class="inline-flex items-center gap-1.5 text-[11px] text-white/70 cursor-pointer select-none">
+                                    <input type="hidden" :name="'extra[hero][stats]['+i+'][visible]'" value="0">
+                                    <input type="checkbox" :name="'extra[hero][stats]['+i+'][visible]'" value="1" x-model="s.visible" class="rounded border-white/20 bg-white/5">
+                                    <span x-text="s.visible ? 'Visible' : 'Hidden'"></span>
+                                </label>
+                                <button type="button" @click="moveUp(i)" :disabled="i===0" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1"><i class="fas fa-arrow-up"></i></button>
+                                <button type="button" @click="moveDown(i)" :disabled="i===rows.length-1" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1"><i class="fas fa-arrow-down"></i></button>
+                                <button type="button" @click="rows.splice(i,1)" class="text-xs text-red-400 hover:text-red-300 px-1.5 py-1"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>
+                        <div class="grid sm:grid-cols-3 gap-2">
+                            <input type="text" :name="'extra[hero][stats]['+i+'][value]'" x-model="s.value" maxlength="40" placeholder="120000" class="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-white">
+                            <input type="text" :name="'extra[hero][stats]['+i+'][suffix]'" x-model="s.suffix" maxlength="10" placeholder="+" class="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-white">
+                            <input type="text" :name="'extra[hero][stats]['+i+'][label]'" x-model="s.label" maxlength="120" placeholder="Creators served" class="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-white">
+                        </div>
+                    </div>
+                </template>
+                <div x-show="rows.length===0" class="text-xs text-white/40 text-center py-3">No hero stats — the trio under the headline will be hidden.</div>
+            </div>
+        </div>
+    </div>
+
+    {{-- ========== VALUES SECTION ========== --}}
+    <div>
+        <h3 class="text-sm font-semibold text-white">Values section</h3>
+        <p class="text-xs text-white/50 mb-3">"What we believe in" heading, supporting line and the value cards row.</p>
+        <div class="bg-white/5 border border-white/10 rounded-xl p-4 space-y-4">
+            <div>
+                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Heading</label>
+                <input type="text" name="extra[values][heading]" value="{{ $aboutValues['heading'] }}" maxlength="200" placeholder="What we believe in" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                @error('extra.values.heading')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+            </div>
+            <div>
+                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Subheading</label>
+                <textarea name="extra[values][subheading]" rows="2" maxlength="500" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">{{ $aboutValues['subheading'] }}</textarea>
+                @error('extra.values.subheading')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+            </div>
+            <div x-data="{ rows: {{ json_encode($aboutValueCards) }}, moveUp(i){ if(i>0){ const a=this.rows; [a[i-1],a[i]]=[a[i],a[i-1]]; } }, moveDown(i){ const a=this.rows; if(i<a.length-1){ [a[i+1],a[i]]=[a[i],a[i+1]]; } } }">
+                <div class="flex items-center justify-between mb-2">
+                    <div>
+                        <label class="text-[10px] uppercase tracking-wider text-white/40">Value cards</label>
+                        <p class="text-[11px] text-white/40">Removing all cards hides the entire row on /about.</p>
+                    </div>
+                    <button type="button" @click="if(rows.length<8) rows.push({icon:'fa-circle-dot',title:'',desc:''})" :disabled="rows.length>=8" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 rounded-lg text-white"><i class="fas fa-plus mr-1"></i>Add card</button>
+                </div>
+                <template x-for="(c, i) in rows" :key="i">
+                    <div class="bg-white/[0.04] border border-white/10 rounded-lg p-3 mb-2 space-y-2">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="text-[10px] uppercase tracking-wider text-white/40">Card <span x-text="i+1"></span></span>
+                            <div class="flex items-center gap-1">
+                                <button type="button" @click="moveUp(i)" :disabled="i===0" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1"><i class="fas fa-arrow-up"></i></button>
+                                <button type="button" @click="moveDown(i)" :disabled="i===rows.length-1" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1"><i class="fas fa-arrow-down"></i></button>
+                                <button type="button" @click="rows.splice(i,1)" class="text-xs text-red-400 hover:text-red-300 px-1.5 py-1"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>
+                        <div class="grid sm:grid-cols-[140px_1fr] gap-2">
+                            <input type="text" :name="'extra[values][cards]['+i+'][icon]'" x-model="c.icon" maxlength="60" placeholder="fa-bolt" class="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-white font-mono">
+                            <input type="text" :name="'extra[values][cards]['+i+'][title]'" x-model="c.title" maxlength="200" placeholder="Title" class="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-white">
+                        </div>
+                        <textarea :name="'extra[values][cards]['+i+'][desc]'" x-model="c.desc" rows="2" maxlength="500" placeholder="Short description shown under the title." class="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-white"></textarea>
+                    </div>
+                </template>
+                <div x-show="rows.length===0" class="text-xs text-white/40 text-center py-3">No value cards — the "What we believe in" cards row will be hidden.</div>
+            </div>
+        </div>
+    </div>
+
+    {{-- ========== STORY IMAGES ========== --}}
+    <div>
+        <h3 class="text-sm font-semibold text-white">Story images</h3>
+        <p class="text-xs text-white/50 mb-3">The two side images next to the story sections, plus the wide team band beneath.</p>
+        <div class="bg-white/5 border border-white/10 rounded-xl p-4 space-y-4">
+            @foreach([
+                ['key' => 'office',    'label' => 'Office image (story side, top)',     'aspect' => '4/3',  'aspectVal' => 4/3,  'output' => 1000, 'placeholderH' => 90],
+                ['key' => 'values',    'label' => 'Values image (story side, bottom)',  'aspect' => '4/3',  'aspectVal' => 4/3,  'output' => 1000, 'placeholderH' => 90],
+                ['key' => 'team_band', 'label' => 'Team band image (wide banner)',      'aspect' => '16/7', 'aspectVal' => 16/7, 'output' => 1400, 'placeholderH' => 56],
+            ] as $img)
+                @php $cfg = $aboutStoryImages[$img['key']] ?? ['url' => '', 'alt' => '']; @endphp
+                <div x-data="{ url: @js((string)($cfg['url'] ?? '')) }">
+                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">{{ $img['label'] }} <span class="normal-case tracking-normal text-white/40">({{ $img['aspect'] }})</span></label>
+                    <div x-data="aboutPhotoUploader({ get: () => url, set: (v) => url = v, aspect: {{ $img['aspectVal'] }}, outputSize: {{ $img['output'] }}, isCircle: false })" class="space-y-2">
+                        <div class="flex items-start gap-3">
+                            <div class="shrink-0 text-center">
+                                <template x-if="url">
+                                    <img :src="url" alt="" class="w-40 object-cover rounded-md border border-white/10 bg-white/5" style="height:{{ $img['placeholderH'] }}px" x-on:error="$el.style.display='none'">
+                                </template>
+                                <template x-if="!url">
+                                    <div class="w-40 rounded-md border-2 border-dashed border-white/15 bg-white/5 flex items-center justify-center text-[10px] text-white/40 text-center px-2" style="height:{{ $img['placeholderH'] }}px">Falls back to bundled image</div>
+                                </template>
+                                <div class="text-[10px] text-white/40 mt-1">Live preview</div>
+                            </div>
+                            <div class="flex-1 space-y-2">
+                                <input type="url" name="extra[story_images][{{ $img['key'] }}][url]" x-model="url" placeholder="https://… or /storage/…" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                                @error('extra.story_images.'.$img['key'].'.url')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <button type="button" @click="pickFile()" :disabled="uploading" class="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1">
+                                        <i class="fas fa-upload"></i>
+                                        <span x-text="uploading ? ('Uploading… ' + progress + '%') : 'Upload image'"></span>
+                                    </button>
+                                    <button type="button" x-show="url" @click="recropFromUrl()" :disabled="uploading" class="text-xs px-3 py-1.5 bg-white/10 hover:bg-white/20 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1"><i class="fas fa-crop"></i><span>Re-crop current photo</span></button>
+                                    <button type="button" x-show="url" @click="clear()" class="text-xs px-2 py-1.5 text-white/60 hover:text-white"><i class="fas fa-times mr-1"></i>Remove</button>
+                                </div>
+                                <p x-show="error" x-text="error" class="text-xs text-red-400"></p>
+                                <input type="text" name="extra[story_images][{{ $img['key'] }}][alt]" value="{{ $cfg['alt'] ?? '' }}" maxlength="200" placeholder="Alt text" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                                @error('extra.story_images.'.$img['key'].'.alt')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                            </div>
+                        </div>
+                        <input type="file" x-ref="fileInput" @change="handleFile($event)" accept="image/*" class="hidden">
+                        @include('admin.site-pages.partials.about-crop-modal')
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </div>
+
+    {{-- ========== SECTION TITLES ========== --}}
+    <div>
+        <h3 class="text-sm font-semibold text-white">Section titles</h3>
+        <p class="text-xs text-white/50 mb-3">Headings (and a couple of subheadings) for the lower four sections of /about.</p>
+        <div class="bg-white/5 border border-white/10 rounded-xl p-4 grid sm:grid-cols-2 gap-3">
+            <div>
+                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">"Meet the founder" heading</label>
+                <input type="text" name="extra[section_titles][founder]" value="{{ $aboutSectionTitles['founder'] }}" maxlength="200" placeholder="Meet the founder" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                @error('extra.section_titles.founder')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+            </div>
+            <div>
+                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">"Co-founders" heading</label>
+                <input type="text" name="extra[section_titles][co_founders]" value="{{ $aboutSectionTitles['co_founders'] }}" maxlength="200" placeholder="Co-founders" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                @error('extra.section_titles.co_founders')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+            </div>
+            <div>
+                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">"The team" heading</label>
+                <input type="text" name="extra[section_titles][team_title]" value="{{ $aboutSectionTitles['team_title'] }}" maxlength="200" placeholder="The team" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                @error('extra.section_titles.team_title')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+            </div>
+            <div>
+                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">"The team" subtitle</label>
+                <input type="text" name="extra[section_titles][team_subtitle]" value="{{ $aboutSectionTitles['team_subtitle'] }}" maxlength="300" placeholder="The folks shipping 1INME every week." class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                @error('extra.section_titles.team_subtitle')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+            </div>
+            <div>
+                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">"Milestones" heading</label>
+                <input type="text" name="extra[section_titles][milestones_title]" value="{{ $aboutSectionTitles['milestones_title'] }}" maxlength="200" placeholder="Milestones" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                @error('extra.section_titles.milestones_title')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+            </div>
+            <div>
+                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">"Milestones" subtitle</label>
+                <input type="text" name="extra[section_titles][milestones_subtitle]" value="{{ $aboutSectionTitles['milestones_subtitle'] }}" maxlength="300" placeholder="A short history of how we got here." class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                @error('extra.section_titles.milestones_subtitle')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+            </div>
+        </div>
+    </div>
+
+    {{-- ========== BOTTOM CTA ========== --}}
+    <div>
+        <h3 class="text-sm font-semibold text-white">Bottom call to action</h3>
+        <p class="text-xs text-white/50 mb-3">The "Want to build with us?" panel at the foot of /about.</p>
+        <div class="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
+            <div>
+                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Heading</label>
+                <input type="text" name="extra[cta][heading]" value="{{ $aboutCta['heading'] }}" maxlength="200" placeholder="Want to build with us?" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                @error('extra.cta.heading')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+            </div>
+            <div>
+                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Body paragraph</label>
+                <textarea name="extra[cta][body]" rows="3" maxlength="1000" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">{{ $aboutCta['body'] }}</textarea>
+                @error('extra.cta.body')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+            </div>
+            <div class="grid sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Primary button label</label>
+                    <input type="text" name="extra[cta][primary_label]" value="{{ $aboutCta['primary_label'] }}" maxlength="120" placeholder="Try 1INME free" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                    @error('extra.cta.primary_label')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Primary button URL <span class="normal-case tracking-normal text-white/40">(blank = register page)</span></label>
+                    <input type="text" name="extra[cta][primary_url]" value="{{ $aboutCta['primary_url'] }}" maxlength="500" placeholder="/register or https://…" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                    @error('extra.cta.primary_url')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Secondary button label</label>
+                    <input type="text" name="extra[cta][secondary_label]" value="{{ $aboutCta['secondary_label'] }}" maxlength="120" placeholder="Say hello" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                    @error('extra.cta.secondary_label')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Secondary button URL <span class="normal-case tracking-normal text-white/40">(blank = contact page)</span></label>
+                    <input type="text" name="extra[cta][secondary_url]" value="{{ $aboutCta['secondary_url'] }}" maxlength="500" placeholder="/contact or https://…" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                    @error('extra.cta.secondary_url')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div>
         <h3 class="text-sm font-semibold text-white">Founder</h3>
         <p class="text-xs text-white/50 mb-3">The featured founder card at the top of /about.</p>
