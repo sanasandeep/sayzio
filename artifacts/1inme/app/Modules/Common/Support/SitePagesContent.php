@@ -1043,6 +1043,55 @@ class SitePagesContent
                 'zoom' => 14,
                 'label'=> 'Our Hyderabad office',
             ],
+            // Hero pill, availability/language line, side image and the small
+            // floating "Friendly humans" card. Defaults mirror the literals
+            // that used to be hard-coded in resources/views/public/contact.blade.php
+            // so a fresh install renders identically to the pre-task state.
+            'hero' => [
+                'badge_label'        => 'Contact',
+                'badge_icon'         => 'fa-envelope',
+                'availability_text'  => 'Replies within 1 business day',
+                // Empty icon = keep the current pulsing emerald dot. Set a FA class
+                // (e.g. 'fa-circle') to swap the dot for a Font Awesome glyph.
+                'availability_icon'  => '',
+                'languages'          => 'EN · हिन्दी',
+                'side_image'         => '/images/marketing/contact/hero.png',
+                'side_image_alt'     => 'The 1INME support team',
+                'floating_card' => [
+                    'title'    => 'Friendly humans',
+                    'subtitle' => 'Behind every reply',
+                    'icon'     => 'fa-headset',
+                ],
+            ],
+            // "Contact details" heading above the address/email card.
+            'details_heading' => 'Contact details',
+            // Three small cards rendered between the map and the contact form.
+            'feature_cards' => [
+                ['icon' => 'fa-bolt',      'title' => 'Fast replies',  'desc' => 'Most messages get a real human reply within a few hours.'],
+                ['icon' => 'fa-handshake', 'title' => 'Partnerships',  'desc' => 'Press, integrations, agencies — pitch us, we read every one.'],
+                ['icon' => 'fa-lightbulb', 'title' => 'Feature ideas', 'desc' => 'Tell us what to build next — your name is on the changelog.'],
+            ],
+            // Image shown next to the contact form (hidden on mobile by the public view).
+            'office_image' => [
+                'url' => '/images/marketing/contact/office.png',
+                'alt' => 'Our office',
+            ],
+            // Editable copy for the contact form. Field names ("name", "email",
+            // "subject", "message") and the form action stay hard-coded — only
+            // the surrounding labels/placeholders/heading/submit copy is editable.
+            'form' => [
+                'heading'             => 'Send us a message',
+                'intro'               => '',
+                'name_label'          => 'Your name',
+                'name_placeholder'    => '',
+                'email_label'         => 'Email',
+                'email_placeholder'   => '',
+                'subject_label'       => 'Subject',
+                'subject_placeholder' => '',
+                'message_label'       => 'Message',
+                'message_placeholder' => '',
+                'submit_label'        => 'Send message',
+            ],
         ];
     }
 
@@ -1252,7 +1301,8 @@ class SitePagesContent
     {
         $defaults = self::contactExtraDefault();
         // Note: defaults are only consulted to backfill missing/non-numeric
-        // map coordinates and zoom — text fields collapse to empty strings.
+        // map coordinates and zoom — text fields collapse to empty strings
+        // and rely on the public view's literal fallbacks.
         $socialIn = (array) ($input['social'] ?? []);
         $social = [];
         foreach (['twitter', 'instagram', 'linkedin', 'youtube', 'facebook'] as $k) {
@@ -1266,6 +1316,64 @@ class SitePagesContent
         $lng  = max(-180.0, min(180.0, $lng));
         $zoom = max(1, min(19, $zoom));
 
+        // --- Hero (badge, availability, languages, image, floating card) ---
+        $heroIn = (array) ($input['hero'] ?? []);
+        $floatIn = (array) ($heroIn['floating_card'] ?? []);
+        $hero = [
+            'badge_label'       => mb_substr(trim((string) ($heroIn['badge_label']       ?? '')), 0, 60),
+            'badge_icon'        => mb_substr(trim((string) ($heroIn['badge_icon']        ?? '')), 0, 60),
+            'availability_text' => mb_substr(trim((string) ($heroIn['availability_text'] ?? '')), 0, 200),
+            'availability_icon' => mb_substr(trim((string) ($heroIn['availability_icon'] ?? '')), 0, 60),
+            'languages'         => mb_substr(trim((string) ($heroIn['languages']         ?? '')), 0, 200),
+            'side_image'        => trim((string) ($heroIn['side_image']        ?? '')),
+            'side_image_alt'    => mb_substr(trim((string) ($heroIn['side_image_alt']    ?? '')), 0, 200),
+            'floating_card'     => [
+                'title'    => mb_substr(trim((string) ($floatIn['title']    ?? '')), 0, 120),
+                'subtitle' => mb_substr(trim((string) ($floatIn['subtitle'] ?? '')), 0, 120),
+                'icon'     => mb_substr(trim((string) ($floatIn['icon']     ?? '')), 0, 60),
+            ],
+        ];
+
+        // --- Feature cards (between map and contact form) ---
+        $featuresIn = (array) ($input['feature_cards'] ?? []);
+        $features = [];
+        foreach (array_values($featuresIn) as $row) {
+            if (!is_array($row)) continue;
+            $icon  = trim((string) ($row['icon']  ?? ''));
+            $title = trim((string) ($row['title'] ?? ''));
+            $desc  = trim((string) ($row['desc']  ?? ''));
+            if ($icon === '' && $title === '' && $desc === '') continue;
+            $features[] = [
+                'icon'  => mb_substr($icon, 0, 60),
+                'title' => mb_substr($title, 0, 200),
+                'desc'  => mb_substr($desc, 0, 500),
+            ];
+            if (count($features) >= 6) break;
+        }
+
+        // --- Office image next to the form ---
+        $officeIn = (array) ($input['office_image'] ?? []);
+        $officeImage = [
+            'url' => trim((string) ($officeIn['url'] ?? '')),
+            'alt' => mb_substr(trim((string) ($officeIn['alt'] ?? '')), 0, 200),
+        ];
+
+        // --- Form copy (heading, intro, labels, placeholders, submit) ---
+        $formIn = (array) ($input['form'] ?? []);
+        $form = [
+            'heading'             => mb_substr(trim((string) ($formIn['heading']             ?? '')), 0, 200),
+            'intro'               => mb_substr(trim((string) ($formIn['intro']               ?? '')), 0, 500),
+            'name_label'          => mb_substr(trim((string) ($formIn['name_label']          ?? '')), 0, 80),
+            'name_placeholder'    => mb_substr(trim((string) ($formIn['name_placeholder']    ?? '')), 0, 200),
+            'email_label'         => mb_substr(trim((string) ($formIn['email_label']         ?? '')), 0, 80),
+            'email_placeholder'   => mb_substr(trim((string) ($formIn['email_placeholder']   ?? '')), 0, 200),
+            'subject_label'       => mb_substr(trim((string) ($formIn['subject_label']       ?? '')), 0, 80),
+            'subject_placeholder' => mb_substr(trim((string) ($formIn['subject_placeholder'] ?? '')), 0, 200),
+            'message_label'       => mb_substr(trim((string) ($formIn['message_label']       ?? '')), 0, 80),
+            'message_placeholder' => mb_substr(trim((string) ($formIn['message_placeholder'] ?? '')), 0, 200),
+            'submit_label'        => mb_substr(trim((string) ($formIn['submit_label']        ?? '')), 0, 80),
+        ];
+
         return [
             'address' => trim((string) ($input['address'] ?? '')),
             'email'   => trim((string) ($input['email']   ?? '')),
@@ -1278,6 +1386,11 @@ class SitePagesContent
                 'zoom'  => $zoom,
                 'label' => trim((string) ($mapIn['label'] ?? '')),
             ],
+            'hero'            => $hero,
+            'details_heading' => mb_substr(trim((string) ($input['details_heading'] ?? '')), 0, 200),
+            'feature_cards'   => $features,
+            'office_image'    => $officeImage,
+            'form'            => $form,
         ];
     }
 

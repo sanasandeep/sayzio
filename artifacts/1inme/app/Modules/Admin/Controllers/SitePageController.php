@@ -193,6 +193,39 @@ class SitePageController extends Controller
             $rules['extra.map.lng']            = 'nullable|numeric|between:-180,180';
             $rules['extra.map.zoom']           = 'nullable|integer|between:1,19';
             $rules['extra.map.label']          = 'nullable|string|max:200';
+            // Hero pill / availability / language line / side image / floating card.
+            $rules['extra.hero.badge_label']             = 'nullable|string|max:60';
+            $rules['extra.hero.badge_icon']              = 'nullable|string|max:60';
+            $rules['extra.hero.availability_text']       = 'nullable|string|max:200';
+            $rules['extra.hero.availability_icon']       = 'nullable|string|max:60';
+            $rules['extra.hero.languages']               = 'nullable|string|max:200';
+            $rules['extra.hero.side_image']              = ['nullable', 'string', 'max:1000', 'regex:#^(/|https?://)#i'];
+            $rules['extra.hero.side_image_alt']          = 'nullable|string|max:200';
+            $rules['extra.hero.floating_card.title']     = 'nullable|string|max:120';
+            $rules['extra.hero.floating_card.subtitle']  = 'nullable|string|max:120';
+            $rules['extra.hero.floating_card.icon']      = 'nullable|string|max:60';
+            // Contact-details heading.
+            $rules['extra.details_heading']              = 'nullable|string|max:200';
+            // Three feature cards between the map and the form.
+            $rules['extra.feature_cards']                = 'nullable|array|max:6';
+            $rules['extra.feature_cards.*.icon']         = 'nullable|string|max:60';
+            $rules['extra.feature_cards.*.title']        = 'nullable|string|max:200';
+            $rules['extra.feature_cards.*.desc']         = 'nullable|string|max:500';
+            // Office image next to the form.
+            $rules['extra.office_image.url']             = ['nullable', 'string', 'max:1000', 'regex:#^(/|https?://)#i'];
+            $rules['extra.office_image.alt']             = 'nullable|string|max:200';
+            // Form copy (heading, optional intro, labels, placeholders, submit).
+            $rules['extra.form.heading']                 = 'nullable|string|max:200';
+            $rules['extra.form.intro']                   = 'nullable|string|max:500';
+            $rules['extra.form.name_label']              = 'nullable|string|max:80';
+            $rules['extra.form.name_placeholder']        = 'nullable|string|max:200';
+            $rules['extra.form.email_label']             = 'nullable|string|max:80';
+            $rules['extra.form.email_placeholder']       = 'nullable|string|max:200';
+            $rules['extra.form.subject_label']           = 'nullable|string|max:80';
+            $rules['extra.form.subject_placeholder']     = 'nullable|string|max:200';
+            $rules['extra.form.message_label']           = 'nullable|string|max:80';
+            $rules['extra.form.message_placeholder']     = 'nullable|string|max:200';
+            $rules['extra.form.submit_label']            = 'nullable|string|max:80';
         }
         if ($slug === 'services') {
             $rules['sections.*.tagline']   = 'nullable|string|max:200';

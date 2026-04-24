@@ -2,12 +2,14 @@
 @section('content')
 @php
     $sections = $page->visibleSections();
-    $address = trim((string)($extra['address'] ?? ''));
-    $email   = trim((string)($extra['email']   ?? ''));
-    $phone   = trim((string)($extra['phone']   ?? ''));
-    $hours   = trim((string)($extra['hours']   ?? ''));
-    $social  = (array)($extra['social']        ?? []);
-    $map     = (array)($extra['map']           ?? []);
+    $extraArr = is_array($extra ?? null) ? $extra : [];
+
+    $address = trim((string)($extraArr['address'] ?? ''));
+    $email   = trim((string)($extraArr['email']   ?? ''));
+    $phone   = trim((string)($extraArr['phone']   ?? ''));
+    $hours   = trim((string)($extraArr['hours']   ?? ''));
+    $social  = (array)($extraArr['social']        ?? []);
+    $map     = (array)($extraArr['map']           ?? []);
     $lat     = (float)($map['lat']  ?? 17.3850);
     $lng     = (float)($map['lng']  ?? 78.4867);
     $zoom    = (int)  ($map['zoom'] ?? 12);
@@ -33,35 +35,113 @@
         'youtube'   => ['fa-youtube',   'YouTube'],
         'facebook'  => ['fa-facebook',  'Facebook'],
     ];
+
+    // ------------------------------------------------------------------
+    // Editable copy/imagery groups (task #762). Every leaf has a literal
+    // fallback so the page keeps rendering identically even when the
+    // admin blanks a field or the entire $extra column is empty.
+    // ------------------------------------------------------------------
+    $hero          = is_array($extraArr['hero']           ?? null) ? $extraArr['hero']           : [];
+    $floatingCard  = is_array($hero['floating_card']      ?? null) ? $hero['floating_card']      : [];
+    $officeImageIn = is_array($extraArr['office_image']   ?? null) ? $extraArr['office_image']   : [];
+    $formCfg       = is_array($extraArr['form']           ?? null) ? $extraArr['form']           : [];
+
+    $or = function ($v, $fallback) {
+        $v = is_string($v) ? trim($v) : $v;
+        return ($v === '' || $v === null) ? $fallback : $v;
+    };
+
+    // Hero defaults (single source of truth for the literal fallbacks).
+    $heroBadgeLabel        = $or($hero['badge_label']        ?? '', 'Contact');
+    $heroBadgeIcon         = $or($hero['badge_icon']         ?? '', 'fa-envelope');
+    $heroAvailabilityText  = trim((string) ($hero['availability_text'] ?? 'Replies within 1 business day'));
+    $heroAvailabilityIcon  = trim((string) ($hero['availability_icon'] ?? ''));
+    $heroLanguages         = trim((string) ($hero['languages']         ?? 'EN · हिन्दी'));
+    $heroSideImage         = $or($hero['side_image']         ?? '', asset('images/marketing/contact/hero.png'));
+    $heroSideImageAlt      = $or($hero['side_image_alt']     ?? '', 'The 1INME support team');
+    $floatingCardTitle     = trim((string) ($floatingCard['title']    ?? 'Friendly humans'));
+    $floatingCardSubtitle  = trim((string) ($floatingCard['subtitle'] ?? 'Behind every reply'));
+    $floatingCardIcon      = $or($floatingCard['icon']        ?? '', 'fa-headset');
+    $showFloatingCard      = ($floatingCardTitle !== '' || $floatingCardSubtitle !== '');
+
+    // "Contact details" heading (blank to hide).
+    $detailsHeading = trim((string) ($extraArr['details_heading'] ?? 'Contact details'));
+
+    // Feature cards — if the admin saved an explicitly empty array, hide
+    // the entire row; if the key is absent, fall back to the three defaults.
+    $defaultFeatureCards = [
+        ['icon' => 'fa-bolt',      'title' => 'Fast replies',  'desc' => 'Most messages get a real human reply within a few hours.'],
+        ['icon' => 'fa-handshake', 'title' => 'Partnerships',  'desc' => 'Press, integrations, agencies — pitch us, we read every one.'],
+        ['icon' => 'fa-lightbulb', 'title' => 'Feature ideas', 'desc' => 'Tell us what to build next — your name is on the changelog.'],
+    ];
+    if (array_key_exists('feature_cards', $extraArr) && is_array($extraArr['feature_cards'])) {
+        $featureCards = array_values($extraArr['feature_cards']);
+    } else {
+        $featureCards = $defaultFeatureCards;
+    }
+
+    // Office image next to the form.
+    $officeImageUrl = $or($officeImageIn['url'] ?? '', asset('images/marketing/contact/office.png'));
+    $officeImageAlt = $or($officeImageIn['alt'] ?? '', 'Our office');
+
+    // Form copy.
+    $formHeading             = $or($formCfg['heading']             ?? '', 'Send us a message');
+    $formIntro               = trim((string) ($formCfg['intro']    ?? ''));
+    $formNameLabel           = $or($formCfg['name_label']          ?? '', 'Your name');
+    $formNamePlaceholder     = trim((string) ($formCfg['name_placeholder']    ?? ''));
+    $formEmailLabel          = $or($formCfg['email_label']         ?? '', 'Email');
+    $formEmailPlaceholder    = trim((string) ($formCfg['email_placeholder']   ?? ''));
+    $formSubjectLabel        = $or($formCfg['subject_label']       ?? '', 'Subject');
+    $formSubjectPlaceholder  = trim((string) ($formCfg['subject_placeholder'] ?? ''));
+    $formMessageLabel        = $or($formCfg['message_label']       ?? '', 'Message');
+    $formMessagePlaceholder  = trim((string) ($formCfg['message_placeholder'] ?? ''));
+    $formSubmitLabel         = $or($formCfg['submit_label']        ?? '', 'Send message');
 @endphp
 
 <section class="relative pt-20 pb-12 lg:pt-28 lg:pb-16 overflow-hidden">
     <div class="mesh-bg"></div>
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-10 items-center">
         <div data-anim="fade-right">
-            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-400/20 text-xs text-violet-300 uppercase tracking-wider font-semibold">
-                <i class="fas fa-envelope text-[10px]"></i> Contact
-            </span>
+            @if($heroBadgeLabel !== '')
+                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-400/20 text-xs text-violet-300 uppercase tracking-wider font-semibold">
+                    @if($heroBadgeIcon !== '')<i class="fas {{ $heroBadgeIcon }} text-[10px]"></i>@endif {{ $heroBadgeLabel }}
+                </span>
+            @endif
             <h1 class="mt-5 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05]">{{ $page->title }}</h1>
             @if($page->meta_description)
                 <p class="mt-5 text-lg text-gray-400 max-w-xl leading-relaxed">{{ $page->meta_description }}</p>
             @endif
-            <div class="mt-7 flex flex-wrap items-center gap-6 text-sm" data-anim="fade-up" data-stagger>
-                <div class="flex items-center gap-2">
-                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 pulse-dot text-emerald-400/40"></span>
-                    <span class="text-gray-200 font-medium">Replies within 1 business day</span>
+            @if($heroAvailabilityText !== '' || $heroLanguages !== '')
+                <div class="mt-7 flex flex-wrap items-center gap-6 text-sm" data-anim="fade-up" data-stagger>
+                    @if($heroAvailabilityText !== '')
+                        <div class="flex items-center gap-2">
+                            @if($heroAvailabilityIcon !== '')
+                                <i class="fas {{ $heroAvailabilityIcon }} text-emerald-400"></i>
+                            @else
+                                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 pulse-dot text-emerald-400/40"></span>
+                            @endif
+                            <span class="text-gray-200 font-medium">{{ $heroAvailabilityText }}</span>
+                        </div>
+                    @endif
+                    @if($heroLanguages !== '')
+                        <div class="text-gray-400"><i class="fas fa-language text-violet-300 mr-1"></i> {{ $heroLanguages }}</div>
+                    @endif
                 </div>
-                <div class="text-gray-400"><i class="fas fa-language text-violet-300 mr-1"></i> EN · हिन्दी</div>
-            </div>
+            @endif
         </div>
         <div data-anim="fade-left" data-tilt="5" class="relative">
             <div class="img-frame img-tilt aspect-[16/10]">
-                <img src="{{ asset('images/marketing/contact/hero.png') }}" alt="The 1INME support team">
+                <img src="{{ $heroSideImage }}" alt="{{ $heroSideImageAlt }}">
             </div>
-            <div class="absolute -bottom-5 -right-5 bg-[#11101c] border border-white/10 rounded-2xl p-3 pr-4 flex items-center gap-3 shadow-2xl float-y">
-                <i class="fas fa-headset text-violet-400 text-lg"></i>
-                <div class="text-xs"><div class="font-semibold text-white">Friendly humans</div><div class="text-gray-400">Behind every reply</div></div>
-            </div>
+            @if($showFloatingCard)
+                <div class="absolute -bottom-5 -right-5 bg-[#11101c] border border-white/10 rounded-2xl p-3 pr-4 flex items-center gap-3 shadow-2xl float-y">
+                    @if($floatingCardIcon !== '')<i class="fas {{ $floatingCardIcon }} text-violet-400 text-lg"></i>@endif
+                    <div class="text-xs">
+                        @if($floatingCardTitle !== '')<div class="font-semibold text-white">{{ $floatingCardTitle }}</div>@endif
+                        @if($floatingCardSubtitle !== '')<div class="text-gray-400">{{ $floatingCardSubtitle }}</div>@endif
+                    </div>
+                </div>
+            @endif
         </div>
     </div>
 </section>
@@ -80,7 +160,7 @@
 <section class="pb-12">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 grid md:grid-cols-2 gap-6" data-anim="fade-up" data-stagger>
         <div class="bg-white/[0.03] border border-white/10 rounded-2xl p-6 space-y-5">
-            <h2 class="text-lg font-bold text-white">Contact details</h2>
+            @if($detailsHeading !== '')<h2 class="text-lg font-bold text-white">{{ $detailsHeading }}</h2>@endif
             @if($address !== '')
                 <div>
                     <div class="text-[11px] uppercase tracking-wider text-gray-400 mb-1"><i class="fas fa-location-dot mr-1.5"></i>Address</div>
@@ -154,28 +234,35 @@
     </div>
 </section>
 
+@if(!empty($featureCards))
 <section class="pb-12">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 grid md:grid-cols-3 gap-5" data-anim="fade-up" data-stagger>
-        <div class="bg-white/[0.03] border border-white/10 rounded-2xl p-5 hover:border-violet-400/40 transition">
-            <div class="w-10 h-10 rounded-lg bg-violet-500/15 border border-violet-400/30 flex items-center justify-center text-violet-300 mb-3"><i class="fas fa-bolt"></i></div>
-            <div class="text-sm font-bold text-white">Fast replies</div><div class="text-xs text-gray-400 mt-1">Most messages get a real human reply within a few hours.</div>
-        </div>
-        <div class="bg-white/[0.03] border border-white/10 rounded-2xl p-5 hover:border-violet-400/40 transition">
-            <div class="w-10 h-10 rounded-lg bg-violet-500/15 border border-violet-400/30 flex items-center justify-center text-violet-300 mb-3"><i class="fas fa-handshake"></i></div>
-            <div class="text-sm font-bold text-white">Partnerships</div><div class="text-xs text-gray-400 mt-1">Press, integrations, agencies — pitch us, we read every one.</div>
-        </div>
-        <div class="bg-white/[0.03] border border-white/10 rounded-2xl p-5 hover:border-violet-400/40 transition">
-            <div class="w-10 h-10 rounded-lg bg-violet-500/15 border border-violet-400/30 flex items-center justify-center text-violet-300 mb-3"><i class="fas fa-lightbulb"></i></div>
-            <div class="text-sm font-bold text-white">Feature ideas</div><div class="text-xs text-gray-400 mt-1">Tell us what to build next — your name is on the changelog.</div>
-        </div>
+        @foreach($featureCards as $card)
+            @php
+                $cIcon  = trim((string)($card['icon']  ?? ''));
+                $cTitle = trim((string)($card['title'] ?? ''));
+                $cDesc  = trim((string)($card['desc']  ?? ''));
+            @endphp
+            <div class="bg-white/[0.03] border border-white/10 rounded-2xl p-5 hover:border-violet-400/40 transition">
+                <div class="w-10 h-10 rounded-lg bg-violet-500/15 border border-violet-400/30 flex items-center justify-center text-violet-300 mb-3"><i class="fas {{ $cIcon !== '' ? $cIcon : 'fa-circle-dot' }}"></i></div>
+                @if($cTitle !== '')<div class="text-sm font-bold text-white">{{ $cTitle }}</div>@endif
+                @if($cDesc !== '')<div class="text-xs text-gray-400 mt-1">{{ $cDesc }}</div>@endif
+            </div>
+        @endforeach
     </div>
 </section>
+@endif
 
 <section class="pb-20">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 grid md:grid-cols-[1fr_1fr] gap-6 items-start">
-        <div class="img-frame aspect-[4/3] hidden md:block" data-anim="fade-right" data-tilt="4">
-            <img src="{{ asset('images/marketing/contact/office.png') }}" alt="Our office">
-        </div>
+        @if($officeImageUrl !== '')
+            <div class="img-frame aspect-[4/3] hidden md:block" data-anim="fade-right" data-tilt="4">
+                <img src="{{ $officeImageUrl }}" alt="{{ $officeImageAlt }}">
+            </div>
+        @else
+            {{-- Keep the 2-col grid even if the image is intentionally blank. --}}
+            <div class="hidden md:block"></div>
+        @endif
         <div data-anim="fade-left">
         @if(session('success'))
             <div class="rounded-xl px-4 py-3 text-sm mb-4" style="background:rgba(34,197,94,0.10); border:1px solid rgba(34,197,94,0.30); color:#86efac;">
@@ -192,27 +279,28 @@
             @csrf
             {{-- honeypot --}}
             <input type="text" name="website" value="" tabindex="-1" autocomplete="off" class="hidden" aria-hidden="true">
-            <h2 class="text-lg font-bold text-white">Send us a message</h2>
+            @if($formHeading !== '')<h2 class="text-lg font-bold text-white">{{ $formHeading }}</h2>@endif
+            @if($formIntro !== '')<p class="text-sm text-gray-400 leading-relaxed -mt-1">{{ $formIntro }}</p>@endif
             <div class="grid sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5 text-gray-400">Your name</label>
-                    <input type="text" name="name" required value="{{ old('name') }}" class="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                    @if($formNameLabel !== '')<label class="block text-xs font-semibold uppercase tracking-wider mb-1.5 text-gray-400">{{ $formNameLabel }}</label>@endif
+                    <input type="text" name="name" required value="{{ old('name') }}" @if($formNamePlaceholder !== '') placeholder="{{ $formNamePlaceholder }}" @endif class="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5 text-gray-400">Email</label>
-                    <input type="email" name="email" required value="{{ old('email') }}" class="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                    @if($formEmailLabel !== '')<label class="block text-xs font-semibold uppercase tracking-wider mb-1.5 text-gray-400">{{ $formEmailLabel }}</label>@endif
+                    <input type="email" name="email" required value="{{ old('email') }}" @if($formEmailPlaceholder !== '') placeholder="{{ $formEmailPlaceholder }}" @endif class="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
                 </div>
             </div>
             <div>
-                <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5 text-gray-400">Subject</label>
-                <input type="text" name="subject" required value="{{ old('subject') }}" class="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                @if($formSubjectLabel !== '')<label class="block text-xs font-semibold uppercase tracking-wider mb-1.5 text-gray-400">{{ $formSubjectLabel }}</label>@endif
+                <input type="text" name="subject" required value="{{ old('subject') }}" @if($formSubjectPlaceholder !== '') placeholder="{{ $formSubjectPlaceholder }}" @endif class="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
             </div>
             <div>
-                <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5 text-gray-400">Message</label>
-                <textarea name="message" required rows="6" class="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white">{{ old('message') }}</textarea>
+                @if($formMessageLabel !== '')<label class="block text-xs font-semibold uppercase tracking-wider mb-1.5 text-gray-400">{{ $formMessageLabel }}</label>@endif
+                <textarea name="message" required rows="6" @if($formMessagePlaceholder !== '') placeholder="{{ $formMessagePlaceholder }}" @endif class="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white">{{ old('message') }}</textarea>
             </div>
             <button type="submit" class="w-full py-3 bg-violet-600 hover:bg-violet-700 rounded-lg text-sm font-bold text-white transition">
-                Send message
+                {{ $formSubmitLabel !== '' ? $formSubmitLabel : 'Send message' }}
             </button>
         </form>
         </div>
