@@ -1,6 +1,9 @@
 @php
-    $useModal = $useModal ?? false;
-    $homeUrl  = route('home');
+    $useModal    = $useModal ?? false;
+    $homeUrl     = route('home');
+    // On the home page, "Pricing" should anchor-scroll to the in-page section.
+    // On every other page, it should navigate to the dedicated /pricing page.
+    $pricingHref = request()->routeIs('home') ? '#pricing' : route('site.pricing');
 @endphp
 <div x-data="{ mobileOpen:false, openMenu:null {{ $useModal ? ', authOpen:false, authTab:\'login\'' : '' }} }">
 <nav class="sticky top-0 inset-x-0 z-40 bg-[#1e2330]/90 backdrop-blur-xl border-b border-white/5">
@@ -92,7 +95,7 @@
                 </div>
 
                 <a href="{{ route('site.features') }}" class="px-3 py-2 text-sm text-gray-300 hover:text-violet-400 whitespace-nowrap">Features</a>
-                <a href="{{ route('site.pricing') }}" class="px-3 py-2 text-sm text-gray-300 hover:text-violet-400 whitespace-nowrap">Pricing</a>
+                <a href="{{ $pricingHref }}" class="px-3 py-2 text-sm text-gray-300 hover:text-violet-400 whitespace-nowrap">Pricing</a>
                 <a href="{{ route('site.coins') }}" class="px-3 py-2 text-sm text-gray-300 hover:text-violet-400 whitespace-nowrap">Coins</a>
                 <a href="{{ route('site.premium-features') }}" class="px-3 py-2 text-sm text-gray-300 hover:text-violet-400 whitespace-nowrap">Premium</a>
                 <a href="{{ route('site.about') }}" class="px-3 py-2 text-sm text-gray-300 hover:text-violet-400 whitespace-nowrap">About</a>
@@ -161,7 +164,7 @@
             <a href="{{ route('site.buzz') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Buzz</a>
 
             <div class="px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">Company</div>
-            <a href="{{ route('site.pricing') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Pricing</a>
+            <a href="{{ $pricingHref }}" @click="mobileOpen=false" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Pricing</a>
             <a href="{{ route('site.coins') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Coin packages</a>
             <a href="{{ route('site.premium-features') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Premium features</a>
             <a href="{{ route('site.about') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">About</a>
