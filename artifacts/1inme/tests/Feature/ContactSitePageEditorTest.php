@@ -301,4 +301,147 @@ class ContactSitePageEditorTest extends TestCase
         $errors = (array) ($resp->json('errors') ?? []);
         $this->assertArrayHasKey('extra.social.twitter', $errors);
     }
+
+    public function test_public_contact_page_renders_every_saved_extra_value(): void
+    {
+        // Mirror of AboutSitePageEditorTest's public-render assertion: a
+        // future change to resources/views/public/contact.blade.php that
+        // accidentally drops a field (e.g. removes the YouTube icon from
+        // $socialIcons, or hard-codes the seeded Hyderabad address) would
+        // still pass the persistence test above but render the wrong
+        // page. This test walks the rendered HTML and checks every
+        // saved value actually appears.
+        $admin = $this->makeAdmin();
+        $this->makeContactPage();
+
+        $payload = $this->payload([
+            'address' => "1INME HQ\n42 Example Street\nBengaluru 560001",
+            'email'   => 'hello@example.com',
+            'phone'   => '+91 40 9876 5432',
+            'hours'   => "Mon–Fri · 09:00 – 17:00",
+            'social'  => [
+                'twitter'   => 'https://twitter.com/onein',
+                'instagram' => 'https://instagram.com/onein',
+                'linkedin'  => 'https://linkedin.com/company/onein',
+                'youtube'   => 'https://youtube.com/@onein',
+                'facebook'  => 'https://facebook.com/onein',
+            ],
+            'map' => [
+                'lat'   => 12.9716,
+                'lng'   => 77.5946,
+                'zoom'  => 12,
+                'label' => 'Bengaluru office',
+            ],
+        ]);
+
+        $this->actingAs($admin, 'admin')
+            ->put('/admin/site-pages/contact', $payload)
+            ->assertRedirect(route('admin.site-pages.edit', 'contact'))
+            ->assertSessionHasNoErrors();
+
+        $publicResp = $this->get('/contact');
+        $publicResp->assertOk();
+
+        // Every line of the multi-line address survives nl2br + e().
+        $publicResp->assertSee('1INME HQ', false);
+        $publicResp->assertSee('42 Example Street', false);
+        $publicResp->assertSee('Bengaluru 560001', false);
+
+        // Email rendered both as anchor href and as visible text.
+        $publicResp->assertSee('mailto:hello@example.com', false);
+        $publicResp->assertSee('hello@example.com', false);
+
+        // Phone — visible exactly as entered, plus a tel: href with all
+        // non-digit/non-plus characters stripped.
+        $publicResp->assertSee('+91 40 9876 5432', false);
+        $publicResp->assertSee('tel:+914098765432', false);
+
+        // Hours — both lines of the (admittedly single-line) value.
+        $publicResp->assertSee('Mon–Fri · 09:00 – 17:00', false);
+
+        // Every non-empty social URL must reach the rendered page —
+        // catches a future regression that drops one platform from the
+        // $socialIcons whitelist in the Blade view.
+        $publicResp->assertSee('https://twitter.com/onein', false);
+        $publicResp->assertSee('https://instagram.com/onein', false);
+        $publicResp->assertSee('https://linkedin.com/company/onein', false);
+        $publicResp->assertSee('https://youtube.com/@onein', false);
+        $publicResp->assertSee('https://facebook.com/onein', false);
+        // The corresponding icon titles confirm each anchor is the
+        // right platform (catches a copy/paste swap where two keys
+        // share an icon).
+        $publicResp->assertSee('title="X (Twitter)"', false);
+        $publicResp->assertSee('title="Instagram"', false);
+        $publicResp->assertSee('title="LinkedIn"', false);
+        $publicResp->assertSee('title="YouTube"', false);
+        $publicResp->assertSee('title="Facebook"', false);
+
+        // Map: lat/lng/zoom are surfaced via data-* attributes that the
+        // Leaflet bootstrap script reads, and the label is rendered
+        // both as a data attribute and as visible caption text.
+        $publicResp->assertSee('data-lat="12.9716"', false);
+        $publicResp->assertSee('data-lng="77.5946"', false);
+        $publicResp->assertSee('data-zoom="12"', false);
+        $publicResp->assertSee('data-label="Bengaluru office"', false);
+        $publicResp->assertSee('Bengaluru office', false); // visible caption + aria-label
+        // The "View larger map" link encodes the same coordinates and
+        // zoom into the OpenStreetMap permalink — guards against a
+        // regression that decouples the link from the map. The view
+        // formats coordinates with sprintf('%F', ...) which always
+        // pads to 6 decimal places.
+        $publicResp->assertSee('mlat=12.971600', false);
+        $publicResp->assertSee('mlon=77.594600', false);
+        $publicResp->assertSee('#map=12/12.971600/77.594600', false);
+    }
+
+    public function test_public_contact_page_omits_anchors_for_blank_social_keys(): void
+    {
+        // If the admin clears (say) youtube + facebook, the Blade view
+        // must skip those <a> elements entirely — never render
+        // `<a href="">` placeholders. An empty anchor would still be
+        // clickable in the layout's grid and would point at the same
+        // page, which is both a UX and a (mild) crawl/SEO hazard.
+        $admin = $this->makeAdmin();
+        $this->makeContactPage();
+
+        $this->actingAs($admin, 'admin')
+            ->put('/admin/site-pages/contact', $this->payload([
+                'address' => 'Some address line',
+                'email'   => '',
+                'phone'   => '',
+                'hours'   => '',
+                'social'  => [
+                    'twitter'   => 'https://twitter.com/onein',
+                    'instagram' => '',
+                    'linkedin'  => '',
+                    'youtube'   => '',
+                    'facebook'  => '',
+                ],
+                'map' => ['lat' => 0, 'lng' => 0, 'zoom' => 2, 'label' => ''],
+            ]))
+            ->assertRedirect(route('admin.site-pages.edit', 'contact'))
+            ->assertSessionHasNoErrors();
+
+        $publicResp = $this->get('/contact');
+        $publicResp->assertOk();
+
+        // The one populated platform still renders.
+        $publicResp->assertSee('https://twitter.com/onein', false);
+        $publicResp->assertSee('title="X (Twitter)"', false);
+
+        // Each blank platform's icon title must NOT appear — those
+        // titles only render inside the `@if($url !== '')` branch, so
+        // their absence proves the empty <a> wasn't emitted either.
+        $publicResp->assertDontSee('title="Instagram"', false);
+        $publicResp->assertDontSee('title="LinkedIn"', false);
+        $publicResp->assertDontSee('title="YouTube"', false);
+        $publicResp->assertDontSee('title="Facebook"', false);
+
+        // Belt-and-suspenders: assert the rendered HTML contains no
+        // empty-href anchor at all. The contact view's other anchors
+        // (mailto:, tel:, OSM permalink, form submit URL, layout nav)
+        // are always non-empty when populated, so a stray `href=""`
+        // would have to come from a regressed social loop.
+        $this->assertStringNotContainsString('href=""', $publicResp->getContent());
+    }
 }
