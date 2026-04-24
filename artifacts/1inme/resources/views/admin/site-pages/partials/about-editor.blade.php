@@ -919,3 +919,108 @@
         <div x-show="rows.length===0" class="text-xs text-white/40 text-center py-4">No milestones yet — click "Add milestone".</div>
     </div>
 </div>
+
+{{--
+    Inline /about preview: floating launcher button + a pinned side
+    panel that loads the public About page in an iframe so admins can
+    eyeball changes without leaving the editor. The panel survives
+    saves (open/closed state stored in localStorage) and re-grabs the
+    latest render on every save (cache-busting query string). We also
+    snapshot the editor's scroll position before the form submits and
+    restore it after the redirect-back so reordering or tweaking
+    content doesn't bounce admins to the top of the page.
+--}}
+<div x-data="aboutEditorPreview()" x-cloak>
+    <button x-show="!open" @click="setOpen(true)" type="button"
+            class="fixed bottom-6 right-6 z-40 inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium shadow-lg shadow-violet-900/30">
+        <i class="fas fa-eye"></i>
+        <span>Preview /about</span>
+    </button>
+
+    <div x-show="open" x-transition.opacity
+         class="fixed bottom-4 right-4 z-40 w-[min(440px,calc(100vw-2rem))] h-[min(78vh,720px)] rounded-2xl bg-[#0b0712] border border-white/10 shadow-2xl shadow-black/60 flex flex-col overflow-hidden">
+        <div class="flex items-center justify-between gap-2 px-3 py-2 border-b border-white/10 bg-white/5">
+            <div class="flex items-center gap-2 min-w-0">
+                <i class="fas fa-eye text-violet-400 text-xs"></i>
+                <span class="text-xs font-semibold text-white truncate">About preview</span>
+                <span x-show="loading" class="text-[10px] uppercase tracking-wider text-white/40">Loading…</span>
+            </div>
+            <div class="flex items-center gap-0.5 shrink-0">
+                <button type="button" @click="reload()" class="text-xs px-2 py-1 rounded text-white/70 hover:text-white hover:bg-white/10" title="Refresh preview"><i class="fas fa-rotate-right"></i></button>
+                <a :href="src" target="_blank" rel="noopener" class="text-xs px-2 py-1 rounded text-white/70 hover:text-white hover:bg-white/10" title="Open /about in a new tab"><i class="fas fa-up-right-from-square"></i></a>
+                <button type="button" @click="setOpen(false)" class="text-xs px-2 py-1 rounded text-white/70 hover:text-white hover:bg-white/10" title="Close preview"><i class="fas fa-xmark"></i></button>
+            </div>
+        </div>
+        <div class="flex-1 bg-white">
+            <iframe :src="src" @load="loading=false" class="w-full h-full border-0 block" title="About page preview"></iframe>
+        </div>
+        <div class="px-3 py-1.5 text-[10px] text-white/50 border-t border-white/10 bg-black/30 flex items-center justify-between gap-2">
+            <span class="truncate">Save changes to refresh the preview.</span>
+            <span class="shrink-0 text-white/30">/about</span>
+        </div>
+    </div>
+</div>
+
+@once
+<script>
+    window.aboutEditorPreview = function () {
+        const STORAGE_KEY_OPEN = 'about-editor-preview-open';
+        const STORAGE_KEY_SCROLL = 'about-editor-scroll-y';
+        const PREVIEW_URL = @json(route('site.about'));
+        const buildSrc = () => PREVIEW_URL + (PREVIEW_URL.indexOf('?') >= 0 ? '&' : '?') + '_pv=' + Date.now();
+        return {
+            open: false,
+            loading: true,
+            src: PREVIEW_URL,
+            init() {
+                try { this.open = localStorage.getItem(STORAGE_KEY_OPEN) === '1'; } catch (e) {}
+                this.src = buildSrc();
+                // Reserve enough body bottom-padding while the panel is open
+                // so the Save button (which sits at the very bottom of the
+                // form) never ends up trapped behind the floating panel.
+                this._applyBodyPadding();
+                this.$watch('open', () => this._applyBodyPadding());
+
+                // Restore the editor scroll position if a save just happened,
+                // and reload the iframe so the preview reflects the new save.
+                let savedScroll = null;
+                try { savedScroll = sessionStorage.getItem(STORAGE_KEY_SCROLL); } catch (e) {}
+                if (savedScroll !== null) {
+                    try { sessionStorage.removeItem(STORAGE_KEY_SCROLL); } catch (e) {}
+                    const y = parseInt(savedScroll, 10);
+                    if (!Number.isNaN(y)) {
+                        // Re-pin scroll across late layout shifts (images, fonts).
+                        window.scrollTo(0, y);
+                        window.addEventListener('load', () => window.scrollTo(0, y), { once: true });
+                    }
+                    this.reload();
+                }
+
+                // Snapshot scroll before submit so the post-save redirect
+                // can land on the same spot in the editor.
+                const form = this.$el && this.$el.closest ? this.$el.closest('form') : null;
+                if (form) {
+                    form.addEventListener('submit', () => {
+                        try { sessionStorage.setItem(STORAGE_KEY_SCROLL, String(window.scrollY)); } catch (e) {}
+                    });
+                }
+            },
+            setOpen(v) {
+                this.open = !!v;
+                try { localStorage.setItem(STORAGE_KEY_OPEN, this.open ? '1' : '0'); } catch (e) {}
+            },
+            reload() {
+                this.loading = true;
+                this.src = buildSrc();
+            },
+            _applyBodyPadding() {
+                try {
+                    document.body.style.paddingBottom = this.open
+                        ? 'calc(min(78vh, 720px) + 2.5rem)'
+                        : '';
+                } catch (e) {}
+            },
+        };
+    };
+</script>
+@endonce
