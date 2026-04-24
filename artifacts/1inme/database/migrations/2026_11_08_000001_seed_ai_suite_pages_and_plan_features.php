@@ -25,32 +25,71 @@ return new class extends Migration
 
     public function down(): void
     {
-        // Remove the four SitePage rows (only if they still hold the
-        // default content for these slugs — light touch).
-        DB::table('site_pages')->whereIn('slug', SitePagesContent::aiProductSlugs())->delete();
+        // Per CONTRIBUTING.md "Backfill / seed migration down() policy",
+        // every delete / unset below is gated on a "still equals what
+        // up() wrote" check. The previous version of this method was
+        // documented as "light touch" but actually deleted unconditionally
+        // and silently discarded admin edits to the AI suite pages,
+        // /features sections, and plan features JSON.
 
-        // Strip the AI suite category from the features page sections.
+        // 1. Remove the four AI SitePage rows ONLY if their content still
+        //    matches the seeded default for that slug.
+        $defaults = SitePagesContent::aiProductsDefault();
+        foreach (SitePagesContent::aiProductSlugs() as $slug) {
+            $row = DB::table('site_pages')->where('slug', $slug)->first();
+            if (!$row) {
+                continue;
+            }
+            $seed = $defaults[$slug] ?? null;
+            if (!$seed) {
+                continue;
+            }
+            $rowSections  = json_decode((string) ($row->sections ?? ''), true);
+            $seedSections = $seed['sections'] ?? [];
+            $matches = $row->title === $seed['title']
+                && ($row->meta_description ?? null) === ($seed['meta_description'] ?? null)
+                && $rowSections == $seedSections
+                && ($row->cta_label ?? null) === ($seed['cta_label'] ?? null)
+                && ($row->cta_url ?? null) === ($seed['cta_url'] ?? null);
+            if ($matches) {
+                DB::table('site_pages')->where('id', $row->id)->delete();
+            }
+        }
+
+        // 2. Strip the AI suite category from /features sections ONLY if the
+        //    in-place category still equals the seeded one. An admin who
+        //    re-ordered features inside the category, renamed it, or added
+        //    a link will see their edits preserved.
         $row = DB::table('site_pages')->where('slug', 'features')->first();
         if ($row) {
             $sections = json_decode($row->sections ?? '[]', true) ?: [];
-            $filtered = array_values(array_filter($sections, function ($s) {
+            $seedCat  = SitePagesContent::aiSuiteFeaturesCategory();
+            $changed  = false;
+            $kept     = [];
+            foreach ($sections as $s) {
                 $id = is_array($s) ? trim((string) ($s['id'] ?? '')) : '';
-                return $id !== 'ai-suite';
-            }));
-            if (count($filtered) !== count($sections)) {
+                if ($id === 'ai-suite' && $s == $seedCat) {
+                    $changed = true;
+                    continue;
+                }
+                $kept[] = $s;
+            }
+            if ($changed) {
                 DB::table('site_pages')->where('id', $row->id)->update([
-                    'sections' => json_encode($filtered),
+                    'sections' => json_encode(array_values($kept)),
                 ]);
             }
         }
 
-        // Strip AI feature keys from plans.
+        // 3. Strip AI feature keys from plans ONLY where the value still
+        //    equals the seeded default for that plan tier.
         $plans = DB::table('plans')->get();
         foreach ($plans as $plan) {
             $features = json_decode($plan->features ?? '[]', true) ?: [];
+            $tierDefaults = $this->planFeatureDefaultsFor($plan->slug);
             $changed = false;
-            foreach (['ai_chatbot', 'ai_agent', 'ai_widget', 'ai_voice_assistant'] as $k) {
-                if (array_key_exists($k, $features)) {
+            foreach ($tierDefaults as $k => $v) {
+                if (array_key_exists($k, $features) && $features[$k] === $v) {
                     unset($features[$k]);
                     $changed = true;
                 }
@@ -109,21 +148,10 @@ return new class extends Migration
 
     private function seedPlanFeatures(): void
     {
-        // Defaults per plan tier slug. Plans with unknown slugs get the
-        // free-tier defaults (everything off) so we never accidentally
-        // unlock paid AI features on a custom tier.
-        $defaults = [
-            'free'       => ['ai_chatbot' => false, 'ai_agent' => false, 'ai_widget' => false, 'ai_voice_assistant' => false],
-            'starter'    => ['ai_chatbot' => true,  'ai_agent' => false, 'ai_widget' => true,  'ai_voice_assistant' => false],
-            'pro'        => ['ai_chatbot' => true,  'ai_agent' => true,  'ai_widget' => true,  'ai_voice_assistant' => false],
-            'business'   => ['ai_chatbot' => true,  'ai_agent' => true,  'ai_widget' => true,  'ai_voice_assistant' => true],
-            'enterprise' => ['ai_chatbot' => true,  'ai_agent' => true,  'ai_widget' => true,  'ai_voice_assistant' => true],
-        ];
-
         $plans = DB::table('plans')->get();
         foreach ($plans as $plan) {
             $features = json_decode($plan->features ?? '[]', true) ?: [];
-            $tierDefaults = $defaults[$plan->slug] ?? $defaults['free'];
+            $tierDefaults = $this->planFeatureDefaultsFor($plan->slug);
             $changed = false;
             foreach ($tierDefaults as $k => $v) {
                 if (!array_key_exists($k, $features)) {
@@ -137,5 +165,22 @@ return new class extends Migration
                 ]);
             }
         }
+    }
+
+    /**
+     * Defaults per plan tier slug. Plans with unknown slugs get the
+     * free-tier defaults (everything off) so we never accidentally
+     * unlock paid AI features on a custom tier.
+     */
+    private function planFeatureDefaultsFor(?string $slug): array
+    {
+        $defaults = [
+            'free'       => ['ai_chatbot' => false, 'ai_agent' => false, 'ai_widget' => false, 'ai_voice_assistant' => false],
+            'starter'    => ['ai_chatbot' => true,  'ai_agent' => false, 'ai_widget' => true,  'ai_voice_assistant' => false],
+            'pro'        => ['ai_chatbot' => true,  'ai_agent' => true,  'ai_widget' => true,  'ai_voice_assistant' => false],
+            'business'   => ['ai_chatbot' => true,  'ai_agent' => true,  'ai_widget' => true,  'ai_voice_assistant' => true],
+            'enterprise' => ['ai_chatbot' => true,  'ai_agent' => true,  'ai_widget' => true,  'ai_voice_assistant' => true],
+        ];
+        return $defaults[$slug] ?? $defaults['free'];
     }
 };

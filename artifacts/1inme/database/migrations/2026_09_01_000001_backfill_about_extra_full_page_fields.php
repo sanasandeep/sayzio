@@ -41,16 +41,31 @@ return new class extends Migration
 
     public function down(): void
     {
+        // Per CONTRIBUTING.md "Backfill / seed migration down() policy":
+        // only strip the keys we added in up() if their value is still
+        // structurally equal to the seeded default. Any drift means an
+        // admin edited the group via the new editor and we must preserve
+        // their copy.
         $about = SitePage::where('slug', 'about')->first();
         if (!$about || !is_array($about->extra)) {
             return;
         }
 
         $extra = $about->extra;
+        $defaults = SitePagesContent::aboutExtraDefault();
+        $changed = false;
         foreach (['hero', 'values', 'story_images', 'section_titles', 'cta'] as $key) {
-            unset($extra[$key]);
+            if (!array_key_exists($key, $extra) || !array_key_exists($key, $defaults)) {
+                continue;
+            }
+            if ($extra[$key] == $defaults[$key]) {
+                unset($extra[$key]);
+                $changed = true;
+            }
         }
-        $about->extra = $extra;
-        $about->save();
+        if ($changed) {
+            $about->extra = $extra;
+            $about->save();
+        }
     }
 };

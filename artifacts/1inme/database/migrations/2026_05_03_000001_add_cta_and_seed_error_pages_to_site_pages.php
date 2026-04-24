@@ -15,7 +15,43 @@ return new class extends Migration
         });
 
         $now = now();
-        $rows = [
+        foreach ($this->seedRows() as $r) {
+            $exists = DB::table('site_pages')->where('slug', $r['slug'])->exists();
+            if (!$exists) {
+                DB::table('site_pages')->insert(array_merge($r, [
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]));
+            }
+        }
+    }
+
+    public function down(): void
+    {
+        // Per CONTRIBUTING.md "Backfill / seed migration down() policy":
+        // only delete a seeded error page if every column we wrote in up()
+        // still equals the seeded default. If an admin edited the title,
+        // copy, or CTA, the row has drifted and is no longer ours to drop.
+        // (We must do this before dropping the cta_* columns below so the
+        // comparison can read them.)
+        foreach ($this->seedRows() as $seed) {
+            $row = DB::table('site_pages')->where('slug', $seed['slug'])->first();
+            if (!$row) {
+                continue;
+            }
+            if ($this->matchesSeed($row, $seed)) {
+                DB::table('site_pages')->where('id', $row->id)->delete();
+            }
+        }
+
+        Schema::table('site_pages', function (Blueprint $table) {
+            $table->dropColumn(['cta_label', 'cta_url']);
+        });
+    }
+
+    private function seedRows(): array
+    {
+        return [
             [
                 'slug'             => 'error-404',
                 'title'            => 'Page not found',
@@ -43,23 +79,19 @@ return new class extends Migration
                 'cta_url'          => '/',
             ],
         ];
-
-        foreach ($rows as $r) {
-            $exists = DB::table('site_pages')->where('slug', $r['slug'])->exists();
-            if (!$exists) {
-                DB::table('site_pages')->insert(array_merge($r, [
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ]));
-            }
-        }
     }
 
-    public function down(): void
+    private function matchesSeed(object $row, array $seed): bool
     {
-        DB::table('site_pages')->whereIn('slug', ['error-403', 'error-404'])->delete();
-        Schema::table('site_pages', function (Blueprint $table) {
-            $table->dropColumn(['cta_label', 'cta_url']);
-        });
+        // Compare sections through json_decode so whitespace / key ordering
+        // differences do not falsely block a clean rollback.
+        $rowSections  = json_decode((string) ($row->sections ?? ''), true);
+        $seedSections = json_decode((string) $seed['sections'], true);
+
+        return $row->title === $seed['title']
+            && ($row->meta_description ?? null) === $seed['meta_description']
+            && $rowSections == $seedSections
+            && ($row->cta_label ?? null) === $seed['cta_label']
+            && ($row->cta_url ?? null) === $seed['cta_url'];
     }
 };

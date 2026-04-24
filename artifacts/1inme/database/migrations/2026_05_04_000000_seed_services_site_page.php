@@ -15,20 +15,41 @@ return new class extends Migration
         if (!Schema::hasTable('site_pages')) {
             return;
         }
-        SitePage::updateOrCreate(
-            ['slug' => 'services'],
-            [
-                'title' => 'What you can do with 1INME',
-                'meta_description' => 'See how marketers, creators, agencies, small businesses and event organizers use 1INME as their link-in-bio, portfolio, and audience hub.',
-                'sections' => SitePagesSeeder::servicesDefaultSections(),
-                'cta_label' => 'Create your 1INME',
-                'cta_url' => '/register',
-            ]
-        );
+        SitePage::updateOrCreate(['slug' => 'services'], $this->seedAttributes());
     }
 
     public function down(): void
     {
-        SitePage::where('slug', 'services')->delete();
+        // Per CONTRIBUTING.md "Backfill / seed migration down() policy":
+        // only delete the seeded /services row if every column we wrote in
+        // up() still equals the seeded default. Any drift means an admin
+        // edited the page and we must preserve their work.
+        if (!Schema::hasTable('site_pages')) {
+            return;
+        }
+        $row = SitePage::where('slug', 'services')->first();
+        if (!$row) {
+            return;
+        }
+        $seed = $this->seedAttributes();
+        $matches = $row->title === $seed['title']
+            && $row->meta_description === $seed['meta_description']
+            && (is_array($row->sections) ? $row->sections : []) == $seed['sections']
+            && $row->cta_label === $seed['cta_label']
+            && $row->cta_url === $seed['cta_url'];
+        if ($matches) {
+            $row->delete();
+        }
+    }
+
+    private function seedAttributes(): array
+    {
+        return [
+            'title' => 'What you can do with 1INME',
+            'meta_description' => 'See how marketers, creators, agencies, small businesses and event organizers use 1INME as their link-in-bio, portfolio, and audience hub.',
+            'sections' => SitePagesSeeder::servicesDefaultSections(),
+            'cta_label' => 'Create your 1INME',
+            'cta_url' => '/register',
+        ];
     }
 };
