@@ -115,4 +115,10 @@ jobs:
           PGPASSWORD: password
 
       - name: Run PHPUnit suite (the actual guard)
-        run: php artisan test
+        # --parallel uses brianium/paratest to fan tests out across multiple
+        # worker processes, each with its own per-worker Postgres database
+        # (onein_me_ci_test_1, _test_2, ...). The default `postgres`
+        # superuser on the service container can CREATE DATABASE, so no
+        # extra grants are needed. Cuts CI wall time noticeably as the
+        # suite grows past 60+ test files.
+        run: php artisan test --parallel
