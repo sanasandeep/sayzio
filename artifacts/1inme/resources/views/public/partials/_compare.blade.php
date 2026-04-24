@@ -110,13 +110,36 @@
                 showAll: {{ $compact ? 'false' : 'true' }},
                 rivals: @js(array_slice($__cmpCompetitors, 1)),
                 scores: @js($__cmpScores),
+                winsAnim: 0,
+                ourAnim: 0,
+                rivalAnim: 0,
+                _raf: null,
                 rivalName(){ return (this.rivals.find(r => r.key === this.rival) || {}).name || ''; },
                 rivalTagline(){ return (this.rivals.find(r => r.key === this.rival) || {}).tagline || ''; },
                 rivalBadge(){ return (this.rivals.find(r => r.key === this.rival) || {}).badge || ''; },
                 ourScore(){ return this.scores.ours || 0; },
                 rivalScore(){ return this.scores[this.rival] || 0; },
-                wins(){ return Math.max(0, this.ourScore() - this.rivalScore()); }
+                wins(){ return Math.max(0, this.ourScore() - this.rivalScore()); },
+                animateTo(targets){
+                    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                        this.ourAnim = targets.ours; this.rivalAnim = targets.rival; this.winsAnim = targets.wins; return;
+                    }
+                    if (this._raf) cancelAnimationFrame(this._raf);
+                    const start = performance.now(); const dur = 700;
+                    const from = { ours: this.ourAnim, rival: this.rivalAnim, wins: this.winsAnim };
+                    const tick = (t) => {
+                        const k = Math.min(1, (t - start) / dur);
+                        const e = 1 - Math.pow(1 - k, 3);
+                        this.ourAnim   = Math.round(from.ours  + (targets.ours  - from.ours)  * e);
+                        this.rivalAnim = Math.round(from.rival + (targets.rival - from.rival) * e);
+                        this.winsAnim  = Math.round(from.wins  + (targets.wins  - from.wins)  * e);
+                        if (k < 1) this._raf = requestAnimationFrame(tick);
+                    };
+                    this._raf = requestAnimationFrame(tick);
+                }
             }"
+            x-init="$nextTick(() => animateTo({ ours: ourScore(), rival: rivalScore(), wins: wins() }))"
+            x-effect="animateTo({ ours: ourScore(), rival: rivalScore(), wins: wins() })"
         >
             {{-- Rival selector chips --}}
             <div class="cmp-tabs flex flex-wrap items-center justify-center gap-2 mb-6">
@@ -133,6 +156,47 @@
                 @endforeach
             </div>
 
+            {{-- ────────── VS hero — side-by-side brand cards ────────── --}}
+            <div class="cmp-vs grid items-stretch gap-3 mb-6"
+                 style="grid-template-columns: 1fr auto 1fr;">
+                {{-- Our card --}}
+                <div class="cmp-vs-card cmp-vs-ours rounded-2xl p-4 sm:p-5">
+                    <div class="cmp-vs-name">
+                        <i class="fas fa-bolt"></i> 1INME
+                    </div>
+                    <div class="cmp-vs-tagline">The whole growth stack</div>
+                    <div class="cmp-vs-meta">
+                        <span class="cmp-vs-score grad-text"><span x-text="ourAnim">{{ $__cmpScores['ours'] }}</span><span class="cmp-vs-score-total">/{{ $__cmpTotal }}</span></span>
+                        <span class="cmp-vs-bar"><span class="cmp-vs-bar-fill cmp-vs-bar-ours" :style="`width:${(ourAnim/{{ $__cmpTotal }})*100}%`"></span></span>
+                    </div>
+                </div>
+
+                {{-- Center VS badge --}}
+                <div class="cmp-vs-center">
+                    <div class="cmp-vs-badge" aria-hidden="true">
+                        <span>VS</span>
+                    </div>
+                    <div class="cmp-vs-wins" x-show="wins() > 0" x-cloak>
+                        <span class="cmp-vs-wins-num grad-text" x-text="winsAnim">0</span>
+                        <span class="cmp-vs-wins-label">feature lead</span>
+                    </div>
+                </div>
+
+                {{-- Rival card --}}
+                <div class="cmp-vs-card cmp-vs-rival rounded-2xl p-4 sm:p-5"
+                     :key="rival"
+                     x-transition:enter="cmp-vs-fade"
+                     x-transition:enter-start="opacity-0"
+                     x-transition:enter-end="opacity-100">
+                    <div class="cmp-vs-name text-gray-200" x-text="rivalName()">Linktree</div>
+                    <div class="cmp-vs-tagline" x-text="rivalTagline()">Bio link page</div>
+                    <div class="cmp-vs-meta">
+                        <span class="cmp-vs-score text-gray-200"><span x-text="rivalAnim">{{ $__cmpScores['linktree'] }}</span><span class="cmp-vs-score-total">/{{ $__cmpTotal }}</span></span>
+                        <span class="cmp-vs-bar"><span class="cmp-vs-bar-fill cmp-vs-bar-rival" :style="`width:${(rivalAnim/{{ $__cmpTotal }})*100}%`"></span></span>
+                    </div>
+                </div>
+            </div>
+
             {{-- Animated win counter --}}
             <div class="cmp-counter grad-border rounded-2xl px-5 py-4 mb-6 flex flex-wrap items-center justify-between gap-4">
                 <div class="flex items-center gap-3">
@@ -141,15 +205,15 @@
                         <div class="text-gray-400 text-xs uppercase tracking-wider font-bold">Head-to-head</div>
                         <div class="text-white font-semibold">
                             1INME wins
-                            <span class="grad-text font-extrabold text-lg" x-text="wins()">0</span>
+                            <span class="grad-text font-extrabold text-lg" x-text="winsAnim">0</span>
                             more features than
                             <span class="text-white" x-text="rivalName()"></span>
                         </div>
                     </div>
                 </div>
                 <div class="flex items-center gap-2 text-xs">
-                    <span class="cmp-badge cmp-badge-ours"><i class="fas fa-bolt"></i> 1INME · <span x-text="ourScore()">{{ $__cmpScores['ours'] }}</span>/{{ $__cmpTotal }}</span>
-                    <span class="cmp-badge"><span x-text="rivalName()"></span> · <span x-text="rivalScore()">{{ $__cmpScores['linktree'] }}</span>/{{ $__cmpTotal }}</span>
+                    <span class="cmp-badge cmp-badge-ours"><i class="fas fa-bolt"></i> 1INME · <span x-text="ourAnim">{{ $__cmpScores['ours'] }}</span>/{{ $__cmpTotal }}</span>
+                    <span class="cmp-badge"><span x-text="rivalName()"></span> · <span x-text="rivalAnim">{{ $__cmpScores['linktree'] }}</span>/{{ $__cmpTotal }}</span>
                 </div>
             </div>
 

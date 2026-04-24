@@ -29,10 +29,75 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-{{ min(count($plans), 4) }} gap-5">
+    {{-- ───── Smart "Recommended for you" callout ───── --}}
+    @php $rec = $recommendation ?? null; @endphp
+    @if($rec && $rec['recommendedPlan'])
+        @php $recPlan = $rec['recommendedPlan']; @endphp
+        <div class="rounded-2xl border border-pink-400/40 p-5 sm:p-6 bg-gradient-to-br from-violet-600/15 via-pink-500/10 to-amber-500/5 relative overflow-hidden">
+            <div class="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-pink-500/15 blur-3xl pointer-events-none"></div>
+            <div class="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-5 items-center">
+                <div>
+                    <div class="text-[11px] font-bold uppercase tracking-[.2em] text-pink-300 mb-1">
+                        <i class="fas fa-wand-magic-sparkles"></i> Recommended for you
+                    </div>
+                    <div class="text-white text-xl font-semibold">
+                        Step up to <span class="text-white">{{ $recPlan->name }}</span>
+                    </div>
+                    <p class="text-sm text-white/70 mt-1">{{ $rec['reason'] }}</p>
+                </div>
+                @if(!empty($rec['usage']))
+                    <div class="space-y-2">
+                        @foreach(array_slice($rec['usage'], 0, 3) as $u)
+                            <div>
+                                <div class="flex items-baseline justify-between text-xs">
+                                    <span class="text-white/70 capitalize">{{ $u['label'] }}</span>
+                                    <span class="text-white/55">
+                                        @if($u['unlimited'])
+                                            <span class="text-emerald-300 font-semibold">{{ number_format($u['used']) }}</span> · unlimited
+                                        @else
+                                            <span class="text-white font-semibold">{{ number_format($u['used']) }}</span> / {{ number_format($u['cap']) }} <span class="text-white/40">({{ $u['pct'] }}%)</span>
+                                        @endif
+                                    </span>
+                                </div>
+                                @unless($u['unlimited'])
+                                    <div class="h-1.5 rounded-full bg-white/[.06] mt-1 overflow-hidden">
+                                        <div class="h-full rounded-full" style="width: {{ max(2, $u['pct']) }}%; background: linear-gradient(90deg,{{ $u['pct'] >= 70 ? '#f59e0b,#ef4444' : '#7c3aed,#ec4899,#f59e0b' }});"></div>
+                                    </div>
+                                @endunless
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+        </div>
+    @endif
+
+    @php
+        // Same JIT-class fix as the public pricing page: dynamic
+        // `md:grid-cols-{N}` interpolation isn't picked up by Tailwind so
+        // we choose from a pre-known set instead.
+        $upgPlanCount = count($plans);
+        $upgGrid = match (true) {
+            $upgPlanCount >= 4 => 'md:grid-cols-2 lg:grid-cols-4',
+            $upgPlanCount === 3 => 'md:grid-cols-3',
+            $upgPlanCount === 2 => 'md:grid-cols-2',
+            default => 'md:grid-cols-1',
+        };
+        $recPlanIdInline = $rec['recommendedPlan']->id ?? null;
+    @endphp
+    <div class="grid grid-cols-1 {{ $upgGrid }} gap-5">
         @foreach($plans as $row)
-            @php $plan = $row['model']; $isCurrent = $user && $user->plan_id === $plan->id; @endphp
-            <div class="rounded-2xl border {{ $isCurrent ? 'border-violet-500/60 ring-1 ring-violet-500/40' : 'border-white/10' }} bg-white/[0.02] p-6 flex flex-col">
+            @php
+                $plan = $row['model'];
+                $isCurrent = $user && $user->plan_id === $plan->id;
+                $isRec = !$isCurrent && $recPlanIdInline === $plan->id;
+            @endphp
+            <div class="relative rounded-2xl border {{ $isCurrent ? 'border-emerald-500/60 ring-1 ring-emerald-500/40' : ($isRec ? 'border-pink-400/60 ring-1 ring-pink-400/30' : 'border-white/10') }} bg-white/[0.02] p-6 flex flex-col">
+                @if($isRec)
+                    <div class="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-violet-500 to-pink-500 text-white text-[10px] font-bold rounded-full uppercase tracking-wider shadow-lg shadow-pink-500/20">
+                        <i class="fas fa-wand-magic-sparkles mr-1"></i> Recommended
+                    </div>
+                @endif
                 <div class="space-y-1">
                     <div class="text-xs uppercase tracking-wider text-white/40">{{ $plan->name }}</div>
                     <div class="flex items-baseline gap-1">

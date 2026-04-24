@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\Addon;
 use App\Modules\Admin\Models\Plan;
 use App\Modules\User\Models\BillingAddress;
+use App\Services\PlanRecommender;
 use App\Services\PricingResolver;
 use App\Services\TaxCalculator;
 use Illuminate\Http\Request;
@@ -75,6 +76,8 @@ class UpgradeController extends Controller
             ];
         });
 
+        $recommendation = PlanRecommender::for($user, $plans);
+
         return view('user.upgrade.show', [
             'plans'      => $plansPriced,
             'addons'     => $addonsPriced,
@@ -84,6 +87,7 @@ class UpgradeController extends Controller
             'user'       => $user,
             'hasAddress' => $hasAddress,
             'billing'    => $billing,
+            'recommendation' => $recommendation,
         ]);
     }
 

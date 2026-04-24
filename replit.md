@@ -30,6 +30,7 @@ The platform offers advanced biolink customization, including:
 - **Card Container Block**: Allows grouping of child blocks within a customizable card.
 - **Biolink Editor**: Split into "Blocks" (drag-and-drop, grid-span, device preview) and "Settings" pages (appearance, layout, block-theme, advanced settings including SEO, Open Graph, PWA, branding, custom CSS/JS).
 - **Plan-Gated Features**: Custom branding, favicon, and custom CSS/JS injection based on user plans.
+- **Pricing & Smart Upgrade**: Public `/pricing` and in-app `/user/upgrade` share a `PlanRecommender` service (`app/Services/PlanRecommender.php`) that computes per-user usage gauges (links, biolinks, projects, storage, contacts, files), picks a recommended plan via a binding-cap rule (>=70% on any limit) with sensible fallbacks (next tier → most popular), and powers a personalised smart-upgrade banner + Recommended ribbons. The pricing page also renders a feature comparison matrix, a coin packages section, and a polished head-to-head competitor section (compact mode, with an animated VS hero) — all motion respects `prefers-reduced-motion`.
 
 ### Functional Systems
 - **File Management**: Per-user file storage with quota management and an AJAX API for operations.

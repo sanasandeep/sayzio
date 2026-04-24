@@ -8,6 +8,7 @@ use App\Modules\Admin\Models\Plan;
 use App\Modules\Common\Support\PremiumFeatures;
 use App\Modules\User\Models\BillingAddress;
 use App\Services\Billing\WalletService;
+use App\Services\PlanRecommender;
 use App\Services\PricingResolver;
 use App\Services\TaxCalculator;
 use Illuminate\Http\Request;
@@ -69,6 +70,8 @@ class PricingPagesController extends Controller
                 ];
             });
 
+        $recommendation = PlanRecommender::for($user, $plans);
+
         return view('public.pricing.plans', [
             'plans'         => $rows,
             'cycle'         => $cycle,
@@ -77,6 +80,7 @@ class PricingPagesController extends Controller
             'user'          => $user,
             'packages'      => $packages,
             'wallet_enabled'=> WalletService::isEnabled(),
+            'recommendation'=> $recommendation,
         ]);
     }
 

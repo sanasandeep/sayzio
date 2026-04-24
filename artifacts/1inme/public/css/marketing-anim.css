@@ -865,3 +865,105 @@ html.light-mode .why2-chip { color: #475569; background: rgba(15,23,42,.04); bor
     .why2-tick-path { stroke-dashoffset: 0 !important; transition: none !important; }
     .why2-cta:hover { background-position: 0 0; }
 }
+
+/* =====================================================================
+   Head-to-head VS hero — side-by-side brand cards above the matrix
+   ===================================================================== */
+.cmp-vs { position: relative; }
+.cmp-vs-card {
+    position: relative;
+    background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.015));
+    border: 1px solid rgba(255,255,255,.08);
+    transition: transform .35s cubic-bezier(.2,.7,.2,1), border-color .25s ease, background .25s ease;
+}
+.cmp-vs-ours {
+    background:
+        radial-gradient(70% 100% at 0% 0%, rgba(124,58,237,.18), transparent 60%),
+        radial-gradient(60% 100% at 100% 100%, rgba(236,72,153,.14), transparent 60%),
+        linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.015));
+    border-color: rgba(167,139,250,.35);
+    box-shadow: 0 18px 48px -28px rgba(167,139,250,.55);
+}
+.cmp-vs-rival {
+    background:
+        radial-gradient(70% 100% at 100% 0%, rgba(34,211,238,.10), transparent 60%),
+        linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.01));
+}
+.cmp-vs-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,.18); }
+.cmp-vs-name {
+    font-size: 1.05rem; font-weight: 800; color: #fff;
+    display: inline-flex; align-items: center; gap: .4rem;
+}
+.cmp-vs-ours .cmp-vs-name i { color: #a78bfa; }
+.cmp-vs-tagline { font-size: .78rem; color: #94a3b8; margin-top: .2rem; }
+.cmp-vs-meta { margin-top: .85rem; }
+.cmp-vs-score {
+    font-variant-numeric: tabular-nums;
+    font-size: 1.6rem; font-weight: 800; line-height: 1;
+}
+.cmp-vs-score-total { font-size: .85rem; opacity: .65; margin-left: .15rem; font-weight: 600; }
+.cmp-vs-bar {
+    display: block; margin-top: .5rem;
+    height: 6px; border-radius: 9999px;
+    background: rgba(255,255,255,.06); overflow: hidden;
+}
+.cmp-vs-bar-fill {
+    display: block; height: 100%;
+    transition: width .8s cubic-bezier(.2,.7,.2,1);
+    border-radius: 9999px;
+}
+.cmp-vs-bar-ours  { background: linear-gradient(90deg, #a78bfa, #ec4899, #fbbf24); }
+.cmp-vs-bar-rival { background: linear-gradient(90deg, #475569, #64748b); }
+
+.cmp-vs-center {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: .35rem; min-width: 70px;
+}
+.cmp-vs-badge {
+    width: 56px; height: 56px; border-radius: 9999px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: .82rem; letter-spacing: .08em; color: #fff;
+    background: linear-gradient(135deg,#7c3aed,#ec4899,#f59e0b);
+    box-shadow: 0 12px 36px -10px rgba(236,72,153,.6), inset 0 0 0 3px rgba(255,255,255,.08);
+    position: relative;
+    animation: cmpVsPulse 2.4s ease-in-out infinite;
+}
+.cmp-vs-badge::after {
+    content: ""; position: absolute; inset: -8px; border-radius: 9999px;
+    border: 1px dashed rgba(255,255,255,.18);
+    animation: cmpVsSpin 14s linear infinite;
+}
+@keyframes cmpVsPulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 12px 36px -10px rgba(236,72,153,.6), inset 0 0 0 3px rgba(255,255,255,.08); }
+    50%      { transform: scale(1.06); box-shadow: 0 18px 44px -10px rgba(167,139,250,.7), inset 0 0 0 3px rgba(255,255,255,.14); }
+}
+@keyframes cmpVsSpin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+.cmp-vs-wins {
+    text-align: center; line-height: 1;
+}
+.cmp-vs-wins-num {
+    display: block; font-weight: 900; font-size: 1.25rem;
+    font-variant-numeric: tabular-nums;
+}
+.cmp-vs-wins-label {
+    font-size: .62rem; font-weight: 700; letter-spacing: .12em;
+    text-transform: uppercase; color: #94a3b8; margin-top: .15rem; display: block;
+}
+
+.cmp-vs-fade { transition: opacity .35s ease; }
+
+@media (max-width: 640px) {
+    .cmp-vs { grid-template-columns: 1fr !important; }
+    .cmp-vs-center { order: 2; flex-direction: row; gap: .75rem; padding: .25rem 0; }
+    .cmp-vs-card { order: 1; }
+    .cmp-vs-rival { order: 3; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cmp-vs-badge, .cmp-vs-badge::after { animation: none !important; }
+    .cmp-vs-card:hover { transform: none !important; }
+    .cmp-vs-bar-fill { transition: none !important; }
+}
