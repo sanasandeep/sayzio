@@ -22,6 +22,10 @@
         array_intersect_key((array) ($contactExtra['office_image'] ?? []), $contactDefaults['office_image'])
     );
     $contactForm = array_replace($contactDefaults['form'], (array) ($contactExtra['form'] ?? []));
+    $contactMessages = array_replace(
+        $contactDefaults['messages'],
+        (array) ($contactExtra['messages'] ?? [])
+    );
 @endphp
 
 {{--
@@ -316,6 +320,39 @@
                 <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Submit button label</label>
                 <input type="text" name="extra[form][submit_label]" value="{{ $contactForm['submit_label'] }}" maxlength="80" placeholder="Send message" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
                 @error('extra.form.submit_label')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+            </div>
+        </div>
+    </div>
+
+    {{-- ========== POST-SUBMIT MESSAGES ========== --}}
+    <div>
+        <h3 class="text-sm font-semibold text-white">Post-submit messages</h3>
+        <p class="text-xs text-white/50 mb-3">The green flash shown after a successful submission and the (optional) wording of the required-field validation errors. Leave a field blank to keep the built-in default.</p>
+        <div class="bg-white/5 border border-white/10 rounded-xl p-4 space-y-4">
+            <div>
+                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Success message</label>
+                <textarea name="extra[messages][success]" rows="2" maxlength="500" placeholder="Thanks! Your message has been sent. We will reply within one business day." class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">{{ $contactMessages['success'] }}</textarea>
+                @error('extra.messages.success')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                <p class="mt-1 text-[11px] text-white/40">Shown in the green banner above the form after the visitor's message is delivered.</p>
+            </div>
+
+            <div class="pt-2 border-t border-white/10">
+                <p class="text-[10px] uppercase tracking-wider text-white/40 mb-2">Required-field error wording</p>
+                <p class="text-[11px] text-white/40 mb-3">Leave a row blank to keep Laravel's default phrasing (e.g. "The email field is required.").</p>
+                <div class="space-y-3">
+                    @foreach([
+                        ['key' => 'name_required',    'label' => 'Name required',    'placeholder' => 'The name field is required.'],
+                        ['key' => 'email_required',   'label' => 'Email required',   'placeholder' => 'The email field is required.'],
+                        ['key' => 'subject_required', 'label' => 'Subject required', 'placeholder' => 'The subject field is required.'],
+                        ['key' => 'message_required', 'label' => 'Message required', 'placeholder' => 'The message field is required.'],
+                    ] as $row)
+                        <div>
+                            <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">{{ $row['label'] }}</label>
+                            <input type="text" name="extra[messages][{{ $row['key'] }}]" value="{{ $contactMessages[$row['key']] }}" maxlength="200" placeholder="{{ $row['placeholder'] }}" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                            @error('extra.messages.'.$row['key'])<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                        </div>
+                    @endforeach
+                </div>
             </div>
         </div>
     </div>

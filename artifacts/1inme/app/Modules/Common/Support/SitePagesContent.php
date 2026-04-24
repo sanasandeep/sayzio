@@ -1092,6 +1092,18 @@ class SitePagesContent
                 'message_placeholder' => '',
                 'submit_label'        => 'Send message',
             ],
+            // Post-submit messages: the green success flash shown after a
+            // successful submission and the (optional) custom wording for the
+            // most common required-field validation errors. All blank by
+            // default so the controller falls back to its literal success
+            // sentence and Laravel's built-in :attribute-based phrasing.
+            'messages' => [
+                'success'          => '',
+                'name_required'    => '',
+                'email_required'   => '',
+                'subject_required' => '',
+                'message_required' => '',
+            ],
         ];
     }
 
@@ -1374,6 +1386,18 @@ class SitePagesContent
             'submit_label'        => mb_substr(trim((string) ($formIn['submit_label']        ?? '')), 0, 80),
         ];
 
+        // --- Post-submit messages (success flash + required-field overrides) ---
+        // Blank values are kept blank so the submission controller can detect
+        // "use the default" without needing extra plumbing.
+        $messagesIn = (array) ($input['messages'] ?? []);
+        $messages = [
+            'success'          => mb_substr(trim((string) ($messagesIn['success']          ?? '')), 0, 500),
+            'name_required'    => mb_substr(trim((string) ($messagesIn['name_required']    ?? '')), 0, 200),
+            'email_required'   => mb_substr(trim((string) ($messagesIn['email_required']   ?? '')), 0, 200),
+            'subject_required' => mb_substr(trim((string) ($messagesIn['subject_required'] ?? '')), 0, 200),
+            'message_required' => mb_substr(trim((string) ($messagesIn['message_required'] ?? '')), 0, 200),
+        ];
+
         return [
             'address' => trim((string) ($input['address'] ?? '')),
             'email'   => trim((string) ($input['email']   ?? '')),
@@ -1391,6 +1415,7 @@ class SitePagesContent
             'feature_cards'   => $features,
             'office_image'    => $officeImage,
             'form'            => $form,
+            'messages'        => $messages,
         ];
     }
 

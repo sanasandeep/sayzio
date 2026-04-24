@@ -277,6 +277,143 @@ class ContactSitePageEditorTest extends TestCase
         $this->assertArrayNotHasKey('tiktok', $page->extra['social']);
     }
 
+    public function test_post_submit_messages_round_trip_through_admin_save(): void
+    {
+        // Task #782 — admins can edit the green success flash and (optionally)
+        // the per-field "required" validation wording. All five fields must
+        // round-trip through the admin save: trimmed, length-capped, and
+        // stored under extra.messages so the public submission flow can pick
+        // them up.
+        $admin = $this->makeAdmin();
+        $page  = $this->makeContactPage();
+
+        $this->actingAs($admin, 'admin')
+            ->put('/admin/site-pages/contact', $this->payload([
+                'address' => '', 'email' => '', 'phone' => '', 'hours' => '',
+                'social'  => [],
+                'map'     => ['lat' => 0, 'lng' => 0, 'zoom' => 5, 'label' => ''],
+                'messages' => [
+                    'success'          => '  We got it — talk soon!  ',
+                    'name_required'    => 'Tell us your name.',
+                    'email_required'   => 'We need an email to reply.',
+                    'subject_required' => '',  // blank = fall back to Laravel default
+                    'message_required' => 'Add a short message before sending.',
+                ],
+            ]))
+            ->assertRedirect(route('admin.site-pages.edit', 'contact'))
+            ->assertSessionHasNoErrors();
+
+        $page->refresh();
+        $stored = $page->extra['messages'] ?? null;
+        $this->assertIsArray($stored);
+        // Outer whitespace is trimmed but the message is otherwise preserved.
+        $this->assertSame('We got it — talk soon!',         $stored['success']);
+        $this->assertSame('Tell us your name.',             $stored['name_required']);
+        $this->assertSame('We need an email to reply.',     $stored['email_required']);
+        $this->assertSame('',                                $stored['subject_required']);
+        $this->assertSame('Add a short message before sending.', $stored['message_required']);
+    }
+
+    public function test_oversize_post_submit_messages_are_rejected_by_validation(): void
+    {
+        // The success message has a 500-char rule and each per-field
+        // override has a 200-char rule. Oversize input must fail
+        // validation rather than silently truncating server-side.
+        $admin = $this->makeAdmin();
+        $this->makeContactPage();
+
+        $resp = $this->actingAs($admin, 'admin')
+            ->withHeaders(['Accept' => 'application/json'])
+            ->put('/admin/site-pages/contact', $this->payload([
+                'address' => '', 'email' => '', 'phone' => '', 'hours' => '',
+                'social'  => [],
+                'map'     => ['lat' => 0, 'lng' => 0, 'zoom' => 5, 'label' => ''],
+                'messages' => [
+                    'success'        => str_repeat('x', 501),
+                    'email_required' => str_repeat('y', 201),
+                ],
+            ]));
+
+        $resp->assertStatus(422);
+        $errors = (array) ($resp->json('errors') ?? []);
+        $this->assertArrayHasKey('extra.messages.success',        $errors);
+        $this->assertArrayHasKey('extra.messages.email_required', $errors);
+    }
+
+    public function test_contact_submit_uses_admin_success_message(): void
+    {
+        // End-to-end: a real POST /contact with valid input must flash
+        // the admin-configured success message (not the hardcoded
+        // default sentence) when extra.messages.success is set.
+        $page = $this->makeContactPage();
+        $extra = $page->extra;
+        $extra['messages']['success'] = 'Custom success — heard you!';
+        $page->extra = $extra;
+        $page->save();
+
+        $resp = $this->from('/contact')->post('/contact', [
+            'name'    => 'Visitor',
+            'email'   => 'visitor@example.com',
+            'subject' => 'Hello',
+            'message' => 'A short note from a visitor.',
+        ]);
+
+        $resp->assertRedirect('/contact');
+        $resp->assertSessionHas('success', 'Custom success — heard you!');
+    }
+
+    public function test_contact_submit_falls_back_to_default_success_when_blank(): void
+    {
+        // When the admin has not customized the success message (or has
+        // wiped it back to blank), the controller's literal default
+        // sentence is used so the page still renders a friendly flash.
+        $this->makeContactPage(); // seeded extra has messages.success === ''
+
+        $resp = $this->from('/contact')->post('/contact', [
+            'name'    => 'Visitor',
+            'email'   => 'visitor@example.com',
+            'subject' => 'Hello',
+            'message' => 'A short note from a visitor.',
+        ]);
+
+        $resp->assertRedirect('/contact');
+        $resp->assertSessionHas('success', 'Thanks! Your message has been sent. We will reply within one business day.');
+    }
+
+    public function test_contact_submit_uses_admin_required_field_message_only_when_set(): void
+    {
+        // Mixed override: admin set a custom email-required message but
+        // left name/subject/message blank. Submitting an empty form
+        // must produce the custom email line plus Laravel-default
+        // phrasing for the other three fields.
+        $page = $this->makeContactPage();
+        $extra = $page->extra;
+        $extra['messages']['email_required'] = 'Please share your email so we can reply.';
+        $page->extra = $extra;
+        $page->save();
+
+        $resp = $this->from('/contact')->post('/contact', [
+            'name' => '', 'email' => '', 'subject' => '', 'message' => '',
+        ]);
+
+        $resp->assertRedirect('/contact');
+        $resp->assertSessionHasErrors(['name', 'email', 'subject', 'message']);
+        $errors = session('errors');
+        $this->assertSame(
+            'Please share your email so we can reply.',
+            $errors->first('email')
+        );
+        // The other three fields fall back to Laravel's default
+        // ":attribute is required" wording.
+        $this->assertStringContainsString('required', strtolower($errors->first('name')));
+        $this->assertStringContainsString('required', strtolower($errors->first('subject')));
+        $this->assertStringContainsString('required', strtolower($errors->first('message')));
+        // None of them accidentally inherit the email override.
+        $this->assertStringNotContainsString('Please share your email', $errors->first('name'));
+        $this->assertStringNotContainsString('Please share your email', $errors->first('subject'));
+        $this->assertStringNotContainsString('Please share your email', $errors->first('message'));
+    }
+
     public function test_invalid_social_url_is_rejected_by_validation(): void
     {
         // The controller requires social URLs to start with http(s)://

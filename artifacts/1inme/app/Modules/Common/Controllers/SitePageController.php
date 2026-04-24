@@ -277,17 +277,47 @@ class SitePageController extends Controller
 
     public function submitContact(Request $request)
     {
+        // Pull admin-editable post-submit copy out of the contact page's
+        // `extra` payload (task #782). Each value is optional — blank means
+        // "use the literal default" so the page keeps working before any
+        // admin saves the contact editor and after they wipe a field.
+        $contactPage = SitePage::where('slug', 'contact')->first();
+        $extra       = is_array($contactPage?->extra) ? $contactPage->extra : [];
+        $messages    = is_array($extra['messages'] ?? null) ? $extra['messages'] : [];
+
+        $defaultSuccess = 'Thanks! Your message has been sent. We will reply within one business day.';
+        $successMessage = trim((string) ($messages['success'] ?? '')) !== ''
+            ? trim((string) $messages['success'])
+            : $defaultSuccess;
+
+        // Map admin-supplied required-field error wording onto Laravel's
+        // rule-message dictionary. We only register an override when the
+        // admin actually typed something so blank fields keep Laravel's
+        // built-in ":attribute is required" phrasing.
+        $customRuleMessages = [];
+        foreach ([
+            'name'    => 'name_required',
+            'email'   => 'email_required',
+            'subject' => 'subject_required',
+            'message' => 'message_required',
+        ] as $field => $key) {
+            $val = trim((string) ($messages[$key] ?? ''));
+            if ($val !== '') {
+                $customRuleMessages[$field . '.required'] = $val;
+            }
+        }
+
         $data = $request->validate([
             'name'    => 'required|string|max:120',
             'email'   => 'required|email|max:190',
             'subject' => 'required|string|max:200',
             'message' => 'required|string|max:5000',
             'website' => 'nullable|max:0', // honeypot
-        ]);
+        ], $customRuleMessages);
 
         // Honeypot tripped — silently succeed.
         if (!empty($request->input('website'))) {
-            return back()->with('success', 'Thanks! We will get back to you shortly.');
+            return back()->with('success', $successMessage);
         }
 
         $key = 'contact:' . ($request->ip() ?? 'unknown');
@@ -319,6 +349,6 @@ class SitePageController extends Controller
             }
         }
 
-        return back()->with('success', 'Thanks! Your message has been sent. We will reply within one business day.');
+        return back()->with('success', $successMessage);
     }
 }

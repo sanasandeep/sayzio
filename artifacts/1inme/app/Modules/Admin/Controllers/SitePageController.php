@@ -226,6 +226,14 @@ class SitePageController extends Controller
             $rules['extra.form.message_label']           = 'nullable|string|max:80';
             $rules['extra.form.message_placeholder']     = 'nullable|string|max:200';
             $rules['extra.form.submit_label']            = 'nullable|string|max:80';
+            // Post-submit messages (success flash + per-field required-error
+            // overrides). Blank => use the controller's literal default and
+            // Laravel's built-in :attribute-based phrasing.
+            $rules['extra.messages.success']             = 'nullable|string|max:500';
+            $rules['extra.messages.name_required']       = 'nullable|string|max:200';
+            $rules['extra.messages.email_required']      = 'nullable|string|max:200';
+            $rules['extra.messages.subject_required']    = 'nullable|string|max:200';
+            $rules['extra.messages.message_required']    = 'nullable|string|max:200';
         }
         if ($slug === 'services') {
             $rules['sections.*.tagline']   = 'nullable|string|max:200';
