@@ -351,6 +351,179 @@ class AboutSitePageEditorTest extends TestCase
         $this->get('/about')->assertSee('Aarav Reddy', false);
     }
 
+    /**
+     * Minimal-but-valid /about update payload that lets each
+     * section_order test vary just the slug list. Other extra fields are
+     * left empty so the controller's normaliser fills in defaults.
+     */
+    private function payloadWithSectionOrder(array $sectionOrder): array
+    {
+        return [
+            'title'            => 'About 1INME',
+            'meta_description' => '',
+            'sections'         => [
+                ['id' => '', 'heading' => 'About 1INME', 'body' => 'Intro.', 'visible' => '1'],
+            ],
+            'cta_label' => '',
+            'cta_url'   => '',
+            'extra'     => [
+                'section_order' => $sectionOrder,
+            ],
+        ];
+    }
+
+    public function test_about_section_order_empty_array_persists_as_empty(): void
+    {
+        $admin = $this->makeAdmin();
+        $page  = $this->makeAboutPage();
+
+        $this->actingAs($admin, 'admin')
+            ->put('/admin/site-pages/about', $this->payloadWithSectionOrder([]))
+            ->assertRedirect(route('admin.site-pages.edit', 'about'))
+            ->assertSessionHasNoErrors();
+
+        $page->refresh();
+        $this->assertIsArray($page->extra);
+        $this->assertArrayHasKey('section_order', $page->extra);
+        // An empty submitted list must NOT be padded — that signals the
+        // admin hasn't customised the order, and the public template
+        // falls back to the canonical default order itself.
+        $this->assertSame([], $page->extra['section_order']);
+    }
+
+    public function test_about_section_order_partial_list_is_padded_to_full_set(): void
+    {
+        $admin = $this->makeAdmin();
+        $page  = $this->makeAboutPage();
+
+        // Submit two of the seven valid slugs in a non-default order;
+        // the remaining five must be appended in canonical order so
+        // the public page can never silently hide a section.
+        $this->actingAs($admin, 'admin')
+            ->put('/admin/site-pages/about', $this->payloadWithSectionOrder(['cta', 'team']))
+            ->assertRedirect(route('admin.site-pages.edit', 'about'))
+            ->assertSessionHasNoErrors();
+
+        $page->refresh();
+        $expected = ['cta', 'team', 'story', 'team_band', 'founder', 'co_founders', 'milestones'];
+        $this->assertSame($expected, $page->extra['section_order']);
+        $this->assertCount(
+            count(SitePagesContent::aboutLowerSectionSlugs()),
+            $page->extra['section_order']
+        );
+    }
+
+    public function test_about_section_order_drops_duplicates_and_pads_remainder(): void
+    {
+        $admin = $this->makeAdmin();
+        $page  = $this->makeAboutPage();
+
+        // Duplicates pass `in:` validation but must be collapsed by the
+        // normaliser; the remaining slugs are appended in canonical
+        // order. Whitespace-padded entries should also be trimmed.
+        $payload = $this->payloadWithSectionOrder([
+            'story',
+            ' story ',  // whitespace duplicate
+            'cta',
+            'cta',
+        ]);
+
+        $this->actingAs($admin, 'admin')
+            ->put('/admin/site-pages/about', $payload)
+            ->assertRedirect(route('admin.site-pages.edit', 'about'))
+            ->assertSessionHasNoErrors();
+
+        $page->refresh();
+        $expected = ['story', 'cta', 'team_band', 'founder', 'co_founders', 'team', 'milestones'];
+        $this->assertSame($expected, $page->extra['section_order']);
+    }
+
+    public function test_about_section_order_normalizer_drops_invalid_and_duplicate_slugs(): void
+    {
+        // Defense-in-depth: even if a future schema change loosens the
+        // controller `in:` rule, the normaliser itself must drop unknown
+        // slugs, non-string entries, and duplicates, and pad missing
+        // slugs in canonical order so no /about section is silently
+        // hidden.
+        $out = SitePagesContent::normalizeAboutExtra([
+            'section_order' => [
+                'story',
+                'bogus_slug',  // unknown -> dropped
+                'cta',
+                42,            // non-string -> dropped
+                'cta',         // duplicate -> dropped
+                'team',
+                null,          // non-string -> dropped
+                ' founder ',   // whitespace trimmed
+            ],
+        ]);
+
+        $expected = ['story', 'cta', 'team', 'founder', 'team_band', 'co_founders', 'milestones'];
+        $this->assertSame($expected, $out['section_order']);
+        $this->assertCount(
+            count(SitePagesContent::aboutLowerSectionSlugs()),
+            $out['section_order']
+        );
+
+        // Persistence-side check: a payload that survives validation
+        // (the four valid entries below all pass `in:`) is normalised
+        // before being written to site_pages.extra. Dupes are dropped
+        // and the missing slugs are padded in canonical order.
+        $admin = $this->makeAdmin();
+        $page  = $this->makeAboutPage();
+
+        $this->actingAs($admin, 'admin')
+            ->put('/admin/site-pages/about', $this->payloadWithSectionOrder([
+                'story', 'cta', 'team', 'cta',
+            ]))
+            ->assertRedirect(route('admin.site-pages.edit', 'about'))
+            ->assertSessionHasNoErrors();
+
+        $page->refresh();
+        $this->assertSame(
+            ['story', 'cta', 'team', 'team_band', 'founder', 'co_founders', 'milestones'],
+            $page->extra['section_order']
+        );
+    }
+
+    public function test_about_section_order_validation_rejects_unknown_slugs(): void
+    {
+        $admin = $this->makeAdmin();
+        $this->makeAboutPage();
+
+        // The controller's `in:` rule must reject unknown slugs with a
+        // 422 rather than letting them slip through to be silently
+        // cleaned by the normaliser.
+        $resp = $this->actingAs($admin, 'admin')
+            ->withHeaders(['Accept' => 'application/json'])
+            ->put('/admin/site-pages/about', $this->payloadWithSectionOrder(['story', 'bogus_slug', 'cta']));
+
+        $resp->assertStatus(422);
+        $errors = (array) ($resp->json('errors') ?? []);
+        // Laravel reports validation failures on the failing array index.
+        $this->assertArrayHasKey('extra.section_order.1', $errors);
+    }
+
+    public function test_about_section_order_validation_rejects_more_than_seven_entries(): void
+    {
+        $admin = $this->makeAdmin();
+        $this->makeAboutPage();
+
+        // Eight slugs (one duplicate brings the count past the cap)
+        // must be rejected by the `max:7` rule before the normaliser
+        // ever sees the payload.
+        $resp = $this->actingAs($admin, 'admin')
+            ->withHeaders(['Accept' => 'application/json'])
+            ->put('/admin/site-pages/about', $this->payloadWithSectionOrder([
+                'story', 'team_band', 'founder', 'co_founders',
+                'team', 'milestones', 'cta', 'cta',
+            ]));
+
+        $resp->assertStatus(422);
+        $errors = (array) ($resp->json('errors') ?? []);
+        $this->assertArrayHasKey('extra.section_order', $errors);
+    }
+
     public function test_about_extra_validation_rejects_bad_urls_and_over_limits(): void
     {
         $admin = $this->makeAdmin();
