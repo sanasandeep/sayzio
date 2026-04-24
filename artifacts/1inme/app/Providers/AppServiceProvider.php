@@ -2,9 +2,15 @@
 
 namespace App\Providers;
 
+use App\Modules\User\Models\Contact;
+use App\Modules\User\Models\Link;
+use App\Modules\User\Models\Project;
+use App\Modules\User\Models\UserFile;
 use App\Modules\User\Services\Calendar\CalendarProviderRegistry;
 use App\Modules\User\Services\Calendar\GoogleCalendarProvider;
+use App\Services\PlanRecommender;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -45,6 +51,42 @@ class AppServiceProvider extends ServiceProvider
         });
 
         $this->configureAuthRateLimiters();
+        $this->bustPlanRecommenderCacheOnUsageChange();
+    }
+
+    /**
+     * Keep the per-user usage cache backing PlanRecommender (used on
+     * /pricing and /user/upgrade) in sync with reality. The cache has a
+     * short TTL as a safety net, but for the user who *just* created a
+     * link / file / etc. we want the gauges in the upgrade banner to
+     * reflect the new value on the very next request — not 90s later.
+     *
+     * We watch created/updated/deleted: created/deleted are the obvious
+     * cases, and `updated` matters because Link.type can flip between
+     * "short" and "biolink" (which changes max_biolinks even though the
+     * row count is unchanged) and UserFile.size_bytes can change the
+     * storage_limit_mb gauge. Mass-update / DB::table writes bypass
+     * model events; the TTL covers those cases.
+     */
+    protected function bustPlanRecommenderCacheOnUsageChange(): void
+    {
+        $forget = function (Model $row) {
+            // After an update of user_id (rare) we'd want to bust both
+            // sides; getOriginal() gives us the pre-update value.
+            $current  = (int) ($row->getAttribute('user_id') ?? 0);
+            $previous = (int) ($row->getOriginal('user_id') ?? $current);
+            foreach (array_unique([$current, $previous]) as $id) {
+                if ($id > 0) {
+                    PlanRecommender::forgetUsage($id);
+                }
+            }
+        };
+
+        foreach ([Link::class, Contact::class, UserFile::class, Project::class] as $modelClass) {
+            $modelClass::created($forget);
+            $modelClass::updated($forget);
+            $modelClass::deleted($forget);
+        }
     }
 
     /**

@@ -8,6 +8,7 @@ use App\Modules\User\Models\Link;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserFile;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Computes a smart plan suggestion + usage signals for the logged-in
@@ -26,42 +27,38 @@ use Illuminate\Support\Collection;
  *
  * The returned array is intentionally view-friendly so blade templates
  * can render it without further computation.
+ *
+ * Performance: the per-user usage counts (links, biolinks, projects,
+ * storage bytes, contacts, files) are cached for {@see CACHE_TTL_SECONDS}
+ * so the busy /pricing and /user/upgrade pages don't run six count
+ * queries on every request. The cache is also event-busted whenever
+ * one of the underlying models is created or deleted (see
+ * AppServiceProvider::boot) so gauges stay believable for the user
+ * who just performed the write.
  */
 class PlanRecommender
 {
+    /** Per-user TTL for the cached usage counts. */
+    public const CACHE_TTL_SECONDS = 90;
+
+    /** Cache key prefix; concrete key is {prefix}{user_id}. */
+    private const CACHE_KEY_PREFIX = 'plan_recommender:counts:';
+
     /**
      * Tracked usage signals — each is a key on the plan `features` blob
-     * plus a closure that returns the user's current usage count for it.
+     * paired with the human-readable label used in the upgrade banner.
      *
-     * @return array<string, array{label:string, count:callable(User):int}>
+     * @return array<string, array{label:string}>
      */
     private static function signals(): array
     {
         return [
-            'max_links' => [
-                'label' => 'links',
-                'count' => fn (User $u) => (int) Link::where('user_id', $u->id)->count(),
-            ],
-            'max_biolinks' => [
-                'label' => 'Link in Bio pages',
-                'count' => fn (User $u) => (int) Link::where('user_id', $u->id)->where('type', 'biolink')->count(),
-            ],
-            'max_projects' => [
-                'label' => 'projects',
-                'count' => fn (User $u) => (int) $u->projects()->count(),
-            ],
-            'storage_limit_mb' => [
-                'label' => 'storage',
-                'count' => fn (User $u) => (int) round($u->getStorageUsedBytes() / 1048576),
-            ],
-            'contacts_max' => [
-                'label' => 'contacts',
-                'count' => fn (User $u) => (int) Contact::where('user_id', $u->id)->count(),
-            ],
-            'max_files' => [
-                'label' => 'files',
-                'count' => fn (User $u) => (int) UserFile::where('user_id', $u->id)->count(),
-            ],
+            'max_links'        => ['label' => 'links'],
+            'max_biolinks'     => ['label' => 'Link in Bio pages'],
+            'max_projects'     => ['label' => 'projects'],
+            'storage_limit_mb' => ['label' => 'storage'],
+            'contacts_max'     => ['label' => 'contacts'],
+            'max_files'        => ['label' => 'files'],
         ];
     }
 
@@ -151,23 +148,62 @@ class PlanRecommender
     }
 
     /**
+     * Drop the cached usage counts for a user so the next pricing/upgrade
+     * page render recomputes them. Called from the model-event hooks
+     * registered in AppServiceProvider::boot whenever a Link, Contact,
+     * UserFile, or Project is created/deleted, and exposed publicly so
+     * other call-sites (e.g. tests, admin tooling) can bust on demand.
+     *
+     * Accepts a User, an integer user id, or null (no-op for null/0).
+     */
+    public static function forgetUsage(User|int|null $user): void
+    {
+        if ($user === null) {
+            return;
+        }
+        $id = $user instanceof User ? (int) $user->id : (int) $user;
+        if ($id <= 0) {
+            return;
+        }
+        Cache::forget(self::cacheKey($id));
+    }
+
+    /**
+     * Cache key used for a given user's count snapshot. Plan id is
+     * intentionally NOT part of the key — only the raw counts are
+     * cached, and the per-plan caps are reapplied on every read in
+     * {@see buildUsage}. That way changing plans (or admin features
+     * blob edits) takes effect immediately, and the cache-bust path
+     * doesn't need to know which plan the user happened to be on.
+     */
+    public static function cacheKey(int $userId): string
+    {
+        return self::CACHE_KEY_PREFIX . $userId;
+    }
+
+    /**
      * Per-signal usage rows with caps + percentages. Returns up to the
      * top signals where the user has *some* usage (so the banner stays
      * compact). Always includes the binding-most signal even if usage
      * is zero, so the banner has something to render.
+     *
+     * Reads counts from the per-user cache (see {@see counts}); the plan
+     * cap layer runs on every call so admin tweaks to features are
+     * reflected without waiting for the TTL.
      *
      * @return array<int, array{key:string,label:string,used:int,cap:int,pct:int,unlimited:bool}>
      */
     private static function buildUsage(User $user, ?Plan $plan): array
     {
         $features = $plan?->features ?? [];
+        $counts = self::counts($user);
         $rows = [];
         foreach (self::signals() as $key => $def) {
             $cap = (int) ($features[$key] ?? 0);
             // Skip signals the current plan doesn't define and that no
             // sensible default exists for; keeps the banner relevant.
             if ($cap === 0) continue;
-            $used = ($def['count'])($user);
+            $used = (int) ($counts[$key] ?? 0);
             $unlimited = $cap === -1;
             $pct = $unlimited ? 0 : (int) min(100, round(($used / max($cap, 1)) * 100));
             $rows[] = [
@@ -183,6 +219,42 @@ class PlanRecommender
         // closest-to-binding gauge.
         usort($rows, fn ($a, $b) => $b['pct'] <=> $a['pct']);
         return array_slice($rows, 0, 4);
+    }
+
+    /**
+     * Fetch the cached count snapshot for $user, computing it on miss.
+     * Short TTL keeps gauges believable; the AppServiceProvider event
+     * hooks bust the entry on writes so the user who just created a
+     * link doesn't see a stale "12/15 links" gauge for 90s.
+     *
+     * @return array<string,int>
+     */
+    private static function counts(User $user): array
+    {
+        return Cache::remember(
+            self::cacheKey((int) $user->id),
+            self::CACHE_TTL_SECONDS,
+            fn () => self::computeCounts($user),
+        );
+    }
+
+    /**
+     * Run the six per-user usage queries. Kept as its own method so the
+     * caching wrapper above is a one-liner and tests can exercise the
+     * raw computation directly when needed.
+     *
+     * @return array<string,int>
+     */
+    private static function computeCounts(User $user): array
+    {
+        return [
+            'max_links'        => (int) Link::where('user_id', $user->id)->count(),
+            'max_biolinks'     => (int) Link::where('user_id', $user->id)->where('type', 'biolink')->count(),
+            'max_projects'     => (int) $user->projects()->count(),
+            'storage_limit_mb' => (int) round($user->getStorageUsedBytes() / 1048576),
+            'contacts_max'     => (int) Contact::where('user_id', $user->id)->count(),
+            'max_files'        => (int) UserFile::where('user_id', $user->id)->count(),
+        ];
     }
 
     private static function cheaperPlanThatRaises(Collection $plans, ?Plan $current, string $key): ?Plan
