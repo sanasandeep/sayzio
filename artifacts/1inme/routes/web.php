@@ -111,7 +111,9 @@ Route::controller(\App\Modules\Common\Controllers\SitePageController::class)->gr
     Route::view('/docs/api', 'public.api-docs')->name('site.api-docs');
     Route::get('/services', fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('services'))->name('site.services');
     Route::get('/pricing',          [\App\Modules\Common\Controllers\PricingPagesController::class, 'plans'])   ->name('site.pricing');
-    Route::get('/coins',            [\App\Modules\Common\Controllers\PricingPagesController::class, 'coins'])   ->name('site.coins');
+    Route::get('/coins', function () {
+        return redirect()->route('site.pricing', ['view' => 'coins'], 301);
+    })->name('site.coins');
     Route::get('/premium-features', [\App\Modules\Common\Controllers\PricingPagesController::class, 'features'])->name('site.premium-features');
     Route::get('/{slug}/history', [\App\Modules\Common\Controllers\SitePageController::class, 'history'])
         ->where('slug', 'terms|privacy|refunds|cookies|gdpr')

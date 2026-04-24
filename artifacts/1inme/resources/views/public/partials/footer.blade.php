@@ -48,7 +48,7 @@
                 <li><a href="{{ route('site.how-it-works') }}" class="hover:text-white">How it works</a></li>
                 <li><a href="{{ route('site.workspace-team') }}" class="hover:text-white">Workspace &amp; Team</a></li>
                 <li><a href="{{ route('site.pricing') }}" class="hover:text-white">Pricing</a></li>
-                <li><a href="{{ route('site.coins') }}" class="hover:text-white">Coin packages</a></li>
+                <li><a href="{{ route('site.pricing', ['view' => 'coins']) }}" class="hover:text-white">Coin packages</a></li>
                 <li><a href="{{ route('site.premium-features') }}" class="hover:text-white">Premium features</a></li>
                 <li><a href="{{ route('site.api-docs') }}" class="hover:text-white">API</a></li>
                 <li><a href="{{ route('site.ai-chatbot') }}" class="hover:text-white">AI Chatbot</a></li>

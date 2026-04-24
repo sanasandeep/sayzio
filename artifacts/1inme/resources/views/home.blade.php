@@ -6089,7 +6089,7 @@
                 <i class="fas fa-tags text-[11px]"></i> Compare all plans
             </a>
             <span class="text-gray-700">·</span>
-            <a href="{{ route('site.coins') }}" class="inline-flex items-center gap-1.5 text-violet-300 hover:text-violet-200 font-semibold transition">
+            <a href="{{ route('site.pricing', ['view' => 'coins']) }}" class="inline-flex items-center gap-1.5 text-violet-300 hover:text-violet-200 font-semibold transition">
                 <i class="fas fa-coins text-[11px] text-amber-400"></i> Coin packages
             </a>
             <span class="text-gray-700">·</span>

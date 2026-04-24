@@ -47,7 +47,7 @@
                 <a href="{{ route('site.pricing') }}" class="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-violet-600 text-white hover:bg-violet-700 text-sm font-bold">
                     <i class="fas fa-tags"></i> See pricing plans
                 </a>
-                <a href="{{ route('site.coins') }}" class="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08] text-sm font-medium">
+                <a href="{{ route('site.pricing', ['view' => 'coins']) }}" class="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08] text-sm font-medium">
                     <i class="fas fa-coins text-amber-400"></i> Coin packages
                 </a>
             </div>

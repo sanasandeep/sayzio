@@ -37,7 +37,7 @@
 <section
     x-data="{
         cycle: '{{ $cycle }}',
-        view: 'plans',
+        view: '{{ request()->query('view') === 'coins' ? 'coins' : 'plans' }}',
         money(plan, c){
             const r = c === 'annual' ? plan.annual : plan.monthly;
             return r && r.formatted ? r.formatted : '—';

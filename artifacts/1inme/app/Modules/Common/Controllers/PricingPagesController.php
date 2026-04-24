@@ -80,33 +80,6 @@ class PricingPagesController extends Controller
         ]);
     }
 
-    public function coins(Request $request)
-    {
-        $user = $request->user();
-        $currency = PricingResolver::currencyForUser($user);
-        $currencySource = PricingResolver::currencySourceForUser($user);
-
-        $packages = CoinPackage::active()->with('prices')->ordered()->get()
-            ->map(function (CoinPackage $p) use ($currency) {
-                $priced = PricingResolver::priceForCurrency($p, $currency, 'monthly');
-                return [
-                    'model'         => $p,
-                    'amount_minor'  => (int) ($priced['amount_minor'] ?? 0),
-                    'formatted'     => $priced['formatted'] ?? null,
-                    'currency'      => $currency,
-                    'total_coins'   => $p->totalCoins(),
-                ];
-            });
-
-        return view('public.pricing.coins', [
-            'packages'      => $packages,
-            'currency'      => $currency,
-            'currencySource'=> $currencySource,
-            'user'          => $user,
-            'wallet_enabled'=> WalletService::isEnabled(),
-        ]);
-    }
-
     public function features(Request $request)
     {
         $plans = Plan::active()->ordered()->get();
