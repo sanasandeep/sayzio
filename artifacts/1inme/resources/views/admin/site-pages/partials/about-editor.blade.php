@@ -15,6 +15,47 @@
     $coFounders = array_values((array)($aboutExtra['co_founders'] ?? []));
     $teamRows = array_values((array)($aboutExtra['team'] ?? []));
     $milestoneRows = array_values((array)($aboutExtra['milestones'] ?? []));
+
+    // Section order control: build the editor list in the saved order
+    // (sanitised to drop unknowns/dupes and pad missing slugs at the end)
+    // so admins drag the same seven cards the public page actually
+    // renders. Labels are kept in PHP so the strings are translatable
+    // and reusable.
+    $aboutSectionOrderSlugs = \App\Modules\Common\Support\SitePagesContent::aboutLowerSectionSlugs();
+    $aboutSectionLabels = [
+        'story'       => ['label' => 'Story', 'desc' => 'Heading + body cards above the team band.'],
+        'team_band'   => ['label' => 'Team photo band', 'desc' => 'Wide team image strip.'],
+        'founder'     => ['label' => 'Founder', 'desc' => 'Featured founder card with photo and bio.'],
+        'co_founders' => ['label' => 'Co-founders', 'desc' => 'Three-up grid of co-founder cards.'],
+        'team'        => ['label' => 'Team grid', 'desc' => 'Smaller member cards under the co-founders.'],
+        'milestones'  => ['label' => 'Milestones', 'desc' => 'Vertical timeline of dated milestones.'],
+        'cta'         => ['label' => 'Bottom call to action', 'desc' => 'The "Want to build with us?" panel.'],
+    ];
+    $savedSectionOrder = (array)($aboutExtra['section_order'] ?? []);
+    $aboutSectionOrder = [];
+    $seenSectionSlugs = [];
+    foreach ($savedSectionOrder as $slug) {
+        if (!is_string($slug)) continue;
+        $slug = trim($slug);
+        if (!in_array($slug, $aboutSectionOrderSlugs, true)) continue;
+        if (in_array($slug, $seenSectionSlugs, true)) continue;
+        $aboutSectionOrder[] = $slug;
+        $seenSectionSlugs[] = $slug;
+    }
+    foreach ($aboutSectionOrderSlugs as $slug) {
+        if (!in_array($slug, $seenSectionSlugs, true)) {
+            $aboutSectionOrder[] = $slug;
+        }
+    }
+    // Hand the editor a list of {slug, label, desc} so Alpine can render
+    // each card without re-doing the lookup in the template.
+    $aboutSectionOrderItems = array_map(function ($slug) use ($aboutSectionLabels) {
+        return [
+            'slug'  => $slug,
+            'label' => $aboutSectionLabels[$slug]['label'] ?? $slug,
+            'desc'  => $aboutSectionLabels[$slug]['desc'] ?? '',
+        ];
+    }, $aboutSectionOrder);
 @endphp
 
 {{--
@@ -525,6 +566,85 @@
                 @error('extra.section_titles.milestones_subtitle')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
             </div>
         </div>
+    </div>
+
+    {{-- ========== SECTION ORDER ========== --}}
+    <div x-data="{
+            items: {{ json_encode($aboutSectionOrderItems) }},
+            dragIndex: null,
+            overIndex: null,
+            moveUp(i){ if(i>0){ const a=this.items; [a[i-1],a[i]]=[a[i],a[i-1]]; } },
+            moveDown(i){ const a=this.items; if(i<a.length-1){ [a[i+1],a[i]]=[a[i],a[i+1]]; } },
+            onDragStart(i, ev){
+                this.dragIndex = i;
+                this.overIndex = i;
+                if (ev.dataTransfer) {
+                    ev.dataTransfer.effectAllowed = 'move';
+                    // Some browsers require setData() for drag to actually start.
+                    try { ev.dataTransfer.setData('text/plain', String(i)); } catch(_) {}
+                }
+            },
+            onDragOver(i, ev){
+                if (this.dragIndex === null) return;
+                if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'move';
+                this.overIndex = i;
+            },
+            onDrop(i){
+                if (this.dragIndex === null || this.dragIndex === i) {
+                    this.dragIndex = null; this.overIndex = null; return;
+                }
+                const a = this.items;
+                const moved = a.splice(this.dragIndex, 1)[0];
+                a.splice(i, 0, moved);
+                this.dragIndex = null;
+                this.overIndex = null;
+            },
+            onDragEnd(){ this.dragIndex = null; this.overIndex = null; },
+            resetOrder(){
+                const defaults = {{ json_encode($aboutSectionOrderSlugs) }};
+                const labels = {{ json_encode($aboutSectionLabels) }};
+                this.items = defaults.map(function(s){
+                    return { slug: s, label: (labels[s] && labels[s].label) || s, desc: (labels[s] && labels[s].desc) || '' };
+                });
+            }
+        }">
+        <div class="flex items-center justify-between mb-2">
+            <div>
+                <h3 class="text-sm font-semibold text-white">Section order</h3>
+                <p class="text-xs text-white/50">Drag the cards (or use the arrows) to change the order of the lower sections of /about. The hero, stats, values and story-images blocks above always stay where they are.</p>
+            </div>
+            <button type="button" @click="resetOrder()" class="text-xs px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-white"><i class="fas fa-rotate-left mr-1"></i>Reset to default</button>
+        </div>
+        <ul class="space-y-2">
+            <template x-for="(s, i) in items" :key="s.slug">
+                <li
+                    draggable="true"
+                    @dragstart="onDragStart(i, $event)"
+                    @dragover.prevent="onDragOver(i, $event)"
+                    @drop.prevent="onDrop(i)"
+                    @dragend="onDragEnd()"
+                    class="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 flex items-center gap-3 transition"
+                    :class="{
+                        'opacity-50': dragIndex === i,
+                        'border-violet-400/60 bg-violet-500/10': overIndex === i && dragIndex !== null && dragIndex !== i,
+                    }"
+                >
+                    <input type="hidden" name="extra[section_order][]" :value="s.slug">
+                    <i class="fas fa-grip-vertical text-white/40 cursor-move" title="Drag to reorder"></i>
+                    <span class="inline-flex items-center justify-center w-6 h-6 rounded-md bg-violet-500/20 border border-violet-400/30 text-[11px] font-semibold text-violet-200" x-text="i + 1"></span>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-sm text-white font-medium" x-text="s.label"></div>
+                        <div class="text-[11px] text-white/50 truncate" x-text="s.desc"></div>
+                    </div>
+                    <div class="flex items-center gap-1 shrink-0">
+                        <button type="button" @click="moveUp(i)" :disabled="i===0" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1" title="Move up"><i class="fas fa-arrow-up"></i></button>
+                        <button type="button" @click="moveDown(i)" :disabled="i===items.length-1" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1" title="Move down"><i class="fas fa-arrow-down"></i></button>
+                    </div>
+                </li>
+            </template>
+        </ul>
+        @error('extra.section_order')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+        @error('extra.section_order.*')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
     </div>
 
     {{-- ========== BOTTOM CTA ========== --}}

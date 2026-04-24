@@ -912,6 +912,16 @@ class SitePagesContent
     }
 
     /**
+     * Canonical slugs (in default order) for the lower /about sections
+     * that admins can re-order. Used by both the editor and the public
+     * Blade view so a change here is picked up everywhere.
+     */
+    public static function aboutLowerSectionSlugs(): array
+    {
+        return ['story', 'team_band', 'founder', 'co_founders', 'team', 'milestones', 'cta'];
+    }
+
+    /**
      * Default structured "extra" payload for the public /about page —
      * founder, co-founders, team grid, and milestones timeline. All copy
      * is intentionally placeholder so admins can swap in real names,
@@ -957,6 +967,7 @@ class SitePagesContent
                 'milestones_title'   => 'Milestones',
                 'milestones_subtitle'=> 'A short history of how we got here.',
             ],
+            'section_order' => self::aboutLowerSectionSlugs(),
             'cta' => [
                 'heading'         => 'Want to build with us?',
                 'body'            => 'Whether you are a creator with feedback or a developer who wants to join, we love hearing from you.',
@@ -1172,11 +1183,38 @@ class SitePagesContent
             $milestones[] = ['date' => $date, 'title' => $title, 'description' => $desc];
         }
 
+        // --- Lower-section render order ---
+        // Admins can re-order the lower seven /about sections. We accept
+        // a flat list of slugs, drop unknowns/duplicates, and (when the
+        // submitted list isn't empty) pad missing slugs at the end so the
+        // public view never silently hides a section because the admin
+        // submitted a partial list.
+        $validSlugs = self::aboutLowerSectionSlugs();
+        $orderIn = (array) ($input['section_order'] ?? []);
+        $sectionOrder = [];
+        $seenSlugs = [];
+        foreach (array_values($orderIn) as $slug) {
+            if (!is_string($slug)) continue;
+            $slug = trim($slug);
+            if (!in_array($slug, $validSlugs, true)) continue;
+            if (in_array($slug, $seenSlugs, true)) continue;
+            $sectionOrder[] = $slug;
+            $seenSlugs[] = $slug;
+        }
+        if (!empty($sectionOrder)) {
+            foreach ($validSlugs as $slug) {
+                if (!in_array($slug, $seenSlugs, true)) {
+                    $sectionOrder[] = $slug;
+                }
+            }
+        }
+
         return [
             'hero'           => $hero,
             'values'         => $values,
             'story_images'   => $storyImages,
             'section_titles' => $sectionTitles,
+            'section_order'  => $sectionOrder,
             'cta'            => $cta,
             'founder'        => $founder,
             'co_founders'    => $coFounders,

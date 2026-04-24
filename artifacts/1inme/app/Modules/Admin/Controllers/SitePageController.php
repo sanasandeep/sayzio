@@ -132,6 +132,11 @@ class SitePageController extends Controller
             $rules['extra.section_titles.team_subtitle']       = 'nullable|string|max:300';
             $rules['extra.section_titles.milestones_title']    = 'nullable|string|max:200';
             $rules['extra.section_titles.milestones_subtitle'] = 'nullable|string|max:300';
+            // Render order for the lower /about sections (drag-to-reorder).
+            // The list is canonicalised in normalizeAboutExtra(): unknown
+            // and duplicate slugs are dropped, missing slugs are appended.
+            $rules['extra.section_order']   = 'nullable|array|max:7';
+            $rules['extra.section_order.*'] = ['nullable', 'string', 'in:' . implode(',', SitePagesContent::aboutLowerSectionSlugs())];
             // Bottom call-to-action block.
             $rules['extra.cta']                           = 'nullable|array';
             $rules['extra.cta.heading']                   = 'nullable|string|max:200';
