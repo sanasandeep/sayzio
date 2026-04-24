@@ -5842,7 +5842,23 @@
 @endif
 
 {{-- ============================ PRICING ============================ --}}
-<section id="pricing" class="py-20 lg:py-24 relative overflow-hidden" x-data="{ billing: 'monthly' }">
+<section id="pricing" class="py-20 lg:py-24 relative overflow-hidden"
+    x-data="{
+        billing: 'monthly',
+        trackMarketingEvent(target){
+            const url = '{{ route('marketing-events.track') }}';
+            const data = new FormData();
+            data.append('source', 'landing_pricing_teaser');
+            data.append('target', target);
+            try {
+                if (navigator.sendBeacon) {
+                    navigator.sendBeacon(url, data);
+                } else {
+                    fetch(url, { method: 'POST', body: data, keepalive: true, credentials: 'same-origin' });
+                }
+            } catch (e) { /* fire-and-forget */ }
+        }
+    }">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-12 max-w-3xl mx-auto">
             <div class="reveal inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[.2em] mb-3 px-3 py-1 rounded-full" style="color:var(--c1); background: rgba(124,58,237,0.10);">
@@ -5998,7 +6014,7 @@
                         @endforeach
                     </div>
 
-                    <button type="button" @click="authTab='register'; authOpen=true" class="btn-bounce block w-full py-3.5 text-center rounded-full text-sm font-bold transition-transform group-hover:scale-[1.02] grad-bar text-white">
+                    <button type="button" @click="trackMarketingEvent('plan_free'); authTab='register'; authOpen=true" class="btn-bounce block w-full py-3.5 text-center rounded-full text-sm font-bold transition-transform group-hover:scale-[1.02] grad-bar text-white">
                         Get started free <i class="fas fa-arrow-right text-xs ml-1"></i>
                     </button>
                     </div>{{-- /.relative --}}
@@ -6017,6 +6033,7 @@
                 </div>
 
                 <a href="{{ route('site.pricing') }}"
+                   @click="trackMarketingEvent('plan_paid')"
                    class="lift group relative block rounded-3xl p-8 pt-9 text-white shadow-2xl shadow-[#7c3aed]/40 hover:shadow-[#7c3aed]/60 transition-all duration-300 hover:-translate-y-1 overflow-hidden"
                    style="background: linear-gradient(150deg, var(--c2), var(--c3) 60%, var(--c4));">
                     {{-- Ambient blobs --}}
@@ -6085,15 +6102,15 @@
         {{-- Slim "more pricing details" link row — replaces the previous oversized drill-down card. --}}
         <div class="reveal mt-6 max-w-4xl mx-auto flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-gray-400">
             <span class="text-gray-500">More pricing details:</span>
-            <a href="{{ route('site.pricing') }}" class="inline-flex items-center gap-1.5 text-violet-300 hover:text-violet-200 font-semibold transition">
+            <a href="{{ route('site.pricing') }}" @click="trackMarketingEvent('pricing')" class="inline-flex items-center gap-1.5 text-violet-300 hover:text-violet-200 font-semibold transition">
                 <i class="fas fa-tags text-[11px]"></i> Compare all plans
             </a>
             <span class="text-gray-700">·</span>
-            <a href="{{ route('site.pricing', ['view' => 'coins']) }}" class="inline-flex items-center gap-1.5 text-violet-300 hover:text-violet-200 font-semibold transition">
+            <a href="{{ route('site.pricing', ['view' => 'coins']) }}" @click="trackMarketingEvent('coins')" class="inline-flex items-center gap-1.5 text-violet-300 hover:text-violet-200 font-semibold transition">
                 <i class="fas fa-coins text-[11px] text-amber-400"></i> Coin packages
             </a>
             <span class="text-gray-700">·</span>
-            <a href="{{ route('site.premium-features') }}" class="inline-flex items-center gap-1.5 text-violet-300 hover:text-violet-200 font-semibold transition">
+            <a href="{{ route('site.premium-features') }}" @click="trackMarketingEvent('premium_features')" class="inline-flex items-center gap-1.5 text-violet-300 hover:text-violet-200 font-semibold transition">
                 <i class="fas fa-star text-[11px] text-amber-300"></i> Premium features
             </a>
         </div>
