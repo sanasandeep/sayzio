@@ -49,8 +49,23 @@
         equivPerMonth(plan){
             const a = (plan.annual && plan.annual.amount_minor) ? Number(plan.annual.amount_minor)/12 : 0;
             return a;
+        },
+        trackCoinsView(){
+            const url = '{{ route('marketing-events.track') }}';
+            const data = new FormData();
+            data.append('source', 'landing_pricing_teaser');
+            data.append('target', 'coins');
+            if (navigator.sendBeacon) {
+                navigator.sendBeacon(url, data);
+            } else {
+                fetch(url, { method: 'POST', body: data, keepalive: true, credentials: 'same-origin' });
+            }
         }
     }"
+    x-init="
+        if (view === 'coins') { trackCoinsView(); }
+        $watch('view', v => { if (v === 'coins') { trackCoinsView(); } });
+    "
     class="relative pt-20 pb-12 lg:pt-28 lg:pb-16">
     <div class="absolute inset-0 -z-10 overflow-hidden">
         <div class="absolute -top-32 left-1/2 -translate-x-1/2 w-[60rem] h-[60rem] rounded-full opacity-30 blur-[120px]"
