@@ -147,15 +147,64 @@
             'behance' => ['fab fa-behance', '#1769FF'],
         ];
     @endphp
-    <link href="https://fonts.googleapis.com/css2?family={{ urlencode($fontFamily) }}:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     @php
-        $themeFont = $bs['block_theme']['font_family'] ?? '';
-        $extraFonts = [];
-        if ($themeFont && $themeFont !== $fontFamily) $extraFonts[] = $themeFont;
+        // Collect every font referenced by this biolink: page font, block-
+        // theme font, and any per-block font_family overrides. Then load
+        // each one exactly once. Custom fonts ("custom:Family") get a
+        // server-rendered @font-face below pointing at the user's upload;
+        // every other family is looked up in FontCatalog so we only request
+        // weights the family actually ships.
+        $allFonts = [(string) $fontFamily];
+        $allFonts[] = (string) ($bs['block_theme']['font_family'] ?? '');
+        foreach (($link->biolinkBlocks ?? collect()) as $bb) {
+            $st = $bb->settings['style'] ?? [];
+            if (!empty($st['font_family'])) $allFonts[] = (string) $st['font_family'];
+            foreach (($bb->children ?? []) as $cc) {
+                $cs = $cc->settings['style'] ?? [];
+                if (!empty($cs['font_family'])) $allFonts[] = (string) $cs['font_family'];
+            }
+        }
+        $allFonts = array_values(array_unique(array_filter($allFonts)));
+        // Split into Google vs custom. Custom tokens are "custom:<family>".
+        $googleFonts = [];
+        $customFamilies = [];
+        foreach ($allFonts as $f) {
+            if (str_starts_with($f, 'custom:')) {
+                $customFamilies[] = substr($f, 7);
+            } else {
+                $googleFonts[] = $f;
+            }
+        }
+        // Resolve user-uploaded font records for the custom families on this
+        // page. We look them up via the link owner since custom fonts are
+        // user-scoped, not link-scoped.
+        $customFontRecords = collect();
+        if (!empty($customFamilies) && $link->user) {
+            $customFontRecords = $link->user->customFonts()
+                ->whereIn('family', $customFamilies)->get();
+        }
     @endphp
-    @foreach($extraFonts as $ef)
-    <link href="https://fonts.googleapis.com/css2?family={{ urlencode($ef) }}:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    @foreach($googleFonts as $gf)
+        @php $href = \App\Modules\User\Support\FontCatalog::googleHref($gf); @endphp
+        @if($href)
+            <link href="{{ $href }}" rel="stylesheet">
+        @else
+            {{-- Unknown family (legacy data) — fall back to a broad weight
+                 request so older saved values still render. --}}
+            <link href="https://fonts.googleapis.com/css2?family={{ str_replace('%20', '+', rawurlencode($gf)) }}:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        @endif
     @endforeach
+    @if($customFontRecords->isNotEmpty())
+    <style>
+        @foreach($customFontRecords as $cf)
+        @font-face {
+            font-family: '{{ addslashes($cf->family) }}';
+            src: url('{{ $cf->url }}') format('{{ $cf->format }}');
+            font-display: swap;
+        }
+        @endforeach
+    </style>
+    @endif
     @if(!empty($bs['custom_js_head']))
     <script>{!! $bs['custom_js_head'] !!}</script>
     @endif
@@ -174,7 +223,8 @@
         ::-webkit-scrollbar-corner { background: transparent; }
 
         body {
-            font-family: '{{ $fontFamily }}', sans-serif;
+            {{-- Custom-uploaded fonts come through as "custom:Family" tokens; strip the prefix before emitting. --}}
+            font-family: '{{ str_starts_with((string) $fontFamily, 'custom:') ? substr($fontFamily, 7) : $fontFamily }}', sans-serif;
             color: {{ $fontColor }};
             background-color: {{ $bgFallbackColor }};
             @if($bgType === 'color')

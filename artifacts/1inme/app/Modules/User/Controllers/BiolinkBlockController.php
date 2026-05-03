@@ -5,6 +5,7 @@ namespace App\Modules\User\Controllers;
 use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\UserFile;
+use App\Modules\User\Support\FontCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Storage;
@@ -446,6 +447,10 @@ class BiolinkBlockController extends Controller
             'gradient_colors' => 'nullable|string|max:2000',
             'gradient_angle' => 'nullable|integer|min:0|max:360',
             'gradient_type' => 'nullable|string|in:linear,radial,conic',
+            // Preset id from the GradientCatalog grid. Empty = custom (the
+            // user manually edited stops). Stored alongside gradient_colors
+            // so the picker can re-highlight the chosen preset on edit.
+            'gradient_preset_id' => 'nullable|string|max:60|regex:/^[a-z0-9\-]+$/',
             'slideshow_images' => 'nullable|array|max:10',
             'slideshow_images.*' => \App\Services\UploadPolicy::rule('link.slideshow_image', $request->user(), true),
             'slideshow_interval' => 'nullable|integer|min:1|max:30',
@@ -712,6 +717,13 @@ class BiolinkBlockController extends Controller
             if (is_array($decoded)) {
                 $settings['biolink']['gradient_colors'] = $decoded;
             }
+        }
+
+        // Track which preset (if any) the user picked. Stored alongside
+        // the resolved stops so the picker can re-highlight on edit, even
+        // if the catalog itself is later expanded with new entries.
+        if (array_key_exists('gradient_preset_id', $validated)) {
+            $settings['biolink']['gradient_preset_id'] = (string) ($validated['gradient_preset_id'] ?? '');
         }
 
         if ($slideshowFiles && is_array($slideshowFiles)) {
@@ -1253,8 +1265,12 @@ class BiolinkBlockController extends Controller
                     $result[$key] = (string) $val;
                 }
             } elseif (in_array($key, $fontFamilyKeys, true)) {
-                $safe = preg_replace('/[^a-zA-Z0-9 ]/', '', substr((string) $val, 0, 60));
-                if ($safe !== '') $result[$key] = $safe;
+                // Allow Google Font names plus a "custom:<family>" prefix for
+                // user-uploaded fonts. The colon is the only structural
+                // delimiter we accept; anything else (quotes, parens, semis)
+                // would be unsafe inside a CSS font-family declaration.
+                $safe = preg_replace('/[^a-zA-Z0-9 :_\-]/', '', substr((string) $val, 0, 80));
+                if ($safe !== '') $result[$key] = trim($safe);
             } elseif (in_array($key, $urlKeys, true)) {
                 if (filter_var($val, FILTER_VALIDATE_URL) && preg_match('/^https?:\/\//', $val)) {
                     $result[$key] = substr($val, 0, 500);

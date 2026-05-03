@@ -374,6 +374,13 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('links/{link}/blocks/{block}/toggle', [BiolinkBlockController::class, 'toggleActive'])->middleware('workspace.can:links.edit')->name('links.blocks.toggle');
         Route::post('links/{link}/blocks/{block}/move', [BiolinkBlockController::class, 'moveBlock'])->middleware('workspace.can:links.edit')->name('links.blocks.move');
         Route::post('links/{link}/page-settings', [BiolinkBlockController::class, 'updatePageSettings'])->middleware('workspace.can:links.edit')->name('links.page-settings');
+
+        // Custom fonts (.woff/.woff2/.ttf/.otf) — surface in the "My Fonts"
+        // section pinned at the top of every font picker. Lives at the user
+        // level (not per-link) so a single upload powers every page.
+        Route::get('custom-fonts',                [\App\Modules\User\Controllers\CustomFontController::class, 'index'])->name('custom-fonts.index');
+        Route::post('custom-fonts',               [\App\Modules\User\Controllers\CustomFontController::class, 'store'])->name('custom-fonts.store');
+        Route::delete('custom-fonts/{font}',      [\App\Modules\User\Controllers\CustomFontController::class, 'destroy'])->name('custom-fonts.destroy');
         Route::post('links/{link}/preview-draft', [BiolinkBlockController::class, 'previewDraft'])->middleware('workspace.can:links.edit')->name('links.preview-draft');
 
         // Plan upgrade, checkout & billing — these touch the workspace

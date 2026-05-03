@@ -150,5 +150,9 @@ class DatabaseSeeder extends Seeder
         // last so it can attribute posts to the super-admin created above.
         // Safe to call again from `db:seed --class=MarketingBlogPostsSeeder`.
         $this->call(MarketingBlogPostsSeeder::class);
+
+        // 100+ card-container templates surfaced in the biolink editor.
+        // Idempotent (matches by slug) so re-running just refreshes copy.
+        $this->call(CardTemplateSeeder::class);
     }
 }

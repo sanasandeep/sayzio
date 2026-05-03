@@ -331,6 +331,11 @@ class User extends Authenticatable
         return $this->hasMany(UserFile::class);
     }
 
+    public function customFonts()
+    {
+        return $this->hasMany(CustomFont::class);
+    }
+
     public function getStorageUsedBytes(): int
     {
         return (int) $this->files()->sum('size_bytes');

@@ -152,11 +152,12 @@
                                 </div>
                                 <div>
                                     <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Font Family</label>
-                                    <select name="font_family" class="theme-input w-full">
-                                        @foreach(['Space Grotesk','Inter','Poppins','Roboto','Playfair Display','Montserrat','DM Sans','Outfit'] as $font)
-                                        <option value="{{ $font }}" {{ $fontFamily === $font ? 'selected' : '' }}>{{ $font }}</option>
-                                        @endforeach
-                                    </select>
+                                    @include('user.links.partials.font-picker', [
+                                        'name' => 'font_family',
+                                        'value' => $fontFamily,
+                                        'pickerId' => 'pageFont',
+                                        'allowInherit' => false,
+                                    ])
                                 </div>
                             </div>
                             <div>
@@ -249,6 +250,12 @@
                                     </button>
                                     <input type="hidden" name="gradient_colors" :value="JSON.stringify(gradientStops)">
                                     <input type="hidden" name="background_gradient" :value="buildGradientCSS()">
+                                </div>
+
+                                {{-- Preset gradient catalog (100+) — clicking a tile loads its
+                                     stops/angle/type into the editor above. --}}
+                                <div class="mt-4">
+                                    @include('user.links.partials.gradient-catalog-picker')
                                 </div>
                             </div>
 

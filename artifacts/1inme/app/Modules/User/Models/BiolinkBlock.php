@@ -420,7 +420,17 @@ class BiolinkBlock extends Model
     public static function buildInlineStyle(array $style): string
     {
         $css = [];
-        if (!empty($style['font_family'])) $css[] = "font-family:'{$style['font_family']}',sans-serif";
+        if (!empty($style['font_family'])) {
+            // User-uploaded fonts are stored as "custom:<family>" tokens so
+            // we can route them through @font-face on the public page; the
+            // CSS itself only wants the bare family name.
+            $ff = $style['font_family'];
+            if (str_starts_with($ff, 'custom:')) $ff = substr($ff, 7);
+            // Defensive escape for stray single-quotes in the family name —
+            // sanitizer already strips these but inline CSS is a hot path.
+            $ff = str_replace("'", '', $ff);
+            $css[] = "font-family:'{$ff}',sans-serif";
+        }
         if (!empty($style['font_size'])) $css[] = "font-size:{$style['font_size']}px";
         if (!empty($style['font_weight'])) $css[] = "font-weight:{$style['font_weight']}";
         if (($style['font_style'] ?? 'normal') !== 'normal') $css[] = "font-style:{$style['font_style']}";

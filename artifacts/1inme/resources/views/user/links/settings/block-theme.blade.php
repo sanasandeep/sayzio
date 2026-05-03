@@ -66,12 +66,12 @@
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Font Family</label>
-                                <select name="block_theme[font_family]" class="theme-input w-full">
-                                    <option value="">Inherit from page</option>
-                                    @foreach($gtFonts as $f)
-                                        @if($f)<option value="{{ $f }}" {{ ($bt['font_family'] ?? '') === $f ? 'selected' : '' }}>{{ $f }}</option>@endif
-                                    @endforeach
-                                </select>
+                                @include('user.links.partials.font-picker', [
+                                    'name' => 'block_theme[font_family]',
+                                    'value' => $bt['font_family'] ?? '',
+                                    'pickerId' => 'blockThemeFont',
+                                    'allowInherit' => true,
+                                ])
                             </div>
                             <div>
                                 <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Font Weight</label>

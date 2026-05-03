@@ -91,12 +91,12 @@
         <div x-show="activeStyleTab === 'typography'" class="space-y-3">
             <div>
                 <label class="{{ $labelClass }}">Font Family</label>
-                <select name="style[font_family]" class="{{ $inputClass }}">
-                    <option value="">Inherit from page</option>
-                    @foreach($fonts as $f)
-                    @if($f) <option value="{{ $f }}" {{ ($st['font_family'] ?? '') === $f ? 'selected' : '' }}>{{ $f }}</option> @endif
-                    @endforeach
-                </select>
+                @include('user.links.partials.font-picker', [
+                    'name' => 'style[font_family]',
+                    'value' => $st['font_family'] ?? '',
+                    'pickerId' => 'blockFont_' . ($block->id ?? uniqid()),
+                    'allowInherit' => true,
+                ])
             </div>
             <div class="grid grid-cols-3 gap-2">
                 <div>

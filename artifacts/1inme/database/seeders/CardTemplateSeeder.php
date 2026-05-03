@@ -626,6 +626,510 @@ class CardTemplateSeeder extends Seeder
                     $div(12),
                 ],
             ],
+
+            // ==================== HERO (extra 8 → 16 total) ====================
+            [
+                'slug' => 'hero-podcaster', 'name' => 'Podcaster Hero', 'category' => 'hero',
+                'description' => 'Cover art, show name, tagline and listen-on links.',
+                'children' => [
+                    $img('', 12),
+                    $h('The Friday Show', 'h1'),
+                    $p('Conversations on craft, code and creativity. New episode every Friday.'),
+                    $btn('Listen on Spotify', 'https://open.spotify.com', 6, 'fab fa-spotify'),
+                    $btn('Listen on Apple', 'https://podcasts.apple.com', 6, 'fab fa-apple'),
+                ],
+            ],
+            [
+                'slug' => 'hero-musician', 'name' => 'Musician Hero', 'category' => 'hero',
+                'description' => 'Album cover, artist name and streaming buttons.',
+                'children' => [
+                    $img('', 12),
+                    $hg('New Single — "Out Tonight"', 'h2'),
+                    $p('Available everywhere you stream music.'),
+                    $btn('Spotify', 'https://open.spotify.com', 4, 'fab fa-spotify'),
+                    $btn('Apple Music', 'https://music.apple.com', 4, 'fab fa-apple'),
+                    $btn('YouTube', 'https://youtube.com', 4, 'fab fa-youtube'),
+                ],
+            ],
+            [
+                'slug' => 'hero-photographer', 'name' => 'Photographer Hero', 'category' => 'hero',
+                'description' => 'Hero image, name, location and portfolio CTA.',
+                'children' => [
+                    $img('', 12),
+                    $h('Alex Chen — Photographer', 'h2'),
+                    $p('Brooklyn, NY · weddings · portraits · editorial', 'center', 12),
+                    $btn('See the portfolio', 'https://example.com', 12),
+                ],
+            ],
+            [
+                'slug' => 'hero-author', 'name' => 'Author Hero', 'category' => 'hero',
+                'description' => 'Book cover, author name, blurb and pre-order button.',
+                'children' => [
+                    $img('', 6),
+                    $h('My new book', 'h2', 'left', 6),
+                    $p('A 240-page guide on building joyful side projects.', 'left', 12),
+                    $btn('Pre-order now', 'https://example.com', 12),
+                ],
+            ],
+            [
+                'slug' => 'hero-developer', 'name' => 'Developer Hero', 'category' => 'hero',
+                'description' => 'Avatar, role, tech-stack badges and GitHub CTA.',
+                'children' => [
+                    $this->child('profile_card_v1', ['name' => 'Dev Name', 'title' => 'Full-stack engineer', 'bio' => 'I build small, fast tools.'], 12),
+                    $badge('TypeScript', 3), $badge('Rust', 3), $badge('Postgres', 3), $badge('Linux', 3),
+                    $btn('View GitHub', 'https://github.com', 12, 'fab fa-github'),
+                ],
+            ],
+            [
+                'slug' => 'hero-restaurant', 'name' => 'Restaurant Hero', 'category' => 'hero',
+                'description' => 'Cover photo, restaurant name, cuisine and reservation button.',
+                'children' => [
+                    $img('', 12),
+                    $hg('La Petite Cuisine', 'h1'),
+                    $p('Modern French · Williamsburg · est. 2018', 'center', 12),
+                    $btn('Reserve a table', 'https://example.com', 12),
+                ],
+            ],
+            [
+                'slug' => 'hero-real-estate', 'name' => 'Real Estate Agent', 'category' => 'hero',
+                'description' => 'Headshot, agent name, agency and contact.',
+                'children' => [
+                    $img('', 4),
+                    $this->child('heading', ['text' => 'Maria Park', 'size' => 'h2', 'align' => 'left'], 8),
+                    $p('Licensed agent · Bay Area · 12+ years', 'left', 12),
+                    $btn('Book a viewing', 'https://example.com', 6),
+                    $btn('Call now', 'tel:+10000000000', 6, 'fas fa-phone'),
+                ],
+            ],
+            [
+                'slug' => 'hero-fitness-coach', 'name' => 'Fitness Coach Hero', 'category' => 'hero',
+                'description' => 'Action photo, coach name, specialties and program CTA.',
+                'children' => [
+                    $img('', 12),
+                    $h('Train with Sam', 'h1'),
+                    $p('Strength · Conditioning · Nutrition'),
+                    $btn('Start the program', 'https://example.com', 12),
+                ],
+            ],
+
+            // ==================== CTA (extra 8 → 16 total) ====================
+            [
+                'slug' => 'cta-discord-invite', 'name' => 'Join the Discord', 'category' => 'cta',
+                'description' => 'Invite people into your community Discord with a single button.',
+                'children' => [
+                    $h('Hang out with us', 'h2'),
+                    $p('A friendly community of makers, designers and builders.'),
+                    $btn('Join Discord', 'https://discord.gg', 12, 'fab fa-discord'),
+                ],
+            ],
+            [
+                'slug' => 'cta-telegram-channel', 'name' => 'Subscribe on Telegram', 'category' => 'cta',
+                'description' => 'Push followers into your Telegram channel for daily updates.',
+                'children' => [
+                    $h('Get daily updates', 'h2'),
+                    $btn('Open Telegram', 'https://t.me', 12, 'fab fa-telegram'),
+                ],
+            ],
+            [
+                'slug' => 'cta-tip-jar', 'name' => 'Tip Jar', 'category' => 'cta',
+                'description' => 'A friendly support button — perfect for creators.',
+                'children' => [
+                    $h('Enjoying the work?', 'h2'),
+                    $p('Tips help me keep building. Even $1 means a lot.'),
+                    $btn('Leave a tip', 'https://example.com', 12, 'fas fa-mug-hot'),
+                ],
+            ],
+            [
+                'slug' => 'cta-share-page', 'name' => 'Share This Page', 'category' => 'cta',
+                'description' => 'Quick row of share buttons for the most common channels.',
+                'children' => [
+                    $h('Liked this? Share it', 'h3'),
+                    $btn('Twitter', 'https://twitter.com/intent/tweet', 4, 'fab fa-x-twitter'),
+                    $btn('LinkedIn', 'https://linkedin.com/share', 4, 'fab fa-linkedin-in'),
+                    $btn('WhatsApp', 'https://wa.me', 4, 'fab fa-whatsapp'),
+                ],
+            ],
+            [
+                'slug' => 'cta-vote-poll', 'name' => 'Vote in the Poll', 'category' => 'cta',
+                'description' => 'Drop in a quick poll to engage your audience.',
+                'children' => [
+                    $h('Quick question', 'h2'),
+                    $this->child('poll', ['question' => 'Which post should I write next?', 'options' => ['How I use AI daily','My homelab setup','Side project income']], 12),
+                ],
+            ],
+            [
+                'slug' => 'cta-buy-merch', 'name' => 'Buy the Merch', 'category' => 'cta',
+                'description' => 'Photo + price + buy button for a single product drop.',
+                'children' => [
+                    $img('', 12),
+                    $h('Limited edition tee — $29', 'h3'),
+                    $btn('Buy now', 'https://example.com', 12, 'fas fa-bag-shopping'),
+                ],
+            ],
+            [
+                'slug' => 'cta-resume-download', 'name' => 'Download Resume', 'category' => 'cta',
+                'description' => 'A single, clear call-to-action for recruiters.',
+                'children' => [
+                    $h('Hiring?', 'h3'),
+                    $p('Grab my up-to-date resume below.'),
+                    $btn('Download PDF', 'https://example.com/resume.pdf', 12, 'fas fa-file-arrow-down'),
+                ],
+            ],
+            [
+                'slug' => 'cta-survey', 'name' => 'Take the Survey', 'category' => 'cta',
+                'description' => 'Push people to a single survey link with context.',
+                'children' => [
+                    $h('Your turn — 60 seconds', 'h2'),
+                    $p('Help me figure out what to build next.'),
+                    $btn('Take the survey', 'https://example.com', 12, 'fas fa-clipboard-list'),
+                ],
+            ],
+
+            // ==================== SOCIAL (extra 6 → 12 total) ====================
+            [
+                'slug' => 'social-youtube-latest', 'name' => 'YouTube Latest Video', 'category' => 'social',
+                'description' => 'Embed your most recent video plus a subscribe CTA.',
+                'children' => [
+                    $this->child('video_embed', ['url' => 'https://youtube.com'], 12),
+                    $btn('Subscribe on YouTube', 'https://youtube.com', 12, 'fab fa-youtube'),
+                ],
+            ],
+            [
+                'slug' => 'social-twitch-live', 'name' => 'Twitch Live Card', 'category' => 'social',
+                'description' => 'Streaming schedule and a follow-on-Twitch button.',
+                'children' => [
+                    $h('Catch me live', 'h2'),
+                    $p('Tue / Thu / Sat · 8 PM ET'),
+                    $btn('Follow on Twitch', 'https://twitch.tv', 12, 'fab fa-twitch'),
+                ],
+            ],
+            [
+                'slug' => 'social-pinterest-board', 'name' => 'Pinterest Board', 'category' => 'social',
+                'description' => 'Showcase your board with three pin previews and a follow CTA.',
+                'children' => [
+                    $img('', 4), $img('', 4), $img('', 4),
+                    $btn('Follow on Pinterest', 'https://pinterest.com', 12, 'fab fa-pinterest'),
+                ],
+            ],
+            [
+                'slug' => 'social-substack', 'name' => 'Substack Newsletter', 'category' => 'social',
+                'description' => 'Featured newsletter cover with a subscribe button.',
+                'children' => [
+                    $h('Subscribe to the newsletter', 'h2'),
+                    $p('Weekly essays on building software with intent.'),
+                    $email('Subscribe'),
+                ],
+            ],
+            [
+                'slug' => 'social-mastodon', 'name' => 'Mastodon Profile', 'category' => 'social',
+                'description' => 'For folks on the fediverse — direct profile link.',
+                'children' => [
+                    $h('Find me on Mastodon', 'h3'),
+                    $btn('Open Mastodon', 'https://mastodon.social', 12, 'fab fa-mastodon'),
+                ],
+            ],
+            [
+                'slug' => 'social-bluesky', 'name' => 'Bluesky Profile', 'category' => 'social',
+                'description' => 'Quick link out to your Bluesky handle.',
+                'children' => [
+                    $h('I\'m also on Bluesky', 'h3'),
+                    $btn('Open Bluesky', 'https://bsky.app', 12, 'fas fa-cloud'),
+                ],
+            ],
+
+            // ==================== CONTACT (extra 5 → 10 total) ====================
+            [
+                'slug' => 'contact-calendly', 'name' => 'Calendly Booking', 'category' => 'contact',
+                'description' => 'A direct calendar booking button for sales/intro calls.',
+                'children' => [
+                    $h('Book a 30-min call', 'h2'),
+                    $p('Pick a slot that works — calendars open 4 weeks out.'),
+                    $btn('Open calendar', 'https://calendly.com', 12, 'far fa-calendar'),
+                ],
+            ],
+            [
+                'slug' => 'contact-location-map', 'name' => 'Location & Map', 'category' => 'contact',
+                'description' => 'Address card with a directions button.',
+                'children' => [
+                    $h('Find us', 'h3'),
+                    $p('123 Example St, Brooklyn NY 11211'),
+                    $btn('Get directions', 'https://maps.google.com', 12, 'fas fa-map-pin'),
+                ],
+            ],
+            [
+                'slug' => 'contact-press-kit', 'name' => 'Press / Media Kit', 'category' => 'contact',
+                'description' => 'A landing block for press contacts and asset downloads.',
+                'children' => [
+                    $h('Press inquiries', 'h3'),
+                    $p('For interviews and brand assets.'),
+                    $btn('Download press kit', 'https://example.com/press.zip', 6, 'fas fa-folder-arrow-down'),
+                    $btn('Email press@', 'mailto:press@example.com', 6, 'fas fa-envelope'),
+                ],
+            ],
+            [
+                'slug' => 'contact-support-hours', 'name' => 'Support & Hours', 'category' => 'contact',
+                'description' => 'Customer support hours with chat + email links.',
+                'children' => [
+                    $h('Need help?', 'h3'),
+                    $p('Mon–Fri · 9 AM – 6 PM ET'),
+                    $btn('Live chat', 'https://example.com/chat', 6, 'fas fa-comments'),
+                    $btn('Email support', 'mailto:help@example.com', 6, 'fas fa-envelope'),
+                ],
+            ],
+            [
+                'slug' => 'contact-faq-redirect', 'name' => 'Self-Serve FAQ', 'category' => 'contact',
+                'description' => 'Push people to a help center before they reach out.',
+                'children' => [
+                    $h('Got a question?', 'h3'),
+                    $p('Most answers live in our help center.'),
+                    $btn('Browse the help center', 'https://example.com/help', 12, 'fas fa-circle-question'),
+                ],
+            ],
+
+            // ==================== PRODUCT (extra 8 → 16 total) ====================
+            [
+                'slug' => 'product-saas-trial', 'name' => 'SaaS Free Trial', 'category' => 'product',
+                'description' => 'Headline, three feature bullets and a trial CTA.',
+                'children' => [
+                    $hg('Ship faster, with less', 'h1'),
+                    $list(['No credit card required','Cancel anytime','Free for solo plans'], 12),
+                    $btn('Start free trial', 'https://example.com', 12),
+                ],
+            ],
+            [
+                'slug' => 'product-launch-day', 'name' => 'Launch Day', 'category' => 'product',
+                'description' => 'Big launch announcement with countdown vibe and CTA.',
+                'children' => [
+                    $hm('We\'re live today.', 'h1'),
+                    $p('After 9 months of building — it\'s finally here.'),
+                    $btn('Try it now', 'https://example.com', 12),
+                    $btn('Read the launch post', 'https://example.com/blog', 12),
+                ],
+            ],
+            [
+                'slug' => 'product-affiliate', 'name' => 'Affiliate Tools', 'category' => 'product',
+                'description' => 'Curated stack of recommended tools (with referral links).',
+                'children' => [
+                    $h('My toolkit', 'h2'),
+                    $link('Notion — my second brain', 'https://example.com', 12, 'fas fa-book'),
+                    $link('Figma — design everything', 'https://example.com', 12, 'fab fa-figma'),
+                    $link('Replit — build & deploy', 'https://example.com', 12, 'fas fa-code'),
+                    $p('Some links are affiliate. They cost you nothing extra.', 'center', 12),
+                ],
+            ],
+            [
+                'slug' => 'product-template-pack', 'name' => 'Template Pack', 'category' => 'product',
+                'description' => 'Sell a downloadable pack of templates.',
+                'children' => [
+                    $img('', 12),
+                    $h('50 Notion templates — $19', 'h2'),
+                    $p('Personal & commercial use. Lifetime updates.'),
+                    $btn('Buy on Gumroad', 'https://gumroad.com', 12, 'fas fa-bag-shopping'),
+                ],
+            ],
+            [
+                'slug' => 'product-coaching', 'name' => 'Coaching Package', 'category' => 'product',
+                'description' => 'Outcome-led headline and call-booking CTA.',
+                'children' => [
+                    $h('1:1 Coaching', 'h2'),
+                    $p('Six 60-min sessions to get unstuck and move on your big idea.'),
+                    $list(['Weekly accountability','Voxer between sessions','Custom plan after week 1'], 12),
+                    $btn('Book intro call', 'https://example.com', 12, 'far fa-calendar'),
+                ],
+            ],
+            [
+                'slug' => 'product-merch-store', 'name' => 'Merch Store', 'category' => 'product',
+                'description' => 'Three featured products in a row with a "shop all" link.',
+                'children' => [
+                    $img('', 4), $img('', 4), $img('', 4),
+                    $btn('Shop all merch', 'https://example.com/shop', 12),
+                ],
+            ],
+            [
+                'slug' => 'product-discount-code', 'name' => 'Discount Code', 'category' => 'product',
+                'description' => 'Promo code callout with a single click-through.',
+                'children' => [
+                    $alert('Use code FRIENDS20 at checkout for 20% off.', 'success'),
+                    $btn('Shop the sale', 'https://example.com', 12),
+                ],
+            ],
+            [
+                'slug' => 'product-bundle-deal', 'name' => 'Bundle Deal', 'category' => 'product',
+                'description' => 'Two-product bundle with a single price and CTA.',
+                'children' => [
+                    $h('Bundle & save', 'h2'),
+                    $p('Get the course + the workbook together for 30% less.'),
+                    $btn('Buy the bundle', 'https://example.com', 12, 'fas fa-box'),
+                ],
+            ],
+
+            // ==================== EVENT (extra 5 → 10 total) ====================
+            [
+                'slug' => 'event-meetup', 'name' => 'Local Meetup', 'category' => 'event',
+                'description' => 'Cozy, IRL meetup card with venue + RSVP.',
+                'children' => [
+                    $h('Designers Coffee · NYC', 'h2'),
+                    $p('Sat, Nov 22 · 10 AM · Greenpoint'),
+                    $btn('RSVP', 'https://example.com', 12, 'far fa-calendar-check'),
+                ],
+            ],
+            [
+                'slug' => 'event-livestream', 'name' => 'Livestream', 'category' => 'event',
+                'description' => 'Promote a one-time live event with a "watch live" button.',
+                'children' => [
+                    $h('Going live tonight', 'h2'),
+                    $p('Friday · 9 PM ET · Q&A and a live demo.'),
+                    $btn('Watch live', 'https://youtube.com', 12, 'fab fa-youtube'),
+                ],
+            ],
+            [
+                'slug' => 'event-launch-party', 'name' => 'Launch Party', 'category' => 'event',
+                'description' => 'Party-style invite with date, venue and dress code.',
+                'children' => [
+                    $hg('You\'re invited', 'h1'),
+                    $p('Launch party · Dec 9 · 7–11 PM · Brooklyn'),
+                    $btn('Save your spot', 'https://example.com', 12),
+                ],
+            ],
+            [
+                'slug' => 'event-product-demo', 'name' => 'Product Demo', 'category' => 'event',
+                'description' => 'Recurring weekly demo with a single sign-up CTA.',
+                'children' => [
+                    $h('Weekly product demo', 'h2'),
+                    $p('Every Thursday · 1 PM ET · 30 minutes'),
+                    $btn('Reserve a seat', 'https://example.com', 12),
+                ],
+            ],
+            [
+                'slug' => 'event-launch-waitlist', 'name' => 'Pre-Launch Waitlist', 'category' => 'event',
+                'description' => 'Coming-soon style block with email capture.',
+                'children' => [
+                    $hm('Coming Soon', 'h1'),
+                    $p('Drop your email to get early access on launch day.'),
+                    $emailC('you@email.com'),
+                ],
+            ],
+
+            // ==================== GALLERY (extra 5 → 10 total) ====================
+            [
+                'slug' => 'gallery-product-grid', 'name' => 'Product Grid', 'category' => 'gallery',
+                'description' => 'A 2x3 grid of product photos with a single shop CTA.',
+                'children' => [
+                    $img('', 6), $img('', 6),
+                    $img('', 6), $img('', 6),
+                    $img('', 6), $img('', 6),
+                    $btn('Shop all', 'https://example.com', 12),
+                ],
+            ],
+            [
+                'slug' => 'gallery-event-recap', 'name' => 'Event Recap', 'category' => 'gallery',
+                'description' => 'Three photos from a recent event + recap link.',
+                'children' => [
+                    $h('Recap — Maker Day', 'h2'),
+                    $img('', 4), $img('', 4), $img('', 4),
+                    $btn('Read the recap', 'https://example.com', 12),
+                ],
+            ],
+            [
+                'slug' => 'gallery-team-grid', 'name' => 'Meet the Team', 'category' => 'gallery',
+                'description' => 'Four headshots with names — perfect for an "about" section.',
+                'children' => [
+                    $h('Meet the team', 'h2'),
+                    $img('', 6), $img('', 6),
+                    $img('', 6), $img('', 6),
+                ],
+            ],
+            [
+                'slug' => 'gallery-press-logos', 'name' => 'As Seen In', 'category' => 'gallery',
+                'description' => 'A row of press logos to build credibility.',
+                'children' => [
+                    $h('As seen in', 'h3'),
+                    $img('', 3), $img('', 3), $img('', 3), $img('', 3),
+                ],
+            ],
+            [
+                'slug' => 'gallery-mood-board', 'name' => 'Mood Board', 'category' => 'gallery',
+                'description' => 'Loose 6-image collage for visual inspiration.',
+                'children' => [
+                    $img('', 4), $img('', 4), $img('', 4),
+                    $img('', 4), $img('', 4), $img('', 4),
+                ],
+            ],
+
+            // ==================== GENERAL (extra 8 → 14 total) ====================
+            [
+                'slug' => 'general-stats-row', 'name' => 'Stats Row', 'category' => 'general',
+                'description' => 'Three big numbers — followers, projects, years.',
+                'children' => [
+                    $hg('120k', 'h1', 'center', 4),
+                    $hg('48', 'h1', 'center', 4),
+                    $hg('7yrs', 'h1', 'center', 4),
+                    $p('Followers · Projects · Years', 'center', 12),
+                ],
+            ],
+            [
+                'slug' => 'general-link-grid', 'name' => 'Link Grid', 'category' => 'general',
+                'description' => 'A four-up grid of icon-led link buttons.',
+                'children' => [
+                    $link('Blog', 'https://example.com', 6, 'fas fa-newspaper'),
+                    $link('Shop', 'https://example.com', 6, 'fas fa-bag-shopping'),
+                    $link('Podcast', 'https://example.com', 6, 'fas fa-microphone'),
+                    $link('YouTube', 'https://youtube.com', 6, 'fab fa-youtube'),
+                ],
+            ],
+            [
+                'slug' => 'general-link-list', 'name' => 'Big Link List', 'category' => 'general',
+                'description' => 'A long, single-column stack of full-width buttons.',
+                'children' => [
+                    $btn('Latest blog post', 'https://example.com', 12, 'fas fa-pen-nib'),
+                    $btn('Newsletter archive', 'https://example.com', 12, 'fas fa-envelope-open-text'),
+                    $btn('Open-source projects', 'https://example.com', 12, 'fas fa-code-branch'),
+                    $btn('Talks & interviews', 'https://example.com', 12, 'fas fa-microphone-lines'),
+                ],
+            ],
+            [
+                'slug' => 'general-announcement', 'name' => 'Announcement', 'category' => 'general',
+                'description' => 'An alert + CTA — for one-time, temporary news.',
+                'children' => [
+                    $alert('Heads up — site moving to a new domain on Dec 1.', 'warning'),
+                    $btn('Read the details', 'https://example.com', 12),
+                ],
+            ],
+            [
+                'slug' => 'general-favorites', 'name' => 'My Favorites', 'category' => 'general',
+                'description' => 'A short "currently loving" list — books, tools, places.',
+                'children' => [
+                    $h('Currently loving', 'h3'),
+                    $list(['📕 The Creative Act','🎧 NTS Radio','☕ Sey Coffee','🛠 Linear'], 12),
+                ],
+            ],
+            [
+                'slug' => 'general-now-page', 'name' => 'Now Page', 'category' => 'general',
+                'description' => '"What I\'m working on right now" — a /now-style block.',
+                'children' => [
+                    $h('Right now', 'h2'),
+                    $p('• Shipping a small Notion plugin\n• Re-reading "Range" by David Epstein\n• Slowly running a 10K', 'left', 12),
+                ],
+            ],
+            [
+                'slug' => 'general-supporters', 'name' => 'Thanks, Supporters', 'category' => 'general',
+                'description' => 'Public thank-you wall for supporters and patrons.',
+                'children' => [
+                    $h('Thanks to my supporters', 'h2'),
+                    $p('You make the work possible. Become a supporter on Patreon or Ko-fi.', 'center', 12),
+                    $btn('Support on Patreon', 'https://patreon.com', 6, 'fab fa-patreon'),
+                    $btn('Buy me a coffee', 'https://ko-fi.com', 6, 'fas fa-mug-hot'),
+                ],
+            ],
+            [
+                'slug' => 'general-changelog', 'name' => 'Changelog', 'category' => 'general',
+                'description' => 'Recent product updates — three latest entries.',
+                'children' => [
+                    $h('What\'s new', 'h3'),
+                    $list(['v1.4 — Dark mode + share links','v1.3 — Notion sync + bug fixes','v1.2 — New onboarding flow'], 12),
+                    $btn('Full changelog →', 'https://example.com', 12),
+                ],
+            ],
         ];
     }
 }
