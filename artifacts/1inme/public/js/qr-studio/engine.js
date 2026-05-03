@@ -338,11 +338,29 @@
     return (r < 7 && c < 7) || (r < 7 && c >= n - 7) || (r >= n - 7 && c < 7);
   }
 
-  // ---------- core renderer ----------
-  function renderQR(opts) {
+  // ---------- two-stage renderer ----------
+  // Stage 1: only depends on `data` and `errorCorrection`. Returns the raw
+  // module bitmap so callers (e.g. interactive builders) can cache it and
+  // skip QR encoding when only decorative options change.
+  function buildMatrix(opts) {
+    const { data, errorCorrection = 'M' } = opts || {};
+    const qr = global.qrcode(0, errorCorrection);
+    qr.addData(data || ' ');
+    qr.make();
+    const n = qr.getModuleCount();
+    const modules = new Uint8Array(n * n);
+    for (let r = 0; r < n; r++) {
+      for (let c = 0; c < n; c++) {
+        if (qr.isDark(r, c)) modules[r * n + c] = 1;
+      }
+    }
+    return { n, modules, data: data || ' ', errorCorrection };
+  }
+
+  // Stage 2: render the SVG given a matrix produced by buildMatrix() and the
+  // current decoration options (shapes, colors, gradients, logos, frame).
+  function renderFromMatrix(matrix, opts) {
     const {
-      data,
-      errorCorrection = 'M',
       modulePx = 10,
       margin = 4,
       dotShape = 'rounded',
@@ -365,10 +383,9 @@
       fontFamily = 'Inter',
     } = opts;
 
-    const qr = global.qrcode(0, errorCorrection);
-    qr.addData(data || ' ');
-    qr.make();
-    const n = qr.getModuleCount();
+    const n = matrix.n;
+    const modules = matrix.modules;
+    const isDark = (r, c) => modules[r * n + c] === 1;
     const innerSize = (n + 2 * margin) * modulePx;
 
     // Compute logo bbox in module coords (for hideDotsBehindLogo)
@@ -388,7 +405,7 @@
     const dotFn = DOTS[dotShape] || DOTS['square'];
     for (let r = 0; r < n; r++) {
       for (let c = 0; c < n; c++) {
-        if (!qr.isDark(r, c)) continue;
+        if (!isDark(r, c)) continue;
         if (isInFinder(r, c, n)) continue;
         const x = (c + margin) * modulePx;
         const y = (r + margin) * modulePx;
@@ -472,6 +489,12 @@
     const fullDefs = (composed.defs || defs).concat(filterDef ? [filterDef] : []);
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${composed.width} ${composed.height}" width="${composed.width}" height="${composed.height}"><defs>${fullDefs.join('')}</defs>${composed.body}</svg>`;
     return { svg, width: composed.width, height: composed.height };
+  }
+
+  // Convenience wrapper: build matrix + render in one call. Preserves the
+  // original public render(opts) surface for callers that don't need caching.
+  function renderQR(opts) {
+    return renderFromMatrix(buildMatrix(opts), opts);
   }
 
   // logoCache: original URL -> resolved data URL (so SVG/PNG exports are
@@ -1054,6 +1077,8 @@
     DOTS, OUTER_EYES: OUTER, INNER_EYES: INNER, FRAMES,
     CATALOG,
     render: renderQR,
+    buildMatrix,
+    renderFromMatrix,
     preloadLogos,
     toPngDataUrl,
     downloadSvg, downloadDataUrl,

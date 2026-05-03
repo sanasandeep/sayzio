@@ -451,6 +451,8 @@ function qrBuilder() {
         resolveTimer: null,
         tab: 'shapes',
         lastResult: null,
+        matrix: null,
+        matrixKey: '',
 
         init() {
             this.$watch('payload', () => this.scheduleResolve(), { deep: true });
@@ -494,7 +496,16 @@ function qrBuilder() {
                 // PNG export from it) is fully self-contained and won't taint
                 // the canvas with cross-origin pixels.
                 try { await window.QrStudio.preloadLogos(opts); } catch (e) {}
-                const result = window.QrStudio.render(opts);
+                // Cache the QR matrix and only rebuild it when the inputs that
+                // actually change the bit pattern change (data + EC level).
+                // Decoration-only edits (shape, color, frame, logo, margin…)
+                // skip the encoder entirely and just re-skin the cached matrix.
+                const key = (opts.data || '') + '|' + (opts.errorCorrection || 'M');
+                if (!this.matrix || this.matrixKey !== key) {
+                    this.matrix = window.QrStudio.buildMatrix(opts);
+                    this.matrixKey = key;
+                }
+                const result = window.QrStudio.renderFromMatrix(this.matrix, opts);
                 this.lastResult = result;
                 const t = document.getElementById('qrTarget');
                 if (t) t.innerHTML = result.svg;
