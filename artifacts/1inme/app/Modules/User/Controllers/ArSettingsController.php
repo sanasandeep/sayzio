@@ -14,19 +14,29 @@ use Illuminate\Http\Request;
  */
 class ArSettingsController extends Controller
 {
+    /**
+     * Block types that resolve to a destination URL via the standard
+     * `redirect.block` pipeline. Anything else (headings, dividers, forms,
+     * embeds) would dead-end an AR tap, so we hide them from the picker.
+     */
+    public const TAPPABLE_TYPES = [
+        'link', 'link_big', 'featured_pin',
+        'social_profile', 'whatsapp_number', 'whatsapp_channel',
+        'phone', 'sms', 'email',
+        'app_store', 'play_store',
+        'youtube', 'spotify', 'tiktok', 'instagram',
+        'twitter', 'facebook', 'linkedin', 'github', 'website',
+        'donation', 'paypal', 'buy_me_coffee', 'patreon', 'ko_fi',
+        'product', 'service', 'coupon', 'one_time_offer',
+    ];
+
     public function edit(Request $request, Link $link)
     {
         $this->authorizeOwnership($link);
 
-        // Only blocks that have a destination URL ("link"-style) are
-        // useful as AR hotspots — text blocks, dividers etc. are skipped.
-        $tappableTypes = ['link', 'link_big', 'social_profile', 'whatsapp_number',
-            'whatsapp_channel', 'phone', 'sms', 'email', 'app_store',
-            'play_store', 'youtube', 'spotify', 'tiktok', 'instagram',
-            'twitter', 'facebook', 'linkedin', 'github', 'website'];
-
         $blocks = BiolinkBlock::where('link_id', $link->id)
             ->where('is_active', true)
+            ->whereIn('type', self::TAPPABLE_TYPES)
             ->orderBy('sort_order')
             ->get();
 
@@ -35,7 +45,7 @@ class ArSettingsController extends Controller
         return view('user.links.settings.ar', [
             'link'           => $link,
             'blocks'         => $blocks,
-            'tappableTypes'  => $tappableTypes,
+            'tappableTypes'  => self::TAPPABLE_TYPES,
             'cfg'            => array_merge([
                 'block_ids'     => [],
                 'headline'      => '',
@@ -62,9 +72,12 @@ class ArSettingsController extends Controller
             'block_ids.*'   => 'integer',
         ]);
 
-        // Strip block_ids that don't belong to this link — silently, no error,
-        // so an attacker can't enumerate other workspaces' block IDs.
+        // Strip block_ids that don't belong to this link OR aren't a tappable
+        // (URL-resolving) block type — silently, no error, so an attacker
+        // can't enumerate other workspaces' block IDs and so creators can't
+        // accidentally pin a heading/form block as an AR hotspot.
         $allowedIds = BiolinkBlock::where('link_id', $link->id)
+            ->whereIn('type', self::TAPPABLE_TYPES)
             ->whereIn('id', $data['block_ids'] ?? [])
             ->pluck('id')->all();
 

@@ -73,6 +73,11 @@
 </style>
 </head>
 <body>
+<noscript>
+    {{-- JS-disabled visitors can't run model-viewer at all; send them straight
+         to the standard biolink so the QR/NFC scan is never a dead end. --}}
+    <meta http-equiv="refresh" content="0;url={{ $biolinkUrl }}?ar=unsupported&amp;reason=no_js">
+</noscript>
 <div class="wrap">
     <div class="topbar">
         <span class="brand">1INME · AR Card</span>
@@ -150,21 +155,50 @@
         setTimeout(function () { toast.hidden = true; }, 5500);
     }
 
-    // Capability sniff for the badge
+    // Capability sniff. The page is an AR experience; if the device can't
+    // activate AR we send the visitor straight to the standard biolink so
+    // the QR/NFC scan still leads somewhere useful. Creators previewing
+    // from the dashboard can pass ?preview=1 to stay on the 3D page.
     var ua = navigator.userAgent || '';
     var isIOS = /iPhone|iPad|iPod/i.test(ua);
     var isAndroid = /Android/i.test(ua);
-    var supports = false;
-    try { supports = !!(mv && mv.canActivateAR); } catch (e) {}
-    setTimeout(function () {
-        if (mv.canActivateAR) {
-            badge.textContent = isIOS ? 'iOS Quick Look' : (isAndroid ? 'Scene Viewer' : 'WebXR');
-        } else if (isIOS) {
-            badge.textContent = 'Tap viewer';
-        } else {
-            badge.textContent = '3D preview';
-            showToast("This browser can't open the AR overlay — you can still rotate the card and tap any link below.");
+    var qs = new URLSearchParams(location.search);
+    var previewMode = qs.get('preview') === '1';
+    var biolinkUrl = {!! json_encode($biolinkUrl) !!};
+
+    function looksArCapable() {
+        // iOS Safari supports Quick Look natively even before model-viewer
+        // reports canActivateAR, so treat it as capable. Android needs an
+        // ARCore-aware Chrome; model-viewer's canActivateAR is the source
+        // of truth there. Desktop browsers fall back to WebXR detection.
+        if (isIOS) return true;
+        try { if (mv && mv.canActivateAR) return true; } catch (e) {}
+        if (navigator.xr && typeof navigator.xr.isSessionSupported === 'function') {
+            return navigator.xr.isSessionSupported('immersive-ar').catch(function () { return false; });
         }
+        return false;
+    }
+
+    function fallbackToBiolink(reason) {
+        if (previewMode) {
+            badge.textContent = '3D preview';
+            showToast("Preview mode — this browser can't open AR. Visitors would be sent to the biolink.");
+            return;
+        }
+        // Server-rendered <noscript> link is a parallel safety net; this is
+        // the JS path for capable browsers that just lack AR (e.g. desktop).
+        var sep = biolinkUrl.indexOf('?') === -1 ? '?' : '&';
+        location.replace(biolinkUrl + sep + 'ar=unsupported&reason=' + encodeURIComponent(reason || 'no_ar'));
+    }
+
+    setTimeout(function () {
+        Promise.resolve(looksArCapable()).then(function (capable) {
+            if (capable) {
+                badge.textContent = isIOS ? 'iOS Quick Look' : (isAndroid ? 'Scene Viewer' : 'WebXR');
+                return;
+            }
+            fallbackToBiolink('not_supported');
+        });
     }, 600);
 
     // Fire a "source=ar" page session as soon as the viewer loads so analytics
@@ -179,7 +213,9 @@
 
     mv.addEventListener('ar-status', function (e) {
         if (e.detail.status === 'failed') {
-            showToast("Couldn't open AR on this device. Tap any link below to continue.");
+            // Capable on paper, refused at runtime — still send the user to
+            // the standard biolink instead of a stranded 3D preview.
+            fallbackToBiolink('ar_failed');
         }
     });
 })();

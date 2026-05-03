@@ -75,8 +75,9 @@
 
                 <div class="card-premium p-6">
                     <h3 class="text-sm font-bold mb-2" style="color: var(--text-primary);">Tappable blocks <span class="text-[10px] font-normal" style="color: var(--text-dimmed);">(pick up to 6)</span></h3>
+                    <p class="text-[11px] mb-2" style="color: var(--text-dimmed);">Only blocks that open a URL (links, social profiles, contact buttons, store links, donations) can act as AR hotspots — headings, forms, and embeds are hidden.</p>
                     @if($blocks->isEmpty())
-                        <p class="text-[12px]" style="color: var(--text-dimmed);">Add some blocks to your biolink first, then come back to choose which ones float in AR.</p>
+                        <p class="text-[12px]" style="color: var(--text-dimmed);">No tappable blocks yet — add a Link, Social Profile, or similar URL block to your biolink, then come back to pin it in AR.</p>
                     @else
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-3">
                             @foreach($blocks as $b)
@@ -109,8 +110,11 @@
                          alt="AR card preview"
                          class="w-full rounded-xl mb-4"
                          style="border: 1px solid var(--border-glass);">
-                    <a href="{{ $arUrl }}" target="_blank" class="block w-full text-center px-4 py-2.5 rounded-lg text-sm font-semibold text-white mb-2" style="background: linear-gradient(135deg,#a78bfa,#67e8f9);">
-                        <i class="fas fa-external-link-alt mr-1.5"></i> Open AR card
+                    {{-- preview=1 keeps creators on the 3D page even on a
+                         non-AR desktop browser; without it, an unsupported
+                         device gets sent to the standard biolink. --}}
+                    <a href="{{ $arUrl }}?preview=1" target="_blank" class="block w-full text-center px-4 py-2.5 rounded-lg text-sm font-semibold text-white mb-2" style="background: linear-gradient(135deg,#a78bfa,#67e8f9);">
+                        <i class="fas fa-external-link-alt mr-1.5"></i> Open AR card (preview)
                     </a>
                     <a href="{{ $kitUrl }}" target="_blank" class="block w-full text-center px-4 py-2.5 rounded-lg text-sm font-semibold mb-2" style="background: var(--bg-glass-input); border:1px solid var(--border-glass); color: var(--text-primary);">
                         <i class="fas fa-qrcode mr-1.5"></i> Open printable kit

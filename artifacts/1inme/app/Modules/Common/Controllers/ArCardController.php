@@ -44,8 +44,13 @@ class ArCardController extends Controller
         $picked = collect($cfg['block_ids'])->take(6)->all();
         $blocks = collect();
         if (!empty($picked)) {
+            // Mirror the settings-controller filter at render time so a
+            // non-tappable type that slipped in from older data (or a
+            // type that was tappable when saved but later disabled) never
+            // dead-ends an AR tap.
             $blocks = BiolinkBlock::where('link_id', $link->id)
                 ->whereIn('id', $picked)
+                ->whereIn('type', \App\Modules\User\Controllers\ArSettingsController::TAPPABLE_TYPES)
                 ->where('is_active', true)
                 ->orderByRaw('array_position(ARRAY[' . implode(',', array_map('intval', $picked)) . ']::int[], id)')
                 ->get();
