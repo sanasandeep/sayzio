@@ -8,7 +8,7 @@ export default function Slide84ThankYou() {
 
       <div className="relative h-full w-full px-[8vw] py-[8vh] flex flex-col">
         <div className="flex items-center gap-[1vw]">
-          <img src={`${base}logo-1inme.png`} crossOrigin="anonymous" alt="1INME" className="h-[2.6vw] w-auto" />
+          <img src={`${base}logo-1inme-dark.png`} crossOrigin="anonymous" alt="1INME" className="h-[2.6vw] w-auto" />
         </div>
 
         <div className="my-auto">

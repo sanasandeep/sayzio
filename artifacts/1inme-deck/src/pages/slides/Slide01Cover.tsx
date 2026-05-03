@@ -9,7 +9,7 @@ export default function Slide01Cover() {
 
       <div className="relative h-full w-full px-[7vw] py-[7vh] flex flex-col justify-between">
         <div className="flex items-center gap-[1vw]">
-          <img src={`${base}logo-1inme.png`} crossOrigin="anonymous" alt="1INME" className="h-[3vw] w-auto" />
+          <img src={`${base}logo-1inme-dark.png`} crossOrigin="anonymous" alt="1INME" className="h-[3vw] w-auto" />
         </div>
 
         <div className="max-w-[70vw]">

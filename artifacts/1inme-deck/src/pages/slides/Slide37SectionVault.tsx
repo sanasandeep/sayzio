@@ -1,6 +1,9 @@
+const base = import.meta.env.BASE_URL;
+
 export default function Slide37SectionVault() {
   return (
     <div className="w-screen h-screen overflow-hidden relative bg-[#14091f] text-slate-50 font-body">
+      <img src={`${base}logo-1inme-dark.png`} crossOrigin="anonymous" alt="1INME" className="absolute top-[5vh] left-[5vw] h-[2.4vw] w-auto z-10" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(34,211,238,0.3),transparent_50%),radial-gradient(circle_at_75%_75%,rgba(124,58,237,0.4),transparent_55%)]" />
       <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent,rgba(0,0,0,0.45))]" />
 
