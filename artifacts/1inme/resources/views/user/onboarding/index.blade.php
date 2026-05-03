@@ -53,7 +53,10 @@
             </div>
 
             @foreach($grouped as $groupName => $items)
-                <div x-show="visibleInGroup($el) > 0">
+                @php
+                    $groupHaystacks = collect($items)->map(fn($p) => strtolower($p['label'].' '.($p['blurb'] ?? '').' '.$p['slug']))->values()->all();
+                @endphp
+                <div x-show="q === '' || @js($groupHaystacks).some(h => h.includes(q.toLowerCase()))">
                     <h2 class="text-[10px] font-bold uppercase tracking-wider text-white/40 px-1.5 pt-3 pb-1.5">{{ $groupName }}</h2>
                     <div class="space-y-1">
                         @foreach($items as $p)
@@ -128,7 +131,7 @@
             </div>
 
             <div class="relative" :class="loading ? 'opacity-50 pointer-events-none' : ''">
-                <div x-html="gridHtml" id="onboarding-template-grid">
+                <div x-ref="grid" id="onboarding-template-grid">
                     {!! $initialGrid !!}
                 </div>
                 <div x-show="loading" x-cloak class="absolute inset-0 flex items-start justify-center pt-10 pointer-events-none">
@@ -200,15 +203,12 @@ function onboarding({ initialPersona, templatesUrl, savePersonaUrl, rememberPrev
         personas: personas || [],
         q: '',
         loading: false,
-        gridHtml: '',
         previewOpen: false,
         selectedTemplate: null,
         resume: resume || null,
 
         init() {
-            // gridHtml is populated server-side on first paint via x-html
-            // initial value; clear so Alpine doesn't overwrite on render.
-            this.gridHtml = document.getElementById('onboarding-template-grid')?.innerHTML || '';
+            // Server-rendered grid lives in $refs.grid — no init needed.
         },
 
         async selectPersona(slug) {
@@ -244,8 +244,8 @@ function onboarding({ initialPersona, templatesUrl, savePersonaUrl, rememberPrev
                 const resp = await fetch(url, {
                     headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'text/html' },
                 });
-                if (resp.ok) {
-                    this.gridHtml = await resp.text();
+                if (resp.ok && this.$refs.grid) {
+                    this.$refs.grid.innerHTML = await resp.text();
                 }
             } catch (e) {
                 // Leave existing grid as-is on failure.
@@ -259,12 +259,10 @@ function onboarding({ initialPersona, templatesUrl, savePersonaUrl, rememberPrev
             return p ? p.label : '';
         },
 
-        visibleInGroup(el) {
-            return el.querySelectorAll('[data-persona-card]:not([style*="display: none"])').length;
-        },
-
         noPersonaMatches() {
-            return document.querySelectorAll('[data-persona-card]:not([style*="display: none"])').length === 0;
+            const q = this.q.toLowerCase();
+            if (!q) return false;
+            return !this.personas.some(p => (p.label || '').toLowerCase().includes(q));
         },
 
         openPreview(tpl) {
