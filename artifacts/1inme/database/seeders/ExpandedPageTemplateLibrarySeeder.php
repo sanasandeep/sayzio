@@ -106,9 +106,11 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
                 'snapshot' => $this->snapshot([
                     $this->profile($label, $blurb, $img('avatar', 1, 200, 200)),
                     $this->heading('My Links', 'h3'),
+                    $this->ctaButton('🔥 Featured this week', 'https://example.com', '#7c3aed', '#ffffff'),
                     $this->link('Website', 'https://example.com', 'fa-globe'),
                     $this->link('Latest project', 'https://example.com', 'fa-bookmark'),
                     $this->link('Press kit', 'https://example.com', 'fa-file-lines'),
+                    $this->review('Jordan K.', 5, "Their work speaks for itself — instant fan.", $img('rev', 0, 80, 80)),
                     $this->socials(),
                 ], $pick(0)),
             ],
@@ -517,12 +519,22 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
 
     private function socials(): array
     {
-        // Render-safe: a `socials_multi` with empty platforms still resolves
-        // to an empty wrapper. The user adds real handles after picking the
-        // template; we keep the block here so the editor shows the slot.
+        // Seed a deterministic set of placeholder platforms so the icon
+        // row actually renders in preview. The user replaces these with
+        // their own handles after picking the template.
         return $this->block('socials_multi', [
-            'groups' => [['label' => 'Personal', 'platforms' => []]],
-            'size'   => 'md',
+            'groups' => [[
+                'label'     => 'Personal',
+                'platforms' => [
+                    ['name' => 'instagram', 'url' => 'https://instagram.com/yourhandle', 'display' => 'icon'],
+                    ['name' => 'tiktok',    'url' => 'https://tiktok.com/@yourhandle',  'display' => 'icon'],
+                    ['name' => 'youtube',   'url' => 'https://youtube.com/@yourhandle', 'display' => 'icon'],
+                    ['name' => 'twitter',   'url' => 'https://x.com/yourhandle',        'display' => 'icon'],
+                    ['name' => 'linkedin',  'url' => 'https://linkedin.com/in/yourhandle', 'display' => 'icon'],
+                ],
+            ]],
+            'size'  => 'md',
+            'style' => 'rounded',
         ]);
     }
 
