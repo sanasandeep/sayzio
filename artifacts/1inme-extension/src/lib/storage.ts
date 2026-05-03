@@ -1,5 +1,15 @@
 import { browser } from "./browser";
-import { api, ApiError } from "./api";
+import { api, ApiError, extractThankTemplatesConflict } from "./api";
+import {
+  mergeThankTemplatesPerId,
+  pickConflictResolution,
+  type ThankChannel as SharedThankChannel,
+  type ThankTemplate as SharedThankTemplate,
+  type ThankTemplatesConflict as SharedThankTemplatesConflict,
+  type ThankTemplatesConflictStrategy as SharedThankTemplatesConflictStrategy,
+} from "./thankTemplatesConflict";
+
+export { mergeThankTemplatesPerId };
 
 export interface ExtSettings {
   apiBaseUrl: string;
@@ -35,6 +45,12 @@ export interface ExtSettings {
   // against the per-workspace server copy. Bumped whenever the editor
   // saves; cleared on sign-out so a new account hydrates cleanly.
   thankTemplatesUpdatedAtMs: number | null;
+  // The server `updated_at_ms` we last successfully observed for this
+  // workspace (after a sync or push). Used as the optimistic-concurrency
+  // token on the next push: if the server's stored ts has moved past
+  // this value, another browser saved in between and we surface a
+  // conflict instead of silently overwriting.
+  thankTemplatesLastServerTs: number | null;
   // Workspace whose templates are currently mirrored locally. When the
   // creator switches workspace we re-hydrate from the server.
   thankTemplatesWorkspaceId: number | null;
@@ -48,15 +64,8 @@ export interface ExtSettings {
   pendingThanksWorkspaceId: number | null;
 }
 
-export type ThankChannel = "email" | "x" | "linkedin";
-
-export interface ThankTemplate {
-  id: string;
-  name: string;
-  channel: ThankChannel;
-  subject: string;
-  body: string;
-}
+export type ThankChannel = SharedThankChannel;
+export type ThankTemplate = SharedThankTemplate;
 
 // Pending-thanks queue bounds. The queue lives in browser.storage.local
 // and is otherwise unbounded — a creator who queues lots of thanks and
@@ -144,6 +153,7 @@ export const defaultSettings: ExtSettings = {
   radarDisabledHosts: [],
   thankTemplates: defaultThankTemplates(),
   thankTemplatesUpdatedAtMs: null,
+  thankTemplatesLastServerTs: null,
   thankTemplatesWorkspaceId: null,
   pendingThanks: [],
   pendingThanksUpdatedAtMs: null,
@@ -264,6 +274,7 @@ export async function syncThankTemplates(): Promise<void> {
       await setSettings({
         thankTemplates: resp.templates as ThankTemplate[],
         thankTemplatesUpdatedAtMs: resp.updated_at_ms,
+        thankTemplatesLastServerTs: resp.updated_at_ms,
         thankTemplatesWorkspaceId: s.workspaceId,
       });
     } catch { /* offline — defer to next sync */ }
@@ -276,6 +287,7 @@ export async function syncThankTemplates(): Promise<void> {
     await setSettings({
       thankTemplates: server!.templates,
       thankTemplatesUpdatedAtMs: serverTs,
+      thankTemplatesLastServerTs: serverTs,
       thankTemplatesWorkspaceId: s.workspaceId,
     });
     return;
@@ -286,6 +298,7 @@ export async function syncThankTemplates(): Promise<void> {
     await setSettings({
       thankTemplates: server!.templates,
       thankTemplatesUpdatedAtMs: serverTs,
+      thankTemplatesLastServerTs: serverTs,
       thankTemplatesWorkspaceId: s.workspaceId,
     });
   } else if (localTs > (serverTs ?? 0)) {
@@ -294,6 +307,7 @@ export async function syncThankTemplates(): Promise<void> {
       await setSettings({
         thankTemplates: resp.templates as ThankTemplate[],
         thankTemplatesUpdatedAtMs: resp.updated_at_ms,
+        thankTemplatesLastServerTs: resp.updated_at_ms,
         thankTemplatesWorkspaceId: s.workspaceId,
       });
     } catch { /* offline — try next time */ }
@@ -302,18 +316,35 @@ export async function syncThankTemplates(): Promise<void> {
     await setSettings({
       thankTemplates: server!.templates,
       thankTemplatesUpdatedAtMs: serverTs,
+      thankTemplatesLastServerTs: serverTs,
       thankTemplatesWorkspaceId: s.workspaceId,
     });
   }
 }
 
+// Re-exported from `./thankTemplatesConflict` so existing imports keep
+// working. The conflict types live in a dependency-free module so the
+// pure helpers are unit-testable without a webextension polyfill.
+export type ThankTemplatesConflict = SharedThankTemplatesConflict;
+export type ThankTemplatesConflictStrategy = SharedThankTemplatesConflictStrategy;
+
 /**
  * Persist edited templates locally and push to the server. Bumps the
  * local timestamp so an offline save still wins the next reconcile.
+ *
+ * Returns a `conflict` payload when the server rejects the push because
+ * another browser saved in between (HTTP 409). The local copy is still
+ * kept (the user's edits aren't dropped) — the editor surfaces the
+ * conflict and lets the creator pick a resolution via
+ * `resolveThankTemplatesConflict`.
  */
 export async function saveThankTemplatesLocallyAndPush(
   templates: ThankTemplate[],
-): Promise<{ pushed: boolean; error?: string }> {
+): Promise<{
+  pushed: boolean;
+  error?: string;
+  conflict?: ThankTemplatesConflict;
+}> {
   const ts = Date.now();
   const s = await getSettings();
   await setSettings({
@@ -322,23 +353,96 @@ export async function saveThankTemplatesLocallyAndPush(
     thankTemplatesWorkspaceId: s.workspaceId,
   });
   if (!s.token || !s.workspaceId) return { pushed: false };
+  // Send the server ts we last saw so the server can reject the push
+  // (with 409) if another browser saved in between. `0` is the sentinel
+  // for "we expected nothing on the server yet" (first push from this
+  // workspace).
+  const expected = s.thankTemplatesLastServerTs ?? 0;
   try {
-    const resp = await api.saveThankTemplates(templates, s.workspaceId, ts);
+    const resp = await api.saveThankTemplates(templates, s.workspaceId, ts, expected);
     await setSettings({
       thankTemplates: resp.templates as ThankTemplate[],
       thankTemplatesUpdatedAtMs: resp.updated_at_ms ?? ts,
+      thankTemplatesLastServerTs: resp.updated_at_ms ?? ts,
       thankTemplatesWorkspaceId: s.workspaceId,
     });
     return { pushed: true };
   } catch (e: any) {
+    const conflictPayload = extractThankTemplatesConflict(e);
+    if (conflictPayload) {
+      return {
+        pushed: false,
+        error: e?.message || "Server has a newer copy",
+        conflict: {
+          local: templates,
+          server: conflictPayload.templates as ThankTemplate[],
+          serverUpdatedAtMs: conflictPayload.updated_at_ms,
+        },
+      };
+    }
     return { pushed: false, error: e?.message || "Sync deferred" };
+  }
+}
+
+/**
+ * Apply the user's choice from the conflict banner. Bypasses the
+ * optimistic-concurrency check (the user has now seen the server copy
+ * and explicitly picked a winner), so the push always wins barring a
+ * fresh race.
+ */
+export async function resolveThankTemplatesConflict(
+  conflict: ThankTemplatesConflict,
+  strategy: ThankTemplatesConflictStrategy,
+  mergedOverride?: ThankTemplate[],
+): Promise<{ pushed: boolean; templates: ThankTemplate[]; error?: string }> {
+  const s = await getSettings();
+  const chosen = pickConflictResolution(conflict, strategy, mergedOverride);
+
+  // "Use server" doesn't need a network round-trip — we already have
+  // the authoritative payload and its timestamp from the 409.
+  if (strategy === "server") {
+    await setSettings({
+      thankTemplates: chosen,
+      thankTemplatesUpdatedAtMs: conflict.serverUpdatedAtMs,
+      thankTemplatesLastServerTs: conflict.serverUpdatedAtMs,
+      thankTemplatesWorkspaceId: s.workspaceId,
+    });
+    return { pushed: true, templates: chosen };
+  }
+
+  const ts = Date.now();
+  await setSettings({
+    thankTemplates: chosen,
+    thankTemplatesUpdatedAtMs: ts,
+    thankTemplatesWorkspaceId: s.workspaceId,
+  });
+  if (!s.token || !s.workspaceId) {
+    return { pushed: false, templates: chosen };
+  }
+  try {
+    // Pass the server ts we just observed via the 409 so the push lines
+    // up with the current server state. If yet another browser raced in
+    // between, we'll get a fresh 409 and the editor will re-prompt.
+    const resp = await api.saveThankTemplates(
+      chosen, s.workspaceId, ts, conflict.serverUpdatedAtMs ?? 0,
+    );
+    await setSettings({
+      thankTemplates: resp.templates as ThankTemplate[],
+      thankTemplatesUpdatedAtMs: resp.updated_at_ms ?? ts,
+      thankTemplatesLastServerTs: resp.updated_at_ms ?? ts,
+      thankTemplatesWorkspaceId: s.workspaceId,
+    });
+    return { pushed: true, templates: resp.templates as ThankTemplate[] };
+  } catch (e: any) {
+    return { pushed: false, templates: chosen, error: e?.message || "Sync deferred" };
   }
 }
 
 export async function clearAuth(): Promise<void> {
   await browser.storage.local.remove([
     "token", "user", "workspaceId", "workspaces",
-    "thankTemplatesUpdatedAtMs", "thankTemplatesWorkspaceId",
+    "thankTemplatesUpdatedAtMs", "thankTemplatesLastServerTs",
+    "thankTemplatesWorkspaceId",
     "pendingThanksUpdatedAtMs", "pendingThanksWorkspaceId",
   ]);
 }

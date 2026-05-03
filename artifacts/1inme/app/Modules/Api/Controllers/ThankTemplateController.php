@@ -52,7 +52,28 @@ class ThankTemplateController extends Controller
             // always re-stamp with server time on save so all clients see
             // a consistent, monotonic value.
             'updated_at_ms'             => ['nullable', 'integer', 'min:0'],
+            // Optimistic-concurrency token: the server timestamp the client
+            // last observed. If the stored copy has moved on since, another
+            // browser saved in the meantime and we 409 instead of clobbering
+            // the newer copy. Sentinel `0` means "client expected no server
+            // copy yet" (first sync). Omit to bypass the check entirely
+            // (used by conflict resolution after the user picked a winner).
+            'expected_updated_at_ms'    => ['nullable', 'integer', 'min:0'],
         ]);
+
+        // Optimistic concurrency check before we mutate anything.
+        if ($request->has('expected_updated_at_ms')) {
+            $expected = (int) $request->input('expected_updated_at_ms');
+            $current  = (int) (data_get($ws->settings, 'thank_templates.updated_at_ms') ?? 0);
+            if ($current !== $expected) {
+                return $this->fail(
+                    'Server has a newer copy of these templates.',
+                    409,
+                    'thank_templates_conflict',
+                    $this->extract($ws),
+                );
+            }
+        }
 
         // Dedupe by id, keeping the *first* occurrence (clients shouldn't
         // submit dupes but we'd rather be defensive than 422).

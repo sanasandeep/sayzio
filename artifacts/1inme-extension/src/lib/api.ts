@@ -268,11 +268,20 @@ export const api = {
     templates: Array<{ id: string; name: string; channel: "email" | "x" | "linkedin"; subject: string; body: string }>,
     workspaceId?: number | null,
     updatedAtMs?: number,
-  ) =>
-    request<ThankTemplatesPayload>(
+    // Optional optimistic-concurrency token: pass the server ts the client
+    // last saw. Server returns a 409 ApiError (with the current payload in
+    // `payload.error.details`) if its stored ts has moved on since.
+    expectedUpdatedAtMs?: number | null,
+  ) => {
+    const body: Record<string, unknown> = { templates, updated_at_ms: updatedAtMs };
+    if (expectedUpdatedAtMs !== undefined && expectedUpdatedAtMs !== null) {
+      body.expected_updated_at_ms = expectedUpdatedAtMs;
+    }
+    return request<ThankTemplatesPayload>(
       `/me/thank-templates${workspaceId ? `?workspace_id=${workspaceId}` : ""}`,
-      { method: "PUT", body: { templates, updated_at_ms: updatedAtMs } },
-    ),
+      { method: "PUT", body },
+    );
+  },
 
   // --- Smart links ---------------------------------------------------
   createSmartLink: (longUrl: string, rules: SmartRule[], title?: string, workspaceId?: number | null) =>
@@ -339,6 +348,17 @@ export interface PendingThanksPayload {
   }>;
   updated_at_ms: number | null;
   max: number;
+}
+
+// Pull the current server payload out of a 409 conflict thrown by
+// saveThankTemplates. The Laravel helper wraps it as
+// `{ error: { code, message, details: <ThankTemplatesPayload> } }`.
+export function extractThankTemplatesConflict(
+  err: unknown,
+): ThankTemplatesPayload | null {
+  if (!(err instanceof ApiError) || err.status !== 409) return null;
+  const payload = err.payload as { error?: { details?: ThankTemplatesPayload } } | null;
+  return payload?.error?.details ?? null;
 }
 
 export interface ThankTemplatesPayload {

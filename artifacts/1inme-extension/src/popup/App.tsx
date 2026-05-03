@@ -17,6 +17,9 @@ import {
   prunePendingThanks,
   renderThankTemplate,
   savePendingThanksLocallyAndPush,
+  ThankTemplatesConflict,
+  ThankTemplatesConflictStrategy,
+  resolveThankTemplatesConflict,
   saveThankTemplatesLocallyAndPush,
   setSettings,
   syncPendingThanks,
@@ -1196,6 +1199,10 @@ function ThankTemplatesEditor({
       : defaultThankTemplates(),
   );
   const [saved, setSaved] = useState(false);
+  // When the server rejects our push because another browser saved
+  // first, stash the conflict and prompt the creator to choose how to
+  // resolve it. Cleared once they pick.
+  const [conflict, setConflict] = useState<ThankTemplatesConflict | null>(null);
 
   const update = (id: string, patch: Partial<ThankTemplate>) =>
     setDrafts((p) => p.map((t) => (t.id === id ? { ...t, ...patch } : t)));
@@ -1221,6 +1228,13 @@ function ThankTemplatesEditor({
     }
     const result = await saveThankTemplatesLocallyAndPush(cleaned);
     setDrafts(cleaned);
+    if (result.conflict) {
+      // Another browser saved in between. Surface the choice rather
+      // than silently overwriting their work.
+      setConflict(result.conflict);
+      showToast({ kind: "info", text: "Another browser saved newer templates — pick which copy to keep." });
+      return;
+    }
     setSaved(true);
     setTimeout(() => setSaved(false), 1500);
     if (!result.pushed && settings.token) {
@@ -1231,10 +1245,33 @@ function ThankTemplatesEditor({
     onSaved();
   };
 
+  const resolveConflict = async (
+    strategy: ThankTemplatesConflictStrategy,
+    mergedOverride?: ThankTemplate[],
+  ) => {
+    if (!conflict) return;
+    const result = await resolveThankTemplatesConflict(conflict, strategy, mergedOverride);
+    setDrafts(result.templates);
+    setConflict(null);
+    if (result.pushed) {
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1500);
+      showToast({ kind: "success", text: "Templates synced." });
+    } else if (settings.token) {
+      showToast({ kind: "info", text: "Saved locally — will sync when back online." });
+    }
+    onSaved();
+  };
+
   const restoreDefaults = async () => {
     const tpls = defaultThankTemplates();
     setDrafts(tpls);
-    await saveThankTemplatesLocallyAndPush(tpls);
+    const result = await saveThankTemplatesLocallyAndPush(tpls);
+    if (result.conflict) {
+      setConflict(result.conflict);
+      showToast({ kind: "info", text: "Another browser saved newer templates — pick which copy to keep." });
+      return;
+    }
     onSaved();
   };
 
@@ -1245,6 +1282,13 @@ function ThankTemplatesEditor({
         Use placeholders <code>{"{pageUrl}"}</code>, <code>{"{matchedUrl}"}</code>, <code>{"{anchor}"}</code>, and{" "}
         <code>{"{anchorClause}"}</code> (renders as “(loved the &ldquo;…&rdquo; anchor)” when present).
       </div>
+      {conflict && (
+        <ThankTemplatesConflictBanner
+          conflict={conflict}
+          onResolve={resolveConflict}
+          onDismiss={() => setConflict(null)}
+        />
+      )}
       {drafts.map((t) => (
         <div key={t.id} className="template-card">
           <div className="row" style={{ gap: 6 }}>
@@ -1472,7 +1516,63 @@ function RuleEditor({
       <button className="rule-add" disabled={rules.length >= maxRules} onClick={add}>
         + Add rule {rules.length >= maxRules ? `(plan max ${maxRules})` : ""}
       </button>
+    </div>
+  );
+}
 
+// ── Thank-templates conflict banner ─────────────────────────────────
+// Surfaced when a save was rejected because another browser pushed
+// newer templates after our last sync. Lets the creator keep their
+// edits, adopt the server copy, or merge per-template (preferring
+// local on id collisions, capped at the 3-template API limit).
+function ThankTemplatesConflictBanner({
+  conflict, onResolve, onDismiss,
+}: {
+  conflict: ThankTemplatesConflict;
+  onResolve: (
+    strategy: ThankTemplatesConflictStrategy,
+    mergedOverride?: ThankTemplate[],
+  ) => void | Promise<void>;
+  onDismiss: () => void;
+}) {
+  const serverWhen = conflict.serverUpdatedAtMs
+    ? new Date(conflict.serverUpdatedAtMs).toLocaleString()
+    : "just now";
+  const localCount = conflict.local.length;
+  const serverCount = conflict.server.length;
+  return (
+    <div
+      className="conflict-banner"
+      style={{
+        border: "1px solid #d97706",
+        background: "#fffbeb",
+        padding: 10,
+        borderRadius: 6,
+        marginBottom: 8,
+        fontSize: 13,
+      }}
+    >
+      <div style={{ fontWeight: 600, marginBottom: 4 }}>
+        Another browser saved newer templates
+      </div>
+      <div className="muted" style={{ fontSize: 12, marginBottom: 8 }}>
+        Saving would have overwritten {serverCount} template
+        {serverCount === 1 ? "" : "s"} another browser pushed at {serverWhen}.
+        Your {localCount} edited template{localCount === 1 ? "" : "s"} are
+        kept locally — pick what to keep:
+      </div>
+      <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
+        <button className="btn-secondary btn-sm" onClick={() => onResolve("mine")}>
+          Keep mine
+        </button>
+        <button className="btn-secondary btn-sm" onClick={() => onResolve("server")}>
+          Use server
+        </button>
+        <button className="btn-secondary btn-sm" onClick={() => onResolve("merge")}>
+          Merge per-template
+        </button>
+        <button className="btn-link" onClick={onDismiss}>Decide later</button>
+      </div>
     </div>
   );
 }
