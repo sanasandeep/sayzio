@@ -71,6 +71,14 @@ class RoadmapPublicController extends Controller
 
         $fp = $this->fingerprint($request);
 
+        // Per-block creator-managed blocklist. Once a creator adds a
+        // fingerprint or email to the blocklist (via the block's
+        // settings), every public write from that identity is rejected
+        // with a generic 403 — no signal that they've been blocked.
+        if ($this->isBlockedSubmitter($cfg, $fp, $data['email'] ?? null)) {
+            return response()->json(['ok' => false, 'error' => 'You are not allowed to submit ideas here.'], 403);
+        }
+
         // Soft per-visitor cap so a single fan can't flood the board.
         $recent = RoadmapItem::query()->withoutGlobalScope('workspace')
             ->where('block_id', $block->id)
@@ -119,6 +127,9 @@ class RoadmapPublicController extends Controller
         }
 
         $fp = $this->fingerprint($request);
+        if ($this->isBlockedSubmitter($block->settings ?? [], $fp, $request->input('email'))) {
+            return response()->json(['ok' => false, 'error' => 'You are not allowed to vote here.'], 403);
+        }
         // Atomic vote toggle: lock the item row, branch on whether the
         // unique (item_id, fingerprint) row exists, then increment or
         // decrement the cached counter via DB-level math so concurrent
@@ -174,6 +185,10 @@ class RoadmapPublicController extends Controller
             return response()->json(['ok' => false, 'error' => 'Display name is not allowed.'], 422);
         }
 
+        if ($this->isBlockedSubmitter($block->settings ?? [], $this->fingerprint($request), $request->input('email'))) {
+            return response()->json(['ok' => false, 'error' => 'You are not allowed to comment here.'], 403);
+        }
+
         $vid = $this->viewerUserId($request);
         $name = $data['name']
             ?: $request->session()->get('viewer_user_name')
@@ -192,6 +207,20 @@ class RoadmapPublicController extends Controller
     }
 
     /** ─── Helpers ──────────────────────────────────────────── */
+
+    /**
+     * Returns true when the (fingerprint, email) pair is on the
+     * creator's per-block blocklist. Empty/missing lists mean
+     * "everyone is welcome".
+     */
+    private function isBlockedSubmitter(array $cfg, string $fingerprint, ?string $email): bool
+    {
+        $emails = array_map('strtolower', (array) ($cfg['blocked_emails'] ?? []));
+        $fps    = (array) ($cfg['blocked_fingerprints'] ?? []);
+        if ($email && in_array(strtolower(trim($email)), $emails, true)) return true;
+        if (in_array($fingerprint, $fps, true)) return true;
+        return false;
+    }
 
     private function ensureRoadmapBlock(Link $link, BiolinkBlock $block): void
     {

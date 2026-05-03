@@ -865,6 +865,29 @@ class BiolinkBlockController extends Controller
             $cols = (array) ($settings['show_columns'] ?? \App\Modules\User\Models\RoadmapItem::PUBLIC_STATUSES);
             $settings['show_columns']      = array_values(array_intersect(\App\Modules\User\Models\RoadmapItem::PUBLIC_STATUSES, $cols))
                 ?: \App\Modules\User\Models\RoadmapItem::PUBLIC_STATUSES;
+            // Per-block submitter blocklist. Creators paste a CSV of
+            // emails (case-insensitive) and/or fingerprints (the same
+            // SHA-256 hash we store on roadmap_votes.fingerprint). Both
+            // submit + vote + comment endpoints check these lists, so a
+            // banned fan can neither propose new ideas nor influence
+            // existing ones from the same browser/email.
+            foreach (['blocked_emails_csv' => 'blocked_emails',
+                      'blocked_fingerprints_csv' => 'blocked_fingerprints'] as $csvKey => $arrKey) {
+                if (array_key_exists($csvKey, $settings)) {
+                    $raw = (string) $settings[$csvKey];
+                    $parsed = array_values(array_unique(array_filter(array_map(
+                        fn($v) => strtolower(trim($v)),
+                        preg_split('/[,\s]+/', $raw, -1, PREG_SPLIT_NO_EMPTY) ?: []
+                    ))));
+                    $settings[$arrKey] = array_slice($parsed, 0, 500);
+                    unset($settings[$csvKey]);
+                } else {
+                    $settings[$arrKey] = array_values(array_filter(array_map(
+                        fn($v) => strtolower(trim((string) $v)),
+                        (array) ($settings[$arrKey] ?? [])
+                    )));
+                }
+            }
         }
 
         // Tip-jar blocks: convert "amounts_csv" form input into a numeric
@@ -1159,14 +1182,16 @@ class BiolinkBlockController extends Controller
             'avatar' => ['url' => '', 'size' => 96, 'rounded' => true],
 
             'roadmap' => [
-                'title'             => 'Roadmap',
-                'subtitle'          => 'Suggest ideas, vote on others.',
-                'allow_submissions' => true,
-                'require_email'     => true,
-                'require_login'     => false,
-                'auto_approve'      => false,
-                'kanban_board_id'   => null,
-                'show_columns'      => ['ideas', 'planned', 'in_progress', 'shipped'],
+                'title'                => 'Roadmap',
+                'subtitle'             => 'Suggest ideas, vote on others.',
+                'allow_submissions'    => true,
+                'require_email'        => true,
+                'require_login'        => false,
+                'auto_approve'         => false,
+                'kanban_board_id'      => null,
+                'show_columns'         => ['ideas', 'planned', 'in_progress', 'shipped'],
+                'blocked_emails'       => [],
+                'blocked_fingerprints' => [],
             ],
 
             default => [],

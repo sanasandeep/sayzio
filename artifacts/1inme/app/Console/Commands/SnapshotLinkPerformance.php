@@ -6,6 +6,8 @@ use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\LinkPerformanceSnapshot;
 use App\Modules\User\Models\PageSession;
+use App\Modules\User\Models\RoadmapItem;
+use App\Modules\User\Models\RoadmapVote;
 use App\Modules\User\Services\LinkPerformanceCoach;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
@@ -58,11 +60,37 @@ class SnapshotLinkPerformance extends Command
                 $ctx = $this->buildContext($link, $dayStart, $dayEnd, $prevStart, $prevEnd);
                 $result = LinkPerformanceCoach::scoreWithComponents($ctx);
 
+                // Mix in roadmap engagement so the daily components
+                // payload reflects fan participation, not just clicks.
+                // Renders into the existing 30-day analytics surface
+                // (see PortalController + LinkController views).
+                $components = $result['components'];
+                $components['roadmap'] = [
+                    'submissions_today' => RoadmapItem::query()->withoutGlobalScope('workspace')
+                        ->where('link_id', $link->id)
+                        ->whereBetween('created_at', [$dayStart, $dayEnd])
+                        ->count(),
+                    'votes_today' => RoadmapVote::query()
+                        ->whereIn('item_id', RoadmapItem::query()->withoutGlobalScope('workspace')
+                            ->where('link_id', $link->id)->pluck('id'))
+                        ->whereBetween('created_at', [$dayStart, $dayEnd])
+                        ->count(),
+                    'shipped_today' => RoadmapItem::query()->withoutGlobalScope('workspace')
+                        ->where('link_id', $link->id)
+                        ->whereBetween('shipped_at', [$dayStart, $dayEnd])
+                        ->count(),
+                    'open_ideas' => RoadmapItem::query()->withoutGlobalScope('workspace')
+                        ->where('link_id', $link->id)
+                        ->where('is_blocked', false)
+                        ->whereIn('status', ['ideas', 'planned', 'in_progress'])
+                        ->count(),
+                ];
+
                 LinkPerformanceSnapshot::updateOrCreate(
                     ['link_id' => $link->id, 'date' => $dayStart->toDateString()],
                     [
                         'score'           => $result['score'],
-                        'components_json' => $result['components'],
+                        'components_json' => $components,
                     ]
                 );
                 $written++;
