@@ -7,6 +7,7 @@ use App\Modules\User\Models\Resume;
 use App\Modules\User\Models\ResumeSectionItem;
 use App\Modules\User\Services\ResumeColorThemeRegistry;
 use App\Modules\User\Services\ResumeTemplateRegistry;
+use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -25,6 +26,28 @@ use Illuminate\Validation\Rule;
  */
 class ResumeController extends Controller
 {
+    /**
+     * GET — render the editor page (Blade). Bootstraps the same JSON
+     * payload as `show()` so the editor can render immediately without a
+     * second round-trip on first paint.
+     */
+    public function editor(Request $request): View
+    {
+        $user   = $request->user();
+        $resume = $user->ensureResume();
+        $resume->load('items');
+
+        return view('user.resume.editor', [
+            'bootstrap' => [
+                'resume'     => $this->present($resume),
+                'registries' => [
+                    'templates'    => ResumeTemplateRegistry::availableFor($user),
+                    'color_themes' => ResumeColorThemeRegistry::all(),
+                ],
+            ],
+        ]);
+    }
+
     /**
      * GET — full resume + ordered items + registries.
      */

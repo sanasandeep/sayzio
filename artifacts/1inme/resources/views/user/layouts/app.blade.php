@@ -822,6 +822,13 @@
                     <span class="nav-label">Projects</span>
                     <span class="sidebar-tooltip">Projects</span>
                 </a>
+                <a href="{{ route('user.resume.editor') }}"
+                   class="sidebar-link {{ request()->routeIs('user.resume.*') ? 'active' : '' }}"
+                   style="--nav-tint:#14b8a6; --nav-tint-soft:rgba(20,184,166,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-file-lines"></i></div>
+                    <span class="nav-label">Resume / Portfolio</span>
+                    <span class="sidebar-tooltip">Resume / Portfolio</span>
+                </a>
                 <a href="{{ route('user.files.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.files.*') ? 'active' : '' }}"
                    style="--nav-tint:#06b6d4; --nav-tint-soft:rgba(6,182,212,0.12);">
@@ -1111,6 +1118,7 @@
                         @if($__can['links_view'])
                         <p class="pt-3 px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Workspace</p>
                         <a href="{{ route('user.projects.index') }}" class="sidebar-link {{ request()->routeIs('user.projects.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-folder"></i></div> <span>Projects</span></a>
+                        <a href="{{ route('user.resume.editor') }}" class="sidebar-link {{ request()->routeIs('user.resume.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-file-lines"></i></div> <span>Resume / Portfolio</span></a>
                         <a href="{{ route('user.files.index') }}" class="sidebar-link {{ request()->routeIs('user.files.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-cloud-upload-alt"></i></div> <span>My Files</span></a>
                         @endif
 

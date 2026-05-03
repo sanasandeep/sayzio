@@ -234,7 +234,8 @@ Route::prefix('user')->name('user.')->group(function () {
         // the authenticated user every call so a member of someone
         // else's workspace can never see/edit the owner's resume.
         Route::prefix('resume')->name('resume.')->group(function () {
-            Route::get  ('/',                 [\App\Modules\User\Controllers\ResumeController::class, 'show'])->name('show');
+            Route::get  ('/',                 [\App\Modules\User\Controllers\ResumeController::class, 'editor'])->name('editor');
+            Route::get  ('data',              [\App\Modules\User\Controllers\ResumeController::class, 'show'])->name('show');
             Route::put  ('header',            [\App\Modules\User\Controllers\ResumeController::class, 'updateHeader'])->name('header.update');
             Route::put  ('summary',           [\App\Modules\User\Controllers\ResumeController::class, 'updateSummary'])->name('summary.update');
             Route::put  ('template',          [\App\Modules\User\Controllers\ResumeController::class, 'updateTemplate'])->name('template.update');

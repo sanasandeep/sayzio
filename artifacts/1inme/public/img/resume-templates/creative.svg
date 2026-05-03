@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 200" width="160" height="200">
+  <rect width="160" height="200" fill="#fffaf5"/>
+  <rect x="0" y="0" width="160" height="42" fill="#7c2d12"/>
+  <text x="14" y="22" font-family="Georgia, serif" font-size="14" font-weight="700" fill="#fffaf5">Jane Doe</text>
+  <text x="14" y="32" font-family="Inter, sans-serif" font-size="5" fill="#fed7aa">Designer · Photographer · Creator</text>
+  <text x="14" y="56" font-family="Inter, sans-serif" font-size="7" font-weight="700" fill="#7c2d12">FEATURED PROJECTS</text>
+  <rect x="14" y="62" width="38" height="28" rx="3" fill="#ea580c"/>
+  <rect x="56" y="62" width="38" height="28" rx="3" fill="#fb923c"/>
+  <rect x="98" y="62" width="38" height="28" rx="3" fill="#fdba74"/>
+  <text x="14" y="106" font-family="Inter, sans-serif" font-size="7" font-weight="700" fill="#7c2d12">EXPERIENCE</text>
+  <rect x="14" y="112" width="120" height="3" fill="#fed7aa"/>
+  <rect x="14" y="119" width="100" height="3" fill="#fff1e3"/>
+  <rect x="14" y="126" width="120" height="3" fill="#fff1e3"/>
+  <text x="14" y="146" font-family="Inter, sans-serif" font-size="7" font-weight="700" fill="#7c2d12">SKILLS</text>
+  <rect x="14" y="152" width="32" height="6" rx="3" fill="#fed7aa"/>
+  <rect x="50" y="152" width="32" height="6" rx="3" fill="#fed7aa"/>
+  <rect x="86" y="152" width="32" height="6" rx="3" fill="#fed7aa"/>
+</svg>

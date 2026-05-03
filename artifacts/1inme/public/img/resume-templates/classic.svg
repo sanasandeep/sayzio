@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 200" width="160" height="200">
+  <rect width="160" height="200" fill="#ffffff"/>
+  <text x="14" y="26" font-family="Georgia, serif" font-size="13" font-weight="700" fill="#111827">Jane Doe</text>
+  <text x="14" y="38" font-family="Georgia, serif" font-size="6" fill="#6b7280">Senior Product Designer</text>
+  <line x1="14" y1="44" x2="146" y2="44" stroke="#e5e7eb"/>
+  <text x="14" y="58" font-family="Georgia, serif" font-size="7" font-weight="700" fill="#111827">EXPERIENCE</text>
+  <rect x="14" y="64" width="100" height="3" fill="#cbd5e1"/>
+  <rect x="14" y="71" width="120" height="3" fill="#e5e7eb"/>
+  <rect x="14" y="78" width="80" height="3" fill="#e5e7eb"/>
+  <rect x="14" y="92" width="100" height="3" fill="#cbd5e1"/>
+  <rect x="14" y="99" width="120" height="3" fill="#e5e7eb"/>
+  <rect x="14" y="106" width="80" height="3" fill="#e5e7eb"/>
+  <text x="14" y="126" font-family="Georgia, serif" font-size="7" font-weight="700" fill="#111827">EDUCATION</text>
+  <rect x="14" y="132" width="100" height="3" fill="#cbd5e1"/>
+  <rect x="14" y="139" width="60" height="3" fill="#e5e7eb"/>
+  <text x="14" y="158" font-family="Georgia, serif" font-size="7" font-weight="700" fill="#111827">SKILLS</text>
+  <rect x="14" y="164" width="40" height="6" rx="2" fill="#f3f4f6"/>
+  <rect x="58" y="164" width="40" height="6" rx="2" fill="#f3f4f6"/>
+  <rect x="102" y="164" width="40" height="6" rx="2" fill="#f3f4f6"/>
+</svg>
