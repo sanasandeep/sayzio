@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -50,6 +51,7 @@ class ResumeController extends Controller
                     'templates'    => ResumeTemplateRegistry::availableFor($user),
                     'color_themes' => ResumeColorThemeRegistry::all(),
                 ],
+                'public_url' => url('/' . $user->publicHandle() . '/resume'),
             ],
         ]);
     }
@@ -485,6 +487,53 @@ class ResumeController extends Controller
         ]);
     }
 
+    /**
+     * PUT — toggle publish + visibility + indexing + password.
+     *
+     * Mirrors the visibility vocabulary used by Link.visibility so the
+     * public-page renderer (PublicResumeController) can reuse the same
+     * gating helpers. The password is hashed with Hash::make on write
+     * and only sent when the visibility tier is `password`.
+     */
+    public function updatePublishing(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'is_public'      => ['required', 'boolean'],
+            'visibility'     => ['required', 'string', Rule::in(Resume::VISIBILITIES)],
+            'allow_indexing' => ['required', 'boolean'],
+            // Optional — only honored when visibility=password. An empty
+            // string clears the existing password; a non-empty string
+            // hashes and stores it.
+            'password'         => ['nullable', 'string', 'max:200'],
+            'meta_description' => ['nullable', 'string', 'max:240'],
+        ]);
+
+        $resume = $request->user()->ensureResume();
+        $update = [
+            'is_public'        => (bool) $data['is_public'],
+            'visibility'       => $data['visibility'],
+            'allow_indexing'   => (bool) $data['allow_indexing'],
+            'meta_description' => $data['meta_description'] ?? null,
+        ];
+
+        if ($data['visibility'] === 'password') {
+            if (array_key_exists('password', $data)) {
+                $update['password'] = filled($data['password']) ? Hash::make($data['password']) : null;
+            }
+        } else {
+            // Switching off password tier wipes the stored hash so a
+            // future re-enable doesn't silently reuse an old credential.
+            $update['password'] = null;
+        }
+
+        $resume->update($update);
+
+        return response()->json([
+            'resume'     => $this->present($resume->fresh('items')),
+            'public_url' => url('/' . $request->user()->publicHandle() . '/resume'),
+        ]);
+    }
+
     // ── Internals ──────────────────────────────────────────────────
 
     private function authorizeItem(Request $request, ResumeSectionItem $item): void
@@ -631,6 +680,13 @@ class ResumeController extends Controller
             'is_public_pdf'  => (bool) $resume->is_public_pdf,
             'public_pdf_url' => $publicUrl,
             'handle'         => $handle,
+            // Publishing / sharing state (password is never serialized).
+            'is_public'        => (bool) $resume->is_public,
+            'visibility'       => $resume->visibility ?: 'public',
+            'allow_indexing'   => $resume->allow_indexing === null ? true : (bool) $resume->allow_indexing,
+            'has_password'     => filled($resume->password),
+            'view_count'       => (int) ($resume->view_count ?? 0),
+            'meta_description' => $resume->meta_description,
             'updated_at'     => optional($resume->updated_at)->toIso8601String(),
         ];
     }

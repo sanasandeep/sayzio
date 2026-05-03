@@ -186,6 +186,7 @@ class BiolinkBlock extends Model
         // ── Identity ──────────────────────────────────────────────────
         'vcard'            => ['label' => 'Contact (vCard)',     'icon' => 'fa-address-book',               'category' => 'identity'],
         'avatar'           => ['label' => 'Avatar',              'icon' => 'fa-user-circle',                'category' => 'identity'],
+        'resume'           => ['label' => 'Resume / CV',         'icon' => 'fa-file-lines',                 'category' => 'identity'],
 
         // ── System / Verified (hidden from gallery) ───────────────────
         'verified_heading' => ['label' => 'Verified Heading',    'icon' => 'fa-check-circle',               'category' => 'verified', 'system' => true],

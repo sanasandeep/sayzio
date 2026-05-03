@@ -9,15 +9,50 @@ use Illuminate\Database\Eloquent\Model;
 class Resume extends Model
 {
     protected $fillable = [
-        'user_id', 'template_id', 'color_theme_id', 'sections', 'is_public_pdf',
+        'user_id', 'template_id', 'color_theme_id', 'sections',
+        'is_public', 'visibility', 'password',
+        'allow_indexing', 'view_count', 'meta_description',
+        'is_public_pdf',
     ];
+
+    protected $hidden = ['password'];
 
     protected function casts(): array
     {
         return [
-            'sections'      => 'array',
-            'is_public_pdf' => 'boolean',
+            'sections'        => 'array',
+            'is_public'       => 'boolean',
+            'allow_indexing'  => 'boolean',
+            'view_count'      => 'integer',
+            'is_public_pdf'   => 'boolean',
         ];
+    }
+
+    /**
+     * Allowed visibility tiers — mirrors Link.visibility so the public
+     * page can reuse the same gating logic (registered / followers /
+     * subscribers / password) without inventing parallel concepts.
+     */
+    public const VISIBILITIES = ['public', 'registered', 'followers', 'subscribers', 'password'];
+
+    /** True when the resume can be reached at /{handle}/resume at all. */
+    public function isPublished(): bool
+    {
+        return (bool) $this->is_public;
+    }
+
+    /** True when the visibility tier requires a password unlock. */
+    public function requiresPassword(): bool
+    {
+        return $this->visibility === 'password' && filled($this->password);
+    }
+
+    /** Public-page URL for this resume, or null when the user has no handle. */
+    public function publicUrl(): ?string
+    {
+        $u = $this->user ?? $this->user()->first();
+        if (!$u) return null;
+        return url('/' . $u->publicHandle() . '/resume');
     }
 
     /**

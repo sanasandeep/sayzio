@@ -189,6 +189,18 @@ Route::get('/{handle}/resume.pdf',
     ->where('handle', '[A-Za-z0-9_.-]{2,40}')
     ->name('resume.public.pdf');
 
+// Public Resume page at /{handle}/resume. Registered BEFORE the
+// `/{alias}` catch-alls so the literal `/resume` second segment routes
+// here (the alias regex only covers single-segment paths and a small
+// allow-list of suffixes that does not include "resume").
+Route::get ('/{handle}/resume', [\App\Modules\Common\Controllers\PublicResumeController::class, 'show'])
+    ->name('resume.public.show')
+    ->where('handle', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|ai-chatbot|ai-agent|ai-widget|ai-voice-assistant|docs|newsletter|pricing|coins|premium-features|blogs|creators|feed|viewer|companion|embed|assistant|sp|r)[a-zA-Z0-9_\-\.]+$');
+Route::post('/{handle}/resume', [\App\Modules\Common\Controllers\PublicResumeController::class, 'unlock'])
+    ->name('resume.public.unlock')
+    ->middleware('throttle:10,1')
+    ->where('handle', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$');
+
 Route::get('/{alias}/manifest.json', [RedirectController::class, 'manifest'])->name('redirect.manifest')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|ai-chatbot|ai-agent|ai-widget|ai-voice-assistant|docs|newsletter|pricing|coins|premium-features|blogs).*$');
 Route::get('/{alias}', [RedirectController::class, 'handle'])->name('redirect.handle')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|ai-chatbot|ai-agent|ai-widget|ai-voice-assistant|docs|newsletter|pricing|coins|premium-features|blogs).*$');
 Route::post('/{alias}/track/session', [\App\Modules\Common\Controllers\EngagementController::class, 'startSession'])->name('track.session.start')->where('alias', '[^/]+')->middleware('throttle:60,1');

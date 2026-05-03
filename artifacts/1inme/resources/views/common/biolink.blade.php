@@ -727,6 +727,29 @@
             </div>
         @endif
 
+        @php
+            // Bio-link header CTA: surface a small "View resume" chip when
+            // the page owner has published their /{handle}/resume page.
+            // Lives just above the block stream so it sits in the
+            // page-header area without competing with custom blocks.
+            $__resumeOwner = $link->user ?? null;
+            $__resumePublished = $__resumeOwner
+                ? optional($__resumeOwner->resume)->is_public
+                : false;
+        @endphp
+        @if ($__resumePublished)
+            <div class="biolink-block-wrap" style="grid-column: span 12">
+                <div class="mb-3 text-center">
+                    <a href="{{ url('/' . $__resumeOwner->publicHandle() . '/resume') }}"
+                       class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all hover:scale-105"
+                       style="background: {{ $fontColor }}12; color: {{ $fontColor }}; border: 1px solid {{ $fontColor }}30;">
+                        <i class="fas fa-file-lines"></i>
+                        <span>View résumé</span>
+                    </a>
+                </div>
+            </div>
+        @endif
+
         @forelse($blocks as $block)
             @php
                 $s = $block->settings ?? [];
@@ -754,6 +777,53 @@
                         </div>
                     @endif
                 </div>
+
+            @elseif($block->type === 'resume')
+                @php
+                    $__rOwner = $link->user ?? null;
+                    $__rResume = $__rOwner ? $__rOwner->resume : null;
+                    $__rUrl = $__rOwner ? url('/' . $__rOwner->publicHandle() . '/resume') : null;
+                    $__rDisplay = $s['display'] ?? 'card'; // card | inline
+                    $__rTitle = $s['title'] ?? 'My résumé';
+                    $__rCta   = $s['cta_label'] ?? 'View full résumé';
+                    $__rDesc  = $s['description'] ?? null;
+                    if ($__rResume && empty($__rDesc)) {
+                        $__rh = $__rResume->getMergedSections()['header'] ?? [];
+                        $__rDesc = trim($__rh['headline'] ?? '');
+                    }
+                @endphp
+                @if (!$__rResume || !$__rResume->is_public || !$__rUrl)
+                    {{-- Owner hasn't published yet — render nothing on the public page. --}}
+                @elseif ($__rDisplay === 'inline')
+                    <div class="rounded-2xl overflow-hidden mb-3" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);">
+                        <div class="px-3 py-2 flex items-center justify-between text-xs" style="color: {{ $fontColor }}cc;">
+                            <span class="inline-flex items-center gap-2 font-semibold"><i class="fas fa-file-lines"></i> {{ $__rTitle }}</span>
+                            <a href="{{ $__rUrl }}" class="font-bold underline-offset-2 hover:underline" style="color: {{ $fontColor }};">Open <i class="fas fa-external-link-alt text-[10px]"></i></a>
+                        </div>
+                        <div style="background:#fff; color:#111;">
+                            @include('common.partials.resume-render', ['resume' => $__rResume, 'compact' => true])
+                        </div>
+                    </div>
+                @else
+                    <a href="{{ $__rUrl }}" class="block mb-3 rounded-2xl p-4 transition-all hover:scale-[1.01]"
+                       style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: {{ $fontColor }};">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                                 style="background: rgba(124,58,237,0.18); color:#c4b5fd;">
+                                <i class="fas fa-file-lines"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm font-bold truncate">{{ $__rTitle }}</div>
+                                @if (!empty($__rDesc))
+                                    <div class="text-xs opacity-75 truncate">{{ $__rDesc }}</div>
+                                @endif
+                            </div>
+                            <span class="text-xs font-semibold inline-flex items-center gap-1 shrink-0">
+                                {{ $__rCta }} <i class="fas fa-arrow-right text-[10px]"></i>
+                            </span>
+                        </div>
+                    </a>
+                @endif
 
             @elseif($block->type === 'verified_heading')
                 @php $vhSize = ($s['font_size'] ?? '24') . 'px'; @endphp

@@ -269,6 +269,12 @@ Route::prefix('user')->name('user.')->group(function () {
                 Route::post('ai',       [\App\Modules\User\Controllers\ResumeImportController::class, 'ai'])->middleware('throttle:10,1')->name('ai');
                 Route::post('merge',    [\App\Modules\User\Controllers\ResumeImportController::class, 'merge'])->name('merge');
             });
+
+            // Publish & sharing — toggles the public /{handle}/resume URL,
+            // visibility tier (public/registered/followers/subscribers/
+            // password), the per-user noindex flag, and (when password
+            // tier is selected) the hashed password.
+            Route::put('publishing', [\App\Modules\User\Controllers\ResumeController::class, 'updatePublishing'])->name('publishing.update');
         });
 
         // ---- Forms ----

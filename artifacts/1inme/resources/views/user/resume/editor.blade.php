@@ -253,6 +253,98 @@
                 </div>
             </div>
 
+            {{-- Publish & sharing --}}
+            <div class="resume-section">
+                <div class="resume-section-head" @click="toggle('publishing')">
+                    <h3>
+                        <i class="fas fa-share-nodes head-icon"></i> Publish &amp; sharing
+                        <span class="resume-pill" x-show="publishing.is_public" style="background:#16a34a; color:#fff;">Live</span>
+                        <span class="resume-pill" x-show="!publishing.is_public" style="background:#475569; color:#fff;">Off</span>
+                    </h3>
+                    <i class="fas fa-chevron-down chev" :class="{ rot: open.publishing }"></i>
+                </div>
+                <div class="resume-section-body" x-show="open.publishing" x-collapse>
+                    {{-- Toggle row --}}
+                    <div class="flex items-start justify-between gap-3 mb-4">
+                        <div>
+                            <p class="text-sm font-semibold" style="color: var(--text-primary,#fff);">Public résumé page</p>
+                            <p class="text-xs" style="color: var(--text-muted,#9ca3af);">When on, your résumé is reachable at the link below and can be embedded in your bio link.</p>
+                        </div>
+                        <label class="inline-flex items-center cursor-pointer shrink-0">
+                            <input type="checkbox" class="sr-only peer"
+                                   :checked="publishing.is_public"
+                                   @change="publishing.is_public = $event.target.checked; savePublishing()">
+                            <div class="w-11 h-6 bg-slate-600 rounded-full peer peer-checked:bg-emerald-500 relative transition-colors">
+                                <div class="absolute top-[2px] left-[2px] bg-white rounded-full h-5 w-5 transition-transform"
+                                     :class="publishing.is_public ? 'translate-x-5' : ''></div>
+                            </div>
+                        </label>
+                    </div>
+
+                    {{-- Public URL --}}
+                    <div class="resume-field" x-show="publishing.is_public">
+                        <label>Public URL</label>
+                        <div class="flex items-center gap-2">
+                            <input class="resume-input" type="text" readonly :value="publishing.public_url" @focus="$event.target.select()">
+                            <button type="button" class="resume-add-btn shrink-0"
+                                    @click="copyPublicUrl()" :title="copied ? 'Copied!' : 'Copy link'">
+                                <i class="fas" :class="copied ? 'fa-check' : 'fa-copy'"></i>
+                                <span x-text="copied ? 'Copied' : 'Copy'"></span>
+                            </button>
+                            <a class="resume-add-btn shrink-0" :href="publishing.public_url" target="_blank" rel="noopener">
+                                <i class="fas fa-external-link-alt"></i> Open
+                            </a>
+                        </div>
+                    </div>
+
+                    {{-- Visibility --}}
+                    <div class="resume-field-row" x-show="publishing.is_public">
+                        <div class="resume-field">
+                            <label>Who can view</label>
+                            <select class="resume-input"
+                                    x-model="publishing.visibility"
+                                    @change="savePublishing()">
+                                <option value="public">Anyone with the link</option>
+                                <option value="registered">Signed-in users only</option>
+                                <option value="followers">My followers only</option>
+                                <option value="subscribers">My newsletter subscribers</option>
+                                <option value="password">Password-protected</option>
+                            </select>
+                        </div>
+                        <div class="resume-field" x-show="publishing.visibility === 'password'">
+                            <label x-text="publishing.has_password ? 'Replace password (leave blank to keep current)' : 'Set a password'"></label>
+                            <input class="resume-input" type="password" maxlength="200"
+                                   placeholder="••••••••"
+                                   x-model="publishing.password_input"
+                                   @blur="savePublishing()">
+                        </div>
+                    </div>
+
+                    {{-- SEO + indexing --}}
+                    <div class="resume-field" x-show="publishing.is_public">
+                        <label>SEO description (optional, max 240 chars)</label>
+                        <textarea class="resume-textarea" rows="2" maxlength="240"
+                                  placeholder="Short summary search engines and social platforms will show."
+                                  x-model="publishing.meta_description"
+                                  @input.debounce.700ms="savePublishing()"></textarea>
+                    </div>
+                    <label class="flex items-start gap-2 mt-2 cursor-pointer" x-show="publishing.is_public">
+                        <input type="checkbox" class="mt-1"
+                               :checked="publishing.allow_indexing"
+                               @change="publishing.allow_indexing = $event.target.checked; savePublishing()">
+                        <span class="text-xs" style="color: var(--text-muted,#9ca3af);">
+                            Allow search engines to index this page. Turn off if you'd prefer it stays unlisted (we'll add a noindex tag).
+                        </span>
+                    </label>
+
+                    {{-- View counter --}}
+                    <div class="mt-4 flex items-center gap-2 text-xs" style="color: var(--text-muted,#9ca3af);">
+                        <i class="fas fa-eye"></i>
+                        <span><strong x-text="publishing.view_count.toLocaleString()" style="color: var(--text-primary,#fff);"></strong> total views</span>
+                    </div>
+                </div>
+            </div>
+
             {{-- Sharing / public PDF link --}}
             <div class="resume-section">
                 <div class="resume-section-head" @click="toggle('sharing')">
@@ -525,11 +617,26 @@ function resumeEditor() {
         resume: window.__resumeBootstrap.resume,
         registries: window.__resumeBootstrap.registries,
         items: {},
-        open: { design: true, sharing: false, header: true, summary: true,
+        open: { design: true, publishing: false, sharing: false, header: true, summary: true,
             experience: true, education: true, skills: true, projects: true,
             certifications: false, awards: false, languages: false, links: false,
             custom_sections: false },
         sharingSaving: false,
+        // Mirrors the publishing fields returned by present(); the
+        // password is never echoed back from the server, so we keep a
+        // local-only `password_input` buffer that is cleared after each
+        // save and only sent up when the user typed a new value.
+        publishing: {
+            is_public: !!(window.__resumeBootstrap.resume.is_public),
+            visibility: window.__resumeBootstrap.resume.visibility || 'public',
+            allow_indexing: window.__resumeBootstrap.resume.allow_indexing !== false,
+            has_password: !!(window.__resumeBootstrap.resume.has_password),
+            password_input: '',
+            meta_description: window.__resumeBootstrap.resume.meta_description || '',
+            view_count: window.__resumeBootstrap.resume.view_count || 0,
+            public_url: window.__resumeBootstrap.public_url || '',
+        },
+        copied: false,
         mobilePane: 'editor',
         status: 'idle',
         statusLabel: 'All changes saved',
@@ -674,6 +781,43 @@ function resumeEditor() {
         },
 
         // ── status / toast ────────────────────────────────────
+        // ── publishing ────────────────────────────────────────
+        async savePublishing() {
+            this.markSaving();
+            const payload = {
+                is_public: !!this.publishing.is_public,
+                visibility: this.publishing.visibility,
+                allow_indexing: !!this.publishing.allow_indexing,
+                meta_description: this.publishing.meta_description || null,
+            };
+            // Only ship the password when the user actually typed
+            // something this session — sending an empty string while in
+            // password mode would clear the existing hash unintentionally.
+            if (this.publishing.visibility === 'password' && this.publishing.password_input) {
+                payload.password = this.publishing.password_input;
+            }
+            try {
+                const r = await this.http('PUT', '{{ route('user.resume.publishing.update') }}', payload);
+                this.publishing.is_public      = !!r.resume.is_public;
+                this.publishing.visibility     = r.resume.visibility;
+                this.publishing.allow_indexing = r.resume.allow_indexing !== false;
+                this.publishing.has_password   = !!r.resume.has_password;
+                this.publishing.view_count     = r.resume.view_count || 0;
+                this.publishing.password_input = '';
+                if (r.public_url) this.publishing.public_url = r.public_url;
+                this.markSaved();
+            } catch (e) { this.markError(e.message); }
+        },
+        async copyPublicUrl() {
+            try {
+                await navigator.clipboard.writeText(this.publishing.public_url);
+                this.copied = true;
+                setTimeout(() => { this.copied = false; }, 1500);
+            } catch (_) {
+                this.showToast('Could not copy — select and copy manually.', 'error');
+            }
+        },
+
         markSaving()  { this.status = 'saving'; this.statusLabel = 'Saving…'; },
         markSaved()   { this.status = 'saved'; this.statusLabel = 'All changes saved'; },
         markError(msg){ this.status = 'error'; this.statusLabel = 'Save failed'; this.showToast(msg || 'Could not save changes.', 'error'); },
