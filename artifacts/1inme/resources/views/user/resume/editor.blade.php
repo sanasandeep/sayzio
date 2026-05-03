@@ -107,11 +107,33 @@
             <h1 class="text-2xl font-bold" style="color: var(--text-primary,#fff);">Resume / Portfolio</h1>
             <p class="text-xs mt-1" style="color: var(--text-muted,#9ca3af);">Build a polished resume with a live preview. Switch templates and color themes any time.</p>
         </div>
-        <div class="resume-status-bar resume-pane">
-            <span class="resume-save-dot" :class="{ saving: status==='saving', error: status==='error' }"></span>
-            <span class="text-xs" style="color: var(--text-muted,#9ca3af);" x-text="statusLabel"></span>
+        <div class="flex items-center gap-2 flex-wrap">
+            <div class="resume-status-bar resume-pane">
+                <span class="resume-save-dot" :class="{ saving: status==='saving', error: status==='error' }"></span>
+                <span class="text-xs" style="color: var(--text-muted,#9ca3af);" x-text="statusLabel"></span>
+            </div>
+            {{-- Paper size toggle + Download PDF. Disabled while a save is
+                 in flight so the PDF never reflects an unpersisted edit. --}}
+            <div class="resume-pane flex items-center gap-1 p-1" style="border-radius: 12px;">
+                <button type="button" class="resume-icon-btn" style="width:auto; padding: 4px 9px; font-size: 10px; font-weight: 700;"
+                        :class="{ 'pdf-size-active': pdfSize === 'a4' }"
+                        @click="pdfSize = 'a4'" title="A4 paper size">A4</button>
+                <button type="button" class="resume-icon-btn" style="width:auto; padding: 4px 9px; font-size: 10px; font-weight: 700;"
+                        :class="{ 'pdf-size-active': pdfSize === 'letter' }"
+                        @click="pdfSize = 'letter'" title="US Letter paper size">Letter</button>
+                <button type="button" class="resume-add-btn" style="margin-left: 4px;"
+                        :disabled="downloading || status === 'saving' || unsavedFields > 0"
+                        :style="(downloading || status === 'saving' || unsavedFields > 0) ? 'opacity:0.6; cursor: not-allowed;' : ''"
+                        @click="downloadPdf()">
+                    <i class="fas" :class="downloading ? 'fa-spinner fa-spin' : 'fa-file-arrow-down'"></i>
+                    <span x-text="downloading ? 'Preparing…' : 'Download PDF'"></span>
+                </button>
+            </div>
         </div>
     </div>
+    <style>
+        .pdf-size-active { background: rgba(124,58,237,0.18); color:#fff; }
+    </style>
 
     {{-- Empty-state coachmark for brand-new resumes (no items + empty header name) --}}
     <template x-if="isFreshResume && !resumeStarted">
@@ -368,6 +390,8 @@ function resumeEditor() {
         sortInstances: {},
         unsavedFields: 0,
         resumeStarted: false,
+        pdfSize: (window.localStorage && localStorage.getItem('resume_pdf_size')) === 'letter' ? 'letter' : 'a4',
+        downloading: false,
 
         listSections: [
             { key: 'experience',     label: 'Experience',     icon: 'fa-briefcase',     addLabel: 'Add experience' },
@@ -422,6 +446,47 @@ function resumeEditor() {
         customItems(key) {
             return (this.items.custom || []).filter(it =>
                 (it.data || {}).custom_section_key === key);
+        },
+        async downloadPdf() {
+            if (this.downloading) return;
+            // Wait for any pending debounced saves to complete first so
+            // the PDF reflects exactly what the editor shows.
+            if (this.unsavedFields > 0 || this.status === 'saving') {
+                this.showToast('Finishing save…', 'success');
+                return;
+            }
+            try {
+                this.downloading = true;
+                if (window.localStorage) localStorage.setItem('resume_pdf_size', this.pdfSize);
+                const url = '{{ route('user.resume.download') }}?size=' + encodeURIComponent(this.pdfSize);
+                const res = await fetch(url, {
+                    credentials: 'same-origin',
+                    headers: { 'Accept': 'application/pdf', 'X-Requested-With': 'XMLHttpRequest' },
+                });
+                if (!res.ok) {
+                    let msg = 'Could not generate PDF.';
+                    try { const j = await res.json(); if (j && j.message) msg = j.message; } catch (e) {}
+                    if (res.status === 429) msg = 'Too many downloads — please wait a moment and try again.';
+                    throw new Error(msg);
+                }
+                const blob = await res.blob();
+                // Pull the server-suggested filename out of Content-Disposition
+                // so the download retains the friendly `firstname-lastname-resume.pdf`.
+                let filename = 'resume.pdf';
+                const cd = res.headers.get('Content-Disposition') || '';
+                const m  = /filename="?([^";]+)"?/i.exec(cd);
+                if (m) filename = m[1];
+                const blobUrl = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = blobUrl; a.download = filename; a.style.display = 'none';
+                document.body.appendChild(a); a.click();
+                setTimeout(() => { URL.revokeObjectURL(blobUrl); a.remove(); }, 1000);
+                this.showToast('Resume downloaded.', 'success');
+            } catch (e) {
+                this.showToast(e.message || 'Could not generate PDF.', 'error');
+            } finally {
+                this.downloading = false;
+            }
         },
         startBlank() {
             this.resumeStarted = true;

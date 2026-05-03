@@ -174,6 +174,15 @@ Route::get('/r/{code}', [\App\Modules\User\Controllers\ReferralController::class
     ->name('referrals.track')
     ->where('code', '[a-z0-9_\-]{3,32}');
 
+// Stable owner-only resume PDF URL — auth-required; visitors get 404
+// so handle existence isn't leaked. Must precede the catch-all routes
+// below so `/{handle}/resume.pdf` doesn't get swallowed by alias resolution.
+Route::get('/{handle}/resume.pdf',
+    [\App\Modules\User\Controllers\ResumeController::class, 'downloadByHandle'])
+    ->middleware(['web', 'auth', 'throttle:20,1'])
+    ->where('handle', '[A-Za-z0-9_.-]{2,40}')
+    ->name('resume.public.pdf');
+
 Route::get('/{alias}/manifest.json', [RedirectController::class, 'manifest'])->name('redirect.manifest')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|ai-chatbot|ai-agent|ai-widget|ai-voice-assistant|docs|newsletter|pricing|coins|premium-features|blogs).*$');
 Route::get('/{alias}', [RedirectController::class, 'handle'])->name('redirect.handle')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|ai-chatbot|ai-agent|ai-widget|ai-voice-assistant|docs|newsletter|pricing|coins|premium-features|blogs).*$');
 Route::post('/{alias}/track/session', [\App\Modules\Common\Controllers\EngagementController::class, 'startSession'])->name('track.session.start')->where('alias', '[^/]+')->middleware('throttle:60,1');

@@ -5,13 +5,17 @@ namespace App\Modules\User\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\Resume;
 use App\Modules\User\Models\ResumeSectionItem;
+use App\Modules\User\Models\User;
 use App\Modules\User\Services\ResumeColorThemeRegistry;
+use App\Modules\User\Services\ResumePdfRenderer;
 use App\Modules\User\Services\ResumeTemplateRegistry;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Owner-only authoring API for the Resume / Portfolio module.
@@ -310,6 +314,63 @@ class ResumeController extends Controller
         });
 
         return response()->json(['resume' => $this->present($resume->fresh('items'))]);
+    }
+
+    /**
+     * GET — stream a polished PDF of the resume to the signed-in owner.
+     *
+     * `?size=a4|letter` toggles paper size (defaults to A4). The output
+     * is rendered server-side from the same template + theme metadata
+     * the live editor preview uses, so the PDF is visually identical.
+     * Generation is throttled at the route level and cached for a short
+     * window per (resume content, size).
+     */
+    public function download(Request $request, ResumePdfRenderer $renderer): Response
+    {
+        $user   = $request->user();
+        $resume = $user->ensureResume();
+        $resume->load('items');
+
+        $size = $renderer->normalizeSize($request->query('size'));
+        $out  = $renderer->render($resume, $user, $size);
+
+        return response($out['body'], 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $out['filename'] . '"',
+            'Content-Length'      => (string) strlen($out['body']),
+            'Cache-Control'       => 'private, max-age=0, no-store',
+            'X-Resume-Paper-Size' => $size,
+        ]);
+    }
+
+    /**
+     * GET — stable owner-only URL `/{handle}/resume.pdf`. Mirrors the
+     * download endpoint, but resolves the resume by handle so future
+     * features (sharing, link cards, embeds) can hand out a memorable
+     * URL without needing a session-scoped path. Strictly owner-only
+     * for now; visitors get a 404 to avoid revealing handle existence.
+     */
+    public function downloadByHandle(Request $request, string $handle, ResumePdfRenderer $renderer): Response
+    {
+        $signedIn = $request->user();
+        if (!$signedIn) abort(404);
+
+        $owner = User::where('handle', $handle)->first();
+        if (!$owner || $owner->id !== $signedIn->id) abort(404);
+
+        $resume = $owner->ensureResume();
+        $resume->load('items');
+
+        $size = $renderer->normalizeSize($request->query('size'));
+        $out  = $renderer->render($resume, $owner, $size);
+
+        return response($out['body'], 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $out['filename'] . '"',
+            'Content-Length'      => (string) strlen($out['body']),
+            'Cache-Control'       => 'private, max-age=0, no-store',
+            'X-Resume-Paper-Size' => $size,
+        ]);
     }
 
     // ── Internals ──────────────────────────────────────────────────

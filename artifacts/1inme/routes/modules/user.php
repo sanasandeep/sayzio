@@ -249,6 +249,12 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::put   ('items/{item}',     [\App\Modules\User\Controllers\ResumeController::class, 'updateItem'])->whereNumber('item')->name('items.update');
             Route::delete('items/{item}',     [\App\Modules\User\Controllers\ResumeController::class, 'destroyItem'])->whereNumber('item')->name('items.destroy');
             Route::post  ('items/reorder',    [\App\Modules\User\Controllers\ResumeController::class, 'reorderItems'])->name('items.reorder');
+
+            // Polished PDF export for the signed-in owner. Throttled so
+            // headless rendering can't be weaponised against the worker.
+            Route::get('download.pdf',        [\App\Modules\User\Controllers\ResumeController::class, 'download'])
+                ->middleware('throttle:20,1')
+                ->name('download');
         });
 
         // ---- Forms ----
