@@ -14,7 +14,9 @@ import {
   getSettings,
   prunePendingThanks,
   renderThankTemplate,
+  saveThankTemplatesLocallyAndPush,
   setSettings,
+  syncThankTemplates,
 } from "../lib/storage";
 
 const CHANNEL_LABEL: Record<ThankChannel, string> = {
@@ -150,6 +152,15 @@ export function App() {
     });
     return () => browser.storage.onChanged.removeListener(listener);
   }, [refresh]);
+
+  // Reconcile thank-you templates with the server whenever the active
+  // account or workspace changes. Server copy wins on first sync; local
+  // edits push back via last-write-wins. Errors are swallowed so the
+  // editor still works offline.
+  useEffect(() => {
+    if (!settings?.token || !settings?.workspaceId) return;
+    syncThankTemplates().catch(() => undefined);
+  }, [settings?.token, settings?.workspaceId]);
 
   // Load workspace pixel config + recent links whenever auth/workspace changes
   // so the popup can show the "Pixels: Meta, TikTok" badge and the per-link
@@ -975,17 +986,22 @@ function ThankTemplatesEditor({
       showToast({ kind: "error", text: "Keep at least one template with a name and body." });
       return;
     }
-    await setSettings({ thankTemplates: cleaned });
+    const result = await saveThankTemplatesLocallyAndPush(cleaned);
     setDrafts(cleaned);
     setSaved(true);
     setTimeout(() => setSaved(false), 1500);
+    if (!result.pushed && settings.token) {
+      // Local save succeeded; server push will retry on next sign-in /
+      // workspace change. Let the creator know it's not lost.
+      showToast({ kind: "info", text: "Saved locally — will sync when back online." });
+    }
     onSaved();
   };
 
   const restoreDefaults = async () => {
     const tpls = defaultThankTemplates();
     setDrafts(tpls);
-    await setSettings({ thankTemplates: tpls });
+    await saveThankTemplatesLocallyAndPush(tpls);
     onSaved();
   };
 

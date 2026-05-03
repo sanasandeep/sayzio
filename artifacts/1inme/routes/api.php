@@ -283,6 +283,11 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/backlinks',             [BacklinkController::class, 'store'])->middleware('throttle:120,1');
         Route::delete('/backlinks/{id}',        [BacklinkController::class, 'destroy'])->whereNumber('id');
 
+        // Thank-you templates used by the radar's "Thank composer".
+        // Stored per workspace so they sync across browsers / reinstalls.
+        Route::get('/me/thank-templates', [\App\Modules\Api\Controllers\ThankTemplateController::class, 'show']);
+        Route::put('/me/thank-templates', [\App\Modules\Api\Controllers\ThankTemplateController::class, 'update']);
+
         // Custom domains
         Route::get   ('/domains',        [DomainController::class, 'index']);
         Route::post  ('/domains',        [DomainController::class, 'store']);

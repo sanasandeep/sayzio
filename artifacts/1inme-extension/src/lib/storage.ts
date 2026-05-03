@@ -1,4 +1,5 @@
 import { browser } from "./browser";
+import { api, ApiError } from "./api";
 
 export interface ExtSettings {
   apiBaseUrl: string;
@@ -24,6 +25,13 @@ export interface ExtSettings {
   // Saved thank-you templates (max 3) used by the radar's "Thank" action.
   // Placeholders supported in subject/body: {pageUrl}, {matchedUrl}, {anchor}.
   thankTemplates: ThankTemplate[];
+  // Local-edit timestamp (ms epoch) for last-write-wins reconciliation
+  // against the per-workspace server copy. Bumped whenever the editor
+  // saves; cleared on sign-out so a new account hydrates cleanly.
+  thankTemplatesUpdatedAtMs: number | null;
+  // Workspace whose templates are currently mirrored locally. When the
+  // creator switches workspace we re-hydrate from the server.
+  thankTemplatesWorkspaceId: number | null;
   // Queued thank-yous awaiting batch approval/open from the Backlinks tab.
   pendingThanks: PendingThank[];
 }
@@ -107,6 +115,8 @@ export const defaultSettings: ExtSettings = {
   radarOnboarded: false,
   radarDisabledHosts: [],
   thankTemplates: defaultThankTemplates(),
+  thankTemplatesUpdatedAtMs: null,
+  thankTemplatesWorkspaceId: null,
   pendingThanks: [],
 };
 
@@ -183,8 +193,123 @@ export async function setSettings(patch: Partial<ExtSettings>): Promise<ExtSetti
   return getSettings();
 }
 
+/**
+ * Reconcile the locally-stored thank-you templates with the server copy
+ * for the active workspace. Called on sign-in and whenever the workspace
+ * selection changes.
+ *
+ * Resolution rules (last-write-wins by ms timestamp):
+ *  - If we've never synced this workspace locally, the server copy wins
+ *    (or, if the server has none, we push the local defaults).
+ *  - Otherwise, whichever side has the newer updated_at_ms wins. Ties
+ *    or missing server timestamps fall through to "push local" so an
+ *    offline edit survives the next sync.
+ *
+ * Network failures are swallowed so the UI keeps working offline; the
+ * next call (e.g. on the next popup open) retries naturally.
+ */
+export async function syncThankTemplates(): Promise<void> {
+  const s = await getSettings();
+  if (!s.token || !s.workspaceId) return;
+  let server: { templates: ThankTemplate[]; updated_at_ms: number | null } | null = null;
+  try {
+    const resp = await api.getThankTemplates(s.workspaceId);
+    server = { templates: resp.templates as ThankTemplate[], updated_at_ms: resp.updated_at_ms };
+  } catch (e) {
+    if (e instanceof ApiError && e.status >= 400 && e.status < 500 && e.status !== 404) return;
+    // Offline / 5xx — leave local copy alone, try again later.
+    return;
+  }
+
+  const local = s.thankTemplates && s.thankTemplates.length > 0 ? s.thankTemplates : defaultThankTemplates();
+  const localTs = s.thankTemplatesUpdatedAtMs;
+  const sameWorkspace = s.thankTemplatesWorkspaceId === s.workspaceId;
+  const serverTs = server?.updated_at_ms ?? null;
+  const serverHasAny = !!server && server.templates.length > 0;
+
+  // Server has nothing → seed it from local (defaults or prior edits).
+  if (!serverHasAny) {
+    try {
+      const resp = await api.saveThankTemplates(local, s.workspaceId, Date.now());
+      await setSettings({
+        thankTemplates: resp.templates as ThankTemplate[],
+        thankTemplatesUpdatedAtMs: resp.updated_at_ms,
+        thankTemplatesWorkspaceId: s.workspaceId,
+      });
+    } catch { /* offline — defer to next sync */ }
+    return;
+  }
+
+  // First sync for this workspace, or local has no edit timestamp →
+  // server wins.
+  if (!sameWorkspace || localTs == null) {
+    await setSettings({
+      thankTemplates: server!.templates,
+      thankTemplatesUpdatedAtMs: serverTs,
+      thankTemplatesWorkspaceId: s.workspaceId,
+    });
+    return;
+  }
+
+  // Both sides have a timestamp — last-write-wins.
+  if (serverTs != null && serverTs > localTs) {
+    await setSettings({
+      thankTemplates: server!.templates,
+      thankTemplatesUpdatedAtMs: serverTs,
+      thankTemplatesWorkspaceId: s.workspaceId,
+    });
+  } else if (localTs > (serverTs ?? 0)) {
+    try {
+      const resp = await api.saveThankTemplates(local, s.workspaceId, localTs);
+      await setSettings({
+        thankTemplates: resp.templates as ThankTemplate[],
+        thankTemplatesUpdatedAtMs: resp.updated_at_ms,
+        thankTemplatesWorkspaceId: s.workspaceId,
+      });
+    } catch { /* offline — try next time */ }
+  } else {
+    // Equal timestamps — adopt server payload to converge content.
+    await setSettings({
+      thankTemplates: server!.templates,
+      thankTemplatesUpdatedAtMs: serverTs,
+      thankTemplatesWorkspaceId: s.workspaceId,
+    });
+  }
+}
+
+/**
+ * Persist edited templates locally and push to the server. Bumps the
+ * local timestamp so an offline save still wins the next reconcile.
+ */
+export async function saveThankTemplatesLocallyAndPush(
+  templates: ThankTemplate[],
+): Promise<{ pushed: boolean; error?: string }> {
+  const ts = Date.now();
+  const s = await getSettings();
+  await setSettings({
+    thankTemplates: templates,
+    thankTemplatesUpdatedAtMs: ts,
+    thankTemplatesWorkspaceId: s.workspaceId,
+  });
+  if (!s.token || !s.workspaceId) return { pushed: false };
+  try {
+    const resp = await api.saveThankTemplates(templates, s.workspaceId, ts);
+    await setSettings({
+      thankTemplates: resp.templates as ThankTemplate[],
+      thankTemplatesUpdatedAtMs: resp.updated_at_ms ?? ts,
+      thankTemplatesWorkspaceId: s.workspaceId,
+    });
+    return { pushed: true };
+  } catch (e: any) {
+    return { pushed: false, error: e?.message || "Sync deferred" };
+  }
+}
+
 export async function clearAuth(): Promise<void> {
-  await browser.storage.local.remove(["token", "user", "workspaceId", "workspaces"]);
+  await browser.storage.local.remove([
+    "token", "user", "workspaceId", "workspaces",
+    "thankTemplatesUpdatedAtMs", "thankTemplatesWorkspaceId",
+  ]);
 }
 
 // Append an item to the pending-thanks queue while enforcing the cap.

@@ -230,7 +230,30 @@ export const api = {
 
   deleteBacklink: (id: number) =>
     request<null>(`/backlinks/${id}`, { method: "DELETE" }),
+
+  // ── Thank-you templates (synced per workspace) ─────────────────────
+  getThankTemplates: (workspaceId?: number | null) =>
+    request<ThankTemplatesPayload>(
+      `/me/thank-templates${workspaceId ? `?workspace_id=${workspaceId}` : ""}`,
+    ),
+
+  saveThankTemplates: (
+    templates: Array<{ id: string; name: string; channel: "email" | "x" | "linkedin"; subject: string; body: string }>,
+    workspaceId?: number | null,
+    updatedAtMs?: number,
+  ) =>
+    request<ThankTemplatesPayload>(
+      `/me/thank-templates${workspaceId ? `?workspace_id=${workspaceId}` : ""}`,
+      { method: "PUT", body: { templates, updated_at_ms: updatedAtMs } },
+    ),
 };
+
+export interface ThankTemplatesPayload {
+  workspace_id: number;
+  templates: Array<{ id: string; name: string; channel: "email" | "x" | "linkedin"; subject: string; body: string }>;
+  updated_at_ms: number | null;
+  max: number;
+}
 
 export interface AbVariantsPayload {
   enabled: boolean;
