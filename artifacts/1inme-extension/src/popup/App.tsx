@@ -29,14 +29,30 @@ function genId(): string {
   return `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function buildComposerUrl(t: { channel: ThankChannel; subject: string; body: string; recipient: string | null; pageUrl: string }): string {
+function buildComposerUrl(t: {
+  channel: ThankChannel;
+  subject: string;
+  body: string;
+  recipient: string | null;
+  pageUrl: string;
+  xHandle?: string | null;
+  linkedinUrl?: string | null;
+}): string {
   if (t.channel === "email") {
     const to = t.recipient ? encodeURIComponent(t.recipient) : "";
     return `mailto:${to}?subject=${encodeURIComponent(t.subject)}&body=${encodeURIComponent(t.body)}`;
   }
   if (t.channel === "x") {
-    return `https://twitter.com/intent/tweet?text=${encodeURIComponent(t.body)}&url=${encodeURIComponent(t.pageUrl)}`;
+    // If we sniffed an X handle from the page, prepend "@handle " to the
+    // tweet text so opening the intent lands on a directed reply rather
+    // than a generic share. Falls back to a plain share-intent otherwise.
+    const handle = (t.xHandle || "").replace(/^@/, "").trim();
+    const text = handle ? `@${handle} ${t.body}` : t.body;
+    return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(t.pageUrl)}`;
   }
+  // LinkedIn: if we know the author's profile, jump straight to it so the
+  // creator can hit "Message". Otherwise fall back to share-offsite.
+  if (t.linkedinUrl) return t.linkedinUrl;
   return `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(t.pageUrl)}`;
 }
 
@@ -674,8 +690,11 @@ function ThankComposer({
     ? settings.thankTemplates
     : defaultThankTemplates();
 
-  // Pick a sensible default: prefer email when we can detect a recipient, else X.
+  // Pick a sensible default channel: prefer email > X > LinkedIn based on
+  // what we can actually target on this page.
   const [recipient, setRecipient] = useState<string | null>(null);
+  const [xHandle, setXHandle] = useState<string | null>(null);
+  const [linkedinUrl, setLinkedinUrl] = useState<string | null>(null);
   const [detecting, setDetecting] = useState(true);
   const [templateId, setTemplateId] = useState<string>(templates[0]?.id || "");
   const [subject, setSubject] = useState<string>("");
@@ -685,17 +704,19 @@ function ThankComposer({
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const email = await detectContactEmail();
+      const found = await detectAuthorContacts();
       if (cancelled) return;
-      setRecipient(email);
-      // If we found an email and there's an email template, prefer it.
-      if (email) {
-        const emailTpl = templates.find((t) => t.channel === "email");
-        if (emailTpl) setTemplateId(emailTpl.id);
-      } else {
-        const xTpl = templates.find((t) => t.channel === "x");
-        if (xTpl) setTemplateId(xTpl.id);
-      }
+      setRecipient(found.email);
+      setXHandle(found.xHandle);
+      setLinkedinUrl(found.linkedinUrl);
+      // Prefer the most actionable channel for which we have a target.
+      const pickChannel = (ch: ThankChannel) => {
+        const t = templates.find((tt) => tt.channel === ch);
+        if (t) setTemplateId(t.id);
+      };
+      if (found.email) pickChannel("email");
+      else if (found.xHandle) pickChannel("x");
+      else if (found.linkedinUrl) pickChannel("linkedin");
       setDetecting(false);
     })();
     return () => { cancelled = true; };
@@ -729,6 +750,8 @@ function ThankComposer({
         body,
         recipient: tpl.channel === "email" ? recipient : null,
         pageUrl,
+        xHandle: tpl.channel === "x" ? xHandle : null,
+        linkedinUrl: tpl.channel === "linkedin" ? linkedinUrl : null,
       });
       await browser.tabs.create({ url });
       onClose();
@@ -753,6 +776,8 @@ function ThankComposer({
         matchedUrl: match.href,
         anchor: match.anchor || "",
         createdAt: Date.now(),
+        xHandle: tpl.channel === "x" ? xHandle : null,
+        linkedinUrl: tpl.channel === "linkedin" ? linkedinUrl : null,
       };
       const existing = settings.pendingThanks || [];
       // Dedupe by (channel + matchedUrl + pageUrl) so a creator can't queue the
@@ -803,6 +828,36 @@ function ThankComposer({
           <input value={subject} onChange={(e) => setSubject(e.target.value)} />
         </div>
       )}
+      {tpl.channel === "x" && (
+        <div className="field">
+          <label>Reply to (X handle)</label>
+          <input
+            value={xHandle ?? ""}
+            placeholder={detecting ? "Detecting…" : "handle (none found — will share-intent)"}
+            onChange={(e) => setXHandle(e.target.value.replace(/^@/, "").trim() || null)}
+          />
+          <div className="muted" style={{ fontSize: 11 }}>
+            {xHandle
+              ? `Will open a directed reply to @${xHandle}.`
+              : "No handle detected — will fall back to a share-intent."}
+          </div>
+        </div>
+      )}
+      {tpl.channel === "linkedin" && (
+        <div className="field">
+          <label>LinkedIn profile</label>
+          <input
+            value={linkedinUrl ?? ""}
+            placeholder={detecting ? "Detecting…" : "https://www.linkedin.com/in/… (none found)"}
+            onChange={(e) => setLinkedinUrl(e.target.value.trim() || null)}
+          />
+          <div className="muted" style={{ fontSize: 11 }}>
+            {linkedinUrl
+              ? "Will open the profile so you can hit Message."
+              : "No profile detected — will fall back to share-offsite."}
+          </div>
+        </div>
+      )}
       <div className="field">
         <label>Preview ({CHANNEL_LABEL[tpl.channel]})</label>
         <textarea rows={6} value={body} onChange={(e) => setBody(e.target.value)} />
@@ -819,30 +874,122 @@ function ThankComposer({
   );
 }
 
-async function detectContactEmail(): Promise<string | null> {
-  // Run a tiny page-side scan from the popup. Permission already
-  // granted via activeTab when the popup is open.
+interface AuthorContacts {
+  email: string | null;
+  xHandle: string | null;     // Without leading "@"
+  linkedinUrl: string | null; // Canonical https URL to a /in/ or /company/ profile
+}
+
+async function detectAuthorContacts(): Promise<AuthorContacts> {
+  // Run a single page-side scan from the popup that picks up the
+  // author's email, X handle, and LinkedIn profile in one hop.
+  // Permission is already granted via activeTab while the popup is open.
+  const empty: AuthorContacts = { email: null, xHandle: null, linkedinUrl: null };
   try {
     const tabs = await browser.tabs.query({ active: true, currentWindow: true });
     const tabId = tabs[0]?.id;
-    if (tabId === undefined) return null;
+    if (tabId === undefined) return empty;
     const results = await browser.scripting.executeScript({
       target: { tabId },
       func: () => {
-        const re = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+        const out: { email: string | null; xHandle: string | null; linkedinUrl: string | null } = {
+          email: null, xHandle: null, linkedinUrl: null,
+        };
+
+        // ── Email ────────────────────────────────────────────────
+        const emailRe = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
         const mailto = document.querySelector<HTMLAnchorElement>('a[href^="mailto:"]');
         if (mailto) {
           const v = (mailto.getAttribute("href") || "").replace(/^mailto:/, "").split("?")[0];
-          if (re.test(v)) return v;
+          if (emailRe.test(v)) out.email = v;
         }
-        const text = document.body?.innerText?.slice(0, 30000) || "";
-        const m = text.match(re);
-        return m ? m[0] : null;
+        if (!out.email) {
+          const text = document.body?.innerText?.slice(0, 30000) || "";
+          const m = text.match(emailRe);
+          if (m) out.email = m[0];
+        }
+
+        // ── X handle ─────────────────────────────────────────────
+        // Prefer the canonical twitter:creator meta tag, then a
+        // rel="author" link to twitter.com/x.com, then any anchor
+        // pointing at a profile root path.
+        const cleanHandle = (raw: string | null | undefined): string | null => {
+          if (!raw) return null;
+          const h = raw.trim().replace(/^@/, "");
+          // GitHub-style handle rules: 1–15 chars, [A-Za-z0-9_].
+          if (!/^[A-Za-z0-9_]{1,15}$/.test(h)) return null;
+          // Filter out things that aren't user profiles.
+          if (/^(home|search|explore|notifications|messages|i|intent|share|hashtag|status|compose)$/i.test(h)) return null;
+          return h;
+        };
+        const handleFromUrl = (href: string): string | null => {
+          try {
+            const u = new URL(href, document.baseURI);
+            const host = u.hostname.replace(/^www\./, "");
+            if (host !== "twitter.com" && host !== "x.com" && host !== "mobile.twitter.com") return null;
+            const segs = u.pathname.split("/").filter(Boolean);
+            if (segs.length < 1) return null;
+            // Skip status/profile paths like /handle/status/123 — still take the handle.
+            return cleanHandle(segs[0]);
+          } catch { return null; }
+        };
+        const metaCreator =
+          document.querySelector<HTMLMetaElement>('meta[name="twitter:creator" i]')?.content ||
+          document.querySelector<HTMLMetaElement>('meta[property="twitter:creator" i]')?.content ||
+          null;
+        out.xHandle = cleanHandle(metaCreator);
+        if (!out.xHandle) {
+          const authorLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>('a[rel~="author" i][href]'));
+          for (const a of authorLinks) {
+            const h = handleFromUrl(a.href);
+            if (h) { out.xHandle = h; break; }
+          }
+        }
+        if (!out.xHandle) {
+          const candidates = Array.from(document.querySelectorAll<HTMLAnchorElement>(
+            'a[href*="twitter.com/" i], a[href*="x.com/" i]',
+          )).slice(0, 50);
+          for (const a of candidates) {
+            const h = handleFromUrl(a.href);
+            if (h) { out.xHandle = h; break; }
+          }
+        }
+
+        // ── LinkedIn profile URL ─────────────────────────────────
+        const cleanLinkedinUrl = (href: string): string | null => {
+          try {
+            const u = new URL(href, document.baseURI);
+            const host = u.hostname.replace(/^www\./, "");
+            if (!/(^|\.)linkedin\.com$/.test(host)) return null;
+            const segs = u.pathname.split("/").filter(Boolean);
+            // Accept /in/<slug>, /company/<slug>, /pub/<slug>
+            if (segs.length < 2) return null;
+            if (!/^(in|company|pub)$/i.test(segs[0])) return null;
+            const profileSlug = segs[1].split("?")[0];
+            if (!profileSlug) return null;
+            return `https://www.linkedin.com/${segs[0].toLowerCase()}/${profileSlug}/`;
+          } catch { return null; }
+        };
+        const liAuthor = Array.from(document.querySelectorAll<HTMLAnchorElement>('a[rel~="author" i][href]'));
+        for (const a of liAuthor) {
+          const url = cleanLinkedinUrl(a.href);
+          if (url) { out.linkedinUrl = url; break; }
+        }
+        if (!out.linkedinUrl) {
+          const liLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>('a[href*="linkedin.com/" i]')).slice(0, 50);
+          for (const a of liLinks) {
+            const url = cleanLinkedinUrl(a.href);
+            if (url) { out.linkedinUrl = url; break; }
+          }
+        }
+
+        return out;
       },
     });
-    return (results?.[0]?.result as string | null) ?? null;
+    const r = (results?.[0]?.result as AuthorContacts | undefined) ?? empty;
+    return { email: r.email ?? null, xHandle: r.xHandle ?? null, linkedinUrl: r.linkedinUrl ?? null };
   } catch {
-    return null;
+    return empty;
   }
 }
 
@@ -1096,6 +1243,8 @@ function PendingThanksPanel({
           body: q.body,
           recipient: q.recipient,
           pageUrl: q.pageUrl,
+          xHandle: q.xHandle ?? null,
+          linkedinUrl: q.linkedinUrl ?? null,
         });
         await browser.tabs.create({ url });
       }

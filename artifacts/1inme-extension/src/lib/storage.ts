@@ -65,6 +65,12 @@ export interface PendingThank {
   matchedUrl: string;
   anchor: string;
   createdAt: number;
+  // Optional social targets sniffed from the page when the thank-you was
+  // composed. Used by buildComposerUrl to deep-link a reply / DM instead
+  // of just opening a generic share-intent. Older queued items predate
+  // this field and remain valid (treated as null).
+  xHandle?: string | null;
+  linkedinUrl?: string | null;
 }
 
 export interface PropertiesPayload {
