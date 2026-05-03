@@ -227,6 +227,29 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('projects/{project}', [ProjectController::class, 'show'])->middleware('workspace.can:links.view')->name('projects.show');
         Route::post('projects', [ProjectController::class, 'store'])->middleware(['workspace.can:links.create', CheckPlanLimit::class . ':projects'])->name('projects.store');
 
+        // ---- Resume / Portfolio ----
+        // Personal to the signed-in user (one row per account); no
+        // workspace permission gating because the resume isn't a
+        // workspace artifact. The controller resolves the resume from
+        // the authenticated user every call so a member of someone
+        // else's workspace can never see/edit the owner's resume.
+        Route::prefix('resume')->name('resume.')->group(function () {
+            Route::get  ('/',                 [\App\Modules\User\Controllers\ResumeController::class, 'show'])->name('show');
+            Route::put  ('header',            [\App\Modules\User\Controllers\ResumeController::class, 'updateHeader'])->name('header.update');
+            Route::put  ('summary',           [\App\Modules\User\Controllers\ResumeController::class, 'updateSummary'])->name('summary.update');
+            Route::put  ('template',          [\App\Modules\User\Controllers\ResumeController::class, 'updateTemplate'])->name('template.update');
+            Route::put  ('color-theme',       [\App\Modules\User\Controllers\ResumeController::class, 'updateColorTheme'])->name('color-theme.update');
+
+            Route::post  ('sections',         [\App\Modules\User\Controllers\ResumeController::class, 'addCustomSection'])->name('sections.store');
+            Route::put   ('sections/{key}',   [\App\Modules\User\Controllers\ResumeController::class, 'updateCustomSection'])->where('key', '[a-z0-9_]+')->name('sections.update');
+            Route::delete('sections/{key}',   [\App\Modules\User\Controllers\ResumeController::class, 'destroyCustomSection'])->where('key', '[a-z0-9_]+')->name('sections.destroy');
+
+            Route::post  ('items',            [\App\Modules\User\Controllers\ResumeController::class, 'storeItem'])->name('items.store');
+            Route::put   ('items/{item}',     [\App\Modules\User\Controllers\ResumeController::class, 'updateItem'])->whereNumber('item')->name('items.update');
+            Route::delete('items/{item}',     [\App\Modules\User\Controllers\ResumeController::class, 'destroyItem'])->whereNumber('item')->name('items.destroy');
+            Route::post  ('items/reorder',    [\App\Modules\User\Controllers\ResumeController::class, 'reorderItems'])->name('items.reorder');
+        });
+
         // ---- Forms ----
         // Forms feed inbox — gate read endpoints with `inbox.view` and
         // mutations with the matching create/edit/delete actions so a

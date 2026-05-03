@@ -274,6 +274,28 @@ class User extends Authenticatable
         return $this->hasMany(Project::class);
     }
 
+    public function resume()
+    {
+        return $this->hasOne(Resume::class);
+    }
+
+    /**
+     * Lazily fetch (or create) the signed-in user's single Resume row.
+     * Resumes are personal, so the row is provisioned on first access
+     * with default template + color theme rather than at registration.
+     */
+    public function ensureResume(): Resume
+    {
+        $resume = $this->resume()->first();
+        if ($resume) return $resume;
+
+        return $this->resume()->create([
+            'template_id'    => \App\Modules\User\Services\ResumeTemplateRegistry::defaultId(),
+            'color_theme_id' => \App\Modules\User\Services\ResumeColorThemeRegistry::defaultId(),
+            'sections'       => Resume::defaultSections(),
+        ]);
+    }
+
     public function links()
     {
         return $this->hasMany(Link::class);
