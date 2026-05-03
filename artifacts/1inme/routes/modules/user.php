@@ -393,6 +393,12 @@ Route::prefix('user')->name('user.')->group(function () {
         // the iframe never falls into Laravel's "Invalid signature" page.
         Route::get('links/{link}/preview-url', [LinkController::class, 'previewUrl'])->middleware('workspace.can:links.view')->name('links.preview-url');
 
+        // ---- Backlink radar (web dashboard view of the same data the
+        // browser extension popup reads via the JSON API). ----
+        Route::get   ('backlinks',                 [\App\Modules\User\Controllers\BacklinkController::class, 'index'])  ->middleware('workspace.can:links.view')->name('backlinks.index');
+        Route::get   ('backlinks/export.csv',      [\App\Modules\User\Controllers\BacklinkController::class, 'export']) ->middleware('workspace.can:links.view')->name('backlinks.export');
+        Route::delete('backlinks/{id}',            [\App\Modules\User\Controllers\BacklinkController::class, 'destroy'])->middleware('workspace.can:links.delete')->whereNumber('id')->name('backlinks.destroy');
+
         // Link Insurance — per-link backups + workspace dashboard. The
         // dashboard is mounted at /user/insurance so it doesn't collide
         // with the {link} param routes above.

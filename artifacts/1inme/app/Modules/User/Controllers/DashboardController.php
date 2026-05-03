@@ -4,6 +4,7 @@ namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Common\Services\ChannelClassifier;
+use App\Modules\User\Models\Backlink;
 use App\Modules\User\Models\LinkClick;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -70,10 +71,17 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
+        // Backlink radar at-a-glance — count of new backlinks the
+        // browser extension has captured in the last 7 days. Cheap
+        // single-row count; deep view lives at user.backlinks.index.
+        $backlinksThisWeek = Backlink::where('user_id', $user->id)
+            ->where('first_seen_at', '>=', now()->subDays(7))
+            ->count();
+
         return view('user.dashboard.index', compact(
             'user', 'totalLinks', 'totalClicks', 'totalProjects',
             'activeLinks', 'recentLinks', 'clicksToday',
-            'channelStats', 'channelFilter'
+            'channelStats', 'channelFilter', 'backlinksThisWeek'
         ));
     }
 }

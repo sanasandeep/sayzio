@@ -562,6 +562,15 @@
                 </a>
                 @endif
                 @if($__can['links_view'])
+                <a href="{{ route('user.backlinks.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.backlinks.*') ? 'active' : '' }}"
+                   style="--nav-tint:#22d3ee; --nav-tint-soft:rgba(34,211,238,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-bullseye"></i></div>
+                    <span class="nav-label">Backlinks</span>
+                    <span class="sidebar-tooltip">Backlinks</span>
+                </a>
+                @endif
+                @if($__can['links_view'])
                 <a href="{{ route('user.splash-pages.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.splash-pages.*') ? 'active' : '' }}"
                    style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">

@@ -138,6 +138,31 @@
     </div>
 </div>
 
+{{-- Backlink radar at-a-glance: how many new pages around the web have
+     linked back to one of this creator's properties in the last 7 days.
+     Click-through opens the full Backlinks dashboard page. --}}
+<a href="{{ route('user.backlinks.index', ['days' => 7]) }}" class="block mb-8">
+    <div class="card-premium px-5 py-4 flex items-center justify-between hover:border-cyan-500/40 transition-colors">
+        <div class="flex items-center gap-4">
+            <div class="w-11 h-11 rounded-xl flex items-center justify-center"
+                 style="background: rgba(34,211,238,0.12); border: 1px solid rgba(34,211,238,0.25);">
+                <i class="fas fa-bullseye text-cyan-300"></i>
+            </div>
+            <div>
+                <p class="text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">Backlinks</p>
+                <p class="text-2xl font-bold" style="color: var(--text-primary);">
+                    {{ number_format($backlinksThisWeek) }}
+                    <span class="text-sm font-medium" style="color: var(--text-faint);">this week</span>
+                </p>
+            </div>
+        </div>
+        <div class="text-right">
+            <p class="text-xs" style="color: var(--text-faint);">Pages linking back to your properties</p>
+            <p class="text-xs text-cyan-300 mt-1">View all <i class="fas fa-arrow-right ml-1"></i></p>
+        </div>
+    </div>
+</a>
+
 {{-- AI credits at-a-glance card (only visible when the engine is on). --}}
 @if(\App\Services\AI\AiEngineSettings::isEnabled())
     @php
