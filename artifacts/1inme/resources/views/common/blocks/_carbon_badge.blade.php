@@ -38,10 +38,26 @@
                         if (!j || !j.ok) { body.textContent = 'Methodology unavailable.'; return; }
                         var grams = (j.grams_co2 != null) ? Number(j.grams_co2).toFixed(0) : '—';
                         var off   = (j.grams_offset != null) ? Number(j.grams_offset).toFixed(0) : '0';
-                        var prj   = j.project_name || 'Verified renewables portfolio';
-                        var period = j.period || 'this period';
-                        var sandbox = j.sandbox ? ' <span class="ml-1 px-1 py-0.5 bg-amber-100 text-amber-800 rounded text-[10px]">sandbox</span>' : '';
-                        body.innerHTML = 'For <b>' + period + '</b>, this page produced about <b>' + grams + ' g</b> CO₂ from visitor traffic — fully matched by <b>' + off + ' g</b> of offsets via ' + prj + sandbox + '.';
+                        // Build the popover via DOM nodes — values like
+                        // project_name and period come from a third-party
+                        // provider response (Cloverly/Patch) and would be
+                        // an XSS vector if interpolated into innerHTML.
+                        body.textContent = '';
+                        function strong(t) { var s = document.createElement('strong'); s.textContent = t; return s; }
+                        body.appendChild(document.createTextNode('For '));
+                        body.appendChild(strong(j.period || 'this period'));
+                        body.appendChild(document.createTextNode(', this page produced about '));
+                        body.appendChild(strong(grams + ' g'));
+                        body.appendChild(document.createTextNode(' CO₂ from visitor traffic — matched by '));
+                        body.appendChild(strong(off + ' g'));
+                        body.appendChild(document.createTextNode(' of offsets via ' + (j.project_name || 'a verified portfolio') + '.'));
+                        if (j.sandbox) {
+                            var pill = document.createElement('span');
+                            pill.className = 'ml-1 px-1 py-0.5 bg-amber-100 text-amber-800 rounded text-[10px]';
+                            pill.textContent = 'sandbox';
+                            body.appendChild(document.createTextNode(' '));
+                            body.appendChild(pill);
+                        }
                         if (j.methodology_url) meth.href = j.methodology_url;
                         if (j.certificate)    { cert.href = j.certificate; cert.classList.remove('hidden'); }
                     })

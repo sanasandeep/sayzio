@@ -31,6 +31,50 @@ class CloverlyOffsetProvider implements OffsetProvider
 
     public function slug(): string { return 'cloverly'; }
 
+    public function quote(int $workspaceId, float $grams, string $currency): array
+    {
+        $cfg = $this->config($workspaceId);
+        if (!$cfg) {
+            return (new NullOffsetProvider())->quote($workspaceId, $grams, $currency);
+        }
+
+        $apiKey = (string) ($cfg->credentials['api_key'] ?? '');
+        $base   = self::BASE_LIVE; // estimates endpoint is the same for sandbox keys
+
+        try {
+            $resp = Http::withHeaders([
+                    'Authorization' => 'Bearer ' . $apiKey,
+                    'Content-Type'  => 'application/json',
+                ])
+                ->timeout(15)
+                ->post($base . '/2019-03-beta/estimates/carbon', [
+                    'weight' => ['value' => max(1, (int) round($grams)), 'units' => 'g'],
+                ]);
+
+            if (!$resp->successful()) {
+                Log::warning('cloverly_quote_failed', [
+                    'workspace_id' => $workspaceId, 'status' => $resp->status(),
+                ]);
+                return (new NullOffsetProvider())->quote($workspaceId, $grams, $currency);
+            }
+
+            $body  = $resp->json();
+            $cents = (int) round((float) ($body['total_cost']['cents'] ?? 0));
+            if ($cents <= 0) {
+                $cents = (int) round(((float) ($body['total_cost']['amount'] ?? 0)) * 100);
+            }
+
+            return [
+                'cost_minor'           => $cents > 0 ? $cents : 1,
+                'currency'             => strtoupper((string) ($body['total_cost']['currency'] ?? 'USD')),
+                'rate_per_tonne_minor' => null,
+            ];
+        } catch (\Throwable $e) {
+            Log::warning('cloverly_quote_exception', ['error' => $e->getMessage()]);
+            return (new NullOffsetProvider())->quote($workspaceId, $grams, $currency);
+        }
+    }
+
     public function purchase(int $workspaceId, float $grams, string $currency, string $idempotencyKey): array
     {
         $cfg = $this->config($workspaceId);
@@ -83,13 +127,40 @@ class CloverlyOffsetProvider implements OffsetProvider
         }
     }
 
+    /**
+     * Verify a Cloverly webhook. The payload itself never carries
+     * a trustworthy workspace identifier, so we look up the workspace
+     * by the immutable `purchase.slug` (recorded in our DB at
+     * purchase time as `provider_ref`), fetch THAT workspace's
+     * configured webhook secret, and HMAC-verify the request body
+     * against it. Falls back to `false` (401) when:
+     *   - the payload doesn't carry a slug we recognise, or
+     *   - the matched workspace has no webhook secret configured, or
+     *   - the signature doesn't match.
+     */
     public function verifyWebhook(Request $request): bool
     {
-        $cfg = $this->config((int) ($request->input('workspace_id') ?? 0));
+        $body     = $request->json()->all();
+        $purchase = $body['purchase'] ?? $body;
+        $ref      = (string) ($purchase['slug'] ?? $purchase['id'] ?? '');
+        if ($ref === '') return false;
+
+        $row = \App\Modules\User\Models\CarbonOffsetPurchase::query()
+            ->withoutGlobalScope('workspace')
+            ->where('provider', $this->slug())
+            ->where('provider_ref', $ref)
+            ->first();
+        if (!$row) return false;
+
+        $cfg    = $this->config((int) $row->workspace_id);
         $secret = (string) ($cfg?->credentials['webhook_secret'] ?? '');
         if ($secret === '') return false;
+
         $sig = (string) $request->header('X-Cloverly-Signature', '');
-        return hash_equals(hash_hmac('sha256', $request->getContent(), $secret), $sig);
+        return $sig !== '' && hash_equals(
+            hash_hmac('sha256', $request->getContent(), $secret),
+            $sig
+        );
     }
 
     public function parseWebhook(Request $request): array

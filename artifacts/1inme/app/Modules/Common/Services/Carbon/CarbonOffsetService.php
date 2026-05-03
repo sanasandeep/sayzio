@@ -53,25 +53,36 @@ class CarbonOffsetService
         $fallback    = (string) ($effective['fallback'] ?? 'pause');
         $provider    = $this->providerFor($workspace);
 
-        $idemKey = sprintf('snap-%d-%s', $snapshot->id, $snapshot->period_start->format('Y-m'));
-        $quote   = $provider->purchase($workspace->id, (float) $snapshot->grams_co2, 'USD', $idemKey);
-
-        $costMinor   = (int) ($quote['cost_minor'] ?? 0);
+        // Budget enforcement runs BEFORE any provider purchase: we
+        // ask for a non-binding quote first so a misconfigured cap
+        // can never trigger a real charge that we then "discover"
+        // is over-budget and have to refund.
+        $idemKey     = sprintf('snap-%d-%s', $snapshot->id, $snapshot->period_start->format('Y-m'));
         $gramsActual = (float) $snapshot->grams_co2;
+        $estQuote    = $provider->quote($workspace->id, $gramsActual, 'USD');
+        $estCost     = (int) ($estQuote['cost_minor'] ?? 0);
 
-        if ($budgetMinor > 0 && $costMinor > $budgetMinor) {
+        if ($budgetMinor > 0 && $estCost > $budgetMinor) {
             if ($fallback === 'pause') {
                 $snapshot->offset_status = 'capped';
                 $snapshot->save();
                 return null;
             }
-            // Partial: scale grams down to fit the budget exactly.
-            $ratio       = $budgetMinor / max(1, $costMinor);
+            // Partial: scale grams down to fit the budget exactly,
+            // BEFORE we issue the real purchase call.
+            $ratio       = $budgetMinor / max(1, $estCost);
             $gramsActual = (float) round($gramsActual * $ratio, 2);
             $idemKey    .= '-partial';
-            $quote       = $provider->purchase($workspace->id, $gramsActual, 'USD', $idemKey);
-            $costMinor   = (int) ($quote['cost_minor'] ?? 0);
+            if ($gramsActual <= 0) {
+                $snapshot->offset_status = 'capped';
+                $snapshot->save();
+                return null;
+            }
         }
+
+        // Single, post-cap purchase call.
+        $quote     = $provider->purchase($workspace->id, $gramsActual, 'USD', $idemKey);
+        $costMinor = (int) ($quote['cost_minor'] ?? 0);
 
         // Persist the purchase + snapshot pointer atomically. Invoice
         // creation is intentionally OUTSIDE this transaction because

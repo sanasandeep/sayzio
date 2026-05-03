@@ -19,6 +19,16 @@ class NullOffsetProvider implements OffsetProvider
 
     public function slug(): string { return 'sandbox'; }
 
+    public function quote(int $workspaceId, float $grams, string $currency): array
+    {
+        $tonnes = max(0.0, $grams) / 1_000_000.0;
+        return [
+            'cost_minor'           => (int) max(1, round($tonnes * self::SANDBOX_USD_PER_TONNE * 100)),
+            'currency'             => 'USD',
+            'rate_per_tonne_minor' => self::SANDBOX_USD_PER_TONNE * 100,
+        ];
+    }
+
     public function purchase(int $workspaceId, float $grams, string $currency, string $idempotencyKey): array
     {
         // grams → tonnes × USD/tonne × 100 (cents)

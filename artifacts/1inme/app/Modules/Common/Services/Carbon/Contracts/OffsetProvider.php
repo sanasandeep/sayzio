@@ -26,6 +26,15 @@ interface OffsetProvider
 {
     public function slug(): string;
 
+    /**
+     * Estimate the cost (in `currency` minor units) of offsetting
+     * `grams`. MUST NOT charge or commit anything on the provider
+     * side; used by the budget-cap check before `purchase()` runs.
+     * Returns:
+     *   ['cost_minor' => int, 'currency' => string, 'rate_per_tonne_minor' => int|null]
+     */
+    public function quote(int $workspaceId, float $grams, string $currency): array;
+
     public function purchase(int $workspaceId, float $grams, string $currency, string $idempotencyKey): array;
 
     /**
