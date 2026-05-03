@@ -2781,5 +2781,38 @@
             }
         })();
     </script>
+    {{-- AR Business Card fallback notice. When /ar/{alias} can't activate AR
+         on the visitor's device it redirects here with ?ar=unsupported so the
+         scan still lands somewhere useful; we surface a brief toast so the
+         visitor understands why they didn't see the AR card. --}}
+    <script>
+        (function () {
+            try {
+                var qs = new URLSearchParams(location.search);
+                if (qs.get('ar') !== 'unsupported') return;
+                var msg = "AR isn't supported on this device or browser — here's the standard biolink instead.";
+                var t = document.createElement('div');
+                t.setAttribute('role', 'status');
+                t.style.cssText = 'position:fixed;left:50%;bottom:22px;transform:translateX(-50%);'
+                    + 'background:rgba(15,23,42,.94);color:#f8fafc;padding:11px 16px;'
+                    + 'border-radius:12px;font-size:12.5px;line-height:1.45;'
+                    + 'border:1px solid rgba(255,255,255,.12);box-shadow:0 8px 24px rgba(0,0,0,.35);'
+                    + 'max-width:88vw;text-align:center;z-index:99999;font-family:inherit;';
+                t.textContent = msg;
+                document.body.appendChild(t);
+                setTimeout(function () {
+                    t.style.transition = 'opacity .4s ease';
+                    t.style.opacity = '0';
+                    setTimeout(function () { t.remove(); }, 450);
+                }, 6000);
+                // Strip the hint params so a refresh doesn't re-show the toast.
+                if (history && history.replaceState) {
+                    qs.delete('ar'); qs.delete('reason');
+                    var clean = location.pathname + (qs.toString() ? ('?' + qs.toString()) : '') + location.hash;
+                    history.replaceState(null, '', clean);
+                }
+            } catch (e) {}
+        })();
+    </script>
 </body>
 </html>

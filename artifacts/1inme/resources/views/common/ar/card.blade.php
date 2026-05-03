@@ -70,6 +70,27 @@
     }
     .footer { margin-top: 32px; text-align: center; font-size: 10px; opacity: .55; }
     .footer a { color: inherit; }
+
+    /* In-AR floating hotspots. model-viewer renders these as HTML pinned to
+       3D positions on/around the card during WebXR + the inline 3D preview
+       (Scene Viewer / Quick Look render the GLB/USDZ natively and can't
+       host arbitrary HTML — those modes use the in-page block list). */
+    .hotspot {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 7px 12px; border-radius: 999px;
+        background: rgba(15,23,42,.92); color: #fff;
+        font-size: 11px; font-weight: 600; text-decoration: none;
+        border: 1px solid color-mix(in srgb, var(--accent) 60%, #fff);
+        box-shadow: 0 6px 18px rgba(0,0,0,.35);
+        white-space: nowrap; max-width: 180px;
+        overflow: hidden; text-overflow: ellipsis;
+        --min-hotspot-opacity: 0.65;
+    }
+    .hotspot::before {
+        content: ''; width: 8px; height: 8px; border-radius: 50%;
+        background: var(--accent); flex: none;
+    }
+    .hotspot[slot^="hotspot"]:not([data-visible]) { opacity: .35; }
 </style>
 </head>
 <body>
@@ -102,6 +123,38 @@
         environment-image="neutral"
         poster="{{ route('ar.card.texture', $link->alias) }}">
         <button slot="ar-button" class="ar-cta" id="arBtn">View in your space</button>
+
+        @php
+            // Distribute up to 6 hotspots across the 1.6 (x) × 1.0 (y) card
+            // face at z=0.02 (just floating in front), in a 2-col grid that
+            // fills top-down, left-then-right. The card faces +Z so the
+            // surface normal is (0, 0, 1) for every hotspot.
+            $cols = [-0.42, 0.42];
+            $rows = [0.32, 0.0, -0.32];
+            $slots = [];
+            foreach ($rows as $y) {
+                foreach ($cols as $x) {
+                    $slots[] = [$x, $y, 0.02];
+                }
+            }
+        @endphp
+        @foreach($blocks as $i => $b)
+            @php
+                $bs = $b->settings ?? [];
+                $hLabel = $bs['title'] ?? $bs['text'] ?? $bs['label']
+                    ?? ucfirst(str_replace('_', ' ', $b->type));
+                [$hx, $hy, $hz] = $slots[$i] ?? [0, 0, 0.05];
+                $hHref = url('/' . $link->alias . '/b/' . $b->id) . '?source=ar';
+            @endphp
+            <a class="hotspot"
+               slot="hotspot-{{ $i }}"
+               data-position="{{ $hx }}m {{ $hy }}m {{ $hz }}m"
+               data-normal="0 0 1"
+               data-visibility-attribute="visible"
+               href="{{ $hHref }}"
+               rel="nofollow noopener"
+               data-block-id="{{ $b->id }}">{{ \Illuminate\Support\Str::limit($hLabel, 22) }}</a>
+        @endforeach
     </model-viewer>
 
     <div class="name">{{ $cfg['display_name'] }}</div>
