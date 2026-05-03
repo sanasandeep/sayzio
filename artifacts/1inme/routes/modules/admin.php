@@ -231,6 +231,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/',  [\App\Modules\Admin\Controllers\CookieConsentController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
             Route::put('/', [\App\Modules\Admin\Controllers\CookieConsentController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
         });
+        Route::prefix('maintenance')->name('maintenance.')->group(function () {
+            Route::get('/', [\App\Modules\Admin\Controllers\MaintenanceModeController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::put('/', [\App\Modules\Admin\Controllers\MaintenanceModeController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
+        });
+
         Route::prefix('marketing-settings')->name('marketing-settings.')->group(function () {
             Route::get('/', [\App\Modules\Admin\Controllers\MarketingSettingsController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
             Route::put('/', [\App\Modules\Admin\Controllers\MarketingSettingsController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');

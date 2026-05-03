@@ -292,6 +292,14 @@
             <span class="sidebar-tooltip">Banned Names</span>
         </a>
 
+        <a href="{{ route('admin.maintenance.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.maintenance.*') ? 'active' : '' }}"
+           style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-triangle-exclamation"></i></div>
+            <span class="nav-label">Maintenance Mode</span>
+            <span class="sidebar-tooltip">Maintenance Mode</span>
+        </a>
+
         <a href="{{ route('admin.demo-content.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.demo-content.*') ? 'active' : '' }}"
            style="--nav-tint:#10b981; --nav-tint-soft:rgba(16,185,129,0.12);">

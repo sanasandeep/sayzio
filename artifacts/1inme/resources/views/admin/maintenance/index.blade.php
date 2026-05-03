@@ -1,0 +1,96 @@
+@extends('admin.layouts.app')
+@section('title', 'Maintenance Mode')
+@section('content')
+<div class="max-w-3xl mx-auto space-y-6">
+
+    @if(session('success'))
+        <div class="px-3 py-2 bg-emerald-500/10 border border-emerald-400/30 text-emerald-200 rounded-lg text-sm">
+            {{ session('success') }}
+        </div>
+    @endif
+
+    <div class="glass rounded-2xl p-6">
+        <h1 class="text-xl font-semibold text-white">Maintenance Mode</h1>
+        <p class="text-sm text-white/60 mt-1">
+            Take parts of the site offline to visitors while you push updates. Logged-in admins are never blocked, and the admin panel itself stays reachable so you can switch toggles back off.
+        </p>
+    </div>
+
+    <form method="POST" action="{{ route('admin.maintenance.update') }}" class="space-y-6">
+        @csrf
+        @method('PUT')
+
+        <div class="glass rounded-2xl p-6 space-y-4">
+            <div>
+                <h2 class="text-base font-semibold text-white">Areas</h2>
+                <p class="text-xs text-white/50">Each switch controls one surface independently.</p>
+            </div>
+
+            <div class="space-y-3">
+                @foreach($areas as $key => $area)
+                    <label class="flex items-start gap-4 p-4 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.05] transition cursor-pointer">
+                        <input type="hidden" name="areas[{{ $key }}]" value="0">
+                        <input type="checkbox"
+                               name="areas[{{ $key }}]"
+                               value="1"
+                               @checked($area['enabled'])
+                               class="mt-1 w-5 h-5 accent-violet-500 cursor-pointer">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm font-semibold text-white">{{ $area['label'] }}</span>
+                                @if($area['enabled'])
+                                    <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/15 border border-amber-400/30 text-amber-300">Live now</span>
+                                @endif
+                            </div>
+                            <p class="text-xs text-white/50 mt-0.5">
+                                @switch($key)
+                                    @case('marketing')
+                                        Public landing, pricing, blog, contact and policy pages.
+                                        @break
+                                    @case('user_app')
+                                        The whole user surface at <code class="text-white/70">/user/*</code>, including login and registration. Admins still get in via <code class="text-white/70">/admin</code>.
+                                        @break
+                                    @case('api')
+                                        Returns a 503 JSON envelope to the mobile app and any other API clients.
+                                        @break
+                                    @case('biolinks')
+                                        Public biolink profile pages and short-link redirects.
+                                        @break
+                                @endswitch
+                            </p>
+                        </div>
+                    </label>
+                @endforeach
+            </div>
+        </div>
+
+        <div class="glass rounded-2xl p-6 space-y-4">
+            <div>
+                <h2 class="text-base font-semibold text-white">Visitor message</h2>
+                <p class="text-xs text-white/50">Shown on the 503 page and inside the API error envelope. Both fields are optional.</p>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Message</label>
+                <textarea name="message" rows="3" maxlength="500"
+                          placeholder="We're upgrading our infrastructure. Thanks for your patience!"
+                          class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">{{ old('message', $message) }}</textarea>
+                @error('message')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+            </div>
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Estimated back online</label>
+                <input type="text" name="eta" value="{{ old('eta', $eta) }}" maxlength="120"
+                       placeholder="e.g. Today at 6:00 PM UTC"
+                       class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                @error('eta')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+            </div>
+        </div>
+
+        <div class="flex justify-end">
+            <button type="submit"
+                    class="px-5 py-2.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition">
+                <i class="fas fa-save mr-1.5"></i> Save settings
+            </button>
+        </div>
+    </form>
+</div>
+@endsection

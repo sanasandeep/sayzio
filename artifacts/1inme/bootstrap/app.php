@@ -40,6 +40,11 @@ return Application::configure(basePath: dirname(__DIR__))
             // the authenticator.
             'newsletter/unsubscribe/*',
         ]);
+        // Per-area Maintenance Mode gate. Runs on every request so the
+        // admin-managed switch in app_settings can take parts of the site
+        // offline (marketing, user app, api, biolinks) without a deploy.
+        $middleware->append(\App\Modules\Common\Middleware\MaintenanceMode::class);
+
         $middleware->alias([
             'onboarding.gate'   => \App\Modules\User\Middleware\RedirectToOnboarding::class,
             'api.optional_auth' => \App\Modules\Api\Middleware\OptionalSanctum::class,
