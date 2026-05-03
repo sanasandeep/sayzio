@@ -57,6 +57,12 @@ class LinkController extends Controller
             'seo_description' => ['nullable', 'string', 'max:500'],
             'expires_at' => ['nullable', 'date'],
             'settings'   => ['nullable', 'array'],
+            // Workspace tagging from the browser extension's workspace
+            // selector. Optional — older clients (mobile) and
+            // single-workspace accounts simply omit it. Persisted on the
+            // links row only when the column exists, otherwise stashed
+            // under settings.workspace_id so the choice isn't lost.
+            'workspace_id' => ['nullable', 'integer'],
         ]);
 
         $alias = $data['alias'] ?? Str::lower(Str::random(7));
@@ -64,7 +70,10 @@ class LinkController extends Controller
             $alias = Str::lower(Str::random(7));
         }
 
-        $link = Link::create([
+        $settingsPayload = $data['settings'] ?? [];
+        $workspaceId     = $data['workspace_id'] ?? null;
+
+        $attrs = [
             'user_id'    => $request->user()->id,
             'type'       => $data['type'],
             'alias'      => $alias,
@@ -75,8 +84,18 @@ class LinkController extends Controller
             'seo_title'  => $data['seo_title'] ?? null,
             'seo_description' => $data['seo_description'] ?? null,
             'expires_at' => $data['expires_at'] ?? null,
-            'settings'   => $data['settings'] ?? [],
-        ]);
+        ];
+
+        if ($workspaceId !== null) {
+            if (Schema::hasColumn('links', 'workspace_id')) {
+                $attrs['workspace_id'] = (int) $workspaceId;
+            } else {
+                $settingsPayload['workspace_id'] = (int) $workspaceId;
+            }
+        }
+        $attrs['settings'] = $settingsPayload;
+
+        $link = Link::create($attrs);
 
         return $this->created(['link' => LinkResource::toArray($link)]);
     }

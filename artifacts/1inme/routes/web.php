@@ -4,7 +4,15 @@ use Illuminate\Support\Facades\Route;
 use App\Modules\Admin\Controllers\AdminAssetController;
 use App\Modules\Common\Controllers\RedirectController;
 use App\Modules\Common\Controllers\PublicQrController;
+use App\Modules\User\Controllers\ExtensionHandshakeController;
 use App\Modules\User\Controllers\UserFileController;
+
+// ---- Browser extension sign-in handshake ----
+// The 1INME browser extension opens this URL in a new tab. If signed
+// in, the page embeds a fresh Sanctum token + user payload that the
+// extension's content script captures via browser.runtime.sendMessage.
+Route::get('/extension/handshake', [ExtensionHandshakeController::class, 'show'])
+    ->name('extension.handshake');
 
 Route::get('/admin-assets/{id}/{filename}', [AdminAssetController::class, 'serve'])
     ->where('filename', '.*')
