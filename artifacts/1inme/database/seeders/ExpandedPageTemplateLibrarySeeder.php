@@ -84,7 +84,7 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
      *
      * @return array<int, array{key:string,name:string,description:string,thumb:string,snapshot:array}>
      */
-    private function blueprintsFor(array $persona): array
+    public function blueprintsFor(array $persona): array
     {
         $label = $persona['label'];
         $blurb = $persona['blurb'] ?? 'Welcome to my page.';
