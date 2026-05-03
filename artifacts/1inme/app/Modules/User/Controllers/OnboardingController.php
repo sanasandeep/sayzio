@@ -9,84 +9,137 @@ use App\Modules\User\Models\Link;
 use App\Modules\User\Services\PersonaCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class OnboardingController extends Controller
 {
     public function __construct(private TemplateService $templates) {}
 
     /**
-     * Step 1 — pick a persona. Renders even if the user has already
-     * been onboarded, because they can also reach this from the
-     * dashboard banner ("change later") or the profile page.
+     * Single-page onboarding: persona list (left) + matching templates
+     * (right) + a live mini-preview that opens before any biolink is
+     * created. Replaces the old two-step persona/template flow.
      */
-    public function persona()
+    public function index()
     {
-        return view('user.onboarding.persona', [
-            'personas' => PersonaCatalog::all(),
-            'current'  => Auth::user()->persona,
+        $user = Auth::user();
+        $persona = $user->persona;
+
+        return view('user.onboarding.index', [
+            'personas'    => PersonaCatalog::all(),
+            'grouped'     => PersonaCatalog::grouped(),
+            'current'     => $persona,
+            'personaLabel'=> PersonaCatalog::pluralLabelFor($persona),
+            'initialGrid' => $this->renderTemplateGrid($persona),
         ]);
     }
 
     /**
-     * Saves the chosen persona (or skip) and forwards to the template
-     * step. "Skip" still marks the user as onboarded so they don't get
-     * trapped in a loop, but leaves persona null — the dashboard then
-     * shows the soft "want suggestions?" banner.
+     * Returns a Blade-rendered HTML fragment of the template cards for
+     * the given persona slug (recommended-first). When persona is empty
+     * or unknown, returns all templates ungrouped. Used by the right
+     * panel to refresh without a full page reload.
+     */
+    public function templatesJson(Request $request)
+    {
+        $persona = $request->query('persona');
+        if ($persona !== null && $persona !== '' && !PersonaCatalog::isValid($persona)) {
+            $persona = null;
+        }
+        return response($this->renderTemplateGrid($persona))
+            ->header('Content-Type', 'text/html; charset=UTF-8');
+    }
+
+    /**
+     * Renders a live preview of the chosen template as it would look
+     * on a real biolink page. Implemented inside a DB transaction that
+     * always rolls back, so no link / blocks / settings persist — the
+     * user only commits to a template when they click "Use this
+     * template", which goes through `applyTemplate` below.
+     */
+    public function templatePreview(Request $request, $id)
+    {
+        $tpl = PageTemplate::active()->where('id', $id)->firstOrFail();
+        $user = Auth::user();
+
+        DB::beginTransaction();
+        try {
+            $link = Link::create([
+                'user_id'  => $user->id,
+                'type'     => 'biolink',
+                'alias'    => 'preview-' . Link::generateAlias(),
+                'title'    => $tpl->name,
+                'is_active'=> true,
+            ]);
+            $this->templates->applyPageToLink($link, $tpl->snapshot, /*replace*/ true);
+            $link->refresh();
+            $link->load('user');
+
+            $html = view('common.biolink', compact('link'))->render();
+        } finally {
+            DB::rollBack();
+        }
+
+        return response($html)
+            ->header('X-Frame-Options', 'SAMEORIGIN')
+            ->header('Content-Security-Policy', "frame-ancestors 'self'")
+            ->header('Cache-Control', 'no-store, max-age=0');
+    }
+
+    /**
+     * Render the recommended + others grid for a given persona slug.
+     * Returns an empty-state card if there are no templates.
+     */
+    private function renderTemplateGrid(?string $personaSlug): string
+    {
+        $user = Auth::user();
+        $userPlanSlug = $user->plan?->slug;
+        $linkTplCtrl = app(LinkTemplateController::class);
+        $lockedFn = fn(?string $required) => $linkTplCtrl->isLocked($required, $userPlanSlug);
+
+        $templates = PageTemplate::active()->get();
+        [$recommended, $others] = $templates->partition(function ($t) use ($personaSlug) {
+            $tags = $t->recommended_personas ?? [];
+            return $personaSlug && is_array($tags) && in_array($personaSlug, $tags, true);
+        });
+
+        return view('user.onboarding._template_grid_panel', [
+            'recommended' => $recommended->values(),
+            'others'      => $others->values(),
+            'lockedFn'    => $lockedFn,
+            'persona'     => $personaSlug,
+            'personaLabel'=> PersonaCatalog::pluralLabelFor($personaSlug),
+        ])->render();
+    }
+
+    /**
+     * Persists the chosen persona. Returns JSON for AJAX callers (the
+     * single-page flow) and falls back to a redirect for legacy form
+     * posts. Never marks the user as onboarded by itself — onboarding
+     * completes when they apply a template (or hit "Skip for now").
      */
     public function savePersona(Request $request)
     {
         $validated = $request->validate([
             'persona' => 'nullable|string|in:' . implode(',', PersonaCatalog::slugs()),
-            'skip'    => 'nullable|boolean',
         ]);
 
         $user = Auth::user();
 
-        // Step 1 skip still advances to step 2 (template picker) — onboarding
-        // isn't marked complete until the user reaches the end of step 2.
-        if ($request->boolean('skip')) {
-            return redirect()->route('user.onboarding.template');
+        if (!empty($validated['persona'])) {
+            $user->forceFill([
+                'persona' => $validated['persona'],
+            ])->save();
         }
 
-        if (empty($validated['persona'])) {
-            return back()->with('error', 'Pick a persona that fits, or hit "Skip for now".');
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'ok' => true,
+                'persona' => $validated['persona'] ?? null,
+            ]);
         }
 
-        $user->forceFill([
-            'persona' => $validated['persona'],
-        ])->save();
-
-        return redirect()->route('user.onboarding.template');
-    }
-
-    /**
-     * Step 2 — pick a starter template. Templates tagged with the
-     * user's persona float to the top; the user can still pick any
-     * template (subject to plan-tier locks) or skip and start blank.
-     */
-    public function template()
-    {
-        $user = Auth::user();
-        $persona = $user->persona;
-
-        $templates = PageTemplate::active()->get();
-        $userPlanSlug = $user->plan?->slug;
-        $linkTplCtrl = app(LinkTemplateController::class);
-        $lockedFn = fn(?string $required) => $linkTplCtrl->isLocked($required, $userPlanSlug);
-
-        // Recommended-first ordering
-        [$recommended, $others] = $templates->partition(function ($t) use ($persona) {
-            $tags = $t->recommended_personas ?? [];
-            return $persona && is_array($tags) && in_array($persona, $tags, true);
-        });
-
-        return view('user.onboarding.template', [
-            'persona'     => $persona,
-            'personaLabel'=> PersonaCatalog::pluralLabelFor($persona),
-            'recommended' => $recommended->values(),
-            'others'      => $others->values(),
-            'lockedFn'    => $lockedFn,
-        ]);
+        return redirect()->route('user.onboarding.index');
     }
 
     /**

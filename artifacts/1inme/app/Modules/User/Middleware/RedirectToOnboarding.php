@@ -21,7 +21,7 @@ class RedirectToOnboarding
         $user = Auth::user();
 
         if ($user && $user->onboarded_at === null && $request->isMethod('GET')) {
-            return redirect()->route('user.onboarding.persona');
+            return redirect()->route('user.onboarding.index');
         }
 
         return $next($request);

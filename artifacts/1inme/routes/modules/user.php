@@ -130,11 +130,23 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::put   ('team/roles',                            [\App\Modules\User\Controllers\WorkspaceRolesController::class, 'update'])->name('team.roles.update');
         Route::post  ('team/roles/reset',                      [\App\Modules\User\Controllers\WorkspaceRolesController::class, 'reset']) ->name('team.roles.reset');
 
-        // First-run onboarding wizard
+        // First-run onboarding — single page with personas (left) +
+        // matching templates (right) + a live mini-preview drawer.
         Route::prefix('onboarding')->name('onboarding.')->group(function () {
-            Route::get('persona',  [\App\Modules\User\Controllers\OnboardingController::class, 'persona'])->name('persona');
+            Route::get('/', [\App\Modules\User\Controllers\OnboardingController::class, 'index'])->name('index');
+            // Legacy URLs from the old two-step flow — redirect to the new
+            // single page so any bookmarked link, dashboard banner deep
+            // link, or external doc keeps working.
+            Route::get('persona',  fn() => redirect()->route('user.onboarding.index'))->name('persona');
+            Route::get('template', fn() => redirect()->route('user.onboarding.index'))->name('template');
+
+            // JSON/HTML helpers powering the split-panel UI.
+            Route::get('templates', [\App\Modules\User\Controllers\OnboardingController::class, 'templatesJson'])->name('templates.list');
+            Route::get('template/{id}/preview', [\App\Modules\User\Controllers\OnboardingController::class, 'templatePreview'])
+                ->whereNumber('id')
+                ->name('template.preview');
+
             Route::post('persona', [\App\Modules\User\Controllers\OnboardingController::class, 'savePersona'])->name('persona.save');
-            Route::get('template', [\App\Modules\User\Controllers\OnboardingController::class, 'template'])->name('template');
             Route::post('template',[\App\Modules\User\Controllers\OnboardingController::class, 'applyTemplate'])->name('template.apply');
             Route::post('go-to-dashboard', [\App\Modules\User\Controllers\OnboardingController::class, 'goToDashboard'])->name('go-to-dashboard');
             Route::post('dismiss-banner', [\App\Modules\User\Controllers\OnboardingController::class, 'dismissBanner'])->name('dismiss-banner');
