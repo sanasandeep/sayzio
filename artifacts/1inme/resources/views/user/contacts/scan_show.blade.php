@@ -76,18 +76,23 @@
             </div>
             @endif
 
+            @php $sources = $scan->sourceFiles(); @endphp
             <div class="card-premium p-4">
-                <h4 class="text-xs font-bold uppercase tracking-wide mb-3" style="color: var(--text-muted);">Original upload</h4>
-                @if($scan->sourceFile)
-                    @if(str_starts_with((string) $scan->sourceFile->mime_type, 'image/'))
-                        <img src="{{ $scan->sourceFile->url }}" alt="" class="rounded-lg w-full" style="max-height: 320px; object-fit: contain; background: rgba(0,0,0,.2);">
+                <h4 class="text-xs font-bold uppercase tracking-wide mb-3" style="color: var(--text-muted);">
+                    Original upload{{ count($sources) === 1 ? '' : 's' }}
+                </h4>
+                <div class="space-y-3">
+                @foreach($sources as $sf)
+                    @if(str_starts_with((string) $sf->mime_type, 'image/'))
+                        <img src="{{ $sf->url }}" alt="" class="rounded-lg w-full" style="max-height: 240px; object-fit: contain; background: rgba(0,0,0,.2);">
                     @else
-                        <a href="{{ $scan->sourceFile->url }}" target="_blank" class="block text-center p-6 rounded-lg" style="background: rgba(255,255,255,.04); border:1px dashed rgba(255,255,255,.10); color: var(--text-muted);">
-                            <i class="fas fa-file-pdf text-3xl mb-2 text-red-400 block"></i>
+                        <a href="{{ $sf->url }}" target="_blank" class="block text-center p-4 rounded-lg" style="background: rgba(255,255,255,.04); border:1px dashed rgba(255,255,255,.10); color: var(--text-muted);">
+                            <i class="fas fa-file-pdf text-2xl mb-1 text-red-400 block"></i>
                             <span class="text-xs">Open PDF</span>
                         </a>
                     @endif
-                @endif
+                @endforeach
+                </div>
 
                 <div class="mt-4 text-xs" style="color: var(--text-muted);">
                     <div class="flex items-center justify-between py-1.5 border-b" style="border-color:rgba(255,255,255,.06);">

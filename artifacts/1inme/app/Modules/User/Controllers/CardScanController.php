@@ -37,8 +37,9 @@ class CardScanController extends Controller
         $from = $request->query('from') === 'wizard' ? 'wizard' : 'contacts';
         return view('user.contacts.scan_create', [
             'from'      => $from,
-            'maxMb'     => CardBrochureExtractionService::MAX_UPLOAD_MB,
-            'maxPages'  => CardBrochureExtractionService::MAX_PDF_PAGES,
+            'maxMb'      => CardBrochureExtractionService::MAX_UPLOAD_MB,
+            'maxPages'   => CardBrochureExtractionService::MAX_PDF_PAGES,
+            'maxUploads' => CardBrochureExtractionService::MAX_UPLOADS,
             'engineOn'  => AiEngineSettings::isEnabled() && (bool) AiEngineSettings::openAiKey(),
         ]);
     }
@@ -46,10 +47,21 @@ class CardScanController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            // Cap matches the service-level guard. Laravel takes KB.
-            'file' => 'required|file|max:' . (CardBrochureExtractionService::MAX_UPLOAD_MB * 1024),
-            'from' => 'nullable|string|in:contacts,wizard',
+            // Accept either a single file or an array of files. Cap
+            // matches the service-level guard. Laravel takes KB.
+            'file'     => 'nullable|file|max:' . (CardBrochureExtractionService::MAX_UPLOAD_MB * 1024),
+            'files'    => 'nullable|array|max:' . CardBrochureExtractionService::MAX_UPLOADS,
+            'files.*'  => 'file|max:' . (CardBrochureExtractionService::MAX_UPLOAD_MB * 1024),
+            'from'     => 'nullable|string|in:contacts,wizard',
         ]);
+
+        $uploads = (array) ($request->file('files') ?? []);
+        if (!$uploads && $request->hasFile('file')) {
+            $uploads = [$request->file('file')];
+        }
+        if (!$uploads) {
+            return back()->with('error', 'Please attach at least one image or PDF.');
+        }
 
         $owner = workspace_owner();
         $actor = $request->user();
@@ -59,7 +71,7 @@ class CardScanController extends Controller
         }
 
         try {
-            $scan = $this->extractor->extract($owner, $actor, $request->file('file'));
+            $scan = $this->extractor->extract($owner, $actor, $uploads);
         } catch (InsufficientAiCreditsException $e) {
             return redirect()->route('user.ai-credits.show')
                 ->with('error', "You need {$e->required} AI credits to scan a card (you have {$e->balance}).");

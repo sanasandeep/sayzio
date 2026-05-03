@@ -42,6 +42,9 @@ class CardBrochureExtractionService
     /** Max upload size in MB for both images and PDFs. */
     public const MAX_UPLOAD_MB = 10;
 
+    /** Max distinct files per scan (front + back of card, brochure pages…). */
+    public const MAX_UPLOADS = 6;
+
     /** PDF rasterisation DPI — high enough for OCR-quality text on a card. */
     private const RASTER_DPI = 200;
 
@@ -62,23 +65,40 @@ class CardBrochureExtractionService
      *         the scan row is marked failed and any credits refunded
      *         before the throw propagates.
      */
-    public function extract(User $owner, User $actor, UploadedFile $file): CardScan
+    /**
+     * @param UploadedFile|list<UploadedFile> $files One or more uploads
+     *        — typically a single image, both sides of a card, or a
+     *        multi-page brochure rendered as photos.
+     */
+    public function extract(User $owner, User $actor, UploadedFile|array $files): CardScan
     {
-        $this->validateUpload($file);
+        $files = is_array($files) ? array_values($files) : [$files];
+        $files = array_values(array_filter($files, fn ($f) => $f instanceof UploadedFile));
+        if (!$files) {
+            throw new \RuntimeException('Please attach at least one image or PDF.');
+        }
+        if (count($files) > self::MAX_UPLOADS) {
+            throw new \RuntimeException(
+                'Too many files — please attach at most ' . self::MAX_UPLOADS . ' at a time.'
+            );
+        }
+        foreach ($files as $f) $this->validateUpload($f);
 
-        // Hash the upload bytes BEFORE we move the file. We use this as
-        // the idempotency key so the same file produces the same scan.
-        $fileHash = hash_file('sha256', $file->getRealPath());
+        // Hash the joined upload bytes (in upload order) so the same
+        // bundle of files re-uploaded together collapses to one scan
+        // but adding/removing a file produces a new one.
+        $hashes = array_map(fn ($f) => hash_file('sha256', $f->getRealPath()), $files);
+        $bundleHash = hash('sha256', implode('|', $hashes));
         $model    = $this->modelName();
-        $idem     = "card_scan:{$owner->id}:{$fileHash}:{$model}";
+        $idem     = "card_scan:{$owner->id}:{$bundleHash}:{$model}";
 
         // Idempotency: race-safe firstOrCreate against the unique
         // `idempotency_key` index. The DB transaction + unique
-        // constraint mean two concurrent uploads of the same file
+        // constraint mean two concurrent uploads of the same files
         // collapse to a single CardScan row (and a single AI charge).
-        $sourceFile = null;
-        $created    = false;
-        $scan = \Illuminate\Support\Facades\DB::transaction(function () use ($owner, $actor, $file, $idem, &$sourceFile, &$created) {
+        $sourceFiles = [];
+        $created     = false;
+        $scan = \Illuminate\Support\Facades\DB::transaction(function () use ($owner, $actor, $files, $idem, &$sourceFiles, &$created) {
             $existing = CardScan::withoutGlobalScope('workspace')
                 ->where('idempotency_key', $idem)
                 ->lockForUpdate()
@@ -87,17 +107,21 @@ class CardBrochureExtractionService
                 return $existing;
             }
 
-            // Vault the original upload first so the review screen always
+            // Vault every original first so the review screen always
             // has something to show, even if the vision call dies.
-            $sourceFile = UserFile::createFromUpload($file, $owner, [
-                'enforce_allowlist' => false,
-                'max_size_mb'       => self::MAX_UPLOAD_MB,
-            ]);
+            foreach ($files as $f) {
+                $sourceFiles[] = UserFile::createFromUpload($f, $owner, [
+                    'enforce_allowlist' => false,
+                    'max_size_mb'       => self::MAX_UPLOAD_MB,
+                ]);
+            }
+            $ids = array_map(fn ($u) => $u->id, $sourceFiles);
 
             $row = CardScan::create([
                 'user_id'         => $owner->id,
                 'actor_user_id'   => $actor->id,
-                'source_file_id'  => $sourceFile->id,
+                'source_file_id'  => $ids[0] ?? null,
+                'source_file_ids' => $ids,
                 'status'          => 'processing',
                 'idempotency_key' => $idem,
             ]);
@@ -113,9 +137,37 @@ class CardBrochureExtractionService
         }
 
         try {
-            $images = $this->rasteriseToImages($sourceFile);
-            $result = $this->callVision($owner, $scan, $model, $images);
+            // Rasterise every upload (PDFs may yield multiple pages). We
+            // then vault each rasterised page as a derived UserFile so
+            // brochures can be browsed page-by-page from the review
+            // screen, the contact and the biolink draft.
+            $images       = [];
+            $derivedIds   = [];
+            $sourceModels = $scan->sourceFiles();
+            foreach ($sourceModels as $sf) {
+                $perFile = $this->rasteriseToImages($sf);
+                foreach ($perFile as $i => $img) {
+                    $images[] = $img;
+                    if ($sf->mime_type === 'application/pdf') {
+                        // PDF page → vault as a derived asset.
+                        try {
+                            $derived = UserFile::createFromBytes(
+                                $img['bytes'],
+                                "card-scan-{$scan->id}-{$sf->id}-p" . ($i + 1) . '.png',
+                                'image/png',
+                                $owner,
+                                ['max_size_mb' => self::MAX_UPLOAD_MB]
+                            );
+                            $derivedIds[] = $derived->id;
+                        } catch (\Throwable $e) {
+                            Log::info('card_scan derived page save failed', ['scan' => $scan->id, 'err' => $e->getMessage()]);
+                        }
+                    }
+                }
+                if (count($images) >= self::MAX_PDF_PAGES * self::MAX_UPLOADS) break;
+            }
 
+            $result    = $this->callVision($owner, $scan, $model, $images);
             $extracted = $this->normalise($result['parsed']);
 
             // Best-effort logo crop. Reads the first rasterised page,
@@ -123,13 +175,15 @@ class CardBrochureExtractionService
             // result back into the user's vault as a derived asset.
             // Failures here are non-fatal — the original upload remains
             // available as a fallback.
-            $extracted['logo_url'] = $this->extractLogo($owner, $scan, $images, $extracted);
+            $logoUrl = $this->extractLogo($owner, $scan, $images, $extracted, $derivedIds);
+            $extracted['logo_url'] = $logoUrl;
 
             $scan->forceFill([
-                'status'        => 'completed',
-                'raw_response'  => $result['raw'],
-                'extracted'     => $extracted,
-                'credits_spent' => $result['credits_spent'],
+                'status'           => 'completed',
+                'raw_response'     => $result['raw'],
+                'extracted'        => $extracted,
+                'derived_file_ids' => $derivedIds,
+                'credits_spent'    => $result['credits_spent'],
             ])->save();
 
             return $scan->fresh();
@@ -456,7 +510,7 @@ PROMPT;
      *
      * @param list<array{bytes:string,mime:string}> $images
      */
-    protected function extractLogo(User $owner, CardScan $scan, array $images, array $extracted): ?string
+    protected function extractLogo(User $owner, CardScan $scan, array $images, array $extracted, array &$derivedIds = []): ?string
     {
         $bbox = $extracted['branding']['logo_bbox'] ?? null;
         if (!$bbox || empty($extracted['branding']['has_logo'])) return null;
@@ -497,6 +551,7 @@ PROMPT;
                 $owner,
                 ['max_size_mb' => self::MAX_UPLOAD_MB]
             );
+            $derivedIds[] = $logoFile->id;
             return $logoFile->url;
         } catch (\Throwable $e) {
             Log::info('card_scan logo crop failed', ['scan' => $scan->id, 'err' => $e->getMessage()]);

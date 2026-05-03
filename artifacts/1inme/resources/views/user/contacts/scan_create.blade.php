@@ -34,15 +34,15 @@
 
         <div>
             <label class="block text-sm font-semibold mb-2" style="color: var(--text-primary);">
-                Upload a business card or brochure
+                Upload one or more cards or brochure pages
             </label>
-            <input type="file" name="file" required
+            <input type="file" name="files[]" required multiple
                    accept="image/jpeg,image/png,image/webp,application/pdf"
                    class="block w-full text-sm rounded-xl px-3 py-2"
                    style="background: rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.10); color: var(--text-primary);">
             <p class="mt-2 text-xs" style="color: var(--text-muted);">
-                Max {{ $maxMb }} MB. PDFs are processed up to {{ $maxPages }} pages.
-                A clearer photo gives better results.
+                Up to {{ $maxUploads }} files, {{ $maxMb }} MB each. Add the front and back of a card,
+                or several brochure photos in one go. PDFs are processed up to {{ $maxPages }} pages.
             </p>
         </div>
 
