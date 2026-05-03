@@ -395,16 +395,35 @@ USDA;
         if (!$parts || empty($parts['scheme']) || !in_array(strtolower($parts['scheme']), ['http', 'https'], true)) {
             return false;
         }
-        try {
-            $ctx = stream_context_create([
-                'http' => ['timeout' => 4, 'follow_location' => 1, 'max_redirects' => 3,
-                    'header' => "User-Agent: 1INME-AR/1.0\r\n"],
-                'ssl'  => ['verify_peer' => true, 'verify_peer_name' => true],
-            ]);
-            $bytes = @file_get_contents($url, false, $ctx, 0, 4 * 1024 * 1024);
-            if ($bytes === false || strlen($bytes) < 32) return false;
-        } catch (\Throwable $e) {
+        // SSRF guard: block any host that resolves to a private/loopback/
+        // link-local/reserved IP so a creator can't aim avatar_url at our
+        // own internal services or cloud metadata endpoints.
+        $host = $parts['host'] ?? '';
+        if ($host === '' || !$this->isPublicHost($host)) {
             return false;
+        }
+
+        // Cache the fetched bytes for an hour so we don't hit the remote
+        // host on every texture request (the texture endpoint is public).
+        $cacheKey = 'ar:avatar:' . sha1($url);
+        $bytes = null;
+        try { $bytes = \Illuminate\Support\Facades\Cache::get($cacheKey); }
+        catch (\Throwable $e) { /* cache backend unavailable — fetch live */ }
+
+        if ($bytes === null) {
+            try {
+                $ctx = stream_context_create([
+                    'http' => ['timeout' => 4, 'follow_location' => 0, 'max_redirects' => 0,
+                        'header' => "User-Agent: 1INME-AR/1.0\r\n"],
+                    'ssl'  => ['verify_peer' => true, 'verify_peer_name' => true],
+                ]);
+                $bytes = @file_get_contents($url, false, $ctx, 0, 4 * 1024 * 1024);
+                if ($bytes === false || strlen($bytes) < 32) return false;
+                try { \Illuminate\Support\Facades\Cache::put($cacheKey, $bytes, 3600); }
+                catch (\Throwable $e) { /* ignore cache write failures */ }
+            } catch (\Throwable $e) {
+                return false;
+            }
         }
         $src = @imagecreatefromstring($bytes);
         if (!$src) return false;
@@ -456,6 +475,41 @@ USDA;
         $ring = imagecolorallocatealpha($img, 255, 255, 255, 50);
         imageellipse($img, $x + (int) ($size / 2), $y + (int) ($size / 2), $size + 4, $size + 4, $ring);
         imagedestroy($out);
+        return true;
+    }
+
+    /**
+     * SSRF guard. Returns true only when *every* address the host resolves
+     * to is a routable public IP. Blocks loopback, private, link-local,
+     * unique-local, multicast, and reserved ranges on both IPv4 and IPv6,
+     * which catches AWS/GCP metadata (169.254.169.254, fd00:ec2::254),
+     * Docker bridges, and same-host services.
+     */
+    private function isPublicHost(string $host): bool
+    {
+        $host = strtolower(trim($host, "[]"));
+        // Reject obviously dangerous literals up-front.
+        if (in_array($host, ['localhost', 'localhost.localdomain', 'metadata', 'metadata.google.internal'], true)) {
+            return false;
+        }
+
+        $ips = [];
+        if (filter_var($host, FILTER_VALIDATE_IP)) {
+            $ips[] = $host;
+        } else {
+            $records = @dns_get_record($host, DNS_A | DNS_AAAA);
+            if (!is_array($records) || count($records) === 0) return false;
+            foreach ($records as $r) {
+                if (!empty($r['ip'])) $ips[] = $r['ip'];
+                if (!empty($r['ipv6'])) $ips[] = $r['ipv6'];
+            }
+        }
+        if (count($ips) === 0) return false;
+
+        $publicFlags = FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE;
+        foreach ($ips as $ip) {
+            if (!filter_var($ip, FILTER_VALIDATE_IP, $publicFlags)) return false;
+        }
         return true;
     }
 }
