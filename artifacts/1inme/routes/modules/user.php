@@ -447,9 +447,15 @@ Route::prefix('user')->name('user.')->group(function () {
 
         // Standalone splash pages — reusable across multiple links. Read
         // under links.view, mutate under links.edit.
-        Route::resource('splash-pages', \App\Modules\User\Controllers\SplashPageController::class)->only(['index', 'show'])->middleware('workspace.can:links.view');
-        Route::post('splash-pages', [\App\Modules\User\Controllers\SplashPageController::class, 'store'])->middleware(['workspace.can:links.edit', CheckPlanLimit::class . ':splash_pages'])->name('splash-pages.store');
+        // NOTE: write-side resource (which includes `create`/`edit`) must be
+        // registered BEFORE the read-side resource so the literal
+        // `splash-pages/create` path is matched ahead of the parameterized
+        // `splash-pages/{splash_page}` show route. Otherwise route-model
+        // binding tries to load a SplashPage with id="create" and Postgres
+        // 500s on the bigint cast.
         Route::resource('splash-pages', \App\Modules\User\Controllers\SplashPageController::class)->except(['index', 'show', 'store'])->middleware('workspace.can:links.edit');
+        Route::post('splash-pages', [\App\Modules\User\Controllers\SplashPageController::class, 'store'])->middleware(['workspace.can:links.edit', CheckPlanLimit::class . ':splash_pages'])->name('splash-pages.store');
+        Route::resource('splash-pages', \App\Modules\User\Controllers\SplashPageController::class)->only(['index', 'show'])->middleware('workspace.can:links.view');
         Route::get('splash-pages/{splash_page}/preview', [\App\Modules\User\Controllers\SplashPageController::class, 'preview'])->middleware('workspace.can:links.view')->name('splash-pages.preview');
 
         // Reusable third-party integration configurations (payment / sms / email)
