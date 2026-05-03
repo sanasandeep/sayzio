@@ -245,6 +245,39 @@ class CardBrochureExtractionService
                 'Unsupported file type. Upload a JPG/PNG/WebP image or a PDF.'
             );
         }
+        // Reject (rather than silently truncate) PDFs longer than the
+        // page cap so the user knows up-front and can split the file.
+        if ($mime === 'application/pdf') {
+            $pages = $this->countPdfPages((string) $file->getRealPath());
+            if ($pages !== null && $pages > self::MAX_PDF_PAGES) {
+                throw new \RuntimeException(
+                    'That PDF has ' . $pages . ' pages — please upload at most '
+                    . self::MAX_PDF_PAGES . ' pages per scan.'
+                );
+            }
+        }
+    }
+
+    /**
+     * Cheap PDF page-count probe via the Xpdf/Poppler `pdfinfo` binary.
+     * Returns null when pdfinfo isn't on PATH or the file isn't a valid
+     * PDF — callers should treat null as "unknown" and fall through to
+     * the rasteriser's existing -l cap.
+     */
+    protected function countPdfPages(string $path): ?int
+    {
+        try {
+            $proc = new Process(['pdfinfo', $path]);
+            $proc->setTimeout(10);
+            $proc->run();
+            if (!$proc->isSuccessful()) return null;
+            if (preg_match('/^Pages:\s+(\d+)/m', $proc->getOutput(), $m)) {
+                return (int) $m[1];
+            }
+        } catch (\Throwable $e) {
+            // pdfinfo missing — non-fatal.
+        }
+        return null;
     }
 
     /**
