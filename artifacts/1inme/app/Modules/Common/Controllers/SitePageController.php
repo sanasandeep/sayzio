@@ -306,6 +306,12 @@ class SitePageController extends Controller
                 $customRuleMessages[$field . '.required'] = $val;
             }
         }
+        // Same idea for the "email must be a valid email address" rule —
+        // blank means keep Laravel's built-in phrasing.
+        $emailInvalid = trim((string) ($messages['email_invalid'] ?? ''));
+        if ($emailInvalid !== '') {
+            $customRuleMessages['email.email'] = $emailInvalid;
+        }
 
         $data = $request->validate([
             'name'    => 'required|string|max:120',
@@ -322,7 +328,11 @@ class SitePageController extends Controller
 
         $key = 'contact:' . ($request->ip() ?? 'unknown');
         if (RateLimiter::tooManyAttempts($key, 3)) {
-            return back()->withErrors(['message' => 'Too many submissions — please try again in a few minutes.'])->withInput();
+            $defaultRateLimited = 'Too many submissions — please try again in a few minutes.';
+            $rateLimited = trim((string) ($messages['rate_limited'] ?? '')) !== ''
+                ? trim((string) $messages['rate_limited'])
+                : $defaultRateLimited;
+            return back()->withErrors(['message' => $rateLimited])->withInput();
         }
         RateLimiter::hit($key, 600);
 

@@ -234,6 +234,8 @@ class SitePageController extends Controller
             $rules['extra.messages.email_required']      = 'nullable|string|max:200';
             $rules['extra.messages.subject_required']    = 'nullable|string|max:200';
             $rules['extra.messages.message_required']    = 'nullable|string|max:200';
+            $rules['extra.messages.email_invalid']       = 'nullable|string|max:200';
+            $rules['extra.messages.rate_limited']        = 'nullable|string|max:200';
         }
         if ($slug === 'services') {
             $rules['sections.*.tagline']   = 'nullable|string|max:200';

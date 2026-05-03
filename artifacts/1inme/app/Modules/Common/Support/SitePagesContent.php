@@ -1103,6 +1103,8 @@ class SitePagesContent
                 'email_required'   => '',
                 'subject_required' => '',
                 'message_required' => '',
+                'email_invalid'    => '',
+                'rate_limited'     => '',
             ],
         ];
     }
@@ -1396,6 +1398,8 @@ class SitePagesContent
             'email_required'   => mb_substr(trim((string) ($messagesIn['email_required']   ?? '')), 0, 200),
             'subject_required' => mb_substr(trim((string) ($messagesIn['subject_required'] ?? '')), 0, 200),
             'message_required' => mb_substr(trim((string) ($messagesIn['message_required'] ?? '')), 0, 200),
+            'email_invalid'    => mb_substr(trim((string) ($messagesIn['email_invalid']    ?? '')), 0, 200),
+            'rate_limited'     => mb_substr(trim((string) ($messagesIn['rate_limited']     ?? '')), 0, 200),
         ];
 
         return [
