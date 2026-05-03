@@ -62,18 +62,34 @@ export interface ExtSettings {
   // Workspace whose queue is currently mirrored locally. When the
   // creator switches workspace we re-hydrate from the server.
   pendingThanksWorkspaceId: number | null;
-  // IDs of pending thanks the creator has already noticed on THIS
-  // device. Anything in `pendingThanks` whose id is not in this set
-  // counts as "unread" and bumps the Backlinks-tab badge. The set is
-  // intentionally per-device (not synced) so each browser surfaces its
-  // own newly-arrived items independently. Pruned on every refresh to
-  // drop ids that no longer correspond to a queued item, otherwise it
-  // would grow unbounded as items get sent or expire.
   pendingThanksSeenIds: string[];
+  // Per-domain "author book": cached author contacts (email / X handle /
+  // LinkedIn URL) keyed by host, or by "host|path" for page-scoped
+  // overrides. The Thank composer prefers the cached entry over a fresh
+  // page scrape, so repeat backlinks from the same publisher pre-fill
+  // instantly. Capped at AUTHOR_BOOK_MAX entries (oldest pruned).
+  authorBook: Record<string, AuthorBookEntry>;
 }
 
 export type ThankChannel = SharedThankChannel;
 export type ThankTemplate = SharedThankTemplate;
+
+export interface AuthorBookEntry {
+  // Host the entry was learned from (lowercased, no leading "www.").
+  host: string;
+  // Optional URL pathname for page-scoped overrides ("/blog/post-1").
+  // When omitted the entry applies to the whole host.
+  path?: string;
+  email: string | null;
+  xHandle: string | null;     // Without leading "@".
+  linkedinUrl: string | null; // Canonical https LinkedIn profile URL.
+  updatedAt: number;          // ms epoch — used for pruning + display.
+}
+
+// Cap on author-book size to keep storage bounded for power users who
+// thank backlinks on hundreds of unique domains. When exceeded the
+// oldest (lowest updatedAt) entries are dropped on insert.
+export const AUTHOR_BOOK_MAX = 500;
 
 // Pending-thanks queue bounds. The queue lives in browser.storage.local
 // and is otherwise unbounded — a creator who queues lots of thanks and
@@ -167,7 +183,90 @@ export const defaultSettings: ExtSettings = {
   pendingThanksUpdatedAtMs: null,
   pendingThanksWorkspaceId: null,
   pendingThanksSeenIds: [],
+  authorBook: {},
 };
+
+// Normalise a URL into the (host, path) we use as author-book keys.
+// Returns null for non-http(s) URLs so we never try to remember the
+// "author" of a chrome:// or file:// page.
+export function authorBookKeyFromUrl(url: string): { host: string; path: string } | null {
+  try {
+    const u = new URL(url);
+    if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+    const host = u.hostname.replace(/^www\./i, "").toLowerCase();
+    if (!host) return null;
+    // Strip trailing slash so "/foo" and "/foo/" match the same entry.
+    const path = u.pathname.replace(/\/+$/, "") || "/";
+    return { host, path };
+  } catch {
+    return null;
+  }
+}
+
+// Look up the best matching author-book entry for a URL. Page-scoped
+// ("host|path") entries win over host-wide entries so a creator's
+// per-page override always takes precedence.
+export function lookupAuthorBookEntry(
+  book: Record<string, AuthorBookEntry>,
+  url: string,
+): AuthorBookEntry | null {
+  const k = authorBookKeyFromUrl(url);
+  if (!k) return null;
+  const pathHit = book[`${k.host}|${k.path}`];
+  if (pathHit) return pathHit;
+  return book[k.host] ?? null;
+}
+
+// Insert / replace an author-book entry. Returns the new map (does not
+// mutate). Caller is responsible for persisting via setSettings.
+//  - scope "host"  → key = host
+//  - scope "path"  → key = host|path (URL-specific override)
+// When the cap is exceeded the oldest entries (lowest updatedAt) are
+// pruned first so storage stays bounded.
+export function upsertAuthorBookEntry(
+  book: Record<string, AuthorBookEntry>,
+  url: string,
+  contacts: { email: string | null; xHandle: string | null; linkedinUrl: string | null },
+  scope: "host" | "path",
+  now: number = Date.now(),
+): Record<string, AuthorBookEntry> {
+  const k = authorBookKeyFromUrl(url);
+  if (!k) return book;
+  // Don't store empty entries — saves storage and avoids pre-filling
+  // the composer with three nulls on the next visit.
+  if (!contacts.email && !contacts.xHandle && !contacts.linkedinUrl) return book;
+  const key = scope === "path" ? `${k.host}|${k.path}` : k.host;
+  const next: Record<string, AuthorBookEntry> = { ...book };
+  next[key] = {
+    host: k.host,
+    path: scope === "path" ? k.path : undefined,
+    email: contacts.email,
+    xHandle: contacts.xHandle,
+    linkedinUrl: contacts.linkedinUrl,
+    updatedAt: now,
+  };
+  const keys = Object.keys(next);
+  if (keys.length > AUTHOR_BOOK_MAX) {
+    // Sort ascending by updatedAt and drop the oldest until we fit.
+    const sorted = keys
+      .map((kk) => ({ kk, ts: next[kk].updatedAt }))
+      .sort((a, b) => a.ts - b.ts);
+    const drop = sorted.slice(0, keys.length - AUTHOR_BOOK_MAX);
+    for (const d of drop) delete next[d.kk];
+  }
+  return next;
+}
+
+// Remove a single author-book entry by its storage key.
+export function removeAuthorBookEntry(
+  book: Record<string, AuthorBookEntry>,
+  key: string,
+): Record<string, AuthorBookEntry> {
+  if (!(key in book)) return book;
+  const next = { ...book };
+  delete next[key];
+  return next;
+}
 
 export function defaultThankTemplates(): ThankTemplate[] {
   return [

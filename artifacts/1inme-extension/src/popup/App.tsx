@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { browser } from "../lib/browser";
 import { ApiError, api, AbVariantsPayload, BacklinkRow, LinkSummary, SmartRule, WorkspacePixels } from "../lib/api";
 import {
+  AuthorBookEntry,
   AuthorContacts,
   ExtSettings,
   PendingThank,
@@ -14,8 +15,10 @@ import {
   clearAuth,
   defaultThankTemplates,
   getSettings,
+  lookupAuthorBookEntry,
   markPendingThanksSeen,
   prunePendingThanks,
+  removeAuthorBookEntry,
   renderThankTemplate,
   savePendingThanksLocallyAndPush,
   ThankTemplatesConflict,
@@ -26,6 +29,7 @@ import {
   syncPendingThanks,
   syncThankTemplates,
   unreadPendingThanksCount,
+  upsertAuthorBookEntry,
 } from "../lib/storage";
 
 const CHANNEL_LABEL: Record<ThankChannel, string> = {
@@ -732,34 +736,52 @@ function ThankComposer({
   // right targets pre-filled. Only fall back to an on-demand executeScript
   // detection if the radar didn't supply anything (e.g. older cached
   // scans, or a tab where the content script never ran).
+  // Seed from the cached author-book entry (if any) so repeat thank-yous
+  // skip the page-side detection round-trip entirely. The composer falls
+  // back to a live scrape only when nothing is cached.
+  const cached = lookupAuthorBookEntry(settings.authorBook || {}, pageUrl);
   const hasPrefill = !!prefilledAuthor && (
     !!prefilledAuthor.email || !!prefilledAuthor.xHandle || !!prefilledAuthor.linkedinUrl
   );
-  const pickInitialChannel = (a: AuthorContacts | null): ThankChannel | null => {
-    if (a?.email) return "email";
-    if (a?.xHandle) return "x";
-    if (a?.linkedinUrl) return "linkedin";
-    return null;
-  };
-  const initialChannel = pickInitialChannel(prefilledAuthor);
-  const initialTemplateId =
-    (initialChannel && templates.find((tt) => tt.channel === initialChannel)?.id) ||
-    templates[0]?.id ||
-    "";
 
-  const [recipient, setRecipient] = useState<string | null>(prefilledAuthor?.email ?? null);
-  const [xHandle, setXHandle] = useState<string | null>(prefilledAuthor?.xHandle ?? null);
-  const [linkedinUrl, setLinkedinUrl] = useState<string | null>(prefilledAuthor?.linkedinUrl ?? null);
-  // Skip the "Detecting…" placeholder when the radar already gave us
-  // something — the composer should feel instant in that case.
-  const [detecting, setDetecting] = useState(!hasPrefill);
-  const [templateId, setTemplateId] = useState<string>(initialTemplateId);
+  const [recipient, setRecipient] = useState<string | null>(cached?.email ?? prefilledAuthor?.email ?? null);
+  const [xHandle, setXHandle] = useState<string | null>(cached?.xHandle ?? prefilledAuthor?.xHandle ?? null);
+  const [linkedinUrl, setLinkedinUrl] = useState<string | null>(cached?.linkedinUrl ?? prefilledAuthor?.linkedinUrl ?? null);
+
+  // Skip the "Detecting…" placeholder when we have a cache hit OR the radar already
+  // gave us something — the composer should feel instant in that case.
+  const [detecting, setDetecting] = useState(!cached && !hasPrefill);
+  const fromCache = !!cached;
+  const [persistAuthor, setPersistAuthor] = useState<boolean>(true);
+  const [persistScope, setPersistScope] = useState<"host" | "path">(
+    cached?.path ? "path" : "host",
+  );
+
+  const [templateId, setTemplateId] = useState<string>(() => {
+    const prefAuthor = cached || prefilledAuthor;
+    if (prefAuthor) {
+      const pref: ThankChannel | null = prefAuthor.email
+        ? "email"
+        : prefAuthor.xHandle
+        ? "x"
+        : prefAuthor.linkedinUrl
+        ? "linkedin"
+        : null;
+      if (pref) {
+        const t = templates.find((tt) => tt.channel === pref);
+        if (t) return t.id;
+      }
+    }
+    return templates[0]?.id || "";
+  });
+
   const [subject, setSubject] = useState<string>("");
   const [body, setBody] = useState<string>("");
   const [busy, setBusy] = useState<string | null>(null);
 
   useEffect(() => {
-    if (hasPrefill) return; // radar already supplied targets — no second hop needed
+    // Cache hit or radar pre-detection → skip the page scrape; the composer is already pre-filled.
+    if (cached || hasPrefill) return;
     let cancelled = false;
     (async () => {
       const found = await detectAuthorContacts();
@@ -779,6 +801,23 @@ function ThankComposer({
     })();
     return () => { cancelled = true; };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Persist the (possibly edited) contact set into the per-domain author
+  // book so the next thank-you on this site pre-fills instantly. We
+  // call this from both "send" and "queue" so an author the creator
+  // overrode in the composer survives even if they bail out partway.
+  const persistAuthorBookIfEnabled = async () => {
+    if (!persistAuthor) return;
+    const next = upsertAuthorBookEntry(
+      settings.authorBook || {},
+      pageUrl,
+      { email: recipient, xHandle, linkedinUrl },
+      persistScope,
+    );
+    if (next !== (settings.authorBook || {})) {
+      await setSettings({ authorBook: next });
+    }
+  };
 
   const tpl = templates.find((t) => t.id === templateId) || templates[0];
 
@@ -811,6 +850,7 @@ function ThankComposer({
         xHandle: tpl.channel === "x" ? xHandle : null,
         linkedinUrl: tpl.channel === "linkedin" ? linkedinUrl : null,
       });
+      await persistAuthorBookIfEnabled();
       await browser.tabs.create({ url });
       onClose();
     } catch (e: any) {
@@ -847,6 +887,7 @@ function ThankComposer({
       const { items: next, dropped } = capPendingThanks([...filtered, item]);
       // Push to server so the queue follows the creator across browsers.
       const result = await savePendingThanksLocallyAndPush(next);
+      await persistAuthorBookIfEnabled();
       onQueued();
       if (dropped > 0) {
         // Make the silent drop visible: the creator just queued an item
@@ -939,6 +980,44 @@ function ThankComposer({
       <div className="field">
         <label>Preview ({CHANNEL_LABEL[tpl.channel]})</label>
         <textarea rows={6} value={body} onChange={(e) => setBody(e.target.value)} />
+      </div>
+      <div className="field">
+        <label className="toggle-row">
+          <input
+            type="checkbox"
+            checked={persistAuthor}
+            onChange={(e) => setPersistAuthor(e.target.checked)}
+          />
+          <span>Remember author for this {persistScope === "path" ? "page" : "site"}</span>
+        </label>
+        {persistAuthor && (
+          <div className="row" style={{ gap: 8, fontSize: 11 }}>
+            <label className="toggle-row" style={{ margin: 0 }}>
+              <input
+                type="radio"
+                name="author-scope"
+                checked={persistScope === "host"}
+                onChange={() => setPersistScope("host")}
+              />
+              <span>Whole site</span>
+            </label>
+            <label className="toggle-row" style={{ margin: 0 }}>
+              <input
+                type="radio"
+                name="author-scope"
+                checked={persistScope === "path"}
+                onChange={() => setPersistScope("path")}
+              />
+              <span>This page only</span>
+            </label>
+          </div>
+        )}
+        {fromCache && (
+          <div className="muted" style={{ fontSize: 11 }}>
+            Pre-filled from your author book{cached?.path ? " (page entry)" : ""}.
+            Edit any field to override and re-save.
+          </div>
+        )}
       </div>
       <div className="row" style={{ gap: 8 }}>
         <button className="btn-primary" disabled={busy !== null} onClick={sendNow}>
@@ -1621,6 +1700,113 @@ function ThankTemplatesConflictBanner({
         </button>
         <button className="btn-link" onClick={onDismiss}>Decide later</button>
       </div>
+    </div>
+  );
+}
+
+// ── Author book (per-domain cached author contacts) ────────────────
+function AuthorBookEditor({
+  settings, onSaved, showToast,
+}: {
+  settings: ExtSettings;
+  onSaved: () => void;
+  showToast: (t: Toast) => void;
+}) {
+  const book = settings.authorBook || {};
+  const entries = Object.entries(book).sort((a, b) => b[1].updatedAt - a[1].updatedAt);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [draft, setDraft] = useState<AuthorBookEntry | null>(null);
+
+  const startEdit = (key: string, e: AuthorBookEntry) => {
+    setEditing(key);
+    setDraft({ ...e });
+  };
+  const cancelEdit = () => { setEditing(null); setDraft(null); };
+
+  const saveEdit = async () => {
+    if (!editing || !draft) return;
+    // Persist edits in place — keep the same key so a host entry stays
+    // a host entry and a path entry stays a path entry.
+    const next = { ...book, [editing]: { ...draft, updatedAt: Date.now() } };
+    await setSettings({ authorBook: next });
+    cancelEdit();
+    onSaved();
+    showToast({ kind: "success", text: "Author entry saved" });
+  };
+
+  const onDelete = async (key: string) => {
+    const next = removeAuthorBookEntry(book, key);
+    await setSettings({ authorBook: next });
+    if (editing === key) cancelEdit();
+    onSaved();
+  };
+
+  return (
+    <div className="field">
+      <label>Author book ({entries.length})</label>
+      <div className="muted" style={{ fontSize: 12 }}>
+        Cached author contacts per site. The Thank composer pre-fills from
+        these so repeat thank-yous skip detection. Page-scoped entries
+        (with a path) override site-wide entries.
+      </div>
+      {entries.length === 0 ? (
+        <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>
+          No entries yet. Saving a thank-you will remember its author here.
+        </div>
+      ) : (
+        entries.map(([key, e]) => {
+          const isEditing = editing === key && draft;
+          return (
+            <div key={key} className="template-card">
+              <div className="row" style={{ justifyContent: "space-between", gap: 6 }}>
+                <strong style={{ fontSize: 12, wordBreak: "break-all" }}>
+                  {e.host}{e.path ? e.path : ""}
+                </strong>
+                <span style={{ display: "flex", gap: 6 }}>
+                  {!isEditing && (
+                    <button className="btn-link" onClick={() => startEdit(key, e)}>Edit</button>
+                  )}
+                  <button className="btn-link" onClick={() => onDelete(key)} title="Delete">×</button>
+                </span>
+              </div>
+              {!isEditing ? (
+                <div className="muted" style={{ fontSize: 11 }}>
+                  {[
+                    e.email ? `✉ ${e.email}` : null,
+                    e.xHandle ? `𝕏 @${e.xHandle}` : null,
+                    e.linkedinUrl ? "in LinkedIn" : null,
+                  ].filter(Boolean).join(" · ") || "(no contacts)"}
+                </div>
+              ) : (
+                <>
+                  <input
+                    value={draft!.email ?? ""}
+                    placeholder="email@example.com"
+                    onChange={(ev) => setDraft({ ...draft!, email: ev.target.value || null })}
+                  />
+                  <input
+                    value={draft!.xHandle ?? ""}
+                    placeholder="x handle (no @)"
+                    onChange={(ev) => setDraft({
+                      ...draft!,
+                      xHandle: ev.target.value.replace(/^@/, "").trim() || null,
+                    })}
+                  />
+                  <input
+                    value={draft!.linkedinUrl ?? ""}
+                    placeholder="https://www.linkedin.com/in/…"
+                    onChange={(ev) => setDraft({ ...draft!, linkedinUrl: ev.target.value.trim() || null })}
+                  />
+                  <div className="row" style={{ gap: 6 }}>
+                    <button className="btn-secondary btn-sm" onClick={saveEdit}>Save</button>
+                    <button className="btn-link" onClick={cancelEdit}>Cancel</button>
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })
+      )}
     </div>
   );
 }
@@ -2351,6 +2537,8 @@ function SettingsView({
       <div className="muted">Page content never leaves your browser. Only matched URLs you choose to save are sent.</div>
 
       <ThankTemplatesEditor settings={settings} onSaved={onSaved} showToast={showToast} />
+
+      <AuthorBookEditor settings={settings} onSaved={onSaved} showToast={showToast} />
 
       <div className="field">
         <label>Muted sites</label>
