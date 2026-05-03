@@ -37,29 +37,30 @@
         @foreach($grouped as $groupName => $items)
             <div x-show="$el.querySelectorAll('[data-persona-card]:not([style*=&quot;display: none&quot;])').length > 0">
                 <h2 class="text-[11px] font-bold uppercase tracking-wider text-white/40 mb-3 mt-6 first:mt-0">{{ $groupName }}</h2>
-                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 mb-4">
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-2.5 mb-4">
                     @foreach($items as $p)
                         <button type="button"
                                 data-persona-card
                                 x-show="q === '' || '{{ strtolower(addslashes($p['label'] . ' ' . ($p['blurb'] ?? '') . ' ' . $p['slug'])) }}'.includes(q.toLowerCase())"
                                 @click="picked = '{{ $p['slug'] }}'"
-                                :class="picked === '{{ $p['slug'] }}' ? 'ring-2 ring-violet-500 border-violet-500/60 scale-[1.02]' : 'border-white/10 hover:border-white/30'"
-                                class="group relative overflow-hidden rounded-2xl border bg-white/5 text-left transition aspect-[4/5]">
-                            @if(!empty($p['image']))
-                                <img src="{{ $p['image'] }}" alt="{{ $p['label'] }}" loading="lazy"
-                                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"
-                                     class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-500">
-                            @endif
-                            <div class="absolute inset-0 items-center justify-center bg-gradient-to-br from-violet-600/40 to-fuchsia-600/30" style="display: {{ empty($p['image']) ? 'flex' : 'none' }};">
-                                <i class="fas {{ $p['icon'] }} text-4xl text-white/70"></i>
+                                :class="picked === '{{ $p['slug'] }}' ? 'ring-2 ring-violet-500 border-violet-500/60 -translate-y-0.5' : 'border-white/10 hover:border-white/30 hover:-translate-y-0.5'"
+                                class="group relative overflow-hidden rounded-xl border bg-white/5 text-left transition flex flex-col">
+                            <div class="relative w-full h-20 sm:h-24 overflow-hidden bg-white/5">
+                                @if(!empty($p['image']))
+                                    <img src="{{ $p['image'] }}" alt="{{ $p['label'] }}" loading="lazy"
+                                         onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"
+                                         class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                                @endif
+                                <div class="absolute inset-0 items-center justify-center bg-gradient-to-br from-violet-600/40 to-fuchsia-600/30" style="display: {{ empty($p['image']) ? 'flex' : 'none' }};">
+                                    <i class="fas {{ $p['icon'] }} text-2xl text-white/70"></i>
+                                </div>
+                                <div class="absolute top-1.5 right-1.5" x-show="picked === '{{ $p['slug'] }}'" x-cloak>
+                                    <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-violet-500 text-white text-[9px] shadow-lg"><i class="fas fa-check"></i></span>
+                                </div>
                             </div>
-                            <div class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent"></div>
-                            <div class="absolute top-2 right-2" x-show="picked === '{{ $p['slug'] }}'" x-cloak>
-                                <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-violet-500 text-white text-[10px]"><i class="fas fa-check"></i></span>
-                            </div>
-                            <div class="absolute bottom-0 inset-x-0 p-3">
-                                <p class="text-sm font-semibold text-white mb-0.5 leading-tight">{{ $p['label'] }}</p>
-                                <p class="text-[11px] text-white/60 leading-snug line-clamp-2">{{ $p['blurb'] }}</p>
+                            <div class="px-2.5 py-2 bg-white/[0.04] border-t border-white/5 flex-1">
+                                <p class="text-[12px] font-semibold text-white leading-tight truncate">{{ $p['label'] }}</p>
+                                <p class="text-[10.5px] text-white/55 leading-snug line-clamp-2 mt-0.5">{{ $p['blurb'] }}</p>
                             </div>
                         </button>
                     @endforeach

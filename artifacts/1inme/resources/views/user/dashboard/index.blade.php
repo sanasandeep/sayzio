@@ -251,6 +251,19 @@
                 $personaBannerDismissed = !empty($user->settings['persona_banner_dismissed_at'] ?? null);
                 $showPersonaBanner = $user->onboarded_at && empty($user->persona) && !$personaBannerDismissed;
             @endphp
+            @if($user->onboarded_at)
+            <div class="mx-4 mt-4 flex items-center justify-between gap-3 px-3 py-2 rounded-xl bg-white/[0.03] border border-white/5">
+                <span class="text-[11px] text-white/40 truncate"><i class="fas fa-compass text-[10px] mr-1.5 text-violet-400/70"></i>Re-run onboarding</span>
+                <div class="flex items-center gap-1.5 flex-shrink-0">
+                    <a href="{{ route('user.onboarding.persona') }}" class="text-[11px] px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white/80 hover:text-white font-semibold transition">
+                        <i class="fas fa-user-tag text-[9px] mr-1"></i>Choose persona
+                    </a>
+                    <a href="{{ route('user.onboarding.template') }}" class="text-[11px] px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white/80 hover:text-white font-semibold transition">
+                        <i class="fas fa-layer-group text-[9px] mr-1"></i>Browse starter templates
+                    </a>
+                </div>
+            </div>
+            @endif
             @if($showPersonaBanner)
             <div class="m-4 mb-0 rounded-2xl border border-violet-500/20 bg-gradient-to-r from-violet-600/10 to-fuchsia-500/5 p-4 flex items-start gap-3">
                 <div class="w-10 h-10 rounded-xl bg-violet-500/15 flex items-center justify-center flex-shrink-0">
