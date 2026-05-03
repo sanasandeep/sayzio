@@ -13,6 +13,26 @@
         $ctaLabel = ($splash['cta_label'] ?? '') ?: 'Continue';
         $ctaUrl = ($splash['cta_url'] ?? '') ?: $continueUrl;
         $continueAfterDelayUrl = $autoRedirect ? $destinationUrl : null;
+        $hexRe = '/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/';
+        $ctaBg   = (isset($splash['cta_bg_color'])   && preg_match($hexRe, (string) $splash['cta_bg_color']))   ? $splash['cta_bg_color']   : null;
+        $ctaText = (isset($splash['cta_text_color']) && preg_match($hexRe, (string) $splash['cta_text_color'])) ? $splash['cta_text_color'] : null;
+        $ctaStyle = '';
+        if ($ctaBg)   { $ctaStyle .= "background: {$ctaBg}; box-shadow: 0 10px 30px -8px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.18);"; }
+        if ($ctaText) { $ctaStyle .= "color: {$ctaText};"; }
+        $extraButtons = [];
+        foreach ((array) ($splash['extra_buttons'] ?? []) as $b) {
+            if (!is_array($b)) continue;
+            $label = trim((string) ($b['label'] ?? ''));
+            $url   = trim((string) ($b['url']   ?? ''));
+            if ($label === '' || $url === '') continue;
+            if (!preg_match('/^https?:\/\//i', $url)) continue;
+            $bBg   = (isset($b['bg_color'])   && preg_match($hexRe, (string) $b['bg_color']))   ? $b['bg_color']   : null;
+            $bText = (isset($b['text_color']) && preg_match($hexRe, (string) $b['text_color'])) ? $b['text_color'] : null;
+            $style = '';
+            if ($bBg)   { $style .= "background: {$bBg}; box-shadow: 0 10px 30px -8px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.18);"; }
+            if ($bText) { $style .= "color: {$bText};"; }
+            $extraButtons[] = ['label' => $label, 'url' => $url, 'style' => $style];
+        }
     @endphp
     <title>{{ $title }}</title>
     @if($description)<meta name="description" content="{{ $description }}">@endif
@@ -151,10 +171,16 @@
             @endif
 
             <div class="fade-up fade-up-4 flex flex-col items-center gap-4">
-                <a id="splash-cta" href="{{ $ctaUrl }}" class="cta">
+                <a id="splash-cta" href="{{ $ctaUrl }}" class="cta" @if($ctaStyle) style="{{ $ctaStyle }}" @endif>
                     <span>{{ $ctaLabel }}</span>
                     <i class="fas fa-arrow-right text-xs"></i>
                 </a>
+
+                @foreach($extraButtons as $b)
+                    <a href="{{ $b['url'] }}" class="cta" @if($b['style']) style="{{ $b['style'] }}" @endif rel="noopener">
+                        <span>{{ $b['label'] }}</span>
+                    </a>
+                @endforeach
 
                 @if($autoRedirect && $countdown > 0)
                     <div class="flex items-center gap-3 mt-2">

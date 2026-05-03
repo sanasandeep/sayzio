@@ -8,6 +8,12 @@
         previewFavicon: @js($splashPage->favicon),
         previewOg:      @js($splashPage->og_image),
         autoRedirect:   {{ $splashPage->auto_redirect ? 'true' : 'false' }},
+        extraButtons:   @js(old('extra_buttons', $splashPage->extra_buttons ?: [])),
+        addButton(){
+            if (this.extraButtons.length >= 10) return;
+            this.extraButtons.push({ label: '', url: '', bg_color: '#8b5cf6', text_color: '#ffffff' });
+        },
+        removeButton(i){ this.extraButtons.splice(i, 1); },
         readPreview(input, target){
             var f = input.files && input.files[0]; if(!f) return;
             var r = new FileReader();
@@ -118,6 +124,124 @@
                        style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);"
                        placeholder="https://…">
             </div>
+
+            {{-- Main button colors --}}
+            @php
+                $mainBg   = old('cta_bg_color', $splashPage->cta_bg_color ?: '');
+                $mainText = old('cta_text_color', $splashPage->cta_text_color ?: '');
+            @endphp
+            <div>
+                <label class="block text-xs font-semibold mb-1.5" style="color: var(--text-secondary);">Button background color</label>
+                <div class="flex items-center gap-2"
+                     x-data="{ bg: @js($mainBg) }">
+                    <input type="color" :value="bg || '#8b5cf6'" @input="bg = $event.target.value"
+                           class="w-10 h-10 p-0 rounded-lg border-0 cursor-pointer bg-transparent">
+                    <input type="text" name="cta_bg_color" x-model="bg" maxlength="7" placeholder="#8b5cf6"
+                           class="flex-1 px-3 py-2 text-sm font-mono rounded-lg outline-none"
+                           style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
+                    <button type="button" @click="bg = ''" class="text-[11px] px-2 py-1 rounded" style="color: var(--text-muted); background: var(--bg-glass-hover);">Reset</button>
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold mb-1.5" style="color: var(--text-secondary);">Button text color</label>
+                <div class="flex items-center gap-2"
+                     x-data="{ tc: @js($mainText) }">
+                    <input type="color" :value="tc || '#ffffff'" @input="tc = $event.target.value"
+                           class="w-10 h-10 p-0 rounded-lg border-0 cursor-pointer bg-transparent">
+                    <input type="text" name="cta_text_color" x-model="tc" maxlength="7" placeholder="#ffffff"
+                           class="flex-1 px-3 py-2 text-sm font-mono rounded-lg outline-none"
+                           style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
+                    <button type="button" @click="tc = ''" class="text-[11px] px-2 py-1 rounded" style="color: var(--text-muted); background: var(--bg-glass-hover);">Reset</button>
+                </div>
+            </div>
+
+            {{-- Extra buttons repeater --}}
+            <div class="md:col-span-2 pt-2">
+                <div class="flex items-center justify-between mb-2">
+                    <div>
+                        <div class="text-sm font-semibold" style="color: var(--text-primary);">Additional buttons</div>
+                        <p class="text-xs" style="color: var(--text-muted);">Up to 10 extra buttons shown below the main one.</p>
+                    </div>
+                    <button type="button" @click="addButton()"
+                            x-bind:disabled="extraButtons.length >= 10"
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-50"
+                            style="background: var(--accent); color: #fff;">
+                        <i class="fas fa-plus"></i> Add button
+                    </button>
+                </div>
+
+                <template x-if="extraButtons.length === 0">
+                    <div class="text-xs italic px-3 py-4 rounded-lg text-center"
+                         style="color: var(--text-muted); background: var(--bg-glass-input); border: 1px dashed var(--border-glass);">
+                        No additional buttons yet. Click <strong>Add button</strong> to create one.
+                    </div>
+                </template>
+
+                <div class="space-y-3">
+                    <template x-for="(btn, i) in extraButtons" :key="i">
+                        <div class="p-3 rounded-lg"
+                             style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-semibold" style="color: var(--text-secondary);"
+                                      x-text="'Button ' + (i + 2)"></span>
+                                <button type="button" @click="removeButton(i)"
+                                        class="text-xs inline-flex items-center gap-1" style="color: #f87171;">
+                                    <i class="fas fa-trash"></i> Remove
+                                </button>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-[11px] font-semibold mb-1" style="color: var(--text-secondary);">Label</label>
+                                    <input type="text" maxlength="60"
+                                           :name="'extra_buttons[' + i + '][label]'"
+                                           x-model="btn.label"
+                                           class="w-full px-3 py-2 text-sm rounded-lg outline-none"
+                                           style="background: var(--bg-glass-hover); border: 1px solid var(--border-glass); color: var(--text-primary);"
+                                           placeholder="e.g. Learn more">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-semibold mb-1" style="color: var(--text-secondary);">URL</label>
+                                    <input type="url" maxlength="2000"
+                                           :name="'extra_buttons[' + i + '][url]'"
+                                           x-model="btn.url"
+                                           class="w-full px-3 py-2 text-sm rounded-lg outline-none"
+                                           style="background: var(--bg-glass-hover); border: 1px solid var(--border-glass); color: var(--text-primary);"
+                                           placeholder="https://…">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-semibold mb-1" style="color: var(--text-secondary);">Background color</label>
+                                    <div class="flex items-center gap-2">
+                                        <input type="color" :value="btn.bg_color || '#8b5cf6'"
+                                               @input="btn.bg_color = $event.target.value"
+                                               class="w-9 h-9 p-0 rounded-lg border-0 cursor-pointer bg-transparent">
+                                        <input type="text" maxlength="7"
+                                               :name="'extra_buttons[' + i + '][bg_color]'"
+                                               x-model="btn.bg_color"
+                                               class="flex-1 px-3 py-2 text-sm font-mono rounded-lg outline-none"
+                                               style="background: var(--bg-glass-hover); border: 1px solid var(--border-glass); color: var(--text-primary);"
+                                               placeholder="#8b5cf6">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-semibold mb-1" style="color: var(--text-secondary);">Text color</label>
+                                    <div class="flex items-center gap-2">
+                                        <input type="color" :value="btn.text_color || '#ffffff'"
+                                               @input="btn.text_color = $event.target.value"
+                                               class="w-9 h-9 p-0 rounded-lg border-0 cursor-pointer bg-transparent">
+                                        <input type="text" maxlength="7"
+                                               :name="'extra_buttons[' + i + '][text_color]'"
+                                               x-model="btn.text_color"
+                                               class="flex-1 px-3 py-2 text-sm font-mono rounded-lg outline-none"
+                                               style="background: var(--bg-glass-hover); border: 1px solid var(--border-glass); color: var(--text-primary);"
+                                               placeholder="#ffffff">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
             <div class="md:col-span-2 flex items-center gap-3 pt-2">
                 <input type="hidden" name="auto_redirect" value="0">
                 <label class="inline-flex items-center gap-2 cursor-pointer">

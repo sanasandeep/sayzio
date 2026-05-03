@@ -8,11 +8,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class SplashPage extends Model
 {
-    
+
     use BelongsToWorkspace;
 protected $fillable = [
         'user_id', 'project_id', 'name', 'title', 'description',
-        'cta_label', 'cta_url', 'auto_redirect', 'countdown',
+        'cta_label', 'cta_url', 'cta_bg_color', 'cta_text_color', 'extra_buttons',
+        'auto_redirect', 'countdown',
         'logo', 'favicon', 'og_image', 'custom_css', 'custom_js',
     ];
 
@@ -21,6 +22,7 @@ protected $fillable = [
         return [
             'auto_redirect' => 'boolean',
             'countdown'     => 'integer',
+            'extra_buttons' => 'array',
         ];
     }
 
@@ -37,6 +39,9 @@ protected $fillable = [
             'description'   => $this->description,
             'cta_label'     => $this->cta_label,
             'cta_url'       => $this->cta_url,
+            'cta_bg_color'  => $this->cta_bg_color,
+            'cta_text_color'=> $this->cta_text_color,
+            'extra_buttons' => $this->extra_buttons ?: [],
             'auto_redirect' => (bool) $this->auto_redirect,
             'countdown'     => (int) $this->countdown,
             'logo'          => $this->logo,

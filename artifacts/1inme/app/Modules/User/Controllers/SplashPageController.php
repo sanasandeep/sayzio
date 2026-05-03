@@ -114,13 +114,21 @@ class SplashPageController extends Controller
     private function validateData(Request $request): array
     {
         $userId = $request->user()->id;
-        return $request->validate([
+        $hexRule = ['nullable', 'string', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/'];
+        $validated = $request->validate([
             'name'          => 'required|string|max:120',
             'project_id'    => ['nullable', Rule::exists('projects', 'id')->where('user_id', $userId)],
             'title'         => 'nullable|string|max:160',
             'description'   => 'nullable|string|max:1000',
             'cta_label'     => 'nullable|string|max:60',
             'cta_url'       => 'nullable|url|max:2000|regex:/^https?:\/\//i',
+            'cta_bg_color'  => $hexRule,
+            'cta_text_color'=> $hexRule,
+            'extra_buttons'                   => 'nullable|array|max:10',
+            'extra_buttons.*.label'           => 'nullable|string|max:60',
+            'extra_buttons.*.url'             => 'nullable|url|max:2000|regex:/^https?:\/\//i',
+            'extra_buttons.*.bg_color'        => $hexRule,
+            'extra_buttons.*.text_color'      => $hexRule,
             'auto_redirect' => 'sometimes|boolean',
             'countdown'     => 'nullable|integer|min:0|max:120',
             'custom_css'    => 'nullable|string|max:50000',
@@ -132,6 +140,26 @@ class SplashPageController extends Controller
             'remove_favicon' => 'sometimes|boolean',
             'remove_og'      => 'sometimes|boolean',
         ]);
+
+        // Drop empty button rows (no label AND no url) so save doesn't persist blanks.
+        if (!empty($validated['extra_buttons']) && is_array($validated['extra_buttons'])) {
+            $validated['extra_buttons'] = array_values(array_filter(
+                array_map(fn ($b) => [
+                    'label'      => trim((string) ($b['label'] ?? '')),
+                    'url'        => trim((string) ($b['url'] ?? '')),
+                    'bg_color'   => $b['bg_color']   ?? null,
+                    'text_color' => $b['text_color'] ?? null,
+                ], $validated['extra_buttons']),
+                fn ($b) => $b['label'] !== '' || $b['url'] !== ''
+            ));
+            if (empty($validated['extra_buttons'])) {
+                $validated['extra_buttons'] = null;
+            }
+        } else {
+            $validated['extra_buttons'] = null;
+        }
+
+        return $validated;
     }
 
     private function handleUploads(Request $request, SplashPage $sp): void
