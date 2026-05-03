@@ -36,6 +36,23 @@ class PreviewLink extends Link
         return $this->fakeRelation(collect());
     }
 
+    /**
+     * Eloquent's `__get` triggers relationship resolution when a property
+     * matching a method name is accessed (e.g. `$link->biolinkBlocks` in
+     * blade views). It then asserts the method returned an
+     * `Illuminate\Database\Eloquent\Relations\Relation` instance and throws
+     * `LogicException` otherwise. Our `fakeRelation()` returns an anonymous
+     * stub, so we short-circuit property access here and hand back the
+     * pre-built in-memory collections directly.
+     */
+    public function __get($key)
+    {
+        if ($key === 'biolinkBlocks') return $this->previewBlocks ?? collect();
+        if ($key === 'activeBiolinkBlocks') return $this->previewActiveBlocks ?? collect();
+        if ($key === 'pixels') return collect();
+        return parent::__get($key);
+    }
+
     private function fakeRelation(Collection $items): object
     {
         return new class($items) {
