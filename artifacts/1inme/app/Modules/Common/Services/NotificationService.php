@@ -119,6 +119,20 @@ class NotificationService
                 'default_email'  => true,
                 'default_push'   => false,
             ],
+            'roadmap_idea_shipped' => [
+                'label'          => 'Roadmap ideas you upvoted shipped',
+                'description'    => 'When a creator marks a public roadmap idea you upvoted as "Shipped".',
+                'default_in_app' => true,
+                'default_email'  => false,
+                'default_push'   => true,
+            ],
+            'roadmap_new_submission' => [
+                'label'          => 'New roadmap submissions',
+                'description'    => 'When a fan submits a new idea on one of your public roadmap blocks.',
+                'default_in_app' => true,
+                'default_email'  => false,
+                'default_push'   => false,
+            ],
         ];
     }
 

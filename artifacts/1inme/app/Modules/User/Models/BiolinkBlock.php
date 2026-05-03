@@ -94,6 +94,7 @@ class BiolinkBlock extends Model
         'ai_companion'     => ['label' => 'AI Companion',        'icon' => 'fa-robot',                      'category' => 'interactive'],
         'insider'          => ['label' => 'Insider Feed',        'icon' => 'fa-lock',                       'category' => 'interactive'],
         'fan_leaderboard'  => ['label' => 'Top Fans Leaderboard','icon' => 'fa-trophy',                     'category' => 'interactive'],
+        'roadmap'          => ['label' => 'Public Roadmap',      'icon' => 'fa-route',                      'category' => 'interactive'],
 
         // ── Commerce ──────────────────────────────────────────────────
         'product'          => ['label' => 'Product',             'icon' => 'fa-box',                        'category' => 'business'],

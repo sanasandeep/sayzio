@@ -58,6 +58,12 @@ Route::prefix('community/{link}')->where(['link' => '[0-9]+'])->group(function (
     Route::post('blocks/{block}/polls/{poll}/vote',[\App\Modules\User\Controllers\CommunityPublicController::class, 'votePoll'])->middleware('throttle:30,1')->name('community.polls.vote');
     Route::get ('leaderboard',                     [\App\Modules\User\Controllers\CommunityPublicController::class, 'leaderboard'])->name('community.leaderboard');
     Route::post('engagement',                      [\App\Modules\User\Controllers\CommunityPublicController::class, 'trackEngagement'])->middleware('throttle:120,1')->name('community.engagement.track');
+
+    // ── Public Roadmap block (submit / vote / comment / list) ──────────
+    Route::get ('blocks/{block}/roadmap',                       [\App\Modules\Common\Controllers\RoadmapPublicController::class, 'list'])->name('community.roadmap.list');
+    Route::post('blocks/{block}/roadmap/submit',                [\App\Modules\Common\Controllers\RoadmapPublicController::class, 'submit'])->middleware('throttle:10,1')->name('community.roadmap.submit');
+    Route::post('blocks/{block}/roadmap/items/{item}/vote',     [\App\Modules\Common\Controllers\RoadmapPublicController::class, 'vote'])->middleware('throttle:60,1')->name('community.roadmap.vote');
+    Route::post('blocks/{block}/roadmap/items/{item}/comments', [\App\Modules\Common\Controllers\RoadmapPublicController::class, 'comment'])->middleware('throttle:20,1')->name('community.roadmap.comment');
 });
 
 // Direct-message block: viewer sending/loading a thread on a biolink page.

@@ -378,6 +378,12 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('links/{link}/move',  [LinkController::class, 'move'])->middleware('workspace.can:links.edit')->name('links.move');
         Route::post('links/move-bulk',    [LinkController::class, 'moveBulk'])->middleware('workspace.can:links.edit')->name('links.move-bulk');
         Route::post('links/{link}/coach-action', [LinkController::class, 'coachAction'])->middleware('workspace.can:links.edit')->name('links.coach-action');
+
+        // Public-roadmap triage dashboard for a biolink
+        Route::get   ('links/{link}/roadmap',                [\App\Modules\User\Controllers\RoadmapTriageController::class, 'index'])->middleware('workspace.can:links.edit')->name('roadmap.triage');
+        Route::patch ('links/{link}/roadmap/items/{item}',   [\App\Modules\User\Controllers\RoadmapTriageController::class, 'update'])->middleware('workspace.can:links.edit')->name('roadmap.update');
+        Route::delete('links/{link}/roadmap/items/{item}',   [\App\Modules\User\Controllers\RoadmapTriageController::class, 'destroy'])->middleware('workspace.can:links.edit')->name('roadmap.destroy');
+        Route::post  ('links/{link}/roadmap/items/{item}/merge', [\App\Modules\User\Controllers\RoadmapTriageController::class, 'merge'])->middleware('workspace.can:links.edit')->name('roadmap.merge');
         Route::post('links/{link}/performance-coach/settings', [LinkController::class, 'updatePerformanceCoachSettings'])->middleware('workspace.can:links.edit')->name('links.performance-coach.settings');
         Route::post('links/coach-undo', [LinkController::class, 'coachUndo'])->middleware('workspace.can:links.edit')->name('links.coach-undo');
         Route::delete('links/{link}/stats', [LinkController::class, 'resetStats'])->middleware('workspace.can:links.delete')->name('links.reset-stats');

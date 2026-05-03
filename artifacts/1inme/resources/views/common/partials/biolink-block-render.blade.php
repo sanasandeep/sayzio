@@ -866,6 +866,9 @@
 @elseif($block->type === 'fan_leaderboard')
     @include('partials.community.leaderboard-block', ['link' => $link, 'block' => $block])
 
+@elseif($block->type === 'roadmap')
+    @include('common.blocks.roadmap', ['link' => $link, 'block' => $block, 's' => $block->settings ?? []])
+
 @else
     @if(!empty($block->settings['enable_polls']) || !empty($block->settings['enable_comments']))
         @if(!empty($block->settings['enable_polls']))

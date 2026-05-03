@@ -470,6 +470,11 @@ class TaskBoardController extends Controller
                 'to'   => $targetColumn->id,
                 'to_name' => $targetColumn->name,
             ]);
+            // Mirror the move back to the linked public roadmap item, if any.
+            if ($card->roadmap_item_id) {
+                app(\App\Modules\Common\Services\RoadmapKanbanSync::class)
+                    ->pullStatusFromCard($card->fresh());
+            }
         }
 
         return response()->json(['ok' => true]);

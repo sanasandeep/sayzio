@@ -14,7 +14,10 @@ class TaskCard extends Model
         'title', 'description', 'description_html', 'position',
         'due_date', 'priority', 'progress', 'completed_at', 'archived_at',
         'billable', 'rate_type', 'rate_amount_minor', 'client_invoice_id',
+        'roadmap_item_id',
     ];
+
+    public function roadmapItem() { return $this->belongsTo(RoadmapItem::class, 'roadmap_item_id'); }
 
     protected $casts = [
         'due_date'          => 'date',

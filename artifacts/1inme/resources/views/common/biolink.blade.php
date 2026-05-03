@@ -2034,6 +2034,9 @@
                     </template>
                 </div>
 
+            @elseif($block->type === 'roadmap')
+                @include('common.blocks.roadmap', ['link' => $link, 'block' => $block, 's' => $s, 'fontColor' => $fontColor ?? '#ffffff'])
+
             @endif
 
             @if($hasCustomStyle && !$skipWrap)</div>@endif

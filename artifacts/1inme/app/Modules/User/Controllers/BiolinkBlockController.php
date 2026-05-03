@@ -853,6 +853,20 @@ class BiolinkBlockController extends Controller
 
     public function sanitizeSettings(string $type, array $settings): array
     {
+        if ($type === 'roadmap') {
+            $settings['title']             = trim((string) ($settings['title'] ?? 'Roadmap'));
+            $settings['subtitle']          = trim((string) ($settings['subtitle'] ?? ''));
+            $settings['allow_submissions'] = (bool) ($settings['allow_submissions'] ?? true);
+            $settings['require_email']     = (bool) ($settings['require_email'] ?? true);
+            $settings['require_login']     = (bool) ($settings['require_login'] ?? false);
+            $settings['auto_approve']      = (bool) ($settings['auto_approve'] ?? false);
+            $bid = $settings['kanban_board_id'] ?? null;
+            $settings['kanban_board_id']   = ($bid !== null && $bid !== '') ? (int) $bid : null;
+            $cols = (array) ($settings['show_columns'] ?? \App\Modules\User\Models\RoadmapItem::PUBLIC_STATUSES);
+            $settings['show_columns']      = array_values(array_intersect(\App\Modules\User\Models\RoadmapItem::PUBLIC_STATUSES, $cols))
+                ?: \App\Modules\User\Models\RoadmapItem::PUBLIC_STATUSES;
+        }
+
         // Tip-jar blocks: convert "amounts_csv" form input into a numeric
         // array, dropping non-positive values and capping at 6 entries.
         if (in_array($type, ['buy_me_coffee', 'ko_fi'], true) && array_key_exists('amounts_csv', $settings)) {
@@ -1143,6 +1157,17 @@ class BiolinkBlockController extends Controller
 
             'vcard' => ['name' => '', 'email' => '', 'phone' => '', 'company' => '', 'title' => '', 'website' => ''],
             'avatar' => ['url' => '', 'size' => 96, 'rounded' => true],
+
+            'roadmap' => [
+                'title'             => 'Roadmap',
+                'subtitle'          => 'Suggest ideas, vote on others.',
+                'allow_submissions' => true,
+                'require_email'     => true,
+                'require_login'     => false,
+                'auto_approve'      => false,
+                'kanban_board_id'   => null,
+                'show_columns'      => ['ideas', 'planned', 'in_progress', 'shipped'],
+            ],
 
             default => [],
         };
