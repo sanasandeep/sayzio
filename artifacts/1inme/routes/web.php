@@ -231,6 +231,18 @@ Route::post('/{handle}/resume', [\App\Modules\Common\Controllers\PublicResumeCon
     ->middleware('throttle:10,1')
     ->where('handle', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks).*$');
 
+// ---- AR Business Card (public) ---------------------------------------
+// Reserved /ar/* prefix — must be declared BEFORE the catch-all /{alias}
+// matcher so the alias regex doesn't swallow it.
+Route::prefix('ar/{alias}')->where(['alias' => '[A-Za-z0-9._-]+'])->group(function () {
+    Route::get('/',           [\App\Modules\Common\Controllers\ArCardController::class, 'view'])->name('ar.card.view');
+    Route::get('model.glb',   [\App\Modules\Common\Controllers\ArCardController::class, 'glb'])->name('ar.card.glb');
+    Route::get('model.usdz',  [\App\Modules\Common\Controllers\ArCardController::class, 'usdz'])->name('ar.card.usdz');
+    Route::get('texture.png', [\App\Modules\Common\Controllers\ArCardController::class, 'texture'])->name('ar.card.texture');
+    Route::get('kit',         [\App\Modules\Common\Controllers\ArCardController::class, 'kit'])->name('ar.card.kit');
+    Route::get('kit.pdf',     [\App\Modules\Common\Controllers\ArCardController::class, 'kitPdf'])->name('ar.card.kit.pdf');
+});
+
 Route::get('/{alias}/manifest.json', [RedirectController::class, 'manifest'])->name('redirect.manifest')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|ai-chatbot|ai-agent|ai-widget|ai-voice-assistant|docs|newsletter|pricing|coins|premium-features|blogs).*$');
 Route::get('/{alias}', [RedirectController::class, 'handle'])->name('redirect.handle')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|ai-chatbot|ai-agent|ai-widget|ai-voice-assistant|docs|newsletter|pricing|coins|premium-features|blogs).*$');
 // ── Conversational Biolink visitor endpoints ─────────────────────

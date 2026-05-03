@@ -614,7 +614,13 @@ class RedirectController extends Controller
             $destinationUrl .= $separator . http_build_query($utmParams);
         }
 
-        $this->trackingService->trackBlockClick($link, $block, $destinationUrl, $request, $alias, 'web');
+        // Honor an explicit ?source=… tag (e.g. "ar" from the AR Business Card
+        // renderer) so block-click rows are attributed to the surface that
+        // sent the visitor, falling back to "web" for normal biolink taps.
+        $rawSource = (string) $request->query('source', '');
+        $sourceTag = preg_match('/^[a-z0-9_-]{1,32}$/', $rawSource) ? $rawSource : 'web';
+
+        $this->trackingService->trackBlockClick($link, $block, $destinationUrl, $request, $alias, $sourceTag);
 
         return redirect()->away($destinationUrl, 302);
     }

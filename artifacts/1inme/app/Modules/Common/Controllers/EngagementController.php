@@ -21,6 +21,11 @@ class EngagementController extends Controller
         $ua = $request->userAgent();
         $geo = app(GeoIpService::class)->detectGeo($request->ip());
 
+        // Optional traffic source tag (e.g. "ar" for AR Business Card sessions).
+        // Whitelisted to short alpha tags to keep the column clean.
+        $rawSource = (string) $request->input('source', '');
+        $source = preg_match('/^[a-z0-9_-]{1,32}$/', $rawSource) ? $rawSource : null;
+
         PageSession::create([
             'link_id' => $link->id,
             'session_id' => $sessionId,
@@ -34,6 +39,7 @@ class EngagementController extends Controller
             'device_type' => $this->detectDeviceType($ua),
             'referrer' => $request->header('referer'),
             'language' => substr((string) $request->header('Accept-Language'), 0, 2) ?: null,
+            'source' => $source,
             'started_at' => now(),
             'last_seen_at' => now(),
             'duration_seconds' => 0,

@@ -28,6 +28,8 @@ protected $fillable = [
         'insurance_last_checked_at', 'insurance_last_failover_at',
         'insurance_fallback_message',
         'insurance_primary_serve_count', 'insurance_failover_serve_count',
+        // AR Business Card
+        'ar_enabled', 'ar_settings',
     ];
 
     protected function casts(): array
@@ -48,6 +50,8 @@ protected $fillable = [
             'insurance_consecutive_successes'   => 'integer',
             'insurance_last_checked_at'         => 'datetime',
             'insurance_last_failover_at'        => 'datetime',
+            'ar_enabled'                        => 'boolean',
+            'ar_settings'                       => 'array',
         ];
     }
 

@@ -10,6 +10,7 @@ class PageSession extends Model
         'link_id', 'session_id', 'ip_address', 'country_code', 'city',
         'latitude', 'longitude',
         'browser', 'os', 'device_type', 'referrer', 'language',
+        'source',
         'started_at', 'last_seen_at', 'duration_seconds', 'ended',
     ];
 
