@@ -471,6 +471,25 @@ class LinkHealthChecker
             'title'   => $link->title,
         ], $payload);
 
+        // One-click restore action surfaced in the in-app
+        // notifications drawer (and re-used by the email button) so
+        // the owner can flip the link back to primary without leaving
+        // the alert.
+        if ($type === 'link_failover') {
+            $payload['actions'] = [
+                [
+                    'label' => 'Restore primary now',
+                    'url'   => route('user.links.insurance.restore-action', ['link' => $link->id]),
+                    'kind'  => 'primary',
+                ],
+                [
+                    'label' => 'Manage Link Insurance',
+                    'url'   => route('user.links.insurance.settings', ['link' => $link->id]),
+                    'kind'  => 'secondary',
+                ],
+            ];
+        }
+
         $this->notifications->notify($user, $type, $payload);
 
         // Best-effort email. Wrapped in try/catch because a misconfigured

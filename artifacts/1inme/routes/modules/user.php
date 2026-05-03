@@ -350,6 +350,9 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('links/{link}/insurance', [\App\Modules\User\Controllers\LinkInsuranceController::class, 'settings'])->middleware('workspace.can:links.view')->name('links.insurance.settings');
         Route::post('links/{link}/insurance', [\App\Modules\User\Controllers\LinkInsuranceController::class, 'update'])->middleware('workspace.can:links.edit')->name('links.insurance.update');
         Route::post('links/{link}/insurance/restore', [\App\Modules\User\Controllers\LinkInsuranceController::class, 'restorePrimary'])->middleware('workspace.can:links.edit')->name('links.insurance.restore');
+        // GET variant for the one-click "Restore now" link in the
+        // failover email + in-app notification action button.
+        Route::get('links/{link}/insurance/restore', [\App\Modules\User\Controllers\LinkInsuranceController::class, 'restoreFromNotification'])->middleware('workspace.can:links.edit')->name('links.insurance.restore-action');
         Route::post('links/{link}/insurance/probe', [\App\Modules\User\Controllers\LinkInsuranceController::class, 'probeNow'])->middleware('workspace.can:links.edit')->name('links.insurance.probe');
 
         // Additional (alternative) aliases per link — same page served, no redirect.

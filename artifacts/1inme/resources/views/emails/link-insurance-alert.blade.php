@@ -22,6 +22,12 @@
 @endif
 
 <p style="margin-top: 24px;">
+    @if ($type !== 'link_restored')
+        <a href="{{ route('user.links.insurance.restore-action', $link->id) }}"
+           style="display:inline-block; padding: 10px 16px; background: #16a34a; color: #fff; text-decoration: none; border-radius: 6px; margin-right: 8px;">
+            Restore primary now
+        </a>
+    @endif
     <a href="{{ route('user.links.insurance.settings', $link->id) }}"
        style="display:inline-block; padding: 10px 16px; background: #2563eb; color: #fff; text-decoration: none; border-radius: 6px;">
         Manage Link Insurance

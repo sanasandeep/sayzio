@@ -19,7 +19,7 @@
                     <tr>
                         <th class="px-4 py-3">Link</th>
                         <th class="px-4 py-3">State</th>
-                        <th class="px-4 py-3">7d uptime</th>
+                        <th class="px-4 py-3">30d uptime</th>
                         <th class="px-4 py-3">Last checked</th>
                         <th class="px-4 py-3"></th>
                     </tr>

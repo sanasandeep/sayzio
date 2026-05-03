@@ -105,20 +105,36 @@ class LinkInsuranceController extends Controller
      */
     public function restorePrimary(Link $link)
     {
+        $this->doRestore($link);
+        return back()->with('status', 'Primary destination restored.');
+    }
+
+    /**
+     * One-click restore reachable from the failover email and the
+     * in-app notification "Restore now" action. Same effect as
+     * {@see restorePrimary()} but accepts GET so it can be a plain
+     * link in an email — Laravel's auth middleware still enforces
+     * the user is signed in, and {@see authorizeLink()} re-checks
+     * workspace permission.
+     */
+    public function restoreFromNotification(Link $link)
+    {
+        $this->doRestore($link);
+        return redirect()
+            ->route('user.links.insurance.settings', ['link' => $link->id])
+            ->with('status', 'Primary destination restored.');
+    }
+
+    protected function doRestore(Link $link): void
+    {
         $this->authorizeLink($link);
-
-        if ($link->insurance_state === 'primary') {
-            return back()->with('status', 'Already serving the primary destination.');
-        }
-
+        if ($link->insurance_state === 'primary') return;
         $link->forceFill([
             'insurance_state'                 => 'primary',
             'insurance_active_url'            => null,
             'insurance_consecutive_failures'  => 0,
             'insurance_consecutive_successes' => 0,
         ])->save();
-
-        return back()->with('status', 'Primary destination restored.');
     }
 
     /**
@@ -156,14 +172,14 @@ class LinkInsuranceController extends Controller
             ->orderByDesc('insurance_last_failover_at')
             ->paginate(25);
 
-        // Compute 7-day uptime per shown link in one query so the page
-        // doesn't N+1 when a user has dozens of insured links.
+        // Compute 30-day uptime per shown link in one query so the
+        // page doesn't N+1 when a user has dozens of insured links.
         $linkIds = $links->pluck('id')->all();
         $uptime  = collect();
         if ($linkIds) {
             $uptime = LinkHealthCheck::query()
                 ->whereIn('link_id', $linkIds)
-                ->where('checked_at', '>=', now()->subDays(7))
+                ->where('checked_at', '>=', now()->subDays(30))
                 ->select('link_id')
                 ->selectRaw("SUM(CASE WHEN status = 'healthy' THEN 1 ELSE 0 END)::float / COUNT(*) AS uptime_ratio")
                 ->selectRaw('COUNT(*) AS sample_count')

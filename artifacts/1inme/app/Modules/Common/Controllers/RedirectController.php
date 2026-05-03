@@ -164,7 +164,37 @@ class RedirectController extends Controller
         if ($link->type === 'url') {
             $finalUrl    = $smart['url'];
             $smartCookie = $smart['cookie'];
-        } elseif (!empty($smart['rule'])) {
+        }
+
+        // Link Insurance — when every destination is down and the
+        // owner provided a fallback message, render a tiny "temporarily
+        // unavailable" page instead of redirecting clickers to a known-
+        // broken URL. Only kicks in for url-type links; biolinks/files
+        // continue through their normal handling.
+        if ($link->type === 'url'
+            && $link->insurance_state === 'down'
+            && !empty($link->insurance_fallback_message)) {
+            return response()->view('common.link-down', [
+                'message' => $link->insurance_fallback_message,
+            ], 503);
+        }
+
+        // Track which destination actually served this click so the
+        // dashboard can compare original vs effective traffic. We only
+        // tally url-type links because biolink landing pages don't have
+        // a "destination URL" per click.
+        if ($link->type === 'url' && $finalUrl) {
+            if ($link->insurance_state === 'failover' && $link->insurance_active_url) {
+                $link->newQuery()->whereKey($link->id)->increment('insurance_failover_serve_count');
+                \App\Modules\User\Models\LinkBackup::where('link_id', $link->id)
+                    ->where('url', $link->insurance_active_url)
+                    ->increment('serve_count');
+            } elseif ($link->insurance_enabled) {
+                $link->newQuery()->whereKey($link->id)->increment('insurance_primary_serve_count');
+            }
+        }
+
+        if ($link->type !== 'url' && !empty($smart['rule'])) {
             // A user-defined rule matched on a non-url link → redirect to
             // the rule's URL instead of showing the landing/download.
             $resp = redirect()->away($smart['url'], 302);

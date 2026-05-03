@@ -19,6 +19,7 @@ class LinkBackup extends Model
     protected $fillable = [
         'link_id', 'position', 'url', 'label',
         'last_status', 'last_http_code', 'last_checked_at',
+        'serve_count',
     ];
 
     protected function casts(): array

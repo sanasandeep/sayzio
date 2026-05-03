@@ -27,6 +27,7 @@ protected $fillable = [
         'insurance_consecutive_failures', 'insurance_consecutive_successes',
         'insurance_last_checked_at', 'insurance_last_failover_at',
         'insurance_fallback_message',
+        'insurance_primary_serve_count', 'insurance_failover_serve_count',
     ];
 
     protected function casts(): array
