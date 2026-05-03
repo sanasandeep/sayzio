@@ -1,6 +1,6 @@
 import { browser } from "../lib/browser";
 import { api, ApiError } from "../lib/api";
-import { clearAuth, clearCachedProperties, getSettings, setSettings } from "../lib/storage";
+import { clearAuth, clearCachedProperties, getSettings, setSettings, syncPendingThanks } from "../lib/storage";
 import {
   ensureProperties,
   matchHrefs,
@@ -267,21 +267,73 @@ async function refreshHandshakeMatches() {
   } catch { /* registerContentScripts may fail if host permission missing — fall back to manifest static match */ }
 }
 
+// Cross-device pending-thanks reconciliation. The popup only reconciles
+// on open, so a creator with the popup already up on desktop wouldn't
+// see an item their laptop just queued (or a dismissal) until they
+// closed and reopened it. A short-cadence alarm in the service worker
+// pulls the server copy in the background and writes it via setSettings,
+// which the popup's storage.onChanged listener picks up and re-renders
+// from automatically. Dismissals from another browser propagate the
+// same way (they show up as a smaller server queue with a newer
+// updated_at_ms, which adoptServer() in syncPendingThanks honours).
+//
+// Cadence: 30 seconds. chrome.alarms in MV3 accepts periodInMinutes
+// down to 0.5; the polyfill passes through to Firefox where 0.5 is
+// also the documented minimum. Service-worker alarms are far cheaper
+// than a setInterval (which wouldn't survive SW shutdown anyway) and
+// only fire while the browser is awake, so this stays power-friendly.
+const PENDING_THANKS_ALARM = "1inme-pending-thanks-poll";
+const PENDING_THANKS_PERIOD_MIN = 0.5;
+
+async function ensurePendingThanksAlarm() {
+  if (!browser.alarms?.create) return;
+  const settings = await getSettings();
+  if (!settings.token || !settings.workspaceId) {
+    try { await browser.alarms.clear(PENDING_THANKS_ALARM); } catch { /* not set */ }
+    return;
+  }
+  try {
+    const existing = await browser.alarms.get(PENDING_THANKS_ALARM);
+    if (existing && existing.periodInMinutes === PENDING_THANKS_PERIOD_MIN) return;
+    await browser.alarms.create(PENDING_THANKS_ALARM, {
+      periodInMinutes: PENDING_THANKS_PERIOD_MIN,
+      // Stagger the first tick so we don't pile a sync onto whatever
+      // triggered the registration (e.g. a fresh sign-in that's about
+      // to call syncPendingThanks itself from the popup).
+      delayInMinutes: PENDING_THANKS_PERIOD_MIN,
+    });
+  } catch { /* alarms permission may be missing in older builds */ }
+}
+
+browser.alarms?.onAlarm.addListener((alarm: any) => {
+  if (alarm?.name !== PENDING_THANKS_ALARM) return;
+  syncPendingThanks().catch(() => undefined);
+});
+
 browser.runtime.onInstalled.addListener(() => {
   setupContextMenus();
   refreshHandshakeMatches();
   refreshRadarRegistration();
+  ensurePendingThanksAlarm();
 });
 browser.runtime.onStartup?.addListener?.(() => {
   setupContextMenus();
   refreshHandshakeMatches();
   refreshRadarRegistration();
+  ensurePendingThanksAlarm();
+  // One immediate reconcile on browser launch so a queue change made
+  // while this profile was closed shows up before the first alarm tick.
+  syncPendingThanks().catch(() => undefined);
 });
 browser.storage.onChanged.addListener((changes: any, area: string) => {
   if (area !== "local") return;
   if (changes.webBaseUrl) refreshHandshakeMatches();
   if (changes.radarEnabled || changes.radarDisabledHosts || changes.token) refreshRadarRegistration();
   if (changes.token) clearCachedProperties().catch(() => undefined);
+  // Re-arm (or tear down) the pending-thanks alarm when the auth or
+  // active workspace changes so we don't poll without a token and we
+  // pick up the right workspace's queue right after a switch.
+  if (changes.token || changes.workspaceId) ensurePendingThanksAlarm();
 });
 
 // Drop per-tab match cache + badge when a tab navigates away or closes.
@@ -392,3 +444,4 @@ browser.runtime.onMessage.addListener(async (msg: any, sender: any) => {
 setupContextMenus();
 refreshHandshakeMatches();
 refreshRadarRegistration();
+ensurePendingThanksAlarm();

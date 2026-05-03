@@ -24,7 +24,7 @@
     "scripts": ["background.js"],
     "type": "module"
   },
-  "permissions": ["activeTab", "storage", "contextMenus", "scripting", "notifications", "tabs"],
+  "permissions": ["activeTab", "storage", "contextMenus", "scripting", "notifications", "tabs", "alarms"],
   "host_permissions": [
     "<all_urls>"
   ],

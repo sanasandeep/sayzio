@@ -24,7 +24,7 @@
     "service_worker": "background.js",
     "type": "module"
   },
-  "permissions": ["activeTab", "storage", "contextMenus", "scripting", "notifications", "tabs"],
+  "permissions": ["activeTab", "storage", "contextMenus", "scripting", "notifications", "tabs", "alarms"],
   "optional_host_permissions": ["http://*/*", "https://*/*"],
   "host_permissions": [
     "<all_urls>"
