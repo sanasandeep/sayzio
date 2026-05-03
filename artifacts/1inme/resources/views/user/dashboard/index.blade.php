@@ -43,8 +43,9 @@
         ['icon' => 'fa-link', 'text' => ($stats['total_links'] ?? 0) . ' links'],
     ],
     'actions'  => [
-        ['label' => 'Create Bio Link', 'url' => route('user.links.wizard'), 'icon' => 'fa-magic', 'class' => 'btn-primary'],
-        ['label' => 'Quick Link',      'url' => route('user.links.create'), 'icon' => 'fa-plus',  'class' => 'btn-secondary'],
+        ['label' => 'Create Bio Link',  'url' => route('user.links.wizard'),     'icon' => 'fa-magic',       'class' => 'btn-primary'],
+        ['label' => 'Quick Link',       'url' => route('user.links.create'),     'icon' => 'fa-plus',        'class' => 'btn-secondary'],
+        ['label' => 'Switch Template',  'url' => route('user.onboarding.template'), 'icon' => 'fa-layer-group', 'class' => 'btn-secondary'],
     ],
 ])
 
@@ -259,7 +260,7 @@
                         <i class="fas fa-user-tag text-[9px] mr-1"></i>Choose persona
                     </a>
                     <a href="{{ route('user.onboarding.template') }}" class="text-[11px] px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white/80 hover:text-white font-semibold transition">
-                        <i class="fas fa-layer-group text-[9px] mr-1"></i>Browse starter templates
+                        <i class="fas fa-layer-group text-[9px] mr-1"></i>Switch Template
                     </a>
                 </div>
             </div>
