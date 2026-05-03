@@ -2067,9 +2067,12 @@
             $__allowFollowers = $__creator ? (bool)($__creator->allow_followers ?? true) : false;
         @endphp
 
+        @php
+            $__combinedFooter = $__creator && !$__isSelf && $__allowFollowers && !$__viewer && empty($bs['custom_branding_text']);
+        @endphp
         @if(!$__brandingHidden)
             {{-- Subtle viewer sign-in / follow entry in the branding strip. --}}
-            @if($__creator && !$__isSelf && $__allowFollowers)
+            @if($__creator && !$__isSelf && $__allowFollowers && !$__combinedFooter)
             <div class="text-center mt-6 mb-0" style="grid-column: 1 / -1;">
                 @if(!$__viewer)
                     <button type="button"
@@ -2136,6 +2139,18 @@
                 @else
                 </span>
                 @endif
+            </div>
+            @elseif($__combinedFooter)
+            <div class="mt-6 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-xs" style="grid-column: 1 / -1;">
+                <button type="button"
+                        @click="$dispatch('open-viewer-login', {creatorId: {{ (int)$__creator->id }} })"
+                        class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full font-semibold transition-all hover:scale-105"
+                        style="background: {{ $fontColor }}15; color: {{ $fontColor }}cc; border: 1px solid {{ $fontColor }}25;">
+                    <i class="fas fa-user-plus text-[10px]"></i>
+                    Sign in to follow {{ $__creator->name }}
+                </button>
+                <span style="color: {{ $fontColor }}33;">|</span>
+                <span style="color: {{ $fontColor }}55;">Powered by 1INME</span>
             </div>
             @else
             <p class="text-center text-xs mt-3" style="color: {{ $fontColor }}33; grid-column: 1 / -1;">Powered by 1INME</p>
