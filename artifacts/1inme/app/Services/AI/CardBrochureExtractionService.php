@@ -287,14 +287,21 @@ class CardBrochureExtractionService
             $proc = new Process(['pdfinfo', $path]);
             $proc->setTimeout(10);
             $proc->run();
-            if (!$proc->isSuccessful()) return null;
-            if (preg_match('/^Pages:\s+(\d+)/m', $proc->getOutput(), $m)) {
+            if ($proc->isSuccessful() && preg_match('/^Pages:\s+(\d+)/m', $proc->getOutput(), $m)) {
                 return (int) $m[1];
             }
         } catch (\Throwable $e) {
-            // pdfinfo missing — non-fatal.
+            // pdfinfo missing — fall through to the PHP-only counter.
         }
-        return null;
+
+        // Pure-PHP fallback: count /Type /Page tokens in the raw PDF
+        // (good enough for a guard check; can over-count in rare
+        // pathological PDFs, which is the safe direction for a cap).
+        $bytes = @file_get_contents($path);
+        if (!is_string($bytes) || $bytes === '') return null;
+        if (preg_match_all('#/Type\s*/Page[^s]#', $bytes, $m) === false) return null;
+        $n = count($m[0] ?? []);
+        return $n > 0 ? $n : null;
     }
 
     /**
