@@ -71,15 +71,28 @@ class ArCardBuilder
         $white = imagecolorallocate($img, 255, 255, 255);
         $faint = imagecolorallocatealpha($img, 255, 255, 255, 60);
 
+        // Composite the creator's avatar (if provided) as a circular badge
+        // in the upper-left of the card, then offset the text columns to the
+        // right so the layout stays readable. Failures (network, decode,
+        // missing GD JPEG support) silently fall back to a text-only card.
+        $avatarSize = 180;
+        $avatarX = 60;
+        $avatarY = 80;
+        $textX = 70;
+        $hasAvatar = $this->drawAvatar($img, $cfg['avatar_url'] ?? null, $avatarX, $avatarY, $avatarSize);
+        if ($hasAvatar) {
+            $textX = $avatarX + $avatarSize + 36;
+        }
+
         // Use built-in font (no TTF dependency for portability)
         $name = $this->sanitize($cfg['display_name']) ?: 'Your Name';
         $headline = $this->sanitize($cfg['headline']) ?: '1INME · biolink in AR';
         $subtitle = $this->sanitize($cfg['subtitle']);
 
-        imagestring($img, 5, 70, 80,  substr($name, 0, 38), $white);
-        imagestring($img, 4, 70, 130, substr($headline, 0, 60), $faint);
+        imagestring($img, 5, $textX, 100, substr($name, 0, 38), $white);
+        imagestring($img, 4, $textX, 150, substr($headline, 0, 60), $faint);
         if ($subtitle !== '') {
-            imagestring($img, 3, 70, 170, substr($subtitle, 0, 80), $faint);
+            imagestring($img, 3, $textX, 190, substr($subtitle, 0, 80), $faint);
         }
 
         // 1INME wordmark bottom-right
@@ -366,5 +379,83 @@ USDA;
     {
         // GD's built-in font is ASCII-only; strip non-printables.
         return preg_replace('/[^\x20-\x7E]+/', '', $s) ?? '';
+    }
+
+    /**
+     * Composite the creator's avatar onto $img as a circular badge.
+     * Returns true on success, false (and leaves $img untouched) on any
+     * fetch/decode/format problem so the caller can fall back to a
+     * text-only layout. Only http(s) URLs are honored to avoid SSRF
+     * via file:// or other schemes.
+     */
+    private function drawAvatar($img, ?string $url, int $x, int $y, int $size): bool
+    {
+        if (!$url) return false;
+        $parts = parse_url($url);
+        if (!$parts || empty($parts['scheme']) || !in_array(strtolower($parts['scheme']), ['http', 'https'], true)) {
+            return false;
+        }
+        try {
+            $ctx = stream_context_create([
+                'http' => ['timeout' => 4, 'follow_location' => 1, 'max_redirects' => 3,
+                    'header' => "User-Agent: 1INME-AR/1.0\r\n"],
+                'ssl'  => ['verify_peer' => true, 'verify_peer_name' => true],
+            ]);
+            $bytes = @file_get_contents($url, false, $ctx, 0, 4 * 1024 * 1024);
+            if ($bytes === false || strlen($bytes) < 32) return false;
+        } catch (\Throwable $e) {
+            return false;
+        }
+        $src = @imagecreatefromstring($bytes);
+        if (!$src) return false;
+
+        $sw = imagesx($src); $sh = imagesy($src);
+        // Cover-crop the source to a square before scaling so portraits keep
+        // their face area instead of getting stretched.
+        $sq = min($sw, $sh);
+        $sx = (int) (($sw - $sq) / 2);
+        $sy = (int) (($sh - $sq) / 2);
+
+        $dst = imagecreatetruecolor($size, $size);
+        imagealphablending($dst, false);
+        imagesavealpha($dst, true);
+        $transparent = imagecolorallocatealpha($dst, 0, 0, 0, 127);
+        imagefilledrectangle($dst, 0, 0, $size, $size, $transparent);
+        imagealphablending($dst, true);
+        imagecopyresampled($dst, $src, 0, 0, $sx, $sy, $size, $size, $sq, $sq);
+        imagedestroy($src);
+
+        // Mask to a circle by punching transparency outside the disc.
+        $mask = imagecreatetruecolor($size, $size);
+        imagealphablending($mask, false);
+        imagesavealpha($mask, true);
+        $bg = imagecolorallocatealpha($mask, 0, 0, 0, 127);
+        imagefilledrectangle($mask, 0, 0, $size, $size, $bg);
+        $disc = imagecolorallocate($mask, 0, 0, 0);
+        imagefilledellipse($mask, (int) ($size / 2), (int) ($size / 2), $size, $size, $disc);
+
+        $out = imagecreatetruecolor($size, $size);
+        imagealphablending($out, false);
+        imagesavealpha($out, true);
+        imagefilledrectangle($out, 0, 0, $size, $size, imagecolorallocatealpha($out, 0, 0, 0, 127));
+        imagealphablending($out, true);
+        for ($py = 0; $py < $size; $py++) {
+            for ($px = 0; $px < $size; $px++) {
+                $mc = imagecolorat($mask, $px, $py);
+                $alpha = ($mc >> 24) & 0x7F;
+                if ($alpha < 64) {
+                    imagesetpixel($out, $px, $py, imagecolorat($dst, $px, $py));
+                }
+            }
+        }
+        imagedestroy($mask);
+        imagedestroy($dst);
+
+        imagecopy($img, $out, $x, $y, 0, 0, $size, $size);
+        // White ring around the avatar for legibility on any background.
+        $ring = imagecolorallocatealpha($img, 255, 255, 255, 50);
+        imageellipse($img, $x + (int) ($size / 2), $y + (int) ($size / 2), $size + 4, $size + 4, $ring);
+        imagedestroy($out);
+        return true;
     }
 }

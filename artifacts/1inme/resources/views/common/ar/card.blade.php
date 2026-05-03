@@ -105,12 +105,24 @@
         <span class="badge" id="capBadge">Detecting…</span>
     </div>
 
+    {{-- Why ar-modes is "webxr quick-look" (and NOT scene-viewer):
+         - WebXR (Android Chrome / desktop XR browsers) supports model-viewer's
+           HTML hotspots, so each <a slot="hotspot-N"> below is a real tappable
+           link to /{alias}/b/{blockId}?source=ar in AR.
+         - Scene Viewer renders the GLB natively and CAN'T host HTML hotspots,
+           so a Scene Viewer launch would be visually rich but not tappable.
+           Dropping it forces Android Chrome into WebXR (with hotspots).
+         - Quick Look on iOS likewise renders USDZ natively without hotspots,
+           but iOS doesn't expose WebXR — so Quick Look stays as the only
+           AR path for iOS, with the in-page block list immediately under
+           the viewer + a USDZ #callToAction that links the visitor back
+           to the standard biolink as a single in-AR CTA. --}}
     <model-viewer id="card"
         src="{{ $glbUrl }}"
-        ios-src="{{ $usdzUrl }}"
+        ios-src="{{ $usdzUrl }}#callToAction=Open%20biolink&checkoutTitle=1INME&link={{ urlencode($biolinkUrl . '?source=ar') }}"
         alt="AR business card for {{ $cfg['display_name'] }}"
         ar
-        ar-modes="webxr scene-viewer quick-look"
+        ar-modes="webxr quick-look"
         ar-scale="auto"
         camera-controls
         touch-action="pan-y"
