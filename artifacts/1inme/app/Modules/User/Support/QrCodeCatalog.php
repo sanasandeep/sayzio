@@ -149,4 +149,186 @@ class QrCodeCatalog
             'Oswald','Raleway','Lobster','Anton','Dancing Script','Caveat','Fira Sans','Nunito',
         ];
     }
+
+    // -------------------- DESIGN PRESETS (Templates) --------------------
+    /**
+     * Curated one-click design presets that set shapes, colors, gradients
+     * and an optional frame. These are partial designs — when applied in
+     * the builder, they overwrite only the keys they declare and leave
+     * payload, uploaded logos, output size, and quiet zone untouched.
+     *
+     * Every shape/frame/font ID below MUST exist in the matching catalog
+     * above; otherwise sanitizeDesign() will reject it on save.
+     */
+    public static function presets(): array
+    {
+        $g = fn(string $type, string $from, string $to, int $angle, bool $on = true) => [
+            'enabled' => $on, 'type' => $type, 'from' => $from, 'to' => $to, 'angle' => $angle,
+        ];
+        $off = ['enabled' => false, 'type' => 'linear', 'from' => '#000000', 'to' => '#000000', 'angle' => 0];
+        $frame = fn(string $tpl, string $bg, string $text, string $font = 'Inter') => [
+            'template' => $tpl, 'font' => $font, 'bg_color' => $bg, 'text_color' => $text,
+        ];
+
+        return [
+            [
+                'id' => 'classic', 'name' => 'Classic', 'tagline' => 'Print-ready black & white',
+                'design' => [
+                    'dot_style' => 'square', 'corner_square_style' => 'square', 'corner_dot_style' => 'square',
+                    'fg_color' => '#000000', 'bg_color' => '#ffffff', 'transparent_bg' => false,
+                    'corner_square_color' => '#000000', 'corner_dot_color' => '#000000',
+                    'gradient' => $off, 'eye_outer_gradient' => $off, 'eye_inner_gradient' => $off, 'bg_gradient' => $off,
+                    'frame' => $frame('none', '#000000', '#ffffff'),
+                ],
+            ],
+            [
+                'id' => 'midnight', 'name' => 'Midnight', 'tagline' => 'Soft rounded on deep navy',
+                'design' => [
+                    'dot_style' => 'rounded', 'corner_square_style' => 'extra-rounded', 'corner_dot_style' => 'dot',
+                    'fg_color' => '#e2e8f0', 'bg_color' => '#0b1226', 'transparent_bg' => false,
+                    'corner_square_color' => '#5b8def', 'corner_dot_color' => '#5b8def',
+                    'gradient' => $off, 'eye_outer_gradient' => $off, 'eye_inner_gradient' => $off,
+                    'bg_gradient' => $g('linear', '#0b1226', '#1e2a52', 180),
+                    'frame' => $frame('none', '#0b1226', '#e2e8f0'),
+                ],
+            ],
+            [
+                'id' => 'neon', 'name' => 'Neon', 'tagline' => 'Cyan/magenta glow on black',
+                'design' => [
+                    'dot_style' => 'dot', 'corner_square_style' => 'thick-circle', 'corner_dot_style' => 'dot',
+                    'fg_color' => '#22d3ee', 'bg_color' => '#0a0a12', 'transparent_bg' => false,
+                    'corner_square_color' => '#f472b6', 'corner_dot_color' => '#22d3ee',
+                    'gradient' => $g('linear', '#22d3ee', '#f472b6', 135),
+                    'eye_outer_gradient' => $g('linear', '#f472b6', '#a78bfa', 90),
+                    'eye_inner_gradient' => $off,
+                    'bg_gradient' => $off,
+                    'frame' => $frame('neon-border', '#0a0a12', '#22d3ee', 'Bebas Neue'),
+                ],
+            ],
+            [
+                'id' => 'sunset', 'name' => 'Sunset', 'tagline' => 'Warm orange to pink gradient',
+                'design' => [
+                    'dot_style' => 'rounded-lg', 'corner_square_style' => 'extra-rounded', 'corner_dot_style' => 'rounded',
+                    'fg_color' => '#f97316', 'bg_color' => '#fff7ed', 'transparent_bg' => false,
+                    'corner_square_color' => '#db2777', 'corner_dot_color' => '#f97316',
+                    'gradient' => $g('linear', '#f97316', '#db2777', 45),
+                    'eye_outer_gradient' => $g('linear', '#db2777', '#7c3aed', 90),
+                    'eye_inner_gradient' => $off,
+                    'bg_gradient' => $g('linear', '#fff7ed', '#fde2e4', 180),
+                    'frame' => $frame('scan-me-rounded', '#db2777', '#ffffff', 'Poppins'),
+                ],
+            ],
+            [
+                'id' => 'forest', 'name' => 'Forest', 'tagline' => 'Organic leaves in deep green',
+                'design' => [
+                    'dot_style' => 'leaf', 'corner_square_style' => 'leaf-tl', 'corner_dot_style' => 'leaf',
+                    'fg_color' => '#14532d', 'bg_color' => '#f0fdf4', 'transparent_bg' => false,
+                    'corner_square_color' => '#166534', 'corner_dot_color' => '#15803d',
+                    'gradient' => $g('linear', '#14532d', '#65a30d', 135),
+                    'eye_outer_gradient' => $off, 'eye_inner_gradient' => $off,
+                    'bg_gradient' => $off,
+                    'frame' => $frame('badge-circle', '#14532d', '#f0fdf4', 'Playfair Display'),
+                ],
+            ],
+            [
+                'id' => 'corporate', 'name' => 'Corporate', 'tagline' => 'Crisp navy, scan-me bar',
+                'design' => [
+                    'dot_style' => 'square', 'corner_square_style' => 'soft-square', 'corner_dot_style' => 'square',
+                    'fg_color' => '#1e293b', 'bg_color' => '#ffffff', 'transparent_bg' => false,
+                    'corner_square_color' => '#0ea5e9', 'corner_dot_color' => '#1e293b',
+                    'gradient' => $off, 'eye_outer_gradient' => $off, 'eye_inner_gradient' => $off, 'bg_gradient' => $off,
+                    'frame' => $frame('scan-me-classic', '#1e293b', '#ffffff', 'Inter'),
+                ],
+            ],
+            [
+                'id' => 'pastel-sticker', 'name' => 'Pastel Sticker', 'tagline' => 'Soft cloud bubble',
+                'design' => [
+                    'dot_style' => 'rounded', 'corner_square_style' => 'rounded', 'corner_dot_style' => 'rounded',
+                    'fg_color' => '#7c3aed', 'bg_color' => '#fdf4ff', 'transparent_bg' => false,
+                    'corner_square_color' => '#ec4899', 'corner_dot_color' => '#06b6d4',
+                    'gradient' => $g('linear', '#a78bfa', '#f0abfc', 60),
+                    'eye_outer_gradient' => $off, 'eye_inner_gradient' => $off,
+                    'bg_gradient' => $g('radial', '#fdf4ff', '#fce7f3', 0),
+                    'frame' => $frame('cloud', '#fbcfe8', '#7c3aed', 'Pacifico'),
+                ],
+            ],
+            [
+                'id' => 'retro-arcade', 'name' => 'Retro Arcade', 'tagline' => 'Pixel power, bold yellow',
+                'design' => [
+                    'dot_style' => 'square', 'corner_square_style' => 'square', 'corner_dot_style' => 'square',
+                    'fg_color' => '#facc15', 'bg_color' => '#1e1b4b', 'transparent_bg' => false,
+                    'corner_square_color' => '#ec4899', 'corner_dot_color' => '#22d3ee',
+                    'gradient' => $off, 'eye_outer_gradient' => $off, 'eye_inner_gradient' => $off,
+                    'bg_gradient' => $g('linear', '#1e1b4b', '#312e81', 180),
+                    'frame' => $frame('scan-me-bold', '#ec4899', '#facc15', 'Bebas Neue'),
+                ],
+            ],
+            [
+                'id' => 'royal', 'name' => 'Royal', 'tagline' => 'Purple & gold elegance',
+                'design' => [
+                    'dot_style' => 'diamond', 'corner_square_style' => 'beveled-square', 'corner_dot_style' => 'diamond',
+                    'fg_color' => '#4c1d95', 'bg_color' => '#fffbeb', 'transparent_bg' => false,
+                    'corner_square_color' => '#b45309', 'corner_dot_color' => '#b45309',
+                    'gradient' => $g('linear', '#4c1d95', '#7c3aed', 90),
+                    'eye_outer_gradient' => $g('linear', '#b45309', '#facc15', 45),
+                    'eye_inner_gradient' => $off,
+                    'bg_gradient' => $off,
+                    'frame' => $frame('plaque', '#4c1d95', '#facc15', 'Playfair Display'),
+                ],
+            ],
+            [
+                'id' => 'coral-pop', 'name' => 'Coral Pop', 'tagline' => 'Friendly coral with banner',
+                'design' => [
+                    'dot_style' => 'rounded', 'corner_square_style' => 'extra-rounded', 'corner_dot_style' => 'dot',
+                    'fg_color' => '#fb7185', 'bg_color' => '#ffffff', 'transparent_bg' => false,
+                    'corner_square_color' => '#fb7185', 'corner_dot_color' => '#fb7185',
+                    'gradient' => $off, 'eye_outer_gradient' => $off, 'eye_inner_gradient' => $off, 'bg_gradient' => $off,
+                    'frame' => $frame('ribbon-bottom', '#fb7185', '#ffffff', 'Montserrat'),
+                ],
+            ],
+            [
+                'id' => 'mono-line', 'name' => 'Mono Line', 'tagline' => 'Minimal double border',
+                'design' => [
+                    'dot_style' => 'square', 'corner_square_style' => 'double-square', 'corner_dot_style' => 'square',
+                    'fg_color' => '#111827', 'bg_color' => '#ffffff', 'transparent_bg' => false,
+                    'corner_square_color' => '#111827', 'corner_dot_color' => '#111827',
+                    'gradient' => $off, 'eye_outer_gradient' => $off, 'eye_inner_gradient' => $off, 'bg_gradient' => $off,
+                    'frame' => $frame('double-border', '#ffffff', '#111827', 'Inter'),
+                ],
+            ],
+            [
+                'id' => 'mint-fresh', 'name' => 'Mint Fresh', 'tagline' => 'Clean teal on cream',
+                'design' => [
+                    'dot_style' => 'rounded-lg', 'corner_square_style' => 'soft-rounded', 'corner_dot_style' => 'rounded',
+                    'fg_color' => '#0d9488', 'bg_color' => '#f0fdfa', 'transparent_bg' => false,
+                    'corner_square_color' => '#0d9488', 'corner_dot_color' => '#0d9488',
+                    'gradient' => $g('linear', '#0d9488', '#22d3ee', 135),
+                    'eye_outer_gradient' => $off, 'eye_inner_gradient' => $off,
+                    'bg_gradient' => $g('linear', '#f0fdfa', '#ccfbf1', 180),
+                    'frame' => $frame('rounded-card', '#0d9488', '#ffffff', 'Nunito'),
+                ],
+            ],
+            [
+                'id' => 'inkblot', 'name' => 'Inkblot', 'tagline' => 'Organic blobs, hand-drawn vibe',
+                'design' => [
+                    'dot_style' => 'blob', 'corner_square_style' => 'soft-rounded', 'corner_dot_style' => 'blob',
+                    'fg_color' => '#1f2937', 'bg_color' => '#fef3c7', 'transparent_bg' => false,
+                    'corner_square_color' => '#1f2937', 'corner_dot_color' => '#b45309',
+                    'gradient' => $off, 'eye_outer_gradient' => $off, 'eye_inner_gradient' => $off, 'bg_gradient' => $off,
+                    'frame' => $frame('thought-bubble', '#fef3c7', '#1f2937', 'Caveat'),
+                ],
+            ],
+            [
+                'id' => 'holiday-red', 'name' => 'Holiday Red', 'tagline' => 'Festive red on cream',
+                'design' => [
+                    'dot_style' => 'star5', 'corner_square_style' => 'star', 'corner_dot_style' => 'star5',
+                    'fg_color' => '#b91c1c', 'bg_color' => '#fff1e6', 'transparent_bg' => false,
+                    'corner_square_color' => '#15803d', 'corner_dot_color' => '#b91c1c',
+                    'gradient' => $g('linear', '#b91c1c', '#7f1d1d', 180),
+                    'eye_outer_gradient' => $off, 'eye_inner_gradient' => $off, 'bg_gradient' => $off,
+                    'frame' => $frame('ribbon-bow', '#b91c1c', '#fff1e6', 'Lobster'),
+                ],
+            ],
+        ];
+    }
 }

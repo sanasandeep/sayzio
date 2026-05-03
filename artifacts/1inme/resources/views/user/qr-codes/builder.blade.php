@@ -31,6 +31,7 @@
         'frames'    => QrCodeCatalog::frames(),
         'fonts'     => QrCodeCatalog::fonts(),
     ];
+    $presets = $presets ?? [];
 @endphp
 
 @section('content')
@@ -62,6 +63,22 @@
     details > summary { list-style: none; cursor: pointer; }
     details > summary::-webkit-details-marker { display: none; }
     .qr-section { padding: 14px; border-radius: 10px; border: 1px solid var(--border-glass); background: var(--bg-glass-hover); }
+    .qr-template-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .qr-template-card {
+        cursor: pointer; padding: 8px; border-radius: 10px;
+        border: 1.5px solid var(--border-glass); background: var(--bg-glass-hover);
+        display: flex; flex-direction: column; gap: 6px; transition: all .12s;
+    }
+    .qr-template-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+    .qr-template-card.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--c-primary-soft); }
+    .qr-template-thumb {
+        aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+        border-radius: 6px; overflow: hidden; background: #fff;
+    }
+    .qr-template-thumb svg { width: 100%; height: 100%; display: block; }
+    .qr-template-meta { display: flex; flex-direction: column; gap: 1px; }
+    .qr-template-name { font-size: 12px; font-weight: 700; color: var(--text-primary); line-height: 1.1; }
+    .qr-template-tag { font-size: 10px; color: var(--text-muted); line-height: 1.2; }
 </style>
 
 <div class="max-w-[1500px] mx-auto" x-data="qrBuilder()" x-init="init()" x-cloak>
@@ -167,14 +184,35 @@
             <div class="lg:col-span-4 space-y-4">
                 <div class="card-premium p-2">
                     <div class="flex border-b" style="border-color: var(--border-glass);">
-                        @foreach(['shapes'=>'Shapes','colors'=>'Colors','logos'=>'Logos','frames'=>'Frames','more'=>'More'] as $k => $lbl)
+                        @foreach(['templates'=>'Templates','shapes'=>'Shapes','colors'=>'Colors','logos'=>'Logos','frames'=>'Frames','more'=>'More'] as $k => $lbl)
                             <button type="button" @click="tab = '{{ $k }}'"
                                     class="qr-tab" :class="tab === '{{ $k }}' ? 'active' : ''">{{ $lbl }}</button>
                         @endforeach
                     </div>
 
+                    {{-- TEMPLATES tab --}}
+                    <div x-show="tab === 'templates'" class="p-3 space-y-3"
+                         x-data="templatesPicker({ presets: @js($presets) })" x-init="$nextTick(() => renderThumbs())">
+                        <p class="text-[11px]" style="color: var(--text-muted);">
+                            Pick a ready-made look. Your content and uploaded logos stay as-is.
+                        </p>
+                        <div class="qr-template-grid">
+                            <template x-for="preset in presets" :key="preset.id">
+                                <div class="qr-template-card"
+                                     :class="activeId === preset.id ? 'active' : ''"
+                                     @click="apply(preset)">
+                                    <div class="qr-template-thumb" :id="'qr-tpl-thumb-' + preset.id"></div>
+                                    <div class="qr-template-meta">
+                                        <span class="qr-template-name" x-text="preset.name"></span>
+                                        <span class="qr-template-tag" x-text="preset.tagline"></span>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
                     {{-- SHAPES tab --}}
-                    <div x-show="tab === 'shapes'" class="p-3 space-y-4">
+                    <div x-show="tab === 'shapes'" x-cloak class="p-3 space-y-4">
                         @php $sections = [
                             ['Dot shape', 'design.dot_style', $catalog['dots'], 'dot'],
                             ['Outer eye',  'design.corner_square_style', $catalog['outerEyes'], 'outer'],
@@ -422,6 +460,62 @@ function shapePicker({ kind, groups }) {
         },
     };
 }
+function templatesPicker({ presets }) {
+    return {
+        presets,
+        get activeId() { return (this.$root && this.$root.lastPresetId) || null; },
+        apply(preset) {
+            if (this.$root && typeof this.$root.applyPreset === 'function') {
+                this.$root.applyPreset(preset);
+            }
+        },
+        renderThumbs() {
+            if (!window.QrStudio) {
+                // Engine still loading — try again next tick.
+                setTimeout(() => this.renderThumbs(), 120);
+                return;
+            }
+            const sample = 'https://1inme.app';
+            this.presets.forEach(preset => {
+                const el = document.getElementById('qr-tpl-thumb-' + preset.id);
+                if (!el || el.dataset.rendered === '1') return;
+                try {
+                    const opts = this.previewOpts(preset.design, sample);
+                    const result = window.QrStudio.render(opts);
+                    el.innerHTML = result.svg;
+                    el.dataset.rendered = '1';
+                } catch (e) { /* ignore preview failure for one card */ }
+            });
+        },
+        previewOpts(d, data) {
+            const f = d.frame || {};
+            return {
+                data,
+                errorCorrection: 'M',
+                modulePx: 6,
+                margin: 2,
+                dotShape: d.dot_style,
+                outerEyeShape: d.corner_square_style,
+                innerEyeShape: d.corner_dot_style,
+                fgColor: d.fg_color,
+                bgColor: d.bg_color,
+                transparentBg: !!d.transparent_bg,
+                cornerSquareColor: d.corner_square_color,
+                cornerDotColor: d.corner_dot_color,
+                gradient: d.gradient,
+                eyeOuterGradient: d.eye_outer_gradient,
+                eyeInnerGradient: d.eye_inner_gradient,
+                bgGradient: d.bg_gradient,
+                logos: { background: null, center: null, foreground: null },
+                hideDotsBehindLogo: false,
+                qrRotation: 0,
+                dropShadow: false,
+                frame: { template: f.template || 'none', text: 'SCAN ME', font: f.font || 'Inter', bg_color: f.bg_color || '#000', text_color: f.text_color || '#fff' },
+                fontFamily: f.font || 'Inter',
+            };
+        },
+    };
+}
 function framePicker({ groups }) {
     return {
         groups,
@@ -449,10 +543,11 @@ function qrBuilder() {
         encodedPreview: '',
         renderTimer: null,
         resolveTimer: null,
-        tab: 'shapes',
+        tab: 'templates',
         lastResult: null,
         matrix: null,
         matrixKey: '',
+        lastPresetId: null,
 
         init() {
             this.$watch('payload', () => this.scheduleResolve(), { deep: true });
@@ -538,6 +633,27 @@ function qrBuilder() {
                 frame: d.frame,
                 fontFamily: (d.frame && d.frame.font) || 'Inter',
             };
+        },
+
+        applyPreset(preset) {
+            if (!preset || !preset.design) return;
+            const PRESERVE = new Set(['logo_center','logo_background','logo_foreground']);
+            Object.entries(preset.design).forEach(([k, v]) => {
+                if (PRESERVE.has(k)) return;
+                if (k === 'frame' && v && typeof v === 'object') {
+                    // Keep user's existing frame text if present.
+                    const existingText = (this.design.frame && this.design.frame.text) || 'SCAN ME';
+                    this.design.frame = { ...this.design.frame, ...v, text: existingText };
+                    return;
+                }
+                if (v && typeof v === 'object' && !Array.isArray(v)) {
+                    this.design[k] = { ...(this.design[k] || {}), ...v };
+                } else {
+                    this.design[k] = v;
+                }
+            });
+            this.lastPresetId = preset.id;
+            this.render();
         },
 
         syncFg() {

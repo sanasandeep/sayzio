@@ -48,7 +48,8 @@ class QrCodeController extends Controller
             ->orderBy('created_at', 'desc')->limit(200)
             ->get(['id', 'alias', 'title']);
         $defaultDesign = $this->defaultDesign();
-        return view('user.qr-codes.builder', compact('qrCode', 'types', 'projects', 'links', 'defaultDesign'));
+        $presets       = QrCodeCatalog::presets();
+        return view('user.qr-codes.builder', compact('qrCode', 'types', 'projects', 'links', 'defaultDesign', 'presets'));
     }
 
     public function create(Request $request) { return $this->builder($request, null); }
