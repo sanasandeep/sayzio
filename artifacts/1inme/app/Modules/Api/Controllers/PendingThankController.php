@@ -41,7 +41,13 @@ class PendingThankController extends Controller
         if (!$ws) return $this->forbidden('No accessible workspace');
 
         $data = $request->validate([
-            'items'                  => ['present', 'array', 'max:' . self::MAX_ITEMS],
+            // Intentionally NO `max:` rule on `items` — the queue is
+            // capped server-side (drop oldest first) after dedupe and
+            // TTL pruning so a syncing client that briefly exceeds the
+            // cap converges instead of hard-failing with 422. We do
+            // bound the upper end loosely to reject obviously abusive
+            // payloads (10x the cap) before they hit the dedupe loop.
+            'items'                  => ['present', 'array', 'max:' . (self::MAX_ITEMS * 10)],
             'items.*.id'             => ['required', 'string', 'max:64'],
             'items.*.templateId'     => ['required', 'string', 'max:64'],
             'items.*.channel'        => ['required', Rule::in(self::CHANNELS)],

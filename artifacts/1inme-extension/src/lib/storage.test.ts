@@ -93,7 +93,7 @@ describe("prunePendingThanks", () => {
       makeThank({ id: "fresh-3", createdAt: now }),
     ];
     const result = prunePendingThanks(items, now);
-    assert.equal(result.pruned, false);
+    assert.equal(result.pruned, 0);
     assert.equal(result.items.length, 3);
     assert.deepEqual(
       result.items.map((i) => i.id),
@@ -108,7 +108,7 @@ describe("prunePendingThanks", () => {
       makeThank({ id: "ancient", createdAt: 0 }),
     ];
     const result = prunePendingThanks(items, now);
-    assert.equal(result.pruned, true);
+    assert.equal(result.pruned, 2);
     assert.deepEqual(
       result.items.map((i) => i.id),
       ["fresh"],
@@ -120,7 +120,7 @@ describe("prunePendingThanks", () => {
       makeThank({ id: "boundary", createdAt: now - PENDING_THANKS_TTL_MS }),
     ];
     const result = prunePendingThanks(items, now);
-    assert.equal(result.pruned, false);
+    assert.equal(result.pruned, 0);
     assert.equal(result.items.length, 1);
     assert.equal(result.items[0]?.id, "boundary");
   });
@@ -130,20 +130,20 @@ describe("prunePendingThanks", () => {
       makeThank({ id: "just-old", createdAt: now - PENDING_THANKS_TTL_MS - 1 }),
     ];
     const result = prunePendingThanks(items, now);
-    assert.equal(result.pruned, true);
+    assert.equal(result.pruned, 1);
     assert.equal(result.items.length, 0);
   });
 
   it("returns an empty array (and pruned=false) for empty input", () => {
     const result = prunePendingThanks([], now);
     assert.deepEqual(result.items, []);
-    assert.equal(result.pruned, false);
+    assert.equal(result.pruned, 0);
   });
 
   it("removes everything when all items are expired", () => {
     const items = makeQueue(5, 1_000); // very old createdAt values
     const result = prunePendingThanks(items, now);
-    assert.equal(result.pruned, true);
+    assert.equal(result.pruned, 5);
     assert.deepEqual(result.items, []);
   });
 
@@ -151,7 +151,7 @@ describe("prunePendingThanks", () => {
     // Items in the recent past should always survive against the real clock.
     const items = [makeThank({ id: "recent", createdAt: Date.now() - 1_000 })];
     const result = prunePendingThanks(items);
-    assert.equal(result.pruned, false);
+    assert.equal(result.pruned, 0);
     assert.equal(result.items.length, 1);
   });
 });
