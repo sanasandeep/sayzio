@@ -931,7 +931,7 @@
                 <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
                    class="bio-btn block w-full px-6 py-3.5 mb-3 text-center font-medium transition-all duration-300 flex items-center justify-center gap-3">
                     @if(!empty($s['thumbnail']))<img src="{{ $s['thumbnail'] }}" class="w-6 h-6 rounded object-cover" alt="">
-                    @elseif(!empty($s['icon']))<i class="{{ $s['icon'] }}"></i>@endif
+                    @elseif(!empty($s['icon']))@php $_lnkIcon = $s['icon']; if(!preg_match('/^fa[sbrl] /', $_lnkIcon)) $_lnkIcon = 'fas ' . $_lnkIcon; @endphp<i class="{{ $_lnkIcon }}"></i>@endif
                     <span>{{ $s['text'] ?? 'Link' }}</span>
                 </a>
 
@@ -941,7 +941,7 @@
                    style="background: {{ $s['bg_color'] ?? $btnColor }};">
                     <div class="px-6 py-5 flex items-center gap-4">
                         @if(!empty($s['thumbnail']))<img src="{{ $s['thumbnail'] }}" class="w-12 h-12 rounded-xl object-cover" alt="">
-                        @elseif(!empty($s['icon']))<div class="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center"><i class="{{ $s['icon'] }} text-xl"></i></div>@endif
+                        @elseif(!empty($s['icon']))@php $_lnkBigIcon = $s['icon']; if(!preg_match('/^fa[sbrl] /', $_lnkBigIcon)) $_lnkBigIcon = 'fas ' . $_lnkBigIcon; @endphp<div class="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center"><i class="{{ $_lnkBigIcon }} text-xl"></i></div>@endif
                         <div class="flex-1 min-w-0">
                             <p class="font-semibold text-white truncate">{{ $s['text'] ?? 'Link' }}</p>
                             @if(!empty($s['description']))<p class="text-xs text-white/60 mt-0.5 truncate">{{ $s['description'] }}</p>@endif
