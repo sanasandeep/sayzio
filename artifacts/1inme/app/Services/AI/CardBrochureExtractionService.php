@@ -107,6 +107,23 @@ class CardBrochureExtractionService
                 ->lockForUpdate()
                 ->first();
             if ($existing) {
+                // Failed scans should be retryable without forcing the
+                // user to alter the file. We reuse the row + vaulted
+                // originals (so no double storage) and reset state for
+                // a fresh extraction. Successful and in-flight rows are
+                // still returned as-is for true idempotency.
+                if ($existing->status === 'failed') {
+                    $existing->forceFill([
+                        'status'           => 'processing',
+                        'error'            => null,
+                        'raw_response'     => null,
+                        'extracted'        => null,
+                        'derived_file_ids' => [],
+                        'credits_spent'    => 0,
+                    ])->save();
+                    $sourceFiles = $existing->sourceFiles()->all();
+                    $created = true;
+                }
                 return $existing;
             }
 
