@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { browser } from "../lib/browser";
-import { ApiError, api, AbVariantsPayload } from "../lib/api";
+import { ApiError, api, AbVariantsPayload, WorkspacePixels } from "../lib/api";
 import { ExtSettings, clearAuth, getSettings, setSettings } from "../lib/storage";
 
 type Toast = { kind: "success" | "error" | "info"; text: string; link?: { href: string; label: string } } | null;
@@ -17,6 +17,12 @@ export function App() {
   const [view, setView] = useState<"main" | "login" | "settings" | "ab">("main");
   const [abTests, setAbTests] = useState<AbTestItem[]>([]);
   const [abLoading, setAbLoading] = useState(false);
+  const [pixels, setPixels] = useState<WorkspacePixels | null>(null);
+  // Per-link auto-pixel toggle for the *next* link the popup will create.
+  // Initialised from the workspace's pixel state so creators with pixels
+  // configured opt in by default; creators without pixels stay off.
+  const [autoPixel, setAutoPixel] = useState<boolean>(false);
+  const [recent, setRecent] = useState<Array<{ id: number; alias: string; title: string | null; long_url: string | null; short_url?: string; auto_pixel?: boolean; pixel_fires?: { count: number; providers: string[] } }>>([]);
 
   const loadAbTests = useCallback(async () => {
     setAbLoading(true);
@@ -60,6 +66,28 @@ export function App() {
     return () => browser.storage.onChanged.removeListener(listener);
   }, [refresh]);
 
+  // Load workspace pixel config + recent links whenever auth/workspace changes
+  // so the popup can show the "Pixels: Meta, TikTok" badge and the per-link
+  // toggle defaults match the workspace's pixel state.
+  useEffect(() => {
+    if (!settings?.token) { setPixels(null); setRecent([]); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await api.getWorkspacePixels(settings.workspaceId);
+        if (!cancelled) {
+          setPixels(r.pixels);
+          setAutoPixel(!!r.pixels.has_any);
+        }
+      } catch { if (!cancelled) setPixels(null); }
+      try {
+        const r = await api.recentLinks(8);
+        if (!cancelled) setRecent(r.items || []);
+      } catch { /* ignore */ }
+    })();
+    return () => { cancelled = true; };
+  }, [settings?.token, settings?.workspaceId]);
+
   const showToast = useCallback((t: Toast) => {
     setToast(t);
     if (t) setTimeout(() => setToast(null), 4000);
@@ -69,13 +97,17 @@ export function App() {
     if (!tabUrl) return;
     setBusy("shorten");
     try {
-      const resp: any = await browser.runtime.sendMessage({ type: "SHORTEN_URL", url: tabUrl, title: tabTitle });
+      const resp: any = await browser.runtime.sendMessage({
+        type: "SHORTEN_URL", url: tabUrl, title: tabTitle, autoPixel,
+      });
       if (resp?.ok) {
         showToast({
           kind: "success",
           text: `Shortened: ${resp.shortUrl}`,
           link: { href: `${settings?.webBaseUrl}/dashboard/links/${resp.linkId}`, label: "View analytics" },
         });
+        // Refresh recent-links list so the new row appears with its toggle.
+        try { const r = await api.recentLinks(8); setRecent(r.items || []); } catch {}
       } else {
         showToast({ kind: "error", text: resp?.error || "Shorten failed" });
       }
@@ -114,6 +146,17 @@ export function App() {
     }
   };
 
+  const toggleRecentAutoPixel = async (linkId: number, next: boolean) => {
+    setRecent((prev) => prev.map((r) => r.id === linkId ? { ...r, auto_pixel: next } : r));
+    try {
+      await api.updateLink(linkId, { auto_pixel: next });
+    } catch (e: any) {
+      showToast({ kind: "error", text: e?.message || "Could not update link" });
+      // Revert on failure.
+      setRecent((prev) => prev.map((r) => r.id === linkId ? { ...r, auto_pixel: !next } : r));
+    }
+  };
+
   if (!settings) {
     return (
       <div className="body">
@@ -126,7 +169,15 @@ export function App() {
     <>
       <Header settings={settings} onSettings={() => setView(view === "settings" ? "main" : "settings")} />
       {view === "login" && <LoginView settings={settings} onAuthed={refresh} showToast={showToast} />}
-      {view === "settings" && <SettingsView settings={settings} onSaved={refresh} />}
+      {view === "settings" && (
+        <SettingsView
+          settings={settings}
+          pixels={pixels}
+          onSaved={refresh}
+          onPixelsSaved={(p) => { setPixels(p); setAutoPixel(p.has_any); }}
+          showToast={showToast}
+        />
+      )}
       {view === "ab" && (
         <AbBuilder
           tabUrl={tabUrl}
@@ -166,6 +217,19 @@ export function App() {
               <div className="muted">{settings.workspaces[0].name}</div>
             </div>
           ) : null}
+          {pixels && pixels.has_any && (
+            <div className="field">
+              <div className="pixel-badge" title="Workspace tracking pixels that will fire on click">
+                Pixels:{" "}
+                {pixels.configured.map((p) => p === "meta" ? "Meta" : p === "tiktok" ? "TikTok" : "Google")
+                  .join(", ")}
+              </div>
+              <label className="toggle-row">
+                <input type="checkbox" checked={autoPixel} onChange={(e) => setAutoPixel(e.target.checked)} />
+                <span>Auto-fire on this link</span>
+              </label>
+            </div>
+          )}
           <button className="btn-primary" disabled={!tabUrl || busy !== null} onClick={handleShorten}>
             {busy === "shorten" && <span className="spinner" />}Shorten &amp; copy
           </button>
@@ -176,6 +240,39 @@ export function App() {
             Shorten as A/B test…
           </button>
           <RecentAbTests items={abTests} loading={abLoading} onChanged={loadAbTests} showToast={showToast} />
+
+          {recent.length > 0 && (
+            <div className="recent-links">
+              <div className="muted" style={{ marginTop: 8, marginBottom: 4 }}>Recent links</div>
+              {recent.slice(0, 6).map((r) => (
+                <div key={r.id} className="recent-row" title={r.long_url || ""}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <a href={r.short_url || `${settings.webBaseUrl}/${r.alias}`} target="_blank" rel="noreferrer">
+                        /{r.alias}
+                      </a>
+                    </div>
+                    {r.pixel_fires && r.pixel_fires.count > 0 && (
+                      <div className="muted" style={{ fontSize: 11 }}>
+                        {r.pixel_fires.count} pixel fire{r.pixel_fires.count === 1 ? "" : "s"}
+                        {r.pixel_fires.providers.length > 0 && ` · ${r.pixel_fires.providers.join(", ")}`}
+                      </div>
+                    )}
+                  </div>
+                  {pixels?.has_any && (
+                    <label className="toggle-row" style={{ margin: 0 }}>
+                      <input
+                        type="checkbox"
+                        checked={!!r.auto_pixel}
+                        onChange={(e) => toggleRecentAutoPixel(r.id, e.target.checked)}
+                        title="Auto-pixel for this link"
+                      />
+                    </label>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
       <Footer settings={settings} view={view} onSignOut={handleSignOut} onSettings={() => setView(view === "settings" ? "main" : "settings")} busy={busy} />
@@ -497,13 +594,35 @@ function Sparkline({ variants, totalClicks }: { variants: AbTestItem["variants"]
   );
 }
 
-function SettingsView({ settings, onSaved }: { settings: ExtSettings; onSaved: () => void }) {
-  const [api, setApi] = useState(settings.apiBaseUrl);
+function SettingsView({
+  settings, pixels, onSaved, onPixelsSaved, showToast,
+}: {
+  settings: ExtSettings;
+  pixels: WorkspacePixels | null;
+  onSaved: () => void;
+  onPixelsSaved: (p: WorkspacePixels) => void;
+  showToast: (t: Toast) => void;
+}) {
+  const [apiUrl, setApi] = useState(settings.apiBaseUrl);
   const [web, setWeb] = useState(settings.webBaseUrl);
   const [saved, setSaved] = useState(false);
+  // Tracking-pixel form state, seeded from server-side workspace pixels.
+  const [meta, setMeta] = useState(pixels?.meta_id || "");
+  const [tiktok, setTiktok] = useState(pixels?.tiktok_id || "");
+  const [google, setGoogle] = useState(pixels?.google_id || "");
+  const [googleLabel, setGoogleLabel] = useState(pixels?.google_label || "");
+  const [pixErr, setPixErr] = useState<string | null>(null);
+  const [pixBusy, setPixBusy] = useState(false);
+
+  useEffect(() => {
+    setMeta(pixels?.meta_id || "");
+    setTiktok(pixels?.tiktok_id || "");
+    setGoogle(pixels?.google_id || "");
+    setGoogleLabel(pixels?.google_label || "");
+  }, [pixels?.meta_id, pixels?.tiktok_id, pixels?.google_id, pixels?.google_label]);
 
   const save = async () => {
-    await setSettings({ apiBaseUrl: api.replace(/\/$/, ""), webBaseUrl: web.replace(/\/$/, "") });
+    await setSettings({ apiBaseUrl: apiUrl.replace(/\/$/, ""), webBaseUrl: web.replace(/\/$/, "") });
     setSaved(true);
     setTimeout(() => setSaved(false), 1500);
     onSaved();
@@ -513,11 +632,100 @@ function SettingsView({ settings, onSaved }: { settings: ExtSettings; onSaved: (
     onSaved();
   };
 
+  const validatePixels = (): string | null => {
+    if (meta && !/^[0-9]{15,16}$/.test(meta)) return "Meta Pixel ID must be 15–16 digits";
+    if (tiktok && !/^[A-Z0-9]{10,40}$/i.test(tiktok)) return "TikTok Pixel ID looks invalid";
+    if (google && !/^AW-[0-9]{6,15}$/i.test(google)) return "Google Ads ID must look like AW-1234567890";
+    if (googleLabel && !/^[A-Za-z0-9_\-]{1,60}$/.test(googleLabel)) return "Google conversion label must be alphanumeric";
+    return null;
+  };
+
+  const savePixels = async () => {
+    const err = validatePixels();
+    if (err) { setPixErr(err); return; }
+    setPixErr(null);
+    setPixBusy(true);
+    try {
+      const r = await api.saveWorkspacePixels({
+        meta_id: meta || null,
+        tiktok_id: tiktok || null,
+        google_id: google || null,
+        google_label: googleLabel || null,
+      }, settings.workspaceId);
+      onPixelsSaved(r.pixels);
+      showToast({ kind: "success", text: "Tracking pixels saved" });
+    } catch (e: any) {
+      setPixErr(e?.message || "Save failed");
+    } finally {
+      setPixBusy(false);
+    }
+  };
+
+  const openTestLink = async () => {
+    // Open a sample short link in a new tab so the creator can verify
+    // pixels fire using Meta Pixel Helper / TikTok Pixel Helper.
+    try {
+      const r = await api.recentLinks(1);
+      const first = r.items?.[0];
+      if (first) {
+        await browser.tabs.create({ url: first.short_url || `${settings.webBaseUrl}/${first.alias}` });
+      } else {
+        showToast({ kind: "info", text: "Create a link first, then re-open this panel to test." });
+      }
+    } catch (e: any) {
+      showToast({ kind: "error", text: e?.message || "Could not open test link" });
+    }
+  };
+
   return (
     <div className="body">
+      {settings.token && (
+        <>
+          <div className="muted" style={{ fontWeight: 600, color: "#eaeaea" }}>Tracking pixels</div>
+          <div className="muted" style={{ fontSize: 12 }}>
+            Pixels fire on every short link from this workspace (auto-pixel: on). Visitors get a
+            sub-200&nbsp;ms interstitial that loads your pixel scripts, then redirects.
+          </div>
+          <div className="settings-row">
+            <label>Meta (Facebook) Pixel ID</label>
+            <input value={meta} onChange={(e) => setMeta(e.target.value.trim())} placeholder="123456789012345" />
+            <span className="muted">15–16 digits. <a href="https://www.facebook.com/business/help/952192354843755" target="_blank" rel="noreferrer">Find your ID</a></span>
+          </div>
+          <div className="settings-row">
+            <label>TikTok Pixel ID</label>
+            <input value={tiktok} onChange={(e) => setTiktok(e.target.value.trim())} placeholder="C7XXXXXXXXXXXXXXXX" />
+            <span className="muted"><a href="https://ads.tiktok.com/help/article/get-started-pixel" target="_blank" rel="noreferrer">Find your ID</a></span>
+          </div>
+          <div className="settings-row">
+            <label>Google Ads Conversion ID</label>
+            <input value={google} onChange={(e) => setGoogle(e.target.value.trim())} placeholder="AW-1234567890" />
+            <span className="muted">Starts with AW-.</span>
+          </div>
+          <div className="settings-row">
+            <label>Google Ads Conversion Label</label>
+            <input value={googleLabel} onChange={(e) => setGoogleLabel(e.target.value.trim())} placeholder="abcDEF123_-" />
+            <span className="muted">Optional. Pairs with the Conversion ID.</span>
+          </div>
+          {pixErr && <div className="error-text">{pixErr}</div>}
+          <button className="btn-primary" disabled={pixBusy} onClick={savePixels}>
+            {pixBusy && <span className="spinner" />}Save tracking pixels
+          </button>
+          <button className="btn-secondary" onClick={openTestLink}>Test pixels (open a link)</button>
+          <div className="muted" style={{ fontSize: 12 }}>
+            Verify with{" "}
+            <a href="https://chrome.google.com/webstore/detail/meta-pixel-helper/fdgfkebogiimcoedlicjlajpkdmockpc" target="_blank" rel="noreferrer">Meta Pixel Helper</a>
+            {" · "}
+            <a href="https://chrome.google.com/webstore/detail/tiktok-pixel-helper/aelgobmabdmlfmiblddjfnjodalhidnn" target="_blank" rel="noreferrer">TikTok Pixel Helper</a>
+            {" · "}
+            <a href="https://chrome.google.com/webstore/detail/google-tag-assistant-lega/kejbdjndbnbjgmefkgdddjlbokphdefk" target="_blank" rel="noreferrer">Tag Assistant</a>.
+          </div>
+          <hr style={{ borderColor: "#222", margin: "12px 0" }} />
+        </>
+      )}
+      <div className="muted" style={{ fontWeight: 600, color: "#eaeaea" }}>Connection</div>
       <div className="settings-row">
         <label>API base URL</label>
-        <input value={api} onChange={(e) => setApi(e.target.value)} />
+        <input value={apiUrl} onChange={(e) => setApi(e.target.value)} />
         <span className="muted">Default: https://1inme.com/api/v1</span>
       </div>
       <div className="settings-row">

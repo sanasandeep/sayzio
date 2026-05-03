@@ -47,6 +47,60 @@ Chrome and Edge share one manifest; Firefox uses a sibling manifest with `browse
 2. Toggle **Developer mode** on (left sidebar)
 3. Click **Load unpacked** and choose `artifacts/1inme-extension/dist/edge/`
 
+## Auto-pixel retargeting
+
+Add your **Meta**, **TikTok** and **Google Ads** pixel IDs once in
+**Settings → Tracking pixels** in the popup. From then on every short
+link you create from the extension fires those pixels on click, so any
+visitor who clicks one of your links lands in your ad-platform
+retargeting audiences — even when the click happens on a third-party
+site you don't control.
+
+How it works:
+
+- When a short link is opted-in to **auto-pixel** (default for any
+  workspace that has at least one pixel ID configured) and the
+  workspace has pixels saved, the redirect serves a tiny <5KB
+  interstitial that loads the configured pixel scripts, fires
+  `PageView` + a custom `LinkClick` event with the link slug, then
+  `window.location.replace`s to the destination.
+- Workspaces with **no** pixels configured stay direct 302s — zero
+  perf cost, no interstitial.
+- The **Auto-pixel** toggle in the popup (next to the "Pixels: …"
+  badge) lets you turn the behavior off for the next link you
+  create. Each row in the **Recent links** list also has a per-link
+  toggle.
+
+### Where to find each ID
+
+- **Meta Pixel ID** — Events Manager → Data sources → your pixel.
+  15–16 digits.
+- **TikTok Pixel ID** — TikTok Ads → Tools → Events → Web Events.
+  Alphanumeric, e.g. `C7XXXXXXXXXXXXXXXX`.
+- **Google Ads Conversion ID + Label** — Google Ads → Tools →
+  Conversions → your action → Tag setup. ID looks like
+  `AW-1234567890`; the label is a short alphanumeric token.
+
+### What's sent
+
+Pixels receive only the click context:
+
+- Page URL of the interstitial (the short-link URL)
+- Referrer (the site the click happened on)
+- A per-day SHA-256 hash of the visitor's IP + user-agent (used only
+  to dedupe fires server-side — never raw)
+
+No PII is sent. Only browser-side pixel events fire — there's no
+server-side Conversions API call in v1.
+
+### Verifying pixels fire
+
+Use **Settings → Tracking pixels → Test pixels (open a link)** to
+open one of your recent short links in a new tab, then check
+[Meta Pixel Helper](https://chrome.google.com/webstore/detail/meta-pixel-helper/fdgfkebogiimcoedlicjlajpkdmockpc),
+[TikTok Pixel Helper](https://chrome.google.com/webstore/detail/tiktok-pixel-helper/aelgobmabdmlfmiblddjfnjodalhidnn),
+or [Google Tag Assistant](https://chrome.google.com/webstore/detail/google-tag-assistant-lega/kejbdjndbnbjgmefkgdddjlbokphdefk).
+
 ### Firefox
 
 1. Open `about:debugging#/runtime/this-firefox`

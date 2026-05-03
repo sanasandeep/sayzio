@@ -8,6 +8,36 @@ class LinkResource
 {
     public static function toArray(Link $l): array
     {
+        // Auto-pixel + retargeting fire stats. Values are best-effort and
+        // gracefully degrade when the table doesn't exist yet (e.g. on a
+        // pre-migration deploy serving an older client).
+        $autoPixel = false;
+        $pixelFiresCount = 0;
+        $pixelFiresProviders = [];
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasColumn('links', 'auto_pixel')) {
+                $autoPixel = (bool) ($l->auto_pixel ?? false);
+            }
+            if (\Illuminate\Support\Facades\Schema::hasTable('link_pixel_fires')) {
+                $pixelFiresCount = (int) \Illuminate\Support\Facades\DB::table('link_pixel_fires')
+                    ->where('link_id', $l->id)->count();
+                $rows = \Illuminate\Support\Facades\DB::table('link_pixel_fires')
+                    ->where('link_id', $l->id)
+                    ->select('providers')
+                    ->limit(500)
+                    ->get();
+                $set = [];
+                foreach ($rows as $r) {
+                    foreach (explode(',', (string) $r->providers) as $p) {
+                        $p = trim($p);
+                        if ($p !== '') $set[$p] = true;
+                    }
+                }
+                $pixelFiresProviders = array_keys($set);
+                sort($pixelFiresProviders);
+            }
+        } catch (\Throwable $e) { /* best-effort */ }
+
         return [
             'id'              => $l->id,
             'type'            => $l->type,
@@ -25,6 +55,11 @@ class LinkResource
             'seo_description' => $l->seo_description,
             'seo_image'       => $l->seo_image,
             'short_url'       => url('/' . $l->alias),
+            'auto_pixel'      => $autoPixel,
+            'pixel_fires'     => [
+                'count'     => $pixelFiresCount,
+                'providers' => $pixelFiresProviders,
+            ],
             'settings'        => $l->settings ?? new \stdClass(),
             'created_at'      => optional($l->created_at)->toIso8601String(),
             'updated_at'      => optional($l->updated_at)->toIso8601String(),

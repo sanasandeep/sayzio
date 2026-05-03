@@ -266,6 +266,38 @@ class RedirectController extends Controller
             $this->applyDraftOverrides($request, $link);
         }
 
+        // Auto-pixel interstitial — when the link is opted-in (auto_pixel)
+        // and the link's workspace has at least one tracking pixel ID
+        // configured, serve a tiny <5KB HTML page that loads the pixel
+        // scripts, fires PageView + a custom LinkClick event, then
+        // window.location.replace()s to the destination. Workspaces with
+        // no pixels configured stay a direct 302 with zero perf cost.
+        if ($link->type === 'url'
+            && $finalUrl
+            && (bool) ($link->auto_pixel ?? false)
+            && \Illuminate\Support\Facades\Schema::hasColumn('links', 'auto_pixel')) {
+            $ws = $link->workspace_id
+                ? \App\Modules\User\Models\Workspace::query()->find($link->workspace_id)
+                : null;
+            $px = $ws ? (array) (data_get($ws->settings, 'pixels', []) ?? []) : [];
+            $providers = [];
+            if (!empty($px['meta_id']))   $providers[] = 'meta';
+            if (!empty($px['tiktok_id'])) $providers[] = 'tiktok';
+            if (!empty($px['google_id'])) $providers[] = 'google';
+            if (!empty($providers)) {
+                $resp = response()->view('common.auto-pixel-interstitial', [
+                    'pixels'        => $px,
+                    'providers'     => $providers,
+                    'destination'   => $finalUrl,
+                    'alias'         => $link->alias,
+                    'workspaceName' => $ws?->name ?? '',
+                    'beaconUrl'     => url('/api/v1/links/' . $link->alias . '/pixel-fire'),
+                ]);
+                if ($smartCookie) $resp->withCookie($smartCookie);
+                return $resp;
+            }
+        }
+
         return match ($link->type) {
             'url' => tap(
                 redirect()->away($finalUrl, $link->redirect_type ?: 301),

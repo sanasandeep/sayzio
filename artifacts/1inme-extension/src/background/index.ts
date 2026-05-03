@@ -54,11 +54,11 @@ function notify(title: string, message: string) {
   } catch { /* notifications permission may be missing */ }
 }
 
-async function shortenAndCopy(url: string, title?: string, openTabId?: number): Promise<{ ok: true; shortUrl: string; linkId: number } | { ok: false; error: string }> {
+async function shortenAndCopy(url: string, title?: string, openTabId?: number, autoPixel?: boolean): Promise<{ ok: true; shortUrl: string; linkId: number } | { ok: false; error: string }> {
   const settings = await getSettings();
   if (!settings.token) return { ok: false, error: "Not signed in" };
   try {
-    const result = await api.createShortLink(url, title, settings.workspaceId);
+    const result = await api.createShortLink(url, title, settings.workspaceId, autoPixel);
     const alias = result.link.alias;
     const shortUrl = result.link.short_url || `${settings.webBaseUrl}/${alias}`;
 
@@ -219,7 +219,7 @@ browser.runtime.onMessage.addListener(async (msg: any, sender: any) => {
         const tabs = await browser.tabs.query({ active: true, currentWindow: true });
         activeTabId = tabs[0]?.id;
       }
-      return shortenAndCopy(msg.url, msg.title, activeTabId);
+      return shortenAndCopy(msg.url, msg.title, activeTabId, msg.autoPixel);
     }
     case "PAGE_TO_BIOLINK": {
       const tabId = msg.tabId ?? sender.tab?.id;

@@ -49,6 +49,16 @@ async function request<T = any>(path: string, opts: RequestOptions = {}): Promis
   return (data?.data ?? data) as T;
 }
 
+export interface WorkspacePixels {
+  workspace_id: number;
+  meta_id: string | null;
+  tiktok_id: string | null;
+  google_id: string | null;
+  google_label: string | null;
+  configured: string[];
+  has_any: boolean;
+}
+
 export interface LoginResult {
   user: { id: number; name: string; email: string; handle?: string | null };
   token: string;
@@ -68,15 +78,41 @@ export const api = {
 
   workspaces: () => request<{ items?: Array<{ id: number; name: string }> } | Array<{ id: number; name: string }>>("/workspaces"),
 
-  createShortLink: (longUrl: string, title?: string, workspaceId?: number | null) =>
-    request<{ link: { id: number; alias: string; long_url: string; short_url?: string } }>("/links", {
+  createShortLink: (
+    longUrl: string,
+    title?: string,
+    workspaceId?: number | null,
+    autoPixel?: boolean,
+  ) =>
+    request<{ link: { id: number; alias: string; long_url: string; short_url?: string; auto_pixel?: boolean } }>("/links", {
       method: "POST",
       body: {
         type: "short",
         long_url: longUrl,
         title: title || undefined,
         workspace_id: workspaceId ?? undefined,
+        auto_pixel: autoPixel,
       },
+    }),
+
+  updateLink: (linkId: number, patch: Record<string, unknown>) =>
+    request<{ link: { id: number; alias: string; auto_pixel?: boolean } }>(`/links/${linkId}`, {
+      method: "PATCH",
+      body: patch,
+    }),
+
+  recentLinks: (perPage = 10) =>
+    request<{ items: Array<{ id: number; alias: string; title: string | null; long_url: string | null; short_url?: string; auto_pixel?: boolean; pixel_fires?: { count: number; providers: string[] } }> }>(
+      `/links?per_page=${perPage}`,
+    ),
+
+  getWorkspacePixels: (workspaceId?: number | null) =>
+    request<{ pixels: WorkspacePixels }>(`/workspace/pixels${workspaceId ? `?workspace_id=${workspaceId}` : ""}`),
+
+  saveWorkspacePixels: (pixels: Partial<WorkspacePixels>, workspaceId?: number | null) =>
+    request<{ pixels: WorkspacePixels }>(`/workspace/pixels${workspaceId ? `?workspace_id=${workspaceId}` : ""}`, {
+      method: "PUT",
+      body: pixels,
     }),
 
   createBiolink: (title: string, seoDescription?: string, seoImage?: string, workspaceId?: number | null) =>

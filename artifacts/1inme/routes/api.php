@@ -113,6 +113,14 @@ Route::prefix('v1')->group(function () {
     // Public read-only catalog
     Route::get('/plans', [PlanController::class, 'index']);
 
+    // Auto-pixel interstitial fire beacon — public, anonymous visitors.
+    // The interstitial loads the configured pixel scripts then POSTs here
+    // to record one row in `link_pixel_fires` so the dashboard can show
+    // retargeting impact. Throttled hard since it's an unauthenticated
+    // public endpoint.
+    Route::middleware('throttle:120,1')
+        ->post('/links/{alias}/pixel-fire', [\App\Modules\Api\Controllers\LinkPixelFireController::class, 'store']);
+
     // Mobile splash slider — admin-managed onboarding slides.
     Route::get('/onboarding/slides', [OnboardingSlideController::class, 'index']);
 
@@ -254,6 +262,13 @@ Route::prefix('v1')->group(function () {
         // Workspaces
         Route::get('/workspaces',                 [WorkspaceController::class, 'index']);
         Route::get('/workspaces/{id}/members',    [WorkspaceController::class, 'members'])->whereNumber('id');
+
+        // Workspace tracking pixels (Meta / TikTok / Google Ads). Used by
+        // the browser extension Settings → Tracking pixels panel so the
+        // IDs follow the user across devices instead of living only in
+        // browser.storage.
+        Route::get('/workspace/pixels', [\App\Modules\Api\Controllers\WorkspacePixelsController::class, 'show']);
+        Route::put('/workspace/pixels', [\App\Modules\Api\Controllers\WorkspacePixelsController::class, 'update']);
 
         // Custom domains
         Route::get   ('/domains',        [DomainController::class, 'index']);

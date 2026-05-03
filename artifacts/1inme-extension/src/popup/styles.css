@@ -188,3 +188,26 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 }
 .ab-bar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; background: #e2e8f0; }
 .ab-bar-seg { height: 100%; transition: width 0.3s; }
+.pixel-badge {
+  display: inline-block;
+  font-size: 11px;
+  background: #eef2ff;
+  color: #3730a3;
+  padding: 2px 8px;
+  border-radius: 999px;
+  margin-bottom: 4px;
+}
+.toggle-row {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: #475569;
+  margin-top: 4px;
+}
+.toggle-row input { margin: 0; }
+.recent-links { display: flex; flex-direction: column; gap: 4px; }
+.recent-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 6px;
+  border: 1px solid #e2e8f0; border-radius: 6px;
+  font-size: 12px;
+}
+.recent-row a { color: #4f46e5; text-decoration: none; }

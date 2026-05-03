@@ -20,6 +20,8 @@ protected $fillable = [
         'settings', 'total_clicks', 'unique_clicks',
         'splash_page_id', 'splash_enabled',
         'visibility', 'is_demo',
+        // Auto-fire workspace tracking pixels (Meta/TikTok/Google Ads) on click.
+        'auto_pixel',
         // Link Insurance
         'insurance_enabled', 'insurance_cadence_minutes',
         'insurance_failure_threshold', 'insurance_recovery_threshold',
@@ -52,6 +54,7 @@ protected $fillable = [
             'insurance_last_failover_at'        => 'datetime',
             'ar_enabled'                        => 'boolean',
             'ar_settings'                       => 'array',
+            'auto_pixel'                        => 'boolean',
         ];
     }
 

@@ -64,6 +64,12 @@ class LinkController extends Controller
             // links row only when the column exists, otherwise stashed
             // under settings.workspace_id so the choice isn't lost.
             'workspace_id' => ['nullable', 'integer'],
+            // Auto-fire workspace tracking pixels (Meta / TikTok / Google
+            // Ads) when this link is clicked. Optional — when omitted,
+            // defaults to true if the workspace has any pixel configured,
+            // false otherwise (so links created on workspaces with no
+            // pixels stay direct 302s with zero perf cost).
+            'auto_pixel'   => ['nullable', 'boolean'],
         ]);
 
         $alias = $data['alias'] ?? Str::lower(Str::random(7));
@@ -94,6 +100,20 @@ class LinkController extends Controller
                 $settingsPayload['workspace_id'] = (int) $workspaceId;
             }
         }
+
+        // Auto-pixel default: if the caller didn't specify, derive from
+        // the target workspace's pixel configuration. Workspaces with at
+        // least one pixel ID configured opt every new link in by default;
+        // empty workspaces stay opted out so the redirect remains a
+        // direct 302 with no interstitial cost.
+        if (Schema::hasColumn('links', 'auto_pixel')) {
+            if (array_key_exists('auto_pixel', $data)) {
+                $attrs['auto_pixel'] = (bool) $data['auto_pixel'];
+            } else {
+                $attrs['auto_pixel'] = $this->workspaceHasPixels($workspaceId ?? ($attrs['workspace_id'] ?? null));
+            }
+        }
+
         $attrs['settings'] = $settingsPayload;
 
         $link = Link::create($attrs);
@@ -123,6 +143,7 @@ class LinkController extends Controller
             'seo_description' => ['sometimes', 'nullable', 'string', 'max:500'],
             'expires_at' => ['sometimes', 'nullable', 'date'],
             'settings'   => ['sometimes', 'nullable', 'array'],
+            'auto_pixel' => ['sometimes', 'boolean'],
         ]);
 
         if (array_key_exists('settings', $data)) {
@@ -162,6 +183,16 @@ class LinkController extends Controller
         });
 
         return $this->ok(['link' => LinkResource::toArray($link->fresh())]);
+    }
+
+    /** True when the given workspace has any tracking pixel ID configured. */
+    protected function workspaceHasPixels(?int $workspaceId): bool
+    {
+        if (!$workspaceId) return false;
+        $ws = \App\Modules\User\Models\Workspace::query()->find($workspaceId);
+        if (!$ws) return false;
+        $p = (array) (data_get($ws->settings, 'pixels', []) ?? []);
+        return !empty($p['meta_id']) || !empty($p['tiktok_id']) || !empty($p['google_id']);
     }
 
     public function destroy(Request $request, int $id)
