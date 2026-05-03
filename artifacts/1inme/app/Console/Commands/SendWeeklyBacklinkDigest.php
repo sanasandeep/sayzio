@@ -55,6 +55,7 @@ class SendWeeklyBacklinkDigest extends Command
         $userId  = $this->option('user');
 
         $windowStart   = $now->copy()->subDays(7);
+        $cooldownStart = $now->copy()->subDays(6);
         // Cooldown chosen at 6 days (not 7) on purpose:
         //   * Next week's matching slot is exactly 7 days after the last
         //     send, which is strictly older than the 6-days-ago boundary,
