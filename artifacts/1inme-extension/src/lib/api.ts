@@ -97,6 +97,55 @@ export const api = {
       method: "POST",
       body: { type, settings, sort_order: sortOrder, is_active: true },
     }),
+
+  // ── A/B test endpoints ──────────────────────────────────────────────
+  createAbTest: (
+    title: string | undefined,
+    variants: Array<{ label?: string; url: string; weight: number }>,
+    workspaceId?: number | null,
+  ) =>
+    request<{
+      link: { id: number; alias: string; long_url: string; short_url?: string };
+      variants: AbVariantsPayload;
+    }>("/links/ab", {
+      method: "POST",
+      body: {
+        title: title || undefined,
+        workspace_id: workspaceId ?? undefined,
+        variants,
+      },
+    }),
+
+  listAbTests: () =>
+    request<{ items: Array<{ link: { id: number; alias: string; short_url?: string; title?: string }; variants: AbVariantsPayload }> }>(
+      "/links/ab",
+    ),
+
+  getAbTest: (linkId: number) =>
+    request<{ link: { id: number; alias: string; short_url?: string }; variants: AbVariantsPayload }>(
+      `/links/${linkId}/ab`,
+    ),
+
+  declareAbWinner: (linkId: number, variantId: number) =>
+    request<{ link: { id: number; alias: string }; variants: AbVariantsPayload }>(
+      `/links/${linkId}/ab/declare-winner`,
+      { method: "POST", body: { variant_id: variantId } },
+    ),
 };
+
+export interface AbVariantsPayload {
+  enabled: boolean;
+  winner_variant_id: number | null;
+  leader_variant_id: number | null;
+  variants: Array<{
+    id: number;
+    label: string | null;
+    url: string;
+    weight: number;
+    visitors: number;
+    clicks: number;
+    is_winner: boolean;
+  }>;
+}
 
 export { request };

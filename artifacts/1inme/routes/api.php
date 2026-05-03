@@ -169,6 +169,13 @@ Route::prefix('v1')->group(function () {
         // Links
         Route::get('/links',         [LinkController::class, 'index']);
         Route::post('/links',        [LinkController::class, 'store']);
+        // A/B test endpoints — registered BEFORE the `/links/{id}` show
+        // route so the literal segments (`ab`) win over the integer id
+        // matcher and we don't accidentally treat "ab" as a link id.
+        Route::get ('/links/ab',                       [LinkController::class, 'indexAb']);
+        Route::post('/links/ab',                       [LinkController::class, 'storeAb']);
+        Route::get ('/links/{id}/ab',                  [LinkController::class, 'showAb'])->whereNumber('id');
+        Route::post('/links/{id}/ab/declare-winner',   [LinkController::class, 'declareAbWinner'])->whereNumber('id');
         Route::get('/links/{id}',    [LinkController::class, 'show'])->whereNumber('id');
         Route::patch('/links/{id}',  [LinkController::class, 'update'])->whereNumber('id');
         Route::delete('/links/{id}', [LinkController::class, 'destroy'])->whereNumber('id');

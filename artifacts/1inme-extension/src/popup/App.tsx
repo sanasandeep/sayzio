@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { browser } from "../lib/browser";
-import { ApiError, api } from "../lib/api";
+import { ApiError, api, AbVariantsPayload } from "../lib/api";
 import { ExtSettings, clearAuth, getSettings, setSettings } from "../lib/storage";
 
 type Toast = { kind: "success" | "error" | "info"; text: string; link?: { href: string; label: string } } | null;
+
+type AbTestItem = { link: { id: number; alias: string; short_url?: string; title?: string }; variants: AbVariantsPayload };
 
 export function App() {
   const [settings, setLocalSettings] = useState<ExtSettings | null>(null);
@@ -12,13 +14,34 @@ export function App() {
   const [tabId, setTabId] = useState<number | null>(null);
   const [toast, setToast] = useState<Toast>(null);
   const [busy, setBusy] = useState<string | null>(null);
-  const [view, setView] = useState<"main" | "login" | "settings">("main");
+  const [view, setView] = useState<"main" | "login" | "settings" | "ab">("main");
+  const [abTests, setAbTests] = useState<AbTestItem[]>([]);
+  const [abLoading, setAbLoading] = useState(false);
+
+  const loadAbTests = useCallback(async () => {
+    setAbLoading(true);
+    try {
+      const resp = await api.listAbTests();
+      setAbTests(resp.items || []);
+    } catch {
+      // silently swallow — user might be on a plan without AB tests
+      setAbTests([]);
+    } finally {
+      setAbLoading(false);
+    }
+  }, []);
 
   const refresh = useCallback(async () => {
     const s = await getSettings();
     setLocalSettings(s);
     setView(s.token ? "main" : "login");
   }, []);
+
+  useEffect(() => {
+    if (settings?.token && view === "main") {
+      loadAbTests();
+    }
+  }, [settings?.token, view, loadAbTests]);
 
   useEffect(() => {
     refresh();
@@ -104,6 +127,20 @@ export function App() {
       <Header settings={settings} onSettings={() => setView(view === "settings" ? "main" : "settings")} />
       {view === "login" && <LoginView settings={settings} onAuthed={refresh} showToast={showToast} />}
       {view === "settings" && <SettingsView settings={settings} onSaved={refresh} />}
+      {view === "ab" && (
+        <AbBuilder
+          tabUrl={tabUrl}
+          tabTitle={tabTitle}
+          workspaceId={settings.workspaceId ?? null}
+          onCancel={() => setView("main")}
+          onCreated={(shortUrl) => {
+            setView("main");
+            loadAbTests();
+            showToast({ kind: "success", text: `A/B test live: ${shortUrl}` });
+          }}
+          onError={(msg) => showToast({ kind: "error", text: msg })}
+        />
+      )}
       {view === "main" && (
         <div className="body">
           <div className="field">
@@ -135,6 +172,10 @@ export function App() {
           <button className="btn-secondary" disabled={!tabId || busy !== null} onClick={handleBiolink}>
             {busy === "biolink" && <span className="spinner" />}Turn into bio-link page
           </button>
+          <button className="btn-secondary" disabled={!tabUrl || busy !== null} onClick={() => setView("ab")}>
+            Shorten as A/B test…
+          </button>
+          <RecentAbTests items={abTests} loading={abLoading} onChanged={loadAbTests} showToast={showToast} />
         </div>
       )}
       <Footer settings={settings} view={view} onSignOut={handleSignOut} onSettings={() => setView(view === "settings" ? "main" : "settings")} busy={busy} />
@@ -230,6 +271,228 @@ function LoginView({ settings, onAuthed, showToast }: { settings: ExtSettings; o
         {err && <div className="error-text">{err}</div>}
         <button type="submit" className="btn-primary" disabled={busy}>{busy && <span className="spinner" />}Sign in</button>
       </form>
+    </div>
+  );
+}
+
+function AbBuilder({
+  tabUrl, tabTitle, workspaceId, onCancel, onCreated, onError,
+}: {
+  tabUrl: string;
+  tabTitle: string;
+  workspaceId: number | null;
+  onCancel: () => void;
+  onCreated: (shortUrl: string) => void;
+  onError: (msg: string) => void;
+}) {
+  const [title, setTitle] = useState(tabTitle || "");
+  const [variants, setVariants] = useState<Array<{ label: string; url: string; weight: number }>>([
+    { label: "A", url: tabUrl, weight: 50 },
+    { label: "B", url: "", weight: 50 },
+  ]);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const sum = variants.reduce((acc, v) => acc + (Number.isFinite(v.weight) ? v.weight : 0), 0);
+
+  const setRow = (i: number, patch: Partial<{ label: string; url: string; weight: number }>) => {
+    setVariants((prev) => prev.map((v, idx) => (idx === i ? { ...v, ...patch } : v)));
+  };
+
+  const addRow = () => {
+    if (variants.length >= 4) return;
+    setVariants((prev) => {
+      const labels = ["A", "B", "C", "D"];
+      const next = [...prev, { label: labels[prev.length] ?? "", url: "", weight: 0 }];
+      const even = Math.floor(100 / next.length);
+      return next.map((v, i) => ({ ...v, weight: i === next.length - 1 ? 100 - even * (next.length - 1) : even }));
+    });
+  };
+
+  const removeRow = (i: number) => {
+    if (variants.length <= 2) return;
+    setVariants((prev) => {
+      const next = prev.filter((_, idx) => idx !== i);
+      const even = Math.floor(100 / next.length);
+      return next.map((v, j) => ({ ...v, weight: j === next.length - 1 ? 100 - even * (next.length - 1) : even }));
+    });
+  };
+
+  const splitEvenly = () => {
+    setVariants((prev) => {
+      const even = Math.floor(100 / prev.length);
+      return prev.map((v, i) => ({ ...v, weight: i === prev.length - 1 ? 100 - even * (prev.length - 1) : even }));
+    });
+  };
+
+  const submit = async () => {
+    setErr(null);
+    if (variants.some((v) => !v.url.trim())) { setErr("Every variant needs a destination URL."); return; }
+    if (sum !== 100) { setErr(`Weights must sum to 100 (currently ${sum}).`); return; }
+    setBusy(true);
+    try {
+      const resp = await api.createAbTest(
+        title || undefined,
+        variants.map((v) => ({ label: v.label || undefined, url: v.url.trim(), weight: v.weight })),
+        workspaceId,
+      );
+      const shortUrl = resp.link.short_url || `/${resp.link.alias}`;
+      try { await navigator.clipboard.writeText(shortUrl); } catch { /* clipboard optional */ }
+      onCreated(shortUrl);
+    } catch (e: any) {
+      const msg = e instanceof ApiError ? e.message : (e?.message || "Could not create A/B test");
+      setErr(msg);
+      onError(msg);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="body">
+      <div className="field">
+        <label>A/B test title (optional)</label>
+        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Spring sale CTA" />
+      </div>
+      <div className="ab-builder">
+        {variants.map((v, i) => (
+          <div key={i} className="ab-row">
+            <input
+              className="ab-label"
+              value={v.label}
+              maxLength={20}
+              onChange={(e) => setRow(i, { label: e.target.value })}
+              placeholder="Label"
+            />
+            <input
+              className="ab-url"
+              value={v.url}
+              onChange={(e) => setRow(i, { url: e.target.value })}
+              placeholder="https://…"
+            />
+            <input
+              className="ab-weight"
+              type="number"
+              min={1}
+              max={100}
+              value={v.weight}
+              onChange={(e) => setRow(i, { weight: Math.max(0, Math.min(100, Number(e.target.value) || 0)) })}
+            />
+            <span className="muted">%</span>
+            {variants.length > 2 && (
+              <button className="btn-link" onClick={() => removeRow(i)} title="Remove">×</button>
+            )}
+          </div>
+        ))}
+        <div className="row" style={{ justifyContent: "space-between" }}>
+          <span className={`muted ${sum === 100 ? "" : "weights-bad"}`}>Total: {sum}%</span>
+          <span className="row" style={{ gap: 4 }}>
+            <button className="btn-link" onClick={splitEvenly}>Even split</button>
+            {variants.length < 4 && <button className="btn-link" onClick={addRow}>+ Add variant</button>}
+          </span>
+        </div>
+      </div>
+      {err && <div className="error-text">{err}</div>}
+      <div className="row" style={{ gap: 8 }}>
+        <button className="btn-secondary" onClick={onCancel} disabled={busy}>Cancel</button>
+        <button className="btn-primary" onClick={submit} disabled={busy || sum !== 100}>
+          {busy && <span className="spinner" />}Create A/B link
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function RecentAbTests({
+  items, loading, onChanged, showToast,
+}: {
+  items: AbTestItem[];
+  loading: boolean;
+  onChanged: () => void;
+  showToast: (t: Toast) => void;
+}) {
+  const [busyId, setBusyId] = useState<number | null>(null);
+
+  const declare = async (linkId: number, variantId: number) => {
+    setBusyId(linkId);
+    try {
+      await api.declareAbWinner(linkId, variantId);
+      showToast({ kind: "success", text: "Winner declared — link now points to the chosen URL." });
+      onChanged();
+    } catch (e: any) {
+      showToast({ kind: "error", text: e?.message || "Could not declare winner" });
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  if (loading && items.length === 0) {
+    return <div className="ab-list muted">Loading recent A/B tests…</div>;
+  }
+  if (items.length === 0) return null;
+
+  return (
+    <div className="ab-list">
+      <div className="ab-list-title">Recent A/B tests</div>
+      {items.map((it) => {
+        const totalClicks = it.variants.variants.reduce((acc, v) => acc + v.clicks, 0);
+        const leader = it.variants.variants.find((v) => v.id === it.variants.leader_variant_id);
+        const isDone = it.variants.winner_variant_id !== null;
+        return (
+          <div key={it.link.id} className="ab-card">
+            <div className="row" style={{ justifyContent: "space-between" }}>
+              <div className="ab-card-title">
+                <span className="ab-badge">A/B</span>{" "}
+                {it.link.short_url || `/${it.link.alias}`}
+              </div>
+              <span className="muted">{totalClicks} click{totalClicks === 1 ? "" : "s"}</span>
+            </div>
+            <Sparkline variants={it.variants.variants} totalClicks={totalClicks} />
+            <div className="muted" style={{ marginTop: 4 }}>
+              {isDone
+                ? <>Winner declared.</>
+                : leader && totalClicks > 0
+                  ? <>Leader: <strong>{leader.label || `Variant ${leader.id}`}</strong> ({leader.clicks}/{totalClicks})</>
+                  : <>Waiting for clicks…</>}
+            </div>
+            {!isDone && totalClicks > 0 && (
+              <div className="row" style={{ gap: 4, marginTop: 4, flexWrap: "wrap" }}>
+                {it.variants.variants.map((v) => (
+                  <button
+                    key={v.id}
+                    className="btn-link"
+                    disabled={busyId === it.link.id}
+                    onClick={() => declare(it.link.id, v.id)}
+                    title={`Declare ${v.label || `Variant ${v.id}`} as winner`}
+                  >
+                    Declare {v.label || `#${v.id}`}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function Sparkline({ variants, totalClicks }: { variants: AbTestItem["variants"]["variants"]; totalClicks: number }) {
+  if (variants.length === 0) return null;
+  const colors = ["#5b8def", "#22c55e", "#f59e0b", "#ef4444"];
+  return (
+    <div className="ab-bar">
+      {variants.map((v, i) => {
+        const pct = totalClicks > 0 ? (v.clicks / totalClicks) * 100 : v.weight;
+        return (
+          <div
+            key={v.id}
+            className="ab-bar-seg"
+            style={{ width: `${pct}%`, background: colors[i % colors.length] }}
+            title={`${v.label || `#${v.id}`}: ${v.clicks} clicks (${pct.toFixed(0)}%)`}
+          />
+        );
+      })}
     </div>
   );
 }

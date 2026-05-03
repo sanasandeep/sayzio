@@ -142,3 +142,49 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 .settings-row { display: flex; flex-direction: column; gap: 4px; }
 .muted { color: #64748b; font-size: 12px; }
 .error-text { color: #b91c1c; font-size: 12px; }
+
+.row { display: flex; align-items: center; }
+
+/* A/B test builder */
+.ab-builder { display: flex; flex-direction: column; gap: 6px; }
+.ab-row { display: flex; gap: 4px; align-items: center; }
+.ab-row input {
+  padding: 6px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+  min-width: 0;
+}
+.ab-row input:focus { border-color: #6366f1; }
+.ab-label { width: 50px; }
+.ab-url { flex: 1; }
+.ab-weight { width: 56px; text-align: right; }
+.weights-bad { color: #b91c1c; }
+
+/* Recent A/B tests list */
+.ab-list { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.ab-list-title { font-size: 12px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.04em; }
+.ab-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ab-card-title { font-weight: 500; color: #0f172a; word-break: break-all; font-size: 12px; }
+.ab-badge {
+  display: inline-block;
+  background: #6366f1;
+  color: white;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+}
+.ab-bar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; background: #e2e8f0; }
+.ab-bar-seg { height: 100%; transition: width 0.3s; }

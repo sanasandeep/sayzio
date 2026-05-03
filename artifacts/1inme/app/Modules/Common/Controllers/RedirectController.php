@@ -7,6 +7,7 @@ use App\Modules\Common\Services\AppLinkResolver;
 use App\Modules\Common\Services\LinkTrackingService;
 use App\Modules\Common\Services\SmartRedirectResolver;
 use App\Modules\Common\Services\ViewerSession;
+use App\Modules\User\Models\AbVariant;
 use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Follow;
 use App\Modules\User\Models\Link;
@@ -151,6 +152,19 @@ class RedirectController extends Controller
             $this->trackingService->track($link, $request, $alias, 'web');
         }
 
+        // A/B variant resolution from the dedicated `ab_variants` table
+        // (the browser-extension's "Shorten as A/B test" feature). Runs
+        // BEFORE smart_rules so an active test always wins. Sticky per
+        // visitor via a signed cookie keyed by the link id; first-time
+        // visitors are bucketed deterministically by hashing their
+        // visitor id (IP + UA) with the link id, then the result is
+        // pinned via the cookie so subsequent hits skip the random pick.
+        $abCookie    = null;
+        $abFinalUrl  = null;
+        if ($link->type === 'url' && $link->hasActiveAbTest()) {
+            [$abFinalUrl, $abCookie] = $this->resolveAbVariant($link, $request);
+        }
+
         // Smart redirect rules — evaluated for ALL link types so that
         // device/country/language/time/AB rules can override the link's
         // normal behavior with a custom destination URL. For 'url' links
@@ -164,6 +178,13 @@ class RedirectController extends Controller
         if ($link->type === 'url') {
             $finalUrl    = $smart['url'];
             $smartCookie = $smart['cookie'];
+        }
+
+        // Extension-AB wins over the link's normal destination when a
+        // variant resolved successfully.
+        if ($abFinalUrl !== null) {
+            $finalUrl    = $abFinalUrl;
+            $smartCookie = $abCookie ?? $smartCookie;
         }
 
         // Link Insurance — when every destination is down and the
@@ -276,6 +297,75 @@ class RedirectController extends Controller
      * the page into "Conversational" mode and there's a published flow
      * available, render the chat UI instead of the static block list.
      */
+    /**
+     * Sticky weighted variant assignment for the extension's A/B test
+     * feature. Reads/sets `_abx_{link_id}` cookie storing the assigned
+     * variant id; first-time visitors are bucketed deterministically by
+     * hashing (visitor IP + UA + link id) into the cumulative weights.
+     * Per-variant counters are bumped on every hit so the popup leader
+     * callout updates in near-real-time.
+     *
+     * @return array{0:?string,1:?\Symfony\Component\HttpFoundation\Cookie}
+     */
+    protected function resolveAbVariant(Link $link, Request $request): array
+    {
+        $variants = $link->abVariants()->get();
+        if ($variants->isEmpty()) return [null, null];
+
+        $cookieName = '_abx_' . $link->id;
+        $existing   = $request->cookie($cookieName);
+
+        $chosen = null;
+        if (is_string($existing) && ctype_digit($existing)) {
+            $chosen = $variants->firstWhere('id', (int) $existing);
+        }
+
+        if (!$chosen) {
+            // Deterministic bucketing — same visitor (same IP + UA)
+            // always lands on the same variant before the cookie is set,
+            // so a request that loses its cookie before the response
+            // commits still picks the same bucket.
+            $total = (int) $variants->sum('weight');
+            if ($total <= 0) return [null, null];
+
+            $seed = sprintf('%s|%s|%d', (string) $request->ip(), (string) $request->userAgent(), (int) $link->id);
+            $hash = hexdec(substr(hash('sha256', $seed), 0, 8));
+            $r    = ($hash % $total) + 1;
+            $running = 0;
+            foreach ($variants as $v) {
+                $running += (int) $v->weight;
+                if ($r <= $running) { $chosen = $v; break; }
+            }
+        }
+
+        if (!$chosen) return [null, null];
+
+        // Per-variant counters. `visitors` increments only on first
+        // assignment (no existing cookie); `clicks` on every hit.
+        try {
+            if (!is_string($existing) || (int) $existing !== (int) $chosen->id) {
+                AbVariant::whereKey($chosen->id)->increment('visitors');
+            }
+            AbVariant::whereKey($chosen->id)->increment('clicks');
+        } catch (\Throwable $e) {
+            \Log::warning('AB variant counter bump failed', ['err' => $e->getMessage(), 'link_id' => $link->id]);
+        }
+
+        $cookie = \Symfony\Component\HttpFoundation\Cookie::create(
+            $cookieName,
+            (string) $chosen->id,
+            time() + (60 * 60 * 24 * 30), // 30 days
+            '/',
+            null,
+            $request->isSecure(),
+            true,  // httpOnly
+            false,
+            \Symfony\Component\HttpFoundation\Cookie::SAMESITE_LAX
+        );
+
+        return [(string) $chosen->url, $cookie];
+    }
+
     protected function biolinkViewFor(Link $link): string
     {
         $mode = data_get($link->settings, 'biolink.mode', 'list');

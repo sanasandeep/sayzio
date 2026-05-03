@@ -126,6 +126,29 @@ protected $fillable = [
     }
 
     /**
+     * A/B test variants for this short link. Populated by the browser
+     * extension's "Shorten as A/B test" flow. When non-empty AND the
+     * link's `settings.ab_test.winner_variant_id` is null, the redirect
+     * path performs sticky weighted variant assignment instead of
+     * sending visitors to `long_url`.
+     */
+    public function abVariants()
+    {
+        return $this->hasMany(AbVariant::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    /**
+     * True when the link has an active A/B test running (variants exist
+     * and no winner has been declared yet).
+     */
+    public function hasActiveAbTest(): bool
+    {
+        $winner = data_get($this->settings, 'ab_test.winner_variant_id');
+        if ($winner) return false;
+        return $this->abVariants()->exists();
+    }
+
+    /**
      * Additional aliases (alternative URL slugs) that all serve THIS biolink page
      * with no redirect. The base `links.alias` column is the "primary" alias and
      * is NOT stored in this table — it lives on the link row itself for backward

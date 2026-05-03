@@ -4,6 +4,7 @@ namespace App\Modules\Api\Controllers;
 
 use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use App\Modules\Api\Resources\LinkResource;
+use App\Modules\User\Models\AbVariant;
 use App\Modules\User\Models\Link;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -222,6 +223,12 @@ class LinkController extends Controller
                 ->groupBy('device_type')->orderByDesc('clicks')->get()->all();
         }
 
+        // A/B variant breakdown — populated when the link was created via
+        // the browser extension's "Shorten as A/B test" flow. The popup
+        // (and dashboard) renders the per-variant counts and surfaces the
+        // current leader.
+        $payload['ab_variants'] = $this->abVariantsPayload($link);
+
         // Mobile-app vs web split — pulled directly from `link_clicks` since
         // that's where the LinkTrackingService records the source tag. Works
         // independently of the optional `click_events` rollup table.
@@ -235,5 +242,228 @@ class LinkController extends Controller
             ->all();
 
         return $this->ok(['analytics' => $payload]);
+    }
+
+    // ── A/B testing (browser-extension feature) ─────────────────────────
+    //
+    // Stored as an `ab_variants` row per destination, plus a flag and
+    // (later) a winner pointer under `links.settings.ab_test`. The
+    // redirect path performs sticky weighted assignment per visitor and
+    // increments the per-variant counters.
+
+    /**
+     * Create a new short link AND its A/B variants in one shot, mirroring
+     * the popup's single submission. Validates per-plan max-variants and
+     * weight-sum-100 invariants.
+     */
+    public function storeAb(Request $request)
+    {
+        $data = $request->validate([
+            'title'        => ['nullable', 'string', 'max:200'],
+            'alias'        => ['nullable', 'string', 'max:80', 'regex:/^[A-Za-z0-9._-]+$/', Rule::unique('links', 'alias')],
+            'workspace_id' => ['nullable', 'integer'],
+            'variants'     => ['required', 'array', 'min:2'],
+            'variants.*.label' => ['nullable', 'string', 'max:120'],
+            'variants.*.url'   => ['required', 'url', 'max:2048'],
+            'variants.*.weight' => ['required', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        $user = $request->user();
+        if (!$this->planAllowsAbTests($user)) {
+            return $this->forbidden('A/B testing is not available on your current plan.');
+        }
+        $maxVariants = $this->planMaxAbVariants($user);
+        if (count($data['variants']) > $maxVariants) {
+            return $this->forbidden("Your plan allows at most {$maxVariants} variants per A/B test.");
+        }
+
+        $sum = array_sum(array_map(fn ($v) => (int) $v['weight'], $data['variants']));
+        if ($sum !== 100) {
+            return $this->fail('Variant weights must sum to 100.', 422, 'invalid_weights');
+        }
+
+        $alias = $data['alias'] ?? Str::lower(Str::random(7));
+        while (Link::where('alias', $alias)->exists()) {
+            $alias = Str::lower(Str::random(7));
+        }
+
+        $settings = ['ab_test' => [
+            'enabled'           => true,
+            'created_at'        => now()->toIso8601String(),
+            'winner_variant_id' => null,
+        ]];
+        if ($data['workspace_id'] ?? null) {
+            if (Schema::hasColumn('links', 'workspace_id')) {
+                $linkExtra = ['workspace_id' => (int) $data['workspace_id']];
+            } else {
+                $settings['workspace_id'] = (int) $data['workspace_id'];
+                $linkExtra = [];
+            }
+        } else {
+            $linkExtra = [];
+        }
+
+        // Use the first variant's URL as the link's "default" long_url
+        // so any non-AB code path (link expired, AB cleared, etc.) still
+        // has a valid destination.
+        $firstUrl = $data['variants'][0]['url'];
+
+        $link = DB::transaction(function () use ($user, $alias, $data, $settings, $linkExtra, $firstUrl) {
+            $link = Link::create(array_merge([
+                'user_id'    => $user->id,
+                'type'       => 'url',
+                'alias'      => $alias,
+                'title'      => $data['title'] ?? null,
+                'long_url'   => $firstUrl,
+                'visibility' => 'public',
+                'is_active'  => true,
+                'settings'   => $settings,
+            ], $linkExtra));
+
+            foreach ($data['variants'] as $i => $v) {
+                AbVariant::create([
+                    'link_id'    => $link->id,
+                    'label'      => $v['label'] ?? null,
+                    'url'        => $v['url'],
+                    'weight'     => (int) $v['weight'],
+                    'sort_order' => $i,
+                ]);
+            }
+            return $link;
+        });
+
+        return $this->created([
+            'link'     => LinkResource::toArray($link->fresh()),
+            'variants' => $this->abVariantsPayload($link),
+        ]);
+    }
+
+    /**
+     * Inspect a single A/B test — variants, per-variant counts, leader.
+     * Used by the popup's recent-tests widget every time it's opened.
+     */
+    public function showAb(Request $request, int $id)
+    {
+        $link = Link::where('user_id', $request->user()->id)->find($id);
+        if (!$link) return $this->notFound('Link not found');
+        return $this->ok([
+            'link'     => LinkResource::toArray($link),
+            'variants' => $this->abVariantsPayload($link),
+        ]);
+    }
+
+    /**
+     * List all the user's A/B tests. Powers the popup's "Recent A/B
+     * tests" section. Capped server-side at the most recent 10 to keep
+     * the popup snappy.
+     */
+    public function indexAb(Request $request)
+    {
+        $links = Link::where('user_id', $request->user()->id)
+            ->whereHas('abVariants')
+            ->with(['abVariants'])
+            ->orderByDesc('id')
+            ->limit(10)
+            ->get();
+
+        return $this->ok([
+            'items' => $links->map(fn ($l) => [
+                'link'     => LinkResource::toArray($l),
+                'variants' => $this->abVariantsPayload($l),
+            ])->all(),
+        ]);
+    }
+
+    /**
+     * End the test by re-pointing the short link permanently to the
+     * chosen variant. Variants stay in the table (so the dashboard can
+     * still render the historical results), but the redirect path will
+     * stop bucketing and just send everyone to `long_url`.
+     */
+    public function declareAbWinner(Request $request, int $id)
+    {
+        $link = Link::where('user_id', $request->user()->id)->find($id);
+        if (!$link) return $this->notFound('Link not found');
+
+        $data = $request->validate([
+            'variant_id' => ['required', 'integer'],
+        ]);
+
+        $winner = AbVariant::where('link_id', $link->id)->find($data['variant_id']);
+        if (!$winner) return $this->notFound('Variant not found');
+
+        DB::transaction(function () use ($link, $winner) {
+            AbVariant::where('link_id', $link->id)->update(['is_winner' => false]);
+            $winner->forceFill(['is_winner' => true])->save();
+
+            $settings = (array) ($link->settings ?? []);
+            $settings['ab_test'] = array_merge((array) ($settings['ab_test'] ?? []), [
+                'winner_variant_id' => $winner->id,
+                'winner_url'        => $winner->url,
+                'declared_at'       => now()->toIso8601String(),
+            ]);
+            $link->forceFill([
+                'settings' => $settings,
+                'long_url' => $winner->url,
+            ])->save();
+        });
+
+        return $this->ok([
+            'link'     => LinkResource::toArray($link->fresh()),
+            'variants' => $this->abVariantsPayload($link->fresh()),
+        ]);
+    }
+
+    /**
+     * Per-variant counts + the current leader (by clicks). Returns an
+     * empty array for non-AB links so callers can use a single shape.
+     *
+     * @return array{enabled:bool,winner_variant_id:?int,leader_variant_id:?int,variants:array}
+     */
+    protected function abVariantsPayload(Link $link): array
+    {
+        $variants = $link->abVariants()->get();
+        if ($variants->isEmpty()) {
+            return ['enabled' => false, 'winner_variant_id' => null, 'leader_variant_id' => null, 'variants' => []];
+        }
+
+        $items = $variants->map(fn ($v) => [
+            'id'        => $v->id,
+            'label'     => $v->label,
+            'url'       => $v->url,
+            'weight'    => (int) $v->weight,
+            'visitors'  => (int) $v->visitors,
+            'clicks'    => (int) $v->clicks,
+            'is_winner' => (bool) $v->is_winner,
+        ])->all();
+
+        $leader = collect($items)->sortByDesc('clicks')->first();
+
+        return [
+            'enabled'            => true,
+            'winner_variant_id'  => (int) (data_get($link->settings, 'ab_test.winner_variant_id') ?: 0) ?: null,
+            'leader_variant_id'  => $leader ? (int) $leader['id'] : null,
+            'variants'           => $items,
+        ];
+    }
+
+    protected function planAllowsAbTests($user): bool
+    {
+        $features = $user->plan?->features ?? [];
+        // Default: paid plans get it. Free plan keeps it off via explicit
+        // `ab_tests => false`. Older installs without the flag fall back
+        // to `link_smart_rules` so existing capability is honored.
+        if (array_key_exists('ab_tests', $features)) {
+            return (bool) $features['ab_tests'];
+        }
+        return (bool) ($features['link_smart_rules'] ?? false);
+    }
+
+    protected function planMaxAbVariants($user): int
+    {
+        $features = $user->plan?->features ?? [];
+        $max = $features['ab_max_variants'] ?? 4;
+        $max = (int) $max;
+        return $max > 0 ? min($max, 4) : 4;
     }
 }

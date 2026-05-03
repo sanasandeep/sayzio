@@ -202,6 +202,8 @@ class PlansAndAddonsSeeder extends Seeder
                     'link_deep_link' => false,
                     'link_smart_rules' => false,
                     'link_active_window' => false,
+                    'ab_tests' => false,
+                    'ab_max_variants' => 0,
                 ],
             ],
             [
@@ -261,6 +263,8 @@ class PlansAndAddonsSeeder extends Seeder
                     'link_deep_link' => false,
                     'link_smart_rules' => false,
                     'link_active_window' => true,
+                    'ab_tests' => true,
+                    'ab_max_variants' => 2,
                 ],
             ],
             [
@@ -321,6 +325,8 @@ class PlansAndAddonsSeeder extends Seeder
                     'link_deep_link' => true,
                     'link_smart_rules' => false,
                     'link_active_window' => true,
+                    'ab_tests' => true,
+                    'ab_max_variants' => 3,
                 ],
             ],
             [
@@ -380,6 +386,8 @@ class PlansAndAddonsSeeder extends Seeder
                     'link_deep_link' => true,
                     'link_smart_rules' => true,
                     'link_active_window' => true,
+                    'ab_tests' => true,
+                    'ab_max_variants' => 4,
                 ],
             ],
             [
@@ -442,6 +450,8 @@ class PlansAndAddonsSeeder extends Seeder
                     'link_deep_link' => true,
                     'link_smart_rules' => true,
                     'link_active_window' => true,
+                    'ab_tests' => true,
+                    'ab_max_variants' => 4,
                 ],
             ],
         ];
