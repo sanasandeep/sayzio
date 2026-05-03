@@ -112,9 +112,29 @@ class CloverlyOffsetProvider implements OffsetProvider
                 $cents = (int) round(((float) ($body['total_cost']['amount'] ?? 0)) * 100);
             }
 
+            // Map Cloverly's returned state to our internal vocabulary.
+            // For LIVE purchases we default to 'pending' until the
+            // settlement webhook fires — Cloverly only marks the
+            // purchase final once the offset registry has retired the
+            // credits, which can take minutes to hours. The webhook
+            // handler in CarbonPublicController promotes pending →
+            // purchased on confirmation, and the public badge
+            // endpoint hides any snapshot whose status is still
+            // pending so we never claim "carbon neutral" prematurely.
+            $providerState = strtolower((string) ($body['state'] ?? $body['status'] ?? ''));
+            if ($mode !== 'live') {
+                $internalStatus = 'sandbox';
+            } else {
+                $internalStatus = match ($providerState) {
+                    'complete', 'completed', 'succeeded', 'success' => 'succeeded',
+                    'failed', 'error', 'cancelled', 'canceled'      => 'failed',
+                    default                                          => 'pending',
+                };
+            }
+
             return [
                 'provider_ref'    => (string) ($body['slug'] ?? ($body['id'] ?? $idempotencyKey)),
-                'status'          => $mode === 'live' ? 'succeeded' : 'sandbox',
+                'status'          => $internalStatus,
                 'cost_minor'      => $cents > 0 ? $cents : 1,
                 'currency'        => strtoupper((string) ($body['total_cost']['currency'] ?? 'USD')),
                 'certificate_url' => $body['pretty_url'] ?? null,
