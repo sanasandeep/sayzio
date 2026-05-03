@@ -2,10 +2,11 @@
 
 Cross-browser MV3 extension (Chrome, Firefox, Edge) for [1INME](https://1inme.com).
 
-Two primary actions on any page you visit:
+Three primary actions on any page you visit:
 
 1. **Shorten & copy** — turns the current tab's URL into a 1INME short link, copies it to your clipboard, and shows a toast with a deep link to analytics.
 2. **Turn into bio-link page** — scrapes the current page's title, description, OG image, and outbound/social links, creates a draft bio-link in your 1INME workspace pre-filled with header + link blocks, and opens the bio-link editor so you can refine and publish.
+3. **Backlink radar** (opt-in) — quietly notices when a page you're browsing links **to you** (one of your short links, your bio-link username path, or any of your verified custom domains) and surfaces a "This page links to you" card in the popup with one-click **Save**, **Open**, and **Thank** actions. A **Backlinks** tab keeps a filterable history with CSV export.
 
 A **right-click context menu** mirrors both actions:
 
@@ -136,8 +137,52 @@ Persisted under `browser.storage.local`:
   user: { id, name, email, handle? } | null,
   workspaceId: number | null,
   workspaces: Array<{ id, name }>,
+  // Backlink radar
+  radarEnabled: boolean,
+  radarOnboarded: boolean,
+  radarDisabledHosts: string[],
+  // Cached "known properties" payload for the radar (1h TTL)
+  radarProperties?: { short_link_hosts, biolink_hosts, biolink_username_path,
+                      custom_domain_hosts, slug_hashes, … },
+  // Per-tab match list keyed by tab id, cleared on navigation/close
+  radarTabMatches?: Record<string, { pageUrl, pageTitle, matches[], scannedAt }>,
 }
 ```
+
+## Backlink radar — data flow & privacy
+
+The radar is **off by default**. On first install the popup shows a one-screen
+opt-in. You can flip it on/off any time in **Settings**, and you can mute
+specific hosts (e.g. `mybank.com`) so the radar's content script never even
+loads on them.
+
+When enabled:
+
+1. A small **content script** (`content-radar.js`) is registered against
+   `http(s)://*/*` (excluding muted hosts) and runs `document_idle`. It
+   collects only outbound `<a href>` URLs and their anchor text. **No page
+   text, body content, cookies, or PII is read or transmitted.**
+2. The harvested URLs are sent over `runtime.sendMessage` to the background
+   service worker. The page itself never sees the creator's "known properties"
+   list or any account data.
+3. The background worker fetches `GET /api/v1/me/properties` once per hour
+   and caches it locally. The payload includes:
+   - the platform's short-link hosts and the user's verified custom domains
+     (exact host match)
+   - the user's bio-link username path (e.g. `/handle`)
+   - **hashed** prefixes (12 hex chars of SHA-256) of every short-link
+     alias the user owns — so the full slug list never lives in the
+     extension's memory and `/me/properties` traffic doesn't expose
+     it either. Path segments of harvested URLs are hashed the same way
+     and looked up in the set.
+4. When at least one href matches, the toolbar action gets a numeric
+   badge + tinted color, and the popup's **Page** tab shows a
+   "This page links to you" card with **Save**, **Open**, and **Thank**
+   actions per match.
+5. Only matches the user explicitly **Saves** are sent to
+   `POST /api/v1/backlinks` — the page URL, anchor text, matched URL, and
+   matched property type. Nothing else leaves the browser.
+6. Per-tab match state is dropped when the tab navigates away or closes.
 
 ## Store submission (out of scope here, but the steps you'll need)
 

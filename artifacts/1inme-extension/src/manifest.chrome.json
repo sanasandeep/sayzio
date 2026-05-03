@@ -25,10 +25,8 @@
     "type": "module"
   },
   "permissions": ["activeTab", "storage", "contextMenus", "scripting", "notifications", "tabs"],
+  "optional_host_permissions": ["http://*/*", "https://*/*"],
   "host_permissions": [
-    "https://1inme.com/*",
-    "http://localhost/*",
-    "https://*.replit.dev/*",
     "<all_urls>"
   ],
   "content_scripts": [

@@ -1,9 +1,17 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { browser } from "../lib/browser";
-import { ApiError, api, AbVariantsPayload, WorkspacePixels } from "../lib/api";
-import { ExtSettings, clearAuth, getSettings, setSettings } from "../lib/storage";
+import { ApiError, api, AbVariantsPayload, BacklinkRow, WorkspacePixels } from "../lib/api";
+import {
+  ExtSettings,
+  RadarMatch,
+  TabMatchState,
+  clearAuth,
+  getSettings,
+  setSettings,
+} from "../lib/storage";
 
 type Toast = { kind: "success" | "error" | "info"; text: string; link?: { href: string; label: string } } | null;
+type View = "main" | "login" | "settings" | "backlinks" | "onboarding" | "ab" | "contact-preview";
 
 type AbTestItem = { link: { id: number; alias: string; short_url?: string; title?: string }; variants: AbVariantsPayload };
 
@@ -26,8 +34,6 @@ interface ContactCandidate {
   tags?: string[];
 }
 
-type View = "main" | "login" | "settings" | "ab" | "contact-preview";
-
 export function App() {
   const [settings, setLocalSettings] = useState<ExtSettings | null>(null);
   const [tabUrl, setTabUrl] = useState<string>("");
@@ -46,6 +52,7 @@ export function App() {
   const [recent, setRecent] = useState<Array<{ id: number; alias: string; title: string | null; long_url: string | null; short_url?: string; auto_pixel?: boolean; pixel_fires?: { count: number; providers: string[] } }>>([]);
   const [candidate, setCandidate] = useState<ContactCandidate | null>(null);
   const [extractError, setExtractError] = useState<string | null>(null);
+  const [tabMatches, setTabMatches] = useState<TabMatchState | null>(null);
 
   const loadAbTests = useCallback(async () => {
     setAbLoading(true);
@@ -63,7 +70,13 @@ export function App() {
   const refresh = useCallback(async () => {
     const s = await getSettings();
     setLocalSettings(s);
-    setView((v) => (v === "contact-preview" ? v : (s.token ? (v === "login" ? "main" : v) : "login")));
+    setView((v) => {
+      if (v === "contact-preview") return v;
+      if (!s.token) return "login";
+      if (!s.radarOnboarded) return "onboarding";
+      if (v === "login" || v === "onboarding") return "main";
+      return v;
+    });
   }, []);
 
   useEffect(() => {
@@ -74,12 +87,18 @@ export function App() {
 
   useEffect(() => {
     refresh();
-    browser.tabs.query({ active: true, currentWindow: true }).then((tabs) => {
+    browser.tabs.query({ active: true, currentWindow: true }).then(async (tabs) => {
       const t = tabs[0];
       if (t) {
         setTabUrl(t.url || "");
         setTabTitle(t.title || "");
         setTabId(t.id ?? null);
+        if (t.id !== undefined) {
+          try {
+            const resp: any = await browser.runtime.sendMessage({ type: "RADAR_GET_TAB_MATCHES", tabId: t.id });
+            if (resp?.ok) setTabMatches(resp.state || null);
+          } catch { /* ignore */ }
+        }
       }
     });
     const listener = (changes: any, area: string) => {
@@ -262,8 +281,9 @@ export function App() {
 
   return (
     <>
-      <Header settings={settings} onSettings={() => setView(view === "settings" ? "main" : "settings")} />
+      <Header settings={settings} view={view} onTabChange={setView} />
       {view === "login" && <LoginView settings={settings} onAuthed={refresh} showToast={showToast} />}
+      {view === "onboarding" && <OnboardingView onDone={refresh} />}
       {view === "settings" && (
         <SettingsView
           settings={settings}
@@ -301,8 +321,28 @@ export function App() {
           showToast={showToast}
         />
       )}
+      {view === "backlinks" && <BacklinksView settings={settings} showToast={showToast} />}
       {view === "main" && (
         <div className="body">
+          {tabMatches && tabMatches.matches.length > 0 && (
+            <BacklinkCard
+              matches={tabMatches.matches}
+              pageUrl={tabMatches.pageUrl}
+              pageTitle={tabMatches.pageTitle}
+              showToast={showToast}
+            />
+          )}
+          {settings.radarEnabled && tabMatches && tabMatches.matches.length === 0 && (
+            <div className="muted radar-status">📡 Radar on — no links to your properties found on this page.</div>
+          )}
+          {!settings.radarEnabled && (
+            <div className="muted radar-status">
+              📡 Radar is off.{" "}
+              <button className="btn-link" style={{ padding: 0 }} onClick={() => setSettings({ radarEnabled: true }).then(refresh)}>
+                Turn it on
+              </button>
+            </div>
+          )}
           <div className="field">
             <label>Current page</label>
             <div className="url-card" title={tabUrl}>{tabUrl || "(no active tab)"}</div>
@@ -393,7 +433,7 @@ export function App() {
           )}
         </div>
       )}
-      <Footer settings={settings} view={view} onSignOut={handleSignOut} onSettings={() => setView(view === "settings" ? "main" : "settings")} busy={busy} />
+      <Footer settings={settings} view={view} onSignOut={handleSignOut} busy={busy} />
       {toast && (
         <div className={`toast ${toast.kind}`}>
           <div className="row">
@@ -426,26 +466,36 @@ function buildPayload(c: ContactCandidate, settings: ExtSettings | null): Record
   };
 }
 
-function Header({ settings, onSettings }: { settings: ExtSettings; onSettings: () => void }) {
+function Header({ settings, view, onTabChange }: { settings: ExtSettings; view: View; onTabChange: (v: View) => void }) {
+  const showTabs = !!settings.token && view !== "login" && view !== "onboarding";
   return (
-    <div className="header">
-      <div>
-        <h1>1INME</h1>
-        {settings.user && <div className="who">{settings.user.name || settings.user.email}</div>}
+    <>
+      <div className="header">
+        <div>
+          <h1>1INME</h1>
+          {settings.user && <div className="who">{settings.user.name || settings.user.email}</div>}
+        </div>
+        <button className="btn-link" style={{ color: "white" }} onClick={() => onTabChange(view === "settings" ? "main" : "settings")} title="Settings">⚙</button>
       </div>
-      <button className="btn-link" style={{ color: "white" }} onClick={onSettings} title="Settings">⚙</button>
-    </div>
+      {showTabs && (
+        <div className="tabs">
+          <button className={view === "main" ? "active" : ""} onClick={() => onTabChange("main")}>Page</button>
+          <button className={view === "backlinks" ? "active" : ""} onClick={() => onTabChange("backlinks")}>Backlinks</button>
+          <button className={view === "settings" ? "active" : ""} onClick={() => onTabChange("settings")}>Settings</button>
+        </div>
+      )}
+    </>
   );
 }
 
 function Footer({
   settings, view, onSignOut, busy,
-}: { settings: ExtSettings; view: string; onSignOut: () => void; onSettings: () => void; busy: string | null }) {
+}: { settings: ExtSettings; view: string; onSignOut: () => void; busy: string | null }) {
   return (
     <div className="footer">
       <span>{settings.token ? "Signed in" : "Not signed in"}</span>
       <span>
-        {settings.token && view !== "settings" && (
+        {settings.token && view !== "settings" && view !== "onboarding" && (
           <button className="btn-link" disabled={busy !== null} onClick={onSignOut}>Sign out</button>
         )}
       </span>
@@ -453,6 +503,261 @@ function Footer({
   );
 }
 
+// ── Onboarding (radar opt-in) ───────────────────────────────────────
+function OnboardingView({ onDone }: { onDone: () => void }) {
+  const [busy, setBusy] = useState<"on" | "off" | null>(null);
+  const choose = async (enabled: boolean) => {
+    setBusy(enabled ? "on" : "off");
+    await setSettings({ radarEnabled: enabled, radarOnboarded: true });
+    if (enabled) {
+      try { await browser.runtime.sendMessage({ type: "RADAR_REFRESH_PROPERTIES" }); } catch { /* ignore */ }
+    }
+    setBusy(null);
+    onDone();
+  };
+  return (
+    <div className="body">
+      <h2 style={{ margin: 0, fontSize: 16 }}>📡 Backlink radar</h2>
+      <p className="muted" style={{ marginTop: 0 }}>
+        Scan pages you visit for links back to your 1INME properties (short links, your bio-link, your custom domains).
+        The full page never leaves your browser — only the matched URLs, when you choose to save them.
+      </p>
+      <ul className="muted" style={{ paddingLeft: 18, margin: 0 }}>
+        <li>Off by default. Toggle any time in Settings.</li>
+        <li>You decide which matches to save.</li>
+        <li>You can mute specific sites.</li>
+      </ul>
+      <button className="btn-primary" disabled={busy !== null} onClick={() => choose(true)}>
+        {busy === "on" && <span className="spinner" />}Turn radar on
+      </button>
+      <button className="btn-secondary" disabled={busy !== null} onClick={() => choose(false)}>
+        {busy === "off" && <span className="spinner" />}Not now
+      </button>
+    </div>
+  );
+}
+
+// ── "This page links to you" card ───────────────────────────────────
+function BacklinkCard({
+  matches, pageUrl, pageTitle, showToast,
+}: {
+  matches: RadarMatch[];
+  pageUrl: string;
+  pageTitle: string;
+  showToast: (t: Toast) => void;
+}) {
+  const [savedIds, setSavedIds] = useState<Record<string, true>>({});
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const onSave = async (m: RadarMatch) => {
+    setBusy(m.href);
+    try {
+      await api.saveBacklink({
+        page_url: pageUrl,
+        page_title: pageTitle || undefined,
+        anchor_text: m.anchor || undefined,
+        matched_url: m.href,
+        matched_property_type: m.matchedPropertyType,
+        matched_property_value: m.matchedPropertyValue,
+      });
+      setSavedIds((p) => ({ ...p, [m.href]: true }));
+      showToast({ kind: "success", text: "Saved as backlink" });
+    } catch (e: any) {
+      showToast({ kind: "error", text: e instanceof ApiError ? e.message : (e?.message || "Save failed") });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const onOpen = (m: RadarMatch) => browser.tabs.create({ url: m.href });
+
+  const onThank = async (m: RadarMatch) => {
+    setBusy("thank-" + m.href);
+    try {
+      const email = await detectContactEmail();
+      const message = `Hi! Thanks so much for linking to my page (${m.href}) on ${pageUrl} — really appreciate the mention!`;
+      let url: string;
+      if (email) {
+        url = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent("Thanks for the link!")}&body=${encodeURIComponent(message)}`;
+      } else {
+        // Fall back to X share-intent. The popup also offers LinkedIn.
+        url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}&url=${encodeURIComponent(pageUrl)}`;
+      }
+      await browser.tabs.create({ url });
+    } catch (e: any) {
+      showToast({ kind: "error", text: e?.message || "Could not open composer" });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const onThankLinkedIn = (m: RadarMatch) => {
+    const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(pageUrl)}`;
+    browser.tabs.create({ url });
+    void m;
+  };
+
+  return (
+    <div className="match-card">
+      <div className="match-card-title">📡 This page links to you · {matches.length}</div>
+      <div className="match-list">
+        {matches.map((m, i) => {
+          const saved = !!savedIds[m.href];
+          return (
+            <div key={i} className="match-row">
+              <div className="match-anchor">{m.anchor || m.href}</div>
+              <div className="match-meta">
+                <span className="match-href" title={m.href}>{m.href}</span>
+                <span className={`pill pill-${m.matchedPropertyType}`}>{labelForType(m.matchedPropertyType)}</span>
+              </div>
+              <div className="match-actions">
+                <button className="btn-secondary btn-sm" disabled={saved || busy === m.href} onClick={() => onSave(m)}>
+                  {busy === m.href && <span className="spinner" />}{saved ? "Saved ✓" : "Save"}
+                </button>
+                <button className="btn-secondary btn-sm" onClick={() => onOpen(m)}>Open</button>
+                <button className="btn-secondary btn-sm" disabled={busy === "thank-" + m.href} onClick={() => onThank(m)}>
+                  {busy === "thank-" + m.href && <span className="spinner" />}Thank
+                </button>
+                <button className="btn-secondary btn-sm" onClick={() => onThankLinkedIn(m)} title="Share on LinkedIn">in</button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+async function detectContactEmail(): Promise<string | null> {
+  // Run a tiny page-side scan from the popup. Permission already
+  // granted via activeTab when the popup is open.
+  try {
+    const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+    const tabId = tabs[0]?.id;
+    if (tabId === undefined) return null;
+    const results = await browser.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const re = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+        const mailto = document.querySelector<HTMLAnchorElement>('a[href^="mailto:"]');
+        if (mailto) {
+          const v = (mailto.getAttribute("href") || "").replace(/^mailto:/, "").split("?")[0];
+          if (re.test(v)) return v;
+        }
+        const text = document.body?.innerText?.slice(0, 30000) || "";
+        const m = text.match(re);
+        return m ? m[0] : null;
+      },
+    });
+    return (results?.[0]?.result as string | null) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function labelForType(t: RadarMatch["matchedPropertyType"]): string {
+  if (t === "short_link") return "Short link";
+  if (t === "biolink_username") return "Bio-link";
+  return "Custom domain";
+}
+
+// ── Backlinks tab ───────────────────────────────────────────────────
+function BacklinksView({ settings, showToast }: { settings: ExtSettings; showToast: (t: Toast) => void }) {
+  const [items, setItems] = useState<BacklinkRow[]>([]);
+  const [days, setDays] = useState<7 | 30 | 90 | 0>(30);
+  const [propertyType, setPropertyType] = useState<string>("");
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setErr(null);
+    try {
+      const params: any = {};
+      if (days) params.days = days;
+      if (propertyType) params.property_type = propertyType;
+      const resp = await api.listBacklinks(params);
+      setItems(resp.items || []);
+    } catch (e: any) {
+      setErr(e instanceof ApiError ? e.message : (e?.message || "Failed to load"));
+    } finally {
+      setLoading(false);
+    }
+  }, [days, propertyType]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const onDelete = async (id: number) => {
+    try {
+      await api.deleteBacklink(id);
+      setItems((p) => p.filter((b) => b.id !== id));
+    } catch (e: any) {
+      showToast({ kind: "error", text: e?.message || "Delete failed" });
+    }
+  };
+
+  const onExport = async () => {
+    const q = new URLSearchParams();
+    if (days) q.set("days", String(days));
+    if (propertyType) q.set("property_type", propertyType);
+    const url = `${settings.apiBaseUrl}/backlinks/export.csv${q.toString() ? `?${q}` : ""}`;
+    try {
+      const resp = await fetch(url, {
+        headers: { Authorization: `Bearer ${settings.token}` },
+      });
+      if (!resp.ok) throw new Error(`Export failed (${resp.status})`);
+      const blob = await resp.blob();
+      const dlUrl = URL.createObjectURL(blob);
+      await browser.tabs.create({ url: dlUrl });
+    } catch (e: any) {
+      showToast({ kind: "error", text: e?.message || "Export failed" });
+    }
+  };
+
+  return (
+    <div className="body">
+      <div className="filters-row">
+        <select className="workspace-select" value={String(days)} onChange={(e) => setDays(Number(e.target.value) as any)}>
+          <option value="7">Last 7 days</option>
+          <option value="30">Last 30 days</option>
+          <option value="90">Last 90 days</option>
+          <option value="0">All time</option>
+        </select>
+        <select className="workspace-select" value={propertyType} onChange={(e) => setPropertyType(e.target.value)}>
+          <option value="">All properties</option>
+          <option value="short_link">Short links</option>
+          <option value="biolink_username">Bio-link</option>
+          <option value="custom_domain">Custom domains</option>
+        </select>
+        <button className="btn-link" onClick={onExport} disabled={!items.length}>CSV</button>
+      </div>
+      {loading && <div className="muted">Loading…</div>}
+      {err && <div className="error-text">{err}</div>}
+      {!loading && !err && items.length === 0 && (
+        <div className="muted">No backlinks saved yet. Browse around — when a page links to you, the radar will surface it on the Page tab.</div>
+      )}
+      <div className="backlinks-list">
+        {items.map((b) => (
+          <div key={b.id} className="backlink-row">
+            <div className="backlink-page" title={b.page_url}>
+              <a href={b.page_url} target="_blank" rel="noreferrer">{b.page_title || b.page_host || b.page_url}</a>
+            </div>
+            <div className="match-meta">
+              <span className="match-href" title={b.matched_url}>→ {b.matched_url}</span>
+              <span className={`pill pill-${b.matched_property_type}`}>{labelForType(b.matched_property_type)}</span>
+            </div>
+            <div className="match-actions">
+              <span className="muted">{b.first_seen_at ? new Date(b.first_seen_at).toLocaleDateString() : ""}</span>
+              <button className="btn-link" onClick={() => onDelete(b.id)}>Delete</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Login + Settings (existing + radar controls) ────────────────────
 function LoginView({ settings, onAuthed, showToast }: { settings: ExtSettings; onAuthed: () => void; showToast: (t: Toast) => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -740,12 +1045,13 @@ function SettingsView({
   onPixelsSaved: (p: WorkspacePixels) => void;
   showToast: (t: Toast) => void;
 }) {
-  const [apiBase, setApi] = useState(settings.apiBaseUrl);
+  const [apiUrl, setApiUrl] = useState(settings.apiBaseUrl);
   const [web, setWeb] = useState(settings.webBaseUrl);
   const [tags, setTags] = useState((settings.contactDefaultTags || []).join(", "));
   const [allowOneClick, setAllowOneClick] = useState(!!settings.contactAllowOneClick);
   const [contactWs, setContactWs] = useState<number | null>(settings.contactWorkspaceId ?? null);
   const [saved, setSaved] = useState(false);
+  const [muteHost, setMuteHost] = useState("");
   // Tracking-pixel form state, seeded from server-side workspace pixels.
   const [meta, setMeta] = useState(pixels?.meta_id || "");
   const [tiktok, setTiktok] = useState(pixels?.tiktok_id || "");
@@ -764,7 +1070,7 @@ function SettingsView({
   const save = async () => {
     const tagList = tags.split(",").map((t) => t.trim()).filter(Boolean).slice(0, 20);
     await setSettings({
-      apiBaseUrl: apiBase.replace(/\/$/, ""),
+      apiBaseUrl: apiUrl.replace(/\/$/, ""),
       webBaseUrl: web.replace(/\/$/, ""),
       contactDefaultTags: tagList,
       contactAllowOneClick: allowOneClick,
@@ -824,6 +1130,31 @@ function SettingsView({
     }
   };
 
+  const toggleRadar = async (v: boolean) => {
+    await setSettings({ radarEnabled: v, radarOnboarded: true });
+    if (v) {
+      try { await browser.runtime.sendMessage({ type: "RADAR_REFRESH_PROPERTIES" }); } catch { /* ignore */ }
+    }
+    onSaved();
+  };
+
+  const addMute = async () => {
+    let host = muteHost.trim().toLowerCase();
+    if (!host) return;
+    host = host.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0];
+    if (!host) return;
+    const next = Array.from(new Set([...(settings.radarDisabledHosts || []), host]));
+    await setSettings({ radarDisabledHosts: next });
+    setMuteHost("");
+    onSaved();
+  };
+
+  const removeMute = async (h: string) => {
+    const next = (settings.radarDisabledHosts || []).filter((x) => x !== h);
+    await setSettings({ radarDisabledHosts: next });
+    onSaved();
+  };
+
   return (
     <div className="body">
       {settings.token && (
@@ -869,10 +1200,37 @@ function SettingsView({
           <hr className="divider" />
         </>
       )}
-      <h3 className="section-h">General</h3>
+      <h3 className="section-h">Backlink radar</h3>
+      <label className="toggle-row">
+        <input type="checkbox" checked={!!settings.radarEnabled} onChange={(e) => toggleRadar(e.target.checked)} />
+        <span>Scan pages I visit for links to my 1INME properties</span>
+      </label>
+      <div className="muted">Page content never leaves your browser. Only matched URLs you choose to save are sent.</div>
+
+      <div className="field">
+        <label>Muted sites</label>
+        <div className="mute-row">
+          <input value={muteHost} onChange={(e) => setMuteHost(e.target.value)} placeholder="example.com" />
+          <button className="btn-secondary btn-sm" onClick={addMute}>Add</button>
+        </div>
+        {(settings.radarDisabledHosts || []).length > 0 ? (
+          <div className="mute-list">
+            {settings.radarDisabledHosts.map((h) => (
+              <span key={h} className="mute-tag">
+                {h}
+                <button className="btn-link" onClick={() => removeMute(h)}>×</button>
+              </span>
+            ))}
+          </div>
+        ) : <div className="muted">No sites muted.</div>}
+      </div>
+
+      <hr className="divider" />
+
+      <h3 className="section-h">Connection</h3>
       <div className="settings-row">
         <label>API base URL</label>
-        <input value={apiBase} onChange={(e) => setApi(e.target.value)} />
+        <input value={apiUrl} onChange={(e) => setApiUrl(e.target.value)} />
         <span className="muted">Default: https://1inme.com/api/v1</span>
       </div>
       <div className="settings-row">

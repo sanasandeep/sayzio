@@ -1,6 +1,15 @@
 import { browser } from "../lib/browser";
 import { api, ApiError } from "../lib/api";
-import { clearAuth, getSettings, setSettings } from "../lib/storage";
+import { clearAuth, clearCachedProperties, getSettings, setSettings } from "../lib/storage";
+import {
+  ensureProperties,
+  matchHrefs,
+  rememberMatches,
+  getMatchesForTab,
+  clearMatches,
+  updateBadgeForTab,
+  isPageHostDisabled,
+} from "./radar";
 
 interface ExtractedPayload {
   title: string;
@@ -206,6 +215,35 @@ async function stashContactCandidateAndOpenPopup(tabId: number) {
 // localhost / custom domain). The static manifest still covers the
 // production URL so first-install handshake works before any settings
 // are written.
+// Register the radar content script across the whole web — but only
+// while the user has explicitly opted in. Toggling the setting in the
+// popup re-runs this. Sites the user has muted are excluded from the
+// match patterns so the script never even loads on them.
+const RADAR_SCRIPT_ID = "1inme-radar";
+
+async function refreshRadarRegistration() {
+  if (!browser.scripting?.registerContentScripts) return;
+  try { await browser.scripting.unregisterContentScripts({ ids: [RADAR_SCRIPT_ID] }); } catch { /* not registered yet */ }
+  const settings = await getSettings();
+  if (!settings.radarEnabled || !settings.token) return;
+  try {
+    const excludeMatches = (settings.radarDisabledHosts || [])
+      .filter(Boolean)
+      .flatMap((h) => [`*://${h}/*`, `*://www.${h}/*`]);
+    await browser.scripting.registerContentScripts([
+      {
+        id: RADAR_SCRIPT_ID,
+        matches: ["http://*/*", "https://*/*"],
+        excludeMatches: excludeMatches.length ? excludeMatches : undefined,
+        js: ["content-radar.js"],
+        runAt: "document_idle",
+        persistAcrossSessions: true,
+        allFrames: false,
+      },
+    ]);
+  } catch { /* host permission may be missing — silently no-op */ }
+}
+
 async function refreshHandshakeMatches() {
   if (!browser.scripting?.registerContentScripts) return;
   try {
@@ -229,10 +267,30 @@ async function refreshHandshakeMatches() {
   } catch { /* registerContentScripts may fail if host permission missing — fall back to manifest static match */ }
 }
 
-browser.runtime.onInstalled.addListener(() => { setupContextMenus(); refreshHandshakeMatches(); });
-browser.runtime.onStartup?.addListener?.(() => { setupContextMenus(); refreshHandshakeMatches(); });
+browser.runtime.onInstalled.addListener(() => {
+  setupContextMenus();
+  refreshHandshakeMatches();
+  refreshRadarRegistration();
+});
+browser.runtime.onStartup?.addListener?.(() => {
+  setupContextMenus();
+  refreshHandshakeMatches();
+  refreshRadarRegistration();
+});
 browser.storage.onChanged.addListener((changes: any, area: string) => {
-  if (area === "local" && changes.webBaseUrl) refreshHandshakeMatches();
+  if (area !== "local") return;
+  if (changes.webBaseUrl) refreshHandshakeMatches();
+  if (changes.radarEnabled || changes.radarDisabledHosts || changes.token) refreshRadarRegistration();
+  if (changes.token) clearCachedProperties().catch(() => undefined);
+});
+
+// Drop per-tab match cache + badge when a tab navigates away or closes.
+browser.tabs.onRemoved.addListener((tabId: number) => { clearMatches(tabId).catch(() => undefined); });
+browser.tabs.onUpdated.addListener((tabId: number, info: any) => {
+  if (info.status === "loading" && info.url) {
+    clearMatches(tabId).catch(() => undefined);
+    updateBadgeForTab(tabId, 0).catch(() => undefined);
+  }
 });
 
 browser.contextMenus?.onClicked.addListener(async (info, tab) => {
@@ -274,6 +332,40 @@ browser.runtime.onMessage.addListener(async (msg: any, sender: any) => {
       await clearAuth();
       return { ok: true };
     }
+    case "RADAR_SCAN": {
+      // Inbound from the radar content script. Throttle by trusting
+      // only top-frame senders, then run the matcher in-process.
+      const tabId = sender.tab?.id;
+      if (!tabId) return { ok: false, error: "No tab" };
+      const settings = await getSettings();
+      if (!settings.radarEnabled || !settings.token) return { ok: true, matches: 0 };
+      const harvest = msg.payload || {};
+      if (!harvest.pageUrl) return { ok: false, error: "No page url" };
+      if (await isPageHostDisabled(harvest.pageUrl, settings)) return { ok: true, matches: 0 };
+      try {
+        const matches = await matchHrefs(harvest);
+        await rememberMatches(tabId, {
+          pageUrl: harvest.pageUrl,
+          pageTitle: harvest.pageTitle || "",
+          matches,
+          scannedAt: Date.now(),
+        });
+        await updateBadgeForTab(tabId, matches.length);
+        return { ok: true, matches: matches.length };
+      } catch (e: any) {
+        return { ok: false, error: e?.message || "scan failed" };
+      }
+    }
+    case "RADAR_GET_TAB_MATCHES": {
+      const tabId = msg.tabId ?? sender.tab?.id;
+      if (!tabId) return { ok: false, error: "No tab" };
+      const state = await getMatchesForTab(tabId);
+      return { ok: true, state };
+    }
+    case "RADAR_REFRESH_PROPERTIES": {
+      const props = await ensureProperties(true);
+      return { ok: !!props };
+    }
     case "AUTH_HANDSHAKE": {
       // Sent from the handshake content script on 1inme.com after a
       // successful sign-in. Carries the freshly-issued Sanctum token.
@@ -292,3 +384,4 @@ browser.runtime.onMessage.addListener(async (msg: any, sender: any) => {
 
 setupContextMenus();
 refreshHandshakeMatches();
+refreshRadarRegistration();

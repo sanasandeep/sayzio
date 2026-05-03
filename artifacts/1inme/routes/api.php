@@ -24,6 +24,8 @@ use App\Modules\Api\Controllers\ProjectController;
 use App\Modules\Api\Controllers\SocialAuthController;
 use App\Modules\Api\Controllers\SubscriberController;
 use App\Modules\Api\Controllers\WorkspaceController;
+use App\Modules\Api\Controllers\BacklinkController;
+use App\Modules\Api\Controllers\PropertyController;
 use App\Modules\Api\Controllers\DomainController;
 use App\Modules\Api\Controllers\SplashPageController;
 use App\Modules\Api\Controllers\QrCodeController;
@@ -271,6 +273,15 @@ Route::prefix('v1')->group(function () {
         // browser.storage.
         Route::get('/workspace/pixels', [\App\Modules\Api\Controllers\WorkspacePixelsController::class, 'show']);
         Route::put('/workspace/pixels', [\App\Modules\Api\Controllers\WorkspacePixelsController::class, 'update']);
+
+        // Backlink radar (browser extension): the creator's known
+        // properties feed + persistence for matches the extension
+        // discovers while the creator browses.
+        Route::get   ('/me/properties',         [PropertyController::class, 'show']);
+        Route::get   ('/backlinks',             [BacklinkController::class, 'index']);
+        Route::get   ('/backlinks/export.csv',  [BacklinkController::class, 'export']);
+        Route::post  ('/backlinks',             [BacklinkController::class, 'store'])->middleware('throttle:120,1');
+        Route::delete('/backlinks/{id}',        [BacklinkController::class, 'destroy'])->whereNumber('id');
 
         // Custom domains
         Route::get   ('/domains',        [DomainController::class, 'index']);

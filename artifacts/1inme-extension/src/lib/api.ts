@@ -190,6 +190,46 @@ export const api = {
 
   getContact: (id: number) =>
     request<{ contact: { id: number; display_name: string; emails: any[]; phones: any[]; organization?: string | null } }>(`/contacts/${id}`),
+
+  // ── Backlink radar ────────────────────────────────────────────────
+  properties: () =>
+    request<{
+      properties: {
+        short_link_hosts: string[];
+        biolink_username_path: string;
+        biolink_hosts: string[];
+        custom_domain_hosts: string[];
+        slug_hash_prefix_len: number;
+        slug_hash_algo: string;
+        slug_hashes: string[];
+        cached_at: string;
+        cache_ttl_seconds: number;
+      };
+    }>("/me/properties"),
+
+  saveBacklink: (body: {
+    page_url: string;
+    page_title?: string;
+    anchor_text?: string;
+    matched_url: string;
+    matched_property_type: "short_link" | "biolink_username" | "custom_domain";
+    matched_property_value?: string;
+  }) =>
+    request<{ backlink: BacklinkRow }>("/backlinks", { method: "POST", body }),
+
+  listBacklinks: (params: { days?: number; property_type?: string; per_page?: number } = {}) => {
+    const q = new URLSearchParams();
+    if (params.days) q.set("days", String(params.days));
+    if (params.property_type) q.set("property_type", params.property_type);
+    if (params.per_page) q.set("per_page", String(params.per_page));
+    const qs = q.toString();
+    return request<{ items: BacklinkRow[]; meta: { total: number } }>(
+      `/backlinks${qs ? `?${qs}` : ""}`,
+    );
+  },
+
+  deleteBacklink: (id: number) =>
+    request<null>(`/backlinks/${id}`, { method: "DELETE" }),
 };
 
 export interface AbVariantsPayload {
@@ -205,6 +245,18 @@ export interface AbVariantsPayload {
     clicks: number;
     is_winner: boolean;
   }>;
+}
+
+export interface BacklinkRow {
+  id: number;
+  page_url: string;
+  page_host: string;
+  page_title: string | null;
+  anchor_text: string | null;
+  matched_url: string;
+  matched_property_type: "short_link" | "biolink_username" | "custom_domain";
+  matched_property_value: string | null;
+  first_seen_at: string | null;
 }
 
 export { request };

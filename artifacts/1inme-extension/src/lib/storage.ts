@@ -14,6 +14,43 @@ export interface ExtSettings {
   contactDefaultTags: string[];
   contactAllowOneClick: boolean;
   contactWorkspaceId: number | null;
+
+  // Backlink radar — off until the user opts in on first install.
+  radarEnabled: boolean;
+  radarOnboarded: boolean;
+  // Per-domain opt-out: hosts the user has explicitly disabled.
+  radarDisabledHosts: string[];
+}
+
+export interface PropertiesPayload {
+  short_link_hosts: string[];
+  biolink_username_path: string;
+  biolink_hosts: string[];
+  custom_domain_hosts: string[];
+  slug_hash_prefix_len: number;
+  slug_hash_algo: string;
+  slug_hashes: string[];
+  cached_at: string;
+  cache_ttl_seconds: number;
+  fetched_at_ms: number;
+}
+
+export interface CachedProperties {
+  payload: PropertiesPayload;
+}
+
+export interface RadarMatch {
+  href: string;
+  anchor: string;
+  matchedPropertyType: "short_link" | "biolink_username" | "custom_domain";
+  matchedPropertyValue: string;
+}
+
+export interface TabMatchState {
+  pageUrl: string;
+  pageTitle: string;
+  matches: RadarMatch[];
+  scannedAt: number;
 }
 
 const DEFAULT_API = "https://1inme.com/api/v1";
@@ -29,7 +66,26 @@ export const defaultSettings: ExtSettings = {
   contactDefaultTags: ["from-extension"],
   contactAllowOneClick: true,
   contactWorkspaceId: null,
+  radarEnabled: false,
+  radarOnboarded: false,
+  radarDisabledHosts: [],
 };
+
+const PROPERTIES_KEY = "radarProperties";
+
+export async function getCachedProperties(): Promise<PropertiesPayload | null> {
+  const stored = (await browser.storage.local.get([PROPERTIES_KEY])) as Record<string, unknown>;
+  const cached = stored[PROPERTIES_KEY] as PropertiesPayload | undefined;
+  return cached ?? null;
+}
+
+export async function setCachedProperties(payload: PropertiesPayload): Promise<void> {
+  await browser.storage.local.set({ [PROPERTIES_KEY]: payload });
+}
+
+export async function clearCachedProperties(): Promise<void> {
+  await browser.storage.local.remove([PROPERTIES_KEY]);
+}
 
 export async function getSettings(): Promise<ExtSettings> {
   const stored = (await browser.storage.local.get(Object.keys(defaultSettings))) as Partial<ExtSettings>;
