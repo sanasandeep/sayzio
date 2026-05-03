@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Modules\Admin\Models\BgTemplate;
 use App\Modules\Admin\Models\PageTemplate;
 use App\Modules\User\Services\PersonaCatalog;
 use Illuminate\Database\Seeder;
@@ -13,19 +14,26 @@ use Illuminate\Support\Str;
  *
  * Idempotent: a persona that already has >= 10 active templates tagged
  * with that slug in `recommended_personas` is skipped entirely so admin
- * curation isn't clobbered. Runs after PageTemplatePersonaSeeder.
+ * curation isn't clobbered. Templates are also keyed by a stable slug
+ * (`persona-<slug>-<variant>`) so re-running this seeder never overwrites
+ * an existing row.
  *
- * Templates are normal PageTemplate rows — admins can rename them,
- * swap thumbnails, or deactivate them from the standard admin UI.
+ * Each variant rotates through a bank of theme presets so a persona's
+ * shelf shows a real spread of looks (animated backgrounds, gradients,
+ * photo, light/dark solids) and block mixes (countdown, image_grid,
+ * video, testimonials, service, price, cta_button, contact_form, poll,
+ * qr_code, card, review, donation, coupon, etc.) — not ten variations
+ * of the same beige starter page.
  */
 class ExpandedPageTemplateLibrarySeeder extends Seeder
 {
     private const MIN_PER_PERSONA = 10;
 
+    /** @var array<string,int|null>|null Cached slug => bg_template id map. */
+    private ?array $bgTemplateMap = null;
+
     public function run(): void
     {
-        // Index existing tagged templates per persona (PHP-side so this
-        // works on Postgres / MySQL / SQLite without JSON-op gymnastics).
         $countsBySlug = [];
         PageTemplate::query()->where('is_active', true)->get(['recommended_personas'])->each(function ($t) use (&$countsBySlug) {
             foreach ((array) ($t->recommended_personas ?? []) as $slug) {
@@ -48,10 +56,6 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
                 if ($created >= $needed) break;
                 $tplSlug = 'persona-' . $slug . '-' . Str::slug($bp['key']);
 
-                // Skip if a template with this slug already exists — we never
-                // want to overwrite admin edits on re-run. The "do we still
-                // need more?" gate above ensures we top up to 10 only by
-                // adding missing variants, not by clobbering existing rows.
                 if (PageTemplate::where('slug', $tplSlug)->exists()) {
                     continue;
                 }
@@ -74,9 +78,9 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
     }
 
     /**
-     * Build the 10 blueprint variants for a persona. Each is parameterised
-     * with the persona's label/blurb so names and copy stay on-brand
-     * without requiring a hand-written entry per persona.
+     * Build the 10 blueprint variants for a persona. Variant `key`s are
+     * stable so the resulting slug `persona-<slug>-<key>` stays identical
+     * across re-runs (idempotent).
      *
      * @return array<int, array{key:string,name:string,description:string,thumb:string,snapshot:array}>
      */
@@ -87,161 +91,393 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
         $slug = $persona['slug'];
 
         $thumb = fn(string $variant) => "https://picsum.photos/seed/tpl-{$slug}-{$variant}/600/400";
+        $img = fn(string $key, int $n = 1, int $w = 600, int $h = 400) => "https://picsum.photos/seed/{$slug}-{$key}-{$n}/{$w}/{$h}";
+
+        $presets = $this->themePresets();
+        $pick = fn(int $i) => $presets[$i % count($presets)];
 
         return [
+            // 0 — Aurora animated bg, profile + featured links
             [
                 'key' => 'starter',
-                'name' => "{$label} — Starter",
-                'description' => "A clean intro page tuned for {$label}. Profile, bio, and your top links.",
+                'name' => "{$label} — Aurora Starter",
+                'description' => "Animated aurora background with profile, top links, and socials.",
                 'thumb' => $thumb('starter'),
                 'snapshot' => $this->snapshot([
-                    $this->profile($label, $blurb),
+                    $this->profile($label, $blurb, $img('avatar', 1, 200, 200)),
                     $this->heading('My Links', 'h3'),
                     $this->link('Website', 'https://example.com', 'fa-globe'),
                     $this->link('Latest project', 'https://example.com', 'fa-bookmark'),
+                    $this->link('Press kit', 'https://example.com', 'fa-file-lines'),
                     $this->socials(),
-                ]),
+                ], $pick(0)),
             ],
+            // 1 — Mesh gradient, big featured links + countdown
             [
                 'key' => 'links-stack',
                 'name' => "{$label} — Featured Links",
-                'description' => "Four big featured buttons — perfect when links are the whole point.",
+                'description' => "Bold gradient with four featured buttons and a launch countdown.",
                 'thumb' => $thumb('links'),
                 'snapshot' => $this->snapshot([
-                    $this->profile($label, $blurb),
+                    $this->profile($label, $blurb, $img('avatar', 2, 200, 200)),
+                    $this->countdown('Launch in', '+30 days'),
                     $this->linkBig("What I'm working on now", 'https://example.com', 'fa-rocket'),
                     $this->linkBig('Latest update', 'https://example.com', 'fa-newspaper'),
-                    $this->linkBig('Get in touch', 'https://example.com', 'fa-envelope'),
-                    $this->linkBig('Subscribe', 'https://example.com', 'fa-bell'),
+                    $this->ctaButton('👉 Get the goods', 'https://example.com', '#ec4899', '#ffffff'),
                     $this->socials(),
-                ]),
+                ], $pick(1)),
             ],
+            // 2 — Pastel paper, about + cta + review
             [
                 'key' => 'about-cta',
                 'name' => "{$label} — About + CTA",
-                'description' => "About-me block with a single, focused call to action below.",
+                'description' => "Soft paper look with about-me, a focused CTA, and one glowing review.",
                 'thumb' => $thumb('about'),
                 'snapshot' => $this->snapshot([
-                    $this->profile($label, $blurb),
+                    $this->profile($label, $blurb, $img('avatar', 3, 200, 200)),
                     $this->heading('About me', 'h3'),
                     $this->paragraph("I'm a {$label}. {$blurb}"),
                     $this->divider(),
-                    $this->linkBig('Work with me', 'https://example.com', 'fa-handshake'),
+                    $this->review('Sam P.', 5, "Working with them was the highlight of our quarter — couldn't recommend more.", $img('rev', 1, 80, 80)),
+                    $this->ctaButton('Work with me', 'https://example.com', '#0ea5e9', '#ffffff'),
                     $this->socials(),
-                ]),
+                ], $pick(2)),
             ],
+            // 3 — Mono dark, newsletter + poll
             [
                 'key' => 'newsletter',
                 'name' => "{$label} — Newsletter",
-                'description' => "Lead with an email signup. Best when growing a list is your #1 goal.",
+                'description' => "Sharp mono-dark layout that leads with email signup and a quick poll.",
                 'thumb' => $thumb('news'),
                 'snapshot' => $this->snapshot([
-                    $this->profile($label, $blurb),
+                    $this->profile($label, $blurb, $img('avatar', 4, 200, 200)),
                     $this->heading('Get updates from me', 'h3'),
                     $this->paragraph('One short note when there is something new. No spam.'),
                     $this->emailCollector(),
+                    $this->poll('What should I cover next?', ['Behind the scenes', 'Tutorials', 'Q&A', 'Case studies']),
                     $this->socials(),
-                ]),
+                ], $pick(3)),
             ],
+            // 4 — Photo editorial bg, gallery + image grid
             [
                 'key' => 'gallery',
                 'name' => "{$label} — Gallery",
-                'description' => "Visual-first layout with a portfolio grid and a request-to-book CTA.",
+                'description' => "Editorial photo background, six-shot portfolio grid, and inquiry CTA.",
                 'thumb' => $thumb('gallery'),
                 'snapshot' => $this->snapshot([
-                    $this->profile($label, $blurb),
+                    $this->profile($label, $blurb, $img('avatar', 5, 200, 200)),
                     $this->heading('Portfolio', 'h3'),
-                    $this->imageGrid(),
-                    $this->linkBig('Inquire about my work', 'https://example.com', 'fa-envelope'),
+                    $this->imageGrid([
+                        $img('grid', 1, 400, 400),
+                        $img('grid', 2, 400, 400),
+                        $img('grid', 3, 400, 400),
+                        $img('grid', 4, 400, 400),
+                        $img('grid', 5, 400, 400),
+                        $img('grid', 6, 400, 400),
+                    ], 3),
+                    $this->ctaButton('Inquire about my work', 'https://example.com', '#f59e0b', '#0f172a'),
                     $this->socials(),
-                ]),
+                ], $pick(4)),
             ],
+            // 5 — Neon cyber, services + price
             [
                 'key' => 'services',
-                'name' => "{$label} — Services",
-                'description' => "List of services or packages with a primary booking action.",
+                'name' => "{$label} — Services & Pricing",
+                'description' => "Neon-cyber backdrop with service cards, a pricing tier, and booking.",
                 'thumb' => $thumb('services'),
                 'snapshot' => $this->snapshot([
-                    $this->profile($label, $blurb),
+                    $this->profile($label, $blurb, $img('avatar', 6, 200, 200)),
                     $this->heading('What I offer', 'h3'),
-                    $this->list([
-                        '1:1 consultation — 60 min',
-                        'Starter package — get up and running',
-                        'Pro package — full hands-on engagement',
-                    ]),
-                    $this->linkBig('Book now', 'https://example.com', 'fa-calendar-check'),
+                    $this->service('1:1 Consultation', 'fa-comments', 'from $120 / hr', 'A focused 60-minute working session — bring your toughest question.', 'https://example.com'),
+                    $this->service('Starter Package', 'fa-bolt', '$450', "Get up and running fast. Includes setup, walkthrough, and a follow-up.", 'https://example.com'),
+                    $this->price('Pro Engagement', '$1,800', '/ project', [
+                        'Discovery + audit',
+                        'Hands-on implementation',
+                        'Two weeks of async support',
+                        'Wrap-up review call',
+                    ], 'https://example.com'),
+                    $this->ctaButton('Book a call', 'https://example.com', '#a855f7', '#ffffff'),
                     $this->socials(),
-                ]),
+                ], $pick(5)),
             ],
+            // 6 — Ocean gradient, testimonials + review
             [
                 'key' => 'testimonials',
                 'name' => "{$label} — Social Proof",
-                'description' => "Lead with kind words from real people. Builds trust fast.",
+                'description' => "Calm ocean palette stacked with three testimonials and a featured review.",
                 'thumb' => $thumb('proof'),
                 'snapshot' => $this->snapshot([
-                    $this->profile($label, $blurb),
+                    $this->profile($label, $blurb, $img('avatar', 7, 200, 200)),
                     $this->heading('What people say', 'h3'),
-                    $this->paragraph('"Genuinely a delight to work with. Recommend without hesitation." — A. Customer'),
-                    $this->divider(),
-                    $this->paragraph('"Made a real difference for our team. Wish we\'d started sooner." — B. Client'),
-                    $this->linkBig("See more reviews", 'https://example.com', 'fa-star'),
+                    $this->testimonials([
+                        ['name' => 'Alex R.',    'avatar' => $img('t', 1, 80, 80), 'rating' => 5, 'text' => "Genuinely a delight to work with. Recommend without hesitation."],
+                        ['name' => 'Priya S.',   'avatar' => $img('t', 2, 80, 80), 'rating' => 5, 'text' => "Made a real difference for our team. Wish we'd started sooner."],
+                        ['name' => 'Marcus L.',  'avatar' => $img('t', 3, 80, 80), 'rating' => 4, 'text' => "Sharp eye, clear communication, on time. What more do you want?"],
+                    ]),
+                    $this->ctaButton('See more reviews', 'https://example.com', '#06b6d4', '#001018'),
                     $this->socials(),
-                ]),
+                ], $pick(6)),
             ],
+            // 7 — Smoke fog, contact form + vcard + qr
             [
                 'key' => 'contact',
                 'name' => "{$label} — Contact Hub",
-                'description' => "All the ways to reach you in one tidy spot.",
+                'description' => "Moody smoke background, contact form, vCard download, and a scan-me QR.",
                 'thumb' => $thumb('contact'),
                 'snapshot' => $this->snapshot([
-                    $this->profile($label, $blurb),
+                    $this->profile($label, $blurb, $img('avatar', 8, 200, 200)),
                     $this->heading('Get in touch', 'h3'),
-                    $this->link('Email', 'mailto:hi@example.com', 'fa-envelope'),
-                    $this->link('Call', 'tel:+10000000000', 'fa-phone'),
-                    $this->link('WhatsApp', 'https://wa.me/10000000000', 'fa-whatsapp'),
-                    $this->link('Book a slot', 'https://example.com', 'fa-calendar'),
+                    $this->contactForm('Send a message', 'Send'),
+                    $this->vcard('Your Name', $label, 'Your Company', '+10000000000', 'hi@example.com', 'https://example.com'),
+                    $this->qrCode('https://example.com', 220),
                     $this->socials(),
-                ]),
+                ], $pick(7)),
             ],
+            // 8 — Prism light, feature image + video + donation
             [
                 'key' => 'feature',
-                'name' => "{$label} — Feature Image",
-                'description' => "Big cover image up top, intro and primary action underneath.",
+                'name' => "{$label} — Feature Story",
+                'description' => "Prism-light hero image and short video with a tip-jar donation block.",
                 'thumb' => $thumb('feature'),
                 'snapshot' => $this->snapshot([
-                    $this->image(),
+                    $this->image($img('hero', 1, 1200, 600)),
                     $this->heading($label, 'h2'),
                     $this->paragraph($blurb),
-                    $this->linkBig('Learn more', 'https://example.com', 'fa-arrow-right'),
+                    $this->video('https://download.samplelib.com/mp4/sample-5s.mp4'),
+                    $this->donation('Support my work', 'Every tip helps me keep going — thank you.', [5, 10, 25, 50], 'https://example.com'),
+                    $this->ctaButton('Learn more', 'https://example.com', '#10b981', '#ffffff'),
                     $this->socials(),
-                ]),
+                ], $pick(8)),
             ],
+            // 9 — Deep ocean, faq + coupon + card grid
             [
                 'key' => 'faq-contact',
-                'name' => "{$label} — FAQ + Contact",
-                'description' => "Answer the common questions then funnel into a single contact CTA.",
+                'name' => "{$label} — FAQ + Promo",
+                'description' => "Deep-ocean palette: FAQ list, a launch coupon, and a quick-link card grid.",
                 'thumb' => $thumb('faq'),
                 'snapshot' => $this->snapshot([
-                    $this->profile($label, $blurb),
+                    $this->profile($label, $blurb, $img('avatar', 9, 200, 200)),
                     $this->heading('Frequently asked', 'h3'),
                     $this->list([
-                        'How do we start? — Drop me a message and we\'ll set up a quick intro.',
+                        "How do we start? — Drop me a message and we'll set up a quick intro.",
                         'How much does it cost? — Depends on scope; I share a range upfront.',
                         'How fast can we start? — Usually within a week or two.',
                     ]),
-                    $this->divider(),
-                    $this->linkBig("Send me a message", 'https://example.com', 'fa-paper-plane'),
+                    $this->coupon('WELCOME15', 'Save 15% on your first booking.', 'Dec 31, 2026'),
+                    $this->cardGrid('Quick links', 2, [
+                        $this->link('Email me', 'mailto:hi@example.com', 'fa-envelope'),
+                        $this->link('Book a slot', 'https://example.com', 'fa-calendar'),
+                        $this->link('WhatsApp', 'https://wa.me/10000000000', 'fa-whatsapp'),
+                        $this->link('Press kit', 'https://example.com', 'fa-file-lines'),
+                    ]),
+                    $this->ctaButton('Send me a message', 'https://example.com', '#7c3aed', '#ffffff'),
                     $this->socials(),
-                ]),
+                ], $pick(9)),
             ],
         ];
     }
 
-    // ───────── snapshot + block helpers (kept tiny — TemplateService re-sanitizes) ─────────
+    /* ──────────────────────── theme presets ──────────────────────── */
 
-    private function snapshot(array $blocks): array
+    /**
+     * Return the bank of biolink theme presets. Each preset is a settings
+     * array merged into the saved snapshot's `biolink` key. Presets cover
+     * animated bg-templates, gradients, photo, and solid light/dark looks
+     * with matching font/button colors and varied button shapes.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function themePresets(): array
     {
-        return ['biolink' => [], 'blocks' => $blocks];
+        $bg = fn(string $slug): ?int => $this->bgTemplateMap()[$slug] ?? null;
+
+        $presets = [];
+
+        // 0 — Aurora animated
+        if ($id = $bg('aurora-borealis')) {
+            $presets[] = [
+                'background_type'   => 'template',
+                'bg_template_id'    => $id,
+                'theme_color'       => '#7c3aed',
+                'font_color'        => '#ffffff',
+                'button_color'      => '#7c3aed',
+                'button_text_color' => '#ffffff',
+                'button_style'      => 'rounded',
+            ];
+        }
+
+        // 1 — Bold gradient (sunset)
+        $presets[] = [
+            'background_type'    => 'gradient',
+            'background_gradient' => 'linear-gradient(135deg, #f97316 0%, #ec4899 50%, #8b5cf6 100%)',
+            'theme_color'        => '#ec4899',
+            'font_color'         => '#ffffff',
+            'button_color'       => '#ffffff',
+            'button_text_color'  => '#1f2937',
+            'button_style'       => 'pill',
+        ];
+
+        // 2 — Soft pastel paper (light)
+        $presets[] = [
+            'background_type'    => 'gradient',
+            'background_gradient' => 'linear-gradient(180deg, #fdf6e3 0%, #fce7f3 100%)',
+            'theme_color'        => '#0ea5e9',
+            'font_color'         => '#1f2937',
+            'button_color'       => '#0ea5e9',
+            'button_text_color'  => '#ffffff',
+            'button_style'       => 'rounded',
+        ];
+
+        // 3 — Mono dark (sharp)
+        $presets[] = [
+            'background_type'   => 'color',
+            'background_color'  => '#0a0a0a',
+            'theme_color'       => '#f5f5f5',
+            'font_color'        => '#f5f5f5',
+            'button_color'      => '#f5f5f5',
+            'button_text_color' => '#0a0a0a',
+            'button_style'      => 'square',
+        ];
+
+        // 4 — Editorial photo
+        $presets[] = [
+            'background_type'   => 'image',
+            'background_image'  => 'https://picsum.photos/seed/tpl-bg-editorial/1200/2000',
+            'theme_color'       => '#f59e0b',
+            'font_color'        => '#ffffff',
+            'button_color'      => '#ffffff',
+            'button_text_color' => '#0f172a',
+            'button_style'      => 'outline',
+        ];
+
+        // 5 — Neon cyber animated (or fallback to neon gradient)
+        if ($id = $bg('neon-waves')) {
+            $presets[] = [
+                'background_type'   => 'template',
+                'bg_template_id'    => $id,
+                'theme_color'       => '#a855f7',
+                'font_color'        => '#ffffff',
+                'button_color'      => '#a855f7',
+                'button_text_color' => '#ffffff',
+                'button_style'      => 'shadow',
+            ];
+        } else {
+            $presets[] = [
+                'background_type'    => 'gradient',
+                'background_gradient' => 'linear-gradient(135deg, #0f172a 0%, #581c87 50%, #a855f7 100%)',
+                'theme_color'        => '#a855f7',
+                'font_color'         => '#ffffff',
+                'button_color'       => '#a855f7',
+                'button_text_color'  => '#ffffff',
+                'button_style'       => 'shadow',
+            ];
+        }
+
+        // 6 — Ocean gradient (calm)
+        $presets[] = [
+            'background_type'    => 'gradient',
+            'background_gradient' => 'linear-gradient(160deg, #0c4a6e 0%, #0e7490 60%, #06b6d4 100%)',
+            'theme_color'        => '#06b6d4',
+            'font_color'         => '#f0fdff',
+            'button_color'       => '#06b6d4',
+            'button_text_color'  => '#001018',
+            'button_style'       => 'pill',
+        ];
+
+        // 7 — Smoke fog animated (or moody gradient fallback)
+        if ($id = $bg('smoke-fog')) {
+            $presets[] = [
+                'background_type'   => 'template',
+                'bg_template_id'    => $id,
+                'theme_color'       => '#94a3b8',
+                'font_color'        => '#f8fafc',
+                'button_color'      => '#1e293b',
+                'button_text_color' => '#f8fafc',
+                'button_style'      => 'outline',
+            ];
+        } else {
+            $presets[] = [
+                'background_type'    => 'gradient',
+                'background_gradient' => 'linear-gradient(180deg, #1f2937 0%, #374151 100%)',
+                'theme_color'        => '#94a3b8',
+                'font_color'         => '#f8fafc',
+                'button_color'       => '#1e293b',
+                'button_text_color'  => '#f8fafc',
+                'button_style'       => 'outline',
+            ];
+        }
+
+        // 8 — Prism light animated (or warm light gradient)
+        if ($id = $bg('prism-light')) {
+            $presets[] = [
+                'background_type'   => 'template',
+                'bg_template_id'    => $id,
+                'theme_color'       => '#10b981',
+                'font_color'        => '#ffffff',
+                'button_color'      => '#10b981',
+                'button_text_color' => '#ffffff',
+                'button_style'      => 'rounded',
+            ];
+        } else {
+            $presets[] = [
+                'background_type'    => 'gradient',
+                'background_gradient' => 'linear-gradient(135deg, #fef3c7 0%, #fbbf24 100%)',
+                'theme_color'        => '#10b981',
+                'font_color'         => '#1f2937',
+                'button_color'       => '#10b981',
+                'button_text_color'  => '#ffffff',
+                'button_style'       => 'rounded',
+            ];
+        }
+
+        // 9 — Deep ocean animated (or deep gradient fallback)
+        if ($id = $bg('deep-ocean')) {
+            $presets[] = [
+                'background_type'   => 'template',
+                'bg_template_id'    => $id,
+                'theme_color'       => '#7c3aed',
+                'font_color'        => '#e0e7ff',
+                'button_color'      => '#7c3aed',
+                'button_text_color' => '#ffffff',
+                'button_style'      => 'pill',
+            ];
+        } else {
+            $presets[] = [
+                'background_type'    => 'gradient',
+                'background_gradient' => 'linear-gradient(180deg, #020617 0%, #1e1b4b 100%)',
+                'theme_color'        => '#7c3aed',
+                'font_color'         => '#e0e7ff',
+                'button_color'       => '#7c3aed',
+                'button_text_color'  => '#ffffff',
+                'button_style'       => 'pill',
+            ];
+        }
+
+        return $presets;
+    }
+
+    /** @return array<string,int> */
+    private function bgTemplateMap(): array
+    {
+        if ($this->bgTemplateMap === null) {
+            try {
+                $this->bgTemplateMap = BgTemplate::query()
+                    ->pluck('id', 'slug')
+                    ->map(fn($id) => (int) $id)
+                    ->all();
+            } catch (\Throwable $e) {
+                // Table may not exist yet on first boot — degrade gracefully.
+                $this->bgTemplateMap = [];
+            }
+        }
+        return $this->bgTemplateMap;
+    }
+
+    /* ──────────────────── snapshot + block helpers ──────────────────── */
+
+    private function snapshot(array $blocks, array $biolink = []): array
+    {
+        return ['biolink' => $biolink, 'blocks' => $blocks];
     }
 
     private function block(string $type, array $settings): array
@@ -249,12 +485,13 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
         return ['type' => $type, 'settings' => $settings, 'is_active' => true];
     }
 
-    private function profile(string $label, string $blurb): array
+    private function profile(string $label, string $blurb, string $avatar = ''): array
     {
         return $this->block('profile_card_v1', [
-            'name'  => 'Your Name',
-            'title' => $label,
-            'bio'   => $blurb,
+            'name'   => 'Your Name',
+            'title'  => $label,
+            'avatar' => $avatar,
+            'bio'    => $blurb,
         ]);
     }
 
@@ -280,7 +517,13 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
 
     private function socials(): array
     {
-        return $this->block('socials_multi', []);
+        // Render-safe: a `socials_multi` with empty platforms still resolves
+        // to an empty wrapper. The user adds real handles after picking the
+        // template; we keep the block here so the editor shows the slot.
+        return $this->block('socials_multi', [
+            'groups' => [['label' => 'Personal', 'platforms' => []]],
+            'size'   => 'md',
+        ]);
     }
 
     private function emailCollector(): array
@@ -288,14 +531,18 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
         return $this->block('email_collector', ['placeholder' => 'you@email.com', 'button_text' => 'Subscribe']);
     }
 
-    private function image(): array
+    private function image(string $url = ''): array
     {
-        return $this->block('image', ['url' => '']);
+        return $this->block('image', ['url' => $url, 'alt' => '']);
     }
 
-    private function imageGrid(): array
+    private function imageGrid(array $images = [], int $columns = 3): array
     {
-        return $this->block('image_grid', []);
+        return $this->block('image_grid', [
+            'columns' => $columns,
+            'gap'     => 2,
+            'images'  => array_map(fn($u) => ['url' => $u], $images),
+        ]);
     }
 
     private function divider(): array
@@ -306,5 +553,134 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
     private function list(array $items): array
     {
         return $this->block('list', ['items' => $items]);
+    }
+
+    /* ─── new richer blocks ─── */
+
+    private function countdown(string $title, string $relative = '+30 days'): array
+    {
+        $target = now()->modify($relative)->toIso8601String();
+        return $this->block('countdown', ['title' => $title, 'target_date' => $target]);
+    }
+
+    private function video(string $url): array
+    {
+        return $this->block('video', ['url' => $url, 'autoplay' => false]);
+    }
+
+    private function testimonials(array $items): array
+    {
+        return $this->block('testimonials', ['items' => $items]);
+    }
+
+    private function review(string $name, int $rating, string $text, string $avatar = ''): array
+    {
+        return $this->block('review', [
+            'name'   => $name,
+            'avatar' => $avatar,
+            'rating' => $rating,
+            'text'   => $text,
+        ]);
+    }
+
+    private function service(string $name, string $icon, string $price, string $description, string $url): array
+    {
+        return $this->block('service', [
+            'name'        => $name,
+            'icon'        => 'fas ' . $icon,
+            'price'       => $price,
+            'description' => $description,
+            'url'         => $url,
+        ]);
+    }
+
+    private function price(string $title, string $amount, string $period, array $features, string $url): array
+    {
+        return $this->block('price', [
+            'title'    => $title,
+            'amount'   => $amount,
+            'period'   => $period,
+            'features' => $features,
+            'url'      => $url,
+        ]);
+    }
+
+    private function ctaButton(string $text, string $url, string $color = '#7c3aed', string $textColor = '#ffffff', string $size = 'lg'): array
+    {
+        return $this->block('cta_button', [
+            'text'       => $text,
+            'url'        => $url,
+            'color'      => $color,
+            'text_color' => $textColor,
+            'size'       => $size,
+        ]);
+    }
+
+    private function contactForm(string $title, string $buttonText): array
+    {
+        return $this->block('contact_form', [
+            'title'           => $title,
+            'button_text'     => $buttonText,
+            'success_message' => 'Got it — I\'ll get back to you soon.',
+        ]);
+    }
+
+    private function poll(string $question, array $options): array
+    {
+        return $this->block('poll', ['question' => $question, 'options' => array_values($options)]);
+    }
+
+    private function qrCode(string $url, int $size = 200): array
+    {
+        return $this->block('qr_code', ['url' => $url, 'size' => $size]);
+    }
+
+    private function donation(string $title, string $description, array $amounts, string $url): array
+    {
+        return $this->block('donation', [
+            'title'       => $title,
+            'description' => $description,
+            'amounts'     => array_values($amounts),
+            'url'         => $url,
+        ]);
+    }
+
+    private function coupon(string $code, string $description, string $expires): array
+    {
+        return $this->block('coupon', ['code' => $code, 'description' => $description, 'expires' => $expires]);
+    }
+
+    private function vcard(string $name, string $title, string $company, string $phone, string $email, string $website): array
+    {
+        return $this->block('vcard', [
+            'name'    => $name,
+            'title'   => $title,
+            'company' => $company,
+            'phone'   => $phone,
+            'email'   => $email,
+            'website' => $website,
+        ]);
+    }
+
+    /**
+     * Card container with children — renders a small grid of child blocks
+     * inside one styled card. Keeps the variant from devolving back into
+     * a plain link list.
+     */
+    private function cardGrid(string $title, int $columns, array $children): array
+    {
+        $card = $this->block('card', [
+            'title'         => $title,
+            'columns'       => $columns,
+            'gap'           => 12,
+            'padding'       => 16,
+            'border_radius' => 16,
+            'bg_type'       => 'glass',
+            'glass_opacity' => 6,
+            'glass_blur'    => 12,
+            'shadow'        => 'sm',
+        ]);
+        $card['children'] = array_values($children);
+        return $card;
     }
 }
