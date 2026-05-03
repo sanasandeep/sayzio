@@ -3,7 +3,9 @@ import assert from "node:assert/strict";
 
 import {
   capPendingThanks,
+  markPendingThanksSeen,
   prunePendingThanks,
+  unreadPendingThanksCount,
   PENDING_THANKS_MAX,
   PENDING_THANKS_TTL_MS,
   type PendingThank,
@@ -151,5 +153,71 @@ describe("prunePendingThanks", () => {
     const result = prunePendingThanks(items);
     assert.equal(result.pruned, false);
     assert.equal(result.items.length, 1);
+  });
+});
+
+describe("unreadPendingThanksCount", () => {
+  it("returns 0 for an empty queue", () => {
+    assert.equal(unreadPendingThanksCount([], []), 0);
+    assert.equal(unreadPendingThanksCount([], ["id-9"]), 0);
+  });
+
+  it("counts every queued item when nothing has been seen yet", () => {
+    const items = makeQueue(4);
+    assert.equal(unreadPendingThanksCount(items, []), 4);
+  });
+
+  it("counts only ids missing from the seen set", () => {
+    const items = makeQueue(5);
+    const seen = ["id-0", "id-2", "id-4"];
+    assert.equal(unreadPendingThanksCount(items, seen), 2);
+  });
+
+  it("ignores seen ids that are no longer queued", () => {
+    const items = makeQueue(2);
+    const seen = ["id-0", "id-1", "id-99-stale"];
+    assert.equal(unreadPendingThanksCount(items, seen), 0);
+  });
+});
+
+describe("markPendingThanksSeen", () => {
+  it("marks every queued id as seen on first run", () => {
+    const items = makeQueue(3);
+    const result = markPendingThanksSeen(items, []);
+    assert.equal(result.changed, true);
+    assert.deepEqual(result.seenIds, ["id-0", "id-1", "id-2"]);
+  });
+
+  it("reports no change when the seen set already matches the queue exactly", () => {
+    const items = makeQueue(3);
+    const result = markPendingThanksSeen(items, ["id-0", "id-1", "id-2"]);
+    assert.equal(result.changed, false);
+    assert.deepEqual(result.seenIds, ["id-0", "id-1", "id-2"]);
+  });
+
+  it("reports change when a new item arrives", () => {
+    const items = makeQueue(3);
+    const result = markPendingThanksSeen(items, ["id-0", "id-1"]);
+    assert.equal(result.changed, true);
+    assert.deepEqual(result.seenIds, ["id-0", "id-1", "id-2"]);
+  });
+
+  it("prunes seen ids that no longer correspond to a queued item", () => {
+    const items = makeQueue(2);
+    const result = markPendingThanksSeen(items, ["id-0", "id-1", "id-stale"]);
+    assert.equal(result.changed, true);
+    assert.deepEqual(result.seenIds, ["id-0", "id-1"]);
+  });
+
+  it("returns an empty seen list when the queue is empty", () => {
+    const result = markPendingThanksSeen([], ["id-stale"]);
+    assert.equal(result.changed, true);
+    assert.deepEqual(result.seenIds, []);
+  });
+
+  it("reports no change when both the queue and the seen list are empty", () => {
+    const result = markPendingThanksSeen([], []);
+    assert.equal(result.changed, false);
+    assert.deepEqual(result.seenIds, []);
   });
 });

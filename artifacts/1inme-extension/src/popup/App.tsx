@@ -14,6 +14,7 @@ import {
   clearAuth,
   defaultThankTemplates,
   getSettings,
+  markPendingThanksSeen,
   prunePendingThanks,
   renderThankTemplate,
   savePendingThanksLocallyAndPush,
@@ -24,6 +25,7 @@ import {
   setSettings,
   syncPendingThanks,
   syncThankTemplates,
+  unreadPendingThanksCount,
 } from "../lib/storage";
 
 const CHANNEL_LABEL: Record<ThankChannel, string> = {
@@ -344,7 +346,12 @@ export function App() {
 
   return (
     <>
-      <Header settings={settings} view={view} onTabChange={setView} />
+      <Header
+        settings={settings}
+        view={view}
+        onTabChange={setView}
+        unreadPendingThanks={unreadPendingThanksCount(settings.pendingThanks || [], settings.pendingThanksSeenIds || [])}
+      />
       {view === "login" && <LoginView settings={settings} onAuthed={refresh} showToast={showToast} />}
       {view === "onboarding" && <OnboardingView onDone={refresh} />}
       {view === "settings" && (
@@ -519,8 +526,18 @@ function buildPayload(c: ContactCandidate, settings: ExtSettings | null): Record
   };
 }
 
-function Header({ settings, view, onTabChange }: { settings: ExtSettings; view: View; onTabChange: (v: View) => void }) {
+function Header({
+  settings, view, onTabChange, unreadPendingThanks,
+}: {
+  settings: ExtSettings;
+  view: View;
+  onTabChange: (v: View) => void;
+  unreadPendingThanks: number;
+}) {
   const showTabs = !!settings.token && view !== "login" && view !== "onboarding";
+  // Cap the displayed count so a long-stale queue can't blow out the
+  // tab width. Anything over 99 collapses to "99+".
+  const badgeText = unreadPendingThanks > 99 ? "99+" : String(unreadPendingThanks);
   return (
     <>
       <div className="header">
@@ -533,7 +550,18 @@ function Header({ settings, view, onTabChange }: { settings: ExtSettings; view: 
       {showTabs && (
         <div className="tabs">
           <button className={view === "main" ? "active" : ""} onClick={() => onTabChange("main")}>Page</button>
-          <button className={view === "backlinks" ? "active" : ""} onClick={() => onTabChange("backlinks")}>Backlinks</button>
+          <button className={view === "backlinks" ? "active" : ""} onClick={() => onTabChange("backlinks")}>
+            Backlinks
+            {unreadPendingThanks > 0 && (
+              <span
+                className="tab-badge"
+                aria-label={`${unreadPendingThanks} new pending thank-${unreadPendingThanks === 1 ? "you" : "yous"}`}
+                title={`${unreadPendingThanks} new pending thank-${unreadPendingThanks === 1 ? "you" : "yous"} synced from another browser`}
+              >
+                {badgeText}
+              </span>
+            )}
+          </button>
           <button className={view === "settings" ? "active" : ""} onClick={() => onTabChange("settings")}>Settings</button>
         </div>
       )}
@@ -1103,6 +1131,26 @@ function BacklinksView({
   }, [days, propertyType]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Mark every queued thank-you as "seen" on this device whenever the
+  // creator is viewing the Backlinks tab. Re-runs when the queue
+  // changes so items that arrive (or expire) while the tab is open
+  // also keep the badge cleared. Only writes when something actually
+  // changed to avoid an infinite storage->refresh->effect loop.
+  const queueIdsKey = (settings.pendingThanks || []).map((p) => p.id).join(",");
+  const seenIdsKey = (settings.pendingThanksSeenIds || []).join(",");
+  useEffect(() => {
+    const { seenIds, changed } = markPendingThanksSeen(
+      settings.pendingThanks || [],
+      settings.pendingThanksSeenIds || [],
+    );
+    if (changed) {
+      void setSettings({ pendingThanksSeenIds: seenIds });
+    }
+    // queueIdsKey/seenIdsKey are stable string snapshots so we re-run
+    // only when ids actually change, not on unrelated settings churn.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queueIdsKey, seenIdsKey]);
 
   const onDelete = async (id: number) => {
     try {

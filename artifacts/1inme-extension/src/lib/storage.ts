@@ -62,6 +62,14 @@ export interface ExtSettings {
   // Workspace whose queue is currently mirrored locally. When the
   // creator switches workspace we re-hydrate from the server.
   pendingThanksWorkspaceId: number | null;
+  // IDs of pending thanks the creator has already noticed on THIS
+  // device. Anything in `pendingThanks` whose id is not in this set
+  // counts as "unread" and bumps the Backlinks-tab badge. The set is
+  // intentionally per-device (not synced) so each browser surfaces its
+  // own newly-arrived items independently. Pruned on every refresh to
+  // drop ids that no longer correspond to a queued item, otherwise it
+  // would grow unbounded as items get sent or expire.
+  pendingThanksSeenIds: string[];
 }
 
 export type ThankChannel = SharedThankChannel;
@@ -158,6 +166,7 @@ export const defaultSettings: ExtSettings = {
   pendingThanks: [],
   pendingThanksUpdatedAtMs: null,
   pendingThanksWorkspaceId: null,
+  pendingThanksSeenIds: [],
 };
 
 export function defaultThankTemplates(): ThankTemplate[] {
@@ -444,7 +453,47 @@ export async function clearAuth(): Promise<void> {
     "thankTemplatesUpdatedAtMs", "thankTemplatesLastServerTs",
     "thankTemplatesWorkspaceId",
     "pendingThanksUpdatedAtMs", "pendingThanksWorkspaceId",
+    "pendingThanksSeenIds",
   ]);
+}
+
+/**
+ * Count pending-thanks items that haven't been "seen" on this device
+ * yet. Used to drive the unread-count badge on the Backlinks tab so
+ * items that arrived from another browser via sync surface visibly.
+ */
+export function unreadPendingThanksCount(
+  items: PendingThank[],
+  seenIds: string[],
+): number {
+  if (items.length === 0) return 0;
+  const seen = new Set(seenIds);
+  let n = 0;
+  for (const it of items) if (!seen.has(it.id)) n++;
+  return n;
+}
+
+/**
+ * Mark every currently-queued pending thank as "seen" on this device.
+ * Also drops any seen-ids that no longer correspond to a queued item
+ * (e.g. items that were sent or auto-pruned) so the set can't grow
+ * forever. Returns the new seen-ids list and whether anything changed
+ * so callers can avoid an unnecessary write.
+ */
+export function markPendingThanksSeen(
+  items: PendingThank[],
+  seenIds: string[],
+): { seenIds: string[]; changed: boolean } {
+  const liveIds = new Set(items.map((i) => i.id));
+  const next = items.map((i) => i.id);
+  const prev = new Set(seenIds);
+  // Changed if any current id is unseen, or any seen id no longer exists.
+  let changed = false;
+  for (const id of liveIds) if (!prev.has(id)) { changed = true; break; }
+  if (!changed) {
+    for (const id of seenIds) if (!liveIds.has(id)) { changed = true; break; }
+  }
+  return { seenIds: next, changed };
 }
 
 /**

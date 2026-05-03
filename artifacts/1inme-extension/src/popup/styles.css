@@ -140,6 +140,20 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
   font-weight: 500;
 }
 .tabs button.active { color: #6366f1; border-bottom-color: #6366f1; }
+.tab-badge {
+  display: inline-block;
+  margin-left: 6px;
+  min-width: 16px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: #6366f1;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 14px;
+  text-align: center;
+  vertical-align: middle;
+}
 
 .settings-row { display: flex; flex-direction: column; gap: 4px; }
 .muted { color: #64748b; font-size: 12px; }
