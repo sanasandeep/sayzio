@@ -34,10 +34,18 @@ class CarbonPublicController extends Controller
 
         $snap = BiolinkCarbonSnapshot::query()->withoutGlobalScope('workspace')
             ->where('link_id', $link->id)
+            ->whereIn('offset_status', ['purchased', 'sandbox'])
             ->orderByDesc('period_start')
             ->first();
 
-        $purchase = $snap?->offset_purchase_id
+        // No actually-offset snapshot yet → no badge claim. The
+        // public page must NEVER advertise carbon-neutral status for
+        // a month whose offset purchase is pending, capped, or failed.
+        if (!$snap) {
+            return response()->json(['ok' => false, 'reason' => 'no_offset'], 404);
+        }
+
+        $purchase = $snap->offset_purchase_id
             ? CarbonOffsetPurchase::query()->withoutGlobalScope('workspace')->find($snap->offset_purchase_id)
             : null;
 
@@ -85,7 +93,21 @@ class CarbonPublicController extends Controller
         if ($event['status'] === 'succeeded' && $purchase->status !== 'succeeded') {
             $purchase->status = 'succeeded';
         }
-        if ($event['status'] === 'failed') $purchase->status = 'failed';
+        if ($event['status'] === 'failed') {
+            // Provider walked back the purchase after the fact (e.g.
+            // payment chargeback). Zero out the offset and mark the
+            // owning snapshot failed so the badge stops claiming
+            // carbon neutrality on next request.
+            $purchase->status       = 'failed';
+            $purchase->grams_offset = 0;
+            $snap = BiolinkCarbonSnapshot::query()->withoutGlobalScope('workspace')
+                ->where('offset_purchase_id', $purchase->id)->first();
+            if ($snap) {
+                $snap->offset_status = 'failed';
+                $snap->grams_offset  = 0;
+                $snap->save();
+            }
+        }
         $purchase->save();
 
         return response()->json(['ok' => true]);

@@ -93,23 +93,32 @@ class CarbonOffsetService
         // attaching the invoice in the same txn used to make the
         // snapshot UPDATE blow up too.)
         $purchase = DB::transaction(function () use ($snapshot, $workspace, $quote, $gramsActual, $costMinor, $provider) {
+            $status         = (string) ($quote['status'] ?? 'pending');
+            // A failed provider call must NEVER be reported as offset
+            // grams on the badge or dashboard — that would let us
+            // claim "carbon neutral" on traffic we never actually
+            // offset. Record the attempt with grams=0 and surface the
+            // failure to the dashboard.
+            $isFailure      = in_array($status, ['failed', 'error'], true);
+            $recordedGrams  = $isFailure ? 0.0 : (float) $gramsActual;
+
             $purchase = new CarbonOffsetPurchase();
             $purchase->workspace_id    = $workspace->id;
             $purchase->link_id         = $snapshot->link_id;
             $purchase->provider        = $provider->slug();
             $purchase->provider_ref    = $quote['provider_ref'] ?? null;
-            $purchase->grams_offset    = $gramsActual;
+            $purchase->grams_offset    = $recordedGrams;
             $purchase->currency        = strtoupper((string) ($quote['currency'] ?? 'USD'));
-            $purchase->cost_minor      = max(0, $costMinor);
-            $purchase->status          = $quote['status'] ?? 'pending';
-            $purchase->certificate_url = $quote['certificate_url'] ?? null;
+            $purchase->cost_minor      = $isFailure ? 0 : max(0, $costMinor);
+            $purchase->status          = $isFailure ? 'failed' : $status;
+            $purchase->certificate_url = $isFailure ? null : ($quote['certificate_url'] ?? null);
             $purchase->project_name    = $quote['project_name'] ?? null;
             $purchase->raw             = $quote['raw'] ?? null;
             $purchase->purchased_at    = now();
             $purchase->save();
 
-            $snapshot->grams_offset       = $gramsActual;
-            $snapshot->offset_status      = $purchase->status === 'failed' ? 'failed'
+            $snapshot->grams_offset       = $recordedGrams;
+            $snapshot->offset_status      = $isFailure ? 'failed'
                                           : ($purchase->status === 'sandbox' ? 'sandbox' : 'purchased');
             $snapshot->offset_purchase_id = $purchase->id;
             $snapshot->save();
