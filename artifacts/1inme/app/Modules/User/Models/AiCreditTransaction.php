@@ -32,7 +32,7 @@ class AiCreditTransaction extends Model
     public const TYPES = ['purchase', 'spend', 'refund', 'grant', 'admin_adjustment'];
 
     /** Known AI features for filtering / reporting. */
-    public const FEATURES = ['mind', 'persona', 'companion', 'coach', 'ask_coach', 'voice_stt', 'voice_llm', 'voice_tts'];
+    public const FEATURES = ['mind', 'persona', 'companion', 'coach', 'ask_coach', 'voice_stt', 'voice_llm', 'voice_tts', 'card_scan'];
 
     /** Friendly labels for ledger surfaces. */
     public const FEATURE_LABELS = [
@@ -44,6 +44,7 @@ class AiCreditTransaction extends Model
         'voice_stt' => 'Voice — Transcription',
         'voice_llm' => 'Voice — Reasoning',
         'voice_tts' => 'Voice — Speech',
+        'card_scan' => 'Card / Brochure Scan',
     ];
 
     public static function featureLabel(?string $feature): string
