@@ -1,10 +1,10 @@
 <footer class="border-t border-white/10 bg-[#161b26] mt-16">
     {{-- 3-way Subscribe block: Email newsletter, WhatsApp Channel, WhatsApp DM. --}}
     @include('public.partials.subscribe-block-footer')
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 grid grid-cols-2 md:grid-cols-5 gap-8 text-sm">
-        <div class="col-span-2 md:col-span-1">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 grid grid-cols-2 md:grid-cols-5 gap-8 text-sm justify-items-center text-center">
+        <div class="col-span-2 md:col-span-1 flex flex-col items-center">
             @include('common.partials.brand-logo', ['height' => 'h-8'])
-            <p class="mt-3 text-gray-500 text-xs leading-relaxed">Your link, your page, your audience — all in one place.</p>
+            <p class="mt-3 text-gray-500 text-xs leading-relaxed max-w-[16rem]">Your link, your page, your audience — all in one place.</p>
         </div>
         <div>
             <div class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">Product</div>

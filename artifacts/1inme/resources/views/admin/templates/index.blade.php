@@ -75,7 +75,7 @@
                 @if($tpl->thumbnail_url)
                     <img src="{{ $tpl->thumbnail_url }}" alt="{{ $tpl->name }}" class="w-full h-full object-cover">
                 @else
-                    <i class="fas {{ $tab === 'card' ? 'fa-square-poll-vertical' : 'fa-id-card' }} text-3xl text-violet-300/60"></i>
+                    <img src="{{ asset('template-placeholders/page.svg') }}" alt="{{ $tpl->name }} preview" class="w-full h-full object-cover">
                 @endif
             </div>
             <div class="flex items-start justify-between gap-2 mb-1">

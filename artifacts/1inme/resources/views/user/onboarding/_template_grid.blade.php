@@ -6,7 +6,7 @@
                 @if($tpl->thumbnail_url)
                     <img src="{{ $tpl->thumbnail_url }}" alt="{{ $tpl->name }}" class="w-full h-full object-cover">
                 @else
-                    <i class="fas fa-id-card text-4xl text-violet-300/60"></i>
+                    <img src="{{ asset('template-placeholders/page.svg') }}" alt="{{ $tpl->name }} preview" class="w-full h-full object-cover">
                 @endif
                 @if($locked)
                     <div class="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/90 text-white"><i class="fas fa-lock mr-1"></i>{{ $tpl->plan_tier }}</div>
