@@ -133,6 +133,13 @@ class NotificationService
                 'default_email'  => false,
                 'default_push'   => false,
             ],
+            'backlink_digest' => [
+                'label'          => 'Weekly backlink digest',
+                'description'    => 'Weekly email summarising new backlinks the browser-extension radar has found pointing at your short links, biolink and custom domains.',
+                'default_in_app' => false,
+                'default_email'  => true,
+                'default_push'   => false,
+            ],
         ];
     }
 

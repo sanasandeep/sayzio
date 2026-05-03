@@ -44,6 +44,11 @@ return Application::configure(basePath: dirname(__DIR__))
             // it cannot present a CSRF token. The signed URL itself is
             // the authenticator.
             'newsletter/unsubscribe/*',
+            // RFC 8058 one-click unsubscribe POST for the weekly
+            // backlink digest — same rationale as the newsletter one
+            // above (inbox provider POSTs cannot present a CSRF token;
+            // the signed URL is the authenticator).
+            'user/notifications/backlink-digest/unsubscribe/*',
         ]);
         // Per-area Maintenance Mode gate. Runs on every request so the
         // admin-managed switch in app_settings can take parts of the site

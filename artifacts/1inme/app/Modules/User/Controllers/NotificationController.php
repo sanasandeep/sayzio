@@ -5,6 +5,7 @@ namespace App\Modules\User\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Common\Services\NotificationService;
 use App\Modules\User\Models\NotificationPreference;
+use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserNotification;
 use Illuminate\Http\Request;
 
@@ -60,5 +61,48 @@ class NotificationController extends Controller
         }
 
         return back()->with('success', 'Preferences saved.');
+    }
+
+    /**
+     * Public, signed one-click unsubscribe target linked from the weekly
+     * backlink-digest email. Does not require an authenticated session
+     * so creators can opt out from any inbox client (RFC 8058 one-click
+     * POST or a regular GET click both land here). The signed URL is
+     * unguessable and bound to a specific user id, and flips only the
+     * `backlink_digest` email channel — other notification preferences
+     * are untouched.
+     */
+    public function unsubscribeBacklinkDigest(Request $request, User $user)
+    {
+        if (! $request->hasValidSignature()) {
+            abort(403, 'This unsubscribe link is invalid or has been tampered with.');
+        }
+
+        NotificationPreference::updateOrCreate(
+            ['user_id' => $user->id, 'type' => 'backlink_digest'],
+            [
+                'in_app' => false,
+                'email'  => false,
+                'push'   => false,
+            ],
+        );
+
+        if ($request->isMethod('post')) {
+            return response('', 200, ['Content-Type' => 'text/plain; charset=utf-8']);
+        }
+
+        return response(
+            '<!doctype html><html><head><meta charset="utf-8"><title>Unsubscribed</title>'
+            . '<meta name="viewport" content="width=device-width,initial-scale=1">'
+            . '</head><body style="font-family:Arial,Helvetica,sans-serif;background:#f8fafc;margin:0;padding:40px 16px;">'
+            . '<div style="max-width:480px;margin:0 auto;background:#fff;border-radius:12px;padding:32px;box-shadow:0 1px 3px rgba(0,0,0,0.08);text-align:center;">'
+            . '<h1 style="font-size:20px;color:#1e293b;margin:0 0 12px 0;">You\'ve been unsubscribed</h1>'
+            . '<p style="font-size:14px;color:#475569;line-height:1.6;margin:0 0 20px 0;">'
+            . e($user->email) . ' will no longer receive the weekly backlink digest. '
+            . 'You can re-enable it any time from your notification settings.'
+            . '</p></div></body></html>',
+            200,
+            ['Content-Type' => 'text/html; charset=utf-8']
+        );
     }
 }

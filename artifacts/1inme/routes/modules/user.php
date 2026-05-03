@@ -113,6 +113,16 @@ Route::prefix('user')->name('user.')->group(function () {
     Route::get('social-accounts/broken-emails/unsubscribe/{user}', [\App\Modules\User\Controllers\SocialAccountController::class, 'unsubscribeBrokenEmails'])
         ->name('social-accounts.broken-emails.unsubscribe');
 
+    // Public, signed one-click unsubscribe target linked from the
+    // weekly backlink-digest email. GET = footer click in a browser,
+    // POST = inbox-provider one-click chip per RFC 8058 (CSRF exempted
+    // for this URL group in bootstrap/app.php). The signed URL itself
+    // is the authenticator; no session required.
+    Route::match(['get', 'post'], 'notifications/backlink-digest/unsubscribe/{user}',
+        [\App\Modules\User\Controllers\NotificationController::class, 'unsubscribeBacklinkDigest'])
+        ->middleware('throttle:600,1')
+        ->name('notifications.backlink-digest.unsubscribe');
+
     Route::get('verify-email', [AuthController::class, 'showVerifyEmail'])->middleware('auth')->name('verification.notice');
     Route::get('verify-email/{id}/{hash}', [AuthController::class, 'verifyEmail'])->middleware(['auth', 'signed'])->name('verification.verify');
     Route::post('verify-email/resend', [AuthController::class, 'resendVerification'])->middleware(['auth', 'throttle:6,1'])->name('verification.send');

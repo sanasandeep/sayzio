@@ -55,6 +55,17 @@ Schedule::command('followers:send-digest')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Weekly (Mon 09:00 UTC): email each opted-in creator a digest of new
+// backlinks the browser-extension radar has found pointing at their
+// short links, biolink and custom domains in the last 7 days. The
+// command itself skips users with zero new mentions (so an empty
+// digest is never sent) and honours the per-user `backlink_digest`
+// email preference plus a 7-day cooldown.
+Schedule::command('backlinks:send-weekly-digest')
+    ->weeklyOn(1, '09:00')
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Every minute: drain queued background jobs (currently used by the contact
 // importer for files over a few hundred rows). --stop-when-empty makes the
 // command short-lived so the scheduler can keep using --withoutOverlapping
