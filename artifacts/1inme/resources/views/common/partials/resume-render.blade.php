@@ -20,8 +20,12 @@
         'primary' => '#111827', 'accent' => '#4b5563',
         'text' => '#1f2937', 'muted' => '#6b7280', 'background' => '#ffffff',
     ];
-    $style = $tpl['style'] ?? ['layout' => 'single', 'headings' => 'sans', 'density' => 'comfortable'];
-    $layout = $style['layout'] ?? 'single';
+    $defaultStyle = [
+        'layout' => 'single', 'headings' => 'sans', 'density' => 'comfortable',
+        'header_style' => 'rule', 'divider' => 'rule', 'accent' => 'none', 'title_style' => 'uppercase',
+    ];
+    $style  = ($tpl['style'] ?? []) + $defaultStyle;
+    $layout = $style['layout'];
 
     $sections = $resume->getMergedSections();
     $h        = $sections['header'] ?? [];
@@ -44,23 +48,44 @@
         return implode(' – ', $parts);
     };
 
-    $fontClass = match ($style['headings'] ?? 'sans') {
+    $fontClass = match ($style['headings']) {
         'serif'   => 'serif',
         'display' => 'display',
+        'mono'    => 'mono',
         default   => '',
     };
-    $densityClass = match ($style['density'] ?? 'comfortable') {
+    $densityClass = match ($style['density']) {
         'tight'    => 'tight',
         'spacious' => 'spacious',
         default    => '',
     };
+
+    $rrClasses = trim(implode(' ', array_filter([
+        'rr',
+        'rr-layout-' . $layout,
+        'rr-h-' . $style['header_style'],
+        'rr-d-' . $style['divider'],
+        'rr-a-' . $style['accent'],
+        'rr-t-' . $style['title_style'],
+    ])));
+
+    $monogram = '';
+    $name = trim((string) ($h['name'] ?? ''));
+    if ($name !== '') {
+        $parts = preg_split('/\s+/', $name);
+        $monogram = strtoupper(substr($parts[0] ?? '', 0, 1) . substr($parts[1] ?? '', 0, 1));
+    }
 @endphp
 
-<div class="resume-render preview-page {{ $fontClass }} {{ $densityClass }} {{ $compact ? 'compact' : '' }}"
-     style="background: {{ $tokens['background'] }}; color: {{ $tokens['text'] }};">
+<div class="resume-render preview-page {{ $rrClasses }} {{ $fontClass }} {{ $densityClass }} {{ $compact ? 'compact' : '' }}"
+     style="background: {{ $tokens['background'] }}; color: {{ $tokens['text'] }}; --rr-accent: {{ $tokens['accent'] }};">
 
     {{-- ── Header ────────────────────────────────────────────── --}}
-    <header class="rr-header" style="border-bottom: 2px solid {{ $tokens['primary'] }};">
+    <header class="rr-header" data-monogram="{{ $monogram }}" style="border-color: {{ $tokens['primary'] }};">
+        @if (!empty($h['photo_url']) && in_array($style['header_style'], ['photo-left', 'sidebar-photo'], true))
+            <img src="{{ $h['photo_url'] }}" alt="" class="rr-header-photo"
+                 style="width:64px;height:64px;border-radius:50%;object-fit:cover;float:left;margin-right:14px;border:1px solid {{ $tokens['primary'] }}33;">
+        @endif
         <h1 class="pv-name" style="color: {{ $tokens['primary'] }};">{{ $h['name'] ?: 'Your name' }}</h1>
         @if(!empty($h['headline']))
             <p class="pv-headline" style="color: {{ $tokens['accent'] }};">{{ $h['headline'] }}</p>
@@ -73,9 +98,9 @@
     </header>
 
     @php
-        $sectionBox = function (string $title, string $body) use ($tokens) {
+        $sectionBox = function (string $title, string $body, string $key = '') use ($tokens) {
             if ($body === '') return '';
-            return '<section class="pv-section"><h2 style="color:'.$tokens['primary'].'; border-color:'.$tokens['primary'].'">'
+            return '<section class="pv-section" data-key="'.e($key).'"><h2 style="color:'.$tokens['primary'].'; border-color:'.$tokens['primary'].'">'
                 . e($title) . '</h2>' . $body . '</section>';
         };
 
@@ -217,51 +242,65 @@
                     if (!empty($d['url'])) $body .= '<div><a class="pv-link" style="color:'.$tokens['accent'].'" href="'.e($d['url']).'" rel="noopener nofollow">'.e($d['url']).'</a></div>';
                     $body .= '</div>';
                 }
-                $out .= $sectionBox($s['title'] ?? $key, $body);
+                $out .= $sectionBox($s['title'] ?? $key, $body, 'custom');
             }
             return $out;
         };
 
-        $summaryBlock = $summary !== '' ? $sectionBox('Profile', '<div class="pv-summary">'.e($summary).'</div>') : '';
+        $summaryBlock = $summary !== '' ? $sectionBox('Profile', '<div class="pv-summary">'.e($summary).'</div>', 'summary') : '';
     @endphp
 
-    @if ($layout === 'sidebar')
+    @if ($layout === 'sidebar' || $layout === 'sidebar-right')
         @php
-            $side = $sectionBox('Skills', $skillBlock($get('skills')))
-                  . $sectionBox('Languages', $langBlock($get('languages')))
-                  . $sectionBox('Links', $linkBlock($get('links')));
+            $side = $sectionBox('Skills', $skillBlock($get('skills')), 'skills')
+                  . $sectionBox('Languages', $langBlock($get('languages')), 'languages')
+                  . $sectionBox('Links', $linkBlock($get('links')), 'links');
             $main = $summaryBlock
-                  . $sectionBox('Experience', $expBlock($get('experience')))
-                  . $sectionBox('Projects', $projBlock($get('projects'), false))
-                  . $sectionBox('Education', $eduBlock($get('education')))
-                  . $sectionBox('Certifications', $certBlock($get('certifications')))
-                  . $sectionBox('Awards', $awardBlock($get('awards')))
+                  . $sectionBox('Experience', $expBlock($get('experience')), 'experience')
+                  . $sectionBox('Projects', $projBlock($get('projects'), false), 'projects')
+                  . $sectionBox('Education', $eduBlock($get('education')), 'education')
+                  . $sectionBox('Certifications', $certBlock($get('certifications')), 'certifications')
+                  . $sectionBox('Awards', $awardBlock($get('awards')), 'awards')
                   . $customBlocks();
         @endphp
         <div class="pv-sidebar">
             <div class="pv-side-col">{!! $side !!}</div>
             <div>{!! $main !!}</div>
         </div>
-    @elseif ($layout === 'portfolio')
+    @elseif ($layout === 'portfolio' || $layout === 'portfolio-grid')
         {!! $summaryBlock !!}
-        {!! $sectionBox('Featured projects', $projBlock($get('projects'), true)) !!}
-        {!! $sectionBox('Experience', $expBlock($get('experience'))) !!}
-        {!! $sectionBox('Skills', $skillBlock($get('skills'))) !!}
-        {!! $sectionBox('Education', $eduBlock($get('education'))) !!}
-        {!! $sectionBox('Awards', $awardBlock($get('awards'))) !!}
-        {!! $sectionBox('Languages', $langBlock($get('languages'))) !!}
-        {!! $sectionBox('Links', $linkBlock($get('links'))) !!}
+        {!! $sectionBox('Featured projects', $projBlock($get('projects'), true), 'projects') !!}
+        {!! $sectionBox('Experience', $expBlock($get('experience')), 'experience') !!}
+        {!! $sectionBox('Skills', $skillBlock($get('skills')), 'skills') !!}
+        {!! $sectionBox('Education', $eduBlock($get('education')), 'education') !!}
+        {!! $sectionBox('Awards', $awardBlock($get('awards')), 'awards') !!}
+        {!! $sectionBox('Languages', $langBlock($get('languages')), 'languages') !!}
+        {!! $sectionBox('Links', $linkBlock($get('links')), 'links') !!}
         {!! $customBlocks() !!}
-    @else
+    @elseif ($layout === 'two-col')
         {!! $summaryBlock !!}
-        {!! $sectionBox('Experience', $expBlock($get('experience'))) !!}
-        {!! $sectionBox('Projects', $projBlock($get('projects'), false)) !!}
-        {!! $sectionBox('Education', $eduBlock($get('education'))) !!}
-        {!! $sectionBox('Skills', $skillBlock($get('skills'))) !!}
-        {!! $sectionBox('Certifications', $certBlock($get('certifications'))) !!}
-        {!! $sectionBox('Awards', $awardBlock($get('awards'))) !!}
-        {!! $sectionBox('Languages', $langBlock($get('languages'))) !!}
-        {!! $sectionBox('Links', $linkBlock($get('links'))) !!}
+        <div class="pv-twocol">
+            {!! $sectionBox('Experience', $expBlock($get('experience')), 'experience') !!}
+            {!! $sectionBox('Education', $eduBlock($get('education')), 'education') !!}
+            {!! $sectionBox('Projects', $projBlock($get('projects'), false), 'projects') !!}
+            {!! $sectionBox('Skills', $skillBlock($get('skills')), 'skills') !!}
+            {!! $sectionBox('Certifications', $certBlock($get('certifications')), 'certifications') !!}
+            {!! $sectionBox('Awards', $awardBlock($get('awards')), 'awards') !!}
+            {!! $sectionBox('Languages', $langBlock($get('languages')), 'languages') !!}
+            {!! $sectionBox('Links', $linkBlock($get('links')), 'links') !!}
+            {!! $customBlocks() !!}
+        </div>
+    @else
+        {{-- single / compact / timeline --}}
+        {!! $summaryBlock !!}
+        {!! $sectionBox('Experience', $expBlock($get('experience')), 'experience') !!}
+        {!! $sectionBox('Projects', $projBlock($get('projects'), false), 'projects') !!}
+        {!! $sectionBox('Education', $eduBlock($get('education')), 'education') !!}
+        {!! $sectionBox('Skills', $skillBlock($get('skills')), 'skills') !!}
+        {!! $sectionBox('Certifications', $certBlock($get('certifications')), 'certifications') !!}
+        {!! $sectionBox('Awards', $awardBlock($get('awards')), 'awards') !!}
+        {!! $sectionBox('Languages', $langBlock($get('languages')), 'languages') !!}
+        {!! $sectionBox('Links', $linkBlock($get('links')), 'links') !!}
         {!! $customBlocks() !!}
     @endif
 </div>

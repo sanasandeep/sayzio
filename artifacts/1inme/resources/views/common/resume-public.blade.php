@@ -137,6 +137,7 @@
             display: flex; align-items: center; gap: 8px;
         }
     </style>
+    @include('common.partials.resume-styles')
 </head>
 <body>
 <main class="resume-page-wrap">

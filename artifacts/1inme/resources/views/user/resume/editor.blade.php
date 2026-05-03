@@ -98,6 +98,25 @@
     .chev { transition: transform .2s; }
     .chev.rot { transform: rotate(180deg); }
 
+    /* Template picker controls */
+    .tpl-picker-controls { display:flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .tpl-search { flex: 1 1 220px; min-width: 0; padding: 8px 12px; font-size: 12px; }
+    .tpl-cat-tabs { display:flex; flex-wrap: wrap; gap: 4px; max-width: 100%; }
+    .tpl-cat-tab {
+        display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px;
+        font-size: 11px; font-weight: 600; border-radius: 999px;
+        background: rgba(124,58,237,0.06); border: 1px solid rgba(124,58,237,0.18);
+        color: var(--text-muted, #9ca3af); cursor: pointer; transition: all .15s;
+    }
+    .tpl-cat-tab:hover { background: rgba(124,58,237,0.14); color: #fff; }
+    .tpl-cat-tab.active { background: rgba(124,58,237,0.24); color:#fff; border-color: rgba(124,58,237,0.5); }
+    .tpl-cat-count { font-size: 9px; padding: 1px 5px; border-radius: 999px; background: rgba(0,0,0,0.2); }
+    .tpl-card-cat { font-size: 9px; text-align:center; color: var(--text-muted, #9ca3af); text-transform: uppercase; letter-spacing: 0.06em; }
+    .preview-page.mono { font-family: 'SFMono-Regular','Menlo',monospace; }
+</style>
+@include('common.partials.resume-styles')
+<style>
+
     /* ── Import modal ─────────────────────────────────── */
     .resume-import-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 300; display:flex; align-items:flex-start; justify-content:center; padding: 4vh 16px; overflow-y:auto; }
     .resume-import-modal { width: 100%; max-width: 720px; background: var(--bg-card,#1a1a1f); border: 1px solid var(--border-strong,#2a2a32); border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); display:flex; flex-direction:column; max-height: 92vh; }
@@ -227,8 +246,24 @@
                 </div>
                 <div class="resume-section-body" x-show="open.design" x-collapse>
                     <p class="text-[10px] uppercase font-semibold mb-2" style="color: var(--text-muted,#9ca3af);">Template</p>
+                    <div class="tpl-picker-controls mb-3">
+                        <input type="search" class="resume-input tpl-search" placeholder="Search 50+ templates by name…"
+                               x-model.debounce.150ms="tplSearch">
+                        <div class="tpl-cat-tabs">
+                            <button type="button" class="tpl-cat-tab" :class="{ active: tplCategory === 'all' }"
+                                    @click="tplCategory = 'all'">All
+                                <span class="tpl-cat-count" x-text="registries.templates.length"></span>
+                            </button>
+                            <template x-for="cat in templateCategories" :key="cat.id">
+                                <button type="button" class="tpl-cat-tab"
+                                        :class="{ active: tplCategory === cat.id }"
+                                        @click="tplCategory = cat.id"
+                                        x-text="cat.label + ' (' + cat.count + ')'"></button>
+                            </template>
+                        </div>
+                    </div>
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-                        <template x-for="tpl in registries.templates" :key="tpl.id">
+                        <template x-for="tpl in filteredTemplates" :key="tpl.id">
                             <div class="tpl-card">
                                 <div class="tpl-thumb" :class="{ active: resume.template_id === tpl.id }"
                                      :title="tpl.description"
@@ -236,9 +271,12 @@
                                     <img :src="tpl.thumbnail" :alt="tpl.name" loading="lazy" onerror="this.style.display='none'">
                                 </div>
                                 <div class="tpl-card-name" x-text="tpl.name"></div>
+                                <div class="tpl-card-cat" x-text="tpl.category_label"></div>
                             </div>
                         </template>
                     </div>
+                    <p x-show="!filteredTemplates.length" class="text-xs text-center py-4"
+                       style="color: var(--text-muted,#9ca3af);">No templates match this search.</p>
                     <p class="text-[10px] uppercase font-semibold mb-2" style="color: var(--text-muted,#9ca3af);">Color theme</p>
                     <div class="flex flex-wrap items-center gap-3">
                         <template x-for="theme in registries.color_themes" :key="theme.id">
@@ -650,6 +688,31 @@ function resumeEditor() {
         pdfSize: (window.localStorage && localStorage.getItem('resume_pdf_size')) === 'letter' ? 'letter' : 'a4',
         downloading: false,
         photoUploading: false,
+
+        // ── Template picker UI ────────────────────────────────
+        tplSearch: '',
+        tplCategory: 'all',
+        get templateCategories() {
+            const counts = {};
+            const labels = {};
+            (this.registries.templates || []).forEach(t => {
+                const id = t.category || 'professional';
+                counts[id] = (counts[id] || 0) + 1;
+                labels[id] = t.category_label || id;
+            });
+            return Object.keys(counts).sort().map(id => ({ id, label: labels[id], count: counts[id] }));
+        },
+        get filteredTemplates() {
+            const q = (this.tplSearch || '').trim().toLowerCase();
+            const cat = this.tplCategory;
+            return (this.registries.templates || []).filter(t => {
+                if (cat !== 'all' && (t.category || '') !== cat) return false;
+                if (!q) return true;
+                return (t.name || '').toLowerCase().includes(q)
+                    || (t.description || '').toLowerCase().includes(q)
+                    || (t.category_label || '').toLowerCase().includes(q);
+            });
+        },
 
         // ── Import flow state ─────────────────────────────────
         importOpen: false,
@@ -1295,8 +1358,8 @@ function resumeEditor() {
             const summary = sections.summary || '';
             const items = itemsArg;
 
-            const sectionBox = (title, body) =>
-                body ? `<section class="pv-section"><h2 style="color:${theme.primary}; border-color:${theme.primary}">${esc(title)}</h2>${body}</section>` : '';
+            const sectionBox = (title, body, key='') =>
+                body ? `<section class="pv-section" data-key="${esc(key)}"><h2 style="color:${theme.primary}; border-color:${theme.primary}">${esc(title)}</h2>${body}</section>` : '';
 
             const expBlock = (arr) => (arr||[]).map(it => {
                 const d = it.data||{};
@@ -1419,6 +1482,8 @@ function resumeEditor() {
                 }).join('');
             };
 
+            const headerStyle = style.header_style || 'rule';
+            const monogram = (esc(h.name)||'').trim().split(/\s+/).map(s=>s[0]||'').slice(0,2).join('').toUpperCase();
             const headerText = `
                 <h1 class="pv-name" style="color:${theme.primary}">${esc(h.name) || 'Your name'}</h1>
                 ${h.headline?`<p class="pv-headline" style="color:${theme.accent}">${esc(h.headline)}</p>`:''}
@@ -1428,8 +1493,8 @@ function resumeEditor() {
                     ${h.location?`<span>${esc(h.location)}</span>`:''}
                     ${h.website?`<span>${esc(h.website)}</span>`:''}
                 </div>`;
-            const headerBlock = h.photo_url
-                ? `<header style="border-bottom: 2px solid ${theme.primary}; padding-bottom: 10px;">
+            const headerBlock = (h.photo_url && (headerStyle === 'photo-left' || headerStyle === 'sidebar-photo'))
+                ? `<header class="rr-header" data-monogram="${monogram}" style="border-color:${theme.primary};">
                        <table style="width:100%; border-collapse:collapse;"><tbody><tr>
                            <td style="width:80px; vertical-align:top; padding:0 14px 0 0;">
                                <img src="${esc(h.photo_url)}" alt=""
@@ -1438,65 +1503,88 @@ function resumeEditor() {
                            <td style="vertical-align:top; padding:0;">${headerText}</td>
                        </tr></tbody></table>
                    </header>`
-                : `<header style="border-bottom: 2px solid ${theme.primary}; padding-bottom: 10px;">${headerText}</header>`;
+                : `<header class="rr-header" data-monogram="${monogram}" style="border-color:${theme.primary};">${headerText}</header>`;
 
-            const summaryBlock = summary ? sectionBox('Profile', `<div class="pv-summary">${esc(summary)}</div>`) : '';
+            const summaryBlock = summary ? sectionBox('Profile', `<div class="pv-summary">${esc(summary)}</div>`, 'summary') : '';
 
             const mainBlocks = [
                 summaryBlock,
-                sectionBox('Experience', expBlock(items.experience)),
-                sectionBox('Projects', projBlock(items.projects, layout==='portfolio')),
-                sectionBox('Education', eduBlock(items.education)),
-                sectionBox('Skills', skillBlock(items.skills)),
-                sectionBox('Certifications', certBlock(items.certifications)),
-                sectionBox('Awards', awardBlock(items.awards)),
-                sectionBox('Languages', langBlock(items.languages)),
-                sectionBox('Links', linkBlock(items.links)),
+                sectionBox('Experience', expBlock(items.experience), 'experience'),
+                sectionBox('Projects', projBlock(items.projects, false), 'projects'),
+                sectionBox('Education', eduBlock(items.education), 'education'),
+                sectionBox('Skills', skillBlock(items.skills), 'skills'),
+                sectionBox('Certifications', certBlock(items.certifications), 'certifications'),
+                sectionBox('Awards', awardBlock(items.awards), 'awards'),
+                sectionBox('Languages', langBlock(items.languages), 'languages'),
+                sectionBox('Links', linkBlock(items.links), 'links'),
                 customBlocks(),
             ];
 
             // Layout assembly
             let body = '';
-            if (layout === 'sidebar') {
+            if (layout === 'sidebar' || layout === 'sidebar-right') {
                 const side = [
-                    sectionBox('Skills', skillBlock(items.skills)),
-                    sectionBox('Languages', langBlock(items.languages)),
-                    sectionBox('Links', linkBlock(items.links)),
+                    sectionBox('Skills', skillBlock(items.skills), 'skills'),
+                    sectionBox('Languages', langBlock(items.languages), 'languages'),
+                    sectionBox('Links', linkBlock(items.links), 'links'),
                 ].join('');
                 const main = [
                     summaryBlock,
-                    sectionBox('Experience', expBlock(items.experience)),
-                    sectionBox('Projects', projBlock(items.projects, false)),
-                    sectionBox('Education', eduBlock(items.education)),
-                    sectionBox('Certifications', certBlock(items.certifications)),
-                    sectionBox('Awards', awardBlock(items.awards)),
+                    sectionBox('Experience', expBlock(items.experience), 'experience'),
+                    sectionBox('Projects', projBlock(items.projects, false), 'projects'),
+                    sectionBox('Education', eduBlock(items.education), 'education'),
+                    sectionBox('Certifications', certBlock(items.certifications), 'certifications'),
+                    sectionBox('Awards', awardBlock(items.awards), 'awards'),
                     customBlocks(),
                 ].join('');
                 body = `${headerBlock}<div class="pv-sidebar"><div class="pv-side-col">${side}</div><div>${main}</div></div>`;
-            } else if (layout === 'portfolio') {
+            } else if (layout === 'portfolio' || layout === 'portfolio-grid') {
                 body = headerBlock + [
                     summaryBlock,
-                    sectionBox('Featured projects', projBlock(items.projects, true)),
-                    sectionBox('Experience', expBlock(items.experience)),
-                    sectionBox('Skills', skillBlock(items.skills)),
-                    sectionBox('Education', eduBlock(items.education)),
-                    sectionBox('Awards', awardBlock(items.awards)),
-                    sectionBox('Languages', langBlock(items.languages)),
-                    sectionBox('Links', linkBlock(items.links)),
+                    sectionBox('Featured projects', projBlock(items.projects, true), 'projects'),
+                    sectionBox('Experience', expBlock(items.experience), 'experience'),
+                    sectionBox('Skills', skillBlock(items.skills), 'skills'),
+                    sectionBox('Education', eduBlock(items.education), 'education'),
+                    sectionBox('Awards', awardBlock(items.awards), 'awards'),
+                    sectionBox('Languages', langBlock(items.languages), 'languages'),
+                    sectionBox('Links', linkBlock(items.links), 'links'),
                     customBlocks(),
                 ].join('');
+            } else if (layout === 'two-col') {
+                body = headerBlock + summaryBlock
+                    + `<div class="pv-twocol">${[
+                        sectionBox('Experience', expBlock(items.experience), 'experience'),
+                        sectionBox('Education', eduBlock(items.education), 'education'),
+                        sectionBox('Projects', projBlock(items.projects, false), 'projects'),
+                        sectionBox('Skills', skillBlock(items.skills), 'skills'),
+                        sectionBox('Certifications', certBlock(items.certifications), 'certifications'),
+                        sectionBox('Awards', awardBlock(items.awards), 'awards'),
+                        sectionBox('Languages', langBlock(items.languages), 'languages'),
+                        sectionBox('Links', linkBlock(items.links), 'links'),
+                        customBlocks(),
+                    ].join('')}</div>`;
             } else {
                 body = headerBlock + mainBlocks.join('');
             }
 
             const fontClass = style.headings === 'serif' ? 'serif'
-                : style.headings === 'display' ? 'display' : '';
+                : style.headings === 'display' ? 'display'
+                : style.headings === 'mono' ? 'mono' : '';
             const densityClass = style.density === 'tight' ? 'tight'
                 : style.density === 'spacious' ? 'spacious' : '';
 
+            const rrCls = [
+                'rr',
+                'rr-layout-' + (style.layout || 'single'),
+                'rr-h-' + headerStyle,
+                'rr-d-' + (style.divider || 'rule'),
+                'rr-a-' + (style.accent || 'none'),
+                'rr-t-' + (style.title_style || 'uppercase'),
+            ].join(' ');
+
             // Wrap with theme background applied to the page
             return `<style>.preview-page{background:${theme.background};color:${theme.text}}</style>` +
-                `<div class="${fontClass} ${densityClass}" style="background:${theme.background}; color:${theme.text}; min-height: 800px; margin:-32px -36px; padding:32px 36px;">${body}</div>`;
+                `<div class="${rrCls} ${fontClass} ${densityClass}" style="background:${theme.background}; color:${theme.text}; --rr-accent:${theme.accent}; min-height: 800px; margin:-32px -36px; padding:32px 36px;">${body}</div>`;
         },
 
         // Build a temporary (sections, items) pair that mirrors what the
