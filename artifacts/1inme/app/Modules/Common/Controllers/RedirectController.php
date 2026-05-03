@@ -148,8 +148,9 @@ class RedirectController extends Controller
         // Track once per visitor click. The app-opener interstitial sends
         // users back here with `?_web=1` for the in-browser fallback — we
         // must NOT re-track that bounce or it inflates click counts.
+        $trackedClick = null;
         if (!$previewEnabled && !$request->boolean('_web')) {
-            $this->trackingService->track($link, $request, $alias, 'web');
+            $trackedClick = $this->trackingService->track($link, $request, $alias, 'web');
         }
 
         // A/B variant resolution from the dedicated `ab_variants` table
@@ -185,6 +186,18 @@ class RedirectController extends Controller
         if ($abFinalUrl !== null) {
             $finalUrl    = $abFinalUrl;
             $smartCookie = $abCookie ?? $smartCookie;
+        }
+
+        // Stamp the matched smart-link rule id onto the click row so the
+        // per-rule analytics breakdown can attribute hits. Best-effort —
+        // schema may pre-date the matched_rule_id column on older installs.
+        if ($trackedClick && !empty($smart['rule']['id'])
+            && \Schema::hasColumn('link_clicks', 'matched_rule_id')) {
+            try {
+                \DB::table('link_clicks')
+                    ->where('id', $trackedClick->id)
+                    ->update(['matched_rule_id' => (string) $smart['rule']['id']]);
+            } catch (\Throwable $e) { /* swallow — analytics row, not the redirect */ }
         }
 
         // Link Insurance — when every destination is down and the

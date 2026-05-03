@@ -60,8 +60,37 @@ export interface WorkspacePixels {
 }
 
 export interface LoginResult {
-  user: { id: number; name: string; email: string; handle?: string | null };
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    handle?: string | null;
+    capabilities?: { link_smart_rules?: boolean; max_smart_rules?: number };
+  };
   token: string;
+}
+
+/**
+ * Single smart-routing rule the popup builder produces. Mirrors the
+ * shape sanitizeSmartRules() expects on the server. `id` is optional —
+ * the server mints stable ones for new rules.
+ */
+export type SmartRule =
+  | { id?: string; type: "device";   match: string[]; url: string; label?: string }
+  | { id?: string; type: "country";  match: string[]; url: string; label?: string }
+  | { id?: string; type: "language"; match: string[]; url: string; label?: string }
+  | { id?: string; type: "time";     from: string; to: string; tz: string; url: string; label?: string };
+
+export interface LinkSummary {
+  id: number;
+  alias: string;
+  title?: string | null;
+  long_url?: string | null;
+  short_url?: string;
+  is_smart?: boolean;
+  smart_rules_count?: number;
+  auto_pixel?: boolean;
+  pixel_fires?: { count: number; providers: string[] };
 }
 
 export const api = {
@@ -102,9 +131,7 @@ export const api = {
     }),
 
   recentLinks: (perPage = 10) =>
-    request<{ items: Array<{ id: number; alias: string; title: string | null; long_url: string | null; short_url?: string; auto_pixel?: boolean; pixel_fires?: { count: number; providers: string[] } }> }>(
-      `/links?per_page=${perPage}`,
-    ),
+    request<{ items: LinkSummary[] }>(`/links?per_page=${perPage}`),
 
   getWorkspacePixels: (workspaceId?: number | null) =>
     request<{ pixels: WorkspacePixels }>(`/workspace/pixels${workspaceId ? `?workspace_id=${workspaceId}` : ""}`),
@@ -246,6 +273,27 @@ export const api = {
       `/me/thank-templates${workspaceId ? `?workspace_id=${workspaceId}` : ""}`,
       { method: "PUT", body: { templates, updated_at_ms: updatedAtMs } },
     ),
+
+  // --- Smart links ---------------------------------------------------
+  createSmartLink: (longUrl: string, rules: SmartRule[], title?: string, workspaceId?: number | null) =>
+    request<{ link: LinkSummary }>("/links/smart", {
+      method: "POST",
+      body: {
+        long_url: longUrl,
+        title: title || undefined,
+        workspace_id: workspaceId ?? undefined,
+        rules,
+      },
+    }),
+
+  getRules: (linkId: number) =>
+    request<{ link_id: number; rules: SmartRule[]; max: number }>(`/links/${linkId}/rules`),
+
+  putRules: (linkId: number, rules: SmartRule[]) =>
+    request<{ link_id: number; rules: SmartRule[]; max: number }>(`/links/${linkId}/rules`, {
+      method: "PUT",
+      body: { rules },
+    }),
 };
 
 export interface ThankTemplatesPayload {

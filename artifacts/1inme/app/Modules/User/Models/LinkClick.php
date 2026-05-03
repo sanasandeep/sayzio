@@ -14,7 +14,7 @@ class LinkClick extends Model
         'link_id', 'alias', 'viewer_user_id', 'block_id', 'block_type', 'destination_url',
         'ip_address', 'country_code', 'city', 'latitude', 'longitude',
         'browser', 'os', 'device_type', 'referrer', 'source', 'user_agent', 'channel', 'is_bot',
-        'language', 'utm_params', 'clicked_at',
+        'language', 'utm_params', 'matched_rule_id', 'clicked_at',
     ];
 
     protected function casts(): array

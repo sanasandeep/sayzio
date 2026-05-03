@@ -44,6 +44,12 @@ class SmartRedirectResolver
 
         foreach ($rules as $rule) {
             if (!is_array($rule) || empty($rule['type'])) continue;
+            // Defensive: every persisted rule should already carry a stable
+            // `id` from the sanitizer, but fall back to a per-request id so
+            // the resolver never returns a rule without one.
+            if (empty($rule['id']) || !is_string($rule['id'])) {
+                $rule['id'] = bin2hex(random_bytes(6));
+            }
 
             switch ($rule['type']) {
                 case 'device':

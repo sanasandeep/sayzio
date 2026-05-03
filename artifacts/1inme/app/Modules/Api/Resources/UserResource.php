@@ -33,8 +33,30 @@ class UserResource
                 'email_verified_at' => optional($u->email_verified_at)->toIso8601String(),
                 'onboarded_at'      => optional($u->onboarded_at)->toIso8601String(),
                 'created_at'        => optional($u->created_at)->toIso8601String(),
+                // Plan capabilities relevant to the browser extension's
+                // smart-link rule builder. Surfaced here so the popup can
+                // gate the UI without a second round-trip.
+                'capabilities'      => [
+                    'link_smart_rules' => (bool) $u->planFeatureEnabled('link_smart_rules'),
+                    'max_smart_rules'  => self::resolveMaxSmartRules($u),
+                ],
             ]);
         }
         return $base;
+    }
+
+    /**
+     * Per-plan cap on the number of rules a single smart link may carry.
+     * Falls back to the hard ceiling enforced by sanitizeSmartRules() (25)
+     * when the plan doesn't specify one. -1 means unlimited (capped at 25
+     * by the sanitizer regardless).
+     */
+    private static function resolveMaxSmartRules(User $u): int
+    {
+        $val = $u->getPlanFeature('max_smart_rules', null);
+        if ($val === null) return 25;
+        $n = (int) $val;
+        if ($n < 0) return 25;
+        return min(25, $n);
     }
 }

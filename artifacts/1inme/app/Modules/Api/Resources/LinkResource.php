@@ -38,6 +38,8 @@ class LinkResource
             }
         } catch (\Throwable $e) { /* best-effort */ }
 
+        $settings  = $l->settings ?? [];
+        $rules     = is_array($settings['smart_rules'] ?? null) ? $settings['smart_rules'] : [];
         return [
             'id'              => $l->id,
             'type'            => $l->type,
@@ -60,7 +62,9 @@ class LinkResource
                 'count'     => $pixelFiresCount,
                 'providers' => $pixelFiresProviders,
             ],
-            'settings'        => $l->settings ?? new \stdClass(),
+            'is_smart'        => !empty($rules),
+            'smart_rules_count' => count($rules),
+            'settings'        => empty($settings) ? new \stdClass() : $settings,
             'created_at'      => optional($l->created_at)->toIso8601String(),
             'updated_at'      => optional($l->updated_at)->toIso8601String(),
         ];

@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { browser } from "../lib/browser";
-import { ApiError, api, AbVariantsPayload, BacklinkRow, WorkspacePixels } from "../lib/api";
+import { ApiError, api, AbVariantsPayload, BacklinkRow, LinkSummary, SmartRule, WorkspacePixels } from "../lib/api";
 import {
   ExtSettings,
   PendingThank,
@@ -96,7 +96,6 @@ export function App() {
   // Initialised from the workspace's pixel state so creators with pixels
   // configured opt in by default; creators without pixels stay off.
   const [autoPixel, setAutoPixel] = useState<boolean>(false);
-  const [recent, setRecent] = useState<Array<{ id: number; alias: string; title: string | null; long_url: string | null; short_url?: string; auto_pixel?: boolean; pixel_fires?: { count: number; providers: string[] } }>>([]);
   const [candidate, setCandidate] = useState<ContactCandidate | null>(null);
   const [extractError, setExtractError] = useState<string | null>(null);
   const [tabMatches, setTabMatches] = useState<TabMatchState | null>(null);
@@ -161,7 +160,7 @@ export function App() {
         }
       }
     });
-    const listener = (changes: any, area: string) => {
+    const listener = (_changes: any, area: string) => {
       if (area === "local") refresh();
     };
     browser.storage.onChanged.addListener(listener);
@@ -190,7 +189,7 @@ export function App() {
   // so the popup can show the "Pixels: Meta, TikTok" badge and the per-link
   // toggle defaults match the workspace's pixel state.
   useEffect(() => {
-    if (!settings?.token) { setPixels(null); setRecent([]); return; }
+    if (!settings?.token) { setPixels(null); return; }
     let cancelled = false;
     (async () => {
       try {
@@ -200,10 +199,6 @@ export function App() {
           setAutoPixel(!!r.pixels.has_any);
         }
       } catch { if (!cancelled) setPixels(null); }
-      try {
-        const r = await api.recentLinks(8);
-        if (!cancelled) setRecent(r.items || []);
-      } catch { /* ignore */ }
     })();
     return () => { cancelled = true; };
   }, [settings?.token, settings?.workspaceId]);
@@ -226,8 +221,6 @@ export function App() {
           text: `Shortened: ${resp.shortUrl}`,
           link: { href: `${settings?.webBaseUrl}/dashboard/links/${resp.linkId}`, label: "View analytics" },
         });
-        // Refresh recent-links list so the new row appears with its toggle.
-        try { const r = await api.recentLinks(8); setRecent(r.items || []); } catch {}
       } else {
         showToast({ kind: "error", text: resp?.error || "Shorten failed" });
       }
@@ -326,17 +319,6 @@ export function App() {
       await clearAuth();
       await refresh();
       setBusy(null);
-    }
-  };
-
-  const toggleRecentAutoPixel = async (linkId: number, next: boolean) => {
-    setRecent((prev) => prev.map((r) => r.id === linkId ? { ...r, auto_pixel: next } : r));
-    try {
-      await api.updateLink(linkId, { auto_pixel: next });
-    } catch (e: any) {
-      showToast({ kind: "error", text: e?.message || "Could not update link" });
-      // Revert on failure.
-      setRecent((prev) => prev.map((r) => r.id === linkId ? { ...r, auto_pixel: !next } : r));
     }
   };
 
@@ -463,6 +445,16 @@ export function App() {
           <button className="btn-secondary" disabled={!tabId || busy !== null} onClick={handleBiolink}>
             {busy === "biolink" && <span className="spinner" />}Turn into bio-link page
           </button>
+
+          <div className="divider" />
+          <SmartLinkSection
+            settings={settings}
+            tabUrl={tabUrl}
+            tabTitle={tabTitle}
+            showToast={showToast}
+          />
+
+          <div className="divider" />
           <button className="btn-secondary" disabled={!tabUrl || busy !== null} onClick={() => setView("ab")}>
             Shorten as A/B test…
           </button>
@@ -477,38 +469,8 @@ export function App() {
           )}
           <RecentAbTests items={abTests} loading={abLoading} onChanged={loadAbTests} showToast={showToast} />
 
-          {recent.length > 0 && (
-            <div className="recent-links">
-              <div className="muted" style={{ marginTop: 8, marginBottom: 4 }}>Recent links</div>
-              {recent.slice(0, 6).map((r) => (
-                <div key={r.id} className="recent-row" title={r.long_url || ""}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      <a href={r.short_url || `${settings.webBaseUrl}/${r.alias}`} target="_blank" rel="noreferrer">
-                        /{r.alias}
-                      </a>
-                    </div>
-                    {r.pixel_fires && r.pixel_fires.count > 0 && (
-                      <div className="muted" style={{ fontSize: 11 }}>
-                        {r.pixel_fires.count} pixel fire{r.pixel_fires.count === 1 ? "" : "s"}
-                        {r.pixel_fires.providers.length > 0 && ` · ${r.pixel_fires.providers.join(", ")}`}
-                      </div>
-                    )}
-                  </div>
-                  {pixels?.has_any && (
-                    <label className="toggle-row" style={{ margin: 0 }}>
-                      <input
-                        type="checkbox"
-                        checked={!!r.auto_pixel}
-                        onChange={(e) => toggleRecentAutoPixel(r.id, e.target.checked)}
-                        title="Auto-pixel for this link"
-                      />
-                    </label>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+          <div className="divider" />
+          <RecentLinks settings={settings} pixels={pixels} showToast={showToast} />
         </div>
       )}
       <Footer settings={settings} view={view} onSignOut={handleSignOut} busy={busy} />
@@ -1025,6 +987,34 @@ async function detectAuthorContacts(): Promise<AuthorContacts> {
   }
 }
 
+async function detectContactEmail(): Promise<string | null> {
+  // Run a tiny page-side scan from the popup. Permission already
+  // granted via activeTab when the popup is open.
+  const empty = null;
+  try {
+    const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+    const tabId = tabs[0]?.id;
+    if (tabId === undefined) return empty;
+    const results = await browser.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const emailRe = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+        const mailto = document.querySelector<HTMLAnchorElement>('a[href^="mailto:"]');
+        if (mailto) {
+          const v = (mailto.getAttribute("href") || "").replace(/^mailto:/, "").split("?")[0];
+          if (emailRe.test(v)) return v;
+        }
+        const text = document.body?.innerText?.slice(0, 30000) || "";
+        const m = text.match(emailRe);
+        return m ? m[0] : null;
+      },
+    });
+    return (results?.[0]?.result as string | null) ?? empty;
+  } catch {
+    return empty;
+  }
+}
+
 function labelForType(t: RadarMatch["matchedPropertyType"]): string {
   if (t === "short_link") return "Short link";
   if (t === "biolink_username") return "Bio-link";
@@ -1254,6 +1244,112 @@ function ThankTemplatesEditor({
   );
 }
 
+// Inline rule editor — used for both the "create" composer and the
+// per-link edit affordance from the recent-links list.
+function RuleEditor({
+  rules, onChange, maxRules,
+}: { rules: SmartRule[]; onChange: (r: SmartRule[]) => void; maxRules: number }) {
+  const update = (i: number, patch: Partial<SmartRule>) => {
+    const copy = rules.slice();
+    copy[i] = { ...copy[i], ...patch } as SmartRule;
+    onChange(copy);
+  };
+  const remove = (i: number) => onChange(rules.filter((_, idx) => idx !== i));
+  const add = () => {
+    if (rules.length >= maxRules) return;
+    onChange([...rules, newRule("device")]);
+  };
+  const changeType = (i: number, t: SmartRule["type"]) => {
+    const copy = rules.slice();
+    copy[i] = newRule(t, rules[i]?.url);
+    onChange(copy);
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      {rules.map((r, i) => (
+        <div className="rule-card" key={i}>
+          <div className="row">
+            <select value={r.type} onChange={(e) => changeType(i, e.target.value as SmartRule["type"])}>
+              <option value="device">Device</option>
+              <option value="country">Country</option>
+              <option value="language">Language</option>
+              <option value="time">Time window</option>
+            </select>
+            <button className="icon-btn" title="Remove" onClick={() => remove(i)}>×</button>
+          </div>
+          {r.type === "device" && (
+            <div className="row">
+              <select
+                multiple
+                value={r.match}
+                onChange={(e) => update(i, { match: Array.from(e.target.selectedOptions).map((o) => o.value) })}
+                style={{ minHeight: 60 }}
+              >
+                <option value="mobile">Mobile</option>
+                <option value="tablet">Tablet</option>
+                <option value="desktop">Desktop</option>
+              </select>
+            </div>
+          )}
+          {r.type === "country" && (
+            <div className="row">
+              <input
+                placeholder="US, GB, DE…"
+                value={r.match.join(", ")}
+                onChange={(e) =>
+                  update(i, {
+                    match: e.target.value
+                      .split(",")
+                      .map((s) => s.trim().toUpperCase())
+                      .filter((s) => /^[A-Z]{2}$/.test(s)),
+                  })
+                }
+              />
+            </div>
+          )}
+          {r.type === "language" && (
+            <div className="row">
+              <input
+                placeholder="en, fr, de…"
+                value={r.match.join(", ")}
+                onChange={(e) =>
+                  update(i, {
+                    match: e.target.value
+                      .split(",")
+                      .map((s) => s.trim().toLowerCase())
+                      .filter((s) => /^[a-z]{2,3}$/.test(s)),
+                  })
+                }
+              />
+            </div>
+          )}
+          {r.type === "time" && (
+            <div className="row">
+              <input type="time" value={r.from} onChange={(e) => update(i, { from: e.target.value })} />
+              <input type="time" value={r.to} onChange={(e) => update(i, { to: e.target.value })} />
+              <input
+                placeholder="UTC"
+                value={r.tz}
+                onChange={(e) => update(i, { tz: e.target.value || "UTC" })}
+              />
+            </div>
+          )}
+          <input
+            placeholder="Destination URL"
+            value={r.url}
+            onChange={(e) => update(i, { url: e.target.value })}
+          />
+        </div>
+      ))}
+      <button className="rule-add" disabled={rules.length >= maxRules} onClick={add}>
+        + Add rule {rules.length >= maxRules ? `(plan max ${maxRules})` : ""}
+      </button>
+
+    </div>
+  );
+}
+
 // ── Pending thank-yous queue (Backlinks tab) ────────────────────────
 function PendingThanksPanel({
   settings, showToast,
@@ -1361,6 +1457,164 @@ function PendingThanksPanel({
   );
 }
 
+function newRule(type: SmartRule["type"], url = ""): SmartRule {
+  switch (type) {
+    case "device":   return { type: "device",   match: ["mobile"], url };
+    case "country":  return { type: "country",  match: [],         url };
+    case "language": return { type: "language", match: [],         url };
+    case "time":     return { type: "time", from: "09:00", to: "17:00", tz: "UTC", url };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Recent links list — shows a Smart badge on smart links and lets the user
+// edit the rules inline (loads the current rule list lazily on expand).
+// ---------------------------------------------------------------------------
+
+function RecentLinks({ settings, pixels, showToast }: { settings: ExtSettings; pixels: WorkspacePixels | null; showToast: (t: Toast) => void }) {
+  const [items, setItems] = useState<LinkSummary[] | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const cap = settings.user?.capabilities;
+  const canEditRules = cap?.link_smart_rules === true;
+  const maxRules = useMemo(() => Math.max(1, Math.min(25, cap?.max_smart_rules ?? 25)), [cap?.max_smart_rules]);
+
+  const reload = useCallback(async () => {
+    setErr(null);
+    try {
+      const resp = await api.recentLinks(10);
+      setItems(resp.items);
+    } catch (e: any) {
+      setErr(e instanceof ApiError ? e.message : (e?.message || "Could not load recent links"));
+    }
+  }, []);
+
+  useEffect(() => { reload(); }, [reload]);
+
+  const toggleAutoPixel = async (linkId: number, next: boolean) => {
+    setItems((prev) => prev ? prev.map((l) => l.id === linkId ? { ...l, auto_pixel: next } : l) : prev);
+    try {
+      await api.updateLink(linkId, { auto_pixel: next });
+    } catch (e: any) {
+      showToast({ kind: "error", text: e?.message || "Could not update link" });
+      setItems((prev) => prev ? prev.map((l) => l.id === linkId ? { ...l, auto_pixel: !next } : l) : prev);
+    }
+  };
+
+  return (
+    <div className="field">
+      <div className="row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span className="section-title">Recent links</span>
+        <button className="btn-link" onClick={reload}>Refresh</button>
+      </div>
+      {err && <div className="error-text">{err}</div>}
+      {!err && items === null && <div className="muted">Loading…</div>}
+      {!err && items?.length === 0 && <div className="muted">No links yet.</div>}
+      {items && items.length > 0 && (
+        <div className="recent-list">
+          {items.map((l) => (
+            <div className="recent-item" key={l.id}>
+              <div className="top">
+                <a
+                  className="alias"
+                  href={`${settings.webBaseUrl}/${l.alias}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  /{l.alias}
+                  {l.is_smart && (
+                    <span className="smart-badge" title={`${l.smart_rules_count ?? 0} smart rule(s)`}>
+                      Smart {l.smart_rules_count ? `· ${l.smart_rules_count}` : ""}
+                    </span>
+                  )}
+                </a>
+                <div className="actions">
+                  {pixels?.has_any && (
+                    <label className="toggle-row" style={{ margin: 0 }}>
+                      <input
+                        type="checkbox"
+                        checked={!!l.auto_pixel}
+                        onChange={(e) => toggleAutoPixel(l.id, e.target.checked)}
+                        title="Auto-pixel for this link"
+                      />
+                    </label>
+                  )}
+                  {canEditRules && (
+                    <button
+                      className="btn-link"
+                      onClick={() => setEditingId(editingId === l.id ? null : l.id)}
+                    >
+                      {editingId === l.id ? "Close" : "Rules"}
+                    </button>
+                  )}
+                </div>
+              </div>
+              {l.long_url && <div className="url" title={l.long_url}>{l.long_url}</div>}
+              {l.pixel_fires && l.pixel_fires.count > 0 && (
+                <div className="muted" style={{ fontSize: 11 }}>
+                  {l.pixel_fires.count} pixel fire{l.pixel_fires.count === 1 ? "" : "s"}
+                  {l.pixel_fires.providers.length > 0 && ` · ${l.pixel_fires.providers.join(", ")}`}
+                </div>
+              )}
+              {editingId === l.id && (
+                <RulesInlineEditor
+                  linkId={l.id}
+                  maxRules={maxRules}
+                  onSaved={() => { showToast({ kind: "success", text: "Rules saved" }); reload(); }}
+                  onError={(m) => showToast({ kind: "error", text: m })}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RulesInlineEditor({
+  linkId, maxRules, onSaved, onError,
+}: { linkId: number; maxRules: number; onSaved: () => void; onError: (m: string) => void }) {
+  const [rules, setRules] = useState<SmartRule[] | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    api.getRules(linkId)
+      .then((r) => { if (alive) setRules(r.rules.length ? r.rules : [newRule("device")]); })
+      .catch((e) => onError(e instanceof ApiError ? e.message : (e?.message || "Load failed")));
+    return () => { alive = false; };
+  }, [linkId, onError]);
+
+  const save = async () => {
+    if (!rules) return;
+    setBusy(true);
+    try {
+      await api.putRules(linkId, rules);
+      onSaved();
+    } catch (e: any) {
+      onError(e instanceof ApiError ? e.message : (e?.message || "Save failed"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!rules) return <div className="muted">Loading rules…</div>;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <RuleEditor rules={rules} onChange={setRules} maxRules={maxRules} />
+      <div style={{ display: "flex", gap: 6 }}>
+        <button className="btn-primary" disabled={busy} onClick={save}>
+          {busy && <span className="spinner" />}Save rules
+        </button>
+        <button className="btn-secondary" disabled={busy} onClick={() => setRules([])}>
+          Clear all
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── Login + Settings (existing + radar controls) ────────────────────
 function LoginView({ settings, onAuthed, showToast }: { settings: ExtSettings; onAuthed: () => void; showToast: (t: Toast) => void }) {
   const [email, setEmail] = useState("");
@@ -1383,6 +1637,13 @@ function LoginView({ settings, onAuthed, showToast }: { settings: ExtSettings; o
           workspaceId: items[0]?.id ?? null,
         });
       } catch { /* workspaces optional */ }
+      // Refresh /me so the popup picks up the user's plan capabilities
+      // (link_smart_rules / max_smart_rules) — login response only has
+      // the bare user object.
+      try {
+        const me = await api.me();
+        if (me?.user) await setSettings({ user: me.user });
+      } catch { /* non-fatal */ }
       showToast({ kind: "success", text: "Signed in" });
       onAuthed();
     } catch (e: any) {

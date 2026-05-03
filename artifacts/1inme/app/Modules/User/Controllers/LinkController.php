@@ -1771,31 +1771,42 @@ class LinkController extends Controller
         };
 
         $allowedDevices = ['mobile', 'tablet', 'desktop'];
+        // Rules carry a stable 12-char id so click analytics can attribute
+        // a click to the rule that fired even after the rule list is
+        // reordered. Preserve any submitted id that looks safe; mint a new
+        // one otherwise. Same pattern AB variants already use.
+        $idOrMint = function ($v) {
+            return is_string($v) && preg_match('/^[A-Za-z0-9]{8,32}$/', $v)
+                ? $v
+                : bin2hex(random_bytes(6));
+        };
         $clean = [];
         foreach (array_slice($decoded, 0, 25) as $r) {
             if (!is_array($r) || empty($r['type'])) continue;
             $type = (string) $r['type'];
             $url  = isset($r['url']) ? trim((string) $r['url']) : '';
             $urlOk = $isSafeUrl($url);
+            $rid   = $idOrMint($r['id'] ?? null);
+            $label = isset($r['label']) && is_string($r['label']) ? mb_substr(trim($r['label']), 0, 80) : '';
 
             switch ($type) {
                 case 'device':
                     $match = is_array($r['match'] ?? null) ? array_values(array_intersect($allowedDevices, array_map('strtolower', $r['match']))) : [];
-                    if ($urlOk && !empty($match)) $clean[] = ['type' => 'device', 'match' => $match, 'url' => $url];
+                    if ($urlOk && !empty($match)) $clean[] = ['id' => $rid, 'type' => 'device', 'match' => $match, 'url' => $url, 'label' => $label];
                     break;
                 case 'country':
                     $match = is_array($r['match'] ?? null) ? array_values(array_unique(array_filter(array_map(
                         fn($v) => preg_match('/^[A-Za-z]{2}$/', (string) $v) ? strtoupper($v) : null,
                         $r['match']
                     )))) : [];
-                    if ($urlOk && !empty($match)) $clean[] = ['type' => 'country', 'match' => $match, 'url' => $url];
+                    if ($urlOk && !empty($match)) $clean[] = ['id' => $rid, 'type' => 'country', 'match' => $match, 'url' => $url, 'label' => $label];
                     break;
                 case 'language':
                     $match = is_array($r['match'] ?? null) ? array_values(array_unique(array_filter(array_map(
                         fn($v) => preg_match('/^[A-Za-z]{2,3}$/', (string) $v) ? strtolower($v) : null,
                         $r['match']
                     )))) : [];
-                    if ($urlOk && !empty($match)) $clean[] = ['type' => 'language', 'match' => $match, 'url' => $url];
+                    if ($urlOk && !empty($match)) $clean[] = ['id' => $rid, 'type' => 'language', 'match' => $match, 'url' => $url, 'label' => $label];
                     break;
                 case 'time':
                     $from = (string) ($r['from'] ?? '');
@@ -1803,7 +1814,7 @@ class LinkController extends Controller
                     $tz   = (string) ($r['tz']   ?? 'UTC');
                     $hhmm = '/^([01]\d|2[0-3]):[0-5]\d$/';
                     if ($urlOk && preg_match($hhmm, $from) && preg_match($hhmm, $to) && in_array($tz, timezone_identifiers_list(), true)) {
-                        $clean[] = ['type' => 'time', 'from' => $from, 'to' => $to, 'tz' => $tz, 'url' => $url];
+                        $clean[] = ['id' => $rid, 'type' => 'time', 'from' => $from, 'to' => $to, 'tz' => $tz, 'url' => $url, 'label' => $label];
                     }
                     break;
                 case 'ab':
@@ -1832,7 +1843,7 @@ class LinkController extends Controller
                         $seen[$v['id']] = true;
                     }
                     unset($v);
-                    if (count($variants) >= 2) $clean[] = ['type' => 'ab', 'variants' => $variants];
+                    if (count($variants) >= 2) $clean[] = ['id' => $rid, 'type' => 'ab', 'variants' => $variants, 'label' => $label];
                     break;
             }
         }

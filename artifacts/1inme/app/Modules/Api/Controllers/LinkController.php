@@ -4,6 +4,7 @@ namespace App\Modules\Api\Controllers;
 
 use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use App\Modules\Api\Resources\LinkResource;
+use App\Modules\User\Controllers\LinkController as UserLinkController;
 use App\Modules\User\Models\AbVariant;
 use App\Modules\User\Models\Link;
 use Illuminate\Http\Request;
@@ -272,7 +273,162 @@ class LinkController extends Controller
             ->get()
             ->all();
 
+        // Per-rule breakdown for smart links — counts clicks attributed
+        // to each rule id stamped by RedirectController. Joined with the
+        // link's persisted rule list so the response can include each
+        // rule's type/label, not just a raw id.
+        if (Schema::hasColumn('link_clicks', 'matched_rule_id')) {
+            $rows = DB::table('link_clicks')
+                ->where('link_id', $link->id)
+                ->whereBetween('clicked_at', [$from, $to])
+                ->whereNotNull('matched_rule_id')
+                ->selectRaw('matched_rule_id, count(*) as clicks')
+                ->groupBy('matched_rule_id')
+                ->orderByDesc('clicks')
+                ->get();
+
+            $rulesByLabel = collect((array) ($link->settings['smart_rules'] ?? []))
+                ->keyBy(fn ($r) => $r['id'] ?? '');
+            $payload['by_rule'] = $rows->map(function ($r) use ($rulesByLabel) {
+                $rule = $rulesByLabel->get($r->matched_rule_id);
+                return [
+                    'rule_id' => $r->matched_rule_id,
+                    'type'    => $rule['type'] ?? null,
+                    'label'   => $rule['label'] ?? null,
+                    'clicks'  => (int) $r->clicks,
+                ];
+            })->values()->all();
+        } else {
+            $payload['by_rule'] = [];
+        }
+
         return $this->ok(['analytics' => $payload]);
+    }
+
+    /**
+     * Create a new short link with smart-routing rules attached. Mirrors
+     * the regular store() flow but enforces the `link_smart_rules` plan
+     * gate and runs the supplied rule list through the shared sanitizer.
+     * Used by the browser extension's "Shorten as Smart Link" button.
+     */
+    public function storeSmart(Request $request)
+    {
+        $user = $request->user();
+        if (!$user->planFeatureEnabled('link_smart_rules')) {
+            return $this->fail('Smart links are not available on your current plan.', 402, 'plan_upgrade_required');
+        }
+
+        $data = $request->validate([
+            'long_url'     => ['required', 'url', 'max:2048'],
+            'title'        => ['nullable', 'string', 'max:200'],
+            'alias'        => ['nullable', 'string', 'max:80', 'regex:/^[A-Za-z0-9._-]+$/', Rule::unique('links', 'alias')],
+            'workspace_id' => ['nullable', 'integer'],
+            'rules'        => ['required', 'array', 'min:1'],
+        ]);
+
+        $rules = UserLinkController::sanitizeSmartRules(json_encode($data['rules']));
+        if (empty($rules)) {
+            return $this->fail('No valid smart rules supplied.', 422, 'invalid_rules');
+        }
+        $maxRules = $this->resolveMaxRules($user);
+        if (count($rules) > $maxRules) {
+            return $this->fail("Your plan allows up to {$maxRules} rules per smart link.", 422, 'rule_limit_exceeded');
+        }
+
+        $alias = $data['alias'] ?? Str::lower(Str::random(7));
+        while (Link::where('alias', $alias)->exists()) {
+            $alias = Str::lower(Str::random(7));
+        }
+
+        $settings = ['smart_rules' => $rules];
+        if (!empty($data['workspace_id'])) {
+            if (Schema::hasColumn('links', 'workspace_id')) {
+                // attached below via $attrs
+            } else {
+                $settings['workspace_id'] = (int) $data['workspace_id'];
+            }
+        }
+
+        $attrs = [
+            'user_id'   => $user->id,
+            'type'      => 'short',
+            'alias'     => $alias,
+            'title'     => $data['title'] ?? null,
+            'long_url'  => $data['long_url'],
+            'is_active' => true,
+            'settings'  => $settings,
+        ];
+        if (!empty($data['workspace_id']) && Schema::hasColumn('links', 'workspace_id')) {
+            $attrs['workspace_id'] = (int) $data['workspace_id'];
+        }
+
+        $link = Link::create($attrs);
+        return $this->created(['link' => LinkResource::toArray($link)]);
+    }
+
+    /**
+     * Read the smart-routing rules attached to a link the caller owns.
+     * Returns an empty list when the link has none — used by the
+     * extension's inline rule editor.
+     */
+    public function getRules(Request $request, int $id)
+    {
+        $link = Link::where('user_id', $request->user()->id)->find($id);
+        if (!$link) return $this->notFound('Link not found');
+        $rules = (array) ($link->settings['smart_rules'] ?? []);
+        return $this->ok([
+            'link_id' => $link->id,
+            'rules'   => array_values($rules),
+            'max'     => $this->resolveMaxRules($request->user()),
+        ]);
+    }
+
+    /**
+     * Replace the smart-routing rules on an existing link. Unsets the
+     * key entirely when the supplied list sanitizes down to nothing so
+     * the link reverts to its plain destination URL.
+     */
+    public function putRules(Request $request, int $id)
+    {
+        $user = $request->user();
+        $link = Link::where('user_id', $user->id)->find($id);
+        if (!$link) return $this->notFound('Link not found');
+        if (!$user->planFeatureEnabled('link_smart_rules')) {
+            return $this->fail('Smart rules are not available on your current plan.', 402, 'plan_upgrade_required');
+        }
+
+        $data = $request->validate([
+            'rules' => ['present', 'array'],
+        ]);
+        $rules = UserLinkController::sanitizeSmartRules(json_encode($data['rules']));
+        $maxRules = $this->resolveMaxRules($user);
+        if (count($rules) > $maxRules) {
+            return $this->fail("Your plan allows up to {$maxRules} rules per smart link.", 422, 'rule_limit_exceeded');
+        }
+
+        $settings = (array) ($link->settings ?? []);
+        if (empty($rules)) {
+            unset($settings['smart_rules']);
+        } else {
+            $settings['smart_rules'] = $rules;
+        }
+        $link->settings = $settings;
+        $link->save();
+
+        return $this->ok([
+            'link_id' => $link->id,
+            'rules'   => $rules,
+            'max'     => $maxRules,
+        ]);
+    }
+
+    private function resolveMaxRules($user): int
+    {
+        $val = $user->getPlanFeature('max_smart_rules', null);
+        if ($val === null) return 25;
+        $n = (int) $val;
+        if ($n < 0) return 25;
+        return min(25, max(1, $n));
     }
 
     // ── A/B testing (browser-extension feature) ─────────────────────────

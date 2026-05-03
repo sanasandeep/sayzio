@@ -320,6 +320,71 @@ body { width: 380px; }
 .badge-scraped { background: #fef3c7; color: #92400e; }
 .badge-manual  { background: #f1f5f9; color: #475569; }
 
+/* Smart Link builder + recent links */
+.section-title { font-size: 11px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.04em; }
+
+.smart-toggle { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #334155; }
+.smart-toggle input { margin: 0; }
+
+.rule-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: #fbfdff;
+}
+.rule-card .rule-row { display: flex; gap: 6px; align-items: center; }
+.rule-card .rule-row > * { flex: 1; min-width: 0; }
+.rule-card select, .rule-card input {
+  padding: 6px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 12px;
+  outline: none;
+  width: 100%;
+}
+.rule-card .icon-btn {
+  background: none;
+  color: #94a3b8;
+  padding: 2px 6px;
+  font-size: 14px;
+  flex: 0 0 auto;
+}
+.rule-card .icon-btn:hover { color: #ef4444; }
+
+.rule-add { background: #f1f5f9; color: #475569; font-size: 12px; padding: 6px 8px; }
+
+.smart-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.recent-list { display: flex; flex-direction: column; gap: 6px; }
+.recent-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #fff;
+}
+.recent-item .top { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.recent-item .alias { font-size: 13px; font-weight: 600; color: #0f172a; word-break: break-all; }
+.recent-item .url { font-size: 11px; color: #64748b; word-break: break-all; }
+.recent-item .actions { display: flex; gap: 4px; }
+.recent-item .actions button { padding: 2px 6px; font-size: 11px; }
+
 .dedupe-panel {
   background: #fffbeb;
   border: 1px solid #fde68a;
@@ -420,3 +485,15 @@ body { width: 380px; }
 }
 .template-card .template-name { flex: 1; }
 .template-card textarea { width: 100%; font-family: inherit; }
+
+.upsell {
+  border: 1px dashed #c4b5fd;
+  background: #f5f3ff;
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.upsell .title { font-weight: 600; color: #5b21b6; font-size: 13px; }
+.upsell .body { font-size: 12px; color: #6d28d9; }

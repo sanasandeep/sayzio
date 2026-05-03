@@ -192,6 +192,13 @@ Route::prefix('v1')->group(function () {
         Route::get   ('/links/{id}/analytics', [LinkController::class, 'analytics'])->whereNumber('id');
         Route::post  ('/links/{id}/reset',     [LinkController::class, 'reset'])->whereNumber('id');
 
+        // Smart links — geo / device / language / time / AB routing.
+        // POST /links/smart creates a new short link with rules attached.
+        // GET / PUT /links/{id}/rules manage rules on any owned link.
+        Route::post  ('/links/smart',          [LinkController::class, 'storeSmart']);
+        Route::get   ('/links/{id}/rules',     [LinkController::class, 'getRules'])->whereNumber('id');
+        Route::put   ('/links/{id}/rules',     [LinkController::class, 'putRules'])->whereNumber('id');
+
         // Biolink blocks (authoring)
         Route::get   ('/links/{id}/blocks',                 [BiolinkBlockController::class, 'index'])->whereNumber('id');
         Route::post  ('/links/{id}/blocks',                 [BiolinkBlockController::class, 'store'])->whereNumber('id');

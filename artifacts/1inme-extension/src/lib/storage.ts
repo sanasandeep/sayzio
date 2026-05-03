@@ -5,7 +5,13 @@ export interface ExtSettings {
   apiBaseUrl: string;
   webBaseUrl: string;
   token: string | null;
-  user: { id: number; name: string; email: string; handle?: string | null } | null;
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    handle?: string | null;
+    capabilities?: { link_smart_rules?: boolean; max_smart_rules?: number };
+  } | null;
   workspaceId: number | null;
   workspaces: Array<{ id: number; name: string }>;
   // Contacts: extension preferences. Persisted in browser.storage.local.
