@@ -3,7 +3,7 @@
      resumeEditor() Alpine component (openImport, runImport*, applyMerge…). --}}
 <template x-if="importOpen">
     <div class="resume-import-overlay" @click.self="closeImport()">
-        <div class="resume-import-modal">
+        <div class="resume-import-modal" :class="{ 'resume-import-modal-wide': importStep === 'review' }">
             <div class="resume-import-head">
                 <h3>
                     <i class="fas fa-file-import"></i>
@@ -117,7 +117,8 @@
 
             {{-- Step 2: Review & Merge --------------------------------------- --}}
             <template x-if="importStep === 'review'">
-                <div class="resume-import-body">
+                <div class="resume-import-body resume-import-review">
+                    <div class="resume-import-picks">
                     <template x-if="importCandidates.notes">
                         <div class="resume-import-note" x-text="importCandidates.notes"></div>
                     </template>
@@ -205,6 +206,22 @@
                             <span x-text="importBusy ? 'Merging…' : 'Add ' + pickCount() + ' selected'"></span>
                         </button>
                     </div>
+                    </div>{{-- /.resume-import-picks --}}
+
+                    {{-- Live preview of the merged resume. Updates whenever
+                         picks change via $watch('importPicks', …, deep:true)
+                         in resumeEditor(). --}}
+                    <aside class="resume-import-preview-pane" aria-label="Resume preview">
+                        <div class="resume-import-preview-head">
+                            <i class="fas fa-eye"></i>
+                            <span>Live preview</span>
+                            <span class="resume-import-preview-hint" x-show="pickCount() > 0"
+                                  x-text="'+' + pickCount() + ' change' + (pickCount()===1?'':'s')"></span>
+                        </div>
+                        <div class="resume-import-preview-frame">
+                            <div class="preview-page" x-html="importPreviewHtml"></div>
+                        </div>
+                    </aside>
                 </div>
             </template>
         </div>

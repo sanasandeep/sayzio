@@ -137,6 +137,24 @@
     .resume-import-summary { font-size: 12px; color: var(--text-muted,#cbd5e1); white-space: pre-wrap; max-height: 160px; overflow-y:auto; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 8px; }
     .resume-import-chip { display:inline-flex; align-items:center; gap: 6px; padding: 5px 10px; border-radius: 999px; background: rgba(124,58,237,0.06); border: 1px solid rgba(124,58,237,0.2); font-size: 11px; color: var(--text-primary,#fff); cursor: pointer; text-transform: capitalize; }
     .resume-import-chip input { accent-color: #7c3aed; }
+    /* Wide variant + two-column layout used on the Review & Merge step
+       so the user can see the resume update as they tick candidates. */
+    .resume-import-modal-wide { max-width: 1180px; }
+    .resume-import-review { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 16px; align-items: stretch; padding: 16px 18px 20px; }
+    .resume-import-picks { min-width: 0; max-height: calc(92vh - 70px); overflow-y: auto; padding-right: 4px; }
+    .resume-import-preview-pane { min-width: 0; display:flex; flex-direction:column; border: 1px solid var(--border-glass,#2a2a32); border-radius: 12px; background: rgba(255,255,255,0.02); overflow: hidden; max-height: calc(92vh - 70px); position: sticky; top: 0; }
+    .resume-import-preview-head { display:flex; align-items:center; gap:8px; padding: 10px 12px; border-bottom: 1px solid var(--border-glass,#2a2a32); font-size: 11px; font-weight: 700; color: var(--text-primary,#fff); text-transform: uppercase; letter-spacing: 0.08em; }
+    .resume-import-preview-head i { color:#a78bfa; }
+    .resume-import-preview-hint { margin-left:auto; font-size: 10px; font-weight: 600; color:#c4b5fd; background: rgba(124,58,237,0.15); border:1px solid rgba(124,58,237,0.3); padding: 2px 8px; border-radius: 999px; letter-spacing: 0; text-transform: none; }
+    .resume-import-preview-frame { flex: 1; overflow-y: auto; background: #f5f5f5; padding: 16px; }
+    .resume-import-preview-frame .preview-page { transform: scale(0.62); transform-origin: top left; width: 161.3%; min-height: 0; box-shadow: 0 8px 24px rgba(0,0,0,0.25); border-radius: 6px; }
+    @media (max-width: 900px) {
+        .resume-import-modal-wide { max-width: 720px; }
+        .resume-import-review { grid-template-columns: 1fr; }
+        .resume-import-picks, .resume-import-preview-pane { max-height: none; }
+        .resume-import-preview-pane { position: static; }
+        .resume-import-preview-frame .preview-page { transform: scale(0.7); width: 142.85%; }
+    }
 </style>
 @endpush
 
@@ -456,6 +474,7 @@ function resumeEditor() {
         importAiSections: ['summary','experience','skills'],
         importCandidates: { header: {}, summary: '', items: [], notes: null },
         importPicks: { header: { mode: 'replace', fields: [] }, summary: { mode: 'replace' }, items: [] },
+        importPreviewHtml: '',
 
         listSections: [
             { key: 'experience',     label: 'Experience',     icon: 'fa-briefcase',     addLabel: 'Add experience' },
@@ -477,6 +496,14 @@ function resumeEditor() {
                     e.preventDefault();
                     e.returnValue = '';
                 }
+            });
+            // Keep the import-modal preview in sync with whatever the user
+            // has currently selected. Deep watch so toggling a checkbox
+            // (which mutates picks.items) or changing a header/summary mode
+            // both trigger a re-render.
+            this.$watch('importPicks', () => this.renderImportPreview(), { deep: true });
+            this.$watch('importStep', (step) => {
+                if (step === 'review') this.renderImportPreview();
             });
         },
 
@@ -907,6 +934,13 @@ function resumeEditor() {
 
         // ── PREVIEW ───────────────────────────────────────────
         renderPreview() {
+            this.previewHtml = this.buildPreviewHtml(this.resume.sections, this.items);
+        },
+        // Pure render: produces the inline-styled preview HTML for any
+        // (sections, items) pair. Reused for both the live editor preview
+        // and the import-modal "what will it look like?" pane so picks
+        // reflect immediately without round-tripping the merge API.
+        buildPreviewHtml(sections, itemsArg) {
             const tpl = this.resume.template || {};
             const theme = (this.resume.color_theme && this.resume.color_theme.tokens) || {
                 primary:'#111827', accent:'#4b5563', text:'#1f2937', muted:'#6b7280', background:'#ffffff' };
@@ -926,9 +960,9 @@ function resumeEditor() {
                 return parts.join(' – ');
             };
 
-            const h = this.resume.sections.header || {};
-            const summary = this.resume.sections.summary || '';
-            const items = this.items;
+            const h = sections.header || {};
+            const summary = sections.summary || '';
+            const items = itemsArg;
 
             const sectionBox = (title, body) =>
                 body ? `<section class="pv-section"><h2 style="color:${theme.primary}; border-color:${theme.primary}">${esc(title)}</h2>${body}</section>` : '';
@@ -1034,8 +1068,8 @@ function resumeEditor() {
             };
 
             const customBlocks = () => {
-                const sections = this.resume.sections.custom_sections || [];
-                return sections.map(s => {
+                const customSecs = sections.custom_sections || [];
+                return customSecs.map(s => {
                     const its = (items.custom || []).filter(i => (i.data||{}).custom_section_key === s.key);
                     if (!its.length) return '';
                     const body = its.map(it => {
@@ -1121,8 +1155,74 @@ function resumeEditor() {
                 : style.density === 'spacious' ? 'spacious' : '';
 
             // Wrap with theme background applied to the page
-            this.previewHtml = `<style>.preview-page{background:${theme.background};color:${theme.text}}</style>` +
+            return `<style>.preview-page{background:${theme.background};color:${theme.text}}</style>` +
                 `<div class="${fontClass} ${densityClass}" style="background:${theme.background}; color:${theme.text}; min-height: 800px; margin:-32px -36px; padding:32px 36px;">${body}</div>`;
+        },
+
+        // Build a temporary (sections, items) pair that mirrors what the
+        // server-side merge would produce for the current picks, so the
+        // import preview matches what the user is about to commit. We
+        // mirror header replace/append/skip and summary replace/append/skip
+        // semantics from ResumeImportService::merge() — exact duplication
+        // isn't required (this is preview only) but it should be close.
+        mergedForPreview() {
+            const sections = JSON.parse(JSON.stringify(this.resume.sections || {}));
+            if (!sections.header) sections.header = {};
+            const items = {};
+            Object.keys(this.items || {}).forEach(k => {
+                items[k] = (this.items[k] || []).map(it => ({
+                    id: it.id,
+                    data: Object.assign({}, it.data || {}),
+                }));
+            });
+
+            const cand  = this.importCandidates || {};
+            const picks = this.importPicks || {};
+
+            // Header
+            const hdr = picks.header || { mode: 'skip', fields: [] };
+            if (hdr.mode && hdr.mode !== 'skip' && cand.header) {
+                (hdr.fields || []).forEach(f => {
+                    const incoming = cand.header[f];
+                    if (incoming == null || incoming === '') return;
+                    const current = sections.header[f] || '';
+                    if (hdr.mode === 'replace' || current === '') {
+                        sections.header[f] = incoming;
+                    } else if (hdr.mode === 'append' && current !== incoming) {
+                        sections.header[f] = current + ' · ' + incoming;
+                    }
+                });
+            }
+
+            // Summary
+            const sum = picks.summary || { mode: 'skip' };
+            if (sum.mode && sum.mode !== 'skip' && cand.summary) {
+                const current = sections.summary || '';
+                if (sum.mode === 'replace' || current === '') {
+                    sections.summary = cand.summary;
+                } else if (sum.mode === 'append'
+                        && current.toLowerCase().indexOf(cand.summary.toLowerCase()) === -1) {
+                    sections.summary = (current ? current + '\n\n' : '') + cand.summary;
+                }
+            }
+
+            // Items — append picked candidates onto the corresponding lists
+            // with synthetic ids so the renderer treats them like real items.
+            (picks.items || []).forEach(idx => {
+                const c = (cand.items || [])[idx];
+                if (!c || !c.section_type) return;
+                const t = c.section_type;
+                if (!items[t]) items[t] = [];
+                items[t].push({ id: '__import_' + idx, data: Object.assign({}, c.data || {}) });
+            });
+
+            return { sections, items };
+        },
+
+        renderImportPreview() {
+            if (this.importStep !== 'review') return;
+            const { sections, items } = this.mergedForPreview();
+            this.importPreviewHtml = this.buildPreviewHtml(sections, items);
         },
 
         // ── IMPORT FLOW ───────────────────────────────────────
@@ -1139,8 +1239,9 @@ function resumeEditor() {
             this.importError = '';
             this.importCandidates = { header: {}, summary: '', items: [], notes: null };
             this.importPicks = { header: { mode: 'replace', fields: [] }, summary: { mode: 'replace' }, items: [] };
+            this.importPreviewHtml = '';
         },
-        closeImport() { this.importOpen = false; this.importBusy = false; },
+        closeImport() { this.importOpen = false; this.importBusy = false; this.importPreviewHtml = ''; },
 
         // FormData variant of http() — needed for multipart uploads.
         // We deliberately don't set Content-Type so the browser fills in
