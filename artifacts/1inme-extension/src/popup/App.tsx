@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { browser } from "../lib/browser";
 import { ApiError, api, AbVariantsPayload, BacklinkRow, LinkSummary, SmartRule, WorkspacePixels } from "../lib/api";
 import {
+  AuthorContacts,
   ExtSettings,
   PendingThank,
   RadarMatch,
@@ -387,6 +388,7 @@ export function App() {
               matches={tabMatches.matches}
               pageUrl={tabMatches.pageUrl}
               pageTitle={tabMatches.pageTitle}
+              author={tabMatches.author ?? null}
               settings={settings}
               showToast={showToast}
               onSettingsChanged={refresh}
@@ -579,15 +581,22 @@ function OnboardingView({ onDone }: { onDone: () => void }) {
 
 // ── "This page links to you" card ───────────────────────────────────
 function BacklinkCard({
-  matches, pageUrl, pageTitle, settings, showToast, onSettingsChanged,
+  matches, pageUrl, pageTitle, author, settings, showToast, onSettingsChanged,
 }: {
   matches: RadarMatch[];
   pageUrl: string;
   pageTitle: string;
+  author: AuthorContacts | null;
   settings: ExtSettings;
   showToast: (t: Toast) => void;
   onSettingsChanged: () => void;
 }) {
+  // Channel hint icons for the "Thank…" button — surfaced up front so
+  // creators see at a glance which targets the radar already pre-detected.
+  const channelHints: string[] = [];
+  if (author?.email) channelHints.push("📧");
+  if (author?.xHandle) channelHints.push("𝕏");
+  if (author?.linkedinUrl) channelHints.push("in");
   const [savedIds, setSavedIds] = useState<Record<string, true>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [thankFor, setThankFor] = useState<RadarMatch | null>(null);
@@ -632,7 +641,17 @@ function BacklinkCard({
                   {busy === m.href && <span className="spinner" />}{saved ? "Saved ✓" : "Save"}
                 </button>
                 <button className="btn-secondary btn-sm" onClick={() => onOpen(m)}>Open</button>
-                <button className="btn-secondary btn-sm" onClick={() => setThankFor(m)}>Thank…</button>
+                <button
+                  className="btn-secondary btn-sm"
+                  onClick={() => setThankFor(m)}
+                  title={channelHints.length
+                    ? `Pre-detected: ${channelHints.join(" ")}`
+                    : "No author contacts pre-detected on this page"}
+                >
+                  Thank…{channelHints.length > 0 && (
+                    <span className="thank-hints" style={{ marginLeft: 4 }}>{channelHints.join(" ")}</span>
+                  )}
+                </button>
               </div>
             </div>
           );
@@ -642,6 +661,7 @@ function BacklinkCard({
         <ThankComposer
           match={thankFor}
           pageUrl={pageUrl}
+          prefilledAuthor={author}
           settings={settings}
           showToast={showToast}
           onClose={() => setThankFor(null)}
@@ -654,10 +674,11 @@ function BacklinkCard({
 
 // ── Thank-you composer (template picker, preview, send/queue) ───────
 function ThankComposer({
-  match, pageUrl, settings, showToast, onClose, onQueued,
+  match, pageUrl, prefilledAuthor, settings, showToast, onClose, onQueued,
 }: {
   match: RadarMatch;
   pageUrl: string;
+  prefilledAuthor: AuthorContacts | null;
   settings: ExtSettings;
   showToast: (t: Toast) => void;
   onClose: () => void;
@@ -667,18 +688,39 @@ function ThankComposer({
     ? settings.thankTemplates
     : defaultThankTemplates();
 
-  // Pick a sensible default channel: prefer email > X > LinkedIn based on
-  // what we can actually target on this page.
-  const [recipient, setRecipient] = useState<string | null>(null);
-  const [xHandle, setXHandle] = useState<string | null>(null);
-  const [linkedinUrl, setLinkedinUrl] = useState<string | null>(null);
-  const [detecting, setDetecting] = useState(true);
-  const [templateId, setTemplateId] = useState<string>(templates[0]?.id || "");
+  // Author contacts pre-detected by the radar content script land on the
+  // tab match state, so we can open the composer instantly with the
+  // right targets pre-filled. Only fall back to an on-demand executeScript
+  // detection if the radar didn't supply anything (e.g. older cached
+  // scans, or a tab where the content script never ran).
+  const hasPrefill = !!prefilledAuthor && (
+    !!prefilledAuthor.email || !!prefilledAuthor.xHandle || !!prefilledAuthor.linkedinUrl
+  );
+  const pickInitialChannel = (a: AuthorContacts | null): ThankChannel | null => {
+    if (a?.email) return "email";
+    if (a?.xHandle) return "x";
+    if (a?.linkedinUrl) return "linkedin";
+    return null;
+  };
+  const initialChannel = pickInitialChannel(prefilledAuthor);
+  const initialTemplateId =
+    (initialChannel && templates.find((tt) => tt.channel === initialChannel)?.id) ||
+    templates[0]?.id ||
+    "";
+
+  const [recipient, setRecipient] = useState<string | null>(prefilledAuthor?.email ?? null);
+  const [xHandle, setXHandle] = useState<string | null>(prefilledAuthor?.xHandle ?? null);
+  const [linkedinUrl, setLinkedinUrl] = useState<string | null>(prefilledAuthor?.linkedinUrl ?? null);
+  // Skip the "Detecting…" placeholder when the radar already gave us
+  // something — the composer should feel instant in that case.
+  const [detecting, setDetecting] = useState(!hasPrefill);
+  const [templateId, setTemplateId] = useState<string>(initialTemplateId);
   const [subject, setSubject] = useState<string>("");
   const [body, setBody] = useState<string>("");
   const [busy, setBusy] = useState<string | null>(null);
 
   useEffect(() => {
+    if (hasPrefill) return; // radar already supplied targets — no second hop needed
     let cancelled = false;
     (async () => {
       const found = await detectAuthorContacts();
@@ -866,12 +908,6 @@ function ThankComposer({
       </div>
     </div>
   );
-}
-
-interface AuthorContacts {
-  email: string | null;
-  xHandle: string | null;     // Without leading "@"
-  linkedinUrl: string | null; // Canonical https URL to a /in/ or /company/ profile
 }
 
 async function detectAuthorContacts(): Promise<AuthorContacts> {

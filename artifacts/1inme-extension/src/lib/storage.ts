@@ -103,11 +103,21 @@ export interface RadarMatch {
   matchedPropertyValue: string;
 }
 
+export interface AuthorContacts {
+  email: string | null;
+  xHandle: string | null;     // Without leading "@"
+  linkedinUrl: string | null; // Canonical https URL to a /in/ or /company/ profile
+}
+
 export interface TabMatchState {
   pageUrl: string;
   pageTitle: string;
   matches: RadarMatch[];
   scannedAt: number;
+  // Author contacts harvested by the radar content script in the same
+  // hop as link extraction. Older cached scans (pre-feature) won't have
+  // this — the popup falls back to its own on-demand detector then.
+  author?: AuthorContacts;
 }
 
 const DEFAULT_API = "https://1inme.com/api/v1";

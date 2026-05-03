@@ -349,6 +349,13 @@ browser.runtime.onMessage.addListener(async (msg: any, sender: any) => {
           pageTitle: harvest.pageTitle || "",
           matches,
           scannedAt: Date.now(),
+          author: harvest.author && typeof harvest.author === "object"
+            ? {
+                email: harvest.author.email ?? null,
+                xHandle: harvest.author.xHandle ?? null,
+                linkedinUrl: harvest.author.linkedinUrl ?? null,
+              }
+            : { email: null, xHandle: null, linkedinUrl: null },
         });
         await updateBadgeForTab(tabId, matches.length);
         return { ok: true, matches: matches.length };
