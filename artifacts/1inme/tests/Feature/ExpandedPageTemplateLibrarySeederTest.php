@@ -116,6 +116,187 @@ class ExpandedPageTemplateLibrarySeederTest extends TestCase
         );
     }
 
+    public function test_seeded_rows_are_stamped_with_current_seed_version(): void
+    {
+        (new BgTemplateSeeder())->run();
+        (new ExpandedPageTemplateLibrarySeeder())->run();
+
+        $rows = PageTemplate::query()->where('slug', 'like', 'persona-%')->get();
+        $this->assertGreaterThan(0, $rows->count());
+
+        foreach ($rows as $row) {
+            $this->assertSame(
+                ExpandedPageTemplateLibrarySeeder::SEED_VERSION,
+                (int) (((array) $row->snapshot)['meta']['seed_version'] ?? -1),
+                "row {$row->slug} should carry the current SEED_VERSION in snapshot.meta"
+            );
+        }
+    }
+
+    public function test_rerun_auto_refreshes_untouched_rows_with_older_seed_version(): void
+    {
+        (new BgTemplateSeeder())->run();
+        (new ExpandedPageTemplateLibrarySeeder())->run();
+
+        // Pick two rows in the persona namespace. We will simulate one
+        // as "untouched but stamped with an older seed version" and
+        // another as "admin-edited" (timestamp drift) so we can prove
+        // the auto-refresh flips only the first.
+        $personaSlug = PersonaCatalog::all()[0]['slug'];
+        $rows = PageTemplate::query()
+            ->where('slug', 'like', 'persona-' . $personaSlug . '-%')
+            ->orderBy('id')
+            ->get();
+        $this->assertGreaterThanOrEqual(2, $rows->count());
+
+        $stale = $rows[0];
+        $edited = $rows[1];
+
+        // Downgrade `stale`'s stored seed_version and rewrite its
+        // snapshot to something obviously different so we can detect
+        // whether the row was recreated.
+        $staleSnapshot = (array) $stale->snapshot;
+        $staleSnapshot['meta']['seed_version'] = 0;
+        $staleSnapshot['blocks'] = [['type' => 'paragraph', 'settings' => ['text' => 'OLD DESIGN'], 'is_active' => true]];
+        \DB::table('page_templates')->where('id', $stale->id)->update([
+            'snapshot'   => json_encode($staleSnapshot),
+            // Keep updated_at == created_at so it counts as untouched.
+            'updated_at' => $stale->created_at,
+        ]);
+        $staleId = $stale->id;
+        $staleSlug = $stale->slug;
+
+        // Mark `edited` as admin-edited via a clear updated_at drift,
+        // and also stamp it with an older seed_version. Auto-refresh
+        // must skip it (timestamp wins over version).
+        $editedSnapshot = (array) $edited->snapshot;
+        $editedSnapshot['meta']['seed_version'] = 0;
+        \DB::table('page_templates')->where('id', $edited->id)->update([
+            'name'       => 'ADMIN EDITED',
+            'snapshot'   => json_encode($editedSnapshot),
+            'updated_at' => $edited->created_at->copy()->addMinutes(5),
+        ]);
+        $editedId = $edited->id;
+
+        // Re-run the seeder. The auto-refresh pass should delete the
+        // stale row, then the fill loop should recreate it with the
+        // current blueprint (and current SEED_VERSION).
+        (new ExpandedPageTemplateLibrarySeeder())->run();
+
+        // Stale row was deleted and refilled — old id is gone, new row
+        // at the same slug carries the current seed_version and the
+        // real blueprint blocks (not 'OLD DESIGN').
+        $this->assertNull(
+            PageTemplate::find($staleId),
+            'untouched row with older seed_version should have been deleted'
+        );
+        $refilled = PageTemplate::where('slug', $staleSlug)->first();
+        $this->assertNotNull($refilled, 'auto-refreshed slug should be recreated by the fill loop');
+        $this->assertSame(
+            ExpandedPageTemplateLibrarySeeder::SEED_VERSION,
+            (int) (((array) $refilled->snapshot)['meta']['seed_version'] ?? -1),
+            'recreated row should carry the current SEED_VERSION'
+        );
+        $blocks = (array) (((array) $refilled->snapshot)['blocks'] ?? []);
+        $this->assertGreaterThan(
+            1,
+            count($blocks),
+            'recreated row should use the real blueprint, not the OLD DESIGN stub'
+        );
+
+        // Edited row survived untouched — same id, same admin name.
+        $survivor = PageTemplate::find($editedId);
+        $this->assertNotNull($survivor, 'admin-edited row must not be deleted by auto-refresh');
+        $this->assertSame('ADMIN EDITED', $survivor->name);
+    }
+
+    public function test_auto_refresh_recreates_stale_slug_even_when_persona_already_meets_minimum(): void
+    {
+        // Regression for the case where a persona already has >= MIN_PER_PERSONA
+        // active templates because admins added their own. The count-based
+        // gap-fill in run() will skip the persona entirely, so the
+        // auto-refresh path itself must recreate the stale slug.
+        (new BgTemplateSeeder())->run();
+        (new ExpandedPageTemplateLibrarySeeder())->run();
+
+        $personaSlug = PersonaCatalog::all()[0]['slug'];
+
+        // Pad the persona with 5 admin-added templates so it has 15
+        // active recommended templates total — well above MIN_PER_PERSONA.
+        for ($i = 0; $i < 5; $i++) {
+            PageTemplate::create([
+                'slug'                 => 'admin-extra-' . $personaSlug . '-' . $i,
+                'name'                 => 'Admin Extra ' . $i,
+                'category'             => $personaSlug,
+                'description'          => 'Curator-added template that should never be touched.',
+                'thumbnail_url'        => 'https://example.com/thumb.png',
+                'plan_tier'            => null,
+                'is_active'            => true,
+                'sort_order'           => 200 + $i,
+                'recommended_personas' => [$personaSlug],
+                'snapshot'             => ['biolink' => [], 'blocks' => [], 'meta' => ['admin' => true]],
+            ]);
+        }
+
+        // Pick one persona-seeded row, downgrade its seed_version, and
+        // mark its blocks with a sentinel so we can prove it was
+        // recreated from the current blueprint.
+        $stale = PageTemplate::query()
+            ->where('slug', 'like', 'persona-' . $personaSlug . '-%')
+            ->orderBy('id')
+            ->firstOrFail();
+        $staleSnapshot = (array) $stale->snapshot;
+        $staleSnapshot['meta']['seed_version'] = 0;
+        $staleSnapshot['blocks'] = [['type' => 'paragraph', 'settings' => ['text' => 'OLD'], 'is_active' => true]];
+        \DB::table('page_templates')->where('id', $stale->id)->update([
+            'snapshot'   => json_encode($staleSnapshot),
+            'updated_at' => $stale->created_at,
+        ]);
+        $staleId = $stale->id;
+        $staleSlug = $stale->slug;
+
+        (new ExpandedPageTemplateLibrarySeeder())->run();
+
+        // Old row gone, slug recreated with current SEED_VERSION and
+        // real blueprint blocks (not the OLD sentinel).
+        $this->assertNull(PageTemplate::find($staleId));
+        $refilled = PageTemplate::where('slug', $staleSlug)->first();
+        $this->assertNotNull($refilled, 'stale slug must be recreated even when persona already meets MIN_PER_PERSONA');
+        $this->assertSame(
+            ExpandedPageTemplateLibrarySeeder::SEED_VERSION,
+            (int) (((array) $refilled->snapshot)['meta']['seed_version'] ?? -1)
+        );
+        $blocks = (array) (((array) $refilled->snapshot)['blocks'] ?? []);
+        $this->assertGreaterThan(1, count($blocks));
+
+        // Admin-added templates were left exactly as they were.
+        $adminCount = PageTemplate::query()
+            ->where('slug', 'like', 'admin-extra-' . $personaSlug . '-%')
+            ->count();
+        $this->assertSame(5, $adminCount);
+    }
+
+    public function test_auto_refresh_is_a_no_op_when_every_row_is_at_current_version(): void
+    {
+        (new BgTemplateSeeder())->run();
+        (new ExpandedPageTemplateLibrarySeeder())->run();
+
+        $idsBefore = PageTemplate::query()->orderBy('id')->pluck('id')->all();
+        $countBefore = count($idsBefore);
+        $this->assertGreaterThan(0, $countBefore);
+
+        // Re-run several times — no row should be deleted or recreated.
+        (new ExpandedPageTemplateLibrarySeeder())->run();
+        (new ExpandedPageTemplateLibrarySeeder())->run();
+
+        $idsAfter = PageTemplate::query()->orderBy('id')->pluck('id')->all();
+        $this->assertSame(
+            $idsBefore,
+            $idsAfter,
+            'rerunning the seeder when every row is current must not churn rows'
+        );
+    }
+
     public function test_seeder_works_when_bg_templates_table_is_empty(): void
     {
         // Intentionally do NOT run BgTemplateSeeder — bg_templates stays empty
