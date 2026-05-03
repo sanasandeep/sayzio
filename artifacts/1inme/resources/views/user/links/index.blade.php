@@ -8,6 +8,7 @@
     $__canCreateLink = $__ws && auth()->check() && auth()->user()->canInWorkspace($__ws, 'links.create');
     if ($__canCreateLink) {
         $__heroActions[] = ['label' => 'Create Link', 'url' => route('user.links.create'), 'icon' => 'fa-plus', 'class' => 'btn-primary'];
+        $__heroActions[] = ['label' => 'Bulk create', 'url' => route('user.links.url.bulk'), 'icon' => 'fa-layer-group', 'class' => 'btn-ghost'];
     }
     // Move-to-workspace: only the workspace owner can move links, and only
     // makes sense if they own more than one workspace.
@@ -92,6 +93,9 @@
         </a>
         <a href="{{ route('user.links.create') }}" class="text-xs py-2.5 px-4 rounded-xl border border-white/10 text-white/70 hover:text-white hover:bg-white/5 transition-all">
             <i class="fas fa-plus text-[10px]"></i> Create Link
+        </a>
+        <a href="{{ route('user.links.url.bulk') }}" class="text-xs py-2.5 px-4 rounded-xl border border-white/10 text-white/70 hover:text-white hover:bg-white/5 transition-all">
+            <i class="fas fa-layer-group text-[10px]"></i> Bulk create
         </a>
     </div>
     @else

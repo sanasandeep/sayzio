@@ -2615,4 +2615,488 @@ class LinkController extends Controller
             'expires_at' => $expiresAt->getTimestamp(),
         ]);
     }
+
+    /**
+     * Hard ceiling on rows accepted in a single bulk-create submission.
+     * Keeps synchronous processing fast and bounds DB pressure.
+     */
+    public const BULK_URL_MAX_ROWS = 500;
+
+    /**
+     * Step 1 — render the Bulk Create page (textarea + CSV upload + the
+     * shared options that will apply to every row in the batch).
+     */
+    public function bulkCreateUrl(Request $request)
+    {
+        $owner = workspace_owner();
+        return view('user.links.bulk-url', [
+            'projects'    => $owner->projects()->orderBy('name')->get(),
+            'pixels'      => $owner->pixels()->orderBy('name')->get(),
+            'domains'     => \App\Modules\User\Models\Domain::availableTo($request->user())->get(),
+            'aliasLimits' => $owner->getAliasLengthLimits(),
+            'maxRows'     => self::BULK_URL_MAX_ROWS,
+        ]);
+    }
+
+    /**
+     * Step 2 — parse the input (paste or CSV), validate every row, and
+     * render the editable preview table. Shared options are carried
+     * forward as hidden fields so the user can fix/skip rows then submit
+     * to bulkStoreUrl without losing their settings.
+     */
+    public function bulkPreviewUrl(Request $request)
+    {
+        [$shared, $sharedErrors] = $this->validateBulkSharedOptions($request);
+        $rows = $this->parseBulkUrlInput($request);
+
+        if (count($rows) > self::BULK_URL_MAX_ROWS) {
+            return back()->withInput()->with('error', 'Too many rows. The bulk create limit is ' . self::BULK_URL_MAX_ROWS . ' per submission. You submitted ' . count($rows) . '.');
+        }
+        if (empty($rows)) {
+            return back()->withInput()->with('error', 'No URLs found. Paste at least one URL or upload a CSV with a long_url column.');
+        }
+        if (!empty($sharedErrors)) {
+            return back()->withInput()->with('error', $sharedErrors[0]);
+        }
+
+        $owner = workspace_owner();
+        $validated = $this->validateBulkRows($rows, $owner);
+        $validCount = collect($validated)->where('errors', [])->count();
+
+        // Surface plan limits at the preview step so the user sees
+        // "this batch is too large for your plan" before clicking
+        // Create. Same checks run again on submit as a safety net.
+        $planFeatures = $owner->plan?->features ?? [];
+        $maxLinks = $planFeatures['max_links'] ?? 5;
+        if ($maxLinks !== -1 && $validCount > 0) {
+            $current = $owner->links()->count();
+            if (($current + $validCount) > $maxLinks) {
+                $remaining = max(0, $maxLinks - $current);
+                session()->flash('error', "This batch would exceed your plan's link limit ({$maxLinks}). You can create at most {$remaining} more link(s) — check rows you want to skip, or upgrade your plan.");
+            }
+        }
+        if (!empty($shared['password']) && !$owner->userCanUseLinkSetting('password')) {
+            session()->flash('error', 'Password protection isn\'t available on your current plan — clear the shared password to proceed.');
+        } elseif (!empty($shared['expires_at']) && !$owner->userCanUseLinkSetting('expiry')) {
+            session()->flash('error', 'Link expiry isn\'t available on your current plan — clear the shared expiry to proceed.');
+        }
+
+        return view('user.links.bulk-url-preview', [
+            'rows'        => $validated,
+            'shared'      => $shared,
+            'projects'    => $owner->projects()->orderBy('name')->get(),
+            'pixels'      => $owner->pixels()->orderBy('name')->get(),
+            'domains'     => \App\Modules\User\Models\Domain::availableTo($request->user())->get(),
+            'aliasLimits' => $owner->getAliasLengthLimits(),
+            'maxRows'     => self::BULK_URL_MAX_ROWS,
+            'validCount'  => $validCount,
+        ]);
+    }
+
+    /**
+     * Step 3 — re-validate every row server-side, enforce plan limits on
+     * the whole batch, then create the links inside one DB transaction
+     * and dispatch the per-link `link_published` feed event. Renders the
+     * results screen with copy buttons and a JSON-embedded result set
+     * the page uses to power the "Download CSV" button.
+     */
+    public function bulkStoreUrl(Request $request)
+    {
+        $owner = workspace_owner();
+        [$shared, $sharedErrors] = $this->validateBulkSharedOptions($request);
+
+        // Reconstruct rows from the preview form. Each row carries
+        // long_url + optional alias/title; rows with skip=1 are dropped.
+        $raw = (array) $request->input('rows', []);
+        $rows = [];
+        foreach ($raw as $i => $r) {
+            if (!is_array($r)) continue;
+            if (!empty($r['skip'])) continue;
+            $rows[] = [
+                'long_url' => trim((string) ($r['long_url'] ?? '')),
+                'alias'    => trim((string) ($r['alias']    ?? '')),
+                'title'    => trim((string) ($r['title']    ?? '')),
+            ];
+        }
+
+        // Helper: re-render the preview screen with the user's edits
+        // intact and an error banner. Avoids `back()` redirects to the
+        // POST-only preview URL (which would 405) and keeps every plan
+        // / validation failure on a renderable page.
+        $renderPreview = function (array $rows, string $error) use ($request, $shared) {
+            if (empty($rows)) {
+                return redirect()->route('user.links.url.bulk')->with('error', $error);
+            }
+            $validated = $this->validateBulkRows($rows, workspace_owner());
+            $validCount = collect($validated)->where('errors', [])->count();
+            return response()->view('user.links.bulk-url-preview', [
+                'rows'        => $validated,
+                'shared'      => $shared,
+                'projects'    => workspace_owner()->projects()->orderBy('name')->get(),
+                'pixels'      => workspace_owner()->pixels()->orderBy('name')->get(),
+                'domains'     => \App\Modules\User\Models\Domain::availableTo($request->user())->get(),
+                'aliasLimits' => workspace_owner()->getAliasLengthLimits(),
+                'maxRows'     => self::BULK_URL_MAX_ROWS,
+                'validCount'  => $validCount,
+            ])->withHeaders([])->setStatusCode(422)
+              ->header('X-Bulk-Error', '1') // marker (no-op for browsers; useful in tests)
+            ;
+        };
+        // Flash the error so the preview view's `session('error')`
+        // banner shows it. Wrap the view response so flashing works.
+        $previewWithError = function (string $error) use ($renderPreview, &$rows, $request) {
+            session()->flash('error', $error);
+            return $renderPreview($rows, $error);
+        };
+
+        if (count($rows) > self::BULK_URL_MAX_ROWS) {
+            return redirect()->route('user.links.url.bulk')
+                ->with('error', 'Too many rows. The bulk create limit is ' . self::BULK_URL_MAX_ROWS . ' per submission.');
+        }
+        if (empty($rows)) {
+            return redirect()->route('user.links.url.bulk')
+                ->with('error', 'No rows to create. Paste URLs or upload a CSV first.');
+        }
+        if (!empty($sharedErrors)) {
+            return $previewWithError($sharedErrors[0]);
+        }
+
+        $validated = $this->validateBulkRows($rows, $owner);
+        $validRows = array_values(array_filter($validated, fn ($r) => empty($r['errors'])));
+
+        if (empty($validRows)) {
+            return $previewWithError('None of the rows are valid — fix the highlighted issues and try again.');
+        }
+
+        // Plan link-quota gate for the whole batch.
+        $planFeatures = $owner->plan?->features ?? [];
+        $maxLinks = $planFeatures['max_links'] ?? 5;
+        if ($maxLinks !== -1) {
+            $current = $owner->links()->count();
+            if (($current + count($validRows)) > $maxLinks) {
+                $remaining = max(0, $maxLinks - $current);
+                return $previewWithError("This batch would exceed your plan's link limit ({$maxLinks}). You can create {$remaining} more link(s) — upgrade your plan to create the rest in bulk.");
+            }
+        }
+
+        // Hash the shared password once. Plan-gate every paid shared
+        // option so a downgraded plan can't bypass them via bulk.
+        $sharedPasswordHash = null;
+        if (!empty($shared['password'])) {
+            if (!$owner->userCanUseLinkSetting('password')) {
+                return $previewWithError('Password protection isn\'t available on your current plan.');
+            }
+            $sharedPasswordHash = Hash::make($shared['password']);
+        }
+        if (!empty($shared['expires_at']) && !$owner->userCanUseLinkSetting('expiry')) {
+            return $previewWithError('Link expiry isn\'t available on your current plan.');
+        }
+
+        $defaultActive = ($shared['type'] ?? 'url') === 'url'
+            ? $owner->userCanUseLinkSetting('deep_link')
+            : false;
+
+        $sharedSettings = [];
+        if (!empty($shared['show_preview_page'])) $sharedSettings['show_preview_page'] = true;
+        $sharedSettings['open_in_app'] = $defaultActive;
+
+        $results = [];
+        DB::transaction(function () use ($validRows, $shared, $sharedPasswordHash, $sharedSettings, $owner, &$results) {
+            foreach ($validRows as $row) {
+                $alias = $row['final_alias'];
+                $attrs = [
+                    'user_id'              => $owner->id,
+                    'project_id'           => $shared['project_id'] ?: null,
+                    'domain_id'            => $shared['domain_id'] ?: null,
+                    'type'                 => 'url',
+                    'alias'                => $alias,
+                    'title'                => $row['title'] !== '' ? $row['title'] : null,
+                    'long_url'             => $row['long_url'],
+                    'redirect_type'        => $shared['redirect_type'] ?: 301,
+                    'is_active'            => true,
+                    'expires_at'           => $shared['expires_at'] ?: null,
+                    'is_password_protected'=> $sharedPasswordHash !== null,
+                    'password'             => $sharedPasswordHash,
+                    'seo_title'            => $shared['seo_title'] ?: null,
+                    'seo_description'      => $shared['seo_description'] ?: null,
+                    'utm_source'           => $shared['utm_source'] ?: null,
+                    'utm_medium'           => $shared['utm_medium'] ?: null,
+                    'utm_campaign'         => $shared['utm_campaign'] ?: null,
+                    'utm_term'             => $shared['utm_term'] ?: null,
+                    'utm_content'          => $shared['utm_content'] ?: null,
+                    'settings'             => !empty($sharedSettings) ? $sharedSettings : null,
+                ];
+                $link = Link::create($attrs);
+                if (!empty($shared['pixel_ids'])) {
+                    $link->pixels()->sync($shared['pixel_ids']);
+                }
+
+                // Spec: dispatch link_published per link in the batch.
+                // Bulk creates only url-type links, so we always emit
+                // here regardless of the broader feed-type gate used
+                // elsewhere — the task explicitly requires it.
+                try {
+                    $u = auth()->user();
+                    \App\Modules\User\Models\FeedEvent::create([
+                        'user_id'      => $link->user_id,
+                        'type'         => 'link_published',
+                        'subject_id'   => $link->id,
+                        'subject_type' => Link::class,
+                        'data'         => [
+                            'title'          => $link->title,
+                            'alias'          => $link->alias,
+                            'creator_name'   => $u?->name,
+                            'creator_avatar' => $u?->avatar,
+                        ],
+                        'occurred_at'  => now(),
+                    ]);
+                } catch (\Throwable $e) { \Log::warning('bulk feed event failed: ' . $e->getMessage()); }
+
+                $results[] = [
+                    'original_url' => $row['long_url'],
+                    'short_url'    => $link->getShortUrl(),
+                    'alias'        => $link->alias,
+                    'status'       => 'created',
+                    'error'        => '',
+                ];
+            }
+
+            // One debounced followers ping for the whole batch (not one
+            // per link, so a 500-row batch doesn't fire 500 pings).
+            $u = auth()->user();
+            if ($u && !empty($results)) {
+                try {
+                    \App\Modules\User\Controllers\CreatorPostController::notifyFollowersDebounced(
+                        $u,
+                        'published ' . count($results) . ' new link(s) in bulk'
+                    );
+                } catch (\Throwable $e) { \Log::warning('bulk followers ping failed: ' . $e->getMessage()); }
+            }
+        });
+
+        // Append skipped rows so the CSV download is a complete record.
+        foreach ($validated as $r) {
+            if (!empty($r['errors'])) {
+                $results[] = [
+                    'original_url' => $r['long_url'],
+                    'short_url'    => '',
+                    'alias'        => $r['alias'],
+                    'status'       => 'skipped',
+                    'error'        => implode('; ', $r['errors']),
+                ];
+            }
+        }
+
+        return view('user.links.bulk-url-results', [
+            'results' => $results,
+            'created' => count(array_filter($results, fn ($r) => $r['status'] === 'created')),
+            'skipped' => count(array_filter($results, fn ($r) => $r['status'] !== 'created')),
+        ]);
+    }
+
+    /**
+     * Read the textarea + uploaded CSV from the request and return a
+     * normalized list of `[long_url, alias, title]` rows.
+     */
+    private function parseBulkUrlInput(Request $request): array
+    {
+        $rows = [];
+
+        if ($request->hasFile('csv_file')) {
+            $file = $request->file('csv_file');
+            $handle = @fopen($file->getRealPath(), 'r');
+            if ($handle !== false) {
+                $header = fgetcsv($handle);
+                if (is_array($header)) {
+                    $header = array_map(fn ($h) => strtolower(trim((string) $h)), $header);
+                    $iUrl   = array_search('long_url', $header, true);
+                    if ($iUrl === false) $iUrl = array_search('url', $header, true);
+                    if ($iUrl === false) $iUrl = array_search('destination', $header, true);
+                    $iAlias = array_search('alias', $header, true);
+                    $iTitle = array_search('title', $header, true);
+                    while (($r = fgetcsv($handle)) !== false) {
+                        if (count($r) === 1 && trim((string) $r[0]) === '') continue;
+                        $rows[] = [
+                            'long_url' => $iUrl   !== false ? trim((string) ($r[$iUrl]   ?? '')) : '',
+                            'alias'    => $iAlias !== false ? trim((string) ($r[$iAlias] ?? '')) : '',
+                            'title'    => $iTitle !== false ? trim((string) ($r[$iTitle] ?? '')) : '',
+                        ];
+                        if (count($rows) > self::BULK_URL_MAX_ROWS + 1) break;
+                    }
+                }
+                fclose($handle);
+            }
+            return $rows;
+        }
+
+        // Re-submission from the preview screen — already structured.
+        if ($request->has('rows')) {
+            foreach ((array) $request->input('rows') as $r) {
+                if (!is_array($r)) continue;
+                if (!empty($r['skip'])) continue;
+                $rows[] = [
+                    'long_url' => trim((string) ($r['long_url'] ?? '')),
+                    'alias'    => trim((string) ($r['alias']    ?? '')),
+                    'title'    => trim((string) ($r['title']    ?? '')),
+                ];
+            }
+            return $rows;
+        }
+
+        $text = (string) $request->input('urls_text', '');
+        foreach (preg_split('/\r\n|\r|\n/', $text) as $line) {
+            $line = trim($line);
+            if ($line === '') continue;
+            $rows[] = ['long_url' => $line, 'alias' => '', 'title' => ''];
+        }
+        return $rows;
+    }
+
+    /**
+     * Per-row validation: URL format, alias format/length/banned/uniqueness
+     * (against existing links AND duplicate aliases within the same batch).
+     * Auto-generates an alias when the row left it blank.
+     */
+    private function validateBulkRows(array $rows, User $owner): array
+    {
+        $limits = $owner->getAliasLengthLimits();
+        $aliasPattern = '/^[A-Za-z0-9_\-]+$/';
+
+        $providedAliases = collect($rows)
+            ->pluck('alias')
+            ->filter(fn ($a) => $a !== '')
+            ->map(fn ($a) => strtolower($a))
+            ->all();
+        $existing = !empty($providedAliases)
+            ? Link::whereIn(DB::raw('LOWER(alias)'), $providedAliases)->pluck('alias')->map(fn ($a) => strtolower($a))->all()
+            : [];
+        $existingSet = array_flip($existing);
+
+        $banned = new \App\Modules\Admin\Rules\NotBannedName();
+        $usedInBatch = [];
+        $out = [];
+
+        foreach ($rows as $r) {
+            $errors = [];
+            $url   = $r['long_url'];
+            $alias = $r['alias'];
+            $title = $r['title'];
+
+            if ($url === '') {
+                $errors[] = 'Destination URL is required.';
+            } elseif (mb_strlen($url) > 2048) {
+                $errors[] = 'Destination URL is too long (max 2048 characters).';
+            } elseif (!filter_var($url, FILTER_VALIDATE_URL) || !preg_match('#^https?://#i', $url)) {
+                $errors[] = 'Not a valid http(s) URL.';
+            }
+
+            if ($title !== '' && mb_strlen($title) > 255) {
+                $errors[] = 'Title is too long (max 255 characters).';
+            }
+
+            $finalAlias = $alias;
+            if ($alias !== '') {
+                if (!preg_match($aliasPattern, $alias)) {
+                    $errors[] = 'Alias may only contain letters, numbers, dashes and underscores.';
+                } elseif (mb_strlen($alias) < $limits['min'] || mb_strlen($alias) > $limits['max']) {
+                    $errors[] = "Alias must be {$limits['min']}–{$limits['max']} characters.";
+                } else {
+                    // NotBannedName via a throw-on-fail Closure capture.
+                    $bannedHit = null;
+                    $banned->validate('alias', $alias, function ($msg) use (&$bannedHit) { $bannedHit = $msg; });
+                    if ($bannedHit) {
+                        $errors[] = 'This alias is reserved and can\'t be used.';
+                    } elseif (isset($existingSet[strtolower($alias)])) {
+                        $errors[] = 'Alias is already taken.';
+                    } elseif (isset($usedInBatch[strtolower($alias)])) {
+                        $errors[] = 'Duplicate alias within this batch.';
+                    } else {
+                        $usedInBatch[strtolower($alias)] = true;
+                    }
+                }
+            } else {
+                $finalAlias = Link::generateAlias();
+                // Defensively avoid colliding with an alias another row in
+                // this batch chose explicitly.
+                while (isset($usedInBatch[strtolower($finalAlias)])) {
+                    $finalAlias = Link::generateAlias();
+                }
+                $usedInBatch[strtolower($finalAlias)] = true;
+            }
+
+            $out[] = [
+                'long_url'    => $url,
+                'alias'       => $alias,
+                'title'       => $title,
+                'final_alias' => $finalAlias,
+                'errors'      => $errors,
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Normalize and validate the shared options panel from the bulk form.
+     * Returns [shared array, errors array] — the shared array is also
+     * what the preview screen re-emits as hidden fields on the way to
+     * bulkStoreUrl, so the shape must round-trip cleanly.
+     */
+    private function validateBulkSharedOptions(Request $request): array
+    {
+        $owner = workspace_owner();
+        $errors = [];
+
+        $shared = [
+            'type'              => 'url',
+            'project_id'        => $request->input('project_id') ? (int) $request->input('project_id') : null,
+            'domain_id'         => $request->input('domain_id')  ? (int) $request->input('domain_id')  : null,
+            'redirect_type'     => in_array((int) $request->input('redirect_type', 301), [301, 302], true)
+                                    ? (int) $request->input('redirect_type', 301) : 301,
+            'expires_at'        => $request->input('expires_at') ?: null,
+            'password'          => $request->input('password') ?: null,
+            'seo_title'         => trim((string) $request->input('seo_title', '')) ?: null,
+            'seo_description'   => trim((string) $request->input('seo_description', '')) ?: null,
+            'utm_source'        => trim((string) $request->input('utm_source', '')) ?: null,
+            'utm_medium'        => trim((string) $request->input('utm_medium', '')) ?: null,
+            'utm_campaign'      => trim((string) $request->input('utm_campaign', '')) ?: null,
+            'utm_term'          => trim((string) $request->input('utm_term', '')) ?: null,
+            'utm_content'       => trim((string) $request->input('utm_content', '')) ?: null,
+            'pixel_ids'         => array_values(array_filter(array_map('intval', (array) $request->input('pixel_ids', [])))),
+            'show_preview_page' => $request->boolean('show_preview_page'),
+        ];
+
+        if ($shared['expires_at']) {
+            try {
+                $dt = \Carbon\Carbon::parse($shared['expires_at']);
+                if ($dt->isPast()) $errors[] = 'Expiration date must be in the future.';
+            } catch (\Throwable $e) {
+                $errors[] = 'Expiration date is invalid.';
+                $shared['expires_at'] = null;
+            }
+        }
+
+        if ($shared['domain_id']) {
+            $allowed = \App\Modules\User\Models\Domain::availableTo($request->user())->pluck('id')->all();
+            if (!in_array($shared['domain_id'], $allowed, true)) {
+                $errors[] = 'That domain is not available on your plan.';
+                $shared['domain_id'] = null;
+            }
+        }
+
+        if ($shared['project_id']) {
+            $exists = $owner->projects()->where('id', $shared['project_id'])->exists();
+            if (!$exists) {
+                $errors[] = 'Selected project is not available.';
+                $shared['project_id'] = null;
+            }
+        }
+
+        if (!empty($shared['pixel_ids'])) {
+            $allowedPx = $owner->pixels()->whereIn('id', $shared['pixel_ids'])->pluck('id')->all();
+            $shared['pixel_ids'] = array_values(array_intersect($shared['pixel_ids'], $allowedPx));
+        }
+
+        return [$shared, $errors];
+    }
 }

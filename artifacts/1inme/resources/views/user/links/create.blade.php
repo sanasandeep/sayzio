@@ -42,6 +42,20 @@
             </p>
         </div>
 
+        <a href="{{ route('user.links.url.bulk') }}"
+           class="block glass rounded-2xl p-5 mb-4 border border-emerald-500/20 bg-gradient-to-r from-emerald-500/10 to-teal-500/5 hover:from-emerald-500/15 hover:to-teal-500/10 transition-all group">
+            <div class="flex items-center gap-4">
+                <div class="w-11 h-11 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-layer-group text-lg"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-white font-medium">Bulk create short links</div>
+                    <div class="text-xs text-white/50 mt-0.5">Paste a list or upload a CSV — share settings across many links in one go.</div>
+                </div>
+                <i class="fas fa-arrow-right text-white/30 group-hover:text-emerald-300 transition-colors"></i>
+            </div>
+        </a>
+
         <a href="{{ route('user.links.wizard') }}"
            class="block glass rounded-2xl p-5 mb-4 border border-violet-500/20 bg-gradient-to-r from-violet-500/10 to-fuchsia-500/5 hover:from-violet-500/15 hover:to-fuchsia-500/10 transition-all group">
             <div class="flex items-center gap-4">

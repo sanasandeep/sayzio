@@ -326,6 +326,9 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::delete('links/{link}', [LinkController::class, 'destroy'])->middleware('workspace.can:links.delete')->name('links.destroy');
         Route::post('links/choose-type', [LinkController::class, 'chooseType'])->middleware('workspace.can:links.create')->name('links.choose-type');
         Route::get('links-url/create', [LinkController::class, 'createUrl'])->middleware('workspace.can:links.create')->name('links.url.create');
+        Route::get('links-url/bulk', [LinkController::class, 'bulkCreateUrl'])->middleware('workspace.can:links.create')->name('links.url.bulk');
+        Route::post('links-url/bulk/preview', [LinkController::class, 'bulkPreviewUrl'])->middleware('workspace.can:links.create')->name('links.url.bulk.preview');
+        Route::post('links-url/bulk', [LinkController::class, 'bulkStoreUrl'])->middleware('workspace.can:links.create')->name('links.url.bulk.store');
         Route::get('links-biolink/create', [LinkController::class, 'createBiolink'])->middleware('workspace.can:links.create')->name('links.biolink.create');
         Route::post('links', [LinkController::class, 'store'])->middleware(['workspace.can:links.create', CheckPlanLimit::class . ':links'])->name('links.store');
         Route::post('links/{link}/toggle-active', [LinkController::class, 'toggleActive'])->middleware('workspace.can:links.edit')->name('links.toggle-active');
