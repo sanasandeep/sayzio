@@ -871,6 +871,24 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post('cards/{card}/attachments',        [\App\Modules\User\Controllers\TaskBoardController::class, 'storeAttachment'])->name('attachments.store');
             Route::get('attachments/{attachment}/download',[\App\Modules\User\Controllers\TaskBoardController::class, 'downloadAttachment'])->name('attachments.download');
             Route::delete('attachments/{attachment}',      [\App\Modules\User\Controllers\TaskBoardController::class, 'destroyAttachment'])->name('attachments.destroy');
+
+            // Time tracking + per-board billed-column setting (kanban billing).
+            Route::post('cards/{card}/timer/start',        [\App\Modules\User\Controllers\TaskBoardController::class, 'startTimer'])->name('timer.start');
+            Route::post('cards/{card}/timer/stop',         [\App\Modules\User\Controllers\TaskBoardController::class, 'stopTimer'])->name('timer.stop');
+            Route::post('cards/{card}/time-entries',       [\App\Modules\User\Controllers\TaskBoardController::class, 'storeTimeEntry'])->name('time-entries.store');
+            Route::delete('time-entries/{entry}',          [\App\Modules\User\Controllers\TaskBoardController::class, 'destroyTimeEntry'])->name('time-entries.destroy');
+            Route::put('boards/{board}/billed-column',     [\App\Modules\User\Controllers\TaskBoardController::class, 'setBilledColumn'])->name('boards.billed-column');
+        });
+
+        // ---- Client invoices (kanban -> Stripe) ----
+        // Workspace-scoped editor + dashboard. Pay endpoints sit on a
+        // public signed-URL route outside this auth group below.
+        Route::prefix('client-invoices')->name('client-invoices.')->middleware('workspace.can:tasks.view')->group(function () {
+            Route::get('/',                          [\App\Modules\User\Controllers\ClientInvoiceController::class, 'dashboard'])->name('dashboard');
+            Route::post('drafts',                    [\App\Modules\User\Controllers\ClientInvoiceController::class, 'createDraft'])->middleware('workspace.can:tasks.edit')->name('draft');
+            Route::get('{invoice}',                  [\App\Modules\User\Controllers\ClientInvoiceController::class, 'edit'])->name('edit');
+            Route::put('{invoice}',                  [\App\Modules\User\Controllers\ClientInvoiceController::class, 'update'])->middleware('workspace.can:tasks.edit')->name('update');
+            Route::post('{invoice}/send',            [\App\Modules\User\Controllers\ClientInvoiceController::class, 'send'])->middleware('workspace.can:tasks.edit')->name('send');
         });
 
         // ---- Workspace Vault: encrypted credentials + client records ----

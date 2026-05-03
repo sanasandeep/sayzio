@@ -12,8 +12,14 @@ class TaskBoard extends Model
 
     protected $fillable = [
         'workspace_id', 'created_by_user_id', 'scope', 'owner_user_id',
-        'name', 'slug', 'color', 'description', 'position', 'archived_at',
+        'name', 'slug', 'color', 'description', 'billed_column_id',
+        'position', 'archived_at',
     ];
+
+    public function billedColumn()
+    {
+        return $this->belongsTo(TaskColumn::class, 'billed_column_id');
+    }
 
     protected $casts = [
         'archived_at' => 'datetime',

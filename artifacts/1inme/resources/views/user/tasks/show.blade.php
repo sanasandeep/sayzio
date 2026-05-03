@@ -58,6 +58,25 @@
             </div>
         </div>
         <div class="flex items-center gap-2">
+            <a href="{{ route('user.client-invoices.dashboard') }}"
+               class="px-3 py-2 rounded-lg text-sm font-semibold border"
+               style="border-color: var(--border-strong); color: var(--text-primary);"
+               title="Open client invoices dashboard">
+                <i class="fas fa-file-invoice-dollar mr-1"></i> Invoices
+            </a>
+            <button type="button" @click="showBilledColumnPicker = true"
+                    class="px-3 py-2 rounded-lg text-sm font-semibold border"
+                    style="border-color: var(--border-strong); color: var(--text-primary);"
+                    title="Pick the column where paid cards auto-move">
+                <i class="fas fa-check-double mr-1"></i> Billed Column
+            </button>
+            <button type="button" @click="createInvoiceFromSelected()"
+                    x-show="selectedCardIds.length > 0" x-cloak
+                    class="px-3 py-2 rounded-lg text-sm font-semibold text-white"
+                    style="background: linear-gradient(135deg,#10b981,#059669);">
+                <i class="fas fa-file-invoice mr-1"></i>
+                Invoice <span x-text="selectedCardIds.length"></span> card<span x-show="selectedCardIds.length !== 1">s</span>
+            </button>
             <button @click="showAddColumn = true"
                     class="px-3 py-2 rounded-lg text-sm font-semibold border"
                     style="border-color: var(--border-strong); color: var(--text-primary);">
@@ -164,9 +183,33 @@
                              data-card-assignees="{{ $card->assignees->pluck('id')->implode(',') }}"
                              data-card-labels="{{ $card->labels->pluck('id')->implode(',') }}"
                              data-card-due="{{ $card->due_date ? $card->due_date->toDateString() : '' }}"
+                             data-card-billable="{{ $card->billable ? '1' : '0' }}"
+                             data-card-invoiced="{{ $card->client_invoice_id ? '1' : '0' }}"
                              id="card-{{ $card->id }}"
                              @click="openCard({{ $card->id }})">
+                            @if($card->billable && !$card->client_invoice_id)
+                                <label class="absolute top-1.5 right-1.5 cursor-pointer" @click.stop>
+                                    <input type="checkbox" :checked="selectedCardIds.includes({{ $card->id }})"
+                                           @change="toggleCardSelect({{ $card->id }}, $event.target.checked)">
+                                </label>
+                            @endif
                             <div class="text-sm font-semibold" style="color: var(--text-primary);">{{ $card->title }}</div>
+                            @if($card->billable)
+                                <div class="mt-1 flex items-center gap-1 flex-wrap">
+                                    <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                                          style="background: rgba(16,185,129,0.12); color: #059669;">
+                                        <i class="fas fa-dollar-sign"></i>
+                                        {{ $card->rate_type === 'hourly' ? 'Hourly' : 'Flat' }}
+                                    </span>
+                                    @if($card->client_invoice_id)
+                                        <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                                              style="background: rgba(124,58,237,0.18); color: #7c3aed;">
+                                            <i class="fas fa-receipt"></i>
+                                            {{ optional($card->clientInvoice)->status === 'paid' ? 'PAID' : 'INVOICED' }}
+                                        </span>
+                                    @endif
+                                </div>
+                            @endif
                             <div class="flex items-center flex-wrap gap-1 mt-2">
                                 @foreach($card->labels as $label)
                                     <span class="label-pill" style="background: {{ $label->color }};">{{ $label->name }}</span>
@@ -490,6 +533,109 @@
                     </div>
                 </div>
 
+                {{-- Billing & time tracking ---------------------------------- --}}
+                <div class="mt-5 pt-4 border-t" style="border-color: var(--border-soft);">
+                    <h3 class="text-xs font-bold uppercase mb-2" style="color: var(--text-faint);">
+                        <i class="fas fa-dollar-sign mr-1"></i> Billing
+                    </h3>
+                    <label class="flex items-center gap-2 text-sm mb-2" style="color: var(--text-primary);">
+                        <input type="checkbox" :checked="!!card.billable"
+                               @change="saveBilling({ billable: $event.target.checked })">
+                        Billable card
+                    </label>
+
+                    <div x-show="card.billable" x-cloak class="space-y-3">
+                        <div class="grid grid-cols-2 gap-2">
+                            <label class="text-[10px] font-bold uppercase" style="color: var(--text-faint);">Rate type
+                                <select :value="card.rate_type || 'hourly'"
+                                        @change="saveBilling({ rate_type: $event.target.value })"
+                                        class="w-full mt-1 px-2 py-1 text-sm rounded border"
+                                        style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
+                                    <option value="hourly">Hourly</option>
+                                    <option value="flat">Flat fee</option>
+                                </select>
+                            </label>
+                            <label class="text-[10px] font-bold uppercase" style="color: var(--text-faint);">
+                                Rate (in cents/minor)
+                                <input type="number" min="0" :value="card.rate_amount_minor || 0"
+                                       @blur="saveBilling({ rate_amount_minor: parseInt($event.target.value || 0) })"
+                                       class="w-full mt-1 px-2 py-1 text-sm rounded border"
+                                       style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
+                            </label>
+                        </div>
+
+                        <template x-if="(card.rate_type || 'hourly') === 'hourly'">
+                            <div class="p-3 rounded-lg" style="background: var(--bg-glass-input);">
+                                <div class="flex items-center justify-between gap-2">
+                                    <div class="text-xs" style="color: var(--text-muted);">
+                                        Logged: <strong x-text="formatMinutes(card.unbilled_minutes || 0)"></strong>
+                                        <span x-show="card.running_timer && card.running_timer.id"
+                                              class="ml-2 inline-flex items-center gap-1 text-[10px] font-bold uppercase" style="color: #10b981;">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                            Running
+                                        </span>
+                                    </div>
+                                    <div class="flex gap-1">
+                                        <button type="button"
+                                                x-show="!(card.running_timer && card.running_timer.id)"
+                                                @click="startTimer()"
+                                                class="px-2 py-1 rounded text-xs font-semibold text-white"
+                                                style="background: #10b981;">
+                                            <i class="fas fa-play"></i> Start
+                                        </button>
+                                        <button type="button"
+                                                x-show="card.running_timer && card.running_timer.id"
+                                                @click="stopTimer()"
+                                                class="px-2 py-1 rounded text-xs font-semibold text-white"
+                                                style="background: #ef4444;">
+                                            <i class="fas fa-stop"></i> Stop
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <form @submit.prevent="addManualEntry($event)" class="mt-2 flex gap-1">
+                                    <input name="minutes" type="number" min="1" max="1440" placeholder="Minutes"
+                                           required class="w-24 px-2 py-1 text-xs rounded border"
+                                           style="background: var(--bg-card); border-color: var(--border-soft); color: var(--text-primary);">
+                                    <input name="note" type="text" maxlength="240" placeholder="Note (optional)"
+                                           class="flex-1 px-2 py-1 text-xs rounded border"
+                                           style="background: var(--bg-card); border-color: var(--border-soft); color: var(--text-primary);">
+                                    <button class="px-2 py-1 text-xs font-semibold rounded text-white"
+                                            style="background: #7c3aed;">Log</button>
+                                </form>
+
+                                <ul class="mt-2 space-y-1 max-h-40 overflow-y-auto">
+                                    <template x-for="t in (card.time_entries || [])" :key="t.id">
+                                        <li class="flex items-center justify-between text-xs px-2 py-1 rounded"
+                                            style="background: var(--bg-card); color: var(--text-muted);">
+                                            <span>
+                                                <strong x-text="formatMinutes(t.minutes)"></strong>
+                                                <span class="opacity-60" x-show="t.note">— <span x-text="t.note"></span></span>
+                                                <span class="opacity-50 ml-1 text-[10px]" x-text="t.user?.name || ''"></span>
+                                            </span>
+                                            <span class="flex items-center gap-2">
+                                                <span x-show="t.invoiced" class="text-[9px] font-bold uppercase"
+                                                      style="color: #7c3aed;">Invoiced</span>
+                                                <button type="button" x-show="!t.invoiced && t.ended_at"
+                                                        @click="destroyTimeEntry(t.id)" style="color: var(--text-faint);">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </span>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </div>
+                        </template>
+
+                        <template x-if="card.client_invoice_id">
+                            <a :href="`/user/client-invoices/${card.client_invoice_id}`"
+                               class="inline-flex items-center gap-1 text-xs font-semibold" style="color: #7c3aed;">
+                                <i class="fas fa-receipt"></i> View invoice →
+                            </a>
+                        </template>
+                    </div>
+                </div>
+
                 <div class="mt-6 pt-4 border-t flex justify-between" style="border-color: var(--border-soft);">
                     <button @click="destroyCard()" class="text-xs font-semibold" style="color:#ef4444;">
                         <i class="fas fa-trash mr-1"></i> Delete card
@@ -498,6 +644,43 @@
             </div>
         </template>
     </div>
+
+    {{-- "Billed Column" picker modal -------------------------------------- --}}
+    <div x-show="showBilledColumnPicker" x-cloak
+         class="fixed inset-0 z-50 flex items-center justify-center p-4"
+         style="background: rgba(0,0,0,.5);"
+         @keydown.escape.window="showBilledColumnPicker = false">
+        <div @click.outside="showBilledColumnPicker = false"
+             class="rounded-2xl w-full max-w-md p-6"
+             style="background: var(--bg-card); border: 1px solid var(--border-strong);">
+            <form action="{{ route('user.tasks.boards.billed-column', $board) }}" method="POST">
+                @csrf @method('PUT')
+                <h2 class="text-lg font-bold mb-2" style="color: var(--text-primary);">Billed Column</h2>
+                <p class="text-xs mb-4" style="color: var(--text-muted);">
+                    Cards auto-move to this column when their invoice is paid.
+                </p>
+                <select name="column_id" class="w-full px-3 py-2 rounded-lg border"
+                        style="background: var(--bg-glass-input); border-color: var(--border-strong); color: var(--text-primary);">
+                    <option value="">— None —</option>
+                    @foreach($board->columns as $col)
+                        <option value="{{ $col->id }}" @selected($board->billed_column_id == $col->id)>{{ $col->name }}</option>
+                    @endforeach
+                </select>
+                <div class="flex justify-end gap-2 mt-5">
+                    <button type="button" @click="showBilledColumnPicker = false" class="px-3 py-2 rounded-lg text-sm" style="color: var(--text-muted);">Cancel</button>
+                    <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold text-white" style="background: linear-gradient(135deg,#7c3aed,#a78bfa);">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {{-- Hidden form used to POST card_ids[] to the draft endpoint --------- --}}
+    <form x-ref="invoiceForm" action="{{ route('user.client-invoices.draft') }}" method="POST" class="hidden">
+        @csrf
+        <template x-for="id in selectedCardIds" :key="id">
+            <input type="hidden" name="card_ids[]" :value="id">
+        </template>
+    </form>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
@@ -507,6 +690,8 @@ function kanbanBoard(boardId) {
         boardId,
         drawerOpen: false,
         showAddColumn: false,
+        showBilledColumnPicker: false,
+        selectedCardIds: [],
         newLabelOpen: false,
         boardLabels: @json($board->labels->map(fn($l) => ['id'=>$l->id,'name'=>$l->name,'color'=>$l->color])),
         @php($_boardMembers = $members->map(fn($m) => [
@@ -825,6 +1010,51 @@ function kanbanBoard(boardId) {
                 }
                 card.style.display = show ? '' : 'none';
             });
+        },
+
+        // ----- Billing / time tracking helpers -----
+        toggleCardSelect(id, on) {
+            const idx = this.selectedCardIds.indexOf(id);
+            if (on && idx === -1) this.selectedCardIds.push(id);
+            if (!on && idx !== -1) this.selectedCardIds.splice(idx, 1);
+        },
+        createInvoiceFromSelected() {
+            if (!this.selectedCardIds.length) return;
+            this.$nextTick(() => this.$refs.invoiceForm.submit());
+        },
+        formatMinutes(m) {
+            m = parseInt(m || 0, 10);
+            if (m < 60) return m + 'm';
+            const h = Math.floor(m / 60), r = m % 60;
+            return r ? `${h}h ${r}m` : `${h}h`;
+        },
+        async saveBilling(payload) {
+            if (!this.card) return;
+            await this.fetchJson(`/user/tasks/cards/${this.card.id}`, { method: 'PATCH', body: payload });
+            Object.assign(this.card, payload);
+        },
+        async startTimer() {
+            const r = await this.fetchJson(`/user/tasks/cards/${this.card.id}/timer/start`, { method: 'POST' });
+            this.card.running_timer = r.entry ? { id: r.entry.id, started_at: r.entry.started_at } : null;
+            await this.openCard(this.card.id);
+        },
+        async stopTimer() {
+            await this.fetchJson(`/user/tasks/cards/${this.card.id}/timer/stop`, { method: 'POST' });
+            await this.openCard(this.card.id);
+        },
+        async addManualEntry(e) {
+            const fd = new FormData(e.target);
+            const minutes = parseInt(fd.get('minutes'), 10);
+            if (!minutes || minutes < 1) return;
+            await this.fetchJson(`/user/tasks/cards/${this.card.id}/time-entries`, {
+                method: 'POST', body: { minutes, note: fd.get('note') || null },
+            });
+            e.target.reset();
+            await this.openCard(this.card.id);
+        },
+        async destroyTimeEntry(id) {
+            await this.fetchJson(`/user/tasks/time-entries/${id}`, { method: 'DELETE' });
+            await this.openCard(this.card.id);
         },
 
         async destroyCard() {

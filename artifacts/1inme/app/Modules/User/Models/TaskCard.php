@@ -13,12 +13,15 @@ class TaskCard extends Model
         'workspace_id', 'board_id', 'column_id', 'created_by_user_id',
         'title', 'description', 'description_html', 'position',
         'due_date', 'priority', 'progress', 'completed_at', 'archived_at',
+        'billable', 'rate_type', 'rate_amount_minor', 'client_invoice_id',
     ];
 
     protected $casts = [
-        'due_date'     => 'date',
-        'completed_at' => 'datetime',
-        'archived_at'  => 'datetime',
+        'due_date'          => 'date',
+        'completed_at'      => 'datetime',
+        'archived_at'       => 'datetime',
+        'billable'          => 'boolean',
+        'rate_amount_minor' => 'integer',
     ];
 
     public function board()      { return $this->belongsTo(TaskBoard::class, 'board_id'); }
@@ -28,6 +31,27 @@ class TaskCard extends Model
     public function comments()   { return $this->hasMany(TaskComment::class, 'card_id')->orderBy('created_at'); }
     public function activities() { return $this->hasMany(TaskActivity::class, 'card_id')->orderByDesc('created_at'); }
     public function attachments(){ return $this->hasMany(TaskAttachment::class, 'card_id')->orderByDesc('id'); }
+    public function timeEntries(){ return $this->hasMany(TaskTimeEntry::class, 'card_id')->orderBy('started_at'); }
+    public function clientInvoice(){ return $this->belongsTo(Invoice::class, 'client_invoice_id'); }
+
+    /** Sum of un-invoiced minutes (for hourly billing previews). */
+    public function unbilledMinutes(): int
+    {
+        return (int) $this->timeEntries()
+            ->whereNull('client_invoice_id')
+            ->whereNotNull('ended_at')
+            ->sum('minutes');
+    }
+
+    /** Is there a running timer on this card right now? */
+    public function runningTimer(): ?TaskTimeEntry
+    {
+        return $this->timeEntries()
+            ->where('source', 'timer')
+            ->whereNotNull('started_at')
+            ->whereNull('ended_at')
+            ->first();
+    }
 
     public function cloudAttachments()
     {

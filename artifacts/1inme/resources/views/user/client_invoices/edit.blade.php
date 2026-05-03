@@ -1,0 +1,118 @@
+@extends('user.layouts.app')
+@section('title', 'Invoice ' . $invoice->number)
+@section('content')
+<div class="max-w-4xl mx-auto px-4 py-8">
+    <div class="page-hero mb-6 flex items-center justify-between">
+        <div>
+            <h1 class="hero-title">Invoice {{ $invoice->number }}</h1>
+            <p class="hero-subtitle">Status: <strong>{{ strtoupper($invoice->status) }}</strong> · {{ strtoupper($invoice->currency) }}</p>
+        </div>
+        <a href="{{ route('user.client-invoices.dashboard') }}" class="hero-back"><i class="fas fa-arrow-left"></i></a>
+    </div>
+
+    @if(session('success'))<div class="mb-4 p-3 rounded-lg bg-emerald-50 text-emerald-700 text-sm">{{ session('success') }}</div>@endif
+    @if(session('error'))<div class="mb-4 p-3 rounded-lg bg-rose-50 text-rose-700 text-sm">{{ session('error') }}</div>@endif
+
+    <form action="{{ route('user.client-invoices.update', $invoice) }}" method="POST" class="space-y-6">
+        @csrf @method('PUT')
+
+        @php
+            // Group emails by vault_client_id so the JS picker can populate
+            // the email <select> when a Vault Client is chosen.
+            $emailsByClient = $emails->groupBy('client_id')->map(function ($g) {
+                return $g->map(fn($e) => ['id' => $e->id, 'email' => $e->email, 'label' => $e->label ?? null]);
+            })->toArray();
+        @endphp
+        <section class="p-4 rounded-xl border" style="border-color: var(--border-soft); background: var(--bg-card);"
+                 x-data="{
+                     vaultId: @js((int) $invoice->vault_client_id),
+                     email: @js((string) $invoice->recipient_email),
+                     emailsByClient: @js($emailsByClient),
+                     get clientEmails() { return this.emailsByClient[this.vaultId] || []; },
+                 }">
+            <h2 class="font-bold mb-3" style="color: var(--text-primary);">Recipient</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <label class="text-xs" style="color: var(--text-muted);">Vault Client
+                    <select name="vault_client_id" x-model.number="vaultId"
+                            @change="if (clientEmails.length === 1) email = clientEmails[0].email"
+                            class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input);">
+                        <option value="0">— None —</option>
+                        @foreach($clients as $c)
+                            <option value="{{ $c->id }}">{{ $c->name }}</option>
+                        @endforeach
+                    </select>
+                </label>
+                <label class="text-xs" style="color: var(--text-muted);" x-show="clientEmails.length > 0" x-cloak>
+                    Contact email on file
+                    <select @change="if ($event.target.value) email = $event.target.value"
+                            class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input);">
+                        <option value="">— Choose contact —</option>
+                        <template x-for="ce in clientEmails" :key="ce.id">
+                            <option :value="ce.email" :selected="ce.email === email"
+                                    x-text="(ce.label ? ce.label + ' · ' : '') + ce.email"></option>
+                        </template>
+                    </select>
+                </label>
+                <label class="text-xs" style="color: var(--text-muted);">Recipient Email
+                    <input type="email" name="recipient_email" x-model="email"
+                           class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input);">
+                </label>
+            </div>
+        </section>
+
+        <section class="p-4 rounded-xl border" style="border-color: var(--border-soft); background: var(--bg-card);">
+            <h2 class="font-bold mb-3" style="color: var(--text-primary);">Line items</h2>
+            <table class="w-full text-sm">
+                <thead><tr style="color: var(--text-muted);">
+                    <th class="text-left p-2">Description</th>
+                    <th class="text-right p-2 w-32">Qty</th>
+                    <th class="text-right p-2 w-40">Amount (minor)</th>
+                </tr></thead>
+                <tbody>
+                @foreach((array) $invoice->line_items as $i => $li)
+                    <tr>
+                        <td class="p-2"><input name="line_items[{{ $i }}][label]" value="{{ $li['label'] ?? '' }}" class="w-full p-2 rounded border" style="background: var(--bg-glass-input);"></td>
+                        <td class="p-2"><input type="number" min="1" name="line_items[{{ $i }}][quantity]" value="{{ $li['quantity'] ?? 1 }}" class="w-full p-2 rounded border text-right" style="background: var(--bg-glass-input);"></td>
+                        <td class="p-2"><input type="number" min="0" name="line_items[{{ $i }}][amount_minor]" value="{{ $li['amount_minor'] ?? 0 }}" class="w-full p-2 rounded border text-right" style="background: var(--bg-glass-input);"></td>
+                    </tr>
+                @endforeach
+                </tbody>
+            </table>
+        </section>
+
+        <section class="p-4 rounded-xl border" style="border-color: var(--border-soft); background: var(--bg-card);">
+            <div class="grid grid-cols-2 gap-3">
+                <label class="text-xs" style="color: var(--text-muted);">Discount (minor)
+                    <input type="number" min="0" name="discount_minor" value="{{ (int) $invoice->discount_minor }}" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input);">
+                </label>
+                <label class="text-xs" style="color: var(--text-muted);">Tax (minor)
+                    <input type="number" min="0" name="tax_total_minor" value="{{ (int) $invoice->tax_total_minor }}" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input);">
+                </label>
+                <label class="text-xs" style="color: var(--text-muted);">Due date
+                    <input type="date" name="due_date" value="{{ optional($invoice->due_date)->format('Y-m-d') }}" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input);">
+                </label>
+            </div>
+            <label class="block mt-3 text-xs" style="color: var(--text-muted);">Notes
+                <textarea name="notes_md" rows="3" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input);">{{ $invoice->notes_md }}</textarea>
+            </label>
+            <div class="mt-4 text-right text-sm" style="color: var(--text-primary);">
+                Subtotal: <strong>{{ number_format($invoice->subtotal_minor / 100, 2) }}</strong>
+                · Total: <strong>{{ number_format($invoice->grand_total_minor / 100, 2) }}</strong>
+            </div>
+        </section>
+
+        <div class="flex items-center justify-between">
+            <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold text-white" style="background: linear-gradient(135deg,#7c3aed,#a78bfa);">Save changes</button>
+        </div>
+    </form>
+
+    @if($invoice->status !== 'paid')
+        <form action="{{ route('user.client-invoices.send', $invoice) }}" method="POST" class="mt-6">
+            @csrf
+            <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold border" style="border-color: var(--border-strong); color: var(--text-primary);">
+                <i class="fas fa-paper-plane mr-1"></i> Send invoice with pay link
+            </button>
+        </form>
+    @endif
+</div>
+@endsection

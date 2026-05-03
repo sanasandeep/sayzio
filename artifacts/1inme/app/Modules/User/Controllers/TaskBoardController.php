@@ -11,6 +11,7 @@ use App\Modules\User\Models\TaskColumn;
 use App\Modules\User\Models\TaskComment;
 use App\Modules\User\Models\TaskLabel;
 use App\Modules\User\Models\TaskSubtask;
+use App\Modules\User\Models\TaskTimeEntry;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserNotification;
 use App\Modules\User\Models\WorkspaceMember;
@@ -355,8 +356,20 @@ class TaskBoardController extends Controller
     public function showCard(TaskCard $card)
     {
         $this->authorizeView($card->board);
-        $card->load(['assignees:id,name,avatar', 'labels', 'subtasks', 'comments.user:id,name,avatar', 'activities.user:id,name,avatar', 'column', 'attachments.uploader:id,name', 'cloudAttachments.cloudFile']);
+        $card->load(['assignees:id,name,avatar', 'labels', 'subtasks', 'comments.user:id,name,avatar', 'activities.user:id,name,avatar', 'column', 'attachments.uploader:id,name', 'cloudAttachments.cloudFile', 'timeEntries.user:id,name']);
         $cardArr = $card->toArray();
+        $cardArr['time_entries'] = $card->timeEntries->map(fn ($t) => [
+            'id'         => $t->id,
+            'minutes'    => (int) $t->minutes,
+            'note'       => $t->note,
+            'source'     => $t->source,
+            'started_at' => optional($t->started_at)->toIso8601String(),
+            'ended_at'   => optional($t->ended_at)->toIso8601String(),
+            'invoiced'   => (bool) $t->client_invoice_id,
+            'user'       => $t->user ? ['id' => $t->user->id, 'name' => $t->user->name] : null,
+        ])->all();
+        $cardArr['unbilled_minutes'] = $card->unbilledMinutes();
+        $cardArr['running_timer']    = optional($card->runningTimer())->only(['id', 'started_at']);
         $cardArr['attachments'] = $card->attachments->map(fn ($a) => array_merge($a->toArray(), [
             'url' => $a->url(),
             'human_size' => $a->humanSize(),
@@ -380,6 +393,9 @@ class TaskBoardController extends Controller
             'due_date'         => 'sometimes|nullable|date',
             'priority'         => 'sometimes|in:low,normal,high,urgent',
             'progress'         => 'sometimes|integer|min:0|max:100',
+            'billable'         => 'sometimes|boolean',
+            'rate_type'        => 'sometimes|nullable|in:hourly,flat',
+            'rate_amount_minor'=> 'sometimes|nullable|integer|min:0',
         ]);
         if (array_key_exists('description_html', $data)) {
             $data['description_html'] = $this->sanitizeHtml($data['description_html']);
@@ -569,6 +585,89 @@ class TaskBoardController extends Controller
         $card = TaskCard::query()->find($cardId);
         if (!$card) abort(404);
         return $card;
+    }
+
+    // ----- Time entries (billing) ------------------------------------------
+
+    /** Start a timer on a card. If one is already running, it's returned as-is. */
+    public function startTimer(TaskCard $card)
+    {
+        $this->authorizeEdit($card->board);
+        if (!$card->billable) abort(422, 'Card is not billable.');
+
+        $running = $card->runningTimer();
+        if ($running) {
+            return response()->json(['ok' => true, 'entry' => $running]);
+        }
+        $entry = TaskTimeEntry::create([
+            'card_id'    => $card->id,
+            'user_id'    => auth()->id(),
+            'started_at' => now(),
+            'source'     => 'timer',
+        ]);
+        return response()->json(['ok' => true, 'entry' => $entry]);
+    }
+
+    /** Stop the running timer on a card and write minutes (rounded up). */
+    public function stopTimer(TaskCard $card)
+    {
+        $this->authorizeEdit($card->board);
+        $running = $card->runningTimer();
+        if (!$running) return response()->json(['ok' => true, 'entry' => null]);
+
+        $now = now();
+        $minutes = max(1, (int) ceil($running->started_at->diffInSeconds($now) / 60));
+        $running->update(['ended_at' => $now, 'minutes' => $minutes]);
+        return response()->json(['ok' => true, 'entry' => $running->fresh()]);
+    }
+
+    /** Manually log minutes against a card (no live timer). */
+    public function storeTimeEntry(Request $request, TaskCard $card)
+    {
+        $this->authorizeEdit($card->board);
+        if (!$card->billable) abort(422, 'Card is not billable.');
+        $data = $request->validate([
+            'minutes' => 'required|integer|min:1|max:1440',
+            'note'    => 'nullable|string|max:240',
+            'started_at' => 'nullable|date',
+        ]);
+        $started = isset($data['started_at']) ? \Carbon\Carbon::parse($data['started_at']) : now();
+        $entry = TaskTimeEntry::create([
+            'card_id'    => $card->id,
+            'user_id'    => auth()->id(),
+            'started_at' => $started,
+            'ended_at'   => $started->copy()->addMinutes((int) $data['minutes']),
+            'minutes'    => (int) $data['minutes'],
+            'note'       => $data['note'] ?? null,
+            'source'     => 'manual',
+        ]);
+        return response()->json(['ok' => true, 'entry' => $entry]);
+    }
+
+    public function destroyTimeEntry(TaskTimeEntry $entry)
+    {
+        $card = $this->resolveScopedCard($entry->card_id);
+        $this->authorizeEdit($card->board);
+        if ($entry->client_invoice_id) {
+            abort(422, 'Time entry already on an invoice.');
+        }
+        $entry->delete();
+        return response()->json(['ok' => true]);
+    }
+
+    /** Set the column where paid cards auto-move to ("Done & Billed"). */
+    public function setBilledColumn(Request $request, TaskBoard $board)
+    {
+        $this->authorizeEdit($board);
+        $data = $request->validate([
+            'column_id' => 'nullable|integer|exists:task_columns,id',
+        ]);
+        if (!empty($data['column_id'])) {
+            // Must belong to this board.
+            TaskColumn::where('board_id', $board->id)->findOrFail($data['column_id']);
+        }
+        $board->update(['billed_column_id' => $data['column_id'] ?? null]);
+        return back()->with('success', 'Billed column updated.');
     }
 
     // ----- Comments ---------------------------------------------------------

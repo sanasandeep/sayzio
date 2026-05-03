@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Actions\Billing\ActivateSubscription;
 use App\Modules\User\Models\Invoice;
 use App\Modules\User\Models\PaymentAttempt;
+use App\Services\Billing\ClientInvoiceService;
 use App\Services\Billing\GatewayManager;
 use App\Services\Billing\NotImplementedException;
 use Illuminate\Http\Request;
@@ -81,7 +82,14 @@ class WebhookController extends Controller
         $type = (string) ($event['type'] ?? '');
         if ($type === 'payment.succeeded') {
             $attempt->update(['status' => 'succeeded']);
-            $activator->run($invoice, $gateway, $ref);
+            // Client invoices (kanban) follow a different post-payment
+            // pipeline than subscription invoices: no plan activation,
+            // just sync the originating cards + flip status.
+            if (($invoice->kind ?? 'subscription') === 'client') {
+                app(ClientInvoiceService::class)->markPaid($invoice, $gateway, $ref);
+            } else {
+                $activator->run($invoice, $gateway, $ref);
+            }
             return response()->json(['ok' => true], 200);
         }
         if ($type === 'payment.failed') {

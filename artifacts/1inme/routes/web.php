@@ -18,6 +18,11 @@ Route::get('/admin-assets/{id}/{filename}', [AdminAssetController::class, 'serve
     ->where('filename', '.*')
     ->name('admin.assets.serve');
 
+// Public hosted "pay this invoice" link delivered by email. Both routes
+// are protected by Laravel signed-URL HMAC, so no session/auth needed.
+Route::get('/pay/invoice/{invoice}',  [\App\Modules\User\Controllers\ClientInvoiceController::class, 'payPage'])->name('client-invoice.pay');
+Route::post('/pay/invoice/{invoice}', [\App\Modules\User\Controllers\ClientInvoiceController::class, 'payHandoff'])->name('client-invoice.pay.handoff');
+
 // ---- Universal Links / App Links manifests for the iOS + Android apps ----
 Route::get('/.well-known/apple-app-site-association',
     [\App\Modules\Common\Controllers\UniversalLinksController::class, 'appleAppSiteAssociation'])
