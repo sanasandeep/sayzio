@@ -8,9 +8,11 @@ import {
   TabMatchState,
   ThankChannel,
   ThankTemplate,
+  capPendingThanks,
   clearAuth,
   defaultThankTemplates,
   getSettings,
+  prunePendingThanks,
   renderThankTemplate,
   setSettings,
 } from "../lib/storage";
@@ -94,7 +96,13 @@ export function App() {
   }, []);
 
   const refresh = useCallback(async () => {
-    const s = await getSettings();
+    let s = await getSettings();
+    // Auto-expire stale pending thanks on popup open so the queue can't
+    // grow forever for creators who never review the Backlinks tab.
+    const { items, pruned } = prunePendingThanks(s.pendingThanks || []);
+    if (pruned) {
+      s = await setSettings({ pendingThanks: items });
+    }
     setLocalSettings(s);
     setView((v) => {
       if (v === "contact-preview") return v;
@@ -741,7 +749,9 @@ function ThankComposer({
       const filtered = existing.filter(
         (q) => !(q.channel === item.channel && q.matchedUrl === item.matchedUrl && q.pageUrl === item.pageUrl),
       );
-      await setSettings({ pendingThanks: [...filtered, item] });
+      // Cap the queue so it can't grow forever; oldest entries drop first.
+      const next = capPendingThanks([...filtered, item]);
+      await setSettings({ pendingThanks: next });
       onQueued();
       showToast({ kind: "success", text: "Queued — review in Backlinks → Pending thanks" });
       onClose();

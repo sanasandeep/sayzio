@@ -38,6 +38,14 @@ export interface ThankTemplate {
   body: string;
 }
 
+// Pending-thanks queue bounds. The queue lives in browser.storage.local
+// and is otherwise unbounded — a creator who queues lots of thanks and
+// never opens the Backlinks tab would slowly bloat extension storage and
+// slow popup loads. We cap the queue on insert (drop oldest first) and
+// prune anything older than the TTL on popup open.
+export const PENDING_THANKS_MAX = 50;
+export const PENDING_THANKS_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
 export interface PendingThank {
   id: string;
   templateId: string;
@@ -177,4 +185,25 @@ export async function setSettings(patch: Partial<ExtSettings>): Promise<ExtSetti
 
 export async function clearAuth(): Promise<void> {
   await browser.storage.local.remove(["token", "user", "workspaceId", "workspaces"]);
+}
+
+// Append an item to the pending-thanks queue while enforcing the cap.
+// Dedupe (by channel + matchedUrl + pageUrl) is handled by callers; this
+// helper only owns size enforcement so the queue can never exceed
+// PENDING_THANKS_MAX. Oldest items are dropped first.
+export function capPendingThanks(items: PendingThank[]): PendingThank[] {
+  if (items.length <= PENDING_THANKS_MAX) return items;
+  return items.slice(items.length - PENDING_THANKS_MAX);
+}
+
+// Drop pending thanks older than the TTL. Returns the pruned list and a
+// flag indicating whether anything was removed (so callers can avoid an
+// unnecessary write to browser.storage.local).
+export function prunePendingThanks(
+  items: PendingThank[],
+  now: number = Date.now(),
+): { items: PendingThank[]; pruned: boolean } {
+  const cutoff = now - PENDING_THANKS_TTL_MS;
+  const kept = items.filter((q) => q.createdAt >= cutoff);
+  return { items: kept, pruned: kept.length !== items.length };
 }
