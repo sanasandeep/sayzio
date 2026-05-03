@@ -20,6 +20,35 @@ export interface ExtSettings {
   radarOnboarded: boolean;
   // Per-domain opt-out: hosts the user has explicitly disabled.
   radarDisabledHosts: string[];
+
+  // Saved thank-you templates (max 3) used by the radar's "Thank" action.
+  // Placeholders supported in subject/body: {pageUrl}, {matchedUrl}, {anchor}.
+  thankTemplates: ThankTemplate[];
+  // Queued thank-yous awaiting batch approval/open from the Backlinks tab.
+  pendingThanks: PendingThank[];
+}
+
+export type ThankChannel = "email" | "x" | "linkedin";
+
+export interface ThankTemplate {
+  id: string;
+  name: string;
+  channel: ThankChannel;
+  subject: string;
+  body: string;
+}
+
+export interface PendingThank {
+  id: string;
+  templateId: string;
+  channel: ThankChannel;
+  subject: string;
+  body: string;
+  recipient: string | null;
+  pageUrl: string;
+  matchedUrl: string;
+  anchor: string;
+  createdAt: number;
 }
 
 export interface PropertiesPayload {
@@ -69,7 +98,56 @@ export const defaultSettings: ExtSettings = {
   radarEnabled: false,
   radarOnboarded: false,
   radarDisabledHosts: [],
+  thankTemplates: defaultThankTemplates(),
+  pendingThanks: [],
 };
+
+export function defaultThankTemplates(): ThankTemplate[] {
+  return [
+    {
+      id: "tmpl-email",
+      name: "Friendly email",
+      channel: "email",
+      subject: "Thanks for the link!",
+      body:
+        "Hi there,\n\n" +
+        "Just spotted that you linked to {matchedUrl} from {pageUrl}" +
+        " — really appreciate the mention{anchorClause}.\n\n" +
+        "If there's ever anything I can do to help out in return, just say the word.\n\n" +
+        "Thanks again!",
+    },
+    {
+      id: "tmpl-x",
+      name: "Quick X reply",
+      channel: "x",
+      subject: "",
+      body: "Thanks so much for the shout-out at {pageUrl} 🙏 — really appreciate it!",
+    },
+    {
+      id: "tmpl-linkedin",
+      name: "LinkedIn note",
+      channel: "linkedin",
+      subject: "",
+      body:
+        "Thanks for linking to my work at {matchedUrl} from {pageUrl}{anchorClause}." +
+        " Genuinely appreciate the mention!",
+    },
+  ];
+}
+
+export function renderThankTemplate(
+  tpl: { subject: string; body: string },
+  vars: { pageUrl: string; matchedUrl: string; anchor: string },
+): { subject: string; body: string } {
+  const anchor = (vars.anchor || "").trim();
+  const anchorClause = anchor ? ` (loved the "${anchor}" anchor)` : "";
+  const replace = (s: string) => s
+    .replace(/\{pageUrl\}/g, vars.pageUrl)
+    .replace(/\{matchedUrl\}/g, vars.matchedUrl)
+    .replace(/\{anchor\}/g, anchor)
+    .replace(/\{anchorClause\}/g, anchorClause);
+  return { subject: replace(tpl.subject || ""), body: replace(tpl.body || "") };
+}
 
 const PROPERTIES_KEY = "radarProperties";
 

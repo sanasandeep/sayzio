@@ -3,12 +3,38 @@ import { browser } from "../lib/browser";
 import { ApiError, api, AbVariantsPayload, BacklinkRow, WorkspacePixels } from "../lib/api";
 import {
   ExtSettings,
+  PendingThank,
   RadarMatch,
   TabMatchState,
+  ThankChannel,
+  ThankTemplate,
   clearAuth,
+  defaultThankTemplates,
   getSettings,
+  renderThankTemplate,
   setSettings,
 } from "../lib/storage";
+
+const CHANNEL_LABEL: Record<ThankChannel, string> = {
+  email: "Email",
+  x: "X (Twitter)",
+  linkedin: "LinkedIn",
+};
+
+function genId(): string {
+  return `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function buildComposerUrl(t: { channel: ThankChannel; subject: string; body: string; recipient: string | null; pageUrl: string }): string {
+  if (t.channel === "email") {
+    const to = t.recipient ? encodeURIComponent(t.recipient) : "";
+    return `mailto:${to}?subject=${encodeURIComponent(t.subject)}&body=${encodeURIComponent(t.body)}`;
+  }
+  if (t.channel === "x") {
+    return `https://twitter.com/intent/tweet?text=${encodeURIComponent(t.body)}&url=${encodeURIComponent(t.pageUrl)}`;
+  }
+  return `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(t.pageUrl)}`;
+}
 
 type Toast = { kind: "success" | "error" | "info"; text: string; link?: { href: string; label: string } } | null;
 type View = "main" | "login" | "settings" | "backlinks" | "onboarding" | "ab" | "contact-preview";
@@ -329,7 +355,9 @@ export function App() {
               matches={tabMatches.matches}
               pageUrl={tabMatches.pageUrl}
               pageTitle={tabMatches.pageTitle}
+              settings={settings}
               showToast={showToast}
+              onSettingsChanged={refresh}
             />
           )}
           {settings.radarEnabled && tabMatches && tabMatches.matches.length === 0 && (
@@ -539,15 +567,18 @@ function OnboardingView({ onDone }: { onDone: () => void }) {
 
 // ── "This page links to you" card ───────────────────────────────────
 function BacklinkCard({
-  matches, pageUrl, pageTitle, showToast,
+  matches, pageUrl, pageTitle, settings, showToast, onSettingsChanged,
 }: {
   matches: RadarMatch[];
   pageUrl: string;
   pageTitle: string;
+  settings: ExtSettings;
   showToast: (t: Toast) => void;
+  onSettingsChanged: () => void;
 }) {
   const [savedIds, setSavedIds] = useState<Record<string, true>>({});
   const [busy, setBusy] = useState<string | null>(null);
+  const [thankFor, setThankFor] = useState<RadarMatch | null>(null);
 
   const onSave = async (m: RadarMatch) => {
     setBusy(m.href);
@@ -571,32 +602,6 @@ function BacklinkCard({
 
   const onOpen = (m: RadarMatch) => browser.tabs.create({ url: m.href });
 
-  const onThank = async (m: RadarMatch) => {
-    setBusy("thank-" + m.href);
-    try {
-      const email = await detectContactEmail();
-      const message = `Hi! Thanks so much for linking to my page (${m.href}) on ${pageUrl} — really appreciate the mention!`;
-      let url: string;
-      if (email) {
-        url = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent("Thanks for the link!")}&body=${encodeURIComponent(message)}`;
-      } else {
-        // Fall back to X share-intent. The popup also offers LinkedIn.
-        url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}&url=${encodeURIComponent(pageUrl)}`;
-      }
-      await browser.tabs.create({ url });
-    } catch (e: any) {
-      showToast({ kind: "error", text: e?.message || "Could not open composer" });
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const onThankLinkedIn = (m: RadarMatch) => {
-    const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(pageUrl)}`;
-    browser.tabs.create({ url });
-    void m;
-  };
-
   return (
     <div className="match-card">
       <div className="match-card-title">📡 This page links to you · {matches.length}</div>
@@ -615,14 +620,179 @@ function BacklinkCard({
                   {busy === m.href && <span className="spinner" />}{saved ? "Saved ✓" : "Save"}
                 </button>
                 <button className="btn-secondary btn-sm" onClick={() => onOpen(m)}>Open</button>
-                <button className="btn-secondary btn-sm" disabled={busy === "thank-" + m.href} onClick={() => onThank(m)}>
-                  {busy === "thank-" + m.href && <span className="spinner" />}Thank
-                </button>
-                <button className="btn-secondary btn-sm" onClick={() => onThankLinkedIn(m)} title="Share on LinkedIn">in</button>
+                <button className="btn-secondary btn-sm" onClick={() => setThankFor(m)}>Thank…</button>
               </div>
             </div>
           );
         })}
+      </div>
+      {thankFor && (
+        <ThankComposer
+          match={thankFor}
+          pageUrl={pageUrl}
+          settings={settings}
+          showToast={showToast}
+          onClose={() => setThankFor(null)}
+          onQueued={onSettingsChanged}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Thank-you composer (template picker, preview, send/queue) ───────
+function ThankComposer({
+  match, pageUrl, settings, showToast, onClose, onQueued,
+}: {
+  match: RadarMatch;
+  pageUrl: string;
+  settings: ExtSettings;
+  showToast: (t: Toast) => void;
+  onClose: () => void;
+  onQueued: () => void;
+}) {
+  const templates = settings.thankTemplates && settings.thankTemplates.length > 0
+    ? settings.thankTemplates
+    : defaultThankTemplates();
+
+  // Pick a sensible default: prefer email when we can detect a recipient, else X.
+  const [recipient, setRecipient] = useState<string | null>(null);
+  const [detecting, setDetecting] = useState(true);
+  const [templateId, setTemplateId] = useState<string>(templates[0]?.id || "");
+  const [subject, setSubject] = useState<string>("");
+  const [body, setBody] = useState<string>("");
+  const [busy, setBusy] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const email = await detectContactEmail();
+      if (cancelled) return;
+      setRecipient(email);
+      // If we found an email and there's an email template, prefer it.
+      if (email) {
+        const emailTpl = templates.find((t) => t.channel === "email");
+        if (emailTpl) setTemplateId(emailTpl.id);
+      } else {
+        const xTpl = templates.find((t) => t.channel === "x");
+        if (xTpl) setTemplateId(xTpl.id);
+      }
+      setDetecting(false);
+    })();
+    return () => { cancelled = true; };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const tpl = templates.find((t) => t.id === templateId) || templates[0];
+
+  // Re-render preview whenever the picked template changes.
+  useEffect(() => {
+    if (!tpl) return;
+    const rendered = renderThankTemplate(tpl, { pageUrl, matchedUrl: match.href, anchor: match.anchor || "" });
+    setSubject(rendered.subject);
+    setBody(rendered.body);
+  }, [tpl?.id, pageUrl, match.href, match.anchor]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!tpl) {
+    return (
+      <div className="thank-composer">
+        <div className="muted">No templates yet — add one in Settings.</div>
+        <button className="btn-link" onClick={onClose}>Close</button>
+      </div>
+    );
+  }
+
+  const sendNow = async () => {
+    setBusy("send");
+    try {
+      const url = buildComposerUrl({
+        channel: tpl.channel,
+        subject,
+        body,
+        recipient: tpl.channel === "email" ? recipient : null,
+        pageUrl,
+      });
+      await browser.tabs.create({ url });
+      onClose();
+    } catch (e: any) {
+      showToast({ kind: "error", text: e?.message || "Could not open composer" });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const queueIt = async () => {
+    setBusy("queue");
+    try {
+      const item: PendingThank = {
+        id: genId(),
+        templateId: tpl.id,
+        channel: tpl.channel,
+        subject,
+        body,
+        recipient: tpl.channel === "email" ? recipient : null,
+        pageUrl,
+        matchedUrl: match.href,
+        anchor: match.anchor || "",
+        createdAt: Date.now(),
+      };
+      const existing = settings.pendingThanks || [];
+      // Dedupe by (channel + matchedUrl + pageUrl) so a creator can't queue the
+      // same thank-you twice by accident.
+      const filtered = existing.filter(
+        (q) => !(q.channel === item.channel && q.matchedUrl === item.matchedUrl && q.pageUrl === item.pageUrl),
+      );
+      await setSettings({ pendingThanks: [...filtered, item] });
+      onQueued();
+      showToast({ kind: "success", text: "Queued — review in Backlinks → Pending thanks" });
+      onClose();
+    } catch (e: any) {
+      showToast({ kind: "error", text: e?.message || "Could not queue" });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <div className="thank-composer">
+      <div className="row" style={{ justifyContent: "space-between" }}>
+        <strong>Thank composer</strong>
+        <button className="btn-link" onClick={onClose}>×</button>
+      </div>
+      <div className="field">
+        <label>Template</label>
+        <select className="workspace-select" value={tpl.id} onChange={(e) => setTemplateId(e.target.value)}>
+          {templates.map((t) => (
+            <option key={t.id} value={t.id}>{t.name} · {CHANNEL_LABEL[t.channel]}</option>
+          ))}
+        </select>
+      </div>
+      {tpl.channel === "email" && (
+        <div className="field">
+          <label>To</label>
+          <input
+            value={recipient ?? ""}
+            placeholder={detecting ? "Detecting…" : "name@example.com (none found)"}
+            onChange={(e) => setRecipient(e.target.value || null)}
+          />
+        </div>
+      )}
+      {tpl.channel === "email" && (
+        <div className="field">
+          <label>Subject</label>
+          <input value={subject} onChange={(e) => setSubject(e.target.value)} />
+        </div>
+      )}
+      <div className="field">
+        <label>Preview ({CHANNEL_LABEL[tpl.channel]})</label>
+        <textarea rows={6} value={body} onChange={(e) => setBody(e.target.value)} />
+      </div>
+      <div className="row" style={{ gap: 8 }}>
+        <button className="btn-primary" disabled={busy !== null} onClick={sendNow}>
+          {busy === "send" && <span className="spinner" />}Open composer
+        </button>
+        <button className="btn-secondary" disabled={busy !== null} onClick={queueIt}>
+          {busy === "queue" && <span className="spinner" />}Queue for later
+        </button>
       </div>
     </div>
   );
@@ -716,6 +886,7 @@ function BacklinksView({ settings, showToast }: { settings: ExtSettings; showToa
 
   return (
     <div className="body">
+      <PendingThanksPanel settings={settings} showToast={showToast} />
       <div className="filters-row">
         <select className="workspace-select" value={String(days)} onChange={(e) => setDays(Number(e.target.value) as any)}>
           <option value="7">Last 7 days</option>
@@ -753,6 +924,215 @@ function BacklinksView({ settings, showToast }: { settings: ExtSettings; showToa
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+// ── Thank-you templates editor (Settings) ───────────────────────────
+function ThankTemplatesEditor({
+  settings, onSaved, showToast,
+}: {
+  settings: ExtSettings;
+  onSaved: () => void;
+  showToast: (t: Toast) => void;
+}) {
+  const [drafts, setDrafts] = useState<ThankTemplate[]>(
+    (settings.thankTemplates && settings.thankTemplates.length > 0)
+      ? settings.thankTemplates
+      : defaultThankTemplates(),
+  );
+  const [saved, setSaved] = useState(false);
+
+  const update = (id: string, patch: Partial<ThankTemplate>) =>
+    setDrafts((p) => p.map((t) => (t.id === id ? { ...t, ...patch } : t)));
+
+  const remove = (id: string) => setDrafts((p) => p.filter((t) => t.id !== id));
+
+  const add = () => {
+    if (drafts.length >= 3) return;
+    setDrafts((p) => [
+      ...p,
+      { id: genId(), name: "New template", channel: "email", subject: "Thanks for the link!", body: "Thanks for linking to {matchedUrl} from {pageUrl}!" },
+    ]);
+  };
+
+  const save = async () => {
+    // Strip empty templates and clamp to the 1–3 range.
+    const cleaned = drafts
+      .filter((t) => t.name.trim() && t.body.trim())
+      .slice(0, 3);
+    if (cleaned.length === 0) {
+      showToast({ kind: "error", text: "Keep at least one template with a name and body." });
+      return;
+    }
+    await setSettings({ thankTemplates: cleaned });
+    setDrafts(cleaned);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1500);
+    onSaved();
+  };
+
+  const restoreDefaults = async () => {
+    const tpls = defaultThankTemplates();
+    setDrafts(tpls);
+    await setSettings({ thankTemplates: tpls });
+    onSaved();
+  };
+
+  return (
+    <div className="field">
+      <label>Thank-you templates ({drafts.length}/3)</label>
+      <div className="muted" style={{ fontSize: 12 }}>
+        Use placeholders <code>{"{pageUrl}"}</code>, <code>{"{matchedUrl}"}</code>, <code>{"{anchor}"}</code>, and{" "}
+        <code>{"{anchorClause}"}</code> (renders as “(loved the &ldquo;…&rdquo; anchor)” when present).
+      </div>
+      {drafts.map((t) => (
+        <div key={t.id} className="template-card">
+          <div className="row" style={{ gap: 6 }}>
+            <input
+              className="template-name"
+              value={t.name}
+              onChange={(e) => update(t.id, { name: e.target.value })}
+              placeholder="Template name"
+            />
+            <select
+              className="workspace-select"
+              value={t.channel}
+              onChange={(e) => update(t.id, { channel: e.target.value as ThankChannel })}
+            >
+              <option value="email">Email</option>
+              <option value="x">X (Twitter)</option>
+              <option value="linkedin">LinkedIn</option>
+            </select>
+            {drafts.length > 1 && (
+              <button className="btn-link" onClick={() => remove(t.id)} title="Remove">×</button>
+            )}
+          </div>
+          {t.channel === "email" && (
+            <input
+              value={t.subject}
+              onChange={(e) => update(t.id, { subject: e.target.value })}
+              placeholder="Subject"
+            />
+          )}
+          <textarea
+            rows={4}
+            value={t.body}
+            onChange={(e) => update(t.id, { body: e.target.value })}
+            placeholder="Body"
+          />
+        </div>
+      ))}
+      <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
+        {drafts.length < 3 && <button className="btn-link" onClick={add}>+ Add template</button>}
+        <button className="btn-link" onClick={restoreDefaults}>Restore defaults</button>
+        <button className="btn-secondary btn-sm" onClick={save}>{saved ? "Saved ✓" : "Save templates"}</button>
+      </div>
+    </div>
+  );
+}
+
+// ── Pending thank-yous queue (Backlinks tab) ────────────────────────
+function PendingThanksPanel({
+  settings, showToast,
+}: {
+  settings: ExtSettings;
+  showToast: (t: Toast) => void;
+}) {
+  const queue = settings.pendingThanks || [];
+  const [busy, setBusy] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
+
+  if (queue.length === 0) return null;
+
+  const toggle = (id: string) => setSelected((p) => ({ ...p, [id]: !p[id] }));
+  const allSelected = queue.every((q) => selected[q.id]);
+  const toggleAll = () => {
+    if (allSelected) setSelected({});
+    else setSelected(Object.fromEntries(queue.map((q) => [q.id, true])));
+  };
+
+  const idsToProcess = (): PendingThank[] => {
+    const picked = queue.filter((q) => selected[q.id]);
+    return picked.length > 0 ? picked : queue;
+  };
+
+  const openBatch = async () => {
+    const items = idsToProcess();
+    setBusy("open");
+    try {
+      // Open composers sequentially with a tiny gap so the browser's
+      // popup blocker treats them as distinct user-initiated tabs.
+      for (const q of items) {
+        const url = buildComposerUrl({
+          channel: q.channel,
+          subject: q.subject,
+          body: q.body,
+          recipient: q.recipient,
+          pageUrl: q.pageUrl,
+        });
+        await browser.tabs.create({ url });
+      }
+      // Clear the items we just opened from the queue.
+      const openedIds = new Set(items.map((i) => i.id));
+      const remaining = queue.filter((q) => !openedIds.has(q.id));
+      await setSettings({ pendingThanks: remaining });
+      setSelected({});
+      showToast({ kind: "success", text: `Opened ${items.length} composer${items.length === 1 ? "" : "s"}` });
+    } catch (e: any) {
+      showToast({ kind: "error", text: e?.message || "Could not open composers" });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const dismissBatch = async () => {
+    const items = idsToProcess();
+    const dropIds = new Set(items.map((i) => i.id));
+    await setSettings({ pendingThanks: queue.filter((q) => !dropIds.has(q.id)) });
+    setSelected({});
+    showToast({ kind: "info", text: `Dismissed ${items.length}` });
+  };
+
+  return (
+    <div className="pending-thanks">
+      <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+        <strong>Pending thanks · {queue.length}</strong>
+        <button className="btn-link" onClick={toggleAll}>{allSelected ? "Clear" : "Select all"}</button>
+      </div>
+      <div className="pending-list">
+        {queue.map((q) => (
+          <div key={q.id} className="pending-row">
+            <label className="toggle-row" style={{ margin: 0, alignItems: "flex-start" }}>
+              <input
+                type="checkbox"
+                checked={!!selected[q.id]}
+                onChange={() => toggle(q.id)}
+              />
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <div className="row" style={{ gap: 6 }}>
+                  <span className="pill">{CHANNEL_LABEL[q.channel]}</span>
+                  <span className="muted" style={{ fontSize: 11 }}>
+                    {new Date(q.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+                <div className="match-href" title={q.pageUrl} style={{ marginTop: 2 }}>{q.pageUrl}</div>
+                <div className="muted pending-snippet">{q.body.slice(0, 110)}{q.body.length > 110 ? "…" : ""}</div>
+              </span>
+            </label>
+          </div>
+        ))}
+      </div>
+      <div className="row" style={{ gap: 8 }}>
+        <button className="btn-primary" disabled={busy !== null} onClick={openBatch}>
+          {busy === "open" && <span className="spinner" />}
+          Open {Object.values(selected).filter(Boolean).length || queue.length}
+        </button>
+        <button className="btn-secondary" disabled={busy !== null} onClick={dismissBatch}>
+          Dismiss {Object.values(selected).filter(Boolean).length || queue.length}
+        </button>
+      </div>
+      <hr className="divider" />
     </div>
   );
 }
@@ -1206,6 +1586,8 @@ function SettingsView({
         <span>Scan pages I visit for links to my 1INME properties</span>
       </label>
       <div className="muted">Page content never leaves your browser. Only matched URLs you choose to save are sent.</div>
+
+      <ThankTemplatesEditor settings={settings} onSaved={onSaved} showToast={showToast} />
 
       <div className="field">
         <label>Muted sites</label>
