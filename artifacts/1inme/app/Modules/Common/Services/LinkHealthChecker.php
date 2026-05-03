@@ -63,7 +63,7 @@ class LinkHealthChecker
      *
      * @return \Illuminate\Support\LazyCollection<int, Link>
      */
-    public function dueLinks(\DateTimeInterface $now = null)
+    public function dueLinks(?\DateTimeInterface $now = null)
     {
         $now ??= now();
         // withoutGlobalScopes() is required because the scheduler runs
