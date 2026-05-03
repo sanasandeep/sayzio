@@ -276,28 +276,37 @@ class LinkHealthChecker
             'checked_at'   => now(),
         ]);
 
-        if ($probe['status'] === 'healthy' && $link->insurance_auto_restore) {
-            // Track a second counter on the link (re-using
-            // insurance_consecutive_successes is fine because while in
-            // failover the active probe never sets it).
-            DB::transaction(function () use ($link) {
-                $link->refresh();
-                $link->insurance_consecutive_successes++;
-                if ($link->insurance_consecutive_successes >= $link->insurance_recovery_threshold) {
-                    $previous = $link->insurance_active_url;
-                    $link->insurance_state = 'primary';
-                    $link->insurance_active_url = null;
+        if (!$link->insurance_auto_restore) {
+            return $check;
+        }
+
+        DB::transaction(function () use ($link, $probe) {
+            $link->refresh();
+            if ($probe['status'] !== 'healthy') {
+                // Recovery requires *consecutive* successes — a single
+                // failed primary probe must reset the counter so we
+                // don't restore prematurely after intermittent ups.
+                if ($link->insurance_consecutive_successes !== 0) {
                     $link->insurance_consecutive_successes = 0;
                     $link->save();
-                    $this->dispatchNotification($link, 'link_restored', [
-                        'previous_url' => $previous,
-                        'restored_url' => $link->long_url,
-                    ]);
-                } else {
-                    $link->save();
                 }
-            });
-        }
+                return;
+            }
+            $link->insurance_consecutive_successes++;
+            if ($link->insurance_consecutive_successes >= $link->insurance_recovery_threshold) {
+                $previous = $link->insurance_active_url;
+                $link->insurance_state = 'primary';
+                $link->insurance_active_url = null;
+                $link->insurance_consecutive_successes = 0;
+                $link->save();
+                $this->dispatchNotification($link, 'link_restored', [
+                    'previous_url' => $previous,
+                    'restored_url' => $link->long_url,
+                ]);
+            } else {
+                $link->save();
+            }
+        });
 
         return $check;
     }

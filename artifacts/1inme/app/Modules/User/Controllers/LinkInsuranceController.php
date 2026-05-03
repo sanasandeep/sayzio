@@ -51,8 +51,11 @@ class LinkInsuranceController extends Controller
             'insurance_recovery_threshold'  => 'required|integer|min:1|max:10',
             'insurance_auto_restore'        => 'sometimes|boolean',
             'insurance_fallback_message'    => 'nullable|string|max:500',
+            // Empty slots are skipped at persist time, so url is
+            // nullable per row — the user might submit the form with
+            // only 1 of the 3 slots filled.
             'backups'                       => 'array|max:'.LinkHealthChecker::MAX_BACKUPS_PER_LINK,
-            'backups.*.url'                 => 'required_with:backups.*|url|max:2048',
+            'backups.*.url'                 => 'nullable|url|max:2048',
             'backups.*.label'               => 'nullable|string|max:120',
         ]);
 

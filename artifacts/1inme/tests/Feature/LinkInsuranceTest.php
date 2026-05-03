@@ -143,6 +143,70 @@ class LinkInsuranceTest extends TestCase
         ]);
     }
 
+    public function test_settings_endpoint_accepts_fewer_than_three_backups(): void
+    {
+        $link = $this->makeInsuredLink(['insurance_enabled' => false]);
+        $user = $link->user()->first();
+
+        // Submit with one filled slot and two empty slots — the form
+        // always renders 3 inputs but the user may only need 1 backup.
+        $this->actingAs($user)
+            ->post(route('user.links.insurance.update', $link->id), [
+                'insurance_enabled'             => '1',
+                'insurance_cadence_minutes'     => 30,
+                'insurance_failure_threshold'   => 2,
+                'insurance_recovery_threshold'  => 2,
+                'backups' => [
+                    ['url' => 'https://only.example.com', 'label' => null],
+                    ['url' => '', 'label' => ''],
+                    ['url' => null, 'label' => null],
+                ],
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(1, $link->backups()->count());
+    }
+
+    public function test_recovery_resets_when_primary_recheck_fails_between_successes(): void
+    {
+        $link = $this->makeInsuredLink([
+            'insurance_state'                 => 'failover',
+            'insurance_active_url'            => 'https://backup-1.example.com',
+            'insurance_recovery_threshold'    => 2,
+            'insurance_consecutive_failures'  => 0,
+            'insurance_consecutive_successes' => 0,
+        ]);
+        LinkBackup::create(['link_id' => $link->id, 'position' => 1, 'url' => 'https://backup-1.example.com', 'last_status' => 'healthy']);
+
+        // Stub the probe via a partial mock so we can deterministically
+        // sequence healthy/down/healthy without Http::fake quirks
+        // around HEAD verbs and per-call re-registration.
+        $checker = $this->getMockBuilder(LinkHealthChecker::class)
+            ->onlyMethods(['probe'])
+            ->setConstructorArgs([app(\App\Modules\Common\Services\NotificationService::class)])
+            ->getMock();
+        $checker->method('probe')->willReturnOnConsecutiveCalls(
+            ['status' => 'healthy', 'http_code' => 200, 'latency_ms' => 1, 'error_class' => null, 'error_detail' => null],
+            ['status' => 'down',    'http_code' => 500, 'latency_ms' => 1, 'error_class' => 'http_5xx', 'error_detail' => 'HTTP 500'],
+            ['status' => 'healthy', 'http_code' => 200, 'latency_ms' => 1, 'error_class' => null, 'error_detail' => null],
+        );
+
+        $checker->recheckPrimaryFromFailover($link->fresh());
+        $this->assertSame(1, $link->fresh()->insurance_consecutive_successes);
+        $this->assertSame('failover', $link->fresh()->insurance_state, 'after first success');
+
+        $checker->recheckPrimaryFromFailover($link->fresh());
+        $this->assertSame(0, $link->fresh()->insurance_consecutive_successes,
+            'A failed primary recheck must reset the recovery counter.');
+        $this->assertSame('failover', $link->fresh()->insurance_state);
+
+        $checker->recheckPrimaryFromFailover($link->fresh());
+        $this->assertSame('failover', $link->fresh()->insurance_state,
+            'One success after a reset is below the threshold; must stay in failover.');
+        $this->assertSame(1, $link->fresh()->insurance_consecutive_successes);
+    }
+
     public function test_settings_endpoint_persists_backups_and_thresholds(): void
     {
         $link = $this->makeInsuredLink(['insurance_enabled' => false]);
