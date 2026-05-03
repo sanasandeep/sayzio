@@ -28,7 +28,8 @@
   "host_permissions": [
     "https://1inme.com/*",
     "http://localhost/*",
-    "https://*.replit.dev/*"
+    "https://*.replit.dev/*",
+    "<all_urls>"
   ],
   "content_scripts": [
     {

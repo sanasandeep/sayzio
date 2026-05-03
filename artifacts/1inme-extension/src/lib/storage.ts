@@ -7,6 +7,13 @@ export interface ExtSettings {
   user: { id: number; name: string; email: string; handle?: string | null } | null;
   workspaceId: number | null;
   workspaces: Array<{ id: number; name: string }>;
+  // Contacts: extension preferences. Persisted in browser.storage.local.
+  // contactDefaultTags — applied client-side before sending to /contacts.
+  // contactAllowOneClick — gates the "One-click save" button.
+  // contactWorkspaceId  — overrides the active workspace for contact saves.
+  contactDefaultTags: string[];
+  contactAllowOneClick: boolean;
+  contactWorkspaceId: number | null;
 }
 
 const DEFAULT_API = "https://1inme.com/api/v1";
@@ -19,6 +26,9 @@ export const defaultSettings: ExtSettings = {
   user: null,
   workspaceId: null,
   workspaces: [],
+  contactDefaultTags: ["from-extension"],
+  contactAllowOneClick: true,
+  contactWorkspaceId: null,
 };
 
 export async function getSettings(): Promise<ExtSettings> {

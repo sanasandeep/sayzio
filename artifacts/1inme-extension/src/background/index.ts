@@ -156,7 +156,48 @@ async function setupContextMenus() {
       title: "Turn page into 1INME bio-link",
       contexts: ["page"],
     });
+    browser.contextMenus.create({
+      id: "1inme-save-contact",
+      title: "Save contact with 1INME",
+      contexts: ["page", "selection"],
+    });
   } catch { /* context menus permission missing */ }
+}
+
+async function extractContactCandidate(tabId: number): Promise<{ ok: true; candidate: any } | { ok: false; error: string }> {
+  try {
+    const results = await browser.scripting.executeScript({
+      target: { tabId },
+      files: ["content-extract-contact.js"],
+    });
+    const resp = results?.[0]?.result as any;
+    if (!resp || resp.ok !== true) return { ok: false, error: resp?.error || "Could not extract contact." };
+    return { ok: true, candidate: resp.candidate };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message || "Extraction failed" };
+  }
+}
+
+async function stashContactCandidateAndOpenPopup(tabId: number) {
+  const result = await extractContactCandidate(tabId);
+  if (!result.ok) {
+    notify("1INME — error", result.error);
+    return;
+  }
+  await browser.storage.local.set({
+    pendingContactCandidate: { candidate: result.candidate, at: Date.now() },
+  });
+  // Open the popup (Chrome MV3) — falls back gracefully on Firefox where
+  // openPopup is sometimes unavailable from a context-menu click.
+  try {
+    if ((browser.action as any)?.openPopup) {
+      await (browser.action as any).openPopup();
+    } else {
+      notify("1INME", "Open the 1INME extension popup to review the contact.");
+    }
+  } catch {
+    notify("1INME", "Open the 1INME extension popup to review the contact.");
+  }
 }
 
 // Dynamically register the handshake content script against whatever
@@ -206,6 +247,8 @@ browser.contextMenus?.onClicked.addListener(async (info, tab) => {
   } else if (info.menuItemId === "1inme-page-to-biolink") {
     const result = await pageToBiolink(tab.id);
     if (!result.ok) notify("1INME — error", result.error);
+  } else if (info.menuItemId === "1inme-save-contact") {
+    await stashContactCandidateAndOpenPopup(tab.id);
   }
 });
 

@@ -21,12 +21,14 @@ export default defineConfig({
         popup: resolve(__dirname, "src/popup/index.html"),
         background: resolve(__dirname, "src/background/index.ts"),
         "content-extract": resolve(__dirname, "src/content/extract.ts"),
+        "content-extract-contact": resolve(__dirname, "src/content/extract-contact.ts"),
         "content-handshake": resolve(__dirname, "src/content/handshake.ts"),
       },
       output: {
         entryFileNames: (chunk) => {
           if (chunk.name === "background") return "background.js";
           if (chunk.name === "content-extract") return "content-extract.js";
+          if (chunk.name === "content-extract-contact") return "content-extract-contact.js";
           if (chunk.name === "content-handshake") return "content-handshake.js";
           return "assets/[name]-[hash].js";
         },

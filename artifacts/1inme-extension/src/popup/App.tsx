@@ -7,6 +7,27 @@ type Toast = { kind: "success" | "error" | "info"; text: string; link?: { href: 
 
 type AbTestItem = { link: { id: number; alias: string; short_url?: string; title?: string }; variants: AbVariantsPayload };
 
+type ExtractionSource = "vcard" | "hcard" | "jsonld" | "scraped" | "manual";
+interface ContactCandidate {
+  display_name: string | null;
+  given_name: string | null;
+  family_name: string | null;
+  organization: string | null;
+  job_title: string | null;
+  website: string | null;
+  notes: string | null;
+  emails: Array<{ value: string; label?: string; source: ExtractionSource }>;
+  phones: Array<{ value: string; label?: string; country?: string; source: ExtractionSource }>;
+  socials: Record<string, string>;
+  source_url: string;
+  source_title: string;
+  provenance: Record<string, ExtractionSource>;
+  structured: boolean;
+  tags?: string[];
+}
+
+type View = "main" | "login" | "settings" | "ab" | "contact-preview";
+
 export function App() {
   const [settings, setLocalSettings] = useState<ExtSettings | null>(null);
   const [tabUrl, setTabUrl] = useState<string>("");
@@ -14,7 +35,7 @@ export function App() {
   const [tabId, setTabId] = useState<number | null>(null);
   const [toast, setToast] = useState<Toast>(null);
   const [busy, setBusy] = useState<string | null>(null);
-  const [view, setView] = useState<"main" | "login" | "settings" | "ab">("main");
+  const [view, setView] = useState<View>("main");
   const [abTests, setAbTests] = useState<AbTestItem[]>([]);
   const [abLoading, setAbLoading] = useState(false);
   const [pixels, setPixels] = useState<WorkspacePixels | null>(null);
@@ -23,6 +44,8 @@ export function App() {
   // configured opt in by default; creators without pixels stay off.
   const [autoPixel, setAutoPixel] = useState<boolean>(false);
   const [recent, setRecent] = useState<Array<{ id: number; alias: string; title: string | null; long_url: string | null; short_url?: string; auto_pixel?: boolean; pixel_fires?: { count: number; providers: string[] } }>>([]);
+  const [candidate, setCandidate] = useState<ContactCandidate | null>(null);
+  const [extractError, setExtractError] = useState<string | null>(null);
 
   const loadAbTests = useCallback(async () => {
     setAbLoading(true);
@@ -40,7 +63,7 @@ export function App() {
   const refresh = useCallback(async () => {
     const s = await getSettings();
     setLocalSettings(s);
-    setView(s.token ? "main" : "login");
+    setView((v) => (v === "contact-preview" ? v : (s.token ? (v === "login" ? "main" : v) : "login")));
   }, []);
 
   useEffect(() => {
@@ -63,6 +86,15 @@ export function App() {
       if (area === "local") refresh();
     };
     browser.storage.onChanged.addListener(listener);
+    // Pending candidate handed off from the context-menu flow.
+    browser.storage.local.get("pendingContactCandidate").then((res: any) => {
+      const pending = res?.pendingContactCandidate;
+      if (pending && pending.candidate) {
+        setCandidate(pending.candidate);
+        setView("contact-preview");
+        browser.storage.local.remove("pendingContactCandidate");
+      }
+    });
     return () => browser.storage.onChanged.removeListener(listener);
   }, [refresh]);
 
@@ -90,7 +122,7 @@ export function App() {
 
   const showToast = useCallback((t: Toast) => {
     setToast(t);
-    if (t) setTimeout(() => setToast(null), 4000);
+    if (t) setTimeout(() => setToast(null), 4500);
   }, []);
 
   const handleShorten = async () => {
@@ -128,8 +160,71 @@ export function App() {
       } else {
         showToast({ kind: "error", text: resp?.error || "Could not create bio-link" });
       }
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const extractCandidate = async (): Promise<ContactCandidate | null> => {
+    if (!tabId) return null;
+    const results = await browser.scripting.executeScript({
+      target: { tabId },
+      files: ["content-extract-contact.js"],
+    });
+    const resp = results?.[0]?.result as any;
+    if (!resp || resp.ok !== true) {
+      setExtractError(resp?.error || "Could not read this page.");
+      return null;
+    }
+    setExtractError(null);
+    // Apply default tags from settings.
+    const tags = Array.from(new Set([...(settings?.contactDefaultTags || [])]));
+    return { ...(resp.candidate as ContactCandidate), tags };
+  };
+
+  const handleSaveContact = async () => {
+    setBusy("contact-extract");
+    try {
+      const c = await extractCandidate();
+      if (c) { setCandidate(c); setView("contact-preview"); }
+      else if (extractError) showToast({ kind: "error", text: extractError });
     } catch (e: any) {
-      showToast({ kind: "error", text: e?.message || "Could not create bio-link" });
+      showToast({ kind: "error", text: e?.message || "Extraction failed" });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleOneClickContact = async () => {
+    setBusy("contact-oneclick");
+    try {
+      const c = await extractCandidate();
+      if (!c) {
+        if (extractError) showToast({ kind: "error", text: extractError });
+        return;
+      }
+      // Server validates strictly; on duplicate / errors we fall back to
+      // the editable preview so the creator can fix or merge.
+      try {
+        const result = await api.createContact(buildPayload(c, settings), true);
+        const dashboard = `${settings?.webBaseUrl}/dashboard/contacts/${result.contact.id}`;
+        showToast({
+          kind: "success",
+          text: `Saved: ${result.contact.display_name}`,
+          link: { href: dashboard, label: "Open contact" },
+        });
+      } catch (e: any) {
+        if (e instanceof ApiError && (e.code === "contact_invalid" || e.code === "contact_duplicate")) {
+          // Surface the editable card with server-side errors highlighted.
+          setCandidate(c);
+          setView("contact-preview");
+          if (e.code === "contact_invalid") {
+            showToast({ kind: "info", text: "Couldn't save in one click — please review fields." });
+          }
+        } else {
+          showToast({ kind: "error", text: e?.message || "Save failed" });
+        }
+      }
     } finally {
       setBusy(null);
     }
@@ -192,6 +287,20 @@ export function App() {
           onError={(msg) => showToast({ kind: "error", text: msg })}
         />
       )}
+      {view === "contact-preview" && candidate && (
+        <ContactPreview
+          candidate={candidate}
+          settings={settings}
+          onCancel={() => { setCandidate(null); setView("main"); }}
+          onSaved={(name, id) => {
+            setCandidate(null);
+            setView("main");
+            const dashboard = `${settings.webBaseUrl}/dashboard/contacts/${id}`;
+            showToast({ kind: "success", text: `Saved: ${name}`, link: { href: dashboard, label: "Open contact" } });
+          }}
+          showToast={showToast}
+        />
+      )}
       {view === "main" && (
         <div className="body">
           <div className="field">
@@ -239,6 +348,15 @@ export function App() {
           <button className="btn-secondary" disabled={!tabUrl || busy !== null} onClick={() => setView("ab")}>
             Shorten as A/B test…
           </button>
+          <hr className="divider" />
+          <button className="btn-secondary" disabled={!tabId || busy !== null} onClick={handleSaveContact}>
+            {busy === "contact-extract" && <span className="spinner" />}Save to Contacts
+          </button>
+          {settings.contactAllowOneClick && (
+            <button className="btn-link contact-oneclick" disabled={!tabId || busy !== null} onClick={handleOneClickContact}>
+              {busy === "contact-oneclick" && <span className="spinner" />}One-click save (skip preview)
+            </button>
+          )}
           <RecentAbTests items={abTests} loading={abLoading} onChanged={loadAbTests} showToast={showToast} />
 
           {recent.length > 0 && (
@@ -289,6 +407,25 @@ export function App() {
   );
 }
 
+function buildPayload(c: ContactCandidate, settings: ExtSettings | null): Record<string, unknown> {
+  const tags = Array.from(new Set([...(c.tags ?? []), ...(settings?.contactDefaultTags ?? [])]));
+  return {
+    display_name: c.display_name,
+    given_name:   c.given_name,
+    family_name:  c.family_name,
+    organization: c.organization,
+    job_title:    c.job_title,
+    website:      c.website,
+    notes:        c.notes,
+    emails:       c.emails.map((e) => ({ value: e.value, label: e.label, source: e.source })),
+    phones:       c.phones.map((p) => ({ value: p.value, label: p.label, country: p.country, source: p.source })),
+    socials:      c.socials,
+    tags,
+    source_url:   c.source_url,
+    workspace_id: settings?.contactWorkspaceId ?? settings?.workspaceId ?? undefined,
+  };
+}
+
 function Header({ settings, onSettings }: { settings: ExtSettings; onSettings: () => void }) {
   return (
     <div className="header">
@@ -302,7 +439,7 @@ function Header({ settings, onSettings }: { settings: ExtSettings; onSettings: (
 }
 
 function Footer({
-  settings, view, onSignOut, onSettings, busy,
+  settings, view, onSignOut, busy,
 }: { settings: ExtSettings; view: string; onSignOut: () => void; onSettings: () => void; busy: string | null }) {
   return (
     <div className="footer">
@@ -603,8 +740,11 @@ function SettingsView({
   onPixelsSaved: (p: WorkspacePixels) => void;
   showToast: (t: Toast) => void;
 }) {
-  const [apiUrl, setApi] = useState(settings.apiBaseUrl);
+  const [apiBase, setApi] = useState(settings.apiBaseUrl);
   const [web, setWeb] = useState(settings.webBaseUrl);
+  const [tags, setTags] = useState((settings.contactDefaultTags || []).join(", "));
+  const [allowOneClick, setAllowOneClick] = useState(!!settings.contactAllowOneClick);
+  const [contactWs, setContactWs] = useState<number | null>(settings.contactWorkspaceId ?? null);
   const [saved, setSaved] = useState(false);
   // Tracking-pixel form state, seeded from server-side workspace pixels.
   const [meta, setMeta] = useState(pixels?.meta_id || "");
@@ -622,7 +762,14 @@ function SettingsView({
   }, [pixels?.meta_id, pixels?.tiktok_id, pixels?.google_id, pixels?.google_label]);
 
   const save = async () => {
-    await setSettings({ apiBaseUrl: apiUrl.replace(/\/$/, ""), webBaseUrl: web.replace(/\/$/, "") });
+    const tagList = tags.split(",").map((t) => t.trim()).filter(Boolean).slice(0, 20);
+    await setSettings({
+      apiBaseUrl: apiBase.replace(/\/$/, ""),
+      webBaseUrl: web.replace(/\/$/, ""),
+      contactDefaultTags: tagList,
+      contactAllowOneClick: allowOneClick,
+      contactWorkspaceId: contactWs,
+    });
     setSaved(true);
     setTimeout(() => setSaved(false), 1500);
     onSaved();
@@ -681,7 +828,7 @@ function SettingsView({
     <div className="body">
       {settings.token && (
         <>
-          <div className="muted" style={{ fontWeight: 600, color: "#eaeaea" }}>Tracking pixels</div>
+          <h3 className="section-h">Tracking pixels</h3>
           <div className="muted" style={{ fontSize: 12 }}>
             Pixels fire on every short link from this workspace (auto-pixel: on). Visitors get a
             sub-200&nbsp;ms interstitial that loads your pixel scripts, then redirects.
@@ -719,13 +866,13 @@ function SettingsView({
             {" · "}
             <a href="https://chrome.google.com/webstore/detail/google-tag-assistant-lega/kejbdjndbnbjgmefkgdddjlbokphdefk" target="_blank" rel="noreferrer">Tag Assistant</a>.
           </div>
-          <hr style={{ borderColor: "#222", margin: "12px 0" }} />
+          <hr className="divider" />
         </>
       )}
-      <div className="muted" style={{ fontWeight: 600, color: "#eaeaea" }}>Connection</div>
+      <h3 className="section-h">General</h3>
       <div className="settings-row">
         <label>API base URL</label>
-        <input value={apiUrl} onChange={(e) => setApi(e.target.value)} />
+        <input value={apiBase} onChange={(e) => setApi(e.target.value)} />
         <span className="muted">Default: https://1inme.com/api/v1</span>
       </div>
       <div className="settings-row">
@@ -733,8 +880,288 @@ function SettingsView({
         <input value={web} onChange={(e) => setWeb(e.target.value)} />
         <span className="muted">Used to open the editor and dashboard.</span>
       </div>
+
+      <h3 className="section-h">Contacts</h3>
+      <div className="settings-row">
+        <label>Default tags</label>
+        <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="from-extension, lead" />
+        <span className="muted">Comma-separated. Applied to every contact saved from the extension.</span>
+      </div>
+      <label className="checkbox-row">
+        <input type="checkbox" checked={allowOneClick} onChange={(e) => setAllowOneClick(e.target.checked)} />
+        <span>Allow one-click save (skip the preview when validation passes)</span>
+      </label>
+      <div className="settings-row">
+        <label>Workspace for saved contacts</label>
+        <select
+          className="workspace-select"
+          value={contactWs ?? ""}
+          onChange={(e) => setContactWs(e.target.value === "" ? null : Number(e.target.value))}
+        >
+          <option value="">(use active workspace)</option>
+          {settings.workspaces.map((w) => (
+            <option key={w.id} value={w.id}>{w.name}</option>
+          ))}
+        </select>
+      </div>
+
       <button className="btn-primary" onClick={save}>{saved ? "Saved ✓" : "Save"}</button>
-      <button className="btn-secondary" onClick={reset}>Reset to defaults</button>
+      <button className="btn-secondary" onClick={reset}>Reset URLs to defaults</button>
+    </div>
+  );
+}
+
+// ─── Contact preview / editable card ──────────────────────────────
+
+const SOURCE_LABEL: Record<ExtractionSource, string> = {
+  vcard: "from vCard",
+  hcard: "from hCard",
+  jsonld: "from JSON-LD",
+  scraped: "scraped",
+  manual: "manual",
+};
+
+function SourceBadge({ source }: { source?: ExtractionSource }) {
+  if (!source) return null;
+  return <span className={`badge badge-${source}`}>{SOURCE_LABEL[source]}</span>;
+}
+
+function ContactPreview({
+  candidate, settings, onCancel, onSaved, showToast,
+}: {
+  candidate: ContactCandidate;
+  settings: ExtSettings;
+  onCancel: () => void;
+  onSaved: (name: string, id: number) => void;
+  showToast: (t: Toast) => void;
+}) {
+  const [c, setC] = useState<ContactCandidate>(candidate);
+  const [errors, setErrors] = useState<Record<string, string[]>>({});
+  const [duplicateOf, setDuplicateOf] = useState<number | null>(null);
+  const [duplicateInfo, setDuplicateInfo] = useState<any>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [tagInput, setTagInput] = useState("");
+
+  // Run an initial validate so the user sees server-side dedupe + warnings up front.
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await api.validateContact(buildPayload(c, settings));
+        setErrors(res.errors || {});
+        setDuplicateOf(res.duplicate_of ?? null);
+        if (res.duplicate_of) {
+          try {
+            const info = await api.getContact(res.duplicate_of);
+            setDuplicateInfo(info.contact);
+          } catch { /* ignore */ }
+        }
+      } catch { /* validation is best-effort */ }
+    })();
+    // Only on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const setField = <K extends keyof ContactCandidate>(k: K, v: ContactCandidate[K]) =>
+    setC((prev) => ({ ...prev, [k]: v }));
+
+  const updateEmail = (i: number, patch: Partial<ContactCandidate["emails"][number]>) =>
+    setC((prev) => ({ ...prev, emails: prev.emails.map((e, idx) => idx === i ? { ...e, ...patch } : e) }));
+  const removeEmail = (i: number) => setC((prev) => ({ ...prev, emails: prev.emails.filter((_, idx) => idx !== i) }));
+  const addEmail = () => setC((prev) => ({ ...prev, emails: [...prev.emails, { value: "", source: "manual" }] }));
+
+  const updatePhone = (i: number, patch: Partial<ContactCandidate["phones"][number]>) =>
+    setC((prev) => ({ ...prev, phones: prev.phones.map((p, idx) => idx === i ? { ...p, ...patch } : p) }));
+  const removePhone = (i: number) => setC((prev) => ({ ...prev, phones: prev.phones.filter((_, idx) => idx !== i) }));
+  const addPhone = () => setC((prev) => ({ ...prev, phones: [...prev.phones, { value: "", source: "manual" }] }));
+
+  const addTag = () => {
+    const t = tagInput.trim();
+    if (!t) return;
+    setC((prev) => ({ ...prev, tags: Array.from(new Set([...(prev.tags ?? []), t])) }));
+    setTagInput("");
+  };
+  const removeTag = (t: string) => setC((prev) => ({ ...prev, tags: (prev.tags ?? []).filter((x) => x !== t) }));
+
+  const fieldErr = (path: string): string | null => (errors[path]?.[0] ?? null);
+
+  const handleSave = async () => {
+    setBusy("save");
+    try {
+      const result = await api.createContact(buildPayload(c, settings));
+      onSaved(result.contact.display_name, result.contact.id);
+    } catch (e: any) {
+      if (e instanceof ApiError && e.code === "contact_invalid" && e.payload && (e.payload as any).details?.errors) {
+        setErrors((e.payload as any).details.errors);
+        showToast({ kind: "error", text: "Please fix the highlighted fields." });
+      } else {
+        showToast({ kind: "error", text: e?.message || "Save failed" });
+      }
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleMerge = async () => {
+    if (!duplicateOf) return;
+    setBusy("merge");
+    try {
+      const result = await api.mergeContact(duplicateOf, buildPayload(c, settings));
+      onSaved(result.contact.display_name, result.contact.id);
+    } catch (e: any) {
+      showToast({ kind: "error", text: e?.message || "Merge failed" });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <div className="body contact-preview">
+      <div className="preview-header">
+        <strong>Save contact</strong>
+        <button className="btn-link" onClick={onCancel}>← Back</button>
+      </div>
+
+      {duplicateOf && (
+        <div className="dedupe-panel">
+          <div className="dedupe-title">
+            Looks like {duplicateInfo?.display_name || "this person"} is already in your contacts.
+          </div>
+          {duplicateInfo && (
+            <div className="muted dedupe-row">
+              {duplicateInfo.emails?.[0]?.value || duplicateInfo.phones?.[0]?.value || ""}
+              {duplicateInfo.organization ? ` · ${duplicateInfo.organization}` : ""}
+            </div>
+          )}
+          <div className="dedupe-actions">
+            <button className="btn-secondary" disabled={busy !== null} onClick={handleMerge}>
+              {busy === "merge" && <span className="spinner" />}Merge into existing
+            </button>
+            <button className="btn-link" onClick={() => setDuplicateOf(null)}>Save as new anyway</button>
+          </div>
+        </div>
+      )}
+
+      <div className="field">
+        <div className="field-label-row">
+          <label>Display name</label>
+          <SourceBadge source={c.provenance.display_name} />
+        </div>
+        <input value={c.display_name ?? ""} onChange={(e) => setField("display_name", e.target.value)} />
+        {fieldErr("display_name") && <div className="error-text">{fieldErr("display_name")}</div>}
+      </div>
+
+      <div className="row-2">
+        <div className="field">
+          <label>Given name</label>
+          <input value={c.given_name ?? ""} onChange={(e) => setField("given_name", e.target.value)} />
+        </div>
+        <div className="field">
+          <label>Family name</label>
+          <input value={c.family_name ?? ""} onChange={(e) => setField("family_name", e.target.value)} />
+        </div>
+      </div>
+
+      <div className="row-2">
+        <div className="field">
+          <label>Company</label>
+          <input value={c.organization ?? ""} onChange={(e) => setField("organization", e.target.value)} />
+        </div>
+        <div className="field">
+          <label>Role</label>
+          <input value={c.job_title ?? ""} onChange={(e) => setField("job_title", e.target.value)} />
+        </div>
+      </div>
+
+      <div className="field">
+        <div className="field-label-row">
+          <label>Website</label>
+          <SourceBadge source={c.provenance.website} />
+        </div>
+        <input value={c.website ?? ""} onChange={(e) => setField("website", e.target.value)} />
+        {fieldErr("website") && <div className="error-text">{fieldErr("website")}</div>}
+      </div>
+
+      <div className="field">
+        <div className="field-label-row">
+          <label>Emails</label>
+          <button className="btn-link" onClick={addEmail}>+ add</button>
+        </div>
+        {c.emails.length === 0 && <div className="muted">No emails detected.</div>}
+        {c.emails.map((e, i) => (
+          <div className="multi-row" key={i}>
+            <input value={e.value} placeholder="name@example.com" onChange={(ev) => updateEmail(i, { value: ev.target.value })} />
+            <SourceBadge source={e.source} />
+            <button className="btn-link" onClick={() => removeEmail(i)} title="Remove">×</button>
+            {fieldErr(`emails.${i}.value`) && <div className="error-text full">{fieldErr(`emails.${i}.value`)}</div>}
+          </div>
+        ))}
+      </div>
+
+      <div className="field">
+        <div className="field-label-row">
+          <label>Phones</label>
+          <button className="btn-link" onClick={addPhone}>+ add</button>
+        </div>
+        {c.phones.length === 0 && <div className="muted">No phones detected.</div>}
+        {c.phones.map((p, i) => (
+          <div className="multi-row" key={i}>
+            <input value={p.value} placeholder="+1 555 555 5555" onChange={(ev) => updatePhone(i, { value: ev.target.value })} />
+            <input className="country" maxLength={2} placeholder="US" value={p.country ?? ""} onChange={(ev) => updatePhone(i, { country: ev.target.value.toUpperCase() })} />
+            <SourceBadge source={p.source} />
+            <button className="btn-link" onClick={() => removePhone(i)} title="Remove">×</button>
+            {fieldErr(`phones.${i}.value`) && <div className="error-text full">{fieldErr(`phones.${i}.value`)}</div>}
+          </div>
+        ))}
+      </div>
+
+      {Object.keys(c.socials).length > 0 && (
+        <div className="field">
+          <div className="field-label-row">
+            <label>Socials</label>
+          </div>
+          {Object.entries(c.socials).map(([platform, value]) => (
+            <div className="multi-row" key={platform}>
+              <span className="social-platform">{platform}</span>
+              <input value={value} onChange={(ev) => setC((prev) => ({ ...prev, socials: { ...prev.socials, [platform]: ev.target.value } }))} />
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="field">
+        <label>Notes</label>
+        <textarea rows={2} value={c.notes ?? ""} onChange={(e) => setField("notes", e.target.value)} />
+      </div>
+
+      <div className="field">
+        <label>Tags</label>
+        <div className="tag-list">
+          {(c.tags ?? []).map((t) => (
+            <span key={t} className="tag">
+              {t}
+              <button className="btn-link" onClick={() => removeTag(t)}>×</button>
+            </span>
+          ))}
+          <input
+            value={tagInput}
+            placeholder="add tag…"
+            onChange={(e) => setTagInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTag(); } }}
+          />
+        </div>
+      </div>
+
+      <div className="field">
+        <label>Source page</label>
+        <div className="url-card" title={c.source_url}>{c.source_url}</div>
+      </div>
+
+      {fieldErr("_form") && <div className="error-text">{fieldErr("_form")}</div>}
+
+      <button className="btn-primary" disabled={busy !== null} onClick={handleSave}>
+        {busy === "save" && <span className="spinner" />}{duplicateOf ? "Save as new contact" : "Save contact"}
+      </button>
+      <button className="btn-secondary" disabled={busy !== null} onClick={onCancel}>Cancel</button>
     </div>
   );
 }

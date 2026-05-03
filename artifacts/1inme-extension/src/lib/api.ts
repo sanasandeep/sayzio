@@ -167,6 +167,29 @@ export const api = {
       `/links/${linkId}/ab/declare-winner`,
       { method: "POST", body: { variant_id: variantId } },
     ),
+
+  validateContact: (payload: Record<string, unknown>) =>
+    request<{
+      ok: boolean;
+      errors: Record<string, string[]>;
+      normalized: Record<string, any>;
+      duplicate_of: number | null;
+    }>("/contacts/validate", { method: "POST", body: payload }),
+
+  createContact: (payload: Record<string, unknown>, strict = false) =>
+    request<{ contact: { id: number; display_name: string }; duplicate_of: number | null }>(
+      "/contacts",
+      { method: "POST", body: { ...payload, ...(strict ? { validate: "strict" } : {}) } },
+    ),
+
+  mergeContact: (id: number, payload: Record<string, unknown>) =>
+    request<{ contact: { id: number; display_name: string } }>(`/contacts/${id}/merge`, {
+      method: "POST",
+      body: payload,
+    }),
+
+  getContact: (id: number) =>
+    request<{ contact: { id: number; display_name: string; emails: any[]; phones: any[]; organization?: string | null } }>(`/contacts/${id}`),
 };
 
 export interface AbVariantsPayload {

@@ -3,6 +3,7 @@
 namespace App\Modules\Api\Controllers;
 
 use App\Modules\Api\Controllers\Concerns\ApiResponses;
+use App\Modules\Common\Services\ContactCandidateValidator;
 use App\Modules\User\Models\Contact;
 use App\Modules\User\Models\ContactEmail;
 use App\Modules\User\Models\ContactPhone;
@@ -57,26 +58,154 @@ class ContactController extends Controller
 
     public function store(Request $request)
     {
-        $data = $this->validatePayload($request);
+        $userId = $request->user()->id;
 
-        $contact = DB::transaction(function () use ($data, $request) {
+        // Hard validation gate. Even when the legacy mobile UI sends a
+        // pre-validated payload, we re-check server-side so a one-click
+        // save from the extension can't bypass it.
+        $v = (new ContactCandidateValidator($userId))->validate($request->all());
+        if (!$v->ok()) {
+            return $this->fail('Contact failed validation.', 422, 'contact_invalid', [
+                'errors'       => $v->errors,
+                'normalized'   => $v->normalized,
+                'duplicate_of' => $v->duplicateOf,
+            ]);
+        }
+
+        // If the caller asked for strict one-click semantics and we found
+        // an existing match, refuse to create — let the client surface a
+        // merge prompt instead of silently duplicating.
+        $strict = filter_var($request->input('validate', ''), FILTER_VALIDATE_BOOL)
+            || $request->input('validate') === 'strict';
+        if ($strict && $v->duplicateOf !== null) {
+            return $this->fail('A matching contact already exists.', 409, 'contact_duplicate', [
+                'duplicate_of' => $v->duplicateOf,
+                'normalized'   => $v->normalized,
+            ]);
+        }
+
+        $data = $v->normalized;
+
+        $contact = DB::transaction(function () use ($data, $userId) {
             $c = Contact::create([
-                'user_id'      => $request->user()->id,
-                'display_name' => $data['display_name'] ?? trim(
-                    ($data['given_name'] ?? '') . ' ' . ($data['family_name'] ?? '')
-                ) ?: null,
+                'user_id'      => $userId,
+                'display_name' => $data['display_name'] ?? null,
                 'given_name'   => $data['given_name']   ?? null,
                 'family_name'  => $data['family_name']  ?? null,
                 'organization' => $data['organization'] ?? null,
                 'job_title'    => $data['job_title']    ?? null,
+                'website'      => $data['website']      ?? null,
+                'socials'      => !empty($data['socials']) ? $data['socials'] : null,
                 'notes'        => $data['notes']        ?? null,
+                'tags'         => !empty($data['tags']) ? $data['tags'] : null,
+                'sources'      => !empty($data['source_url']) ? [[
+                    'url'  => $data['source_url'],
+                    'at'   => now()->toIso8601String(),
+                    'kind' => 'extension',
+                ]] : null,
             ]);
             $this->syncEmails($c, $data['emails'] ?? []);
             $this->syncPhones($c, $data['phones'] ?? []);
             return $c->fresh(['phones', 'emails']);
         });
 
-        return $this->created(['contact' => $this->transform($contact)]);
+        return $this->created([
+            'contact'      => $this->transform($contact),
+            'duplicate_of' => $v->duplicateOf, // surfaced for non-strict callers
+        ]);
+    }
+
+    /**
+     * Validate-and-dedupe a candidate without persisting. Drives the
+     * extension's "preview before save" card and decides whether the
+     * one-click path can proceed.
+     */
+    public function validateCandidate(Request $request)
+    {
+        $userId = $request->user()->id;
+        $v = (new ContactCandidateValidator($userId))->validate($request->all());
+        return $this->ok($v->toArray());
+    }
+
+    /**
+     * Merge a candidate into an existing contact owned by the signed-in
+     * user. Non-empty fields on the existing record are preserved; new
+     * emails / phones / socials / tags are appended; the source URL is
+     * pushed onto the contact's sources list.
+     */
+    public function merge(Request $request, int $id)
+    {
+        $userId = $request->user()->id;
+        $existing = Contact::with(['phones', 'emails'])->where('user_id', $userId)->find($id);
+        if (!$existing) return $this->notFound('Contact not found');
+
+        $v = (new ContactCandidateValidator($userId))->validate($request->all());
+        if (!$v->ok()) {
+            return $this->fail('Contact failed validation.', 422, 'contact_invalid', [
+                'errors'     => $v->errors,
+                'normalized' => $v->normalized,
+            ]);
+        }
+        $data = $v->normalized;
+
+        $contact = DB::transaction(function () use ($existing, $data) {
+            $existing->fill(array_filter([
+                'display_name' => $existing->display_name ?: ($data['display_name'] ?? null),
+                'given_name'   => $existing->given_name   ?: ($data['given_name']   ?? null),
+                'family_name'  => $existing->family_name  ?: ($data['family_name']  ?? null),
+                'organization' => $existing->organization ?: ($data['organization'] ?? null),
+                'job_title'    => $existing->job_title    ?: ($data['job_title']    ?? null),
+                'website'      => $existing->website      ?: ($data['website']      ?? null),
+                'notes'        => $existing->notes        ?: ($data['notes']        ?? null),
+            ], fn ($v) => $v !== null && $v !== ''))->save();
+
+            // Tags: union, preserving existing order.
+            $newTags = array_values(array_unique(array_merge(
+                (array) ($existing->tags ?? []),
+                (array) ($data['tags'] ?? []),
+            )));
+            if (!empty($newTags)) {
+                $existing->tags = $newTags;
+                $existing->save();
+            }
+
+            // Socials: only set platforms that don't already have a value.
+            $socials = (array) ($existing->socials ?? []);
+            foreach (($data['socials'] ?? []) as $platform => $value) {
+                if (empty($socials[$platform])) $socials[$platform] = $value;
+            }
+            if (!empty($socials)) {
+                $existing->socials = $socials;
+                $existing->save();
+            }
+
+            $this->mergeEmails($existing, array_map(fn ($e) => [
+                'value'      => $e['value'],
+                'label'      => $e['label'] ?? null,
+            ], $data['emails'] ?? []));
+            $this->mergePhones($existing, array_map(fn ($p) => [
+                'value'      => $p['value'],
+                'value_e164' => $p['value_e164'] ?? null,
+                'label'      => $p['label'] ?? null,
+            ], $data['phones'] ?? []));
+
+            if (!empty($data['source_url'])) {
+                $sources = (array) ($existing->sources ?? []);
+                $alreadyHave = collect($sources)->pluck('url')->contains($data['source_url']);
+                if (!$alreadyHave) {
+                    $sources[] = [
+                        'url'  => $data['source_url'],
+                        'at'   => now()->toIso8601String(),
+                        'kind' => 'extension',
+                    ];
+                    $existing->sources = $sources;
+                    $existing->save();
+                }
+            }
+            return $existing->fresh(['phones', 'emails']);
+        });
+
+        return $this->ok(['contact' => $this->transform($contact)]);
     }
 
     public function update(Request $request, int $id)

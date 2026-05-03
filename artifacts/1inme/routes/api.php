@@ -238,12 +238,14 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/posts/{id}/unpin', [CreatorPostController::class, 'unpin'])->whereNumber('id');
 
         // Contacts
-        Route::get   ('/contacts',         [ContactController::class, 'index']);
-        Route::post  ('/contacts',         [ContactController::class, 'store']);
-        Route::post  ('/contacts/bulk',    [ContactController::class, 'bulkImport']);
-        Route::get   ('/contacts/{id}',    [ContactController::class, 'show'])->whereNumber('id');
-        Route::patch ('/contacts/{id}',    [ContactController::class, 'update'])->whereNumber('id');
-        Route::delete('/contacts/{id}',    [ContactController::class, 'destroy'])->whereNumber('id');
+        Route::get   ('/contacts',                  [ContactController::class, 'index']);
+        Route::post  ('/contacts',                  [ContactController::class, 'store'])->middleware('throttle:120,1');
+        Route::post  ('/contacts/validate',         [ContactController::class, 'validateCandidate'])->middleware('throttle:120,1');
+        Route::post  ('/contacts/bulk',             [ContactController::class, 'bulkImport']);
+        Route::get   ('/contacts/{id}',             [ContactController::class, 'show'])->whereNumber('id');
+        Route::patch ('/contacts/{id}',             [ContactController::class, 'update'])->whereNumber('id');
+        Route::post  ('/contacts/{id}/merge',       [ContactController::class, 'merge'])->whereNumber('id')->middleware('throttle:60,1');
+        Route::delete('/contacts/{id}',             [ContactController::class, 'destroy'])->whereNumber('id');
 
         // Forms (read-only for mobile; full CRUD lives on web)
         Route::get('/forms',                              [FormController::class, 'index']);
