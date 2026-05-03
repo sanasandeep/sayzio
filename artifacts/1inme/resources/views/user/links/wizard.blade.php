@@ -60,6 +60,27 @@
     {{-- Step 0 · Category                                                --}}
     {{-- ─────────────────────────────────────────────────────────────── --}}
     @if($step === 0)
+        {{-- Card scanner shortcut: lets the user kick off the whole wizard
+             from a snapshot of a business card / brochure. The scanner
+             seeds a draft and redirects back to this wizard. --}}
+        <a href="{{ route('user.contacts.scan.create', ['from' => 'wizard']) }}"
+           class="block mb-6 p-4 rounded-2xl border transition-all hover:bg-white/[0.06]"
+           style="background:linear-gradient(135deg,rgba(124,58,237,.10),rgba(236,72,153,.08));border-color:rgba(124,58,237,.30);">
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                     style="background:linear-gradient(135deg,#7c3aed,#ec4899);color:white;">
+                    <i class="fas fa-camera"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-white font-medium">Have a business card or brochure?
+                        <span class="ml-1 text-[10px] uppercase tracking-wider text-fuchsia-300">AI</span>
+                    </div>
+                    <div class="text-xs text-white/50 mt-0.5">Snap a photo and we'll prefill the wizard with the contact details, links and logo.</div>
+                </div>
+                <i class="fas fa-arrow-right text-white/30"></i>
+            </div>
+        </a>
+
         <form method="POST" action="{{ route('user.links.wizard.save') }}">
             @csrf
             <input type="hidden" name="_action" value="pick_category">
