@@ -70,7 +70,7 @@
 
                 <div class="card-premium p-6">
                     <h3 class="text-sm font-bold mb-3" style="color: var(--text-primary);">Monthly budget cap</h3>
-                    <p class="text-[11px] mb-3" style="color: var(--text-dimmed);">Hard ceiling on what we'll spend on offsets for this biolink each month (USD). Leave at 0 to follow workspace policy.</p>
+                    <p class="text-[11px] mb-3" style="color: var(--text-dimmed);">Hard ceiling on what we'll spend on offsets for this biolink each month (USD). Set to 0 for no per-link cap. To inherit your workspace's cap instead, use the "Inherit workspace defaults" button above.</p>
 
                     <label class="block max-w-xs">
                         <span class="text-[11px] font-semibold" style="color: var(--text-dimmed);">Cap (USD)</span>
