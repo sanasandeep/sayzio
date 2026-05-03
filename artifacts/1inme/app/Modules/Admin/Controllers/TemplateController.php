@@ -10,6 +10,7 @@ use App\Modules\Admin\Services\TemplateService;
 use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Link;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class TemplateController extends Controller
@@ -148,6 +149,56 @@ class TemplateController extends Controller
         $tpl->delete();
         return redirect()->route('admin.templates.index', ['tab' => $kind])
             ->with('success', ucfirst($kind) . ' template deleted.');
+    }
+
+    public function uploadThumbnail(Request $request, string $kind, int $id)
+    {
+        $tpl = $this->resolve($kind, $id);
+
+        $request->validate([
+            'thumbnail' => ['required', 'image', 'mimes:jpg,jpeg,png,webp,gif', 'max:5120'],
+        ]);
+
+        $previous = $tpl->thumbnail_url;
+
+        $path = $request->file('thumbnail')->store('template-thumbnails', 'public');
+        $tpl->thumbnail_url = Storage::disk('public')->url($path);
+        $tpl->save();
+
+        $this->deleteLocalThumbnail($previous);
+
+        return back()->with('success', 'Thumbnail updated.');
+    }
+
+    public function removeThumbnail(string $kind, int $id)
+    {
+        $tpl = $this->resolve($kind, $id);
+
+        $previous = $tpl->thumbnail_url;
+        $tpl->thumbnail_url = null;
+        $tpl->save();
+
+        $this->deleteLocalThumbnail($previous);
+
+        return back()->with('success', 'Thumbnail removed.');
+    }
+
+    /**
+     * Delete a previously-stored thumbnail file off the public disk, if the
+     * URL points at one we own. External URLs (set via the edit form) are
+     * left alone.
+     */
+    private function deleteLocalThumbnail(?string $url): void
+    {
+        if (!$url) return;
+        $path = parse_url($url, PHP_URL_PATH) ?: '';
+        $marker = '/storage/template-thumbnails/';
+        $pos = strpos($path, $marker);
+        if ($pos === false) return;
+        $relative = 'template-thumbnails/' . substr($path, $pos + strlen($marker));
+        if (Storage::disk('public')->exists($relative)) {
+            Storage::disk('public')->delete($relative);
+        }
     }
 
     public function toggle(string $kind, int $id)

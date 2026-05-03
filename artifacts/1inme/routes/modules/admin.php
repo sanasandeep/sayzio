@@ -106,6 +106,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('{kind}/{id}/edit', [TemplateController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
             Route::put('{kind}/{id}', [TemplateController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
             Route::post('{kind}/{id}/toggle', [TemplateController::class, 'toggle'])->middleware(CheckPermission::class . ':settings.manage')->name('toggle');
+            Route::post('{kind}/{id}/thumbnail', [TemplateController::class, 'uploadThumbnail'])->middleware(CheckPermission::class . ':settings.manage')->name('thumbnail.upload');
+            Route::delete('{kind}/{id}/thumbnail', [TemplateController::class, 'removeThumbnail'])->middleware(CheckPermission::class . ':settings.manage')->name('thumbnail.remove');
             Route::delete('{kind}/{id}', [TemplateController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
         });
 

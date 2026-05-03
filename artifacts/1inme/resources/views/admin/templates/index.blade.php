@@ -71,12 +71,48 @@
                   && (search === '' || '{{ strtolower(addslashes($tpl->name . ' ' . $tpl->description)) }}'.includes(search.toLowerCase()))"
              x-cloak
              class="glass rounded-2xl border border-white/10 p-4">
-            <div class="aspect-[4/3] rounded-xl mb-3 flex items-center justify-center overflow-hidden" style="background: linear-gradient(135deg, rgba(124,58,237,0.12), rgba(139,92,246,0.04));">
+            <div class="group relative aspect-[4/3] rounded-xl mb-3 flex items-center justify-center overflow-hidden" style="background: linear-gradient(135deg, rgba(124,58,237,0.12), rgba(139,92,246,0.04));">
                 @if($tpl->thumbnail_url)
                     <img src="{{ $tpl->thumbnail_url }}" alt="{{ $tpl->name }}" class="w-full h-full object-cover">
                 @else
                     <img src="{{ asset('template-placeholders/page.svg') }}" alt="{{ $tpl->name }} preview" class="w-full h-full object-cover">
                 @endif
+
+                <div class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition flex items-end justify-end p-2 gap-1.5 opacity-0 group-hover:opacity-100">
+                    <form action="{{ route('admin.templates.thumbnail.upload', ['kind' => $tab, 'id' => $tpl->id]) }}"
+                          method="POST"
+                          enctype="multipart/form-data"
+                          class="inline"
+                          x-data="{ id: 'tpl-thumb-{{ $tab }}-{{ $tpl->id }}' }">
+                        @csrf
+                        <input type="file"
+                               name="thumbnail"
+                               accept="image/png,image/jpeg,image/webp,image/gif"
+                               class="hidden"
+                               :id="id"
+                               @change="$el.form.submit()">
+                        <button type="button"
+                                @click="document.getElementById(id).click()"
+                                class="px-2.5 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-[11px] font-medium shadow"
+                                title="{{ $tpl->thumbnail_url ? 'Replace thumbnail' : 'Upload thumbnail' }}">
+                            <i class="fas {{ $tpl->thumbnail_url ? 'fa-rotate' : 'fa-upload' }} mr-1 text-[10px]"></i>
+                            {{ $tpl->thumbnail_url ? 'Replace' : 'Upload' }}
+                        </button>
+                    </form>
+                    @if($tpl->thumbnail_url)
+                        <form action="{{ route('admin.templates.thumbnail.remove', ['kind' => $tab, 'id' => $tpl->id]) }}"
+                              method="POST"
+                              class="inline"
+                              onsubmit="return window.themedConfirmSubmit(this, {title: 'Remove this thumbnail?', confirmText: 'Remove', confirmIcon: 'fa-trash', iconClass: 'fa-image'})">
+                            @csrf @method('DELETE')
+                            <button type="submit"
+                                    class="px-2.5 py-1.5 bg-white/10 hover:bg-red-500/80 text-white rounded-lg text-[11px] font-medium shadow"
+                                    title="Remove thumbnail">
+                                <i class="fas fa-trash text-[10px]"></i>
+                            </button>
+                        </form>
+                    @endif
+                </div>
             </div>
             <div class="flex items-start justify-between gap-2 mb-1">
                 <h3 class="text-sm font-semibold text-white truncate">{{ $tpl->name }}</h3>
