@@ -253,6 +253,54 @@
                 </div>
             </div>
 
+            {{-- Sharing / public PDF link --}}
+            <div class="resume-section">
+                <div class="resume-section-head" @click="toggle('sharing')">
+                    <h3><i class="fas fa-share-nodes head-icon"></i> Sharing</h3>
+                    <i class="fas fa-chevron-down chev" :class="{ rot: open.sharing }"></i>
+                </div>
+                <div class="resume-section-body" x-show="open.sharing" x-collapse>
+                    <div class="flex items-start gap-3 mb-2">
+                        <label style="display:inline-flex; align-items:center; gap:8px; cursor: pointer;">
+                            <input type="checkbox"
+                                   :checked="resume.is_public_pdf"
+                                   :disabled="sharingSaving"
+                                   @change="setPublicPdf($event.target.checked)">
+                            <span class="text-xs" style="color: var(--text-primary,#fff); font-weight:600;">
+                                Allow public PDF download
+                            </span>
+                        </label>
+                        <span class="text-[10px]" x-show="sharingSaving" style="color: var(--text-muted,#9ca3af);">
+                            <i class="fas fa-spinner fa-spin"></i> Saving…
+                        </span>
+                    </div>
+                    <p class="text-[11px] mb-3" style="color: var(--text-muted,#9ca3af);">
+                        When enabled, anyone with the link below can download your resume PDF.
+                        When disabled, the link returns a 404 and only you can download it.
+                    </p>
+                    <template x-if="resume.is_public_pdf && resume.public_pdf_url">
+                        <div class="flex items-center gap-2">
+                            <input class="resume-input" type="text" readonly
+                                   :value="resume.public_pdf_url"
+                                   @focus="$event.target.select()"
+                                   style="font-family: ui-monospace, monospace; font-size: 11px;">
+                            <button type="button" class="resume-add-btn" @click="copyPublicUrl()" title="Copy link">
+                                <i class="fas fa-copy"></i> <span>Copy</span>
+                            </button>
+                            <a class="resume-add-btn" :href="resume.public_pdf_url" target="_blank" rel="noopener" title="Open in new tab">
+                                <i class="fas fa-arrow-up-right-from-square"></i> <span>Open</span>
+                            </a>
+                        </div>
+                    </template>
+                    <template x-if="resume.is_public_pdf && !resume.handle">
+                        <p class="text-[11px]" style="color:#fbbf24;">
+                            <i class="fas fa-triangle-exclamation"></i>
+                            Set a handle on your profile to get a shareable link.
+                        </p>
+                    </template>
+                </div>
+            </div>
+
             {{-- Header --}}
             <div class="resume-section">
                 <div class="resume-section-head" @click="toggle('header')">
@@ -439,10 +487,11 @@ function resumeEditor() {
         resume: window.__resumeBootstrap.resume,
         registries: window.__resumeBootstrap.registries,
         items: {},
-        open: { design: true, header: true, summary: true,
+        open: { design: true, sharing: false, header: true, summary: true,
             experience: true, education: true, skills: true, projects: true,
             certifications: false, awards: false, languages: false, links: false,
             custom_sections: false },
+        sharingSaving: false,
         mobilePane: 'editor',
         status: 'idle',
         statusLabel: 'All changes saved',
@@ -666,6 +715,41 @@ function resumeEditor() {
                 this.hydrate(r.resume); this.renderPreview(); this.markSaved();
             } catch (e) {
                 this.resume.template_id = prev; this.markError(e.message);
+            }
+        },
+        async setPublicPdf(enabled) {
+            const prev = !!this.resume.is_public_pdf;
+            const next = !!enabled;
+            if (prev === next) return;
+            this.resume.is_public_pdf = next;
+            this.sharingSaving = true;
+            try {
+                const r = await this.http('PUT', '{{ route('user.resume.public-pdf.update') }}', { is_public_pdf: next });
+                this.hydrate(r.resume);
+                this.renderPreview();
+                this.showToast(next ? 'Public download enabled.' : 'Public download disabled.', 'success');
+            } catch (e) {
+                this.resume.is_public_pdf = prev;
+                this.showToast(e.message || 'Could not update sharing.', 'error');
+            } finally {
+                this.sharingSaving = false;
+            }
+        },
+        async copyPublicUrl() {
+            const url = this.resume.public_pdf_url;
+            if (!url) return;
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(url);
+                } else {
+                    const ta = document.createElement('textarea');
+                    ta.value = url; ta.style.position='fixed'; ta.style.opacity='0';
+                    document.body.appendChild(ta); ta.select();
+                    document.execCommand('copy'); ta.remove();
+                }
+                this.showToast('Link copied.', 'success');
+            } catch (e) {
+                this.showToast('Could not copy link.', 'error');
             }
         },
         async setColorTheme(id) {

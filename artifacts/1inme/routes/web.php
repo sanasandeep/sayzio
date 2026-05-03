@@ -174,12 +174,18 @@ Route::get('/r/{code}', [\App\Modules\User\Controllers\ReferralController::class
     ->name('referrals.track')
     ->where('code', '[a-z0-9_\-]{3,32}');
 
-// Stable owner-only resume PDF URL — auth-required; visitors get 404
-// so handle existence isn't leaked. Must precede the catch-all routes
-// below so `/{handle}/resume.pdf` doesn't get swallowed by alias resolution.
+// Stable resume PDF URL. The controller decides access:
+//   * Owner (signed-in & handle matches) — always allowed.
+//   * Anyone else — allowed only when the owner enabled `is_public_pdf`,
+//     otherwise 404 so handle existence isn't leaked.
+// Visitor traffic is throttled separately inside the controller using a
+// per-IP+handle bucket so a public link can't be hammered. The route's
+// own throttle is the broad upper bound for owners and visitors alike.
+// Must precede the catch-all `/{alias}` routes below so this isn't
+// swallowed by alias resolution.
 Route::get('/{handle}/resume.pdf',
     [\App\Modules\User\Controllers\ResumeController::class, 'downloadByHandle'])
-    ->middleware(['web', 'auth', 'throttle:20,1'])
+    ->middleware(['web', 'throttle:60,1'])
     ->where('handle', '[A-Za-z0-9_.-]{2,40}')
     ->name('resume.public.pdf');
 

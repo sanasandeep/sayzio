@@ -9,13 +9,14 @@ use Illuminate\Database\Eloquent\Model;
 class Resume extends Model
 {
     protected $fillable = [
-        'user_id', 'template_id', 'color_theme_id', 'sections',
+        'user_id', 'template_id', 'color_theme_id', 'sections', 'is_public_pdf',
     ];
 
     protected function casts(): array
     {
         return [
-            'sections' => 'array',
+            'sections'      => 'array',
+            'is_public_pdf' => 'boolean',
         ];
     }
 

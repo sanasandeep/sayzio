@@ -240,6 +240,7 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::put  ('summary',           [\App\Modules\User\Controllers\ResumeController::class, 'updateSummary'])->name('summary.update');
             Route::put  ('template',          [\App\Modules\User\Controllers\ResumeController::class, 'updateTemplate'])->name('template.update');
             Route::put  ('color-theme',       [\App\Modules\User\Controllers\ResumeController::class, 'updateColorTheme'])->name('color-theme.update');
+            Route::put  ('public-pdf',        [\App\Modules\User\Controllers\ResumeController::class, 'updatePublicPdf'])->name('public-pdf.update');
 
             Route::post  ('sections',         [\App\Modules\User\Controllers\ResumeController::class, 'addCustomSection'])->name('sections.store');
             Route::put   ('sections/{key}',   [\App\Modules\User\Controllers\ResumeController::class, 'updateCustomSection'])->where('key', '[a-z0-9_]+')->name('sections.update');

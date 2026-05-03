@@ -14,6 +14,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -124,6 +125,25 @@ class ResumeController extends Controller
 
         $resume = $user->ensureResume();
         $resume->update(['template_id' => $data['template_id']]);
+
+        return response()->json(['resume' => $this->present($resume->fresh('items'))]);
+    }
+
+    /**
+     * PUT — toggle the public-PDF privacy flag.
+     *
+     * When `is_public_pdf` is true, anyone (logged in or not) can fetch
+     * `/{handle}/resume.pdf`. When false, only the owner can; visitors
+     * get a 404 so the handle's existence isn't leaked.
+     */
+    public function updatePublicPdf(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'is_public_pdf' => ['required', 'boolean'],
+        ]);
+
+        $resume = $request->user()->ensureResume();
+        $resume->update(['is_public_pdf' => (bool) $data['is_public_pdf']]);
 
         return response()->json(['resume' => $this->present($resume->fresh('items'))]);
     }
@@ -344,32 +364,63 @@ class ResumeController extends Controller
     }
 
     /**
-     * GET — stable owner-only URL `/{handle}/resume.pdf`. Mirrors the
-     * download endpoint, but resolves the resume by handle so future
-     * features (sharing, link cards, embeds) can hand out a memorable
-     * URL without needing a session-scoped path. Strictly owner-only
-     * for now; visitors get a 404 to avoid revealing handle existence.
+     * GET — stable URL `/{handle}/resume.pdf`. Mirrors the download
+     * endpoint, but resolves the resume by handle so it can be shared.
+     *
+     * Access rules:
+     *  - Owner (signed-in, handle matches): always allowed; uses owner
+     *    throttle bucket (route-level throttle:20,1).
+     *  - Anyone else (anonymous OR signed-in non-owner): allowed only
+     *    when the owner has flipped `is_public_pdf` on. Visitor traffic
+     *    is rate-limited separately on a stricter per-IP+handle bucket
+     *    so a public link can't be weaponised against the renderer.
+     *  - When the flag is off (or the handle doesn't exist), visitors
+     *    get a 404 so handle existence isn't leaked.
      */
     public function downloadByHandle(Request $request, string $handle, ResumePdfRenderer $renderer): Response
     {
-        $signedIn = $request->user();
-        if (!$signedIn) abort(404);
-
         $owner = User::where('handle', $handle)->first();
-        if (!$owner || $owner->id !== $signedIn->id) abort(404);
+        if (!$owner) abort(404);
 
         $resume = $owner->ensureResume();
-        $resume->load('items');
+        $signedIn = $request->user();
+        $isOwner  = $signedIn && $signedIn->id === $owner->id;
 
+        if (!$isOwner) {
+            // Don't leak handle existence when sharing is off.
+            if (!$resume->is_public_pdf) abort(404);
+
+            // Stricter per-IP throttle for visitors so the public link
+            // can't be hammered to drive PDF generation cost.
+            $key = 'resume-public-pdf:' . sha1($handle . '|' . $request->ip());
+            if (RateLimiter::tooManyAttempts($key, 10)) {
+                $retryAfter = RateLimiter::availableIn($key);
+                return response('Too Many Requests', 429, [
+                    'Retry-After'           => (string) $retryAfter,
+                    'X-RateLimit-Limit'     => '10',
+                    'X-RateLimit-Remaining' => '0',
+                ]);
+            }
+            RateLimiter::hit($key, 60);
+        }
+
+        $resume->load('items');
         $size = $renderer->normalizeSize($request->query('size'));
         $out  = $renderer->render($resume, $owner, $size);
+
+        // Public downloads are safe to cache briefly at the edge; owner
+        // downloads stay private so a stale copy can't be served back.
+        $cache = $isOwner
+            ? 'private, max-age=0, no-store'
+            : 'public, max-age=60';
 
         return response($out['body'], 200, [
             'Content-Type'        => 'application/pdf',
             'Content-Disposition' => 'attachment; filename="' . $out['filename'] . '"',
             'Content-Length'      => (string) strlen($out['body']),
-            'Cache-Control'       => 'private, max-age=0, no-store',
+            'Cache-Control'       => $cache,
             'X-Resume-Paper-Size' => $size,
+            'X-Resume-Access'     => $isOwner ? 'owner' : 'public',
         ]);
     }
 
@@ -475,6 +526,12 @@ class ResumeController extends Controller
     {
         $items = $resume->items->map(fn ($i) => $this->presentItem($i))->groupBy('section_type');
 
+        $owner  = $resume->user;
+        $handle = $owner?->handle;
+        $publicUrl = ($handle && $resume->is_public_pdf)
+            ? url('/' . $handle . '/resume.pdf')
+            : null;
+
         return [
             'id'             => $resume->id,
             'template_id'    => $resume->template_id,
@@ -483,6 +540,9 @@ class ResumeController extends Controller
             'color_theme'    => $resume->colorThemeMeta(),
             'sections'       => $resume->getMergedSections(),
             'items'          => $items,
+            'is_public_pdf'  => (bool) $resume->is_public_pdf,
+            'public_pdf_url' => $publicUrl,
+            'handle'         => $handle,
             'updated_at'     => optional($resume->updated_at)->toIso8601String(),
         ];
     }
