@@ -6,7 +6,7 @@ export default function Slide13MobileApp() {
       <img src={`${base}hero-mobile.png`} crossOrigin="anonymous" alt="" className="absolute inset-0 w-full h-full object-cover opacity-50" />
       <div className="absolute inset-0 bg-[linear-gradient(110deg,rgba(10,10,20,0.95)_0%,rgba(10,10,20,0.7)_55%,rgba(10,10,20,0.35)_100%)]" />
 
-      <div className="absolute top-0 left-0 right-0 h-[6vh] flex items-center justify-between px-[5vw]"><div className="flex items-center gap-[0.7vw]"><div className="h-[1.4vw] w-[1.4vw] rounded-md bg-gradient-to-br from-violet-500 to-fuchsia-500" /><span className="font-display text-[1.2vw] font-bold tracking-tight">1INME</span></div><span className="text-[0.95vw] uppercase tracking-[0.25em] text-slate-300">Platforms · Mobile</span></div>
+      <div className="absolute top-0 left-0 right-0 h-[6vh] flex items-center justify-between px-[5vw]"><img src={`${base}logo-1inme-dark.png`} crossOrigin="anonymous" alt="1INME" className="h-[2.4vw] w-auto" /><span className="text-[0.95vw] uppercase tracking-[0.25em] text-slate-300">Platforms · Mobile</span></div>
 
       <div className="relative h-full w-full px-[7vw] pt-[14vh] pb-[8vh] flex flex-col">
         <span className="text-[1vw] uppercase tracking-[0.3em] text-fuchsia-300">Native iOS &amp; Android</span>

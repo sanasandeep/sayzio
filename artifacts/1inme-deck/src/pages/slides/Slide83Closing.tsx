@@ -5,6 +5,7 @@ export default function Slide83Closing() {
     <div className="w-screen h-screen overflow-hidden relative bg-[#0a0a14] text-slate-50 font-body">
       <img src={`${base}hero-cover.png`} crossOrigin="anonymous" alt="" className="absolute inset-0 w-full h-full object-cover opacity-55" />
       <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(10,10,20,0.92),rgba(20,9,31,0.7)_55%,rgba(10,10,20,0.45))]" />
+      <img src={`${base}logo-1inme-dark.png`} crossOrigin="anonymous" alt="1INME" className="absolute top-[5vh] left-[5vw] h-[2.4vw] w-auto z-10" />
 
       <div className="relative h-full w-full px-[8vw] py-[8vh] flex flex-col justify-center">
         <span className="font-display text-[1.1vw] uppercase tracking-[0.5em] text-fuchsia-200">Closing</span>
