@@ -141,6 +141,38 @@ class ReferralService
             'status' => 'rewarded',
             'converted_at' => now(),
         ]);
+
+        // Award fan-leaderboard points for the referral on every link the
+        // referrer owns that has the leaderboard enabled. The engine
+        // silently no-ops on disabled links, so this stays cheap and
+        // honors per-link opt-in. The referred user's identity is used as
+        // the "voter" so the points are attributed to a real fan.
+        try {
+            /** @var \App\Modules\User\Services\FanPointsEngine $engine */
+            $engine = app(\App\Modules\User\Services\FanPointsEngine::class);
+            $links = \App\Modules\User\Models\Link::query()
+                ->withoutGlobalScope('workspace')
+                ->where('user_id', $referrer->id)
+                ->get();
+            foreach ($links as $link) {
+                // Attribute the points to the REFERRER (the existing fan
+                // who brought the new user in), not to the referred user.
+                // The leaderboard ranks fans of the creator, so the
+                // referrer is the one whose rank should rise.
+                $engine->award(
+                    $link,
+                    'referral',
+                    $referral,
+                    $referrer->id,
+                    'referrer:' . $referrer->id,
+                    $referrer->name,
+                    ['referred_user_id' => $user->id]
+                );
+            }
+        } catch (\Throwable $e) {
+            // Don't let leaderboard accounting block the referral flow.
+            \Log::warning('FanPointsEngine referral award failed: ' . $e->getMessage());
+        }
     }
 
     /** Grants free days to a user and writes the ledger row. Idempotent. */

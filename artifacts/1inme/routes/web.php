@@ -45,6 +45,21 @@ Route::get   ('/viewer/me',         [\App\Modules\Common\Controllers\ViewerAuthC
 Route::post  ('/viewer/logout',     [\App\Modules\Common\Controllers\ViewerAuthController::class, 'logout'])->name('viewer.logout');
 Route::post  ('/viewer/follow/{creator}', [\App\Modules\Common\Controllers\ViewerAuthController::class, 'toggleFollow'])->middleware('throttle:30,1')->name('viewer.follow.toggle')->where('creator', '[0-9]+');
 
+// ---- Community Layer (public): Insider feed, comments/reactions/polls, fan leaderboard ----
+// Bound to a parent Link + (optional) BiolinkBlock so the controller can authorize per-block visibility.
+Route::prefix('community/{link}')->where(['link' => '[0-9]+'])->group(function () {
+    Route::post('blocks/{block}/insider/join',     [\App\Modules\User\Controllers\CommunityPublicController::class, 'joinInsider'])->middleware('throttle:10,1')->name('community.insider.join');
+    Route::post('blocks/{block}/insider/join-paid',[\App\Modules\User\Controllers\CommunityPublicController::class, 'joinInsiderPaid'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])->middleware('throttle:30,1')->name('community.insider.join_paid');
+    Route::get ('blocks/{block}/insider/feed',     [\App\Modules\User\Controllers\CommunityPublicController::class, 'feed'])->name('community.insider.feed');
+    Route::get ('blocks/{block}/comments',         [\App\Modules\User\Controllers\CommunityPublicController::class, 'listComments'])->name('community.comments.list');
+    Route::post('blocks/{block}/comments',         [\App\Modules\User\Controllers\CommunityPublicController::class, 'postComment'])->middleware('throttle:20,1')->name('community.comments.post');
+    Route::post('blocks/{block}/reactions',        [\App\Modules\User\Controllers\CommunityPublicController::class, 'react'])->middleware('throttle:60,1')->name('community.reactions.toggle');
+    Route::get ('blocks/{block}/polls',            [\App\Modules\User\Controllers\CommunityPublicController::class, 'listPolls'])->name('community.polls.list');
+    Route::post('blocks/{block}/polls/{poll}/vote',[\App\Modules\User\Controllers\CommunityPublicController::class, 'votePoll'])->middleware('throttle:30,1')->name('community.polls.vote');
+    Route::get ('leaderboard',                     [\App\Modules\User\Controllers\CommunityPublicController::class, 'leaderboard'])->name('community.leaderboard');
+    Route::post('engagement',                      [\App\Modules\User\Controllers\CommunityPublicController::class, 'trackEngagement'])->middleware('throttle:120,1')->name('community.engagement.track');
+});
+
 // Direct-message block: viewer sending/loading a thread on a biolink page.
 Route::get ('/viewer/dm/{link}/thread', [\App\Modules\Common\Controllers\ViewerDirectMessageController::class, 'thread'])->where('link', '[0-9]+')->name('viewer.dm.thread');
 Route::post('/viewer/dm/{link}/send',   [\App\Modules\Common\Controllers\ViewerDirectMessageController::class, 'send'])->where('link', '[0-9]+')->middleware('throttle:20,1')->name('viewer.dm.send');

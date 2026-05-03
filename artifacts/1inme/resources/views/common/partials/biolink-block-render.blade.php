@@ -858,9 +858,31 @@
         @endif
     </div>
 
+@elseif($block->type === 'insider')
+    @include('partials.community.insider-block', ['link' => $link, 'block' => $block])
+    @include('partials.community.polls-block', ['link' => $link, 'block' => $block])
+    @include('partials.community.comments-block', ['link' => $link, 'block' => $block])
+
+@elseif($block->type === 'fan_leaderboard')
+    @include('partials.community.leaderboard-block', ['link' => $link, 'block' => $block])
+
 @else
+    @if(!empty($block->settings['enable_polls']) || !empty($block->settings['enable_comments']))
+        @if(!empty($block->settings['enable_polls']))
+            @include('partials.community.polls-block', ['link' => $link, 'block' => $block])
+        @endif
+        @if(!empty($block->settings['enable_comments']))
+            @include('partials.community.comments-block', ['link' => $link, 'block' => $block])
+        @endif
+    @endif
     <div class="mb-4 glass-block rounded-xl p-4 text-center">
         <i class="fas fa-cube text-lg mb-1 text-purple-400/50"></i>
         <p class="text-xs text-white/40">{{ \App\Modules\User\Models\BiolinkBlock::TYPES[$block->type]['label'] ?? ucfirst(str_replace('_', ' ', $block->type)) }}</p>
     </div>
 @endif
+
+@once
+    @push('scripts')
+        <script src="{{ asset('js/community-public.js') }}" defer></script>
+    @endpush
+@endonce

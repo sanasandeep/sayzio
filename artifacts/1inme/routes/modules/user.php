@@ -675,6 +675,28 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get   ('links/{link}/blocks/{block}/poll-votes/erasures',  [PollVoteController::class, 'erasures'])->middleware('workspace.can:followers.view')->name('links.poll-votes.erasures');
         Route::post('links/{link}/blocks/{block}/poll-votes/reset',   [PollVoteController::class, 'reset'])->middleware('workspace.can:followers.edit')->name('links.poll-votes.reset');
         Route::post('links/{link}/blocks/{block}/poll-votes/snapshots/{snapshot}/undo', [PollVoteController::class, 'undoReset'])->middleware('workspace.can:followers.edit')->name('links.poll-votes.undo-reset');
+
+        // ===== Community Layer: Insider feed, comment moderation, fan leaderboard.
+        Route::get   ('links/{link}/blocks/{block}/insider',                  [\App\Modules\User\Controllers\InsiderBlockController::class, 'index'])->middleware('workspace.can:followers.view')->name('links.insider.index');
+        Route::get   ('links/{link}/blocks/{block}/insider/members',          [\App\Modules\User\Controllers\InsiderBlockController::class, 'members'])->middleware('workspace.can:followers.view')->name('links.insider.members');
+        Route::post  ('links/{link}/blocks/{block}/insider/posts',            [\App\Modules\User\Controllers\InsiderBlockController::class, 'storePost'])->middleware('workspace.can:followers.edit')->name('links.insider.posts.store');
+        Route::put   ('links/{link}/blocks/{block}/insider/posts/{post}',     [\App\Modules\User\Controllers\InsiderBlockController::class, 'updatePost'])->middleware('workspace.can:followers.edit')->name('links.insider.posts.update');
+        Route::delete('links/{link}/blocks/{block}/insider/posts/{post}',     [\App\Modules\User\Controllers\InsiderBlockController::class, 'destroyPost'])->middleware('workspace.can:followers.edit')->name('links.insider.posts.destroy');
+        Route::post  ('links/{link}/blocks/{block}/insider/members/{member}/ban', [\App\Modules\User\Controllers\InsiderBlockController::class, 'banMember'])->middleware('workspace.can:followers.edit')->name('links.insider.members.ban');
+
+        // Polls (creator-side CRUD; any biolink block can carry polls).
+        Route::get   ('links/{link}/blocks/{block}/polls',                    [\App\Modules\User\Controllers\BlockPollController::class, 'index'])->middleware('workspace.can:followers.view')->name('links.polls.index');
+        Route::post  ('links/{link}/blocks/{block}/polls',                    [\App\Modules\User\Controllers\BlockPollController::class, 'store'])->middleware('workspace.can:followers.edit')->name('links.polls.store');
+        Route::put   ('links/{link}/blocks/{block}/polls/{poll}',             [\App\Modules\User\Controllers\BlockPollController::class, 'update'])->middleware('workspace.can:followers.edit')->name('links.polls.update');
+        Route::delete('links/{link}/blocks/{block}/polls/{poll}',             [\App\Modules\User\Controllers\BlockPollController::class, 'destroy'])->middleware('workspace.can:followers.edit')->name('links.polls.destroy');
+
+        Route::get   ('links/{link}/blocks/{block}/comments',                  [\App\Modules\User\Controllers\BlockCommentController::class, 'index'])->middleware('workspace.can:followers.view')->name('links.comments.index');
+        Route::patch ('links/{link}/blocks/{block}/comments/{comment}',        [\App\Modules\User\Controllers\BlockCommentController::class, 'update'])->middleware('workspace.can:followers.edit')->name('links.comments.update');
+        Route::delete('links/{link}/blocks/{block}/comments/{comment}',        [\App\Modules\User\Controllers\BlockCommentController::class, 'destroy'])->middleware('workspace.can:followers.edit')->name('links.comments.destroy');
+        Route::post  ('links/{link}/blocks/{block}/comments/{comment}/ban',    [\App\Modules\User\Controllers\BlockCommentController::class, 'banAuthor'])->middleware('workspace.can:followers.edit')->name('links.comments.ban-author');
+
+        Route::get   ('links/{link}/leaderboard',                              [\App\Modules\User\Controllers\FanLeaderboardController::class, 'edit'])->middleware('workspace.can:followers.view')->name('links.leaderboard.edit');
+        Route::put   ('links/{link}/leaderboard',                              [\App\Modules\User\Controllers\FanLeaderboardController::class, 'update'])->middleware('workspace.can:followers.edit')->name('links.leaderboard.update');
         Route::post('qrcode', [QrCodeController::class, 'generateStandalone'])->middleware('workspace.can:links.create')->name('qrcode.download');
         Route::get('qrcode/preview', [QrCodeController::class, 'previewStandalone'])->middleware('workspace.can:links.view')->name('qrcode.preview');
 

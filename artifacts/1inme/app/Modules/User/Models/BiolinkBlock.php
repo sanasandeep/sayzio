@@ -92,6 +92,8 @@ class BiolinkBlock extends Model
         'timeline_staged'  => ['label' => 'Staged Timeline',     'icon' => 'fa-project-diagram',            'category' => 'interactive'],
         'social_proof'     => ['label' => 'Buzz Notification',   'icon' => 'fa-bell',                       'category' => 'interactive'],
         'ai_companion'     => ['label' => 'AI Companion',        'icon' => 'fa-robot',                      'category' => 'interactive'],
+        'insider'          => ['label' => 'Insider Feed',        'icon' => 'fa-lock',                       'category' => 'interactive'],
+        'fan_leaderboard'  => ['label' => 'Top Fans Leaderboard','icon' => 'fa-trophy',                     'category' => 'interactive'],
 
         // ── Commerce ──────────────────────────────────────────────────
         'product'          => ['label' => 'Product',             'icon' => 'fa-box',                        'category' => 'business'],
