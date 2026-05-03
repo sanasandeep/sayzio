@@ -274,6 +274,10 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('links/coach-undo', [LinkController::class, 'coachUndo'])->middleware('workspace.can:links.edit')->name('links.coach-undo');
         Route::delete('links/{link}/stats', [LinkController::class, 'resetStats'])->middleware('workspace.can:links.delete')->name('links.reset-stats');
         Route::put('links/{link}/alias', [LinkController::class, 'updateAlias'])->middleware('workspace.can:links.edit')->name('links.update-alias');
+        // Mint a fresh signed preview URL for the editor's device-preview iframe.
+        // Called by the editor when the existing 24h URL is about to expire so
+        // the iframe never falls into Laravel's "Invalid signature" page.
+        Route::get('links/{link}/preview-url', [LinkController::class, 'previewUrl'])->middleware('workspace.can:links.view')->name('links.preview-url');
 
         // Additional (alternative) aliases per link — same page served, no redirect.
         Route::post('links/{link}/aliases', [\App\Modules\User\Controllers\LinkAliasController::class, 'store'])->middleware('workspace.can:links.edit')->name('links.aliases.store');

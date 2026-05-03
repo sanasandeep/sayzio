@@ -2583,4 +2583,30 @@ class LinkController extends Controller
 
         return back()->with('success', 'URL alias updated successfully.');
     }
+
+    /**
+     * Mint a fresh signed preview URL for the editor's device-preview iframe.
+     *
+     * The blade signs a 24h URL on first render. Long editing sessions outlast
+     * that window, after which Laravel's signature middleware would 403 and the
+     * iframe would show the default "Invalid signature" page. The editor calls
+     * this endpoint shortly before expiry (and on demand after a banner click)
+     * to swap in a fresh URL without a full page reload.
+     */
+    public function previewUrl(Request $request, Link $link)
+    {
+        abort_if($link->user_id !== workspace_owner_id(), 403);
+
+        $expiresAt = now()->addHours(24);
+        $url = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+            'redirect.handle',
+            $expiresAt,
+            ['alias' => $link->alias, '_preview' => 1]
+        );
+
+        return response()->json([
+            'url'        => $url,
+            'expires_at' => $expiresAt->getTimestamp(),
+        ]);
+    }
 }

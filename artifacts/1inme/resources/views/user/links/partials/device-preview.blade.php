@@ -143,6 +143,50 @@
         letter-spacing: 0.5px;
         opacity: 0.6;
     }
+
+    /* Inline "preview session expired" banner overlaid on the device screen
+       when our background re-mint of the signed URL fails (e.g. dashboard
+       session was logged out in another tab). The user can click to retry. */
+    .preview-expired-banner {
+        position: absolute;
+        inset: 0;
+        z-index: 5;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 16px;
+        text-align: center;
+        background: rgba(10, 6, 18, 0.88);
+        backdrop-filter: blur(6px);
+        color: rgba(255, 255, 255, 0.92);
+        font-size: 12px;
+        line-height: 1.4;
+    }
+    .device-screen.preview-expired .preview-expired-banner { display: flex; }
+    .preview-expired-banner .preview-expired-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: #fff;
+    }
+    .preview-expired-banner .preview-expired-msg {
+        color: rgba(255, 255, 255, 0.65);
+        max-width: 220px;
+    }
+    .preview-expired-banner button {
+        margin-top: 4px;
+        padding: 6px 14px;
+        border-radius: 8px;
+        background: rgba(124, 58, 237, 0.85);
+        color: #fff;
+        font-size: 12px;
+        font-weight: 500;
+        border: 1px solid rgba(167, 139, 250, 0.4);
+        cursor: pointer;
+        transition: background 0.2s ease;
+    }
+    .preview-expired-banner button:hover { background: rgba(124, 58, 237, 1); }
 </style>
 
 <div class="device-preview-root" x-data="{ previewMode: 'phone' }">
@@ -172,6 +216,11 @@
                 </div>
                 <div class="device-screen relative" style="background: #000;">
                     <iframe class="preview-iframe" data-preview="phone"></iframe>
+                    <div class="preview-expired-banner">
+                        <div class="preview-expired-title">Preview session expired</div>
+                        <div class="preview-expired-msg">Your editor has been open for a while. Reload to refresh the preview.</div>
+                        <button type="button" onclick="refreshPreviewSignedUrl(true)">Reload preview</button>
+                    </div>
                 </div>
                 <div class="absolute bottom-[6px] left-1/2 -translate-x-1/2 rounded-full" style="width: 110px; height: 4px; background: rgba(255,255,255,0.12);"></div>
             </div>
@@ -186,6 +235,11 @@
                 <div class="px-3 pb-3">
                     <div class="device-screen rounded-lg" style="background: #000;">
                         <iframe class="preview-iframe" data-preview="tablet"></iframe>
+                        <div class="preview-expired-banner">
+                            <div class="preview-expired-title">Preview session expired</div>
+                            <div class="preview-expired-msg">Your editor has been open for a while. Reload to refresh the preview.</div>
+                            <button type="button" onclick="refreshPreviewSignedUrl(true)">Reload preview</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -201,6 +255,11 @@
                     <div class="py-3 pr-3 flex-1">
                         <div class="device-screen rounded-lg" style="background: #000;">
                             <iframe class="preview-iframe" data-preview="tablet-land"></iframe>
+                            <div class="preview-expired-banner">
+                                <div class="preview-expired-title">Preview session expired</div>
+                                <div class="preview-expired-msg">Your editor has been open for a while. Reload to refresh the preview.</div>
+                                <button type="button" onclick="refreshPreviewSignedUrl(true)">Reload preview</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -221,6 +280,11 @@
                 </div>
                 <div class="device-screen" style="background: #000;">
                     <iframe class="preview-iframe" data-preview="desktop"></iframe>
+                    <div class="preview-expired-banner">
+                        <div class="preview-expired-title">Preview session expired</div>
+                        <div class="preview-expired-msg">Your editor has been open for a while. Reload to refresh the preview.</div>
+                        <button type="button" onclick="refreshPreviewSignedUrl(true)">Reload preview</button>
+                    </div>
                 </div>
             </div>
             <div class="mx-auto relative" style="width: 50%; height: 18px; background: linear-gradient(180deg, #2a2a35, #1e1e28); border-radius: 0 0 2px 2px; border: 2px solid rgba(60,60,70,0.5); border-top: 1px solid rgba(60,60,70,0.3);">
@@ -237,14 +301,20 @@
     // `?_preview=1` + a valid Laravel signature as proof of ownership so the
     // iframe is never gated and never blocked by SameSite/3rd-party-cookie
     // behaviour on a custom domain. 24h expiry is plenty for an editing session.
+    $__previewExpiresAt = now()->addHours(24);
     $__previewUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
         'redirect.handle',
-        now()->addHours(24),
+        $__previewExpiresAt,
         ['alias' => $link->alias, '_preview' => 1]
     );
+    $__previewRefreshUrl = route('user.links.preview-url', ['link' => $link->id]);
 @endphp
 <script>
 var _previewUrl = @json($__previewUrl);
+var _previewExpiresAt = @json($__previewExpiresAt->getTimestamp()); // epoch seconds
+var _previewRefreshEndpoint = @json($__previewRefreshUrl);
+var _previewRefreshInFlight = null;
+var _previewRefreshTimer = null;
 var _activePreviewMode = 'phone';
 var _deviceViewports = {
     phone:        { w: 375, h: 812 },
@@ -283,7 +353,81 @@ function _ensureIframeObserved(iframe) {
     }
 }
 
+function _setExpiredBanner(show) {
+    document.querySelectorAll('.preview-iframe').forEach(function(f) {
+        var screen = f.closest('.device-screen');
+        if (!screen) return;
+        screen.classList.toggle('preview-expired', !!show);
+    });
+}
+
+// Mint a fresh signed URL via the editor endpoint. When `forceReloadAll` is
+// true we also reload every already-loaded iframe so the banner disappears
+// the moment the new URL is in hand. Returns a Promise<boolean>.
+function refreshPreviewSignedUrl(forceReloadAll) {
+    if (_previewRefreshInFlight) return _previewRefreshInFlight;
+    _previewRefreshInFlight = fetch(_previewRefreshEndpoint, {
+        credentials: 'same-origin',
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+    }).then(function(res) {
+        if (!res.ok) throw new Error('preview-url HTTP ' + res.status);
+        return res.json();
+    }).then(function(json) {
+        if (!json || !json.url) throw new Error('preview-url malformed response');
+        _previewUrl = json.url;
+        if (json.expires_at) _previewExpiresAt = json.expires_at;
+        _setExpiredBanner(false);
+        _schedulePreviewRefresh();
+        if (forceReloadAll) {
+            // Reload every iframe that already had a src so the new signed
+            // URL takes effect immediately on every device mode.
+            document.querySelectorAll('.preview-iframe').forEach(function(f) {
+                if (f.src && f.src !== 'about:blank' && f.src !== window.location.href) {
+                    _reloadIframe(f);
+                }
+            });
+        }
+        return true;
+    }).catch(function(err) {
+        // Most common failure: dashboard session was lost (auth redirect to
+        // login -> JSON parse fail) or network is offline. Show the inline
+        // banner so the user knows to reload, instead of letting the iframe
+        // silently drift into Laravel's "Invalid signature" page.
+        _setExpiredBanner(true);
+        return false;
+    }).finally(function() {
+        _previewRefreshInFlight = null;
+    });
+    return _previewRefreshInFlight;
+}
+
+// Schedule a proactive refresh ~5 minutes before the current signed URL
+// expires. Falls back to "right now" if the URL has already expired (e.g.
+// the laptop was asleep past the 24h window).
+function _schedulePreviewRefresh() {
+    if (_previewRefreshTimer) {
+        clearTimeout(_previewRefreshTimer);
+        _previewRefreshTimer = null;
+    }
+    if (!_previewExpiresAt) return;
+    var nowSec = Math.floor(Date.now() / 1000);
+    var leadSec = 300; // refresh 5 min before expiry
+    var delayMs = Math.max(0, (_previewExpiresAt - leadSec - nowSec) * 1000);
+    // Cap at ~24 days — setTimeout silently fires immediately past INT32_MAX.
+    if (delayMs > 2147483000) delayMs = 2147483000;
+    _previewRefreshTimer = setTimeout(function() { refreshPreviewSignedUrl(true); }, delayMs);
+}
+
 function _reloadIframe(f) {
+    // If the URL has already expired by the time we try to reload (long sleep
+    // / browser was backgrounded past the 24h window), block this reload and
+    // kick off a fresh-URL fetch instead — otherwise we'd just paint Laravel's
+    // "Invalid signature" page into the iframe.
+    var nowSec = Math.floor(Date.now() / 1000);
+    if (_previewExpiresAt && nowSec >= _previewExpiresAt) {
+        refreshPreviewSignedUrl(true);
+        return;
+    }
     try {
         if (f.contentWindow && f.contentWindow.location) {
             f.contentWindow.location.replace(_previewUrl);
@@ -298,6 +442,16 @@ function _reloadIframe(f) {
 function _ensureIframeLoaded(mode) {
     var f = document.querySelector('.preview-iframe[data-preview="' + mode + '"]');
     if (!f) return null;
+    var nowSec = Math.floor(Date.now() / 1000);
+    var expired = _previewExpiresAt && nowSec >= _previewExpiresAt;
+    if (expired) {
+        // URL has already expired (long-asleep tab) — fetch a fresh one before
+        // the iframe ever sees the bad signature.
+        refreshPreviewSignedUrl(true);
+        _ensureIframeObserved(f);
+        _scaleSingleIframe(f);
+        return f;
+    }
     if (!f.src || f.src === 'about:blank' || f.src === window.location.href) {
         f.src = _previewUrl;
         f.dataset.previewStale = '';
@@ -337,11 +491,23 @@ function refreshPreview() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    _schedulePreviewRefresh();
     _ensureIframeLoaded('phone');
 });
 
 window.addEventListener('resize', function() {
     clearTimeout(window._resizeScaleTimer);
     window._resizeScaleTimer = setTimeout(_scaleDeviceIframes, 150);
+});
+
+// Tab-return safety net: if the laptop was asleep / tab was hidden long
+// enough for the URL to expire, mint a new one the moment the user comes
+// back so they don't first see a broken preview frame.
+document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState !== 'visible') return;
+    var nowSec = Math.floor(Date.now() / 1000);
+    if (_previewExpiresAt && nowSec >= (_previewExpiresAt - 60)) {
+        refreshPreviewSignedUrl(true);
+    }
 });
 </script>
