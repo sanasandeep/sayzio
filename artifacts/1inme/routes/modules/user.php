@@ -404,6 +404,13 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::delete('custom-fonts/{font}',      [\App\Modules\User\Controllers\CustomFontController::class, 'destroy'])->name('custom-fonts.destroy');
         Route::post('links/{link}/preview-draft', [BiolinkBlockController::class, 'previewDraft'])->middleware('workspace.can:links.edit')->name('links.preview-draft');
 
+        // ── Conversational Biolink (chat-style guided flow) ─────────────
+        Route::get   ('links/{link}/conversational',           [\App\Modules\User\Controllers\ConversationFlowController::class, 'editor'])->middleware('workspace.can:links.view')->name('links.conversational.editor');
+        Route::post  ('links/{link}/conversational/toggle',    [\App\Modules\User\Controllers\ConversationFlowController::class, 'toggleMode'])->middleware('workspace.can:links.edit')->name('links.conversational.toggle');
+        Route::post  ('links/{link}/conversational',           [\App\Modules\User\Controllers\ConversationFlowController::class, 'save'])->middleware('workspace.can:links.edit')->name('links.conversational.save');
+        Route::get   ('links/{link}/conversational/analytics', [\App\Modules\User\Controllers\ConversationFlowController::class, 'analyticsPage'])->middleware('workspace.can:links.view')->name('links.conversational.analytics');
+        Route::get   ('links/{link}/conversational/analytics.json', [\App\Modules\User\Controllers\ConversationFlowController::class, 'analytics'])->middleware('workspace.can:links.view')->name('links.conversational.analytics.json');
+
         // Plan upgrade, checkout & billing — these touch the workspace
         // owner's subscription/wallet/invoices, so they remain owner-only
         // regardless of any member's role inside the workspace.

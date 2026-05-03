@@ -352,6 +352,9 @@ $catColors = [
                 <a href="{{ route('user.links.settings.appearance', $link) }}" class="editor-tab no-underline">
                     <i class="fas fa-cog text-[10px]"></i><span>Settings</span>
                 </a>
+                <a href="{{ route('user.links.conversational.editor', $link) }}" class="editor-tab no-underline">
+                    <i class="fas fa-comments text-[10px]"></i><span>Conversational</span>
+                </a>
             </div>
             <button @click="_insertAfterId = null; _cardGalleryParentId = null; showGallery = true" class="add-block-btn">
                 <span class="add-block-icon"><i class="fas fa-plus text-[11px]"></i></span>

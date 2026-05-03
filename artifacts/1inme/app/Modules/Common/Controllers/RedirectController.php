@@ -252,7 +252,7 @@ class RedirectController extends Controller
             ),
             'biolink' => tap(
                 $this->applyBiolinkFramingHeaders(
-                    response()->view('common.biolink', compact('link')),
+                    response()->view($this->biolinkViewFor($link), compact('link')),
                     $request
                 ),
                 fn () => $this->scheduleLazySocialRefresh()
@@ -271,7 +271,35 @@ class RedirectController extends Controller
      * owner-scoped preview (signed `?_preview=1`), also force no-store so
      * the editor sees fresh content on each refresh without polluting URLs
      * with cache-busting query strings.
+     *
+     * Pick the public template for a biolink. When the owner has switched
+     * the page into "Conversational" mode and there's a published flow
+     * available, render the chat UI instead of the static block list.
      */
+    protected function biolinkViewFor(Link $link): string
+    {
+        $mode = data_get($link->settings, 'biolink.mode', 'list');
+        if ($mode !== 'conversational') return 'common.biolink';
+        // In owner-scoped preview (signed `?_preview=1`) we allow the
+        // chat view even before the flow is published so creators can
+        // see their work-in-progress in the editor's preview iframe.
+        $req = request();
+        $isOwnerPreview = $req && $req->boolean('_preview')
+            && $req->hasValidSignatureWhileIgnoring(['_draft', '_t'], false);
+        if ($isOwnerPreview) {
+            // Authorise the in-iframe /cv/{alias}/start fetch to load the
+            // latest draft flow for the next 30 minutes. The session is
+            // shared with the iframe (same-origin), and the flag is link-
+            // scoped so it cannot be used to peek at other links' drafts.
+            session([
+                'cv_preview_link_'.$link->id => now()->addMinutes(30)->getTimestamp(),
+            ]);
+        }
+        $q = \App\Modules\User\Models\ConversationFlow::where('link_id', $link->id);
+        if (!$isOwnerPreview) $q->where('is_published', true);
+        return $q->exists() ? 'common.biolink-conversational' : 'common.biolink';
+    }
+
     protected function applyBiolinkFramingHeaders($response, Request $request)
     {
         $response->headers->set('X-Frame-Options', 'ALLOWALL');

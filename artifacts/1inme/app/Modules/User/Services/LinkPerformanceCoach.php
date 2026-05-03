@@ -187,6 +187,7 @@ class LinkPerformanceCoach
             self::ruleLongPageShortSession($ctx),
             self::ruleMissingPixel($ctx),
             self::ruleNoQrScans($ctx),
+            self::ruleConversationalFunnel($ctx),
             self::ruleMomentumWin($ctx, $deltaPct),
             self::ruleHighCtrWin($ctx),
             self::ruleLowBounceWin($ctx),
@@ -758,6 +759,90 @@ class LinkPerformanceCoach
             'headline' => 'No QR-attributed traffic this period',
             'reason'   => 'Your QR block isn\'t pulling its weight — print it on offline collateral like cards, flyers, or signage.',
         ];
+    }
+
+    /**
+     * Conversational biolink: when the page is in chat mode, score the
+     * funnel using session/completion data. Surface a critical insight if
+     * a step is bleeding visitors (>60% drop-off with at least 20 entries),
+     * a warning when overall completion is below 25% on a 30+ session base,
+     * and a win when completion clears 60%.
+     */
+    private static function ruleConversationalFunnel(array $ctx): ?array
+    {
+        /** @var Link|null $link */
+        $link = $ctx['link'] ?? null;
+        if (!$link) return null;
+        $mode = data_get($link->settings, 'biolink.mode', 'list');
+        if ($mode !== 'conversational') return null;
+
+        $flow = \App\Modules\User\Models\ConversationFlow::where('link_id', $link->id)->first();
+        if (!$flow) return null;
+
+        $sessions  = \App\Modules\User\Models\ConversationSession::where('flow_id', $flow->id)->count();
+        $completed = \App\Modules\User\Models\ConversationSession::where('flow_id', $flow->id)->where('completed', true)->count();
+
+        if ($sessions < 10) {
+            return [
+                'severity'     => 'info', 'priority' => 30,
+                'icon'         => 'fa-comments',
+                'headline'     => 'Conversational flow live — needs traffic',
+                'reason'       => 'You only have ' . $sessions . ' chat sessions so far. Drive a few more visitors before judging the funnel.',
+                'action_label' => 'Open flow',
+                'action_url'   => route('user.links.conversational.editor', $link),
+            ];
+        }
+
+        // Worst-step drop-off check.
+        $worst = \App\Modules\User\Models\ConversationStepEvent::where('flow_id', $flow->id)
+            ->selectRaw("step_key,
+                SUM(CASE WHEN event = 'entered' THEN 1 ELSE 0 END) as entered,
+                SUM(CASE WHEN event = 'answered' THEN 1 ELSE 0 END) as answered")
+            ->groupBy('step_key')
+            ->havingRaw('SUM(CASE WHEN event = \'entered\' THEN 1 ELSE 0 END) >= 20')
+            ->get()
+            ->map(fn ($r) => [
+                'key'  => $r->step_key,
+                'drop' => $r->entered > 0 ? (($r->entered - $r->answered) / $r->entered) : 0,
+                'entered' => (int) $r->entered,
+            ])
+            ->sortByDesc('drop')
+            ->first();
+
+        if ($worst && $worst['drop'] >= 0.60) {
+            $pct = round($worst['drop'] * 100);
+            return [
+                'severity'     => 'critical', 'priority' => 92,
+                'icon'         => 'fa-comment-slash',
+                'headline'     => "Step '{$worst['key']}' loses {$pct}% of visitors",
+                'reason'       => 'Most people abandon the chat at this step. Try shorter copy or fewer choices, or move it later in the flow.',
+                'action_label' => 'Edit flow',
+                'action_url'   => route('user.links.conversational.editor', $link),
+            ];
+        }
+
+        $rate = $sessions > 0 ? ($completed / $sessions) : 0;
+        if ($sessions >= 30 && $rate < 0.25) {
+            return [
+                'severity'     => 'warning', 'priority' => 65,
+                'icon'         => 'fa-comment-dots',
+                'headline'     => 'Only ' . round($rate * 100) . '% finish the chat',
+                'reason'       => 'Three out of four visitors quit before the recommendation. Shorten the flow to 3-4 steps and lead with the most useful question.',
+                'action_label' => 'Edit flow',
+                'action_url'   => route('user.links.conversational.editor', $link),
+            ];
+        }
+
+        if ($sessions >= 30 && $rate >= 0.60) {
+            return [
+                'severity'     => 'win', 'priority' => 22,
+                'icon'         => 'fa-comment-medical',
+                'headline'     => round($rate * 100) . '% of visitors finish the chat',
+                'reason'       => 'Your conversational flow is converting well — keep iterating on the end-action copy to push it higher.',
+            ];
+        }
+
+        return null;
     }
 
     private static function allGoodInsight(): array

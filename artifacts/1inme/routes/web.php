@@ -233,6 +233,17 @@ Route::post('/{handle}/resume', [\App\Modules\Common\Controllers\PublicResumeCon
 
 Route::get('/{alias}/manifest.json', [RedirectController::class, 'manifest'])->name('redirect.manifest')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|ai-chatbot|ai-agent|ai-widget|ai-voice-assistant|docs|newsletter|pricing|coins|premium-features|blogs).*$');
 Route::get('/{alias}', [RedirectController::class, 'handle'])->name('redirect.handle')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|ai-chatbot|ai-agent|ai-widget|ai-voice-assistant|docs|newsletter|pricing|coins|premium-features|blogs).*$');
+// ── Conversational Biolink visitor endpoints ─────────────────────
+// Use the /cv/ prefix so they don't collide with the catch-all /{alias} route.
+Route::post('/cv/{alias}/start',           [\App\Modules\Common\Controllers\ConversationPublicController::class, 'start'])
+    ->where('alias', '[^/]+')->middleware('throttle:30,1')->name('cv.public.start');
+Route::post('/cv/{publicId}/answer',       [\App\Modules\Common\Controllers\ConversationPublicController::class, 'answer'])
+    ->where('publicId', 'cvs_[a-z0-9]{20}')->middleware('throttle:120,1')->name('cv.public.answer');
+Route::post('/cv/{publicId}/drop',         [\App\Modules\Common\Controllers\ConversationPublicController::class, 'drop'])
+    ->where('publicId', 'cvs_[a-z0-9]{20}')->middleware('throttle:60,1')->name('cv.public.drop');
+Route::post('/cv/{publicId}/capture-email',[\App\Modules\Common\Controllers\ConversationPublicController::class, 'captureEmail'])
+    ->where('publicId', 'cvs_[a-z0-9]{20}')->middleware('throttle:20,1')->name('cv.public.captureEmail');
+
 Route::post('/{alias}/track/session', [\App\Modules\Common\Controllers\EngagementController::class, 'startSession'])->name('track.session.start')->where('alias', '[^/]+')->middleware('throttle:60,1');
 Route::post('/{alias}/track/heartbeat', [\App\Modules\Common\Controllers\EngagementController::class, 'heartbeat'])->name('track.heartbeat')->where('alias', '[^/]+')->middleware('throttle:120,1');
 Route::post('/{alias}/subscribe', [RedirectController::class, 'subscribe'])->name('redirect.subscribe')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|webhooks).*$')->middleware('throttle:10,1');

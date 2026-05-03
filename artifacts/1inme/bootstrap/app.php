@@ -32,6 +32,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'companion/*/message',
             'companion/*/session',
             'companion/*/rate',
+            // Conversational Biolink visitor flow. Visitor has no app
+            // session; rate-limited and bound to opaque `cvs_*` ids.
+            'cv/*/start',
+            'cv/*/answer',
+            'cv/*/drop',
             'webhooks/*',
             'api/*',
             // RFC 8058 one-click unsubscribe POST originates from inbox
