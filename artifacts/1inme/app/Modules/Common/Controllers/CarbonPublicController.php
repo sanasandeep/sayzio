@@ -92,6 +92,14 @@ class CarbonPublicController extends Controller
         if ($event['project_name'])    $purchase->project_name    = $event['project_name'];
         if ($event['status'] === 'succeeded' && $purchase->status !== 'succeeded') {
             $purchase->status = 'succeeded';
+            // Promote the owning snapshot from pending → purchased so
+            // the badge can finally be shown for this month.
+            $snap = BiolinkCarbonSnapshot::query()->withoutGlobalScope('workspace')
+                ->where('offset_purchase_id', $purchase->id)->first();
+            if ($snap && $snap->offset_status === 'pending') {
+                $snap->offset_status = 'purchased';
+                $snap->save();
+            }
         }
         if ($event['status'] === 'failed') {
             // Provider walked back the purchase after the fact (e.g.

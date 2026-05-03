@@ -34,7 +34,7 @@ class CarbonOffsetService
 
     public function offsetSnapshot(BiolinkCarbonSnapshot $snapshot): ?CarbonOffsetPurchase
     {
-        if ($snapshot->offset_status === 'purchased' || $snapshot->offset_status === 'sandbox') {
+        if (in_array($snapshot->offset_status, ['purchased', 'sandbox', 'pending'], true)) {
             return $snapshot->offset_purchase_id
                 ? CarbonOffsetPurchase::query()->withoutGlobalScope('workspace')->find($snapshot->offset_purchase_id)
                 : null;
@@ -118,8 +118,21 @@ class CarbonOffsetService
             $purchase->save();
 
             $snapshot->grams_offset       = $recordedGrams;
-            $snapshot->offset_status      = $isFailure ? 'failed'
-                                          : ($purchase->status === 'sandbox' ? 'sandbox' : 'purchased');
+            // Status mapping is strict: only 'purchased' or 'sandbox'
+            // are considered confirmed for badge purposes. A provider
+            // that returns 'pending' (Cloverly does this until the
+            // settlement webhook fires) MUST NOT be promoted to
+            // 'purchased' here — the webhook handler does that on
+            // confirmation. The badge endpoint filters on
+            // ['purchased','sandbox'] so a 'pending' snapshot stays
+            // hidden until the offset is actually settled.
+            $snapshot->offset_status      = match (true) {
+                $isFailure                       => 'failed',
+                $purchase->status === 'sandbox'  => 'sandbox',
+                $purchase->status === 'succeeded'=> 'purchased',
+                $purchase->status === 'purchased'=> 'purchased',
+                default                          => 'pending',
+            };
             $snapshot->offset_purchase_id = $purchase->id;
             $snapshot->save();
 
