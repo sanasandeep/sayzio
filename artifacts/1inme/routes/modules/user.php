@@ -436,6 +436,8 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('links/{link}/settings/advanced', [BiolinkBlockController::class, 'settingsAdvanced'])->middleware('workspace.can:links.view')->name('links.settings.advanced');
         Route::get ('links/{link}/settings/ar',     [\App\Modules\User\Controllers\ArSettingsController::class, 'edit'])->middleware('workspace.can:links.view')->name('links.settings.ar');
         Route::post('links/{link}/settings/ar',     [\App\Modules\User\Controllers\ArSettingsController::class, 'update'])->middleware('workspace.can:links.edit')->name('links.settings.ar.update');
+        Route::get ('links/{link}/settings/carbon', [\App\Modules\User\Controllers\CarbonController::class, 'editLink'])->whereNumber('link')->middleware('workspace.can:links.view')->name('links.settings.carbon');
+        Route::post('links/{link}/settings/carbon', [\App\Modules\User\Controllers\CarbonController::class, 'updateLink'])->whereNumber('link')->middleware('workspace.can:links.edit')->name('links.settings.carbon.update');
         Route::post('links/{link}/blocks', [BiolinkBlockController::class, 'store'])->middleware('workspace.can:links.edit')->name('links.blocks.store');
         Route::put('links/{link}/blocks/{block}', [BiolinkBlockController::class, 'update'])->middleware('workspace.can:links.edit')->name('links.blocks.update');
         Route::get('links/{link}/blocks/{block}/edit-form', [BiolinkBlockController::class, 'editForm'])->middleware('workspace.can:links.view')->name('links.blocks.editForm');
@@ -1060,7 +1062,7 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::get ('/',                    [\App\Modules\User\Controllers\CarbonController::class, 'index'])->name('index');
             Route::post('workspace',            [\App\Modules\User\Controllers\CarbonController::class, 'updateWorkspace'])->middleware('workspace.owner')->name('workspace.update');
             Route::post('links/{link}',         [\App\Modules\User\Controllers\CarbonController::class, 'updateLink'])->whereNumber('link')->name('link.update');
-            Route::get ('methodology',          [\App\Modules\Common\Controllers\CarbonPublicController::class, 'methodology'])->name('methodology');
+            Route::get ('methodology',          [\App\Modules\User\Controllers\CarbonController::class, 'methodology'])->name('methodology');
         });
 
         Route::middleware(SuperAdmin::class)->group(function () {

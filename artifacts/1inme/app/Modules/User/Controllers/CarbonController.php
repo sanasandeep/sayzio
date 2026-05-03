@@ -85,6 +85,29 @@ class CarbonController extends Controller
         return back()->with('success', 'Workspace sustainability defaults saved.');
     }
 
+    public function editLink(Request $request, Link $link)
+    {
+        abort_unless($request->user() && (int) $request->user()->id === (int) $link->user_id, 403);
+
+        $workspace      = $this->currentWorkspace($request);
+        $effective      = $workspace ? $this->settings->effectiveFor($workspace, $link) : ($this->settings->workspaceDefaults($workspace ?: new Workspace()));
+        $linkOverride   = (array) ($link->settings['carbon'] ?? []);
+        $hasOverride    = !empty($linkOverride);
+        $recentSnapshot = BiolinkCarbonSnapshot::query()
+            ->where('link_id', $link->id)
+            ->orderByDesc('period_start')
+            ->first();
+
+        return view('user.links.settings.carbon', [
+            'link'           => $link,
+            'workspace'      => $workspace,
+            'effective'      => $effective,
+            'hasOverride'    => $hasOverride,
+            'linkOverride'   => $linkOverride,
+            'recentSnapshot' => $recentSnapshot,
+        ]);
+    }
+
     public function updateLink(Request $request, Link $link)
     {
         abort_unless($request->user() && (int) $request->user()->id === (int) $link->user_id, 403);

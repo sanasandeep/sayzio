@@ -6,6 +6,7 @@
         'advanced' => ['icon' => 'fa-sliders-h', 'label' => 'Advanced', 'route' => 'user.links.settings.advanced'],
         'splash'   => ['icon' => 'fa-rocket', 'label' => 'Intro', 'route' => 'user.links.splash'],
         'ar'       => ['icon' => 'fa-vr-cardboard', 'label' => 'AR Card', 'route' => 'user.links.settings.ar'],
+        'carbon'   => ['icon' => 'fa-leaf', 'label' => 'Sustainability', 'route' => 'user.links.settings.carbon'],
     ];
 @endphp
 
