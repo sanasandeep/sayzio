@@ -2070,7 +2070,7 @@
         @if(!$__brandingHidden)
             {{-- Subtle viewer sign-in / follow entry in the branding strip. --}}
             @if($__creator && !$__isSelf && $__allowFollowers)
-            <div class="text-center mt-8 mb-1">
+            <div class="text-center mt-8 mb-1" style="grid-column: 1 / -1;">
                 @if(!$__viewer)
                     <button type="button"
                             @click="$dispatch('open-viewer-login', {creatorId: {{ (int)$__creator->id }} })"
@@ -2121,7 +2121,7 @@
             @endif
 
             @if(!empty($bs['custom_branding_text']))
-            <div class="text-center mt-4">
+            <div class="text-center mt-4" style="grid-column: 1 / -1;">
                 @if(!empty($bs['custom_branding_url']))
                 <a href="{{ $bs['custom_branding_url'] }}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 hover:opacity-80 transition-opacity" style="color: {{ $fontColor }}55; text-decoration: none;">
                 @else
@@ -2138,7 +2138,7 @@
                 @endif
             </div>
             @else
-            <p class="text-center text-xs mt-10" style="color: {{ $fontColor }}33">Powered by 1INME</p>
+            <p class="text-center text-xs mt-10" style="color: {{ $fontColor }}33; grid-column: 1 / -1;">Powered by 1INME</p>
             @endif
 
             @if(!$__ccIsOwner && \App\Modules\Common\Support\CookieConsentConfig::shouldRender('biolink'))
@@ -2148,7 +2148,7 @@
                     $__ccPolicyBio = $__ccCopyBio['policy_link_url'] ?? '/cookies';
                     $__ccReopenBio = $__ccCopyBio['reopen_link_label'] ?? 'Cookie preferences';
                 @endphp
-                <p class="text-center text-xs mt-3">
+                <p class="text-center text-xs mt-3" style="grid-column: 1 / -1;">
                     <a href="{{ $__ccPolicyBio }}"
                        class="cc-footer-link"
                        style="color: {{ $fontColor }}66;"
