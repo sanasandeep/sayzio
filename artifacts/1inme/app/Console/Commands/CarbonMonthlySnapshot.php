@@ -43,7 +43,11 @@ class CarbonMonthlySnapshot extends Command
         $start = $month->copy()->startOfMonth();
         $end   = $month->copy()->endOfMonth();
 
-        $q = Link::query()->where('is_active', true);
+        // Carbon snapshots are a per-BIOLINK feature only. Short-link
+        // / file / vcard / ics types redirect off-domain or download
+        // a payload, so the SWD per-view bytes model doesn't apply
+        // and offsetting them would misbill the workspace.
+        $q = Link::query()->where('is_active', true)->where('type', 'biolink');
         if ($this->option('link')) $q->where('id', $this->option('link'));
 
         $written = 0; $offset = 0; $skipped = 0;
