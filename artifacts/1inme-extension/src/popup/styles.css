@@ -384,6 +384,20 @@ body { width: 380px; }
 .pending-list { display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; }
 .pending-row { padding: 6px; border-radius: 6px; background: white; border: 1px solid #e2e8f0; }
 .pending-snippet { font-size: 12px; margin-top: 2px; white-space: pre-wrap; }
+.pending-thanks-pruned-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  border: 1px solid #fcd34d;
+  background: #fffbeb;
+  color: #78350f;
+  border-radius: 8px;
+  font-size: 12px;
+}
+.pending-thanks-pruned-notice .btn-link { color: #78350f; }
 
 /* Thank-you templates editor (Settings) */
 .template-card {

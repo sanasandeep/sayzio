@@ -8,6 +8,7 @@ import {
   TabMatchState,
   ThankChannel,
   ThankTemplate,
+  PENDING_THANKS_MAX,
   capPendingThanks,
   clearAuth,
   defaultThankTemplates,
@@ -99,6 +100,10 @@ export function App() {
   const [candidate, setCandidate] = useState<ContactCandidate | null>(null);
   const [extractError, setExtractError] = useState<string | null>(null);
   const [tabMatches, setTabMatches] = useState<TabMatchState | null>(null);
+  // One-time notice surfaced on the Backlinks tab when stale pending
+  // thanks were auto-pruned on popup open. Cleared once the creator
+  // dismisses it so it doesn't keep nagging.
+  const [prunedThanks, setPrunedThanks] = useState<number>(0);
 
   const loadAbTests = useCallback(async () => {
     setAbLoading(true);
@@ -118,8 +123,11 @@ export function App() {
     // Auto-expire stale pending thanks on popup open so the queue can't
     // grow forever for creators who never review the Backlinks tab.
     const { items, pruned } = prunePendingThanks(s.pendingThanks || []);
-    if (pruned) {
+    if (pruned > 0) {
       s = await setSettings({ pendingThanks: items });
+      // Surface a one-time notice on the Backlinks tab. Accumulate in
+      // case multiple refreshes happen before the creator dismisses it.
+      setPrunedThanks((p) => p + pruned);
     }
     setLocalSettings(s);
     setView((v) => {
@@ -382,7 +390,14 @@ export function App() {
           showToast={showToast}
         />
       )}
-      {view === "backlinks" && <BacklinksView settings={settings} showToast={showToast} />}
+      {view === "backlinks" && (
+        <BacklinksView
+          settings={settings}
+          showToast={showToast}
+          prunedThanks={prunedThanks}
+          onDismissPruned={() => setPrunedThanks(0)}
+        />
+      )}
       {view === "main" && (
         <div className="body">
           {tabMatches && tabMatches.matches.length > 0 && (
@@ -786,10 +801,27 @@ function ThankComposer({
         (q) => !(q.channel === item.channel && q.matchedUrl === item.matchedUrl && q.pageUrl === item.pageUrl),
       );
       // Cap the queue so it can't grow forever; oldest entries drop first.
-      const next = capPendingThanks([...filtered, item]);
+      const { items: next, dropped } = capPendingThanks([...filtered, item]);
       await setSettings({ pendingThanks: next });
       onQueued();
-      showToast({ kind: "success", text: "Queued — review in Backlinks → Pending thanks" });
+      if (dropped > 0) {
+        // Make the silent drop visible: the creator just queued an item
+        // that pushed the oldest one(s) out of the cap.
+        showToast({
+          kind: "info",
+          text: `Queue full (${next.length}/${PENDING_THANKS_MAX}) — dropped ${dropped} oldest thank-you${dropped === 1 ? "" : "s"} to make room.`,
+        });
+      } else if (next.length >= PENDING_THANKS_MAX) {
+        // Queue just hit the cap on this insert. Warn proactively so the
+        // creator knows the *next* queue action will start dropping the
+        // oldest entries.
+        showToast({
+          kind: "info",
+          text: `Queued — but the queue is now full (${next.length}/${PENDING_THANKS_MAX}). Oldest thank-yous will drop next.`,
+        });
+      } else {
+        showToast({ kind: "success", text: "Queued — review in Backlinks → Pending thanks" });
+      }
       onClose();
     } catch (e: any) {
       showToast({ kind: "error", text: e?.message || "Could not queue" });
@@ -1000,7 +1032,14 @@ function labelForType(t: RadarMatch["matchedPropertyType"]): string {
 }
 
 // ── Backlinks tab ───────────────────────────────────────────────────
-function BacklinksView({ settings, showToast }: { settings: ExtSettings; showToast: (t: Toast) => void }) {
+function BacklinksView({
+  settings, showToast, prunedThanks, onDismissPruned,
+}: {
+  settings: ExtSettings;
+  showToast: (t: Toast) => void;
+  prunedThanks: number;
+  onDismissPruned: () => void;
+}) {
   const [items, setItems] = useState<BacklinkRow[]>([]);
   const [days, setDays] = useState<7 | 30 | 90 | 0>(30);
   const [propertyType, setPropertyType] = useState<string>("");
@@ -1054,6 +1093,16 @@ function BacklinksView({ settings, showToast }: { settings: ExtSettings; showToa
 
   return (
     <div className="body">
+      {prunedThanks > 0 && (
+        <div className="pending-thanks-pruned-notice">
+          <span>
+            {prunedThanks === 1
+              ? "1 stale thank-you was removed (older than 30 days)."
+              : `${prunedThanks} stale thank-yous were removed (older than 30 days).`}
+          </span>
+          <button className="btn-link" onClick={onDismissPruned}>Dismiss</button>
+        </div>
+      )}
       <PendingThanksPanel settings={settings} showToast={showToast} />
       <div className="filters-row">
         <select className="workspace-select" value={String(days)} onChange={(e) => setDays(Number(e.target.value) as any)}>

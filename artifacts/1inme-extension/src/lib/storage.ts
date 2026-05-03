@@ -321,20 +321,26 @@ export async function clearAuth(): Promise<void> {
 // Append an item to the pending-thanks queue while enforcing the cap.
 // Dedupe (by channel + matchedUrl + pageUrl) is handled by callers; this
 // helper only owns size enforcement so the queue can never exceed
-// PENDING_THANKS_MAX. Oldest items are dropped first.
-export function capPendingThanks(items: PendingThank[]): PendingThank[] {
-  if (items.length <= PENDING_THANKS_MAX) return items;
-  return items.slice(items.length - PENDING_THANKS_MAX);
+// PENDING_THANKS_MAX. Oldest items are dropped first. Returns the
+// capped list and the number of dropped entries so the popup can warn
+// the creator that the oldest thank-yous fell off.
+export function capPendingThanks(
+  items: PendingThank[],
+): { items: PendingThank[]; dropped: number } {
+  if (items.length <= PENDING_THANKS_MAX) return { items, dropped: 0 };
+  const dropped = items.length - PENDING_THANKS_MAX;
+  return { items: items.slice(dropped), dropped };
 }
 
-// Drop pending thanks older than the TTL. Returns the pruned list and a
-// flag indicating whether anything was removed (so callers can avoid an
-// unnecessary write to browser.storage.local).
+// Drop pending thanks older than the TTL. Returns the pruned list and
+// the count of removed entries (so callers can avoid an unnecessary
+// write to browser.storage.local and surface a one-time notice with
+// the exact number of stale items).
 export function prunePendingThanks(
   items: PendingThank[],
   now: number = Date.now(),
-): { items: PendingThank[]; pruned: boolean } {
+): { items: PendingThank[]; pruned: number } {
   const cutoff = now - PENDING_THANKS_TTL_MS;
   const kept = items.filter((q) => q.createdAt >= cutoff);
-  return { items: kept, pruned: kept.length !== items.length };
+  return { items: kept, pruned: items.length - kept.length };
 }
