@@ -226,8 +226,8 @@ class ResumeImportService
     /**
      * Generate a draft summary / experience bullets / skills list from
      * a short user prompt. Section selection lets the user re-run for
-     * just one part. Charges credits via the existing `coach` feature
-     * map so admins don't need to add a new entry.
+     * just one part. Charges credits via the dedicated `resume_import`
+     * feature map so admins can tune the model independently of Coach.
      */
     public function importFromAi(User $user, string $prompt, array $sections, array $context = []): array
     {
@@ -264,7 +264,7 @@ class ResumeImportService
                 "User prompt:\n{$prompt}"],
         ];
 
-        $model  = AiEngineSettings::featureModel('coach');
+        $model  = AiEngineSettings::featureModel('resume_import');
         $result = $this->openai->chat($user, $model, $messages, [
             'temperature'     => 0.5,
             'max_tokens'      => 1200,
