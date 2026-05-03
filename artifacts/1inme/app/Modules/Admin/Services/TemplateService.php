@@ -182,6 +182,10 @@ class TemplateService
         ]);
         $link->exists = false;
         $link->setRelation('user', $user);
+        // Pre-load `pixels` as an empty collection so the biolink view's
+        // `$link->pixels->count()` / `@foreach($link->pixels)` resolves
+        // without Eloquent trying to lazy-load the (non-existent) relation.
+        $link->setRelation('pixels', collect());
 
         $all = collect();
         $topActive = collect();
