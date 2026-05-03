@@ -5,18 +5,35 @@
 <style>[x-cloak]{display:none !important;}</style>
 @endpush
 
+@php
+    // Precompute search haystacks once on the server, keyed by group name,
+    // so Alpine can do simple .some()/.includes() without per-element JSON.parse.
+    $groupHaystackMap = [];
+    foreach ($grouped as $gName => $gItems) {
+        $groupHaystackMap[$gName] = collect($gItems)
+            ->map(fn($p) => strtolower($p['label'].' '.($p['blurb'] ?? '').' '.$p['slug']))
+            ->values()->all();
+    }
+    // Bundle all Alpine init data here. We render it as a JSON script
+    // block instead of inline in the x-data attribute, because @json
+    // emits unescaped double quotes that would otherwise truncate the
+    // attribute at the first " and break the whole Alpine component.
+    $onboardingConfig = [
+        'initialPersona'     => $current ?? '',
+        'templatesUrl'       => route('user.onboarding.templates.list'),
+        'savePersonaUrl'     => route('user.onboarding.persona.save'),
+        'rememberPreviewUrl' => route('user.onboarding.preview.remember'),
+        'dismissPreviewUrl'  => route('user.onboarding.preview.dismiss'),
+        'csrf'               => csrf_token(),
+        'personas'           => collect($personas)->map(fn($p) => ['slug' => $p['slug'], 'label' => $p['label']])->values()->all(),
+        'haystacks'          => $groupHaystackMap,
+        'resume'             => $resume ?? null,
+    ];
+@endphp
 @section('content')
+<script type="application/json" id="onboarding-config">@json($onboardingConfig)</script>
 <div class="max-w-[1400px] mx-auto"
-     x-data="onboarding({
-        initialPersona: @json($current ?? ''),
-        templatesUrl: @json(route('user.onboarding.templates.list')),
-        savePersonaUrl: @json(route('user.onboarding.persona.save')),
-        rememberPreviewUrl: @json(route('user.onboarding.preview.remember')),
-        dismissPreviewUrl: @json(route('user.onboarding.preview.dismiss')),
-        csrf: @json(csrf_token()),
-        personas: @json(collect($personas)->map(fn($p) => ['slug' => $p['slug'], 'label' => $p['label']])->values()),
-        resume: @json($resume ?? null),
-     })">
+     x-data="onboarding(JSON.parse(document.getElementById('onboarding-config').textContent))">
 
     {{-- Header (no STEP X OF Y — it's one page now) --}}
     <div class="flex items-start justify-between gap-4 mb-5">
@@ -53,10 +70,7 @@
             </div>
 
             @foreach($grouped as $groupName => $items)
-                @php
-                    $groupHaystacks = collect($items)->map(fn($p) => strtolower($p['label'].' '.($p['blurb'] ?? '').' '.$p['slug']))->values()->all();
-                @endphp
-                <div x-show="q === '' || @js($groupHaystacks).some(h => h.includes(q.toLowerCase()))">
+                <div x-show="groupVisible(@js($groupName))">
                     <h2 class="text-[10px] font-bold uppercase tracking-wider text-white/40 px-1.5 pt-3 pb-1.5">{{ $groupName }}</h2>
                     <div class="space-y-1">
                         @foreach($items as $p)
@@ -197,10 +211,11 @@
 </div>
 
 <script>
-function onboarding({ initialPersona, templatesUrl, savePersonaUrl, rememberPreviewUrl, dismissPreviewUrl, csrf, personas, resume }) {
+function onboarding({ initialPersona, templatesUrl, savePersonaUrl, rememberPreviewUrl, dismissPreviewUrl, csrf, personas, haystacks, resume }) {
     return {
         picked: initialPersona || '',
         personas: personas || [],
+        haystacks: haystacks || {},
         q: '',
         loading: false,
         previewOpen: false,
@@ -246,6 +261,11 @@ function onboarding({ initialPersona, templatesUrl, savePersonaUrl, rememberPrev
                 });
                 if (resp.ok && this.$refs.grid) {
                     this.$refs.grid.innerHTML = await resp.text();
+                    // Re-scan injected DOM so @click handlers on the new
+                    // template cards are wired up by Alpine.
+                    if (window.Alpine && typeof window.Alpine.initTree === 'function') {
+                        window.Alpine.initTree(this.$refs.grid);
+                    }
                 }
             } catch (e) {
                 // Leave existing grid as-is on failure.
@@ -259,10 +279,26 @@ function onboarding({ initialPersona, templatesUrl, savePersonaUrl, rememberPrev
             return p ? p.label : '';
         },
 
-        noPersonaMatches() {
+        groupVisible(name) {
+            if (this.q === '') return true;
             const q = this.q.toLowerCase();
-            if (!q) return false;
-            return !this.personas.some(p => (p.label || '').toLowerCase().includes(q));
+            const list = this.haystacks[name] || [];
+            for (let i = 0; i < list.length; i++) {
+                if (list[i].includes(q)) return true;
+            }
+            return false;
+        },
+
+        noPersonaMatches() {
+            if (this.q === '') return false;
+            const q = this.q.toLowerCase();
+            for (const name in this.haystacks) {
+                const list = this.haystacks[name] || [];
+                for (let i = 0; i < list.length; i++) {
+                    if (list[i].includes(q)) return false;
+                }
+            }
+            return true;
         },
 
         openPreview(tpl) {
