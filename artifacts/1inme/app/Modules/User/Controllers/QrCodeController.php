@@ -5,7 +5,10 @@ namespace App\Modules\User\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\QrCode as QrCodeModel;
+use App\Modules\User\Models\UserFile;
+use App\Modules\User\Support\QrCodeCatalog;
 use App\Modules\User\Support\QrCodeTypeRegistry;
+use App\Services\UploadPolicy;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
@@ -84,6 +87,24 @@ class QrCodeController extends Controller
     }
 
     /** Returns the encoded payload string for a given type+payload — used for live preview. */
+    /** Logo upload endpoint for any of the 3 QR builder logo slots. */
+    public function uploadLogo(Request $request)
+    {
+        $request->validate([
+            'logo' => UploadPolicy::rule('qr.logo', $request->user(), true),
+            'slot' => ['nullable', Rule::in(['center', 'background', 'foreground'])],
+        ]);
+        $cap = UploadPolicy::for('qr.logo', $request->user());
+        try {
+            $file = UserFile::createFromUpload($request->file('logo'), $request->user(), [
+                'max_size_mb' => $cap['max_mb'],
+            ]);
+        } catch (\RuntimeException $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+        return response()->json(['url' => $file->url]);
+    }
+
     public function resolvePayload(Request $request)
     {
         $request->validate([
@@ -109,6 +130,17 @@ class QrCodeController extends Controller
 
     private function validateRequest(Request $request): array
     {
+        // Builder posts the entire design tree as a JSON blob in `design_json`
+        // for round-trip fidelity. Decode it back into a `design` array so the
+        // rest of the validation/sanitization pipeline keeps working unchanged.
+        if ($request->filled('design_json') && !$request->has('design')) {
+            $decoded = json_decode((string) $request->input('design_json'), true);
+            if (is_array($decoded)) $request->merge(['design' => $decoded]);
+        }
+        if ($request->filled('payload_json') && !$request->has('payload')) {
+            $decoded = json_decode((string) $request->input('payload_json'), true);
+            if (is_array($decoded)) $request->merge(['payload' => $decoded]);
+        }
         $userId = workspace_owner_id();
         $base = $request->validate([
             'name'       => 'required|string|max:160',
@@ -143,32 +175,70 @@ class QrCodeController extends Controller
         $defaults = $this->defaultDesign();
         $hex = fn($v, $fallback) => is_string($v) && preg_match('/^#[0-9A-Fa-f]{6}$/', $v) ? $v : $fallback;
         $clamp = fn($v, $min, $max, $fb) => is_numeric($v) ? max($min, min($max, (float) $v)) : $fb;
+        $oneOf = fn($v, array $allowed, $fb) => in_array($v, $allowed, true) ? $v : $fb;
+
+        $dotIds   = QrCodeCatalog::dotIds();
+        $outerIds = QrCodeCatalog::outerEyeIds();
+        $innerIds = QrCodeCatalog::innerEyeIds();
+
         return [
             'size'                => (int) $clamp($d['size'] ?? null, 100, 2000, $defaults['size']),
             'margin'              => (int) $clamp($d['margin'] ?? null, 0, 80, $defaults['margin']),
-            'error_correction'    => in_array($d['error_correction'] ?? null, ['L','M','Q','H']) ? $d['error_correction'] : $defaults['error_correction'],
+            'error_correction'    => $oneOf($d['error_correction'] ?? null, ['L','M','Q','H'], $defaults['error_correction']),
             'fg_color'            => $hex($d['fg_color']            ?? null, $defaults['fg_color']),
             'bg_color'            => $hex($d['bg_color']            ?? null, $defaults['bg_color']),
             'transparent_bg'      => (bool) ($d['transparent_bg'] ?? false),
-            'dot_style'           => in_array($d['dot_style'] ?? null, ['square','rounded','dots','classy','classy-rounded','extra-rounded']) ? $d['dot_style'] : $defaults['dot_style'],
-            'corner_square_style' => in_array($d['corner_square_style'] ?? null, ['dot','square','extra-rounded']) ? $d['corner_square_style'] : $defaults['corner_square_style'],
+            'dot_style'           => $oneOf($d['dot_style']           ?? null, $dotIds,   $defaults['dot_style']),
+            'corner_square_style' => $oneOf($d['corner_square_style'] ?? null, $outerIds, $defaults['corner_square_style']),
             'corner_square_color' => $hex($d['corner_square_color'] ?? null, $defaults['corner_square_color']),
-            'corner_dot_style'    => in_array($d['corner_dot_style'] ?? null, ['dot','square']) ? $d['corner_dot_style'] : $defaults['corner_dot_style'],
+            'corner_dot_style'    => $oneOf($d['corner_dot_style']    ?? null, $innerIds, $defaults['corner_dot_style']),
             'corner_dot_color'    => $hex($d['corner_dot_color']    ?? null, $defaults['corner_dot_color']),
-            'logo_url'            => is_string($d['logo_url'] ?? null) ? mb_substr($d['logo_url'], 0, 2000) : null,
-            'logo_size'           => $clamp($d['logo_size'] ?? null, 0.05, 0.5, $defaults['logo_size']),
-            'logo_margin'         => (int) $clamp($d['logo_margin'] ?? null, 0, 30, $defaults['logo_margin']),
+            'qr_rotation'         => (int) $oneOf((int) ($d['qr_rotation'] ?? 0), [0,90,180,270], 0),
+            'drop_shadow'         => (bool) ($d['drop_shadow'] ?? false),
+            'gradient'            => $this->sanitizeGradient($d['gradient'] ?? [], $hex),
+            'eye_outer_gradient'  => $this->sanitizeGradient($d['eye_outer_gradient'] ?? [], $hex),
+            'eye_inner_gradient'  => $this->sanitizeGradient($d['eye_inner_gradient'] ?? [], $hex),
+            'bg_gradient'         => $this->sanitizeGradient($d['bg_gradient'] ?? [], $hex),
             'hide_dots_behind_logo' => (bool) ($d['hide_dots_behind_logo'] ?? true),
+            'logo_center'         => $this->sanitizeLogo($d['logo_center']     ?? [], $defaults['logo_center'], $clamp),
+            'logo_background'     => $this->sanitizeLogo($d['logo_background'] ?? [], $defaults['logo_background'], $clamp),
+            'logo_foreground'     => $this->sanitizeLogo($d['logo_foreground'] ?? [], $defaults['logo_foreground'], $clamp),
             'frame'               => $this->sanitizeFrame($d['frame'] ?? [], $defaults['frame'], $hex),
+        ];
+    }
+
+    private function sanitizeLogo(array $l, array $defaults, callable $clamp): array
+    {
+        return [
+            'url'      => is_string($l['url'] ?? null) && $l['url'] !== '' ? mb_substr($l['url'], 0, 2000) : null,
+            'show'     => (bool) ($l['show'] ?? false),
+            'size'     => (float) $clamp($l['size']     ?? null, 0.02, 1.0, $defaults['size']),
+            'x'        => (float) $clamp($l['x']        ?? null, 0,    100, $defaults['x']),
+            'y'        => (float) $clamp($l['y']        ?? null, 0,    100, $defaults['y']),
+            'opacity'  => (float) $clamp($l['opacity']  ?? null, 0,    1,   $defaults['opacity']),
+            'rotation' => (int)   $clamp($l['rotation'] ?? null, -360, 360, $defaults['rotation']),
+        ];
+    }
+
+    private function sanitizeGradient(array $g, callable $hex): array
+    {
+        return [
+            'enabled' => (bool) ($g['enabled'] ?? false),
+            'type'    => in_array($g['type'] ?? null, ['linear','radial'], true) ? $g['type'] : 'linear',
+            'from'    => $hex($g['from'] ?? null, '#000000'),
+            'to'      => $hex($g['to']   ?? null, '#5b8def'),
+            'angle'   => (int) max(0, min(360, (int) ($g['angle'] ?? 0))),
         ];
     }
 
     private function sanitizeFrame(array $f, array $defaults, callable $hex): array
     {
+        $frameIds = QrCodeCatalog::frameIds();
+        $fonts    = QrCodeCatalog::fonts();
         return [
-            'template'   => in_array($f['template'] ?? null, ['none','scan-me','classic','rounded','ribbon','bubble','minimal','arrow']) ? $f['template'] : 'none',
+            'template'   => in_array($f['template'] ?? null, $frameIds, true) ? $f['template'] : 'none',
             'text'       => is_string($f['text'] ?? null) ? mb_substr($f['text'], 0, 60) : 'SCAN ME',
-            'font'       => in_array($f['font'] ?? null, ['Inter','Roboto','Poppins','Montserrat','Playfair Display','Bebas Neue','Pacifico']) ? $f['font'] : 'Inter',
+            'font'       => in_array($f['font'] ?? null, $fonts, true) ? $f['font'] : 'Inter',
             'bg_color'   => $hex($f['bg_color']   ?? null, '#000000'),
             'text_color' => $hex($f['text_color'] ?? null, '#ffffff'),
         ];
@@ -176,13 +246,22 @@ class QrCodeController extends Controller
 
     private function defaultDesign(): array
     {
+        $logoDefault = ['url' => null, 'show' => false, 'size' => 0.25, 'x' => 50, 'y' => 50, 'opacity' => 1.0, 'rotation' => 0];
         return [
-            'size' => 400, 'margin' => 10, 'error_correction' => 'M',
+            'size' => 400, 'margin' => 4, 'error_correction' => 'M',
             'fg_color' => '#071437', 'bg_color' => '#ffffff', 'transparent_bg' => false,
             'dot_style' => 'rounded',
             'corner_square_style' => 'extra-rounded', 'corner_square_color' => '#071437',
-            'corner_dot_style' => 'dot',                'corner_dot_color' => '#071437',
-            'logo_url' => null, 'logo_size' => 0.25, 'logo_margin' => 5, 'hide_dots_behind_logo' => true,
+            'corner_dot_style' => 'dot',              'corner_dot_color' => '#071437',
+            'qr_rotation' => 0, 'drop_shadow' => false,
+            'gradient'            => ['enabled' => false, 'type' => 'linear', 'from' => '#071437', 'to' => '#5b8def', 'angle' => 45],
+            'eye_outer_gradient'  => ['enabled' => false, 'type' => 'linear', 'from' => '#071437', 'to' => '#5b8def', 'angle' => 45],
+            'eye_inner_gradient'  => ['enabled' => false, 'type' => 'linear', 'from' => '#071437', 'to' => '#5b8def', 'angle' => 45],
+            'bg_gradient'         => ['enabled' => false, 'type' => 'linear', 'from' => '#ffffff', 'to' => '#e2e8f0', 'angle' => 180],
+            'hide_dots_behind_logo' => true,
+            'logo_center'     => ['url' => null, 'show' => false, 'size' => 0.25, 'x' => 50, 'y' => 50, 'opacity' => 1.0, 'rotation' => 0],
+            'logo_background' => ['url' => null, 'show' => false, 'size' => 1.0,  'x' => 50, 'y' => 50, 'opacity' => 0.3, 'rotation' => 0],
+            'logo_foreground' => ['url' => null, 'show' => false, 'size' => 0.2,  'x' => 80, 'y' => 80, 'opacity' => 1.0, 'rotation' => 0],
             'frame' => [
                 'template' => 'none', 'text' => 'SCAN ME', 'font' => 'Inter',
                 'bg_color' => '#071437', 'text_color' => '#ffffff',
