@@ -1293,8 +1293,11 @@
         .faq-item[open] .faq-icon { transform: rotate(45deg); }
         .faq-icon { transition: transform .3s; }
 
-        /* ============ Brand logo dark mode ============ */
+        /* ============ Brand logo dark/light mode ============ */
         .brand-logo--light { display: none; }
+        .brand-logo--dark  { display: inline-block; }
+        html.light-mode .brand-logo--light { display: inline-block; }
+        html.light-mode .brand-logo--dark  { display: none; }
 
         /* ============ Workspace collab panel ============ */
         .ws-card { position: relative; }
@@ -2280,6 +2283,33 @@
             background: #f1f5f9; border-color: #e2e8f0; color: #334155;
         }
         html.light-mode .theme-btn:hover { background: #e2e8f0; color: #0f172a; }
+
+        /* ---- Soften brand gradient accents on white ---- */
+        /* The default gradient stops are calibrated for a near-black bg and
+           look glaring on a white page. Use deeper, slightly desaturated
+           stops so the "Sign up free" button + headline underline read as
+           premium accents instead of neon. White button text stays legible
+           because the mid-stops are still dark enough for contrast. */
+        html.light-mode .grad-bar {
+            background: linear-gradient(95deg,
+                #0aa3a8 0%,
+                #6d28d9 30%,
+                #be185d 55%,
+                #c2410c 78%,
+                #b45309 100%);
+        }
+        html.light-mode .btn-glow::after {
+            background: conic-gradient(from 0deg,
+                #0aa3a8, #6d28d9, #be185d, #c2410c, #b45309, #0aa3a8);
+            filter: blur(10px);
+        }
+        html.light-mode .btn-glow:hover::after { opacity: .35; }
+        /* Tone down the violet drop-shadow halo on the Sign up free button */
+        html.light-mode .shadow-\[\#7c3aed\]\/30 {
+            --tw-shadow-color: rgba(124,58,237,.12);
+            --tw-shadow: var(--tw-shadow-colored);
+            box-shadow: 0 10px 15px -3px rgba(124,58,237,.12), 0 4px 6px -4px rgba(124,58,237,.10);
+        }
     </style>
 </head>
 <body class="overflow-x-hidden">
