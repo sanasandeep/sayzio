@@ -3,7 +3,7 @@
 @section('page-title', 'Page & Card Templates')
 
 @section('content')
-<div x-data="{ search: '', category: 'all', persona: 'all' }">
+<div x-data="{ search: '', category: 'all', persona: 'all', customized: 'all' }">
 <div class="flex items-center justify-between mb-6">
     <p class="text-sm text-white/40">Curate full-page presets and reusable card-block presets.</p>
     <div class="flex items-center gap-2">
@@ -51,6 +51,32 @@
     @endif
 </div>
 
+@if($tab === 'page')
+    @php
+        $customizedCount = $rows->filter(fn($t) => $t->wasCustomized())->count();
+        $untouchedCount = $rows->count() - $customizedCount;
+    @endphp
+    <div class="flex items-center gap-1 mb-4 p-1 rounded-xl bg-white/5 border border-white/5 w-max">
+        <button type="button" @click="customized = 'all'"
+                :class="customized === 'all' ? 'bg-violet-600 text-white' : 'text-white/50 hover:text-white'"
+                class="px-3 py-1.5 text-xs font-semibold rounded-lg transition">
+            All ({{ $rows->count() }})
+        </button>
+        <button type="button" @click="customized = 'yes'"
+                :class="customized === 'yes' ? 'bg-violet-600 text-white' : 'text-white/50 hover:text-white'"
+                class="px-3 py-1.5 text-xs font-semibold rounded-lg transition"
+                title="Templates an admin has saved at least once since they were created">
+            <i class="fas fa-pen-nib mr-1 text-[10px]"></i>Customized ({{ $customizedCount }})
+        </button>
+        <button type="button" @click="customized = 'no'"
+                :class="customized === 'no' ? 'bg-violet-600 text-white' : 'text-white/50 hover:text-white'"
+                class="px-3 py-1.5 text-xs font-semibold rounded-lg transition"
+                title="Untouched seed defaults — never edited in the admin panel">
+            <i class="fas fa-seedling mr-1 text-[10px]"></i>Untouched ({{ $untouchedCount }})
+        </button>
+    </div>
+@endif
+
 @if($rows->isEmpty())
     <div class="glass rounded-2xl border border-white/10 p-12 text-center">
         <i class="fas fa-layer-group text-3xl text-violet-400 mb-3"></i>
@@ -65,9 +91,11 @@
     @foreach($rows as $tpl)
         @php
             $tplPersonas = $tab === 'page' ? (array) ($tpl->recommended_personas ?? []) : [];
+            $tplCustomized = $tab === 'page' ? $tpl->wasCustomized() : false;
         @endphp
         <div x-show="(category === 'all' || category === '{{ $tpl->category }}')
                   && (persona === 'all' || @json($tplPersonas).includes(persona))
+                  && (customized === 'all' || (customized === 'yes') === {{ $tplCustomized ? 'true' : 'false' }})
                   && (search === '' || '{{ strtolower(addslashes($tpl->name . ' ' . $tpl->description)) }}'.includes(search.toLowerCase()))"
              x-cloak
              class="glass rounded-2xl border border-white/10 p-4">
@@ -116,9 +144,17 @@
             </div>
             <div class="flex items-start justify-between gap-2 mb-1">
                 <h3 class="text-sm font-semibold text-white truncate">{{ $tpl->name }}</h3>
-                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium {{ $tpl->is_active ? 'bg-emerald-500/10 text-emerald-400' : 'bg-white/10 text-white/60' }}">
-                    {{ $tpl->is_active ? 'Active' : 'Hidden' }}
-                </span>
+                <div class="flex items-center gap-1 shrink-0">
+                    @if($tab === 'page' && $tplCustomized)
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-violet-500/10 text-violet-300"
+                              title="Edited in admin on {{ optional($tpl->updated_at)->format('M j, Y') }} (vs created {{ optional($tpl->created_at)->format('M j, Y') }})">
+                            <i class="fas fa-pen-nib mr-1 text-[9px]"></i>Customized
+                        </span>
+                    @endif
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium {{ $tpl->is_active ? 'bg-emerald-500/10 text-emerald-400' : 'bg-white/10 text-white/60' }}">
+                        {{ $tpl->is_active ? 'Active' : 'Hidden' }}
+                    </span>
+                </div>
             </div>
             <p class="text-xs text-white/40 mb-3 truncate">{{ $cats[$tpl->category] ?? $tpl->category }} · {{ $tpl->plan_tier ? 'Plan: '.$tpl->plan_tier : 'All plans' }}</p>
             @if($tpl->description)

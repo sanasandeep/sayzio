@@ -51,8 +51,8 @@ class RefreshPersonaSeed extends Command
 
     protected $description = 'Delete seed-only persona templates and re-run ExpandedPageTemplateLibrarySeeder so users see the refreshed variety.';
 
-    /** Tolerance (seconds) for treating updated_at == created_at. */
-    private const EDIT_DRIFT_TOLERANCE = 2;
+    /** Tolerance (seconds) for treating updated_at == created_at. Also reused by PageTemplate::wasCustomized() so the admin "Customized" badge matches this command's edit-detection signal. */
+    public const EDIT_DRIFT_TOLERANCE = 2;
 
     public function handle(): int
     {

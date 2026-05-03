@@ -42,6 +42,22 @@ class PageTemplate extends Model
         });
     }
 
+    /**
+     * True when updated_at has drifted past created_at by more than the
+     * shared tolerance — i.e. an admin has saved this row at least once
+     * since it was created/seeded. Same signal that
+     * `templates:refresh-persona-seed` uses to detect admin edits, so
+     * the admin "Customized" badge and that command stay in agreement.
+     */
+    public function wasCustomized(): bool
+    {
+        if (!$this->updated_at || !$this->created_at) {
+            return false;
+        }
+        return $this->updated_at->getTimestamp() - $this->created_at->getTimestamp()
+            > \App\Console\Commands\RefreshPersonaSeed::EDIT_DRIFT_TOLERANCE;
+    }
+
     public static function categories(): array
     {
         // Legacy "shape" categories kept for backwards-compatibility with
