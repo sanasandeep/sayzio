@@ -128,6 +128,61 @@ class LinkInsuranceController extends Controller
             ->with('status', 'Primary destination restored.');
     }
 
+    /**
+     * One-click "promote next backup" reachable from the failover
+     * notification + email. Skips past the currently-active backup to
+     * the next healthy one in position order. If we're already on the
+     * last backup (or none are healthy) we fall through to 'down'.
+     */
+    public function promoteNext(Link $link)
+    {
+        $this->authorizeLink($link);
+
+        if ($link->insurance_state !== 'failover') {
+            return redirect()
+                ->route('user.links.insurance.settings', ['link' => $link->id])
+                ->with('status', 'Link is not currently failed-over; nothing to cycle.');
+        }
+
+        $checker  = app(LinkHealthChecker::class);
+        $current  = $link->backups()->where('url', $link->insurance_active_url)->first();
+        $skipPos  = $current?->position;
+        $next     = null;
+        // Probe candidates in order so we don't promote a stale-cache
+        // "last_status=healthy" backup that has since gone down.
+        foreach ($link->backups()->orderBy('position')->get() as $backup) {
+            if ($skipPos !== null && $backup->position <= $skipPos) continue;
+            $probe = $checker->probe($backup->url);
+            $backup->forceFill([
+                'last_status'     => $probe['status'],
+                'last_http_code'  => $probe['http_code'],
+                'last_checked_at' => now(),
+            ])->save();
+            if ($probe['status'] === 'healthy') { $next = $backup; break; }
+        }
+
+        if (!$next) {
+            $link->forceFill([
+                'insurance_state'      => 'down',
+                'insurance_active_url' => null,
+            ])->save();
+            return redirect()
+                ->route('user.links.insurance.settings', ['link' => $link->id])
+                ->with('status', 'No further healthy backups available — link is now marked down.');
+        }
+
+        $link->forceFill([
+            'insurance_state'                => 'failover',
+            'insurance_active_url'           => $next->url,
+            'insurance_last_failover_at'     => now(),
+            'insurance_consecutive_failures' => 0,
+        ])->save();
+
+        return redirect()
+            ->route('user.links.insurance.settings', ['link' => $link->id])
+            ->with('status', "Promoted backup #{$next->position} ({$next->url}).");
+    }
+
     protected function doRestore(Link $link): void
     {
         $this->authorizeLink($link);

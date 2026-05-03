@@ -353,6 +353,10 @@ Route::prefix('user')->name('user.')->group(function () {
         // GET variant for the one-click "Restore now" link in the
         // failover email + in-app notification action button.
         Route::get('links/{link}/insurance/restore', [\App\Modules\User\Controllers\LinkInsuranceController::class, 'restoreFromNotification'])->middleware('workspace.can:links.edit')->name('links.insurance.restore-action');
+        // One-click "Promote next backup" reachable from the failover
+        // email/notification — cycles past the currently-active backup
+        // to the next healthy one in position order.
+        Route::get('links/{link}/insurance/promote-next', [\App\Modules\User\Controllers\LinkInsuranceController::class, 'promoteNext'])->middleware('workspace.can:links.edit')->name('links.insurance.promote-next');
         Route::post('links/{link}/insurance/probe', [\App\Modules\User\Controllers\LinkInsuranceController::class, 'probeNow'])->middleware('workspace.can:links.edit')->name('links.insurance.probe');
 
         // Additional (alternative) aliases per link — same page served, no redirect.

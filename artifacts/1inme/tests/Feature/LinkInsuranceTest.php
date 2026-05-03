@@ -253,6 +253,69 @@ class LinkInsuranceTest extends TestCase
         $this->assertSame(1, $link->fresh()->insurance_consecutive_successes);
     }
 
+    public function test_failover_notification_payload_includes_probe_diagnosis(): void
+    {
+        $link = $this->makeInsuredLink([
+            'insurance_failure_threshold'    => 1,
+            'insurance_consecutive_failures' => 0,
+        ]);
+        LinkBackup::create(['link_id' => $link->id, 'position' => 1, 'url' => 'https://b1.example.com']);
+
+        $checker = $this->getMockBuilder(LinkHealthChecker::class)
+            ->onlyMethods(['probe'])
+            ->setConstructorArgs([app(\App\Modules\Common\Services\NotificationService::class)])
+            ->getMock();
+        $checker->method('probe')->willReturnCallback(function (string $url) {
+            return str_contains($url, 'primary')
+                ? ['status' => 'down',    'http_code' => 404, 'latency_ms' => 1, 'error_class' => 'http_4xx', 'error_detail' => 'HTTP 404']
+                : ['status' => 'healthy', 'http_code' => 200, 'latency_ms' => 1, 'error_class' => null,        'error_detail' => null];
+        });
+
+        $checker->checkLink($link);
+
+        $user = $link->user()->first();
+        $note = \DB::table('user_notifications')->where('user_id', $user->id)->orderByDesc('id')->first();
+        $this->assertNotNull($note, 'A failover notification should be persisted.');
+        $payload = json_decode($note->data ?? '{}', true);
+        $this->assertSame(404, $payload['http_code'] ?? null,
+            'Diagnosis http_code must be carried into the notification payload.');
+        $this->assertSame('http_4xx', $payload['error_class'] ?? null);
+        $this->assertNotEmpty($payload['actions'] ?? null,
+            'Failover notification must include action buttons.');
+        $labels = array_column($payload['actions'], 'label');
+        $this->assertContains('Promote next backup', $labels,
+            'One-click "Promote next backup" action must be present.');
+        $this->assertContains('Restore primary now', $labels);
+    }
+
+    public function test_promote_next_route_cycles_to_a_later_healthy_backup(): void
+    {
+        $link = $this->makeInsuredLink([
+            'insurance_state'      => 'failover',
+            'insurance_active_url' => 'https://b1.example.com',
+        ]);
+        LinkBackup::create(['link_id' => $link->id, 'position' => 1, 'url' => 'https://b1.example.com', 'last_status' => 'healthy']);
+        LinkBackup::create(['link_id' => $link->id, 'position' => 2, 'url' => 'https://b2.example.com', 'last_status' => 'healthy']);
+
+        $stub = $this->getMockBuilder(LinkHealthChecker::class)
+            ->onlyMethods(['probe'])
+            ->setConstructorArgs([app(\App\Modules\Common\Services\NotificationService::class)])
+            ->getMock();
+        $stub->method('probe')->willReturn(
+            ['status' => 'healthy', 'http_code' => 200, 'latency_ms' => 1, 'error_class' => null, 'error_detail' => null]
+        );
+        $this->app->instance(LinkHealthChecker::class, $stub);
+
+        $user = $link->user()->first();
+        $this->actingAs($user)
+            ->get(route('user.links.insurance.promote-next', $link->id))
+            ->assertRedirect();
+
+        $link->refresh();
+        $this->assertSame('https://b2.example.com', $link->insurance_active_url,
+            'Promote-next must skip the currently-active backup and land on the next healthy one.');
+    }
+
     public function test_settings_endpoint_persists_backups_and_thresholds(): void
     {
         $link = $this->makeInsuredLink(['insurance_enabled' => false]);

@@ -141,7 +141,7 @@ class LinkHealthChecker
             } else {
                 $link->insurance_consecutive_failures++;
                 $link->insurance_consecutive_successes = 0;
-                $this->maybeFailover($link);
+                $this->maybeFailover($link, $probe);
             }
             $link->save();
         });
@@ -181,11 +181,20 @@ class LinkHealthChecker
      * Promote the next healthy backup if we've hit the failure
      * threshold on the currently-active target.
      */
-    protected function maybeFailover(Link $link): void
+    protected function maybeFailover(Link $link, array $probe = []): void
     {
         if ($link->insurance_consecutive_failures < $link->insurance_failure_threshold) {
             return;
         }
+
+        // Diagnosis is surfaced verbatim in the failover notification +
+        // email so the user can immediately see *why* we cut over
+        // (e.g. "primary returned 404") rather than chase logs.
+        $diagnosis = [
+            'http_code'    => $probe['http_code']    ?? null,
+            'error_class'  => $probe['error_class']  ?? null,
+            'error_detail' => $probe['error_detail'] ?? null,
+        ];
 
         $next = $this->pickNextHealthyBackup($link);
 
@@ -196,10 +205,10 @@ class LinkHealthChecker
                 $link->insurance_state = 'down';
                 $link->insurance_active_url = null;
                 $link->insurance_last_failover_at = now();
-                $this->dispatchNotification($link, 'link_failover', [
+                $this->dispatchNotification($link, 'link_failover', array_merge([
                     'reason'  => 'all_destinations_down',
                     'message' => 'Primary and every backup destination are unreachable.',
-                ]);
+                ], $diagnosis));
             }
             return;
         }
@@ -212,10 +221,10 @@ class LinkHealthChecker
                 $link->insurance_state = 'down';
                 $link->insurance_active_url = null;
                 $link->insurance_last_failover_at = now();
-                $this->dispatchNotification($link, 'link_failover', [
+                $this->dispatchNotification($link, 'link_failover', array_merge([
                     'reason'  => 'all_destinations_down',
                     'message' => 'Primary and every backup destination are unreachable.',
-                ]);
+                ], $diagnosis));
                 return;
             }
         }
@@ -229,12 +238,12 @@ class LinkHealthChecker
         $link->insurance_last_failover_at = now();
         $link->insurance_consecutive_failures = 0;
 
-        $this->dispatchNotification($link, 'link_failover', [
+        $this->dispatchNotification($link, 'link_failover', array_merge([
             'previous_url' => $previousUrl,
             'new_url'      => $next->url,
             'backup_label' => $next->label,
             'position'     => $next->position,
-        ]);
+        ], $diagnosis));
     }
 
     /**
@@ -551,9 +560,14 @@ class LinkHealthChecker
                     'kind'  => 'primary',
                 ],
                 [
+                    'label' => 'Promote next backup',
+                    'url'   => route('user.links.insurance.promote-next', ['link' => $link->id]),
+                    'kind'  => 'secondary',
+                ],
+                [
                     'label' => 'Manage Link Insurance',
                     'url'   => route('user.links.insurance.settings', ['link' => $link->id]),
-                    'kind'  => 'secondary',
+                    'kind'  => 'tertiary',
                 ],
             ];
         }
