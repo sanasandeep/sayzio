@@ -200,6 +200,11 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('notifications/read', [\App\Modules\User\Controllers\NotificationController::class, 'markRead'])->name('notifications.read');
         Route::get('notifications/preferences', [\App\Modules\User\Controllers\NotificationController::class, 'preferences'])->name('notifications.preferences');
         Route::put('notifications/preferences', [\App\Modules\User\Controllers\NotificationController::class, 'updatePreferences'])->name('notifications.preferences.update');
+        // On-demand "Send sample now" preview for the weekly backlink
+        // digest. Always emails the signed-in user, never an arbitrary
+        // recipient, and is rate-limited inside the controller.
+        Route::post('notifications/backlink-digest/sample', [\App\Modules\User\Controllers\NotificationController::class, 'sendBacklinkDigestSample'])
+            ->name('notifications.backlink-digest.sample');
 
         // Per-user blocklist of bot families that should not be recorded
         // at all. Gated under stats.view because the management screen

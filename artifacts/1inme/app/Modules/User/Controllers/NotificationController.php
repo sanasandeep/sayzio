@@ -7,7 +7,9 @@ use App\Modules\Common\Services\NotificationService;
 use App\Modules\User\Models\NotificationPreference;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserNotification;
+use App\Modules\User\Services\BacklinkDigestService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 
 class NotificationController extends Controller
 {
@@ -27,7 +29,7 @@ class NotificationController extends Controller
         return back()->with('success', 'Notifications marked read.');
     }
 
-    public function preferences()
+    public function preferences(BacklinkDigestService $backlinkDigest)
     {
         $catalog = NotificationService::catalog();
         $prefs   = NotificationPreference::where('user_id', auth()->id())
@@ -40,9 +42,53 @@ class NotificationController extends Controller
             ])
             ->all();
 
+        // Surface backlink-digest cadence next to its toggle so creators
+        // can see when the next email is due and when the last one went
+        // out — mirrors the follower-digest preferred-hour metadata.
+        // The view also reads `$user->backlink_digest_preferred_*` for
+        // the weekday/hour pickers, so we expose the user too.
         $user = auth()->user();
+        $backlinkDigestMeta = [
+            'last_sent_at' => $user?->last_backlink_digest_sent_at,
+            'next_run_at'  => $backlinkDigest->nextScheduledRun(),
+            'sample_route' => route('user.notifications.backlink-digest.sample'),
+        ];
 
-        return view('user.notifications.preferences', compact('catalog', 'prefs', 'user'));
+        return view('user.notifications.preferences', compact('catalog', 'prefs', 'user', 'backlinkDigestMeta'));
+    }
+
+    /**
+     * Send the signed-in user a one-off preview of the weekly backlink
+     * digest using the last 7 days of backlinks. Mirrors the follower
+     * digest "send sample" flow: rate-limited, never stamps
+     * `last_backlink_digest_sent_at` (so the next real send is unaffected),
+     * and always emails the signed-in user — never an arbitrary recipient.
+     */
+    public function sendBacklinkDigestSample(BacklinkDigestService $digest)
+    {
+        $user = auth()->user();
+        if (! $user || ! $user->email || ! $user->email_verified_at) {
+            return back()->with('error', "We need a verified email address on your account to send a sample digest.");
+        }
+
+        $rateKey = 'backlink-digest-sample:' . $user->id;
+        if (RateLimiter::tooManyAttempts($rateKey, 5)) {
+            $seconds = RateLimiter::availableIn($rateKey);
+            $minutes = max(1, (int) ceil($seconds / 60));
+            return back()->with('error', "You've sent a few sample digests recently — please try again in about {$minutes} minute" . ($minutes === 1 ? '' : 's') . '.');
+        }
+        RateLimiter::hit($rateKey, 3600);
+
+        $built = $digest->buildDigest($user, true);
+        if ($built === null) {
+            return back()->with('error', "You don't have any new backlinks in the last 7 days yet, so there's nothing to preview. Once the radar finds new mentions they'll show up here.");
+        }
+
+        if (! $digest->dispatchEmail($user, $built)) {
+            return back()->with('error', "Couldn't send the sample right now. Please try again in a moment.");
+        }
+
+        return back()->with('success', "Sample backlink digest sent to {$user->email} ({$built['total']} mention" . ($built['total'] === 1 ? '' : 's') . ").");
     }
 
     public function updatePreferences(Request $request)

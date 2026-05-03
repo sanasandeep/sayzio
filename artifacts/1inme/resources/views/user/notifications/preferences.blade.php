@@ -32,30 +32,74 @@
         <div class="divide-y" style="border-color: var(--border-soft);">
             @foreach($catalog as $type => $meta)
                 @php $row = $prefs[$type] ?? null; @endphp
-                <label class="grid grid-cols-12 items-center gap-2 px-4 py-4 cursor-default">
-                    <div class="col-span-7">
-                        <div class="text-sm font-semibold" style="color: var(--text-primary);">{{ $meta['label'] }}</div>
-                        <div class="text-xs mt-0.5" style="color: var(--text-muted);">{{ $meta['description'] }}</div>
-                    </div>
-                    <div class="col-span-2 text-center">
-                        <input type="hidden" name="prefs[{{ $type }}][in_app]" value="0"/>
-                        <input type="checkbox" name="prefs[{{ $type }}][in_app]" value="1"
-                               class="h-4 w-4 accent-violet-600"
-                               @checked($row['in_app'] ?? $meta['default_in_app'])/>
-                    </div>
-                    <div class="col-span-2 text-center">
-                        <input type="hidden" name="prefs[{{ $type }}][email]" value="0"/>
-                        <input type="checkbox" name="prefs[{{ $type }}][email]" value="1"
-                               class="h-4 w-4 accent-violet-600"
-                               @checked($row['email'] ?? $meta['default_email'])/>
-                    </div>
-                    <div class="col-span-1 text-center">
-                        <input type="hidden" name="prefs[{{ $type }}][push]" value="0"/>
-                        <input type="checkbox" name="prefs[{{ $type }}][push]" value="1"
-                               class="h-4 w-4 accent-violet-600"
-                               @checked($row['push'] ?? $meta['default_push'])/>
-                    </div>
-                </label>
+                <div class="px-4 py-4">
+                    <label class="grid grid-cols-12 items-center gap-2 cursor-default">
+                        <div class="col-span-7">
+                            <div class="text-sm font-semibold" style="color: var(--text-primary);">{{ $meta['label'] }}</div>
+                            <div class="text-xs mt-0.5" style="color: var(--text-muted);">{{ $meta['description'] }}</div>
+                        </div>
+                        <div class="col-span-2 text-center">
+                            <input type="hidden" name="prefs[{{ $type }}][in_app]" value="0"/>
+                            <input type="checkbox" name="prefs[{{ $type }}][in_app]" value="1"
+                                   class="h-4 w-4 accent-violet-600"
+                                   @checked($row['in_app'] ?? $meta['default_in_app'])/>
+                        </div>
+                        <div class="col-span-2 text-center">
+                            <input type="hidden" name="prefs[{{ $type }}][email]" value="0"/>
+                            <input type="checkbox" name="prefs[{{ $type }}][email]" value="1"
+                                   class="h-4 w-4 accent-violet-600"
+                                   @checked($row['email'] ?? $meta['default_email'])/>
+                        </div>
+                        <div class="col-span-1 text-center">
+                            <input type="hidden" name="prefs[{{ $type }}][push]" value="0"/>
+                            <input type="checkbox" name="prefs[{{ $type }}][push]" value="1"
+                                   class="h-4 w-4 accent-violet-600"
+                                   @checked($row['push'] ?? $meta['default_push'])/>
+                        </div>
+                    </label>
+
+                    @if($type === 'backlink_digest' && !empty($backlinkDigestMeta))
+                        @php
+                            $lastSent = $backlinkDigestMeta['last_sent_at'] ?? null;
+                            $nextRun  = $backlinkDigestMeta['next_run_at'] ?? null;
+                        @endphp
+                        <div class="mt-3 ml-0 sm:ml-1 rounded-lg p-3 text-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+                             style="background: var(--bg-soft, rgba(124,58,237,0.06)); border:1px solid var(--border-soft);">
+                            <div class="space-y-1" style="color: var(--text-muted);">
+                                <div>
+                                    <span class="font-semibold" style="color: var(--text-primary);">Next digest:</span>
+                                    @if($nextRun)
+                                        <span title="{{ $nextRun->toDayDateTimeString() }} UTC">
+                                            {{ $nextRun->format('D, M j \a\t g:i A') }} UTC
+                                            <span style="color: var(--text-faint);">({{ $nextRun->diffForHumans() }})</span>
+                                        </span>
+                                    @else
+                                        <span style="color: var(--text-faint);">unscheduled</span>
+                                    @endif
+                                </div>
+                                <div>
+                                    <span class="font-semibold" style="color: var(--text-primary);">Last sent:</span>
+                                    @if($lastSent)
+                                        <span title="{{ $lastSent->toDayDateTimeString() }} UTC">
+                                            {{ $lastSent->format('D, M j, Y') }}
+                                            <span style="color: var(--text-faint);">({{ $lastSent->diffForHumans() }})</span>
+                                        </span>
+                                    @else
+                                        <span style="color: var(--text-faint);">never — you'll get one as soon as the radar finds new mentions.</span>
+                                    @endif
+                                </div>
+                            </div>
+                            <div>
+                                <button type="button"
+                                        onclick="document.getElementById('backlink-digest-sample-form').submit()"
+                                        class="px-3 py-1.5 rounded-lg text-xs font-semibold border hover:bg-violet-50"
+                                        style="border-color: var(--border-soft); color: var(--text-primary);">
+                                    <i class="fas fa-paper-plane mr-1"></i> Send me a sample now
+                                </button>
+                            </div>
+                        </div>
+                    @endif
+                </div>
             @endforeach
         </div>
 
@@ -177,5 +221,14 @@
             </button>
         </div>
     </form>
+
+    {{-- Sibling form for the "Send me a sample now" button on the
+         backlink-digest row. Lives outside the main preferences form
+         because HTML forms cannot nest. --}}
+    @if(!empty($backlinkDigestMeta['sample_route']))
+        <form id="backlink-digest-sample-form" method="POST" action="{{ $backlinkDigestMeta['sample_route'] }}" class="hidden">
+            @csrf
+        </form>
+    @endif
 </div>
 @endsection

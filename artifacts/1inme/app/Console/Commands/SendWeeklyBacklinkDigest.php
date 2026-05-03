@@ -5,10 +5,8 @@ namespace App\Console\Commands;
 use App\Modules\Common\Services\NotificationService;
 use App\Modules\User\Models\Backlink;
 use App\Modules\User\Models\User;
+use App\Modules\User\Services\BacklinkDigestService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\URL;
 
 /**
  * Hourly job that emails each creator a weekly digest of new backlinks
@@ -33,6 +31,10 @@ use Illuminate\Support\Facades\URL;
  * - 6-day cooldown via `last_backlink_digest_sent_at` prevents a
  *   double-send within the same week if a user changes their preferred
  *   slot mid-week (or admin re-triggers).
+ *
+ * The actual per-user build + send is delegated to
+ * {@see BacklinkDigestService} so the on-demand "Send sample now" button
+ * on the notification preferences page produces an identical email.
  */
 class SendWeeklyBacklinkDigest extends Command
 {
@@ -44,7 +46,7 @@ class SendWeeklyBacklinkDigest extends Command
 
     protected $description = 'Email each opted-in creator a weekly digest of new backlinks the radar found, honouring their preferred local weekday+hour.';
 
-    public function handle(NotificationService $prefs): int
+    public function handle(NotificationService $prefs, BacklinkDigestService $digest): int
     {
         $now     = now();
         $runHour = $this->option('hour') !== null
@@ -66,6 +68,7 @@ class SendWeeklyBacklinkDigest extends Command
         //     less than 6 days after the previous send and is therefore
         //     blocked — so changing the preference mid-week never causes
         //     a double-send.
+        $cooldownStart = $now->copy()->subDays(6);
 
         $userIdsWithBacklinks = Backlink::where('first_seen_at', '>=', $windowStart)
             ->when($userId, fn ($q) => $q->where('user_id', $userId))
@@ -76,7 +79,7 @@ class SendWeeklyBacklinkDigest extends Command
         $skipped = 0;
 
         User::whereIn('id', $userIdsWithBacklinks)
-            ->chunkById(200, function ($users) use (&$sent, &$skipped, $prefs, $now, $runHour, $anyTime, $force, $windowStart, $cooldownStart) {
+            ->chunkById(200, function ($users) use (&$sent, &$skipped, $prefs, $digest, $now, $runHour, $anyTime, $force, $cooldownStart) {
                 foreach ($users as $user) {
                     if (! $user->email || ! $user->email_verified_at) {
                         $skipped++;
@@ -121,21 +124,7 @@ class SendWeeklyBacklinkDigest extends Command
                         continue;
                     }
 
-                    $rows = Backlink::where('user_id', $user->id)
-                        ->where('first_seen_at', '>=', $windowStart)
-                        ->orderByDesc('first_seen_at')
-                        ->get();
-
-                    // Defensive: skip if zero new backlinks for this user
-                    // in the window (the prefilter above should already
-                    // handle this, but the contract is "never email an
-                    // empty digest").
-                    if ($rows->isEmpty()) {
-                        $skipped++;
-                        continue;
-                    }
-
-                    if ($this->emailDigest($user, $rows)) {
+                    if ($digest->send($user, false)) {
                         $user->forceFill(['last_backlink_digest_sent_at' => now()])->save();
                         $sent++;
                     } else {
@@ -146,84 +135,5 @@ class SendWeeklyBacklinkDigest extends Command
 
         $this->info("Backlink digest run complete. Sent: {$sent}, skipped: {$skipped}.");
         return self::SUCCESS;
-    }
-
-    /**
-     * Group rows by destination property and send one email per user.
-     */
-    private function emailDigest(User $user, $rows): bool
-    {
-        $byProperty = [];
-        foreach ($rows as $row) {
-            $key = $row->matched_property_type . '|' . ($row->matched_property_value ?? '');
-            if (! isset($byProperty[$key])) {
-                $byProperty[$key] = [
-                    'property_type'  => $row->matched_property_type,
-                    'property_label' => $this->propertyLabel($row->matched_property_type),
-                    'property_value' => $row->matched_property_value,
-                    'matched_url'    => $row->matched_url,
-                    'mentions'       => [],
-                ];
-            }
-            $byProperty[$key]['mentions'][] = [
-                'page_url'    => $row->page_url,
-                'page_host'   => $row->page_host,
-                'page_title'  => $row->page_title,
-                'anchor_text' => $row->anchor_text,
-                'matched_url' => $row->matched_url,
-                'first_seen'  => optional($row->first_seen_at)->toDayDateTimeString(),
-            ];
-        }
-
-        $totalBacklinks = $rows->count();
-        $propertyCount  = count($byProperty);
-
-        $unsubscribeUrl = URL::signedRoute(
-            'user.notifications.backlink-digest.unsubscribe',
-            ['user' => $user->id]
-        );
-
-        $subject = "Your weekly backlink digest: {$totalBacklinks} new mention"
-            . ($totalBacklinks === 1 ? '' : 's')
-            . " across {$propertyCount} propert"
-            . ($propertyCount === 1 ? 'y' : 'ies');
-
-        $viewData = [
-            'subject'        => $subject,
-            'userName'       => $user->name ?: 'there',
-            'totalBacklinks' => $totalBacklinks,
-            'propertyCount'  => $propertyCount,
-            'properties'     => array_values($byProperty),
-            'unsubscribeUrl' => $unsubscribeUrl,
-        ];
-
-        try {
-            Mail::send(
-                ['emails.backlink-digest', 'emails.backlink-digest-text'],
-                $viewData,
-                function ($m) use ($user, $subject, $unsubscribeUrl) {
-                    $m->to($user->email)->subject($subject);
-                    // RFC 8058 / RFC 2369: mailbox providers (Gmail, Apple)
-                    // expose a one-click unsubscribe chip when these
-                    // headers are present.
-                    $m->getHeaders()->addTextHeader('List-Unsubscribe', '<' . $unsubscribeUrl . '>');
-                    $m->getHeaders()->addTextHeader('List-Unsubscribe-Post', 'List-Unsubscribe=One-Click');
-                }
-            );
-            return true;
-        } catch (\Throwable $e) {
-            Log::warning('backlink digest send failed for user ' . $user->id . ': ' . $e->getMessage());
-            return false;
-        }
-    }
-
-    private function propertyLabel(string $type): string
-    {
-        return match ($type) {
-            'short_link'        => 'Short link',
-            'biolink_username'  => 'Biolink username',
-            'custom_domain'     => 'Custom domain',
-            default             => ucfirst(str_replace('_', ' ', $type)),
-        };
     }
 }
