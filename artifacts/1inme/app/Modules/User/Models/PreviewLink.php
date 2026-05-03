@@ -53,6 +53,21 @@ class PreviewLink extends Link
         return parent::__get($key);
     }
 
+    /**
+     * The blade view uses `$link->biolinkBlocks ?? collect()`. PHP's null
+     * coalesce triggers `__isset` BEFORE `__get`, and Eloquent's `__isset`
+     * resolves the relationship to check for null — which goes through
+     * `getRelationshipFromMethod` and throws the exact LogicException we
+     * are trying to avoid. Short-circuit `__isset` for the faked keys too.
+     */
+    public function __isset($key)
+    {
+        if ($key === 'biolinkBlocks' || $key === 'activeBiolinkBlocks' || $key === 'pixels') {
+            return true;
+        }
+        return parent::__isset($key);
+    }
+
     private function fakeRelation(Collection $items): object
     {
         return new class($items) {
