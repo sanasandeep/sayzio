@@ -118,7 +118,7 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
             [
                 'key' => 'links-stack',
                 'name' => "{$label} — Featured Links",
-                'description' => "Bold gradient with four featured buttons and a launch countdown.",
+                'description' => "Bold gradient with featured buttons and a launch countdown.",
                 'thumb' => $thumb('links'),
                 'snapshot' => $this->snapshot([
                     $this->profile($label, $blurb, $img('avatar', 2, 200, 200)),
