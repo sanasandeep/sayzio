@@ -424,7 +424,7 @@ class LinkHealthChecker
                 $q->whereNull('last_status')->orWhere('last_status', '!=', 'down');
             })
             ->first();
-        }
+    }
 
     /**
      * One HTTP probe. HEAD first because most CDNs answer it cheaply;
