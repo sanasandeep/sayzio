@@ -451,15 +451,23 @@ class LinkHealthChecker
             ];
         }
         try {
+            // Redirect following is DISABLED on purpose — Guzzle's
+            // allow_redirects bypasses our ssrfReason() guard because
+            // the next hop's URL is never re-checked. A user could
+            // host a public redirector that 302s to
+            // http://169.254.169.254/ and have the scheduler poke our
+            // own metadata endpoint. We treat 3xx as a healthy result
+            // anyway (clickers' browsers will follow it themselves),
+            // so disabling redirects costs nothing here.
             $resp = Http::timeout(self::PROBE_TIMEOUT_SECONDS)
                 ->withHeaders(['User-Agent' => '1INME-LinkInsurance/1.0 (+https://1inme.com)'])
-                ->withOptions(['allow_redirects' => true])
+                ->withOptions(['allow_redirects' => false])
                 ->head($url);
 
             if ($resp->status() === 405 || $resp->status() === 501) {
                 $resp = Http::timeout(self::PROBE_TIMEOUT_SECONDS)
                     ->withHeaders(['User-Agent' => '1INME-LinkInsurance/1.0 (+https://1inme.com)'])
-                    ->withOptions(['allow_redirects' => true])
+                    ->withOptions(['allow_redirects' => false])
                     ->get($url);
             }
 
