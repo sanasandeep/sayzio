@@ -354,6 +354,30 @@ uri = "file://artifacts/1inme/storage/app/public/onboarding/coaches_3.png"
 type = "image"
 title = "generated_image"
 
+[[generated]]
+id = "1Wpl8cIooSLQt7jfJjO6i"
+uri = "file://artifacts/1inme-deck/public/hero-cover.png"
+type = "image"
+title = "deck cover hero"
+
+[[generated]]
+id = "127X369tDH98lOTp5aOGe"
+uri = "file://artifacts/1inme-deck/public/hero-mobile.png"
+type = "image"
+title = "mobile hero"
+
+[[generated]]
+id = "M1jmvS9o_HuVI8TnEJ1TU"
+uri = "file://artifacts/1inme-deck/public/hero-biolink.png"
+type = "image"
+title = "biolink hero"
+
+[[generated]]
+id = "L1n7lWmgl2gfmcEUZDQa3"
+uri = "file://artifacts/1inme-deck/public/hero-ai.png"
+type = "image"
+title = "ai hero"
+
 [[outputs]]
 id = "e3t8rw5hE2-FfEtnuBmVI"
 uri = "file://attached_assets/stock_images/role_artist.jpg"
