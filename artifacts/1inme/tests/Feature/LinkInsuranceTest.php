@@ -338,8 +338,9 @@ class LinkInsuranceTest extends TestCase
         $this->app->instance(LinkHealthChecker::class, $stub);
 
         $user = $link->user()->first();
+        $signedUrl = \URL::signedRoute('user.links.insurance.promote-next', ['link' => $link->id]);
         $this->actingAs($user)
-            ->get(route('user.links.insurance.promote-next', $link->id))
+            ->get($signedUrl)
             ->assertRedirect();
 
         $link->refresh();

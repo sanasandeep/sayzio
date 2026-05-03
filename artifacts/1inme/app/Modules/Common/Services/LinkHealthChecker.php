@@ -74,6 +74,10 @@ class LinkHealthChecker
             ->where(function ($q) use ($now) {
                 $q->whereNull('insurance_last_checked_at')
                   ->orWhereRaw(
+                      // Postgres-specific interval arithmetic. This
+                      // app is locked to Postgres (see config/database.php
+                      // default + database skill); if a future MySQL
+                      // port lands, swap this for DATE_ADD(... INTERVAL).
                       'insurance_last_checked_at + (insurance_cadence_minutes || \' minutes\')::interval <= ?',
                       [$now]
                   );
@@ -590,15 +594,19 @@ class LinkHealthChecker
         // the owner can flip the link back to primary without leaving
         // the alert.
         if ($type === 'link_failover') {
+            // 30-day expiry covers the realistic "user reads the
+            // alert email a week later" case while still preventing
+            // indefinite re-use of an old link.
+            $expires = now()->addDays(30);
             $payload['actions'] = [
                 [
                     'label' => 'Restore primary now',
-                    'url'   => route('user.links.insurance.restore-action', ['link' => $link->id]),
+                    'url'   => \URL::temporarySignedRoute('user.links.insurance.restore-action', $expires, ['link' => $link->id]),
                     'kind'  => 'primary',
                 ],
                 [
                     'label' => 'Promote next backup',
-                    'url'   => route('user.links.insurance.promote-next', ['link' => $link->id]),
+                    'url'   => \URL::temporarySignedRoute('user.links.insurance.promote-next', $expires, ['link' => $link->id]),
                     'kind'  => 'secondary',
                 ],
                 [

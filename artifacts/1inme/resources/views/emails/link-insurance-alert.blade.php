@@ -39,11 +39,14 @@
 
 <p style="margin-top: 24px;">
     @if ($type !== 'link_restored')
-        <a href="{{ route('user.links.insurance.restore-action', $link->id) }}"
+        {{-- Both action URLs are signed (30-day expiry) so a
+             logged-in recipient can't be CSRF'd into mutating state
+             by simply opening a malicious page. --}}
+        <a href="{{ \URL::temporarySignedRoute('user.links.insurance.restore-action', now()->addDays(30), ['link' => $link->id]) }}"
            style="display:inline-block; padding: 10px 16px; background: #16a34a; color: #fff; text-decoration: none; border-radius: 6px; margin-right: 8px; margin-bottom: 8px;">
             Restore primary now
         </a>
-        <a href="{{ route('user.links.insurance.promote-next', $link->id) }}"
+        <a href="{{ \URL::temporarySignedRoute('user.links.insurance.promote-next', now()->addDays(30), ['link' => $link->id]) }}"
            style="display:inline-block; padding: 10px 16px; background: #f59e0b; color: #fff; text-decoration: none; border-radius: 6px; margin-right: 8px; margin-bottom: 8px;">
             Promote next backup
         </a>

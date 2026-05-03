@@ -43,7 +43,6 @@ class CheckLinkHealth extends Command
         // (running outside any HTTP request) sees every workspace's
         // links — otherwise the BelongsToWorkspace scope would silently
         // return zero rows and probes would never fire.
-        \App\Modules\User\Models\Link::withoutGlobalScopes();
 
         foreach ($checker->dueLinks() as $link) {
             try {
