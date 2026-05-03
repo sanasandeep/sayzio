@@ -11,8 +11,11 @@
         initialPersona: @json($current ?? ''),
         templatesUrl: @json(route('user.onboarding.templates.list')),
         savePersonaUrl: @json(route('user.onboarding.persona.save')),
+        rememberPreviewUrl: @json(route('user.onboarding.preview.remember')),
+        dismissPreviewUrl: @json(route('user.onboarding.preview.dismiss')),
         csrf: @json(csrf_token()),
         personas: @json(collect($personas)->map(fn($p) => ['slug' => $p['slug'], 'label' => $p['label']])->values()),
+        resume: @json($resume ?? null),
      })">
 
     {{-- Header (no STEP X OF Y — it's one page now) --}}
@@ -89,6 +92,27 @@
 
         {{-- RIGHT: templates panel --}}
         <section class="min-w-0">
+            {{-- Resume hint: shown if the user previewed a template last
+                 time but didn't apply or skip. Disappears as soon as they
+                 act on it (or when they apply / skip elsewhere). --}}
+            <div x-show="resume" x-cloak
+                 class="mb-3 flex items-center gap-3 px-3 py-2.5 rounded-xl bg-violet-500/10 border border-violet-500/30">
+                <i class="fas fa-clock-rotate-left text-violet-300 text-xs shrink-0"></i>
+                <p class="flex-1 text-xs text-white/80 min-w-0 truncate">
+                    Pick up where you left off — you were checking out
+                    <span class="font-semibold text-white" x-text="'&quot;' + (resume?.name || '') + '&quot;'"></span>
+                </p>
+                <button type="button" @click="resumePreview()"
+                        class="shrink-0 px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-[11px] font-semibold inline-flex items-center gap-1.5">
+                    <i class="fas fa-eye"></i> Open again
+                </button>
+                <button type="button" @click="dismissResume()"
+                        class="shrink-0 w-7 h-7 rounded-lg hover:bg-white/10 text-white/50 hover:text-white inline-flex items-center justify-center"
+                        aria-label="Dismiss">
+                    <i class="fas fa-times text-[11px]"></i>
+                </button>
+            </div>
+
             <div class="flex items-center justify-between mb-3 px-1">
                 <p class="text-xs text-white/50" x-show="!picked" x-cloak>
                     <i class="fas fa-arrow-left mr-1 text-white/30"></i>
@@ -170,7 +194,7 @@
 </div>
 
 <script>
-function onboarding({ initialPersona, templatesUrl, savePersonaUrl, csrf, personas }) {
+function onboarding({ initialPersona, templatesUrl, savePersonaUrl, rememberPreviewUrl, dismissPreviewUrl, csrf, personas, resume }) {
     return {
         picked: initialPersona || '',
         personas: personas || [],
@@ -179,6 +203,7 @@ function onboarding({ initialPersona, templatesUrl, savePersonaUrl, csrf, person
         gridHtml: '',
         previewOpen: false,
         selectedTemplate: null,
+        resume: resume || null,
 
         init() {
             // gridHtml is populated server-side on first paint via x-html
@@ -246,12 +271,54 @@ function onboarding({ initialPersona, templatesUrl, savePersonaUrl, csrf, person
             this.selectedTemplate = tpl;
             this.previewOpen = true;
             document.body.style.overflow = 'hidden';
+            // Remember this preview server-side so a tab close mid-flow
+            // can be resumed on the next visit. Fire-and-forget.
+            this.rememberPreview(tpl?.id);
+            // Hide the resume hint once they've engaged with a preview
+            // (whether it's the same one or a different one).
+            this.resume = null;
         },
 
         closePreview() {
             this.previewOpen = false;
             this.selectedTemplate = null;
             document.body.style.overflow = '';
+        },
+
+        async rememberPreview(templateId) {
+            if (!templateId || !rememberPreviewUrl) return;
+            try {
+                await fetch(rememberPreviewUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRF-TOKEN': csrf,
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                    },
+                    body: 'template_id=' + encodeURIComponent(templateId),
+                });
+            } catch (e) { /* non-fatal */ }
+        },
+
+        resumePreview() {
+            if (!this.resume) return;
+            this.openPreview(this.resume);
+        },
+
+        async dismissResume() {
+            this.resume = null;
+            if (!dismissPreviewUrl) return;
+            try {
+                await fetch(dismissPreviewUrl, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrf,
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                    },
+                });
+            } catch (e) { /* non-fatal */ }
         },
     };
 }

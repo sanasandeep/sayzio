@@ -147,6 +147,8 @@ Route::prefix('user')->name('user.')->group(function () {
                 ->name('template.preview');
 
             Route::post('persona', [\App\Modules\User\Controllers\OnboardingController::class, 'savePersona'])->name('persona.save');
+            Route::post('preview/remember', [\App\Modules\User\Controllers\OnboardingController::class, 'rememberPreview'])->name('preview.remember');
+            Route::post('preview/dismiss',  [\App\Modules\User\Controllers\OnboardingController::class, 'dismissResume'])->name('preview.dismiss');
             Route::post('template',[\App\Modules\User\Controllers\OnboardingController::class, 'applyTemplate'])->name('template.apply');
             Route::post('go-to-dashboard', [\App\Modules\User\Controllers\OnboardingController::class, 'goToDashboard'])->name('go-to-dashboard');
             Route::post('dismiss-banner', [\App\Modules\User\Controllers\OnboardingController::class, 'dismissBanner'])->name('dismiss-banner');

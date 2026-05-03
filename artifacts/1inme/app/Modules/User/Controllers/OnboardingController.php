@@ -25,13 +25,78 @@ class OnboardingController extends Controller
         $user = Auth::user();
         $persona = $user->persona;
 
+        // Resume hint: surface the last template the user previewed but
+        // didn't apply, so a tab-close mid-flow doesn't strand them.
+        $resume = null;
+        $resumeId = $user->settings['last_previewed_template_id'] ?? null;
+        if ($resumeId) {
+            $tpl = PageTemplate::active()->where('id', $resumeId)->first();
+            if ($tpl) {
+                $userPlanSlug = $user->plan?->slug;
+                $locked = app(LinkTemplateController::class)->isLocked($tpl->plan_tier, $userPlanSlug);
+                $resume = [
+                    'id'         => $tpl->id,
+                    'name'       => $tpl->name,
+                    'tier'       => $tpl->plan_tier,
+                    'locked'     => $locked,
+                    'previewUrl' => route('user.onboarding.template.preview', $tpl->id),
+                    'upgradeUrl' => route('user.upgrade'),
+                ];
+            } else {
+                // Stale id (template removed) — clean it up silently.
+                $this->clearResumeHint($user);
+            }
+        }
+
         return view('user.onboarding.index', [
             'personas'    => PersonaCatalog::all(),
             'grouped'     => PersonaCatalog::grouped(),
             'current'     => $persona,
             'personaLabel'=> PersonaCatalog::pluralLabelFor($persona),
             'initialGrid' => $this->renderTemplateGrid($persona),
+            'resume'      => $resume,
         ]);
+    }
+
+    /**
+     * Remember the template the user is currently previewing so we can
+     * offer a "pick up where you left off" hint if they bounce out of
+     * onboarding before applying or skipping. Fire-and-forget from the
+     * client — failures are non-fatal.
+     */
+    public function rememberPreview(Request $request)
+    {
+        $validated = $request->validate([
+            'template_id' => 'required|integer|exists:page_templates,id',
+        ]);
+
+        $user = Auth::user();
+        $settings = $user->settings ?? [];
+        $settings['last_previewed_template_id'] = (int) $validated['template_id'];
+        $user->forceFill(['settings' => $settings])->save();
+
+        return response()->json(['ok' => true]);
+    }
+
+    /**
+     * Explicitly drop the resume hint (the dismiss "x" on the banner).
+     * Without this, dismissing client-side only would let the hint
+     * reappear on the next page load.
+     */
+    public function dismissResume(Request $request)
+    {
+        $this->clearResumeHint(Auth::user());
+        return response()->json(['ok' => true]);
+    }
+
+    /** Drop the resume hint from user settings (no-op if not set). */
+    private function clearResumeHint($user): void
+    {
+        $settings = $user->settings ?? [];
+        if (array_key_exists('last_previewed_template_id', $settings)) {
+            unset($settings['last_previewed_template_id']);
+            $user->forceFill(['settings' => $settings])->save();
+        }
     }
 
     /**
@@ -161,6 +226,10 @@ class OnboardingController extends Controller
             $user->forceFill(['onboarded_at' => now()])->save();
         }
 
+        // Whether they applied a template or skipped from inside the
+        // wizard, the resume hint is no longer useful.
+        $this->clearResumeHint($user);
+
         if ($request->boolean('skip') || empty($validated['template_id'])) {
             return redirect()->route('user.dashboard')
                 ->with('success', "You're all set — create a link whenever you're ready.");
@@ -228,6 +297,7 @@ class OnboardingController extends Controller
         if (!$user->onboarded_at) {
             $user->forceFill(['onboarded_at' => now()])->save();
         }
+        $this->clearResumeHint($user);
         return redirect()->route('user.dashboard')
             ->with('success', "You're all set — explore your dashboard. You can pick a persona or template anytime.");
     }
