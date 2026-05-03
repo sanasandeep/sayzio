@@ -125,12 +125,14 @@ class LinkHealthChecker
 
             if ($probe['status'] === 'healthy') {
                 $link->insurance_consecutive_failures = 0;
-                // Only the *primary*-state probes feed the recovery
-                // counter. While in failover the active probe is
-                // hitting the backup, so a healthy result there must
-                // not be misread as "primary is back" — that signal
-                // comes exclusively from recheckPrimaryFromFailover().
-                if ($link->insurance_state === 'primary') {
+                // The active target is the primary in BOTH 'primary'
+                // and 'down' states (resolveActiveTarget falls through
+                // to long_url in those cases), so both must feed the
+                // recovery counter — otherwise a 'down' link can never
+                // climb back. While in 'failover' the active target is
+                // a backup; the primary-back signal comes from the
+                // separate recheckPrimaryFromFailover() path.
+                if (in_array($link->insurance_state, ['primary', 'down'], true)) {
                     $link->insurance_consecutive_successes++;
                 } else {
                     $link->insurance_consecutive_successes = 0;
@@ -141,9 +143,17 @@ class LinkHealthChecker
                 $link->insurance_consecutive_successes = 0;
                 $this->maybeFailover($link);
             }
-
             $link->save();
         });
+
+        // When still 'down' after the cycle, opportunistically probe
+        // backups so a backup that has come back online can be
+        // promoted without waiting for the user to click "Test now".
+        // Done outside the main transaction because each probe is a
+        // network call.
+        if ($link->fresh()->insurance_state === 'down') {
+            $this->attemptRecoverFromDown($link->fresh());
+        }
 
         return $check;
     }
@@ -250,6 +260,55 @@ class LinkHealthChecker
             'previous_url' => $previous,
             'restored_url' => $link->long_url,
         ]);
+    }
+
+    /**
+     * When a link is fully 'down' (primary AND every backup were
+     * unhealthy at last check) the regular cycle only probes the
+     * primary. To recover automatically we probe every backup once
+     * here; the first one that comes back healthy is promoted into
+     * 'failover' state so clickers stop hitting the broken primary.
+     */
+    protected function attemptRecoverFromDown(Link $link): void
+    {
+        foreach ($link->backups()->orderBy('position')->get() as $backup) {
+            $probe = $this->probe($backup->url);
+            $backup->forceFill([
+                'last_status'     => $probe['status'],
+                'last_http_code'  => $probe['http_code'],
+                'last_checked_at' => now(),
+            ])->save();
+            LinkHealthCheck::create([
+                'link_id'        => $link->id,
+                'link_backup_id' => $backup->id,
+                'target_url'     => $backup->url,
+                'status'         => $probe['status'],
+                'http_code'      => $probe['http_code'],
+                'latency_ms'     => $probe['latency_ms'],
+                'error_class'    => $probe['error_class'],
+                'error_detail'   => $probe['error_detail'],
+                'checked_at'     => now(),
+            ]);
+            if ($probe['status'] === 'healthy') {
+                DB::transaction(function () use ($link, $backup) {
+                    $link->refresh();
+                    if ($link->insurance_state !== 'down') return;
+                    $link->insurance_state = 'failover';
+                    $link->insurance_active_url = $backup->url;
+                    $link->insurance_last_failover_at = now();
+                    $link->insurance_consecutive_failures = 0;
+                    $link->save();
+                    $this->dispatchNotification($link, 'link_failover', [
+                        'previous_url' => null,
+                        'new_url'      => $backup->url,
+                        'backup_label' => $backup->label,
+                        'position'     => $backup->position,
+                        'reason'       => 'recovered_from_down',
+                    ]);
+                });
+                return;
+            }
+        }
     }
 
     /**

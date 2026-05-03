@@ -143,6 +143,52 @@ class LinkInsuranceTest extends TestCase
         ]);
     }
 
+    public function test_down_link_recovers_to_primary_when_long_url_comes_back(): void
+    {
+        $link = $this->makeInsuredLink([
+            'insurance_state'                 => 'down',
+            'insurance_recovery_threshold'    => 1,
+            'insurance_consecutive_successes' => 0,
+            'insurance_consecutive_failures'  => 5,
+        ]);
+        Http::fake(['*' => Http::response('', 200)]);
+
+        app(LinkHealthChecker::class)->checkLink($link);
+
+        $link->refresh();
+        $this->assertSame('primary', $link->insurance_state,
+            'Healthy primary probe must restore a fully-down link.');
+    }
+
+    public function test_down_link_promotes_recovered_backup_to_failover(): void
+    {
+        $link = $this->makeInsuredLink([
+            'insurance_state'                 => 'down',
+            'insurance_active_url'            => null,
+            'insurance_consecutive_failures'  => 5,
+        ]);
+        LinkBackup::create(['link_id' => $link->id, 'position' => 1, 'url' => 'https://b1.example.com', 'last_status' => 'down']);
+        LinkBackup::create(['link_id' => $link->id, 'position' => 2, 'url' => 'https://b2.example.com', 'last_status' => 'down']);
+
+        // Stub probe so primary stays down but backup #1 is healthy —
+        // attemptRecoverFromDown should pick up b1 and promote it.
+        $checker = $this->getMockBuilder(LinkHealthChecker::class)
+            ->onlyMethods(['probe'])
+            ->setConstructorArgs([app(\App\Modules\Common\Services\NotificationService::class)])
+            ->getMock();
+        $checker->method('probe')->willReturnCallback(function (string $url) {
+            return str_contains($url, 'primary')
+                ? ['status' => 'down',    'http_code' => 502, 'latency_ms' => 1, 'error_class' => 'http_5xx', 'error_detail' => 'HTTP 502']
+                : ['status' => 'healthy', 'http_code' => 200, 'latency_ms' => 1, 'error_class' => null,        'error_detail' => null];
+        });
+
+        $checker->checkLink($link);
+
+        $link->refresh();
+        $this->assertSame('failover', $link->insurance_state);
+        $this->assertSame('https://b1.example.com', $link->insurance_active_url);
+    }
+
     public function test_settings_endpoint_accepts_fewer_than_three_backups(): void
     {
         $link = $this->makeInsuredLink(['insurance_enabled' => false]);
