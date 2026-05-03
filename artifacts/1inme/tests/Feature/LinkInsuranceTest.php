@@ -253,6 +253,37 @@ class LinkInsuranceTest extends TestCase
         $this->assertSame(1, $link->fresh()->insurance_consecutive_successes);
     }
 
+    public function test_failover_actively_probes_backups_and_skips_unhealthy_unverified_ones(): void
+    {
+        $link = $this->makeInsuredLink([
+            'insurance_failure_threshold'    => 1,
+            'insurance_consecutive_failures' => 0,
+        ]);
+        // Both backups have last_status=null (never probed). Without
+        // the active-probe-at-failover guard, position 1 would be
+        // wrongly promoted even though it's down.
+        LinkBackup::create(['link_id' => $link->id, 'position' => 1, 'url' => 'https://b1.example.com']);
+        LinkBackup::create(['link_id' => $link->id, 'position' => 2, 'url' => 'https://b2.example.com']);
+
+        $checker = $this->getMockBuilder(LinkHealthChecker::class)
+            ->onlyMethods(['probe'])
+            ->setConstructorArgs([app(\App\Modules\Common\Services\NotificationService::class)])
+            ->getMock();
+        $checker->method('probe')->willReturnCallback(function (string $url) {
+            // primary down, b1 down, b2 healthy
+            if (str_contains($url, 'primary'))     return ['status' => 'down',    'http_code' => 500, 'latency_ms' => 1, 'error_class' => 'http_5xx', 'error_detail' => 'HTTP 500'];
+            if (str_contains($url, 'b1.example'))  return ['status' => 'down',    'http_code' => 500, 'latency_ms' => 1, 'error_class' => 'http_5xx', 'error_detail' => 'HTTP 500'];
+            return ['status' => 'healthy', 'http_code' => 200, 'latency_ms' => 1, 'error_class' => null, 'error_detail' => null];
+        });
+
+        $checker->checkLink($link);
+
+        $link->refresh();
+        $this->assertSame('failover', $link->insurance_state);
+        $this->assertSame('https://b2.example.com', $link->insurance_active_url,
+            'Unhealthy unverified backup #1 must be skipped; #2 should be promoted.');
+    }
+
     public function test_failover_notification_payload_includes_probe_diagnosis(): void
     {
         $link = $this->makeInsuredLink([

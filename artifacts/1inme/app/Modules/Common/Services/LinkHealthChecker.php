@@ -196,7 +196,20 @@ class LinkHealthChecker
             'error_detail' => $probe['error_detail'] ?? null,
         ];
 
-        $next = $this->pickNextHealthyBackup($link);
+        // When already in failover the current backup must be skipped
+        // when picking the next one — otherwise we'd just re-promote
+        // the same broken backup we're trying to escape from.
+        $skipPosition = null;
+        if ($link->insurance_state === 'failover' && $link->insurance_active_url) {
+            $current = $link->backups()->where('url', $link->insurance_active_url)->first();
+            $skipPosition = $current?->position;
+        }
+
+        // Actively probe each candidate at failover time. Cached
+        // last_status can be stale (or null for backups never probed)
+        // so we MUST verify before promotion or we'd risk pointing
+        // clickers at a backup that's also down.
+        $next = $this->probeUntilHealthyBackup($link, $skipPosition);
 
         // No healthy backup left → mark fully down and notify only once
         // per outage (state already 'down' means we already fired).
@@ -211,22 +224,6 @@ class LinkHealthChecker
                 ], $diagnosis));
             }
             return;
-        }
-
-        // Already failed-over to this backup? Try the *next* one.
-        if ($link->insurance_state === 'failover'
-            && $link->insurance_active_url === $next->url) {
-            $next = $this->pickNextHealthyBackup($link, $next->position);
-            if (!$next) {
-                $link->insurance_state = 'down';
-                $link->insurance_active_url = null;
-                $link->insurance_last_failover_at = now();
-                $this->dispatchNotification($link, 'link_failover', array_merge([
-                    'reason'  => 'all_destinations_down',
-                    'message' => 'Primary and every backup destination are unreachable.',
-                ], $diagnosis));
-                return;
-            }
         }
 
         $previousUrl = $link->insurance_state === 'failover'
@@ -244,6 +241,38 @@ class LinkHealthChecker
             'backup_label' => $next->label,
             'position'     => $next->position,
         ], $diagnosis));
+    }
+
+    /**
+     * Walk the backup list in position order, probing each one and
+     * returning the first that comes back healthy. Each probe is
+     * persisted in `link_health_checks` and refreshes the per-backup
+     * last_status cache so the dashboard stays accurate.
+     */
+    protected function probeUntilHealthyBackup(Link $link, ?int $skipPosition = null): ?LinkBackup
+    {
+        foreach ($link->backups()->orderBy('position')->get() as $backup) {
+            if ($skipPosition !== null && $backup->position <= $skipPosition) continue;
+            $probe = $this->probe($backup->url);
+            $backup->forceFill([
+                'last_status'     => $probe['status'],
+                'last_http_code'  => $probe['http_code'],
+                'last_checked_at' => now(),
+            ])->save();
+            LinkHealthCheck::create([
+                'link_id'        => $link->id,
+                'link_backup_id' => $backup->id,
+                'target_url'     => $backup->url,
+                'status'         => $probe['status'],
+                'http_code'      => $probe['http_code'],
+                'latency_ms'     => $probe['latency_ms'],
+                'error_class'    => $probe['error_class'],
+                'error_detail'   => $probe['error_detail'],
+                'checked_at'     => now(),
+            ]);
+            if ($probe['status'] === 'healthy') return $backup;
+        }
+        return null;
     }
 
     /**
