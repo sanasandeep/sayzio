@@ -78,3 +78,54 @@ The only acceptable shapes of a backfill `down()` are therefore:
 
 When in doubt, prefer no-op. A failed rollback is recoverable; an erased
 admin edit is not.
+
+## Pre-flight: run the PHPUnit suite against PostgreSQL
+
+The PHPUnit suite under [`tests/`](tests) used to default to a sqlite
+in-memory database, which made it possible for Postgres-only bugs (e.g. the
+`jsonb ?` operator collision) to pass locally and then fail in CI / production.
+[`phpunit.xml`](phpunit.xml) now defaults to PostgreSQL so local runs exercise
+the same engine production uses.
+
+To run the suite locally:
+
+```bash
+cd artifacts/1inme
+php artisan test
+```
+
+### One-time local setup
+
+The suite uses `RefreshDatabase`, which **drops and re-creates every table** in
+the configured database on each run. To keep that destruction safely isolated
+from your dev data, [`phpunit.xml`](phpunit.xml) pins the test database name
+to `1inme_testing` (separate from the `1inme` dev database in
+[`.env.example`](.env.example)).
+
+1. Make sure your `.env` points at a reachable local PostgreSQL instance —
+   `DB_CONNECTION=pgsql`, plus working `DB_HOST` / `DB_PORT` / `DB_USERNAME` /
+   `DB_PASSWORD` values. (`phpunit.xml` only forces `DB_CONNECTION` and
+   `DB_DATABASE`; the host/port/credentials fall through from your `.env`.)
+2. Create the dedicated test database once:
+
+   ```bash
+   createdb -h "$DB_HOST" -U "$DB_USERNAME" 1inme_testing
+   # or, equivalently:
+   psql -h "$DB_HOST" -U "$DB_USERNAME" -c 'CREATE DATABASE "1inme_testing";'
+   ```
+
+3. Run `php artisan test` and you should see the suite spin up against
+   Postgres. If it falls back to sqlite or fails to connect, double-check that
+   the `1inme_testing` database exists and that your `.env` credentials can
+   reach it.
+
+> **Why not sqlite anymore?** Sibling workflow
+> `.github/workflows/laravel-tests.yml` runs the suite on PostgreSQL in CI
+> precisely because Postgres-only regressions used to slip through a
+> sqlite-backed local run. Defaulting `phpunit.xml` to `pgsql` means
+> developers catch those regressions before pushing instead of after.
+
+> **CI behavior is unchanged.** PHPUnit's `<env>` entries don't override
+> values that already exist in the process environment, so the explicit
+> `DB_*` env vars set by `.github/workflows/laravel-tests.yml` continue to
+> win there.

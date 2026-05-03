@@ -23,8 +23,28 @@
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>
-        <env name="DB_CONNECTION" value="sqlite"/>
-        <env name="DB_DATABASE" value=":memory:"/>
+        <!--
+            Default the suite to PostgreSQL so local runs exercise the same
+            engine production uses. Without this, sqlite's in-memory driver
+            silently masks Postgres-only bugs (e.g. jsonb `?` operator
+            collisions, Postgres-specific DDL) that the CI workflow at
+            .github/workflows/laravel-tests.yml is meant to catch.
+
+            DB_HOST / DB_PORT / DB_USERNAME / DB_PASSWORD are intentionally
+            not pinned here — they fall through to whatever the developer's
+            .env (or CI process env) provides. Only DB_CONNECTION and
+            DB_DATABASE are forced, so the test suite always targets a
+            dedicated `1inme_testing` database and never trample the
+            developer's dev DB when RefreshDatabase wipes the schema.
+
+            See artifacts/1inme/CONTRIBUTING.md for setup instructions.
+
+            Note: PHPUnit `<env>` does not override values already present in
+            the process environment unless force="true". CI sets DB_DATABASE
+            etc. as real env vars, so those still win in CI as before.
+        -->
+        <env name="DB_CONNECTION" value="pgsql"/>
+        <env name="DB_DATABASE" value="1inme_testing"/>
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
