@@ -4,11 +4,19 @@
      * Shows the editable primary alias plus the additional-aliases manager.
      * Drop-in: @include('user.links.partials.aliases-card', ['link' => $link])
      */
+    use App\Modules\Common\Support\PlatformHosts;
     $maxExtras  = auth()->user()->getMaxAliasesPerLink();
     $extras     = $link->aliases()->orderBy('created_at')->get();
     $usedExtras = $extras->count();
     $canAddMore = $maxExtras === -1 || $usedExtras < $maxExtras;
-    $aliasHost  = $link->domain?->domain ?: (parse_url(config('app.url'), PHP_URL_HOST) ?: request()->getHost());
+    // Prefer the host the creator is currently browsing on (when it's a
+    // configured platform host) so the displayed/copied URL matches their
+    // current context. Falls back to APP_URL, then the raw request host.
+    $aliasHost  = $link->domain?->domain
+        ?: (PlatformHosts::currentRequestHost()
+            ?: (parse_url(config('app.url'), PHP_URL_HOST) ?: request()->getHost()));
+    // Only show "also live on" hints for platform short links (no custom domain).
+    $showHostsHint = !$link->domain;
 @endphp
 
 <div class="card-premium p-6" x-data="{ editing: false, alias: @js($link->alias) }">
@@ -129,5 +137,9 @@
         <i class="fas fa-lock mr-1"></i> Additional aliases are not included in your plan.
         <a href="{{ route('user.dashboard') }}" class="underline hover:no-underline">Upgrade</a> to unlock.
     </p>
+    @endif
+
+    @if($showHostsHint)
+        @include('user.links.partials.platform-hosts-hint', ['primary' => $aliasHost, 'alias' => $link->alias])
     @endif
 </div>

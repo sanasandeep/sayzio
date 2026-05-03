@@ -49,6 +49,39 @@ class PlatformHosts
     }
 
     /**
+     * The normalised current request host, only when it is one of the
+     * configured platform hosts. Returns null on CLI, when no request
+     * is bound, or when the request is on a custom/unknown host.
+     *
+     * Useful as the default for "copy short link" buttons so a creator
+     * editing on the Replit dev domain copies a URL that uses that
+     * same host (rather than always APP_URL).
+     */
+    public static function currentRequestHost(): ?string
+    {
+        try {
+            $host = self::normalize(request()->getHost());
+        } catch (\Throwable) {
+            return null;
+        }
+        if ($host === null) return null;
+        return in_array($host, self::configured(), true) ? $host : null;
+    }
+
+    /**
+     * Hosts other than $primary that are also serving this platform.
+     * Caller passes whichever host they're already displaying so we
+     * don't repeat it.
+     *
+     * @return array<int,string>
+     */
+    public static function others(?string $primary): array
+    {
+        $primary = self::normalize($primary);
+        return array_values(array_filter(self::configured(), fn ($h) => $h !== $primary));
+    }
+
+    /**
      * True when the host should be treated as the platform for this
      * request. A host counts as platform when it is:
      *   - null/empty (CLI / synthetic requests), OR

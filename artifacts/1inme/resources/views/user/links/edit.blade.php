@@ -98,12 +98,29 @@
         <div class="glass rounded-2xl p-6 mb-6">
             <h2 class="text-lg font-semibold text-white mb-4">Link Details</h2>
 
-            <div class="mb-4">
+            @php
+                $primaryHost = $link->domain?->domain
+                    ?: (\App\Modules\Common\Support\PlatformHosts::currentRequestHost()
+                        ?: (parse_url(config('app.url'), PHP_URL_HOST) ?: request()->getHost()));
+                $primaryShortUrl = $link->domain
+                    ? $link->getShortUrl()
+                    : (request()->getScheme() . '://' . $primaryHost . '/' . $link->alias);
+            @endphp
+            <div class="mb-4" x-data="{ copied: false }">
                 <label class="block text-sm font-medium text-white/60 mb-1">Short URL <span class="text-[10px] text-white/30">(primary alias)</span></label>
                 <div class="flex items-center gap-2 text-sm text-violet-400 bg-violet-500/10 px-3 py-2.5 rounded-xl">
-                    <span>{{ $link->getShortUrl() }}</span>
-                    <span class="text-xs text-white/40 bg-white/10 px-2 py-0.5 rounded">{{ \App\Modules\User\Models\Link::typeLabel($link->type) }}</span>
+                    <a href="{{ $primaryShortUrl }}" target="_blank" rel="noopener" class="hover:underline truncate">{{ $primaryShortUrl }}</a>
+                    <button type="button"
+                            @click="navigator.clipboard.writeText('{{ $primaryShortUrl }}'); copied = true; setTimeout(() => copied = false, 1800)"
+                            class="text-white/50 hover:text-violet-300" title="Copy link">
+                        <i x-show="!copied" class="fas fa-copy text-xs"></i>
+                        <i x-show="copied" x-cloak class="fas fa-check text-emerald-400 text-xs"></i>
+                    </button>
+                    <span class="text-xs text-white/40 bg-white/10 px-2 py-0.5 rounded ml-auto">{{ \App\Modules\User\Models\Link::typeLabel($link->type) }}</span>
                 </div>
+                @unless($link->domain)
+                    @include('user.links.partials.platform-hosts-hint', ['primary' => $primaryHost, 'alias' => $link->alias])
+                @endunless
             </div>
 
             @php
@@ -111,7 +128,11 @@
                 $extras = $link->aliases()->orderBy('created_at')->get();
                 $usedExtras = $extras->count();
                 $canAddMore = $maxExtras === -1 || $usedExtras < $maxExtras;
-                $base = rtrim(config('app.url', url('/')), '/');
+                // Prefer the host the user is currently browsing on (when it's a
+                // configured platform host) so generated alias URLs match context.
+                $editorHost = \App\Modules\Common\Support\PlatformHosts::currentRequestHost()
+                    ?: (parse_url(config('app.url'), PHP_URL_HOST) ?: request()->getHost());
+                $base = rtrim(request()->getScheme() . '://' . $editorHost, '/');
             @endphp
             <div class="mb-6 p-4 bg-white/5 border border-white/10 rounded-xl">
                 <div class="flex items-center justify-between mb-2">
@@ -163,6 +184,10 @@
                         <p class="text-xs text-white/40 mt-2"><i class="fas fa-info-circle mr-1"></i> You've reached your plan's alias limit. Upgrade for more.</p>
                     @endif
                 @endif
+
+                @unless($link->domain)
+                    @include('user.links.partials.platform-hosts-hint', ['primary' => $editorHost, 'alias' => $link->alias])
+                @endunless
             </div>
 
             @if($link->type === 'url')
@@ -208,7 +233,7 @@
             <div class="mb-4">
                 <label class="block text-sm font-medium text-white/60 mb-1">Custom Domain</label>
                 <select name="domain_id" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-violet-500/40">
-                    <option value="">{{ parse_url(config('app.url'), PHP_URL_HOST) ?: request()->getHost() }} (default)</option>
+                    <option value="">{{ \App\Modules\Common\Support\PlatformHosts::currentRequestHost() ?: (parse_url(config('app.url'), PHP_URL_HOST) ?: request()->getHost()) }} (default)</option>
                     @foreach($domains as $d)
                         <option value="{{ $d->id }}" {{ old('domain_id', $link->domain_id) == $d->id ? 'selected' : '' }}>{{ $d->domain }}</option>
                     @endforeach
