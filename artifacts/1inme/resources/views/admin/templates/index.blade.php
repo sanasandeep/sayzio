@@ -3,7 +3,7 @@
 @section('page-title', 'Page & Card Templates')
 
 @section('content')
-<div x-data="{ search: '', category: 'all' }">
+<div x-data="{ search: '', category: 'all', persona: 'all' }">
 <div class="flex items-center justify-between mb-6">
     <p class="text-sm text-white/40">Curate full-page presets and reusable card-block presets.</p>
     <div class="flex items-center gap-2">
@@ -27,9 +27,10 @@
 @php
     $rows = $tab === 'card' ? $cardTemplates : $pageTemplates;
     $cats = $tab === 'card' ? \App\Modules\Admin\Models\CardTemplate::categories() : \App\Modules\Admin\Models\PageTemplate::categories();
+    $personaOptions = \App\Modules\User\Services\PersonaCatalog::slugLabelMap();
 @endphp
 
-<div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
+<div class="grid grid-cols-1 md:grid-cols-{{ $tab === 'page' ? '4' : '3' }} gap-3 mb-5">
     <div class="md:col-span-2 relative">
         <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs text-white/30"></i>
         <input type="text" x-model="search" placeholder="Search by name or description…" class="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-3 py-2 text-sm text-white">
@@ -40,6 +41,14 @@
             <option value="{{ $key }}" class="bg-[#0d0818]">{{ $label }}</option>
         @endforeach
     </select>
+    @if($tab === 'page')
+        <select x-model="persona" class="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white">
+            <option value="all" class="bg-[#0d0818]">All personas</option>
+            @foreach($personaOptions as $slug => $label)
+                <option value="{{ $slug }}" class="bg-[#0d0818]">{{ $label }}</option>
+            @endforeach
+        </select>
+    @endif
 </div>
 
 @if($rows->isEmpty())
@@ -54,7 +63,12 @@
 @else
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
     @foreach($rows as $tpl)
-        <div x-show="(category === 'all' || category === '{{ $tpl->category }}') && (search === '' || '{{ strtolower(addslashes($tpl->name . ' ' . $tpl->description)) }}'.includes(search.toLowerCase()))"
+        @php
+            $tplPersonas = $tab === 'page' ? (array) ($tpl->recommended_personas ?? []) : [];
+        @endphp
+        <div x-show="(category === 'all' || category === '{{ $tpl->category }}')
+                  && (persona === 'all' || @json($tplPersonas).includes(persona))
+                  && (search === '' || '{{ strtolower(addslashes($tpl->name . ' ' . $tpl->description)) }}'.includes(search.toLowerCase()))"
              x-cloak
              class="glass rounded-2xl border border-white/10 p-4">
             <div class="aspect-[4/3] rounded-xl mb-3 flex items-center justify-center overflow-hidden" style="background: linear-gradient(135deg, rgba(124,58,237,0.12), rgba(139,92,246,0.04));">

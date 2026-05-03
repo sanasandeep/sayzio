@@ -136,6 +136,7 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post('persona', [\App\Modules\User\Controllers\OnboardingController::class, 'savePersona'])->name('persona.save');
             Route::get('template', [\App\Modules\User\Controllers\OnboardingController::class, 'template'])->name('template');
             Route::post('template',[\App\Modules\User\Controllers\OnboardingController::class, 'applyTemplate'])->name('template.apply');
+            Route::post('go-to-dashboard', [\App\Modules\User\Controllers\OnboardingController::class, 'goToDashboard'])->name('go-to-dashboard');
             Route::post('dismiss-banner', [\App\Modules\User\Controllers\OnboardingController::class, 'dismissBanner'])->name('dismiss-banner');
         });
 

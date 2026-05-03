@@ -164,6 +164,21 @@ class OnboardingController extends Controller
             ->with('success', 'Welcome aboard — your "' . $tpl->name . '" page is ready to edit.');
     }
 
+    /**
+     * Bail out of onboarding straight to the dashboard. Marks the user
+     * as onboarded so the gate middleware doesn't pull them back in
+     * next login. Works whether or not a persona has been picked.
+     */
+    public function goToDashboard(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user->onboarded_at) {
+            $user->forceFill(['onboarded_at' => now()])->save();
+        }
+        return redirect()->route('user.dashboard')
+            ->with('success', "You're all set — explore your dashboard. You can pick a persona or template anytime.");
+    }
+
     /** Mark the dashboard banner as dismissed (settings JSON flag). */
     public function dismissBanner(Request $request)
     {

@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
         $this->call(CitiesTableSeeder::class);
         $this->call(BannedNamesSeeder::class);
         $this->call(PageTemplatePersonaSeeder::class);
+        $this->call(ExpandedPageTemplateLibrarySeeder::class);
         $this->call(PlansAndAddonsSeeder::class);
         $this->call(CoinPackagesSeeder::class);
         $this->call(OnboardingSlidesSeeder::class);

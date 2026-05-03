@@ -3,10 +3,11 @@
 
 @section('content')
 <div class="max-w-6xl mx-auto">
-    <div class="text-center mb-8">
-        <p class="text-xs font-semibold uppercase tracking-wider text-violet-400 mb-2">Step 2 of 2</p>
-        <h1 class="text-3xl font-bold text-white mb-2">Pick a starting template</h1>
-        <p class="text-sm text-white/50">
+    <div class="flex items-start justify-between gap-4 mb-8">
+        <div class="flex-1 text-center">
+            <p class="text-xs font-semibold uppercase tracking-wider text-violet-400 mb-2">Step 2 of 2</p>
+            <h1 class="text-3xl font-bold text-white mb-2">Pick a starting template</h1>
+            <p class="text-sm text-white/50">
             @if($personaLabel)
                 Hand-picked for {{ $personaLabel }} — or
                 <a href="#all-templates" class="text-violet-300 hover:text-violet-200 underline-offset-2 hover:underline">browse all templates</a>
@@ -14,7 +15,14 @@
             @else
                 Pick something that's close to what you want. You can edit anything afterwards.
             @endif
-        </p>
+            </p>
+        </div>
+        <form method="POST" action="{{ route('user.onboarding.go-to-dashboard') }}" class="shrink-0">
+            @csrf
+            <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white/80 hover:text-white rounded-xl text-xs font-semibold transition">
+                <i class="fas fa-th-large text-xs"></i> Go to dashboard
+            </button>
+        </form>
     </div>
 
     @if(session('error'))

@@ -74,7 +74,7 @@
                 <div class="md:col-span-2">
                     <label class="block text-xs font-medium text-white/60 mb-1.5">Recommended for personas</label>
                     <p class="text-[11px] text-white/30 mb-2">Tag the personas this template fits best. Picked personas will see it first in the onboarding wizard and template picker. Leave all unchecked if it suits everyone equally.</p>
-                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-72 overflow-y-auto pr-1 rounded-xl">
                         @foreach(\App\Modules\User\Services\PersonaCatalog::all() as $p)
                             <label class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-white/10 bg-white/5 cursor-pointer hover:border-white/30">
                                 <input type="checkbox" name="recommended_personas[]" value="{{ $p['slug'] }}" {{ in_array($p['slug'], $selectedPersonas, true) ? 'checked' : '' }} class="rounded bg-white/5 border-white/20 text-violet-600">

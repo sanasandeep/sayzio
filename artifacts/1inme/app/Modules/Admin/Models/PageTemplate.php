@@ -44,15 +44,20 @@ class PageTemplate extends Model
 
     public static function categories(): array
     {
-        return [
+        // Legacy "shape" categories kept for backwards-compatibility with
+        // existing seed data. Personas are appended below so admins can
+        // pick a persona-as-category for new templates and the same
+        // dropdown stays in sync with the onboarding picker.
+        $base = [
             'general' => 'General',
-            'creator' => 'Creator',
-            'business' => 'Business',
             'event' => 'Event',
             'product' => 'Product',
             'portfolio' => 'Portfolio',
-            'restaurant' => 'Restaurant',
-            'nonprofit' => 'Nonprofit',
         ];
+        // Personas (slug => label). Where a persona slug overlaps a
+        // legacy category key, the persona label wins so admins see a
+        // single, consistent name.
+        $personas = \App\Modules\User\Services\PersonaCatalog::slugLabelMap();
+        return array_merge($base, $personas);
     }
 }

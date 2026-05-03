@@ -4,7 +4,7 @@ namespace App\Modules\User\Services;
 
 class PersonaCatalog
 {
-    /** @return array<int, array{slug:string,label:string,icon:string,blurb:string}> */
+    /** @return array<int, array{slug:string,label:string,icon:string,blurb:string,image?:string,group?:string}> */
     public static function all(): array
     {
         return config('personas.list', []);
@@ -13,6 +13,37 @@ class PersonaCatalog
     public static function slugs(): array
     {
         return array_column(self::all(), 'slug');
+    }
+
+    /**
+     * Persona slug => label, suitable for dropdowns. Keeps insertion
+     * order so the admin "category" picker matches the onboarding order.
+     *
+     * @return array<string,string>
+     */
+    public static function slugLabelMap(): array
+    {
+        $out = [];
+        foreach (self::all() as $p) {
+            $out[$p['slug']] = $p['label'];
+        }
+        return $out;
+    }
+
+    /**
+     * Personas grouped by their `group` key for the picker UI section
+     * headers. Personas with no group are bucketed under "Other".
+     *
+     * @return array<string, array<int, array<string,mixed>>>
+     */
+    public static function grouped(): array
+    {
+        $groups = [];
+        foreach (self::all() as $p) {
+            $g = $p['group'] ?? 'Other';
+            $groups[$g][] = $p;
+        }
+        return $groups;
     }
 
     public static function labelFor(?string $slug): ?string
