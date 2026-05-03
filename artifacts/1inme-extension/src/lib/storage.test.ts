@@ -35,27 +35,31 @@ describe("capPendingThanks", () => {
   it("returns the input unchanged when below the cap", () => {
     const items = makeQueue(5);
     const result = capPendingThanks(items);
-    assert.equal(result, items);
-    assert.equal(result.length, 5);
+    assert.equal(result.items, items);
+    assert.equal(result.items.length, 5);
+    assert.equal(result.dropped, 0);
   });
 
   it("returns the input unchanged when exactly at the cap", () => {
     const items = makeQueue(PENDING_THANKS_MAX);
     const result = capPendingThanks(items);
-    assert.equal(result, items);
-    assert.equal(result.length, PENDING_THANKS_MAX);
+    assert.equal(result.items, items);
+    assert.equal(result.items.length, PENDING_THANKS_MAX);
+    assert.equal(result.dropped, 0);
   });
 
   it("returns an empty array unchanged", () => {
     const items: PendingThank[] = [];
     const result = capPendingThanks(items);
-    assert.deepEqual(result, []);
+    assert.deepEqual(result.items, []);
+    assert.equal(result.dropped, 0);
   });
 
   it("trims to the last MAX entries when over the cap", () => {
     const items = makeQueue(PENDING_THANKS_MAX + 10);
     const result = capPendingThanks(items);
-    assert.equal(result.length, PENDING_THANKS_MAX);
+    assert.equal(result.items.length, PENDING_THANKS_MAX);
+    assert.equal(result.dropped, 10);
   });
 
   it("drops the oldest entries first (keeps the newest tail)", () => {
@@ -63,15 +67,16 @@ describe("capPendingThanks", () => {
     const items = makeQueue(PENDING_THANKS_MAX + overflow);
     const result = capPendingThanks(items);
     // Oldest `overflow` entries are dropped; remaining ids start at `overflow`.
-    assert.equal(result[0]?.id, `id-${overflow}`);
-    assert.equal(result[result.length - 1]?.id, `id-${PENDING_THANKS_MAX + overflow - 1}`);
+    assert.equal(result.items[0]?.id, `id-${overflow}`);
+    assert.equal(result.items[result.items.length - 1]?.id, `id-${PENDING_THANKS_MAX + overflow - 1}`);
+    assert.equal(result.dropped, overflow);
   });
 
   it("preserves the order of the kept items", () => {
     const items = makeQueue(PENDING_THANKS_MAX + 3);
     const result = capPendingThanks(items);
-    for (let i = 1; i < result.length; i++) {
-      assert.ok((result[i]!.createdAt) > (result[i - 1]!.createdAt));
+    for (let i = 1; i < result.items.length; i++) {
+      assert.ok((result.items[i]!.createdAt) > (result.items[i - 1]!.createdAt));
     }
   });
 });

@@ -295,6 +295,12 @@ Route::prefix('v1')->group(function () {
         Route::get('/me/thank-templates', [\App\Modules\Api\Controllers\ThankTemplateController::class, 'show']);
         Route::put('/me/thank-templates', [\App\Modules\Api\Controllers\ThankTemplateController::class, 'update']);
 
+        // Queued thank-yous (the "Pending thanks" panel). Synced per
+        // workspace alongside the templates so the queue follows the
+        // creator across browsers / reinstalls.
+        Route::get('/me/pending-thanks', [\App\Modules\Api\Controllers\PendingThankController::class, 'show']);
+        Route::put('/me/pending-thanks', [\App\Modules\Api\Controllers\PendingThankController::class, 'update']);
+
         // Custom domains
         Route::get   ('/domains',        [DomainController::class, 'index']);
         Route::post  ('/domains',        [DomainController::class, 'store']);

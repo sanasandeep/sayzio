@@ -40,6 +40,12 @@ export interface ExtSettings {
   thankTemplatesWorkspaceId: number | null;
   // Queued thank-yous awaiting batch approval/open from the Backlinks tab.
   pendingThanks: PendingThank[];
+  // Last-write-wins reconciliation timestamp for the per-workspace
+  // server copy of `pendingThanks` (mirrors `thankTemplatesUpdatedAtMs`).
+  pendingThanksUpdatedAtMs: number | null;
+  // Workspace whose queue is currently mirrored locally. When the
+  // creator switches workspace we re-hydrate from the server.
+  pendingThanksWorkspaceId: number | null;
 }
 
 export type ThankChannel = "email" | "x" | "linkedin";
@@ -140,6 +146,8 @@ export const defaultSettings: ExtSettings = {
   thankTemplatesUpdatedAtMs: null,
   thankTemplatesWorkspaceId: null,
   pendingThanks: [],
+  pendingThanksUpdatedAtMs: null,
+  pendingThanksWorkspaceId: null,
 };
 
 export function defaultThankTemplates(): ThankTemplate[] {
@@ -331,7 +339,102 @@ export async function clearAuth(): Promise<void> {
   await browser.storage.local.remove([
     "token", "user", "workspaceId", "workspaces",
     "thankTemplatesUpdatedAtMs", "thankTemplatesWorkspaceId",
+    "pendingThanksUpdatedAtMs", "pendingThanksWorkspaceId",
   ]);
+}
+
+/**
+ * Reconcile the locally-stored pending-thanks queue with the server
+ * copy for the active workspace. Called on sign-in and whenever the
+ * workspace selection changes. Mirrors `syncThankTemplates` rules:
+ *
+ *  - First sync for this workspace → server wins (the queue may have
+ *    been edited from another browser).
+ *  - Otherwise last-write-wins by ms timestamp.
+ *  - Network failures are swallowed; the next call retries.
+ *
+ * On adoption from server we also TTL-prune so a long-stale item
+ * stored remotely doesn't reappear forever.
+ */
+export async function syncPendingThanks(): Promise<void> {
+  const s = await getSettings();
+  if (!s.token || !s.workspaceId) return;
+  let server: { items: PendingThank[]; updated_at_ms: number | null } | null = null;
+  try {
+    const resp = await api.getPendingThanks(s.workspaceId);
+    server = { items: resp.items as PendingThank[], updated_at_ms: resp.updated_at_ms };
+  } catch (e) {
+    if (e instanceof ApiError && e.status >= 400 && e.status < 500 && e.status !== 404) return;
+    return;
+  }
+
+  const local = s.pendingThanks || [];
+  const localTs = s.pendingThanksUpdatedAtMs;
+  const sameWorkspace = s.pendingThanksWorkspaceId === s.workspaceId;
+  const serverTs = server?.updated_at_ms ?? null;
+
+  const adoptServer = async () => {
+    const { items } = prunePendingThanks(server!.items);
+    await setSettings({
+      pendingThanks: capPendingThanks(items).items,
+      pendingThanksUpdatedAtMs: serverTs,
+      pendingThanksWorkspaceId: s.workspaceId,
+    });
+  };
+
+  // First sync for this workspace, or local has no edit timestamp →
+  // server wins (even if empty — another device may have cleared it).
+  if (!sameWorkspace || localTs == null) {
+    await adoptServer();
+    return;
+  }
+
+  if (serverTs != null && serverTs > localTs) {
+    await adoptServer();
+  } else if (localTs > (serverTs ?? 0)) {
+    try {
+      const resp = await api.savePendingThanks(local, s.workspaceId, localTs);
+      await setSettings({
+        pendingThanks: capPendingThanks(resp.items as PendingThank[]).items,
+        pendingThanksUpdatedAtMs: resp.updated_at_ms ?? localTs,
+        pendingThanksWorkspaceId: s.workspaceId,
+      });
+    } catch { /* offline — try next time */ }
+  } else {
+    // Equal timestamps — adopt server payload to converge content.
+    await adoptServer();
+  }
+}
+
+/**
+ * Persist the pending-thanks queue locally and push to the server.
+ * Bumps the local timestamp so an offline change still wins the next
+ * reconcile. Returns whether the server push succeeded so callers can
+ * surface a "saved locally, will sync later" hint if they want to.
+ */
+export async function savePendingThanksLocallyAndPush(
+  items: PendingThank[],
+): Promise<{ pushed: boolean; error?: string }> {
+  const ts = Date.now();
+  const s = await getSettings();
+  const { items: capped } = capPendingThanks(items);
+  await setSettings({
+    pendingThanks: capped,
+    pendingThanksUpdatedAtMs: ts,
+    pendingThanksWorkspaceId: s.workspaceId,
+  });
+  if (!s.token || !s.workspaceId) return { pushed: false };
+  try {
+    const resp = await api.savePendingThanks(capped, s.workspaceId, ts);
+    await setSettings({
+      pendingThanks: capPendingThanks(resp.items as PendingThank[]).items,
+      pendingThanksUpdatedAtMs: resp.updated_at_ms ?? ts,
+      pendingThanksWorkspaceId: s.workspaceId,
+    });
+    return { pushed: true };
+  } catch (e: any) {
+    return { pushed: false, error: e?.message || "Sync deferred" };
+  }
 }
 
 // Append an item to the pending-thanks queue while enforcing the cap.

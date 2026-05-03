@@ -294,7 +294,52 @@ export const api = {
       method: "PUT",
       body: { rules },
     }),
+
+  // ── Pending thank-yous queue (synced per workspace) ───────────────
+  getPendingThanks: (workspaceId?: number | null) =>
+    request<PendingThanksPayload>(
+      `/me/pending-thanks${workspaceId ? `?workspace_id=${workspaceId}` : ""}`,
+    ),
+
+  savePendingThanks: (
+    items: Array<{
+      id: string;
+      templateId: string;
+      channel: "email" | "x" | "linkedin";
+      subject: string;
+      body: string;
+      recipient: string | null;
+      pageUrl: string;
+      matchedUrl: string;
+      anchor: string;
+      createdAt: number;
+    }>,
+    workspaceId?: number | null,
+    updatedAtMs?: number,
+  ) =>
+    request<PendingThanksPayload>(
+      `/me/pending-thanks${workspaceId ? `?workspace_id=${workspaceId}` : ""}`,
+      { method: "PUT", body: { items, updated_at_ms: updatedAtMs } },
+    ),
 };
+
+export interface PendingThanksPayload {
+  workspace_id: number;
+  items: Array<{
+    id: string;
+    templateId: string;
+    channel: "email" | "x" | "linkedin";
+    subject: string;
+    body: string;
+    recipient: string | null;
+    pageUrl: string;
+    matchedUrl: string;
+    anchor: string;
+    createdAt: number;
+  }>;
+  updated_at_ms: number | null;
+  max: number;
+}
 
 export interface ThankTemplatesPayload {
   workspace_id: number;

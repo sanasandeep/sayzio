@@ -16,8 +16,10 @@ import {
   getSettings,
   prunePendingThanks,
   renderThankTemplate,
+  savePendingThanksLocallyAndPush,
   saveThankTemplatesLocallyAndPush,
   setSettings,
+  syncPendingThanks,
   syncThankTemplates,
 } from "../lib/storage";
 
@@ -122,9 +124,12 @@ export function App() {
     let s = await getSettings();
     // Auto-expire stale pending thanks on popup open so the queue can't
     // grow forever for creators who never review the Backlinks tab.
+    // Push the pruned queue so other browsers see the same expiry.
     const { items, pruned } = prunePendingThanks(s.pendingThanks || []);
     if (pruned > 0) {
-      s = await setSettings({ pendingThanks: items });
+      // Push the pruned queue so other browsers see the same expiry.
+      await savePendingThanksLocallyAndPush(items);
+      s = await getSettings();
       // Surface a one-time notice on the Backlinks tab. Accumulate in
       // case multiple refreshes happen before the creator dismisses it.
       setPrunedThanks((p) => p + pruned);
@@ -184,6 +189,9 @@ export function App() {
   useEffect(() => {
     if (!settings?.token || !settings?.workspaceId) return;
     syncThankTemplates().catch(() => undefined);
+    // Hydrate the queued thank-yous from the server too so a creator
+    // who queued on their laptop sees the same queue on their desktop.
+    syncPendingThanks().catch(() => undefined);
   }, [settings?.token, settings?.workspaceId]);
 
   // Load workspace pixel config + recent links whenever auth/workspace changes
@@ -806,7 +814,8 @@ function ThankComposer({
       );
       // Cap the queue so it can't grow forever; oldest entries drop first.
       const { items: next, dropped } = capPendingThanks([...filtered, item]);
-      await setSettings({ pendingThanks: next });
+      // Push to server so the queue follows the creator across browsers.
+      const result = await savePendingThanksLocallyAndPush(next);
       onQueued();
       if (dropped > 0) {
         // Make the silent drop visible: the creator just queued an item
@@ -815,6 +824,8 @@ function ThankComposer({
           kind: "info",
           text: `Queue full (${next.length}/${PENDING_THANKS_MAX}) — dropped ${dropped} oldest thank-you${dropped === 1 ? "" : "s"} to make room.`,
         });
+      } else if (!result.pushed && settings.token) {
+        showToast({ kind: "info", text: "Queued locally — will sync when back online." });
       } else if (next.length >= PENDING_THANKS_MAX) {
         // Queue just hit the cap on this insert. Warn proactively so the
         // creator knows the *next* queue action will start dropping the
@@ -1280,6 +1291,86 @@ function ThankTemplatesEditor({
   );
 }
 
+function SmartLinkSection({
+  settings, tabUrl, tabTitle, showToast,
+}: { settings: ExtSettings; tabUrl: string; tabTitle: string; showToast: (t: Toast) => void }) {
+  const cap = settings.user?.capabilities;
+  const enabled = cap?.link_smart_rules === true;
+  const maxRules = Math.max(1, Math.min(25, cap?.max_smart_rules ?? 25));
+
+  const [open, setOpen] = useState(false);
+  const [rules, setRules] = useState<SmartRule[]>([newRule("device")]);
+  const [busy, setBusy] = useState(false);
+
+  if (!enabled) {
+    return (
+      <div className="upsell">
+        <div className="title">Smart Links — Pro</div>
+        <div className="body">
+          Route the same short link to different destinations based on device, country, language or
+          time of day. Available on the Pro plan and above.
+        </div>
+        <a
+          href={`${settings.webBaseUrl}/pricing?feature=link_smart_rules`}
+          target="_blank"
+          rel="noreferrer"
+          className="btn-link"
+          style={{ alignSelf: "flex-start" }}
+        >
+          See plans →
+        </a>
+      </div>
+    );
+  }
+
+  const submit = async () => {
+    if (!tabUrl) return;
+    setBusy(true);
+    try {
+      const resp = await api.createSmartLink(tabUrl, rules, tabTitle, settings.workspaceId ?? undefined);
+      const shortUrl = resp.link.short_url || `${settings.webBaseUrl}/${resp.link.alias}`;
+      try { await navigator.clipboard?.writeText(shortUrl); } catch { /* clipboard may be denied */ }
+      showToast({
+        kind: "success",
+        text: `Smart link created: ${shortUrl}`,
+        link: { href: `${settings.webBaseUrl}/dashboard/links/${resp.link.id}`, label: "View analytics" },
+      });
+      setOpen(false);
+      setRules([newRule("device")]);
+    } catch (e: any) {
+      const msg = e instanceof ApiError ? e.message : (e?.message || "Could not create smart link");
+      showToast({ kind: "error", text: msg });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!open) {
+    return (
+      <button className="btn-secondary" disabled={!tabUrl} onClick={() => setOpen(true)}>
+        Shorten as Smart Link…
+      </button>
+    );
+  }
+
+  return (
+    <div className="field">
+      <div className="row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span className="section-title">Smart routing rules</span>
+        <button className="btn-link" onClick={() => setOpen(false)}>Cancel</button>
+      </div>
+      <RuleEditor rules={rules} onChange={setRules} maxRules={maxRules} />
+      <button
+        className="btn-primary"
+        disabled={busy || rules.length === 0 || !tabUrl}
+        onClick={submit}
+      >
+        {busy && <span className="spinner" />}Create Smart Link
+      </button>
+    </div>
+  );
+}
+
 // Inline rule editor — used for both the "create" composer and the
 // per-link edit affordance from the recent-links list.
 function RuleEditor({
@@ -1429,10 +1520,12 @@ function PendingThanksPanel({
         });
         await browser.tabs.create({ url });
       }
-      // Clear the items we just opened from the queue.
+      // Clear the items we just opened from the queue (locally and on
+      // the server so the same items disappear on the creator's other
+      // browsers too).
       const openedIds = new Set(items.map((i) => i.id));
       const remaining = queue.filter((q) => !openedIds.has(q.id));
-      await setSettings({ pendingThanks: remaining });
+      await savePendingThanksLocallyAndPush(remaining);
       setSelected({});
       showToast({ kind: "success", text: `Opened ${items.length} composer${items.length === 1 ? "" : "s"}` });
     } catch (e: any) {
@@ -1445,7 +1538,8 @@ function PendingThanksPanel({
   const dismissBatch = async () => {
     const items = idsToProcess();
     const dropIds = new Set(items.map((i) => i.id));
-    await setSettings({ pendingThanks: queue.filter((q) => !dropIds.has(q.id)) });
+    // Push the dismissal so it propagates to the creator's other browsers.
+    await savePendingThanksLocallyAndPush(queue.filter((q) => !dropIds.has(q.id)));
     setSelected({});
     showToast({ kind: "info", text: `Dismissed ${items.length}` });
   };
