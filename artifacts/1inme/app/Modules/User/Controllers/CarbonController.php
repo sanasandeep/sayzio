@@ -112,8 +112,21 @@ class CarbonController extends Controller
     {
         abort_unless($request->user() && (int) $request->user()->id === (int) $link->user_id, 403);
 
-        $data = $this->validateSettings($request);
         $settings = (array) $link->settings;
+
+        // "Inherit workspace defaults" clears any per-link override so
+        // workspace-wide opt-in/opt-out actually reaches this biolink.
+        // Without this escape hatch, an override saved once would
+        // sticky-override workspace policy forever (the original
+        // round-2 behaviour reviewers flagged).
+        if ($request->boolean('inherit')) {
+            unset($settings['carbon']);
+            $link->settings = $settings;
+            $link->save();
+            return back()->with('success', 'This biolink now follows workspace sustainability defaults.');
+        }
+
+        $data = $this->validateSettings($request);
         $settings['carbon'] = $data;
         $link->settings = $settings;
         $link->save();

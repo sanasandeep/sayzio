@@ -26,6 +26,24 @@
             <form method="POST" action="{{ route('user.links.settings.carbon.update', $link) }}" class="space-y-6">
                 @csrf
 
+                @if($hasOverride)
+                <div class="card-premium p-5" style="border: 1px solid rgba(167,139,250,0.35);">
+                    <div class="flex items-start gap-3">
+                        <i class="fas fa-link mt-1" style="color:#a78bfa;"></i>
+                        <div class="flex-1">
+                            <h4 class="text-[12px] font-bold mb-1" style="color: var(--text-primary);">This biolink overrides workspace defaults</h4>
+                            <p class="text-[11px] mb-3" style="color: var(--text-dimmed);">Workspace owners can change the workspace-wide policy on the sustainability dashboard, but those changes won't reach this biolink while an override is set.</p>
+                            <button type="submit" name="inherit" value="1"
+                                    onclick="return confirm('Clear this biolink\'s sustainability override and follow workspace defaults?');"
+                                    class="text-[11px] font-semibold px-3 py-1.5 rounded-lg"
+                                    style="background: rgba(167,139,250,0.15); color:#a78bfa;">
+                                Inherit workspace defaults instead
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
                 <div class="card-premium p-6">
                     <div class="flex items-center gap-3 mb-2">
                         <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(16,185,129,0.12);">
@@ -140,7 +158,7 @@
             <div class="card-premium p-5">
                 <p class="text-[11px]" style="color: var(--text-dimmed);">
                     <i class="fas fa-info-circle mr-1"></i>
-                    This biolink has its own settings that override workspace defaults. Clear all fields and save to fall back to workspace policy.
+                    This biolink stores its own carbon settings. Use the "Inherit workspace defaults" button at the top of the form to drop the override and follow workspace policy again.
                 </p>
             </div>
             @endif
