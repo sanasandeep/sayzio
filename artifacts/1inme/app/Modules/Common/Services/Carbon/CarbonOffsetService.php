@@ -139,8 +139,14 @@ class CarbonOffsetService
             return $purchase;
         });
 
+        // Sandbox purchases are simulated (no real money exchanged
+        // with a verified registry), so we never attach them to a
+        // billable invoice — that would let a workspace get billed
+        // for offsets it didn't actually receive.
         try {
-            $invoice = $this->ensureCarbonInvoice($workspace, $purchase);
+            $invoice = $purchase->status === 'sandbox'
+                ? null
+                : $this->ensureCarbonInvoice($workspace, $purchase);
             if ($invoice) {
                 $purchase->invoice_id = $invoice->id;
                 $purchase->save();

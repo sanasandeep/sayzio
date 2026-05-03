@@ -175,14 +175,10 @@ class IntegrationConfigRegistry
                         ['key' => 'mode',           'label' => 'Mode',           'type' => 'select',   'required' => true,  'group' => 'meta', 'options' => ['live' => 'Live', 'sandbox' => 'Sandbox']],
                     ],
                 ],
-                'patch' => [
-                    'label' => 'Patch', 'icon' => 'fa-tree', 'color' => '#22c55e',
-                    'fields' => [
-                        ['key' => 'api_key',        'label' => 'API key',        'type' => 'password', 'required' => true,  'group' => 'credentials', 'placeholder' => 'key_…'],
-                        ['key' => 'webhook_secret', 'label' => 'Webhook secret', 'type' => 'password', 'required' => false, 'group' => 'credentials'],
-                        ['key' => 'mode',           'label' => 'Mode',           'type' => 'select',   'required' => true,  'group' => 'meta', 'options' => ['live' => 'Live', 'sandbox' => 'Sandbox']],
-                    ],
-                ],
+                // Patch.io adapter is on the roadmap (#896-track) but
+                // not implemented yet. Don't list it as a selectable
+                // provider — leaving it here would silently fall back
+                // to the sandbox provider and confuse operators.
             ],
         ];
     }
