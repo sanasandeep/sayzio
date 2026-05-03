@@ -5,6 +5,9 @@ namespace App\Modules\Admin\Services;
 use App\Modules\User\Controllers\BiolinkBlockController;
 use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Link;
+use App\Modules\User\Models\PreviewBiolinkBlock;
+use App\Modules\User\Models\PreviewLink;
+use App\Modules\User\Models\User;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -154,6 +157,87 @@ class TemplateService
 
             return $this->insertBlockTree($link, $snapshot, null, $newSort, /*stripTabId*/ false);
         });
+    }
+
+    /**
+     * Build an unsaved PreviewLink populated with PreviewBiolinkBlock instances
+     * straight from a snapshot — no DB writes, no transaction. Used by the
+     * template-preview endpoint so clicking a template card renders instantly
+     * without churning the DB with INSERT/ROLLBACK pairs on every click.
+     *
+     * Block settings still pass through the same sanitizer as applyPageToLink
+     * so the preview matches what the template will look like once applied.
+     */
+    public function buildPreviewLink(array $snapshot, User $user, string $title): PreviewLink
+    {
+        $link = new PreviewLink();
+        $link->forceFill([
+            'id'        => 0,
+            'user_id'   => $user->id,
+            'type'      => 'biolink',
+            'alias'     => 'preview-' . Link::generateAlias(),
+            'title'     => $title,
+            'is_active' => true,
+            'settings'  => ['biolink' => (array) ($snapshot['biolink'] ?? [])],
+        ]);
+        $link->exists = false;
+        $link->setRelation('user', $user);
+
+        $all = collect();
+        $topActive = collect();
+        $nextId = 1;
+
+        foreach (($snapshot['blocks'] ?? []) as $i => $b) {
+            $block = $this->buildPreviewBlock($link, $b, null, $i, $nextId, $all);
+            if ($block->is_active) {
+                $topActive->push($block);
+            }
+        }
+
+        $link->previewBlocks = $all;
+        $link->previewActiveBlocks = $topActive;
+        return $link;
+    }
+
+    private function buildPreviewBlock(PreviewLink $link, array $b, ?int $parentId, int $sortOrder, int &$nextId, $allSink): PreviewBiolinkBlock
+    {
+        $type = (string) ($b['type'] ?? '');
+        if (!array_key_exists($type, BiolinkBlock::TYPES)) {
+            throw new \InvalidArgumentException("Unknown block type in snapshot: {$type}");
+        }
+        $settings = is_array($b['settings'] ?? null) ? $b['settings'] : [];
+        $settings = $this->sanitize($type, $settings);
+
+        $block = new PreviewBiolinkBlock();
+        $block->forceFill([
+            'id'         => $nextId++,
+            'link_id'    => $link->id,
+            'type'       => $type,
+            'settings'   => $settings,
+            'is_active'  => array_key_exists('is_active', $b) ? (bool) $b['is_active'] : true,
+            'sort_order' => $sortOrder,
+            'parent_id'  => $parentId,
+        ]);
+        $block->exists = false;
+        $block->setRelation('link', $link);
+
+        $children = collect();
+        $activeChildren = collect();
+        if ($type === 'card' && !empty($b['children']) && is_array($b['children'])) {
+            foreach (array_values($b['children']) as $i => $child) {
+                $childBlock = $this->buildPreviewBlock($link, $child, $block->id, $i, $nextId, $allSink);
+                $children->push($childBlock);
+                if ($childBlock->is_active) {
+                    $activeChildren->push($childBlock);
+                }
+            }
+        }
+        $block->previewChildren = $children;
+        $block->previewActiveChildren = $activeChildren;
+        $block->setRelation('children', $children);
+
+        $allSink->push($block);
+        return $block;
     }
 
     private function insertBlockTree(Link $link, array $b, ?int $parentId, int $sortOrder, bool $stripTabId): BiolinkBlock

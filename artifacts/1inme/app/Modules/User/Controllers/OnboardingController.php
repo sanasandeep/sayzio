@@ -9,7 +9,6 @@ use App\Modules\User\Models\Link;
 use App\Modules\User\Services\PersonaCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 
 class OnboardingController extends Controller
 {
@@ -127,23 +126,11 @@ class OnboardingController extends Controller
         $tpl = PageTemplate::active()->where('id', $id)->firstOrFail();
         $user = Auth::user();
 
-        DB::beginTransaction();
-        try {
-            $link = Link::create([
-                'user_id'  => $user->id,
-                'type'     => 'biolink',
-                'alias'    => 'preview-' . Link::generateAlias(),
-                'title'    => $tpl->name,
-                'is_active'=> true,
-            ]);
-            $this->templates->applyPageToLink($link, $tpl->snapshot, /*replace*/ true);
-            $link->refresh();
-            $link->load('user');
-
-            $html = view('common.biolink', compact('link'))->render();
-        } finally {
-            DB::rollBack();
-        }
+        // Build an in-memory Link + blocks straight off the snapshot so we can
+        // render the public biolink view without any INSERT/ROLLBACK churn on
+        // each preview click. Actual persistence still happens in applyTemplate.
+        $link = $this->templates->buildPreviewLink($tpl->snapshot ?? [], $user, $tpl->name);
+        $html = view('common.biolink', compact('link'))->render();
 
         return response($html)
             ->header('X-Frame-Options', 'SAMEORIGIN')
