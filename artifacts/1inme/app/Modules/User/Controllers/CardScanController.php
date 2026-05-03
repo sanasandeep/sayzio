@@ -162,6 +162,19 @@ class CardScanController extends Controller
         $owner = workspace_owner();
         $actor = $request->user();
 
+        // Enforce contacts plan limits inline (we removed the route-level
+        // CheckPlanLimit middleware so a biolink-only save still works
+        // when the contacts quota is full).
+        if ($wantContact) {
+            $plan = $owner->plan;
+            $features = $plan?->features ?? [];
+            $maxContacts = $features['contacts_max'] ?? -1;
+            if ($maxContacts !== -1 && $owner->contacts()->count() >= $maxContacts) {
+                return back()->with('error',
+                    "You've reached your plan's contact limit ({$maxContacts}). Upgrade your plan, or save just the biolink draft instead.");
+            }
+        }
+
         $contact = null;
         $draft   = null;
 

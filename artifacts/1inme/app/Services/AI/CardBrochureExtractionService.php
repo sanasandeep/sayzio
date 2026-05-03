@@ -90,7 +90,10 @@ class CardBrochureExtractionService
         $hashes = array_map(fn ($f) => hash_file('sha256', $f->getRealPath()), $files);
         $bundleHash = hash('sha256', implode('|', $hashes));
         $model    = $this->modelName();
-        $idem     = "card_scan:{$owner->id}:{$bundleHash}:{$model}";
+        // Hash the composite key so we always fit in the 96-char DB
+        // column even when model names grow long. Prefix kept for
+        // human-readable debugging in DB inspectors.
+        $idem     = 'card_scan:' . hash('sha256', "{$owner->id}|{$bundleHash}|{$model}");
 
         // Idempotency: race-safe firstOrCreate against the unique
         // `idempotency_key` index. The DB transaction + unique

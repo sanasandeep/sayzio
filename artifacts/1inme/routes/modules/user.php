@@ -687,9 +687,12 @@ Route::prefix('user')->name('user.')->group(function () {
         // draft proposal back. The actual extraction is metered through
         // the standard AI credit ledger (feature='card_scan').
         Route::get ('contacts/scan',                        [\App\Modules\User\Controllers\CardScanController::class, 'create'])->middleware('workspace.can:settings.edit')->name('contacts.scan.create');
-        Route::post('contacts/scan',                        [\App\Modules\User\Controllers\CardScanController::class, 'store'])->middleware(['workspace.can:settings.edit', CheckPlanLimit::class . ':contacts_max', CheckPlanLimit::class . ':leads'])->name('contacts.scan.store');
+        // Plan-limit checks are enforced inside the controller — only
+        // when the user actually elects to create a Contact. Seeding a
+        // biolink-only draft must work even with a full contacts quota.
+        Route::post('contacts/scan',                        [\App\Modules\User\Controllers\CardScanController::class, 'store'])->middleware('workspace.can:settings.edit')->name('contacts.scan.store');
         Route::get ('contacts/scan/{scan}',                 [\App\Modules\User\Controllers\CardScanController::class, 'show'])->whereNumber('scan')->middleware('workspace.can:settings.edit')->name('contacts.scan.show');
-        Route::post('contacts/scan/{scan}/save',            [\App\Modules\User\Controllers\CardScanController::class, 'save'])->whereNumber('scan')->middleware(['workspace.can:settings.edit', CheckPlanLimit::class . ':contacts_max', CheckPlanLimit::class . ':leads'])->name('contacts.scan.save');
+        Route::post('contacts/scan/{scan}/save',            [\App\Modules\User\Controllers\CardScanController::class, 'save'])->whereNumber('scan')->middleware('workspace.can:settings.edit')->name('contacts.scan.save');
         Route::post('contacts/import',                      [ContactController::class, 'import'])->middleware(['workspace.can:settings.edit', CheckPlanLimit::class . ':contacts_max', CheckPlanLimit::class . ':leads'])->name('contacts.import.store');
         Route::get('contacts/import/preview/{token}',       [ContactController::class, 'importPreview'])->middleware('workspace.can:settings.edit')->name('contacts.import.preview');
         Route::post('contacts/import/preview/{token}/row/{index}', [ContactController::class, 'importRowUpdate'])->whereNumber('index')->middleware('workspace.can:settings.edit')->name('contacts.import.preview.row.update');
