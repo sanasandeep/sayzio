@@ -1052,6 +1052,17 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post('blocks/{block}/toggle', [VerificationController::class, 'toggleBlock'])->middleware('workspace.can:settings.edit')->name('block.toggle');
         });
 
+        // Carbon-Neutral Biolinks: per-workspace sustainability dashboard
+        // (footprint snapshots + offset receipts) and per-link toggle.
+        // Workspace-level defaults are owner-only; per-link overrides
+        // are gated to the link owner inside the controller.
+        Route::prefix('carbon')->name('carbon.')->group(function () {
+            Route::get ('/',                    [\App\Modules\User\Controllers\CarbonController::class, 'index'])->name('index');
+            Route::post('workspace',            [\App\Modules\User\Controllers\CarbonController::class, 'updateWorkspace'])->middleware('workspace.owner')->name('workspace.update');
+            Route::post('links/{link}',         [\App\Modules\User\Controllers\CarbonController::class, 'updateLink'])->whereNumber('link')->name('link.update');
+            Route::get ('methodology',          [\App\Modules\Common\Controllers\CarbonPublicController::class, 'methodology'])->name('methodology');
+        });
+
         Route::middleware(SuperAdmin::class)->group(function () {
             Route::resource('plans', PlanManagementController::class)->except(['show']);
             Route::get('verification-admin', [VerificationController::class, 'adminIndex'])->name('verification.admin');

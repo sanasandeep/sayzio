@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class Workspace extends Model
 {
-    protected $fillable = ['owner_user_id', 'name', 'slug', 'is_personal', 'inbox_inbound_token'];
+    protected $fillable = ['owner_user_id', 'name', 'slug', 'is_personal', 'inbox_inbound_token', 'settings'];
 
     protected $casts = [
         'is_personal' => 'boolean',
+        'settings'    => 'array',
     ];
 
     /** Display label: "Personal" for the user's auto-created workspace, "Team" otherwise. */

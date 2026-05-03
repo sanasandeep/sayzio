@@ -2817,5 +2817,6 @@
             } catch (e) {}
         })();
     </script>
+    @include('common.blocks._carbon_badge', ['link' => $link])
 </body>
 </html>

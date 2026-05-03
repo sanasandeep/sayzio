@@ -23,6 +23,8 @@ class IntegrationConfigRegistry
                           'subtitle' => 'Send notification SMS to your team or transactional SMS to leads.'],
             'email'   => ['label' => 'Email',    'icon' => 'fa-envelope',      'color' => '#6366f1',
                           'subtitle' => 'Outbound mailers used for form notifications, autoresponders & broadcasts.'],
+            'carbon'  => ['label' => 'Carbon offsets', 'icon' => 'fa-leaf',     'color' => '#10b981',
+                          'subtitle' => 'Auto-purchase verified carbon offsets for opted-in biolinks each month.'],
         ];
     }
 
@@ -160,6 +162,25 @@ class IntegrationConfigRegistry
                         ['key' => 'region',            'label' => 'AWS region',        'type' => 'text',     'required' => true, 'group' => 'meta', 'placeholder' => 'us-east-1'],
                         ['key' => 'from_email',        'label' => 'From email',        'type' => 'email',    'required' => true, 'group' => 'meta'],
                         ['key' => 'from_name',         'label' => 'From name',         'type' => 'text',     'required' => false, 'group' => 'meta'],
+                    ],
+                ],
+            ],
+            // ============================ CARBON OFFSETS ============================
+            'carbon' => [
+                'cloverly' => [
+                    'label' => 'Cloverly', 'icon' => 'fa-leaf', 'color' => '#10b981',
+                    'fields' => [
+                        ['key' => 'api_key',        'label' => 'API key',        'type' => 'password', 'required' => true,  'group' => 'credentials', 'placeholder' => 'cloverly_…'],
+                        ['key' => 'webhook_secret', 'label' => 'Webhook secret', 'type' => 'password', 'required' => false, 'group' => 'credentials', 'help' => 'Used to verify Cloverly webhook signatures.'],
+                        ['key' => 'mode',           'label' => 'Mode',           'type' => 'select',   'required' => true,  'group' => 'meta', 'options' => ['live' => 'Live', 'sandbox' => 'Sandbox']],
+                    ],
+                ],
+                'patch' => [
+                    'label' => 'Patch', 'icon' => 'fa-tree', 'color' => '#22c55e',
+                    'fields' => [
+                        ['key' => 'api_key',        'label' => 'API key',        'type' => 'password', 'required' => true,  'group' => 'credentials', 'placeholder' => 'key_…'],
+                        ['key' => 'webhook_secret', 'label' => 'Webhook secret', 'type' => 'password', 'required' => false, 'group' => 'credentials'],
+                        ['key' => 'mode',           'label' => 'Mode',           'type' => 'select',   'required' => true,  'group' => 'meta', 'options' => ['live' => 'Live', 'sandbox' => 'Sandbox']],
                     ],
                 ],
             ],
