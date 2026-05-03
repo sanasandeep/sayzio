@@ -1,13 +1,16 @@
-@php $locked = $lockedFn($tpl->plan_tier); @endphp
+@php
+    $locked = $lockedFn($tpl->plan_tier);
+    $previewData = [
+        'id'         => $tpl->id,
+        'name'       => $tpl->name,
+        'tier'       => $tpl->plan_tier,
+        'locked'     => $locked,
+        'previewUrl' => route('user.onboarding.template.preview', $tpl->id),
+        'upgradeUrl' => route('user.upgrade'),
+    ];
+@endphp
 <button type="button"
-        @click='openPreview(@json([
-            "id" => $tpl->id,
-            "name" => $tpl->name,
-            "tier" => $tpl->plan_tier,
-            "locked" => $locked,
-            "previewUrl" => route("user.onboarding.template.preview", $tpl->id),
-            "upgradeUrl" => route("user.upgrade"),
-        ]))'
+        @click='openPreview(@json($previewData))'
         class="text-left glass rounded-2xl border border-white/10 overflow-hidden hover:border-violet-500/40 hover:-translate-y-0.5 transition group flex flex-col">
     <div class="aspect-[4/3] flex items-center justify-center overflow-hidden relative" style="background: linear-gradient(135deg, rgba(124,58,237,0.12), rgba(139,92,246,0.04));">
         @if($tpl->thumbnail_url)
