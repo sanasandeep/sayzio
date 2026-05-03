@@ -64,6 +64,14 @@ Schedule::command('queue:work --stop-when-empty --tries=1 --queue=default')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Hourly: notify the assignee (or workspace owner) about Inbox 2.0 threads
+// whose SLA has elapsed without a reply. Idempotent — each thread is only
+// notified once via the `sla_overdue_notified` flag.
+Schedule::command('inbox:check-sla')
+    ->hourly()
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Every 5 minutes: retry inbox-forward deliveries (email/webhook) that
 // failed transiently. Each delivery has its own exponential backoff window;
 // permanently failing deliveries get parked as 'dead' after MAX_ATTEMPTS.

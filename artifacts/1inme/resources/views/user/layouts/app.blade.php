@@ -670,15 +670,22 @@
                 <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Audience</div>
 
                 @if($__can['inbox_view'])
-                <a href="{{ route('user.inbox.index') }}"
-                   class="sidebar-link {{ request()->routeIs('user.inbox.*') ? 'active' : '' }}"
-                   style="--nav-tint:#0ea5e9; --nav-tint-soft:rgba(14,165,233,0.12);">
+                <a href="{{ route('user.inbox.unified.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.inbox.unified.*') ? 'active' : '' }}"
+                   style="--nav-tint:#8b5cf6; --nav-tint-soft:rgba(139,92,246,0.12);">
                     <div class="nav-icon-wrap"><i class="fas fa-inbox"></i></div>
                     <span class="nav-label">Inbox
                         @php $__inboxUnread = (new \App\Modules\User\Services\InboxAggregator(auth()->id()))->unreadCount(); @endphp
                         @if($__inboxUnread)<span class="ml-1 inline-block px-1.5 rounded-full text-[10px] bg-violet-500 text-white">{{ $__inboxUnread > 99 ? '99+' : $__inboxUnread }}</span>@endif
                     </span>
-                    <span class="sidebar-tooltip">Unified Inbox</span>
+                    <span class="sidebar-tooltip">Inbox 2.0 — triaged across forms, DMs &amp; sponsorships</span>
+                </a>
+                <a href="{{ route('user.inbox.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.inbox.index') || (request()->routeIs('user.inbox.*') && !request()->routeIs('user.inbox.unified.*')) ? 'active' : '' }}"
+                   style="--nav-tint:#0ea5e9; --nav-tint-soft:rgba(14,165,233,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-folder-tree"></i></div>
+                    <span class="nav-label">Inbox (classic)</span>
+                    <span class="sidebar-tooltip">Classic per-source inbox</span>
                 </a>
                 <a href="{{ route('user.subscribers.index') }}"
                    class="sidebar-link {{ request()->routeIs('user.subscribers.*') ? 'active' : '' }}"

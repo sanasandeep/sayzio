@@ -11,6 +11,15 @@ use Illuminate\Support\Facades\Route;
  * Also includes a generic `webhooks/{anything}` catch-all 404 so scanner
  * traffic doesn't get a 500 when a gateway slug is misconfigured.
  */
+// Inbox 2.0 inbound webhook. Accepts normalised social DM payloads
+// (Instagram/TikTok/X via the platform OAuth proxy) and forwarded email
+// (Mailgun / Postmark / Cloudflare inbound parsers / Zapier) into the
+// unified inbox. Auth is the per-workspace `inbox_inbound_token` and an
+// optional HMAC `X-Inbox-Signature` header.
+Route::post('/webhooks/inbox/{token}', [\App\Modules\User\Controllers\InboxInboundController::class, 'ingest'])
+    ->where('token', '[A-Za-z0-9]{20,80}')
+    ->name('webhooks.inbox.ingest');
+
 Route::post('/webhooks/{gateway}', [WebhookController::class, 'handle'])
     ->where('gateway', '[a-z0-9_-]+')
     ->name('webhooks.handle');

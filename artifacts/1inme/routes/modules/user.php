@@ -779,6 +779,25 @@ Route::prefix('user')->name('user.')->group(function () {
                 ->where('type', 'form_submission|subscriber')->whereNumber('id')->middleware('workspace.can:inbox.edit')->name('update');
             Route::post('{type}/{id}/reply', [InboxController::class, 'reply'])
                 ->where('type', 'form_submission|subscriber')->whereNumber('id')->middleware('workspace.can:inbox.reply')->name('reply');
+
+            // ---- Inbox 2.0: unified, triaged, actionable ----
+            // Sits alongside the legacy form/subscriber inbox. Backed by the
+            // new inbox_threads + inbox_messages schema, kept in sync from
+            // every existing source (forms, subscribers, viewer DMs).
+            Route::prefix('unified')->name('unified.')->group(function () {
+                Route::get('/',                 [\App\Modules\User\Controllers\InboxUnifiedController::class, 'index'])->name('index');
+                Route::get('snippets',          [\App\Modules\User\Controllers\InboxUnifiedController::class, 'snippetsIndex'])->name('snippets.index');
+                Route::post('snippets',         [\App\Modules\User\Controllers\InboxUnifiedController::class, 'snippetsStore'])->middleware('workspace.can:inbox.edit')->name('snippets.store');
+                Route::delete('snippets/{snippet}', [\App\Modules\User\Controllers\InboxUnifiedController::class, 'snippetsDestroy'])->whereNumber('snippet')->middleware('workspace.can:inbox.delete')->name('snippets.destroy');
+                Route::post('bulk',             [\App\Modules\User\Controllers\InboxUnifiedController::class, 'bulk'])->middleware('workspace.can:inbox.edit')->name('bulk');
+                Route::get('{thread}',          [\App\Modules\User\Controllers\InboxUnifiedController::class, 'show'])->whereNumber('thread')->name('show');
+                Route::post('{thread}/update',  [\App\Modules\User\Controllers\InboxUnifiedController::class, 'update'])->whereNumber('thread')->middleware('workspace.can:inbox.edit')->name('update');
+                Route::post('{thread}/reply',   [\App\Modules\User\Controllers\InboxUnifiedController::class, 'reply'])->whereNumber('thread')->middleware('workspace.can:inbox.reply')->name('reply');
+                Route::post('{thread}/convert/kanban',   [\App\Modules\User\Controllers\InboxUnifiedController::class, 'convertToKanban'])->whereNumber('thread')->middleware('workspace.can:inbox.edit')->name('convert.kanban');
+                Route::post('{thread}/convert/contact',  [\App\Modules\User\Controllers\InboxUnifiedController::class, 'convertToContact'])->whereNumber('thread')->middleware('workspace.can:inbox.edit')->name('convert.contact');
+                Route::post('{thread}/convert/vault',    [\App\Modules\User\Controllers\InboxUnifiedController::class, 'convertToVault'])->whereNumber('thread')->middleware('workspace.can:inbox.edit')->name('convert.vault');
+                Route::post('{thread}/convert/calendar', [\App\Modules\User\Controllers\InboxUnifiedController::class, 'convertToCalendar'])->whereNumber('thread')->middleware('workspace.can:inbox.edit')->name('convert.calendar');
+            });
         });
 
         // Subscribers feed inbox/digests — gate reads under inbox.view and

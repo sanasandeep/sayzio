@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Workspace extends Model
 {
-    protected $fillable = ['owner_user_id', 'name', 'slug', 'is_personal'];
+    protected $fillable = ['owner_user_id', 'name', 'slug', 'is_personal', 'inbox_inbound_token'];
 
     protected $casts = [
         'is_personal' => 'boolean',
