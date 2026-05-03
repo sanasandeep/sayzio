@@ -36,7 +36,7 @@ class RedirectController extends Controller
                     ->where('is_active', true)->where('is_verified', true)->exists()) {
                 return response()->view('common.domain-not-connected', ['host' => $host], 404);
             }
-            abort(404);
+            return response()->view('common.short-link-not-found', ['alias' => $alias], 404);
         }
         $link->load('pixels');
         // Stash the alias the visitor actually used so views and tracking can
