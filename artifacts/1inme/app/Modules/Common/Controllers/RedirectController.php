@@ -30,10 +30,13 @@ class RedirectController extends Controller
         $host = $request->getHost();
         $link = Link::resolveByAlias($alias, $host);
         if (!$link) {
-            $platformHost = parse_url(config('app.url'), PHP_URL_HOST);
-            if ($host && strcasecmp($host, (string) $platformHost) !== 0
-                && !\App\Modules\User\Models\Domain::where('domain', strtolower($host))
-                    ->where('is_active', true)->where('is_verified', true)->exists()) {
+            // Show "Domain not connected" only for hosts that are
+            // genuinely an unfinished custom-domain attempt: a row exists
+            // in `domains` but it isn't yet verified and active. Platform
+            // hosts (APP_URL, Replit dev/deployed URLs, anything else not
+            // claimed as a verified custom domain) and verified+active
+            // custom domains both fall through to "short link not found".
+            if (\App\Modules\Common\Support\PlatformHosts::isPendingCustomDomain($host)) {
                 return response()->view('common.domain-not-connected', ['host' => $host], 404);
             }
             return response()->view('common.short-link-not-found', ['alias' => $alias], 404);
@@ -243,7 +246,7 @@ class RedirectController extends Controller
     {
         $response->headers->set('X-Frame-Options', 'ALLOWALL');
         $response->headers->set('Content-Security-Policy', 'frame-ancestors *');
-        if ($request->boolean('_preview') && $request->hasValidSignatureWhileIgnoring(['_draft', '_t'])) {
+        if ($request->boolean('_preview') && $request->hasValidSignatureWhileIgnoring(['_draft', '_t'], false)) {
             $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
             $response->headers->set('Pragma', 'no-cache');
         }
@@ -262,7 +265,7 @@ class RedirectController extends Controller
         if (!$request->boolean('_preview') || !$request->boolean('_draft')) {
             return;
         }
-        if (!$request->hasValidSignatureWhileIgnoring(['_draft', '_t'])) {
+        if (!$request->hasValidSignatureWhileIgnoring(['_draft', '_t'], false)) {
             return;
         }
         $draft = \Illuminate\Support\Facades\Cache::get("biolink_draft:{$link->id}");
@@ -299,7 +302,7 @@ class RedirectController extends Controller
         // This guarantees the preview is never blocked by visibility tiers
         // even if the iframe loses the session cookie (SameSite / 3rd-party
         // cookie behavior on a custom domain).
-        if ($request->boolean('_preview') && $request->hasValidSignatureWhileIgnoring(['_draft', '_t'])) {
+        if ($request->boolean('_preview') && $request->hasValidSignatureWhileIgnoring(['_draft', '_t'], false)) {
             return null;
         }
 

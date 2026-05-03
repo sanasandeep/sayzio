@@ -311,10 +311,13 @@
     // unsaved-edits "draft preview" and are explicitly ignored when
     // validating the signature (see RedirectController).
     $__previewExpiresAt = now()->addHours(24);
+    // Relative signature: stays valid no matter which platform host the
+    // iframe is loaded on (Replit dev domain, deployed Replit URL, etc.).
     $__previewUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
         'redirect.handle',
         $__previewExpiresAt,
-        ['alias' => $link->alias, '_preview' => 1]
+        ['alias' => $link->alias, '_preview' => 1],
+        false
     );
     $__previewRefreshUrl = route('user.links.preview-url', ['link' => $link->id]);
     $__draftPreviewEndpoint = route('user.links.preview-draft', $link);

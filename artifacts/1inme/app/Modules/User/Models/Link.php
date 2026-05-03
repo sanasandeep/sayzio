@@ -125,26 +125,31 @@ protected $fillable = [
      */
     public static function resolveByAlias(string $alias, ?string $host = null): ?self
     {
-        // Host-aware resolution. When the visitor request comes in on a
-        // custom domain we MUST scope alias lookup to links bound to that
-        // domain so the same alias can live independently on different
-        // hosts. A null/missing/platform host falls back to "no domain" —
-        // i.e. links not bound to any custom domain.
-        $platformHost = parse_url(config('app.url'), PHP_URL_HOST);
+        // Host-aware resolution. Three cases:
+        //   1. Platform host (APP_URL, Replit dev domain, deployed Replit
+        //      URL, localhost) → fall back to links with domain_id IS NULL.
+        //   2. Verified+active row in the `domains` table → scope alias
+        //      lookup to that domain_id so the same alias can live
+        //      independently on different custom domains.
+        //   3. Anything else (a host that looks like a custom-domain
+        //      attempt but isn't registered/verified) → return null so
+        //      the caller can serve "Domain not connected".
         $domainId = null;
-        $hostKnown = true;
-        if ($host && strcasecmp($host, (string) $platformHost) !== 0) {
-            $domain = Domain::where('domain', strtolower($host))
-                ->where('is_active', true)
-                ->where('is_verified', true)
-                ->first();
-            if (!$domain) {
-                // Visitor hit an unknown / unverified / disabled host — caller
-                // should serve a "domain not connected" notice rather than
-                // matching aliases on the platform host.
-                return null;
+        $normalizedHost = \App\Modules\Common\Support\PlatformHosts::normalize($host);
+        if ($normalizedHost !== null) {
+            $domain = Domain::where('domain', $normalizedHost)->first();
+            if ($domain) {
+                if (!$domain->is_active || !$domain->is_verified) {
+                    // Host is registered as a custom domain but the user
+                    // hasn't completed verification/activation yet — the
+                    // caller should serve "Domain not connected" instead
+                    // of leaking the platform's no-domain links.
+                    return null;
+                }
+                $domainId = $domain->id;
             }
-            $domainId = $domain->id;
+            // No row at all → fall through and treat as platform: match
+            // links with domain_id IS NULL just like APP_URL host does.
         }
 
         $query = static::where('alias', $alias);

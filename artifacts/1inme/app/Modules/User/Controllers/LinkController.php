@@ -2598,10 +2598,16 @@ class LinkController extends Controller
         abort_if($link->user_id !== workspace_owner_id(), 403);
 
         $expiresAt = now()->addHours(24);
+        // Sign as a RELATIVE URL so the signature stays valid no matter
+        // which platform host the iframe ends up loading it on (the host
+        // baked into APP_URL is often not the host the browser is using —
+        // e.g. on a Replit dev domain). The iframe resolves the relative
+        // path against the parent page so it stays same-origin either way.
         $url = \Illuminate\Support\Facades\URL::temporarySignedRoute(
             'redirect.handle',
             $expiresAt,
-            ['alias' => $link->alias, '_preview' => 1]
+            ['alias' => $link->alias, '_preview' => 1],
+            false
         );
 
         return response()->json([
