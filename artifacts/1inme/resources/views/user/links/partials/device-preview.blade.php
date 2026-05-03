@@ -190,6 +190,12 @@
 </style>
 
 <div class="device-preview-root" x-data="{ previewMode: 'phone' }">
+    <div id="draftPreviewBadge" class="hidden flex items-center justify-center mb-2">
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold" style="background: rgba(245,158,11,0.12); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3);" title="Preview reflects your unsaved edits — click Save Settings to persist them.">
+            <i class="fas fa-circle text-[6px]"></i>
+            Unsaved preview
+        </span>
+    </div>
     <div class="flex items-center justify-center gap-1 mb-4">
         <button type="button" @click="previewMode = 'phone'; switchPreviewMode('phone')" class="device-switcher-btn" :class="previewMode === 'phone' ? 'active' : ''" title="Phone">
             <i class="fas fa-mobile-alt"></i>
@@ -301,6 +307,9 @@
     // `?_preview=1` + a valid Laravel signature as proof of ownership so the
     // iframe is never gated and never blocked by SameSite/3rd-party-cookie
     // behaviour on a custom domain. 24h expiry is plenty for an editing session.
+    // The `_draft` and `_t` query params are appended client-side for the
+    // unsaved-edits "draft preview" and are explicitly ignored when
+    // validating the signature (see RedirectController).
     $__previewExpiresAt = now()->addHours(24);
     $__previewUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
         'redirect.handle',
@@ -308,6 +317,7 @@
         ['alias' => $link->alias, '_preview' => 1]
     );
     $__previewRefreshUrl = route('user.links.preview-url', ['link' => $link->id]);
+    $__draftPreviewEndpoint = route('user.links.preview-draft', $link);
 @endphp
 <script>
 var _previewUrl = @json($__previewUrl);
@@ -315,6 +325,8 @@ var _previewExpiresAt = @json($__previewExpiresAt->getTimestamp()); // epoch sec
 var _previewRefreshEndpoint = @json($__previewRefreshUrl);
 var _previewRefreshInFlight = null;
 var _previewRefreshTimer = null;
+var _draftPreviewUrl = @json($__draftPreviewEndpoint);
+var _draftActive = false;
 var _activePreviewMode = 'phone';
 var _deviceViewports = {
     phone:        { w: 375, h: 812 },
@@ -418,6 +430,13 @@ function _schedulePreviewRefresh() {
     _previewRefreshTimer = setTimeout(function() { refreshPreviewSignedUrl(true); }, delayMs);
 }
 
+function _currentPreviewSrc() {
+    // Draft mode appends `&_draft=1&_t=<ts>` so the iframe re-fetches the
+    // server-rendered page with the cached unsaved overrides applied. The
+    // signature ignores both params (see RedirectController).
+    return _draftActive ? (_previewUrl + '&_draft=1&_t=' + Date.now()) : _previewUrl;
+}
+
 function _reloadIframe(f) {
     // If the URL has already expired by the time we try to reload (long sleep
     // / browser was backgrounded past the 24h window), block this reload and
@@ -428,14 +447,15 @@ function _reloadIframe(f) {
         refreshPreviewSignedUrl(true);
         return;
     }
+    var url = _currentPreviewSrc();
     try {
         if (f.contentWindow && f.contentWindow.location) {
-            f.contentWindow.location.replace(_previewUrl);
+            f.contentWindow.location.replace(url);
             f.dataset.previewStale = '';
             return;
         }
     } catch (e) { /* cross-origin: fall through */ }
-    f.src = _previewUrl;
+    f.src = url;
     f.dataset.previewStale = '';
 }
 
@@ -453,7 +473,7 @@ function _ensureIframeLoaded(mode) {
         return f;
     }
     if (!f.src || f.src === 'about:blank' || f.src === window.location.href) {
-        f.src = _previewUrl;
+        f.src = _currentPreviewSrc();
         f.dataset.previewStale = '';
     } else if (f.dataset.previewStale === '1') {
         // The page was edited while this device mode was hidden — reload
@@ -490,9 +510,111 @@ function refreshPreview() {
     });
 }
 
+// ----------------------------------------------------------------------------
+// Live "draft preview" — push unsaved page-settings form changes to the cache
+// endpoint and reload the visible iframe with `_draft=1` so the owner can see
+// colour/font/theme/layout tweaks without clicking "Save Settings" first.
+// Wired up generically to any form whose action targets `/page-settings`, so
+// it covers Appearance, Layout, Block Theme and Advanced settings pages.
+// ----------------------------------------------------------------------------
+var _draftPushTimer = null;
+var _draftLastSent = 0;
+
+function _csrfTokenForDraft() {
+    var m = document.querySelector('meta[name="csrf-token"]');
+    return m ? m.content : '';
+}
+
+function pushDraftPreview(form, opts) {
+    if (!form || !_draftPreviewUrl) return;
+    var fd = new FormData();
+    form.querySelectorAll('input, select, textarea').forEach(function(el) {
+        if (!el.name) return;
+        if (el.type === 'file') return;             // files are skipped — only saved files preview
+        if (el.disabled) return;
+        if ((el.type === 'checkbox' || el.type === 'radio') && !el.checked) return;
+        fd.append(el.name, el.value);
+    });
+    fd.append('_token', _csrfTokenForDraft());
+
+    fetch(_draftPreviewUrl, {
+        method: 'POST',
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        body: fd,
+        credentials: 'same-origin'
+    }).then(function(r) {
+        if (!r.ok) return null;
+        return r.json();
+    }).then(function(data) {
+        if (data && data.success) {
+            _draftActive = true;
+            _showDraftBadge();
+            // Reload the currently visible iframe (and mark hidden ones stale).
+            document.querySelectorAll('.preview-iframe').forEach(function(f) {
+                if (f.dataset.preview === _activePreviewMode) {
+                    _reloadIframe(f);
+                } else {
+                    f.dataset.previewStale = '1';
+                }
+            });
+        }
+    }).catch(function() { /* silent — keep editing */ });
+}
+
+function _scheduleDraftPush(form) {
+    if (_draftPushTimer) clearTimeout(_draftPushTimer);
+    _draftPushTimer = setTimeout(function() { pushDraftPreview(form); }, 500);
+}
+
+function _bindDraftPreviewToForm(form) {
+    if (form.__draftPreviewBound) return;
+    form.__draftPreviewBound = true;
+
+    function onAnyChange() { _scheduleDraftPush(form); }
+
+    form.addEventListener('input', onAnyChange);
+    form.addEventListener('change', onAnyChange);
+
+    // After the form's normal submit (Save Settings) succeeds, the saved
+    // values become the new baseline — drop draft mode so the next reload
+    // shows the persisted page (no longer needs the cached overrides).
+    form.addEventListener('submit', function() {
+        if (_draftPushTimer) { clearTimeout(_draftPushTimer); _draftPushTimer = null; }
+        _draftActive = false;
+        _hideDraftBadge();
+    });
+}
+
+function _findDraftPreviewForms() {
+    var forms = document.querySelectorAll('form[action*="/preview-draft"], form[action*="/page-settings"]');
+    forms.forEach(function(form) {
+        // Don't bind to the preview-draft endpoint itself (defensive).
+        if (form.action.indexOf('/preview-draft') !== -1) return;
+        _bindDraftPreviewToForm(form);
+    });
+}
+
+// Tiny "Draft preview" pill so creators know the iframe reflects unsaved
+// changes. Lives next to the device switcher, hidden until the first push.
+function _showDraftBadge() {
+    var badge = document.getElementById('draftPreviewBadge');
+    if (!badge) return;
+    badge.classList.remove('hidden');
+}
+function _hideDraftBadge() {
+    var badge = document.getElementById('draftPreviewBadge');
+    if (!badge) return;
+    badge.classList.add('hidden');
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     _schedulePreviewRefresh();
     _ensureIframeLoaded('phone');
+    _findDraftPreviewForms();
+    // Forms can be injected after load (e.g. tab swaps); rescan on a light
+    // mutation observer so we don't miss them.
+    var mo = new MutationObserver(function() { _findDraftPreviewForms(); });
+    mo.observe(document.body, { childList: true, subtree: true });
 });
 
 window.addEventListener('resize', function() {

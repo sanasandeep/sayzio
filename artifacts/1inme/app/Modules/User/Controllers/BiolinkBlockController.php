@@ -399,6 +399,39 @@ class BiolinkBlockController extends Controller
         return redirect()->route('user.links.blocks.editor', $link)->with('success', 'Block visibility toggled.');
     }
 
+    /**
+     * Cache an in-progress page-settings form snapshot so the device-preview
+     * iframe can render the unsaved edits without the owner having to click
+     * "Save Settings" first. The cached overrides are scoped to the link and
+     * expire after 10 minutes (cheap to refresh on every keystroke).
+     *
+     * Files (background images, slideshow images, video uploads, etc.) are
+     * intentionally skipped — they only become previewable once persisted by
+     * the regular save flow. Everything else (colours, gradients, fonts,
+     * theme, layout, meta, etc.) flows straight through into the preview.
+     */
+    public function previewDraft(Request $request, Link $link)
+    {
+        abort_if($link->user_id !== workspace_owner_id() || $link->type !== 'biolink', 403);
+
+        $input = $request->except(['_token', '_method', 'remove_slideshow_images']);
+        // Drop any uploaded file fields — they aren't persisted yet, so we
+        // can't hand them to the renderer. Saved values are kept untouched.
+        foreach (array_keys($request->allFiles()) as $key) {
+            unset($input[$key]);
+        }
+        // Scalar booleans coming from checkboxes are sent as "1" — leave
+        // them as-is; merge into existing settings so unrelated keys keep
+        // their saved values.
+        \Illuminate\Support\Facades\Cache::put(
+            "biolink_draft:{$link->id}",
+            ['biolink' => $input],
+            now()->addMinutes(10)
+        );
+
+        return response()->json(['success' => true]);
+    }
+
     public function updatePageSettings(Request $request, Link $link)
     {
         abort_if($link->user_id !== workspace_owner_id() || $link->type !== 'biolink', 403);

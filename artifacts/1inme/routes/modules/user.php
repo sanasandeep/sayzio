@@ -310,6 +310,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('links/{link}/blocks/{block}/toggle', [BiolinkBlockController::class, 'toggleActive'])->middleware('workspace.can:links.edit')->name('links.blocks.toggle');
         Route::post('links/{link}/blocks/{block}/move', [BiolinkBlockController::class, 'moveBlock'])->middleware('workspace.can:links.edit')->name('links.blocks.move');
         Route::post('links/{link}/page-settings', [BiolinkBlockController::class, 'updatePageSettings'])->middleware('workspace.can:links.edit')->name('links.page-settings');
+        Route::post('links/{link}/preview-draft', [BiolinkBlockController::class, 'previewDraft'])->middleware('workspace.can:links.edit')->name('links.preview-draft');
 
         // Plan upgrade, checkout & billing — these touch the workspace
         // owner's subscription/wallet/invoices, so they remain owner-only

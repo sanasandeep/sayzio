@@ -202,6 +202,16 @@ class RedirectController extends Controller
             return $gated;
         }
 
+        // Owner-scoped "draft preview" — when the editor iframe loads with
+        // ?_preview=1&_draft=1 (signature must still be valid, ignoring the
+        // draft + cache-buster params), merge the cached unsaved form state
+        // into the link's settings BEFORE rendering. This is what powers the
+        // live device preview so creators can see colour/font/theme/layout
+        // tweaks without hitting Save first.
+        if ($link->type === 'biolink') {
+            $this->applyDraftOverrides($request, $link);
+        }
+
         return match ($link->type) {
             'url' => tap(
                 redirect()->away($finalUrl, $link->redirect_type ?: 301),
@@ -233,11 +243,35 @@ class RedirectController extends Controller
     {
         $response->headers->set('X-Frame-Options', 'ALLOWALL');
         $response->headers->set('Content-Security-Policy', 'frame-ancestors *');
-        if ($request->boolean('_preview') && $request->hasValidSignature()) {
+        if ($request->boolean('_preview') && $request->hasValidSignatureWhileIgnoring(['_draft', '_t'])) {
             $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
             $response->headers->set('Pragma', 'no-cache');
         }
         return $response;
+    }
+
+    /**
+     * Merge any cached "draft" page-settings overrides into $link in-place
+     * so the device-preview iframe renders the owner's unsaved edits.
+     * Gated by the same signed-URL proof of ownership the editor already
+     * uses for the preview iframe; `_draft` and `_t` are ignored when
+     * validating the signature so the editor can append them client-side.
+     */
+    protected function applyDraftOverrides(Request $request, Link $link): void
+    {
+        if (!$request->boolean('_preview') || !$request->boolean('_draft')) {
+            return;
+        }
+        if (!$request->hasValidSignatureWhileIgnoring(['_draft', '_t'])) {
+            return;
+        }
+        $draft = \Illuminate\Support\Facades\Cache::get("biolink_draft:{$link->id}");
+        if (!is_array($draft) || empty($draft['biolink']) || !is_array($draft['biolink'])) {
+            return;
+        }
+        $settings = $link->settings ?? [];
+        $settings['biolink'] = array_merge($settings['biolink'] ?? [], $draft['biolink']);
+        $link->settings = $settings;
     }
 
     /**
@@ -265,7 +299,7 @@ class RedirectController extends Controller
         // This guarantees the preview is never blocked by visibility tiers
         // even if the iframe loses the session cookie (SameSite / 3rd-party
         // cookie behavior on a custom domain).
-        if ($request->boolean('_preview') && $request->hasValidSignature()) {
+        if ($request->boolean('_preview') && $request->hasValidSignatureWhileIgnoring(['_draft', '_t'])) {
             return null;
         }
 
