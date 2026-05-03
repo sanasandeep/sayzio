@@ -37,6 +37,24 @@
     @endforeach
 </div>
 
+@isset($cardScanStats)
+<div class="glass rounded-2xl border border-white/10 p-6 mb-6">
+    <div class="flex items-center justify-between mb-3">
+        <h3 class="font-semibold text-white">
+            <i class="fas fa-camera-retro text-fuchsia-400 mr-1"></i> Card &amp; brochure scans
+        </h3>
+        <a href="{{ route('admin.ai-usage.index', ['days' => $days, 'feature' => 'card_scan']) }}"
+           class="text-xs text-violet-300 hover:underline">View ledger entries →</a>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div><p class="text-[10px] uppercase text-white/40">Scans</p><p class="text-xl font-bold text-white">{{ number_format($cardScanStats['total']) }}</p></div>
+        <div><p class="text-[10px] uppercase text-white/40">Completed</p><p class="text-xl font-bold text-emerald-300">{{ number_format($cardScanStats['completed']) }}</p></div>
+        <div><p class="text-[10px] uppercase text-white/40">Failed</p><p class="text-xl font-bold text-red-300">{{ number_format($cardScanStats['failed']) }}</p></div>
+        <div><p class="text-[10px] uppercase text-white/40">Distinct users</p><p class="text-xl font-bold text-white">{{ number_format($cardScanStats['users']) }}</p></div>
+    </div>
+</div>
+@endisset
+
 @if($featureRows->isNotEmpty())
     <div class="glass rounded-2xl border border-white/10 p-6 mb-6">
         <h3 class="font-semibold text-white mb-1">Per-feature spend</h3>

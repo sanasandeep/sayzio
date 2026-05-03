@@ -277,13 +277,16 @@ class CardScanController extends Controller
      */
     protected function createWizardDraft($owner, $actor, array $data, ?CardScan $scan = null): BiolinkWizardDraft
     {
-        // Pre-fill the wizard's image step with the original upload — for
-        // a business card this is usually a recognisable logo / portrait,
-        // so the user gets a meaningful avatar without a second upload
-        // step. The file is already vaulted via UserFile so the URL is
-        // permanent. JPG/PNG/WebP only — PDFs are skipped.
-        $avatarUrl = null;
-        if ($scan && $scan->sourceFile && str_starts_with((string) $scan->sourceFile->mime_type, 'image/')) {
+        // Pre-fill the wizard's avatar step. We prefer the AI-cropped
+        // logo (saved to the vault by CardBrochureExtractionService) when
+        // it's available, and fall back to the raw upload for image
+        // sources so the user always lands on the wizard with a real
+        // brand image already attached.
+        $extracted = is_array($scan?->extracted) ? $scan->extracted : [];
+        $avatarUrl = is_string($extracted['logo_url'] ?? null) && $extracted['logo_url'] !== ''
+            ? $extracted['logo_url']
+            : null;
+        if (!$avatarUrl && $scan && $scan->sourceFile && str_starts_with((string) $scan->sourceFile->mime_type, 'image/')) {
             $avatarUrl = $scan->sourceFile->url;
         }
 

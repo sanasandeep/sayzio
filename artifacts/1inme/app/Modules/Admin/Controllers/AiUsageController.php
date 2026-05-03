@@ -5,6 +5,7 @@ namespace App\Modules\Admin\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\AiCreditBalance;
 use App\Modules\User\Models\AiCreditTransaction;
+use App\Modules\User\Models\CardScan;
 use App\Modules\User\Models\User;
 use App\Services\AI\AiCreditService;
 use Illuminate\Http\Request;
@@ -100,15 +101,33 @@ class AiUsageController extends Controller
             ->orderByDesc('spent')
             ->get();
 
+        // Per-product side-stats so admins can see how individual AI
+        // products (e.g. card scanner) are being used independently of
+        // the credit ledger roll-ups. Easy to extend per feature.
+        $cardScanStats = [
+            'total'     => CardScan::withoutGlobalScope('workspace')
+                                   ->where('created_at', '>=', $since)->count(),
+            'completed' => CardScan::withoutGlobalScope('workspace')
+                                   ->where('created_at', '>=', $since)
+                                   ->where('status', 'completed')->count(),
+            'failed'    => CardScan::withoutGlobalScope('workspace')
+                                   ->where('created_at', '>=', $since)
+                                   ->where('status', 'failed')->count(),
+            'users'     => CardScan::withoutGlobalScope('workspace')
+                                   ->where('created_at', '>=', $since)
+                                   ->distinct('user_id')->count('user_id'),
+        ];
+
         return view('admin.ai-usage.index', [
-            'rows'        => $rows,
-            'users'       => $users,
-            'balances'    => $balances,
-            'totals'      => $totals,
-            'days'        => $days,
-            'feature'     => $feature,
-            'features'    => AiCreditTransaction::FEATURES,
-            'featureRows' => $featureRows,
+            'rows'          => $rows,
+            'users'         => $users,
+            'balances'      => $balances,
+            'totals'        => $totals,
+            'days'          => $days,
+            'feature'       => $feature,
+            'features'      => AiCreditTransaction::FEATURES,
+            'featureRows'   => $featureRows,
+            'cardScanStats' => $cardScanStats,
         ]);
     }
 

@@ -64,6 +64,18 @@
         @csrf
 
         <div class="lg:col-span-1">
+            @if(!empty($extracted['logo_url']))
+            <div class="card-premium p-4 mb-4">
+                <h4 class="text-xs font-bold uppercase tracking-wide mb-3" style="color: var(--text-muted);">
+                    <i class="fas fa-sparkles text-fuchsia-400 mr-1"></i> Detected logo
+                </h4>
+                <div class="flex items-center justify-center p-4 rounded-lg" style="background: rgba(255,255,255,.04);">
+                    <img src="{{ $extracted['logo_url'] }}" alt="Detected logo" style="max-height: 140px; max-width: 100%; object-fit: contain;">
+                </div>
+                <p class="mt-2 text-[11px]" style="color: var(--text-faint);">Saved to your vault — used as the avatar when seeding a biolink page.</p>
+            </div>
+            @endif
+
             <div class="card-premium p-4">
                 <h4 class="text-xs font-bold uppercase tracking-wide mb-3" style="color: var(--text-muted);">Original upload</h4>
                 @if($scan->sourceFile)

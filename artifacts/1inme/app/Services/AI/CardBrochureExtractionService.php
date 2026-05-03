@@ -116,10 +116,19 @@ class CardBrochureExtractionService
             $images = $this->rasteriseToImages($sourceFile);
             $result = $this->callVision($owner, $scan, $model, $images);
 
+            $extracted = $this->normalise($result['parsed']);
+
+            // Best-effort logo crop. Reads the first rasterised page,
+            // crops to the model-provided bbox using GD, and saves the
+            // result back into the user's vault as a derived asset.
+            // Failures here are non-fatal — the original upload remains
+            // available as a fallback.
+            $extracted['logo_url'] = $this->extractLogo($owner, $scan, $images, $extracted);
+
             $scan->forceFill([
                 'status'        => 'completed',
                 'raw_response'  => $result['raw'],
-                'extracted'     => $this->normalise($result['parsed']),
+                'extracted'     => $extracted,
                 'credits_spent' => $result['credits_spent'],
             ])->save();
 
@@ -387,7 +396,8 @@ Schema:
   "branding": {
     "primary_color_hex":   string|null,
     "secondary_color_hex": string|null,
-    "has_logo":            boolean
+    "has_logo":            boolean,
+    "logo_bbox":           { "x": number, "y": number, "w": number, "h": number } | null
   },
   "products": [
     { "name": string, "description": string|null, "price": string|null }
@@ -406,8 +416,92 @@ Rules:
 - Keep phones in the original format (we'll normalise them later).
 - Hex colors must be #RRGGBB (uppercase) or null.
 - Limit "products" to a maximum of 6 items even if more are visible.
+- For "branding.logo_bbox": if a logo / brandmark is visible on the FIRST
+  image, return its bounding box as fractions of the image, where x and y
+  are the top-left corner and w and h are the width and height, all in
+  the range 0..1 (e.g. {"x":0.05,"y":0.10,"w":0.30,"h":0.20}). Pad the
+  box by ~5% so the crop isn't tight. Return null if no logo is present
+  or you can't localise it confidently.
 - Output ONLY the JSON object, with no commentary.
 PROMPT;
+    }
+
+    /**
+     * Clamp/sanitise a logo bbox dict to fractions in [0,1] and reject
+     * absurdly small / inverted rectangles. Returns null when invalid.
+     *
+     * @return array{x:float,y:float,w:float,h:float}|null
+     */
+    protected function normaliseBbox($v): ?array
+    {
+        if (!is_array($v)) return null;
+        $f = static fn ($k) => isset($v[$k]) && is_numeric($v[$k]) ? (float) $v[$k] : null;
+        $x = $f('x'); $y = $f('y'); $w = $f('w'); $h = $f('h');
+        if ($x === null || $y === null || $w === null || $h === null) return null;
+        $x = max(0.0, min(1.0, $x));
+        $y = max(0.0, min(1.0, $y));
+        $w = max(0.0, min(1.0 - $x, $w));
+        $h = max(0.0, min(1.0 - $y, $h));
+        // Ignore micro-boxes that would crop to a few pixels.
+        if ($w < 0.04 || $h < 0.04) return null;
+        return ['x' => $x, 'y' => $y, 'w' => $w, 'h' => $h];
+    }
+
+    /**
+     * Crop the model-localised logo region out of the first rasterised
+     * page and persist the PNG as a derived UserFile, returning the
+     * public URL. Best-effort: returns null if GD is missing, the bbox
+     * is unusable, or any crop step fails — the wizard / contact will
+     * fall back to the original upload.
+     *
+     * @param list<array{bytes:string,mime:string}> $images
+     */
+    protected function extractLogo(User $owner, CardScan $scan, array $images, array $extracted): ?string
+    {
+        $bbox = $extracted['branding']['logo_bbox'] ?? null;
+        if (!$bbox || empty($extracted['branding']['has_logo'])) return null;
+        if (!function_exists('imagecreatefromstring')) return null;
+        $first = $images[0] ?? null;
+        if (!$first || !is_string($first['bytes']) || $first['bytes'] === '') return null;
+
+        try {
+            $src = @imagecreatefromstring($first['bytes']);
+            if (!$src) return null;
+            $sw = imagesx($src);
+            $sh = imagesy($src);
+            $cx = (int) floor($bbox['x'] * $sw);
+            $cy = (int) floor($bbox['y'] * $sh);
+            $cw = max(8, (int) floor($bbox['w'] * $sw));
+            $ch = max(8, (int) floor($bbox['h'] * $sh));
+            // Re-clamp in pixel space.
+            $cw = min($cw, $sw - $cx);
+            $ch = min($ch, $sh - $cy);
+            if ($cw < 16 || $ch < 16) { imagedestroy($src); return null; }
+
+            $dst = imagecreatetruecolor($cw, $ch);
+            imagealphablending($dst, false);
+            imagesavealpha($dst, true);
+            imagecopy($dst, $src, 0, 0, $cx, $cy, $cw, $ch);
+
+            ob_start();
+            imagepng($dst, null, 6);
+            $bytes = ob_get_clean();
+            imagedestroy($src);
+            imagedestroy($dst);
+            if (!is_string($bytes) || $bytes === '') return null;
+
+            $logoFile = UserFile::createFromBytes(
+                $bytes,
+                "card-scan-{$scan->id}-logo.png",
+                'image/png',
+                $owner,
+                ['max_size_mb' => self::MAX_UPLOAD_MB]
+            );
+            return $logoFile->url;
+        } catch (\Throwable $e) {
+            Log::info('card_scan logo crop failed', ['scan' => $scan->id, 'err' => $e->getMessage()]);
+            return null;
+        }
     }
 
     /**
@@ -509,7 +603,12 @@ PROMPT;
                 'primary_color_hex'   => $hex($brand['primary_color_hex']   ?? null),
                 'secondary_color_hex' => $hex($brand['secondary_color_hex'] ?? null),
                 'has_logo'            => (bool) ($brand['has_logo'] ?? false),
+                'logo_bbox'           => $this->normaliseBbox($brand['logo_bbox'] ?? null),
             ],
+            // Filled in by extractLogo() after the model returns — URL of
+            // the cropped logo asset that's been vaulted via UserFile so
+            // the wizard / contact / future scans can re-use it.
+            'logo_url'    => null,
             'products'    => $products,
             'confidence'  => [
                 'overall' => $confNum($conf['overall'] ?? 0),
