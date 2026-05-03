@@ -308,6 +308,44 @@
                     <i class="fas fa-chevron-down chev" :class="{ rot: open.header }"></i>
                 </div>
                 <div class="resume-section-body" x-show="open.header" x-collapse>
+                    {{-- Photo upload. Routed through the user's vault so quota /
+                         serving / cleanup logic stays uniform. The URL is
+                         owner-only — the resume itself is never public. --}}
+                    <div class="resume-field-row full">
+                        <div class="resume-field">
+                            <label>Photo</label>
+                            <div class="flex items-center gap-3 flex-wrap">
+                                <template x-if="resume.sections.header.photo_url">
+                                    <img :src="resume.sections.header.photo_url" alt=""
+                                         style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:1px solid var(--border-glass,#2a2a32);background:#fff;">
+                                </template>
+                                <template x-if="!resume.sections.header.photo_url">
+                                    <div style="width:56px;height:56px;border-radius:50%;background:rgba(124,58,237,0.10);display:flex;align-items:center;justify-content:center;color:#a78bfa;font-size:18px;border:1px dashed rgba(124,58,237,0.35);">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                </template>
+                                <input type="file" accept="image/jpeg,image/png,image/webp"
+                                       x-ref="photoInput" style="display:none;"
+                                       @change="uploadPhoto($event)">
+                                <button type="button" class="resume-add-btn"
+                                        :disabled="photoUploading"
+                                        :style="photoUploading ? 'opacity:0.6;cursor:not-allowed;' : ''"
+                                        @click="$refs.photoInput.click()">
+                                    <i class="fas" :class="photoUploading ? 'fa-spinner fa-spin' : 'fa-arrow-up-from-bracket'"></i>
+                                    <span x-text="resume.sections.header.photo_url ? 'Change photo' : 'Upload photo'"></span>
+                                </button>
+                                <button type="button" class="resume-icon-btn danger"
+                                        x-show="resume.sections.header.photo_url"
+                                        :disabled="photoUploading"
+                                        @click="removePhoto()" title="Remove photo">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            <p class="text-[10px] mt-2" style="color: var(--text-muted,#9ca3af);">
+                                JPG, PNG or WebP, up to 5&nbsp;MB. A square image works best.
+                            </p>
+                        </div>
+                    </div>
                     <div class="resume-field-row">
                         <div class="resume-field"><label>Full name</label>
                             <input class="resume-input" type="text" maxlength="120" placeholder="Jane Doe"
@@ -504,6 +542,7 @@ function resumeEditor() {
         resumeStarted: false,
         pdfSize: (window.localStorage && localStorage.getItem('resume_pdf_size')) === 'letter' ? 'letter' : 'a4',
         downloading: false,
+        photoUploading: false,
 
         // ── Import flow state ─────────────────────────────────
         importOpen: false,
@@ -692,6 +731,70 @@ function resumeEditor() {
                 this.hydrate(r.resume);
                 this.renderPreview();
             });
+        },
+
+        async uploadPhoto(event) {
+            const input = event.target;
+            const file  = input.files && input.files[0];
+            // Reset the input immediately so re-selecting the same file
+            // re-fires `change`. Without this, picking the same name twice
+            // is a no-op.
+            input.value = '';
+            if (!file) return;
+            if (file.size > 5 * 1024 * 1024) {
+                this.showToast('Photo must be 5 MB or smaller.', 'error');
+                return;
+            }
+            this.photoUploading = true;
+            this.markSaving();
+            try {
+                const fd = new FormData();
+                fd.append('photo', file);
+                const res = await fetch('{{ route('user.resume.header.photo.upload') }}', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: fd,
+                });
+                if (!res.ok) {
+                    let msg = 'Photo upload failed.';
+                    try {
+                        const j = await res.json();
+                        if (j && j.message) msg = j.message;
+                        else if (j && j.errors && j.errors.photo) msg = j.errors.photo[0];
+                    } catch (e) {}
+                    throw new Error(msg);
+                }
+                const j = await res.json();
+                this.hydrate(j.resume);
+                this.renderPreview();
+                this.markSaved();
+                this.showToast('Photo uploaded.', 'success');
+            } catch (e) {
+                this.markError(e.message);
+            } finally {
+                this.photoUploading = false;
+            }
+        },
+        async removePhoto() {
+            if (!confirm('Remove your header photo?')) return;
+            this.photoUploading = true;
+            this.markSaving();
+            try {
+                const r = await this.http('DELETE', '{{ route('user.resume.header.photo.destroy') }}');
+                this.hydrate(r.resume);
+                this.renderPreview();
+                this.markSaved();
+                this.showToast('Photo removed.', 'success');
+            } catch (e) {
+                this.markError(e.message);
+            } finally {
+                this.photoUploading = false;
+            }
         },
         onSummary(value) {
             this.resume.sections.summary = value;
@@ -1172,17 +1275,26 @@ function resumeEditor() {
                 }).join('');
             };
 
-            const headerBlock = `
-                <header style="border-bottom: 2px solid ${theme.primary}; padding-bottom: 10px;">
-                    <h1 class="pv-name" style="color:${theme.primary}">${esc(h.name) || 'Your name'}</h1>
-                    ${h.headline?`<p class="pv-headline" style="color:${theme.accent}">${esc(h.headline)}</p>`:''}
-                    <div class="pv-contact" style="color:${theme.muted}">
-                        ${h.email?`<span>${esc(h.email)}</span>`:''}
-                        ${h.phone?`<span>${esc(h.phone)}</span>`:''}
-                        ${h.location?`<span>${esc(h.location)}</span>`:''}
-                        ${h.website?`<span>${esc(h.website)}</span>`:''}
-                    </div>
-                </header>`;
+            const headerText = `
+                <h1 class="pv-name" style="color:${theme.primary}">${esc(h.name) || 'Your name'}</h1>
+                ${h.headline?`<p class="pv-headline" style="color:${theme.accent}">${esc(h.headline)}</p>`:''}
+                <div class="pv-contact" style="color:${theme.muted}">
+                    ${h.email?`<span>${esc(h.email)}</span>`:''}
+                    ${h.phone?`<span>${esc(h.phone)}</span>`:''}
+                    ${h.location?`<span>${esc(h.location)}</span>`:''}
+                    ${h.website?`<span>${esc(h.website)}</span>`:''}
+                </div>`;
+            const headerBlock = h.photo_url
+                ? `<header style="border-bottom: 2px solid ${theme.primary}; padding-bottom: 10px;">
+                       <table style="width:100%; border-collapse:collapse;"><tbody><tr>
+                           <td style="width:80px; vertical-align:top; padding:0 14px 0 0;">
+                               <img src="${esc(h.photo_url)}" alt=""
+                                    style="width:72px;height:72px;object-fit:cover;border-radius:50%;display:block;border:1px solid ${theme.primary}33;background:#fff;">
+                           </td>
+                           <td style="vertical-align:top; padding:0;">${headerText}</td>
+                       </tr></tbody></table>
+                   </header>`
+                : `<header style="border-bottom: 2px solid ${theme.primary}; padding-bottom: 10px;">${headerText}</header>`;
 
             const summaryBlock = summary ? sectionBox('Profile', `<div class="pv-summary">${esc(summary)}</div>`) : '';
 

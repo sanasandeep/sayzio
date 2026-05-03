@@ -71,6 +71,14 @@
     .contact  { color: {{ $muted }}; font-size: {{ $baseFontPx - 1 }}pt; margin: 0 0 8pt 0; }
     .contact .sep { color: {{ $muted }}; opacity: 0.6; }
     .header-rule { border: 0; border-bottom: 1.5pt solid {{ $primary }}; margin: 0 0 12pt 0; }
+    .header-table { width: 100%; border-collapse: collapse; margin: 0 0 4pt 0; }
+    .header-table > tbody > tr > td { vertical-align: top; padding: 0; }
+    .header-photo-cell { width: 70pt; padding-right: 12pt !important; }
+    .header-photo {
+        width: 60pt; height: 60pt;
+        border: 1pt solid {{ $primary }};
+        border-radius: 30pt;
+    }
 
     h2.section-title {
         font-family: '{{ $headFont }}', sans-serif;
@@ -137,30 +145,46 @@
     $h = $renderHeader();
 @endphp
 
-<div class="name">{{ $h['name'] !== '' ? $h['name'] : 'Your name' }}</div>
-@if ($h['headline'] !== '')
-    <div class="headline">{{ $h['headline'] }}</div>
-@endif
-@if (!empty($h['contact']))
-    <div class="contact">
-        @foreach ($h['contact'] as $i => $bit)
-            @if ($i > 0)<span class="sep"> · </span>@endif
-            @php
+@php
+    $photoSrc = $header['photo_data_uri'] ?? null;
+    $renderHeaderText = function () use ($h, $muted) {
+        $out  = '<div class="name">' . e($h['name'] !== '' ? $h['name'] : 'Your name') . '</div>';
+        if ($h['headline'] !== '') {
+            $out .= '<div class="headline">' . e($h['headline']) . '</div>';
+        }
+        if (!empty($h['contact'])) {
+            $out .= '<div class="contact">';
+            foreach ($h['contact'] as $i => $bit) {
+                if ($i > 0) $out .= '<span class="sep"> · </span>';
                 $isEmail = filter_var($bit, FILTER_VALIDATE_EMAIL);
                 $isUrl   = preg_match('~^https?://~i', $bit);
                 $isPhone = !$isEmail && !$isUrl && preg_match('/^[+0-9 ()-]+$/', $bit);
-            @endphp
-            @if ($isEmail)
-                <a class="link" href="mailto:{{ $bit }}" style="color: {{ $muted }};">{{ $bit }}</a>
-            @elseif ($isUrl)
-                <a class="link" href="{{ $bit }}" style="color: {{ $muted }};">{{ $bit }}</a>
-            @elseif ($isPhone)
-                <a class="link" href="tel:{{ preg_replace('/[^+0-9]/', '', $bit) }}" style="color: {{ $muted }};">{{ $bit }}</a>
-            @else
-                {{ $bit }}
-            @endif
-        @endforeach
-    </div>
+                if ($isEmail) {
+                    $out .= '<a class="link" href="mailto:' . e($bit) . '" style="color: ' . $muted . ';">' . e($bit) . '</a>';
+                } elseif ($isUrl) {
+                    $out .= '<a class="link" href="' . e($bit) . '" style="color: ' . $muted . ';">' . e($bit) . '</a>';
+                } elseif ($isPhone) {
+                    $out .= '<a class="link" href="tel:' . e(preg_replace('/[^+0-9]/', '', $bit)) . '" style="color: ' . $muted . ';">' . e($bit) . '</a>';
+                } else {
+                    $out .= e($bit);
+                }
+            }
+            $out .= '</div>';
+        }
+        return $out;
+    };
+@endphp
+
+@if ($photoSrc)
+    {{-- Photo + text in a 2-column table because dompdf doesn't honor flex/float reliably. --}}
+    <table class="header-table"><tbody><tr>
+        <td class="header-photo-cell">
+            <img class="header-photo" src="{{ $photoSrc }}" alt="">
+        </td>
+        <td>{!! $renderHeaderText() !!}</td>
+    </tr></tbody></table>
+@else
+    {!! $renderHeaderText() !!}
 @endif
 <hr class="header-rule">
 

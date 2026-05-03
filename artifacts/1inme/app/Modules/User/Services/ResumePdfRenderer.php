@@ -4,9 +4,11 @@ namespace App\Modules\User\Services;
 
 use App\Modules\User\Models\Resume;
 use App\Modules\User\Models\User;
+use App\Modules\User\Models\UserFile;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
@@ -97,11 +99,21 @@ class ResumePdfRenderer
         $options->set('isHtml5ParserEnabled', true);
         $options->set('chroot', [resource_path('views')]);
 
+        $merged = $resume->getMergedSections();
+        $header = $merged['header'] ?? [];
+
+        // Inline the header photo as a data URI. dompdf is configured with
+        // `isRemoteEnabled = false` (intentional — we don't want it to fetch
+        // arbitrary URLs from the resume content), so the only safe way to
+        // embed a UserFile photo is to read it from the configured disk and
+        // base64-encode it into the <img src> at render time.
+        $header['photo_data_uri'] = $this->resolveHeaderPhotoDataUri($resume, $header);
+
         $html = view('user.resume.print', [
             'resume'  => $resume,
-            'header'  => $resume->getMergedSections()['header'] ?? [],
-            'summary' => $resume->getMergedSections()['summary'] ?? '',
-            'customSections' => $resume->getMergedSections()['custom_sections'] ?? [],
+            'header'  => $header,
+            'summary' => $merged['summary'] ?? '',
+            'customSections' => $merged['custom_sections'] ?? [],
             'itemsByType'    => $resume->items->groupBy('section_type'),
             'template'       => $resume->templateMeta(),
             'theme'          => $resume->colorThemeMeta()['tokens'] ?? [],
@@ -114,6 +126,37 @@ class ResumePdfRenderer
         $dompdf->render();
 
         return $dompdf->output();
+    }
+
+    /**
+     * Look up the resume's header-photo UserFile and return it as a
+     * `data:` URI so it can be inlined into the print template. Returns
+     * null when no photo is set, the file is missing, or the bytes can't
+     * be read for any reason — callers must treat the photo as optional.
+     */
+    private function resolveHeaderPhotoDataUri(Resume $resume, array $header): ?string
+    {
+        $photoId = $header['photo_user_file_id'] ?? null;
+        if (!$photoId) return null;
+
+        $file = UserFile::where('id', $photoId)
+            ->where('user_id', $resume->user_id)
+            ->first();
+        if (!$file) return null;
+
+        $diskName = $file->disk === 'public'
+            ? 'public'
+            : ($file->disk === 's3' ? 's3' : 'user_files');
+
+        try {
+            $bytes = Storage::disk($diskName)->get($file->path);
+        } catch (\Throwable $e) {
+            return null;
+        }
+        if (!is_string($bytes) || $bytes === '') return null;
+
+        $mime = $file->mime_type ?: 'image/jpeg';
+        return 'data:' . $mime . ';base64,' . base64_encode($bytes);
     }
 
     private function filename(Resume $resume, User $user): string

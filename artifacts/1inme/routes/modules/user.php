@@ -237,6 +237,8 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::get  ('/',                 [\App\Modules\User\Controllers\ResumeController::class, 'editor'])->name('editor');
             Route::get  ('data',              [\App\Modules\User\Controllers\ResumeController::class, 'show'])->name('show');
             Route::put  ('header',            [\App\Modules\User\Controllers\ResumeController::class, 'updateHeader'])->name('header.update');
+            Route::post  ('header/photo',     [\App\Modules\User\Controllers\ResumeController::class, 'uploadHeaderPhoto'])->name('header.photo.upload');
+            Route::delete('header/photo',     [\App\Modules\User\Controllers\ResumeController::class, 'removeHeaderPhoto'])->name('header.photo.destroy');
             Route::put  ('summary',           [\App\Modules\User\Controllers\ResumeController::class, 'updateSummary'])->name('summary.update');
             Route::put  ('template',          [\App\Modules\User\Controllers\ResumeController::class, 'updateTemplate'])->name('template.update');
             Route::put  ('color-theme',       [\App\Modules\User\Controllers\ResumeController::class, 'updateColorTheme'])->name('color-theme.update');

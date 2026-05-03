@@ -36,6 +36,10 @@ class Resume extends Model
                 'email'    => '',
                 'phone'    => '',
                 'website'  => '',
+                // ID of the UserFile that holds the header photo (null if
+                // none uploaded). The serving URL is resolved at present
+                // time and is owner-only — see ResumeController::present().
+                'photo_user_file_id' => null,
             ],
             'summary' => '',
             // List of additional user-defined sections. Each entry:

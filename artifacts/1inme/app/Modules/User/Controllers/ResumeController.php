@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\User\Models\Resume;
 use App\Modules\User\Models\ResumeSectionItem;
 use App\Modules\User\Models\User;
+use App\Modules\User\Models\UserFile;
 use App\Modules\User\Services\ResumeColorThemeRegistry;
 use App\Modules\User\Services\ResumePdfRenderer;
 use App\Modules\User\Services\ResumeTemplateRegistry;
@@ -90,6 +91,66 @@ class ResumeController extends Controller
             $data
         ));
         $resume->update(['sections' => $sections]);
+
+        return response()->json(['resume' => $this->present($resume->fresh('items'))]);
+    }
+
+    /**
+     * POST — upload a header photo. Stores it in the user's vault as a
+     * normal UserFile so quota / serving / cleanup logic stays uniform,
+     * then records its id on `sections.header.photo_user_file_id`.
+     * Replacing an existing photo deletes the previous vault entry so we
+     * don't accumulate orphaned uploads.
+     */
+    public function uploadHeaderPhoto(Request $request): JsonResponse
+    {
+        $request->validate([
+            'photo' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+        ]);
+
+        $user   = $request->user();
+        $resume = $user->ensureResume();
+
+        try {
+            $userFile = UserFile::createFromUpload($request->file('photo'), $user, [
+                'max_size_mb' => 5,
+            ]);
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        $sections = $resume->getMergedSections();
+        $oldId    = $sections['header']['photo_user_file_id'] ?? null;
+        $sections['header']['photo_user_file_id'] = $userFile->id;
+        $resume->update(['sections' => $sections]);
+
+        if ($oldId && (int) $oldId !== (int) $userFile->id) {
+            $old = UserFile::where('id', $oldId)->where('user_id', $user->id)->first();
+            if ($old) $old->deleteFile();
+        }
+
+        return response()->json(['resume' => $this->present($resume->fresh('items'))]);
+    }
+
+    /**
+     * DELETE — remove the header photo. Clears the reference and deletes
+     * the underlying vault file (it was uploaded explicitly for this slot,
+     * so dropping it back into the vault would be surprising).
+     */
+    public function removeHeaderPhoto(Request $request): JsonResponse
+    {
+        $user   = $request->user();
+        $resume = $user->ensureResume();
+        $sections = $resume->getMergedSections();
+        $oldId = $sections['header']['photo_user_file_id'] ?? null;
+
+        $sections['header']['photo_user_file_id'] = null;
+        $resume->update(['sections' => $sections]);
+
+        if ($oldId) {
+            $old = UserFile::where('id', $oldId)->where('user_id', $user->id)->first();
+            if ($old) $old->deleteFile();
+        }
 
         return response()->json(['resume' => $this->present($resume->fresh('items'))]);
     }
@@ -524,7 +585,34 @@ class ResumeController extends Controller
     /** Shape we return from every endpoint so the client sees one schema. */
     private function present(Resume $resume): array
     {
-        $items = $resume->items->map(fn ($i) => $this->presentItem($i))->groupBy('section_type');
+        $items    = $resume->items->map(fn ($i) => $this->presentItem($i))->groupBy('section_type');
+        $sections = $resume->getMergedSections();
+
+        // Resolve the header photo URL from the referenced UserFile (if any).
+        // Stored as an id, exposed as a URL so the editor + JS preview can
+        // render it directly. Only the owner ever calls this controller, so
+        // the owner-only `/f/{id}/{filename}` URL stays appropriate.
+        $sections['header']['photo_url'] = null;
+        $photoId = $sections['header']['photo_user_file_id'] ?? null;
+        if ($photoId) {
+            $file = UserFile::where('id', $photoId)
+                ->where('user_id', $resume->user_id)
+                ->first();
+            if ($file) {
+                $sections['header']['photo_url'] = $file->url;
+            } else {
+                // Stored id no longer resolves — clear it so the UI doesn't
+                // keep showing a broken-image affordance, and persist the
+                // cleanup so subsequent renders don't keep re-querying for
+                // a file that no longer exists.
+                $sections['header']['photo_user_file_id'] = null;
+                $persisted = $resume->sections ?? [];
+                if (isset($persisted['header']['photo_user_file_id'])) {
+                    $persisted['header']['photo_user_file_id'] = null;
+                    $resume->update(['sections' => $persisted]);
+                }
+            }
+        }
 
         $owner  = $resume->user;
         $handle = $owner?->handle;
@@ -538,7 +626,7 @@ class ResumeController extends Controller
             'template'       => $resume->templateMeta(),
             'color_theme_id' => $resume->color_theme_id,
             'color_theme'    => $resume->colorThemeMeta(),
-            'sections'       => $resume->getMergedSections(),
+            'sections'       => $sections,
             'items'          => $items,
             'is_public_pdf'  => (bool) $resume->is_public_pdf,
             'public_pdf_url' => $publicUrl,
