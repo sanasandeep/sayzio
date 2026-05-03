@@ -7,6 +7,7 @@ use App\Modules\User\Models\Follow;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\LinkClick;
 use App\Modules\User\Models\NfcWrite;
+use App\Modules\User\Models\PageSession;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -119,17 +120,43 @@ class VisitorAnalyticsController extends Controller
             ->limit(5)
             ->get();
 
+        // AR Business Card breakdown — sessions and block taps that came
+        // through the /ar/{alias} renderer carry source = 'ar', so we can
+        // surface AR scans + AR-attributed block clicks alongside the
+        // standard web visitor numbers without a new pipeline.
+        $arSessions = PageSession::where('link_id', $link->id)
+            ->where('source', 'ar')
+            ->where('created_at', '>=', $since)
+            ->count();
+        $arClicks = LinkClick::where('link_id', $link->id)
+            ->where('source', 'ar')
+            ->where('is_bot', false)
+            ->whereNotNull('block_id')
+            ->where('clicked_at', '>=', $since)
+            ->count();
+        $sourceBreakdown = LinkClick::where('link_id', $link->id)
+            ->where('is_bot', false)
+            ->where('clicked_at', '>=', $since)
+            ->selectRaw("COALESCE(NULLIF(source, ''), 'web') as src, COUNT(*) as n")
+            ->groupBy('src')
+            ->orderByDesc('n')
+            ->limit(8)
+            ->get();
+
         return view('user.visitors.index', [
-            'link'           => $link,
-            'period'         => $period,
-            'totalVisitors'  => $totalVisitors,
-            'returningCount' => $returningCount,
-            'newCount'       => $newCount,
-            'dailySeries'    => $dailySeries,
-            'identified'     => $identified,
-            'followerSet'    => $followerSet,
-            'nfcCount'       => $nfcCount,
-            'nfcRecent'      => $nfcRecent,
+            'link'             => $link,
+            'period'           => $period,
+            'totalVisitors'    => $totalVisitors,
+            'returningCount'   => $returningCount,
+            'newCount'         => $newCount,
+            'dailySeries'      => $dailySeries,
+            'identified'       => $identified,
+            'followerSet'      => $followerSet,
+            'nfcCount'         => $nfcCount,
+            'nfcRecent'        => $nfcRecent,
+            'arSessions'       => $arSessions,
+            'arClicks'         => $arClicks,
+            'sourceBreakdown'  => $sourceBreakdown,
         ]);
     }
 

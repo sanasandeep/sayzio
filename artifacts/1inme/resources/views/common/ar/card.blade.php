@@ -105,24 +105,26 @@
         <span class="badge" id="capBadge">Detecting…</span>
     </div>
 
-    {{-- Why ar-modes is "webxr quick-look" (and NOT scene-viewer):
-         - WebXR (Android Chrome / desktop XR browsers) supports model-viewer's
-           HTML hotspots, so each <a slot="hotspot-N"> below is a real tappable
-           link to /{alias}/b/{blockId}?source=ar in AR.
-         - Scene Viewer renders the GLB natively and CAN'T host HTML hotspots,
-           so a Scene Viewer launch would be visually rich but not tappable.
-           Dropping it forces Android Chrome into WebXR (with hotspots).
-         - Quick Look on iOS likewise renders USDZ natively without hotspots,
-           but iOS doesn't expose WebXR — so Quick Look stays as the only
-           AR path for iOS, with the in-page block list immediately under
-           the viewer + a USDZ #callToAction that links the visitor back
-           to the standard biolink as a single in-AR CTA. --}}
+    {{-- ar-modes order matters — model-viewer tries them left-to-right:
+         1. webxr first so any Android Chrome that has WebXR (most current
+            ARCore devices) launches the in-page WebXR session, where
+            <a slot="hotspot-N"> elements below are real tappable links
+            into /{alias}/b/{blockId}?source=ar.
+         2. scene-viewer next as the Android fallback for devices/Chrome
+            builds without WebXR. Scene Viewer renders the GLB natively and
+            can't host HTML hotspots, so on that path the in-page block
+            list (always visible directly under the viewer) is the tap
+            surface and the GLB carries the visual identity.
+         3. quick-look last for iOS. iOS doesn't expose WebXR; Quick Look
+            renders USDZ natively without hotspots, so we append the
+            #callToAction=… &link=… fragment so the in-AR Quick Look
+            banner becomes a tappable CTA into the standard biolink. --}}
     <model-viewer id="card"
         src="{{ $glbUrl }}"
         ios-src="{{ $usdzUrl }}#callToAction=Open%20biolink&checkoutTitle=1INME&link={{ urlencode($biolinkUrl . '?source=ar') }}"
         alt="AR business card for {{ $cfg['display_name'] }}"
         ar
-        ar-modes="webxr quick-look"
+        ar-modes="webxr scene-viewer quick-look"
         ar-scale="auto"
         camera-controls
         touch-action="pan-y"

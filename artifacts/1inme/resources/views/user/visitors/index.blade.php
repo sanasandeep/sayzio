@@ -52,6 +52,67 @@
         </div>
     </div>
 
+    {{-- AR Business Card breakdown. Counts visitors who came through
+         /ar/{alias} (page_sessions.source = 'ar') and block taps inside
+         AR (link_clicks.source = 'ar'), plus the wider source breakdown
+         so creators can compare AR vs web/social pulls at a glance. --}}
+    @if($link->ar_enabled || ($arSessions ?? 0) > 0 || ($arClicks ?? 0) > 0)
+    <div class="rounded-2xl border p-5 mb-6" style="background: var(--bg-card); border-color: var(--border-soft);">
+        <div class="flex items-center justify-between mb-3">
+            <div>
+                <h2 class="font-bold" style="color: var(--text-primary);">
+                    <i class="fas fa-vr-cardboard mr-1.5" style="color:#a78bfa;"></i> AR Business Card
+                </h2>
+                <p class="text-xs mt-0.5" style="color: var(--text-faint);">
+                    Scans, block taps and source share over the last {{ $period }} days.
+                </p>
+            </div>
+            @if($link->ar_enabled)
+                <a href="{{ route('ar.card.view', $link->alias) }}?preview=1" target="_blank" class="text-sm px-3 py-1.5 rounded-lg border font-semibold" style="border-color: var(--border-soft); color: var(--text-primary);">
+                    Open AR card →
+                </a>
+            @endif
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div class="rounded-xl p-3 border" style="background: var(--bg-glass-input); border-color: var(--border-soft);">
+                <p class="text-[11px] uppercase tracking-wide" style="color: var(--text-faint);">AR scans</p>
+                <p class="text-2xl font-extrabold mt-1" style="color: var(--text-primary);">{{ number_format($arSessions ?? 0) }}</p>
+                <p class="text-[11px] mt-0.5" style="color: var(--text-muted);">Sessions opened from a QR or NFC scan into /ar/.</p>
+            </div>
+            <div class="rounded-xl p-3 border" style="background: var(--bg-glass-input); border-color: var(--border-soft);">
+                <p class="text-[11px] uppercase tracking-wide" style="color: var(--text-faint);">Block taps in AR</p>
+                <p class="text-2xl font-extrabold mt-1 text-violet-600">{{ number_format($arClicks ?? 0) }}</p>
+                <p class="text-[11px] mt-0.5" style="color: var(--text-muted);">Hotspot or list taps attributed to the AR surface.</p>
+            </div>
+            <div class="rounded-xl p-3 border md:col-span-1 col-span-2" style="background: var(--bg-glass-input); border-color: var(--border-soft);">
+                <p class="text-[11px] uppercase tracking-wide" style="color: var(--text-faint);">Tap-through rate</p>
+                <p class="text-2xl font-extrabold mt-1 text-emerald-600">
+                    @php $rate = ($arSessions ?? 0) > 0 ? round((($arClicks ?? 0) / $arSessions) * 100, 1) : 0; @endphp
+                    {{ $rate }}%
+                </p>
+                <p class="text-[11px] mt-0.5" style="color: var(--text-muted);">Block taps per AR scan.</p>
+            </div>
+        </div>
+        @if(!empty($sourceBreakdown) && count($sourceBreakdown) > 0)
+            <div class="mt-4">
+                <p class="text-[11px] uppercase tracking-wide mb-2" style="color: var(--text-faint);">Click source share</p>
+                <ul class="space-y-1.5">
+                    @php $srcMax = max(1, collect($sourceBreakdown)->max('n')); @endphp
+                    @foreach($sourceBreakdown as $row)
+                        <li class="flex items-center gap-3 text-xs">
+                            <span class="w-16 font-semibold uppercase tracking-wide" style="color: {{ $row->src === 'ar' ? '#a78bfa' : 'var(--text-muted)' }};">{{ $row->src }}</span>
+                            <span class="flex-1 h-2 rounded-full overflow-hidden" style="background: var(--border-soft);">
+                                <span class="block h-full" style="width: {{ round(($row->n / $srcMax) * 100) }}%; background: {{ $row->src === 'ar' ? 'linear-gradient(90deg,#a78bfa,#67e8f9)' : 'var(--text-muted)' }};"></span>
+                            </span>
+                            <span class="w-16 text-right tabular-nums" style="color: var(--text-primary);">{{ number_format($row->n) }}</span>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+    </div>
+    @endif
+
     @if($dailySeries->isNotEmpty())
         <div class="rounded-2xl border p-5 mb-6" style="background: var(--bg-card); border-color: var(--border-soft);">
             <div class="flex items-center justify-between mb-3">
