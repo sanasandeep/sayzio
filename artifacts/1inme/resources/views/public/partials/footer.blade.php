@@ -20,6 +20,7 @@
                 <li><a href="{{ route('site.ai-agent') }}" class="hover:text-white">AI Agent</a></li>
                 <li><a href="{{ route('site.ai-widget') }}" class="hover:text-white">AI Widget</a></li>
                 <li><a href="{{ route('site.ai-voice-assistant') }}" class="hover:text-white">AI Voice Assistant</a></li>
+                <li><a href="{{ route('site.resume-builder') }}" class="hover:text-white">Résumé &amp; Portfolio</a></li>
             </ul>
         </div>
         <div>

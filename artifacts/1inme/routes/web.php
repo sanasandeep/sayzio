@@ -109,6 +109,8 @@ Route::controller(\App\Modules\Common\Controllers\SitePageController::class)->gr
     Route::get('/ai-widget',          fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('ai-widget'))->name('site.ai-widget');
     Route::get('/ai-voice-assistant', fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('ai-voice-assistant'))->name('site.ai-voice-assistant');
     Route::view('/docs/api', 'public.api-docs')->name('site.api-docs');
+    // Standalone marketing page for the Résumé / Portfolio Builder module.
+    Route::view('/resume-builder', 'public.resume-builder')->name('site.resume-builder');
     Route::get('/services', fn () => app(\App\Modules\Common\Controllers\SitePageController::class)->show('services'))->name('site.services');
     Route::get('/pricing',          [\App\Modules\Common\Controllers\PricingPagesController::class, 'plans'])   ->name('site.pricing');
     // Lightweight AJAX target the /pricing Alpine toggle pings whenever

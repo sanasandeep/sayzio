@@ -62,6 +62,12 @@
                             <i class="fas fa-headset text-violet-400 mt-1"></i>
                             <span><span class="block text-sm font-semibold text-white">AI Voice Assistant</span><span class="block text-xs text-gray-500">Picks up calls in your voice</span></span>
                         </a>
+                        <div class="my-1 border-t border-white/5"></div>
+                        <div class="px-3 pt-1.5 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">Career</div>
+                        <a href="{{ route('site.resume-builder') }}" class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5">
+                            <i class="fas fa-file-lines text-violet-400 mt-1"></i>
+                            <span><span class="block text-sm font-semibold text-white">Résumé &amp; Portfolio</span><span class="block text-xs text-gray-500">Build a CV &amp; portfolio link in 5 min</span></span>
+                        </a>
                     </div>
                 </div>
 
@@ -156,6 +162,7 @@
             <a href="{{ route('site.ai-agent') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">AI Agent</a>
             <a href="{{ route('site.ai-widget') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">AI Widget</a>
             <a href="{{ route('site.ai-voice-assistant') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">AI Voice Assistant</a>
+            <a href="{{ route('site.resume-builder') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Résumé &amp; Portfolio</a>
 
             <div class="px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-500">Solutions</div>
             <a href="{{ route('site.services') }}" class="block px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/5">Use cases</a>
