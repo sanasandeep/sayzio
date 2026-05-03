@@ -255,6 +255,17 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::get('download.pdf',        [\App\Modules\User\Controllers\ResumeController::class, 'download'])
                 ->middleware('throttle:20,1')
                 ->name('download');
+
+            // Importers: file/PDF/DOCX, LinkedIn (URL + export PDF), bio link
+            // pull-in, AI-assisted draft, and the merge endpoint that commits
+            // the user's curated picks back into the resume.
+            Route::prefix('import')->name('import.')->group(function () {
+                Route::post('file',     [\App\Modules\User\Controllers\ResumeImportController::class, 'file'])->name('file');
+                Route::post('linkedin', [\App\Modules\User\Controllers\ResumeImportController::class, 'linkedin'])->name('linkedin');
+                Route::post('biolink',  [\App\Modules\User\Controllers\ResumeImportController::class, 'biolink'])->name('biolink');
+                Route::post('ai',       [\App\Modules\User\Controllers\ResumeImportController::class, 'ai'])->middleware('throttle:10,1')->name('ai');
+                Route::post('merge',    [\App\Modules\User\Controllers\ResumeImportController::class, 'merge'])->name('merge');
+            });
         });
 
         // ---- Forms ----

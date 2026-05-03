@@ -97,6 +97,46 @@
     [x-cloak] { display: none !important; }
     .chev { transition: transform .2s; }
     .chev.rot { transform: rotate(180deg); }
+
+    /* ── Import modal ─────────────────────────────────── */
+    .resume-import-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 300; display:flex; align-items:flex-start; justify-content:center; padding: 4vh 16px; overflow-y:auto; }
+    .resume-import-modal { width: 100%; max-width: 720px; background: var(--bg-card,#1a1a1f); border: 1px solid var(--border-strong,#2a2a32); border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); display:flex; flex-direction:column; max-height: 92vh; }
+    .resume-import-head { display:flex; align-items:center; justify-content:space-between; padding: 14px 18px; border-bottom: 1px solid var(--border-glass,#2a2a32); }
+    .resume-import-head h3 { display:flex; align-items:center; gap:10px; margin:0; font-size: 14px; font-weight:700; color: var(--text-primary,#fff); }
+    .resume-import-head h3 i { color:#7c3aed; }
+    .resume-import-close { background:transparent; border:none; color: var(--text-muted,#9ca3af); cursor:pointer; font-size: 16px; padding: 4px 8px; border-radius:8px; }
+    .resume-import-close:hover { background: rgba(124,58,237,0.1); color:#fff; }
+    .resume-import-body { padding: 16px 18px 20px; overflow-y:auto; }
+    .resume-import-tabs { display:flex; gap:6px; margin-bottom: 14px; border-bottom: 1px solid var(--border-glass,#2a2a32); padding-bottom: 8px; flex-wrap:wrap; }
+    .resume-import-tabs button { display:inline-flex; align-items:center; gap:6px; padding: 7px 11px; font-size: 11px; font-weight:600; border-radius: 8px; background: transparent; border: 1px solid transparent; color: var(--text-muted,#9ca3af); cursor:pointer; }
+    .resume-import-tabs button:hover { color:#fff; background: rgba(124,58,237,0.06); }
+    .resume-import-tabs button.active { background: rgba(124,58,237,0.18); color:#fff; border-color: rgba(124,58,237,0.3); }
+    .resume-import-pane { padding: 6px 0; }
+    .resume-import-help { font-size: 12px; color: var(--text-muted,#9ca3af); margin-bottom: 12px; line-height: 1.5; }
+    .resume-import-drop { display:flex; align-items:center; gap:10px; padding: 14px 16px; border: 1.5px dashed rgba(124,58,237,0.35); border-radius: 12px; cursor: pointer; background: rgba(124,58,237,0.04); color: var(--text-primary,#fff); font-size: 12px; }
+    .resume-import-drop:hover { background: rgba(124,58,237,0.08); border-style: solid; }
+    .resume-import-drop input[type=file] { display: none; }
+    .resume-import-drop i { color:#a78bfa; font-size: 18px; }
+    .resume-import-actions { display:flex; gap:10px; justify-content:flex-end; margin-top: 14px; }
+    .resume-import-actions.justify-between { justify-content: space-between; }
+    .resume-import-error { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color:#fecaca; font-size: 12px; }
+    .resume-import-note { padding: 10px 12px; border-radius: 10px; background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.2); color:#c4b5fd; font-size: 12px; margin-bottom: 14px; }
+    .resume-import-group { border: 1px solid var(--border-glass,#2a2a32); border-radius: 12px; padding: 12px; margin-bottom: 12px; background: rgba(255,255,255,0.015); }
+    .resume-import-group-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom: 10px; flex-wrap:wrap; }
+    .resume-import-group-head h4 { display:flex; align-items:center; gap:8px; margin:0; font-size: 12px; font-weight:700; color: var(--text-primary,#fff); }
+    .resume-import-group-head select { width: auto; font-size: 11px; padding: 4px 8px; }
+    .resume-import-count { font-size: 10px; color: var(--text-muted,#9ca3af); font-weight:500; }
+    .resume-import-mini { padding: 3px 8px; font-size: 10px; font-weight:600; border-radius: 6px; background: rgba(124,58,237,0.1); color:#c4b5fd; border: 1px solid rgba(124,58,237,0.2); cursor:pointer; }
+    .resume-import-mini:hover { background: rgba(124,58,237,0.2); }
+    .resume-import-row { display:flex; gap: 10px; align-items:flex-start; padding: 8px; border-radius: 8px; cursor: pointer; }
+    .resume-import-row:hover { background: rgba(124,58,237,0.05); }
+    .resume-import-row.disabled { opacity: 0.45; cursor: not-allowed; }
+    .resume-import-row input[type=checkbox] { margin-top: 3px; accent-color: #7c3aed; }
+    .resume-import-row-key { font-size: 12px; font-weight:600; color: var(--text-primary,#fff); text-transform: capitalize; }
+    .resume-import-row-val { font-size: 11px; color: var(--text-muted,#9ca3af); margin-top: 2px; word-break: break-word; }
+    .resume-import-summary { font-size: 12px; color: var(--text-muted,#cbd5e1); white-space: pre-wrap; max-height: 160px; overflow-y:auto; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 8px; }
+    .resume-import-chip { display:inline-flex; align-items:center; gap: 6px; padding: 5px 10px; border-radius: 999px; background: rgba(124,58,237,0.06); border: 1px solid rgba(124,58,237,0.2); font-size: 11px; color: var(--text-primary,#fff); cursor: pointer; text-transform: capitalize; }
+    .resume-import-chip input { accent-color: #7c3aed; }
 </style>
 @endpush
 
@@ -108,6 +148,9 @@
             <p class="text-xs mt-1" style="color: var(--text-muted,#9ca3af);">Build a polished resume with a live preview. Switch templates and color themes any time.</p>
         </div>
         <div class="flex items-center gap-2 flex-wrap">
+            <button type="button" class="resume-add-btn" @click="openImport()" title="Import from PDF, LinkedIn, your bio link, or AI">
+                <i class="fas fa-file-import"></i> Import
+            </button>
             <div class="resume-status-bar resume-pane">
                 <span class="resume-save-dot" :class="{ saving: status==='saving', error: status==='error' }"></span>
                 <span class="text-xs" style="color: var(--text-muted,#9ca3af);" x-text="statusLabel"></span>
@@ -134,6 +177,8 @@
     <style>
         .pdf-size-active { background: rgba(124,58,237,0.18); color:#fff; }
     </style>
+
+    @include('user.resume.partials.import-modal')
 
     {{-- Empty-state coachmark for brand-new resumes (no items + empty header name) --}}
     <template x-if="isFreshResume && !resumeStarted">
@@ -392,6 +437,25 @@ function resumeEditor() {
         resumeStarted: false,
         pdfSize: (window.localStorage && localStorage.getItem('resume_pdf_size')) === 'letter' ? 'letter' : 'a4',
         downloading: false,
+
+        // ── Import flow state ─────────────────────────────────
+        importOpen: false,
+        importStep: 'pick',          // 'pick' | 'review'
+        importTab: 'file',           // file | linkedin | biolink | ai
+        importTabs: [
+            { key: 'file',     label: 'PDF / DOCX',  icon: 'fa-file-arrow-up' },
+            { key: 'linkedin', label: 'LinkedIn',    icon: 'fa-brands fa-linkedin-in' },
+            { key: 'biolink',  label: 'My bio link', icon: 'fa-link' },
+            { key: 'ai',       label: 'AI assist',   icon: 'fa-wand-magic-sparkles' },
+        ],
+        importBusy: false,
+        importError: '',
+        importFile: null,
+        importLinkedinUrl: '',
+        importAiPrompt: '',
+        importAiSections: ['summary','experience','skills'],
+        importCandidates: { header: {}, summary: '', items: [], notes: null },
+        importPicks: { header: { mode: 'replace', fields: [] }, summary: { mode: 'replace' }, items: [] },
 
         listSections: [
             { key: 'experience',     label: 'Experience',     icon: 'fa-briefcase',     addLabel: 'Add experience' },
@@ -1059,6 +1123,196 @@ function resumeEditor() {
             // Wrap with theme background applied to the page
             this.previewHtml = `<style>.preview-page{background:${theme.background};color:${theme.text}}</style>` +
                 `<div class="${fontClass} ${densityClass}" style="background:${theme.background}; color:${theme.text}; min-height: 800px; margin:-32px -36px; padding:32px 36px;">${body}</div>`;
+        },
+
+        // ── IMPORT FLOW ───────────────────────────────────────
+        // Open the modal in pick-method mode and reset previous state so
+        // a second import doesn't show stale candidates.
+        openImport() {
+            this.importOpen = true;
+            this.importStep = 'pick';
+            this.importTab  = 'file';
+            this.importFile = null;
+            this.importLinkedinUrl = '';
+            this.importAiPrompt = '';
+            this.importAiSections = ['summary','experience','skills'];
+            this.importError = '';
+            this.importCandidates = { header: {}, summary: '', items: [], notes: null };
+            this.importPicks = { header: { mode: 'replace', fields: [] }, summary: { mode: 'replace' }, items: [] };
+        },
+        closeImport() { this.importOpen = false; this.importBusy = false; },
+
+        // FormData variant of http() — needed for multipart uploads.
+        // We deliberately don't set Content-Type so the browser fills in
+        // the multipart boundary itself.
+        async httpForm(url, formData) {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+                body: formData,
+            });
+            if (!res.ok) {
+                let msg = 'Request failed';
+                try { const j = await res.json(); msg = j.message || msg; } catch (e) {}
+                throw new Error(msg);
+            }
+            return res.json();
+        },
+
+        // Per-method runners. Each one populates importCandidates and
+        // jumps to the Review step on success; errors stay on the picker
+        // so the user can adjust their input without losing it.
+        async runImportFile() {
+            if (!this.importFile) return;
+            this.importBusy = true; this.importError = '';
+            try {
+                const fd = new FormData(); fd.append('file', this.importFile);
+                const r = await this.httpForm('{{ route('user.resume.import.file') }}', fd);
+                this.afterParse(r.candidates);
+            } catch (e) { this.importError = e.message; }
+            finally { this.importBusy = false; }
+        },
+        async runImportLinkedin() {
+            this.importBusy = true; this.importError = '';
+            try {
+                const fd = new FormData();
+                if (this.importLinkedinUrl) fd.append('url', this.importLinkedinUrl);
+                if (this.importFile)        fd.append('file', this.importFile);
+                const r = await this.httpForm('{{ route('user.resume.import.linkedin') }}', fd);
+                this.afterParse(r.candidates);
+            } catch (e) { this.importError = e.message; }
+            finally { this.importBusy = false; }
+        },
+        async runImportBiolink() {
+            this.importBusy = true; this.importError = '';
+            try {
+                const r = await this.http('POST', '{{ route('user.resume.import.biolink') }}', {});
+                this.afterParse(r.candidates);
+            } catch (e) { this.importError = e.message; }
+            finally { this.importBusy = false; }
+        },
+        async runImportAi() {
+            this.importBusy = true; this.importError = '';
+            try {
+                const r = await this.http('POST', '{{ route('user.resume.import.ai') }}', {
+                    prompt:   this.importAiPrompt,
+                    sections: this.importAiSections,
+                });
+                this.afterParse(r.candidates);
+            } catch (e) { this.importError = e.message; }
+            finally { this.importBusy = false; }
+        },
+
+        // Common post-parse setup: store candidates, pre-select all list
+        // items + every populated header field so the default action is
+        // "merge everything", and switch to the Review step.
+        afterParse(candidates) {
+            this.importCandidates = Object.assign({ header: {}, summary: '', items: [], notes: null }, candidates || {});
+            const headerKeys = Object.keys(this.importCandidates.header || {});
+            const itemIdxs = (this.importCandidates.items || []).map((_, i) => i);
+            this.importPicks = {
+                header:  { mode: headerKeys.length ? 'replace' : 'skip', fields: headerKeys },
+                summary: { mode: this.importCandidates.summary ? 'replace' : 'skip' },
+                items:   itemIdxs,
+            };
+            this.importStep = 'review';
+        },
+
+        // ── Review helpers ──
+        hasHeaderCandidates() {
+            return this.importCandidates.header && Object.keys(this.importCandidates.header).length > 0;
+        },
+        hasAnyCandidates() {
+            return this.hasHeaderCandidates() || this.importCandidates.summary
+                || (this.importCandidates.items || []).length > 0;
+        },
+        groupedCandidateItems() {
+            const meta = {};
+            this.listSections.forEach(s => meta[s.key] = { type: s.key, label: s.label, icon: s.icon, items: [] });
+            (this.importCandidates.items || []).forEach((cand, idx) => {
+                const t = cand.section_type;
+                if (!meta[t]) return;
+                meta[t].items.push({ idx, cand });
+            });
+            return Object.values(meta).filter(g => g.items.length);
+        },
+        selectAllOfType(type, on) {
+            const idxs = (this.importCandidates.items || [])
+                .map((c, i) => c.section_type === type ? i : -1).filter(i => i >= 0);
+            const set = new Set(this.importPicks.items);
+            idxs.forEach(i => on ? set.add(i) : set.delete(i));
+            this.importPicks.items = Array.from(set);
+        },
+        pickCount() {
+            const items = (this.importPicks.items || []).length;
+            const hdr = (this.importPicks.header.mode !== 'skip')
+                ? (this.importPicks.header.fields || []).length : 0;
+            const sum = (this.importPicks.summary.mode !== 'skip' && this.importCandidates.summary) ? 1 : 0;
+            return items + hdr + sum;
+        },
+        // One-line description per candidate row, type-aware so the user
+        // can tell two "Acme Corp" experience entries apart in Review.
+        describeCandidate(cand) {
+            const d = cand.data || {};
+            switch (cand.section_type) {
+                case 'experience':     return [d.role, d.company].filter(Boolean).join(' @ ') || '(unnamed role)';
+                case 'education':      return [d.school, d.degree].filter(Boolean).join(' — ') || '(unnamed school)';
+                case 'skills':         return d.name || '(skill)';
+                case 'projects':       return d.name || '(project)';
+                case 'certifications': return d.name || '(certification)';
+                case 'awards':         return d.title || '(award)';
+                case 'languages':      return d.name || '(language)';
+                case 'links':          return d.label || d.url || '(link)';
+            }
+            return '(item)';
+        },
+        describeCandidateSub(cand) {
+            const d = cand.data || {};
+            const dr = (s,e,c) => {
+                const fmt = v => /^\d{4}-\d{2}$/.test(v||'') ? v : '';
+                const a = fmt(s), b = c ? 'Present' : fmt(e);
+                return [a,b].filter(Boolean).join(' – ');
+            };
+            switch (cand.section_type) {
+                case 'experience':     return [dr(d.start_date,d.end_date,d.is_current), d.location].filter(Boolean).join(' · ') || (d.description||'').slice(0,80);
+                case 'education':      return [dr(d.start_date,d.end_date,false), d.field].filter(Boolean).join(' · ');
+                case 'skills':         return d.level ? '★'.repeat(Math.max(0,Math.min(5,d.level))) : '';
+                case 'projects':       return [d.role, d.url].filter(Boolean).join(' · ');
+                case 'certifications': return [d.issuer, d.issued_on].filter(Boolean).join(' · ');
+                case 'awards':         return [d.issuer, d.date].filter(Boolean).join(' · ');
+                case 'languages':      return d.proficiency || '';
+                case 'links':          return d.url || '';
+            }
+            return '';
+        },
+
+        async applyMerge() {
+            this.importBusy = true; this.importError = '';
+            try {
+                const r = await this.http('POST', '{{ route('user.resume.import.merge') }}', {
+                    candidates: this.importCandidates,
+                    picks:      this.importPicks,
+                });
+                this.hydrate(r.resume);
+                this.renderPreview();
+                this.markSaved();
+                const c = r.changed || {};
+                const bits = [];
+                if (c.items)         bits.push(c.items + ' item' + (c.items===1?'':'s'));
+                if (c.header_fields) bits.push(c.header_fields + ' header field' + (c.header_fields===1?'':'s'));
+                if (c.summary)       bits.push('summary');
+                this.showToast('Imported ' + (bits.join(', ') || 'changes') + '.', 'success');
+                this.closeImport();
+            } catch (e) {
+                this.importError = e.message;
+            } finally {
+                this.importBusy = false;
+            }
         },
     };
 }
