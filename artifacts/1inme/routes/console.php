@@ -97,6 +97,15 @@ Schedule::command('subscriptions:renew-due')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Every 5 minutes: probe Link Insurance-enabled destinations and run
+// failover/restore. The command itself filters by each link's chosen
+// cadence (5/15/30/60/240 min) so a 30-min cadence link only actually
+// gets probed every sixth scheduler tick.
+Schedule::command('links:check-health')
+    ->everyFiveMinutes()
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Daily (off-peak): re-run the idempotent click-source backfill so any
 // link_clicks rows written without a `source` (seeders, imports, future
 // third-party integrations) get tagged mobile_app/web instead of falling

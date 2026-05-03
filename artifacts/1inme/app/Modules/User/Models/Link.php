@@ -20,6 +20,13 @@ protected $fillable = [
         'settings', 'total_clicks', 'unique_clicks',
         'splash_page_id', 'splash_enabled',
         'visibility', 'is_demo',
+        // Link Insurance
+        'insurance_enabled', 'insurance_cadence_minutes',
+        'insurance_failure_threshold', 'insurance_recovery_threshold',
+        'insurance_auto_restore', 'insurance_state', 'insurance_active_url',
+        'insurance_consecutive_failures', 'insurance_consecutive_successes',
+        'insurance_last_checked_at', 'insurance_last_failover_at',
+        'insurance_fallback_message',
     ];
 
     protected function casts(): array
@@ -31,7 +38,26 @@ protected $fillable = [
             'splash_enabled' => 'boolean',
             'expires_at' => 'datetime',
             'settings' => 'array',
+            'insurance_enabled'                 => 'boolean',
+            'insurance_auto_restore'            => 'boolean',
+            'insurance_cadence_minutes'         => 'integer',
+            'insurance_failure_threshold'       => 'integer',
+            'insurance_recovery_threshold'      => 'integer',
+            'insurance_consecutive_failures'    => 'integer',
+            'insurance_consecutive_successes'   => 'integer',
+            'insurance_last_checked_at'         => 'datetime',
+            'insurance_last_failover_at'        => 'datetime',
         ];
+    }
+
+    public function backups()
+    {
+        return $this->hasMany(LinkBackup::class)->orderBy('position');
+    }
+
+    public function healthChecks()
+    {
+        return $this->hasMany(LinkHealthCheck::class);
     }
 
     public function user()
@@ -384,9 +410,19 @@ protected $fillable = [
         return url("/{$this->alias}");
     }
 
+    /**
+     * The destination clickers should be sent to right now. Normally
+     * this is {@see $long_url}, but when "Link Insurance" has promoted
+     * a backup we serve the promoted URL instead. Visitors don't see
+     * the swap — they hit the same short alias and just land on the
+     * working backup. UTM params are still appended so analytics keep
+     * working across primary and backups.
+     */
     public function getDestinationUrl(): ?string
     {
-        $url = $this->long_url;
+        $url = $this->insurance_state === 'failover' && !empty($this->insurance_active_url)
+            ? $this->insurance_active_url
+            : $this->long_url;
         if ($url === null || $url === '') return null;
         $utmParams = [];
 

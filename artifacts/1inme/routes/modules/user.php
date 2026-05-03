@@ -343,6 +343,15 @@ Route::prefix('user')->name('user.')->group(function () {
         // the iframe never falls into Laravel's "Invalid signature" page.
         Route::get('links/{link}/preview-url', [LinkController::class, 'previewUrl'])->middleware('workspace.can:links.view')->name('links.preview-url');
 
+        // Link Insurance — per-link backups + workspace dashboard. The
+        // dashboard is mounted at /user/insurance so it doesn't collide
+        // with the {link} param routes above.
+        Route::get('insurance', [\App\Modules\User\Controllers\LinkInsuranceController::class, 'dashboard'])->middleware('workspace.can:links.view')->name('insurance.dashboard');
+        Route::get('links/{link}/insurance', [\App\Modules\User\Controllers\LinkInsuranceController::class, 'settings'])->middleware('workspace.can:links.view')->name('links.insurance.settings');
+        Route::post('links/{link}/insurance', [\App\Modules\User\Controllers\LinkInsuranceController::class, 'update'])->middleware('workspace.can:links.edit')->name('links.insurance.update');
+        Route::post('links/{link}/insurance/restore', [\App\Modules\User\Controllers\LinkInsuranceController::class, 'restorePrimary'])->middleware('workspace.can:links.edit')->name('links.insurance.restore');
+        Route::post('links/{link}/insurance/probe', [\App\Modules\User\Controllers\LinkInsuranceController::class, 'probeNow'])->middleware('workspace.can:links.edit')->name('links.insurance.probe');
+
         // Additional (alternative) aliases per link — same page served, no redirect.
         Route::post('links/{link}/aliases', [\App\Modules\User\Controllers\LinkAliasController::class, 'store'])->middleware('workspace.can:links.edit')->name('links.aliases.store');
         Route::delete('links/{link}/aliases/{alias}', [\App\Modules\User\Controllers\LinkAliasController::class, 'destroy'])->middleware('workspace.can:links.edit')->name('links.aliases.destroy');

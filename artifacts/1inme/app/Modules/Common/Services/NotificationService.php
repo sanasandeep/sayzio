@@ -105,6 +105,20 @@ class NotificationService
                 'default_email'  => true,
                 'default_push'   => true,
             ],
+            'link_failover' => [
+                'label'          => 'Link Insurance failover',
+                'description'    => 'When a short link\'s primary destination breaks and we promote one of your backup URLs to keep traffic flowing.',
+                'default_in_app' => true,
+                'default_email'  => true,
+                'default_push'   => true,
+            ],
+            'link_restored' => [
+                'label'          => 'Link Insurance restored',
+                'description'    => 'When a previously broken primary destination starts working again and Link Insurance restores it.',
+                'default_in_app' => true,
+                'default_email'  => true,
+                'default_push'   => false,
+            ],
         ];
     }
 
