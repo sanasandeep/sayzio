@@ -232,8 +232,19 @@
     </div>
 </div>
 
+@php
+    // Owner-scoped, signed preview URL. The RedirectController honours
+    // `?_preview=1` + a valid Laravel signature as proof of ownership so the
+    // iframe is never gated and never blocked by SameSite/3rd-party-cookie
+    // behaviour on a custom domain. 24h expiry is plenty for an editing session.
+    $__previewUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+        'redirect.handle',
+        now()->addHours(24),
+        ['alias' => $link->alias, '_preview' => 1]
+    );
+@endphp
 <script>
-var _previewUrl = '{{ url("/" . $link->alias) }}';
+var _previewUrl = @json($__previewUrl);
 var _activePreviewMode = 'phone';
 var _deviceViewports = {
     phone:        { w: 375, h: 812 },
@@ -242,43 +253,91 @@ var _deviceViewports = {
     desktop:      { w: 1440, h: 900 }
 };
 
+function _scaleSingleIframe(iframe) {
+    var mode = iframe.dataset.preview;
+    var vp = _deviceViewports[mode];
+    if (!vp) return;
+    var screen = iframe.closest('.device-screen');
+    if (!screen) return;
+    var containerW = screen.offsetWidth;
+    if (containerW <= 0) return;
+    var scale = containerW / vp.w;
+    iframe.style.transform = 'scale(' + scale + ')';
+}
+
 function _scaleDeviceIframes() {
-    document.querySelectorAll('.preview-iframe').forEach(function(iframe) {
-        var mode = iframe.dataset.preview;
-        var vp = _deviceViewports[mode];
-        if (!vp) return;
-        var screen = iframe.closest('.device-screen');
-        if (!screen) return;
-        var containerW = screen.offsetWidth;
-        if (containerW <= 0) return;
-        var scale = containerW / vp.w;
-        iframe.style.transform = 'scale(' + scale + ')';
-    });
+    document.querySelectorAll('.preview-iframe').forEach(_scaleSingleIframe);
+}
+
+// Per-screen ResizeObserver: re-scale the moment the device-screen actually
+// has a non-zero width (after the x-show / x-transition animation finishes).
+// Avoids the previous brittle "setTimeout(..., 100)" race where the iframe
+// stayed permanently blank because it was measured at width 0.
+function _ensureIframeObserved(iframe) {
+    var screen = iframe.closest('.device-screen');
+    if (!screen || screen.__previewObserved) return;
+    screen.__previewObserved = true;
+    if (typeof ResizeObserver === 'function') {
+        var ro = new ResizeObserver(function() { _scaleSingleIframe(iframe); });
+        ro.observe(screen);
+    }
+}
+
+function _reloadIframe(f) {
+    try {
+        if (f.contentWindow && f.contentWindow.location) {
+            f.contentWindow.location.replace(_previewUrl);
+            f.dataset.previewStale = '';
+            return;
+        }
+    } catch (e) { /* cross-origin: fall through */ }
+    f.src = _previewUrl;
+    f.dataset.previewStale = '';
+}
+
+function _ensureIframeLoaded(mode) {
+    var f = document.querySelector('.preview-iframe[data-preview="' + mode + '"]');
+    if (!f) return null;
+    if (!f.src || f.src === 'about:blank' || f.src === window.location.href) {
+        f.src = _previewUrl;
+        f.dataset.previewStale = '';
+    } else if (f.dataset.previewStale === '1') {
+        // The page was edited while this device mode was hidden — reload
+        // now so the user doesn't see stale content on mode switch.
+        _reloadIframe(f);
+    }
+    _ensureIframeObserved(f);
+    _scaleSingleIframe(f);
+    return f;
 }
 
 function switchPreviewMode(mode) {
     _activePreviewMode = mode;
-    document.querySelectorAll('.preview-iframe').forEach(function(f) {
-        if (f.dataset.preview === mode) {
-            if (!f.src || f.src === 'about:blank' || f.src === '') {
-                f.src = _previewUrl;
-            }
-        } else {
-            f.src = 'about:blank';
-        }
-    });
-    setTimeout(_scaleDeviceIframes, 50);
+    // Ensure the requested mode has a src; leave OTHER iframes alone instead
+    // of resetting them to about:blank — switching back and forth was causing
+    // a permanently-blank frame because the just-shown iframe was measured at
+    // width 0 before its container animated in. Stale iframes are reloaded
+    // on activation rather than on every edit (cheaper, no flash).
+    _ensureIframeLoaded(mode);
 }
 
 function refreshPreview() {
-    var active = document.querySelector('.preview-iframe[data-preview="' + _activePreviewMode + '"]');
-    if (active) active.src = _previewUrl + '?_t=' + Date.now();
+    // Reload the currently visible iframe immediately. Mark all other
+    // already-loaded iframes as stale so switchPreviewMode() reloads them
+    // when they next become active — keeps every device mode in sync with
+    // the latest edit without re-fetching backgrounds the user can't see.
+    document.querySelectorAll('.preview-iframe').forEach(function(f) {
+        if (!f.src || f.src === 'about:blank' || f.src === window.location.href) return;
+        if (f.dataset.preview === _activePreviewMode) {
+            _reloadIframe(f);
+        } else {
+            f.dataset.previewStale = '1';
+        }
+    });
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    var phoneFrame = document.querySelector('.preview-iframe[data-preview="phone"]');
-    if (phoneFrame) phoneFrame.src = _previewUrl;
-    setTimeout(_scaleDeviceIframes, 100);
+    _ensureIframeLoaded('phone');
 });
 
 window.addEventListener('resize', function() {

@@ -208,7 +208,10 @@ class RedirectController extends Controller
                 fn ($r) => $smartCookie && $r->withCookie($smartCookie)
             ),
             'biolink' => tap(
-                response()->view('common.biolink', compact('link')),
+                $this->applyBiolinkFramingHeaders(
+                    response()->view('common.biolink', compact('link')),
+                    $request
+                ),
                 fn () => $this->scheduleLazySocialRefresh()
             ),
             'file' => $this->handleFileDownload($link),
@@ -216,6 +219,25 @@ class RedirectController extends Controller
             'vcf' => $this->handleVcfDownload($link),
             default => abort(404),
         };
+    }
+
+    /**
+     * Add permissive framing headers to biolink-type responses so the in-app
+     * editor preview iframe (and any third-party embed of a bio page) can
+     * render without the browser blocking it. When the request is an
+     * owner-scoped preview (signed `?_preview=1`), also force no-store so
+     * the editor sees fresh content on each refresh without polluting URLs
+     * with cache-busting query strings.
+     */
+    protected function applyBiolinkFramingHeaders($response, Request $request)
+    {
+        $response->headers->set('X-Frame-Options', 'ALLOWALL');
+        $response->headers->set('Content-Security-Policy', 'frame-ancestors *');
+        if ($request->boolean('_preview') && $request->hasValidSignature()) {
+            $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+            $response->headers->set('Pragma', 'no-cache');
+        }
+        return $response;
     }
 
     /**
@@ -237,14 +259,29 @@ class RedirectController extends Controller
             return null; // owner sees their own page in any tier
         }
 
+        // Owner-scoped preview signal from the in-app editor iframe. The
+        // editor signs the URL with `_preview=1` for the link owner; if the
+        // signature is valid we trust it as proof of ownership for rendering.
+        // This guarantees the preview is never blocked by visibility tiers
+        // even if the iframe loses the session cookie (SameSite / 3rd-party
+        // cookie behavior on a custom domain).
+        if ($request->boolean('_preview') && $request->hasValidSignature()) {
+            return null;
+        }
+
+        $gatedRespond = function (string $reason) use ($link, $request) {
+            $resp = response()->view('common.gated', ['link' => $link, 'reason' => $reason], 401);
+            return $this->applyBiolinkFramingHeaders($resp, $request);
+        };
+
         if ($vis === 'registered' && ! $viewerId) {
-            return response()->view('common.gated', ['link' => $link, 'reason' => 'registered'], 401);
+            return $gatedRespond('registered');
         }
         if ($vis === 'followers') {
             $following = $viewerId && Follow::where('follower_id', $viewerId)
                 ->where('creator_id', $link->user_id)->exists();
             if (! $following) {
-                return response()->view('common.gated', ['link' => $link, 'reason' => 'followers'], 401);
+                return $gatedRespond('followers');
             }
         }
         if ($vis === 'subscribers') {
@@ -254,7 +291,7 @@ class RedirectController extends Controller
                     $q->select('email')->from('users')->where('id', $viewerId);
                 })->exists();
             if (! $subscribed) {
-                return response()->view('common.gated', ['link' => $link, 'reason' => 'subscribers'], 401);
+                return $gatedRespond('subscribers');
             }
         }
         return null;
