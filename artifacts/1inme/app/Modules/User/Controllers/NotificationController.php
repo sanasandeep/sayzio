@@ -40,7 +40,9 @@ class NotificationController extends Controller
             ])
             ->all();
 
-        return view('user.notifications.preferences', compact('catalog', 'prefs'));
+        $user = auth()->user();
+
+        return view('user.notifications.preferences', compact('catalog', 'prefs', 'user'));
     }
 
     public function updatePreferences(Request $request)
@@ -59,6 +61,20 @@ class NotificationController extends Controller
                 ],
             );
         }
+
+        // Backlink digest scheduling: preferred weekday (1=Mon..7=Sun)
+        // and local hour (0..23) in the user's timezone. Clamped to safe
+        // ranges so a malicious form post can't escape the scheduler's
+        // matching window.
+        $user = auth()->user();
+        $weekday = (int) $request->input('backlink_digest_preferred_weekday', $user->backlink_digest_preferred_weekday ?? 1);
+        $hour    = (int) $request->input('backlink_digest_preferred_hour', $user->backlink_digest_preferred_hour ?? 9);
+        if ($weekday < 1 || $weekday > 7) $weekday = 1;
+        if ($hour < 0 || $hour > 23) $hour = 9;
+        $user->forceFill([
+            'backlink_digest_preferred_weekday' => $weekday,
+            'backlink_digest_preferred_hour'    => $hour,
+        ])->save();
 
         return back()->with('success', 'Preferences saved.');
     }

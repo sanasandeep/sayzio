@@ -55,14 +55,17 @@ Schedule::command('followers:send-digest')
     ->withoutOverlapping()
     ->onOneServer();
 
-// Weekly (Mon 09:00 UTC): email each opted-in creator a digest of new
-// backlinks the browser-extension radar has found pointing at their
-// short links, biolink and custom domains in the last 7 days. The
-// command itself skips users with zero new mentions (so an empty
-// digest is never sent) and honours the per-user `backlink_digest`
-// email preference plus a 7-day cooldown.
+// Hourly: email each opted-in creator a weekly digest of new backlinks
+// the browser-extension radar has found pointing at their short links,
+// biolink and custom domains in the last 7 days. The command itself
+// filters by each user's preferred local weekday + hour (and timezone)
+// so a user who picked Friday 5pm in America/Los_Angeles receives the
+// digest at 17:00 LA time, not 09:00 UTC like before. Skips users with
+// zero new mentions, honours the per-user `backlink_digest` email
+// preference, and a 6-day cooldown stops double-sends if a user
+// changes their preferred slot mid-week.
 Schedule::command('backlinks:send-weekly-digest')
-    ->weeklyOn(1, '09:00')
+    ->hourlyAt(0)
     ->withoutOverlapping()
     ->onOneServer();
 

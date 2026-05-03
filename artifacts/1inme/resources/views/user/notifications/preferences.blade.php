@@ -59,6 +59,38 @@
             @endforeach
         </div>
 
+        @php
+            $blWeekday = (int) old('backlink_digest_preferred_weekday', $user->backlink_digest_preferred_weekday ?? 1);
+            $blHour    = (int) old('backlink_digest_preferred_hour', $user->backlink_digest_preferred_hour ?? 9);
+            $weekdays = [
+                1 => 'Monday', 2 => 'Tuesday', 3 => 'Wednesday', 4 => 'Thursday',
+                5 => 'Friday', 6 => 'Saturday', 7 => 'Sunday',
+            ];
+        @endphp
+        <div class="px-4 py-4" style="border-top:1px solid var(--border-soft);">
+            <div class="text-sm font-semibold mb-1" style="color: var(--text-primary);">Weekly backlink digest delivery</div>
+            <p class="text-xs mb-3" style="color: var(--text-muted);">Pick when you'd like the weekly backlink digest email to arrive. Only applies if "Backlink digest" email is on above.</p>
+            <div class="flex flex-wrap items-center gap-3">
+                <label class="text-xs" style="color: var(--text-muted);">Send on</label>
+                <select name="backlink_digest_preferred_weekday" class="px-3 py-2 rounded-lg text-sm" style="background: var(--bg-input, var(--bg-card)); border:1px solid var(--border-soft); color: var(--text-primary);">
+                    @foreach($weekdays as $val => $label)
+                        <option value="{{ $val }}" {{ $blWeekday === $val ? 'selected' : '' }}>{{ $label }}</option>
+                    @endforeach
+                </select>
+                <label class="text-xs" style="color: var(--text-muted);">at</label>
+                <select name="backlink_digest_preferred_hour" class="px-3 py-2 rounded-lg text-sm" style="background: var(--bg-input, var(--bg-card)); border:1px solid var(--border-soft); color: var(--text-primary);">
+                    @for($h = 0; $h < 24; $h++)
+                        @php
+                            $suffix = $h < 12 ? 'am' : 'pm';
+                            $disp = $h % 12; if ($disp === 0) $disp = 12;
+                        @endphp
+                        <option value="{{ $h }}" {{ $blHour === $h ? 'selected' : '' }}>{{ $disp }}:00 {{ $suffix }}</option>
+                    @endfor
+                </select>
+                <span class="text-xs" style="color: var(--text-faint);">in your timezone ({{ $user->timezone ?: 'UTC' }})</span>
+            </div>
+        </div>
+
         <div class="px-4 py-4 flex items-center justify-between" style="border-top:1px solid var(--border-soft);">
             <p class="text-xs" style="color: var(--text-faint);">Push delivery rolls out with the next mobile release.</p>
             <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold bg-violet-600 hover:bg-violet-700 text-white">
