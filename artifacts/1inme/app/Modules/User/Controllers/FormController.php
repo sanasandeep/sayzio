@@ -197,7 +197,7 @@ class FormController extends Controller
             'border_radius' => 'required|integer|min:0|max:48',
             'button_label' => 'required|string|max:60',
             'button_style' => 'required|in:gradient,solid,outline',
-            'layout' => 'required|in:stacked,inline',
+            'layout' => 'required|in:stacked,inline,oneq',
             'font' => 'required|string|max:60',
             'show_branding' => 'sometimes|boolean',
             'cover_image' => \App\Services\UploadPolicy::rule('forms.cover', $request->user()),

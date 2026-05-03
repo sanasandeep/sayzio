@@ -51,6 +51,7 @@
             --form-radius-sm: {{ max(4, $radius / 2) }}px;
         }
         * { box-sizing: border-box; }
+        [x-cloak] { display: none !important; }
         html, body { margin: 0; padding: 0; min-height: 100vh; font-family: '{{ $font }}', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
 
         body.theme-light { background: var(--form-bg); color: var(--form-text); }
@@ -205,6 +206,69 @@
 
         .honeypot { position: absolute; left: -9999px; opacity: 0; pointer-events: none; }
 
+        /* One-question-at-a-time (Typeform-style) layout */
+        body.layout-oneq .form-page { min-height: 100vh; padding: 0; align-items: stretch; justify-content: stretch; }
+        body.layout-oneq.embed-mode .form-page { min-height: auto; padding: 0; }
+        body.layout-oneq .form-page > div { max-width: none !important; width: 100%; display: flex; flex-direction: column; }
+        body.layout-oneq .form-cover { max-width: none; width: 100%; height: 200px; border-radius: 0; }
+        .form-card.form-oneq {
+            max-width: none; width: 100%; flex: 1;
+            min-height: 100vh;
+            display: flex; flex-direction: column;
+            border-radius: 0; padding: 0;
+            box-shadow: none;
+        }
+        body.embed-mode .form-card.form-oneq { min-height: 480px; }
+        .form-card.form-oneq.has-cover { min-height: calc(100vh - 200px); padding-top: 0; }
+        body.embed-mode .form-card.form-oneq.has-cover { min-height: 360px; }
+        .oneq-progress {
+            position: sticky; top: 0; z-index: 5;
+            height: 6px;
+            background: {{ $theme === 'light' ? '#e2e8f0' : 'rgba(255,255,255,0.08)' }};
+        }
+        .oneq-progress > div {
+            height: 100%;
+            background: linear-gradient(90deg, var(--form-accent), {{ $accent }}aa);
+            transition: width 0.35s ease;
+        }
+        .oneq-stage {
+            flex: 1;
+            display: flex; align-items: center; justify-content: center;
+            padding: 3rem 1.5rem;
+        }
+        .oneq-slide {
+            width: 100%; max-width: 640px;
+            transition: opacity 0.25s ease;
+        }
+        .oneq-slide-counter { font-size: 0.78rem; opacity: 0.55; margin-bottom: 1rem; letter-spacing: 0.04em; }
+        .oneq-slide .form-label,
+        .oneq-slide-title { font-size: 1.6rem; font-weight: 700; line-height: 1.3; margin-bottom: 0.6rem; letter-spacing: -0.01em; }
+        .oneq-slide .form-help,
+        .oneq-slide-help { font-size: 0.95rem; opacity: 0.7; margin-top: 0; margin-bottom: 1.5rem; line-height: 1.5; }
+        .oneq-slide .form-input,
+        .oneq-slide .form-textarea,
+        .oneq-slide .form-select { font-size: 1.05rem; padding: 0.95rem 1.1rem; }
+        .oneq-slide .form-textarea { min-height: 140px; }
+        .oneq-slide .form-radio-group label,
+        .oneq-slide .form-check-group label { padding: 0.85rem 1rem; font-size: 1rem; }
+        .oneq-slide .form-field { margin-bottom: 0; }
+        .oneq-intro .form-title { font-size: 2.2rem; }
+        .oneq-intro .form-desc { font-size: 1.05rem; margin-bottom: 0; }
+        .oneq-intro .form-logo { width: 72px; height: 72px; margin-bottom: 1.5rem; }
+        .oneq-controls {
+            display: flex; gap: 0.75rem; align-items: center;
+            padding: 1rem 1.5rem 1.5rem;
+            border-top: 1px solid {{ $theme === 'light' ? '#e2e8f0' : 'rgba(255,255,255,0.08)' }};
+            flex-wrap: wrap;
+            background: inherit;
+        }
+        .oneq-controls .oneq-hint { font-size: 0.7rem; opacity: 0.5; margin-left: auto; }
+        @media (max-width: 640px) {
+            .oneq-stage { padding: 2rem 1.25rem; }
+            .oneq-slide .form-label, .oneq-slide-title { font-size: 1.25rem; }
+            .oneq-intro .form-title { font-size: 1.65rem; }
+        }
+
         @php
             // Sanitize custom CSS — strip any tag-like sequences that could break out of <style>
             $rawCss = (string) ($design['custom_css'] ?? '');
@@ -213,7 +277,7 @@
         {!! $safeCss !!}
     </style>
 </head>
-<body class="theme-{{ $theme }} {{ ($embed ?? false) ? 'embed-mode' : '' }}">
+<body class="theme-{{ $theme }} {{ ($embed ?? false) ? 'embed-mode' : '' }} {{ ($design['layout'] ?? '') === 'oneq' ? 'layout-oneq' : '' }}">
     <div class="form-page">
         <div style="width: 100%; max-width: 640px;">
             @if($cover)
@@ -234,6 +298,165 @@
                     </div>
                 </div>
             @else
+                @if(($design['layout'] ?? '') === 'oneq')
+                    @php
+                        // Build a flat ordered list of slides for the one-question-at-a-time runner.
+                        $allFields = [];
+                        foreach ($pages as $pf) { foreach ($pf as $f) { $allFields[] = $f; } }
+
+                        $sectionIds = [];
+                        foreach ($allFields as $f) {
+                            if (($f['type'] ?? null) === 'section') $sectionIds[$f['id']] = true;
+                        }
+                        $childrenBySection = [];
+                        foreach ($allFields as $f) {
+                            $parent = $f['parent'] ?? null;
+                            if ($parent && isset($sectionIds[$parent]) && ($f['type'] ?? null) !== 'section') {
+                                $childrenBySection[$parent][] = $f;
+                            }
+                        }
+
+                        $slides = [];
+                        $slides[] = ['type' => 'intro', 'ids' => []];
+                        $hiddenFields = [];
+
+                        $pushSlide = function (array $field) use (&$slides) {
+                            $t = $field['type'] ?? 'text';
+                            if (in_array($t, ['heading', 'paragraph'])) {
+                                $slides[] = ['type' => 'message', 'field' => $field, 'ids' => []];
+                            } else {
+                                $slides[] = ['type' => 'field', 'field' => $field, 'ids' => [$field['id'] ?? '']];
+                            }
+                        };
+
+                        foreach ($allFields as $f) {
+                            $t = $f['type'] ?? 'text';
+                            $parent = $f['parent'] ?? null;
+                            if ($parent && isset($sectionIds[$parent])) continue;
+                            if ($t === 'hidden') { $hiddenFields[] = $f; continue; }
+                            if (in_array($t, ['divider', 'page_break'])) continue;
+                            if ($t === 'section') {
+                                if (!empty($f['label']) || !empty($f['help'])) {
+                                    $slides[] = ['type' => 'section_intro', 'field' => $f, 'ids' => []];
+                                }
+                                foreach ($childrenBySection[$f['id']] ?? [] as $child) {
+                                    $ct = $child['type'] ?? 'text';
+                                    if (in_array($ct, ['divider', 'page_break'])) continue;
+                                    if ($ct === 'hidden') { $hiddenFields[] = $child; continue; }
+                                    $pushSlide($child);
+                                }
+                                continue;
+                            }
+                            $pushSlide($f);
+                        }
+
+                        $slideCount = count($slides);
+                        // Map of fieldId => slideIndex for error jumps & required-validation
+                        $fieldSlideIndex = [];
+                        foreach ($slides as $idx => $s) {
+                            foreach ($s['ids'] as $fid) {
+                                if ($fid !== '') $fieldSlideIndex[$fid] = $idx;
+                            }
+                        }
+                        $startSlide = 0;
+                        if ($errors->any()) {
+                            foreach ($slides as $idx => $s) {
+                                $hit = false;
+                                foreach ($s['ids'] as $fid) {
+                                    if ($fid !== '' && $errors->has($fid)) { $hit = true; break; }
+                                }
+                                if ($hit) { $startSlide = $idx; break; }
+                            }
+                        }
+                        // Build required-field map: slideIndex => [{id, type}]
+                        $requiredBySlide = [];
+                        foreach ($slides as $idx => $s) {
+                            if (($s['type'] ?? '') !== 'field') continue;
+                            $field = $s['field'];
+                            if (!empty($field['required'])) {
+                                $requiredBySlide[$idx][] = [
+                                    'id' => $field['id'] ?? '',
+                                    'type' => $field['type'] ?? 'text',
+                                ];
+                            }
+                        }
+                    @endphp
+
+                    <form method="POST" action="{{ route('forms.public.submit', $form->slug) }}" enctype="multipart/form-data"
+                          class="form-card form-oneq {{ $cover ? 'has-cover' : '' }}"
+                          x-data="formOneq({{ $slideCount }}, {{ $startSlide }}, @js($requiredBySlide))"
+                          @keydown.enter="onEnter($event)">
+                        @csrf
+
+                        {{-- Honeypot --}}
+                        <div class="honeypot" aria-hidden="true">
+                            <label>Leave this empty: <input type="text" name="_hp" tabindex="-1" autocomplete="off"></label>
+                        </div>
+
+                        {{-- Hidden fields are always present in the form --}}
+                        @foreach($hiddenFields as $hf)
+                            <input type="hidden" name="{{ $hf['id'] }}" value="{{ $hf['value'] ?? '' }}">
+                        @endforeach
+
+                        <div class="oneq-progress"><div :style="`width: ${((slide+1)/{{ $slideCount }})*100}%`"></div></div>
+
+                        <div class="oneq-stage">
+                            @foreach($slides as $idx => $s)
+                                @if($s['type'] === 'intro')
+                                    <div class="oneq-slide oneq-intro" x-show="slide === {{ $idx }}" x-cloak>
+                                        @if($logo)<img src="{{ $logo }}" alt="logo" class="form-logo">@endif
+                                        <h1 class="form-title">{{ $form->title }}</h1>
+                                        @if($form->description)<p class="form-desc">{{ $form->description }}</p>@endif
+                                        @if($errors->any())
+                                            <div style="margin-top: 1rem; background: rgba(239,68,68,0.10); border: 1px solid rgba(239,68,68,0.25); color: #b91c1c; padding: 0.75rem 1rem; border-radius: var(--form-radius-sm); font-size: 0.85rem;">
+                                                <i class="fas fa-exclamation-triangle"></i> Please fix the errors below — we jumped to the first one.
+                                            </div>
+                                        @endif
+                                    </div>
+                                @elseif($s['type'] === 'message')
+                                    @php $f = $s['field']; @endphp
+                                    <div class="oneq-slide" x-show="slide === {{ $idx }}" x-cloak>
+                                        <div class="oneq-slide-counter">{{ $idx }} / {{ $slideCount - 1 }}</div>
+                                        @if(($f['type'] ?? '') === 'heading')
+                                            <h2 class="oneq-slide-title">{{ $f['label'] ?? '' }}</h2>
+                                        @else
+                                            <p class="oneq-slide-help" style="font-size: 1.05rem; opacity: 0.85;">{{ $f['label'] ?? '' }}</p>
+                                        @endif
+                                    </div>
+                                @elseif($s['type'] === 'section_intro')
+                                    @php $f = $s['field']; @endphp
+                                    <div class="oneq-slide" x-show="slide === {{ $idx }}" x-cloak>
+                                        <div class="oneq-slide-counter">{{ $idx }} / {{ $slideCount - 1 }}</div>
+                                        @if(!empty($f['label']))<h2 class="oneq-slide-title">{{ $f['label'] }}</h2>@endif
+                                        @if(!empty($f['help']))<p class="oneq-slide-help">{{ $f['help'] }}</p>@endif
+                                    </div>
+                                @else
+                                    @php $f = $s['field']; @endphp
+                                    <div class="oneq-slide" x-show="slide === {{ $idx }}" x-cloak>
+                                        <div class="oneq-slide-counter">{{ $idx }} / {{ $slideCount - 1 }}</div>
+                                        @include('common.form-field', ['field' => $f, 'errors' => $errors, 'fieldOwner' => $form->user ?? null])
+                                    </div>
+                                @endif
+                            @endforeach
+                        </div>
+
+                        <div class="oneq-controls">
+                            <button type="button" x-show="slide > 0" @click="prev()" class="form-button form-button-secondary">
+                                <i class="fas fa-arrow-left text-xs"></i> Back
+                            </button>
+                            <button type="button" x-show="slide < {{ $slideCount - 1 }}" @click="next()" class="form-button">
+                                <span x-text="slide === 0 ? 'Start' : 'Next'"></span> <i class="fas fa-arrow-right text-xs"></i>
+                            </button>
+                            <button type="submit" x-show="slide === {{ $slideCount - 1 }}" class="form-button">
+                                {{ $btnLabel }} <i class="fas fa-arrow-right text-xs"></i>
+                            </button>
+                            <span class="oneq-hint" x-show="slide < {{ $slideCount - 1 }}">press <strong>Enter</strong> ↵</span>
+                            @if($design['show_branding'] ?? true)
+                                <span x-show="slide === {{ $slideCount - 1 }}" class="oneq-hint">Powered by <a href="{{ url('/') }}" target="_blank" style="color: inherit;">1INME</a></span>
+                            @endif
+                        </div>
+                    </form>
+                @else
                 <form method="POST" action="{{ route('forms.public.submit', $form->slug) }}" enctype="multipart/form-data"
                       class="form-card {{ $cover ? 'has-cover' : '' }} {{ $design['layout'] === 'inline' ? 'form-row-inline' : '' }}"
                       x-data="formRunner({{ $pageCount }})">
@@ -333,6 +556,7 @@
                         <div class="branding">Powered by <a href="{{ url('/') }}" target="_blank">1INME</a></div>
                     @endif
                 </form>
+                @endif
             @endif
         </div>
     </div>
@@ -353,6 +577,98 @@
                     if (window.parent !== window) {
                         window.parent.postMessage({ type: '1inme-form-resize', height: document.body.scrollHeight + 20 }, '*');
                     }
+                },
+            };
+        }
+
+        function formOneq(slideCount, startSlide, requiredBySlide) {
+            return {
+                slide: startSlide || 0,
+                slideCount: slideCount,
+                requiredBySlide: requiredBySlide || {},
+                slideError: '',
+                init() {
+                    this.postHeight();
+                    new ResizeObserver(() => this.postHeight()).observe(document.body);
+                    this.$nextTick(() => this.focusCurrent());
+                },
+                postHeight() {
+                    if (window.parent !== window) {
+                        // In embed: report viewport-ish height so the iframe stays large enough
+                        // for the full-screen runner without massive overflow.
+                        const h = Math.max(480, Math.min(window.innerHeight, document.body.scrollHeight));
+                        window.parent.postMessage({ type: '1inme-form-resize', height: h }, '*');
+                    }
+                },
+                currentSlideEl() {
+                    const root = this.$root || this.$el || document.querySelector('form.form-oneq');
+                    if (!root) return null;
+                    const slides = root.querySelectorAll('.oneq-slide');
+                    return slides[this.slide] || null;
+                },
+                focusCurrent() {
+                    const el = this.currentSlideEl();
+                    if (!el) return;
+                    const focusable = el.querySelector('input:not([type=hidden]):not([type=radio]):not([type=checkbox]), textarea, select');
+                    if (focusable) { try { focusable.focus({ preventScroll: true }); } catch (e) { focusable.focus(); } }
+                },
+                validateCurrent() {
+                    const el = this.currentSlideEl();
+                    if (!el) return true;
+                    const required = el.querySelectorAll('input[required], textarea[required], select[required]');
+                    const seenGroups = new Set();
+                    for (const inp of required) {
+                        const t = (inp.type || '').toLowerCase();
+                        if (t === 'radio' || t === 'checkbox') {
+                            if (seenGroups.has(inp.name)) continue;
+                            seenGroups.add(inp.name);
+                            const group = el.querySelectorAll(`input[name="${inp.name.replace(/"/g, '\\"')}"]`);
+                            const anyChecked = Array.from(group).some(i => i.checked);
+                            if (!anyChecked) { this.slideError = 'Please choose an option to continue.'; return false; }
+                        } else if (t === 'file') {
+                            if (!inp.files || inp.files.length === 0) { this.slideError = 'Please upload a file to continue.'; return false; }
+                        } else {
+                            if (!String(inp.value || '').trim()) { this.slideError = 'This field is required.'; return false; }
+                        }
+                    }
+                    this.slideError = '';
+                    return true;
+                },
+                next() {
+                    if (!this.validateCurrent()) {
+                        // Surface inline error on the current slide
+                        const el = this.currentSlideEl();
+                        if (el) {
+                            let bar = el.querySelector('.oneq-runtime-error');
+                            if (!bar) {
+                                bar = document.createElement('div');
+                                bar.className = 'form-error oneq-runtime-error';
+                                bar.style.marginTop = '0.6rem';
+                                el.appendChild(bar);
+                            }
+                            bar.textContent = this.slideError;
+                        }
+                        return;
+                    }
+                    if (this.slide < this.slideCount - 1) {
+                        this.slide++;
+                        this.$nextTick(() => { this.focusCurrent(); this.postHeight(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+                    }
+                },
+                prev() {
+                    if (this.slide > 0) {
+                        this.slide--;
+                        this.$nextTick(() => { this.focusCurrent(); this.postHeight(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+                    }
+                },
+                onEnter(e) {
+                    const tag = (e.target && e.target.tagName) || '';
+                    // Allow newlines in textareas (Shift+Enter or plain Enter inside textarea)
+                    if (tag === 'TEXTAREA') return;
+                    // Don't hijack the submit button on the final slide
+                    if (this.slide >= this.slideCount - 1) return;
+                    e.preventDefault();
+                    this.next();
                 },
             };
         }

@@ -132,6 +132,7 @@
                         <select name="layout" x-model="layout" class="theme-input w-full text-sm">
                             <option value="stacked">Stacked (one field per row)</option>
                             <option value="inline">Inline (compact)</option>
+                            <option value="oneq">One question at a time (Typeform-style)</option>
                         </select>
                     </div>
                     <div>

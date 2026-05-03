@@ -85,7 +85,7 @@ protected $fillable = [
             'border_radius' => 12,
             'button_label' => 'Submit',
             'button_style' => 'gradient', // gradient | solid | outline
-            'layout' => 'stacked',        // stacked | inline
+            'layout' => 'stacked',        // stacked | inline | oneq
             'font' => 'Plus Jakarta Sans',
             'show_branding' => true,
         ];
