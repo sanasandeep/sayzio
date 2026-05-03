@@ -50,6 +50,28 @@ Route::post('/pricing/switch-currency', [\App\Modules\User\Controllers\UpgradeCo
 Route::post('/webhooks/billing/activate', [\App\Modules\User\Controllers\UpgradeController::class, 'activate'])
     ->name('webhooks.billing.activate');
 
+// ─── Public client/sponsor portal (magic-link, no auth) ─────────────
+Route::prefix('portal')->name('portal.')->group(function () {
+    Route::get('start/{token}', [\App\Modules\User\Controllers\PortalAuthController::class, 'start'])
+        ->where('token', '[A-Za-z0-9]{32,}')
+        ->middleware('throttle:30,1')
+        ->name('start');
+    Route::get('gone',   [\App\Modules\User\Controllers\PortalAuthController::class, 'gone'])->name('gone');
+    Route::post('logout',[\App\Modules\User\Controllers\PortalAuthController::class, 'logout'])->name('logout');
+
+    Route::middleware('portal.session')->group(function () {
+        Route::get ('/',                      [\App\Modules\User\Controllers\PortalController::class, 'dashboard'])->name('dashboard');
+        Route::get ('boards/{board}',         [\App\Modules\User\Controllers\PortalController::class, 'board'])->whereNumber('board')->name('board');
+        Route::get ('files',                  [\App\Modules\User\Controllers\PortalController::class, 'files'])->name('files');
+        Route::get ('files/{file}/download',  [\App\Modules\User\Controllers\PortalController::class, 'fileDownload'])->whereNumber('file')->name('files.download');
+        Route::get ('drafts',                 [\App\Modules\User\Controllers\PortalController::class, 'drafts'])->name('drafts');
+        Route::post('drafts/{share}/decide',  [\App\Modules\User\Controllers\PortalController::class, 'decideDraft'])->whereNumber('share')->name('drafts.decide');
+        Route::get ('invoices',               [\App\Modules\User\Controllers\PortalController::class, 'invoices'])->name('invoices');
+        Route::post('invoices/{invoice}/pay', [\App\Modules\User\Controllers\PortalController::class, 'payInvoice'])->whereNumber('invoice')->name('invoices.pay');
+        Route::get ('reports/{link}',         [\App\Modules\User\Controllers\PortalController::class, 'report'])->whereNumber('link')->name('report');
+    });
+});
+
 Route::prefix('user')->name('user.')->group(function () {
     Route::get('register', [AuthController::class, 'showRegister'])->name('register');
     // Registration was previously unthrottled — easy spam-farm vector.
@@ -219,6 +241,25 @@ Route::prefix('user')->name('user.')->group(function () {
         });
 
         Route::get('invoices/{invoice}/pdf', [\App\Modules\User\Controllers\InvoiceController::class, 'pdf'])->middleware('workspace.owner')->name('invoices.pdf');
+
+        // ─── Client / Sponsor Portals ───────────────────────────
+        // Owner-managed read-only branded portals shared with vault clients
+        // via expirable magic links. Owner-only — settings.edit gates the
+        // ability to create or modify, and the views rely on workspace
+        // owner data anyway.
+        Route::prefix('client-portals')->name('client-portals.')->middleware('workspace.can:settings.edit')->group(function () {
+            Route::get   ('/',                                  [\App\Modules\User\Controllers\ClientPortalController::class, 'index'])->name('index');
+            Route::get   ('create',                             [\App\Modules\User\Controllers\ClientPortalController::class, 'create'])->name('create');
+            Route::post  ('/',                                  [\App\Modules\User\Controllers\ClientPortalController::class, 'store'])->name('store');
+            Route::get   ('{clientPortal}/edit',                [\App\Modules\User\Controllers\ClientPortalController::class, 'edit'])->name('edit');
+            Route::put   ('{clientPortal}',                     [\App\Modules\User\Controllers\ClientPortalController::class, 'update'])->name('update');
+            Route::delete('{clientPortal}',                     [\App\Modules\User\Controllers\ClientPortalController::class, 'destroy'])->name('destroy');
+            Route::post  ('{clientPortal}/shares',              [\App\Modules\User\Controllers\ClientPortalController::class, 'storeShare'])->name('shares.store');
+            Route::delete('{clientPortal}/shares/{share}',      [\App\Modules\User\Controllers\ClientPortalController::class, 'destroyShare'])->whereNumber('share')->name('shares.destroy');
+            Route::post  ('{clientPortal}/links',               [\App\Modules\User\Controllers\ClientPortalController::class, 'sendLink'])->middleware('throttle:20,10')->name('links.send');
+            Route::post  ('{clientPortal}/links/{link}/revoke', [\App\Modules\User\Controllers\ClientPortalController::class, 'revokeLink'])->whereNumber('link')->name('links.revoke');
+            Route::post  ('{clientPortal}/links/{link}/rotate', [\App\Modules\User\Controllers\ClientPortalController::class, 'rotateLink'])->whereNumber('link')->name('links.rotate');
+        });
 
         // Projects are link-organisation buckets — gate under the links
         // feature so any role with links access can place links into one.
