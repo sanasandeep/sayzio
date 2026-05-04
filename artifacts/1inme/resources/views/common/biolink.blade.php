@@ -939,28 +939,67 @@
                 <div class="mb-4 prose prose-invert prose-sm max-w-none">{!! strip_tags($s['html'] ?? '', '<p><br><a><strong><em><u><ul><ol><li><h1><h2><h3><h4><h5><h6><span><div><img><blockquote><hr>') !!}</div>
 
             @elseif($block->type === 'link')
-                <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
-                   class="bio-btn block w-full px-6 py-3.5 mb-3 text-center font-medium transition-all duration-300 flex items-center justify-center gap-3"
-                   @if($btnInline) style="{{ $btnInline }}" @endif>
-                    @if(!empty($s['thumbnail']))<img src="{{ $s['thumbnail'] }}" class="w-6 h-6 rounded object-cover" alt="">
-                    @elseif(!empty($s['icon']))<i class="{{ fa_icon_class($s['icon']) }}"></i>@endif
-                    <span>{{ $s['text'] ?? 'Link' }}</span>
-                </a>
+                @php $_lnkLayout = $block->settings['_style']['link_layout'] ?? ''; @endphp
+                @if($_lnkLayout === 'plain_text')
+                    <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
+                       class="block mb-3 text-center text-sm font-medium underline decoration-1 underline-offset-4 hover:decoration-2 transition"
+                       style="color: {{ $block->settings['_style']['text_color'] ?? '#a78bfa' }};">
+                        @if(!empty($s['icon']))<i class="{{ fa_icon_class($s['icon']) }} mr-1.5"></i>@endif{{ $s['text'] ?? 'Link' }}
+                    </a>
+                @elseif($_lnkLayout === 'image_cover' && !empty($s['thumbnail']))
+                    <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
+                       class="block w-full mb-3 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl relative"
+                       style="aspect-ratio: 16/7; background-image: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.7) 100%), url('{{ $s['thumbnail'] }}'); background-size: cover; background-position: center;{{ $btnInline ? ' ' . $btnInline : '' }}">
+                        <div class="absolute inset-0 flex items-end p-5">
+                            <div class="flex items-center gap-2 text-white font-bold text-base drop-shadow-lg">
+                                @if(!empty($s['icon']))<i class="{{ fa_icon_class($s['icon']) }}"></i>@endif
+                                <span>{{ $s['text'] ?? 'Link' }}</span>
+                            </div>
+                        </div>
+                    </a>
+                @else
+                    <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
+                       class="bio-btn block w-full px-6 py-3.5 mb-3 text-center font-medium transition-all duration-300 flex items-center justify-center gap-3"
+                       @if($btnInline) style="{{ $btnInline }}" @endif>
+                        @if(!empty($s['thumbnail']))<img src="{{ $s['thumbnail'] }}" class="w-6 h-6 rounded object-cover" alt="">
+                        @elseif(!empty($s['icon']))<i class="{{ fa_icon_class($s['icon']) }}"></i>@endif
+                        <span>{{ $s['text'] ?? 'Link' }}</span>
+                    </a>
+                @endif
 
             @elseif($block->type === 'link_big')
-                <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
-                   class="block w-full mb-3 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
-                   style="background: {{ $s['bg_color'] ?? $btnColor }};{{ $btnInline ? ' ' . $btnInline : '' }}">
-                    <div class="px-6 py-5 flex items-center gap-4">
-                        @if(!empty($s['thumbnail']))<img src="{{ $s['thumbnail'] }}" class="w-12 h-12 rounded-xl object-cover" alt="">
-                        @elseif(!empty($s['icon']))<div class="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center"><i class="{{ fa_icon_class($s['icon']) }} text-xl"></i></div>@endif
-                        <div class="flex-1 min-w-0">
-                            <p class="font-semibold text-white truncate">{{ $s['text'] ?? 'Link' }}</p>
-                            @if(!empty($s['description']))<p class="text-xs text-white/60 mt-0.5 truncate">{{ $s['description'] }}</p>@endif
+                @php $_lnkLayout = $block->settings['_style']['link_layout'] ?? ''; @endphp
+                @if($_lnkLayout === 'plain_text')
+                    <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
+                       class="block mb-3 text-center text-base font-semibold underline decoration-1 underline-offset-4 hover:decoration-2 transition"
+                       style="color: {{ $block->settings['_style']['text_color'] ?? '#a78bfa' }};">
+                        @if(!empty($s['icon']))<i class="{{ fa_icon_class($s['icon']) }} mr-1.5"></i>@endif{{ $s['text'] ?? 'Link' }}
+                        @if(!empty($s['description']))<div class="text-xs font-normal opacity-70 mt-1 no-underline">{{ $s['description'] }}</div>@endif
+                    </a>
+                @elseif($_lnkLayout === 'image_cover' && !empty($s['thumbnail']))
+                    <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
+                       class="block w-full mb-3 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl relative"
+                       style="aspect-ratio: 16/9; background-image: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.75) 100%), url('{{ $s['thumbnail'] }}'); background-size: cover; background-position: center;{{ $btnInline ? ' ' . $btnInline : '' }}">
+                        <div class="absolute inset-0 flex flex-col justify-end p-5">
+                            <p class="font-bold text-white text-lg drop-shadow-lg">{{ $s['text'] ?? 'Link' }}</p>
+                            @if(!empty($s['description']))<p class="text-sm text-white/80 mt-1 drop-shadow">{{ $s['description'] }}</p>@endif
                         </div>
-                        <i class="fas fa-arrow-right text-white/40"></i>
-                    </div>
-                </a>
+                    </a>
+                @else
+                    <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
+                       class="block w-full mb-3 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+                       style="background: {{ $s['bg_color'] ?? $btnColor }};{{ $btnInline ? ' ' . $btnInline : '' }}">
+                        <div class="px-6 py-5 flex items-center gap-4">
+                            @if(!empty($s['thumbnail']))<img src="{{ $s['thumbnail'] }}" class="w-12 h-12 rounded-xl object-cover" alt="">
+                            @elseif(!empty($s['icon']))<div class="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center"><i class="{{ fa_icon_class($s['icon']) }} text-xl"></i></div>@endif
+                            <div class="flex-1 min-w-0">
+                                <p class="font-semibold text-white truncate">{{ $s['text'] ?? 'Link' }}</p>
+                                @if(!empty($s['description']))<p class="text-xs text-white/60 mt-0.5 truncate">{{ $s['description'] }}</p>@endif
+                            </div>
+                            <i class="fas fa-arrow-right text-white/40"></i>
+                        </div>
+                    </a>
+                @endif
 
             @elseif($block->type === 'divider')
                 <div class="my-4 px-4"><hr style="border-style: {{ $s['style'] ?? 'solid' }}; border-color: {{ $s['color'] ?? 'rgba(255,255,255,0.1)' }}; border-width: 1px 0 0 0;"></div>
@@ -1682,14 +1721,32 @@
                 </div>
 
             @elseif($block->type === 'cta_button')
-                <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
-                   class="block w-full mb-3 text-center font-semibold transition-all duration-300 hover:-translate-y-0.5"
-                   style="background: {{ $s['color'] ?? $btnColor }}; color: {{ $s['text_color'] ?? $btnTextColor }};
-                          padding: {{ ($s['size'] ?? 'lg') === 'sm' ? '10px 20px' : (($s['size'] ?? 'lg') === 'md' ? '14px 24px' : '18px 32px') }};
-                          border-radius: {{ $btnRadius }}; box-shadow: 0 6px 20px {{ $s['color'] ?? $btnColor }}40;
-                          font-size: {{ ($s['size'] ?? 'lg') === 'sm' ? '14px' : (($s['size'] ?? 'lg') === 'md' ? '16px' : '18px') }};{{ $btnInline ? ' ' . $btnInline : '' }}">
-                    {{ $s['text'] ?? 'Click Here' }}
-                </a>
+                @php $_lnkLayout = $block->settings['_style']['link_layout'] ?? ''; @endphp
+                @if($_lnkLayout === 'plain_text')
+                    <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
+                       class="block mb-3 text-center font-semibold underline decoration-1 underline-offset-4 hover:decoration-2 transition"
+                       style="color: {{ $block->settings['_style']['text_color'] ?? ($s['color'] ?? '#a78bfa') }};
+                              font-size: {{ ($s['size'] ?? 'lg') === 'sm' ? '14px' : (($s['size'] ?? 'lg') === 'md' ? '16px' : '18px') }};">
+                        {{ $s['text'] ?? 'Click Here' }}
+                    </a>
+                @elseif($_lnkLayout === 'image_cover' && !empty($s['thumbnail']))
+                    <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
+                       class="block w-full mb-3 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-0.5 hover:shadow-2xl relative"
+                       style="aspect-ratio: 16/8; background-image: linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.7) 100%), url('{{ $s['thumbnail'] }}'); background-size: cover; background-position: center;{{ $btnInline ? ' ' . $btnInline : '' }}">
+                        <div class="absolute inset-0 flex items-end justify-center p-5">
+                            <span class="text-white font-bold drop-shadow-lg" style="font-size: {{ ($s['size'] ?? 'lg') === 'sm' ? '14px' : (($s['size'] ?? 'lg') === 'md' ? '16px' : '20px') }};">{{ $s['text'] ?? 'Click Here' }}</span>
+                        </div>
+                    </a>
+                @else
+                    <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
+                       class="block w-full mb-3 text-center font-semibold transition-all duration-300 hover:-translate-y-0.5"
+                       style="background: {{ $s['color'] ?? $btnColor }}; color: {{ $s['text_color'] ?? $btnTextColor }};
+                              padding: {{ ($s['size'] ?? 'lg') === 'sm' ? '10px 20px' : (($s['size'] ?? 'lg') === 'md' ? '14px 24px' : '18px 32px') }};
+                              border-radius: {{ $btnRadius }}; box-shadow: 0 6px 20px {{ $s['color'] ?? $btnColor }}40;
+                              font-size: {{ ($s['size'] ?? 'lg') === 'sm' ? '14px' : (($s['size'] ?? 'lg') === 'md' ? '16px' : '18px') }};{{ $btnInline ? ' ' . $btnInline : '' }}">
+                        {{ $s['text'] ?? 'Click Here' }}
+                    </a>
+                @endif
 
             @elseif($block->type === 'notification')
                 @php $nColors = ['info' => 'bg-violet-500/20 border-violet-400/30', 'success' => 'bg-green-500/20 border-green-400/30', 'warning' => 'bg-yellow-500/20 border-yellow-400/30']; @endphp

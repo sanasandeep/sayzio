@@ -3,6 +3,7 @@
     $templates = \App\Modules\User\Models\BiolinkBlock::BLOCK_TEMPLATES;
     $variants = \App\Modules\User\Support\BlockVariantCatalog::forType($block->type);
     $variantTags = \App\Modules\User\Support\BlockVariantCatalog::TAGS;
+    $variantShapes = \App\Modules\User\Support\BlockVariantCatalog::SHAPES;
     $variantVersion = \App\Modules\User\Support\BlockVariantCatalog::VERSION;
     $currentVariant = $st['_variant'] ?? '';
     // Pre-variant style snapshot, captured server-side the first time a
@@ -15,7 +16,11 @@
     $shadowTypes = ['none' => 'None', 'soft' => 'Soft', 'hard' => 'Hard', 'neon' => 'Neon Glow', 'glow' => 'Subtle Glow', 'neumorphic' => 'Neumorphic', 'inset' => 'Inner Shadow'];
     $effects = ['none' => 'None', 'glass' => 'Glassmorphism', 'gradient_border' => 'Gradient Border'];
 
-    $noStyleBlocks = ['spacer', 'divider'];
+    // Blocks where the entire Block Styling section is hidden — the
+    // visible result is either decided entirely by the embedded provider
+    // (iframe_embed, custom_html) or has nothing for typography/colours
+    // to bite into (spacer, divider).
+    $noStyleBlocks = ['spacer', 'divider', 'iframe_embed', 'custom_html'];
     $noTextBlocks = [
         'avatar', 'image', 'image_grid', 'image_slider', 'image_slider_v2',
         'video', 'header_video', 'audio', 'spacer', 'divider',
@@ -89,47 +94,88 @@
                  customSnapshot: @js($customSnapshot)
              })"
              x-init="$nextTick(() => loadLivePreviews())">
-            <div class="flex items-center justify-between gap-2 flex-wrap">
-                <p class="text-[10px]" style="color: var(--text-dimmed);">
-                    <i class="fas fa-info-circle mr-1"></i>Click a design to apply it instantly
-                </p>
-                <div class="flex items-center gap-1">
-                    <button type="button" @click="resetStyle(false)"
-                            class="text-[10px] font-bold py-1 px-2 rounded-md transition-all"
-                            style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);"
-                            title="Reset this block's styling to the default">
-                        <i class="fas fa-rotate-left mr-1"></i>Reset
-                    </button>
-                    <button type="button" @click="surpriseMe()"
-                            class="text-[10px] font-bold py-1 px-2 rounded-md transition-all"
-                            style="background: linear-gradient(135deg, #ec4899, #8b5cf6); color: white;">
-                        <i class="fas fa-dice mr-1"></i>Surprise me
-                    </button>
+            {{-- Plain-language explainer so first-time users understand
+                 what they're picking and that it's safe to experiment. --}}
+            <div class="p-2.5 rounded-lg flex items-start gap-2" style="background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.2);">
+                <i class="fas fa-shapes text-[12px] mt-0.5" style="color: #a78bfa;"></i>
+                <div class="flex-1">
+                    <div class="text-[11px] font-bold leading-tight" style="color: var(--text-primary);">One-click skins for this block</div>
+                    <div class="text-[10px] mt-0.5" style="color: var(--text-dimmed);">Pick a shape and theme — your text, link and image stay the same. Use <b>Reset</b> to undo or <b>Surprise me</b> to spin a random look.</div>
                 </div>
             </div>
 
-            {{-- Filter chips --}}
-            <div class="flex flex-wrap gap-1">
-                <button type="button" @click="activeFilter = 'all'"
-                        :class="activeFilter === 'all' ? 'ring-1 ring-violet-400/60' : ''"
-                        class="text-[9px] font-bold px-2 py-1 rounded-full transition-all"
-                        :style="activeFilter === 'all' ? 'background: rgba(124,58,237,0.18); color: #a78bfa;' : 'background: var(--bg-glass-input); color: var(--text-faint);'">
-                    All
+            <div class="flex items-center justify-end gap-1">
+                <button type="button" @click="resetStyle(false)"
+                        class="text-[10px] font-bold py-1 px-2 rounded-md transition-all"
+                        style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);"
+                        title="Reset this block's styling to the default">
+                    <i class="fas fa-rotate-left mr-1"></i>Reset
                 </button>
-                <button type="button" @click="activeFilter = 'favorites'"
-                        :class="activeFilter === 'favorites' ? 'ring-1 ring-pink-400/60' : ''"
-                        class="text-[9px] font-bold px-2 py-1 rounded-full transition-all"
-                        :style="activeFilter === 'favorites' ? 'background: rgba(236,72,153,0.18); color: #f472b6;' : 'background: var(--bg-glass-input); color: var(--text-faint);'">
-                    <i class="fas fa-star text-[8px] mr-0.5"></i>Favorites
+                <button type="button" @click="surpriseMe()"
+                        class="text-[10px] font-bold py-1 px-2 rounded-md transition-all"
+                        style="background: linear-gradient(135deg, #ec4899, #8b5cf6); color: white;">
+                    <i class="fas fa-dice mr-1"></i>Surprise me
                 </button>
-                @foreach($variantTagsPresent as $tagKey => $tagLabel)
-                <button type="button" @click="activeFilter = '{{ $tagKey }}'"
-                        :class="activeFilter === '{{ $tagKey }}' ? 'ring-1 ring-violet-400/60' : ''"
-                        class="text-[9px] font-bold px-2 py-1 rounded-full transition-all"
-                        :style="activeFilter === '{{ $tagKey }}' ? 'background: rgba(124,58,237,0.18); color: #a78bfa;' : 'background: var(--bg-glass-input); color: var(--text-faint);'">
-                    {{ $tagLabel }}
-                </button>
-                @endforeach
+            </div>
+
+            {{-- Build the set of shapes actually represented in this
+                 type's variants. Only render the Shape row when there
+                 are at least two distinct shapes — a single-shape catalog
+                 (e.g. paragraph) would just be visual noise. --}}
+            @php
+                $variantShapesPresent = [];
+                foreach ($variants as $v) {
+                    if (!empty($v['shape'])) $variantShapesPresent[$v['shape']] = true;
+                }
+                $variantShapesPresent = array_intersect_key($variantShapes, $variantShapesPresent);
+            @endphp
+            @if(count($variantShapesPresent) >= 2)
+            <div>
+                <div class="text-[9px] font-bold uppercase tracking-wider mb-1" style="color: var(--text-dimmed);">Shape</div>
+                <div class="flex flex-wrap gap-1">
+                    <button type="button" @click="activeShape = 'all'"
+                            :class="activeShape === 'all' ? 'ring-1 ring-cyan-400/60' : ''"
+                            class="text-[9px] font-bold px-2 py-1 rounded-full transition-all"
+                            :style="activeShape === 'all' ? 'background: rgba(34,211,238,0.18); color: #67e8f9;' : 'background: var(--bg-glass-input); color: var(--text-faint);'">
+                        All shapes
+                    </button>
+                    @foreach($variantShapesPresent as $shapeKey => $shapeLabel)
+                    <button type="button" @click="activeShape = '{{ $shapeKey }}'"
+                            :class="activeShape === '{{ $shapeKey }}' ? 'ring-1 ring-cyan-400/60' : ''"
+                            class="text-[9px] font-bold px-2 py-1 rounded-full transition-all"
+                            :style="activeShape === '{{ $shapeKey }}' ? 'background: rgba(34,211,238,0.18); color: #67e8f9;' : 'background: var(--bg-glass-input); color: var(--text-faint);'">
+                        {{ $shapeLabel }}
+                    </button>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+
+            {{-- Theme filter chips (colour / vibe). --}}
+            <div>
+                <div class="text-[9px] font-bold uppercase tracking-wider mb-1" style="color: var(--text-dimmed);">Theme</div>
+                <div class="flex flex-wrap gap-1">
+                    <button type="button" @click="activeFilter = 'all'"
+                            :class="activeFilter === 'all' ? 'ring-1 ring-violet-400/60' : ''"
+                            class="text-[9px] font-bold px-2 py-1 rounded-full transition-all"
+                            :style="activeFilter === 'all' ? 'background: rgba(124,58,237,0.18); color: #a78bfa;' : 'background: var(--bg-glass-input); color: var(--text-faint);'">
+                        All
+                    </button>
+                    <button type="button" @click="activeFilter = 'favorites'"
+                            :class="activeFilter === 'favorites' ? 'ring-1 ring-pink-400/60' : ''"
+                            class="text-[9px] font-bold px-2 py-1 rounded-full transition-all"
+                            :style="activeFilter === 'favorites' ? 'background: rgba(236,72,153,0.18); color: #f472b6;' : 'background: var(--bg-glass-input); color: var(--text-faint);'">
+                        <i class="fas fa-star text-[8px] mr-0.5"></i>Favorites
+                    </button>
+                    @foreach($variantTagsPresent as $tagKey => $tagLabel)
+                    <button type="button" @click="activeFilter = '{{ $tagKey }}'"
+                            :class="activeFilter === '{{ $tagKey }}' ? 'ring-1 ring-violet-400/60' : ''"
+                            class="text-[9px] font-bold px-2 py-1 rounded-full transition-all"
+                            :style="activeFilter === '{{ $tagKey }}' ? 'background: rgba(124,58,237,0.18); color: #a78bfa;' : 'background: var(--bg-glass-input); color: var(--text-faint);'">
+                        {{ $tagLabel }}
+                    </button>
+                    @endforeach
+                </div>
             </div>
 
             {{-- Variant + version are no longer carried via hidden form
@@ -188,7 +234,7 @@
                 @endphp
                 <button type="button"
                         data-variant-key="{{ $v['key'] }}"
-                        x-show="matchesFilter(@js($v['tags'] ?? []), '{{ $v['key'] }}')"
+                        x-show="matchesFilter(@js($v['tags'] ?? []), '{{ $v['key'] }}', @js($v['shape'] ?? ''))"
                         @click="applyVariant('{{ $v['key'] }}', $el)"
                         class="group p-2 rounded-xl text-left transition-all hover:scale-[1.03] relative"
                         :style="currentVariant === '{{ $v['key'] }}' ? 'background: rgba(124,58,237,0.12); border: 2px solid rgba(124,58,237,0.6); box-shadow: 0 0 12px rgba(124,58,237,0.18);' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass);'">
@@ -211,7 +257,16 @@
                          block's category (button/image/text/badge) so the
                          shape matches what they'll see in the live preview. --}}
                     @php
+                        // Variant-declared shape wins over the per-block-
+                        // type fallback when present — that way a
+                        // 'plain_text' or 'image_full' link variant gets
+                        // the right sketch even though the block type
+                        // itself is just 'link'.
+                        $variantShape = $v['shape'] ?? '';
                         $shapeKind = match (true) {
+                            $variantShape === 'plain_text' => 'plain_link',
+                            $variantShape === 'image_full' => 'image_btn',
+                            $variantShape === 'outline'    => 'button_outline',
                             in_array($block->type, ['avatar']) => 'avatar',
                             in_array($block->type, ['image', 'photo', 'banner', 'header_image']) => 'image',
                             in_array($block->type, ['link', 'link_big', 'button', 'cta', 'cta_button', 'social', 'url']) => 'button',
@@ -224,17 +279,32 @@
                          is fetched on tab open and injected into
                          data-variant-preview="{{ $v['key'] }}". Until then
                          we render the static shape-sketch fallback so the
-                         gallery is never blank. --}}
+                         gallery is never blank. Bumped to h-20 so shape
+                         differences (pill vs square vs full-image) are
+                         visible at a glance instead of squinting. --}}
                     <div data-variant-preview="{{ $v['key'] }}"
-                         class="h-14 rounded-lg flex items-center justify-center mt-3 mb-2 overflow-hidden p-1.5"
+                         class="h-20 rounded-lg flex items-center justify-center mt-3 mb-2 overflow-hidden p-2"
                          style="background: {{ $thumbBg }};
                                 border-radius: {{ min($thumbRadius, 24) }}px;
                                 {{ $thumbBorder ? 'border:' . ($isDashed ? '2px dashed ' : '1px solid ') . $thumbBorder . ';' : '' }}
                                 {{ $thumbShadow ? 'box-shadow:' . $thumbShadow . ';' : '' }}">
                         @if($shapeKind === 'button')
-                            <div class="px-2 py-1 rounded text-[8px] font-bold"
-                                 style="background: {{ $thumbText }}; color: {{ $thumbBg === 'transparent' ? '#000' : $thumbBg }}; border-radius: {{ min($thumbRadius, 12) }}px;">
+                            <div class="px-3 py-1.5 text-[9px] font-bold"
+                                 style="background: {{ $thumbText }}; color: {{ $thumbBg === 'transparent' ? '#000' : $thumbBg }}; border-radius: {{ min($thumbRadius, 999) }}px;">
                                 Click me
+                            </div>
+                        @elseif($shapeKind === 'button_outline')
+                            <div class="px-3 py-1.5 text-[9px] font-bold"
+                                 style="background: transparent; color: {{ $thumbText }}; border: 1.5px solid {{ $thumbText }}; border-radius: {{ min($thumbRadius, 999) }}px;">
+                                Click me
+                            </div>
+                        @elseif($shapeKind === 'plain_link')
+                            <span class="text-[10px] font-medium underline decoration-1 underline-offset-2"
+                                  style="color: {{ $thumbText }};">Click me →</span>
+                        @elseif($shapeKind === 'image_btn')
+                            <div class="w-full h-full rounded flex items-end p-1.5"
+                                 style="background: linear-gradient(135deg,#7c3aed,#ec4899); border-radius: {{ min($thumbRadius, 16) }}px;">
+                                <span class="text-[9px] font-bold text-white drop-shadow">Click me</span>
                             </div>
                         @elseif($shapeKind === 'avatar')
                             <div class="rounded-full" style="width: 28px; height: 28px; background: {{ $thumbText }}; opacity: 0.85;"></div>
@@ -535,6 +605,10 @@ window.blockDesignsGallery = function(opts) {
         currentVariant: opts.currentVariant || '',
         customSnapshot: opts.customSnapshot || null,
         activeFilter: 'all',
+        // Independent shape filter (Pill / Square / Outline / Text Link /
+        // Image / Card). Orthogonal to activeFilter — a variant must
+        // satisfy BOTH the active theme and the active shape to be shown.
+        activeShape: 'all',
         favorites: [],
         // Block has _style overrides but no _variant key — show "Custom"
         // chip so they know their tweaks aren't being silently lost.
@@ -578,15 +652,18 @@ window.blockDesignsGallery = function(opts) {
                         // straight from the server so any future change
                         // to buildInlineStyle() flows through here.
                         var content = blockLabel ? blockLabel.substring(0, 16) : p.name;
-                        slot.setAttribute('style', 'min-height:56px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin:12px 0 8px;' + p.inline_style);
-                        slot.innerHTML = '<span style="font-size:11px;font-weight:600;color:' + (p.text_color || 'inherit') + ';text-align:center;line-height:1.2;padding:0 4px;">' + (content.replace(/[<>&]/g, '') || 'Preview') + '</span>';
+                        slot.setAttribute('style', 'min-height:80px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin:12px 0 8px;padding:8px;' + p.inline_style);
+                        slot.innerHTML = '<span style="font-size:12px;font-weight:600;color:' + (p.text_color || 'inherit') + ';text-align:center;line-height:1.2;padding:0 4px;">' + (content.replace(/[<>&]/g, '') || 'Preview') + '</span>';
                     });
                 })
                 .catch(function() {})
                 .finally(function() { self._previewsLoading = false; });
         },
 
-        matchesFilter(tags, key) {
+        matchesFilter(tags, key, shape) {
+            // Shape gate first — if the user has narrowed by shape, drop
+            // anything that doesn't match before checking the theme tag.
+            if (this.activeShape !== 'all' && (shape || '') !== this.activeShape) return false;
             if (this.activeFilter === 'all') return true;
             if (this.activeFilter === 'favorites') return this.favorites.indexOf(key) !== -1;
             return (tags || []).indexOf(this.activeFilter) !== -1;
@@ -595,7 +672,7 @@ window.blockDesignsGallery = function(opts) {
         visibleCount() {
             var self = this;
             return this.catalog().filter(function(v) {
-                return self.matchesFilter(v.tags || [], v.key);
+                return self.matchesFilter(v.tags || [], v.key, v.shape || '');
             }).length;
         },
 

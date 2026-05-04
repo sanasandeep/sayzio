@@ -42,6 +42,7 @@
 
 @elseif($block->type === 'link')
     @php $btnInline = $btnInline ?? ''; @endphp
+    @php $_lnkLayout = $block->settings['_style']['link_layout'] ?? ''; @endphp
     @if(!empty($s['is_featured']))
         @php $accent = $s['accent_color'] ?? '#f59e0b'; @endphp
         <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
@@ -60,6 +61,23 @@
                 <i class="fas fa-arrow-right text-white/60"></i>
             </div>
         </a>
+    @elseif($_lnkLayout === 'plain_text')
+        <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
+           class="block mb-3 text-center text-sm font-medium underline decoration-1 underline-offset-4 hover:decoration-2 transition"
+           style="color: {{ $block->settings['_style']['text_color'] ?? '#a78bfa' }};">
+            @if(!empty($s['icon']))<i class="{{ fa_icon_class($s['icon']) }} mr-1.5"></i>@endif{{ $s['text'] ?? 'Link' }}
+        </a>
+    @elseif($_lnkLayout === 'image_cover' && !empty($s['thumbnail']))
+        <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
+           class="block w-full mb-3 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl relative"
+           style="aspect-ratio: 16/7; background-image: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.7) 100%), url('{{ $s['thumbnail'] }}'); background-size: cover; background-position: center;{{ $btnInline ? ' ' . $btnInline : '' }}">
+            <div class="absolute inset-0 flex items-end p-5">
+                <div class="flex items-center gap-2 text-white font-bold drop-shadow-lg">
+                    @if(!empty($s['icon']))<i class="{{ fa_icon_class($s['icon']) }}"></i>@endif
+                    <span>{{ $s['text'] ?? 'Link' }}</span>
+                </div>
+            </div>
+        </a>
     @else
         <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
            class="bio-btn block w-full px-6 py-3.5 mb-3 text-center font-medium transition-all duration-300 flex items-center justify-center gap-3"
@@ -71,20 +89,38 @@
     @endif
 
 @elseif($block->type === 'link_big')
-    @php $btnInline = $btnInline ?? ''; @endphp
-    <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
-       class="block w-full mb-3 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
-       style="background: {{ $s['bg_color'] ?? ($btnColor ?? '#7c3aed') }};{{ $btnInline ? ' ' . $btnInline : '' }}">
-        <div class="px-6 py-5 flex items-center gap-4">
-            @if(!empty($s['thumbnail']))<img src="{{ $s['thumbnail'] }}" class="w-12 h-12 rounded-xl object-cover" alt="">
-            @elseif(!empty($s['icon']))<div class="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center"><i class="{{ fa_icon_class($s['icon']) }} text-xl"></i></div>@endif
-            <div class="flex-1 min-w-0">
-                <p class="font-semibold text-white truncate">{{ $s['text'] ?? 'Link' }}</p>
-                @if(!empty($s['description']))<p class="text-xs text-white/60 mt-0.5 truncate">{{ $s['description'] }}</p>@endif
+    @php $btnInline = $btnInline ?? ''; $_lnkLayout = $block->settings['_style']['link_layout'] ?? ''; @endphp
+    @if($_lnkLayout === 'plain_text')
+        <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
+           class="block mb-3 text-center text-base font-semibold underline decoration-1 underline-offset-4 hover:decoration-2 transition"
+           style="color: {{ $block->settings['_style']['text_color'] ?? '#a78bfa' }};">
+            @if(!empty($s['icon']))<i class="{{ fa_icon_class($s['icon']) }} mr-1.5"></i>@endif{{ $s['text'] ?? 'Link' }}
+            @if(!empty($s['description']))<div class="text-xs font-normal opacity-70 mt-1 no-underline">{{ $s['description'] }}</div>@endif
+        </a>
+    @elseif($_lnkLayout === 'image_cover' && !empty($s['thumbnail']))
+        <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
+           class="block w-full mb-3 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl relative"
+           style="aspect-ratio: 16/9; background-image: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.75) 100%), url('{{ $s['thumbnail'] }}'); background-size: cover; background-position: center;{{ $btnInline ? ' ' . $btnInline : '' }}">
+            <div class="absolute inset-0 flex flex-col justify-end p-5">
+                <p class="font-bold text-white text-lg drop-shadow-lg">{{ $s['text'] ?? 'Link' }}</p>
+                @if(!empty($s['description']))<p class="text-sm text-white/80 mt-1 drop-shadow">{{ $s['description'] }}</p>@endif
             </div>
-            <i class="fas fa-arrow-right text-white/40"></i>
-        </div>
-    </a>
+        </a>
+    @else
+        <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
+           class="block w-full mb-3 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+           style="background: {{ $s['bg_color'] ?? ($btnColor ?? '#7c3aed') }};{{ $btnInline ? ' ' . $btnInline : '' }}">
+            <div class="px-6 py-5 flex items-center gap-4">
+                @if(!empty($s['thumbnail']))<img src="{{ $s['thumbnail'] }}" class="w-12 h-12 rounded-xl object-cover" alt="">
+                @elseif(!empty($s['icon']))<div class="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center"><i class="{{ fa_icon_class($s['icon']) }} text-xl"></i></div>@endif
+                <div class="flex-1 min-w-0">
+                    <p class="font-semibold text-white truncate">{{ $s['text'] ?? 'Link' }}</p>
+                    @if(!empty($s['description']))<p class="text-xs text-white/60 mt-0.5 truncate">{{ $s['description'] }}</p>@endif
+                </div>
+                <i class="fas fa-arrow-right text-white/40"></i>
+            </div>
+        </a>
+    @endif
 
 @elseif($block->type === 'divider')
     <div class="my-4 px-4"><hr style="border-style: {{ $s['style'] ?? 'solid' }}; border-color: {{ $s['color'] ?? 'rgba(255,255,255,0.1)' }}; border-width: 1px 0 0 0;"></div>
@@ -110,15 +146,32 @@
     </div>
 
 @elseif($block->type === 'cta_button')
-    @php $btnInline = $btnInline ?? ''; @endphp
-    <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
-       class="block w-full mb-3 text-center font-semibold transition-all duration-300 hover:-translate-y-0.5"
-       style="background: {{ $s['color'] ?? ($btnColor ?? '#7c3aed') }}; color: {{ $s['text_color'] ?? ($btnTextColor ?? '#fff') }};
-              padding: {{ ($s['size'] ?? 'lg') === 'sm' ? '10px 20px' : (($s['size'] ?? 'lg') === 'md' ? '14px 24px' : '18px 32px') }};
-              border-radius: {{ $btnRadius ?? '12px' }}; box-shadow: 0 6px 20px {{ $s['color'] ?? ($btnColor ?? '#7c3aed') }}40;
-              font-size: {{ ($s['size'] ?? 'lg') === 'sm' ? '14px' : (($s['size'] ?? 'lg') === 'md' ? '16px' : '18px') }};{{ $btnInline ? ' ' . $btnInline : '' }}">
-        {{ $s['text'] ?? 'Click Here' }}
-    </a>
+    @php $btnInline = $btnInline ?? ''; $_lnkLayout = $block->settings['_style']['link_layout'] ?? ''; @endphp
+    @if($_lnkLayout === 'plain_text')
+        <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
+           class="block mb-3 text-center font-semibold underline decoration-1 underline-offset-4 hover:decoration-2 transition"
+           style="color: {{ $block->settings['_style']['text_color'] ?? ($s['color'] ?? '#a78bfa') }};
+                  font-size: {{ ($s['size'] ?? 'lg') === 'sm' ? '14px' : (($s['size'] ?? 'lg') === 'md' ? '16px' : '18px') }};">
+            {{ $s['text'] ?? 'Click Here' }}
+        </a>
+    @elseif($_lnkLayout === 'image_cover' && !empty($s['thumbnail']))
+        <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
+           class="block w-full mb-3 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-0.5 hover:shadow-2xl relative"
+           style="aspect-ratio: 16/8; background-image: linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.7) 100%), url('{{ $s['thumbnail'] }}'); background-size: cover; background-position: center;{{ $btnInline ? ' ' . $btnInline : '' }}">
+            <div class="absolute inset-0 flex items-end justify-center p-5">
+                <span class="text-white font-bold drop-shadow-lg" style="font-size: {{ ($s['size'] ?? 'lg') === 'sm' ? '14px' : (($s['size'] ?? 'lg') === 'md' ? '16px' : '20px') }};">{{ $s['text'] ?? 'Click Here' }}</span>
+            </div>
+        </a>
+    @else
+        <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
+           class="block w-full mb-3 text-center font-semibold transition-all duration-300 hover:-translate-y-0.5"
+           style="background: {{ $s['color'] ?? ($btnColor ?? '#7c3aed') }}; color: {{ $s['text_color'] ?? ($btnTextColor ?? '#fff') }};
+                  padding: {{ ($s['size'] ?? 'lg') === 'sm' ? '10px 20px' : (($s['size'] ?? 'lg') === 'md' ? '14px 24px' : '18px 32px') }};
+                  border-radius: {{ $btnRadius ?? '12px' }}; box-shadow: 0 6px 20px {{ $s['color'] ?? ($btnColor ?? '#7c3aed') }}40;
+                  font-size: {{ ($s['size'] ?? 'lg') === 'sm' ? '14px' : (($s['size'] ?? 'lg') === 'md' ? '16px' : '18px') }};{{ $btnInline ? ' ' . $btnInline : '' }}">
+            {{ $s['text'] ?? 'Click Here' }}
+        </a>
+    @endif
 
 @elseif($block->type === 'badge')
     <div class="mb-3 flex justify-center">
@@ -767,25 +820,47 @@
     </div>
 
 @elseif($block->type === 'featured_pin')
-    <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
-       class="bio-btn block w-full mb-3 transition-all duration-300 relative overflow-hidden"
-       style="background: linear-gradient(135deg, {{ $s['accent_color'] ?? '#f59e0b' }}, {{ $s['accent_color'] ?? '#f59e0b' }}cc); color:#fff;">
-        <div class="absolute top-0 right-3 -translate-y-0 px-2 py-0.5 rounded-b-md text-[10px] font-bold uppercase tracking-wider" style="background: rgba(0,0,0,.35);">
-            <i class="fas fa-thumbtack mr-1"></i>Featured
-        </div>
-        <div class="flex items-center gap-3 px-5 py-4">
-            @if(!empty($s['thumbnail']))
-                <img src="{{ $s['thumbnail'] }}" alt="" class="w-12 h-12 rounded-lg object-cover flex-shrink-0">
-            @elseif(!empty($s['icon']))
-                <i class="{{ fa_icon_class($s['icon']) }} text-2xl flex-shrink-0"></i>
-            @endif
-            <div class="text-left flex-1 min-w-0">
-                <div class="font-semibold truncate">{{ $s['text'] ?? 'Featured' }}</div>
-                @if(!empty($s['description']))<div class="text-xs opacity-90 truncate">{{ $s['description'] }}</div>@endif
+    @php $_lnkLayout = $block->settings['_style']['link_layout'] ?? ''; $_accent = $s['accent_color'] ?? '#f59e0b'; @endphp
+    @if($_lnkLayout === 'plain_text')
+        <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
+           class="block mb-3 text-center text-base font-semibold underline decoration-1 underline-offset-4 hover:decoration-2 transition"
+           style="color: {{ $block->settings['_style']['text_color'] ?? $_accent }};">
+            <i class="fas fa-thumbtack text-[10px] mr-1.5"></i>{{ $s['text'] ?? 'Featured' }}
+            @if(!empty($s['description']))<div class="text-xs font-normal opacity-70 mt-1 no-underline">{{ $s['description'] }}</div>@endif
+        </a>
+    @elseif($_lnkLayout === 'image_cover' && !empty($s['thumbnail']))
+        <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
+           class="block w-full mb-3 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl relative"
+           style="aspect-ratio: 16/8; background-image: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.75) 100%), url('{{ $s['thumbnail'] }}'); background-size: cover; background-position: center;">
+            <div class="absolute top-2 right-2 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider" style="background: {{ $_accent }}; color:#fff;">
+                <i class="fas fa-thumbtack mr-1"></i>Featured
             </div>
-            <i class="fas fa-arrow-right opacity-70 flex-shrink-0"></i>
-        </div>
-    </a>
+            <div class="absolute inset-0 flex flex-col justify-end p-5">
+                <p class="font-bold text-white text-lg drop-shadow-lg">{{ $s['text'] ?? 'Featured' }}</p>
+                @if(!empty($s['description']))<p class="text-sm text-white/80 mt-1 drop-shadow">{{ $s['description'] }}</p>@endif
+            </div>
+        </a>
+    @else
+        <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
+           class="bio-btn block w-full mb-3 transition-all duration-300 relative overflow-hidden"
+           style="background: linear-gradient(135deg, {{ $_accent }}, {{ $_accent }}cc); color:#fff;">
+            <div class="absolute top-0 right-3 -translate-y-0 px-2 py-0.5 rounded-b-md text-[10px] font-bold uppercase tracking-wider" style="background: rgba(0,0,0,.35);">
+                <i class="fas fa-thumbtack mr-1"></i>Featured
+            </div>
+            <div class="flex items-center gap-3 px-5 py-4">
+                @if(!empty($s['thumbnail']))
+                    <img src="{{ $s['thumbnail'] }}" alt="" class="w-12 h-12 rounded-lg object-cover flex-shrink-0">
+                @elseif(!empty($s['icon']))
+                    <i class="{{ fa_icon_class($s['icon']) }} text-2xl flex-shrink-0"></i>
+                @endif
+                <div class="text-left flex-1 min-w-0">
+                    <div class="font-semibold truncate">{{ $s['text'] ?? 'Featured' }}</div>
+                    @if(!empty($s['description']))<div class="text-xs opacity-90 truncate">{{ $s['description'] }}</div>@endif
+                </div>
+                <i class="fas fa-arrow-right opacity-70 flex-shrink-0"></i>
+            </div>
+        </a>
+    @endif
 
 @elseif($block->type === 'calendly_embed')
     @if(!empty($s['url']))

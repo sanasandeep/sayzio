@@ -1486,6 +1486,12 @@ class BiolinkBlockController extends Controller
             'glass_preset' => ['off', 'light', 'heavy'],
             'display_mode' => ['card', 'content'],
             'effect' => ['none', 'glass', 'gradient_border'],
+            // Per-block layout switch for link-family blocks. Empty
+            // string is the default (existing button render); since the
+            // foreach skips empty values, only non-default picks
+            // ('plain_text' / 'image_cover') will ever be persisted —
+            // which is exactly what we want.
+            'link_layout' => ['plain_text', 'image_cover'],
         ];
         $numericBounds = [
             'font_size' => [8, 72],

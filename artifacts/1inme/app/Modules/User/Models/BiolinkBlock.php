@@ -323,6 +323,14 @@ class BiolinkBlock extends Model
         // a future renderer migration tell "this block was styled by an
         // older catalog" without re-saving every block on the planet.
         '_variant_version' => 0,
+        // Per-block layout switch for link-family blocks (link / link_big /
+        // cta_button / featured_pin). Empty = existing button rendering.
+        // 'plain_text'  = pure underlined inline link, no card chrome.
+        // 'image_cover' = full-bleed thumbnail card with title overlay
+        //                 (falls back to default rendering if no thumbnail).
+        // Lives in _style so it travels with curated variants and resets
+        // back to '' on Reset.
+        'link_layout' => '',
     ];
 
     public const BLOCK_TEMPLATES = [

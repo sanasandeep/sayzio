@@ -33,7 +33,24 @@ class BlockVariantCatalog
      * pipeline always writes the *current* VERSION so newly-applied or
      * re-applied variants stay in sync.
      */
-    public const VERSION = 2;
+    public const VERSION = 3;
+
+    /**
+     * Shape filters for link-style blocks. Orthogonal to theme TAGS:
+     * a variant declares both a `shape` (what physical form the button
+     * takes) and `tags` (what vibe the colors/borders give off). The
+     * Designs gallery surfaces a "Shape" filter row separate from the
+     * theme chips so creators can scan "what does this look like?"
+     * without parsing 16 colour theme labels first.
+     */
+    public const SHAPES = [
+        'card'       => 'Card',
+        'pill'       => 'Pill',
+        'square'     => 'Square',
+        'outline'    => 'Outline',
+        'plain_text' => 'Text Link',
+        'image_full' => 'Image',
+    ];
 
     public const TAGS = [
         'minimal'      => 'Minimal',
@@ -352,16 +369,21 @@ class BlockVariantCatalog
     {
         return [
             // Link-style buttons (link, link_big, cta_button, featured_pin).
+            // The `shape` field powers the new Shape filter row in the
+            // Designs gallery — orthogonal to the colour `tags`. Variants
+            // missing `shape` default to 'card' in the renderer.
             'link_actions' => [
                 [
                     'key' => 'corporate_row',
                     'name' => 'Corporate Row',
                     'tags' => ['corporate', 'minimal', 'pro'],
+                    'shape' => 'square',
                     'style' => [
                         'display_mode' => 'card', 'bg_color' => '#ffffff',
                         'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#e5e7eb',
                         'border_radius' => '6', 'shadow_preset' => 'none',
                         'text_color' => '#111827', 'padding' => '14', 'font_weight' => '600',
+                        'link_layout' => '',
                     ],
                     'preview' => ['bg' => '#ffffff', 'text' => '#111827', 'radius' => 6, 'border' => '#e5e7eb'],
                 ],
@@ -369,12 +391,14 @@ class BlockVariantCatalog
                     'key' => 'cta_glow',
                     'name' => 'CTA Glow',
                     'tags' => ['neon', 'bold'],
+                    'shape' => 'card',
                     'style' => [
                         'display_mode' => 'card', 'bg_color' => '#0f172a',
                         'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#22d3ee',
                         'border_radius' => '14', 'shadow_type' => 'glow',
                         'shadow_color' => '#22d3eeaa', 'shadow_blur' => 28,
                         'text_color' => '#67e8f9', 'padding' => '18', 'font_weight' => '700',
+                        'link_layout' => '',
                     ],
                     'preview' => ['bg' => '#0f172a', 'text' => '#67e8f9', 'radius' => 14, 'border' => '#22d3ee'],
                 ],
@@ -382,14 +406,113 @@ class BlockVariantCatalog
                     'key' => 'y2k_chrome',
                     'name' => 'Y2K Chrome',
                     'tags' => ['y2k', 'retro', 'three_d'],
+                    'shape' => 'pill',
                     'style' => [
                         'display_mode' => 'card', 'bg_color' => '#c0c0d8',
                         'border_style' => 'solid', 'border_width' => '2', 'border_color' => '#7280a8',
                         'border_radius' => '999', 'shadow_type' => 'soft',
                         'shadow_color' => '#3b82f680', 'shadow_y' => 6, 'shadow_blur' => 14,
                         'text_color' => '#1e1b4b', 'padding' => '14', 'font_weight' => '700',
+                        'link_layout' => '',
                     ],
                     'preview' => ['bg' => 'linear-gradient(180deg,#e0e7ff,#94a3b8)', 'text' => '#1e1b4b', 'radius' => 999, 'border' => '#7280a8'],
+                ],
+
+                // ── New shape-first variants ──────────────────────────────
+                // Filled pill — the most "instagram bio link" look.
+                [
+                    'key' => 'pill_solid',
+                    'name' => 'Solid Pill',
+                    'tags' => ['minimal', 'bold'],
+                    'shape' => 'pill',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#7c3aed',
+                        'border_style' => 'none', 'border_width' => '0', 'border_color' => 'transparent',
+                        'border_radius' => '999', 'shadow_preset' => 'soft',
+                        'text_color' => '#ffffff', 'padding' => '14', 'font_weight' => '600',
+                        'link_layout' => '',
+                    ],
+                    'preview' => ['bg' => '#7c3aed', 'text' => '#ffffff', 'radius' => 999],
+                ],
+                // Sharp square — brutalist newspaper button.
+                [
+                    'key' => 'square_sharp',
+                    'name' => 'Sharp Square',
+                    'tags' => ['brutalist', 'bold', 'editorial'],
+                    'shape' => 'square',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#000000',
+                        'border_style' => 'solid', 'border_width' => '2', 'border_color' => '#000000',
+                        'border_radius' => '0', 'shadow_preset' => 'none',
+                        'text_color' => '#ffffff', 'padding' => '16', 'font_weight' => '700',
+                        'link_layout' => '',
+                    ],
+                    'preview' => ['bg' => '#000000', 'text' => '#ffffff', 'radius' => 0, 'border' => '#000000'],
+                ],
+                // Hollow outline pill — quieter alternative to Solid Pill.
+                [
+                    'key' => 'outline_pill',
+                    'name' => 'Outline Pill',
+                    'tags' => ['minimal', 'pro'],
+                    'shape' => 'outline',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'solid', 'border_width' => '2', 'border_color' => '#ffffff',
+                        'border_radius' => '999', 'shadow_preset' => 'none',
+                        'text_color' => '#ffffff', 'padding' => '12', 'font_weight' => '500',
+                        'link_layout' => '',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 999, 'border' => '#ffffff'],
+                ],
+                // Hollow outline square — corporate quiet variant.
+                [
+                    'key' => 'outline_square',
+                    'name' => 'Outline Square',
+                    'tags' => ['minimal', 'corporate'],
+                    'shape' => 'outline',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#ffffff66',
+                        'border_radius' => '6', 'shadow_preset' => 'none',
+                        'text_color' => '#ffffff', 'padding' => '14', 'font_weight' => '500',
+                        'link_layout' => '',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 6, 'border' => '#ffffff66'],
+                ],
+                // Pure inline link — no card chrome, just underlined text.
+                // Renderer reads `link_layout=plain_text` and skips bio-btn
+                // styling entirely so the result reads as a sentence link.
+                [
+                    'key' => 'plain_text_link',
+                    'name' => 'Plain Text Link',
+                    'tags' => ['minimal', 'editorial'],
+                    'shape' => 'plain_text',
+                    'style' => [
+                        'display_mode' => 'content', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_width' => '0', 'border_color' => 'transparent',
+                        'border_radius' => '0', 'shadow_preset' => 'none',
+                        'text_color' => '#a78bfa', 'padding' => '4', 'font_weight' => '500',
+                        'link_layout' => 'plain_text',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#a78bfa', 'radius' => 0],
+                ],
+                // Full-bleed image button — uses the block's thumbnail as a
+                // cover background with a darkened overlay and the title
+                // centred on top. Falls back to a solid card when no
+                // thumbnail is set on the block.
+                [
+                    'key' => 'image_cover',
+                    'name' => 'Full Image',
+                    'tags' => ['bold', 'maximalist'],
+                    'shape' => 'image_full',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#1a1a2e',
+                        'border_style' => 'none', 'border_width' => '0', 'border_color' => 'transparent',
+                        'border_radius' => '16', 'shadow_preset' => 'medium',
+                        'text_color' => '#ffffff', 'padding' => '0', 'font_weight' => '700',
+                        'link_layout' => 'image_cover',
+                    ],
+                    'preview' => ['bg' => 'linear-gradient(135deg,#7c3aed,#ec4899)', 'text' => '#ffffff', 'radius' => 16],
                 ],
             ],
 
