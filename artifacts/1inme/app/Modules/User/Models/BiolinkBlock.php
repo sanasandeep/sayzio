@@ -236,6 +236,15 @@ class BiolinkBlock extends Model
         'margin_right' => '',
         'grid_span' => 12,
         '_template' => '',
+        // Per-block design variant key from BlockVariantCatalog::forType().
+        // Empty string = no curated variant chosen (treated as "Custom" in
+        // the gallery). Variant style is merged into _style at apply time
+        // so the renderer needs no special handling.
+        '_variant' => '',
+        // Catalog VERSION at the time this variant was last applied. Lets
+        // a future renderer migration tell "this block was styled by an
+        // older catalog" without re-saving every block on the planet.
+        '_variant_version' => 0,
     ];
 
     public const BLOCK_TEMPLATES = [

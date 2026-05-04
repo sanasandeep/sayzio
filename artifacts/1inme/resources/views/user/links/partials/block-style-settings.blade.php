@@ -1,6 +1,14 @@
 @php
     $st = $block->settings['_style'] ?? [];
     $templates = \App\Modules\User\Models\BiolinkBlock::BLOCK_TEMPLATES;
+    $variants = \App\Modules\User\Support\BlockVariantCatalog::forType($block->type);
+    $variantTags = \App\Modules\User\Support\BlockVariantCatalog::TAGS;
+    $variantVersion = \App\Modules\User\Support\BlockVariantCatalog::VERSION;
+    $currentVariant = $st['_variant'] ?? '';
+    // Pre-variant style snapshot, captured server-side the first time a
+    // creator picks a curated variant. When present we surface a "Custom
+    // (your tweaks)" entry at the top of the gallery so they can return.
+    $customSnapshot = $block->settings['_style_custom_snapshot'] ?? null;
     $fonts = ['', 'Space Grotesk', 'Inter', 'Poppins', 'Roboto', 'Playfair Display', 'Montserrat', 'DM Sans', 'Outfit', 'Clash Display'];
     $weights = ['' => 'Default', '300' => 'Light', '400' => 'Regular', '500' => 'Medium', '600' => 'Semi Bold', '700' => 'Bold', '800' => 'Extra Bold', '900' => 'Black'];
     $borderStyles = ['none' => 'None', 'solid' => 'Solid', 'dashed' => 'Dashed', 'dotted' => 'Dotted', 'double' => 'Double'];
@@ -23,7 +31,7 @@
 @endphp
 
 @if($showStyle)
-<div class="mt-4 pt-4" style="border-top: 1px solid var(--border-subtle);" x-data="{ showStyle: false, activeStyleTab: 'templates' }">
+<div class="mt-4 pt-4" style="border-top: 1px solid var(--border-subtle);" x-data="{ showStyle: false, activeStyleTab: 'designs' }">
     <button type="button" @click="showStyle = !showStyle"
             class="w-full flex items-center justify-between text-sm font-medium py-1" style="color: var(--text-muted);">
         <span><i class="fas fa-wand-magic-sparkles mr-2 text-pink-400"></i>Block Styling</span>
@@ -33,6 +41,13 @@
     <div x-show="showStyle" x-cloak x-transition class="mt-3">
 
         <div class="flex gap-1 mb-4 p-0.5 rounded-lg" style="background: var(--bg-glass-input);">
+            <button type="button" @click="activeStyleTab = 'designs'"
+                    :class="activeStyleTab === 'designs' ? 'text-white shadow-sm' : ''"
+                    :style="activeStyleTab === 'designs' ? 'background: linear-gradient(135deg, #8b5cf6, #7c3aed);' : 'color: var(--text-faint);'"
+                    class="flex-1 text-[10px] font-bold py-1.5 rounded-md transition-all">
+                <i class="fas fa-shapes mr-1"></i>Designs
+                <span class="ml-1 inline-block px-1 rounded-full text-[8px]" style="background: rgba(124,58,237,0.18); color: #a78bfa;">{{ count($variants) }}</span>
+            </button>
             <button type="button" @click="activeStyleTab = 'templates'"
                     :class="activeStyleTab === 'templates' ? 'text-white shadow-sm' : ''"
                     :style="activeStyleTab === 'templates' ? 'background: linear-gradient(135deg, #8b5cf6, #7c3aed);' : 'color: var(--text-faint);'"
@@ -58,6 +73,209 @@
                     :style="activeStyleTab === 'spacing' ? 'background: linear-gradient(135deg, #8b5cf6, #7c3aed);' : 'color: var(--text-faint);'"
                     class="flex-1 text-[10px] font-bold py-1.5 rounded-md transition-all">
                 <i class="fas fa-arrows-alt mr-1"></i>Layout
+            </button>
+        </div>
+
+        {{-- DESIGNS TAB --}}
+        @php
+            // Build the tag set actually present in this type's variants so
+            // we don't show empty filters. "All" is always first; "Favorites"
+            // (client-side, localStorage) is always second.
+            $variantTagsPresent = [];
+            foreach ($variants as $v) {
+                foreach (($v['tags'] ?? []) as $t) $variantTagsPresent[$t] = true;
+            }
+            $variantTagsPresent = array_intersect_key($variantTags, $variantTagsPresent);
+        @endphp
+        <div x-show="activeStyleTab === 'designs'" class="space-y-3"
+             x-data="blockDesignsGallery({
+                 blockId: {{ (int) ($block->id ?? 0) }},
+                 blockType: '{{ $block->type }}',
+                 currentVariant: @js($currentVariant),
+                 customSnapshot: @js($customSnapshot)
+             })"
+             x-init="$nextTick(() => loadLivePreviews())">
+            <div class="flex items-center justify-between gap-2">
+                <p class="text-[10px]" style="color: var(--text-dimmed);">
+                    <i class="fas fa-info-circle mr-1"></i>Click a design to apply it instantly
+                </p>
+                <button type="button" @click="surpriseMe()"
+                        class="text-[10px] font-bold py-1 px-2 rounded-md transition-all"
+                        style="background: linear-gradient(135deg, #ec4899, #8b5cf6); color: white;">
+                    <i class="fas fa-dice mr-1"></i>Surprise me
+                </button>
+            </div>
+
+            {{-- Filter chips --}}
+            <div class="flex flex-wrap gap-1">
+                <button type="button" @click="activeFilter = 'all'"
+                        :class="activeFilter === 'all' ? 'ring-1 ring-violet-400/60' : ''"
+                        class="text-[9px] font-bold px-2 py-1 rounded-full transition-all"
+                        :style="activeFilter === 'all' ? 'background: rgba(124,58,237,0.18); color: #a78bfa;' : 'background: var(--bg-glass-input); color: var(--text-faint);'">
+                    All
+                </button>
+                <button type="button" @click="activeFilter = 'favorites'"
+                        :class="activeFilter === 'favorites' ? 'ring-1 ring-pink-400/60' : ''"
+                        class="text-[9px] font-bold px-2 py-1 rounded-full transition-all"
+                        :style="activeFilter === 'favorites' ? 'background: rgba(236,72,153,0.18); color: #f472b6;' : 'background: var(--bg-glass-input); color: var(--text-faint);'">
+                    <i class="fas fa-star text-[8px] mr-0.5"></i>Favorites
+                </button>
+                @foreach($variantTagsPresent as $tagKey => $tagLabel)
+                <button type="button" @click="activeFilter = '{{ $tagKey }}'"
+                        :class="activeFilter === '{{ $tagKey }}' ? 'ring-1 ring-violet-400/60' : ''"
+                        class="text-[9px] font-bold px-2 py-1 rounded-full transition-all"
+                        :style="activeFilter === '{{ $tagKey }}' ? 'background: rgba(124,58,237,0.18); color: #a78bfa;' : 'background: var(--bg-glass-input); color: var(--text-faint);'">
+                    {{ $tagLabel }}
+                </button>
+                @endforeach
+            </div>
+
+            {{-- Variant + version are no longer carried via hidden form
+                 inputs. The dedicated apply-variant endpoint persists
+                 them in `_style` directly with full-replace semantics so
+                 the standard form save can never re-merge stale variant
+                 keys back into the block. --}}
+
+            {{-- Custom (current style) chip — visible when block has _style
+                 overrides but no variant. Clicking is a no-op; it just
+                 explains why no thumbnail is highlighted. --}}
+            <template x-if="hasCustomStyle && currentVariant === ''">
+                <div class="p-2 rounded-lg flex items-center gap-2" style="background: rgba(236,72,153,0.08); border: 1px dashed rgba(236,72,153,0.3);">
+                    <div class="w-7 h-7 rounded-md flex items-center justify-center" style="background: rgba(236,72,153,0.18); color: #f472b6;">
+                        <i class="fas fa-paint-brush text-[10px]"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="text-[11px] font-bold" style="color: var(--text-primary);">Custom</div>
+                        <div class="text-[9px]" style="color: var(--text-dimmed);">Your tweaked styling — pick a design below to swap.</div>
+                    </div>
+                </div>
+            </template>
+
+            {{-- "Custom (your tweaks)" restore card — only visible when a
+                 snapshot exists from the first time this block was skinned
+                 with a curated variant. Clicking restores those handcrafted
+                 styles in place of the current variant, so creators never
+                 lose work by exploring designs. --}}
+            @if(!empty($customSnapshot))
+            <button type="button" @click="restoreCustom()"
+                    class="w-full p-2 rounded-xl text-left transition-all flex items-center gap-2 hover:scale-[1.01]"
+                    style="background: rgba(236,72,153,0.08); border: 1px dashed rgba(236,72,153,0.4);">
+                <div class="w-9 h-9 rounded-md flex items-center justify-center" style="background: rgba(236,72,153,0.18); color: #f472b6;">
+                    <i class="fas fa-paint-brush text-[12px]"></i>
+                </div>
+                <div class="flex-1">
+                    <div class="text-[11px] font-bold" style="color: var(--text-primary);">Custom (your tweaks)</div>
+                    <div class="text-[9px]" style="color: var(--text-dimmed);">Restore your handcrafted styling.</div>
+                </div>
+                <i class="fas fa-undo text-[10px]" style="color: #f472b6;"></i>
+            </button>
+            @endif
+
+            {{-- Variant grid --}}
+            <div class="grid grid-cols-2 gap-2">
+                @foreach($variants as $v)
+                @php
+                    $pv = $v['preview'] ?? [];
+                    $thumbBg = $pv['bg'] ?? '#1a1a2e';
+                    $thumbText = $pv['text'] ?? '#ffffff';
+                    $thumbRadius = (int) ($pv['radius'] ?? 12);
+                    $thumbBorder = $pv['border'] ?? '';
+                    $thumbShadow = $pv['shadow'] ?? '';
+                    $isDashed = !empty($pv['dashed']);
+                    $isSerif = !empty($pv['serif']);
+                @endphp
+                <button type="button"
+                        data-variant-key="{{ $v['key'] }}"
+                        x-show="matchesFilter(@js($v['tags'] ?? []), '{{ $v['key'] }}')"
+                        @click="applyVariant('{{ $v['key'] }}', $el)"
+                        class="group p-2 rounded-xl text-left transition-all hover:scale-[1.03] relative"
+                        :style="currentVariant === '{{ $v['key'] }}' ? 'background: rgba(124,58,237,0.12); border: 2px solid rgba(124,58,237,0.6); box-shadow: 0 0 12px rgba(124,58,237,0.18);' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass);'">
+                    {{-- Selected check --}}
+                    <div class="absolute top-1.5 left-1.5 w-5 h-5 rounded-full flex items-center justify-center transition-all"
+                         :style="currentVariant === '{{ $v['key'] }}' ? 'background: #8b5cf6; opacity: 1;' : 'opacity: 0;'">
+                        <i class="fas fa-check text-white text-[8px]"></i>
+                    </div>
+                    {{-- Favorite star --}}
+                    <button type="button" @click.stop="toggleFavorite('{{ $v['key'] }}')"
+                            class="absolute top-1.5 right-1.5 w-5 h-5 rounded-full flex items-center justify-center transition-all opacity-60 hover:opacity-100"
+                            :style="isFavorite('{{ $v['key'] }}') ? 'background: rgba(236,72,153,0.2); color: #f472b6; opacity: 1;' : 'background: rgba(255,255,255,0.06); color: var(--text-faint);'">
+                        <i :class="isFavorite('{{ $v['key'] }}') ? 'fas' : 'far'" class="fa-star text-[8px]"></i>
+                    </button>
+
+                    {{-- Thumbnail rendered from preview hints with a small
+                         block-shape sketch so creators can see how the
+                         variant frames their actual block type, not just an
+                         abstract color swatch. We pick the sketch by the
+                         block's category (button/image/text/badge) so the
+                         shape matches what they'll see in the live preview. --}}
+                    @php
+                        $shapeKind = match (true) {
+                            in_array($block->type, ['avatar']) => 'avatar',
+                            in_array($block->type, ['image', 'photo', 'banner', 'header_image']) => 'image',
+                            in_array($block->type, ['link', 'link_big', 'button', 'cta', 'cta_button', 'social', 'url']) => 'button',
+                            in_array($block->type, ['heading', 'title', 'heading_logo']) => 'heading',
+                            in_array($block->type, ['divider', 'spacer']) => 'divider',
+                            default => 'text',
+                        };
+                    @endphp
+                    {{-- Thumbnail container: server-rendered live preview
+                         is fetched on tab open and injected into
+                         data-variant-preview="{{ $v['key'] }}". Until then
+                         we render the static shape-sketch fallback so the
+                         gallery is never blank. --}}
+                    <div data-variant-preview="{{ $v['key'] }}"
+                         class="h-14 rounded-lg flex items-center justify-center mt-3 mb-2 overflow-hidden p-1.5"
+                         style="background: {{ $thumbBg }};
+                                border-radius: {{ min($thumbRadius, 24) }}px;
+                                {{ $thumbBorder ? 'border:' . ($isDashed ? '2px dashed ' : '1px solid ') . $thumbBorder . ';' : '' }}
+                                {{ $thumbShadow ? 'box-shadow:' . $thumbShadow . ';' : '' }}">
+                        @if($shapeKind === 'button')
+                            <div class="px-2 py-1 rounded text-[8px] font-bold"
+                                 style="background: {{ $thumbText }}; color: {{ $thumbBg === 'transparent' ? '#000' : $thumbBg }}; border-radius: {{ min($thumbRadius, 12) }}px;">
+                                Click me
+                            </div>
+                        @elseif($shapeKind === 'avatar')
+                            <div class="rounded-full" style="width: 28px; height: 28px; background: {{ $thumbText }}; opacity: 0.85;"></div>
+                        @elseif($shapeKind === 'image')
+                            <div class="flex items-center justify-center w-full h-full rounded" style="background: {{ $thumbText }}30; color: {{ $thumbText }};">
+                                <i class="fas fa-image text-[14px]"></i>
+                            </div>
+                        @elseif($shapeKind === 'heading')
+                            <div class="text-[12px] font-bold" style="color: {{ $thumbText }}; {{ $isSerif ? "font-family: 'Playfair Display', serif;" : '' }}">Heading</div>
+                        @elseif($shapeKind === 'divider')
+                            <div style="width: 80%; height: 2px; background: {{ $thumbText }}; opacity: 0.6;"></div>
+                        @else
+                            <div class="w-full" style="color: {{ $thumbText }}; {{ $isSerif ? "font-family: 'Playfair Display', serif;" : '' }}">
+                                <div class="text-[8px] font-bold leading-tight">Aa Bb Cc</div>
+                                <div style="height: 2px; background: {{ $thumbText }}; opacity: 0.4; margin-top: 3px; width: 80%;"></div>
+                                <div style="height: 2px; background: {{ $thumbText }}; opacity: 0.4; margin-top: 2px; width: 60%;"></div>
+                            </div>
+                        @endif
+                    </div>
+                    <div class="text-[10px] font-semibold truncate" style="color: var(--text-primary);">{{ $v['name'] }}</div>
+                    <div class="flex flex-wrap gap-0.5 mt-0.5">
+                        @foreach(($v['tags'] ?? []) as $tagKey)
+                        @if(isset($variantTags[$tagKey]))
+                        <span class="text-[8px] px-1 rounded" style="background: rgba(124,58,237,0.1); color: #a78bfa;">{{ $variantTags[$tagKey] }}</span>
+                        @endif
+                        @endforeach
+                    </div>
+                </button>
+                @endforeach
+            </div>
+
+            {{-- Empty state when filter shows nothing --}}
+            <div x-show="visibleCount() === 0" class="text-center py-4 text-[10px]" style="color: var(--text-dimmed);">
+                <i class="fas fa-search-minus mr-1"></i>No designs match this filter yet.
+            </div>
+
+            {{-- Apply to all --}}
+            <button type="button" @click="applyToAll()"
+                    x-show="currentVariant !== ''"
+                    class="w-full text-[10px] font-bold py-2 rounded-lg transition-all flex items-center justify-center gap-1"
+                    style="background: var(--bg-glass-input); border: 1px dashed var(--border-glass); color: var(--text-muted);">
+                <i class="fas fa-clone text-[9px]"></i>
+                Apply this design to all <span x-text="blockTypeLabel"></span> blocks
             </button>
         </div>
 
@@ -316,6 +534,206 @@
 @endif
 
 <script>
+// Per-type variant catalog snapshot for the currently-edited block. Stored
+// on window so multiple open editor panes share a single deserialized copy
+// (cheaper than re-decoding for every Alpine init).
+window.__blockVariants = window.__blockVariants || {};
+window.__blockVariants['{{ $block->type }}'] = @json($variants);
+
+window.blockDesignsGallery = function(opts) {
+    return {
+        blockId: opts.blockId,
+        blockType: opts.blockType,
+        currentVariant: opts.currentVariant || '',
+        customSnapshot: opts.customSnapshot || null,
+        activeFilter: 'all',
+        favorites: [],
+        // Block has _style overrides but no _variant key — show "Custom"
+        // chip so they know their tweaks aren't being silently lost.
+        hasCustomStyle: @js(!empty($st) && empty($currentVariant)),
+        // Friendly label of the block type for "Apply to all <type>" copy.
+        blockTypeLabel: @js(\App\Modules\User\Models\BiolinkBlock::TYPES[$block->type]['label'] ?? $block->type),
+
+        init() {
+            try {
+                var raw = localStorage.getItem('biolink:variantFavorites:' + this.blockType);
+                this.favorites = raw ? JSON.parse(raw) : [];
+            } catch (e) { this.favorites = []; }
+        },
+
+        catalog() {
+            return window.__blockVariants[this.blockType] || [];
+        },
+
+        // Lazy-load server-rendered live previews for every thumbnail in
+        // the gallery. The server returns inline-style strings derived
+        // from the same `BiolinkBlock::buildInlineStyle()` the public
+        // renderer uses, so what creators see in the gallery is exactly
+        // what their block will render with. We only fetch once per
+        // editor open — the result is cached on `this`.
+        loadLivePreviews() {
+            if (this._previewsLoaded || this._previewsLoading) return;
+            this._previewsLoading = true;
+            var url = '{{ route('user.links.blocks.variantPreviews', [$link, $block]) }}';
+            var self = this;
+            var blockLabel = '{{ $block->settings['label'] ?? $block->settings['text'] ?? '' }}';
+            fetch(url, { headers: { 'Accept': 'application/json' } })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (!data || !Array.isArray(data.previews)) return;
+                    self._previewsLoaded = true;
+                    data.previews.forEach(function(p) {
+                        var slot = self.$el.querySelector('[data-variant-preview="' + p.key + '"]');
+                        if (!slot) return;
+                        // Replace the shape-sketch placeholder with a
+                        // live-styled mini block. We use inline style
+                        // straight from the server so any future change
+                        // to buildInlineStyle() flows through here.
+                        var content = blockLabel ? blockLabel.substring(0, 16) : p.name;
+                        slot.setAttribute('style', 'min-height:56px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin:12px 0 8px;' + p.inline_style);
+                        slot.innerHTML = '<span style="font-size:11px;font-weight:600;color:' + (p.text_color || 'inherit') + ';text-align:center;line-height:1.2;padding:0 4px;">' + (content.replace(/[<>&]/g, '') || 'Preview') + '</span>';
+                    });
+                })
+                .catch(function() {})
+                .finally(function() { self._previewsLoading = false; });
+        },
+
+        matchesFilter(tags, key) {
+            if (this.activeFilter === 'all') return true;
+            if (this.activeFilter === 'favorites') return this.favorites.indexOf(key) !== -1;
+            return (tags || []).indexOf(this.activeFilter) !== -1;
+        },
+
+        visibleCount() {
+            var self = this;
+            return this.catalog().filter(function(v) {
+                return self.matchesFilter(v.tags || [], v.key);
+            }).length;
+        },
+
+        isFavorite(key) { return this.favorites.indexOf(key) !== -1; },
+
+        toggleFavorite(key) {
+            var i = this.favorites.indexOf(key);
+            if (i === -1) this.favorites.push(key); else this.favorites.splice(i, 1);
+            try { localStorage.setItem('biolink:variantFavorites:' + this.blockType, JSON.stringify(this.favorites)); } catch (e) {}
+        },
+
+        surpriseMe() {
+            // Pick a variant tagged with the page's overall vibe when we
+            // can — fallback to a uniform random pick. We also avoid
+            // re-picking the variant that's already applied.
+            var pool = this.catalog().filter(function(v) { return v.key !== this.currentVariant; }, this);
+            if (pool.length === 0) pool = this.catalog();
+            if (pool.length === 0) return;
+            var pick = pool[Math.floor(Math.random() * pool.length)];
+            // Find the matching button so we get the click animation.
+            var btn = this.$el.querySelector('[data-variant-key="' + pick.key + '"]') || this.$el;
+            this.applyVariant(pick.key, btn);
+        },
+
+        applyVariant(key, btn) {
+            var v = this.catalog().find(function(x) { return x.key === key; });
+            if (!v) return;
+            // Optimistic UI: swap selection immediately so the gallery
+            // feels instant even on slow networks.
+            this.currentVariant = key;
+            this.hasCustomStyle = false;
+            if (btn && btn.style) {
+                btn.style.transform = 'scale(0.95)';
+                setTimeout(function() { btn.style.transform = ''; }, 150);
+            }
+
+            // Hit the dedicated apply-variant endpoint, which performs a
+            // FULL `_style` replace server-side (STYLE_DEFAULTS + variant
+            // overrides). This guarantees that switching from variant A
+            // to variant B never leaves residual A keys behind, which
+            // was the merge-bug in the previous form-pipeline approach.
+            var url = '{{ route('user.links.blocks.applyVariant', [$link, $block]) }}';
+            var token = (document.querySelector('meta[name="csrf-token"]') || {}).content;
+            var fd = new FormData();
+            fd.append('variant', key);
+            if (token) fd.append('_token', token);
+            var self = this;
+            fetch(url, { method: 'POST', headers: { 'Accept': 'application/json' }, body: fd })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data && data.success) {
+                        if (typeof showToast === 'function') showToast('Design applied', 'success');
+                        // Refresh the form once so any granular controls
+                        // (Look/Layout/Text tabs) reflect the new style
+                        // payload that the server just wrote.
+                        if (typeof refreshBlockEditor === 'function') refreshBlockEditor();
+                        if (typeof refreshPreview === 'function') refreshPreview();
+                        // Capture the snapshot the server may have just
+                        // taken so the "Custom" restore card appears
+                        // without a full editor reload.
+                        if (data.block && data.block.settings && data.block.settings._style_custom_snapshot) {
+                            self.customSnapshot = data.block.settings._style_custom_snapshot;
+                        }
+                    } else {
+                        if (typeof showToast === 'function') showToast((data && data.error) || 'Failed to apply design', 'error');
+                    }
+                })
+                .catch(function() {
+                    if (typeof showToast === 'function') showToast('Failed to apply design', 'error');
+                });
+        },
+
+        restoreCustom() {
+            // Hit the dedicated restore-custom-style endpoint, which
+            // does a full `_style` REPLACE from the server-side snapshot
+            // (STYLE_DEFAULTS + snapshot, with the variant key cleared).
+            // The snapshot itself stays on the block so the user can
+            // explore variants again and come back later.
+            if (!this.customSnapshot) return;
+            this.currentVariant = '';
+            this.hasCustomStyle = true;
+            var url = '{{ route('user.links.blocks.restoreCustomStyle', [$link, $block]) }}';
+            var token = (document.querySelector('meta[name="csrf-token"]') || {}).content;
+            var fd = new FormData();
+            if (token) fd.append('_token', token);
+            fetch(url, { method: 'POST', headers: { 'Accept': 'application/json' }, body: fd })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data && data.success) {
+                        if (typeof showToast === 'function') showToast('Custom styling restored', 'success');
+                        if (typeof refreshBlockEditor === 'function') refreshBlockEditor();
+                        if (typeof refreshPreview === 'function') refreshPreview();
+                    } else {
+                        if (typeof showToast === 'function') showToast((data && data.error) || 'Failed to restore', 'error');
+                    }
+                })
+                .catch(function() {
+                    if (typeof showToast === 'function') showToast('Failed to restore', 'error');
+                });
+        },
+
+        applyToAll() {
+            if (!this.currentVariant) return;
+            if (typeof confirm === 'function' && !confirm('Apply this design to every ' + this.blockTypeLabel + ' block on this page?')) return;
+            var url = '{{ route('user.links.blocks.applyVariantToAll', [$link, $block]) }}';
+            var token = (document.querySelector('meta[name="csrf-token"]') || {}).content;
+            var fd = new FormData();
+            fd.append('variant', this.currentVariant);
+            if (token) fd.append('_token', token);
+            fetch(url, { method: 'POST', headers: { 'Accept': 'application/json' }, body: fd })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data && data.success) {
+                        if (typeof showToast === 'function') showToast('Applied to ' + data.updated + ' block(s)', 'success');
+                        if (typeof refreshPreview === 'function') refreshPreview();
+                    } else {
+                        if (typeof showToast === 'function') showToast((data && data.error) || 'Failed', 'error');
+                    }
+                })
+                .catch(function() {
+                    if (typeof showToast === 'function') showToast('Failed to apply to all', 'error');
+                });
+        },
+    };
+};
+
 var blockTemplates = @json($templates);
 function applyBlockTemplate(key, btn) {
     var tpl = blockTemplates[key];

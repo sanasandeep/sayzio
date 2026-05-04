@@ -20,6 +20,43 @@ import { BrandWordmark } from "@/components/Brand";
 import { EmbedModal } from "@/components/EmbedModal";
 import { useColors } from "@/hooks/useColors";
 import { getBaseUrl } from "@/lib/api";
+import { variantOverlay } from "@/lib/blockVariants";
+
+// Build the card style override that should overlay any default
+// `blockCardStyle(block, colors)` style.
+// Centralizing this means every block container — including those rendered
+// by sub-components like PollBlock/RsvpBlock — picks up the variant
+// without having to thread a prop through. Spread AFTER the defaults.
+function blockCardStyle(
+  block: { type: string; settings: Record<string, unknown> | null },
+  colors: ReturnType<typeof useColors>,
+): {
+  backgroundColor: string;
+  borderColor: string;
+  borderWidth?: number;
+  borderRadius?: number;
+  borderStyle?: "solid" | "dashed" | "dotted";
+} {
+  const o = variantOverlay(block.type, block.settings ?? null);
+  return {
+    backgroundColor: o?.backgroundColor ?? colors.card,
+    borderColor: o?.borderColor ?? colors.border,
+    ...(o?.borderWidth != null ? { borderWidth: o.borderWidth } : {}),
+    ...(o?.borderRadius != null ? { borderRadius: o.borderRadius } : {}),
+    ...(o?.borderStyle != null ? { borderStyle: o.borderStyle } : {}),
+  };
+}
+
+// Returns the variant's chosen text color, or the theme default. Used for
+// primary text in heading/text/badge/button blocks so a "Neon Outline"
+// pick actually shows neon-violet copy on mobile.
+function blockTextColor(
+  block: { type: string; settings: Record<string, unknown> | null },
+  fallback: string,
+): string {
+  const o = variantOverlay(block.type, block.settings ?? null);
+  return o?.textColor ?? fallback;
+}
 import {
   type BiolinkBlock,
   type BiolinkPayload,
@@ -253,7 +290,7 @@ function PollBlock({
   // see the live options flash for a frame and double-submit.
   if (!remembered.ready) {
     return (
-      <View style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <View style={[styles.cardContainer, blockCardStyle(block, colors)]}>
         <Text style={[styles.btnLabel, { color: colors.foreground, textAlign: "left" }]}>📊 {question}</Text>
         <ActivityIndicator color={colors.primary} style={{ alignSelf: "flex-start", marginTop: 4 }} />
       </View>
@@ -261,7 +298,7 @@ function PollBlock({
   }
 
   return (
-    <View style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <View style={[styles.cardContainer, blockCardStyle(block, colors)]}>
       <Text style={[styles.btnLabel, { color: colors.foreground, textAlign: "left" }]}>📊 {question}</Text>
       {options.length > 0 ? (
         options.map((opt, i) => {
@@ -411,7 +448,7 @@ function RsvpBlock({
   // flash for a frame and accidentally double-submit.
   if (!remembered.ready) {
     return (
-      <View style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <View style={[styles.cardContainer, blockCardStyle(block, colors)]}>
         <Text style={[styles.btnLabel, { color: colors.foreground, textAlign: "left" }]}>📅 {title}</Text>
         <ActivityIndicator color={colors.primary} style={{ alignSelf: "flex-start", marginTop: 4 }} />
       </View>
@@ -430,7 +467,7 @@ function RsvpBlock({
   };
 
   return (
-    <View style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <View style={[styles.cardContainer, blockCardStyle(block, colors)]}>
       <Text style={[styles.btnLabel, { color: colors.foreground, textAlign: "left" }]}>📅 {title}</Text>
       {date ? (
         <Text style={[styles.body, { color: colors.mutedForeground, textAlign: "left", fontSize: 12 }]}>{date}</Text>
@@ -693,13 +730,28 @@ function BlockView({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock
   const s = block.settings ?? {};
   const t = block.type;
 
+  // Pull the design-variant overlay (bg/border/radius/text color) so a
+  // creator's "Designs" pick from the editor is reflected on the public
+  // mobile page. Returns null when the block is using its theme defaults
+  // — callers should spread it after their own card style so it wins.
+  const overlay = variantOverlay(t, s as Record<string, unknown>);
+  const cardOverlay = overlay
+    ? {
+        ...(overlay.backgroundColor != null ? { backgroundColor: overlay.backgroundColor } : {}),
+        ...(overlay.borderColor != null ? { borderColor: overlay.borderColor } : {}),
+        ...(overlay.borderWidth != null ? { borderWidth: overlay.borderWidth } : {}),
+        ...(overlay.borderRadius != null ? { borderRadius: overlay.borderRadius } : {}),
+        ...(overlay.borderStyle != null ? { borderStyle: overlay.borderStyle } : {}),
+      }
+    : null;
+
   // Card containers nest other blocks via parent_id. Render their direct
   // children inline so the visual grouping survives on mobile.
   if (t === "card") {
     const children = allBlocks.filter((b) => b.parent_id === block.id);
     const title = pickStr(s, "title");
     return (
-      <View style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <View style={[styles.cardContainer, blockCardStyle(block, colors)]}>
         {title ? <Text style={[styles.heading, { color: colors.foreground, fontSize: 16, marginTop: 0 }]}>{title}</Text> : null}
         {children.map((c) => (
           <BlockView key={c.id} block={c} alias={alias} allBlocks={allBlocks} openEmbed={openEmbed} />
@@ -744,7 +796,7 @@ function BlockView({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock
           onPress={() => handleTap(url)}
           style={[styles.btn, { backgroundColor: accent, borderColor: accent, alignItems: "flex-start" }]}
         >
-          <Text style={[styles.btnLabel, { color: "#fff", textAlign: "left" }]} numberOfLines={2}>
+          <Text style={[styles.btnLabel, { color: blockTextColor(block, "#fff"), textAlign: "left" }]} numberOfLines={2}>
             ★ {label}
           </Text>
           {desc ? (
@@ -776,7 +828,7 @@ function BlockView({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock
     const text = pickStr(s, "text", "title", "heading");
     if (!text) return null;
     return (
-      <Text style={[styles.heading, { color: colors.foreground }]}>{text}</Text>
+      <Text style={[styles.heading, { color: blockTextColor(block, colors.foreground) }]}>{text}</Text>
     );
   }
 
@@ -793,7 +845,7 @@ function BlockView({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock
       (pickStr(s, "html") ?? "").replace(/<[^>]+>/g, "").trim();
     if (!text) return null;
     return (
-      <Text style={[styles.body, { color: colors.foreground }]}>{text}</Text>
+      <Text style={[styles.body, { color: blockTextColor(block, colors.foreground) }]}>{text}</Text>
     );
   }
 
@@ -837,8 +889,8 @@ function BlockView({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock
     const text = pickStr(s, "text", "title", "message");
     if (!text) return null;
     return (
-      <View style={[styles.badge, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <Text style={[styles.badgeText, { color: colors.foreground }]}>{text}</Text>
+      <View style={[styles.badge, blockCardStyle(block, colors)]}>
+        <Text style={[styles.badgeText, { color: blockTextColor(block, colors.foreground) }]}>{text}</Text>
       </View>
     );
   }
@@ -873,7 +925,7 @@ function BlockView({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock
           <Pressable
             key={i}
             onPress={() => handleTap(l.url)}
-            style={[styles.socialIcon, { backgroundColor: colors.card, borderColor: colors.border }]}
+            style={[styles.socialIcon, blockCardStyle(block, colors)]}
           >
             <Feather name="external-link" size={18} color={colors.foreground} />
           </Pressable>
@@ -891,7 +943,7 @@ function BlockView({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock
     const label = pickStr(s, "title", "text") ?? "Watch video";
     if (!url || !isSafeUrl(url)) return null;
     return (
-      <Pressable onPress={() => handleTap(url)} style={[styles.mediaCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <Pressable onPress={() => handleTap(url)} style={[styles.mediaCard, blockCardStyle(block, colors)]}>
         {thumb ? <Image source={{ uri: thumb }} style={styles.mediaThumb} /> : null}
         <View style={styles.mediaBody}>
           <Feather name="play-circle" size={20} color={colors.primary} />
@@ -914,7 +966,7 @@ function BlockView({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock
           trackBiolinkBlockTap(alias, block.id, url);
           openEmbed({ url, title: label });
         }}
-        style={[styles.mediaCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+        style={[styles.mediaCard, blockCardStyle(block, colors)]}
       >
         <View style={styles.mediaBody}>
           <Feather name="headphones" size={20} color={colors.primary} />
@@ -932,7 +984,7 @@ function BlockView({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock
     const thumb = pickStr(s, "thumbnail", "image");
     if (!url || !isSafeUrl(url)) return null;
     return (
-      <Pressable onPress={() => handleTap(url)} style={[styles.mediaCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <Pressable onPress={() => handleTap(url)} style={[styles.mediaCard, blockCardStyle(block, colors)]}>
         {thumb ? <Image source={{ uri: thumb }} style={[styles.mediaThumb, { aspectRatio: 1 }]} /> : null}
         <View style={styles.mediaBody}>
           <Feather name="instagram" size={20} color={colors.primary} />
@@ -1001,7 +1053,7 @@ function BlockView({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock
     const name = pickStr(s, "name", "title") ?? "Download file";
     if (!url || !isSafeUrl(url)) return null;
     return (
-      <Pressable onPress={() => handleTap(url)} style={[styles.btn, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <Pressable onPress={() => handleTap(url)} style={[styles.btn, blockCardStyle(block, colors)]}>
         <Text style={[styles.btnLabel, { color: colors.foreground }]}>⬇ {name}</Text>
       </Pressable>
     );
@@ -1023,7 +1075,7 @@ function BlockView({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock
     const ordered = t === "list_numbered";
     if (items.length === 0) return null;
     return (
-      <View style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <View style={[styles.cardContainer, blockCardStyle(block, colors)]}>
         {items.slice(0, 30).map((it, i) => {
           const itemText = typeof it === "string" ? it : (typeof it === "object" && it ? (((it as Record<string, unknown>).text as string) ?? ((it as Record<string, unknown>).label as string) ?? "") : "");
           if (!itemText) return null;
@@ -1063,7 +1115,7 @@ function BlockView({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock
     const items = Array.isArray(s.items) ? (s.items as Record<string, unknown>[]) : [];
     if (items.length === 0) return null;
     return (
-      <View style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <View style={[styles.cardContainer, blockCardStyle(block, colors)]}>
         {items.slice(0, 12).map((it, i) => {
           const q = pickStr(it, "question", "q", "title");
           const a = pickStr(it, "answer", "a", "text");
@@ -1105,7 +1157,7 @@ function BlockView({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock
     const url = pickStr(s, "url", "buy_url", "link");
     const thumb = pickStr(s, "image", "thumbnail");
     const inner = (
-      <View style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <View style={[styles.cardContainer, blockCardStyle(block, colors)]}>
         {thumb ? <Image source={{ uri: thumb }} style={[styles.image, { aspectRatio: 16 / 9, marginBottom: 8 }]} /> : null}
         <Text style={[styles.btnLabel, { color: colors.foreground, textAlign: "left" }]}>{title}</Text>
         {desc ? <Text style={[styles.body, { color: colors.mutedForeground, textAlign: "left", fontSize: 13 }]}>{desc}</Text> : null}
@@ -1123,7 +1175,7 @@ function BlockView({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock
     return (
       <Pressable
         onPress={() => handleTap(publicBiolinkUrl(alias))}
-        style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border }]}
+        style={[styles.cardContainer, blockCardStyle(block, colors)]}
       >
         <Text style={[styles.btnLabel, { color: colors.foreground, textAlign: "left" }]}>{title}</Text>
         <Text style={[styles.body, { color: colors.mutedForeground, textAlign: "left", fontSize: 12, marginTop: 4 }]}>
@@ -1145,7 +1197,7 @@ function BlockView({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock
           trackBiolinkBlockTap(alias, block.id, url);
           openEmbed({ url, title: label });
         }}
-        style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border }]}
+        style={[styles.cardContainer, blockCardStyle(block, colors)]}
       >
         <Text style={[styles.btnLabel, { color: colors.foreground, textAlign: "left" }]}>📝 {label}</Text>
         <Text style={[styles.body, { color: colors.mutedForeground, textAlign: "left", fontSize: 12, marginTop: 4 }]}>
@@ -1182,7 +1234,7 @@ function BlockView({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock
           trackBiolinkBlockTap(alias, block.id, url);
           openEmbed({ url, title });
         }}
-        style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border }]}
+        style={[styles.cardContainer, blockCardStyle(block, colors)]}
       >
         <Text style={[styles.btnLabel, { color: colors.foreground, textAlign: "left" }]}>{title}</Text>
         <Text style={[styles.body, { color: colors.mutedForeground, textAlign: "left", fontSize: 12, marginTop: 4 }]}>
@@ -1219,7 +1271,7 @@ function BlockView({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock
           trackBiolinkBlockTap(alias, block.id, url);
           openEmbed({ url, title: label });
         }}
-        style={[styles.btn, { backgroundColor: colors.card, borderColor: colors.border }]}
+        style={[styles.btn, blockCardStyle(block, colors)]}
       >
         <Text style={[styles.btnLabel, { color: colors.foreground }]}>📅 {label}</Text>
       </Pressable>
@@ -1251,7 +1303,7 @@ function BlockView({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock
       // Without a safe URL we can't render anything trustworthy — show a
       // disabled-style notice instead of a tappable button.
       return (
-        <View style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <View style={[styles.cardContainer, blockCardStyle(block, colors)]}>
           <Text style={[styles.btnLabel, { color: colors.foreground, textAlign: "left" }]}>{label}</Text>
           <Text style={[styles.body, { color: colors.mutedForeground, textAlign: "left", fontSize: 12 }]}>
             This embed isn&apos;t available on mobile.
@@ -1265,7 +1317,7 @@ function BlockView({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock
           trackBiolinkBlockTap(alias, block.id, url);
           openEmbed({ url, title: label, sandboxed: true });
         }}
-        style={[styles.cardContainer, { backgroundColor: colors.card, borderColor: colors.border }]}
+        style={[styles.cardContainer, blockCardStyle(block, colors)]}
       >
         <Text style={[styles.btnLabel, { color: colors.foreground, textAlign: "left" }]}>🔗 {label}</Text>
         <Text style={[styles.body, { color: colors.mutedForeground, textAlign: "left", fontSize: 12, marginTop: 4 }]}>
@@ -1279,8 +1331,8 @@ function BlockView({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock
     const url = pickStr(s, "url");
     if (!url) return null;
     return (
-      <View style={[styles.badge, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <Text style={[styles.badgeText, { color: colors.foreground }]}>QR: {url}</Text>
+      <View style={[styles.badge, blockCardStyle(block, colors)]}>
+        <Text style={[styles.badgeText, { color: blockTextColor(block, colors.foreground) }]}>QR: {url}</Text>
       </View>
     );
   }
@@ -1291,7 +1343,7 @@ function BlockView({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock
     return (
       <Pressable
         onPress={() => handleTap(fallbackUrl)}
-        style={[styles.btn, { backgroundColor: colors.card, borderColor: colors.border }]}
+        style={[styles.btn, blockCardStyle(block, colors)]}
       >
         <Text style={[styles.btnLabel, { color: colors.foreground }]}>
           {pickStr(s, "title", "label", "text") ?? fallbackUrl}
@@ -1307,7 +1359,7 @@ function BlockView({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock
   return (
     <Pressable
       onPress={() => handleTap(webUrl)}
-      style={[styles.btn, { backgroundColor: colors.card, borderColor: colors.border }]}
+      style={[styles.btn, blockCardStyle(block, colors)]}
     >
       <Text style={[styles.btnLabel, { color: colors.foreground }]}>
         {pickStr(s, "title", "text", "label") ?? "Open on web"}

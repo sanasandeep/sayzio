@@ -5,6 +5,7 @@ namespace App\Modules\User\Controllers;
 use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\UserFile;
+use App\Modules\User\Support\BlockVariantCatalog;
 use App\Modules\User\Support\FontCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -276,7 +277,19 @@ class BiolinkBlockController extends Controller
         $settings['_visibility'] = $this->sanitizeVisibility($validated['visibility'] ?? ($block->settings['_visibility'] ?? []));
         $existingStyle = $block->settings['_style'] ?? [];
         $incomingStyle = $validated['style'] ?? [];
-        $settings['_style'] = $this->sanitizeBlockStyle(array_merge($existingStyle, $incomingStyle));
+        $sanitized = $this->sanitizeBlockStyle(array_merge($existingStyle, $incomingStyle));
+
+        // Variant application now flows through the dedicated
+        // applyVariant endpoint (full _style replace, snapshot-aware).
+        // The standard form-based update() merges incoming style into the
+        // existing _style — that's the right behaviour for granular
+        // tweaks but would leak prior-variant residue if used to swap
+        // skins. We only need to preserve any existing custom snapshot
+        // here so visibility/dates/etc. saves don't drop it.
+        if (array_key_exists('_style_custom_snapshot', $block->settings ?? [])) {
+            $settings['_style_custom_snapshot'] = $block->settings['_style_custom_snapshot'];
+        }
+        $settings['_style'] = $sanitized;
 
         $block->update([
             'settings' => $settings,
@@ -290,6 +303,168 @@ class BiolinkBlockController extends Controller
         }
 
         return redirect()->route('user.links.blocks.editor', $link)->with('success', 'Block updated.');
+    }
+
+    /**
+     * Apply a curated design variant to every block of the same type on a
+     * page. Used by the "Apply this design to all blocks of this type"
+     * shortcut in the Designs tab. Children of card containers are included.
+     */
+    public function applyVariantToAll(Request $request, Link $link, BiolinkBlock $block)
+    {
+        abort_if($link->user_id !== workspace_owner_id() || $block->link_id !== $link->id, 403);
+
+        $validated = $request->validate([
+            'variant' => 'required|string|max:60',
+        ]);
+
+        $variant = BlockVariantCatalog::find($block->type, $validated['variant']);
+        if (!$variant) {
+            return response()->json(['success' => false, 'error' => 'Unknown variant'], 422);
+        }
+
+        // Sanitize the variant payload through the same pipeline as the
+        // editor form so we don't trust the catalog blindly. We also force
+        // the variant key + catalog VERSION to be persisted so the gallery
+        // can show the selected state next time the editor opens and the
+        // renderer can migrate older skins later.
+        $variantStyle = $this->sanitizeBlockStyle(array_merge(
+            $variant['style'],
+            [
+                '_variant' => $validated['variant'],
+                '_variant_version' => BlockVariantCatalog::VERSION,
+            ]
+        ));
+
+        $count = 0;
+        $siblings = $link->biolinkBlocks()->where('type', $block->type)->get();
+        foreach ($siblings as $b) {
+            $settings = $b->settings ?? [];
+            $existing = $settings['_style'] ?? [];
+            // Mirror the per-block snapshot logic from update() so even
+            // bulk applies preserve each sibling's original handcrafted
+            // look once.
+            $oldVariant = $existing['_variant'] ?? '';
+            if ($oldVariant === '' && !empty($existing)
+                && empty($settings['_style_custom_snapshot'])) {
+                $settings['_style_custom_snapshot'] = $existing;
+            }
+            // Full replace (not merge) so prior variant residue — keys
+            // present in the old skin but not in the new one — is wiped.
+            // Sanitize through STYLE_DEFAULTS first so every key in
+            // `_style` is at a known baseline before the variant overlays
+            // its overrides on top.
+            $settings['_style'] = $this->sanitizeBlockStyle(array_merge(
+                BiolinkBlock::STYLE_DEFAULTS,
+                $variantStyle
+            ));
+            $b->update(['settings' => $settings]);
+            $count++;
+        }
+
+        return response()->json(['success' => true, 'updated' => $count]);
+    }
+
+    /**
+     * Apply a curated design variant to a single block. This is the
+     * preferred path used by the editor's Designs gallery: it replaces the
+     * block's `_style` payload wholesale with the variant's payload (plus
+     * STYLE_DEFAULTS as the baseline) so swapping from variant A to
+     * variant B never leaves residual keys from A behind. The first time
+     * a variant replaces handcrafted styling we snapshot the original
+     * `_style` into `settings._style_custom_snapshot` so the creator can
+     * always restore it via "Custom (your tweaks)".
+     */
+    public function applyVariant(Request $request, Link $link, BiolinkBlock $block)
+    {
+        abort_if($link->user_id !== workspace_owner_id() || $block->link_id !== $link->id, 403);
+
+        $validated = $request->validate(['variant' => 'required|string|max:60']);
+        $variant = BlockVariantCatalog::find($block->type, $validated['variant']);
+        if (!$variant) {
+            return response()->json(['success' => false, 'error' => 'Unknown variant'], 422);
+        }
+
+        $settings = $block->settings ?? [];
+        $existing = $settings['_style'] ?? [];
+
+        // Snapshot original handcrafted style on first variant application.
+        $oldVariant = $existing['_variant'] ?? '';
+        if ($oldVariant === '' && !empty($existing) && empty($settings['_style_custom_snapshot'])) {
+            // Strip the variant bookkeeping keys before storing — the
+            // snapshot is meant to capture handcrafted tweaks only.
+            $snapshot = $existing;
+            unset($snapshot['_variant'], $snapshot['_variant_version']);
+            $settings['_style_custom_snapshot'] = $snapshot;
+        }
+
+        $settings['_style'] = $this->sanitizeBlockStyle(array_merge(
+            BiolinkBlock::STYLE_DEFAULTS,
+            $variant['style'],
+            [
+                '_variant' => $validated['variant'],
+                '_variant_version' => BlockVariantCatalog::VERSION,
+            ]
+        ));
+
+        $block->update(['settings' => $settings]);
+        return response()->json(['success' => true, 'block' => $block->fresh()]);
+    }
+
+    /**
+     * Restore the pre-variant handcrafted style snapshot captured on the
+     * first variant apply. Performs a full `_style` replacement (not a
+     * merge) so any keys introduced by the curated variant are dropped
+     * cleanly. The snapshot itself is kept on disk so creators can
+     * roundtrip between variants and their custom look.
+     */
+    public function restoreCustomStyle(Link $link, BiolinkBlock $block)
+    {
+        abort_if($link->user_id !== workspace_owner_id() || $block->link_id !== $link->id, 403);
+
+        $settings = $block->settings ?? [];
+        $snapshot = $settings['_style_custom_snapshot'] ?? null;
+        if (!is_array($snapshot)) {
+            return response()->json(['success' => false, 'error' => 'No custom style snapshot to restore'], 404);
+        }
+
+        $settings['_style'] = $this->sanitizeBlockStyle(array_merge(
+            BiolinkBlock::STYLE_DEFAULTS,
+            $snapshot,
+            ['_variant' => '', '_variant_version' => 0]
+        ));
+
+        $block->update(['settings' => $settings]);
+        return response()->json(['success' => true, 'block' => $block->fresh()]);
+    }
+
+    /**
+     * Returns rendered HTML thumbnails for every variant offered for a
+     * block's type, with the actual block content (label, image, etc.)
+     * styled by each variant's payload. Used by the Designs gallery so
+     * the previews match what the creator will actually see — not just
+     * an abstract color/shape sketch.
+     */
+    public function variantPreviews(Link $link, BiolinkBlock $block)
+    {
+        abort_if($link->user_id !== workspace_owner_id() || $block->link_id !== $link->id, 403);
+
+        $variants = BlockVariantCatalog::forType($block->type);
+        $globalTheme = $link->settings ?? [];
+        $previews = [];
+        foreach ($variants as $v) {
+            $style = array_merge(BiolinkBlock::STYLE_DEFAULTS, $v['style']);
+            $resolved = BiolinkBlock::getBlockStyle($style, is_array($globalTheme) ? $globalTheme : []);
+            $previews[] = [
+                'key' => $v['key'],
+                'name' => $v['name'],
+                'tags' => $v['tags'] ?? [],
+                'inline_style' => BiolinkBlock::buildInlineStyle($resolved),
+                'text_color' => $resolved['text_color'] ?? '',
+            ];
+        }
+
+        return response()->json(['previews' => $previews]);
     }
 
     public function editForm(Link $link, BiolinkBlock $block)
@@ -1330,6 +1505,16 @@ class BiolinkBlockController extends Controller
                 if (in_array($val, $validTemplates, true)) {
                     $result[$key] = $val;
                 }
+            } elseif ($key === '_variant') {
+                // Variant key is opaque; we accept any short slug-shaped
+                // string. If the catalog later drops it, the renderer just
+                // falls back to whatever's in _style. This keeps old pages
+                // visually stable across catalog versions.
+                $safe = preg_replace('/[^a-z0-9_\-]/i', '', substr((string) $val, 0, 60));
+                if ($safe !== '') $result[$key] = $safe;
+            } elseif ($key === '_variant_version') {
+                $n = (int) $val;
+                if ($n >= 0 && $n < 100000) $result[$key] = $n;
             }
         }
         return $result;

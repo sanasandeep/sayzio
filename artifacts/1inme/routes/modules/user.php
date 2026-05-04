@@ -466,6 +466,10 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('links/{link}/blocks/reorder', [BiolinkBlockController::class, 'reorder'])->middleware('workspace.can:links.edit')->name('links.blocks.reorder');
         Route::post('links/{link}/blocks/{block}/toggle', [BiolinkBlockController::class, 'toggleActive'])->middleware('workspace.can:links.edit')->name('links.blocks.toggle');
         Route::post('links/{link}/blocks/{block}/move', [BiolinkBlockController::class, 'moveBlock'])->middleware('workspace.can:links.edit')->name('links.blocks.move');
+        Route::post('links/{link}/blocks/{block}/apply-variant-to-all', [BiolinkBlockController::class, 'applyVariantToAll'])->middleware('workspace.can:links.edit')->name('links.blocks.applyVariantToAll');
+        Route::post('links/{link}/blocks/{block}/apply-variant', [BiolinkBlockController::class, 'applyVariant'])->middleware('workspace.can:links.edit')->name('links.blocks.applyVariant');
+        Route::post('links/{link}/blocks/{block}/restore-custom-style', [BiolinkBlockController::class, 'restoreCustomStyle'])->middleware('workspace.can:links.edit')->name('links.blocks.restoreCustomStyle');
+        Route::get('links/{link}/blocks/{block}/variant-previews', [BiolinkBlockController::class, 'variantPreviews'])->middleware('workspace.can:links.view')->name('links.blocks.variantPreviews');
         Route::post('links/{link}/page-settings', [BiolinkBlockController::class, 'updatePageSettings'])->middleware('workspace.can:links.edit')->name('links.page-settings');
 
         // Custom fonts (.woff/.woff2/.ttf/.otf) — surface in the "My Fonts"
