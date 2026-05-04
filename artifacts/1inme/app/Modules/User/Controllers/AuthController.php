@@ -8,6 +8,7 @@ use App\Modules\User\Models\User;
 use App\Modules\Admin\Models\Plan;
 use App\Modules\Common\Services\OtpService;
 use App\Modules\User\Services\ReferralService;
+use App\Modules\User\Services\TwoFactorPolicy;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -219,6 +220,19 @@ class AuthController extends Controller
         $user = $this->resolveUserByIdentifier($identifier, $type);
 
         if ($user) {
+            // If the user has a confirmed TOTP authenticator, gate the rest
+            // of login behind a second-factor challenge instead of logging
+            // them in immediately. We stash the user id in the session
+            // (rotated) and bounce to the 2FA challenge form.
+            $policy = app(TwoFactorPolicy::class);
+            if ($policy->userHasEnrolledTotp($user)) {
+                session()->forget(['otp_identifier', 'otp_type']);
+                $request->session()->regenerate();
+                $request->session()->put('2fa_pending_user_id', $user->id);
+                $request->session()->put('2fa_pending_remember', true);
+                return redirect()->route('user.account.two-factor.challenge');
+            }
+
             Auth::login($user, true);
             $user->update(['last_login_at' => now()]);
             session()->forget(['otp_identifier', 'otp_type']);

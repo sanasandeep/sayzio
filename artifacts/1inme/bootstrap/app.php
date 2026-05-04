@@ -61,6 +61,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'workspace.scope'   => \App\Modules\User\Middleware\SetActiveWorkspace::class,
             'workspace.can'     => \App\Modules\User\Middleware\RequireWorkspacePermission::class,
             'workspace.owner'   => \App\Modules\User\Middleware\RequireWorkspaceOwner::class,
+            'workspace.2fa'     => \App\Modules\User\Middleware\EnsureTwoFactorPolicy::class,
             'portal.session'    => \App\Modules\User\Middleware\ResolvePortalSession::class,
         ]);
     })

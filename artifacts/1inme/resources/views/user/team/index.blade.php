@@ -272,7 +272,111 @@
         </div>
     @endif
 
-    {{-- Invite / edit modal. --}}
+    {{-- 2FA workspace policy + compliance --}}
+    <div class="mt-8 rounded-lg border" style="border-color: var(--border-strong); background: var(--bg-card);">
+        <div class="px-4 py-3 border-b font-semibold flex items-center justify-between" style="border-color: var(--border-strong);">
+            <span><i class="fas fa-shield-halved mr-2"></i> Two-factor authentication</span>
+            @if($twoFactorRequired)
+                <span class="px-2 py-0.5 rounded text-xs bg-green-100 text-green-700">Required</span>
+            @else
+                <span class="px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-700">Optional</span>
+            @endif
+        </div>
+
+        <div class="p-4 space-y-4">
+            @if($isWorkspaceOwner)
+                <form method="POST" action="{{ route('user.workspaces.security.update') }}" class="space-y-3 border-b pb-4" style="border-color: var(--border-strong);">
+                    @csrf @method('PUT')
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" name="require_2fa" value="1" {{ $twoFactorRequired ? 'checked' : '' }}
+                               class="w-4 h-4">
+                        <span class="font-medium">Require all members to have 2FA enabled</span>
+                    </label>
+                    <p class="text-xs opacity-70 ml-6">When on, every member is walked through TOTP setup on their next sign-in (and blocked from accessing this workspace until enrolled). The owner is exempt.</p>
+
+                    <div class="ml-6 flex flex-wrap items-end gap-3">
+                        <div>
+                            <label class="block text-xs uppercase tracking-wider opacity-70 mb-1">Grace period (days)</label>
+                            <input type="number" name="grace_days" min="0" max="90" value="{{ $twoFactorDeadline ? max(0, $twoFactorDeadline->diffInDays(now(), false) * -1) : 7 }}"
+                                   class="w-24 px-2 py-1 border rounded text-sm"
+                                   style="background: var(--bg-card); border-color: var(--border-strong); color: var(--text-primary);">
+                        </div>
+                        @if($twoFactorRequired)
+                            <label class="flex items-center gap-2 text-xs opacity-80">
+                                <input type="checkbox" name="reset_grace" value="1"> Reset grace deadline
+                            </label>
+                        @endif
+                        <button class="ml-auto px-3 py-2 bg-primary-600 text-white rounded text-sm font-semibold">Save policy</button>
+                    </div>
+
+                    @if($twoFactorRequired && $twoFactorDeadline)
+                        <p class="ml-6 text-xs opacity-80">
+                            <i class="fas fa-clock mr-1"></i>
+                            Enforcement begins {{ $twoFactorDeadline->isPast() ? 'now (deadline passed)' : $twoFactorDeadline->diffForHumans() }}
+                            ({{ $twoFactorDeadline->toDayDateTimeString() }}).
+                        </p>
+                    @endif
+                </form>
+
+                @if($twoFactorRequired)
+                    <form method="POST" action="{{ route('user.workspaces.security.remind') }}">
+                        @csrf
+                        <button class="px-3 py-2 rounded border text-sm font-semibold" style="border-color: var(--border-strong); color: var(--text-primary);">
+                            <i class="fas fa-envelope mr-1"></i> Email un-enrolled members a reminder
+                        </button>
+                    </form>
+                @endif
+
+                @if($twoFactorRequired && !$ownerHas2FA)
+                    <p class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
+                        <i class="fas fa-triangle-exclamation mr-1"></i> You require 2FA from your team but haven't enabled it yourself.
+                        <a href="{{ route('user.account.two-factor.show') }}" class="underline font-semibold">Enable it now</a>
+                    </p>
+                @endif
+            @else
+                <p class="text-xs opacity-70">Only the workspace owner can change the 2FA policy.</p>
+            @endif
+
+            <div>
+                <h3 class="text-sm font-semibold mb-2">Compliance</h3>
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="text-left opacity-70">
+                            <th class="px-2 py-1.5">Member</th>
+                            <th class="px-2 py-1.5">Role</th>
+                            <th class="px-2 py-1.5 text-right">2FA</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($twoFactorCompliance as $row)
+                            <tr class="border-t" style="border-color: var(--border-strong);">
+                                <td class="px-2 py-2">
+                                    <div class="font-medium">{{ $row['name'] ?: '—' }}</div>
+                                    <div class="text-xs opacity-60">{{ $row['email'] ?: '—' }}</div>
+                                </td>
+                                <td class="px-2 py-2 text-xs">{{ $row['role'] }}</td>
+                                <td class="px-2 py-2 text-right">
+                                    @if($row['enrolled'])
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-green-100 text-green-700">
+                                            <i class="fas fa-check-circle"></i> Enrolled
+                                        </span>
+                                    @elseif($row['is_owner'])
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-600">
+                                            Not enrolled
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-amber-100 text-amber-700">
+                                            <i class="fas fa-clock"></i> Pending
+                                        </span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
     <div x-show="modal.open" x-cloak
          class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
         <div class="rounded-lg shadow-xl w-full max-w-2xl" style="background: var(--bg-card);">

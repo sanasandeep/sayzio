@@ -162,7 +162,14 @@ Route::prefix('user')->name('user.')->group(function () {
         ->whereNumber('event')
         ->name('workspaces.audit.report.store');
 
-    Route::middleware(['auth', 'workspace.scope'])->group(function () {
+    // ---- 2FA challenge (between OTP verify and full login) ----
+    Route::get ('account/two-factor/challenge', [\App\Modules\User\Controllers\TwoFactorController::class, 'challenge'])
+        ->name('account.two-factor.challenge');
+    Route::post('account/two-factor/challenge', [\App\Modules\User\Controllers\TwoFactorController::class, 'verifyChallenge'])
+        ->middleware('throttle:10,1')
+        ->name('account.two-factor.challenge.verify');
+
+    Route::middleware(['auth', 'workspace.scope', 'workspace.2fa'])->group(function () {
         Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 
         // Recent-logins history + the in-app revoke action mirroring
@@ -172,6 +179,24 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('security/logins/{loginEvent}/revoke', [\App\Modules\User\Controllers\SecurityController::class, 'revokeFromList'])
             ->name('security.logins.revoke-from-list');
         Route::get('dashboard', [DashboardController::class, 'index'])->middleware('onboarding.gate')->name('dashboard');
+
+        // ---- Personal 2FA enrollment ----
+        Route::get   ('account/two-factor',           [\App\Modules\User\Controllers\TwoFactorController::class, 'show'])
+            ->name('account.two-factor.show');
+        Route::post  ('account/two-factor',           [\App\Modules\User\Controllers\TwoFactorController::class, 'confirm'])
+            ->name('account.two-factor.confirm');
+        Route::delete('account/two-factor',           [\App\Modules\User\Controllers\TwoFactorController::class, 'disable'])
+            ->name('account.two-factor.disable');
+        Route::post  ('account/two-factor/recovery',  [\App\Modules\User\Controllers\TwoFactorController::class, 'regenerateRecoveryCodes'])
+            ->name('account.two-factor.recovery-codes');
+        Route::get   ('account/two-factor/required',  [\App\Modules\User\Controllers\TwoFactorController::class, 'required'])
+            ->name('account.two-factor.required');
+
+        // ---- Workspace security (owner-only) ----
+        Route::put ('workspaces/security',           [\App\Modules\User\Controllers\WorkspaceSecurityController::class, 'update'])
+            ->name('workspaces.security.update');
+        Route::post('workspaces/security/remind',    [\App\Modules\User\Controllers\WorkspaceSecurityController::class, 'remindMembers'])
+            ->name('workspaces.security.remind');
 
         // ---- Workspaces ----
         Route::post('workspaces',                              [\App\Modules\User\Controllers\WorkspaceController::class, 'store'])  ->name('workspaces.store');

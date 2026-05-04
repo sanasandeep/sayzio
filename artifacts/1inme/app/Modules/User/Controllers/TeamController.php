@@ -9,6 +9,7 @@ use App\Modules\User\Models\Workspace;
 use App\Modules\User\Models\WorkspaceInvite;
 use App\Modules\User\Models\WorkspaceMember;
 use App\Modules\User\Services\SensitiveActionLogger;
+use App\Modules\User\Services\TwoFactorPolicy;
 use App\Modules\User\Services\WorkspaceActivityRecorder;
 use App\Modules\User\Services\WorkspaceContentReassigner;
 use App\Modules\User\Services\WorkspacePermissions;
@@ -94,20 +95,30 @@ class TeamController extends Controller
         $isOwner = (int) $ws->owner_user_id === (int) $request->user()->id
                    || (method_exists($request->user(), 'isSuperAdmin') && $request->user()->isSuperAdmin());
 
+        // 2FA compliance: per-member status + policy snapshot. Shown in
+        // a side panel on the team page so owners can spot stragglers.
+        $policy = app(TwoFactorPolicy::class);
+        $compliance = $this->buildComplianceList($ws, $members, $policy);
+
         return view('user.team.index', [
-            'workspace'         => $ws,
-            'rows'              => $rows,
-            'pendingInvites'    => $pendingInvites,
-            'maxSeats'          => $maxSeats,
-            'usedSeats'         => $usedSeats,
-            'pendingCount'      => $pendingCount,
-            'planLabel'         => $planLabel,
-            'reassignOptions'   => $reassignOptions,
-            'roleDescriptions'  => WorkspacePermissions::roleDescriptions(),
-            'effectiveMatrix'   => WorkspacePermissions::effectiveRoleActions($ws),
-            'canEditRoles'      => $this->isOwnerOrAdmin($request, $ws),
-            'approvalCfg'       => $approvalCfg,
-            'isOwner'           => $isOwner,
+            'workspace'           => $ws,
+            'rows'                => $rows,
+            'pendingInvites'      => $pendingInvites,
+            'maxSeats'            => $maxSeats,
+            'usedSeats'           => $usedSeats,
+            'pendingCount'        => $pendingCount,
+            'planLabel'           => $planLabel,
+            'reassignOptions'     => $reassignOptions,
+            'roleDescriptions'    => WorkspacePermissions::roleDescriptions(),
+            'effectiveMatrix'     => WorkspacePermissions::effectiveRoleActions($ws),
+            'canEditRoles'        => $this->isOwnerOrAdmin($request, $ws),
+            'approvalCfg'         => $approvalCfg,
+            'isOwner'             => $isOwner,
+            'twoFactorRequired'   => $policy->workspaceRequires2FA($ws),
+            'twoFactorDeadline'   => $policy->workspaceGraceDeadline($ws),
+            'twoFactorCompliance' => $compliance,
+            'ownerHas2FA'         => $ws->owner ? $policy->userHasEnrolledTotp($ws->owner) : false,
+            'isWorkspaceOwner'    => $isOwner,
         ]);
     }
 
@@ -118,6 +129,35 @@ class TeamController extends Controller
         if (empty($candidates)) return null;
         usort($candidates, fn ($a, $b) => $b <=> $a);
         return $candidates[0]->diffForHumans();
+    }
+
+    /**
+     * Compose the per-row compliance snapshot rendered on the team page.
+     * Each entry: ['name', 'email', 'role', 'enrolled' (bool), 'is_owner' (bool)].
+     */
+    protected function buildComplianceList($ws, $members, TwoFactorPolicy $policy): array
+    {
+        $rows = [];
+        if ($ws->owner) {
+            $rows[] = [
+                'name'     => $ws->owner->name,
+                'email'    => $ws->owner->email,
+                'role'     => 'Owner',
+                'enrolled' => $policy->userHasEnrolledTotp($ws->owner),
+                'is_owner' => true,
+            ];
+        }
+        foreach ($members as $m) {
+            if (!$m->user) continue;
+            $rows[] = [
+                'name'     => $m->user->name,
+                'email'    => $m->user->email,
+                'role'     => ucfirst($m->role ?: 'viewer'),
+                'enrolled' => $policy->userHasEnrolledTotp($m->user),
+                'is_owner' => false,
+            ];
+        }
+        return $rows;
     }
 
     public function invite(Request $request)
