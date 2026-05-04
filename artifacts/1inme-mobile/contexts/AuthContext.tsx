@@ -339,11 +339,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const sendOtp = useCallback(
     async (input: { channel: "email" | "mobile"; identifier: string }) => {
+      // Backend OtpController + OpenAPI require `{ identifier, type }`.
+      // The previous payload `{ channel, [channel]: identifier }` was the
+      // source of broken email/SMS login — it 422'd on every request.
       await apiFetch("/auth/otp/send", {
         method: "POST",
         body: JSON.stringify({
-          channel: input.channel,
-          [input.channel]: input.identifier,
+          identifier: input.identifier,
+          type: input.channel,
         }),
       });
     },
@@ -356,32 +359,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       identifier: string;
       code: string;
     }) => {
-      const res = await apiFetch<{ token: string; user: AuthUser }>(
-        "/auth/otp/verify",
-        {
-          method: "POST",
-          body: JSON.stringify({
-            channel: input.channel,
-            [input.channel]: input.identifier,
-            code: input.code,
-          }),
-        },
-      );
-      await applySession(res.token, res.user);
+      // AuthSuccess wraps `{ token, user }` inside `data` per OpenAPI.
+      const res = await apiFetch<{
+        data?: { token: string; user: AuthUser };
+        token?: string;
+        user?: AuthUser;
+      }>("/auth/otp/verify", {
+        method: "POST",
+        body: JSON.stringify({
+          identifier: input.identifier,
+          type: input.channel,
+          code: input.code,
+        }),
+      });
+      const token = res.data?.token ?? res.token;
+      const user = res.data?.user ?? res.user;
+      if (!token || !user) {
+        throw new Error("Sign-in response was missing a token or user.");
+      }
+      await applySession(token, user);
     },
     [applySession],
   );
 
   const demoLogin = useCallback(
     async (role: "user" | "admin" | "super_admin" = "user") => {
-      const res = await apiFetch<{ token: string; user: AuthUser }>(
-        "/auth/demo",
-        {
-          method: "POST",
-          body: JSON.stringify({ role }),
-        },
-      );
-      await applySession(res.token, res.user);
+      const res = await apiFetch<{
+        data?: { token: string; user: AuthUser };
+        token?: string;
+        user?: AuthUser;
+      }>("/auth/demo", {
+        method: "POST",
+        body: JSON.stringify({ role }),
+      });
+      const token = res.data?.token ?? res.token;
+      const user = res.data?.user ?? res.user;
+      if (!token || !user) throw new Error("Demo sign-in response was empty.");
+      await applySession(token, user);
     },
     [applySession],
   );
@@ -392,11 +406,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       id_token?: string;
       access_token?: string;
     }) => {
-      const res = await apiFetch<{ token: string; user: AuthUser }>(
-        "/auth/social",
-        { method: "POST", body: JSON.stringify(input) },
-      );
-      await applySession(res.token, res.user);
+      const res = await apiFetch<{
+        data?: { token: string; user: AuthUser };
+        token?: string;
+        user?: AuthUser;
+      }>("/auth/social", { method: "POST", body: JSON.stringify(input) });
+      const token = res.data?.token ?? res.token;
+      const user = res.data?.user ?? res.user;
+      if (!token || !user) {
+        throw new Error("Social sign-in response was missing a token or user.");
+      }
+      await applySession(token, user);
     },
     [applySession],
   );

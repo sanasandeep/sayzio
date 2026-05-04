@@ -1,6 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { StyleSheet, Text, View } from "react-native";
 
+import { AppIcon } from "@/components/AppIcon";
 import { useColors } from "@/hooks/useColors";
 
 export function EmptyState({
@@ -9,7 +10,10 @@ export function EmptyState({
   body,
   action,
 }: {
-  icon?: keyof typeof Feather.glyphMap;
+  // Accept either a native Feather name or a FontAwesome class string
+  // returned by the API (e.g. "fa-user", "fas fa-save"). Unknown icons
+  // resolve to a sensible fallback instead of vanishing.
+  icon?: keyof typeof Feather.glyphMap | string;
   title: string;
   body?: string;
   action?: React.ReactNode;
@@ -23,7 +27,7 @@ export function EmptyState({
           { backgroundColor: colors.primary + "1c" },
         ]}
       >
-        <Feather name={icon} size={28} color={colors.primary} />
+        <AppIcon name={icon} size={28} color={colors.primary} />
       </View>
       <Text style={[styles.title, { color: colors.foreground }]}>{title}</Text>
       {body ? (

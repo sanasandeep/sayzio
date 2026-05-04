@@ -5,7 +5,6 @@ import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { Button } from "@/components/Button";
 import { useAuth, type AuthUser } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
-import { apiFetch } from "@/lib/api";
 import { maybeOfferBiometricEnrollment } from "@/lib/biometricsPrompt";
 
 export default function OAuthCallback() {
@@ -36,7 +35,18 @@ export default function OAuthCallback() {
 
     const errParam = first(params.error);
     if (errParam) {
-      setError(errParam);
+      // Map common provider/backend error codes to friendlier copy
+      // instead of forwarding raw values like "access_denied".
+      const map: Record<string, string> = {
+        access_denied: "You cancelled the sign-in.",
+        unauthorized_client: "This app isn't authorized to sign in with that provider yet.",
+        invalid_request: "The sign-in request was malformed. Please try again.",
+        server_error: "The provider had a server error. Try again shortly.",
+        temporarily_unavailable: "The provider is temporarily unavailable. Try again shortly.",
+        redirect_uri_mismatch:
+          "The mobile redirect URL isn't allowed by the backend. Tell support the redirect URI 1inme://oauth-callback isn't whitelisted.",
+      };
+      setError(map[errParam] ?? errParam);
       return;
     }
 
@@ -58,11 +68,13 @@ export default function OAuthCallback() {
       return;
     }
 
+    // Native SDK path: provider returns id_token/access_token, which we
+    // forward to POST /auth/social per OpenAPI. (No client-side OAuth
+    // code-exchange path: the backend doesn't expose one, and the
+    // browser-based flow returns a ready-to-use token directly.)
     const provider = first(params.provider);
     const idToken = first(params.id_token);
     const accessToken = first(params.access_token);
-    const code = first(params.code);
-    const state = first(params.state);
 
     if (provider && (idToken || accessToken)) {
       socialLogin({
@@ -78,24 +90,9 @@ export default function OAuthCallback() {
       return;
     }
 
-    if (provider && code) {
-      apiFetch<{ token: string; user: AuthUser }>(
-        "/auth/social/exchange",
-        {
-          method: "POST",
-          body: JSON.stringify({ provider, code, state }),
-        },
-      )
-        .then((res) => applySession(res.token, res.user))
-        .then(() => {
-          router.replace("/(tabs)");
-          maybeOfferBiometricEnrollment(auth);
-        })
-        .catch((e) => setError(e?.message ?? "Sign-in failed"));
-      return;
-    }
-
-    setError("Sign-in did not return a session");
+    setError(
+      "Sign-in did not return a session. The backend redirect must include either ?token=… or ?provider=…&id_token=… for mobile.",
+    );
   }, [params, applySession, socialLogin, router]);
 
   return (

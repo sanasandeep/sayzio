@@ -1,6 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { StyleSheet, Text, View } from "react-native";
 
+import { AppIcon } from "@/components/AppIcon";
 import { useColors } from "@/hooks/useColors";
 
 export function StatTile({
@@ -11,7 +12,8 @@ export function StatTile({
 }: {
   label: string;
   value: string | number;
-  icon?: keyof typeof Feather.glyphMap;
+  // Accepts both native Feather names and FA class strings from the API.
+  icon?: keyof typeof Feather.glyphMap | string;
   hint?: string;
 }) {
   const colors = useColors();
@@ -33,7 +35,7 @@ export function StatTile({
             { backgroundColor: colors.primary + "1c" },
           ]}
         >
-          <Feather name={icon} size={16} color={colors.primary} />
+          <AppIcon name={icon} size={16} color={colors.primary} />
         </View>
       ) : null}
       <Text style={[styles.value, { color: colors.foreground }]}>{value}</Text>

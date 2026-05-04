@@ -1,7 +1,7 @@
-import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { AppIcon } from "@/components/AppIcon";
 import { useColors } from "@/hooks/useColors";
 import type { Link } from "@/lib/api/links";
 import { metaForApiType } from "@/lib/linkKinds";
@@ -10,6 +10,17 @@ export function LinkRow({ link }: { link: Link }) {
   const colors = useColors();
   const router = useRouter();
   const meta = metaForApiType(link.type);
+  // Prefer a per-link icon if the API surfaced one (web's icon picker
+  // stores FontAwesome class strings on link.settings.icon); fall back
+  // to the static per-kind icon. The resolver tolerates both formats.
+  const settingsIcon =
+    typeof link.settings === "object" && link.settings !== null
+      ? (link.settings as Record<string, unknown>).icon
+      : null;
+  const iconName =
+    typeof settingsIcon === "string" && settingsIcon.trim().length > 0
+      ? settingsIcon
+      : meta.icon;
 
   return (
     <Pressable
@@ -30,7 +41,7 @@ export function LinkRow({ link }: { link: Link }) {
           { backgroundColor: colors.primary + "1c" },
         ]}
       >
-        <Feather name={meta.icon} size={18} color={colors.primary} />
+        <AppIcon name={iconName} size={18} color={colors.primary} />
       </View>
       <View style={{ flex: 1, gap: 2 }}>
         <Text

@@ -10,6 +10,8 @@ const APP_VERSION =
 
 export const MOBILE_USER_AGENT = `1INMEMobileApp/${APP_VERSION} (${Platform.OS}; expo)`;
 
+let warnedFallback = false;
+
 export function getBaseUrl(): string {
   const fromEnv = process.env.EXPO_PUBLIC_API_BASE_URL;
   if (fromEnv) return fromEnv.replace(/\/$/, "");
@@ -18,7 +20,39 @@ export function getBaseUrl(): string {
   if (Platform.OS === "web" && typeof window !== "undefined") {
     return window.location.origin;
   }
+  // In dev/preview a missing env almost always means a misconfigured local
+  // backend — silently routing OTP and OAuth at production was the source
+  // of the broken-login bug. Surface it once, loudly, but never silently.
+  // In production builds we still fall back to the canonical host.
+  if (!warnedFallback) {
+    warnedFallback = true;
+    if (__DEV__ && typeof console !== "undefined") {
+      console.warn(
+        `[1inme] EXPO_PUBLIC_API_BASE_URL / EXPO_PUBLIC_DOMAIN is not set. ` +
+          `OTP and OAuth requests will be sent to https://${FALLBACK_HOST} ` +
+          `instead of your local backend. Set one of these in .env to fix login in dev.`,
+      );
+    }
+  }
   return `https://${FALLBACK_HOST}`;
+}
+
+/**
+ * Returns the configured API base URL, or null when the app is running in
+ * dev/preview without an explicit env. Auth screens use this to refuse to
+ * talk to production by mistake — see `(auth)/index.tsx`.
+ */
+export function getConfiguredBaseUrl(): string | null {
+  if (process.env.EXPO_PUBLIC_API_BASE_URL) {
+    return process.env.EXPO_PUBLIC_API_BASE_URL.replace(/\/$/, "");
+  }
+  if (process.env.EXPO_PUBLIC_DOMAIN) {
+    return `https://${process.env.EXPO_PUBLIC_DOMAIN}`;
+  }
+  if (Platform.OS === "web" && typeof window !== "undefined") {
+    return window.location.origin;
+  }
+  return null;
 }
 
 export type ApiError = {

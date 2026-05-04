@@ -77,8 +77,20 @@ const TOOL_PAGES: {
     | "/subscribers"
     | "/projects"
     | "/qr"
+    | "/qr-studio"
     | "/splash"
-    | "/calendar";
+    | "/calendar"
+    | "/resume"
+    | "/backlinks"
+    | "/visitors"
+    | "/carbon"
+    | "/team"
+    | "/client-portals"
+    | "/invoices"
+    | "/insider"
+    | "/leaderboard"
+    | "/vault-audit"
+    | "/links/conversational";
   label: string;
   icon: keyof typeof Feather.glyphMap;
 }[] = [
@@ -91,9 +103,21 @@ const TOOL_PAGES: {
   { href: "/social", label: "Social accounts", icon: "share-2" },
   { href: "/projects", label: "Projects", icon: "folder" },
   { href: "/qr", label: "QR codes", icon: "grid" },
+  { href: "/qr-studio", label: "QR studio", icon: "grid" },
   { href: "/splash", label: "Splash pages", icon: "layout" },
   { href: "/calendar", label: "Calendars", icon: "calendar" },
   { href: "/notifications", label: "Notifications", icon: "bell" },
+  { href: "/resume", label: "Resume builder", icon: "file-text" },
+  { href: "/backlinks", label: "Backlinks", icon: "link" },
+  { href: "/visitors", label: "Visitors", icon: "users" },
+  { href: "/carbon", label: "Carbon footprint", icon: "cloud" },
+  { href: "/team", label: "Team & staff", icon: "users" },
+  { href: "/client-portals", label: "Client portals", icon: "briefcase" },
+  { href: "/invoices", label: "Invoices", icon: "file-text" },
+  { href: "/insider", label: "Insider & referrals", icon: "award" },
+  { href: "/leaderboard", label: "Leaderboard", icon: "award" },
+  { href: "/vault-audit", label: "Vault audit", icon: "shield" },
+  { href: "/links/conversational", label: "Conversational links", icon: "message-circle" },
 ];
 
 const SETTINGS_PAGES: {

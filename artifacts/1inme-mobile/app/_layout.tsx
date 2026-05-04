@@ -108,6 +108,17 @@ function RootLayoutNav() {
       <Stack.Screen name="info" options={{ headerShown: false }} />
       <Stack.Screen name="biolink/[handle]" options={{ headerShown: false }} />
       <Stack.Screen name="oauth-callback" options={{ headerShown: false }} />
+      <Stack.Screen name="resume" options={{ title: "Resume" }} />
+      <Stack.Screen name="qr-studio" options={{ title: "QR studio" }} />
+      <Stack.Screen name="backlinks" options={{ title: "Backlinks" }} />
+      <Stack.Screen name="visitors" options={{ title: "Visitors" }} />
+      <Stack.Screen name="carbon" options={{ title: "Carbon" }} />
+      <Stack.Screen name="team" options={{ title: "Team" }} />
+      <Stack.Screen name="client-portals" options={{ title: "Client portals" }} />
+      <Stack.Screen name="invoices" options={{ title: "Invoices" }} />
+      <Stack.Screen name="insider" options={{ title: "Insider" }} />
+      <Stack.Screen name="leaderboard" options={{ title: "Leaderboard" }} />
+      <Stack.Screen name="vault-audit" options={{ title: "Vault audit" }} />
       <Stack.Screen name="upgrade" options={{ title: "Upgrade" }} />
       <Stack.Screen name="plans" options={{ title: "Plans & billing" }} />
       <Stack.Screen name="coin-packages" options={{ title: "Coin packages" }} />

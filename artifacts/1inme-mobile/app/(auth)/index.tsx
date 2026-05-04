@@ -1,8 +1,9 @@
 import { Ionicons, Feather } from "@expo/vector-icons";
+import * as Google from "expo-auth-session/providers/google";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   Platform,
@@ -18,8 +19,12 @@ import { BrandWordmark } from "@/components/Brand";
 import { Button } from "@/components/Button";
 import { TextField } from "@/components/TextField";
 import { useAuth } from "@/contexts/AuthContext";
+
+// Ensure WebBrowser sessions close cleanly when the auth flow finishes —
+// required by expo-auth-session for the Google provider on Android.
+WebBrowser.maybeCompleteAuthSession();
 import { useColors } from "@/hooks/useColors";
-import { getBaseUrl } from "@/lib/api";
+import { getBaseUrl, getConfiguredBaseUrl } from "@/lib/api";
 import type { ApiError } from "@/lib/api";
 import { maybeOfferBiometricEnrollment } from "@/lib/biometricsPrompt";
 
@@ -27,6 +32,7 @@ type Channel = "email" | "mobile";
 
 type SocialProvider =
   | "google"
+  | "apple"
   | "instagram"
   | "facebook"
   | "twitter"
@@ -41,6 +47,7 @@ const SOCIALS: {
   color: string;
 }[] = [
   { id: "google", label: "Google", icon: "logo-google", color: "#ea4335" },
+  { id: "apple", label: "Apple", icon: "logo-apple", color: "#ffffff" },
   { id: "instagram", label: "Instagram", icon: "logo-instagram", color: "#e1306c" },
   { id: "facebook", label: "Facebook", icon: "logo-facebook", color: "#1877f2" },
   { id: "twitter", label: "X", icon: "logo-x", color: "#ffffff" },
@@ -49,12 +56,61 @@ const SOCIALS: {
   { id: "tiktok", label: "TikTok", icon: "logo-tiktok", color: "#ffffff" },
 ];
 
+// Build the displayed social list dynamically so providers without
+// real backing (no native SDK config, no backend route) don't render
+// dead buttons. Google requires a client ID; the others go through
+// the web /user/social-oauth/{provider}/login route, which only
+// supports a fixed set of providers.
+const WEB_BROWSER_PROVIDERS = new Set<SocialProvider>([
+  "facebook",
+  "instagram",
+  "linkedin",
+  "twitter",
+  "pinterest",
+  "tiktok",
+]);
+
+const HAS_GOOGLE_NATIVE =
+  !!process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ||
+  !!process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ||
+  !!process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ||
+  !!process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+
 export default function AuthLanding() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const auth = useAuth();
-  const { sendOtp, demoLogin } = auth;
+  const { sendOtp, demoLogin, socialLogin } = auth;
+
+  // Native Google sign-in via expo-auth-session. Returns an id_token
+  // that we POST to /auth/social (per OpenAPI). The hook is no-op
+  // unless at least one EXPO_PUBLIC_GOOGLE_*_CLIENT_ID is set, so it
+  // safely degrades when the build isn't configured for it.
+  const [googleRequest, googleResponse, googlePrompt] = Google.useIdTokenAuthRequest({
+    clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+  });
+
+  useEffect(() => {
+    if (!googleResponse) return;
+    if (googleResponse.type !== "success") return;
+    const idToken = googleResponse.params?.id_token;
+    if (!idToken) return;
+    socialLogin({ provider: "google", id_token: idToken })
+      .then(() => {
+        router.replace("/(tabs)");
+        maybeOfferBiometricEnrollment(auth);
+      })
+      .catch((e: { message?: string }) => {
+        const msg = e?.message ?? "Google sign-in failed";
+        if (Platform.OS === "web") setError(msg);
+        else Alert.alert("Sign in", msg);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [googleResponse]);
 
   const [channel, setChannel] = useState<Channel>("email");
   const [identifier, setIdentifier] = useState("");
@@ -62,20 +118,50 @@ export default function AuthLanding() {
   const [error, setError] = useState<string | null>(null);
 
   const onSendOtp = async () => {
-    if (!identifier.trim()) {
+    // In dev, refuse to send OTP at the production host by accident:
+    // the most common cause of "broken login" is a missing local
+    // EXPO_PUBLIC_API_BASE_URL. Production builds keep the fallback.
+    if (__DEV__ && !getConfiguredBaseUrl()) {
+      setError(
+        "API base URL isn't set. Add EXPO_PUBLIC_API_BASE_URL to artifacts/1inme-mobile/.env so OTP doesn't go to production.",
+      );
+      return;
+    }
+    const id = identifier.trim();
+    if (!id) {
       setError(channel === "email" ? "Enter your email" : "Enter your mobile number");
+      return;
+    }
+    if (channel === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(id)) {
+      setError("That doesn't look like a valid email");
+      return;
+    }
+    if (channel === "mobile" && !/^\+?[0-9\s\-()]{6,}$/.test(id)) {
+      setError("Enter a phone number with country code (e.g. +1 555 123 4567)");
       return;
     }
     setError(null);
     setBusy("otp");
     try {
-      await sendOtp({ channel, identifier: identifier.trim() });
+      await sendOtp({ channel, identifier: id });
       router.push({
         pathname: "/(auth)/verify",
-        params: { channel, identifier: identifier.trim() },
+        params: { channel, identifier: id },
       });
     } catch (e) {
-      setError((e as ApiError)?.message ?? "Could not send code");
+      const err = e as ApiError;
+      // Surface the most useful piece: backend validation field errors
+      // win over the generic message so users see "Email is invalid"
+      // instead of "Request failed (422)".
+      const fieldMsg = err?.errors
+        ? Object.values(err.errors)
+            .flatMap((v) => (Array.isArray(v) ? v : [String(v)]))
+            .find(Boolean)
+        : null;
+      let msg = fieldMsg ?? err?.message ?? "Could not send code";
+      if (err?.status === 429) msg = "Too many attempts — wait a minute and try again.";
+      if (err?.status && err.status >= 500) msg = "Our server is having trouble. Try again shortly.";
+      setError(msg);
     } finally {
       setBusy(null);
     }
@@ -96,17 +182,66 @@ export default function AuthLanding() {
   };
 
   const onSocial = async (provider: SocialProvider) => {
+    setError(null);
+
+    // Google: native flow via expo-auth-session — POSTs id_token to
+    // /auth/social directly, no backend OAuth round-trip needed.
+    if (provider === "google") {
+      if (!HAS_GOOGLE_NATIVE || !googleRequest) {
+        const msg =
+          "Google sign-in isn't configured for this build. Add EXPO_PUBLIC_GOOGLE_CLIENT_ID (or platform-specific EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID / EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID) to enable it.";
+        if (Platform.OS === "web") setError(msg);
+        else Alert.alert("Sign in", msg);
+        return;
+      }
+      setBusy("social-google");
+      try {
+        await googlePrompt();
+      } finally {
+        setBusy(null);
+      }
+      return;
+    }
+
+    if (__DEV__ && !getConfiguredBaseUrl()) {
+      const msg =
+        "API base URL isn't set. Add EXPO_PUBLIC_API_BASE_URL to artifacts/1inme-mobile/.env so OAuth doesn't redirect through production.";
+      if (Platform.OS === "web") setError(msg);
+      else Alert.alert("Sign in", msg);
+      return;
+    }
     setBusy(`social-${provider}`);
     try {
       const ret = encodeURIComponent("1inme://oauth-callback");
-      const url = `${getBaseUrl()}/auth/${provider}/redirect?source=mobile&return=${ret}`;
+      // Backend route: /user/social-oauth/{provider}/login (see
+      // routes/modules/user.php). It performs the OAuth dance and
+      // redirects back to `return` with the token / user payload.
+      const url = `${getBaseUrl()}/user/social-oauth/${provider}/login?source=mobile&return=${ret}`;
+      // openAuthSessionAsync handles iOS ASWebAuthenticationSession +
+      // Android Custom Tabs, returning {type: 'success', url} when the
+      // backend redirects back to our `1inme://oauth-callback` scheme.
+      // The scheme is registered in app.json so this should always
+      // round-trip; if it doesn't, surface a clear error rather than
+      // silently giving up.
       const result = await WebBrowser.openAuthSessionAsync(url, "1inme://oauth-callback");
-      if (result.type !== "success") {
-        if (result.type === "cancel" || result.type === "dismiss") return;
-        throw new Error("Sign-in was cancelled");
+      if (result.type === "success") {
+        // Success URL handling lives in oauth-callback.tsx, which the
+        // deep link router opens automatically. Nothing to do here.
+        return;
       }
+      if (result.type === "cancel" || result.type === "dismiss") {
+        // User backed out — quiet, no error toast.
+        return;
+      }
+      if (result.type === "locked") {
+        throw new Error("Another sign-in is in progress. Try again in a moment.");
+      }
+      throw new Error(`${provider} sign-in didn't complete (${result.type ?? "unknown"})`);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : `${provider} sign-in is not configured yet`;
+      const msg =
+        e instanceof Error
+          ? e.message
+          : `${provider} sign-in is not configured for this build`;
       if (Platform.OS === "web") setError(msg);
       else Alert.alert("Sign in", msg);
     } finally {
@@ -215,7 +350,11 @@ export default function AuthLanding() {
         </View>
 
         <View style={styles.socialGrid}>
-          {SOCIALS.map((s) => {
+          {SOCIALS.filter(
+            (s) =>
+              (s.id === "google" && HAS_GOOGLE_NATIVE) ||
+              WEB_BROWSER_PROVIDERS.has(s.id),
+          ).map((s) => {
             const isBusy = busy === `social-${s.id}`;
             const disabled = !!busy && !isBusy;
             return (
