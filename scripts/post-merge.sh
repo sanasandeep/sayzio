@@ -23,8 +23,12 @@ if [ -d artifacts/1inme ] && command -v php >/dev/null 2>&1; then
   " 2>/dev/null || echo "0")
 
   if [ "$has_plans" = "1" ]; then
-    # Fast path: just apply any new migrations.
+    # Fast path: just apply any new migrations + reseed the curated card
+    # template library so blueprints added between merges land in prod.
+    # CardTemplateSeeder is idempotent and preserves admin-edited rows
+    # (see CardTemplateSeeder::SEED_VERSION + CardTemplate::wasCustomized).
     php artisan migrate --force || true
+    php artisan db:seed --class=Database\\Seeders\\CardTemplateSeeder --force 2>/dev/null || true
   else
     # Slow path: schema was wiped. Detach the rebuild so we don't blow the
     # post-merge timeout. Logs go to storage/logs/post-merge-recover.log.

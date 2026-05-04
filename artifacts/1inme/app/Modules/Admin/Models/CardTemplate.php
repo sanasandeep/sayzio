@@ -6,15 +6,24 @@ use Illuminate\Database\Eloquent\Model;
 
 class CardTemplate extends Model
 {
+    /**
+     * Tolerance window (seconds) for treating a row as untouched after
+     * the seeder created it. Mirrors the page-template heuristic so the
+     * "Customized" admin badge and the seeder's preserve-edits logic
+     * stay in agreement.
+     */
+    public const EDIT_DRIFT_TOLERANCE = 2;
+
     protected $fillable = [
         'name', 'slug', 'category', 'description', 'thumbnail_url',
-        'plan_tier', 'is_active', 'sort_order', 'snapshot',
+        'plan_tier', 'is_active', 'sort_order', 'snapshot', 'seed_version',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
         'sort_order' => 'integer',
         'snapshot' => 'array',
+        'seed_version' => 'integer',
     ];
 
     public function scopeActive($query)
@@ -33,6 +42,21 @@ class CardTemplate extends Model
                 $q->orWhereIn('plan_tier', $allowedTiers);
             }
         });
+    }
+
+    /**
+     * True when updated_at has drifted past created_at by more than the
+     * tolerance — i.e. an admin has saved this row at least once since
+     * the seeder created it. Used by the seeder's re-run logic to
+     * preserve admin edits.
+     */
+    public function wasCustomized(): bool
+    {
+        if (!$this->updated_at || !$this->created_at) {
+            return false;
+        }
+        return $this->updated_at->getTimestamp() - $this->created_at->getTimestamp()
+            > self::EDIT_DRIFT_TOLERANCE;
     }
 
     public static function categories(): array

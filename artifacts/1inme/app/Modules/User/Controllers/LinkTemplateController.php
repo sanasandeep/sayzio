@@ -48,11 +48,29 @@ class LinkTemplateController extends Controller
     {
         abort_if($link->user_id !== auth()->id() || $link->type !== 'biolink', 403);
         $userPlanSlug = auth()->user()->plan?->slug;
-        $cards = CardTemplate::active()->get()->map(function ($t) use ($userPlanSlug) {
+
+        $categories = CardTemplate::categories();
+        $catFilter = (string) $request->query('category', '');
+        $q = trim((string) $request->query('q', ''));
+
+        $query = CardTemplate::active();
+        if ($catFilter !== '' && $catFilter !== 'all' && array_key_exists($catFilter, $categories)) {
+            $query->where('category', $catFilter);
+        }
+        if ($q !== '') {
+            $needle = '%' . $q . '%';
+            $query->where(function ($w) use ($needle) {
+                $w->where('name', 'ilike', $needle)
+                  ->orWhere('description', 'ilike', $needle);
+            });
+        }
+
+        $cards = $query->get()->map(function ($t) use ($userPlanSlug, $categories) {
             return [
                 'id' => $t->id,
                 'name' => $t->name,
                 'category' => $t->category,
+                'category_label' => $categories[$t->category] ?? ucfirst($t->category),
                 'description' => $t->description,
                 'thumbnail_url' => $t->thumbnail_url,
                 'plan_tier' => $t->plan_tier,
@@ -60,7 +78,11 @@ class LinkTemplateController extends Controller
                 'children_count' => count($t->snapshot['children'] ?? []),
             ];
         });
-        return response()->json(['items' => $cards]);
+
+        return response()->json([
+            'items' => $cards,
+            'categories' => $categories,
+        ]);
     }
 
     public function applyPage(Request $request, Link $link)

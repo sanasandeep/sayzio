@@ -210,6 +210,32 @@ class TemplateController extends Controller
     }
 
     /**
+     * Bulk activate/deactivate templates of a given kind. Accepts a list
+     * of template IDs and an action ("activate"|"deactivate"). Used by
+     * the admin index "Activate selected" / "Deactivate selected"
+     * controls so admins can curate large libraries (100+ card
+     * templates) without clicking each row.
+     */
+    public function bulkToggle(Request $request, string $kind)
+    {
+        $kind = $kind === 'card' ? 'card' : 'page';
+        $modelClass = $kind === 'card' ? CardTemplate::class : PageTemplate::class;
+
+        $data = $request->validate([
+            'action' => 'required|in:activate,deactivate',
+            'ids'    => 'required|array|min:1',
+            'ids.*'  => 'integer',
+        ]);
+
+        $isActive = $data['action'] === 'activate';
+        $count = $modelClass::whereIn('id', $data['ids'])->update(['is_active' => $isActive]);
+
+        $verb = $isActive ? 'activated' : 'deactivated';
+        return redirect()->route('admin.templates.index', ['tab' => $kind])
+            ->with('success', "{$count} template" . ($count === 1 ? '' : 's') . " {$verb}.");
+    }
+
+    /**
      * Show the diff between an outdated persona-seeded page template and
      * the current blueprint design. Admins land here from the "Outdated
      * design" badge on the templates index and can either keep their

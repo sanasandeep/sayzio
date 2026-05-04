@@ -3,7 +3,7 @@
 @section('page-title', 'Page & Card Templates')
 
 @section('content')
-<div x-data="{ search: '', category: 'all', persona: 'all', customized: 'all', outdated: 'all' }">
+<div x-data="{ search: '', category: 'all', persona: 'all', customized: 'all', outdated: 'all', active: 'all', selected: [], toggleAllVisible(ids) { var allSel = ids.every(i => this.selected.includes(i)); this.selected = allSel ? this.selected.filter(i => !ids.includes(i)) : Array.from(new Set(this.selected.concat(ids))); } }">
 <div class="flex items-center justify-between mb-6">
     <p class="text-sm text-white/40">Curate full-page presets and reusable card-block presets.</p>
     <div class="flex items-center gap-2">
@@ -49,6 +49,30 @@
             @endforeach
         </select>
     @endif
+</div>
+
+@php
+    $activeCount = $rows->where('is_active', true)->count();
+    $hiddenCount = $rows->count() - $activeCount;
+@endphp
+<div class="flex items-center gap-2 mb-4 flex-wrap">
+    <div class="flex items-center gap-1 p-1 rounded-xl bg-white/5 border border-white/5 w-max">
+        <button type="button" @click="active = 'all'"
+                :class="active === 'all' ? 'bg-violet-600 text-white' : 'text-white/50 hover:text-white'"
+                class="px-3 py-1.5 text-xs font-semibold rounded-lg transition">
+            All ({{ $rows->count() }})
+        </button>
+        <button type="button" @click="active = 'yes'"
+                :class="active === 'yes' ? 'bg-emerald-600 text-white' : 'text-white/50 hover:text-white'"
+                class="px-3 py-1.5 text-xs font-semibold rounded-lg transition">
+            <i class="fas fa-eye mr-1 text-[10px]"></i>Active ({{ $activeCount }})
+        </button>
+        <button type="button" @click="active = 'no'"
+                :class="active === 'no' ? 'bg-white/20 text-white' : 'text-white/50 hover:text-white'"
+                class="px-3 py-1.5 text-xs font-semibold rounded-lg transition">
+            <i class="fas fa-eye-slash mr-1 text-[10px]"></i>Hidden ({{ $hiddenCount }})
+        </button>
+    </div>
 </div>
 
 @if($tab === 'page')
@@ -105,6 +129,41 @@
         </a>
     </div>
 @else
+    @php $allIds = $rows->pluck('id')->all(); @endphp
+    {{-- Bulk action toolbar --}}
+    <div class="flex flex-wrap items-center gap-2 mb-3 p-3 rounded-xl border border-white/10 bg-white/5"
+         x-show="selected.length > 0" x-cloak>
+        <span class="text-xs text-white/70 font-medium"><span x-text="selected.length"></span> selected</span>
+        <form action="{{ route('admin.templates.bulk-toggle', ['kind' => $tab]) }}" method="POST" class="inline">
+            @csrf
+            <input type="hidden" name="action" value="activate">
+            <template x-for="id in selected" :key="'a'+id">
+                <input type="hidden" name="ids[]" :value="id">
+            </template>
+            <button type="submit" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition">
+                <i class="fas fa-eye mr-1 text-[10px]"></i>Activate selected
+            </button>
+        </form>
+        <form action="{{ route('admin.templates.bulk-toggle', ['kind' => $tab]) }}" method="POST" class="inline">
+            @csrf
+            <input type="hidden" name="action" value="deactivate">
+            <template x-for="id in selected" :key="'d'+id">
+                <input type="hidden" name="ids[]" :value="id">
+            </template>
+            <button type="submit" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/10 hover:bg-white/20 text-white transition">
+                <i class="fas fa-eye-slash mr-1 text-[10px]"></i>Deactivate selected
+            </button>
+        </form>
+        <button type="button" @click="selected = []" class="ml-auto text-xs text-white/40 hover:text-white">Clear</button>
+    </div>
+    <div class="flex items-center gap-2 mb-3">
+        <button type="button"
+                @click="toggleAllVisible(@json($allIds).filter(id => document.querySelector('[data-tpl-id=&quot;'+id+'&quot;]') && !document.querySelector('[data-tpl-id=&quot;'+id+'&quot;]').hasAttribute('hidden')))"
+                class="text-[11px] text-white/50 hover:text-white">
+            Select all visible
+        </button>
+    </div>
+
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
     @foreach($rows as $tpl)
         @php
@@ -116,9 +175,16 @@
                   && (persona === 'all' || @json($tplPersonas).includes(persona))
                   && (customized === 'all' || (customized === 'yes') === {{ $tplCustomized ? 'true' : 'false' }})
                   && (outdated === 'all' || (outdated === 'yes') === {{ $tplOutdated ? 'true' : 'false' }})
+                  && (active === 'all' || (active === 'yes') === {{ $tpl->is_active ? 'true' : 'false' }})
                   && (search === '' || '{{ strtolower(addslashes($tpl->name . ' ' . $tpl->description)) }}'.includes(search.toLowerCase()))"
              x-cloak
-             class="glass rounded-2xl border border-white/10 p-4">
+             data-tpl-id="{{ $tpl->id }}"
+             class="glass rounded-2xl border border-white/10 p-4 relative"
+             :class="selected.includes({{ $tpl->id }}) ? 'ring-2 ring-violet-500/60' : ''">
+            <label class="absolute top-3 left-3 z-10 flex items-center cursor-pointer">
+                <input type="checkbox" :value="{{ $tpl->id }}" x-model="selected"
+                       class="w-4 h-4 rounded border-white/30 bg-black/30 text-violet-500 focus:ring-violet-500 cursor-pointer">
+            </label>
             <div class="group relative aspect-[4/3] rounded-xl mb-3 flex items-center justify-center overflow-hidden" style="background: linear-gradient(135deg, rgba(124,58,237,0.12), rgba(139,92,246,0.04));">
                 @if($tpl->thumbnail_url)
                     <img src="{{ $tpl->thumbnail_url }}" alt="{{ $tpl->name }}" class="w-full h-full object-cover">

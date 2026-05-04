@@ -107,6 +107,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('{kind}/{id}/edit', [TemplateController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
             Route::put('{kind}/{id}', [TemplateController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
             Route::post('{kind}/{id}/toggle', [TemplateController::class, 'toggle'])->middleware(CheckPermission::class . ':settings.manage')->name('toggle');
+            Route::post('{kind}/bulk-toggle', [TemplateController::class, 'bulkToggle'])->middleware(CheckPermission::class . ':settings.manage')->name('bulk-toggle');
             Route::get('page/{id}/blueprint-diff', [TemplateController::class, 'blueprintDiff'])->middleware(CheckPermission::class . ':settings.manage')->name('blueprint.diff');
             Route::post('page/{id}/blueprint-reset', [TemplateController::class, 'resetBlueprint'])->middleware(CheckPermission::class . ':settings.manage')->name('blueprint.reset');
             Route::post('{kind}/{id}/thumbnail', [TemplateController::class, 'uploadThumbnail'])->middleware(CheckPermission::class . ':settings.manage')->name('thumbnail.upload');

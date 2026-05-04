@@ -25,27 +25,69 @@ use Illuminate\Support\Str;
  */
 class CardTemplateSeeder extends Seeder
 {
+    /**
+     * Bump this whenever the blueprints below change in a way you want
+     * to push to existing untouched rows. Admin-edited rows are NEVER
+     * overwritten regardless of this value.
+     */
+    public const SEED_VERSION = 1;
+
     public function run(): void
     {
         foreach ($this->templates() as $i => $tpl) {
             $slug = $tpl['slug'];
-            CardTemplate::updateOrCreate(
-                ['slug' => $slug],
-                [
-                    'name'        => $tpl['name'],
-                    'category'    => $tpl['category'],
-                    'description' => $tpl['description'] ?? null,
-                    'plan_tier'   => $tpl['plan_tier'] ?? null,
-                    'is_active'   => true,
-                    'sort_order'  => $i,
-                    'snapshot'    => [
-                        'type'      => 'card',
-                        'settings'  => array_merge($this->defaultCardSettings(), $tpl['card'] ?? []),
-                        'is_active' => true,
-                        'children'  => $tpl['children'],
-                    ],
-                ]
-            );
+            $payload = [
+                'name'         => $tpl['name'],
+                'category'     => $tpl['category'],
+                'description'  => $tpl['description'] ?? null,
+                'plan_tier'    => $tpl['plan_tier'] ?? null,
+                'is_active'    => true,
+                'sort_order'   => $i,
+                'snapshot'     => [
+                    'type'      => 'card',
+                    'settings'  => array_merge($this->defaultCardSettings(), $tpl['card'] ?? []),
+                    'is_active' => true,
+                    'children'  => $tpl['children'],
+                ],
+                'seed_version' => self::SEED_VERSION,
+            ];
+
+            $existing = CardTemplate::where('slug', $slug)->first();
+
+            if (!$existing) {
+                // Brand-new row: stamp full payload + current seed version.
+                CardTemplate::create(['slug' => $slug] + $payload);
+                continue;
+            }
+
+            // Existing row: never overwrite admin-edited rows. Only refresh
+            // untouched rows whose seed_version is older than the current
+            // SEED_VERSION (i.e. the blueprint was bumped). Otherwise leave
+            // them alone so re-running the seeder is a no-op.
+            if ($existing->wasCustomized()) {
+                // Backfill blank fields only — never clobber what the admin
+                // typed. Keeps newly added fields (e.g. description on a
+                // legacy row) usable without overwriting custom copy.
+                $fill = [];
+                foreach (['name', 'category', 'description', 'plan_tier', 'snapshot'] as $k) {
+                    if ($k === 'snapshot') {
+                        if (empty($existing->snapshot)) $fill['snapshot'] = $payload['snapshot'];
+                    } elseif ($existing->{$k} === null || $existing->{$k} === '') {
+                        $fill[$k] = $payload[$k];
+                    }
+                }
+                if ($fill) {
+                    $existing->fill($fill)->save();
+                }
+                continue;
+            }
+
+            if ((int) $existing->seed_version >= self::SEED_VERSION) {
+                continue; // already at current blueprint version, no-op.
+            }
+
+            // Untouched row at an older seed version: refresh in place.
+            $existing->fill($payload)->save();
         }
     }
 

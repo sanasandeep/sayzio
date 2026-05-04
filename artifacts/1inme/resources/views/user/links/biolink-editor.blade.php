@@ -841,23 +841,28 @@ $catColors = [
 
                     {{-- CARD TEMPLATES --}}
                     <div x-show="galleryMode === 'templates'" x-cloak>
+                        <div class="gallery-tabs pb-3" x-show="Object.keys(cardCategories).length">
+                            <button class="gallery-tab" :class="cardCategory === 'all' ? 'active' : ''" @click="cardCategory = 'all'; loadCardTemplates(true)">All</button>
+                            <template x-for="(label, key) in cardCategories" :key="key">
+                                <button class="gallery-tab" :class="cardCategory === key ? 'active' : ''" @click="cardCategory = key; loadCardTemplates(true)" x-text="label"></button>
+                            </template>
+                        </div>
                         <div x-show="cardTemplatesLoading" class="text-center py-10" style="color: var(--text-faint);">
                             <i class="fas fa-spinner fa-spin text-xl"></i>
                         </div>
                         <div x-show="!cardTemplatesLoading && cardTemplates.length === 0" class="text-center py-10">
                             <i class="fas fa-layer-group text-2xl mb-2" style="color: var(--text-faint);"></i>
-                            <p class="text-sm" style="color: var(--text-muted);">No card templates available yet.</p>
+                            <p class="text-sm" style="color: var(--text-muted);">No matching card templates.</p>
                         </div>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" x-show="!cardTemplatesLoading">
-                            <template x-for="t in cardTemplates" :key="t.id">
-                                <div x-show="gallerySearch === '' || (t.name + ' ' + (t.description||'')).toLowerCase().includes(gallerySearch.toLowerCase())"
-                                     class="rounded-xl border overflow-hidden transition cursor-pointer" style="border-color: var(--border-glass); background: rgba(124,58,237,0.02);"
+                            <template x-for="t in visibleCardTemplates()" :key="t.id">
+                                <div class="rounded-xl border overflow-hidden transition cursor-pointer" style="border-color: var(--border-glass); background: rgba(124,58,237,0.02);"
                                      @click="t.locked ? (window.location.href = '{{ route('user.upgrade') }}') : applyCardTemplate(t.id)"
                                      :class="t.locked ? 'opacity-70 hover:border-amber-500/50' : 'hover:border-violet-500/50'"
-                                     :title="t.locked ? 'Upgrade to ' + t.plan_tier + ' to use this template' : t.name">
+                                     :title="t.locked ? 'Upgrade to ' + t.plan_tier + ' to use this template' : (t.description || t.name)">
                                     <div class="aspect-[4/2] flex items-center justify-center relative" style="background: linear-gradient(135deg, rgba(124,58,237,0.12), rgba(139,92,246,0.04));">
                                         <template x-if="t.thumbnail_url">
-                                            <img :src="t.thumbnail_url" :alt="t.name" class="w-full h-full object-cover">
+                                            <img :src="t.thumbnail_url" :alt="t.name" class="w-full h-full object-cover" loading="lazy">
                                         </template>
                                         <template x-if="!t.thumbnail_url">
                                             <i class="fas fa-square-poll-vertical text-2xl text-violet-300/60"></i>
@@ -866,10 +871,15 @@ $catColors = [
                                     </div>
                                     <div class="p-3">
                                         <div class="text-xs font-semibold mb-0.5" style="color: var(--text-primary);" x-text="t.name"></div>
-                                        <div class="text-[10px]" style="color: var(--text-faint);"><span x-text="t.children_count"></span> blocks · <span x-text="t.category"></span></div>
+                                        <div class="text-[10px]" style="color: var(--text-faint);"><span x-text="t.children_count"></span> blocks · <span x-text="t.category_label || t.category"></span></div>
                                     </div>
                                 </div>
                             </template>
+                        </div>
+                        <div class="text-center mt-4" x-show="!cardTemplatesLoading && visibleCardTemplates().length < cardTemplates.length">
+                            <button type="button" @click="cardTemplatesLimit += 24" class="text-[11px] text-violet-400 hover:text-violet-300">
+                                Show more (<span x-text="cardTemplates.length - cardTemplatesLimit"></span> left)
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -921,15 +931,35 @@ function biolinkEditor() {
         galleryCategory: 'all',
         galleryMode: 'blocks',
         cardTemplates: [],
+        cardCategories: {},
+        cardCategory: 'all',
+        cardTemplatesLimit: 24,
         cardTemplatesLoading: false,
         cardTemplatesLoaded: false,
+        _cardSearchTimer: null,
         editingBlockId: null,
-        loadCardTemplates() {
-            if (this.cardTemplatesLoaded || this.cardTemplatesLoading) return;
+        visibleCardTemplates() {
+            var q = (this.gallerySearch || '').toLowerCase();
+            var filtered = q
+                ? this.cardTemplates.filter(t => (t.name + ' ' + (t.description || '')).toLowerCase().includes(q))
+                : this.cardTemplates;
+            return filtered.slice(0, this.cardTemplatesLimit);
+        },
+        loadCardTemplates(force) {
+            if (!force && (this.cardTemplatesLoaded || this.cardTemplatesLoading)) return;
             this.cardTemplatesLoading = true;
-            fetch('{{ route('user.links.templates.cards', $link) }}', { headers: { 'Accept': 'application/json' } })
+            this.cardTemplatesLimit = 24;
+            var params = new URLSearchParams();
+            if (this.cardCategory && this.cardCategory !== 'all') params.set('category', this.cardCategory);
+            if (this.gallerySearch) params.set('q', this.gallerySearch);
+            var url = '{{ route('user.links.templates.cards', $link) }}' + (params.toString() ? '?' + params.toString() : '');
+            fetch(url, { headers: { 'Accept': 'application/json' } })
                 .then(r => r.json())
-                .then(d => { this.cardTemplates = d.items || []; this.cardTemplatesLoaded = true; })
+                .then(d => {
+                    this.cardTemplates = d.items || [];
+                    if (d.categories) this.cardCategories = d.categories;
+                    this.cardTemplatesLoaded = true;
+                })
                 .catch(() => { showToast('Failed to load templates', 'error'); })
                 .finally(() => { this.cardTemplatesLoading = false; });
         },
