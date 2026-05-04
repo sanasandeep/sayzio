@@ -1,4 +1,5 @@
-import { apiFetch } from "@/lib/api";
+import { apiFetch, getBaseUrl, MOBILE_USER_AGENT } from "@/lib/api";
+import { getToken } from "@/lib/secure";
 
 export type ResumeSectionType =
   | "experience"
@@ -105,6 +106,94 @@ export async function updateResumeHeader(
     body: JSON.stringify(payload),
   });
   return res.data.resume;
+}
+
+/**
+ * Upload a header photo from the device. Posted as multipart/form-data
+ * to mirror the web flow; the server stores it as a UserFile in the
+ * vault and writes its id onto the header section, so the resulting
+ * `photo_url` ends up identical to what the web editor sees.
+ */
+export async function uploadResumeHeaderPhoto(args: {
+  uri: string;
+  name?: string;
+  mime?: string;
+}): Promise<Resume> {
+  const token = await getToken();
+  const fd = new FormData();
+  const mime = args.mime || guessImageMime(args.uri) || "image/jpeg";
+  const ext = extFromMime(mime);
+  fd.append("photo", {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore – RN-specific FormData entry shape.
+    uri: args.uri,
+    name: args.name || `resume-header.${ext}`,
+    type: mime,
+  } as unknown as Blob);
+
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    "User-Agent": MOBILE_USER_AGENT,
+    "X-1INME-Client": MOBILE_USER_AGENT,
+    // NB: do NOT set Content-Type — RN fills the multipart boundary in.
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const res = await fetch(`${getBaseUrl()}/api/v1/resume/header/photo`, {
+    method: "POST",
+    body: fd as unknown as BodyInit,
+    headers,
+  });
+  const text = await res.text();
+  const body = text ? safeJson(text) : null;
+  if (!res.ok) {
+    const nested =
+      body && typeof body.error === "object" && body.error !== null
+        ? (body.error as Record<string, unknown>)
+        : null;
+    const message =
+      (nested && typeof nested.message === "string" ? (nested.message as string) : null) ||
+      (body && typeof body.message === "string" ? (body.message as string) : null) ||
+      `Upload failed (${res.status})`;
+    throw {
+      status: res.status,
+      message,
+      errors: (body?.errors as Record<string, string[]> | undefined) ??
+        (nested?.details as Record<string, string[]> | undefined),
+    };
+  }
+  return (body as { data: { resume: Resume } }).data.resume;
+}
+
+export async function removeResumeHeaderPhoto(): Promise<Resume> {
+  const res = await apiFetch<{ data: { resume: Resume } }>(
+    "/resume/header/photo",
+    { method: "DELETE" },
+  );
+  return res.data.resume;
+}
+
+function guessImageMime(uri: string): string | null {
+  const m = uri.toLowerCase().match(/\.(jpe?g|png|webp)(?:\?|$)/);
+  if (!m) return null;
+  const ext = m[1];
+  if (ext === "png") return "image/png";
+  if (ext === "webp") return "image/webp";
+  return "image/jpeg";
+}
+
+function extFromMime(mime: string): string {
+  if (mime.includes("png")) return "png";
+  if (mime.includes("webp")) return "webp";
+  return "jpg";
+}
+
+function safeJson(text: string): Record<string, unknown> | null {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
 }
 
 export async function updateResumeSummary(summary: string): Promise<Resume> {

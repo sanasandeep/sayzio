@@ -243,6 +243,8 @@ Route::prefix('v1')->group(function () {
         // resume id and members of foreign workspaces can't reach it).
         Route::get   ('/resume',                 [\App\Modules\Api\Controllers\ResumeController::class, 'show']);
         Route::put   ('/resume/header',          [\App\Modules\Api\Controllers\ResumeController::class, 'updateHeader']);
+        Route::post  ('/resume/header/photo',    [\App\Modules\Api\Controllers\ResumeController::class, 'uploadHeaderPhoto']);
+        Route::delete('/resume/header/photo',    [\App\Modules\Api\Controllers\ResumeController::class, 'removeHeaderPhoto']);
         Route::put   ('/resume/summary',         [\App\Modules\Api\Controllers\ResumeController::class, 'updateSummary']);
         Route::put   ('/resume/template',        [\App\Modules\Api\Controllers\ResumeController::class, 'updateTemplate']);
         Route::put   ('/resume/color-theme',     [\App\Modules\Api\Controllers\ResumeController::class, 'updateColorTheme']);

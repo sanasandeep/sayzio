@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Linking,
   Modal,
   Pressable,
@@ -16,6 +17,7 @@ import {
   Text,
   View,
 } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
@@ -32,6 +34,7 @@ import {
   createResumeItem,
   deleteResumeItem,
   getResume,
+  removeResumeHeaderPhoto,
   reorderResumeItems,
   updateResumeColorTheme,
   updateResumeHeader,
@@ -40,6 +43,7 @@ import {
   updateResumePublishing,
   updateResumeSummary,
   updateResumeTemplate,
+  uploadResumeHeaderPhoto,
   type PublishingPayload,
   type Resume,
   type ResumeBundle,
@@ -203,6 +207,107 @@ function ResumeEditor({
     onSuccess: (r) => qc.setQueryData(["resume"], { ...bundle, resume: r }),
   });
 
+  const photoUploadMut = useMutation({
+    mutationFn: (a: { uri: string; mime?: string; name?: string }) =>
+      uploadResumeHeaderPhoto(a),
+    onSuccess: (r) => qc.setQueryData(["resume"], { ...bundle, resume: r }),
+    onError: (e: { message?: string }) =>
+      Alert.alert("Couldn't upload photo", e?.message ?? "Try again."),
+  });
+
+  const photoRemoveMut = useMutation({
+    mutationFn: () => removeResumeHeaderPhoto(),
+    onSuccess: (r) => qc.setQueryData(["resume"], { ...bundle, resume: r }),
+    onError: (e: { message?: string }) =>
+      Alert.alert("Couldn't remove photo", e?.message ?? "Try again."),
+  });
+
+  const pickFromLibrary = useCallback(async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert(
+        "Photos access needed",
+        "Allow access to your photo library in Settings to pick a header photo.",
+      );
+      return;
+    }
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.85,
+    });
+    if (res.canceled || !res.assets?.[0]) return;
+    const a = res.assets[0];
+    photoUploadMut.mutate({
+      uri: a.uri,
+      mime: a.mimeType ?? undefined,
+      name: a.fileName ?? undefined,
+    });
+  }, [photoUploadMut]);
+
+  const takePhoto = useCallback(async () => {
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert(
+        "Camera access needed",
+        "Allow camera access in Settings to take a header photo.",
+      );
+      return;
+    }
+    const res = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.85,
+    });
+    if (res.canceled || !res.assets?.[0]) return;
+    const a = res.assets[0];
+    photoUploadMut.mutate({
+      uri: a.uri,
+      mime: a.mimeType ?? undefined,
+      name: a.fileName ?? undefined,
+    });
+  }, [photoUploadMut]);
+
+  const openSourceMenu = useCallback(() => {
+    // Stays at 3 buttons so Android's Alert (which truncates beyond 3)
+    // renders cleanly on every platform.
+    Alert.alert("Header photo", undefined, [
+      { text: "Choose from library", onPress: pickFromLibrary },
+      { text: "Take photo", onPress: takePhoto },
+      { text: "Cancel", style: "cancel" },
+    ]);
+  }, [pickFromLibrary, takePhoto]);
+
+  const openPhotoMenu = useCallback(() => {
+    const hasPhoto = !!resume.sections.header.photo_url;
+    if (!hasPhoto) {
+      openSourceMenu();
+      return;
+    }
+    // Existing photo: offer replace/remove. Replace opens a second
+    // 3-button source menu so the top-level alert stays at 3 actions
+    // (Android's Alert silently drops anything past 3).
+    Alert.alert("Header photo", undefined, [
+      { text: "Replace photo", onPress: openSourceMenu },
+      {
+        text: "Remove photo",
+        style: "destructive",
+        onPress: () =>
+          Alert.alert("Remove header photo?", undefined, [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Remove",
+              style: "destructive",
+              onPress: () => photoRemoveMut.mutate(),
+            },
+          ]),
+      },
+      { text: "Cancel", style: "cancel" },
+    ]);
+  }, [resume.sections.header.photo_url, openSourceMenu, photoRemoveMut]);
+
   const [showStyle, setShowStyle] = useState(false);
   const [showPublish, setShowPublish] = useState(false);
   const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
@@ -288,6 +393,11 @@ function ResumeEditor({
       {/* Header section */}
       <SectionTitle text="Header" />
       <Card>
+        <HeaderPhotoSlot
+          photoUrl={resume.sections.header.photo_url}
+          busy={photoUploadMut.isPending || photoRemoveMut.isPending}
+          onPress={openPhotoMenu}
+        />
         <TextField
           label="Display name"
           value={header.name}
@@ -703,6 +813,59 @@ function SectionTitle({ text }: { text: string }) {
   const colors = useColors();
   return (
     <Text style={[styles.sectionTitle, { color: colors.foreground }]}>{text}</Text>
+  );
+}
+
+function HeaderPhotoSlot({
+  photoUrl,
+  busy,
+  onPress,
+}: {
+  photoUrl: string | null;
+  busy: boolean;
+  onPress: () => void;
+}) {
+  const colors = useColors();
+  return (
+    <Pressable
+      onPress={busy ? undefined : onPress}
+      accessibilityRole="button"
+      accessibilityLabel={photoUrl ? "Change header photo" : "Add header photo"}
+      style={({ pressed }) => [
+        styles.photoRow,
+        { opacity: pressed && !busy ? 0.85 : 1 },
+      ]}
+    >
+      <View
+        style={[
+          styles.photoThumb,
+          { borderColor: colors.border, backgroundColor: colors.muted },
+        ]}
+      >
+        {busy ? (
+          <ActivityIndicator color={colors.primary} />
+        ) : photoUrl ? (
+          <Image source={{ uri: photoUrl }} style={styles.photoImg} />
+        ) : (
+          <Feather name="user" size={28} color={colors.mutedForeground} />
+        )}
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={{ color: colors.foreground, fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 13 }}>
+          Header photo
+        </Text>
+        <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 2 }}>
+          {photoUrl
+            ? "Tap to change or remove."
+            : "Tap to pick from your library or take a new one."}
+        </Text>
+      </View>
+      <Feather
+        name={photoUrl ? "edit-2" : "plus"}
+        size={18}
+        color={colors.primary}
+      />
+    </Pressable>
   );
 }
 
@@ -1356,15 +1519,25 @@ function PreviewCard({ resume }: { resume: Resume }) {
 
   return (
     <Card style={{ backgroundColor: "#fff", padding: 18 }}>
-      <Text style={{ fontFamily: "SpaceGrotesk_700Bold", fontSize: 22, color: "#111" }}>
-        {h.name || "Your name"}
-      </Text>
-      {h.headline ? (
-        <Text style={{ fontSize: 13, color: "#444", marginTop: 2 }}>{h.headline}</Text>
-      ) : null}
-      {contact ? (
-        <Text style={{ fontSize: 11, color: "#666", marginTop: 4 }}>{contact}</Text>
-      ) : null}
+      <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
+        {h.photo_url ? (
+          <Image
+            source={{ uri: h.photo_url }}
+            style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: "#eee" }}
+          />
+        ) : null}
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontFamily: "SpaceGrotesk_700Bold", fontSize: 22, color: "#111" }}>
+            {h.name || "Your name"}
+          </Text>
+          {h.headline ? (
+            <Text style={{ fontSize: 13, color: "#444", marginTop: 2 }}>{h.headline}</Text>
+          ) : null}
+          {contact ? (
+            <Text style={{ fontSize: 11, color: "#666", marginTop: 4 }}>{contact}</Text>
+          ) : null}
+        </View>
+      </View>
 
       {resume.sections.summary ? (
         <View style={{ marginTop: 12 }}>
@@ -1512,6 +1685,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   swatch: { width: 28, height: 28, borderRadius: 14, borderWidth: 2 },
+  photoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 4,
+  },
+  photoThumb: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 1,
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  photoImg: { width: "100%", height: "100%" },
   pvSectionTitle: {
     fontFamily: "SpaceGrotesk_700Bold",
     fontSize: 11,

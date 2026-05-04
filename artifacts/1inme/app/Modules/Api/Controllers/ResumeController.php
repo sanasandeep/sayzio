@@ -5,6 +5,7 @@ namespace App\Modules\Api\Controllers;
 use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use App\Modules\User\Models\Resume;
 use App\Modules\User\Models\ResumeSectionItem;
+use App\Modules\User\Models\UserFile;
 use App\Modules\User\Services\ResumeColorThemeRegistry;
 use App\Modules\User\Services\ResumePresenter;
 use App\Modules\User\Services\ResumeTemplateRegistry;
@@ -65,6 +66,66 @@ class ResumeController extends Controller
             $data
         ));
         $resume->update(['sections' => $sections]);
+
+        return $this->ok(['resume' => ResumePresenter::present($resume->fresh('items'))]);
+    }
+
+    /**
+     * POST /resume/header/photo — upload a header photo from the mobile
+     * client. Mirrors the web controller: stores the uploaded image as a
+     * UserFile in the user's vault so quotas / serving / cleanup stay
+     * uniform across web + mobile, then writes its id onto
+     * `sections.header.photo_user_file_id`. Replacing an existing photo
+     * deletes the previous vault entry.
+     */
+    public function uploadHeaderPhoto(Request $request)
+    {
+        $request->validate([
+            'photo' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+        ]);
+
+        $user   = $request->user();
+        $resume = $user->ensureResume();
+
+        try {
+            $userFile = UserFile::createFromUpload($request->file('photo'), $user, [
+                'max_size_mb' => 5,
+            ]);
+        } catch (\RuntimeException $e) {
+            return $this->fail($e->getMessage(), 422, 'upload_failed');
+        }
+
+        $sections = $resume->getMergedSections();
+        $oldId    = $sections['header']['photo_user_file_id'] ?? null;
+        $sections['header']['photo_user_file_id'] = $userFile->id;
+        $resume->update(['sections' => $sections]);
+
+        if ($oldId && (int) $oldId !== (int) $userFile->id) {
+            $old = UserFile::where('id', $oldId)->where('user_id', $user->id)->first();
+            if ($old) $old->deleteFile();
+        }
+
+        return $this->ok(['resume' => ResumePresenter::present($resume->fresh('items'))]);
+    }
+
+    /**
+     * DELETE /resume/header/photo — remove the header photo and the
+     * underlying vault file (it was uploaded explicitly for this slot).
+     */
+    public function removeHeaderPhoto(Request $request)
+    {
+        $user     = $request->user();
+        $resume   = $user->ensureResume();
+        $sections = $resume->getMergedSections();
+        $oldId    = $sections['header']['photo_user_file_id'] ?? null;
+
+        $sections['header']['photo_user_file_id'] = null;
+        $resume->update(['sections' => $sections]);
+
+        if ($oldId) {
+            $old = UserFile::where('id', $oldId)->where('user_id', $user->id)->first();
+            if ($old) $old->deleteFile();
+        }
 
         return $this->ok(['resume' => ResumePresenter::present($resume->fresh('items'))]);
     }
