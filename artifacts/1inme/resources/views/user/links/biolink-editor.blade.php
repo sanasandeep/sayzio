@@ -854,7 +854,29 @@ $catColors = [
                                         <template x-if="t.thumbnail_url">
                                             <img :src="t.thumbnail_url" :alt="t.name" class="w-full h-full object-cover" loading="lazy">
                                         </template>
-                                        <template x-if="!t.thumbnail_url">
+                                        {{-- Auto-generated mini blueprint of the card layout. Each row is a
+                                             flex row whose children flex-grow proportional to their grid_span,
+                                             so column counts and image position match the real card. Heights
+                                             are type-specific px hints so headings/buttons/images look
+                                             distinguishable at thumbnail size. --}}
+                                        <template x-if="!t.thumbnail_url && (t.preview_layout || []).length">
+                                            <div class="w-full h-full px-2 py-1.5 flex flex-col gap-1 justify-center">
+                                                <template x-for="(row, ri) in t.preview_layout" :key="ri">
+                                                    <div class="flex gap-1 w-full items-center">
+                                                        <template x-for="(cell, ci) in row" :key="ci">
+                                                            <div class="rounded-[3px] flex items-center justify-center text-white/70"
+                                                                 :style="'flex: ' + cell.span + ' 0 0; min-height: ' + cell.h + 'px; background: ' + cell.bg + ';'">
+                                                                <i x-show="cell.icon" :class="'fas ' + cell.icon" style="font-size: 7px;"></i>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </template>
+                                        {{-- Final fallback: snapshot had no usable children (or future block
+                                             type with no palette entry) — keep the original generic icon so
+                                             the card never renders blank. --}}
+                                        <template x-if="!t.thumbnail_url && !(t.preview_layout || []).length">
                                             <i class="fas fa-square-poll-vertical text-2xl text-violet-300/60"></i>
                                         </template>
                                         <div x-show="t.locked" class="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/90 text-white"><i class="fas fa-lock mr-1"></i><span x-text="t.plan_tier"></span></div>

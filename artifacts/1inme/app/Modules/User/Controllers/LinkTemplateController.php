@@ -77,9 +77,8 @@ class LinkTemplateController extends Controller
         }
 
         $cards = $query->get()->map(function ($t) use ($userPlanSlug, $categories) {
-            $children = $this->summarizer->summarizeChildren(
-                is_array($t->snapshot['children'] ?? null) ? $t->snapshot['children'] : []
-            );
+            $rawChildren = is_array($t->snapshot['children'] ?? null) ? $t->snapshot['children'] : [];
+            $children = $this->summarizer->summarizeChildren($rawChildren);
             return [
                 'id' => $t->id,
                 'name' => $t->name,
@@ -91,6 +90,13 @@ class LinkTemplateController extends Controller
                 'locked' => $this->isLocked($t->plan_tier, $userPlanSlug),
                 'children_count' => count($children),
                 'children' => $children,
+                // Tiny visual blueprint of the card layout: rows of cells laid
+                // out on the same 12-col grid the real card uses, each cell
+                // carrying a height/color/icon hint per block type. The
+                // gallery renders this as a thumbnail when no static
+                // thumbnail_url is set, falling back to a generic icon if
+                // the snapshot has no usable children.
+                'preview_layout' => $this->buildPreviewLayout($rawChildren),
             ];
         });
 
@@ -149,6 +155,89 @@ class LinkTemplateController extends Controller
             return response()->json(['success' => true, 'block_id' => $block->id]);
         }
         return redirect()->route('user.links.blocks.editor', $link)->with('success', 'Card template added.');
+    }
+
+    /**
+     * Build a tiny visual blueprint of the card snapshot's children, laid
+     * out on the same 12-col grid the real card renderer uses. Cells are
+     * grouped into rows that respect grid_span, so a card with two 6-col
+     * children renders as a single row of two cells. Each cell carries a
+     * type-specific background, height hint and icon — enough to convey
+     * column count, image position and button style at thumbnail size
+     * without invoking the full block renderer. Capped at 6 rows so the
+     * preview never overflows the gallery card.
+     *
+     * @param  array<int, array<string, mixed>>  $children
+     * @return array<int, array<int, array{span:int,bg:string,h:int,icon:string}>>
+     */
+    private function buildPreviewLayout(array $children): array
+    {
+        $rows = [];
+        $current = [];
+        $used = 0;
+        foreach ($children as $child) {
+            if (!is_array($child)) continue;
+            $type = (string) ($child['type'] ?? '');
+            if ($type === '') continue;
+            $settings = is_array($child['settings'] ?? null) ? $child['settings'] : [];
+            $span = (int) ($settings['_style']['grid_span'] ?? 12);
+            $span = max(1, min(12, $span));
+            $cell = $this->previewCellFor($type) + ['span' => $span];
+            // Wrap to a new row when the current row can't fit this cell.
+            if ($used + $span > 12 && $current) {
+                $rows[] = $current;
+                $current = [];
+                $used = 0;
+                if (count($rows) >= 6) break;
+            }
+            $current[] = $cell;
+            $used += $span;
+            if ($used >= 12) {
+                $rows[] = $current;
+                $current = [];
+                $used = 0;
+                if (count($rows) >= 6) break;
+            }
+        }
+        if ($current && count($rows) < 6) {
+            $rows[] = $current;
+        }
+        return $rows;
+    }
+
+    /**
+     * Visual hints (background, height in px, icon) for a single block type
+     * in the mini preview. Unknown types fall back to a neutral pill so the
+     * preview never crashes on a future block type — the gallery itself
+     * still falls back to a generic icon if no rows are produced at all.
+     *
+     * @return array{bg:string,h:int,icon:string}
+     */
+    private function previewCellFor(string $type): array
+    {
+        static $palette = [
+            'heading'         => ['bg' => 'rgba(167,139,250,0.55)', 'h' => 14, 'icon' => 'fa-heading'],
+            'paragraph'       => ['bg' => 'rgba(255,255,255,0.10)', 'h' => 18, 'icon' => ''],
+            'link'            => ['bg' => 'rgba(139,92,246,0.55)',  'h' => 10, 'icon' => 'fa-link'],
+            'link_big'        => ['bg' => 'rgba(139,92,246,0.75)',  'h' => 16, 'icon' => 'fa-arrow-right'],
+            'image'           => ['bg' => 'linear-gradient(135deg, rgba(56,189,248,0.40), rgba(139,92,246,0.40))', 'h' => 24, 'icon' => 'fa-image'],
+            'video'           => ['bg' => 'linear-gradient(135deg, rgba(244,63,94,0.35), rgba(139,92,246,0.35))',  'h' => 24, 'icon' => 'fa-play'],
+            'divider'         => ['bg' => 'rgba(255,255,255,0.18)', 'h' => 2,  'icon' => ''],
+            'spacer'          => ['bg' => 'transparent',            'h' => 6,  'icon' => ''],
+            'socials_multi'   => ['bg' => 'rgba(255,255,255,0.08)', 'h' => 10, 'icon' => 'fa-share-nodes'],
+            'badge'           => ['bg' => 'rgba(245,158,11,0.45)',  'h' => 8,  'icon' => ''],
+            'alert'           => ['bg' => 'rgba(245,158,11,0.30)',  'h' => 12, 'icon' => 'fa-circle-info'],
+            'email_subscribe' => ['bg' => 'rgba(139,92,246,0.45)',  'h' => 16, 'icon' => 'fa-envelope'],
+            'email_collector' => ['bg' => 'rgba(139,92,246,0.45)',  'h' => 16, 'icon' => 'fa-envelope'],
+            'contact_form'    => ['bg' => 'rgba(255,255,255,0.06)', 'h' => 28, 'icon' => 'fa-id-card'],
+            'form'            => ['bg' => 'rgba(255,255,255,0.06)', 'h' => 28, 'icon' => 'fa-list-check'],
+            'profile_card_v1' => ['bg' => 'linear-gradient(135deg, rgba(167,139,250,0.45), rgba(56,189,248,0.30))', 'h' => 26, 'icon' => 'fa-user'],
+            'whatsapp_widget' => ['bg' => 'rgba(34,197,94,0.45)',   'h' => 14, 'icon' => 'fa-comment'],
+            'list'            => ['bg' => 'rgba(255,255,255,0.07)', 'h' => 20, 'icon' => 'fa-list'],
+            'social_proof'    => ['bg' => 'rgba(255,255,255,0.06)', 'h' => 20, 'icon' => 'fa-quote-left'],
+            'ai_companion'    => ['bg' => 'rgba(139,92,246,0.30)',  'h' => 22, 'icon' => 'fa-robot'],
+        ];
+        return $palette[$type] ?? ['bg' => 'rgba(255,255,255,0.08)', 'h' => 12, 'icon' => 'fa-cube'];
     }
 
     /**
