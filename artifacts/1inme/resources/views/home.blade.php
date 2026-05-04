@@ -2219,6 +2219,20 @@
         html.light-mode .text-white\/80                   { color: rgba(15,23,42,.78); }
         html.light-mode .text-white\/70                   { color: rgba(15,23,42,.70); }
         html.light-mode .text-white\/60                   { color: rgba(15,23,42,.58); }
+
+        /* ---- Keep white text white when sitting on the dark brand gradient ----
+           .grad-bar stays a dark gradient even in light mode, so the global
+           .text-white → dark rule above would render text dark-on-dark
+           (marquee strip, "Sign up free" pill, Dashboard pill, CTA buttons,
+           FAQ chevrons, gradient avatars, etc.). Restore white inside grad-bar. */
+        html.light-mode .grad-bar,
+        html.light-mode .grad-bar .text-white,
+        html.light-mode .grad-bar .text-white\/80,
+        html.light-mode .grad-bar .text-white\/70,
+        html.light-mode .grad-bar .text-white\/60        { color: #ffffff; }
+        html.light-mode .grad-bar .text-white\/80        { color: rgba(255,255,255,.85); }
+        html.light-mode .grad-bar .text-white\/70        { color: rgba(255,255,255,.78); }
+        html.light-mode .grad-bar .text-white\/60        { color: rgba(255,255,255,.70); }
         html.live, /* sentinel — keeps the file parseable */
         html.light-mode .text-gray-200                    { color: #1f2937; }
         html.light-mode .text-gray-300                    { color: #334155; }
