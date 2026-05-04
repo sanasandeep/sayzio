@@ -867,6 +867,18 @@ class BiolinkBlockController extends Controller
             'auto_translate.style' => 'nullable|string|in:dropdown,flags,minimal',
             'auto_translate.bg_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
             'auto_translate.text_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
+
+            // Auto-UTM defaults applied to every outbound biolink block click.
+            // Defaults are templates supporting {slug} and {block} tokens;
+            // a block can override any individual key from the editor.
+            'auto_utm' => 'nullable|array',
+            'auto_utm.enabled' => 'boolean',
+            'auto_utm.defaults' => 'nullable|array',
+            'auto_utm.defaults.utm_source'   => 'nullable|string|max:120',
+            'auto_utm.defaults.utm_medium'   => 'nullable|string|max:120',
+            'auto_utm.defaults.utm_campaign' => 'nullable|string|max:160',
+            'auto_utm.defaults.utm_term'     => 'nullable|string|max:160',
+            'auto_utm.defaults.utm_content'  => 'nullable|string|max:160',
         ]);
 
         $user = auth()->user();
@@ -905,6 +917,27 @@ class BiolinkBlockController extends Controller
         }
 
         unset($validated['favicon_upload']);
+
+        // Auto-UTM: handle the toggle/defaults block explicitly so an
+        // unchecked "Enable" checkbox actually disables it (HTML forms
+        // omit unchecked checkboxes from the payload entirely). When the
+        // form did include any auto_utm key we replace the whole block
+        // so removed defaults don't linger.
+        $autoUtmInput = $validated['auto_utm'] ?? null;
+        unset($validated['auto_utm']);
+        if ($request->has('auto_utm')) {
+            $defaults = is_array($autoUtmInput['defaults'] ?? null) ? $autoUtmInput['defaults'] : [];
+            $cleanDefaults = [];
+            foreach (\App\Modules\Common\Services\AutoUtmBuilder::UTM_KEYS as $k) {
+                $v = trim((string) ($defaults[$k] ?? ''));
+                if ($v !== '') $cleanDefaults[$k] = $v;
+            }
+            $settings['biolink']['auto_utm'] = [
+                'enabled'  => !empty($autoUtmInput['enabled']),
+                'defaults' => $cleanDefaults,
+            ];
+        }
+
         $settings['biolink'] = array_merge($settings['biolink'] ?? [], $validated);
 
         if ($blockTheme !== null) {
@@ -1822,10 +1855,37 @@ class BiolinkBlockController extends Controller
             $result['title'] = substr(strip_tags(trim($input['title'])), 0, 200);
         }
 
+        // Preserve the legacy flat utm_* fields. Older saved blocks may
+        // still write here, and the AutoUtmBuilder treats them as
+        // overrides for backward compatibility.
         foreach (['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'] as $utm) {
             if (!empty($input[$utm])) {
-                $result[$utm] = preg_replace('/[^a-zA-Z0-9_\-. ]/', '', substr(trim($input[$utm]), 0, 100));
+                $result[$utm] = preg_replace('/[^a-zA-Z0-9_\-.{} ]/', '', substr(trim($input[$utm]), 0, 160));
             }
+        }
+
+        // New structured Auto-UTM block: per-block toggle (inherit/on/off)
+        // plus per-key overrides. Tokens like {slug} and {block} are
+        // resolved at click time, so we keep `{` and `}` in the
+        // sanitization allow-list.
+        if (isset($input['auto_utm']) && is_array($input['auto_utm'])) {
+            $au = $input['auto_utm'];
+            $enabled = isset($au['enabled']) ? (string) $au['enabled'] : 'inherit';
+            if (!in_array($enabled, ['inherit', 'on', 'off'], true)) {
+                $enabled = 'inherit';
+            }
+            $cleanOverrides = [];
+            $rawOverrides = is_array($au['overrides'] ?? null) ? $au['overrides'] : [];
+            foreach (['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'] as $utm) {
+                if (!isset($rawOverrides[$utm])) continue;
+                $val = trim((string) $rawOverrides[$utm]);
+                if ($val === '') continue;
+                $cleanOverrides[$utm] = preg_replace('/[^a-zA-Z0-9_\-.{} ]/', '', substr($val, 0, 160));
+            }
+            $result['auto_utm'] = [
+                'enabled'   => $enabled,
+                'overrides' => $cleanOverrides,
+            ];
         }
 
         return $result;

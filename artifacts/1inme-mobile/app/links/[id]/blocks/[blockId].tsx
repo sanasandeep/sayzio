@@ -116,6 +116,7 @@ import {
 } from "@/components/IconPickerModal";
 import { TextField } from "@/components/TextField";
 import { useColors } from "@/hooks/useColors";
+import { getLink } from "@/lib/api/links";
 import {
   blockKind,
   listBlocks,
@@ -222,6 +223,24 @@ export default function EditBlockScreen() {
   const [visDevicesExclude, setVisDevicesExclude] = useState<Set<string>>(new Set());
   const [visCountries, setVisCountries] = useState<string>("");
   const [visCountriesExclude, setVisCountriesExclude] = useState<string>("");
+
+  // Per-block trackable-link settings live under `block.settings._link`. We
+  // hold them in a dedicated state bucket because `values` is string-only
+  // and the auto-UTM payload includes nested overrides + an enum toggle.
+  const [linkUrl, setLinkUrl] = useState<string>("");
+  type AutoUtmEnabled = "inherit" | "on" | "off";
+  const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"] as const;
+  const [autoUtmEnabled, setAutoUtmEnabled] = useState<AutoUtmEnabled>("inherit");
+  const [autoUtmOverrides, setAutoUtmOverrides] = useState<Record<string, string>>({});
+
+  // Pull the parent biolink so the resolved-URL preview can read the
+  // biolink-wide auto_utm defaults and slug. Cached by the same key the
+  // settings screens use.
+  const linkQ = useQuery({
+    queryKey: ["link", id],
+    queryFn: () => getLink(id),
+    enabled: Number.isFinite(id),
+  });
   // List/pricing block state. These block types persist a `style` string,
   // an `items` array, and (for `list`) a default bullet `icon`. They are
   // edited via a bespoke UI rather than the generic field renderer.
@@ -261,6 +280,29 @@ export default function EditBlockScreen() {
       else if (v != null && typeof v !== "object") init[k] = String(v);
     });
     setValues(init);
+    // Hydrate per-block trackable-link state. Supports both the new
+    // structured `_link.auto_utm` shape and the legacy flat `_link.utm_*`
+    // overrides — flat values are surfaced as overrides so editing in
+    // the new UI carries them forward seamlessly.
+    const lk = (block.settings?._link as Record<string, unknown> | undefined) ?? {};
+    // Prefer the trackable `_link.url`; fall back to the legacy generic
+    // `settings.url` so existing link/image/video blocks load with their
+    // current destination already in the new editor.
+    const legacyUrl =
+      typeof block.settings?.url === "string" ? (block.settings.url as string) : "";
+    setLinkUrl(typeof lk.url === "string" ? lk.url : legacyUrl);
+    const au = (lk.auto_utm as Record<string, unknown> | undefined) ?? {};
+    const en = au.enabled;
+    setAutoUtmEnabled(en === "on" || en === "off" ? en : "inherit");
+    const ov: Record<string, string> = {};
+    const auOv = (au.overrides as Record<string, unknown> | undefined) ?? {};
+    UTM_KEYS.forEach((k) => {
+      if (typeof auOv[k] === "string") ov[k] = auOv[k] as string;
+      else if (typeof lk[k] === "string") ov[k] = lk[k] as string;
+      else ov[k] = "";
+    });
+    setAutoUtmOverrides(ov);
+
     const style = (block.settings?._style as Record<string, unknown> | undefined) ?? {};
     setVariantKey(typeof style._variant === "string" ? style._variant : "");
     // Hydrate visibility/targeting from `_visibility` (everything missing
@@ -484,6 +526,34 @@ export default function EditBlockScreen() {
         devices: Array.from(visDevices),
         devices_exclude: Array.from(visDevicesExclude),
       };
+
+      // Persist trackable-link settings under their structured `_link`
+      // sub-object. Preserve any pre-existing `_link` fields the editor
+      // doesn't surface (target, rel, title) so we don't blow them away.
+      const prevLink =
+        (block?.settings?._link as Record<string, unknown> | undefined) ?? {};
+      const cleanOverrides: Record<string, string> = {};
+      UTM_KEYS.forEach((k) => {
+        const v = (autoUtmOverrides[k] || "").trim();
+        if (v !== "") cleanOverrides[k] = v;
+      });
+      const trimmedUrl = linkUrl.trim();
+      const linkOut: Record<string, unknown> = { ...prevLink };
+      // Drop legacy flat utm_* overrides — they've been promoted into
+      // auto_utm.overrides above so we don't want stale duplicates.
+      UTM_KEYS.forEach((k) => delete linkOut[k]);
+      if (trimmedUrl) linkOut.url = trimmedUrl;
+      else delete linkOut.url;
+      // Keep the legacy generic `settings.url` in lockstep with the
+      // trackable destination so renderers that still read it (and the
+      // redirect's `$s['url']` fallback) never disagree with `_link.url`.
+      if (trimmedUrl) nextSettings.url = trimmedUrl;
+      else delete nextSettings.url;
+      linkOut.auto_utm = {
+        enabled: autoUtmEnabled,
+        overrides: cleanOverrides,
+      };
+      nextSettings._link = linkOut;
       // For list/pricing blocks, replace the primitive `style`/`icon`
       // strings copied into `values` with the structured editor state
       // (style + items + per-item icons). Empty trailing rows are
@@ -1099,7 +1169,14 @@ export default function EditBlockScreen() {
           </View>
         ) : null}
 
-        {(meta?.fields ?? []).map((f) => (
+        {(meta?.fields ?? [])
+          // The trackable-link section below owns the destination URL
+          // (it writes settings._link.url, which the redirect controller
+          // prefers over settings.url). Hide the generic `url` field for
+          // any block where the trackable-link section will render so
+          // creators don't end up with two URL inputs that disagree.
+          .filter((f) => !(f.key === "url"))
+          .map((f) => (
           <TextField
             key={f.key}
             label={f.label}
@@ -1217,6 +1294,231 @@ export default function EditBlockScreen() {
           />
         </View>
 
+        {(() => {
+          // Auto-UTM editor: shown for any block kind that ships with a
+          // `url` field (link/image/video/embed) since those are the ones
+          // whose outbound clicks our redirect controller decorates.
+          const hasUrl = (meta?.fields ?? []).some((f) => f.key === "url");
+          if (!hasUrl) return null;
+          const biolinkAutoUtm =
+            ((linkQ.data?.settings ?? {}) as Record<string, any>).biolink
+              ?.auto_utm ?? {};
+          const biolinkOn = !!biolinkAutoUtm.enabled;
+          const biolinkDefaults: Record<string, string> =
+            biolinkAutoUtm.defaults ?? {};
+          // Mirror AutoUtmBuilder::buildTokens — same field fallback +
+          // slugify so the preview matches the URL the redirect emits.
+          const slugify = (s: string) =>
+            s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+          const settingsRecord = (block?.settings ?? {}) as Record<string, unknown>;
+          let blockNameRaw = "";
+          for (const k of ["label", "title", "heading", "text", "name"]) {
+            const v = settingsRecord[k];
+            if (typeof v === "string" && v) {
+              blockNameRaw = v;
+              break;
+            }
+          }
+          if (!blockNameRaw) blockNameRaw = `block-${block?.id ?? ""}`;
+          const tokens: Record<string, string> = {
+            slug: linkQ.data?.alias ?? "",
+            alias: linkQ.data?.alias ?? "",
+            block: slugify(blockNameRaw),
+            block_id: String(block?.id ?? ""),
+            link_id: String(id),
+          };
+          const HARD_DEFAULTS: Record<string, string> = {
+            utm_source: "1inme",
+            utm_medium: "biolink",
+            utm_campaign: "{slug}",
+            utm_content: "{block}",
+          };
+          const effectiveOn =
+            autoUtmEnabled === "on" ||
+            (autoUtmEnabled === "inherit" && biolinkOn);
+          const resolveTokens = (v: string) =>
+            v.replace(/\{([a-z_]+)\}/g, (_, name) => tokens[name] ?? "");
+          const buildPreview = () => {
+            const raw = linkUrl.trim();
+            if (!raw) return "(set a destination URL above)";
+            // Mirror PHP split: preserve fragment, treat any existing
+            // destination key as creator-set (do not overwrite).
+            const hashAt = raw.indexOf("#");
+            const fragment = hashAt !== -1 ? raw.slice(hashAt) : "";
+            const base = hashAt !== -1 ? raw.slice(0, hashAt) : raw;
+            const queryAt = base.indexOf("?");
+            const pathPart = queryAt !== -1 ? base.slice(0, queryAt) : base;
+            const qsRaw = queryAt !== -1 ? base.slice(queryAt + 1) : "";
+            const params = new URLSearchParams(qsRaw);
+            if (effectiveOn) {
+              UTM_KEYS.forEach((k) => {
+                let v = (autoUtmOverrides[k] || "").trim();
+                if (!v) {
+                  const tpl =
+                    (biolinkDefaults[k] || "").trim() || HARD_DEFAULTS[k] || "";
+                  if (tpl) v = resolveTokens(tpl).trim();
+                } else {
+                  v = resolveTokens(v).trim();
+                }
+                if (!v || params.has(k)) return;
+                params.set(k, v);
+              });
+            }
+            const qs = params.toString();
+            return pathPart + (qs ? "?" + qs : "") + fragment;
+          };
+          return (
+            <View style={{ gap: 10 }}>
+              <Text
+                style={{
+                  color: colors.mutedForeground,
+                  fontSize: 12,
+                  fontFamily: "SpaceGrotesk_600SemiBold",
+                  letterSpacing: 0.6,
+                  textTransform: "uppercase",
+                  marginTop: 8,
+                }}
+              >
+                Trackable link
+              </Text>
+              <TextField
+                label="Destination URL"
+                value={linkUrl}
+                onChangeText={setLinkUrl}
+                keyboardType="url"
+                autoCapitalize="none"
+                hint="Tracked clicks land in your analytics."
+              />
+              <View style={{ gap: 8 }}>
+                <Text
+                  style={[
+                    styles.choiceLabel,
+                    { color: colors.mutedForeground },
+                  ]}
+                >
+                  Auto-UTM for this block
+                </Text>
+                <View
+                  style={[
+                    styles.segment,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
+                      borderRadius: colors.radius,
+                    },
+                  ]}
+                >
+                  {(["inherit", "on", "off"] as AutoUtmEnabled[]).map(
+                    (opt) => {
+                      const on = autoUtmEnabled === opt;
+                      const lbl =
+                        opt === "inherit"
+                          ? `Inherit (${biolinkOn ? "on" : "off"})`
+                          : opt === "on"
+                            ? "Always on"
+                            : "Off";
+                      return (
+                        <Pressable
+                          key={opt}
+                          onPress={() => setAutoUtmEnabled(opt)}
+                          style={[
+                            styles.segmentItem,
+                            {
+                              backgroundColor: on
+                                ? colors.background
+                                : "transparent",
+                              borderRadius: colors.radius - 4,
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.segmentText,
+                              {
+                                color: on
+                                  ? colors.primary
+                                  : colors.mutedForeground,
+                              },
+                            ]}
+                          >
+                            {lbl}
+                          </Text>
+                        </Pressable>
+                      );
+                    },
+                  )}
+                </View>
+                <Text
+                  style={{
+                    color: colors.mutedForeground,
+                    fontSize: 11,
+                    fontFamily: "SpaceGrotesk_400Regular",
+                  }}
+                >
+                  Existing UTM params on the destination URL are always
+                  preserved.
+                </Text>
+              </View>
+
+              {effectiveOn ? (
+                <View style={{ gap: 8 }}>
+                  {UTM_KEYS.map((k) => (
+                    <TextField
+                      key={k}
+                      label={k}
+                      value={autoUtmOverrides[k] ?? ""}
+                      onChangeText={(t) =>
+                        setAutoUtmOverrides((p) => ({ ...p, [k]: t }))
+                      }
+                      autoCapitalize="none"
+                      hint={
+                        biolinkDefaults[k]
+                          ? `default: ${biolinkDefaults[k]}`
+                          : HARD_DEFAULTS[k]
+                            ? `default: ${HARD_DEFAULTS[k]}`
+                            : "optional"
+                      }
+                    />
+                  ))}
+                </View>
+              ) : null}
+
+              <View
+                style={{
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                  borderWidth: 1,
+                  borderRadius: colors.radius,
+                  padding: 12,
+                  gap: 4,
+                }}
+              >
+                <Text
+                  style={{
+                    color: colors.mutedForeground,
+                    fontSize: 11,
+                    fontFamily: "SpaceGrotesk_600SemiBold",
+                    letterSpacing: 0.5,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Resolved URL preview
+                </Text>
+                <Text
+                  selectable
+                  style={{
+                    color: colors.foreground,
+                    fontSize: 12,
+                    fontFamily: "SpaceGrotesk_400Regular",
+                  }}
+                >
+                  {buildPreview()}
+                </Text>
+              </View>
+            </View>
+          );
+        })()}
+
         <View
           style={[
             styles.row,
@@ -1300,4 +1602,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   rowLabel: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 14 },
+  choiceLabel: {
+    fontFamily: "SpaceGrotesk_500Medium",
+    fontSize: 12,
+    letterSpacing: 0.4,
+    textTransform: "uppercase",
+  },
+  segment: { flexDirection: "row", padding: 4, borderWidth: 1 },
+  segmentItem: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+  },
+  segmentText: {
+    fontFamily: "SpaceGrotesk_600SemiBold",
+    fontSize: 12,
+  },
 });

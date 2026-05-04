@@ -19,6 +19,8 @@
     $menuBar = $bs['menu_bar'] ?? [];
     $autoTranslate = $bs['auto_translate'] ?? [];
     $menuBarItems = $menuBar['items'] ?? [];
+    $autoUtm = $bs['auto_utm'] ?? [];
+    $autoUtmDefaults = is_array($autoUtm['defaults'] ?? null) ? $autoUtm['defaults'] : [];
 @endphp
 
 <div class="w-full max-w-7xl mx-auto">
@@ -654,6 +656,41 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <div class="card-premium p-6" x-data="{ autoUtmEnabled: {{ !empty($autoUtm['enabled']) ? 'true' : 'false' }} }">
+                <div class="flex items-center gap-3 mb-1">
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(139,92,246,0.1);"><i class="fas fa-tags text-violet-400 text-xs"></i></div>
+                    <h3 class="text-sm font-bold" style="color: var(--text-primary);">Auto-UTM on outbound links</h3>
+                </div>
+                <p class="text-[11px] mb-4 ml-11" style="color: var(--text-dimmed);">
+                    Append clean attribution params to every outbound block click so they show up in your analytics tools. Use <code class="px-1 rounded" style="background: var(--bg-glass-input);">{slug}</code> for the biolink alias and <code class="px-1 rounded" style="background: var(--bg-glass-input);">{block}</code> for the block name. Per-block overrides win, and any params already in the destination URL are preserved.
+                </p>
+                <label class="flex items-center gap-3 cursor-pointer p-3 rounded-xl transition-all hover:bg-white/[0.02] mb-3" style="border: 1px solid var(--border-glass);">
+                    <input type="hidden" name="auto_utm[enabled]" value="0">
+                    <input type="checkbox" name="auto_utm[enabled]" value="1" x-model="autoUtmEnabled" class="rounded text-violet-500 focus:ring-violet-500/40 w-4 h-4" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
+                    <div>
+                        <span class="text-xs font-semibold" style="color: var(--text-primary);">Enable Auto-UTM for this biolink</span>
+                        <p class="text-[10px]" style="color: var(--text-dimmed);">Defaults: source <code>1inme</code>, medium <code>biolink</code>, campaign <code>{slug}</code>, content <code>{block}</code>.</p>
+                    </div>
+                </label>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3" x-show="autoUtmEnabled" x-cloak x-transition>
+                    @foreach([
+                        'utm_source'   => ['label' => 'utm_source',   'placeholder' => '1inme'],
+                        'utm_medium'   => ['label' => 'utm_medium',   'placeholder' => 'biolink'],
+                        'utm_campaign' => ['label' => 'utm_campaign', 'placeholder' => '{slug}'],
+                        'utm_term'     => ['label' => 'utm_term',     'placeholder' => 'optional'],
+                        'utm_content'  => ['label' => 'utm_content',  'placeholder' => '{block}'],
+                    ] as $k => $cfg)
+                        <div>
+                            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">{{ $cfg['label'] }}</label>
+                            <input type="text" name="auto_utm[defaults][{{ $k }}]"
+                                   value="{{ $autoUtmDefaults[$k] ?? '' }}"
+                                   placeholder="{{ $cfg['placeholder'] }}"
+                                   class="theme-input w-full text-xs">
+                        </div>
+                    @endforeach
                 </div>
             </div>
 

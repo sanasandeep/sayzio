@@ -4,6 +4,7 @@ namespace App\Modules\Common\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Common\Services\AppLinkResolver;
+use App\Modules\Common\Services\AutoUtmBuilder;
 use App\Modules\Common\Services\LinkTrackingService;
 use App\Modules\Common\Services\SmartRedirectResolver;
 use App\Modules\Common\Services\ViewerSession;
@@ -801,16 +802,11 @@ class RedirectController extends Controller
             abort(404, 'No destination URL configured.');
         }
 
-        $utmParams = [];
-        foreach (['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'] as $param) {
-            if (!empty($linkData[$param])) {
-                $utmParams[$param] = $linkData[$param];
-            }
-        }
-        if (!empty($utmParams)) {
-            $separator = str_contains($destinationUrl, '?') ? '&' : '?';
-            $destinationUrl .= $separator . http_build_query($utmParams);
-        }
+        // Stash the alias actually used so the Auto-UTM token resolver can
+        // emit the matching `utm_campaign` value when multiple aliases
+        // point at the same biolink page.
+        $link->setAttribute('_used_alias', $alias);
+        $destinationUrl = app(AutoUtmBuilder::class)->build($destinationUrl, $link, $block);
 
         // Honor an explicit ?source=… tag (e.g. "ar" from the AR Business Card
         // renderer) so block-click rows are attributed to the surface that
