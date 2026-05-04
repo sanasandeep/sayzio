@@ -174,12 +174,13 @@
                         </div>
                     </div>
 
-                    <div class="card-premium p-6" x-data="bgSettings()" x-init="init()">
-                        <div class="flex items-center gap-3 mb-4">
-                            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(99,102,241,0.1);"><i class="fas fa-fill-drip text-indigo-400 text-xs"></i></div>
-                            <h3 class="text-sm font-bold" style="color: var(--text-primary);">Colors & Background</h3>
-                        </div>
+                    @include('user.links.partials.biolink-background-card', ['link' => $link, 'bgTemplates' => $bgTemplates])
 
+                    {{-- Begin block intentionally hidden: the legacy markup
+                         below was extracted into the partial above. We keep
+                         the wrapper so the surrounding form's spacing/anchor
+                         math doesn't shift, but render nothing. --}}
+                    <div style="display:none">
                         <div class="space-y-5">
                             <div>
                                 <label class="block text-xs font-medium mb-2" style="color: var(--text-muted);">Background Type</label>
@@ -753,49 +754,10 @@
                 </div>
             </form>
 
-            <script>
-function bgSettings() {
-    return {
-        bgType: '{{ $bgType }}',
-        gradientType: '{{ $gradientTypeVal }}',
-        gradientAngle: {{ $gradientAngle }},
-        gradientStops: @json($gradientColors),
-        types: [
-            { key: 'color', label: 'Solid Color', icon: 'fa-fill', preview: 'linear-gradient(135deg, #6b21a8, #3b0764)' },
-            { key: 'gradient', label: 'Gradient', icon: 'fa-rainbow', preview: 'linear-gradient(135deg, #ec4899, #8b5cf6, #06b6d4)' },
-            { key: 'image', label: 'Image', icon: 'fa-image', preview: 'rgba(99,102,241,0.15)' },
-            { key: 'slideshow', label: 'Slideshow', icon: 'fa-images', preview: 'rgba(236,72,153,0.15)' },
-            { key: 'video', label: 'Video', icon: 'fa-film', preview: 'rgba(124,58,237,0.15)' },
-            { key: 'template', label: 'Template', icon: 'fa-magic', preview: 'linear-gradient(135deg, #0f0c29, #302b63)' }
-        ],
-        init() {
-            if (!this.gradientStops || this.gradientStops.length < 2) {
-                this.gradientStops = [
-                    { color: '#0a0612', pos: 0 },
-                    { color: '#1a0533', pos: 50 },
-                    { color: '#0a0612', pos: 100 }
-                ];
-            }
-        },
-        addStop() {
-            if (this.gradientStops.length >= 10) return;
-            var last = this.gradientStops[this.gradientStops.length - 1];
-            this.gradientStops.push({ color: '#8b5cf6', pos: Math.min(100, (last ? last.pos : 50) + 10) });
-        },
-        removeStop(idx) {
-            if (this.gradientStops.length <= 2) return;
-            this.gradientStops.splice(idx, 1);
-        },
-        buildGradientCSS() {
-            var stops = this.gradientStops.slice().sort(function(a, b) { return a.pos - b.pos; });
-            var stopsStr = stops.map(function(s) { return s.color + ' ' + s.pos + '%'; }).join(', ');
-            if (this.gradientType === 'radial') return 'radial-gradient(circle, ' + stopsStr + ')';
-            if (this.gradientType === 'conic') return 'conic-gradient(from ' + this.gradientAngle + 'deg, ' + stopsStr + ')';
-            return 'linear-gradient(' + this.gradientAngle + 'deg, ' + stopsStr + ')';
-        }
-    };
-}
-            </script>
+            {{-- bgSettings() Alpine helper now lives inside the
+                 biolink-background-card partial via an @once block, so it's
+                 defined exactly once regardless of how many editors include
+                 the card on a single page. --}}
         </div>
 
         <div class="lg:col-span-5 hidden lg:block lg:self-stretch lg:h-full">

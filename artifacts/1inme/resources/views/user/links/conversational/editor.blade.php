@@ -88,6 +88,15 @@
     .cv-preview-frame { width: 100%; height: 600px; border: 1px solid var(--border-glass); border-radius: 12px; background: #0f172a; }
     .cv-preview-card { position: sticky; top: 80px; }
 
+    .cv-builder { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 420px); gap: 24px; align-items: start; }
+    @media (max-width: 1100px) { .cv-builder { grid-template-columns: minmax(0, 1fr); } }
+
+    .cv-bg-form-wrap { background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: 1rem; padding: 0; margin-bottom: 16px; }
+    .cv-bg-actions { display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-top: 1px solid var(--border-glass); background: var(--bg-glass-input); border-radius: 0 0 1rem 1rem; }
+    .cv-bg-status { font-size: 12px; color: var(--text-faint); }
+    .cv-bg-status.is-ok    { color: #10b981; }
+    .cv-bg-status.is-error { color: #ef4444; }
+
     .cv-tabs { display: flex; gap: 4px; padding: 4px; background: var(--bg-glass-input); border: 1px solid var(--border-glass); border-radius: 10px; margin-bottom: 12px; }
     .cv-tab { flex: 1; text-align: center; padding: 7px 10px; font-size: 12px; font-weight: 600; border-radius: 7px; cursor: pointer; color: var(--text-muted); border: 0; background: transparent; }
     .cv-tab.is-active { background: linear-gradient(135deg, #8b5cf6, #6366f1); color: #fff; box-shadow: 0 4px 12px -6px rgba(139,92,246,0.6); }
@@ -126,16 +135,7 @@
         </a>
     </div>
 
-    <div class="cv-toggle">
-        <div class="form-check form-switch m-0">
-            <input type="checkbox" class="form-check-input" id="cv-mode-toggle"
-                {{ data_get($link->settings, 'biolink.mode') === 'conversational' ? 'checked' : '' }}>
-        </div>
-        <div>
-            <div class="cv-toggle-title">Conversational mode</div>
-            <div class="cv-toggle-sub">When ON, visitors see this chat instead of the normal block list.</div>
-        </div>
-    </div>
+    @include('user.links.partials.mode-selector', ['link' => $link])
 
     <div class="cv-builder">
         <div>
@@ -193,6 +193,20 @@
                 <button id="cv-save" class="cv-btn cv-btn-success"><i class="fas fa-save"></i> Save flow</button>
                 <span id="cv-save-status" class="cv-save-status"></span>
             </div>
+
+            {{-- Page background — same controls as Settings → Appearance,
+                 posts to the existing page-settings endpoint via fetch so the
+                 device preview on the right reloads inline. --}}
+            <form id="cv-bg-form" class="cv-bg-form-wrap" method="POST"
+                  action="{{ route('user.links.page-settings', $link) }}"
+                  enctype="multipart/form-data">
+                @csrf
+                @include('user.links.partials.biolink-background-card', ['link' => $link])
+                <div class="cv-bg-actions">
+                    <button type="submit" class="cv-btn cv-btn-primary"><i class="fas fa-save"></i> Save background</button>
+                    <span id="cv-bg-status" class="cv-bg-status"></span>
+                </div>
+            </form>
         </div>
 
         <div>
@@ -204,11 +218,7 @@
 
                 <div data-cv-pane="preview">
                     <div class="cv-card-subtitle mb-2">Save to refresh — draft flows are visible to you only.</div>
-                    <iframe class="cv-preview-frame" src="{{ $previewUrl }}" id="cv-preview"></iframe>
-                    <button class="cv-btn cv-btn-ghost mt-2" style="width:100%; justify-content:center;"
-                            onclick="document.getElementById('cv-preview').src=document.getElementById('cv-preview').src">
-                        <i class="fas fa-sync"></i> Reload preview
-                    </button>
+                    @include('user.links.partials.device-preview', ['link' => $link])
                 </div>
 
                 <div data-cv-pane="sim" style="display:none;">
@@ -726,20 +736,68 @@ document.getElementById('cv-save').addEventListener('click', async () => {
         const j = await r.json();
         if (!j.ok) { status.textContent = '❌ ' + (j.error || 'Save failed'); status.className = 'cv-save-status is-error'; return; }
         status.textContent = '✓ Saved (v' + j.version + ')'; status.className = 'cv-save-status is-ok';
-        document.getElementById('cv-preview').src = document.getElementById('cv-preview').src;
+        cvReloadDevicePreview();
     } catch (e) {
         status.textContent = '❌ Network error'; status.className = 'cv-save-status is-error';
     }
 });
 
-document.getElementById('cv-mode-toggle').addEventListener('change', async (e) => {
-    await fetch(URLS.toggle, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
-        body: JSON.stringify({ enabled: e.target.checked }),
+// Reload every device-preview iframe on the page (cache-busting query param).
+function cvReloadDevicePreview() {
+    if (typeof window._reloadAllPreviewIframes === 'function') {
+        window._reloadAllPreviewIframes();
+        return;
+    }
+    document.querySelectorAll('.preview-iframe').forEach(function(f) {
+        if (!f.src) return;
+        try {
+            const u = new URL(f.src, window.location.href);
+            u.searchParams.set('_t', Date.now());
+            f.src = u.toString();
+        } catch (_) {
+            const sep = f.src.includes('?') ? '&' : '?';
+            f.src = f.src + sep + '_t=' + Date.now();
+        }
     });
-    document.getElementById('cv-preview').src = document.getElementById('cv-preview').src;
-});
+}
+
+// Background-card AJAX submit — re-uses the existing page-settings endpoint
+// (which now returns JSON when `Accept: application/json` is sent).
+const cv_bg_form = document.getElementById('cv-bg-form');
+if (cv_bg_form) {
+    cv_bg_form.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        const status = document.getElementById('cv-bg-status');
+        status.className = 'cv-bg-status'; status.textContent = 'Saving…';
+        const fd = new FormData(cv_bg_form);
+        try {
+            const r = await fetch(cv_bg_form.action, {
+                method: 'POST',
+                body: fd,
+                credentials: 'same-origin',
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            });
+            // Require strict JSON {ok:true}. Server returns a redirect (HTML)
+            // for validation/upload failures; without this guard, fetch would
+            // follow the redirect, return 200, and we'd lie to the user.
+            const ct = r.headers.get('content-type') || '';
+            let body = null;
+            if (ct.includes('application/json')) {
+                try { body = await r.json(); } catch (_) {}
+            }
+            if (!r.ok || !body || body.ok !== true) {
+                throw new Error((body && body.message) || 'Save failed');
+            }
+            status.className = 'cv-bg-status is-ok';
+            status.textContent = 'Saved · preview updating…';
+            cvReloadDevicePreview();
+            setTimeout(() => { status.textContent = ''; status.className = 'cv-bg-status'; }, 3500);
+        } catch (e) {
+            status.className = 'cv-bg-status is-error';
+            status.textContent = e.message || 'Save failed';
+        }
+    });
+}
 
 renderActions();
 renderSteps();

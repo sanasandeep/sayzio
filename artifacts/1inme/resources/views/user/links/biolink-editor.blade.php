@@ -343,6 +343,8 @@ $catColors = [
 <div x-data="biolinkEditor()" class="max-w-7xl mx-auto">
     @include('user.links.partials.editor-header', ['link' => $link, 'activeMainTab' => 'blocks'])
 
+    @include('user.links.partials.mode-selector', ['link' => $link])
+
     @include('user.links.partials.experiment-panel', ['link' => $link])
 
     <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">

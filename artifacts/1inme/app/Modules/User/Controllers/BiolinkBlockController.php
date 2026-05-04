@@ -1223,6 +1223,17 @@ class BiolinkBlockController extends Controller
 
         $link->update($updateData);
 
+        // JSON response for the slides + conversational editors which post the
+        // background card via fetch and want to refresh their device-preview
+        // iframes inline rather than navigate away.
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'ok'       => true,
+                'message'  => 'Page settings updated.',
+                'settings' => $settings['biolink'] ?? [],
+            ]);
+        }
+
         $referer = $request->headers->get('referer', '');
         if (str_contains($referer, '/settings/layout')) {
             return redirect()->route('user.links.settings.layout', $link)->with('success', 'Page settings updated.');

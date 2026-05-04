@@ -4,8 +4,13 @@
 @section('breadcrumb_parent_url', route('user.links.index'))
 @section('content')
 <style>
-    .sl-builder { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; align-items: start; }
+    .sl-builder { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 420px); gap: 24px; align-items: start; }
     @media (max-width: 1100px) { .sl-builder { grid-template-columns: minmax(0, 1fr); } }
+    .sl-bg-form-wrap { background: var(--bg-card); border: 1px solid var(--border-glass); border-radius: 1rem; padding: 0; margin-bottom: 16px; }
+    .sl-bg-actions { display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-top: 1px solid var(--border-glass); background: var(--bg-glass-input); border-radius: 0 0 1rem 1rem; }
+    .sl-bg-status { font-size: 12px; color: var(--text-faint); }
+    .sl-bg-status.is-ok    { color: #10b981; }
+    .sl-bg-status.is-error { color: #ef4444; }
 
     .sl-card {
         background: var(--bg-card);
@@ -118,15 +123,7 @@
 
 @include('user.links.partials.editor-header', ['link' => $link, 'activeMainTab' => 'slides'])
 
-<div class="sl-toggle">
-    <div style="flex:1;">
-        <div class="sl-toggle-title">Slides mode</div>
-        <div class="sl-toggle-sub">Full-screen, swipeable deck. Each slide can host one or more existing biolink blocks.</div>
-    </div>
-    <div class="form-check form-switch m-0">
-        <input class="form-check-input" type="checkbox" id="sl-mode-toggle" {{ ($deckPayload['mode'] ?? 'list') === 'slides' ? 'checked' : '' }}>
-    </div>
-</div>
+@include('user.links.partials.mode-selector', ['link' => $link])
 
 <div class="sl-builder">
     <div>
@@ -187,6 +184,20 @@
             <div id="sl-slides" class="sl-list" style="margin-top:14px;"></div>
         </div>
 
+        {{-- Page background — same controls as Settings → Appearance, posts to
+             the existing page-settings endpoint via fetch so the device preview
+             on the right reloads inline. --}}
+        <form id="sl-bg-form" class="sl-bg-form-wrap" method="POST"
+              action="{{ route('user.links.page-settings', $link) }}"
+              enctype="multipart/form-data">
+            @csrf
+            @include('user.links.partials.biolink-background-card', ['link' => $link])
+            <div class="sl-bg-actions">
+                <button type="submit" class="sl-btn sl-btn-primary"><i class="fas fa-save text-[10px] mr-1"></i> Save background</button>
+                <span id="sl-bg-status" class="sl-bg-status"></span>
+            </div>
+        </form>
+
         <div class="sl-actions-bar">
             <button type="button" class="sl-btn sl-btn-ghost" id="sl-save-draft">Save draft</button>
             <button type="button" class="sl-btn sl-btn-primary" id="sl-publish">Save &amp; publish</button>
@@ -194,13 +205,7 @@
     </div>
 
     <div>
-        <div class="sl-preview-wrap">
-            <h5 style="color:#fff;margin:0 0 10px;text-align:center;">Live preview</h5>
-            <iframe id="sl-preview-iframe" class="sl-preview-frame" src="{{ $previewUrl }}"></iframe>
-            <div style="margin-top:10px;text-align:center;">
-                <button type="button" class="sl-btn sl-btn-ghost" id="sl-refresh-preview">↻ Refresh preview</button>
-            </div>
-        </div>
+        @include('user.links.partials.device-preview', ['link' => $link])
     </div>
 </div>
 
@@ -460,7 +465,7 @@ async function save(publish) {
         const pill = document.getElementById('sl-status-pill');
         pill.className = 'sl-status-pill ' + (isPublished ? 'live' : 'draft');
         pill.textContent = isPublished ? ('Published v' + version) : 'Draft';
-        document.getElementById('sl-refresh-preview').click();
+        reloadDevicePreview();
     } catch (e) {
         alert(e.message || 'Save failed');
     } finally {
@@ -471,28 +476,64 @@ async function save(publish) {
 document.getElementById('sl-save-draft').addEventListener('click', () => save(false));
 document.getElementById('sl-publish').addEventListener('click',    () => save(true));
 
-document.getElementById('sl-refresh-preview').addEventListener('click', () => {
-    const f = document.getElementById('sl-preview-iframe');
-    const sep = URLS.preview.includes('?') ? '&' : '?';
-    f.src = URLS.preview + sep + '_t=' + Date.now();
-});
-
-document.getElementById('sl-mode-toggle').addEventListener('change', async (e) => {
-    const enabled = e.target.checked;
-    try {
-        const r = await fetch(URLS.toggle, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
-            credentials: 'same-origin',
-            body: JSON.stringify({ enabled }),
-        });
-        if (!r.ok) throw new Error('Toggle failed');
-        document.getElementById('sl-refresh-preview').click();
-    } catch (err) {
-        e.target.checked = !enabled;
-        alert(err.message || 'Toggle failed');
+// Reload every device-preview iframe on the page (cache-busting query param).
+function reloadDevicePreview() {
+    if (typeof window._reloadAllPreviewIframes === 'function') {
+        window._reloadAllPreviewIframes();
+        return;
     }
-});
+    document.querySelectorAll('.preview-iframe').forEach(function(f) {
+        if (!f.src) return;
+        try {
+            const u = new URL(f.src, window.location.href);
+            u.searchParams.set('_t', Date.now());
+            f.src = u.toString();
+        } catch (_) {
+            const sep = f.src.includes('?') ? '&' : '?';
+            f.src = f.src + sep + '_t=' + Date.now();
+        }
+    });
+}
+
+// Background-card AJAX submit — re-uses the existing page-settings endpoint
+// (which now returns JSON when `Accept: application/json` is sent) so the
+// preview on the right reloads inline.
+const sl_bg_form = document.getElementById('sl-bg-form');
+if (sl_bg_form) {
+    sl_bg_form.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        const status = document.getElementById('sl-bg-status');
+        status.className = 'sl-bg-status'; status.textContent = 'Saving…';
+        const fd = new FormData(sl_bg_form);
+        try {
+            const r = await fetch(sl_bg_form.action, {
+                method: 'POST',
+                body: fd,
+                credentials: 'same-origin',
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            });
+            // Strictly require JSON {ok:true}. The page-settings endpoint
+            // returns a redirect (HTML) on validation/upload failure, and
+            // fetch's default redirect:'follow' would otherwise mask that as
+            // a 200 OK and falsely show "Saved".
+            const ct = r.headers.get('content-type') || '';
+            let body = null;
+            if (ct.includes('application/json')) {
+                try { body = await r.json(); } catch (_) {}
+            }
+            if (!r.ok || !body || body.ok !== true) {
+                throw new Error((body && body.message) || 'Save failed');
+            }
+            status.className = 'sl-bg-status is-ok';
+            status.textContent = 'Saved · preview updating…';
+            reloadDevicePreview();
+            setTimeout(() => { status.textContent = ''; status.className = 'sl-bg-status'; }, 3500);
+        } catch (e) {
+            status.className = 'sl-bg-status is-error';
+            status.textContent = e.message || 'Save failed';
+        }
+    });
+}
 
 renderSlides();
 </script>
