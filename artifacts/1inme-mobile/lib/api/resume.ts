@@ -48,6 +48,13 @@ export type ResumeColorTheme = {
   accent?: string;
 };
 
+export type ResumeVisibility =
+  | "public"
+  | "registered"
+  | "followers"
+  | "subscribers"
+  | "password";
+
 export type Resume = {
   id: number;
   template_id: string;
@@ -58,11 +65,23 @@ export type Resume = {
   /** Items grouped by section_type. Empty groups may be missing entirely. */
   items: Partial<Record<ResumeSectionType | "custom", ResumeItem[]>>;
   is_public: boolean;
-  visibility: string;
+  visibility: ResumeVisibility | string;
+  allow_indexing: boolean;
+  has_password: boolean;
+  meta_description: string | null;
   is_public_pdf: boolean;
   public_pdf_url: string | null;
   handle: string | null;
   updated_at: string | null;
+};
+
+export type PublishingPayload = {
+  is_public: boolean;
+  visibility: ResumeVisibility;
+  allow_indexing: boolean;
+  /** Only honored when visibility === "password". Empty string clears it. */
+  password?: string | null;
+  meta_description?: string | null;
 };
 
 export type ResumeBundle = {
@@ -148,6 +167,24 @@ export async function reorderResumeItems(
       method: "POST",
       body: JSON.stringify({ section_type, item_ids }),
     },
+  );
+  return res.data.resume;
+}
+
+export async function updateResumePublishing(
+  payload: PublishingPayload,
+): Promise<{ resume: Resume; public_url: string }> {
+  const res = await apiFetch<{ data: { resume: Resume; public_url: string } }>(
+    "/resume/publishing",
+    { method: "PUT", body: JSON.stringify(payload) },
+  );
+  return res.data;
+}
+
+export async function updateResumePublicPdf(is_public_pdf: boolean): Promise<Resume> {
+  const res = await apiFetch<{ data: { resume: Resume } }>(
+    "/resume/public-pdf",
+    { method: "PUT", body: JSON.stringify({ is_public_pdf }) },
   );
   return res.data.resume;
 }

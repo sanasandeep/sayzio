@@ -5,8 +5,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Linking,
+  Modal,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Switch,
   Text,
@@ -25,13 +28,25 @@ import {
   updateResumeColorTheme,
   updateResumeHeader,
   updateResumeItem,
+  updateResumePublicPdf,
+  updateResumePublishing,
   updateResumeSummary,
   updateResumeTemplate,
+  type PublishingPayload,
   type Resume,
   type ResumeBundle,
   type ResumeItem,
   type ResumeSectionType,
+  type ResumeVisibility,
 } from "@/lib/api/resume";
+
+const VISIBILITY_OPTIONS: { value: ResumeVisibility; label: string; hint: string }[] = [
+  { value: "public",      label: "Public",       hint: "Anyone with the link" },
+  { value: "registered",  label: "Members",      hint: "Signed-in 1INME users" },
+  { value: "followers",   label: "Followers",    hint: "People who follow you" },
+  { value: "subscribers", label: "Subscribers",  hint: "Paying subscribers only" },
+  { value: "password",    label: "Password",     hint: "Anyone with the password" },
+];
 
 /**
  * Native resume editor + live preview.
@@ -181,7 +196,31 @@ function ResumeEditor({
   });
 
   const [showStyle, setShowStyle] = useState(false);
+  const [showPublish, setShowPublish] = useState(false);
+  const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
   const saving = headerMut.isPending || summaryMut.isPending;
+
+  const publishingMut = useMutation({
+    mutationFn: (payload: PublishingPayload) => updateResumePublishing(payload),
+    onSuccess: ({ resume: r, public_url }) => {
+      qc.setQueryData(["resume"], { ...bundle, resume: r });
+      setPublishedUrl(public_url);
+      setShowPublish(false);
+    },
+    onError: (e: { message?: string; errors?: Record<string, string[]> }) => {
+      const detail = e.errors
+        ? Object.values(e.errors).flat().join("\n")
+        : e.message ?? "Try again.";
+      Alert.alert("Couldn't update sharing", detail);
+    },
+  });
+
+  const publicPdfMut = useMutation({
+    mutationFn: (v: boolean) => updateResumePublicPdf(v),
+    onSuccess: (r) => qc.setQueryData(["resume"], { ...bundle, resume: r }),
+    onError: (e: { message?: string }) =>
+      Alert.alert("Couldn't update PDF sharing", e?.message ?? "Try again."),
+  });
 
   return (
     <ScrollView
@@ -208,7 +247,25 @@ function ResumeEditor({
             {showStyle ? "Hide style" : "Style"}
           </Text>
         </Pressable>
+        <Pressable
+          onPress={() => setShowPublish(true)}
+          hitSlop={8}
+          style={{ marginLeft: 14 }}
+        >
+          <Text style={[styles.linkText, { color: colors.primary }]}>
+            Publish
+          </Text>
+        </Pressable>
       </View>
+
+      {/* Publishing summary card */}
+      <PublishingSummaryCard
+        resume={resume}
+        publishedUrl={publishedUrl}
+        onOpenSheet={() => setShowPublish(true)}
+        onTogglePublicPdf={(v) => publicPdfMut.mutate(v)}
+        publicPdfBusy={publicPdfMut.isPending}
+      />
 
       {showStyle ? (
         <StylePanel
@@ -297,9 +354,338 @@ function ResumeEditor({
       <PreviewCard resume={{ ...resume, sections: { ...resume.sections, header, summary } }} />
 
       <Text style={[styles.hint, { color: colors.mutedForeground }]}>
-        Your resume is reachable at {resume.handle ? `1inme.com/${resume.handle}/resume` : "your public profile"} once you publish it from the web. PDF download and templates with photos are managed there too.
+        Header photos and custom sections are still managed on the web editor.
       </Text>
+
+      <PublishSheet
+        visible={showPublish}
+        resume={resume}
+        onClose={() => setShowPublish(false)}
+        onSubmit={(p) => publishingMut.mutate(p)}
+        onTogglePublicPdf={(v) => publicPdfMut.mutate(v)}
+        publicPdfBusy={publicPdfMut.isPending}
+        busy={publishingMut.isPending}
+      />
     </ScrollView>
+  );
+}
+
+// ── Publishing UI ───────────────────────────────────────────────
+
+function PublishingSummaryCard({
+  resume,
+  publishedUrl,
+  onOpenSheet,
+  onTogglePublicPdf,
+  publicPdfBusy,
+}: {
+  resume: Resume;
+  publishedUrl: string | null;
+  onOpenSheet: () => void;
+  onTogglePublicPdf: (v: boolean) => void;
+  publicPdfBusy: boolean;
+}) {
+  const colors = useColors();
+  const handle = resume.handle;
+  // Prefer the URL the publishing endpoint just handed back; otherwise
+  // fall back to a synthesized one so the link stays visible across
+  // navigations even before the user re-publishes.
+  const pageUrl = publishedUrl ?? (handle ? `https://1inme.com/${handle}/resume` : null);
+  const pdfUrl = resume.public_pdf_url ?? (handle ? `https://1inme.com/${handle}/resume.pdf` : null);
+
+  const visMeta = VISIBILITY_OPTIONS.find((o) => o.value === resume.visibility);
+
+  const copyOrShare = async (url: string, title: string) => {
+    try {
+      await Share.share({ message: url, url, title });
+    } catch {
+      // Share sheet dismissed — fall back to opening the link directly.
+      Linking.openURL(url).catch(() => {});
+    }
+  };
+
+  return (
+    <Card style={{ gap: 10 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <View
+          style={[
+            styles.statusDot,
+            { backgroundColor: resume.is_public ? "#10b981" : "#9ca3af" },
+          ]}
+        />
+        <Text style={{ color: colors.foreground, fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 14 }}>
+          {resume.is_public ? "Published" : "Unpublished"}
+        </Text>
+        {resume.is_public && visMeta ? (
+          <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>
+            · {visMeta.label}
+          </Text>
+        ) : null}
+        <Pressable onPress={onOpenSheet} hitSlop={8} style={{ marginLeft: "auto" }}>
+          <Text style={[styles.linkText, { color: colors.primary }]}>Manage</Text>
+        </Pressable>
+      </View>
+
+      {resume.is_public && pageUrl ? (
+        <View style={{ gap: 6 }}>
+          <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Public page</Text>
+          <Pressable onPress={() => copyOrShare(pageUrl, "My resume")}>
+            <Text
+              style={{ color: colors.primary, fontFamily: "SpaceGrotesk_500Medium", fontSize: 12 }}
+              numberOfLines={1}
+            >
+              {pageUrl}
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      <View style={styles.switchRow}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: colors.foreground, fontFamily: "SpaceGrotesk_500Medium", fontSize: 13 }}>
+            Allow public PDF download
+          </Text>
+          <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 2 }}>
+            {resume.is_public_pdf ? "Anyone with the link can download it." : "Only you can download the PDF."}
+          </Text>
+        </View>
+        <Switch
+          value={resume.is_public_pdf}
+          onValueChange={onTogglePublicPdf}
+          disabled={publicPdfBusy}
+          trackColor={{ true: colors.primary }}
+        />
+      </View>
+
+      {resume.is_public_pdf && pdfUrl ? (
+        <Pressable onPress={() => copyOrShare(pdfUrl, "My resume (PDF)")}>
+          <Text
+            style={{ color: colors.primary, fontFamily: "SpaceGrotesk_500Medium", fontSize: 12 }}
+            numberOfLines={1}
+          >
+            {pdfUrl}
+          </Text>
+        </Pressable>
+      ) : null}
+    </Card>
+  );
+}
+
+function PublishSheet({
+  visible,
+  resume,
+  onClose,
+  onSubmit,
+  onTogglePublicPdf,
+  publicPdfBusy,
+  busy,
+}: {
+  visible: boolean;
+  resume: Resume;
+  onClose: () => void;
+  onSubmit: (p: PublishingPayload) => void;
+  onTogglePublicPdf: (v: boolean) => void;
+  publicPdfBusy: boolean;
+  busy: boolean;
+}) {
+  const colors = useColors();
+
+  // Local form state — re-seeded each time the sheet opens so an in-
+  // flight edit on the server can't get clobbered while the sheet is
+  // closed and so opening the sheet always reflects the latest server
+  // state rather than stale local edits.
+  const [isPublic, setIsPublic] = useState(resume.is_public);
+  const [visibility, setVisibility] = useState<ResumeVisibility>(
+    (resume.visibility as ResumeVisibility) ?? "public",
+  );
+  const [allowIndexing, setAllowIndexing] = useState(resume.allow_indexing);
+  const [metaDescription, setMetaDescription] = useState(resume.meta_description ?? "");
+  const [password, setPassword] = useState("");
+  const [touchedPassword, setTouchedPassword] = useState(false);
+
+  useEffect(() => {
+    if (!visible) return;
+    setIsPublic(resume.is_public);
+    setVisibility((resume.visibility as ResumeVisibility) ?? "public");
+    setAllowIndexing(resume.allow_indexing);
+    setMetaDescription(resume.meta_description ?? "");
+    setPassword("");
+    setTouchedPassword(false);
+  }, [visible, resume]);
+
+  const submit = () => {
+    const payload: PublishingPayload = {
+      is_public: isPublic,
+      visibility,
+      allow_indexing: allowIndexing,
+      meta_description: metaDescription.trim() === "" ? null : metaDescription.trim(),
+    };
+    if (visibility === "password" && touchedPassword) {
+      payload.password = password;
+    }
+    onSubmit(payload);
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={onClose}
+    >
+      <View style={styles.sheetBackdrop}>
+        <View style={[styles.sheet, { backgroundColor: colors.background }]}>
+          <View style={styles.sheetHandle} />
+          <View style={styles.sheetHeader}>
+            <Text style={[styles.sectionTitle, { color: colors.foreground, marginTop: 0, marginBottom: 0 }]}>
+              Publish & sharing
+            </Text>
+            <Pressable onPress={onClose} hitSlop={8}>
+              <Feather name="x" size={20} color={colors.mutedForeground} />
+            </Pressable>
+          </View>
+
+          <ScrollView
+            contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 32 }}
+            keyboardShouldPersistTaps="handled"
+          >
+            <Card>
+              <View style={styles.switchRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: colors.foreground, fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 14 }}>
+                    Publish resume
+                  </Text>
+                  <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 2 }}>
+                    Turn off to take the public page offline.
+                  </Text>
+                </View>
+                <Switch
+                  value={isPublic}
+                  onValueChange={setIsPublic}
+                  trackColor={{ true: colors.primary }}
+                />
+              </View>
+            </Card>
+
+            <View>
+              <Text style={[styles.subhead, { color: colors.mutedForeground, marginBottom: 8 }]}>
+                Who can view it
+              </Text>
+              <Card style={{ gap: 4 }}>
+                {VISIBILITY_OPTIONS.map((opt) => {
+                  const active = visibility === opt.value;
+                  return (
+                    <Pressable
+                      key={opt.value}
+                      onPress={() => setVisibility(opt.value)}
+                      style={[
+                        styles.visRow,
+                        { borderColor: active ? colors.primary : "transparent" },
+                      ]}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: colors.foreground, fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 13 }}>
+                          {opt.label}
+                        </Text>
+                        <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 2 }}>
+                          {opt.hint}
+                        </Text>
+                      </View>
+                      <Feather
+                        name={active ? "check-circle" : "circle"}
+                        size={18}
+                        color={active ? colors.primary : colors.border}
+                      />
+                    </Pressable>
+                  );
+                })}
+              </Card>
+            </View>
+
+            {visibility === "password" ? (
+              <Card>
+                <TextField
+                  label={resume.has_password ? "New password (leave blank to keep current)" : "Password"}
+                  value={password}
+                  onChangeText={(v) => {
+                    setPassword(v);
+                    setTouchedPassword(true);
+                  }}
+                  placeholder="Enter a password"
+                  autoCapitalize="none"
+                  secureTextEntry
+                />
+                {resume.has_password && touchedPassword && password === "" ? (
+                  <Text style={{ color: colors.destructive, fontSize: 11, marginTop: 4 }}>
+                    Saving with an empty password will clear the existing one.
+                  </Text>
+                ) : null}
+              </Card>
+            ) : null}
+
+            <Card>
+              <View style={styles.switchRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: colors.foreground, fontFamily: "SpaceGrotesk_500Medium", fontSize: 13 }}>
+                    Allow search engines to index
+                  </Text>
+                  <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 2 }}>
+                    Lets Google show your resume in results.
+                  </Text>
+                </View>
+                <Switch
+                  value={allowIndexing}
+                  onValueChange={setAllowIndexing}
+                  trackColor={{ true: colors.primary }}
+                />
+              </View>
+            </Card>
+
+            <Card>
+              <TextField
+                label="Meta description"
+                value={metaDescription}
+                onChangeText={setMetaDescription}
+                placeholder="A short blurb shown in search and social previews."
+                multiline
+                numberOfLines={3}
+              />
+              <Text style={{ color: colors.mutedForeground, fontSize: 10, textAlign: "right" }}>
+                {metaDescription.length}/240
+              </Text>
+            </Card>
+
+            <Card>
+              <View style={styles.switchRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: colors.foreground, fontFamily: "SpaceGrotesk_500Medium", fontSize: 13 }}>
+                    Allow public PDF download
+                  </Text>
+                  <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 2 }}>
+                    {resume.is_public_pdf
+                      ? "Anyone with the link can download the PDF."
+                      : "Only you can download the PDF."}
+                  </Text>
+                </View>
+                {/* Saved immediately — separate endpoint from the rest of the
+                    publishing form so toggling it doesn't require hitting Save. */}
+                <Switch
+                  value={resume.is_public_pdf}
+                  onValueChange={onTogglePublicPdf}
+                  disabled={publicPdfBusy}
+                  trackColor={{ true: colors.primary }}
+                />
+              </View>
+            </Card>
+
+            <View style={styles.rowGap}>
+              <Button label="Cancel" variant="outline" onPress={onClose} style={{ flex: 1 }} />
+              <Button label={busy ? "Saving…" : "Save"} onPress={submit} loading={busy} style={{ flex: 1 }} />
+            </View>
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
   );
 }
 
@@ -897,5 +1283,42 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     textAlign: "center",
     marginTop: 14,
+  },
+  sheetBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "flex-end",
+  },
+  sheet: {
+    maxHeight: "90%",
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    overflow: "hidden",
+  },
+  sheetHandle: {
+    alignSelf: "center",
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "#9ca3af",
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  sheetHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  visRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    borderWidth: 1.2,
+    gap: 8,
   },
 });

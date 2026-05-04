@@ -250,6 +250,8 @@ Route::prefix('v1')->group(function () {
         Route::put   ('/resume/items/{item}',    [\App\Modules\Api\Controllers\ResumeController::class, 'updateItem'])->whereNumber('item');
         Route::delete('/resume/items/{item}',    [\App\Modules\Api\Controllers\ResumeController::class, 'destroyItem'])->whereNumber('item');
         Route::post  ('/resume/items/reorder',   [\App\Modules\Api\Controllers\ResumeController::class, 'reorderItems']);
+        Route::put   ('/resume/publishing',      [\App\Modules\Api\Controllers\ResumeController::class, 'updatePublishing']);
+        Route::put   ('/resume/public-pdf',      [\App\Modules\Api\Controllers\ResumeController::class, 'updatePublicPdf']);
 
         // Posts (creator feed)
         Route::get   ('/posts',            [CreatorPostController::class, 'index']);

@@ -3,6 +3,7 @@
 namespace App\Modules\Api\Controllers;
 
 use App\Modules\Api\Controllers\Concerns\ApiResponses;
+use App\Modules\User\Models\Resume;
 use App\Modules\User\Models\ResumeSectionItem;
 use App\Modules\User\Services\ResumeColorThemeRegistry;
 use App\Modules\User\Services\ResumePresenter;
@@ -10,6 +11,7 @@ use App\Modules\User\Services\ResumeTemplateRegistry;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
 /**
@@ -192,6 +194,69 @@ class ResumeController extends Controller
                 ResumeSectionItem::whereKey($id)->update(['position' => $position++]);
             }
         });
+
+        return $this->ok(['resume' => ResumePresenter::present($resume->fresh('items'))]);
+    }
+
+    /**
+     * PUT /resume/publishing — toggle publish + visibility + indexing + password.
+     *
+     * Mirrors the web ResumeController::updatePublishing route so the
+     * mobile editor can flip the public-page gating without bouncing
+     * out to the web. Password is hashed on write and only honored when
+     * the visibility tier is `password`; switching off the tier wipes
+     * the stored hash so a re-enable can't silently reuse old creds.
+     */
+    public function updatePublishing(Request $request)
+    {
+        $data = $request->validate([
+            'is_public'        => ['required', 'boolean'],
+            'visibility'       => ['required', 'string', Rule::in(Resume::VISIBILITIES)],
+            'allow_indexing'   => ['required', 'boolean'],
+            'password'         => ['nullable', 'string', 'max:200'],
+            'meta_description' => ['nullable', 'string', 'max:240'],
+        ]);
+
+        $user   = $request->user();
+        $resume = $user->ensureResume();
+        $update = [
+            'is_public'        => (bool) $data['is_public'],
+            'visibility'       => $data['visibility'],
+            'allow_indexing'   => (bool) $data['allow_indexing'],
+            'meta_description' => $data['meta_description'] ?? null,
+        ];
+
+        if ($data['visibility'] === 'password') {
+            if (array_key_exists('password', $data)) {
+                $update['password'] = filled($data['password']) ? Hash::make($data['password']) : null;
+            }
+        } else {
+            $update['password'] = null;
+        }
+
+        $resume->update($update);
+
+        return $this->ok([
+            'resume'     => ResumePresenter::present($resume->fresh('items')),
+            'public_url' => url('/' . $user->publicHandle() . '/resume'),
+        ]);
+    }
+
+    /**
+     * PUT /resume/public-pdf — toggle the public-PDF privacy flag.
+     *
+     * When on, the stable `/{handle}/resume.pdf` URL is reachable by
+     * anyone; when off, only the owner can fetch it (visitors get a
+     * 404 so handle existence isn't leaked).
+     */
+    public function updatePublicPdf(Request $request)
+    {
+        $data = $request->validate([
+            'is_public_pdf' => ['required', 'boolean'],
+        ]);
+
+        $resume = $request->user()->ensureResume();
+        $resume->update(['is_public_pdf' => (bool) $data['is_public_pdf']]);
 
         return $this->ok(['resume' => ResumePresenter::present($resume->fresh('items'))]);
     }

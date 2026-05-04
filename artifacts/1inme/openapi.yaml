@@ -953,6 +953,45 @@ paths:
                   items: { type: integer }
       responses:
         '200': { description: ok }
+  /resume/publishing:
+    put:
+      summary: Toggle publish + visibility tier + indexing + meta + password
+      description: |
+        Mirrors the web `updatePublishing` route. The password is only
+        honored when `visibility=password`; switching to any other tier
+        clears the stored hash. Response includes the canonical public
+        URL for the resume page.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [is_public, visibility, allow_indexing]
+              properties:
+                is_public:        { type: boolean }
+                visibility:
+                  type: string
+                  enum: [public, registered, followers, subscribers, password]
+                allow_indexing:   { type: boolean }
+                password:         { type: string, nullable: true, maxLength: 200 }
+                meta_description: { type: string, nullable: true, maxLength: 240 }
+      responses:
+        '200': { description: ok }
+  /resume/public-pdf:
+    put:
+      summary: Toggle whether the public PDF link is reachable by visitors
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [is_public_pdf]
+              properties:
+                is_public_pdf: { type: boolean }
+      responses:
+        '200': { description: ok }
 
   /posts:
     get:  { summary: List your creator posts, responses: { '200': { description: ok } } }
