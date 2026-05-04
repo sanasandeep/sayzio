@@ -7,9 +7,19 @@ use Illuminate\Database\Eloquent\Model;
 
 class WorkspaceMember extends Model
 {
-    protected $fillable = ['workspace_id', 'user_id', 'role', 'permissions'];
+    protected $fillable = ['workspace_id', 'user_id', 'role', 'permissions', 'last_active_at', 'suspended_at'];
 
-    protected $casts = ['permissions' => 'array'];
+    protected $casts = [
+        'permissions'    => 'array',
+        'last_active_at' => 'datetime',
+        'suspended_at'   => 'datetime',
+    ];
+
+    /** True if the owner has temporarily disabled this seat. */
+    public function isSuspended(): bool
+    {
+        return !is_null($this->suspended_at);
+    }
 
     public function workspace()
     {
@@ -40,6 +50,9 @@ class WorkspaceMember extends Model
      */
     public function can(string $permission): bool
     {
+        // A suspended seat retains its row (and history) but is denied
+        // every workspace action until the owner reactivates it.
+        if ($this->isSuspended()) return false;
         return WorkspacePermissions::roleCan($this->role ?: 'viewer', $permission, $this->workspace);
     }
 }

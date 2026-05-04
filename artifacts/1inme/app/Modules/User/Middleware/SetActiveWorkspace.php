@@ -34,6 +34,14 @@ class SetActiveWorkspace
                     app()->instance('workspace_owner', $owner);
                 }
                 $request->attributes->set('current_workspace', $ws);
+
+                // Stamp last_active_at on the member row (throttled to ~1/min).
+                if ((int) $ws->owner_user_id !== (int) $user->id) {
+                    $m = $user->membershipFor($ws);
+                    if ($m && (!$m->last_active_at || $m->last_active_at->lt(now()->subMinute()))) {
+                        $m->forceFill(['last_active_at' => now()])->saveQuietly();
+                    }
+                }
             }
         }
         return $next($request);

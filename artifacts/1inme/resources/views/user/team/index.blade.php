@@ -1,15 +1,23 @@
 @extends('user.layouts.app')
 
-@section('title', 'Team')
+@section('title', 'Seats')
 
 @section('content')
-<div class="max-w-5xl mx-auto px-4 py-8" x-data="teamPage()">
+<div class="max-w-6xl mx-auto px-4 py-8" x-data="seatsPage({{ Js::from([
+    'rows'              => $rows,
+    'reassignOptions'   => $reassignOptions,
+    'inviteRoute'       => route('user.team.invite'),
+    'memberBaseUrl'     => url('user/team/members'),
+    'rolesRoute'        => $canEditRoles ? route('user.team.roles.index') : null,
+    'usedSeats'         => $usedSeats,
+    'maxSeats'          => $maxSeats,
+    'pendingCount'      => $pendingCount,
+]) }})">
     <div class="flex items-center justify-between mb-6">
         <div>
-            <h1 class="text-2xl font-bold" style="color: var(--text-primary);">{{ $workspace->name }} — Team</h1>
+            <h1 class="text-2xl font-bold" style="color: var(--text-primary);">{{ $workspace->name }} — Seats</h1>
             <p class="text-sm opacity-70 mt-1">
-                Seats used: <strong>{{ $usedSeats }}</strong>
-                {{ $maxSeats === -1 ? '(unlimited)' : ' / ' . $maxSeats }}
+                Manage who can work in this workspace, what they can do, and how many seats you're using.
             </p>
         </div>
         <div class="flex items-center gap-2">
@@ -26,6 +34,8 @@
                 </a>
             @endif
             <button type="button" @click="openInvite()"
+                    :disabled="atLimit"
+                    :class="atLimit ? 'opacity-50 cursor-not-allowed' : ''"
                     class="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-semibold hover:bg-primary-700">
                 <i class="fas fa-plus mr-1"></i> Invite teammate
             </button>
@@ -39,62 +49,157 @@
         <div class="mb-4 p-3 rounded bg-red-100 text-red-800 text-sm">{{ session('error') }}</div>
     @endif
 
-    @if($maxSeats !== -1 && $usedSeats >= $maxSeats)
-        <div class="mb-4 p-3 rounded border border-amber-300 bg-amber-50 text-amber-800 text-sm flex items-center justify-between">
-            <span><i class="fas fa-info-circle mr-1"></i> You've reached your seat limit. Upgrade your plan or remove a member to invite more.</span>
-            <a href="{{ route('user.upgrade') }}" class="ml-3 px-3 py-1 bg-amber-600 text-white rounded text-xs font-semibold">Upgrade</a>
-        </div>
-    @endif
-
-    <div class="rounded-lg border" style="border-color: var(--border-strong); background: var(--bg-card);">
-        <div class="px-4 py-3 border-b font-semibold" style="border-color: var(--border-strong);">Members</div>
-        <table class="w-full text-sm">
-            <thead>
-                <tr class="text-left opacity-70">
-                    <th class="px-4 py-2">Name</th>
-                    <th class="px-4 py-2">Email</th>
-                    <th class="px-4 py-2">Role</th>
-                    <th class="px-4 py-2"></th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr class="border-t" style="border-color: var(--border-strong);">
-                    <td class="px-4 py-3 font-medium">{{ $workspace->owner->name ?? 'Owner' }} <span class="text-xs opacity-60">(you)</span></td>
-                    <td class="px-4 py-3">{{ $workspace->owner->email ?? '' }}</td>
-                    <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-xs bg-purple-100 text-purple-700">Owner</span></td>
-                    <td class="px-4 py-3"></td>
-                </tr>
-                @foreach($members as $m)
-                    @php
-                        $editPayload = [
-                            'id'   => $m->id,
-                            'name' => $m->user->name ?? '',
-                            'role' => $m->role,
-                        ];
-                    @endphp
-                    <tr class="border-t" style="border-color: var(--border-strong);">
-                        <td class="px-4 py-3">{{ $m->user->name ?? '—' }}</td>
-                        <td class="px-4 py-3">{{ $m->user->email ?? '—' }}</td>
-                        <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-700">{{ ucfirst($m->role) }}</span></td>
-                        <td class="px-4 py-3 text-right">
-                            <button type="button" @click="openEdit({{ Js::from($editPayload) }})" class="text-xs text-primary-600 hover:underline mr-3">Edit</button>
-                            <form method="POST" action="{{ route('user.team.members.remove', $m) }}" class="inline"
-                                  onsubmit="return window.themedConfirmSubmit(this, {title: 'Remove this member?', message: 'They will lose access to this workspace.', confirmText: 'Remove', confirmIcon: 'fa-user-minus', iconClass: 'fa-user-minus'})">
-                                @csrf @method('DELETE')
-                                <button class="text-xs text-red-600 hover:underline">Remove</button>
-                            </form>
-                        </td>
-                    </tr>
-                @endforeach
-                @if($members->isEmpty())
-                    <tr class="border-t" style="border-color: var(--border-strong);">
-                        <td colspan="4" class="px-4 py-6 text-center opacity-60">No teammates yet — invite someone above.</td>
-                    </tr>
+    {{-- Plan usage banner. --}}
+    <div class="mb-6 rounded-lg border p-4"
+         :class="atLimit ? 'border-amber-300 bg-amber-50' : (nearLimit ? 'border-blue-200 bg-blue-50' : '')"
+         style="border-color: var(--border-strong); background: var(--bg-card);">
+        <div class="flex items-center justify-between gap-4 flex-wrap">
+            <div class="flex-1 min-w-0">
+                <div class="flex items-baseline gap-2 flex-wrap">
+                    <span class="text-sm font-semibold" style="color: var(--text-primary);">Seat usage</span>
+                    <span class="text-xs opacity-70">
+                        <strong>{{ $usedSeats }}</strong>{{ $maxSeats === -1 ? ' used' : ' of ' . $maxSeats . ' seats used' }}
+                        @if($pendingCount > 0)
+                            · {{ $pendingCount }} pending invite{{ $pendingCount === 1 ? '' : 's' }}
+                        @endif
+                    </span>
+                    <span class="text-xs opacity-60">
+                        · Each seat is included in your <strong>{{ $planLabel }}</strong> plan (no per-seat charge).
+                    </span>
+                </div>
+                @if($maxSeats !== -1)
+                    <div class="mt-2 h-2 w-full rounded-full overflow-hidden bg-gray-200">
+                        <div class="h-full rounded-full transition-all"
+                             :class="atLimit ? 'bg-amber-500' : (nearLimit ? 'bg-blue-500' : 'bg-primary-600')"
+                             :style="'width: ' + Math.min(100, Math.round({{ $usedSeats }} / {{ max($maxSeats, 1) }} * 100)) + '%'"></div>
+                    </div>
+                    <p class="mt-2 text-xs opacity-70">
+                        <span x-show="atLimit">You've reached your seat limit. Remove or suspend a seat, or upgrade your plan to invite more.</span>
+                        <span x-show="!atLimit && nearLimit">You're nearing your seat limit. Plan ahead before inviting more.</span>
+                        <span x-show="!atLimit && !nearLimit">{{ max(0, $maxSeats - $usedSeats) }} seat{{ ($maxSeats - $usedSeats) === 1 ? '' : 's' }} left on your plan.</span>
+                    </p>
+                @else
+                    <p class="mt-2 text-xs opacity-70">Your plan includes unlimited seats.</p>
                 @endif
-            </tbody>
-        </table>
+            </div>
+            @if($maxSeats !== -1)
+                <a href="{{ route('user.upgrade') }}"
+                   x-show="atLimit || nearLimit"
+                   class="px-3 py-2 rounded text-sm font-semibold"
+                   :class="atLimit ? 'bg-amber-600 text-white' : 'bg-primary-600 text-white'">
+                    <i class="fas fa-arrow-up mr-1"></i>
+                    <span x-text="atLimit ? 'Upgrade plan' : 'See bigger plans'"></span>
+                </a>
+            @endif
+        </div>
     </div>
 
+    {{-- Filter bar (client-side over the already-loaded rows). --}}
+    <div class="mb-3 flex items-center gap-2 flex-wrap">
+        <div class="relative flex-1 min-w-[200px]">
+            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs opacity-50"></i>
+            <input type="search" x-model="search" placeholder="Search by name, email or role"
+                   class="w-full pl-9 pr-3 py-2 text-sm border rounded"
+                   style="background: var(--bg-card); border-color: var(--border-strong); color: var(--text-primary);">
+        </div>
+        <div class="flex items-center gap-1 text-xs">
+            <template x-for="opt in statusFilters" :key="opt.value">
+                <button type="button" @click="status = opt.value"
+                        :class="status === opt.value
+                                ? 'bg-primary-600 text-white border-primary-600'
+                                : 'opacity-70 hover:opacity-100'"
+                        class="px-3 py-1.5 rounded border font-semibold capitalize"
+                        style="border-color: var(--border-strong);">
+                    <span x-text="opt.label"></span>
+                </button>
+            </template>
+        </div>
+    </div>
+
+    {{-- Seats table. Owner row is rendered server-side and excluded
+         from filtering / removal. --}}
+    <div class="rounded-lg border" style="border-color: var(--border-strong); background: var(--bg-card);">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="text-left opacity-70 border-b" style="border-color: var(--border-strong);">
+                        <th class="px-4 py-3">Member</th>
+                        <th class="px-4 py-3">Role</th>
+                        <th class="px-4 py-3">Status</th>
+                        <th class="px-4 py-3">Last login</th>
+                        <th class="px-4 py-3"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="border-t" style="border-color: var(--border-strong);">
+                        <td class="px-4 py-3">
+                            <div class="font-medium">{{ $workspace->owner->name ?? 'Owner' }} <span class="text-xs opacity-60">(you)</span></div>
+                            <div class="text-xs opacity-60">{{ $workspace->owner->email ?? '' }}</div>
+                        </td>
+                        <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-xs bg-purple-100 text-purple-700">Owner</span></td>
+                        <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-xs bg-green-100 text-green-700">Active</span></td>
+                        <td class="px-4 py-3 text-xs opacity-70">
+                            @if($workspace->owner?->last_login_at)
+                                {{ $workspace->owner->last_login_at->diffForHumans() }}
+                            @else
+                                —
+                            @endif
+                        </td>
+                        <td class="px-4 py-3"></td>
+                    </tr>
+
+                    <template x-for="m in filteredRows" :key="m.id">
+                        <tr class="border-t" style="border-color: var(--border-strong);">
+                            <td class="px-4 py-3">
+                                <div class="font-medium" x-text="m.name"></div>
+                                <div class="text-xs opacity-60" x-text="m.email"></div>
+                            </td>
+                            <td class="px-4 py-3">
+                                <span class="px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-700 capitalize" x-text="m.role"></span>
+                            </td>
+                            <td class="px-4 py-3">
+                                <span class="px-2 py-0.5 rounded text-xs"
+                                      :class="m.is_suspended ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'"
+                                      x-text="m.is_suspended ? 'Suspended' : 'Active'"></span>
+                                <span x-show="m.owned_count > 0" class="ml-1 text-[11px] opacity-60"
+                                      x-text="'· ' + m.owned_count + ' item' + (m.owned_count === 1 ? '' : 's')"></span>
+                            </td>
+                            <td class="px-4 py-3 text-xs opacity-70" x-text="m.last_seen_human || '—'"></td>
+                            <td class="px-4 py-3 text-right whitespace-nowrap">
+                                <button type="button" @click="openEdit(m)" class="text-xs text-primary-600 hover:underline mr-3">Edit</button>
+                                <template x-if="!m.is_suspended">
+                                    <form :action="memberBaseUrl + '/' + m.id + '/suspend'" method="POST" class="inline"
+                                          onsubmit="return window.themedConfirmSubmit(this, {title: 'Suspend this seat?', message: 'They keep their seat slot but lose access until you reactivate them.', confirmText: 'Suspend', confirmIcon: 'fa-pause', iconClass: 'fa-pause'})">
+                                        @csrf
+                                        <button class="text-xs text-amber-600 hover:underline mr-3">Suspend</button>
+                                    </form>
+                                </template>
+                                <template x-if="m.is_suspended">
+                                    <form :action="memberBaseUrl + '/' + m.id + '/reactivate'" method="POST" class="inline">
+                                        @csrf
+                                        <button class="text-xs text-green-600 hover:underline mr-3">Reactivate</button>
+                                    </form>
+                                </template>
+                                <button type="button" @click="openRemove(m)" class="text-xs text-red-600 hover:underline">Remove</button>
+                            </td>
+                        </tr>
+                    </template>
+                    <tr x-show="filteredRows.length === 0 && {{ count($rows) }} > 0">
+                        <td colspan="5" class="px-4 py-6 text-center opacity-60 border-t" style="border-color: var(--border-strong);">
+                            No seats match that search.
+                        </td>
+                    </tr>
+                    @if(empty($rows))
+                        <tr class="border-t" style="border-color: var(--border-strong);">
+                            <td colspan="5" class="px-4 py-6 text-center opacity-60">No teammates yet — invite someone above.</td>
+                        </tr>
+                    @endif
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {{-- Pending invites. --}}
     @if($pendingInvites->isNotEmpty())
         <div class="mt-6 rounded-lg border" style="border-color: var(--border-strong); background: var(--bg-card);">
             <div class="px-4 py-3 border-b font-semibold" style="border-color: var(--border-strong);">Pending invites</div>
@@ -103,9 +208,10 @@
                     @foreach($pendingInvites as $inv)
                         <tr class="border-t" style="border-color: var(--border-strong);">
                             <td class="px-4 py-3">{{ $inv->email }}</td>
-                            <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-700">{{ ucfirst($inv->role) }}</span></td>
+                            <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-700 capitalize">{{ $inv->role }}</span></td>
+                            <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-xs bg-yellow-100 text-yellow-800">Pending invite</span></td>
                             <td class="px-4 py-3 text-xs opacity-60">Expires {{ optional($inv->expires_at)->diffForHumans() }}</td>
-                            <td class="px-4 py-3 text-right">
+                            <td class="px-4 py-3 text-right whitespace-nowrap">
                                 <form method="POST" action="{{ route('user.team.invites.resend', $inv) }}" class="inline">
                                     @csrf
                                     <button class="text-xs text-primary-600 hover:underline mr-3">Resend</button>
@@ -166,7 +272,7 @@
         </div>
     @endif
 
-    {{-- Invite / edit modal --}}
+    {{-- Invite / edit modal. --}}
     <div x-show="modal.open" x-cloak
          class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
         <div class="rounded-lg shadow-xl w-full max-w-2xl" style="background: var(--bg-card);">
@@ -201,7 +307,6 @@
                     </p>
                 </div>
 
-                {{-- Quick reference: what each role can do, generated from the role table. --}}
                 <div class="mb-4 border rounded p-3 overflow-x-auto" style="border-color: var(--border-strong);">
                     <table class="w-full text-xs">
                         <thead>
@@ -242,23 +347,114 @@
             </form>
         </div>
     </div>
+
+    {{-- Remove-seat confirmation modal (reassignment picker shown
+         only when the seat owns content). --}}
+    <div x-show="removeModal.open" x-cloak
+         class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="rounded-lg shadow-xl w-full max-w-lg" style="background: var(--bg-card);">
+            <form :action="memberBaseUrl + '/' + removeModal.member.id" method="POST" class="p-6">
+                @csrf
+                <input type="hidden" name="_method" value="DELETE">
+                <h2 class="text-lg font-bold mb-2">
+                    Remove <span x-text="removeModal.member.name"></span>?
+                </h2>
+                <p class="text-sm opacity-80 mb-4">
+                    They'll lose access to <strong>{{ $workspace->name }}</strong> immediately.
+                    This frees up their seat.
+                </p>
+
+                <template x-if="removeModal.member.owned_count > 0">
+                    <div class="mb-4 p-3 rounded border border-amber-300 bg-amber-50 text-amber-900 text-sm">
+                        <p class="font-semibold mb-1">
+                            <i class="fas fa-exclamation-triangle mr-1"></i>
+                            <span x-text="removeModal.member.name"></span> created
+                            <span x-text="removeModal.member.owned_count"></span>
+                            item<span x-show="removeModal.member.owned_count !== 1">s</span>
+                            in this workspace (links, posts, drafts, forms…).
+                        </p>
+                        <p class="text-xs opacity-90">
+                            Pick a teammate to take over those items so nothing's left without an author.
+                        </p>
+                        <label class="block text-xs font-medium mt-3 mb-1">Reassign their content to</label>
+                        <select name="reassign_to" required
+                                class="w-full px-2 py-2 text-sm border rounded bg-white text-amber-900"
+                                style="border-color: rgb(252 211 77);">
+                            <option value="">— Choose someone —</option>
+                            <template x-for="opt in reassignOptionsFor(removeModal.member)" :key="opt.user_id">
+                                <option :value="opt.user_id" x-text="opt.label"></option>
+                            </template>
+                        </select>
+                    </div>
+                </template>
+
+                <div class="flex justify-end gap-2">
+                    <button type="button" @click="removeModal.open = false"
+                            class="px-3 py-2 text-sm rounded border" style="border-color: var(--border-strong);">Cancel</button>
+                    <button type="submit" class="px-4 py-2 text-sm rounded bg-red-600 text-white font-semibold hover:bg-red-700">
+                        <i class="fas fa-user-minus mr-1"></i> Remove seat
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 <script>
-function teamPage() {
+function seatsPage(initial) {
     return {
+        rows: initial.rows || [],
+        reassignOptions: initial.reassignOptions || [],
+        inviteRoute: initial.inviteRoute,
+        memberBaseUrl: initial.memberBaseUrl,
+        usedSeats: initial.usedSeats,
+        maxSeats: initial.maxSeats,
+        pendingCount: initial.pendingCount,
+        search: '',
+        status: 'all',
+        statusFilters: [
+            { value: 'all',       label: 'All' },
+            { value: 'active',    label: 'Active' },
+            { value: 'suspended', label: 'Suspended' },
+        ],
         modal: { open: false, action: '', method: '', title: '' },
         form: { role: 'viewer' },
+        removeModal: { open: false, member: { id: 0, name: '', owned_count: 0, user_id: 0 } },
         validRoles: ['admin','editor','replier','analyst','viewer'],
+
+        get atLimit() {
+            return this.maxSeats !== -1 && (this.usedSeats + this.pendingCount) >= this.maxSeats;
+        },
+        get nearLimit() {
+            if (this.maxSeats === -1) return false;
+            const used = this.usedSeats + this.pendingCount;
+            return used >= Math.max(1, this.maxSeats - 1) && used < this.maxSeats;
+        },
+        get filteredRows() {
+            const q = this.search.trim().toLowerCase();
+            return this.rows.filter(r => {
+                if (this.status !== 'all' && r.status !== this.status) return false;
+                if (!q) return true;
+                return (r.name || '').toLowerCase().includes(q)
+                    || (r.email || '').toLowerCase().includes(q)
+                    || (r.role  || '').toLowerCase().includes(q);
+            });
+        },
+        reassignOptionsFor(member) {
+            return this.reassignOptions.filter(o => o.user_id !== member.user_id);
+        },
         openInvite() {
-            this.modal = { open: true, action: '{{ route("user.team.invite") }}', method: 'POST', title: 'Invite teammate' };
+            if (this.atLimit) return;
+            this.modal = { open: true, action: this.inviteRoute, method: 'POST', title: 'Invite teammate' };
             this.form = { role: 'editor' };
         },
         openEdit(member) {
-            this.modal = { open: true, action: '{{ url("user/team/members") }}/' + member.id, method: 'PUT', title: 'Edit ' + member.name };
-            // Legacy "custom" rows fall back to viewer (safest default).
+            this.modal = { open: true, action: this.memberBaseUrl + '/' + member.id, method: 'PUT', title: 'Edit ' + member.name };
             const role = this.validRoles.includes(member.role) ? member.role : 'viewer';
             this.form = { role };
+        },
+        openRemove(member) {
+            this.removeModal = { open: true, member };
         },
     };
 }

@@ -157,6 +157,8 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::delete('team/invites/{invite}',                 [\App\Modules\User\Controllers\TeamController::class, 'revoke']) ->name('team.invites.revoke');
         Route::put   ('team/members/{member}',                 [\App\Modules\User\Controllers\TeamController::class, 'updateMember'])->name('team.members.update');
         Route::delete('team/members/{member}',                 [\App\Modules\User\Controllers\TeamController::class, 'removeMember'])->name('team.members.remove');
+        Route::post  ('team/members/{member}/suspend',         [\App\Modules\User\Controllers\TeamController::class, 'suspend'])    ->name('team.members.suspend');
+        Route::post  ('team/members/{member}/reactivate',      [\App\Modules\User\Controllers\TeamController::class, 'reactivate']) ->name('team.members.reactivate');
 
         // ---- Roles & Permissions (Owner + Admin) ----
         Route::get   ('team/roles',                            [\App\Modules\User\Controllers\WorkspaceRolesController::class, 'index']) ->name('team.roles.index');
