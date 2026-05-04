@@ -376,6 +376,21 @@ class OpenAiService
     }
 
     /**
+     * Public worst-case estimator for "how many credits will this chat
+     * call cost?" Used by features that surface the price before the
+     * user clicks Run (e.g. resume tailoring). Returns 0 when the model
+     * isn't enabled or the admin's per-token rates are zero.
+     */
+    public function estimateChatCredits(string $model, array $messages, int $maxOutputTokens = self::DEFAULT_MAX_OUTPUT_TOKENS): int
+    {
+        if (!AiEngineSettings::isEnabled()) return 0;
+        $cfg = AiEngineSettings::model($model);
+        if (!$cfg || !$cfg['enabled'] || $cfg['kind'] !== 'chat') return 0;
+        $tokensIn = $this->estimateChatPromptTokens($messages);
+        return $this->computeCost($cfg, $tokensIn, max(1, $maxOutputTokens));
+    }
+
+    /**
      * Cheap, dependency-free token estimate. Always rounds *up* so the
      * worst-case gate stays conservative.
      */

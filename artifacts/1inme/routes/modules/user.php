@@ -332,6 +332,17 @@ Route::prefix('user')->name('user.')->group(function () {
                 Route::post('merge',    [\App\Modules\User\Controllers\ResumeImportController::class, 'merge'])->name('merge');
             });
 
+            // Tailor-to-job: paste a JD, get an AI-rewritten draft of the
+            // summary + experience bullets + suggested skill additions
+            // with a per-change diff. `run` is the chargeable AI call;
+            // `apply` commits the user's accepted picks for free.
+            Route::prefix('tailor')->name('tailor.')->group(function () {
+                Route::post('estimate', [\App\Modules\User\Controllers\ResumeTailorController::class, 'estimate'])->middleware('throttle:30,1')->name('estimate');
+                Route::post('run',      [\App\Modules\User\Controllers\ResumeTailorController::class, 'run'])->middleware('throttle:10,1')->name('run');
+                Route::post('apply',    [\App\Modules\User\Controllers\ResumeTailorController::class, 'apply'])->name('apply');
+                Route::get ('history',  [\App\Modules\User\Controllers\ResumeTailorController::class, 'history'])->name('history');
+            });
+
             // Publish & sharing — toggles the public /{handle}/resume URL,
             // visibility tier (public/registered/followers/subscribers/
             // password), the per-user noindex flag, and (when password

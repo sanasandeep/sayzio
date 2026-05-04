@@ -174,6 +174,47 @@
         .resume-import-preview-pane { position: static; }
         .resume-import-preview-frame .preview-page { transform: scale(0.7); width: 142.85%; }
     }
+
+    /* ── Tailor-to-job modal ─────────────────────────── */
+    .resume-tailor-cost { display:flex; align-items:center; justify-content:space-between; gap: 12px; margin: 12px 0; padding: 10px 12px; border-radius: 10px; background: rgba(124,58,237,0.06); border: 1px solid rgba(124,58,237,0.18); font-size: 12px; color: var(--text-primary,#fff); flex-wrap:wrap; }
+    .resume-tailor-cost i { color:#a78bfa; margin-right:6px; }
+    .resume-tailor-cost strong { color:#fff; }
+    .resume-tailor-cost-hint { color:#fbbf24; font-size: 11px; }
+    .resume-tailor-history { margin-top: 18px; border-top: 1px solid var(--border-glass,#2a2a32); padding-top: 14px; }
+    .resume-tailor-history h4 { display:flex; align-items:center; gap:8px; margin: 0 0 10px; font-size: 11px; font-weight:700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted,#9ca3af); }
+    .resume-tailor-history-row { padding: 8px 10px; border-radius: 8px; background: rgba(255,255,255,0.025); margin-bottom: 6px; }
+    .resume-tailor-history-jd { font-size: 12px; color: var(--text-primary,#fff); white-space: nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .resume-tailor-history-meta { font-size: 10px; color: var(--text-muted,#9ca3af); margin-top: 2px; display:flex; gap:6px; }
+    .resume-tailor-summary-bar { display:flex; align-items:center; justify-content:space-between; gap: 12px; margin-bottom: 14px; padding: 10px 12px; border-radius: 10px; background: rgba(16,185,129,0.06); border: 1px solid rgba(16,185,129,0.2); font-size: 11px; color: var(--text-primary,#fff); flex-wrap:wrap; }
+    .resume-tailor-summary-bar i { color:#34d399; margin-right:4px; }
+    .resume-tailor-summary-bar-bullet { color:#86efac; font-weight:600; }
+    .resume-tailor-keywords { padding: 12px; margin-bottom: 12px; border: 1px solid var(--border-glass,#2a2a32); border-radius: 12px; background: rgba(255,255,255,0.015); }
+    .resume-tailor-keywords h4 { display:flex; align-items:center; gap:8px; margin:0 0 10px; font-size: 12px; font-weight:700; color: var(--text-primary,#fff); }
+    .resume-tailor-keyword-row { display:flex; flex-wrap:wrap; gap: 6px; }
+    .resume-tailor-keyword-chip { font-size: 11px; padding: 3px 9px; border-radius: 999px; background: rgba(245,158,11,0.12); color:#fde68a; border: 1px solid rgba(245,158,11,0.25); }
+    .resume-tailor-toggle { display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size: 11px; color: var(--text-muted,#9ca3af); }
+    .resume-tailor-toggle input { accent-color: #10b981; }
+    .resume-tailor-diff { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px; }
+    @media (max-width: 720px) { .resume-tailor-diff { grid-template-columns: 1fr; } }
+    .resume-tailor-diff-col { min-width: 0; }
+    .resume-tailor-diff-label { font-size: 10px; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted,#9ca3af); margin-bottom: 4px; font-weight: 700; }
+    .resume-tailor-diff-text { font-size: 12px; line-height: 1.55; color: var(--text-primary,#e5e7eb); padding: 9px 10px; border-radius: 8px; background: rgba(0,0,0,0.22); white-space: pre-wrap; word-break: break-word; max-height: 220px; overflow-y:auto; }
+    .resume-tailor-diff-old { border-left: 3px solid rgba(239,68,68,0.45); }
+    .resume-tailor-diff-new { border-left: 3px solid rgba(16,185,129,0.55); }
+    .resume-tailor-diff-text ins { background: rgba(16,185,129,0.22); color:#bbf7d0; text-decoration: none; padding: 0 2px; border-radius: 3px; font-weight: 600; }
+    .resume-tailor-diff-text del { background: rgba(239,68,68,0.18); color:#fecaca; text-decoration: line-through; padding: 0 2px; border-radius: 3px; }
+    .resume-tailor-diff-text mark.kw { background: rgba(245,158,11,0.25); color:#fde68a; padding: 0 2px; border-radius: 3px; }
+    .resume-tailor-rationale { margin-top: 8px; font-size: 11px; color: var(--text-muted,#cbd5e1); display:flex; align-items:flex-start; gap: 6px; padding: 6px 8px; background: rgba(124,58,237,0.05); border-left: 2px solid rgba(124,58,237,0.4); border-radius: 0 6px 6px 0; }
+    .resume-tailor-rationale i { color:#fbbf24; margin-top: 2px; }
+    .resume-tailor-exp { padding: 12px; border: 1px solid var(--border-glass,#2a2a32); border-radius: 10px; margin-bottom: 10px; background: rgba(255,255,255,0.015); }
+    .resume-tailor-exp-head { display:flex; align-items:center; justify-content:space-between; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
+    .resume-tailor-exp-role { font-size: 12px; font-weight: 700; color: var(--text-primary,#fff); }
+    .resume-tailor-exp-company { font-size: 11px; color: var(--text-muted,#9ca3af); }
+    .resume-tailor-skill-row { display:flex; gap: 10px; align-items:flex-start; padding: 8px; border-radius: 8px; cursor: pointer; }
+    .resume-tailor-skill-row:hover { background: rgba(124,58,237,0.05); }
+    .resume-tailor-skill-row input[type=checkbox] { margin-top: 3px; accent-color: #7c3aed; }
+    .resume-tailor-skill-name { font-size: 12px; font-weight: 600; color: var(--text-primary,#fff); }
+    .resume-tailor-skill-rationale { font-size: 11px; color: var(--text-muted,#9ca3af); margin-top: 2px; }
 </style>
 @endpush
 
@@ -187,6 +228,9 @@
         <div class="flex items-center gap-2 flex-wrap">
             <button type="button" class="resume-add-btn" @click="openImport()" title="Import from PDF, LinkedIn, your bio link, or AI">
                 <i class="fas fa-file-import"></i> Import
+            </button>
+            <button type="button" class="resume-add-btn" @click="openTailor()" title="Paste a job description and let AI tailor your resume">
+                <i class="fas fa-wand-magic-sparkles"></i> Tailor to a job
             </button>
             <div class="resume-status-bar resume-pane">
                 <span class="resume-save-dot" :class="{ saving: status==='saving', error: status==='error' }"></span>
@@ -269,6 +313,7 @@
     </style>
 
     @include('user.resume.partials.import-modal')
+    @include('user.resume.partials.tailor-modal')
 
     {{-- Empty-state coachmark for brand-new resumes (no items + empty header name) --}}
     <template x-if="isFreshResume && !resumeStarted">
@@ -1011,6 +1056,20 @@ function resumeEditor() {
         importCandidates: { header: {}, summary: '', items: [], notes: null },
         importPicks: { header: { mode: 'replace', fields: [] }, summary: { mode: 'replace' }, items: [] },
         importPreviewHtml: '',
+
+        // ── Tailor flow state ─────────────────────────────────
+        tailorOpen: false,
+        tailorStep: 'pick',          // 'pick' | 'review'
+        tailorBusy: false,
+        tailorError: '',
+        tailorJd: '',
+        tailorEstimate: null,        // worst-case credits (null = unknown)
+        tailorBalance: 0,
+        tailorLastSpent: 0,
+        tailorSuggestions: { summary: null, experience: [], skills: { additions: [] }, keywords: [] },
+        tailorPicks: { summary: false, experience: [], skills: [] },
+        tailorHistory: [],
+        _tailorEstimateSeq: 0,
 
         listSections: [
             { key: 'experience',     label: 'Experience',     icon: 'fa-briefcase',     addLabel: 'Add experience' },
@@ -2202,6 +2261,161 @@ function resumeEditor() {
                 case 'links':          return d.url || '';
             }
             return '';
+        },
+
+        // ── TAILOR FLOW ───────────────────────────────────────
+        // Open the tailor modal: reset state and load history so the
+        // user can see (and reuse) their recent runs.
+        openTailor() {
+            this.tailorOpen = true;
+            this.tailorStep = 'pick';
+            this.tailorBusy = false;
+            this.tailorError = '';
+            this.tailorJd = '';
+            this.tailorEstimate = null;
+            this.tailorLastSpent = 0;
+            this.tailorSuggestions = { summary: null, experience: [], skills: { additions: [] }, keywords: [] };
+            this.tailorPicks = { summary: false, experience: [], skills: [] };
+            this.loadTailorHistory();
+        },
+        closeTailor() { this.tailorOpen = false; this.tailorBusy = false; },
+
+        async loadTailorHistory() {
+            try {
+                const r = await this.http('GET', '{{ route('user.resume.tailor.history') }}');
+                this.tailorHistory = r.runs || [];
+            } catch (e) { /* non-fatal */ }
+        },
+
+        // Debounced upfront cost lookup. We tag each request with a
+        // monotonically-increasing seq so that a slow earlier response
+        // can't overwrite a faster later one.
+        async refreshTailorEstimate() {
+            const jd = (this.tailorJd || '').trim();
+            if (jd.length < 30) { this.tailorEstimate = null; return; }
+            const seq = ++this._tailorEstimateSeq;
+            try {
+                const r = await this.http('POST', '{{ route('user.resume.tailor.estimate') }}', { job_description: jd });
+                if (seq !== this._tailorEstimateSeq) return;
+                this.tailorEstimate = r.estimated_credits;
+                this.tailorBalance = r.balance;
+            } catch (e) { /* leave estimate as-is */ }
+        },
+
+        async runTailor() {
+            const jd = (this.tailorJd || '').trim();
+            if (jd.length < 30 || this.tailorBusy) return;
+            this.tailorBusy = true; this.tailorError = '';
+            try {
+                const r = await this.http('POST', '{{ route('user.resume.tailor.run') }}', { job_description: jd });
+                this.tailorSuggestions = r.suggestions;
+                this.tailorBalance     = r.balance;
+                this.tailorLastSpent   = r.credits_spent;
+                this.tailorHistory     = r.history || this.tailorHistory;
+                // Default to "accept everything" so users can one-click
+                // apply when the suggestions look good.
+                this.tailorPicks = {
+                    summary:    !!(r.suggestions.summary && r.suggestions.summary.changed),
+                    experience: (r.suggestions.experience || []).map(x => x.item_id),
+                    skills:     (r.suggestions.skills && r.suggestions.skills.additions || []).map((_, i) => i),
+                };
+                this.tailorStep = 'review';
+            } catch (e) {
+                this.tailorError = e.message;
+            } finally {
+                this.tailorBusy = false;
+            }
+        },
+
+        async applyTailor() {
+            if (this.tailorBusy || !this.tailorAcceptCount()) return;
+            this.tailorBusy = true; this.tailorError = '';
+            try {
+                const r = await this.http('POST', '{{ route('user.resume.tailor.apply') }}', {
+                    suggestions: this.tailorSuggestions,
+                    picks:       this.tailorPicks,
+                });
+                this.hydrate(r.resume);
+                this.renderPreview();
+                this.markSaved();
+                const c = r.changed || {};
+                const bits = [];
+                if (c.summary)            bits.push('summary');
+                if (c.experience)         bits.push(c.experience + ' bullet' + (c.experience===1?'':'s'));
+                if (c.skills)             bits.push(c.skills + ' skill' + (c.skills===1?'':'s'));
+                this.showToast('Applied ' + (bits.join(', ') || 'changes') + '.', 'success');
+                this.closeTailor();
+            } catch (e) {
+                this.tailorError = e.message;
+            } finally {
+                this.tailorBusy = false;
+            }
+        },
+
+        tailorAcceptCount() {
+            return (this.tailorPicks.summary ? 1 : 0)
+                + (this.tailorPicks.experience || []).length
+                + (this.tailorPicks.skills || []).length;
+        },
+        tailorHasAnyChanges() {
+            const s = this.tailorSuggestions || {};
+            return (s.summary && s.summary.changed)
+                || (s.experience && s.experience.length)
+                || (s.skills && (s.skills.additions || []).length);
+        },
+        acceptAllExp(on) {
+            this.tailorPicks.experience = on
+                ? (this.tailorSuggestions.experience || []).map(x => x.item_id) : [];
+        },
+        acceptAllSkills(on) {
+            this.tailorPicks.skills = on
+                ? ((this.tailorSuggestions.skills && this.tailorSuggestions.skills.additions) || []).map((_, i) => i) : [];
+        },
+        formatTailorWhen(iso) {
+            if (!iso) return '';
+            try {
+                const d = new Date(iso);
+                return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+            } catch (e) { return iso; }
+        },
+
+        // Word-level diff used in the side-by-side panes. We compute
+        // the longest-common-subsequence on whitespace-split tokens and
+        // emit `<ins>` for additions, `<del>` for removals, and
+        // `<mark class="kw">` for tokens that appear in both texts and
+        // also in the JD-keyword list (so users can see which JD terms
+        // landed). `mode` is 'old' (omit ins) or 'new' (omit del).
+        renderTailorDiff(oldText, newText, mode) {
+            const esc = (s) => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+            const a = String(oldText || '').split(/(\s+)/);
+            const b = String(newText || '').split(/(\s+)/);
+            const n = a.length, m = b.length;
+            // Bail out cheaply for very large inputs to keep the editor responsive.
+            if (n * m > 90000) {
+                return mode === 'old' ? esc(oldText || '') : esc(newText || '');
+            }
+            const dp = Array.from({ length: n + 1 }, () => new Uint16Array(m + 1));
+            for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) {
+                dp[i][j] = a[i] === b[j] ? dp[i+1][j+1] + 1 : Math.max(dp[i+1][j], dp[i][j+1]);
+            }
+            const kws = new Set((this.tailorSuggestions.keywords || []).map(k => String(k).toLowerCase()));
+            const out = [];
+            let i = 0, j = 0;
+            const wrapKw = (tok) => kws.has(tok.toLowerCase().replace(/[^\p{L}\p{N}+\-#.]/gu, '')) && tok.trim()
+                ? '<mark class="kw">' + esc(tok) + '</mark>' : esc(tok);
+            while (i < n && j < m) {
+                if (a[i] === b[j]) { out.push(wrapKw(a[i])); i++; j++; }
+                else if (dp[i+1][j] >= dp[i][j+1]) {
+                    if (mode === 'old') out.push('<del>' + esc(a[i]) + '</del>');
+                    i++;
+                } else {
+                    if (mode === 'new') out.push('<ins>' + esc(b[j]) + '</ins>');
+                    j++;
+                }
+            }
+            while (i < n) { if (mode === 'old') out.push('<del>' + esc(a[i]) + '</del>'); i++; }
+            while (j < m) { if (mode === 'new') out.push('<ins>' + esc(b[j]) + '</ins>'); j++; }
+            return out.join('');
         },
 
         async applyMerge() {
