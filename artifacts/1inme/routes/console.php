@@ -182,6 +182,17 @@ Schedule::command('blogs:publish-scheduled')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Daily (off-peak): re-run the idempotent legacy image shrink so any
+// oversized raster files that slipped past the upload-time compress_image
+// pipeline (older API clients, future categories newly opted in) get
+// downscaled in place. Re-runs are a no-op once the vault is clean. The
+// --limit cap stops a single nightly run from monopolising CPU on a big
+// vault; stragglers just get picked up the following night.
+Schedule::command('images:backfill-reoptimize --chunk=200 --limit=500')
+    ->dailyAt('04:45')
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // First of each month: estimate the prior month's per-biolink CO2 from
 // PageSession traffic and (for opted-in links) auto-purchase verified
 // carbon offsets via the workspace's connected provider. The command
