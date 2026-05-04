@@ -1,0 +1,494 @@
+@extends('user.layouts.app')
+@section('title', 'Slides Mode - ' . ($link->title ?: $link->alias))
+@section('breadcrumb_parent', 'Links')
+@section('breadcrumb_parent_url', route('user.links.index'))
+@section('content')
+<style>
+    .sl-builder { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; align-items: start; }
+    @media (max-width: 1100px) { .sl-builder { grid-template-columns: minmax(0, 1fr); } }
+
+    .sl-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-glass);
+        border-radius: 1rem;
+        padding: 18px;
+        margin-bottom: 16px;
+        backdrop-filter: blur(20px);
+    }
+    .sl-card h5 { color: var(--text-primary); font-weight: 700; margin: 0 0 10px; }
+
+    .sl-toggle {
+        display: flex; align-items: center; gap: 14px;
+        padding: 16px 20px; color: #fff;
+        background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
+        border-radius: 1rem; margin-bottom: 18px;
+        box-shadow: 0 10px 30px -12px rgba(139,92,246,0.55);
+    }
+    .sl-toggle .form-check-input { transform: scale(1.4); cursor: pointer; }
+    .sl-toggle-title { font-weight: 700; font-size: 14px; }
+    .sl-toggle-sub   { font-size: 12px; opacity: 0.85; }
+
+    .sl-field-label {
+        display: block; font-size: 11px; font-weight: 600;
+        text-transform: uppercase; letter-spacing: 0.04em;
+        color: var(--text-muted); margin-bottom: 6px;
+    }
+    .sl-input, .sl-select {
+        width: 100%;
+        background: var(--bg-glass-input);
+        border: 1px solid var(--border-glass);
+        border-radius: 10px;
+        color: var(--text-primary);
+        padding: 9px 12px; font-size: 14px;
+    }
+    .sl-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .sl-row > * { flex: 1; min-width: 140px; }
+
+    .sl-list { display: flex; flex-direction: column; gap: 12px; }
+    .sl-slide-card {
+        background: var(--bg-card-alt, rgba(255,255,255,0.04));
+        border: 1px solid var(--border-glass);
+        border-radius: 12px; padding: 14px;
+    }
+    .sl-slide-head {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 10px; margin-bottom: 10px;
+    }
+    .sl-slide-idx {
+        background: #8b5cf6; color: #fff; border-radius: 999px;
+        min-width: 28px; height: 28px; display: inline-flex;
+        align-items: center; justify-content: center;
+        font-weight: 700; font-size: 13px;
+    }
+
+    .sl-btn { background: rgba(139,92,246,0.18); color: #c4b5fd;
+        border: 1px solid rgba(139,92,246,0.4); padding: 7px 12px;
+        border-radius: 8px; font-size: 13px; cursor: pointer;
+        transition: background 0.15s; }
+    .sl-btn:hover { background: rgba(139,92,246,0.32); }
+    .sl-btn-primary { background: #7c3aed; color: white; border-color: #7c3aed; }
+    .sl-btn-primary:hover { background: #6d28d9; }
+    .sl-btn-danger  { background: rgba(239,68,68,0.18); color: #fca5a5;
+        border-color: rgba(239,68,68,0.4); }
+    .sl-btn-ghost   { background: transparent; color: var(--text-muted);
+        border: 1px solid var(--border-glass); }
+
+    .sl-block-chip {
+        display: inline-flex; align-items: center; gap: 6px;
+        background: rgba(139,92,246,0.15); color: #ddd;
+        border: 1px solid rgba(139,92,246,0.3);
+        border-radius: 999px; padding: 4px 10px;
+        font-size: 12px; margin: 0 4px 4px 0;
+    }
+    .sl-block-chip button {
+        background: transparent; border: 0; color: #fca5a5;
+        font-size: 14px; cursor: pointer; padding: 0; line-height: 1;
+    }
+
+    .sl-empty { color: var(--text-faint); font-size: 13px; padding: 8px 0; }
+
+    .sl-preview-wrap {
+        background: rgba(0,0,0,0.35); border-radius: 18px;
+        padding: 14px; position: sticky; top: 12px;
+    }
+    .sl-preview-frame {
+        width: 100%; aspect-ratio: 9 / 19.5; max-height: 720px;
+        border: 0; border-radius: 28px; background: #000;
+        box-shadow: 0 12px 40px -8px rgba(0,0,0,0.6);
+    }
+
+    .sl-status-pill {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 4px 10px; border-radius: 999px; font-size: 11px;
+        font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .sl-status-pill.draft { background: rgba(234,179,8,0.15); color: #facc15; }
+    .sl-status-pill.live  { background: rgba(34,197,94,0.18); color: #4ade80; }
+
+    .sl-actions-bar {
+        display: flex; gap: 10px; justify-content: flex-end;
+        margin-top: 16px;
+    }
+
+    .sl-deck-bg {
+        width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border-glass);
+        display: inline-block; vertical-align: middle;
+    }
+</style>
+
+@include('user.links.partials.editor-header', ['link' => $link, 'activeMainTab' => 'slides'])
+
+<div class="sl-toggle">
+    <div style="flex:1;">
+        <div class="sl-toggle-title">Slides mode</div>
+        <div class="sl-toggle-sub">Full-screen, swipeable deck. Each slide can host one or more existing biolink blocks.</div>
+    </div>
+    <div class="form-check form-switch m-0">
+        <input class="form-check-input" type="checkbox" id="sl-mode-toggle" {{ ($deckPayload['mode'] ?? 'list') === 'slides' ? 'checked' : '' }}>
+    </div>
+</div>
+
+<div class="sl-builder">
+    <div>
+        <div class="sl-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+                <h5>Deck settings</h5>
+                <span id="sl-status-pill" class="sl-status-pill {{ $deckPayload['is_published'] ? 'live' : 'draft' }}">
+                    {{ $deckPayload['is_published'] ? 'Published v'.$deckPayload['version'] : 'Draft' }}
+                </span>
+            </div>
+            <div class="sl-row" style="margin-top:10px;">
+                <div>
+                    <label class="sl-field-label">Background</label>
+                    <input type="color" id="sl-theme-bg"  class="sl-input" value="{{ $deckPayload['settings']['theme']['background'] ?? '#0f172a' }}">
+                </div>
+                <div>
+                    <label class="sl-field-label">Accent</label>
+                    <input type="color" id="sl-theme-acc" class="sl-input" value="{{ $deckPayload['settings']['theme']['accent'] ?? '#8b5cf6' }}">
+                </div>
+                <div>
+                    <label class="sl-field-label">Text</label>
+                    <input type="color" id="sl-theme-text" class="sl-input" value="{{ $deckPayload['settings']['theme']['text'] ?? '#f8fafc' }}">
+                </div>
+            </div>
+            <div class="sl-row" style="margin-top:10px;">
+                <div>
+                    <label class="sl-field-label">Default transition</label>
+                    <select id="sl-transition" class="sl-select">
+                        @foreach(['slide'=>'Slide','fade'=>'Fade','zoom'=>'Zoom','flip'=>'Flip','none'=>'None'] as $k=>$v)
+                            <option value="{{ $k }}" {{ ($deckPayload['settings']['transition'] ?? 'slide')===$k?'selected':'' }}>{{ $v }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="sl-field-label">Auto-advance (ms, 0=off)</label>
+                    <input id="sl-auto" class="sl-input" type="number" min="0" max="60000" step="500" value="{{ (int)($deckPayload['settings']['auto_advance'] ?? 0) }}">
+                </div>
+                <div>
+                    <label class="sl-field-label">Loop</label>
+                    <select id="sl-loop" class="sl-select">
+                        <option value="0" {{ empty($deckPayload['settings']['loop'])?'selected':'' }}>Off</option>
+                        <option value="1" {{ !empty($deckPayload['settings']['loop'])?'selected':'' }}>On</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="sl-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+                <h5>Slides</h5>
+                <button type="button" class="sl-btn sl-btn-primary" id="sl-add-slide">+ Add slide</button>
+            </div>
+            <div id="sl-slides" class="sl-list" style="margin-top:14px;"></div>
+        </div>
+
+        <div class="sl-actions-bar">
+            <button type="button" class="sl-btn sl-btn-ghost" id="sl-save-draft">Save draft</button>
+            <button type="button" class="sl-btn sl-btn-primary" id="sl-publish">Save &amp; publish</button>
+        </div>
+    </div>
+
+    <div>
+        <div class="sl-preview-wrap">
+            <h5 style="color:#fff;margin:0 0 10px;text-align:center;">Live preview</h5>
+            <iframe id="sl-preview-iframe" class="sl-preview-frame" src="{{ $previewUrl }}"></iframe>
+            <div style="margin-top:10px;text-align:center;">
+                <button type="button" class="sl-btn sl-btn-ghost" id="sl-refresh-preview">↻ Refresh preview</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const DECK = @json($deckPayload);
+const BLOCKS = @json($blockOptions);
+const URLS = {
+    save:    @json(route('user.links.slides.save', $link)),
+    toggle:  @json(route('user.links.slides.toggle', $link)),
+    preview: @json($previewUrl),
+};
+const CSRF = '{{ csrf_token() }}';
+
+let slides = (DECK.slides || []).map(s => Object.assign({}, s, {
+    block_ids: Array.isArray(s.block_ids) ? s.block_ids.slice() : [],
+    block_settings: (s.block_settings && typeof s.block_settings === 'object') ? Object.assign({}, s.block_settings) : {},
+    background: Object.assign({type:'color', color:'#0f172a'}, s.background || {}),
+    animation:  Object.assign({enter:'fade', duration_ms:400}, s.animation || {}),
+}));
+let isPublished = !!DECK.is_published;
+let version     = DECK.version || 1;
+
+const ENTERS = ['fade','slide_up','slide_down','slide_left','slide_right','zoom','flip','none'];
+const TRANS  = ['slide','fade','zoom','flip','none'];
+
+function escAttr(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function blockLabel(id) {
+    const b = BLOCKS.find(x => x.id === id);
+    if (!b) return '#' + id + ' (missing)';
+    return (b.label ? (b.label + ' · ') : '') + b.type;
+}
+
+function renderSlides() {
+    const wrap = document.getElementById('sl-slides');
+    wrap.innerHTML = '';
+    if (!slides.length) {
+        wrap.innerHTML = '<div class="sl-empty">No slides yet. Click "Add slide" to start.</div>';
+        return;
+    }
+    slides.forEach((s, i) => {
+        const card = document.createElement('div');
+        card.className = 'sl-slide-card';
+        card.innerHTML = `
+            <div class="sl-slide-head">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <span class="sl-slide-idx">${i+1}</span>
+                    <input class="sl-input sl-title" placeholder="Slide title (optional)"
+                           value="${escAttr(s.title || '')}" style="min-width:200px;">
+                </div>
+                <div style="display:flex;gap:6px;">
+                    <button type="button" class="sl-btn" data-act="up"   ${i===0?'disabled style="opacity:.4;"':''}>↑</button>
+                    <button type="button" class="sl-btn" data-act="down" ${i===slides.length-1?'disabled style="opacity:.4;"':''}>↓</button>
+                    <button type="button" class="sl-btn" data-act="dup" title="Duplicate slide">⎘</button>
+                    <button type="button" class="sl-btn sl-btn-danger" data-act="rm">×</button>
+                </div>
+            </div>
+
+            <div class="sl-row">
+                <div>
+                    <label class="sl-field-label">Background type</label>
+                    <select class="sl-select sl-bg-type">
+                        <option value="color"    ${s.background.type==='color'?'selected':''}>Color</option>
+                        <option value="gradient" ${s.background.type==='gradient'?'selected':''}>Gradient</option>
+                        <option value="image"    ${s.background.type==='image'?'selected':''}>Image URL</option>
+                    </select>
+                </div>
+                <div class="sl-bg-fields" style="display:flex;gap:8px;flex:2;"></div>
+            </div>
+
+            <div class="sl-row" style="margin-top:8px;">
+                <div>
+                    <label class="sl-field-label">Enter animation</label>
+                    <select class="sl-select sl-anim">
+                        ${ENTERS.map(e => `<option value="${e}" ${s.animation.enter===e?'selected':''}>${e}</option>`).join('')}
+                    </select>
+                </div>
+                <div>
+                    <label class="sl-field-label">Duration (ms)</label>
+                    <input type="number" min="0" max="5000" step="50" class="sl-input sl-anim-dur"
+                           value="${s.animation.duration_ms || 400}">
+                </div>
+                <div>
+                    <label class="sl-field-label">Transition</label>
+                    <select class="sl-select sl-trans">
+                        ${TRANS.map(t => `<option value="${t}" ${s.transition===t?'selected':''}>${t}</option>`).join('')}
+                    </select>
+                </div>
+            </div>
+
+            <div style="margin-top:12px;">
+                <label class="sl-field-label">Hosted blocks</label>
+                <div class="sl-chips" style="margin-bottom:8px;"></div>
+                <div style="display:flex;gap:8px;">
+                    <select class="sl-select sl-add-block" style="flex:1;">
+                        <option value="">— Add a block —</option>
+                        ${BLOCKS.map(b => `<option value="${b.id}">${escAttr((b.label?b.label+' · ':'')+b.type)}</option>`).join('')}
+                    </select>
+                </div>
+            </div>
+        `;
+        wrap.appendChild(card);
+
+        // Wire events
+        card.querySelector('.sl-title').addEventListener('input', e => slides[i].title = e.target.value);
+        card.querySelector('.sl-bg-type').addEventListener('change', e => {
+            slides[i].background = { type: e.target.value };
+            if (e.target.value === 'color')    slides[i].background.color = '#0f172a';
+            if (e.target.value === 'gradient') Object.assign(slides[i].background, {from_color:'#1e293b', to_color:'#0f172a'});
+            renderSlides();
+        });
+        card.querySelector('.sl-anim').addEventListener('change', e => slides[i].animation.enter = e.target.value);
+        card.querySelector('.sl-anim-dur').addEventListener('input', e => slides[i].animation.duration_ms = parseInt(e.target.value, 10) || 0);
+        card.querySelector('.sl-trans').addEventListener('change', e => slides[i].transition = e.target.value);
+
+        card.querySelectorAll('[data-act]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const act = btn.dataset.act;
+                if (act === 'rm')   { slides.splice(i, 1); renderSlides(); }
+                if (act === 'up'   && i > 0) { [slides[i-1], slides[i]] = [slides[i], slides[i-1]]; renderSlides(); }
+                if (act === 'down' && i < slides.length-1) { [slides[i+1], slides[i]] = [slides[i], slides[i+1]]; renderSlides(); }
+                if (act === 'dup') {
+                    // Deep clone via JSON so nested settings don't share refs.
+                    const copy = JSON.parse(JSON.stringify(slides[i]));
+                    copy.title = (copy.title || 'Slide') + ' (copy)';
+                    slides.splice(i + 1, 0, copy);
+                    renderSlides();
+                }
+            });
+        });
+
+        // Background-type-specific fields
+        const bgWrap = card.querySelector('.sl-bg-fields');
+        const t = slides[i].background.type;
+        if (t === 'color') {
+            bgWrap.innerHTML = `
+                <div style="flex:1;"><label class="sl-field-label">Color</label>
+                    <input type="color" class="sl-input sl-bg-color" value="${s.background.color || '#0f172a'}"></div>`;
+            bgWrap.querySelector('.sl-bg-color').addEventListener('input', e => slides[i].background.color = e.target.value);
+        } else if (t === 'gradient') {
+            bgWrap.innerHTML = `
+                <div style="flex:1;"><label class="sl-field-label">From</label>
+                    <input type="color" class="sl-input sl-bg-from" value="${s.background.from_color || '#1e293b'}"></div>
+                <div style="flex:1;"><label class="sl-field-label">To</label>
+                    <input type="color" class="sl-input sl-bg-to"   value="${s.background.to_color   || '#0f172a'}"></div>`;
+            bgWrap.querySelector('.sl-bg-from').addEventListener('input', e => slides[i].background.from_color = e.target.value);
+            bgWrap.querySelector('.sl-bg-to'  ).addEventListener('input', e => slides[i].background.to_color   = e.target.value);
+        } else if (t === 'image') {
+            bgWrap.innerHTML = `
+                <div style="flex:1;"><label class="sl-field-label">Image URL</label>
+                    <input class="sl-input sl-bg-url" value="${escAttr(s.background.image_url || '')}"></div>`;
+            bgWrap.querySelector('.sl-bg-url').addEventListener('input', e => slides[i].background.image_url = e.target.value);
+        }
+
+        // Block chips + per-block animation rows
+        const chips = card.querySelector('.sl-chips');
+        if (!s.block_ids.length) {
+            chips.innerHTML = '<span class="sl-empty">No blocks yet — pick one below.</span>';
+        } else {
+            s.block_ids.forEach((bid, bi) => {
+                const ov = (slides[i].block_settings && slides[i].block_settings[bid]) || {};
+                const row = document.createElement('div');
+                row.style.cssText = 'display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:rgba(255,255,255,0.03);border:1px solid var(--border-glass);border-radius:10px;padding:6px 8px;margin-bottom:6px;';
+                row.innerHTML = `
+                    <span class="sl-block-chip" style="margin:0;">${escAttr(blockLabel(bid))}
+                        <button type="button" data-rm title="Remove">×</button>
+                    </span>
+                    <label style="font-size:11px;color:var(--text-muted);">Anim</label>
+                    <select class="sl-select sl-bs-enter" style="flex:0 0 110px;padding:4px 6px;font-size:12px;">
+                        ${ENTERS.map(e => `<option value="${e}" ${(ov.enter||'fade')===e?'selected':''}>${e}</option>`).join('')}
+                    </select>
+                    <label style="font-size:11px;color:var(--text-muted);">Delay</label>
+                    <input type="number" min="0" max="10000" step="50" class="sl-input sl-bs-delay" value="${parseInt(ov.delay_ms,10)||0}" style="width:70px;padding:4px 6px;font-size:12px;">
+                    <label style="font-size:11px;color:var(--text-muted);">Align</label>
+                    <select class="sl-select sl-bs-align" style="flex:0 0 100px;padding:4px 6px;font-size:12px;">
+                        ${['left','center','right','stretch'].map(a => `<option value="${a}" ${(ov.align||'center')===a?'selected':''}>${a}</option>`).join('')}
+                    </select>
+                `;
+                chips.appendChild(row);
+
+                row.querySelector('[data-rm]').addEventListener('click', () => {
+                    slides[i].block_ids.splice(bi, 1);
+                    if (slides[i].block_settings) delete slides[i].block_settings[bid];
+                    renderSlides();
+                });
+                const ensure = () => {
+                    if (!slides[i].block_settings) slides[i].block_settings = {};
+                    if (!slides[i].block_settings[bid]) slides[i].block_settings[bid] = {};
+                    return slides[i].block_settings[bid];
+                };
+                row.querySelector('.sl-bs-enter').addEventListener('change', e => { ensure().enter = e.target.value; });
+                row.querySelector('.sl-bs-delay').addEventListener('input',  e => { ensure().delay_ms = parseInt(e.target.value, 10) || 0; });
+                row.querySelector('.sl-bs-align').addEventListener('change', e => { ensure().align = e.target.value; });
+            });
+        }
+
+        const addBlock = card.querySelector('.sl-add-block');
+        addBlock.addEventListener('change', e => {
+            const v = parseInt(e.target.value, 10);
+            if (v && !slides[i].block_ids.includes(v)) {
+                slides[i].block_ids.push(v); renderSlides();
+            }
+        });
+    });
+}
+
+document.getElementById('sl-add-slide').addEventListener('click', () => {
+    slides.push({
+        title: '', block_ids: [],
+        background: { type: 'color', color: document.getElementById('sl-theme-bg').value },
+        animation:  { enter: 'fade', duration_ms: 400 },
+        transition: document.getElementById('sl-transition').value,
+        settings:   {},
+    });
+    renderSlides();
+});
+
+function buildPayload(publish) {
+    return {
+        is_published: !!publish,
+        settings: {
+            theme: {
+                background: document.getElementById('sl-theme-bg').value,
+                accent:     document.getElementById('sl-theme-acc').value,
+                text:       document.getElementById('sl-theme-text').value,
+            },
+            transition:   document.getElementById('sl-transition').value,
+            auto_advance: parseInt(document.getElementById('sl-auto').value, 10) || 0,
+            loop:         document.getElementById('sl-loop').value === '1',
+        },
+        slides: slides.map(s => ({
+            title:          s.title || null,
+            block_ids:      s.block_ids,
+            block_settings: s.block_settings || {},
+            background:     s.background,
+            animation:      s.animation,
+            transition:     s.transition,
+            settings:       s.settings || {},
+        })),
+    };
+}
+
+async function save(publish) {
+    const btn = publish ? document.getElementById('sl-publish') : document.getElementById('sl-save-draft');
+    btn.disabled = true; const orig = btn.textContent; btn.textContent = 'Saving…';
+    try {
+        const r = await fetch(URLS.save, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify(buildPayload(publish)),
+        });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.message || 'Save failed');
+        isPublished = !!j.is_published;
+        version     = j.version || version;
+        const pill = document.getElementById('sl-status-pill');
+        pill.className = 'sl-status-pill ' + (isPublished ? 'live' : 'draft');
+        pill.textContent = isPublished ? ('Published v' + version) : 'Draft';
+        document.getElementById('sl-refresh-preview').click();
+    } catch (e) {
+        alert(e.message || 'Save failed');
+    } finally {
+        btn.disabled = false; btn.textContent = orig;
+    }
+}
+
+document.getElementById('sl-save-draft').addEventListener('click', () => save(false));
+document.getElementById('sl-publish').addEventListener('click',    () => save(true));
+
+document.getElementById('sl-refresh-preview').addEventListener('click', () => {
+    const f = document.getElementById('sl-preview-iframe');
+    const sep = URLS.preview.includes('?') ? '&' : '?';
+    f.src = URLS.preview + sep + '_t=' + Date.now();
+});
+
+document.getElementById('sl-mode-toggle').addEventListener('change', async (e) => {
+    const enabled = e.target.checked;
+    try {
+        const r = await fetch(URLS.toggle, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ enabled }),
+        });
+        if (!r.ok) throw new Error('Toggle failed');
+        document.getElementById('sl-refresh-preview').click();
+    } catch (err) {
+        e.target.checked = !enabled;
+        alert(err.message || 'Toggle failed');
+    }
+});
+
+renderSlides();
+</script>
+@endsection

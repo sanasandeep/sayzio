@@ -414,18 +414,21 @@ class RedirectController extends Controller
     protected function biolinkViewFor(Link $link): string
     {
         $mode = data_get($link->settings, 'biolink.mode', 'list');
-        if ($mode !== 'conversational') return 'common.biolink';
-        // In owner-scoped preview (signed `?_preview=1`) we allow the
-        // chat view even before the flow is published so creators can
-        // see their work-in-progress in the editor's preview iframe.
+        if ($mode !== 'conversational' && $mode !== 'slides') return 'common.biolink';
+
         $req = request();
         $isOwnerPreview = $req && $req->boolean('_preview')
             && $req->hasValidSignatureWhileIgnoring(['_draft', '_t'], false);
+
+        if ($mode === 'slides') {
+            $q = \App\Modules\User\Models\LinkSlideDeck::withoutGlobalScope('workspace')
+                ->where('link_id', $link->id);
+            if (!$isOwnerPreview) $q->where('is_published', true);
+            return $q->exists() ? 'common.biolink-slides' : 'common.biolink';
+        }
+
+        // Conversational mode — same draft preview unlock as before.
         if ($isOwnerPreview) {
-            // Authorise the in-iframe /cv/{alias}/start fetch to load the
-            // latest draft flow for the next 30 minutes. The session is
-            // shared with the iframe (same-origin), and the flag is link-
-            // scoped so it cannot be used to peek at other links' drafts.
             session([
                 'cv_preview_link_'.$link->id => now()->addMinutes(30)->getTimestamp(),
             ]);

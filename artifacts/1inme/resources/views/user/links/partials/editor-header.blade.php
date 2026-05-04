@@ -45,6 +45,11 @@
         <i class="fas fa-comments text-[10px]"></i>
         <span>Conversational</span>
     </a>
+    <a href="{{ route('user.links.slides.editor', $link) }}"
+       class="editor-tab no-underline {{ $activeMainTab === 'slides' ? 'is-active' : '' }}">
+        <i class="fas fa-images text-[10px]"></i>
+        <span>Slides</span>
+    </a>
 </div>
 @endif
 <style>

@@ -7,6 +7,8 @@ use App\Modules\Common\Services\LinkTrackingService;
 use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Follow;
 use App\Modules\User\Models\Link;
+use App\Modules\User\Models\LinkSlideDeck;
+use App\Modules\User\Models\LinkSlideViewEvent;
 use App\Modules\User\Models\PollVote;
 use App\Modules\User\Models\Rsvp;
 use App\Modules\User\Models\Subscriber;
@@ -50,6 +52,43 @@ class BiolinkController extends Controller
                 'settings'   => $b->settings,
             ])->all();
 
+        $mode = (string) (data_get($link->settings, 'biolink.mode', 'list'));
+        $slidesPayload = null;
+        if ($mode === 'slides') {
+            $deck = LinkSlideDeck::withoutGlobalScope('workspace')
+                ->where('link_id', $link->id)
+                ->where('is_published', true)
+                ->first();
+            if ($deck && is_array($deck->published_snapshot)) {
+                $snap = $deck->published_snapshot;
+                // Strip server-rendered HTML for the mobile client; the
+                // mobile viewer renders blocks natively from `blocks[]`.
+                $slides = collect($snap['slides'] ?? [])->map(function ($s) {
+                    $blocks = collect($s['blocks'] ?? [])->map(fn ($b) => [
+                        'id'       => (int) ($b['id'] ?? 0),
+                        'type'     => (string) ($b['type'] ?? ''),
+                        'settings' => $b['settings'] ?? [],
+                    ])->values()->all();
+                    return [
+                        'id'         => $s['id'] ?? null,
+                        'sort_order' => (int) ($s['sort_order'] ?? 0),
+                        'title'      => $s['title'] ?? null,
+                        'background' => $s['background'] ?? ['type' => 'color', 'color' => '#0f172a'],
+                        'animation'  => $s['animation'] ?? ['enter' => 'fade', 'duration_ms' => 400],
+                        'transition' => $s['transition'] ?? 'slide',
+                        'blocks'     => $blocks,
+                    ];
+                })->values()->all();
+
+                $slidesPayload = [
+                    'deck_id'  => (int) $deck->id,
+                    'version'  => (int) ($snap['version'] ?? $deck->version),
+                    'settings' => $snap['settings'] ?? [],
+                    'slides'   => $slides,
+                ];
+            }
+        }
+
         return $this->ok([
             'biolink' => [
                 'id'         => $link->id,
@@ -59,6 +98,7 @@ class BiolinkController extends Controller
                 'seo_title'  => $link->seo_title,
                 'seo_description' => $link->seo_description,
                 'seo_image'  => $link->seo_image,
+                'mode'       => $mode,
             ],
             'owner' => [
                 'id'              => $owner?->id,
@@ -69,7 +109,50 @@ class BiolinkController extends Controller
                 'followers_count' => (int) ($owner?->followers_count ?? 0),
             ],
             'blocks' => $blocks,
+            'slides' => $slidesPayload,
         ]);
+    }
+
+    /**
+     * Mobile slide-view event ping. Mirrors the web's /sl/{alias}/view
+     * endpoint so a creator's slide-by-slide view counts include taps
+     * from the mobile viewer.
+     */
+    public function slideView(Request $request, string $alias)
+    {
+        $link = Link::where('alias', $alias)->where('type', 'biolink')->first();
+        if (!$link || !$link->is_active) return $this->notFound('Biolink not found');
+        if (!$link->isAccessible())     return $this->notFound('Biolink not available');
+
+        $owner  = $link->user;
+        $viewer = $request->user();
+        $gate   = $this->checkVisibility($link, $viewer, $owner);
+        if ($gate !== null) return $this->fail($gate['message'], $gate['status'], $gate['code']);
+
+        $data = $request->validate([
+            'slide_index'     => ['required', 'integer', 'min:0', 'max:200'],
+            'page_session_id' => ['nullable', 'string', 'max:60'],
+            'completed'       => ['nullable', 'boolean'],
+        ]);
+
+        $deck = LinkSlideDeck::withoutGlobalScope('workspace')
+            ->where('link_id', $link->id)->where('is_published', true)->first();
+        if (!$deck) return $this->ok(['tracked' => false]);
+
+        try {
+            LinkSlideViewEvent::create([
+                'deck_id'         => $deck->id,
+                'link_id'         => $link->id,
+                'slide_index'     => (int) $data['slide_index'],
+                'completed'       => (bool) ($data['completed'] ?? false),
+                'page_session_id' => $data['page_session_id'] ?? null,
+                'source'          => 'mobile_app',
+            ]);
+        } catch (\Throwable $e) {
+            logger()->warning('slideView mobile track failed: ' . $e->getMessage());
+        }
+
+        return $this->ok(['tracked' => true]);
     }
 
     /**

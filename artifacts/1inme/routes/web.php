@@ -262,6 +262,9 @@ Route::get('/{alias}/manifest.json', [RedirectController::class, 'manifest'])->n
 Route::get('/{alias}', [RedirectController::class, 'handle'])->name('redirect.handle')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|f|webhooks|login|register|features|how-it-works|about|contact|faqs|terms|refunds|privacy|gdpr|cookies|discovery|creators-feed|workspace-team|buzz|ai-chatbot|ai-agent|ai-widget|ai-voice-assistant|docs|newsletter|pricing|coins|premium-features|blogs).*$');
 // ── Conversational Biolink visitor endpoints ─────────────────────
 // Use the /cv/ prefix so they don't collide with the catch-all /{alias} route.
+Route::post('/sl/{alias}/view',            [\App\Modules\Common\Controllers\SlideEventController::class, 'view'])
+    ->where('alias', '[^/]+')->middleware('throttle:240,1')->name('sl.public.view');
+
 Route::post('/cv/{alias}/start',           [\App\Modules\Common\Controllers\ConversationPublicController::class, 'start'])
     ->where('alias', '[^/]+')->middleware('throttle:30,1')->name('cv.public.start');
 Route::post('/cv/{publicId}/answer',       [\App\Modules\Common\Controllers\ConversationPublicController::class, 'answer'])

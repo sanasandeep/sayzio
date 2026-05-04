@@ -10,6 +10,42 @@ export type BiolinkBlock = {
   settings: Record<string, unknown> | null;
 };
 
+export type SlideBlock = {
+  id: number;
+  type: string;
+  settings: Record<string, unknown> | null;
+};
+
+export type SlideBackground = {
+  type?: "color" | "gradient" | "image";
+  color?: string;
+  from_color?: string;
+  to_color?: string;
+  image_url?: string;
+};
+
+export type Slide = {
+  id: number | null;
+  sort_order: number;
+  title: string | null;
+  background: SlideBackground;
+  animation: { enter?: string; duration_ms?: number };
+  transition: string;
+  blocks: SlideBlock[];
+};
+
+export type SlidesPayload = {
+  deck_id: number;
+  version: number;
+  settings: {
+    theme?: { background?: string; accent?: string; text?: string };
+    transition?: string;
+    auto_advance?: number;
+    loop?: boolean;
+  };
+  slides: Slide[];
+};
+
 export type BiolinkPayload = {
   biolink: {
     id: number;
@@ -19,6 +55,7 @@ export type BiolinkPayload = {
     seo_title: string | null;
     seo_description: string | null;
     seo_image: string | null;
+    mode?: "list" | "conversational" | "slides";
   };
   owner: {
     id: number | null;
@@ -29,7 +66,27 @@ export type BiolinkPayload = {
     followers_count: number;
   };
   blocks: BiolinkBlock[];
+  slides?: SlidesPayload | null;
 };
+
+// Best-effort slide-view ping. Mirrors the web's /sl/{alias}/view ping
+// so creator analytics include slide impressions from the mobile viewer.
+export function trackSlideView(
+  alias: string,
+  slideIndex: number,
+  pageSessionId?: string | null,
+  completed: boolean = false,
+): void {
+  if (!alias || !Number.isFinite(slideIndex)) return;
+  void apiFetch(`/biolinks/${encodeURIComponent(alias)}/slides/view`, {
+    method: "POST",
+    body: JSON.stringify({
+      slide_index: slideIndex,
+      page_session_id: pageSessionId ?? null,
+      completed: !!completed,
+    }),
+  }).catch(() => {});
+}
 
 export type BiolinkError = {
   status: number;

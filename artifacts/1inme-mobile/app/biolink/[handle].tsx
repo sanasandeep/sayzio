@@ -5,7 +5,11 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
+  Dimensions,
+  FlatList,
   Image,
+  ImageBackground,
   Platform,
   Pressable,
   ScrollView,
@@ -74,10 +78,13 @@ import {
   getRememberedBlockResponse,
   type PollResults,
   rememberBlockResponse,
+  type Slide,
+  type SlidesPayload,
   submitPollVote,
   submitRsvp,
   trackBiolinkBlockTap,
   trackBiolinkVisit,
+  trackSlideView,
 } from "@/lib/api/biolinks";
 
 function pickNum(s: Record<string, unknown> | null, ...keys: string[]): number | null {
@@ -1395,6 +1402,285 @@ function BlockView({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock
   );
 }
 
+// ───────────────────────────────────────────────────────────────────
+// Slides mode: full-screen, swipeable vertical deck. Each slide hosts
+// one or more existing biolink blocks rendered with the same BlockView
+// renderer used by list mode. Mirrors common.biolink-slides.blade.php.
+// ───────────────────────────────────────────────────────────────────
+
+// Resolve the slide's flat background color. For image backgrounds the
+// caller separately renders an <ImageBackground>, so we just return a
+// safe solid color (used when the image is loading or fails to fetch).
+// For gradients we currently fall back to the start color until we add
+// expo-linear-gradient (tracked as a follow-up).
+function slideBgColor(bg: Slide["background"], fallback: string): string {
+  const t = bg?.type ?? "color";
+  if (t === "image")    return bg?.color ?? fallback;
+  if (t === "gradient") return bg?.from_color ?? bg?.color ?? fallback;
+  return bg?.color ?? fallback;
+}
+
+function SlideBlockReveal({
+  active,
+  enter,
+  delayMs,
+  durationMs,
+  align,
+  children,
+}: {
+  active: boolean;
+  enter: string;
+  delayMs: number;
+  durationMs: number;
+  align: string;
+  children: React.ReactNode;
+}) {
+  const progress = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (!active) {
+      progress.setValue(0);
+      return;
+    }
+    const a = Animated.timing(progress, {
+      toValue: 1,
+      duration: Math.max(0, durationMs),
+      delay: Math.max(0, delayMs),
+      useNativeDriver: true,
+    });
+    a.start();
+    return () => a.stop();
+  }, [active, delayMs, durationMs, progress]);
+
+  const offset = enter === "slide_up" ? 16
+    : enter === "slide_down" ? -16
+    : enter === "slide_left" ? 16
+    : enter === "slide_right" ? -16
+    : 0;
+  const isVertical   = enter === "slide_up" || enter === "slide_down";
+  const isHorizontal = enter === "slide_left" || enter === "slide_right";
+  const wantsScale   = enter === "zoom";
+
+  const translateY = isVertical
+    ? progress.interpolate({ inputRange: [0, 1], outputRange: [offset, 0] })
+    : 0;
+  const translateX = isHorizontal
+    ? progress.interpolate({ inputRange: [0, 1], outputRange: [offset, 0] })
+    : 0;
+  const scale = wantsScale
+    ? progress.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1] })
+    : 1;
+
+  const alignSelf: "flex-start" | "flex-end" | "stretch" | "center" =
+    align === "left" ? "flex-start"
+      : align === "right" ? "flex-end"
+        : align === "stretch" ? "stretch"
+          : "center";
+
+  return (
+    <Animated.View
+      style={{
+        opacity: progress,
+        transform: [{ translateX }, { translateY }, { scale }],
+        alignSelf,
+        width: align === "stretch" ? "100%" : undefined,
+        maxWidth: "100%",
+      }}
+    >
+      {children}
+    </Animated.View>
+  );
+}
+
+function SlidesViewer({
+  alias,
+  payload,
+  ownerBlocks,
+  openEmbed,
+}: {
+  alias: string;
+  payload: SlidesPayload;
+  ownerBlocks: BiolinkBlock[];
+  openEmbed: OpenEmbed;
+}) {
+  const colors = useColors();
+  const insets = useSafeAreaInsets();
+  const { height: winH } = Dimensions.get("window");
+  const slideHeight = Math.max(420, winH);
+
+  const themeBg = payload.settings?.theme?.background ?? colors.background;
+  const themeText = payload.settings?.theme?.text ?? colors.foreground;
+  const themeAccent = payload.settings?.theme?.accent ?? colors.primary;
+  const autoAdvance = Math.max(0, Number(payload.settings?.auto_advance ?? 0));
+  const loop = !!payload.settings?.loop;
+
+  const slides = (payload.slides ?? []).filter((s) => s && Array.isArray(s.blocks));
+  const listRef = useRef<FlatList<Slide> | null>(null);
+  const [active, setActive] = useState(0);
+
+  // Per-mount session id so analytics can group views from one viewer.
+  const sessionRef = useRef<string>(`m_${Math.random().toString(36).slice(2, 12)}`);
+  const trackedRef = useRef<Set<number>>(new Set());
+  const completedRef = useRef<boolean>(false);
+
+  // Build a quick lookup so slides can render owner blocks even if the
+  // server-stripped snapshot only carried minimal fields.
+  const blockById = new Map<number, BiolinkBlock>();
+  for (const b of ownerBlocks) blockById.set(b.id, b);
+
+  useEffect(() => {
+    if (!trackedRef.current.has(active)) {
+      trackedRef.current.add(active);
+      trackSlideView(alias, active, sessionRef.current);
+    }
+    // Fire a one-shot deck-completion event when the viewer reaches
+    // the last slide so analytics can report deck-completion rate.
+    if (!completedRef.current && slides.length > 0 && active >= slides.length - 1) {
+      completedRef.current = true;
+      trackSlideView(alias, active, sessionRef.current, true);
+    }
+  }, [active, alias, slides.length]);
+
+  // Optional auto-advance ticker.
+  useEffect(() => {
+    if (!autoAdvance || slides.length < 2) return;
+    const t = setTimeout(() => {
+      const next = active + 1;
+      if (next >= slides.length) {
+        if (loop) listRef.current?.scrollToIndex({ index: 0, animated: true });
+        return;
+      }
+      listRef.current?.scrollToIndex({ index: next, animated: true });
+    }, autoAdvance);
+    return () => clearTimeout(t);
+  }, [active, autoAdvance, loop, slides.length]);
+
+  if (slides.length === 0) {
+    return (
+      <View style={[styles.center, { backgroundColor: themeBg }]}>
+        <Feather name="layers" size={36} color={themeText} />
+        <Text style={[styles.note, { color: themeText }]}>This deck has no slides yet.</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={{ flex: 1, backgroundColor: themeBg }}>
+      {/* Progress dots / segments at the top — mirrors web viewer. */}
+      <View
+        style={{
+          position: "absolute",
+          top: insets.top + 12,
+          left: 16,
+          right: 16,
+          flexDirection: "row",
+          gap: 4,
+          zIndex: 5,
+        }}
+        pointerEvents="none"
+      >
+        {slides.map((_, i) => (
+          <View
+            key={i}
+            style={{
+              flex: 1,
+              height: 3,
+              borderRadius: 2,
+              backgroundColor: i <= active ? themeAccent : "rgba(255,255,255,0.18)",
+            }}
+          />
+        ))}
+      </View>
+
+      <FlatList
+        ref={listRef}
+        data={slides}
+        keyExtractor={(s, i) => `sl-${s.id ?? i}`}
+        pagingEnabled
+        showsVerticalScrollIndicator={false}
+        snapToInterval={slideHeight}
+        decelerationRate="fast"
+        getItemLayout={(_, i) => ({ length: slideHeight, offset: slideHeight * i, index: i })}
+        onMomentumScrollEnd={(e) => {
+          const idx = Math.round(e.nativeEvent.contentOffset.y / slideHeight);
+          if (idx !== active) setActive(idx);
+        }}
+        renderItem={({ item, index }) => {
+          const bgColor = slideBgColor(item.background, themeBg);
+          const isImage = item.background?.type === "image" && !!item.background?.image_url;
+          // Render strictly from the published snapshot so mobile and
+          // web show the same frozen content for a published deck.
+          // Owner blocks are only consulted to fill optional fields
+          // (e.g. parent_id) that the stripped snapshot omits.
+          const blocks: BiolinkBlock[] = item.blocks.map((b) => {
+            const live = blockById.get(b.id);
+            return {
+              id: b.id,
+              type: b.type,
+              parent_id: live?.parent_id ?? null,
+              settings: b.settings,
+            } as BiolinkBlock;
+          });
+
+          const slideBody = (
+            <View
+              style={{
+                flex: 1,
+                paddingTop: insets.top + 36,
+                paddingBottom: insets.bottom + 24,
+                paddingHorizontal: 24,
+                justifyContent: "center",
+              }}
+            >
+              {item.title ? (
+                <Text style={[styles.heading, { color: themeText, marginBottom: 16, fontSize: 22 }]}>
+                  {item.title}
+                </Text>
+              ) : null}
+              <View style={{ gap: 12, alignItems: "center", maxWidth: 480, width: "100%", alignSelf: "center" }}>
+                {blocks.map((b, bi) => {
+                  const ov = (item.blocks[bi] as { animation?: { enter?: string; delay_ms?: number; duration_ms?: number; align?: string } | null })?.animation ?? null;
+                  return (
+                    <SlideBlockReveal
+                      key={`${index}-${b.id}`}
+                      active={index === active}
+                      enter={ov?.enter ?? "fade"}
+                      delayMs={ov?.delay_ms ?? 0}
+                      durationMs={ov?.duration_ms ?? 400}
+                      align={ov?.align ?? "center"}
+                    >
+                      <BlockView block={b} alias={alias} allBlocks={blocks} openEmbed={openEmbed} />
+                    </SlideBlockReveal>
+                  );
+                })}
+              </View>
+            </View>
+          );
+
+          if (isImage) {
+            return (
+              <ImageBackground
+                source={{ uri: item.background!.image_url! }}
+                resizeMode="cover"
+                style={{ width: "100%", height: slideHeight, backgroundColor: bgColor }}
+              >
+                {/* Subtle scrim so foreground content stays legible. */}
+                <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.35)" }} />
+                {slideBody}
+              </ImageBackground>
+            );
+          }
+
+          return (
+            <View style={{ width: "100%", height: slideHeight, backgroundColor: bgColor }}>
+              {slideBody}
+            </View>
+          );
+        }}
+      />
+    </View>
+  );
+}
+
 export default function BiolinkViewer() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -1462,7 +1748,16 @@ export default function BiolinkViewer() {
         </View>
       )}
 
-      {q.data && (
+      {q.data && q.data.biolink.mode === "slides" && q.data.slides ? (
+        <SlidesViewer
+          alias={alias}
+          payload={q.data.slides}
+          ownerBlocks={q.data.blocks}
+          openEmbed={openEmbed}
+        />
+      ) : null}
+
+      {q.data && (q.data.biolink.mode !== "slides" || !q.data.slides) && (
         <ScrollView contentContainerStyle={styles.content}>
           {q.data.owner.avatar ? (
             <Image

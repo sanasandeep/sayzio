@@ -82,6 +82,10 @@ Route::prefix('v1')->group(function () {
     Route::middleware(['api.optional_auth', 'throttle:120,1'])
         ->post('/biolinks/{alias}/visit', [BiolinkController::class, 'visit']);
 
+    // Slide-view event ping for mobile slides viewer.
+    Route::middleware(['api.optional_auth', 'throttle:240,1'])
+        ->post('/biolinks/{alias}/slides/view', [BiolinkController::class, 'slideView']);
+
     // Best-effort block tap tracking from in-app biolink viewers (mobile).
     // Mirrors the web's redirect.block click counter so taps via the app
     // show up in the creator's analytics.
