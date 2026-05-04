@@ -26,27 +26,31 @@
      data-low-balance-click-url="{{ url('/assistant/low-balance-click') }}">
 </div>
 <style>
-/* Brand-gradient launcher with animated aura, pulse ring, and orbiting sparkle. */
-.sa-launcher-wrap{position:fixed;bottom:24px;z-index:99999;width:64px;height:64px;}
+/* Brand-gradient launcher: chat-tag silhouette with aura, breath, sheen, sparkle, and tooltip. */
+.sa-launcher-wrap{position:fixed;bottom:24px;z-index:99999;width:68px;height:68px;}
 .sa-launcher-wrap.sa-pos-right{right:24px}
 .sa-launcher-wrap.sa-pos-left{left:24px}
-/* Soft outer aura — slow color drift */
+/* Soft outer aura — slow color drift, blob-shaped to feel organic */
 .sa-launcher-wrap::before{
-  content:"";position:absolute;inset:-14px;border-radius:50%;
+  content:"";position:absolute;inset:-16px;
+  border-radius:38% 62% 55% 45% / 50% 45% 55% 50%;
   background:conic-gradient(from 0deg,#22d3ee,#6366f1,#ec4899,#f59e0b,#22d3ee);
-  filter:blur(14px);opacity:.55;z-index:0;
-  animation:sa-aura-spin 8s linear infinite;
+  filter:blur(16px);opacity:.55;z-index:0;
+  animation:sa-aura-spin 9s linear infinite, sa-blob-morph 7s ease-in-out infinite;
 }
-/* Pulsing ring that radiates outward */
+/* Pulsing ring follows the chat-tag silhouette */
 .sa-launcher-wrap::after{
-  content:"";position:absolute;inset:0;border-radius:50%;
-  border:2px solid rgba(139,92,246,.55);z-index:0;
-  animation:sa-pulse-ring 2.4s cubic-bezier(.22,.61,.36,1) infinite;
+  content:"";position:absolute;inset:0;
+  border-radius:30px 30px 8px 30px;
+  border:2px solid rgba(167,139,250,.55);z-index:0;
+  animation:sa-pulse-ring 2.6s cubic-bezier(.22,.61,.36,1) infinite;
 }
+.sa-launcher-wrap.sa-pos-left::after{border-radius:30px 30px 30px 8px}
 #sa-launcher{
-  position:absolute;inset:0;width:64px;height:64px;border-radius:50%;
+  position:absolute;inset:0;width:68px;height:68px;
+  border-radius:30px 30px 8px 30px; /* chat-tag: tail bottom-left, points toward content */
   display:flex;align-items:center;justify-content:center;
-  cursor:pointer;border:0;color:#fff;z-index:2;
+  cursor:pointer;border:0;color:#fff;z-index:2;overflow:hidden;
   background:
     radial-gradient(120% 120% at 30% 25%, rgba(255,255,255,.35) 0%, rgba(255,255,255,0) 45%),
     conic-gradient(from 200deg,#22d3ee 0deg,#6366f1 90deg,#a855f7 170deg,#ec4899 250deg,#f59e0b 320deg,#22d3ee 360deg);
@@ -55,37 +59,102 @@
     0 8px 20px -8px rgba(236,72,153,.45),
     inset 0 0 0 1.5px rgba(255,255,255,.35),
     inset 0 -8px 18px rgba(0,0,0,.18);
-  transition:transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .25s ease;
+  transition:transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .25s ease, border-radius .35s ease;
+  animation:sa-breath 3.6s ease-in-out infinite;
+}
+#sa-launcher.sa-pos-left{border-radius:30px 30px 30px 8px}
+/* Animated gradient sheen sweeping across the launcher face */
+#sa-launcher::before{
+  content:"";position:absolute;inset:0;border-radius:inherit;
+  background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.55) 50%,transparent 70%);
+  transform:translateX(-130%);
+  animation:sa-sheen 4.5s ease-in-out infinite;
+  pointer-events:none;
 }
 #sa-launcher:hover{
-  transform:scale(1.08) rotate(-6deg);
+  transform:scale(1.08) rotate(-4deg);
+  border-radius:34px 34px 12px 34px;
   box-shadow:
     0 22px 48px -10px rgba(99,102,241,.7),
     0 10px 24px -8px rgba(236,72,153,.55),
     inset 0 0 0 1.5px rgba(255,255,255,.45),
     inset 0 -8px 18px rgba(0,0,0,.18);
+  animation-play-state:paused;
 }
+#sa-launcher.sa-pos-left:hover{border-radius:34px 34px 34px 12px}
 #sa-launcher:active{transform:scale(.96)}
-#sa-launcher .sa-icon-bubble{filter:drop-shadow(0 1px 2px rgba(0,0,0,.25))}
+#sa-launcher:focus-visible{outline:2px solid #fff;outline-offset:3px}
+#sa-launcher .sa-icon-bubble{position:relative;z-index:1;filter:drop-shadow(0 1px 2px rgba(0,0,0,.25))}
 #sa-launcher .sa-spark{
-  position:absolute;color:#fff;filter:drop-shadow(0 0 6px rgba(255,255,255,.85));
-  animation:sa-spark-twinkle 1.8s ease-in-out infinite;
+  position:absolute;color:#fff;filter:drop-shadow(0 0 6px rgba(255,255,255,.85));z-index:1;
+  animation:sa-spark-orbit 4.2s ease-in-out infinite;
 }
-#sa-launcher .sa-spark.s1{top:6px;right:9px;animation-delay:0s}
-#sa-launcher .sa-spark.s2{bottom:9px;left:8px;animation-delay:.6s;transform:scale(.7)}
-#sa-launcher .sa-spark.s3{top:14px;left:6px;animation-delay:1.1s;transform:scale(.55)}
+#sa-launcher .sa-spark.s1{top:8px;right:11px;animation-delay:0s}
+#sa-launcher .sa-spark.s2{bottom:14px;left:10px;animation-delay:.9s;transform:scale(.7)}
+#sa-launcher .sa-spark.s3{top:18px;left:9px;animation-delay:1.7s;transform:scale(.55)}
 @keyframes sa-aura-spin{to{transform:rotate(360deg)}}
+@keyframes sa-blob-morph{
+  0%,100%{border-radius:38% 62% 55% 45% / 50% 45% 55% 50%}
+  50%{border-radius:55% 45% 40% 60% / 45% 55% 45% 55%}
+}
 @keyframes sa-pulse-ring{
   0%{transform:scale(1);opacity:.7;border-width:2px}
-  80%{transform:scale(1.55);opacity:0;border-width:1px}
-  100%{transform:scale(1.55);opacity:0}
+  80%{transform:scale(1.45);opacity:0;border-width:1px}
+  100%{transform:scale(1.45);opacity:0}
 }
-@keyframes sa-spark-twinkle{
-  0%,100%{opacity:.25;transform:scale(.7) rotate(0)}
-  50%{opacity:1;transform:scale(1) rotate(20deg)}
+@keyframes sa-spark-orbit{
+  0%,100%{opacity:.25;transform:translate(0,0) scale(.7) rotate(0)}
+  50%{opacity:1;transform:translate(2px,-2px) scale(1.05) rotate(20deg)}
+}
+@keyframes sa-breath{
+  0%,100%{transform:translateY(0) scale(1)}
+  50%{transform:translateY(-3px) scale(1.025)}
+}
+@keyframes sa-sheen{
+  0%{transform:translateX(-130%)}
+  60%,100%{transform:translateX(130%)}
+}
+/* Speech-bubble tooltip popping out next to the launcher */
+.sa-tooltip{
+  position:absolute;bottom:calc(100% + 14px);
+  background:#fff;color:#0f172a;
+  padding:9px 30px 9px 14px;
+  border-radius:14px;font-size:13px;line-height:1.35;font-weight:500;
+  font-family:'Space Grotesk','system-ui',sans-serif;
+  box-shadow:0 12px 30px -8px rgba(15,23,42,.35),0 4px 10px -4px rgba(15,23,42,.2);
+  max-width:240px;white-space:normal;
+  opacity:0;transform:translateY(10px) scale(.9);transform-origin:bottom right;
+  pointer-events:none;cursor:pointer;
+  transition:opacity .22s ease, transform .35s cubic-bezier(.34,1.56,.64,1);
+}
+.sa-tooltip.sa-pos-right{right:0;transform-origin:bottom right}
+.sa-tooltip.sa-pos-left{left:0;transform-origin:bottom left}
+.sa-tooltip.sa-show{opacity:1;transform:translateY(0) scale(1);pointer-events:auto;animation:sa-tip-bounce .6s ease-out .12s 1}
+.sa-tooltip::after{
+  content:"";position:absolute;bottom:-6px;width:14px;height:14px;
+  background:#fff;transform:rotate(45deg);
+  box-shadow:3px 3px 6px -3px rgba(15,23,42,.25);
+}
+.sa-tooltip.sa-pos-right::after{right:18px}
+.sa-tooltip.sa-pos-left::after{left:18px}
+.sa-tooltip-text{display:inline-block;min-height:1em}
+.sa-tooltip-text::after{content:"\200B"}
+.sa-tooltip-close{
+  position:absolute;top:4px;right:6px;width:18px;height:18px;
+  background:transparent;border:0;color:#64748b;font-size:16px;line-height:1;
+  cursor:pointer;padding:0;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+}
+.sa-tooltip-close:hover{background:rgba(15,23,42,.08);color:#0f172a}
+@keyframes sa-tip-bounce{
+  0%{transform:translateY(0) scale(1)}
+  40%{transform:translateY(-3px) scale(1.03)}
+  100%{transform:translateY(0) scale(1)}
 }
 @media (prefers-reduced-motion:reduce){
-  .sa-launcher-wrap::before,.sa-launcher-wrap::after,#sa-launcher .sa-spark{animation:none}
+  .sa-launcher-wrap::before,.sa-launcher-wrap::after,
+  #sa-launcher,#sa-launcher::before,#sa-launcher .sa-spark{animation:none}
+  .sa-tooltip,.sa-tooltip.sa-show{transition:none;animation:none}
 }
 #sa-panel{position:fixed;bottom:90px;width:380px;max-width:calc(100vw - 24px);height:560px;max-height:calc(100vh - 120px);background:#0f172a;color:#e2e8f0;border-radius:16px;box-shadow:0 25px 60px rgba(0,0,0,.5);display:none;flex-direction:column;overflow:hidden;z-index:99999;border:1px solid rgba(255,255,255,.08);font-family:'Space Grotesk','system-ui',sans-serif}
 #sa-panel.sa-pos-right{right:20px}
@@ -143,6 +212,20 @@
 // later overwrites window.__SA_CHROME with the same values once the
 // fetch completes — keeping a single source of truth at runtime.
 window.__SA_SUBHEADING = @json(\App\Services\AI\SiteAssistantSettings::subheadingFor($__sa_cfg));
+// Rotating tooltip messages. We seed with a few inline brand defaults
+// passed through Laravel's translator (so installs that ship matching
+// translation files can localize them) and merge in the admin's
+// already-localized starter prompts — `starterPromptsFor` resolves the
+// Accept-Language header for us, so the visitor sees prompts in their
+// language whenever the admin has provided overrides.
+window.__SA_TOOLTIPS = @json(array_values(array_unique(array_filter(array_map('strval', array_merge(
+  [
+    __('Need a hand? 👋'),
+    __('Ask me anything'),
+    __('Tips for this page?'),
+  ],
+  \App\Services\AI\SiteAssistantSettings::starterPromptsFor($__sa_cfg)
+))))));
 window.__SA_CHROME = {
   subheading:        @json(\App\Services\AI\SiteAssistantSettings::subheadingFor($__sa_cfg)),
   typing_indicator:  @json(\App\Services\AI\SiteAssistantSettings::typingIndicatorFor($__sa_cfg)),
@@ -246,6 +329,16 @@ window.__SA_CHROME = {
   var badge=el('span',{class:'sa-badge',style:{display:'none'}}, '0');
   launcher.appendChild(badge);
   launcherWrap.appendChild(launcher);
+  // Speech-bubble tooltip — anchored to the launcher wrapper so it
+  // automatically follows the configured left/right position. Hidden
+  // by default; the scheduler below pops it out at randomized
+  // intervals while the chat panel is closed.
+  var tooltip=el('div',{class:'sa-tooltip '+pos,role:'button',tabindex:'-1','aria-hidden':'true'});
+  var tooltipText=el('span',{class:'sa-tooltip-text'},'');
+  var tooltipClose=el('button',{class:'sa-tooltip-close',type:'button','aria-label':'Dismiss'},'×');
+  tooltip.appendChild(tooltipText);
+  tooltip.appendChild(tooltipClose);
+  launcherWrap.appendChild(tooltip);
   document.body.appendChild(launcherWrap);
 
   var panel=el('div',{id:'sa-panel',class:pos,style:{'--sa-accent':ds.accent||'#7c3aed'}});
@@ -291,6 +384,7 @@ window.__SA_CHROME = {
     panel.classList.toggle('sa-open', open);
     if(open){
       unread=0; badge.style.display='none';
+      hideTooltip();
       if(!bootstrapped){ bootstrap(); }
       setTimeout(function(){ ta.focus(); }, 50);
     }
@@ -664,6 +758,115 @@ window.__SA_CHROME = {
     if(res.handed_off) disableInput(true, CHROME.handoff_note);
     if('low_balance' in res) renderLowBalance(res.low_balance);
   }
+
+  // ── Tooltip scheduler ─────────────────────────────────────────
+  // Pops the speech bubble next to the launcher at randomized
+  // intervals while the chat is closed. Respects prefers-reduced-
+  // motion, suppresses while inputs are focused or the user is
+  // scrolling/typing, and remembers per-session dismissal so it
+  // doesn't keep nagging the same visitor.
+  var TOOLTIP_DISMISS_KEY='sa_tooltip_dismissed_v1';
+  var tooltipMessages=Array.isArray(window.__SA_TOOLTIPS)?window.__SA_TOOLTIPS.filter(function(s){return s && typeof s==='string';}):[];
+  var tooltipDismissed=false;
+  try { tooltipDismissed = sessionStorage.getItem(TOOLTIP_DISMISS_KEY)==='1'; } catch(e){}
+  var prefersReducedMotion=(window.matchMedia && window.matchMedia('(prefers-reduced-motion:reduce)').matches) || false;
+  var tooltipTimer=null, tooltipHideTimer=null, tooltipTyperTimer=null;
+  var lastScrollAt=0;
+  var lastShownIndex=-1;
+  window.addEventListener('scroll', function(){ lastScrollAt = Date.now(); }, {passive:true});
+
+  function isInputFocused(){
+    var ae=document.activeElement;
+    if(!ae || ae===document.body) return false;
+    if(ae===ta) return true;
+    var t=(ae.tagName||'').toLowerCase();
+    return t==='input'||t==='textarea'||t==='select'||ae.isContentEditable;
+  }
+  function pickTooltipMessage(){
+    if(!tooltipMessages.length) return null;
+    if(tooltipMessages.length===1) return tooltipMessages[0];
+    var i;
+    do { i = Math.floor(Math.random()*tooltipMessages.length); }
+    while(i===lastShownIndex);
+    lastShownIndex=i;
+    return tooltipMessages[i];
+  }
+  function hideTooltip(){
+    if(tooltipHideTimer){ clearTimeout(tooltipHideTimer); tooltipHideTimer=null; }
+    if(tooltipTyperTimer){ clearInterval(tooltipTyperTimer); tooltipTyperTimer=null; }
+    tooltip.classList.remove('sa-show');
+    tooltip.setAttribute('aria-hidden','true');
+  }
+  function dismissTooltipForSession(){
+    tooltipDismissed=true;
+    try { sessionStorage.setItem(TOOLTIP_DISMISS_KEY,'1'); } catch(e){}
+    if(tooltipTimer){ clearTimeout(tooltipTimer); tooltipTimer=null; }
+    hideTooltip();
+  }
+  function showTooltip(){
+    if(open || tooltipDismissed) return;
+    if(isInputFocused()) return;
+    if(Date.now() - lastScrollAt < 1500) return;
+    var msg = pickTooltipMessage();
+    if(!msg) return;
+    if(tooltipHideTimer){ clearTimeout(tooltipHideTimer); tooltipHideTimer=null; }
+    if(tooltipTyperTimer){ clearInterval(tooltipTyperTimer); tooltipTyperTimer=null; }
+    tooltip.setAttribute('aria-hidden','false');
+    tooltip.classList.add('sa-show');
+    if(prefersReducedMotion){
+      tooltipText.textContent = msg;
+    } else {
+      tooltipText.textContent = '';
+      var i=0;
+      tooltipTyperTimer=setInterval(function(){
+        i++;
+        tooltipText.textContent = msg.slice(0, i);
+        if(i>=msg.length){ clearInterval(tooltipTyperTimer); tooltipTyperTimer=null; }
+      }, 28);
+    }
+    var visibleMs = Math.min(8000, Math.max(4500, msg.length*70 + 2200));
+    tooltipHideTimer=setTimeout(hideTooltip, visibleMs);
+  }
+  function scheduleTooltip(initial){
+    if(tooltipTimer){ clearTimeout(tooltipTimer); tooltipTimer=null; }
+    if(prefersReducedMotion || tooltipDismissed) return;
+    if(!tooltipMessages.length) return;
+    // First popup arrives a few seconds after load to feel inviting
+    // but not aggressive; subsequent popups wait 25–55s with jitter
+    // so the launcher feels alive without being spammy.
+    var delay = initial
+      ? (5000 + Math.random()*4000)
+      : (25000 + Math.random()*30000);
+    tooltipTimer=setTimeout(function(){
+      showTooltip();
+      scheduleTooltip(false);
+    }, delay);
+  }
+
+  // Clicking the bubble itself opens the chat panel (and counts as a
+  // soft dismissal — the user clearly engaged). The × button closes
+  // the bubble without opening chat and suppresses it for the rest
+  // of the session.
+  tooltip.addEventListener('click', function(e){
+    if(e.target===tooltipClose || (tooltipClose.contains && tooltipClose.contains(e.target))) return;
+    // Clicking the bubble counts as engagement for this session — we
+    // suppress further popups even after a page reload so the visitor
+    // isn't re-nudged once they've already responded once.
+    dismissTooltipForSession();
+    togglePanel(true);
+  });
+  tooltipClose.addEventListener('click', function(e){
+    e.stopPropagation();
+    dismissTooltipForSession();
+  });
+  // Stop scheduling while the user actively interacts with form fields
+  // anywhere on the page. We don't pause on every focus event (that
+  // would thrash the timer); the in-flight popup just no-ops if a
+  // field is focused at fire time.
+  window.addEventListener('pagehide', function(){
+    if(tooltipTimer){ clearTimeout(tooltipTimer); tooltipTimer=null; }
+  });
+  scheduleTooltip(true);
 })();
 </script>
 @endif
