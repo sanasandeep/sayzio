@@ -477,6 +477,15 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('links/{link}/settings/layout', [BiolinkBlockController::class, 'settingsLayout'])->middleware('workspace.can:links.view')->name('links.settings.layout');
         Route::get('links/{link}/settings/block-theme', [BiolinkBlockController::class, 'settingsBlockTheme'])->middleware('workspace.can:links.view')->name('links.settings.block-theme');
         Route::get('links/{link}/settings/advanced', [BiolinkBlockController::class, 'settingsAdvanced'])->middleware('workspace.can:links.view')->name('links.settings.advanced');
+
+        // ── Scheduled biolink themes (save current look + schedule it for a window) ──
+        Route::get   ('links/{link}/themes',                          [\App\Modules\User\Controllers\BiolinkThemeController::class, 'settingsIndex'])->middleware('workspace.can:links.view')->name('links.themes.settings');
+        Route::get   ('links/{link}/themes.json',                     [\App\Modules\User\Controllers\BiolinkThemeController::class, 'jsonIndex'])->middleware('workspace.can:links.view')->name('links.themes.json');
+        Route::post  ('links/{link}/themes',                          [\App\Modules\User\Controllers\BiolinkThemeController::class, 'storeTheme'])->middleware('workspace.can:links.edit')->name('links.themes.store');
+        Route::delete('links/{link}/themes/{theme}',                  [\App\Modules\User\Controllers\BiolinkThemeController::class, 'destroyTheme'])->middleware('workspace.can:links.edit')->name('links.themes.destroy');
+        Route::post  ('links/{link}/themes/schedules',                [\App\Modules\User\Controllers\BiolinkThemeController::class, 'storeSchedule'])->middleware('workspace.can:links.edit')->name('links.themes.schedules.store');
+        Route::patch ('links/{link}/themes/schedules/{schedule}',     [\App\Modules\User\Controllers\BiolinkThemeController::class, 'updateSchedule'])->middleware('workspace.can:links.edit')->name('links.themes.schedules.update');
+        Route::post  ('links/{link}/themes/schedules/{schedule}/cancel', [\App\Modules\User\Controllers\BiolinkThemeController::class, 'cancelSchedule'])->middleware('workspace.can:links.edit')->name('links.themes.schedules.cancel');
         Route::get ('links/{link}/settings/ar',     [\App\Modules\User\Controllers\ArSettingsController::class, 'edit'])->middleware('workspace.can:links.view')->name('links.settings.ar');
         Route::post('links/{link}/settings/ar',     [\App\Modules\User\Controllers\ArSettingsController::class, 'update'])->middleware('workspace.can:links.edit')->name('links.settings.ar.update');
         Route::get ('links/{link}/settings/carbon', [\App\Modules\User\Controllers\CarbonController::class, 'editLink'])->whereNumber('link')->middleware('workspace.can:links.view')->name('links.settings.carbon');

@@ -266,6 +266,13 @@ export default function EditLinkScreen() {
               }
             />
             <ActionTile
+              icon="calendar"
+              label="Themes"
+              onPress={() =>
+                router.push(`/links/${id}/settings/themes` as any)
+              }
+            />
+            <ActionTile
               icon="settings"
               label="Advanced"
               onPress={() =>

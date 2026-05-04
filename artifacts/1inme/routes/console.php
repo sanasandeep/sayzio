@@ -190,6 +190,15 @@ Schedule::command('blogs:publish-scheduled')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Every minute: activate due biolink theme schedules and revert ones
+// whose window has ended. Indexed by status+starts_at/ends_at so the
+// per-minute query stays cheap. The renderer also applies the active
+// theme in-memory as a safety net during the up-to-1-minute gap.
+Schedule::command('biolinks:apply-scheduled-themes')
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Daily (off-peak): re-run the idempotent legacy image shrink so any
 // oversized raster files that slipped past the upload-time compress_image
 // pipeline (older API clients, future categories newly opted in) get

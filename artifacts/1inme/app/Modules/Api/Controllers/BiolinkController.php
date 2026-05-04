@@ -41,6 +41,14 @@ class BiolinkController extends Controller
             ]);
         }
 
+        // Overlay any active scheduled theme so mobile viewers see the
+        // same look as web during the activation window. Cron flips
+        // `status=active` and writes settings to the row; this call is
+        // the read-time safety net for the up-to-1-minute gap. Done
+        // before A/B variant selection so any theme-driven settings
+        // are visible to downstream rendering logic.
+        app(\App\Modules\User\Services\BiolinkThemeResolver::class)->applyActiveTheme($link);
+
         // Honour any active layout A/B test: assign the visitor a sticky
         // variant and serve that variant's snapshot blocks. The mobile
         // client should send a stable `X-1INME-Visitor-Id` header so the

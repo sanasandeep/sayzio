@@ -215,6 +215,17 @@ Route::prefix('v1')->group(function () {
         Route::delete('/links/{id}/blocks/{blockId}',       [BiolinkBlockController::class, 'destroy'])->whereNumber('id')->whereNumber('blockId');
         Route::post  ('/links/{id}/blocks/reorder',         [BiolinkBlockController::class, 'reorder'])->whereNumber('id');
 
+        // Biolink themes (saved looks + scheduled application). Mobile
+        // creators can save the current look, schedule it for a date
+        // range, and cancel/end early. Public viewers always see the
+        // currently-active theme via the existing /biolinks/{alias} show.
+        Route::get   ('/links/{id}/themes',                              [\App\Modules\Api\Controllers\BiolinkThemeApiController::class, 'index'])->whereNumber('id');
+        Route::post  ('/links/{id}/themes',                              [\App\Modules\Api\Controllers\BiolinkThemeApiController::class, 'storeTheme'])->whereNumber('id');
+        Route::delete('/links/{id}/themes/{themeId}',                    [\App\Modules\Api\Controllers\BiolinkThemeApiController::class, 'destroyTheme'])->whereNumber('id')->whereNumber('themeId');
+        Route::post  ('/links/{id}/themes/schedules',                    [\App\Modules\Api\Controllers\BiolinkThemeApiController::class, 'storeSchedule'])->whereNumber('id');
+        Route::patch ('/links/{id}/themes/schedules/{scheduleId}',       [\App\Modules\Api\Controllers\BiolinkThemeApiController::class, 'updateSchedule'])->whereNumber('id')->whereNumber('scheduleId');
+        Route::post  ('/links/{id}/themes/schedules/{scheduleId}/cancel',[\App\Modules\Api\Controllers\BiolinkThemeApiController::class, 'cancelSchedule'])->whereNumber('id')->whereNumber('scheduleId');
+
         // NFC writes (per link + global summary)
         Route::get   ('/links/{id}/nfc-writes',     [NfcWriteController::class, 'index'])->whereNumber('id');
         Route::post  ('/links/{id}/nfc-writes',     [NfcWriteController::class, 'store'])->whereNumber('id')->middleware('throttle:60,1');

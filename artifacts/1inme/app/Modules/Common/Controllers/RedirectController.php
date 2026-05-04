@@ -279,6 +279,11 @@ class RedirectController extends Controller
         if ($link->type === 'biolink') {
             $this->applyDraftOverrides($request, $link);
             $this->applyPreviewSimulation($request);
+            // Read-time safety net: if a scheduled theme just started but
+            // the per-minute activation cron hasn't flipped the row to
+            // `active` yet, overlay the theme's snapshot in-memory so
+            // visitors don't see the old look during that gap.
+            app(\App\Modules\User\Services\BiolinkThemeResolver::class)->applyActiveTheme($link);
         }
 
         // Auto-pixel interstitial — when the link is opted-in (auto_pixel)

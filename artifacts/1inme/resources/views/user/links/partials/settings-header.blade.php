@@ -3,6 +3,7 @@
         'appearance' => ['icon' => 'fa-palette', 'label' => 'Appearance', 'route' => 'user.links.settings.appearance'],
         'layout' => ['icon' => 'fa-ruler-combined', 'label' => 'Layout', 'route' => 'user.links.settings.layout'],
         'block-theme' => ['icon' => 'fa-wand-magic-sparkles', 'label' => 'Block Theme', 'route' => 'user.links.settings.block-theme'],
+        'themes' => ['icon' => 'fa-calendar-week', 'label' => 'Themes', 'route' => 'user.links.themes.settings'],
         'advanced' => ['icon' => 'fa-sliders-h', 'label' => 'Advanced', 'route' => 'user.links.settings.advanced'],
         'splash'   => ['icon' => 'fa-rocket', 'label' => 'Intro', 'route' => 'user.links.splash'],
         'ar'       => ['icon' => 'fa-vr-cardboard', 'label' => 'AR Card', 'route' => 'user.links.settings.ar'],
