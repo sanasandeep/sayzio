@@ -11,6 +11,58 @@
     $isActive = old('is_active', $isEdit ? ($tpl->is_active ? '1' : '0') : '1');
     $sortOrder = old('sort_order', $isEdit ? $tpl->sort_order : 0);
 @endphp
+@if($isEdit)
+    <div class="glass rounded-2xl border border-white/10 p-5 mb-5">
+        <h3 class="text-sm font-semibold text-white mb-1">Thumbnail Image</h3>
+        <p class="text-xs text-white/40 mb-4">
+            Upload a finished screenshot of this {{ $kind === 'card' ? 'card' : 'page' }} to use as the gallery preview.
+            When set, it overrides the auto-generated blueprint preview. PNG, JPG, WebP or GIF, up to 5&nbsp;MB.
+        </p>
+        <div class="flex items-start gap-4">
+            <div class="w-40 aspect-[4/3] rounded-xl overflow-hidden border border-white/10 bg-black/30 flex items-center justify-center shrink-0">
+                @if($tpl->thumbnail_url)
+                    <img src="{{ $tpl->thumbnail_url }}" alt="Current thumbnail" class="w-full h-full object-cover">
+                @else
+                    <span class="text-[11px] text-white/30 px-2 text-center">No upload yet — auto-blueprint will be shown.</span>
+                @endif
+            </div>
+            <div class="flex flex-col gap-2">
+                <form action="{{ route('admin.templates.thumbnail.upload', ['kind' => $kind, 'id' => $tpl->id]) }}"
+                      method="POST"
+                      enctype="multipart/form-data"
+                      class="flex items-center gap-2"
+                      x-data="{ id: 'tpl-thumb-edit-{{ $kind }}-{{ $tpl->id }}', name: '' }">
+                    @csrf
+                    <input type="file"
+                           name="thumbnail"
+                           accept="image/png,image/jpeg,image/webp,image/gif"
+                           class="hidden"
+                           :id="id"
+                           @change="name = $el.files[0]?.name || ''; if($el.files[0]) $el.form.submit();">
+                    <button type="button"
+                            @click="document.getElementById(id).click()"
+                            class="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-xs font-medium">
+                        <i class="fas {{ $tpl->thumbnail_url ? 'fa-rotate' : 'fa-upload' }} mr-1.5 text-[10px]"></i>
+                        {{ $tpl->thumbnail_url ? 'Replace image' : 'Upload image' }}
+                    </button>
+                    <span x-text="name" class="text-[11px] text-white/40"></span>
+                </form>
+                @if($tpl->thumbnail_url)
+                    <form action="{{ route('admin.templates.thumbnail.remove', ['kind' => $kind, 'id' => $tpl->id]) }}"
+                          method="POST"
+                          onsubmit="return window.themedConfirmSubmit ? window.themedConfirmSubmit(this, {title: 'Remove this thumbnail?', confirmText: 'Remove', confirmIcon: 'fa-trash', iconClass: 'fa-image'}) : confirm('Remove this thumbnail?');">
+                        @csrf @method('DELETE')
+                        <button type="submit" class="px-3 py-1.5 bg-white/5 hover:bg-red-500/80 text-white/80 hover:text-white rounded-lg text-xs font-medium border border-white/10">
+                            <i class="fas fa-trash mr-1.5 text-[10px]"></i>Remove image
+                        </button>
+                    </form>
+                @endif
+                @error('thumbnail')<p class="text-red-400 text-xs">{{ $message }}</p>@enderror
+            </div>
+        </div>
+    </div>
+@endif
+
 <form action="{{ $action }}" method="POST" x-data="templateForm()" class="space-y-5">
     @csrf
     @if($isEdit) @method('PUT') @endif
