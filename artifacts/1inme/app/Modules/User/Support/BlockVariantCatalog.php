@@ -1283,6 +1283,31 @@ class BlockVariantCatalog
         return $unique;
     }
 
+    /**
+     * Map a (block type, variant shape) pair to one of the small sketch
+     * "kinds" the Designs gallery knows how to render — button, heading,
+     * image, avatar, divider, plain_link, image_btn, button_outline, or
+     * a generic text sample. Kept here (instead of in the Blade view or
+     * the JS gallery) so the static fallback thumbnails and the live-
+     * preview thumbnails always pick the same kind for the same block
+     * — no double-rendered "text on white" surprises when the live
+     * preview swaps in for an image or divider block.
+     */
+    public static function shapeKindFor(string $blockType, ?string $variantShape): string
+    {
+        return match (true) {
+            $variantShape === 'plain_text' => 'plain_link',
+            $variantShape === 'image_full' => 'image_btn',
+            $variantShape === 'outline'    => 'button_outline',
+            in_array($blockType, ['avatar'], true) => 'avatar',
+            in_array($blockType, ['image', 'photo', 'banner', 'header_image', 'image_grid', 'image_slider', 'image_slider_v2', 'verified_avatar'], true) => 'image',
+            in_array($blockType, ['link', 'link_big', 'button', 'cta', 'cta_button', 'social', 'url', 'featured_pin', 'external_item'], true) => 'button',
+            in_array($blockType, ['heading', 'title', 'heading_logo', 'verified_heading'], true) => 'heading',
+            in_array($blockType, ['divider', 'spacer'], true) => 'divider',
+            default => 'text',
+        };
+    }
+
     public static function find(string $type, string $key): ?array
     {
         foreach (self::forType($type) as $v) {

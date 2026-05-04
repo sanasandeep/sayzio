@@ -289,19 +289,10 @@
                         // type fallback when present — that way a
                         // 'plain_text' or 'image_full' link variant gets
                         // the right sketch even though the block type
-                        // itself is just 'link'.
-                        $variantShape = $v['shape'] ?? '';
-                        $shapeKind = match (true) {
-                            $variantShape === 'plain_text' => 'plain_link',
-                            $variantShape === 'image_full' => 'image_btn',
-                            $variantShape === 'outline'    => 'button_outline',
-                            in_array($block->type, ['avatar']) => 'avatar',
-                            in_array($block->type, ['image', 'photo', 'banner', 'header_image']) => 'image',
-                            in_array($block->type, ['link', 'link_big', 'button', 'cta', 'cta_button', 'social', 'url']) => 'button',
-                            in_array($block->type, ['heading', 'title', 'heading_logo']) => 'heading',
-                            in_array($block->type, ['divider', 'spacer']) => 'divider',
-                            default => 'text',
-                        };
+                        // itself is just 'link'. Helper is shared with
+                        // the Controller so the live preview that swaps
+                        // in later picks the same kind.
+                        $shapeKind = \App\Modules\User\Support\BlockVariantCatalog::shapeKindFor($block->type, $v['shape'] ?? null);
                     @endphp
                     {{-- Thumbnail container: server-rendered live preview
                          is fetched on tab open and injected into
@@ -680,7 +671,7 @@ window.blockDesignsGallery = function(opts) {
             this._previewsLoading = true;
             var url = '{{ route('user.links.blocks.variantPreviews', [$link, $block]) }}';
             var self = this;
-            var blockLabel = '{{ $block->settings['label'] ?? $block->settings['text'] ?? '' }}';
+            var rawLabel = @js((string) ($block->settings['label'] ?? $block->settings['text'] ?? ''));
             fetch(url, { headers: { 'Accept': 'application/json' } })
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
@@ -689,23 +680,55 @@ window.blockDesignsGallery = function(opts) {
                     data.previews.forEach(function(p) {
                         var slot = self.$el.querySelector('[data-variant-preview="' + p.key + '"]');
                         if (!slot) return;
-                        // Render the live-styled mini block INSIDE a chrome
-                        // wrapper instead of replacing the slot itself —
-                        // otherwise transparent / outline / plain-text
-                        // variants leave the thumbnail with no background
-                        // and the card looks empty. The wrapper keeps a
-                        // subtle frame so every variant is visually
-                        // distinguishable on the dark modal, while the
-                        // inner element shows the variant's real bg /
-                        // border / radius / shadow / colour.
-                        var content = blockLabel ? blockLabel.substring(0, 16) : p.name;
-                        var safeContent = (content.replace(/[<>&]/g, '') || 'Preview');
+                        // The chrome wrapper keeps a subtle dark-modal-
+                        // safe frame so every variant — including
+                        // transparent / outline / plain-text ones — has
+                        // a visible silhouette. The inner element gets
+                        // the variant's real inline_style (bg, border,
+                        // radius, shadow, colour) so the preview looks
+                        // like the live block.
                         slot.setAttribute('style', 'height:80px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin:12px 0 8px;padding:8px;background:repeating-linear-gradient(45deg,rgba(255,255,255,0.04) 0 6px,rgba(255,255,255,0.015) 6px 12px);border:1px solid rgba(255,255,255,0.08);border-radius:8px;');
-                        slot.innerHTML = '<div style="max-width:100%;max-height:100%;display:inline-flex;align-items:center;justify-content:center;text-align:center;line-height:1.2;' + p.inline_style + '"><span style="font-size:11px;font-weight:600;color:' + (p.text_color || 'inherit') + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">' + safeContent + '</span></div>';
+                        slot.innerHTML = self.buildLivePreviewInner(p, rawLabel);
                     });
                 })
                 .catch(function() {})
                 .finally(function() { self._previewsLoading = false; });
+        },
+
+        // Render the inner sketch for one variant's live preview, picked
+        // by the server-supplied `shape_kind`. Buttons get a button,
+        // headings get bold heading text, images / avatars get their own
+        // silhouettes, dividers get a horizontal rule, plain links get
+        // an underlined snippet, and everything else gets a tiny text
+        // sample. This is the fix for non-button blocks — previously
+        // every shape collapsed to "tiny text chip" which made the
+        // Designs gallery look broken on image / avatar / heading /
+        // divider blocks.
+        buildLivePreviewInner(p, rawLabel) {
+            var inline = p.inline_style || '';
+            var color = p.text_color || '#ffffff';
+            var safe = String(rawLabel || '').replace(/[<>&"]/g, '').slice(0, 18);
+            var label = safe || p.name || 'Preview';
+            switch (p.shape_kind) {
+                case 'button':
+                case 'button_outline':
+                    return '<div style="' + inline + 'display:inline-flex;align-items:center;justify-content:center;padding:6px 14px;font-size:11px;font-weight:600;color:' + color + ';white-space:nowrap;max-width:96%;overflow:hidden;text-overflow:ellipsis;">' + label + '</div>';
+                case 'plain_link':
+                    return '<span style="font-size:11px;font-weight:500;text-decoration:underline;text-underline-offset:2px;color:' + color + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:96%;">' + label + ' →</span>';
+                case 'image':
+                    return '<div style="' + inline + 'width:78%;height:88%;display:flex;align-items:center;justify-content:center;color:' + color + ';opacity:0.9;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="1.6" fill="currentColor" stroke="none"/><path d="M21 15l-5-5L5 21"/></svg></div>';
+                case 'image_btn':
+                    return '<div style="' + inline + 'width:88%;height:88%;display:flex;align-items:flex-end;padding:6px;color:#fff;background-image:linear-gradient(135deg,#7c3aed,#ec4899);"><span style="font-size:9px;font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,0.4);max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + label + '</span></div>';
+                case 'avatar':
+                    return '<div style="' + inline + 'width:48px;height:48px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:' + color + ';font-weight:700;font-size:14px;">' + (label.charAt(0).toUpperCase() || 'A') + '</div>';
+                case 'heading':
+                    return '<div style="' + inline + 'padding:6px 10px;font-size:13px;font-weight:700;color:' + color + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:96%;line-height:1.2;">' + (label || 'Heading') + '</div>';
+                case 'divider':
+                    return '<div style="' + inline + 'width:80%;height:3px;"></div>';
+                case 'text':
+                default:
+                    return '<div style="' + inline + 'padding:6px 10px;color:' + color + ';font-size:10px;line-height:1.3;max-width:96%;overflow:hidden;"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + label + '</div><div style="opacity:0.6;font-size:9px;margin-top:2px;">Lorem ipsum dolor sit amet</div></div>';
+            }
         },
 
         matchesFilter(tags, key, shape) {

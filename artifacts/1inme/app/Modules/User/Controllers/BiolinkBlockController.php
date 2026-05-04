@@ -494,6 +494,12 @@ class BiolinkBlockController extends Controller
                 'tags' => $v['tags'] ?? [],
                 'inline_style' => BiolinkBlock::buildInlineStyle($resolved),
                 'text_color' => $resolved['text_color'] ?? '',
+                // Shape kind so the JS gallery knows whether to render a
+                // button, heading, image, avatar, divider, plain link or
+                // generic text sketch — without this, image / avatar /
+                // heading / divider blocks all rendered as a tiny text
+                // chip and looked broken on the dark modal.
+                'shape_kind' => BlockVariantCatalog::shapeKindFor($block->type, $v['shape'] ?? null),
             ];
         }
 
