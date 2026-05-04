@@ -335,8 +335,13 @@ Route::prefix('user')->name('user.')->group(function () {
             // Publish & sharing — toggles the public /{handle}/resume URL,
             // visibility tier (public/registered/followers/subscribers/
             // password), the per-user noindex flag, and (when password
-            // tier is selected) the hashed password.
+            // tier is selected) the hashed password + optional expiration.
             Route::put('publishing', [\App\Modules\User\Controllers\ResumeController::class, 'updatePublishing'])->name('publishing.update');
+            // Revoke the active share without changing the URL. Bumps
+            // share_revision so previously-unlocked visitors get re-prompted.
+            Route::post('share/revoke', [\App\Modules\User\Controllers\ResumeController::class, 'revokeShare'])->name('share.revoke');
+            // Paginated audit log (timestamp / country / referrer / handle).
+            Route::get('views', [\App\Modules\User\Controllers\ResumeController::class, 'views'])->name('views');
         });
 
         // ---- Forms ----

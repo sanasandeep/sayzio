@@ -262,6 +262,8 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/resume/items/reorder',   [\App\Modules\Api\Controllers\ResumeController::class, 'reorderItems']);
         Route::put   ('/resume/publishing',      [\App\Modules\Api\Controllers\ResumeController::class, 'updatePublishing']);
         Route::put   ('/resume/public-pdf',      [\App\Modules\Api\Controllers\ResumeController::class, 'updatePublicPdf']);
+        Route::post  ('/resume/share/revoke',    [\App\Modules\Api\Controllers\ResumeController::class, 'revokeShare']);
+        Route::get   ('/resume/views',           [\App\Modules\Api\Controllers\ResumeController::class, 'views']);
 
         // Posts (creator feed)
         Route::get   ('/posts',            [CreatorPostController::class, 'index']);

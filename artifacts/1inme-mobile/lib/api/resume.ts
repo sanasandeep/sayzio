@@ -69,6 +69,13 @@ export type Resume = {
   visibility: ResumeVisibility | string;
   allow_indexing: boolean;
   has_password: boolean;
+  /** ISO8601 string when an expiration is set, otherwise null. */
+  expires_at: string | null;
+  /** True when expires_at is set and already past. */
+  is_share_expired: boolean;
+  /** Bumped by revokeResumeShare(); part of the unlock-session key. */
+  share_revision: number;
+  view_count: number;
   meta_description: string | null;
   is_public_pdf: boolean;
   public_pdf_url: string | null;
@@ -83,6 +90,17 @@ export type PublishingPayload = {
   /** Only honored when visibility === "password". Empty string clears it. */
   password?: string | null;
   meta_description?: string | null;
+  /** ISO8601 string to set, empty string to clear. Omit to leave unchanged. */
+  expires_at?: string | null;
+};
+
+export type ResumeViewLogEntry = {
+  id: number;
+  viewed_at: string | null;
+  country_code: string | null;
+  referrer: string | null;
+  viewer_handle: string | null;
+  viewer_user_id: number | null;
 };
 
 export type ResumeBundle = {
@@ -267,6 +285,37 @@ export async function updateResumePublishing(
     "/resume/publishing",
     { method: "PUT", body: JSON.stringify(payload) },
   );
+  return res.data;
+}
+
+/**
+ * Bump the resume's share_revision so previously-unlocked visitors are
+ * forced back to the password prompt. The public URL itself does not
+ * change. Optionally clears the stored password so a brand-new
+ * credential must be set.
+ */
+export async function revokeResumeShare(
+  args: { clear_password?: boolean } = {},
+): Promise<Resume> {
+  const res = await apiFetch<{ data: { resume: Resume } }>(
+    "/resume/share/revoke",
+    { method: "POST", body: JSON.stringify(args) },
+  );
+  return res.data.resume;
+}
+
+export type ResumeViewsPage = {
+  views: ResumeViewLogEntry[];
+  meta: { current_page: number; last_page: number; per_page: number; total: number };
+};
+
+/**
+ * Fetch the audit log of who viewed the public resume page. One entry
+ * per unique-IP-per-day visitor. Capped at 100 per page server-side.
+ */
+export async function getResumeViews(page = 1, per_page = 25): Promise<ResumeViewsPage> {
+  const qs = `?page=${page}&per_page=${per_page}`;
+  const res = await apiFetch<{ data: ResumeViewsPage }>(`/resume/views${qs}`);
   return res.data;
 }
 

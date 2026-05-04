@@ -12,8 +12,9 @@
     $allowIndex = (bool) ($resume->allow_indexing ?? true) && (($resume->visibility ?? 'public') === 'public');
     $locked = ($resume->visibility ?? 'public') === 'password'
         && !empty($resume->password)
-        && !session("resume_unlocked_{$resume->id}")
+        && !session($resume->unlockSessionKey())
         && empty($isOwner);
+    $shareExpired = !empty($shareExpired ?? false);
 
     // JSON-LD Person object so Google + LinkedIn surface a rich card.
     $person = [
@@ -153,7 +154,15 @@
         </div>
     @endif
 
-    @if ($locked)
+    @if ($shareExpired)
+        <div class="resume-locked-card">
+            <i class="fas fa-clock" style="font-size: 28px; color:#dc2626;"></i>
+            <h1 style="margin: 12px 0 4px; font-size: 18px;">This share has expired</h1>
+            <p style="font-size: 12px; color: #64748b; margin: 0 0 8px;">
+                The link {{ $name }} sent you is no longer active. Reach out to them for a fresh link.
+            </p>
+        </div>
+    @elseif ($locked)
         <div class="resume-locked-card">
             <i class="fas fa-lock" style="font-size: 28px; color:#6366f1;"></i>
             <h1 style="margin: 12px 0 4px; font-size: 18px;">{{ $name }}'s resume is password-protected</h1>

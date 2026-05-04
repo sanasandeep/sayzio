@@ -41,6 +41,8 @@ import {
   updateResumeItem,
   updateResumePublicPdf,
   updateResumePublishing,
+  revokeResumeShare,
+  getResumeViews,
   updateResumeSummary,
   updateResumeTemplate,
   uploadResumeHeaderPhoto,
@@ -50,6 +52,7 @@ import {
   type ResumeItem,
   type ResumeSectionType,
   type ResumeVisibility,
+  type ResumeViewLogEntry,
 } from "@/lib/api/resume";
 
 const VISIBILITY_OPTIONS: { value: ResumeVisibility; label: string; hint: string }[] = [
@@ -607,6 +610,7 @@ function PublishSheet({
   busy: boolean;
 }) {
   const colors = useColors();
+  const qc = useQueryClient();
 
   // Local form state — re-seeded each time the sheet opens so an in-
   // flight edit on the server can't get clobbered while the sheet is
@@ -620,6 +624,12 @@ function PublishSheet({
   const [metaDescription, setMetaDescription] = useState(resume.meta_description ?? "");
   const [password, setPassword] = useState("");
   const [touchedPassword, setTouchedPassword] = useState(false);
+  // Expiration is held as a YYYY-MM-DD string for a simple cross-
+  // platform input. We send it up as ISO at submit time. Empty string
+  // = "never expires" (clears any stored expiration).
+  const [expiresDate, setExpiresDate] = useState(toLocalDate(resume.expires_at));
+  const [touchedExpiry, setTouchedExpiry] = useState(false);
+  const [showViewLog, setShowViewLog] = useState(false);
 
   useEffect(() => {
     if (!visible) return;
@@ -629,7 +639,23 @@ function PublishSheet({
     setMetaDescription(resume.meta_description ?? "");
     setPassword("");
     setTouchedPassword(false);
+    setExpiresDate(toLocalDate(resume.expires_at));
+    setTouchedExpiry(false);
   }, [visible, resume]);
+
+  const revokeMut = useMutation({
+    mutationFn: () => revokeResumeShare({}),
+    onSuccess: (r) => {
+      // Push the new share_revision into the cache so the rest of the
+      // page reflects "no longer expired / sessions invalidated".
+      qc.setQueryData<ResumeBundle | undefined>(["resume"], (prev) =>
+        prev ? { ...prev, resume: r } : prev,
+      );
+      Alert.alert("Share revoked", "Anyone who already typed the password will be prompted again next time.");
+    },
+    onError: (e: { message?: string }) =>
+      Alert.alert("Couldn't revoke share", e?.message ?? "Try again."),
+  });
 
   const submit = () => {
     const payload: PublishingPayload = {
@@ -641,7 +667,23 @@ function PublishSheet({
     if (visibility === "password" && touchedPassword) {
       payload.password = password;
     }
+    if (touchedExpiry) {
+      // Empty string clears the deadline server-side. A bare YYYY-MM-DD
+      // is fine — Carbon parses it as midnight in the server's TZ.
+      payload.expires_at = expiresDate.trim();
+    }
     onSubmit(payload);
+  };
+
+  const confirmRevoke = () => {
+    Alert.alert(
+      "Revoke active sessions?",
+      "Everyone who already typed the password will be prompted again on their next visit. The link itself does not change.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Revoke", style: "destructive", onPress: () => revokeMut.mutate() },
+      ],
+    );
   };
 
   return (
@@ -721,7 +763,7 @@ function PublishSheet({
             </View>
 
             {visibility === "password" ? (
-              <Card>
+              <Card style={{ gap: 10 }}>
                 <TextField
                   label={resume.has_password ? "New password (leave blank to keep current)" : "Password"}
                   value={password}
@@ -738,6 +780,74 @@ function PublishSheet({
                     Saving with an empty password will clear the existing one.
                   </Text>
                 ) : null}
+
+                <TextField
+                  label="Expires (YYYY-MM-DD, optional)"
+                  value={expiresDate}
+                  onChangeText={(v) => {
+                    setExpiresDate(v);
+                    setTouchedExpiry(true);
+                  }}
+                  placeholder="2026-12-31"
+                  autoCapitalize="none"
+                  keyboardType="numbers-and-punctuation"
+                />
+                {resume.is_share_expired ? (
+                  <Text style={{ color: colors.destructive, fontSize: 11 }}>
+                    This share has expired — visitors are seeing an expiry message.
+                  </Text>
+                ) : expiresDate ? (
+                  <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+                    Visitors will be blocked after this date.
+                  </Text>
+                ) : (
+                  <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+                    Leave blank to share until you turn it off.
+                  </Text>
+                )}
+
+                <Pressable
+                  onPress={confirmRevoke}
+                  disabled={revokeMut.isPending}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 8,
+                    paddingVertical: 8,
+                    opacity: revokeMut.isPending ? 0.6 : 1,
+                  }}
+                >
+                  <Feather name="rotate-ccw" size={14} color={colors.destructive} />
+                  <Text style={{ color: colors.destructive, fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 12 }}>
+                    {revokeMut.isPending ? "Revoking…" : "Revoke active sessions"}
+                  </Text>
+                </Pressable>
+                <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+                  Forces everyone who already typed the password back to the prompt. The URL stays the same.
+                </Text>
+              </Card>
+            ) : null}
+
+            {/* Audit log entry-point — visible whenever the resume is
+                public, regardless of visibility tier, since views are
+                logged for every non-owner visit that gets through. */}
+            {isPublic ? (
+              <Card>
+                <Pressable
+                  onPress={() => setShowViewLog(true)}
+                  style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
+                >
+                  <Feather name="eye" size={16} color={colors.primary} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: colors.foreground, fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 13 }}>
+                      View log ({resume.view_count.toLocaleString()})
+                    </Text>
+                    <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 2 }}>
+                      See who's been visiting your public resume page.
+                    </Text>
+                  </View>
+                  <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
+                </Pressable>
               </Card>
             ) : null}
 
@@ -800,6 +910,147 @@ function PublishSheet({
               <Button label="Cancel" variant="outline" onPress={onClose} style={{ flex: 1 }} />
               <Button label={busy ? "Saving…" : "Save"} onPress={submit} loading={busy} style={{ flex: 1 }} />
             </View>
+          </ScrollView>
+        </View>
+      </View>
+
+      <ViewLogModal visible={showViewLog} onClose={() => setShowViewLog(false)} />
+    </Modal>
+  );
+}
+
+/**
+ * Convert an ISO8601 datetime to "YYYY-MM-DD" for the simple
+ * date input on mobile. Returns "" for null/invalid values.
+ */
+function toLocalDate(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/**
+ * Owner-facing audit log of who viewed the public resume page. Pulls
+ * paginated rows from /api/v1/resume/views.
+ */
+function ViewLogModal({
+  visible,
+  onClose,
+}: {
+  visible: boolean;
+  onClose: () => void;
+}) {
+  const colors = useColors();
+  const [page, setPage] = useState(1);
+
+  const q = useQuery({
+    queryKey: ["resume-views", page],
+    queryFn: () => getResumeViews(page, 25),
+    enabled: visible,
+    staleTime: 30_000,
+  });
+
+  useEffect(() => {
+    if (visible) setPage(1);
+  }, [visible]);
+
+  const formatWhen = (iso: string | null) => {
+    if (!iso) return "—";
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return iso;
+    return d.toLocaleString();
+  };
+
+  const formatReferrer = (r: string | null) => {
+    if (!r) return "Direct";
+    try {
+      return new URL(r).hostname;
+    } catch {
+      return r;
+    }
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <View style={styles.sheetBackdrop}>
+        <View style={[styles.sheet, { backgroundColor: colors.background }]}>
+          <View style={styles.sheetHandle} />
+          <View style={styles.sheetHeader}>
+            <Text style={[styles.sectionTitle, { color: colors.foreground, marginTop: 0, marginBottom: 0 }]}>
+              Resume views
+            </Text>
+            <Pressable onPress={onClose} hitSlop={8}>
+              <Feather name="x" size={20} color={colors.mutedForeground} />
+            </Pressable>
+          </View>
+
+          <ScrollView contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: 32 }}>
+            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+              One row per unique visitor per day. Bots and your own visits aren't logged.
+            </Text>
+
+            {q.isLoading ? (
+              <ActivityIndicator color={colors.primary} style={{ marginTop: 20 }} />
+            ) : q.isError ? (
+              <Text style={{ color: colors.destructive, fontSize: 12 }}>
+                Couldn't load views. Pull down and try again.
+              </Text>
+            ) : (q.data?.views.length ?? 0) === 0 ? (
+              <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 12 }}>
+                No views yet.
+              </Text>
+            ) : (
+              <View style={{ gap: 8 }}>
+                {q.data!.views.map((row: ResumeViewLogEntry) => (
+                  <Card key={row.id} style={{ gap: 4 }}>
+                    <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                      <Text style={{ color: colors.foreground, fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 12 }}>
+                        {formatWhen(row.viewed_at)}
+                      </Text>
+                      <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+                        {row.country_code ?? "—"}
+                      </Text>
+                    </View>
+                    <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+                      {row.viewer_handle ? `@${row.viewer_handle}` : "Anonymous visitor"}
+                      {"  ·  "}
+                      {formatReferrer(row.referrer)}
+                    </Text>
+                  </Card>
+                ))}
+              </View>
+            )}
+
+            {q.data && q.data.meta.last_page > 1 ? (
+              <View style={[styles.rowGap, { marginTop: 8 }]}>
+                <Button
+                  label="Previous"
+                  variant="outline"
+                  onPress={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page <= 1}
+                  style={{ flex: 1 }}
+                />
+                <Text
+                  style={{
+                    color: colors.mutedForeground,
+                    fontSize: 12,
+                    alignSelf: "center",
+                    marginHorizontal: 8,
+                  }}
+                >
+                  {page} / {q.data.meta.last_page}
+                </Text>
+                <Button
+                  label="Next"
+                  variant="outline"
+                  onPress={() => setPage((p) => Math.min(q.data!.meta.last_page, p + 1))}
+                  disabled={page >= q.data.meta.last_page}
+                  style={{ flex: 1 }}
+                />
+              </View>
+            ) : null}
           </ScrollView>
         </View>
       </View>

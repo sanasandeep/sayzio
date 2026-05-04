@@ -411,6 +411,41 @@
                         </div>
                     </div>
 
+                    {{-- Optional expiration: when set + visibility=password,
+                         non-owner traffic is gated after this moment so a
+                         link sent to a recruiter goes dark on its own. --}}
+                    <div class="resume-field-row" x-show="publishing.is_public && publishing.visibility === 'password'">
+                        <div class="resume-field">
+                            <label>Expires (optional)</label>
+                            <input class="resume-input" type="datetime-local"
+                                   x-model="publishing.expires_at_local"
+                                   @change="savePublishing()">
+                            <p class="text-[11px] mt-1" style="color: var(--text-muted,#9ca3af);">
+                                <span x-show="publishing.is_share_expired" style="color:#f87171;">
+                                    <i class="fas fa-clock"></i> This share has expired — visitors see an expiry message.
+                                </span>
+                                <span x-show="!publishing.is_share_expired && publishing.expires_at_local">
+                                    Visitors will be blocked after this date and time.
+                                </span>
+                                <span x-show="!publishing.expires_at_local">
+                                    Leave blank to share until you turn it off.
+                                </span>
+                            </p>
+                        </div>
+                        <div class="resume-field">
+                            <label>Revoke share</label>
+                            <button type="button" class="resume-add-btn"
+                                    style="background: rgba(239,68,68,0.10); color:#f87171;"
+                                    @click="revokeShare()" :disabled="revoking">
+                                <i class="fas" :class="revoking ? 'fa-spinner fa-spin' : 'fa-rotate'"></i>
+                                <span x-text="revoking ? 'Revoking…' : 'Revoke active sessions'"></span>
+                            </button>
+                            <p class="text-[11px] mt-1" style="color: var(--text-muted,#9ca3af);">
+                                Forces everyone who already typed the password back to the prompt. The URL stays the same.
+                            </p>
+                        </div>
+                    </div>
+
                     {{-- SEO + indexing --}}
                     <div class="resume-field" x-show="publishing.is_public">
                         <label>SEO description (optional, max 240 chars)</label>
@@ -428,10 +463,75 @@
                         </span>
                     </label>
 
-                    {{-- View counter --}}
-                    <div class="mt-4 flex items-center gap-2 text-xs" style="color: var(--text-muted,#9ca3af);">
-                        <i class="fas fa-eye"></i>
-                        <span><strong x-text="publishing.view_count.toLocaleString()" style="color: var(--text-primary,#fff);"></strong> total views</span>
+                    {{-- View counter + audit log --}}
+                    <div class="mt-4 flex items-center gap-3 flex-wrap text-xs" style="color: var(--text-muted,#9ca3af);">
+                        <span><i class="fas fa-eye"></i>
+                            <strong x-text="publishing.view_count.toLocaleString()" style="color: var(--text-primary,#fff);"></strong> total views
+                        </span>
+                        <button type="button" class="resume-add-btn" @click="openViewLog()">
+                            <i class="fas fa-list"></i> View log
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {{-- View log modal --}}
+            <div x-show="viewLog.open" x-cloak
+                 style="position: fixed; inset: 0; background: rgba(15,23,42,0.55); z-index: 60; display:flex; align-items:flex-start; justify-content:center; padding: 40px 16px;"
+                 @click.self="viewLog.open = false">
+                <div style="background: var(--bg-glass,#1e1e26); color: var(--text-primary,#fff); width: 100%; max-width: 720px; border-radius: 14px; padding: 18px; max-height: calc(100vh - 80px); overflow:auto;">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 style="margin:0; font-size: 15px; font-weight: 700;"><i class="fas fa-eye"></i> Resume views</h3>
+                        <button type="button" class="resume-icon-btn" @click="viewLog.open = false"><i class="fas fa-xmark"></i></button>
+                    </div>
+                    <p class="text-xs" style="color: var(--text-muted,#9ca3af); margin-bottom: 10px;">
+                        Each row is one unique visitor per day. Bots and your own visits aren't logged.
+                    </p>
+                    <template x-if="viewLog.loading">
+                        <p class="text-xs" style="color: var(--text-muted,#9ca3af);">Loading…</p>
+                    </template>
+                    <template x-if="!viewLog.loading && viewLog.entries.length === 0">
+                        <p class="text-xs" style="color: var(--text-muted,#9ca3af);">No views yet.</p>
+                    </template>
+                    <template x-if="!viewLog.loading && viewLog.entries.length > 0">
+                        <table style="width:100%; border-collapse: collapse; font-size: 12px;">
+                            <thead>
+                                <tr style="text-align: left; color: var(--text-muted,#9ca3af);">
+                                    <th style="padding: 6px 4px;">When</th>
+                                    <th style="padding: 6px 4px;">Country</th>
+                                    <th style="padding: 6px 4px;">Visitor</th>
+                                    <th style="padding: 6px 4px;">Referrer</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template x-for="row in viewLog.entries" :key="row.id">
+                                    <tr style="border-top: 1px solid rgba(255,255,255,0.05);">
+                                        <td style="padding: 8px 4px;" x-text="formatViewedAt(row.viewed_at)"></td>
+                                        <td style="padding: 8px 4px;" x-text="row.country_code || '—'"></td>
+                                        <td style="padding: 8px 4px;">
+                                            <span x-show="row.viewer_handle" x-text="'@' + row.viewer_handle"></span>
+                                            <span x-show="!row.viewer_handle" style="color: var(--text-muted,#9ca3af);">Anonymous</span>
+                                        </td>
+                                        <td style="padding: 8px 4px; max-width: 200px; overflow:hidden; text-overflow:ellipsis; white-space: nowrap;"
+                                            :title="row.referrer || ''"
+                                            x-text="row.referrer ? (new URL(row.referrer).hostname || row.referrer) : 'Direct'"></td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </template>
+                    <div class="flex items-center justify-between mt-3" x-show="!viewLog.loading && viewLog.last_page > 1">
+                        <button type="button" class="resume-add-btn" @click="loadViewLog(viewLog.current_page - 1)"
+                                :disabled="viewLog.current_page <= 1">
+                            <i class="fas fa-arrow-left"></i> Previous
+                        </button>
+                        <span class="text-xs" style="color: var(--text-muted,#9ca3af);">
+                            Page <span x-text="viewLog.current_page"></span> of <span x-text="viewLog.last_page"></span>
+                        </span>
+                        <button type="button" class="resume-add-btn" @click="loadViewLog(viewLog.current_page + 1)"
+                                :disabled="viewLog.current_page >= viewLog.last_page">
+                            Next <i class="fas fa-arrow-right"></i>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -803,6 +903,18 @@
 <script>
 window.__resumeBootstrap = @json($bootstrap);
 
+// Convert an ISO8601 datetime to "YYYY-MM-DDTHH:MM" suitable for an
+// <input type="datetime-local">. Returns "" for null/invalid input.
+function toLocalDt(iso) {
+    if (!iso) return '';
+    try {
+        const d = new Date(iso);
+        if (isNaN(d.getTime())) return '';
+        const pad = (n) => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    } catch (e) { return ''; }
+}
+
 function resumeEditor() {
     return {
         // ── core state ────────────────────────────────────────
@@ -827,7 +939,13 @@ function resumeEditor() {
             meta_description: window.__resumeBootstrap.resume.meta_description || '',
             view_count: window.__resumeBootstrap.resume.view_count || 0,
             public_url: window.__resumeBootstrap.public_url || '',
+            // Stored as ISO8601 from the server but the <datetime-local>
+            // input expects "YYYY-MM-DDTHH:MM" — toLocalDt() converts.
+            expires_at_local: toLocalDt(window.__resumeBootstrap.resume.expires_at),
+            is_share_expired: !!(window.__resumeBootstrap.resume.is_share_expired),
         },
+        revoking: false,
+        viewLog: { open: false, loading: false, entries: [], current_page: 1, last_page: 1 },
         copied: false,
         mobilePane: 'editor',
         status: 'idle',
@@ -1073,6 +1191,10 @@ function resumeEditor() {
             if (this.publishing.visibility === 'password' && this.publishing.password_input) {
                 payload.password = this.publishing.password_input;
             }
+            // Always send expires_at — empty string clears it server-side.
+            payload.expires_at = this.publishing.expires_at_local
+                ? new Date(this.publishing.expires_at_local).toISOString()
+                : '';
             try {
                 const r = await this.http('PUT', '{{ route('user.resume.publishing.update') }}', payload);
                 this.publishing.is_public      = !!r.resume.is_public;
@@ -1081,9 +1203,53 @@ function resumeEditor() {
                 this.publishing.has_password   = !!r.resume.has_password;
                 this.publishing.view_count     = r.resume.view_count || 0;
                 this.publishing.password_input = '';
+                this.publishing.expires_at_local = toLocalDt(r.resume.expires_at);
+                this.publishing.is_share_expired = !!r.resume.is_share_expired;
                 if (r.public_url) this.publishing.public_url = r.public_url;
                 this.markSaved();
             } catch (e) { this.markError(e.message); }
+        },
+        async revokeShare() {
+            if (this.revoking) return;
+            if (!confirm('Force everyone who already typed the password back to the prompt? This keeps the URL but invalidates current sessions.')) return;
+            this.revoking = true;
+            try {
+                const r = await this.http('POST', '{{ route('user.resume.share.revoke') }}', {});
+                this.publishing.has_password = !!r.resume.has_password;
+                this.showToast('Active sessions revoked.', 'success');
+            } catch (e) { this.markError(e.message); }
+            finally { this.revoking = false; }
+        },
+        async openViewLog() {
+            this.viewLog.open = true;
+            await this.loadViewLog(1);
+        },
+        async loadViewLog(page) {
+            if (page < 1) return;
+            this.viewLog.loading = true;
+            try {
+                const url = '{{ route('user.resume.views') }}?page=' + page;
+                const res = await fetch(url, {
+                    credentials: 'same-origin',
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                });
+                if (!res.ok) throw new Error('Could not load view log.');
+                const j = await res.json();
+                this.viewLog.entries = j.data || [];
+                this.viewLog.current_page = j.meta?.current_page || 1;
+                this.viewLog.last_page = j.meta?.last_page || 1;
+            } catch (e) {
+                this.showToast(e.message || 'Could not load view log.', 'error');
+            } finally {
+                this.viewLog.loading = false;
+            }
+        },
+        formatViewedAt(iso) {
+            if (!iso) return '—';
+            try {
+                const d = new Date(iso);
+                return d.toLocaleString();
+            } catch (e) { return iso; }
         },
         async copyPublicUrl() {
             try {

@@ -498,12 +498,15 @@ class ResumeController extends Controller
     }
 
     /**
-     * PUT — toggle publish + visibility + indexing + password.
+     * PUT — toggle publish + visibility + indexing + password + expiration.
      *
      * Mirrors the visibility vocabulary used by Link.visibility so the
      * public-page renderer (PublicResumeController) can reuse the same
      * gating helpers. The password is hashed with Hash::make on write
-     * and only sent when the visibility tier is `password`.
+     * and only sent when the visibility tier is `password`. The
+     * `expires_at` field — when set — gates non-owner traffic after
+     * the deadline, which is useful when sending a link to a specific
+     * recruiter on a deadline.
      */
     public function updatePublishing(Request $request): JsonResponse
     {
@@ -516,6 +519,10 @@ class ResumeController extends Controller
             // hashes and stores it.
             'password'         => ['nullable', 'string', 'max:200'],
             'meta_description' => ['nullable', 'string', 'max:240'],
+            // Optional ISO-8601 datetime. Empty string / null clears it.
+            // We accept anything Carbon can parse so the web (datetime-
+            // local input) and mobile (Date.toISOString) can both POST.
+            'expires_at'       => ['nullable', 'string', 'max:64'],
         ]);
 
         $resume = $request->user()->ensureResume();
@@ -525,6 +532,19 @@ class ResumeController extends Controller
             'allow_indexing'   => (bool) $data['allow_indexing'],
             'meta_description' => $data['meta_description'] ?? null,
         ];
+
+        if (array_key_exists('expires_at', $data)) {
+            $raw = trim((string) ($data['expires_at'] ?? ''));
+            if ($raw === '') {
+                $update['expires_at'] = null;
+            } else {
+                try {
+                    $update['expires_at'] = \Illuminate\Support\Carbon::parse($raw);
+                } catch (\Throwable $e) {
+                    return response()->json(['message' => 'Could not parse expiration date.'], 422);
+                }
+            }
+        }
 
         if ($data['visibility'] === 'password') {
             if (array_key_exists('password', $data)) {
@@ -565,6 +585,65 @@ class ResumeController extends Controller
         ]);
 
         return response()->json(['report' => $report]);
+    }
+
+    /**
+     * POST — revoke the current share without changing the URL.
+     *
+     * Bumps `share_revision`, which is part of the unlock-session key,
+     * so every visitor who had previously typed the password is forced
+     * back to the prompt on their next visit. Optionally clears the
+     * stored password so a brand-new credential must be set.
+     */
+    public function revokeShare(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'clear_password' => ['nullable', 'boolean'],
+        ]);
+
+        $resume = $request->user()->ensureResume();
+        $update = ['share_revision' => (int) ($resume->share_revision ?? 0) + 1];
+        if (!empty($data['clear_password'])) {
+            $update['password'] = null;
+        }
+        $resume->update($update);
+
+        return response()->json([
+            'resume' => $this->present($resume->fresh('items')),
+        ]);
+    }
+
+    /**
+     * GET — paginated audit log of who viewed the resume page.
+     *
+     * Owner-only by route convention. Cursorless `?page=N` pagination
+     * with a hard cap on per_page so a malicious client can't pull the
+     * whole table at once.
+     */
+    public function views(Request $request): JsonResponse
+    {
+        $perPage = (int) $request->query('per_page', 25);
+        $perPage = max(5, min(100, $perPage));
+
+        $resume = $request->user()->ensureResume();
+        $page   = $resume->views()->paginate($perPage);
+
+        return response()->json([
+            'data' => collect($page->items())->map(fn ($v) => [
+                'id'             => $v->id,
+                'viewed_at'      => optional($v->viewed_at)->toIso8601String(),
+                'country_code'   => $v->country_code,
+                'referrer'       => $v->referrer,
+                'viewer_handle'  => $v->viewer_handle,
+                'viewer_user_id' => $v->viewer_user_id,
+            ])->values(),
+            'meta' => [
+                'current_page' => $page->currentPage(),
+                'last_page'    => $page->lastPage(),
+                'per_page'     => $page->perPage(),
+                'total'        => $page->total(),
+            ],
+        ]);
     }
 
     // ── Internals ──────────────────────────────────────────────────

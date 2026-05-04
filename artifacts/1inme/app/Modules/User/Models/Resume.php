@@ -11,6 +11,7 @@ class Resume extends Model
     protected $fillable = [
         'user_id', 'template_id', 'color_theme_id', 'sections',
         'is_public', 'visibility', 'password',
+        'expires_at', 'share_revision',
         'allow_indexing', 'view_count', 'meta_description',
         'is_public_pdf',
     ];
@@ -25,6 +26,8 @@ class Resume extends Model
             'allow_indexing'  => 'boolean',
             'view_count'      => 'integer',
             'is_public_pdf'   => 'boolean',
+            'expires_at'      => 'datetime',
+            'share_revision'  => 'integer',
         ];
     }
 
@@ -45,6 +48,27 @@ class Resume extends Model
     public function requiresPassword(): bool
     {
         return $this->visibility === 'password' && filled($this->password);
+    }
+
+    /**
+     * True when the share has an expiration date that has already
+     * passed. Owners are unaffected — enforcement lives in the public
+     * controller and only applies to non-owner traffic.
+     */
+    public function isShareExpired(): bool
+    {
+        return $this->expires_at !== null && $this->expires_at->isPast();
+    }
+
+    /**
+     * Session key used to remember a successful password unlock for
+     * this resume. Embeds `share_revision` so bumping that counter
+     * (a "revoke share" action) invalidates every previously-unlocked
+     * session without changing the public URL.
+     */
+    public function unlockSessionKey(): string
+    {
+        return sprintf('resume_unlocked_%d_v%d', $this->id, (int) $this->share_revision);
     }
 
     /** Public-page URL for this resume, or null when the user has no handle. */
@@ -96,6 +120,11 @@ class Resume extends Model
             ->orderBy('section_type')
             ->orderBy('position')
             ->orderBy('id');
+    }
+
+    public function views()
+    {
+        return $this->hasMany(ResumeView::class)->orderByDesc('viewed_at');
     }
 
     /** Items of a particular section, ordered. */
