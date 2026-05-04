@@ -9,10 +9,12 @@ class ConversationStepEvent extends Model
 {
     public $timestamps = false;
 
-    public const EVENT_ENTERED   = 'entered';
-    public const EVENT_ANSWERED  = 'answered';
-    public const EVENT_DROPPED   = 'dropped';
-    public const EVENT_COMPLETED = 'completed';
+    public const EVENT_ENTERED          = 'entered';
+    public const EVENT_ANSWERED         = 'answered';
+    public const EVENT_DROPPED          = 'dropped';
+    public const EVENT_COMPLETED        = 'completed';
+    public const EVENT_VALIDATION_FAIL  = 'validation_failed';
+    public const EVENT_AI_CLASSIFIED    = 'ai_classified';
 
     protected $fillable = [
         'session_id', 'flow_id', 'step_key', 'event', 'choice_value', 'occurred_at',

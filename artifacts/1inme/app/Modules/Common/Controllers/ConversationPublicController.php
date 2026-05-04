@@ -10,9 +10,14 @@ use App\Modules\User\Models\ConversationStepEvent;
 use App\Modules\User\Models\Contact;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\Subscriber;
+use App\Modules\User\Models\User;
+use App\Services\AI\AiEngineSettings;
+use App\Services\AI\OpenAiService;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class ConversationPublicController extends Controller
 {
@@ -22,10 +27,6 @@ class ConversationPublicController extends Controller
         $link = Link::resolveByAlias($alias, $request->getHost());
         if (!$link) abort(404);
 
-        // Owner preview: when the editor's signed `_preview=1` request
-        // rendered the chat view, RedirectController stamped a short-
-        // lived per-link session flag. If it's still valid, allow the
-        // latest draft flow so creators can iterate without publishing.
         $previewExpires = (int) session('cv_preview_link_'.$link->id, 0);
         $allowDraft = $previewExpires > now()->getTimestamp();
 
@@ -37,24 +38,12 @@ class ConversationPublicController extends Controller
         }
 
         $data = $request->validate([
-            // Stable per-browser id minted client-side and stored in
-            // localStorage. Format: `pg_` + 32 hex chars (or short
-            // fallback when crypto is unavailable). We only use it as
-            // an opaque key — never echoed back to other visitors.
             'page_session_id' => 'nullable|string|max:64|regex:/^pg_[a-z0-9]{6,60}$/i',
         ]);
         $pageSessionId = $data['page_session_id'] ?? null;
 
-        // Returning-visitor memory: pull prior answers from the most
-        // recent completed session that *this same browser* created.
-        // Strictly scoped by page_session_id — never by link/workspace —
-        // so one visitor can never see another visitor's answers.
         $known = $this->knownAnswers($flow, $pageSessionId);
 
-        // Freeze the flow graph the visitor begins on. The answer
-        // endpoint resolves steps/choices/actions from this snapshot,
-        // so even if the creator publishes edits mid-conversation the
-        // visitor finishes on the version they started.
         $snapshot = $this->buildSnapshot($flow);
         if (empty($snapshot['steps']) || empty($snapshot['entry_key'])) {
             return response()->json(['ok' => false, 'error' => 'Flow has no steps'], 422);
@@ -78,11 +67,12 @@ class ConversationPublicController extends Controller
             'ok'      => true,
             'session' => ['id' => $session->public_id],
             'flow'    => [
-                'name'          => $flow->name,
-                'intro_message' => $flow->intro_message,
-                'version'       => $flow->version,
+                'name'              => $flow->name,
+                'intro_message'     => $this->renderTemplate((string) $flow->intro_message, $known),
+                'version'           => $flow->version,
+                'default_typing_ms' => (int) ($snapshot['settings']['default_typing_ms'] ?? 600),
             ],
-            'step'    => $this->stepPayloadArr($first),
+            'step'    => $this->stepPayloadArr($first, $snapshot, $known),
             'known'   => $known,
         ]);
     }
@@ -93,16 +83,10 @@ class ConversationPublicController extends Controller
         $session = ConversationSession::where('public_id', $publicId)->firstOrFail();
         $flow = ConversationFlow::findOrFail($session->flow_id);
 
-        // Resolve graph from the session's frozen snapshot (taken at
-        // /start). This isolates in-flight visitors from creator edits
-        // — `current_step_key` always exists in the snapshot the
-        // visitor began on, even if the live flow has been republished.
         $snapshot = $this->ensureSnapshot($session, $flow);
         $current = $snapshot['steps'][$session->current_step_key] ?? null;
 
         if (!$current) {
-            // Snapshot is also missing this key (e.g. corrupt legacy
-            // session pre-snapshot). End gracefully rather than crash.
             $this->logEvent($session, $flow, (string) $session->current_step_key, ConversationStepEvent::EVENT_COMPLETED);
             $session->update(['completed' => true, 'completed_at' => now()]);
             return response()->json([
@@ -113,8 +97,12 @@ class ConversationPublicController extends Controller
         }
 
         $data = $request->validate([
-            'choice_value' => 'nullable|string|max:120',
-            'input_value'  => 'nullable|string|max:1000',
+            'choice_value'   => 'nullable|string|max:120',
+            'choice_values'  => 'nullable|array|max:20',
+            'choice_values.*'=> 'string|max:120',
+            'input_value'    => 'nullable|string|max:5000',
+            'rating_value'   => 'nullable|numeric',
+            'datetime_value' => 'nullable|string|max:60',
         ]);
 
         $answers = $session->answers ?? [];
@@ -124,48 +112,155 @@ class ConversationPublicController extends Controller
         $nextKey   = $current['next_step_key'] ?? null;
         $actionId  = $current['action_id'] ?? null;
         $logValue  = null;
+        $kind      = $current['kind'];
 
-        if ($current['kind'] === ConversationStep::KIND_QUESTION) {
-            if (empty($data['choice_value'])) {
-                return response()->json(['ok' => false, 'error' => 'Choose an option'], 422);
+        if ($kind === ConversationStep::KIND_QUESTION) {
+            $isMulti = !empty($current['settings']['multi_select']);
+            if ($isMulti) {
+                $picks = array_values(array_unique(array_filter((array) ($data['choice_values'] ?? []))));
+                $min = (int) ($current['settings']['min_choices'] ?? 1);
+                $max = (int) ($current['settings']['max_choices'] ?? max(1, count($current['choices'] ?? [])));
+                if (count($picks) < $min || count($picks) > $max) {
+                    $this->logEvent($session, $flow, $current['key'], ConversationStepEvent::EVENT_VALIDATION_FAIL);
+                    return response()->json(['ok' => false, 'error' => "Pick between {$min} and {$max} options"], 422);
+                }
+                $valid = collect($current['choices'] ?? [])->pluck('value')->all();
+                foreach ($picks as $p) {
+                    if (!in_array($p, $valid, true)) {
+                        return response()->json(['ok' => false, 'error' => 'Unknown choice'], 422);
+                    }
+                }
+                $answers[$field] = $picks;
+                $logValue = implode(',', $picks);
+                // Multi-select uses the step's `next_step_key` (or
+                // conditions evaluated below) — individual choices'
+                // routes don't apply when more than one was picked.
+            } else {
+                if (empty($data['choice_value'])) {
+                    return response()->json(['ok' => false, 'error' => 'Choose an option'], 422);
+                }
+                $choice = collect($current['choices'] ?? [])->firstWhere('value', $data['choice_value']);
+                if (!$choice) return response()->json(['ok' => false, 'error' => 'Unknown choice'], 422);
+                $answers[$field] = $choice['value'];
+                $logValue = $choice['value'];
+                // Choice-level condition can override the route. Handy
+                // for "if budget = high go premium, else demo".
+                $cs = $choice['settings'] ?? [];
+                $routedByCondition = false;
+                if (!empty($cs['condition']) && is_array($cs['condition'])) {
+                    if ($this->evalCondition($cs['condition'], $answers)
+                        && !empty($cs['condition']['goto'])) {
+                        $nextKey = $cs['condition']['goto'];
+                        $routedByCondition = true;
+                    }
+                }
+                if (!$routedByCondition) {
+                    $nextKey  = $choice['next_step_key'] ?: $nextKey;
+                    $actionId = $choice['action_id'] ?: $actionId;
+                }
             }
-            $choice = collect($current['choices'] ?? [])
-                ->firstWhere('value', $data['choice_value']);
-            if (!$choice) {
-                return response()->json(['ok' => false, 'error' => 'Unknown choice'], 422);
-            }
-            $answers[$field] = $choice['value'];
-            $logValue = $choice['value'];
-            $nextKey  = $choice['next_step_key'] ?: $nextKey;
-            $actionId = $choice['action_id'] ?: $actionId;
-        } elseif ($current['kind'] === ConversationStep::KIND_INPUT) {
-            $answers[$field] = trim((string) ($data['input_value'] ?? ''));
-            if ($answers[$field] === '') {
+        } elseif ($kind === ConversationStep::KIND_INPUT) {
+            $val = trim((string) ($data['input_value'] ?? ''));
+            if ($val === '') {
                 return response()->json(['ok' => false, 'error' => 'Please enter a value'], 422);
             }
-            $logValue = mb_substr($answers[$field], 0, 60);
+            $err = $this->validateInput($current, $val);
+            if ($err) {
+                $this->logEvent($session, $flow, $current['key'], ConversationStepEvent::EVENT_VALIDATION_FAIL);
+                return response()->json(['ok' => false, 'error' => $err], 422);
+            }
+            $answers[$field] = $val;
+            $logValue = mb_substr($val, 0, 60);
+        } elseif ($kind === ConversationStep::KIND_RATING) {
+            if (!isset($data['rating_value']) || !is_numeric($data['rating_value'])) {
+                return response()->json(['ok' => false, 'error' => 'Pick a rating'], 422);
+            }
+            $r = $current['settings']['rating'] ?? [];
+            $scale = $r['scale'] ?? 'star';
+            $defaultRange = $scale === 'nps' ? [0, 10] : ($scale === 'emoji' ? [1, 5] : [1, 5]);
+            $min = (int) ($r['min'] ?? $defaultRange[0]);
+            $max = (int) ($r['max'] ?? $defaultRange[1]);
+            $v = (float) $data['rating_value'];
+            if ($v < $min || $v > $max) {
+                $this->logEvent($session, $flow, $current['key'], ConversationStepEvent::EVENT_VALIDATION_FAIL);
+                return response()->json(['ok' => false, 'error' => "Rating must be {$min}–{$max}"], 422);
+            }
+            $answers[$field] = $v;
+            $logValue = (string) $v;
+        } elseif ($kind === ConversationStep::KIND_DATETIME) {
+            $raw = trim((string) ($data['datetime_value'] ?? ''));
+            if ($raw === '') {
+                return response()->json(['ok' => false, 'error' => 'Pick a date / time'], 422);
+            }
+            $d = $current['settings']['datetime'] ?? [];
+            $mode = $d['mode'] ?? 'datetime';
+            $err = $this->validateDateTime($mode, $raw, $d);
+            if ($err) {
+                $this->logEvent($session, $flow, $current['key'], ConversationStepEvent::EVENT_VALIDATION_FAIL);
+                return response()->json(['ok' => false, 'error' => $err], 422);
+            }
+            $answers[$field] = $raw;
+            $logValue = $raw;
+        } elseif ($kind === ConversationStep::KIND_AI_FREETEXT) {
+            $val = trim((string) ($data['input_value'] ?? ''));
+            if ($val === '') {
+                return response()->json(['ok' => false, 'error' => 'Type a reply'], 422);
+            }
+            [$intent, $confidence] = $this->classifyAi($flow, $current, $val);
+            $ai = $current['settings']['ai'] ?? [];
+            $intents = $ai['intents'] ?? [];
+            $matched = collect($intents)->firstWhere('value', $intent);
+            if (!$matched || $confidence < (float) ($ai['min_confidence'] ?? 0.4)) {
+                $nextKey = $ai['fallback_step_key'] ?? $nextKey;
+                $logValue = '__fallback__';
+                $answers[$field] = $val;
+                $answers[$field . '_intent'] = '__fallback__';
+            } else {
+                $nextKey = $matched['next_step_key'] ?? $nextKey;
+                $logValue = (string) $matched['value'];
+                $answers[$field] = $val;
+                $answers[$field . '_intent'] = $matched['value'];
+            }
+            // Log ai classification distinctly so analytics can split
+            // intent distribution from regular `answered` rows.
+            $this->logEvent($session, $flow, $current['key'], ConversationStepEvent::EVENT_AI_CLASSIFIED, $logValue);
+        } elseif ($kind === ConversationStep::KIND_FILE_UPLOAD) {
+            // File upload comes via captureFile() — treat any direct
+            // POST here without a stored file pointer as missing.
+            if (empty($answers[$field . '_url'])) {
+                return response()->json(['ok' => false, 'error' => 'Upload a file first'], 422);
+            }
+            $logValue = mb_substr((string) $answers[$field . '_url'], 0, 60);
         }
-        // KIND_MESSAGE / KIND_END auto-advance — no answer captured.
+        // KIND_MEDIA / KIND_MESSAGE / KIND_END auto-advance.
 
         $this->logEvent($session, $flow, $current['key'], ConversationStepEvent::EVENT_ANSWERED, $logValue);
 
-        // If this answer is an email, write it to Contact + Subscriber
-        // (workspace-scoped) and merge any prior answers stored on that
-        // Contact/Subscriber back into this session. That gives us
-        // cross-browser memory once the visitor identifies themselves.
+        // Step-level conditions evaluated after the answer is captured.
+        // First match wins; falls through to the previously resolved
+        // nextKey / choice-level route otherwise.
+        $stepConds = $current['settings']['conditions'] ?? [];
+        if (is_array($stepConds)) {
+            foreach ($stepConds as $cond) {
+                if (!is_array($cond)) continue;
+                if ($this->evalCondition($cond, $answers) && !empty($cond['goto'])) {
+                    $nextKey = $cond['goto'];
+                    break;
+                }
+            }
+        }
+
         $merged = $this->persistMemory($session, $flow, $current, $answers);
         if ($merged) {
             $answers = array_merge($merged, $answers);
         }
 
-        // Find next step, skipping any whose answer is already known.
         $next = $nextKey ? ($snapshot['steps'][$nextKey] ?? null) : null;
         if ($next) {
             $next = $this->advanceWhileKnownArr($snapshot, $next, $answers);
         }
 
         if (!$next || $current['kind'] === ConversationStep::KIND_END) {
-            // Flow complete — fire the end action from the snapshot.
             $action = $actionId ? ($snapshot['actions'][$actionId] ?? null) : null;
             $session->update([
                 'answers'             => $answers,
@@ -177,7 +272,7 @@ class ConversationPublicController extends Controller
             return response()->json([
                 'ok'       => true,
                 'done'     => true,
-                'action'   => $action ? $this->actionPayloadArr($action, (int) $flow->link_id) : null,
+                'action'   => $action ? $this->actionPayloadArr($action, (int) $flow->link_id, $answers) : null,
                 'answers'  => $answers,
             ]);
         }
@@ -193,26 +288,74 @@ class ConversationPublicController extends Controller
         return response()->json([
             'ok'      => true,
             'done'    => false,
-            'step'    => $this->stepPayloadArr($next),
+            'step'    => $this->stepPayloadArr($next, $snapshot, $answers),
             'answers' => $answers,
         ]);
     }
 
     /**
-     * End-action email capture: visitor submits an email from the
-     * inline form rendered for a `capture_email` end action. Persists
-     * to Subscriber + workspace Contact via the same memory pipeline
-     * used by input-step emails, and stores the email on the session
-     * answers so funnel analytics keep a single source of truth.
+     * File-upload step: visitor POSTs a multipart file. We enforce the
+     * creator's max-size + accepted-types constraints, store the file
+     * on the public disk, and stash the resolved URL on the session
+     * answers under `<field>_url` so the next answer() call can
+     * advance the flow as if the upload were the answer.
      */
+    public function captureFile(Request $request, string $publicId)
+    {
+        $session = ConversationSession::where('public_id', $publicId)->firstOrFail();
+        $flow = ConversationFlow::findOrFail($session->flow_id);
+        $snapshot = $this->ensureSnapshot($session, $flow);
+        $current = $snapshot['steps'][$session->current_step_key] ?? null;
+        if (!$current || $current['kind'] !== ConversationStep::KIND_FILE_UPLOAD) {
+            return response()->json(['ok' => false, 'error' => 'No file step'], 422);
+        }
+
+        $cfg   = $current['settings']['file'] ?? [];
+        $maxKb = (int) ($cfg['max_mb'] ?? 10) * 1024;
+        $accept = trim((string) ($cfg['accept'] ?? ''));
+
+        $rules = ['file' => "required|file|max:{$maxKb}"];
+        if ($accept !== '') {
+            // Author-friendly comma-list of extensions: "pdf,jpg,png"
+            $exts = collect(explode(',', $accept))
+                ->map(fn ($e) => ltrim(trim($e), '.'))
+                ->filter()->values()->all();
+            if ($exts) $rules['file'] .= '|mimes:' . implode(',', $exts);
+        }
+
+        try {
+            $request->validate($rules);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->logEvent($session, $flow, $current['key'], ConversationStepEvent::EVENT_VALIDATION_FAIL);
+            $first = collect($e->errors())->flatten()->first();
+            return response()->json(['ok' => false, 'error' => $first ?: 'File rejected'], 422);
+        }
+
+        $file = $request->file('file');
+        $name = Str::random(20) . '.' . strtolower($file->getClientOriginalExtension() ?: 'bin');
+        try {
+            $path = $file->storeAs('cv_uploads/' . date('Y/m'), $name, 'public');
+            $url  = Storage::disk('public')->url($path);
+        } catch (\Throwable $ex) {
+            return response()->json(['ok' => false, 'error' => 'Upload failed'], 500);
+        }
+
+        $field = $current['answer_field'] ?: $current['key'];
+        $answers = $session->answers ?? [];
+        $answers[$field]          = $file->getClientOriginalName();
+        $answers[$field . '_url'] = $url;
+        $answers[$field . '_size']= $file->getSize();
+        $session->update(['answers' => $answers]);
+
+        return response()->json(['ok' => true, 'url' => $url, 'name' => $file->getClientOriginalName()]);
+    }
+
     public function captureEmail(Request $request, string $publicId)
     {
         $session = ConversationSession::where('public_id', $publicId)->first();
         if (!$session) abort(404);
 
-        $data = $request->validate([
-            'email' => 'required|email|max:190',
-        ]);
+        $data = $request->validate(['email' => 'required|email|max:190']);
         $email = mb_strtolower(trim($data['email']));
 
         $flow = ConversationFlow::find($session->flow_id);
@@ -221,9 +364,6 @@ class ConversationPublicController extends Controller
         $answers = is_array($session->answers) ? $session->answers : [];
         $answers['email'] = $email;
 
-        // Reuse the input-step persistence path: it handles Subscriber
-        // upsert, Contact + ContactEmail dedupe by lowercased email,
-        // and links subscriber_id / contact_id back to the session.
         $syntheticStep = [
             'kind'         => ConversationStep::KIND_INPUT,
             'key'          => 'capture_email_action',
@@ -240,7 +380,6 @@ class ConversationPublicController extends Controller
         return response()->json(['ok' => true, 'email' => $email]);
     }
 
-    /** Best-effort drop-off ping when the visitor closes the chat early. */
     public function drop(Request $request, string $publicId)
     {
         $session = ConversationSession::where('public_id', $publicId)->first();
@@ -251,11 +390,6 @@ class ConversationPublicController extends Controller
 
     // ─────────────────────── Helpers ───────────────────────
 
-    /**
-     * Build a self-contained snapshot of every step, choice, and
-     * action in the flow keyed for O(1) lookup. Stored on the session
-     * so creator edits can never strand an in-flight visitor.
-     */
     protected function buildSnapshot(ConversationFlow $flow): array
     {
         $steps = [];
@@ -276,6 +410,7 @@ class ConversationPublicController extends Controller
                     'value'         => $c->value,
                     'next_step_key' => $c->next_step_key,
                     'action_id'     => $c->action_id,
+                    'settings'      => $c->settings ?? [],
                 ])->values()->all(),
             ];
         }
@@ -291,15 +426,14 @@ class ConversationPublicController extends Controller
                 'payload' => $a->payload ?? [],
             ];
         }
-        return ['entry_key' => $entryKey, 'steps' => $steps, 'actions' => $actions];
+        return [
+            'entry_key' => $entryKey,
+            'steps'     => $steps,
+            'actions'   => $actions,
+            'settings'  => is_array($flow->settings) ? $flow->settings : [],
+        ];
     }
 
-    /**
-     * Server-render a single biolink block via the same partial the
-     * static list view uses, so a `show_block` end action can drop
-     * the live block (CTA, embed, calendar, etc.) into the chat
-     * stream instead of just showing placeholder text.
-     */
     protected function renderBlockHtml(int $blockId, int $linkId): ?string
     {
         try {
@@ -307,12 +441,7 @@ class ConversationPublicController extends Controller
                 ->where('id', $blockId)
                 ->where('link_id', $linkId)
                 ->first();
-            if (!$block) {
-                logger()->warning('Conversational show_block ownership mismatch', [
-                    'block_id' => $blockId, 'link_id' => $linkId,
-                ]);
-                return null;
-            }
+            if (!$block) return null;
             $s = is_array($block->settings) ? $block->settings : [];
             return view('common.partials.biolink-block-render', [
                 'block'     => $block,
@@ -325,7 +454,6 @@ class ConversationPublicController extends Controller
         }
     }
 
-    /** Return the session's snapshot, lazily building one for legacy rows. */
     protected function ensureSnapshot(ConversationSession $session, ConversationFlow $flow): array
     {
         $snap = $session->flow_snapshot;
@@ -338,49 +466,80 @@ class ConversationPublicController extends Controller
         return $snap;
     }
 
-    protected function stepPayloadArr(array $step): array
+    protected function stepPayloadArr(array $step, array $snapshot, array $answers): array
     {
-        return [
+        $defaultDelay = (int) ($snapshot['settings']['default_typing_ms'] ?? 600);
+        $stepDelay = (int) ($step['settings']['typing_delay_ms'] ?? $defaultDelay);
+        // Render merge tags against the live answers so previous
+        // captures show up in the next bot bubble.
+        $message = $this->renderTemplate((string) $step['message_text'], $answers);
+
+        $payload = [
             'key'          => $step['key'],
             'kind'         => $step['kind'],
-            'message_text' => $step['message_text'],
+            'message_text' => $message,
+            'typing_ms'    => max(0, $stepDelay),
             'choices'      => array_map(
-                fn ($c) => ['label' => $c['label'], 'value' => $c['value']],
+                fn ($c) => [
+                    'label' => $this->renderTemplate((string) $c['label'], $answers),
+                    'value' => $c['value'],
+                ],
                 $step['choices'] ?? []
             ),
             'input_kind'   => $step['settings']['input_kind'] ?? 'text',
             'placeholder'  => $step['settings']['placeholder'] ?? null,
+            'multi_select' => !empty($step['settings']['multi_select']),
+            'min_choices'  => (int) ($step['settings']['min_choices'] ?? 1),
+            'max_choices'  => (int) ($step['settings']['max_choices'] ?? max(1, count($step['choices'] ?? []))),
+            'validation'   => $step['settings']['validation'] ?? null,
         ];
+
+        if ($step['kind'] === ConversationStep::KIND_MEDIA) {
+            $payload['media'] = $step['settings']['media'] ?? null;
+        }
+        if ($step['kind'] === ConversationStep::KIND_FILE_UPLOAD) {
+            $payload['file']   = $step['settings']['file'] ?? ['max_mb' => 10, 'accept' => ''];
+        }
+        if ($step['kind'] === ConversationStep::KIND_RATING) {
+            $payload['rating'] = $step['settings']['rating'] ?? ['scale' => 'star', 'min' => 1, 'max' => 5];
+        }
+        if ($step['kind'] === ConversationStep::KIND_DATETIME) {
+            $payload['datetime'] = $step['settings']['datetime'] ?? ['mode' => 'datetime'];
+        }
+        if ($step['kind'] === ConversationStep::KIND_AI_FREETEXT) {
+            $payload['placeholder'] = $payload['placeholder'] ?: 'Type your reply…';
+            $payload['input_kind']  = 'text';
+        }
+
+        return $payload;
     }
 
-    protected function actionPayloadArr(array $action, int $linkId = 0): array
+    protected function actionPayloadArr(array $action, int $linkId = 0, array $answers = []): array
     {
         $payload = $action['payload'] ?? [];
-        $resolved = ['kind' => $action['kind'], 'label' => $action['label']];
+        $resolved = ['kind' => $action['kind'], 'label' => $this->renderTemplate((string) $action['label'], $answers)];
         switch ($action['kind']) {
             case ConversationAction::KIND_OPEN_LINK:
-                $resolved['url'] = $payload['url'] ?? null; break;
+                $resolved['url'] = $this->renderTemplate((string) ($payload['url'] ?? ''), $answers);
+                break;
             case ConversationAction::KIND_SHOW_BLOCK:
                 $blockId = $payload['block_id'] ?? null;
                 $resolved['block_id'] = $blockId;
-                $resolved['html']     = ($blockId && $linkId)
-                    ? $this->renderBlockHtml((int) $blockId, $linkId)
-                    : null;
+                $resolved['html']     = ($blockId && $linkId) ? $this->renderBlockHtml((int) $blockId, $linkId) : null;
                 break;
             case ConversationAction::KIND_BOOK_CALENDAR:
-                $resolved['url'] = $payload['booking_url'] ?? null; break;
+                $resolved['url'] = $this->renderTemplate((string) ($payload['booking_url'] ?? ''), $answers);
+                break;
             case ConversationAction::KIND_MESSAGE:
-                $resolved['text'] = $payload['text'] ?? ''; break;
+                $resolved['text'] = $this->renderTemplate((string) ($payload['text'] ?? ''), $answers);
+                break;
             case ConversationAction::KIND_CAPTURE_EMAIL:
-                $resolved['cta'] = $payload['cta'] ?? 'Subscribe'; break;
+                $resolved['cta'] = $payload['cta'] ?? 'Subscribe';
+                break;
         }
         return $resolved;
     }
 
-    /**
-     * Skip steps whose `answer_field` is already in $answers (memory).
-     * Bounded loop so a corrupt graph can't infinitely cycle.
-     */
     protected function advanceWhileKnownArr(array $snapshot, array $step, array $answers): array
     {
         $seen = [];
@@ -399,6 +558,15 @@ class ConversationPublicController extends Controller
                     }
                 }
             }
+            // Step-level conditions also apply when fast-forwarding so
+            // a returning visitor lands on the same branch they would
+            // have walked the first time.
+            foreach ($step['settings']['conditions'] ?? [] as $cond) {
+                if (is_array($cond) && $this->evalCondition($cond, $answers) && !empty($cond['goto'])) {
+                    $nextKey = $cond['goto'];
+                    break;
+                }
+            }
             if (!$nextKey || isset($seen[$nextKey])) return $step;
             $seen[$nextKey] = true;
             $next = $snapshot['steps'][$nextKey] ?? null;
@@ -409,15 +577,179 @@ class ConversationPublicController extends Controller
     }
 
     /**
-     * Pull cached answers from THIS browser's prior completed session
-     * for the same flow. Scoped strictly by `page_session_id` so a
-     * visitor can never inherit another visitor's answers.
-     *
-     * If the prior session also produced a Subscriber (email capture),
-     * we additionally merge any answers stored on that Subscriber's
-     * metadata — this keeps memory across browsers when the same email
-     * is re-entered, but only after explicit identification.
+     * Resolve `{{name}}`, `{{step:key}}`, `{{answer:field}}` against the
+     * answers map. Unknown / missing tags fall back to an empty string
+     * (so visitors never see literal `{{...}}` text).
      */
+    protected function renderTemplate(string $tpl, array $answers): string
+    {
+        if ($tpl === '' || strpos($tpl, '{{') === false) return $tpl;
+        return preg_replace_callback('/\{\{\s*([a-z0-9_]+)(?::([a-z0-9_]+))?\s*\}\}/i', function ($m) use ($answers) {
+            $ns = strtolower($m[1]);
+            $key = $m[2] ?? null;
+            $lookupKey = $key ?: $ns;
+            if ($ns === 'step' || $ns === 'answer') {
+                $v = $answers[$key] ?? '';
+            } else {
+                $v = $answers[$lookupKey] ?? '';
+            }
+            if (is_array($v)) $v = implode(', ', $v);
+            return (string) $v;
+        }, $tpl);
+    }
+
+    /** Evaluate a single condition rule against the current answers. */
+    protected function evalCondition(array $cond, array $answers): bool
+    {
+        $field = $cond['field'] ?? null;
+        if (!$field) return false;
+        $actual = $answers[$field] ?? null;
+        $expected = $cond['value'] ?? null;
+        switch ($cond['op'] ?? 'eq') {
+            case 'eq':  return is_array($actual) ? in_array($expected, $actual, false) : (string) $actual === (string) $expected;
+            case 'neq': return is_array($actual) ? !in_array($expected, $actual, false) : (string) $actual !== (string) $expected;
+            case 'contains':
+                return is_array($actual)
+                    ? in_array($expected, $actual, false)
+                    : (is_string($actual) && stripos($actual, (string) $expected) !== false);
+            case 'not_contains':
+                return !(is_array($actual)
+                    ? in_array($expected, $actual, false)
+                    : (is_string($actual) && stripos($actual, (string) $expected) !== false));
+            case 'in':
+                $arr = is_array($expected) ? $expected : array_map('trim', explode(',', (string) $expected));
+                return in_array((string) $actual, array_map('strval', $arr), true);
+            case 'gt': return is_numeric($actual) && (float) $actual >  (float) $expected;
+            case 'lt': return is_numeric($actual) && (float) $actual <  (float) $expected;
+            case 'exists': return $actual !== null && $actual !== '';
+            case 'empty':  return $actual === null || $actual === '' || (is_array($actual) && empty($actual));
+        }
+        return false;
+    }
+
+    /** Per-step input validation. Returns error string or null. */
+    protected function validateInput(array $step, string $value): ?string
+    {
+        $kind = $step['settings']['input_kind'] ?? 'text';
+        $v    = $step['settings']['validation'] ?? [];
+        $msg  = $v['error_message'] ?? null;
+
+        switch ($kind) {
+            case 'email':
+                if (!filter_var($value, FILTER_VALIDATE_EMAIL)) return $msg ?: 'Please enter a valid email';
+                break;
+            case 'url':
+                if (!filter_var($value, FILTER_VALIDATE_URL)) return $msg ?: 'Please enter a valid URL';
+                break;
+            case 'phone':
+                // Loose international phone match — digits, spaces, +, -, parens, min 7 digits.
+                if (!preg_match('/^[\d\s+\-()]{7,}$/', $value)) return $msg ?: 'Please enter a valid phone number';
+                break;
+            case 'number':
+                if (!is_numeric($value)) return $msg ?: 'Please enter a number';
+                if (isset($v['min']) && (float) $value < (float) $v['min']) return $msg ?: "Must be at least {$v['min']}";
+                if (isset($v['max']) && (float) $value > (float) $v['max']) return $msg ?: "Must be at most {$v['max']}";
+                break;
+        }
+        if (isset($v['min_length']) && mb_strlen($value) < (int) $v['min_length']) {
+            return $msg ?: "Must be at least {$v['min_length']} characters";
+        }
+        if (isset($v['max_length']) && mb_strlen($value) > (int) $v['max_length']) {
+            return $msg ?: "Must be at most {$v['max_length']} characters";
+        }
+        if (!empty($v['regex'])) {
+            $pattern = '~' . str_replace('~', '\~', $v['regex']) . '~u';
+            // @ to suppress runtime warnings if a creator slipped past validation.
+            if (@preg_match($pattern, $value) !== 1) return $msg ?: 'That doesn\'t look right';
+        }
+        return null;
+    }
+
+    protected function validateDateTime(string $mode, string $raw, array $cfg): ?string
+    {
+        try {
+            $tz = $cfg['timezone'] ?? null;
+            $dt = $tz ? new \DateTimeImmutable($raw, new \DateTimeZone($tz)) : new \DateTimeImmutable($raw);
+        } catch (\Throwable $e) {
+            return 'Pick a valid date / time';
+        }
+        if (!empty($cfg['min'])) {
+            try {
+                $min = new \DateTimeImmutable($cfg['min']);
+                if ($dt < $min) return 'Pick a later date / time';
+            } catch (\Throwable $e) {}
+        }
+        if (!empty($cfg['max'])) {
+            try {
+                $max = new \DateTimeImmutable($cfg['max']);
+                if ($dt > $max) return 'Pick an earlier date / time';
+            } catch (\Throwable $e) {}
+        }
+        return null;
+    }
+
+    /**
+     * Classify a free-text reply into one of the configured intents.
+     * Returns [intentValue, confidence(0..1)]. Falls back to '__none__'
+     * with confidence 0 when the AI is unavailable or unconfigured —
+     * the caller routes those to the configured fallback step.
+     */
+    protected function classifyAi(ConversationFlow $flow, array $step, string $text): array
+    {
+        $ai = $step['settings']['ai'] ?? [];
+        $intents = $ai['intents'] ?? [];
+        if (empty($intents)) return ['__none__', 0.0];
+
+        // Without an OpenAI key we can't classify — fall back gracefully.
+        if (!AiEngineSettings::openAiKey()) return ['__none__', 0.0];
+
+        // Charge the *flow owner's* AI credits, mirroring how the
+        // Companion runtime works. If that user is missing or has no
+        // balance we degrade to fallback rather than error the visitor.
+        try {
+            $link = Link::find($flow->link_id);
+            $owner = $link ? User::find($link->user_id) : null;
+            if (!$owner) return ['__none__', 0.0];
+
+            $intentLines = [];
+            foreach ($intents as $i) {
+                $val   = (string) ($i['value'] ?? '');
+                $label = (string) ($i['label'] ?? $val);
+                $ex    = trim((string) ($i['examples'] ?? ''));
+                $intentLines[] = "- {$val} ({$label})" . ($ex !== '' ? " — examples: {$ex}" : '');
+            }
+            $catalog = implode("\n", $intentLines);
+
+            $system = "You classify a user's chat reply into exactly ONE of the listed intents. "
+                    . "Respond with strict JSON: {\"intent\":\"<value>\",\"confidence\":0.0-1.0}. "
+                    . "If none of the intents fit, return intent='__none__' with confidence 0.";
+            $user   = "Intents:\n{$catalog}\n\nReply: " . mb_substr($text, 0, 800);
+
+            $service = app(OpenAiService::class);
+            $model   = $ai['model'] ?? AiEngineSettings::DEFAULT_FEATURE_MODEL;
+            $resp = $service->chat($owner, $model, [
+                ['role' => 'system', 'content' => $system],
+                ['role' => 'user',   'content' => $user],
+            ], [
+                'temperature'     => 0,
+                'max_tokens'      => 60,
+                'response_format' => ['type' => 'json_object'],
+                'feature'         => 'cv_intent_classify',
+                'reason'          => 'Conversational AI intent routing',
+            ]);
+
+            $content = trim((string) ($resp['content'] ?? ''));
+            $parsed = json_decode($content, true);
+            if (!is_array($parsed)) return ['__none__', 0.0];
+            $intent = (string) ($parsed['intent'] ?? '__none__');
+            $conf   = max(0.0, min(1.0, (float) ($parsed['confidence'] ?? 0.0)));
+            return [$intent, $conf];
+        } catch (\Throwable $e) {
+            logger()->warning('Conversational AI classify failed: ' . $e->getMessage());
+            return ['__none__', 0.0];
+        }
+    }
+
     protected function knownAnswers(ConversationFlow $flow, ?string $pageSessionId): array
     {
         if (!$pageSessionId) return [];
@@ -431,19 +763,12 @@ class ConversationPublicController extends Controller
         return $prior ? (array) ($prior->answers ?? []) : [];
     }
 
-    /**
-     * When the visitor types an email, persist the conversation memory
-     * onto a workspace Contact + Subscriber keyed by that email. Returns
-     * any *prior* answers we recovered from those records so the caller
-     * can merge them into the current session — this is what gives
-     * cross-browser memory once the visitor identifies themselves.
-     */
     protected function persistMemory(ConversationSession $session, ConversationFlow $flow, array $step, array $answers): array
     {
         $field = $step['answer_field'] ?: $step['key'];
         if ($step['kind'] !== ConversationStep::KIND_INPUT) return [];
         $value = $answers[$field] ?? null;
-        if (!$value) return [];
+        if (!$value || !is_string($value)) return [];
 
         $isEmail = (bool) filter_var($value, FILTER_VALIDATE_EMAIL);
         if (!$isEmail) return [];
@@ -453,7 +778,6 @@ class ConversationPublicController extends Controller
             $userId      = $session->link->user_id;
             $workspaceId = $session->link->workspace_id ?? $userId;
 
-            // 1. Subscriber: per-link mailing-list membership.
             $sub = Subscriber::withoutGlobalScope('workspace')
                 ->where('user_id', $userId)
                 ->where('link_id', $session->link_id)
@@ -479,9 +803,6 @@ class ConversationPublicController extends Controller
                 $sub->update(['metadata' => ['answers' => $merged, 'flow_id' => $flow->id]]);
             }
 
-            // 2. Contact: workspace-wide CRM record. Look up by an
-            // existing ContactEmail row and reuse if present, else
-            // create a new contact + email row in the same workspace.
             $contact = null;
             try {
                 $existingEmail = \App\Modules\User\Models\ContactEmail::query()

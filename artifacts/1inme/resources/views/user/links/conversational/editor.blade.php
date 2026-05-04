@@ -16,20 +16,9 @@
         backdrop-filter: blur(20px);
         box-shadow: 0 4px 18px -8px rgba(15, 23, 42, 0.18);
     }
-    .cv-card h5, .cv-card h6 {
-        color: var(--text-primary);
-        font-weight: 700;
-        margin: 0;
-    }
-    .cv-card-title {
-        display: flex; align-items: center; justify-content: space-between;
-        gap: 12px; margin-bottom: 14px;
-    }
-    .cv-card-subtitle {
-        color: var(--text-faint);
-        font-size: 12px;
-        margin-top: 2px;
-    }
+    .cv-card h5, .cv-card h6 { color: var(--text-primary); font-weight: 700; margin: 0; }
+    .cv-card-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+    .cv-card-subtitle { color: var(--text-faint); font-size: 12px; margin-top: 2px; }
 
     .cv-toggle {
         display: flex; align-items: center; gap: 14px;
@@ -45,146 +34,64 @@
     .cv-toggle .cv-toggle-sub { font-size: 12px; opacity: 0.85; }
 
     .cv-field-label {
-        display: block;
-        font-size: 11px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-        color: var(--text-muted);
-        margin-bottom: 6px;
+        display: block; font-size: 11px; font-weight: 600; text-transform: uppercase;
+        letter-spacing: 0.04em; color: var(--text-muted); margin-bottom: 6px;
     }
     .cv-input, .cv-select, .cv-textarea {
-        width: 100%;
-        background: var(--bg-glass-input);
-        border: 1px solid var(--border-glass);
-        border-radius: 10px;
-        color: var(--text-primary);
-        font-size: 13px;
-        padding: 9px 12px;
-        line-height: 1.4;
-        transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+        width: 100%; background: var(--bg-glass-input);
+        border: 1px solid var(--border-glass); border-radius: 10px;
+        color: var(--text-primary); font-size: 13px; padding: 9px 12px; line-height: 1.4;
     }
     .cv-textarea { resize: vertical; min-height: 60px; font-family: inherit; }
     .cv-input:focus, .cv-select:focus, .cv-textarea:focus {
-        outline: none;
-        border-color: rgba(139, 92, 246, 0.55);
-        box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
-        background: var(--bg-card);
+        outline: none; border-color: rgba(139, 92, 246, 0.55);
+        box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15); background: var(--bg-card);
     }
-    .cv-input::placeholder, .cv-textarea::placeholder { color: var(--text-faint); }
     .cv-select {
         appearance: none; -webkit-appearance: none;
         background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='%2394a3b8' d='M0 0l5 6 5-6z'/></svg>");
-        background-repeat: no-repeat;
-        background-position: right 12px center;
-        padding-right: 32px;
+        background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px;
     }
 
     .cv-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
-    @media (max-width: 640px) { .cv-row { grid-template-columns: 1fr; } }
+    .cv-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    @media (max-width: 640px) { .cv-row, .cv-row-3 { grid-template-columns: 1fr; } }
 
-    .cv-checkbox-line {
-        display: inline-flex; align-items: center; gap: 8px;
-        font-size: 12px; color: var(--text-muted); cursor: pointer;
-    }
+    .cv-checkbox-line { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); cursor: pointer; }
     .cv-checkbox-line input[type="checkbox"] { accent-color: #8b5cf6; width: 14px; height: 14px; }
 
-    .cv-step {
-        border: 1px solid var(--border-glass);
-        border-radius: 12px;
-        padding: 14px;
-        margin-bottom: 12px;
-        background: var(--bg-glass-input);
-    }
-    .cv-step-head {
-        display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
-        margin-bottom: 12px;
-    }
-    .cv-key {
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-        font-size: 11px;
-        padding: 4px 10px;
-        background: rgba(139, 92, 246, 0.15);
-        color: #a78bfa;
-        border-radius: 999px;
-        font-weight: 600;
-        letter-spacing: 0.02em;
-    }
+    .cv-step { border: 1px solid var(--border-glass); border-radius: 12px; padding: 14px; margin-bottom: 12px; background: var(--bg-glass-input); }
+    .cv-step-head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+    .cv-key { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; padding: 4px 10px;
+              background: rgba(139, 92, 246, 0.15); color: #a78bfa; border-radius: 999px; font-weight: 600; }
 
-    .cv-choice-row {
-        display: grid;
-        grid-template-columns: minmax(0,1.2fr) minmax(0,1fr) minmax(0,1.1fr) minmax(0,1.1fr) auto;
-        gap: 8px; align-items: center; margin-bottom: 8px;
-    }
-    .cv-action-row {
-        display: grid;
-        grid-template-columns: minmax(0,1fr) minmax(0,1fr) minmax(0,1.4fr) auto;
-        gap: 8px; align-items: center; margin-bottom: 8px;
-    }
-    @media (max-width: 900px) {
-        .cv-choice-row { grid-template-columns: 1fr 1fr auto; }
-        .cv-action-row { grid-template-columns: 1fr 1fr auto; }
-    }
+    .cv-choice-row { display: grid; grid-template-columns: minmax(0,1.2fr) minmax(0,1fr) minmax(0,1.1fr) minmax(0,1.1fr) auto; gap: 8px; align-items: center; margin-bottom: 6px; }
+    .cv-cond-row { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,0.8fr) minmax(0,1fr) minmax(0,1fr) auto; gap: 6px; margin-bottom: 6px; }
+    .cv-action-row { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr) minmax(0,1.4fr) auto; gap: 8px; align-items: center; margin-bottom: 8px; }
+    .cv-intent-row { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr) minmax(0,1.2fr) minmax(0,1fr) auto; gap: 6px; margin-bottom: 6px; }
+    @media (max-width: 900px) { .cv-choice-row, .cv-action-row, .cv-cond-row, .cv-intent-row { grid-template-columns: 1fr 1fr auto; } }
 
-    .cv-btn {
-        display: inline-flex; align-items: center; gap: 6px;
-        font-size: 12px; font-weight: 600;
-        padding: 8px 14px;
-        border-radius: 10px;
-        border: 1px solid transparent;
-        cursor: pointer;
-        transition: transform .15s ease, box-shadow .15s ease, background .15s ease, color .15s ease, border-color .15s ease;
-        line-height: 1;
-    }
-    .cv-btn-primary {
-        color: #fff;
-        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-        box-shadow: 0 6px 18px -8px rgba(124,58,237,0.55);
-    }
-    .cv-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 10px 22px -10px rgba(124,58,237,0.7); }
-    .cv-btn-success {
-        color: #fff;
-        background: linear-gradient(135deg, #10b981, #059669);
-        box-shadow: 0 6px 18px -8px rgba(16,185,129,0.5);
-    }
-    .cv-btn-success:hover { transform: translateY(-1px); }
-    .cv-btn-ghost {
-        color: var(--text-muted);
-        background: var(--bg-glass-input);
-        border-color: var(--border-glass);
-    }
-    .cv-btn-ghost:hover { color: var(--text-primary); background: var(--bg-glass-hover); }
-    .cv-btn-outline {
-        color: #a78bfa;
-        background: transparent;
-        border-color: rgba(139, 92, 246, 0.4);
-    }
-    .cv-btn-outline:hover { background: rgba(139, 92, 246, 0.1); }
-    .cv-btn-danger {
-        color: #ef4444;
-        background: rgba(239, 68, 68, 0.08);
-        border-color: rgba(239, 68, 68, 0.25);
-        padding: 6px 10px;
-        font-size: 14px;
-        line-height: 1;
-    }
-    .cv-btn-danger:hover { background: rgba(239, 68, 68, 0.18); color: #fff; }
+    .cv-btn { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600;
+              padding: 8px 14px; border-radius: 10px; border: 1px solid transparent; cursor: pointer; line-height: 1; }
+    .cv-btn-primary { color: #fff; background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+    .cv-btn-success { color: #fff; background: linear-gradient(135deg, #10b981, #059669); }
+    .cv-btn-ghost   { color: var(--text-muted); background: var(--bg-glass-input); border-color: var(--border-glass); }
+    .cv-btn-outline { color: #a78bfa; background: transparent; border-color: rgba(139, 92, 246, 0.4); }
+    .cv-btn-danger  { color: #ef4444; background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.25); padding: 6px 10px; font-size: 14px; }
+    .cv-btn-danger:hover { background: rgba(239,68,68,0.18); color: #fff; }
 
-    .cv-empty { color: var(--text-faint); font-size: 12px; padding: 12px 0; text-align: center; }
-    .cv-help  { color: var(--text-faint); font-size: 12px; margin-bottom: 10px; }
+    .cv-empty { color: var(--text-faint); font-size: 12px; padding: 8px 0; text-align: center; }
+    .cv-help  { color: var(--text-faint); font-size: 12px; margin-bottom: 6px; }
+    .cv-section { margin-top: 12px; padding: 10px 12px; border: 1px dashed rgba(139,92,246,0.25); border-radius: 8px; background: rgba(139,92,246,0.04); }
+    .cv-section-title { font-size: 11px; font-weight: 700; color: #a78bfa; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
 
-    .cv-preview-frame {
-        width: 100%; height: 600px;
-        border: 1px solid var(--border-glass);
-        border-radius: 12px;
-        background: #0f172a;
-    }
+    .cv-preview-frame { width: 100%; height: 600px; border: 1px solid var(--border-glass); border-radius: 12px; background: #0f172a; }
     .cv-preview-card { position: sticky; top: 80px; }
 
     .cv-save-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 24px; }
     .cv-save-status { font-size: 12px; color: var(--text-faint); }
     .cv-save-status.is-error { color: #ef4444; }
-    .cv-save-status.is-ok { color: #10b981; }
+    .cv-save-status.is-ok    { color: #10b981; }
 </style>
 
 <div class="max-w-7xl mx-auto">
@@ -213,15 +120,22 @@
                 <div class="cv-card-title">
                     <div>
                         <h5>Flow basics</h5>
-                        <div class="cv-card-subtitle">Name your flow and set the opening line visitors see first.</div>
+                        <div class="cv-card-subtitle">Name your flow, set the opening line, and tune pacing.</div>
+                    </div>
+                </div>
+                <div class="cv-row">
+                    <div>
+                        <label class="cv-field-label">Flow name</label>
+                        <input id="cv-name" class="cv-input" value="{{ $flow->name }}">
+                    </div>
+                    <div>
+                        <label class="cv-field-label">Default typing pause (ms)</label>
+                        <input id="cv-typing" class="cv-input" type="number" min="0" max="5000"
+                               value="{{ (int) data_get($flow->settings, 'default_typing_ms', 600) }}">
                     </div>
                 </div>
                 <div class="mb-3">
-                    <label class="cv-field-label">Flow name</label>
-                    <input id="cv-name" class="cv-input" value="{{ $flow->name }}">
-                </div>
-                <div class="mb-3">
-                    <label class="cv-field-label">Opening line (sent before the first question)</label>
+                    <label class="cv-field-label">Opening line — supports <code>{{ '{{name}}' }}</code> and <code>{{ '{{answer:field}}' }}</code></label>
                     <textarea id="cv-intro" class="cv-textarea" rows="2">{{ $flow->intro_message }}</textarea>
                 </div>
                 <label class="cv-checkbox-line">
@@ -234,7 +148,7 @@
                 <div class="cv-card-title">
                     <div>
                         <h5>Steps</h5>
-                        <div class="cv-card-subtitle">Each step is a chat bubble. Quick-reply questions branch the visitor; end steps fire an action.</div>
+                        <div class="cv-card-subtitle">Each step is a chat bubble. Use conditions, multi-select, and AI routing for smarter flows.</div>
                     </div>
                     <button id="cv-add-step" class="cv-btn cv-btn-primary"><i class="fas fa-plus"></i> Add step</button>
                 </div>
@@ -245,7 +159,7 @@
                 <div class="cv-card-title">
                     <div>
                         <h5>End actions</h5>
-                        <div class="cv-card-subtitle">Reusable end actions you can attach to a step or a quick-reply choice.</div>
+                        <div class="cv-card-subtitle">Reusable actions to attach to a step or a quick-reply choice.</div>
                     </div>
                     <button id="cv-add-action" class="cv-btn cv-btn-outline"><i class="fas fa-plus"></i> Add action</button>
                 </div>
@@ -263,11 +177,12 @@
                 <div class="cv-card-title">
                     <div>
                         <h6>Live preview</h6>
-                        <div class="cv-card-subtitle">Save and publish to see real visitor behaviour.</div>
+                        <div class="cv-card-subtitle">Save to refresh — draft flows are visible to you only.</div>
                     </div>
                 </div>
                 <iframe class="cv-preview-frame" src="{{ $previewUrl }}" id="cv-preview"></iframe>
-                <button class="cv-btn cv-btn-ghost mt-2" style="width:100%; justify-content:center;" onclick="document.getElementById('cv-preview').src=document.getElementById('cv-preview').src">
+                <button class="cv-btn cv-btn-ghost mt-2" style="width:100%; justify-content:center;"
+                        onclick="document.getElementById('cv-preview').src=document.getElementById('cv-preview').src">
                     <i class="fas fa-sync"></i> Reload preview
                 </button>
             </div>
@@ -276,10 +191,12 @@
 </div>
 
 <script>
-const STEP_KINDS = @json($stepKinds);
-const ACTION_KINDS = @json($actionKinds);
+const STEP_KINDS    = @json($stepKinds);
+const ACTION_KINDS  = @json($actionKinds);
 const BLOCK_OPTIONS = @json($blockOptions);
-const FLOW = @json($flowPayload);
+const FLOW          = @json($flowPayload);
+const INPUT_KINDS   = @json($inputKinds);
+const COND_OPS      = @json($conditionOps);
 
 const URLS = {
     save:   @json(route('user.links.conversational.save', $link)),
@@ -287,15 +204,25 @@ const URLS = {
 };
 const CSRF = '{{ csrf_token() }}';
 
-let actions = FLOW.actions.map(a => Object.assign({}, a));
-let steps = FLOW.steps.map(s => Object.assign({}, s, { choices: (s.choices||[]).map(c => Object.assign({}, c)) }));
+let actions = (FLOW.actions || []).map(a => ({ ...a }));
+let steps   = (FLOW.steps   || []).map(s => ({
+    ...s,
+    settings: s.settings && typeof s.settings === 'object' ? { ...s.settings } : {},
+    choices: (s.choices || []).map(c => ({
+        ...c,
+        settings: c.settings && typeof c.settings === 'object' ? { ...c.settings } : {},
+    })),
+}));
 let actionCounter = actions.length + 1;
 
 function newKey(prefix) {
-    let i = 1; let k;
+    let i = 1, k;
     do { k = prefix + '_' + i; i++; } while (steps.some(s => s.key === k));
     return k;
 }
+
+function escapeHtml(s) { return String(s ?? '').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+function escapeAttr(s) { return String(s ?? '').replace(/"/g, '&quot;'); }
 
 function renderActions() {
     const wrap = document.getElementById('cv-actions');
@@ -308,8 +235,7 @@ function renderActions() {
                 ${Object.entries(ACTION_KINDS).map(([k, l]) => `<option value="${k}" ${a.kind===k?'selected':''}>${l}</option>`).join('')}
             </select>
             <input class="cv-input cv-action-label" placeholder="Label" value="${escapeAttr(a.label||'')}">
-            <input class="cv-input cv-action-payload" placeholder="URL / text / block id"
-                   value="${escapeAttr(payloadDisplay(a))}">
+            <input class="cv-input cv-action-payload" placeholder="URL / text / block id" value="${escapeAttr(payloadDisplay(a))}">
             <button class="cv-btn cv-btn-danger" data-rm="${idx}" title="Remove action">×</button>
         `;
         wrap.appendChild(row);
@@ -320,7 +246,6 @@ function renderActions() {
     });
     if (!actions.length) wrap.innerHTML = '<div class="cv-empty">No actions yet.</div>';
 }
-
 function payloadDisplay(a) {
     const p = a.payload || {};
     if (a.kind === 'open_link')      return p.url || '';
@@ -339,71 +264,286 @@ function payloadFromInput(kind, val) {
     return {};
 }
 
+function stepKeyOptions(currentKey) {
+    return steps.filter(s => s.key !== currentKey).map(s => s.key);
+}
+function gotoSelect(value, currentKey, extraEmpty) {
+    const opts = stepKeyOptions(currentKey).map(k =>
+        `<option value="${k}" ${value===k?'selected':''}>→ ${k}</option>`).join('');
+    return `<select class="cv-select"><option value="">${extraEmpty || '— next step —'}</option>${opts}</select>`;
+}
+
+/** Per-kind editor UI for the step's settings panel. */
+function renderKindPanel(s, card) {
+    const panel = card.querySelector('.cv-kind-panel');
+    panel.innerHTML = '';
+    const ks = s.settings || (s.settings = {});
+
+    if (s.kind === 'input') {
+        ks.input_kind = ks.input_kind || 'text';
+        ks.validation = ks.validation || {};
+        const v = ks.validation;
+        panel.innerHTML = `
+            <div class="cv-section">
+                <div class="cv-section-title">Input settings</div>
+                <div class="cv-row">
+                    <div>
+                        <label class="cv-field-label">Input kind</label>
+                        <select class="cv-select" data-bind="input_kind">
+                            ${INPUT_KINDS.map(k => `<option value="${k}" ${ks.input_kind===k?'selected':''}>${k}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="cv-field-label">Placeholder</label>
+                        <input class="cv-input" data-bind="placeholder" value="${escapeAttr(ks.placeholder||'')}">
+                    </div>
+                </div>
+                <div class="cv-row-3">
+                    <div>
+                        <label class="cv-field-label">Min length</label>
+                        <input class="cv-input" type="number" min="0" data-vbind="min_length" value="${escapeAttr(v.min_length ?? '')}">
+                    </div>
+                    <div>
+                        <label class="cv-field-label">Max length</label>
+                        <input class="cv-input" type="number" min="1" data-vbind="max_length" value="${escapeAttr(v.max_length ?? '')}">
+                    </div>
+                    <div>
+                        <label class="cv-field-label">Regex (no delimiters)</label>
+                        <input class="cv-input" data-vbind="regex" value="${escapeAttr(v.regex||'')}" placeholder="e.g. ^[A-Z]{2,3}$">
+                    </div>
+                </div>
+                <label class="cv-field-label">Error message (shown on validation fail)</label>
+                <input class="cv-input" data-vbind="error_message" value="${escapeAttr(v.error_message||'')}" placeholder="Defaults to a sensible message">
+            </div>`;
+    } else if (s.kind === 'question') {
+        const isMulti = !!ks.multi_select;
+        panel.innerHTML = `
+            <div class="cv-section">
+                <div class="cv-section-title">Question settings</div>
+                <label class="cv-checkbox-line">
+                    <input type="checkbox" data-bind="multi_select" ${isMulti?'checked':''}>
+                    <span>Multi-select (visitor picks several choices)</span>
+                </label>
+                <div class="cv-row mt-2" style="${isMulti?'':'display:none;'}" data-multi-config>
+                    <div><label class="cv-field-label">Min picks</label>
+                        <input class="cv-input" type="number" min="1" data-bind="min_choices" value="${ks.min_choices ?? 1}"></div>
+                    <div><label class="cv-field-label">Max picks</label>
+                        <input class="cv-input" type="number" min="1" data-bind="max_choices" value="${ks.max_choices ?? (s.choices||[]).length}"></div>
+                </div>
+            </div>`;
+    } else if (s.kind === 'media') {
+        ks.media = ks.media || { kind: 'image', url: '', alt: '' };
+        const m = ks.media;
+        panel.innerHTML = `
+            <div class="cv-section">
+                <div class="cv-section-title">Media settings</div>
+                <div class="cv-row">
+                    <div><label class="cv-field-label">Media kind</label>
+                        <select class="cv-select" data-mbind="kind">
+                            ${['image','gif','video','audio'].map(k => `<option value="${k}" ${m.kind===k?'selected':''}>${k}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div><label class="cv-field-label">Alt text</label>
+                        <input class="cv-input" data-mbind="alt" value="${escapeAttr(m.alt||'')}"></div>
+                </div>
+                <label class="cv-field-label">URL</label>
+                <input class="cv-input" data-mbind="url" value="${escapeAttr(m.url||'')}" placeholder="https://...">
+            </div>`;
+    } else if (s.kind === 'file_upload') {
+        ks.file = ks.file || { max_mb: 10, accept: '' };
+        const f = ks.file;
+        panel.innerHTML = `
+            <div class="cv-section">
+                <div class="cv-section-title">File upload</div>
+                <div class="cv-row">
+                    <div><label class="cv-field-label">Max size (MB, 1–50)</label>
+                        <input class="cv-input" type="number" min="1" max="50" data-fbind="max_mb" value="${f.max_mb ?? 10}"></div>
+                    <div><label class="cv-field-label">Accepted extensions (comma-list)</label>
+                        <input class="cv-input" data-fbind="accept" value="${escapeAttr(f.accept||'')}" placeholder="pdf,jpg,png"></div>
+                </div>
+            </div>`;
+    } else if (s.kind === 'rating') {
+        ks.rating = ks.rating || { scale: 'star', min: 1, max: 5 };
+        const r = ks.rating;
+        panel.innerHTML = `
+            <div class="cv-section">
+                <div class="cv-section-title">Rating settings</div>
+                <div class="cv-row-3">
+                    <div><label class="cv-field-label">Scale</label>
+                        <select class="cv-select" data-rbind="scale">
+                            ${['star','nps','emoji'].map(k => `<option value="${k}" ${r.scale===k?'selected':''}>${k}</option>`).join('')}
+                        </select></div>
+                    <div><label class="cv-field-label">Min</label>
+                        <input class="cv-input" type="number" data-rbind="min" value="${r.min ?? 1}"></div>
+                    <div><label class="cv-field-label">Max</label>
+                        <input class="cv-input" type="number" data-rbind="max" value="${r.max ?? 5}"></div>
+                </div>
+            </div>`;
+    } else if (s.kind === 'datetime') {
+        ks.datetime = ks.datetime || { mode: 'datetime' };
+        const d = ks.datetime;
+        panel.innerHTML = `
+            <div class="cv-section">
+                <div class="cv-section-title">Date / time settings</div>
+                <div class="cv-row-3">
+                    <div><label class="cv-field-label">Mode</label>
+                        <select class="cv-select" data-dbind="mode">
+                            ${['date','time','datetime'].map(k => `<option value="${k}" ${d.mode===k?'selected':''}>${k}</option>`).join('')}
+                        </select></div>
+                    <div><label class="cv-field-label">Min (ISO)</label>
+                        <input class="cv-input" data-dbind="min" value="${escapeAttr(d.min||'')}" placeholder="2027-01-01"></div>
+                    <div><label class="cv-field-label">Max (ISO)</label>
+                        <input class="cv-input" data-dbind="max" value="${escapeAttr(d.max||'')}" placeholder="2027-12-31"></div>
+                </div>
+            </div>`;
+    } else if (s.kind === 'ai_freetext') {
+        ks.ai = ks.ai || { intents: [], fallback_step_key: '' };
+        const a = ks.ai;
+        a.intents = a.intents || [];
+        const intentRows = a.intents.map((it, ii) => `
+            <div class="cv-intent-row" data-i="${ii}">
+                <input class="cv-input" data-ibind="value" value="${escapeAttr(it.value||'')}" placeholder="value (e.g. pricing)">
+                <input class="cv-input" data-ibind="label" value="${escapeAttr(it.label||'')}" placeholder="Label">
+                <input class="cv-input" data-ibind="examples" value="${escapeAttr(it.examples||'')}" placeholder="Example utterances (comma list)">
+                ${gotoSelect(it.next_step_key, s.key, '— route to —').replace('class="cv-select"', 'class="cv-select" data-ibind="next_step_key"')}
+                <button class="cv-btn cv-btn-danger" data-rm-i="${ii}" title="Remove intent">×</button>
+            </div>`).join('');
+        panel.innerHTML = `
+            <div class="cv-section">
+                <div class="cv-section-title">AI free-text routing</div>
+                <div class="cv-help">Visitor reply is classified into one of these intents and routed accordingly. Falls back if confidence is low.</div>
+                <div data-intents>${intentRows || '<div class="cv-empty">No intents yet.</div>'}</div>
+                <button class="cv-btn cv-btn-outline mt-1" data-add-intent><i class="fas fa-plus"></i> Add intent</button>
+                <div class="cv-row mt-2">
+                    <div><label class="cv-field-label">Fallback step</label>
+                        ${gotoSelect(a.fallback_step_key, s.key, '— pick a fallback step —').replace('class="cv-select"', 'class="cv-select" data-aibind="fallback_step_key"')}</div>
+                    <div><label class="cv-field-label">Min confidence (0–1)</label>
+                        <input class="cv-input" type="number" min="0" max="1" step="0.05" data-aibind="min_confidence" value="${a.min_confidence ?? 0.4}"></div>
+                </div>
+            </div>`;
+    }
+
+    // Wire generic data-bind / data-vbind / data-mbind / etc.
+    panel.querySelectorAll('[data-bind]').forEach(el => {
+        el.addEventListener('input', e => {
+            const k = el.getAttribute('data-bind');
+            if (el.type === 'checkbox') ks[k] = el.checked;
+            else if (el.type === 'number') ks[k] = el.value === '' ? null : Number(el.value);
+            else ks[k] = el.value;
+            if (k === 'multi_select') renderKindPanel(s, card);
+        });
+        el.addEventListener('change', e => el.dispatchEvent(new Event('input')));
+    });
+    panel.querySelectorAll('[data-vbind]').forEach(el => {
+        el.addEventListener('input', e => {
+            const k = el.getAttribute('data-vbind');
+            ks.validation = ks.validation || {};
+            ks.validation[k] = el.type === 'number' ? (el.value === '' ? null : Number(el.value)) : el.value;
+        });
+    });
+    panel.querySelectorAll('[data-mbind]').forEach(el => {
+        el.addEventListener('input', e => { ks.media[el.getAttribute('data-mbind')] = el.value; });
+    });
+    panel.querySelectorAll('[data-fbind]').forEach(el => {
+        el.addEventListener('input', e => { ks.file[el.getAttribute('data-fbind')] = el.type==='number'?Number(el.value):el.value; });
+    });
+    panel.querySelectorAll('[data-rbind]').forEach(el => {
+        el.addEventListener('input', e => { ks.rating[el.getAttribute('data-rbind')] = el.type==='number'?Number(el.value):el.value; });
+    });
+    panel.querySelectorAll('[data-dbind]').forEach(el => {
+        el.addEventListener('input', e => { ks.datetime[el.getAttribute('data-dbind')] = el.value; });
+    });
+    panel.querySelectorAll('[data-aibind]').forEach(el => {
+        el.addEventListener('input', e => { ks.ai[el.getAttribute('data-aibind')] = el.type==='number'?Number(el.value):el.value; });
+    });
+    panel.querySelectorAll('[data-ibind]').forEach(el => {
+        el.addEventListener('input', e => {
+            const idx = parseInt(el.closest('[data-i]').dataset.i, 10);
+            const k = el.getAttribute('data-ibind');
+            ks.ai.intents[idx][k] = el.value || null;
+        });
+    });
+    panel.querySelectorAll('[data-rm-i]').forEach(el => {
+        el.addEventListener('click', () => { ks.ai.intents.splice(parseInt(el.dataset.rmI,10), 1); renderKindPanel(s, card); });
+    });
+    const addI = panel.querySelector('[data-add-intent]');
+    if (addI) addI.addEventListener('click', () => {
+        ks.ai.intents.push({ value: 'intent_' + (ks.ai.intents.length+1), label: 'New intent', examples: '', next_step_key: null });
+        renderKindPanel(s, card);
+    });
+
+    // Step-level branching conditions (works for any kind).
+    const condBox = card.querySelector('.cv-step-conds');
+    const stepConds = ks.conditions || (ks.conditions = []);
+    condBox.innerHTML = `
+        <div class="cv-section">
+            <div class="cv-section-title">Branch conditions <span class="cv-help" style="font-weight:400; text-transform:none;">(first match wins, otherwise uses Next step)</span></div>
+            <div data-conds>${stepConds.map((c, ci) => condRowHtml(c, ci, s.key)).join('') || '<div class="cv-empty">No conditions.</div>'}</div>
+            <button class="cv-btn cv-btn-outline mt-1" data-add-cond><i class="fas fa-plus"></i> Add condition</button>
+        </div>`;
+    condBox.querySelectorAll('[data-cond-i]').forEach(row => {
+        const ci = parseInt(row.dataset.condI, 10);
+        const ins = row.querySelectorAll('input, select');
+        ins[0].addEventListener('input', e => stepConds[ci].field = e.target.value);
+        ins[1].addEventListener('change', e => stepConds[ci].op = e.target.value);
+        ins[2].addEventListener('input', e => stepConds[ci].value = e.target.value);
+        ins[3].addEventListener('change', e => stepConds[ci].goto = e.target.value || null);
+        row.querySelector('[data-rm-cond]').addEventListener('click', () => { stepConds.splice(ci, 1); renderKindPanel(s, card); });
+    });
+    condBox.querySelector('[data-add-cond]').addEventListener('click', () => {
+        stepConds.push({ field: s.answer_field || s.key, op: 'eq', value: '', goto: '' });
+        renderKindPanel(s, card);
+    });
+}
+function condRowHtml(c, ci, currentKey) {
+    return `<div class="cv-cond-row" data-cond-i="${ci}">
+        <input class="cv-input" placeholder="answer field" value="${escapeAttr(c.field||'')}">
+        <select class="cv-select">${COND_OPS.map(o => `<option value="${o}" ${c.op===o?'selected':''}>${o}</option>`).join('')}</select>
+        <input class="cv-input" placeholder="value" value="${escapeAttr(c.value ?? '')}">
+        ${gotoSelect(c.goto, currentKey, '— go to —')}
+        <button class="cv-btn cv-btn-danger" data-rm-cond title="Remove">×</button>
+    </div>`;
+}
+
 function renderSteps() {
     const wrap = document.getElementById('cv-steps');
     wrap.innerHTML = '';
-    if (!steps.length) {
-        wrap.innerHTML = '<div class="cv-empty">No steps yet. Add one to get started.</div>';
-        return;
-    }
-    const stepKeys = steps.map(s => s.key);
+    if (!steps.length) { wrap.innerHTML = '<div class="cv-empty">No steps yet. Add one to get started.</div>'; return; }
+
     steps.forEach((s, idx) => {
         const card = document.createElement('div');
         card.className = 'cv-step';
         card.innerHTML = `
             <div class="cv-step-head">
                 <span class="cv-key">${escapeHtml(s.key)}</span>
-                <select class="cv-select cv-step-kind" style="max-width:200px;">
+                <select class="cv-select cv-step-kind" style="max-width:240px;">
                     ${Object.entries(STEP_KINDS).map(([k, l]) => `<option value="${k}" ${s.kind===k?'selected':''}>${l}</option>`).join('')}
                 </select>
                 <label class="cv-checkbox-line"><input type="checkbox" class="cv-step-entry" ${s.is_entry?'checked':''}> Entry</label>
-                <label class="cv-checkbox-line"><input type="checkbox" class="cv-step-skip" ${s.skip_if_known?'checked':''}> Skip if known</label>
-                <button class="cv-btn cv-btn-danger ms-auto" data-rm-step="${idx}" title="Remove step">×</button>
+                <label class="cv-checkbox-line"><input type="checkbox" class="cv-step-skip"  ${s.skip_if_known?'checked':''}> Skip if known</label>
+                <button class="cv-btn cv-btn-danger ms-auto" data-rm-step title="Remove step">×</button>
             </div>
             <div class="cv-row">
-                <div>
-                    <label class="cv-field-label">Step key</label>
-                    <input class="cv-input cv-step-keyinput" value="${escapeAttr(s.key)}" placeholder="step_key">
-                </div>
-                <div>
-                    <label class="cv-field-label">Answer field</label>
-                    <input class="cv-input cv-step-field" value="${escapeAttr(s.answer_field||'')}" placeholder="e.g. intent">
-                </div>
+                <div><label class="cv-field-label">Step key</label>
+                    <input class="cv-input cv-step-keyinput" value="${escapeAttr(s.key)}" placeholder="step_key"></div>
+                <div><label class="cv-field-label">Answer field</label>
+                    <input class="cv-input cv-step-field" value="${escapeAttr(s.answer_field||'')}" placeholder="e.g. intent"></div>
             </div>
-            <label class="cv-field-label">Bot message</label>
-            <textarea class="cv-textarea cv-step-msg mb-2" rows="2" placeholder="Bot message">${escapeHtml(s.message_text||'')}</textarea>
-            <div class="cv-row">
-                <div>
-                    <label class="cv-field-label">Next step</label>
-                    <select class="cv-select cv-step-next">
-                        <option value="">— No next step (ends here) —</option>
-                        ${stepKeys.filter(k => k !== s.key).map(k => `<option value="${k}" ${s.next_step_key===k?'selected':''}>→ ${k}</option>`).join('')}
-                    </select>
+            <label class="cv-field-label">Bot message — supports <code>{{ '{{name}}' }}</code>, <code>{{ '{{answer:field}}' }}</code></label>
+            <textarea class="cv-textarea cv-step-msg mb-2" rows="2">${escapeHtml(s.message_text||'')}</textarea>
+            <div class="cv-row-3">
+                <div><label class="cv-field-label">Next step (default)</label>
+                    ${gotoSelect(s.next_step_key, s.key, '— ends here —').replace('class="cv-select"', 'class="cv-select cv-step-next"')}
                 </div>
-                <div>
-                    <label class="cv-field-label">Action on completion</label>
+                <div><label class="cv-field-label">Action on completion</label>
                     <select class="cv-select cv-step-action">
                         <option value="">— No action —</option>
                         ${actions.map(a => `<option value="${a.client_id}" ${s.action_client_id===a.client_id?'selected':''}>⚡ ${escapeHtml(a.label||a.kind)}</option>`).join('')}
-                    </select>
-                </div>
+                    </select></div>
+                <div><label class="cv-field-label">Typing pause (ms)</label>
+                    <input class="cv-input cv-step-typing" type="number" min="0" max="8000" value="${s.settings.typing_delay_ms ?? ''}" placeholder="default"></div>
             </div>
-            <div class="cv-input-wrap" style="${s.kind==='input'?'':'display:none;'}">
-                <div class="cv-row mt-2">
-                    <div>
-                        <label class="cv-field-label">Input kind</label>
-                        <select class="cv-select cv-step-inputkind">
-                            <option value="text" ${(s.input_kind||'text')==='text'?'selected':''}>Free-text input</option>
-                            <option value="email" ${s.input_kind==='email'?'selected':''}>Email capture</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="cv-field-label">Placeholder</label>
-                        <input class="cv-input cv-step-placeholder" placeholder="e.g. you@example.com" value="${escapeAttr(s.placeholder||'')}">
-                    </div>
-                </div>
-                <div class="cv-help mt-1">Email-kind inputs are saved to your Subscribers and the visitor's Contact record.</div>
-            </div>
+            <div class="cv-kind-panel"></div>
             <div class="cv-choices-wrap" style="${s.kind==='question'?'':'display:none;'}">
                 <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
                     <strong style="font-size:12px; color: var(--text-primary);">Quick-reply choices</strong>
@@ -411,6 +551,7 @@ function renderSteps() {
                 </div>
                 <div class="cv-choices-list"></div>
             </div>
+            <div class="cv-step-conds"></div>
         `;
         wrap.appendChild(card);
 
@@ -418,81 +559,99 @@ function renderSteps() {
         function rebuildChoices() {
             choicesList.innerHTML = '';
             (s.choices || []).forEach((c, ci) => {
+                const cs = c.settings || (c.settings = {});
+                const cond = cs.condition;
                 const row = document.createElement('div');
-                row.className = 'cv-choice-row';
                 row.innerHTML = `
-                    <input class="cv-input" placeholder="Label" value="${escapeAttr(c.label||'')}">
-                    <input class="cv-input" placeholder="value" value="${escapeAttr(c.value||'')}">
-                    <select class="cv-select">
-                        <option value="">— next step —</option>
-                        ${stepKeys.filter(k => k !== s.key).map(k => `<option value="${k}" ${c.next_step_key===k?'selected':''}>→ ${k}</option>`).join('')}
-                    </select>
-                    <select class="cv-select">
-                        <option value="">— action —</option>
-                        ${actions.map(a => `<option value="${a.client_id}" ${c.action_client_id===a.client_id?'selected':''}>⚡ ${escapeHtml(a.label||a.kind)}</option>`).join('')}
-                    </select>
-                    <button class="cv-btn cv-btn-danger" title="Remove choice">×</button>
+                    <div class="cv-choice-row">
+                        <input class="cv-input" placeholder="Label" value="${escapeAttr(c.label||'')}">
+                        <input class="cv-input" placeholder="value" value="${escapeAttr(c.value||'')}">
+                        ${gotoSelect(c.next_step_key, s.key)}
+                        <select class="cv-select">
+                            <option value="">— action —</option>
+                            ${actions.map(a => `<option value="${a.client_id}" ${c.action_client_id===a.client_id?'selected':''}>⚡ ${escapeHtml(a.label||a.kind)}</option>`).join('')}
+                        </select>
+                        <button class="cv-btn cv-btn-danger" title="Remove choice">×</button>
+                    </div>
+                    <div class="cv-cond-row" style="margin-left:8px; margin-bottom:8px;">
+                        <input class="cv-input" placeholder="When field…" value="${escapeAttr(cond?.field||'')}" data-cb="field">
+                        <select class="cv-select" data-cb="op">
+                            <option value="">(always)</option>
+                            ${COND_OPS.map(o => `<option value="${o}" ${cond?.op===o?'selected':''}>${o}</option>`).join('')}
+                        </select>
+                        <input class="cv-input" placeholder="value" value="${escapeAttr(cond?.value ?? '')}" data-cb="value">
+                        ${gotoSelect(cond?.goto, s.key, '— override goto —').replace('class="cv-select"', 'class="cv-select" data-cb="goto"')}
+                        <span></span>
+                    </div>
                 `;
-                const inputs = row.querySelectorAll('input, select');
+                const choiceRow = row.firstElementChild;
+                const condRow   = row.children[1];
+                const inputs = choiceRow.querySelectorAll('input, select');
                 inputs[0].addEventListener('input', e => c.label = e.target.value);
                 inputs[1].addEventListener('input', e => c.value = e.target.value);
                 inputs[2].addEventListener('change', e => c.next_step_key = e.target.value || null);
                 inputs[3].addEventListener('change', e => c.action_client_id = e.target.value || null);
-                row.querySelector('button').addEventListener('click', () => { s.choices.splice(ci, 1); rebuildChoices(); });
-                choicesList.appendChild(row);
+                choiceRow.querySelector('button').addEventListener('click', () => { s.choices.splice(ci, 1); rebuildChoices(); });
+                condRow.querySelectorAll('[data-cb]').forEach(el => {
+                    el.addEventListener('input', e => {
+                        const k = el.getAttribute('data-cb');
+                        cs.condition = cs.condition || {};
+                        cs.condition[k] = el.value || null;
+                        if (!cs.condition.op || (!cs.condition.field && !cs.condition.value && !cs.condition.goto)) {
+                            // Empty op clears the condition entirely.
+                            if (!cs.condition.op) delete cs.condition;
+                        }
+                    });
+                    el.addEventListener('change', e => el.dispatchEvent(new Event('input')));
+                });
+                choicesList.appendChild(choiceRow);
+                choicesList.appendChild(condRow);
             });
-            if (!(s.choices || []).length) {
-                choicesList.innerHTML = '<div class="cv-empty">No choices yet.</div>';
-            }
+            if (!(s.choices || []).length) choicesList.innerHTML = '<div class="cv-empty">No choices yet.</div>';
         }
         rebuildChoices();
 
         card.querySelector('.cv-add-choice').addEventListener('click', () => {
             s.choices = s.choices || [];
-            s.choices.push({ label: 'New choice', value: 'choice_' + (s.choices.length + 1), next_step_key: null, action_client_id: null });
+            s.choices.push({ label: 'New choice', value: 'choice_' + (s.choices.length + 1), next_step_key: null, action_client_id: null, settings: {} });
             rebuildChoices();
         });
         card.querySelector('.cv-step-kind').addEventListener('change', e => {
             s.kind = e.target.value;
             card.querySelector('.cv-choices-wrap').style.display = s.kind === 'question' ? '' : 'none';
-            card.querySelector('.cv-input-wrap').style.display   = s.kind === 'input'    ? '' : 'none';
+            renderKindPanel(s, card);
         });
-        card.querySelector('.cv-step-inputkind').addEventListener('change', e => s.input_kind = e.target.value);
-        card.querySelector('.cv-step-placeholder').addEventListener('input', e => s.placeholder = e.target.value || null);
+        card.querySelector('.cv-step-typing').addEventListener('input', e => {
+            const v = e.target.value;
+            if (v === '') delete s.settings.typing_delay_ms;
+            else s.settings.typing_delay_ms = Number(v);
+        });
         card.querySelector('.cv-step-entry').addEventListener('change', e => {
-            if (e.target.checked) {
-                steps.forEach(o => o.is_entry = false);
-                s.is_entry = true;
-                renderSteps();
-            } else {
-                s.is_entry = false;
-            }
+            if (e.target.checked) { steps.forEach(o => o.is_entry = false); s.is_entry = true; renderSteps(); }
+            else s.is_entry = false;
         });
         card.querySelector('.cv-step-skip').addEventListener('change', e => s.skip_if_known = e.target.checked);
         card.querySelector('.cv-step-keyinput').addEventListener('change', e => {
             const newK = (e.target.value || '').toLowerCase().replace(/[^a-z0-9_]/g, '_');
             if (!newK || steps.some((o, oi) => oi !== idx && o.key === newK)) { e.target.value = s.key; return; }
-            s.key = newK;
-            renderSteps();
+            s.key = newK; renderSteps();
         });
         card.querySelector('.cv-step-field').addEventListener('input', e => s.answer_field = e.target.value || null);
         card.querySelector('.cv-step-msg').addEventListener('input', e => s.message_text = e.target.value);
         card.querySelector('.cv-step-next').addEventListener('change', e => s.next_step_key = e.target.value || null);
         card.querySelector('.cv-step-action').addEventListener('change', e => s.action_client_id = e.target.value || null);
         card.querySelector('[data-rm-step]').addEventListener('click', () => { steps.splice(idx, 1); renderSteps(); });
+
+        renderKindPanel(s, card);
     });
 }
-
-function escapeHtml(s) { return String(s ?? '').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
-function escapeAttr(s) { return String(s ?? '').replace(/"/g, '&quot;'); }
 
 document.getElementById('cv-add-step').addEventListener('click', () => {
     steps.push({
         key: newKey('step'), kind: 'question', message_text: 'New question?',
         answer_field: null, is_entry: false, skip_if_known: true,
         next_step_key: null, action_client_id: null,
-        input_kind: 'text', placeholder: null,
-        choices: [],
+        settings: {}, choices: [],
     });
     renderSteps();
 });
@@ -508,8 +667,8 @@ document.getElementById('cv-save').addEventListener('click', async () => {
         name: document.getElementById('cv-name').value,
         intro_message: document.getElementById('cv-intro').value,
         is_published: document.getElementById('cv-published').checked,
-        actions: actions,
-        steps: steps,
+        settings: { default_typing_ms: Number(document.getElementById('cv-typing').value || 600) },
+        actions, steps,
     };
     try {
         const r = await fetch(URLS.save, {
@@ -522,8 +681,7 @@ document.getElementById('cv-save').addEventListener('click', async () => {
         status.textContent = '✓ Saved (v' + j.version + ')'; status.className = 'cv-save-status is-ok';
         document.getElementById('cv-preview').src = document.getElementById('cv-preview').src;
     } catch (e) {
-        status.textContent = '❌ Network error';
-        status.className = 'cv-save-status is-error';
+        status.textContent = '❌ Network error'; status.className = 'cv-save-status is-error';
     }
 });
 

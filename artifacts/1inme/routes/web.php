@@ -273,6 +273,8 @@ Route::post('/cv/{publicId}/drop',         [\App\Modules\Common\Controllers\Conv
     ->where('publicId', 'cvs_[a-z0-9]{20}')->middleware('throttle:60,1')->name('cv.public.drop');
 Route::post('/cv/{publicId}/capture-email',[\App\Modules\Common\Controllers\ConversationPublicController::class, 'captureEmail'])
     ->where('publicId', 'cvs_[a-z0-9]{20}')->middleware('throttle:20,1')->name('cv.public.captureEmail');
+Route::post('/cv/{publicId}/upload',       [\App\Modules\Common\Controllers\ConversationPublicController::class, 'captureFile'])
+    ->where('publicId', 'cvs_[a-z0-9]{20}')->middleware('throttle:30,1')->name('cv.public.upload');
 
 Route::post('/{alias}/track/session', [\App\Modules\Common\Controllers\EngagementController::class, 'startSession'])->name('track.session.start')->where('alias', '[^/]+')->middleware('throttle:60,1');
 Route::post('/{alias}/track/heartbeat', [\App\Modules\Common\Controllers\EngagementController::class, 'heartbeat'])->name('track.heartbeat')->where('alias', '[^/]+')->middleware('throttle:120,1');

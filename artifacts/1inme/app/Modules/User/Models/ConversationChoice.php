@@ -8,12 +8,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ConversationChoice extends Model
 {
     protected $fillable = [
-        'step_id', 'label', 'value', 'next_step_key', 'action_id', 'sort_order',
+        'step_id', 'label', 'value', 'next_step_key', 'action_id', 'sort_order', 'settings',
     ];
 
     protected function casts(): array
     {
-        return ['sort_order' => 'integer'];
+        return [
+            'sort_order' => 'integer',
+            'settings'   => 'array',
+        ];
     }
 
     public function step(): BelongsTo   { return $this->belongsTo(ConversationStep::class, 'step_id'); }
