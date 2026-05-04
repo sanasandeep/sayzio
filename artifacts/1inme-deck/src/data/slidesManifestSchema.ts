@@ -8,6 +8,7 @@ export const SlideEntrySchema = z
     title: z.string().trim().min(1, "title is required"),
     description: z.string().trim().min(1, "description is required"),
     speakerNotes: z.string().trim().optional(),
+    section: z.string().trim().min(1).optional(),
   })
   .strict();
 

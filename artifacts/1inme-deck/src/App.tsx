@@ -193,6 +193,9 @@ function SlideViewer() {
 
   const base = import.meta.env.BASE_URL.replace(/\/$/, "");
   const firstPosition = slides.length > 0 ? slides[0].position : 1;
+  // Forward the current query string (e.g. ?subdeck=...) into the iframe
+  // so the inner viewer loads the same sub-deck manifest as the outer one.
+  const search = typeof window !== "undefined" ? window.location.search : "";
 
   return (
     <div
@@ -201,7 +204,7 @@ function SlideViewer() {
     >
       <iframe
         ref={iframeRef}
-        src={`${base}/slide${firstPosition}`}
+        src={`${base}/slide${firstPosition}${search}`}
         style={{ width: dims.width, height: dims.height, border: "none" }}
         onLoad={() => iframeRef.current?.focus()}
         title="Slide viewer"

@@ -420,6 +420,16 @@ const noteFor = (s) => {
   }
 };
 
+// ----- Section tagging for sub-deck export -----
+const sectionForPosition = (pos) => {
+  for (const sec of sectionRanges) {
+    if (pos >= sec.start && pos <= sec.end) {
+      return sec.divider.replace(/Divider$/, "").toLowerCase();
+    }
+  }
+  return "intro";
+};
+
 const total = spec.length;
 const manifest = [];
 spec.forEach((s, i) => {
@@ -439,6 +449,7 @@ spec.forEach((s, i) => {
     title: s.title || s.quote || s.eyebrow || `Slide ${pos}`,
     description: (s.description ?? s.subtitle ?? s.title ?? s.quote ?? s.eyebrow ?? `Slide ${pos}`) || `Slide ${pos}`,
     speakerNotes: noteFor(s),
+    section: sectionForPosition(pos),
   });
 });
 

@@ -1,1506 +1,1694 @@
 [
   {
-    "id": "9431f6bb-5baa-466e-9a48-175810a94a4f",
+    "id": "7a49908b-5a45-4fa0-a021-1f222b70fed4",
     "position": 1,
     "filepath": "src/pages/slides/Slide001Cover.tsx",
     "title": "1INME — Sectioned Deck",
     "description": "Master cover for the 1INME multi-section deck.",
-    "speakerNotes": "Open the deck. One identity, one platform — that's the whole pitch in a sentence. Tell the room which section you'll spend most of the time in, then jump straight there from the table of contents."
+    "speakerNotes": "Open the deck. One identity, one platform — that's the whole pitch in a sentence. Tell the room which section you'll spend most of the time in, then jump straight there from the table of contents.",
+    "section": "intro"
   },
   {
-    "id": "86f48e40-2b66-4c9d-9b97-32ff711e1cad",
+    "id": "23cbd23b-c2eb-4d84-90db-86becae28910",
     "position": 2,
     "filepath": "src/pages/slides/Slide002Tableofcontents.tsx",
     "title": "Table of contents",
     "description": "Each section is appendix-separated by a divider slide. Jump to the divider to start the section.",
-    "speakerNotes": "Six sections, appendix-separated by dividers. Tell the audience to interrupt and pick whichever section matters most — the dividers act as bookmarks, so you can jump without losing your place."
+    "speakerNotes": "Six sections, appendix-separated by dividers. Tell the audience to interrupt and pick whichever section matters most — the dividers act as bookmarks, so you can jump without losing your place.",
+    "section": "intro"
   },
   {
-    "id": "edcf4fe7-731e-42d1-bcdf-87cf041d6912",
+    "id": "17e803c3-1ad9-4634-9b5d-edef23a32a05",
     "position": 3,
     "filepath": "src/pages/slides/Slide003Salesdivider.tsx",
     "title": "Appendix · Sales presentation.",
     "description": "Section divider for the sales presentation block.",
-    "speakerNotes": "Shift into the sales pitch. Twenty slides from problem to next step — feel free to skip the proof slides if the buyer is already convinced. Set expectations: this section ends with a concrete CTA."
+    "speakerNotes": "Shift into the sales pitch. Twenty slides from problem to next step — feel free to skip the proof slides if the buyer is already convinced. Set expectations: this section ends with a concrete CTA.",
+    "section": "sales"
   },
   {
-    "id": "9911a079-538c-4e28-8298-82d5f31dfd88",
+    "id": "994c494d-cec2-4f86-b320-8bbb7a1ad87f",
     "position": 4,
     "filepath": "src/pages/slides/Slide004Salesproblem.tsx",
     "title": "The modern professional drowns in tools.",
     "description": "Bio links, scheduler, CRM, vault, analytics — none of them talking to each other.",
-    "speakerNotes": "Open with the numbers behind the pain. Read the nine-tools stat first, let it sit, then move through cost, usage, and lost hours. The point: this is real money and real time bleeding out today, not a future risk."
+    "speakerNotes": "Open with the numbers behind the pain. Read the nine-tools stat first, let it sit, then move through cost, usage, and lost hours. The point: this is real money and real time bleeding out today, not a future risk.",
+    "section": "sales"
   },
   {
-    "id": "237554e1-fc14-471d-8680-facf9267cf82",
+    "id": "60260cc8-24f8-4952-972c-8c28f96fe90a",
     "position": 5,
     "filepath": "src/pages/slides/Slide005Salescost.tsx",
     "title": "What fragmentation actually costs.",
     "description": "What fragmentation actually costs.",
-    "speakerNotes": "Translate the numbers into business cost. Hours, data, brand, revenue — frame each as something the buyer's team will feel this quarter, not abstractly someday. Pause after 'lost revenue' and ask which one stings most."
+    "speakerNotes": "Translate the numbers into business cost. Hours, data, brand, revenue — frame each as something the buyer's team will feel this quarter, not abstractly someday. Pause after 'lost revenue' and ask which one stings most.",
+    "section": "sales"
   },
   {
-    "id": "d4962083-6169-46f5-abbf-7450c37fc6f4",
+    "id": "fea7f91d-3d7e-4d69-ade1-3cbf9e27c732",
     "position": 6,
     "filepath": "src/pages/slides/Slide006Salespitch.tsx",
     "title": "1INME — the everything platform.",
     "description": "Identity, links, AI, productivity, and analytics in one place.",
-    "speakerNotes": "Pivot to the 1INME answer. Identity, tools, AI, insight — four cards, one platform. Don't list features yet; sell the shape: one home instead of nine browser tabs."
+    "speakerNotes": "Pivot to the 1INME answer. Identity, tools, AI, insight — four cards, one platform. Don't list features yet; sell the shape: one home instead of nine browser tabs.",
+    "section": "sales"
   },
   {
-    "id": "4ead7e74-a453-4b0c-90e9-d5c95e0daef2",
+    "id": "58aba459-a273-4338-b68e-e51c5386e61c",
     "position": 7,
     "filepath": "src/pages/slides/Slide007Salesdifferentiators.tsx",
     "title": "Why 1INME, not the next bundle.",
     "description": "Why 1INME, not the next bundle.",
-    "speakerNotes": "Pre-empt the 'why not just use a bundle?' objection. Native, beautiful, open, fair — these are the four things bundles structurally can't fake. Mention a competitor by name only if the buyer brings them up."
+    "speakerNotes": "Pre-empt the 'why not just use a bundle?' objection. Native, beautiful, open, fair — these are the four things bundles structurally can't fake. Mention a competitor by name only if the buyer brings them up.",
+    "section": "sales"
   },
   {
-    "id": "f7b7131a-4340-4166-8ed0-b9e32b167def",
+    "id": "6973e222-5b6f-4c2a-8466-cd7ee18be876",
     "position": 8,
     "filepath": "src/pages/slides/Slide008Salesroi.tsx",
     "title": "ROI of consolidating onto 1INME.",
     "description": "ROI of consolidating onto 1INME.",
-    "speakerNotes": "Make the ROI math obvious: about $1,400 saved annually, six hours back per week, conversion lift, single invoice. Anchor the buyer to a payback window measured in weeks, not quarters."
+    "speakerNotes": "Make the ROI math obvious: about $1,400 saved annually, six hours back per week, conversion lift, single invoice. Anchor the buyer to a payback window measured in weeks, not quarters.",
+    "section": "sales"
   },
   {
-    "id": "def12b62-b811-43bd-a7bf-1b66d4085520",
+    "id": "572f4b9c-3515-484f-87cf-3ceee5b090da",
     "position": 9,
     "filepath": "src/pages/slides/Slide009Salestimesaved.tsx",
     "title": "Where the hours come back.",
     "description": "Time saved per week by switching to 1INME.",
-    "speakerNotes": "Walk the time-savings table left to right. Bio maintenance, lead capture, cross-posting, reporting — call out the biggest win for the buyer's role first. Land the seven-hours-per-week footer total."
+    "speakerNotes": "Walk the time-savings table left to right. Bio maintenance, lead capture, cross-posting, reporting — call out the biggest win for the buyer's role first. Land the seven-hours-per-week footer total.",
+    "section": "sales"
   },
   {
-    "id": "b01c7494-0f9e-433e-8bb1-d407bc199642",
+    "id": "99abb03c-71ad-420b-bf33-76360bb7f149",
     "position": 10,
     "filepath": "src/pages/slides/Slide010Salesproofquote.tsx",
     "title": "We replaced six tools and shaved a workday off every week. The team finally has one place to live.",
     "description": "We replaced six tools and shaved a workday off every week. The team finally has one place to live.",
-    "speakerNotes": "Read the quote slowly. Pause on 'shaved a workday off every week'. Mention this is a real early-access customer and offer to set up a reference call after this meeting."
+    "speakerNotes": "Read the quote slowly. Pause on 'shaved a workday off every week'. Mention this is a real early-access customer and offer to set up a reference call after this meeting.",
+    "section": "sales"
   },
   {
-    "id": "f0a65715-fdcc-4d2d-b58f-e2b46949061c",
+    "id": "28195a18-e9c3-4e5d-9b40-facce4083944",
     "position": 11,
     "filepath": "src/pages/slides/Slide011Salesprooflogos.tsx",
     "title": "Loved by early teams across creator, coaching, and agency.",
     "description": "Replace these placeholders with real logos and case studies as deals close.",
-    "speakerNotes": "If logos are still placeholders, acknowledge it and skip ahead. Otherwise, point to the closest analogue to the buyer in the room — same size, same vertical — and offer to introduce them."
+    "speakerNotes": "If logos are still placeholders, acknowledge it and skip ahead. Otherwise, point to the closest analogue to the buyer in the room — same size, same vertical — and offer to introduce them.",
+    "section": "sales"
   },
   {
-    "id": "0281a34a-784f-4643-a241-30d3897cd6f4",
+    "id": "5d751a1d-6298-41c8-97f4-080ea4398f72",
     "position": 12,
     "filepath": "src/pages/slides/Slide012Salesproofmetrics.tsx",
     "title": "What customers measure after 90 days.",
     "description": "What customers measure after 90 days.",
-    "speakerNotes": "Frame these as 90-day expectations, not promises. Six tools removed and a 24% lift in lead-to-close are the lines that move buying committees — repeat them twice."
+    "speakerNotes": "Frame these as 90-day expectations, not promises. Six tools removed and a 24% lift in lead-to-close are the lines that move buying committees — repeat them twice.",
+    "section": "sales"
   },
   {
-    "id": "6a505e7d-c86b-48fc-9746-8952647dc7d9",
+    "id": "adc85613-062d-439d-b963-acb9b55abb5b",
     "position": 13,
     "filepath": "src/pages/slides/Slide013Salespricingsnapshot.tsx",
     "title": "Pricing, at a glance.",
     "description": "Pick the plan that matches the team you have today.",
-    "speakerNotes": "Anchor on Studio first — most teams land here. Free is for evaluation, Pro is for power individuals, Business is for compliance and scale. Call out the 20% annual discount before someone asks."
+    "speakerNotes": "Anchor on Studio first — most teams land here. Free is for evaluation, Pro is for power individuals, Business is for compliance and scale. Call out the 20% annual discount before someone asks.",
+    "section": "sales"
   },
   {
-    "id": "a78a8483-c7cc-4aab-86be-6afcc8cb876a",
+    "id": "fd9b3cbd-4b99-4622-9832-00f7fa5c6647",
     "position": 14,
     "filepath": "src/pages/slides/Slide014Salesobjections.tsx",
     "title": "What buyers ask, and how we answer.",
     "description": "The four objections we hear most often — and the proof points to handle them.",
-    "speakerNotes": "Run the four objections proactively. The buyer is already thinking them; saying them out loud builds trust. Keep each answer to one sentence and move on."
+    "speakerNotes": "Run the four objections proactively. The buyer is already thinking them; saying them out loud builds trust. Keep each answer to one sentence and move on.",
+    "section": "sales"
   },
   {
-    "id": "344ec986-19dd-41ed-9c49-7bd93a17a853",
+    "id": "2bf300d8-d039-4c37-9b9e-9668a28abf38",
     "position": 15,
     "filepath": "src/pages/slides/Slide015Salescompetitors.tsx",
     "title": "How 1INME compares.",
     "description": "How 1INME compares.",
-    "speakerNotes": "Position relative to the specific tool the buyer mentioned in discovery. We're additive to most of these and replacing one or two — be honest about which is which."
+    "speakerNotes": "Position relative to the specific tool the buyer mentioned in discovery. We're additive to most of these and replacing one or two — be honest about which is which.",
+    "section": "sales"
   },
   {
-    "id": "4b70caaf-c867-4108-893d-68d5099131fc",
+    "id": "2be035b3-28d9-47dd-bb29-42dd2a539a09",
     "position": 16,
     "filepath": "src/pages/slides/Slide016Salessecuritytrust.tsx",
     "title": "Built so legal and IT can say yes.",
     "description": "Built so legal and IT can say yes.",
-    "speakerNotes": "This is the slide for IT and legal — slow down here if either is in the room. MFA, SSO, SCIM, audit, SOC 2 trajectory. Offer the evidence pack on request."
+    "speakerNotes": "This is the slide for IT and legal — slow down here if either is in the room. MFA, SSO, SCIM, audit, SOC 2 trajectory. Offer the evidence pack on request.",
+    "section": "sales"
   },
   {
-    "id": "5802b917-b625-4709-ab5b-ee5919d63b01",
+    "id": "c451ca2e-aaab-4f39-ad4c-ca1139081f8a",
     "position": 17,
     "filepath": "src/pages/slides/Slide017Salesproductsnapshot.tsx",
     "title": "What buyers see on day one.",
     "description": "A single dashboard that proves the value within the first hour.",
-    "speakerNotes": "Show what the buyer's workspace looks like on day one — not in three months. Live bio page, trained companion, imported pipeline, working funnel. The point: time-to-value is hours."
+    "speakerNotes": "Show what the buyer's workspace looks like on day one — not in three months. Live bio page, trained companion, imported pipeline, working funnel. The point: time-to-value is hours.",
+    "section": "sales"
   },
   {
-    "id": "c0178b77-cfe3-4ffc-8568-bc6318ad61cb",
+    "id": "144fe860-aed7-462c-b627-56688beeed46",
     "position": 18,
     "filepath": "src/pages/slides/Slide018Salesusecases.tsx",
     "title": "Three buyer outcomes we underwrite.",
     "description": "Three buyer outcomes we underwrite.",
-    "speakerNotes": "Three outcomes we underwrite. Pick the one that matches the buyer's stated goal from discovery and spend most of the slide there. Skim the other two unless asked."
+    "speakerNotes": "Three outcomes we underwrite. Pick the one that matches the buyer's stated goal from discovery and spend most of the slide there. Skim the other two unless asked.",
+    "section": "sales"
   },
   {
-    "id": "b09629ac-47c4-4812-baa3-f790ec104566",
+    "id": "425c29e6-2e6f-46fd-bd77-70a12c1f83d2",
     "position": 19,
     "filepath": "src/pages/slides/Slide019Salesimplementation.tsx",
     "title": "What the first 30 days look like.",
     "description": "What the first 30 days look like.",
-    "speakerNotes": "Walk the four-week plan. The point is predictability: by the end of week four the ROI snapshot is in their inbox, not promised vaguely for 'soon'."
+    "speakerNotes": "Walk the four-week plan. The point is predictability: by the end of week four the ROI snapshot is in their inbox, not promised vaguely for 'soon'.",
+    "section": "sales"
   },
   {
-    "id": "fef65ac3-a977-431c-87e3-ea2b653f865f",
+    "id": "3b7b039b-6a9a-4fb7-ae2c-c790fa533273",
     "position": 20,
     "filepath": "src/pages/slides/Slide020Salessocialproofexpanded.tsx",
     "title": "Where buyers see early proof.",
     "description": "Where buyers see early proof.",
-    "speakerNotes": "Customer stories — replace placeholders with the closest real match before sending. Lead each card with the result, then the customer name. If you don't have a story, leave the card off."
+    "speakerNotes": "Customer stories — replace placeholders with the closest real match before sending. Lead each card with the result, then the customer name. If you don't have a story, leave the card off.",
+    "section": "sales"
   },
   {
-    "id": "4662bcc1-c01c-4d6b-adb7-c0076cbf861d",
+    "id": "db5fda30-2712-4eba-9a43-1e9a991ed36d",
     "position": 21,
     "filepath": "src/pages/slides/Slide021Salesguarantee.tsx",
     "title": "Our buyer-side guarantees.",
     "description": "Our buyer-side guarantees.",
-    "speakerNotes": "These four risk-removers are designed to make 'yes' the safe answer. 30-day money-back is the headline; mention white-glove migration is included free on Studio and up."
+    "speakerNotes": "These four risk-removers are designed to make 'yes' the safe answer. 30-day money-back is the headline; mention white-glove migration is included free on Studio and up.",
+    "section": "sales"
   },
   {
-    "id": "b60cc04c-18f7-4717-bcff-3310f00dcf04",
+    "id": "b09c300d-e30b-45a5-9e45-d30e6369d07c",
     "position": 22,
     "filepath": "src/pages/slides/Slide022Salesnextsteps.tsx",
     "title": "Recommended next steps.",
     "description": "Recommended next steps.",
-    "speakerNotes": "Tell the buyer exactly what happens next. The four-step ladder gives them an easy first 'yes' — start with the 30-minute walkthrough and book it before you leave the call."
+    "speakerNotes": "Tell the buyer exactly what happens next. The four-step ladder gives them an easy first 'yes' — start with the 30-minute walkthrough and book it before you leave the call.",
+    "section": "sales"
   },
   {
-    "id": "6bd3f46e-3d06-436a-892a-9c46ed491984",
+    "id": "057a5ed5-73e6-4f21-9f93-ee76d26c5a65",
     "position": 23,
     "filepath": "src/pages/slides/Slide023Salescta.tsx",
     "title": "Sales CTA",
     "description": "Sales section call to action.",
-    "speakerNotes": "Close. Pick a slot together on screen; don't leave with 'we'll send a calendar link' — that's where deals stall. Capture the email and book the next meeting live."
+    "speakerNotes": "Close. Pick a slot together on screen; don't leave with 'we'll send a calendar link' — that's where deals stall. Capture the email and book the next meeting live.",
+    "section": "sales"
   },
   {
-    "id": "fe5a2551-9cc5-408e-a0f2-62feba6528ec",
+    "id": "56ca7e27-b9e3-4629-8f9c-54233a7da4d5",
     "position": 24,
     "filepath": "src/pages/slides/Slide024Productdivider.tsx",
     "title": "Appendix · Product presentation.",
     "description": "Twenty slides to walk a prospect through the full product surface.",
-    "speakerNotes": "Shift into the product walkthrough. Twenty slides covering web, mobile, API, every module, and the platform layer. Tell the audience to flag the modules they want to go deep on."
+    "speakerNotes": "Shift into the product walkthrough. Twenty slides covering web, mobile, API, every module, and the platform layer. Tell the audience to flag the modules they want to go deep on.",
+    "section": "product"
   },
   {
-    "id": "2b249afb-ccbc-4112-9666-701371048e9c",
+    "id": "7e110bd5-1150-4708-bca5-9b278bb24628",
     "position": 25,
     "filepath": "src/pages/slides/Slide025Productoverview.tsx",
     "title": "What 1INME is, end to end.",
     "description": "One identity, three surfaces, eleven modules — wired together by AI and analytics.",
-    "speakerNotes": "Set up the product walkthrough. Three surfaces, eleven modules, identity + vault + AI as the spine. Audience leaves this slide knowing the shape of the platform."
+    "speakerNotes": "Set up the product walkthrough. Three surfaces, eleven modules, identity + vault + AI as the spine. Audience leaves this slide knowing the shape of the platform.",
+    "section": "product"
   },
   {
-    "id": "5e410881-a381-444c-a0ad-118b4c2d9e1c",
+    "id": "77c1e3f6-3ed1-4a6d-8dad-efc482225429",
     "position": 26,
     "filepath": "src/pages/slides/Slide026Productwebtour.tsx",
     "title": "The web app.",
     "description": "The full-power workspace in your browser.",
-    "speakerNotes": "Tour the web app: sidebar, drag-and-drop editor, AskCoach side panel, workspace switcher in the footer. Emphasise this is the full-power surface — everything works here first."
+    "speakerNotes": "Tour the web app: sidebar, drag-and-drop editor, AskCoach side panel, workspace switcher in the footer. Emphasise this is the full-power surface — everything works here first.",
+    "section": "product"
   },
   {
-    "id": "0f0a4f2b-fd7a-4392-85a7-a8d3ed1a4ac4",
+    "id": "1b8de40d-a34b-4f79-9a2b-1c09af675ee7",
     "position": 27,
     "filepath": "src/pages/slides/Slide027Productmobiletour.tsx",
     "title": "The mobile app.",
     "description": "A native companion for iOS and Android.",
-    "speakerNotes": "Now the mobile app. NFC tap-to-share, smart dialer with deal context, voice capture between meetings, push notifications for leads and bookings. Designed for field work."
+    "speakerNotes": "Now the mobile app. NFC tap-to-share, smart dialer with deal context, voice capture between meetings, push notifications for leads and bookings. Designed for field work.",
+    "section": "product"
   },
   {
-    "id": "a2634481-327f-453d-a2b8-623198af0774",
+    "id": "21071fc0-5583-4d0d-b69d-61ce95d5d1b9",
     "position": 28,
     "filepath": "src/pages/slides/Slide028Productapisdk.tsx",
     "title": "API & SDK.",
     "description": "Every capability is programmable.",
-    "speakerNotes": "Show developers we're serious. Every capability is a REST endpoint with a webhook; SDK in TypeScript. Token-scoped and audit-logged. The mock is a real /v1/links call."
+    "speakerNotes": "Show developers we're serious. Every capability is a REST endpoint with a webhook; SDK in TypeScript. Token-scoped and audit-logged. The mock is a real /v1/links call.",
+    "section": "product"
   },
   {
-    "id": "d636962f-e184-4850-b442-9e85b69c32d9",
+    "id": "fee485b4-5fd9-40be-943a-5394641025d5",
     "position": 29,
     "filepath": "src/pages/slides/Slide029Productuserjourney.tsx",
     "title": "End-to-end user journey.",
     "description": "From first signup to first revenue, in one place.",
-    "speakerNotes": "Walk signup → build → convert → operate. Time-to-value sits between steps two and three; brand kit detection at signup is the moment most prospects say 'oh, this is different'."
+    "speakerNotes": "Walk signup → build → convert → operate. Time-to-value sits between steps two and three; brand kit detection at signup is the moment most prospects say 'oh, this is different'.",
+    "section": "product"
   },
   {
-    "id": "21c2fd1f-fcdb-4b12-9d8d-dcc74faeec2f",
+    "id": "4795474a-5aad-4ff9-a5c6-76967e682e60",
     "position": 30,
     "filepath": "src/pages/slides/Slide030Productcrossmodule.tsx",
     "title": "Cross-module workflows.",
     "description": "What happens when modules know about each other.",
-    "speakerNotes": "Show what happens when modules know about each other. Bio → CRM, Smart Link → Pixel, Calendar → Vault, AI → everything. This is the slide that justifies the 'platform' word."
+    "speakerNotes": "Show what happens when modules know about each other. Bio → CRM, Smart Link → Pixel, Calendar → Vault, AI → everything. This is the slide that justifies the 'platform' word.",
+    "section": "product"
   },
   {
-    "id": "f8806928-1fe9-4875-b57e-9fe6247f73fb",
+    "id": "4bb2469c-7e8b-4653-9b33-1396a346f3ea",
     "position": 31,
     "filepath": "src/pages/slides/Slide031Productidentityspine.tsx",
     "title": "Identity is the spine.",
     "description": "Your handle is the entry point. Everything else inherits brand and permissions.",
-    "speakerNotes": "Identity is what holds it together. Handle, SSO, brand kit, permissions — every other module inherits from here. Public surface vs. private surface is the mental model to leave them with."
+    "speakerNotes": "Identity is what holds it together. Handle, SSO, brand kit, permissions — every other module inherits from here. Public surface vs. private surface is the mental model to leave them with.",
+    "section": "product"
   },
   {
-    "id": "a0deb861-f48b-40f0-8e73-b67b26fbb898",
+    "id": "5023ef7c-6771-4800-90b7-29243b732a4b",
     "position": 32,
     "filepath": "src/pages/slides/Slide032Productsecuritytrust.tsx",
     "title": "Security & trust at the platform layer.",
     "description": "Security & trust at the platform layer.",
-    "speakerNotes": "Re-state the security posture for a technical audience. MFA + passkeys, SSO + SCIM, encryption everywhere, full audit log. Same evidence pack as the sales conversation; offer it on request."
+    "speakerNotes": "Re-state the security posture for a technical audience. MFA + passkeys, SSO + SCIM, encryption everywhere, full audit log. Same evidence pack as the sales conversation; offer it on request.",
+    "section": "product"
   },
   {
-    "id": "6f063681-e967-4366-994f-19ce89e1d1d8",
+    "id": "52935e42-f9c6-4c0e-8570-0a67d1aade29",
     "position": 33,
     "filepath": "src/pages/slides/Slide033Productadminworkspace.tsx",
     "title": "Admin & workspace overview.",
     "description": "Built for teams of every size.",
-    "speakerNotes": "Show the admin surface. Workspaces per brand or client, role-based access on every module, white label per workspace, plan and seat management in one place."
+    "speakerNotes": "Show the admin surface. Workspaces per brand or client, role-based access on every module, white label per workspace, plan and seat management in one place.",
+    "section": "product"
   },
   {
-    "id": "21996fe5-cc97-4f32-ab19-e11bd452713f",
+    "id": "8dc3f6f2-3101-42ea-8c50-57997c5cde3f",
     "position": 34,
     "filepath": "src/pages/slides/Slide034Productintegrationsmap.tsx",
     "title": "Integrations map.",
     "description": "1INME plugs into the tools you already use.",
-    "speakerNotes": "Eight categories, top-of-mind tools per category. The point: 1INME doesn't pretend to be your CRM if you already have HubSpot — it sits beside it, two-way synced."
+    "speakerNotes": "Eight categories, top-of-mind tools per category. The point: 1INME doesn't pretend to be your CRM if you already have HubSpot — it sits beside it, two-way synced.",
+    "section": "product"
   },
   {
-    "id": "15d80962-a10f-4c54-9230-23a2e2727757",
+    "id": "87ef29a5-844c-4478-ac5f-07ca6d9c646e",
     "position": 35,
     "filepath": "src/pages/slides/Slide035Productonboardingflow.tsx",
     "title": "The onboarding flow.",
     "description": "Time-to-value measured in hours, not weeks.",
-    "speakerNotes": "Detect, import, wire, launch. Time-to-value measured in hours, not weeks. We bring the data so day one is real, not a blank workspace."
+    "speakerNotes": "Detect, import, wire, launch. Time-to-value measured in hours, not weeks. We bring the data so day one is real, not a blank workspace.",
+    "section": "product"
   },
   {
-    "id": "aecdbe26-c6fb-4026-aa6d-22c107bb1443",
+    "id": "826bfe92-acfa-4218-b49f-69f82cda67a2",
     "position": 36,
     "filepath": "src/pages/slides/Slide036Productbiomodule.tsx",
     "title": "Bio link pages.",
     "description": "The doorway to everything else.",
-    "speakerNotes": "Open the module deep-dives with bio — the doorway to everything. Drag-and-drop blocks, themes, custom domains, AB tests built in. This is the module most prospects already know."
+    "speakerNotes": "Open the module deep-dives with bio — the doorway to everything. Drag-and-drop blocks, themes, custom domains, AB tests built in. This is the module most prospects already know.",
+    "section": "product"
   },
   {
-    "id": "56d72f8c-0e3c-40ff-bb50-890f8418b095",
+    "id": "c942102c-1325-4886-b7df-e2deac5f3076",
     "position": 37,
     "filepath": "src/pages/slides/Slide037Productlinksmodule.tsx",
     "title": "Smart short links.",
     "description": "Branded URLs with rules, pixels, and analytics.",
-    "speakerNotes": "Smart links: routing rules, pixels, QR for every link. The intelligent layer between the click and the destination. Show the rules editor if you have time."
+    "speakerNotes": "Smart links: routing rules, pixels, QR for every link. The intelligent layer between the click and the destination. Show the rules editor if you have time.",
+    "section": "product"
   },
   {
-    "id": "fb23493c-39ee-439b-ac7b-94d8d00fa005",
+    "id": "ec381b19-39be-490f-a78e-23291e066c95",
     "position": 38,
     "filepath": "src/pages/slides/Slide038Productaimodule.tsx",
     "title": "AI suite.",
     "description": "Companions, AskCoach, Voice, and Card Scanner.",
-    "speakerNotes": "Companions, AskCoach, Voice, Card Scanner. Custom personalities, grounded in your Minds, hands-free on mobile. The differentiator vs. ChatGPT is grounding — say it explicitly."
+    "speakerNotes": "Companions, AskCoach, Voice, Card Scanner. Custom personalities, grounded in your Minds, hands-free on mobile. The differentiator vs. ChatGPT is grounding — say it explicitly.",
+    "section": "product"
   },
   {
-    "id": "833d8562-6290-4182-9fa4-24b2e17aaee8",
+    "id": "f44a460c-69e1-4fea-aa1d-37d85b1a2916",
     "position": 39,
     "filepath": "src/pages/slides/Slide039Productproductivitymodule.tsx",
     "title": "Productivity & CRM.",
     "description": "Vault, Tasks, Forms, Calendar, CRM, Resume.",
-    "speakerNotes": "One contact, one source of truth. Bookings tied to deals, vault under role-based access, tasks rolling up to the workspace dashboard. The CRM you wish HubSpot was for a small team."
+    "speakerNotes": "One contact, one source of truth. Bookings tied to deals, vault under role-based access, tasks rolling up to the workspace dashboard. The CRM you wish HubSpot was for a small team.",
+    "section": "product"
   },
   {
-    "id": "d0479b5b-b9d6-4d8d-bd8b-00cbf22627b7",
+    "id": "ff421f1f-99c3-4e9d-8853-adf0677e4eb3",
     "position": 40,
     "filepath": "src/pages/slides/Slide040Productsocialmodule.tsx",
     "title": "Social & community.",
     "description": "Native creator feed plus cross-posting.",
-    "speakerNotes": "Native creator feed plus cross-posting. Members-only content, per-platform previews, best-time scheduling. Two surfaces in one — owned audience and rented audience."
+    "speakerNotes": "Native creator feed plus cross-posting. Members-only content, per-platform previews, best-time scheduling. Two surfaces in one — owned audience and rented audience.",
+    "section": "product"
   },
   {
-    "id": "da9b349b-d62a-4d8f-b255-135d4d0e7994",
+    "id": "14672d00-6fc9-40e5-8661-4d7a3de4ba8d",
     "position": 41,
     "filepath": "src/pages/slides/Slide041Productmobilemodule.tsx",
     "title": "Mobile-first tools.",
     "description": "NFC cards, smart dialer, on-the-go capture.",
-    "speakerNotes": "Mobile-first tools: NFC card, dialer with deal context on screen, scanner straight to CRM, voice notes that sync. Built for people who close deals away from a desk."
+    "speakerNotes": "Mobile-first tools: NFC card, dialer with deal context on screen, scanner straight to CRM, voice notes that sync. Built for people who close deals away from a desk.",
+    "section": "product"
   },
   {
-    "id": "e0baceb6-e14b-4181-8f5f-1fc73d65e276",
+    "id": "a2ff1867-331f-4962-aa02-a1fe94429b70",
     "position": 42,
     "filepath": "src/pages/slides/Slide042Productanalyticsmodule.tsx",
     "title": "Analytics & insights.",
     "description": "From impression to outcome, across every module.",
-    "speakerNotes": "Funnels and audience views across every module. Workspace and brand splits. Exports and threshold alerts. The slide that proves we're a platform, not a bundle."
+    "speakerNotes": "Funnels and audience views across every module. Workspace and brand splits. Exports and threshold alerts. The slide that proves we're a platform, not a bundle.",
+    "section": "product"
   },
   {
-    "id": "685a0cc7-c43b-4ac9-aa8a-a79ab7677207",
+    "id": "78d29186-988e-433b-b44d-0bff96b2189b",
     "position": 43,
     "filepath": "src/pages/slides/Slide043Productplatformpromise.tsx",
     "title": "The platform promise.",
     "description": "The platform promise.",
-    "speakerNotes": "Open, composable, honest, yours. The four principles we won't break — even when it costs us. Read each one slowly; this is how prospects remember the brand."
+    "speakerNotes": "Open, composable, honest, yours. The four principles we won't break — even when it costs us. Read each one slowly; this is how prospects remember the brand.",
+    "section": "product"
   },
   {
-    "id": "71c0c5b2-045f-4010-87ac-61bb722e4e32",
+    "id": "c1fef841-15c0-41d8-b63f-66a063428a4d",
     "position": 44,
     "filepath": "src/pages/slides/Slide044Productcta.tsx",
     "title": "Product CTA",
     "description": "Product section call to action.",
-    "speakerNotes": "Close the product section. Offer a tailored demo on the modules they actually care about. Capture the next slot before leaving the call — same playbook as the sales close."
+    "speakerNotes": "Close the product section. Offer a tailored demo on the modules they actually care about. Capture the next slot before leaving the call — same playbook as the sales close.",
+    "section": "product"
   },
   {
-    "id": "ac0de853-9da6-4365-9547-8985abcd1d75",
+    "id": "f6433e99-d18e-4ae8-8f21-428a169a5abe",
     "position": 45,
     "filepath": "src/pages/slides/Slide045Featuresdivider.tsx",
     "title": "Appendix · Feature deep-dives.",
     "description": "Nine module mini-decks, each opened by its own appendix divider.",
-    "speakerNotes": "Open the feature deep-dives. Nine module mini-decks, each four slides. Only present the ones the buyer asked about — the rest are appendix material."
+    "speakerNotes": "Open the feature deep-dives. Nine module mini-decks, each four slides. Only present the ones the buyer asked about — the rest are appendix material.",
+    "section": "features"
   },
   {
-    "id": "3d4cd049-2457-4529-9d59-9acfefc9efd4",
+    "id": "1a477fc9-23af-4687-af80-114a63f6b083",
     "position": 46,
     "filepath": "src/pages/slides/Slide046Biolinkssmartlinksdivider.tsx",
     "title": "Feature deep-dive · Bio Links & Smart Links.",
     "description": "Bio Pages, Short Links, QR Studio, Splash Screens.",
-    "speakerNotes": "Open the Bio Links & Smart Links deep-dive. Four slides — overview, capabilities, in-product mockup, use case. Skip ahead if the buyer has already seen the module; linger if it's the one they came for."
+    "speakerNotes": "Open the Bio Links & Smart Links deep-dive. Four slides — overview, capabilities, in-product mockup, use case. Skip ahead if the buyer has already seen the module; linger if it's the one they came for.",
+    "section": "features"
   },
   {
-    "id": "ac1791b5-4324-4d03-9088-88bf33214df5",
+    "id": "f688c18d-3d0b-4f50-be3b-91a9f2552050",
     "position": 47,
     "filepath": "src/pages/slides/Slide047Biolinkssmartlinksoverview.tsx",
     "title": "Bio Links & Smart Links — overview.",
     "description": "Bio Pages, Short Links, QR Studio, Splash Screens.",
-    "speakerNotes": "Walk the Bio Links & Smart Links capability list at a steady pace. Two sentences per item — what it does, who it helps. Invite questions before moving on; this is where buyers usually interrupt."
+    "speakerNotes": "Walk the Bio Links & Smart Links capability list at a steady pace. Two sentences per item — what it does, who it helps. Invite questions before moving on; this is where buyers usually interrupt.",
+    "section": "features"
   },
   {
-    "id": "f36e3d2a-6534-4722-a836-9038177bec05",
+    "id": "2a31329b-dc9c-4b96-a09f-5fe9b8009def",
     "position": 48,
     "filepath": "src/pages/slides/Slide048Biolinkssmartlinkscapabiliti.tsx",
     "title": "Bio Links & Smart Links — key capabilities.",
     "description": "Bio Links & Smart Links — key capabilities.",
-    "speakerNotes": "Four capability cards for Bio Links & Smart Links. Read the title, give one concrete example from a real customer, move on. Don't dwell — the next slide shows it in product."
+    "speakerNotes": "Four capability cards for Bio Links & Smart Links. Read the title, give one concrete example from a real customer, move on. Don't dwell — the next slide shows it in product.",
+    "section": "features"
   },
   {
-    "id": "d99e6891-eca7-4ea0-b5dd-eea235e655c5",
+    "id": "b927edcd-5a73-498d-af15-3f3f3b4d434d",
     "position": 49,
     "filepath": "src/pages/slides/Slide049Biolinkssmartlinksmockup.tsx",
     "title": "Bio Links & Smart Links — in product.",
     "description": "Editable mockup. Update copy and numbers in this slide file.",
-    "speakerNotes": "Show Bio Links & Smart Links in product. Point at the rows in \"Top performing links — last 7 days\", narrate what the user is doing, and land the value with the footer caption. If you have a live demo, this is the slide to switch into the product."
+    "speakerNotes": "Show Bio Links & Smart Links in product. Point at the rows in \"Top performing links — last 7 days\", narrate what the user is doing, and land the value with the footer caption. If you have a live demo, this is the slide to switch into the product.",
+    "section": "features"
   },
   {
-    "id": "191cb9b8-8145-4491-b96b-19c8e6d44897",
+    "id": "6339ce95-d58b-4553-b7ab-c2e0ac3ceaf0",
     "position": 50,
     "filepath": "src/pages/slides/Slide050Biolinkssmartlinksusecase.tsx",
     "title": "Use case · Album launch",
     "description": "A concrete walk-through using only this category's modules.",
-    "speakerNotes": "Walk the \"Use case · Album launch\" scenario end-to-end. Stay inside Bio Links & Smart Links — no cross-references to other modules yet. The point: this category alone delivers a complete outcome."
+    "speakerNotes": "Walk the \"Use case · Album launch\" scenario end-to-end. Stay inside Bio Links & Smart Links — no cross-references to other modules yet. The point: this category alone delivers a complete outcome.",
+    "section": "features"
   },
   {
-    "id": "ece40848-bfdd-4030-9087-49de5ced84ab",
+    "id": "d94d1ea5-dfc2-4073-a239-08a93e4af828",
     "position": 51,
     "filepath": "src/pages/slides/Slide051Aisuitedivider.tsx",
     "title": "Feature deep-dive · AI Suite.",
     "description": "Companions, AskCoach, Voice, Card Scanner.",
-    "speakerNotes": "Open the AI Suite deep-dive. Four slides — overview, capabilities, in-product mockup, use case. Skip ahead if the buyer has already seen the module; linger if it's the one they came for."
+    "speakerNotes": "Open the AI Suite deep-dive. Four slides — overview, capabilities, in-product mockup, use case. Skip ahead if the buyer has already seen the module; linger if it's the one they came for.",
+    "section": "features"
   },
   {
-    "id": "007c26b1-bdf1-4a0a-86f1-322d63ced488",
+    "id": "f08652f9-12d2-47aa-bb2e-da1fa814e09c",
     "position": 52,
     "filepath": "src/pages/slides/Slide052Aisuiteoverview.tsx",
     "title": "AI Suite — overview.",
     "description": "Companions, AskCoach, Voice, Card Scanner.",
-    "speakerNotes": "Walk the AI Suite capability list at a steady pace. Two sentences per item — what it does, who it helps. Invite questions before moving on; this is where buyers usually interrupt."
+    "speakerNotes": "Walk the AI Suite capability list at a steady pace. Two sentences per item — what it does, who it helps. Invite questions before moving on; this is where buyers usually interrupt.",
+    "section": "features"
   },
   {
-    "id": "67c465b7-60df-4e15-9f27-199ce8ef4c36",
+    "id": "f9eaa6c1-739f-45d1-96e5-42b98f4070ec",
     "position": 53,
     "filepath": "src/pages/slides/Slide053Aisuitecapabilities.tsx",
     "title": "AI Suite — key capabilities.",
     "description": "AI Suite — key capabilities.",
-    "speakerNotes": "Four capability cards for AI Suite. Read the title, give one concrete example from a real customer, move on. Don't dwell — the next slide shows it in product."
+    "speakerNotes": "Four capability cards for AI Suite. Read the title, give one concrete example from a real customer, move on. Don't dwell — the next slide shows it in product.",
+    "section": "features"
   },
   {
-    "id": "2ae28255-83b8-44af-873d-7b06ad83c31b",
+    "id": "1e2748fa-365a-4e9a-bfeb-dc6ee16fe046",
     "position": 54,
     "filepath": "src/pages/slides/Slide054Aisuitemockup.tsx",
     "title": "AI Suite — in product.",
     "description": "Editable mockup. Update copy and numbers in this slide file.",
-    "speakerNotes": "Show AI Suite in product. Point at the rows in \"AI credits this month\", narrate what the user is doing, and land the value with the footer caption. If you have a live demo, this is the slide to switch into the product."
+    "speakerNotes": "Show AI Suite in product. Point at the rows in \"AI credits this month\", narrate what the user is doing, and land the value with the footer caption. If you have a live demo, this is the slide to switch into the product.",
+    "section": "features"
   },
   {
-    "id": "4363f60a-ca35-4bec-b038-9ae27bb84e8f",
+    "id": "acd8d9d6-15ef-4173-97dd-5c70879e7084",
     "position": 55,
     "filepath": "src/pages/slides/Slide055Aisuiteusecase.tsx",
     "title": "Use case · Solo consultant",
     "description": "A concrete walk-through using only this category's modules.",
-    "speakerNotes": "Walk the \"Use case · Solo consultant\" scenario end-to-end. Stay inside AI Suite — no cross-references to other modules yet. The point: this category alone delivers a complete outcome."
+    "speakerNotes": "Walk the \"Use case · Solo consultant\" scenario end-to-end. Stay inside AI Suite — no cross-references to other modules yet. The point: this category alone delivers a complete outcome.",
+    "section": "features"
   },
   {
-    "id": "744428f6-3a56-45a7-a7bc-35adf4757d4f",
+    "id": "c14e4152-317a-46ea-8550-afa1d9a09108",
     "position": 56,
     "filepath": "src/pages/slides/Slide056Productivitycrmdivider.tsx",
     "title": "Feature deep-dive · Productivity & CRM.",
     "description": "Vault, Tasks, Forms, Resume, Calendar, CRM.",
-    "speakerNotes": "Open the Productivity & CRM deep-dive. Four slides — overview, capabilities, in-product mockup, use case. Skip ahead if the buyer has already seen the module; linger if it's the one they came for."
+    "speakerNotes": "Open the Productivity & CRM deep-dive. Four slides — overview, capabilities, in-product mockup, use case. Skip ahead if the buyer has already seen the module; linger if it's the one they came for.",
+    "section": "features"
   },
   {
-    "id": "c40395e5-ea0a-484b-9d55-aa3a6e2633ca",
+    "id": "2925f88e-8334-4501-9b16-e7b7ffd33695",
     "position": 57,
     "filepath": "src/pages/slides/Slide057Productivitycrmoverview.tsx",
     "title": "Productivity & CRM — overview.",
     "description": "Vault, Tasks, Forms, Resume, Calendar, CRM.",
-    "speakerNotes": "Walk the Productivity & CRM capability list at a steady pace. Two sentences per item — what it does, who it helps. Invite questions before moving on; this is where buyers usually interrupt."
+    "speakerNotes": "Walk the Productivity & CRM capability list at a steady pace. Two sentences per item — what it does, who it helps. Invite questions before moving on; this is where buyers usually interrupt.",
+    "section": "features"
   },
   {
-    "id": "972f853d-563c-4432-af0f-26467f20972c",
+    "id": "3f99b312-b1da-47a4-b8ff-0f53613edb32",
     "position": 58,
     "filepath": "src/pages/slides/Slide058Productivitycrmcapabilities.tsx",
     "title": "Productivity & CRM — key capabilities.",
     "description": "Productivity & CRM — key capabilities.",
-    "speakerNotes": "Four capability cards for Productivity & CRM. Read the title, give one concrete example from a real customer, move on. Don't dwell — the next slide shows it in product."
+    "speakerNotes": "Four capability cards for Productivity & CRM. Read the title, give one concrete example from a real customer, move on. Don't dwell — the next slide shows it in product.",
+    "section": "features"
   },
   {
-    "id": "8b6810c0-87a9-4d9b-af0c-7d9e4d7ea5f6",
+    "id": "b04c9f60-e48d-4449-a9d6-606fe38ba54a",
     "position": 59,
     "filepath": "src/pages/slides/Slide059Productivitycrmmockup.tsx",
     "title": "Productivity & CRM — in product.",
     "description": "Editable mockup. Update copy and numbers in this slide file.",
-    "speakerNotes": "Show Productivity & CRM in product. Point at the rows in \"This week — pipeline snapshot\", narrate what the user is doing, and land the value with the footer caption. If you have a live demo, this is the slide to switch into the product."
+    "speakerNotes": "Show Productivity & CRM in product. Point at the rows in \"This week — pipeline snapshot\", narrate what the user is doing, and land the value with the footer caption. If you have a live demo, this is the slide to switch into the product.",
+    "section": "features"
   },
   {
-    "id": "88afcdad-a542-4dec-8f48-93ebee1070b8",
+    "id": "f405db7f-d746-4bba-819d-d5489c7057e8",
     "position": 60,
     "filepath": "src/pages/slides/Slide060Productivitycrmusecase.tsx",
     "title": "Use case · Boutique agency",
     "description": "A concrete walk-through using only this category's modules.",
-    "speakerNotes": "Walk the \"Use case · Boutique agency\" scenario end-to-end. Stay inside Productivity & CRM — no cross-references to other modules yet. The point: this category alone delivers a complete outcome."
+    "speakerNotes": "Walk the \"Use case · Boutique agency\" scenario end-to-end. Stay inside Productivity & CRM — no cross-references to other modules yet. The point: this category alone delivers a complete outcome.",
+    "section": "features"
   },
   {
-    "id": "5973bf21-fe36-4d4b-96d8-1fff975755ee",
+    "id": "19f2aa8d-9945-4fe5-8a19-65dbeb28e7c5",
     "position": 61,
     "filepath": "src/pages/slides/Slide061Socialcommunitydivider.tsx",
     "title": "Feature deep-dive · Social & Community.",
     "description": "Creator Feed, Cross-Posting, Analytics.",
-    "speakerNotes": "Open the Social & Community deep-dive. Four slides — overview, capabilities, in-product mockup, use case. Skip ahead if the buyer has already seen the module; linger if it's the one they came for."
+    "speakerNotes": "Open the Social & Community deep-dive. Four slides — overview, capabilities, in-product mockup, use case. Skip ahead if the buyer has already seen the module; linger if it's the one they came for.",
+    "section": "features"
   },
   {
-    "id": "563a95dc-8293-44e2-aedf-11ca18bb8f41",
+    "id": "45aa91a1-7023-4249-9766-af0de6009f0c",
     "position": 62,
     "filepath": "src/pages/slides/Slide062Socialcommunityoverview.tsx",
     "title": "Social & Community — overview.",
     "description": "Creator Feed, Cross-Posting, Analytics.",
-    "speakerNotes": "Walk the Social & Community capability list at a steady pace. Two sentences per item — what it does, who it helps. Invite questions before moving on; this is where buyers usually interrupt."
+    "speakerNotes": "Walk the Social & Community capability list at a steady pace. Two sentences per item — what it does, who it helps. Invite questions before moving on; this is where buyers usually interrupt.",
+    "section": "features"
   },
   {
-    "id": "393a2886-a4f6-48d9-9ec5-99e6c835e531",
+    "id": "8cfaad11-bec8-4058-8822-4240c98fd0ab",
     "position": 63,
     "filepath": "src/pages/slides/Slide063Socialcommunitycapabilities.tsx",
     "title": "Social & Community — key capabilities.",
     "description": "Social & Community — key capabilities.",
-    "speakerNotes": "Four capability cards for Social & Community. Read the title, give one concrete example from a real customer, move on. Don't dwell — the next slide shows it in product."
+    "speakerNotes": "Four capability cards for Social & Community. Read the title, give one concrete example from a real customer, move on. Don't dwell — the next slide shows it in product.",
+    "section": "features"
   },
   {
-    "id": "2523947e-738c-46ee-a364-23a8fa37a08a",
+    "id": "fc0de2e5-4037-43ca-9fc3-88235978f6ce",
     "position": 64,
     "filepath": "src/pages/slides/Slide064Socialcommunitymockup.tsx",
     "title": "Social & Community — in product.",
     "description": "Editable mockup. Update copy and numbers in this slide file.",
-    "speakerNotes": "Show Social & Community in product. Point at the rows in \"Cross-post composer\", narrate what the user is doing, and land the value with the footer caption. If you have a live demo, this is the slide to switch into the product."
+    "speakerNotes": "Show Social & Community in product. Point at the rows in \"Cross-post composer\", narrate what the user is doing, and land the value with the footer caption. If you have a live demo, this is the slide to switch into the product.",
+    "section": "features"
   },
   {
-    "id": "dcd58a16-abaa-4fac-a59a-5c950ad2e45b",
+    "id": "2c2d21a5-7f50-4696-bb5a-2b012110e492",
     "position": 65,
     "filepath": "src/pages/slides/Slide065Socialcommunityusecase.tsx",
     "title": "Use case · Podcaster",
     "description": "A concrete walk-through using only this category's modules.",
-    "speakerNotes": "Walk the \"Use case · Podcaster\" scenario end-to-end. Stay inside Social & Community — no cross-references to other modules yet. The point: this category alone delivers a complete outcome."
+    "speakerNotes": "Walk the \"Use case · Podcaster\" scenario end-to-end. Stay inside Social & Community — no cross-references to other modules yet. The point: this category alone delivers a complete outcome.",
+    "section": "features"
   },
   {
-    "id": "fa9efcaf-2ac7-452b-a473-7ff0023ca804",
+    "id": "e8679d36-ab2a-4e8f-b0ab-7966dcf0f759",
     "position": 66,
     "filepath": "src/pages/slides/Slide066Mobilefirsttoolsdivider.tsx",
     "title": "Feature deep-dive · Mobile-First Tools.",
     "description": "NFC Cards, Smart Dialer.",
-    "speakerNotes": "Open the Mobile-First Tools deep-dive. Four slides — overview, capabilities, in-product mockup, use case. Skip ahead if the buyer has already seen the module; linger if it's the one they came for."
+    "speakerNotes": "Open the Mobile-First Tools deep-dive. Four slides — overview, capabilities, in-product mockup, use case. Skip ahead if the buyer has already seen the module; linger if it's the one they came for.",
+    "section": "features"
   },
   {
-    "id": "8146e80e-1e30-49aa-b860-bcbf39964fe2",
+    "id": "35e50a0b-9f48-449e-80ff-71e97d003cbb",
     "position": 67,
     "filepath": "src/pages/slides/Slide067Mobilefirsttoolsoverview.tsx",
     "title": "Mobile-First Tools — overview.",
     "description": "NFC Cards, Smart Dialer.",
-    "speakerNotes": "Walk the Mobile-First Tools capability list at a steady pace. Two sentences per item — what it does, who it helps. Invite questions before moving on; this is where buyers usually interrupt."
+    "speakerNotes": "Walk the Mobile-First Tools capability list at a steady pace. Two sentences per item — what it does, who it helps. Invite questions before moving on; this is where buyers usually interrupt.",
+    "section": "features"
   },
   {
-    "id": "6fae1548-fdd0-42a3-b2eb-f4dd3a10f6d9",
+    "id": "033a0f5a-a2ba-4cd6-8fb0-7b29d1aacbec",
     "position": 68,
     "filepath": "src/pages/slides/Slide068Mobilefirsttoolscapabilities.tsx",
     "title": "Mobile-First Tools — key capabilities.",
     "description": "Mobile-First Tools — key capabilities.",
-    "speakerNotes": "Four capability cards for Mobile-First Tools. Read the title, give one concrete example from a real customer, move on. Don't dwell — the next slide shows it in product."
+    "speakerNotes": "Four capability cards for Mobile-First Tools. Read the title, give one concrete example from a real customer, move on. Don't dwell — the next slide shows it in product.",
+    "section": "features"
   },
   {
-    "id": "cbc69047-7080-4706-beda-70d7e946828c",
+    "id": "90bb7409-5856-45ea-b611-e917fd46bae8",
     "position": 69,
     "filepath": "src/pages/slides/Slide069Mobilefirsttoolsmockup.tsx",
     "title": "Mobile-First Tools — in product.",
     "description": "Editable mockup. Update copy and numbers in this slide file.",
-    "speakerNotes": "Show Mobile-First Tools in product. Point at the rows in \"Smart dialer · live call\", narrate what the user is doing, and land the value with the footer caption. If you have a live demo, this is the slide to switch into the product."
+    "speakerNotes": "Show Mobile-First Tools in product. Point at the rows in \"Smart dialer · live call\", narrate what the user is doing, and land the value with the footer caption. If you have a live demo, this is the slide to switch into the product.",
+    "section": "features"
   },
   {
-    "id": "3b516277-4695-452c-93c5-8a7dc252a57a",
+    "id": "6b05a5ce-34d2-408d-ade4-38284cbb8944",
     "position": 70,
     "filepath": "src/pages/slides/Slide070Mobilefirsttoolsusecase.tsx",
     "title": "Use case · Field sales",
     "description": "A concrete walk-through using only this category's modules.",
-    "speakerNotes": "Walk the \"Use case · Field sales\" scenario end-to-end. Stay inside Mobile-First Tools — no cross-references to other modules yet. The point: this category alone delivers a complete outcome."
+    "speakerNotes": "Walk the \"Use case · Field sales\" scenario end-to-end. Stay inside Mobile-First Tools — no cross-references to other modules yet. The point: this category alone delivers a complete outcome.",
+    "section": "features"
   },
   {
-    "id": "947f21aa-257a-4f53-9ee5-748175aefc3b",
+    "id": "5960ff6c-8f9a-4bf0-8793-387249941a3a",
     "position": 71,
     "filepath": "src/pages/slides/Slide071Adminworkspacesbillingdivide.tsx",
     "title": "Feature deep-dive · Admin, Workspaces & Billing.",
     "description": "Workspaces, white label, audit logs, plans.",
-    "speakerNotes": "Open the Admin, Workspaces & Billing deep-dive. Four slides — overview, capabilities, in-product mockup, use case. Skip ahead if the buyer has already seen the module; linger if it's the one they came for."
+    "speakerNotes": "Open the Admin, Workspaces & Billing deep-dive. Four slides — overview, capabilities, in-product mockup, use case. Skip ahead if the buyer has already seen the module; linger if it's the one they came for.",
+    "section": "features"
   },
   {
-    "id": "ff3f43e5-ada1-4145-b2f1-d426cd115cc3",
+    "id": "67723daa-edd0-47b6-9ee5-e7f63ce954bf",
     "position": 72,
     "filepath": "src/pages/slides/Slide072Adminworkspacesbillingovervi.tsx",
     "title": "Admin, Workspaces & Billing — overview.",
     "description": "Workspaces, white label, audit logs, plans.",
-    "speakerNotes": "Walk the Admin, Workspaces & Billing capability list at a steady pace. Two sentences per item — what it does, who it helps. Invite questions before moving on; this is where buyers usually interrupt."
+    "speakerNotes": "Walk the Admin, Workspaces & Billing capability list at a steady pace. Two sentences per item — what it does, who it helps. Invite questions before moving on; this is where buyers usually interrupt.",
+    "section": "features"
   },
   {
-    "id": "2253888f-d831-435d-83cd-aa7b0da323b2",
+    "id": "1e0eac0b-98e0-41f2-b0a7-62005a9a520e",
     "position": 73,
     "filepath": "src/pages/slides/Slide073Adminworkspacesbillingcapabi.tsx",
     "title": "Admin, Workspaces & Billing — key capabilities.",
     "description": "Admin, Workspaces & Billing — key capabilities.",
-    "speakerNotes": "Four capability cards for Admin, Workspaces & Billing. Read the title, give one concrete example from a real customer, move on. Don't dwell — the next slide shows it in product."
+    "speakerNotes": "Four capability cards for Admin, Workspaces & Billing. Read the title, give one concrete example from a real customer, move on. Don't dwell — the next slide shows it in product.",
+    "section": "features"
   },
   {
-    "id": "b3f884e8-5ddb-4537-b80a-2467859ed2ea",
+    "id": "46fc2c0a-ca80-44d1-8ddd-06aff4a5e1cf",
     "position": 74,
     "filepath": "src/pages/slides/Slide074Adminworkspacesbillingmockup.tsx",
     "title": "Admin, Workspaces & Billing — in product.",
     "description": "Editable mockup. Update copy and numbers in this slide file.",
-    "speakerNotes": "Show Admin, Workspaces & Billing in product. Point at the rows in \"Workspace overview\", narrate what the user is doing, and land the value with the footer caption. If you have a live demo, this is the slide to switch into the product."
+    "speakerNotes": "Show Admin, Workspaces & Billing in product. Point at the rows in \"Workspace overview\", narrate what the user is doing, and land the value with the footer caption. If you have a live demo, this is the slide to switch into the product.",
+    "section": "features"
   },
   {
-    "id": "887d4581-efdb-4079-af9b-1c758d7ea80c",
+    "id": "93bad28e-5046-45b1-9952-89816b48a428",
     "position": 75,
     "filepath": "src/pages/slides/Slide075Adminworkspacesbillingusecas.tsx",
     "title": "Use case · Multi-brand agency",
     "description": "A concrete walk-through using only this category's modules.",
-    "speakerNotes": "Walk the \"Use case · Multi-brand agency\" scenario end-to-end. Stay inside Admin, Workspaces & Billing — no cross-references to other modules yet. The point: this category alone delivers a complete outcome."
+    "speakerNotes": "Walk the \"Use case · Multi-brand agency\" scenario end-to-end. Stay inside Admin, Workspaces & Billing — no cross-references to other modules yet. The point: this category alone delivers a complete outcome.",
+    "section": "features"
   },
   {
-    "id": "d60440d8-6418-4a39-b5e8-3758f59e8636",
+    "id": "c577ea63-46c3-4502-83c1-cb231a551ffd",
     "position": 76,
     "filepath": "src/pages/slides/Slide076Analyticsinsightsdivider.tsx",
     "title": "Feature deep-dive · Analytics & Insights.",
     "description": "Engagement, audience, funnels.",
-    "speakerNotes": "Open the Analytics & Insights deep-dive. Four slides — overview, capabilities, in-product mockup, use case. Skip ahead if the buyer has already seen the module; linger if it's the one they came for."
+    "speakerNotes": "Open the Analytics & Insights deep-dive. Four slides — overview, capabilities, in-product mockup, use case. Skip ahead if the buyer has already seen the module; linger if it's the one they came for.",
+    "section": "features"
   },
   {
-    "id": "ad49de23-120b-4159-9ad3-a98c6dc846db",
+    "id": "4c3abf8b-a4f3-4c8c-8bb0-d0693b3e5642",
     "position": 77,
     "filepath": "src/pages/slides/Slide077Analyticsinsightsoverview.tsx",
     "title": "Analytics & Insights — overview.",
     "description": "Engagement, audience, funnels.",
-    "speakerNotes": "Walk the Analytics & Insights capability list at a steady pace. Two sentences per item — what it does, who it helps. Invite questions before moving on; this is where buyers usually interrupt."
+    "speakerNotes": "Walk the Analytics & Insights capability list at a steady pace. Two sentences per item — what it does, who it helps. Invite questions before moving on; this is where buyers usually interrupt.",
+    "section": "features"
   },
   {
-    "id": "d704e359-f29c-42b7-a904-68f8d594dcf8",
+    "id": "33086b13-fec8-45b0-bc0a-b88475bd5ea7",
     "position": 78,
     "filepath": "src/pages/slides/Slide078Analyticsinsightscapabilitie.tsx",
     "title": "Analytics & Insights — key capabilities.",
     "description": "Analytics & Insights — key capabilities.",
-    "speakerNotes": "Four capability cards for Analytics & Insights. Read the title, give one concrete example from a real customer, move on. Don't dwell — the next slide shows it in product."
+    "speakerNotes": "Four capability cards for Analytics & Insights. Read the title, give one concrete example from a real customer, move on. Don't dwell — the next slide shows it in product.",
+    "section": "features"
   },
   {
-    "id": "d09a81bd-49bc-461c-8a8d-3caeddfd7013",
+    "id": "65d919d8-01d3-4430-b47e-bb98f2a7bdde",
     "position": 79,
     "filepath": "src/pages/slides/Slide079Analyticsinsightsmockup.tsx",
     "title": "Analytics & Insights — in product.",
     "description": "Editable mockup. Update copy and numbers in this slide file.",
-    "speakerNotes": "Show Analytics & Insights in product. Point at the rows in \"Funnel · April\", narrate what the user is doing, and land the value with the footer caption. If you have a live demo, this is the slide to switch into the product."
+    "speakerNotes": "Show Analytics & Insights in product. Point at the rows in \"Funnel · April\", narrate what the user is doing, and land the value with the footer caption. If you have a live demo, this is the slide to switch into the product.",
+    "section": "features"
   },
   {
-    "id": "3e8ee823-6c53-48bc-9b0c-11d61d4d4022",
+    "id": "328d193e-0b78-4de5-8c24-523b567fbf62",
     "position": 80,
     "filepath": "src/pages/slides/Slide080Analyticsinsightsusecase.tsx",
     "title": "Use case · Course creator",
     "description": "A concrete walk-through using only this category's modules.",
-    "speakerNotes": "Walk the \"Use case · Course creator\" scenario end-to-end. Stay inside Analytics & Insights — no cross-references to other modules yet. The point: this category alone delivers a complete outcome."
+    "speakerNotes": "Walk the \"Use case · Course creator\" scenario end-to-end. Stay inside Analytics & Insights — no cross-references to other modules yet. The point: this category alone delivers a complete outcome.",
+    "section": "features"
   },
   {
-    "id": "1c137515-aa3d-4477-9af2-4f02421f7222",
+    "id": "cddf2414-60a0-48ba-9253-4d7d3f30c1e6",
     "position": 81,
     "filepath": "src/pages/slides/Slide081Integrationsdivider.tsx",
     "title": "Feature deep-dive · Integrations.",
     "description": "Apps, webhooks, marketing pixels.",
-    "speakerNotes": "Open the Integrations deep-dive. Four slides — overview, capabilities, in-product mockup, use case. Skip ahead if the buyer has already seen the module; linger if it's the one they came for."
+    "speakerNotes": "Open the Integrations deep-dive. Four slides — overview, capabilities, in-product mockup, use case. Skip ahead if the buyer has already seen the module; linger if it's the one they came for.",
+    "section": "features"
   },
   {
-    "id": "11f7871b-f983-4eac-aee8-d4f198c57e21",
+    "id": "66614b8a-98b0-4fb3-bb68-c96f37cd5e77",
     "position": 82,
     "filepath": "src/pages/slides/Slide082Integrationsoverview.tsx",
     "title": "Integrations — overview.",
     "description": "Apps, webhooks, marketing pixels.",
-    "speakerNotes": "Walk the Integrations capability list at a steady pace. Two sentences per item — what it does, who it helps. Invite questions before moving on; this is where buyers usually interrupt."
+    "speakerNotes": "Walk the Integrations capability list at a steady pace. Two sentences per item — what it does, who it helps. Invite questions before moving on; this is where buyers usually interrupt.",
+    "section": "features"
   },
   {
-    "id": "2f308ca8-7b3c-494c-8f33-fd885819d190",
+    "id": "9c754791-b2c1-4302-9eac-af1410e5027d",
     "position": 83,
     "filepath": "src/pages/slides/Slide083Integrationscapabilities.tsx",
     "title": "Integrations — key capabilities.",
     "description": "Integrations — key capabilities.",
-    "speakerNotes": "Four capability cards for Integrations. Read the title, give one concrete example from a real customer, move on. Don't dwell — the next slide shows it in product."
+    "speakerNotes": "Four capability cards for Integrations. Read the title, give one concrete example from a real customer, move on. Don't dwell — the next slide shows it in product.",
+    "section": "features"
   },
   {
-    "id": "7840f697-fcb0-4e0a-b75e-bec441847797",
+    "id": "21c2ae87-3015-4e51-9618-86582e9cd931",
     "position": 84,
     "filepath": "src/pages/slides/Slide084Integrationsmockup.tsx",
     "title": "Integrations — in product.",
     "description": "Editable mockup. Update copy and numbers in this slide file.",
-    "speakerNotes": "Show Integrations in product. Point at the rows in \"Connected services\", narrate what the user is doing, and land the value with the footer caption. If you have a live demo, this is the slide to switch into the product."
+    "speakerNotes": "Show Integrations in product. Point at the rows in \"Connected services\", narrate what the user is doing, and land the value with the footer caption. If you have a live demo, this is the slide to switch into the product.",
+    "section": "features"
   },
   {
-    "id": "84bfc39a-c28a-43d3-b0ba-7dfd5a5839c3",
+    "id": "46812c3a-1343-42dc-8021-f80d72e266b6",
     "position": 85,
     "filepath": "src/pages/slides/Slide085Integrationsusecase.tsx",
     "title": "Use case · Operations team",
     "description": "A concrete walk-through using only this category's modules.",
-    "speakerNotes": "Walk the \"Use case · Operations team\" scenario end-to-end. Stay inside Integrations — no cross-references to other modules yet. The point: this category alone delivers a complete outcome."
+    "speakerNotes": "Walk the \"Use case · Operations team\" scenario end-to-end. Stay inside Integrations — no cross-references to other modules yet. The point: this category alone delivers a complete outcome.",
+    "section": "features"
   },
   {
-    "id": "51c2bb87-7489-4444-a131-d404fb9d0721",
+    "id": "27d29497-6678-41fd-b1f8-1f4b76aabf05",
     "position": 86,
     "filepath": "src/pages/slides/Slide086Securitycompliancedivider.tsx",
     "title": "Feature deep-dive · Security & Compliance.",
     "description": "Privacy by design, account security, standards.",
-    "speakerNotes": "Open the Security & Compliance deep-dive. Four slides — overview, capabilities, in-product mockup, use case. Skip ahead if the buyer has already seen the module; linger if it's the one they came for."
+    "speakerNotes": "Open the Security & Compliance deep-dive. Four slides — overview, capabilities, in-product mockup, use case. Skip ahead if the buyer has already seen the module; linger if it's the one they came for.",
+    "section": "features"
   },
   {
-    "id": "6debc901-3624-4352-8eda-c8151427c812",
+    "id": "81240486-a0a9-4728-bd2d-e93e2b148acd",
     "position": 87,
     "filepath": "src/pages/slides/Slide087Securitycomplianceoverview.tsx",
     "title": "Security & Compliance — overview.",
     "description": "Privacy by design, account security, standards.",
-    "speakerNotes": "Walk the Security & Compliance capability list at a steady pace. Two sentences per item — what it does, who it helps. Invite questions before moving on; this is where buyers usually interrupt."
+    "speakerNotes": "Walk the Security & Compliance capability list at a steady pace. Two sentences per item — what it does, who it helps. Invite questions before moving on; this is where buyers usually interrupt.",
+    "section": "features"
   },
   {
-    "id": "41bb8c2d-058a-418f-b100-af4172c15537",
+    "id": "aeef6c10-e1bb-4737-b8f2-9e57baa5a25e",
     "position": 88,
     "filepath": "src/pages/slides/Slide088Securitycompliancecapabiliti.tsx",
     "title": "Security & Compliance — key capabilities.",
     "description": "Security & Compliance — key capabilities.",
-    "speakerNotes": "Four capability cards for Security & Compliance. Read the title, give one concrete example from a real customer, move on. Don't dwell — the next slide shows it in product."
+    "speakerNotes": "Four capability cards for Security & Compliance. Read the title, give one concrete example from a real customer, move on. Don't dwell — the next slide shows it in product.",
+    "section": "features"
   },
   {
-    "id": "588ed8e8-59f6-4183-aa20-0c0d66a6143e",
+    "id": "2c48d656-66ed-49b2-9dfa-c5f04d758c0d",
     "position": 89,
     "filepath": "src/pages/slides/Slide089Securitycompliancemockup.tsx",
     "title": "Security & Compliance — in product.",
     "description": "Editable mockup. Update copy and numbers in this slide file.",
-    "speakerNotes": "Show Security & Compliance in product. Point at the rows in \"Workspace security checklist\", narrate what the user is doing, and land the value with the footer caption. If you have a live demo, this is the slide to switch into the product."
+    "speakerNotes": "Show Security & Compliance in product. Point at the rows in \"Workspace security checklist\", narrate what the user is doing, and land the value with the footer caption. If you have a live demo, this is the slide to switch into the product.",
+    "section": "features"
   },
   {
-    "id": "aa2339ac-55d7-4adc-ac15-256edfd7a442",
+    "id": "9795fa30-3fe9-4c41-8533-33b609cbe72b",
     "position": 90,
     "filepath": "src/pages/slides/Slide090Securitycomplianceusecase.tsx",
     "title": "Use case · Regulated team",
     "description": "A concrete walk-through using only this category's modules.",
-    "speakerNotes": "Walk the \"Use case · Regulated team\" scenario end-to-end. Stay inside Security & Compliance — no cross-references to other modules yet. The point: this category alone delivers a complete outcome."
+    "speakerNotes": "Walk the \"Use case · Regulated team\" scenario end-to-end. Stay inside Security & Compliance — no cross-references to other modules yet. The point: this category alone delivers a complete outcome.",
+    "section": "features"
   },
   {
-    "id": "c6421219-3f01-49f1-a43f-e0cd284c3bc8",
+    "id": "13a76528-2dad-43c1-9f33-6b348ac032fd",
     "position": 91,
     "filepath": "src/pages/slides/Slide091Personasdivider.tsx",
     "title": "Appendix · Persona decks.",
     "description": "How 1INME shows up for each role we sell into.",
-    "speakerNotes": "Open the persona decks. Twelve roles, each with pains, stack, day in the life, and outcomes. Pick the one closest to the room; the others are there for follow-up sends."
+    "speakerNotes": "Open the persona decks. Twelve roles, each with pains, stack, day in the life, and outcomes. Pick the one closest to the room; the others are there for follow-up sends.",
+    "section": "personas"
   },
   {
-    "id": "de4e6c45-9cdb-46d6-bd91-f26543301234",
+    "id": "4b394b87-035a-4b99-90fd-1726030a4dc3",
     "position": 92,
     "filepath": "src/pages/slides/Slide092Creatorsartistsdivider.tsx",
     "title": "How 1INME helps a artists.",
     "description": "Creators · 4 slides + this divider.",
-    "speakerNotes": "Open the artists mini-deck (Creators). Pains, stack, day in the life, outcomes — four slides. Use this when artists are in the room or you're tailoring an outbound for that audience."
+    "speakerNotes": "Open the artists mini-deck (Creators). Pains, stack, day in the life, outcomes — four slides. Use this when artists are in the room or you're tailoring an outbound for that audience.",
+    "section": "personas"
   },
   {
-    "id": "75c1af16-31ea-45e4-b919-7eb01b9f5112",
+    "id": "68556284-e472-4fd5-9d8b-c928084be5fc",
     "position": 93,
     "filepath": "src/pages/slides/Slide093Creatorsartistsintropains.tsx",
     "title": "Meet the artists.",
     "description": "Creators. Here are the top pains we hear over and over.",
-    "speakerNotes": "Read the three pains aloud and watch the audience nod — that's the buying signal. Land the \"why now\" aside last: more tools isn't the answer for artists anymore."
+    "speakerNotes": "Read the three pains aloud and watch the audience nod — that's the buying signal. Land the \"why now\" aside last: more tools isn't the answer for artists anymore.",
+    "section": "personas"
   },
   {
-    "id": "ce3047ba-71dd-44b3-a4f2-f9f9cd0a7d35",
+    "id": "59f602d5-853b-4dd5-85b8-fa12bea92608",
     "position": 94,
     "filepath": "src/pages/slides/Slide094Creatorsartistsstack.tsx",
     "title": "The 1INME stack for a artists.",
     "description": "The 4–5 modules that matter most for this persona.",
-    "speakerNotes": "These are the 5 modules that matter most for artists. Skip everything else for this conversation — focus is the value here. Mention each module by the customer outcome, not the feature name."
+    "speakerNotes": "These are the 5 modules that matter most for artists. Skip everything else for this conversation — focus is the value here. Mention each module by the customer outcome, not the feature name.",
+    "section": "personas"
   },
   {
-    "id": "615d6370-62a5-41fc-ab3d-a7d432c18b23",
+    "id": "26ef54bc-25b2-4f5b-b191-fc94db82459b",
     "position": 95,
     "filepath": "src/pages/slides/Slide095Creatorsartistsday.tsx",
     "title": "A day in the life — artists.",
     "description": "Time, module, action — all happening inside 1INME.",
-    "speakerNotes": "Walk this day chronologically from 8:00 to 22:00. Hammer the point: every step happens inside 1INME — no app switching, no copy-paste, no lost context."
+    "speakerNotes": "Walk this day chronologically from 8:00 to 22:00. Hammer the point: every step happens inside 1INME — no app switching, no copy-paste, no lost context.",
+    "section": "personas"
   },
   {
-    "id": "06047e4b-584f-45e6-810e-d1ab3b194b8d",
+    "id": "a7498d21-ffe1-4547-935a-17ae6fe81f25",
     "position": 96,
     "filepath": "src/pages/slides/Slide096Creatorsartistsoutcomes.tsx",
     "title": "Outcomes a artists can expect.",
     "description": "Placeholders pulled from early-access cohorts. Replace with your real customer numbers.",
-    "speakerNotes": "Three outcomes artists can expect — early-access cohort numbers, so flag them as illustrative until you have a real customer story. Close on the persona-specific CTA URL at the bottom."
+    "speakerNotes": "Three outcomes artists can expect — early-access cohort numbers, so flag them as illustrative until you have a real customer story. Close on the persona-specific CTA URL at the bottom.",
+    "section": "personas"
   },
   {
-    "id": "b0a37f25-a998-4da3-99d8-6da8f423d1da",
+    "id": "9a059013-7096-477f-bd3b-7e2a40e45030",
     "position": 97,
     "filepath": "src/pages/slides/Slide097Creatorsmusiciansdivider.tsx",
     "title": "How 1INME helps a musicians.",
     "description": "Creators · 4 slides + this divider.",
-    "speakerNotes": "Open the musicians mini-deck (Creators). Pains, stack, day in the life, outcomes — four slides. Use this when musicians are in the room or you're tailoring an outbound for that audience."
+    "speakerNotes": "Open the musicians mini-deck (Creators). Pains, stack, day in the life, outcomes — four slides. Use this when musicians are in the room or you're tailoring an outbound for that audience.",
+    "section": "personas"
   },
   {
-    "id": "e1f40fdc-1fcd-48d8-8371-86b0f4aaa1ca",
+    "id": "b8f98239-6322-4801-b9ac-e319bd1d840a",
     "position": 98,
     "filepath": "src/pages/slides/Slide098Creatorsmusiciansintropains.tsx",
     "title": "Meet the musicians.",
     "description": "Creators. Here are the top pains we hear over and over.",
-    "speakerNotes": "Read the three pains aloud and watch the audience nod — that's the buying signal. Land the \"why now\" aside last: more tools isn't the answer for musicians anymore."
+    "speakerNotes": "Read the three pains aloud and watch the audience nod — that's the buying signal. Land the \"why now\" aside last: more tools isn't the answer for musicians anymore.",
+    "section": "personas"
   },
   {
-    "id": "f955c7b8-1d73-4a76-9f7d-29427a603cb6",
+    "id": "c36c4177-903a-448c-a863-cf83cb2376ed",
     "position": 99,
     "filepath": "src/pages/slides/Slide099Creatorsmusiciansstack.tsx",
     "title": "The 1INME stack for a musicians.",
     "description": "The 4–5 modules that matter most for this persona.",
-    "speakerNotes": "These are the 5 modules that matter most for musicians. Skip everything else for this conversation — focus is the value here. Mention each module by the customer outcome, not the feature name."
+    "speakerNotes": "These are the 5 modules that matter most for musicians. Skip everything else for this conversation — focus is the value here. Mention each module by the customer outcome, not the feature name.",
+    "section": "personas"
   },
   {
-    "id": "1e290fa2-c5bf-426a-9e30-28cbd47fc565",
+    "id": "47e1ca72-f788-423e-a1fc-58d5faf94ed0",
     "position": 100,
     "filepath": "src/pages/slides/Slide100Creatorsmusiciansday.tsx",
     "title": "A day in the life — musicians.",
     "description": "Time, module, action — all happening inside 1INME.",
-    "speakerNotes": "Walk this day chronologically from 9:00 to 23:00. Hammer the point: every step happens inside 1INME — no app switching, no copy-paste, no lost context."
+    "speakerNotes": "Walk this day chronologically from 9:00 to 23:00. Hammer the point: every step happens inside 1INME — no app switching, no copy-paste, no lost context.",
+    "section": "personas"
   },
   {
-    "id": "e2601aa7-5606-4cff-9d57-8ddc857e7fe9",
+    "id": "892dfd50-d71f-40c6-be6d-a76d34f3b480",
     "position": 101,
     "filepath": "src/pages/slides/Slide101Creatorsmusiciansoutcomes.tsx",
     "title": "Outcomes a musicians can expect.",
     "description": "Placeholders pulled from early-access cohorts. Replace with your real customer numbers.",
-    "speakerNotes": "Three outcomes musicians can expect — early-access cohort numbers, so flag them as illustrative until you have a real customer story. Close on the persona-specific CTA URL at the bottom."
+    "speakerNotes": "Three outcomes musicians can expect — early-access cohort numbers, so flag them as illustrative until you have a real customer story. Close on the persona-specific CTA URL at the bottom.",
+    "section": "personas"
   },
   {
-    "id": "cdd9346a-3757-47f2-b388-db43225f7b40",
+    "id": "e4bf051d-fb82-4714-854b-372d58f09a23",
     "position": 102,
     "filepath": "src/pages/slides/Slide102Creatorspodcastersdivider.tsx",
     "title": "How 1INME helps a podcasters.",
     "description": "Creators · 4 slides + this divider.",
-    "speakerNotes": "Open the podcasters mini-deck (Creators). Pains, stack, day in the life, outcomes — four slides. Use this when podcasters are in the room or you're tailoring an outbound for that audience."
+    "speakerNotes": "Open the podcasters mini-deck (Creators). Pains, stack, day in the life, outcomes — four slides. Use this when podcasters are in the room or you're tailoring an outbound for that audience.",
+    "section": "personas"
   },
   {
-    "id": "5936b671-dcf7-47e1-9fac-e68b865601df",
+    "id": "bfa51b99-ca6e-4540-a02f-7f098a105121",
     "position": 103,
     "filepath": "src/pages/slides/Slide103Creatorspodcastersintropains.tsx",
     "title": "Meet the podcasters.",
     "description": "Creators. Here are the top pains we hear over and over.",
-    "speakerNotes": "Read the three pains aloud and watch the audience nod — that's the buying signal. Land the \"why now\" aside last: more tools isn't the answer for podcasters anymore."
+    "speakerNotes": "Read the three pains aloud and watch the audience nod — that's the buying signal. Land the \"why now\" aside last: more tools isn't the answer for podcasters anymore.",
+    "section": "personas"
   },
   {
-    "id": "50c7a2f2-4ae0-4eb8-9b4c-4e0eb631a992",
+    "id": "b8a8834b-8469-49c1-b60b-f0a77b9958ce",
     "position": 104,
     "filepath": "src/pages/slides/Slide104Creatorspodcastersstack.tsx",
     "title": "The 1INME stack for a podcasters.",
     "description": "The 4–5 modules that matter most for this persona.",
-    "speakerNotes": "These are the 5 modules that matter most for podcasters. Skip everything else for this conversation — focus is the value here. Mention each module by the customer outcome, not the feature name."
+    "speakerNotes": "These are the 5 modules that matter most for podcasters. Skip everything else for this conversation — focus is the value here. Mention each module by the customer outcome, not the feature name.",
+    "section": "personas"
   },
   {
-    "id": "14b76ebd-e60d-412f-b552-fb6d29a93cdb",
+    "id": "6bb9a759-7a9d-4e83-8bc4-801e71083d21",
     "position": 105,
     "filepath": "src/pages/slides/Slide105Creatorspodcastersday.tsx",
     "title": "A day in the life — podcasters.",
     "description": "Time, module, action — all happening inside 1INME.",
-    "speakerNotes": "Walk this day chronologically from 7:30 to 21:00. Hammer the point: every step happens inside 1INME — no app switching, no copy-paste, no lost context."
+    "speakerNotes": "Walk this day chronologically from 7:30 to 21:00. Hammer the point: every step happens inside 1INME — no app switching, no copy-paste, no lost context.",
+    "section": "personas"
   },
   {
-    "id": "fa3efefc-e567-42d0-926d-4591ad347987",
+    "id": "e3c9bfe2-19ab-491a-84e9-afc1c4841432",
     "position": 106,
     "filepath": "src/pages/slides/Slide106Creatorspodcastersoutcomes.tsx",
     "title": "Outcomes a podcasters can expect.",
     "description": "Placeholders pulled from early-access cohorts. Replace with your real customer numbers.",
-    "speakerNotes": "Three outcomes podcasters can expect — early-access cohort numbers, so flag them as illustrative until you have a real customer story. Close on the persona-specific CTA URL at the bottom."
+    "speakerNotes": "Three outcomes podcasters can expect — early-access cohort numbers, so flag them as illustrative until you have a real customer story. Close on the persona-specific CTA URL at the bottom.",
+    "section": "personas"
   },
   {
-    "id": "b12a019c-4b6c-437b-bf08-c2b64451d3d8",
+    "id": "a2f8a5db-e218-47ee-a9b9-9d5bda455a8f",
     "position": 107,
     "filepath": "src/pages/slides/Slide107Creatorsstreamersdivider.tsx",
     "title": "How 1INME helps a streamers.",
     "description": "Creators · 4 slides + this divider.",
-    "speakerNotes": "Open the streamers mini-deck (Creators). Pains, stack, day in the life, outcomes — four slides. Use this when streamers are in the room or you're tailoring an outbound for that audience."
+    "speakerNotes": "Open the streamers mini-deck (Creators). Pains, stack, day in the life, outcomes — four slides. Use this when streamers are in the room or you're tailoring an outbound for that audience.",
+    "section": "personas"
   },
   {
-    "id": "0b865a7b-d1ae-42b9-a02c-fce78974eb42",
+    "id": "ecd5f3fa-9c69-45aa-a93e-e97dad5007f4",
     "position": 108,
     "filepath": "src/pages/slides/Slide108Creatorsstreamersintropains.tsx",
     "title": "Meet the streamers.",
     "description": "Creators. Here are the top pains we hear over and over.",
-    "speakerNotes": "Read the three pains aloud and watch the audience nod — that's the buying signal. Land the \"why now\" aside last: more tools isn't the answer for streamers anymore."
+    "speakerNotes": "Read the three pains aloud and watch the audience nod — that's the buying signal. Land the \"why now\" aside last: more tools isn't the answer for streamers anymore.",
+    "section": "personas"
   },
   {
-    "id": "d8863369-fa53-48fa-a7f0-0877edec77cf",
+    "id": "bbd88daa-55a6-4618-9ec5-cfc471f36d6d",
     "position": 109,
     "filepath": "src/pages/slides/Slide109Creatorsstreamersstack.tsx",
     "title": "The 1INME stack for a streamers.",
     "description": "The 4–5 modules that matter most for this persona.",
-    "speakerNotes": "These are the 5 modules that matter most for streamers. Skip everything else for this conversation — focus is the value here. Mention each module by the customer outcome, not the feature name."
+    "speakerNotes": "These are the 5 modules that matter most for streamers. Skip everything else for this conversation — focus is the value here. Mention each module by the customer outcome, not the feature name.",
+    "section": "personas"
   },
   {
-    "id": "7259339a-3772-47ed-bbea-08ffb4e95e1c",
+    "id": "20970abe-c1e6-44e6-8a24-f44fb682814d",
     "position": 110,
     "filepath": "src/pages/slides/Slide110Creatorsstreamersday.tsx",
     "title": "A day in the life — streamers.",
     "description": "Time, module, action — all happening inside 1INME.",
-    "speakerNotes": "Walk this day chronologically from 12:00 to 01:00. Hammer the point: every step happens inside 1INME — no app switching, no copy-paste, no lost context."
+    "speakerNotes": "Walk this day chronologically from 12:00 to 01:00. Hammer the point: every step happens inside 1INME — no app switching, no copy-paste, no lost context.",
+    "section": "personas"
   },
   {
-    "id": "ab9fd8f2-ea8d-4b93-a534-d685dea82a78",
+    "id": "92b75f4b-c89a-447a-91bc-e054dc3f9213",
     "position": 111,
     "filepath": "src/pages/slides/Slide111Creatorsstreamersoutcomes.tsx",
     "title": "Outcomes a streamers can expect.",
     "description": "Placeholders pulled from early-access cohorts. Replace with your real customer numbers.",
-    "speakerNotes": "Three outcomes streamers can expect — early-access cohort numbers, so flag them as illustrative until you have a real customer story. Close on the persona-specific CTA URL at the bottom."
+    "speakerNotes": "Three outcomes streamers can expect — early-access cohort numbers, so flag them as illustrative until you have a real customer story. Close on the persona-specific CTA URL at the bottom.",
+    "section": "personas"
   },
   {
-    "id": "66fa3203-7e4a-4157-8ba3-33400d603643",
+    "id": "8eadfa3b-e976-4df7-ae16-f17c41d94daf",
     "position": 112,
     "filepath": "src/pages/slides/Slide112Creatorsinfluencersdivider.tsx",
     "title": "How 1INME helps a influencers.",
     "description": "Creators · 4 slides + this divider.",
-    "speakerNotes": "Open the influencers mini-deck (Creators). Pains, stack, day in the life, outcomes — four slides. Use this when influencers are in the room or you're tailoring an outbound for that audience."
+    "speakerNotes": "Open the influencers mini-deck (Creators). Pains, stack, day in the life, outcomes — four slides. Use this when influencers are in the room or you're tailoring an outbound for that audience.",
+    "section": "personas"
   },
   {
-    "id": "123c2c43-95a4-4347-ace6-1054d5edbf98",
+    "id": "aee4b75d-a004-4e7a-99da-5392f5dc0059",
     "position": 113,
     "filepath": "src/pages/slides/Slide113Creatorsinfluencersintropain.tsx",
     "title": "Meet the influencers.",
     "description": "Creators. Here are the top pains we hear over and over.",
-    "speakerNotes": "Read the three pains aloud and watch the audience nod — that's the buying signal. Land the \"why now\" aside last: more tools isn't the answer for influencers anymore."
+    "speakerNotes": "Read the three pains aloud and watch the audience nod — that's the buying signal. Land the \"why now\" aside last: more tools isn't the answer for influencers anymore.",
+    "section": "personas"
   },
   {
-    "id": "65a416b4-2529-40eb-aef2-e62a2c23fda0",
+    "id": "1a085375-1a5b-44af-b5c8-a0f08f187c11",
     "position": 114,
     "filepath": "src/pages/slides/Slide114Creatorsinfluencersstack.tsx",
     "title": "The 1INME stack for a influencers.",
     "description": "The 4–5 modules that matter most for this persona.",
-    "speakerNotes": "These are the 5 modules that matter most for influencers. Skip everything else for this conversation — focus is the value here. Mention each module by the customer outcome, not the feature name."
+    "speakerNotes": "These are the 5 modules that matter most for influencers. Skip everything else for this conversation — focus is the value here. Mention each module by the customer outcome, not the feature name.",
+    "section": "personas"
   },
   {
-    "id": "b60f9c8a-5470-4ac5-9893-c0b717334c60",
+    "id": "77864eb8-e6d3-4f68-824f-b23ebdfa420f",
     "position": 115,
     "filepath": "src/pages/slides/Slide115Creatorsinfluencersday.tsx",
     "title": "A day in the life — influencers.",
     "description": "Time, module, action — all happening inside 1INME.",
-    "speakerNotes": "Walk this day chronologically from 8:00 to 21:00. Hammer the point: every step happens inside 1INME — no app switching, no copy-paste, no lost context."
+    "speakerNotes": "Walk this day chronologically from 8:00 to 21:00. Hammer the point: every step happens inside 1INME — no app switching, no copy-paste, no lost context.",
+    "section": "personas"
   },
   {
-    "id": "ff3a4f66-e0ba-47f0-a956-48be9fbbdc3d",
+    "id": "190890a0-5a69-476d-85da-3ba41365037c",
     "position": 116,
     "filepath": "src/pages/slides/Slide116Creatorsinfluencersoutcomes.tsx",
     "title": "Outcomes a influencers can expect.",
     "description": "Placeholders pulled from early-access cohorts. Replace with your real customer numbers.",
-    "speakerNotes": "Three outcomes influencers can expect — early-access cohort numbers, so flag them as illustrative until you have a real customer story. Close on the persona-specific CTA URL at the bottom."
+    "speakerNotes": "Three outcomes influencers can expect — early-access cohort numbers, so flag them as illustrative until you have a real customer story. Close on the persona-specific CTA URL at the bottom.",
+    "section": "personas"
   },
   {
-    "id": "4ec3b39a-f681-4a07-9c81-6a3fa5a1614b",
+    "id": "a3c74f41-f90f-4f43-a68a-5a46c805ee9a",
     "position": 117,
     "filepath": "src/pages/slides/Slide117Coachesexpertscoachesdivider.tsx",
     "title": "How 1INME helps a coaches.",
     "description": "Coaches & Experts · 4 slides + this divider.",
-    "speakerNotes": "Open the coaches mini-deck (Coaches & Experts). Pains, stack, day in the life, outcomes — four slides. Use this when coaches are in the room or you're tailoring an outbound for that audience."
+    "speakerNotes": "Open the coaches mini-deck (Coaches & Experts). Pains, stack, day in the life, outcomes — four slides. Use this when coaches are in the room or you're tailoring an outbound for that audience.",
+    "section": "personas"
   },
   {
-    "id": "26e3afb8-98c0-4d08-9130-fec2b6c27f46",
+    "id": "29b7d120-623f-4998-9de7-1b3e762e1965",
     "position": 118,
     "filepath": "src/pages/slides/Slide118Coachesexpertscoachesintropa.tsx",
     "title": "Meet the coaches.",
     "description": "Coaches & Experts. Here are the top pains we hear over and over.",
-    "speakerNotes": "Read the three pains aloud and watch the audience nod — that's the buying signal. Land the \"why now\" aside last: more tools isn't the answer for coaches anymore."
+    "speakerNotes": "Read the three pains aloud and watch the audience nod — that's the buying signal. Land the \"why now\" aside last: more tools isn't the answer for coaches anymore.",
+    "section": "personas"
   },
   {
-    "id": "2ae33d69-faa4-42c9-ab8f-947de7b5c578",
+    "id": "d099cc61-2a80-4257-897f-64c792b2c941",
     "position": 119,
     "filepath": "src/pages/slides/Slide119Coachesexpertscoachesstack.tsx",
     "title": "The 1INME stack for a coaches.",
     "description": "The 4–5 modules that matter most for this persona.",
-    "speakerNotes": "These are the 5 modules that matter most for coaches. Skip everything else for this conversation — focus is the value here. Mention each module by the customer outcome, not the feature name."
+    "speakerNotes": "These are the 5 modules that matter most for coaches. Skip everything else for this conversation — focus is the value here. Mention each module by the customer outcome, not the feature name.",
+    "section": "personas"
   },
   {
-    "id": "5756e7fc-38cf-491e-848e-8faa5518272f",
+    "id": "811e0eb9-6f5e-48a6-a7bc-cb2a1698a795",
     "position": 120,
     "filepath": "src/pages/slides/Slide120Coachesexpertscoachesday.tsx",
     "title": "A day in the life — coaches.",
     "description": "Time, module, action — all happening inside 1INME.",
-    "speakerNotes": "Walk this day chronologically from 8:00 to 19:00. Hammer the point: every step happens inside 1INME — no app switching, no copy-paste, no lost context."
+    "speakerNotes": "Walk this day chronologically from 8:00 to 19:00. Hammer the point: every step happens inside 1INME — no app switching, no copy-paste, no lost context.",
+    "section": "personas"
   },
   {
-    "id": "c960007f-e52a-4b4e-a4d4-d9bdf37eb0a8",
+    "id": "fdcd632c-e41d-42a8-ae95-868913167c4b",
     "position": 121,
     "filepath": "src/pages/slides/Slide121Coachesexpertscoachesoutcome.tsx",
     "title": "Outcomes a coaches can expect.",
     "description": "Placeholders pulled from early-access cohorts. Replace with your real customer numbers.",
-    "speakerNotes": "Three outcomes coaches can expect — early-access cohort numbers, so flag them as illustrative until you have a real customer story. Close on the persona-specific CTA URL at the bottom."
+    "speakerNotes": "Three outcomes coaches can expect — early-access cohort numbers, so flag them as illustrative until you have a real customer story. Close on the persona-specific CTA URL at the bottom.",
+    "section": "personas"
   },
   {
-    "id": "bd530a29-6b26-4f67-ac03-6678b4745c19",
+    "id": "07119bd3-0aab-415b-a8f4-84c3261246af",
     "position": 122,
     "filepath": "src/pages/slides/Slide122Coachesexpertseducatorsdivid.tsx",
     "title": "How 1INME helps a educators.",
     "description": "Coaches & Experts · 4 slides + this divider.",
-    "speakerNotes": "Open the educators mini-deck (Coaches & Experts). Pains, stack, day in the life, outcomes — four slides. Use this when educators are in the room or you're tailoring an outbound for that audience."
+    "speakerNotes": "Open the educators mini-deck (Coaches & Experts). Pains, stack, day in the life, outcomes — four slides. Use this when educators are in the room or you're tailoring an outbound for that audience.",
+    "section": "personas"
   },
   {
-    "id": "24614f1b-b7e2-4d33-9242-0845a5ab8534",
+    "id": "ea5be99f-1e65-462e-8184-9d4641a2308b",
     "position": 123,
     "filepath": "src/pages/slides/Slide123Coachesexpertseducatorsintro.tsx",
     "title": "Meet the educators.",
     "description": "Coaches & Experts. Here are the top pains we hear over and over.",
-    "speakerNotes": "Read the three pains aloud and watch the audience nod — that's the buying signal. Land the \"why now\" aside last: more tools isn't the answer for educators anymore."
+    "speakerNotes": "Read the three pains aloud and watch the audience nod — that's the buying signal. Land the \"why now\" aside last: more tools isn't the answer for educators anymore.",
+    "section": "personas"
   },
   {
-    "id": "79b66cc1-cf77-4786-a54b-2fc4d4fdc241",
+    "id": "b3d5dfc9-c20e-4232-b322-75d9e1bf8026",
     "position": 124,
     "filepath": "src/pages/slides/Slide124Coachesexpertseducatorsstack.tsx",
     "title": "The 1INME stack for a educators.",
     "description": "The 4–5 modules that matter most for this persona.",
-    "speakerNotes": "These are the 5 modules that matter most for educators. Skip everything else for this conversation — focus is the value here. Mention each module by the customer outcome, not the feature name."
+    "speakerNotes": "These are the 5 modules that matter most for educators. Skip everything else for this conversation — focus is the value here. Mention each module by the customer outcome, not the feature name.",
+    "section": "personas"
   },
   {
-    "id": "d6480521-6af9-48d1-a754-351381743ecd",
+    "id": "2e23eb5e-05c0-4bb3-b9d9-ebe00ff7c75e",
     "position": 125,
     "filepath": "src/pages/slides/Slide125Coachesexpertseducatorsday.tsx",
     "title": "A day in the life — educators.",
     "description": "Time, module, action — all happening inside 1INME.",
-    "speakerNotes": "Walk this day chronologically from 8:00 to 20:00. Hammer the point: every step happens inside 1INME — no app switching, no copy-paste, no lost context."
+    "speakerNotes": "Walk this day chronologically from 8:00 to 20:00. Hammer the point: every step happens inside 1INME — no app switching, no copy-paste, no lost context.",
+    "section": "personas"
   },
   {
-    "id": "e12b25a9-f345-4da6-9894-b1c0488669b4",
+    "id": "2c8381b8-a6ed-445b-8b78-5a51f9fa82d4",
     "position": 126,
     "filepath": "src/pages/slides/Slide126Coachesexpertseducatorsoutco.tsx",
     "title": "Outcomes a educators can expect.",
     "description": "Placeholders pulled from early-access cohorts. Replace with your real customer numbers.",
-    "speakerNotes": "Three outcomes educators can expect — early-access cohort numbers, so flag them as illustrative until you have a real customer story. Close on the persona-specific CTA URL at the bottom."
+    "speakerNotes": "Three outcomes educators can expect — early-access cohort numbers, so flag them as illustrative until you have a real customer story. Close on the persona-specific CTA URL at the bottom.",
+    "section": "personas"
   },
   {
-    "id": "da4477f7-ec8d-4eac-8415-fca2b37aeaa1",
+    "id": "fd9e3b32-e5e2-4741-aa45-66095ec4a327",
     "position": 127,
     "filepath": "src/pages/slides/Slide127Coachesexpertsfitnesstrainer.tsx",
     "title": "How 1INME helps a fitness trainers.",
     "description": "Coaches & Experts · 4 slides + this divider.",
-    "speakerNotes": "Open the fitness trainers mini-deck (Coaches & Experts). Pains, stack, day in the life, outcomes — four slides. Use this when fitness trainers are in the room or you're tailoring an outbound for that audience."
+    "speakerNotes": "Open the fitness trainers mini-deck (Coaches & Experts). Pains, stack, day in the life, outcomes — four slides. Use this when fitness trainers are in the room or you're tailoring an outbound for that audience.",
+    "section": "personas"
   },
   {
-    "id": "888d7802-4167-43cb-ade4-6b3865158215",
+    "id": "f6c8f338-e28d-40b9-a137-33b054d701d0",
     "position": 128,
     "filepath": "src/pages/slides/Slide128Coachesexpertsfitnesstrainer.tsx",
     "title": "Meet the fitness trainers.",
     "description": "Coaches & Experts. Here are the top pains we hear over and over.",
-    "speakerNotes": "Read the three pains aloud and watch the audience nod — that's the buying signal. Land the \"why now\" aside last: more tools isn't the answer for fitness trainers anymore."
+    "speakerNotes": "Read the three pains aloud and watch the audience nod — that's the buying signal. Land the \"why now\" aside last: more tools isn't the answer for fitness trainers anymore.",
+    "section": "personas"
   },
   {
-    "id": "d8d9d069-7ad1-4ac5-9f68-27bb1d8a19e8",
+    "id": "6a1c1247-66ad-4433-affa-760f6cd3f085",
     "position": 129,
     "filepath": "src/pages/slides/Slide129Coachesexpertsfitnesstrainer.tsx",
     "title": "The 1INME stack for a fitness trainers.",
     "description": "The 4–5 modules that matter most for this persona.",
-    "speakerNotes": "These are the 5 modules that matter most for fitness trainers. Skip everything else for this conversation — focus is the value here. Mention each module by the customer outcome, not the feature name."
+    "speakerNotes": "These are the 5 modules that matter most for fitness trainers. Skip everything else for this conversation — focus is the value here. Mention each module by the customer outcome, not the feature name.",
+    "section": "personas"
   },
   {
-    "id": "c882fba3-97ee-4f44-b983-533c795674a9",
+    "id": "a0974222-35d5-4aa2-a3af-d3ce4bca3be8",
     "position": 130,
     "filepath": "src/pages/slides/Slide130Coachesexpertsfitnesstrainer.tsx",
     "title": "A day in the life — fitness trainers.",
     "description": "Time, module, action — all happening inside 1INME.",
-    "speakerNotes": "Walk this day chronologically from 6:00 to 18:00. Hammer the point: every step happens inside 1INME — no app switching, no copy-paste, no lost context."
+    "speakerNotes": "Walk this day chronologically from 6:00 to 18:00. Hammer the point: every step happens inside 1INME — no app switching, no copy-paste, no lost context.",
+    "section": "personas"
   },
   {
-    "id": "e08847ef-2ad2-47a2-ae16-98983e140253",
+    "id": "a9036f52-7f8f-4447-aa83-a0f0ed394ff1",
     "position": 131,
     "filepath": "src/pages/slides/Slide131Coachesexpertsfitnesstrainer.tsx",
     "title": "Outcomes a fitness trainers can expect.",
     "description": "Placeholders pulled from early-access cohorts. Replace with your real customer numbers.",
-    "speakerNotes": "Three outcomes fitness trainers can expect — early-access cohort numbers, so flag them as illustrative until you have a real customer story. Close on the persona-specific CTA URL at the bottom."
+    "speakerNotes": "Three outcomes fitness trainers can expect — early-access cohort numbers, so flag them as illustrative until you have a real customer story. Close on the persona-specific CTA URL at the bottom.",
+    "section": "personas"
   },
   {
-    "id": "d04051e5-22e4-4144-93f3-cce0b6413db7",
+    "id": "4bcde17a-b562-42c8-9220-624cd5456012",
     "position": 132,
     "filepath": "src/pages/slides/Slide132Salesfieldprosrealtorsdivide.tsx",
     "title": "How 1INME helps a realtors.",
     "description": "Sales & Field Pros · 4 slides + this divider.",
-    "speakerNotes": "Open the realtors mini-deck (Sales & Field Pros). Pains, stack, day in the life, outcomes — four slides. Use this when realtors are in the room or you're tailoring an outbound for that audience."
+    "speakerNotes": "Open the realtors mini-deck (Sales & Field Pros). Pains, stack, day in the life, outcomes — four slides. Use this when realtors are in the room or you're tailoring an outbound for that audience.",
+    "section": "personas"
   },
   {
-    "id": "6326a56f-8f9d-4aa8-8bc6-f0047a33307d",
+    "id": "7b052dec-1f99-4bb8-9ae2-ae26e1bc913a",
     "position": 133,
     "filepath": "src/pages/slides/Slide133Salesfieldprosrealtorsintrop.tsx",
     "title": "Meet the realtors.",
     "description": "Sales & Field Pros. Here are the top pains we hear over and over.",
-    "speakerNotes": "Read the three pains aloud and watch the audience nod — that's the buying signal. Land the \"why now\" aside last: more tools isn't the answer for realtors anymore."
+    "speakerNotes": "Read the three pains aloud and watch the audience nod — that's the buying signal. Land the \"why now\" aside last: more tools isn't the answer for realtors anymore.",
+    "section": "personas"
   },
   {
-    "id": "cbc7e381-5711-44f0-acee-f9b755d503ad",
+    "id": "a50ac8b5-935b-4b36-a578-c6022d069b89",
     "position": 134,
     "filepath": "src/pages/slides/Slide134Salesfieldprosrealtorsstack.tsx",
     "title": "The 1INME stack for a realtors.",
     "description": "The 4–5 modules that matter most for this persona.",
-    "speakerNotes": "These are the 5 modules that matter most for realtors. Skip everything else for this conversation — focus is the value here. Mention each module by the customer outcome, not the feature name."
+    "speakerNotes": "These are the 5 modules that matter most for realtors. Skip everything else for this conversation — focus is the value here. Mention each module by the customer outcome, not the feature name.",
+    "section": "personas"
   },
   {
-    "id": "9a28884f-9429-47ec-a8de-6d5f3e04052e",
+    "id": "cfecf1e5-e9a3-4cd1-9cc5-4c4496fc5b65",
     "position": 135,
     "filepath": "src/pages/slides/Slide135Salesfieldprosrealtorsday.tsx",
     "title": "A day in the life — realtors.",
     "description": "Time, module, action — all happening inside 1INME.",
-    "speakerNotes": "Walk this day chronologically from 8:00 to 20:00. Hammer the point: every step happens inside 1INME — no app switching, no copy-paste, no lost context."
+    "speakerNotes": "Walk this day chronologically from 8:00 to 20:00. Hammer the point: every step happens inside 1INME — no app switching, no copy-paste, no lost context.",
+    "section": "personas"
   },
   {
-    "id": "faf90dc4-baa4-40de-b3ff-8a98e01da205",
+    "id": "f5709f6b-9c2a-444f-a032-ca06a55dfce1",
     "position": 136,
     "filepath": "src/pages/slides/Slide136Salesfieldprosrealtorsoutcom.tsx",
     "title": "Outcomes a realtors can expect.",
     "description": "Placeholders pulled from early-access cohorts. Replace with your real customer numbers.",
-    "speakerNotes": "Three outcomes realtors can expect — early-access cohort numbers, so flag them as illustrative until you have a real customer story. Close on the persona-specific CTA URL at the bottom."
+    "speakerNotes": "Three outcomes realtors can expect — early-access cohort numbers, so flag them as illustrative until you have a real customer story. Close on the persona-specific CTA URL at the bottom.",
+    "section": "personas"
   },
   {
-    "id": "acc4ea94-377f-4231-9970-3291d4a7265a",
+    "id": "f83353ca-6cd4-48cc-949e-ed8f005bc94a",
     "position": 137,
     "filepath": "src/pages/slides/Slide137Salesfieldprosbusinessdevelo.tsx",
     "title": "How 1INME helps a business developers.",
     "description": "Sales & Field Pros · 4 slides + this divider.",
-    "speakerNotes": "Open the business developers mini-deck (Sales & Field Pros). Pains, stack, day in the life, outcomes — four slides. Use this when business developers are in the room or you're tailoring an outbound for that audience."
+    "speakerNotes": "Open the business developers mini-deck (Sales & Field Pros). Pains, stack, day in the life, outcomes — four slides. Use this when business developers are in the room or you're tailoring an outbound for that audience.",
+    "section": "personas"
   },
   {
-    "id": "5f78e635-0b3a-4fe2-9771-b055ebbccabb",
+    "id": "cb742ed2-0d05-4d66-91c3-caff10f1dffb",
     "position": 138,
     "filepath": "src/pages/slides/Slide138Salesfieldprosbusinessdevelo.tsx",
     "title": "Meet the business developers.",
     "description": "Sales & Field Pros. Here are the top pains we hear over and over.",
-    "speakerNotes": "Read the three pains aloud and watch the audience nod — that's the buying signal. Land the \"why now\" aside last: more tools isn't the answer for business developers anymore."
+    "speakerNotes": "Read the three pains aloud and watch the audience nod — that's the buying signal. Land the \"why now\" aside last: more tools isn't the answer for business developers anymore.",
+    "section": "personas"
   },
   {
-    "id": "435a5a35-2133-4ca9-b35a-bbdaac8727b8",
+    "id": "4e79e406-a513-4f32-a754-1ce795624b95",
     "position": 139,
     "filepath": "src/pages/slides/Slide139Salesfieldprosbusinessdevelo.tsx",
     "title": "The 1INME stack for a business developers.",
     "description": "The 4–5 modules that matter most for this persona.",
-    "speakerNotes": "These are the 5 modules that matter most for business developers. Skip everything else for this conversation — focus is the value here. Mention each module by the customer outcome, not the feature name."
+    "speakerNotes": "These are the 5 modules that matter most for business developers. Skip everything else for this conversation — focus is the value here. Mention each module by the customer outcome, not the feature name.",
+    "section": "personas"
   },
   {
-    "id": "2facd67c-35cb-411b-8890-ef09e897d2a2",
+    "id": "d5519fa2-9ec8-4bf2-aa46-b105f2174460",
     "position": 140,
     "filepath": "src/pages/slides/Slide140Salesfieldprosbusinessdevelo.tsx",
     "title": "A day in the life — business developers.",
     "description": "Time, module, action — all happening inside 1INME.",
-    "speakerNotes": "Walk this day chronologically from 8:00 to 19:00. Hammer the point: every step happens inside 1INME — no app switching, no copy-paste, no lost context."
+    "speakerNotes": "Walk this day chronologically from 8:00 to 19:00. Hammer the point: every step happens inside 1INME — no app switching, no copy-paste, no lost context.",
+    "section": "personas"
   },
   {
-    "id": "7565a7ba-f978-4068-a556-5b38dd72905e",
+    "id": "487dd76f-e89b-441a-a2b0-60bb87161494",
     "position": 141,
     "filepath": "src/pages/slides/Slide141Salesfieldprosbusinessdevelo.tsx",
     "title": "Outcomes a business developers can expect.",
     "description": "Placeholders pulled from early-access cohorts. Replace with your real customer numbers.",
-    "speakerNotes": "Three outcomes business developers can expect — early-access cohort numbers, so flag them as illustrative until you have a real customer story. Close on the persona-specific CTA URL at the bottom."
+    "speakerNotes": "Three outcomes business developers can expect — early-access cohort numbers, so flag them as illustrative until you have a real customer story. Close on the persona-specific CTA URL at the bottom.",
+    "section": "personas"
   },
   {
-    "id": "cfba8945-b042-4ecd-bf4c-d772b6c5eeee",
+    "id": "fae416e1-77e2-4f52-9f5e-4e9fbf366fa6",
     "position": 142,
     "filepath": "src/pages/slides/Slide142Teamsagenciesteamsagenciesdi.tsx",
     "title": "How 1INME helps a teams & agencies.",
     "description": "Teams & Agencies · 4 slides + this divider.",
-    "speakerNotes": "Open the teams & agencies mini-deck (Teams & Agencies). Pains, stack, day in the life, outcomes — four slides. Use this when teams & agencies are in the room or you're tailoring an outbound for that audience."
+    "speakerNotes": "Open the teams & agencies mini-deck (Teams & Agencies). Pains, stack, day in the life, outcomes — four slides. Use this when teams & agencies are in the room or you're tailoring an outbound for that audience.",
+    "section": "personas"
   },
   {
-    "id": "0144a47f-997b-459f-8aec-1955a079b518",
+    "id": "fc683b2e-86e5-4f8c-9ea2-d1688f3a5a65",
     "position": 143,
     "filepath": "src/pages/slides/Slide143Teamsagenciesteamsagenciesin.tsx",
     "title": "Meet the teams & agencies.",
     "description": "Teams & Agencies. Here are the top pains we hear over and over.",
-    "speakerNotes": "Read the three pains aloud and watch the audience nod — that's the buying signal. Land the \"why now\" aside last: more tools isn't the answer for teams & agencies anymore."
+    "speakerNotes": "Read the three pains aloud and watch the audience nod — that's the buying signal. Land the \"why now\" aside last: more tools isn't the answer for teams & agencies anymore.",
+    "section": "personas"
   },
   {
-    "id": "d92c7478-afd9-4018-9ac1-6cec92f33dc5",
+    "id": "0fd63f47-81f8-4807-8dfb-5be418e7d3ad",
     "position": 144,
     "filepath": "src/pages/slides/Slide144Teamsagenciesteamsagenciesst.tsx",
     "title": "The 1INME stack for a teams & agencies.",
     "description": "The 4–5 modules that matter most for this persona.",
-    "speakerNotes": "These are the 5 modules that matter most for teams & agencies. Skip everything else for this conversation — focus is the value here. Mention each module by the customer outcome, not the feature name."
+    "speakerNotes": "These are the 5 modules that matter most for teams & agencies. Skip everything else for this conversation — focus is the value here. Mention each module by the customer outcome, not the feature name.",
+    "section": "personas"
   },
   {
-    "id": "da49f431-48c9-468a-a95d-af16fe0f0882",
+    "id": "7732fff1-945a-44be-82a9-f3c38355144a",
     "position": 145,
     "filepath": "src/pages/slides/Slide145Teamsagenciesteamsagenciesda.tsx",
     "title": "A day in the life — teams & agencies.",
     "description": "Time, module, action — all happening inside 1INME.",
-    "speakerNotes": "Walk this day chronologically from 8:00 to 19:00. Hammer the point: every step happens inside 1INME — no app switching, no copy-paste, no lost context."
+    "speakerNotes": "Walk this day chronologically from 8:00 to 19:00. Hammer the point: every step happens inside 1INME — no app switching, no copy-paste, no lost context.",
+    "section": "personas"
   },
   {
-    "id": "f82dcd60-3792-4204-8b72-fd914b67af14",
+    "id": "5fd2d09e-6d2c-47b7-a9c7-c3e2f781cf60",
     "position": 146,
     "filepath": "src/pages/slides/Slide146Teamsagenciesteamsagenciesou.tsx",
     "title": "Outcomes a teams & agencies can expect.",
     "description": "Placeholders pulled from early-access cohorts. Replace with your real customer numbers.",
-    "speakerNotes": "Three outcomes teams & agencies can expect — early-access cohort numbers, so flag them as illustrative until you have a real customer story. Close on the persona-specific CTA URL at the bottom."
+    "speakerNotes": "Three outcomes teams & agencies can expect — early-access cohort numbers, so flag them as illustrative until you have a real customer story. Close on the persona-specific CTA URL at the bottom.",
+    "section": "personas"
   },
   {
-    "id": "b928127e-61df-4eec-b9f4-bf3f5ec633f4",
+    "id": "ffa621aa-9709-4daf-b5f5-22e0bec95383",
     "position": 147,
     "filepath": "src/pages/slides/Slide147Investordivider.tsx",
     "title": "Appendix · Investor pitch.",
     "description": "Twenty slides for investor conversations. Numbers are placeholders unless tagged otherwise.",
-    "speakerNotes": "Shift into the investor pitch. Twenty slides — vision, market, model, traction, ask. Anything tagged 'placeholder' must be replaced with live numbers before sending this section out."
+    "speakerNotes": "Shift into the investor pitch. Twenty slides — vision, market, model, traction, ask. Anything tagged 'placeholder' must be replaced with live numbers before sending this section out.",
+    "section": "investor"
   },
   {
-    "id": "8f017fdb-47fe-4263-aee0-441ae8588165",
+    "id": "2f7ef63a-94f3-49d2-9347-12ed86b78b98",
     "position": 148,
     "filepath": "src/pages/slides/Slide148Investorcover.tsx",
     "title": "Investor cover",
     "description": "Investor deck cover slide.",
-    "speakerNotes": "Open the investor deck. State the thesis in one breath: identity-first everything platform for the creator economy. This is a Series A teaser — set expectations for figures up front."
+    "speakerNotes": "Open the investor deck. State the thesis in one breath: identity-first everything platform for the creator economy. This is a Series A teaser — set expectations for figures up front.",
+    "section": "investor"
   },
   {
-    "id": "d80595e6-7aaf-4e07-a0a7-760af167ec83",
+    "id": "1f8b2567-d20a-4b02-9f11-8e2203e404ad",
     "position": 149,
     "filepath": "src/pages/slides/Slide149Investorvision.tsx",
     "title": "Vision.",
     "description": "Replace fragmented tooling with a single identity-first platform for every creator and team.",
-    "speakerNotes": "Three sentences for the vision. Identity is the new homepage. AI is the new operating system. One bill, one brand, one home. Don't elaborate; the next slides do that."
+    "speakerNotes": "Three sentences for the vision. Identity is the new homepage. AI is the new operating system. One bill, one brand, one home. Don't elaborate; the next slides do that.",
+    "section": "investor"
   },
   {
-    "id": "db610179-9a94-46cd-aaa8-b21d6f74527e",
+    "id": "9b245d65-9b23-41c2-ae1f-a9a83a558833",
     "position": 150,
     "filepath": "src/pages/slides/Slide150Investorproblem.tsx",
     "title": "Problem.",
     "description": "Problem.",
-    "speakerNotes": "Land the problem in numbers. Nine tools, $214 a month, 2.4 hours lost daily, 37% of features used. Note explicitly that these are placeholder market figures until the live research is in."
+    "speakerNotes": "Land the problem in numbers. Nine tools, $214 a month, 2.4 hours lost daily, 37% of features used. Note explicitly that these are placeholder market figures until the live research is in.",
+    "section": "investor"
   },
   {
-    "id": "eb812133-fc7c-455b-aea4-a5a15f546326",
+    "id": "c362ef3b-8e51-4979-ada4-c089b89f5bfc",
     "position": 151,
     "filepath": "src/pages/slides/Slide151Investormarket.tsx",
     "title": "Market.",
     "description": "TAM / SAM / SOM placeholders.",
-    "speakerNotes": "TAM / SAM / SOM. Be honest these are placeholders unless tagged otherwise — savvy investors will check. Replace with sourced figures (Statista, Gartner, internal) before sending."
+    "speakerNotes": "TAM / SAM / SOM. Be honest these are placeholders unless tagged otherwise — savvy investors will check. Replace with sourced figures (Statista, Gartner, internal) before sending.",
+    "section": "investor"
   },
   {
-    "id": "65e33c2a-5fd4-4421-a902-5f7e286c5e46",
+    "id": "4201a27d-ba07-4f72-b8c1-72e09f1fc323",
     "position": 152,
     "filepath": "src/pages/slides/Slide152Investorsolution.tsx",
     "title": "Solution.",
     "description": "Identity, links, AI, productivity, and analytics — one platform.",
-    "speakerNotes": "Three cards for the solution: surface, spine, modules. Resist the urge to go module-by-module here — the next sections do that. Land the 'one platform' shape and move on."
+    "speakerNotes": "Three cards for the solution: surface, spine, modules. Resist the urge to go module-by-module here — the next sections do that. Land the 'one platform' shape and move on.",
+    "section": "investor"
   },
   {
-    "id": "453d3866-3251-494a-bcd2-f97aa82b4cc7",
+    "id": "3a45ea9f-f66e-4c91-b92c-73dc92e8e8c2",
     "position": 153,
     "filepath": "src/pages/slides/Slide153Investordemohighlights.tsx",
     "title": "Product highlights.",
     "description": "Three demos investors remember.",
-    "speakerNotes": "Tease the demo. Three moments investors remember: AskCoach grounded in your data, Smart Link wiring in one click, the cross-module funnel reveal. Five minutes total."
+    "speakerNotes": "Tease the demo. Three moments investors remember: AskCoach grounded in your data, Smart Link wiring in one click, the cross-module funnel reveal. Five minutes total.",
+    "section": "investor"
   },
   {
-    "id": "8c664372-35c7-4fb6-9dad-3dfe3412ff3f",
+    "id": "f40c60dd-2b76-443f-a323-73987c3e2499",
     "position": 154,
     "filepath": "src/pages/slides/Slide154Investorbusinessmodel.tsx",
     "title": "Business model.",
     "description": "Business model.",
-    "speakerNotes": "Subscriptions, AI credit packs, white-label, affiliate. Four lines of revenue, tilted toward recurring SaaS. AI credits are the wedge into top-up revenue without surprise bills."
+    "speakerNotes": "Subscriptions, AI credit packs, white-label, affiliate. Four lines of revenue, tilted toward recurring SaaS. AI credits are the wedge into top-up revenue without surprise bills.",
+    "section": "investor"
   },
   {
-    "id": "332b35e8-7ca8-4903-a6da-ba718f8a8e2e",
+    "id": "a57df52b-3b39-46a9-9859-fa4f14798939",
     "position": 155,
     "filepath": "src/pages/slides/Slide155Investorpricing.tsx",
     "title": "Pricing tiers.",
     "description": "Pricing tiers.",
-    "speakerNotes": "Pricing tiers framed by investor narrative: acquisition (Free), highest LTV/CAC (Pro), modal price point (Studio), highest ARPA (Business). Studio is where most teams land."
+    "speakerNotes": "Pricing tiers framed by investor narrative: acquisition (Free), highest LTV/CAC (Pro), modal price point (Studio), highest ARPA (Business). Studio is where most teams land.",
+    "section": "investor"
   },
   {
-    "id": "965467a3-50ce-461a-ad88-e0fdf55af334",
+    "id": "48b08c4f-bb56-4b4a-bb00-11069c7adb2e",
     "position": 156,
     "filepath": "src/pages/slides/Slide156Investorgtm.tsx",
     "title": "Go-to-market.",
     "description": "Go-to-market.",
-    "speakerNotes": "PLG + community + sales + affiliates. A distribution flywheel, not a single channel. Each one feeds the next: bio links go viral, creators refer creators, agencies bring teams."
+    "speakerNotes": "PLG + community + sales + affiliates. A distribution flywheel, not a single channel. Each one feeds the next: bio links go viral, creators refer creators, agencies bring teams.",
+    "section": "investor"
   },
   {
-    "id": "cce3ebbe-80d1-4bd7-bd2d-fd6d1af93adf",
+    "id": "42891c36-a605-4184-beed-ef0064df2477",
     "position": 157,
     "filepath": "src/pages/slides/Slide157Investortraction.tsx",
     "title": "Traction (placeholders).",
     "description": "Traction (placeholders).",
-    "speakerNotes": "Replace placeholders with the latest numbers before sending. Mark the slide as confidential when you do. Lead with MoM growth — investors care about velocity more than absolutes early."
+    "speakerNotes": "Replace placeholders with the latest numbers before sending. Mark the slide as confidential when you do. Lead with MoM growth — investors care about velocity more than absolutes early.",
+    "section": "investor"
   },
   {
-    "id": "ab6b97ac-2506-421e-be5f-971399d3c5cd",
+    "id": "a93dd141-9c19-4a9e-b4a7-28e01453fe57",
     "position": 158,
     "filepath": "src/pages/slides/Slide158Investorcompetitive.tsx",
     "title": "Competitive landscape.",
     "description": "Competitive landscape.",
-    "speakerNotes": "Map ourselves against bio, links, CRM, AI. We're the only one with all four under a single identity layer. Avoid bashing competitors — frame us as the integration of their categories."
+    "speakerNotes": "Map ourselves against bio, links, CRM, AI. We're the only one with all four under a single identity layer. Avoid bashing competitors — frame us as the integration of their categories.",
+    "section": "investor"
   },
   {
-    "id": "ad42e67d-28e6-4992-9a8a-5f07831cb95d",
+    "id": "089798d5-d88b-4f81-8e31-6970b0d7bf8d",
     "position": 159,
     "filepath": "src/pages/slides/Slide159Investormoat.tsx",
     "title": "Moat.",
     "description": "Moat.",
-    "speakerNotes": "Four moats: identity gravity, cross-module data, network effects, workspace lock-in. Each compounds the others — that's the slide-five-minutes-later answer for the partner meeting."
+    "speakerNotes": "Four moats: identity gravity, cross-module data, network effects, workspace lock-in. Each compounds the others — that's the slide-five-minutes-later answer for the partner meeting.",
+    "section": "investor"
   },
   {
-    "id": "7ccfda66-c623-4483-8c15-a610831b329f",
+    "id": "5f1239f1-f7c6-41ae-947d-208b9f3f4556",
     "position": 160,
     "filepath": "src/pages/slides/Slide160Investorteam.tsx",
     "title": "Team.",
     "description": "Replace placeholders with founder bios and pictures.",
-    "speakerNotes": "Replace founder placeholders with bios and pictures before sending. Lead with prior outcomes, not titles. Investors back people first; product second."
+    "speakerNotes": "Replace founder placeholders with bios and pictures before sending. Lead with prior outcomes, not titles. Investors back people first; product second.",
+    "section": "investor"
   },
   {
-    "id": "c0d9f47a-28a2-443f-b258-587d47784a1d",
+    "id": "4db0f6e3-9e8e-4ebf-9455-42d4282a005f",
     "position": 161,
     "filepath": "src/pages/slides/Slide161Investorfinancials.tsx",
     "title": "Financials & projections (placeholders).",
     "description": "Replace with the live model before sending.",
-    "speakerNotes": "Walk across rows: ARR, gross margin, NRR, burn multiple. Replace with the live model before sending. Investors will pull this into their own spreadsheet — make sure it ties out."
+    "speakerNotes": "Walk across rows: ARR, gross margin, NRR, burn multiple. Replace with the live model before sending. Investors will pull this into their own spreadsheet — make sure it ties out.",
+    "section": "investor"
   },
   {
-    "id": "36c71198-4e99-4c1c-ae2d-db9a436c4d2b",
+    "id": "52cabacb-7f02-4abb-a3dd-8e424b0d5e1d",
     "position": 162,
     "filepath": "src/pages/slides/Slide162Investorask.tsx",
     "title": "Funding ask.",
     "description": "Funding ask.",
-    "speakerNotes": "Ask, equity, runway, post-money cap. Update with the live round structure before the meeting. Be ready to defend each number with a sentence."
+    "speakerNotes": "Ask, equity, runway, post-money cap. Update with the live round structure before the meeting. Be ready to defend each number with a sentence.",
+    "section": "investor"
   },
   {
-    "id": "441bcd18-8d88-4ccf-8242-4fa88ba0c1a4",
+    "id": "741a76f8-6790-4ef4-8428-b083ca20f1d9",
     "position": 163,
     "filepath": "src/pages/slides/Slide163Investoruseoffunds.tsx",
     "title": "Use of funds.",
     "description": "Use of funds.",
-    "speakerNotes": "40% product, 30% GTM, 20% customer success, 10% G&A. This is a build-and-distribute round, not a fix-and-survive one. Be specific about the first three engineering hires."
+    "speakerNotes": "40% product, 30% GTM, 20% customer success, 10% G&A. This is a build-and-distribute round, not a fix-and-survive one. Be specific about the first three engineering hires.",
+    "section": "investor"
   },
   {
-    "id": "1dc6a9b4-46f3-4043-95c1-9b33308d2cac",
+    "id": "21bc4169-8206-4bee-ad3c-480c145c5859",
     "position": 164,
     "filepath": "src/pages/slides/Slide164Investormilestones.tsx",
     "title": "Milestones.",
     "description": "What we'll prove with this round.",
-    "speakerNotes": "Quarterly milestones for the round — what we'll prove with this money. Pricing in Q1, AI in Q2, workspaces in Q3, mobile + enterprise in Q4. Each is dated and falsifiable."
+    "speakerNotes": "Quarterly milestones for the round — what we'll prove with this money. Pricing in Q1, AI in Q2, workspaces in Q3, mobile + enterprise in Q4. Each is dated and falsifiable.",
+    "section": "investor"
   },
   {
-    "id": "b544d57e-5307-48ba-9d4e-55fc01ccd964",
+    "id": "88723a76-5a9b-41b2-b030-522a9606b609",
     "position": 165,
     "filepath": "src/pages/slides/Slide165Investorexitvision.tsx",
     "title": "Exit & long-term vision.",
     "description": "Exit & long-term vision.",
-    "speakerNotes": "Three exit paths: strategic, growth, IPO. Don't oversell IPO — lead with credible strategic interest from adjacent platforms. Investors prefer optionality over a single bet."
+    "speakerNotes": "Three exit paths: strategic, growth, IPO. Don't oversell IPO — lead with credible strategic interest from adjacent platforms. Investors prefer optionality over a single bet.",
+    "section": "investor"
   },
   {
-    "id": "57c5bc6c-5f4c-41b7-9948-e6cdf7f6fc02",
+    "id": "9c0add56-85e3-4856-bbbf-52e64d5a2830",
     "position": 166,
     "filepath": "src/pages/slides/Slide166Investorwhynow.tsx",
     "title": "Why now.",
     "description": "Why now.",
-    "speakerNotes": "Four reasons this works in 2026 and didn't in 2022: AI credibility across workflows, tool fatigue at all-time highs, identity becoming the homepage, mobile parity finally possible."
+    "speakerNotes": "Four reasons this works in 2026 and didn't in 2022: AI credibility across workflows, tool fatigue at all-time highs, identity becoming the homepage, mobile parity finally possible.",
+    "section": "investor"
   },
   {
-    "id": "593c92c0-64a1-41ef-b3cf-fde7baf7aa6c",
+    "id": "25d087b0-8483-4778-bd79-eed7fbeabb57",
     "position": 167,
     "filepath": "src/pages/slides/Slide167Investorclose.tsx",
     "title": "Investor close",
     "description": "Investor pitch closing slide.",
-    "speakerNotes": "Close the investor deck. Offer the live model, customer references, and a deeper product session. Confirm the next meeting on the call before hanging up."
+    "speakerNotes": "Close the investor deck. Offer the live model, customer references, and a deeper product session. Confirm the next meeting on the call before hanging up.",
+    "section": "investor"
   },
   {
-    "id": "d30edee4-6a14-4149-bc67-c786b1a3b020",
+    "id": "b96507d8-1cc5-4bde-a75e-de5403a15f28",
     "position": 168,
     "filepath": "src/pages/slides/Slide168Roadmapdivider.tsx",
     "title": "Appendix · Future roadmap.",
     "description": "Twenty slides on what's coming, by horizon and by area.",
-    "speakerNotes": "Shift into the roadmap section. Twenty slides organised as Now / Next / Later, broken down by area and rolled up by quarter. Be honest about what's GA versus directional."
+    "speakerNotes": "Shift into the roadmap section. Twenty slides organised as Now / Next / Later, broken down by area and rolled up by quarter. Be honest about what's GA versus directional.",
+    "section": "roadmap"
   },
   {
-    "id": "5f8959ce-9583-441e-aa93-7ec13a4443e1",
+    "id": "b6c2c463-03fd-4cf0-8211-330d037ee576",
     "position": 169,
     "filepath": "src/pages/slides/Slide169Roadmapintro.tsx",
     "title": "How we plan the roadmap.",
     "description": "How we plan the roadmap.",
-    "speakerNotes": "Frame how we plan: Now / Next / Later / Always. Set the expectation that quarters are the granularity, not weeks — that's a feature, not a bug."
+    "speakerNotes": "Frame how we plan: Now / Next / Later / Always. Set the expectation that quarters are the granularity, not weeks — that's a feature, not a bug.",
+    "section": "roadmap"
   },
   {
-    "id": "6e319e28-1519-4aef-a95e-7a6465a69e66",
+    "id": "c6866f26-1eb9-4024-8fbc-550f1c3de7a3",
     "position": 170,
     "filepath": "src/pages/slides/Slide170Roadmaphorizons.tsx",
     "title": "Now / Next / Later — at a glance.",
     "description": "Now / Next / Later — at a glance.",
-    "speakerNotes": "The full company roadmap on one slide. Now is shipping this quarter, Next is in active build, Later has direction set with details flexible. This is the slide most prospects screenshot."
+    "speakerNotes": "The full company roadmap on one slide. Now is shipping this quarter, Next is in active build, Later has direction set with details flexible. This is the slide most prospects screenshot.",
+    "section": "roadmap"
   },
   {
-    "id": "72b1a78e-b8a2-4329-9b27-81b854bfdab8",
+    "id": "397f1d67-01dd-421b-b97b-a22cc945856a",
     "position": 171,
     "filepath": "src/pages/slides/Slide171Roadmapai.tsx",
     "title": "Roadmap · AI.",
     "description": "Roadmap · AI.",
-    "speakerNotes": "AI roadmap: Companions 2.0 now, AskCoach 3.0 next, an open Companion API later. Be honest about what's GA vs. directional — don't promise on-device inference yet."
+    "speakerNotes": "AI roadmap: Companions 2.0 now, AskCoach 3.0 next, an open Companion API later. Be honest about what's GA vs. directional — don't promise on-device inference yet.",
+    "section": "roadmap"
   },
   {
-    "id": "6ab85eef-1628-48cb-aa8c-70ac24529ed1",
+    "id": "a19e7e6c-a083-4c4c-ab40-4810570b1dd8",
     "position": 172,
     "filepath": "src/pages/slides/Slide172Roadmapbio.tsx",
     "title": "Roadmap · Bio Links & Smart Links.",
     "description": "Roadmap · Bio Links & Smart Links.",
-    "speakerNotes": "Bio + Smart Links roadmap. Editor v3 now, visual routing v3 next, programmable bios later. The marketplace for blocks is the long-tail bet here."
+    "speakerNotes": "Bio + Smart Links roadmap. Editor v3 now, visual routing v3 next, programmable bios later. The marketplace for blocks is the long-tail bet here.",
+    "section": "roadmap"
   },
   {
-    "id": "81fe4656-abd7-49cc-b8b3-62a74b2ab482",
+    "id": "7946e106-e5ad-45b0-b1d0-eda246a7aa3b",
     "position": 173,
     "filepath": "src/pages/slides/Slide173Roadmapproductivity.tsx",
     "title": "Roadmap · Productivity & CRM.",
     "description": "Roadmap · Productivity & CRM.",
-    "speakerNotes": "Productivity & CRM roadmap. Pipeline 2.0 now, Vault sharing 2.0 next, Forms 2.0 later. This is where teams expand seats once they're on Studio."
+    "speakerNotes": "Productivity & CRM roadmap. Pipeline 2.0 now, Vault sharing 2.0 next, Forms 2.0 later. This is where teams expand seats once they're on Studio.",
+    "section": "roadmap"
   },
   {
-    "id": "df097454-50b0-4afe-a3f6-f11906cf5cdf",
+    "id": "d9b37027-14dc-4563-82e1-6cfc4852f2fa",
     "position": 174,
     "filepath": "src/pages/slides/Slide174Roadmapsocial.tsx",
     "title": "Roadmap · Social & community.",
     "description": "Roadmap · Social & community.",
-    "speakerNotes": "Social & community roadmap: cross-post v2 today, paid memberships next, community moments (live drops, polls, collabs) later. The members tier is the monetisation hook."
+    "speakerNotes": "Social & community roadmap: cross-post v2 today, paid memberships next, community moments (live drops, polls, collabs) later. The members tier is the monetisation hook.",
+    "section": "roadmap"
   },
   {
-    "id": "574eff44-e19c-460d-882e-ef68d53c87e0",
+    "id": "cd3356ca-5594-4ea0-aa06-303fe63f806d",
     "position": 175,
     "filepath": "src/pages/slides/Slide175Roadmapmobile.tsx",
     "title": "Roadmap · Mobile.",
     "description": "Roadmap · Mobile.",
-    "speakerNotes": "Mobile roadmap: NFC v2 now, Smart Dialer 2.0 next, full mobile parity later. Apple Wallet pass is the headline announcement for this quarter."
+    "speakerNotes": "Mobile roadmap: NFC v2 now, Smart Dialer 2.0 next, full mobile parity later. Apple Wallet pass is the headline announcement for this quarter.",
+    "section": "roadmap"
   },
   {
-    "id": "34acedac-ad2f-4e06-89fa-1adc17d1f37c",
+    "id": "9f3039b1-9181-4023-b62f-35e6e59bf8e6",
     "position": 176,
     "filepath": "src/pages/slides/Slide176Roadmapplatformapi.tsx",
     "title": "Roadmap · Platform & API.",
     "description": "Roadmap · Platform & API.",
-    "speakerNotes": "Platform & API roadmap. Webhook v2 with replay and signed payloads, GraphQL surface, in-product app store with partner-built modules. This is the developer-relations narrative."
+    "speakerNotes": "Platform & API roadmap. Webhook v2 with replay and signed payloads, GraphQL surface, in-product app store with partner-built modules. This is the developer-relations narrative.",
+    "section": "roadmap"
   },
   {
-    "id": "03282a1a-e210-43a6-bcaa-7d0eb9f39b2d",
+    "id": "344eab15-9296-4ea9-abf7-2053be36bf54",
     "position": 177,
     "filepath": "src/pages/slides/Slide177Roadmapenterprise.tsx",
     "title": "Roadmap · Enterprise.",
     "description": "Roadmap · Enterprise.",
-    "speakerNotes": "Enterprise roadmap: SSO + SCIM now (Okta, Azure AD, Google), workspace federation next, custom contracts (data residency, BYO key) later. The slide for the IT buyer."
+    "speakerNotes": "Enterprise roadmap: SSO + SCIM now (Okta, Azure AD, Google), workspace federation next, custom contracts (data residency, BYO key) later. The slide for the IT buyer.",
+    "section": "roadmap"
   },
   {
-    "id": "3437a03c-66ff-4088-9a17-7b0d71d02320",
+    "id": "39e1a13e-63a2-4d7e-9333-0fc7d714c2ce",
     "position": 178,
     "filepath": "src/pages/slides/Slide178Roadmapcompliance.tsx",
     "title": "Roadmap · Security & compliance.",
     "description": "Roadmap · Security & compliance.",
-    "speakerNotes": "Security & compliance roadmap. SOC 2 Type II audit is active, ISO 27001 next with end-of-year target, regional data zones (EU, UK, APAC) later."
+    "speakerNotes": "Security & compliance roadmap. SOC 2 Type II audit is active, ISO 27001 next with end-of-year target, regional data zones (EU, UK, APAC) later.",
+    "section": "roadmap"
   },
   {
-    "id": "c9fb8b9e-970e-439d-9cf3-e2199e2ceba1",
+    "id": "52e17c86-01ae-4f70-9c0b-06e800a3a90e",
     "position": 179,
     "filepath": "src/pages/slides/Slide179Roadmapinternationalization.tsx",
     "title": "Roadmap · Internationalization.",
     "description": "Roadmap · Internationalization.",
-    "speakerNotes": "i18n roadmap: localized UI in five languages today, local payments (SEPA, Pix, SPEI) next, region-specific content later. RTL is already supported."
+    "speakerNotes": "i18n roadmap: localized UI in five languages today, local payments (SEPA, Pix, SPEI) next, region-specific content later. RTL is already supported.",
+    "section": "roadmap"
   },
   {
-    "id": "c7555b90-4c36-4989-b268-d8b03430c206",
+    "id": "7845d7fe-703d-4891-8f7f-fee0c07ba82a",
     "position": 180,
     "filepath": "src/pages/slides/Slide180Roadmapmarketplace.tsx",
     "title": "Roadmap · Marketplace.",
     "description": "Roadmap · Marketplace.",
-    "speakerNotes": "Marketplace roadmap: free templates today, paid templates with creator payouts next, full apps marketplace with revenue share later. This is the long-term platform play."
+    "speakerNotes": "Marketplace roadmap: free templates today, paid templates with creator payouts next, full apps marketplace with revenue share later. This is the long-term platform play.",
+    "section": "roadmap"
   },
   {
-    "id": "33c0039e-9d20-4a20-b9de-504545f71ebc",
+    "id": "ad292e75-74cc-4cd8-80bf-3976b8f65152",
     "position": 181,
     "filepath": "src/pages/slides/Slide181Roadmapanalytics.tsx",
     "title": "Roadmap · Analytics.",
     "description": "Roadmap · Analytics.",
-    "speakerNotes": "Analytics roadmap: Funnels v2 with drag-and-drop steps, behavioural cohorts next, warehouse exports and BI partner connectors later."
+    "speakerNotes": "Analytics roadmap: Funnels v2 with drag-and-drop steps, behavioural cohorts next, warehouse exports and BI partner connectors later.",
+    "section": "roadmap"
   },
   {
-    "id": "3e16cddc-a8fe-44f7-9f4b-298f0c1f780e",
+    "id": "aead05ea-6983-40bf-bf90-78879f1f42e7",
     "position": 182,
     "filepath": "src/pages/slides/Slide182Roadmapbrand.tsx",
     "title": "Roadmap · Brand & design system.",
     "description": "Roadmap · Brand & design system.",
-    "speakerNotes": "Brand & design system roadmap: per-workspace brand kits today, visual theme studio next, programmatic Design API later. The white-label foundation."
+    "speakerNotes": "Brand & design system roadmap: per-workspace brand kits today, visual theme studio next, programmatic Design API later. The white-label foundation.",
+    "section": "roadmap"
   },
   {
-    "id": "3d861510-d608-4ca5-9307-f5d9fde9492b",
+    "id": "3a95fc52-ce96-4197-b4ef-7c0b32adebc9",
     "position": 183,
     "filepath": "src/pages/slides/Slide183Roadmapintegrations.tsx",
     "title": "Roadmap · Integrations.",
     "description": "Roadmap · Integrations.",
-    "speakerNotes": "Integrations roadmap: top 20 native today, top 50 next, the long tail covered via Zapier and Make. We won't build every connector ourselves — that's a feature."
+    "speakerNotes": "Integrations roadmap: top 20 native today, top 50 next, the long tail covered via Zapier and Make. We won't build every connector ourselves — that's a feature.",
+    "section": "roadmap"
   },
   {
-    "id": "d912da17-e472-4fcb-9338-b969a09a1028",
+    "id": "24b96c7f-2f6b-47e1-9aee-33455ebbbd0c",
     "position": 184,
     "filepath": "src/pages/slides/Slide184Roadmapquarterlytimeline.tsx",
     "title": "Quarterly timeline.",
     "description": "What ships when, across the platform.",
-    "speakerNotes": "Read this matrix across the rows, not down the columns. Investors and IT buyers care about pace per area — six themes shipping every quarter is the headline."
+    "speakerNotes": "Read this matrix across the rows, not down the columns. Investors and IT buyers care about pace per area — six themes shipping every quarter is the headline.",
+    "section": "roadmap"
   },
   {
-    "id": "e1c1ce0f-e01e-4333-8a8c-9cd6fbc794bd",
+    "id": "d67abbab-f947-46b9-8d96-2571f3f941ba",
     "position": 185,
     "filepath": "src/pages/slides/Slide185Roadmapprinciples.tsx",
     "title": "How we choose what to ship.",
     "description": "How we choose what to ship.",
-    "speakerNotes": "Four principles for choosing what to ship: honest, open, realistic, bold. We commit to quarters, not weeks. Customers vote on the public roadmap — show them the URL."
+    "speakerNotes": "Four principles for choosing what to ship: honest, open, realistic, bold. We commit to quarters, not weeks. Customers vote on the public roadmap — show them the URL.",
+    "section": "roadmap"
   },
   {
-    "id": "986f5d73-c9ab-4a45-b517-d43f43180f6e",
+    "id": "57774fb6-a57b-4032-b93a-5445005ce131",
     "position": 186,
     "filepath": "src/pages/slides/Slide186Roadmapinvestmentsplit.tsx",
     "title": "Where the engineering hours go.",
     "description": "Where the engineering hours go.",
-    "speakerNotes": "Where engineering hours go: 40% AI + integrations, 25% core modules, 20% platform + API, 15% performance and reliability. The split investors expect from a Series A platform."
+    "speakerNotes": "Where engineering hours go: 40% AI + integrations, 25% core modules, 20% platform + API, 15% performance and reliability. The split investors expect from a Series A platform.",
+    "section": "roadmap"
   },
   {
-    "id": "48a64bec-92e4-4c9d-99f0-a7b91b131962",
+    "id": "3e2f915b-d38f-4467-a273-752ddef84b03",
     "position": 187,
     "filepath": "src/pages/slides/Slide187Roadmapcustomerinfluence.tsx",
     "title": "How customers shape the roadmap.",
     "description": "How customers shape the roadmap.",
-    "speakerNotes": "Four ways customers shape the roadmap: public requests, quarterly council, beta program, weekly office hours. The point: this isn't a closed roadmap — they have a seat at the table."
+    "speakerNotes": "Four ways customers shape the roadmap: public requests, quarterly council, beta program, weekly office hours. The point: this isn't a closed roadmap — they have a seat at the table.",
+    "section": "roadmap"
   },
   {
-    "id": "5eac727c-b81f-4453-b310-96bc0493db7b",
+    "id": "f24de670-0824-40a7-9570-04bf0f5b3b48",
     "position": 188,
     "filepath": "src/pages/slides/Slide188Roadmapshape.tsx",
     "title": "Roadmap close",
     "description": "Roadmap closing slide.",
-    "speakerNotes": "Close the roadmap section. Invite them to vote on the public roadmap, join the customer council, or talk to product directly. One CTA — pick the one that fits the room."
+    "speakerNotes": "Close the roadmap section. Invite them to vote on the public roadmap, join the customer council, or talk to product directly. One CTA — pick the one that fits the room.",
+    "section": "roadmap"
   }
 ]
