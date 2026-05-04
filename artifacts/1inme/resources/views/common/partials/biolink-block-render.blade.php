@@ -41,11 +41,12 @@
     <div class="mb-4 prose prose-invert prose-sm max-w-none">{!! strip_tags($s['html'] ?? '', '<p><br><a><strong><em><u><ul><ol><li><h1><h2><h3><h4><h5><h6><span><div><img><blockquote><hr>') !!}</div>
 
 @elseif($block->type === 'link')
+    @php $btnInline = $btnInline ?? ''; @endphp
     @if(!empty($s['is_featured']))
         @php $accent = $s['accent_color'] ?? '#f59e0b'; @endphp
         <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
            class="block w-full mb-3 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl relative"
-           style="background: linear-gradient(135deg, {{ $accent }} 0%, {{ $accent }}dd 100%); box-shadow: 0 8px 24px {{ $accent }}55;">
+           style="background: linear-gradient(135deg, {{ $accent }} 0%, {{ $accent }}dd 100%); box-shadow: 0 8px 24px {{ $accent }}55;{{ $btnInline ? ' ' . $btnInline : '' }}">
             <div class="absolute top-2 right-2 px-2 py-0.5 text-[10px] font-bold rounded-full bg-white/25 text-white tracking-wide">
                 <i class="fas fa-thumbtack"></i> FEATURED
             </div>
@@ -61,7 +62,8 @@
         </a>
     @else
         <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
-           class="bio-btn block w-full px-6 py-3.5 mb-3 text-center font-medium transition-all duration-300 flex items-center justify-center gap-3">
+           class="bio-btn block w-full px-6 py-3.5 mb-3 text-center font-medium transition-all duration-300 flex items-center justify-center gap-3"
+           @if($btnInline) style="{{ $btnInline }}" @endif>
             @if(!empty($s['thumbnail']))<img src="{{ $s['thumbnail'] }}" class="w-6 h-6 rounded object-cover" alt="">
             @elseif(!empty($s['icon']))<i class="{{ $s['icon'] }}"></i>@endif
             <span>{{ $s['text'] ?? 'Link' }}</span>
@@ -69,9 +71,10 @@
     @endif
 
 @elseif($block->type === 'link_big')
+    @php $btnInline = $btnInline ?? ''; @endphp
     <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
        class="block w-full mb-3 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
-       style="background: {{ $s['bg_color'] ?? ($btnColor ?? '#7c3aed') }};">
+       style="background: {{ $s['bg_color'] ?? ($btnColor ?? '#7c3aed') }};{{ $btnInline ? ' ' . $btnInline : '' }}">
         <div class="px-6 py-5 flex items-center gap-4">
             @if(!empty($s['thumbnail']))<img src="{{ $s['thumbnail'] }}" class="w-12 h-12 rounded-xl object-cover" alt="">
             @elseif(!empty($s['icon']))<div class="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center"><i class="{{ $s['icon'] }} text-xl"></i></div>@endif
@@ -107,12 +110,13 @@
     </div>
 
 @elseif($block->type === 'cta_button')
+    @php $btnInline = $btnInline ?? ''; @endphp
     <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
        class="block w-full mb-3 text-center font-semibold transition-all duration-300 hover:-translate-y-0.5"
        style="background: {{ $s['color'] ?? ($btnColor ?? '#7c3aed') }}; color: {{ $s['text_color'] ?? ($btnTextColor ?? '#fff') }};
               padding: {{ ($s['size'] ?? 'lg') === 'sm' ? '10px 20px' : (($s['size'] ?? 'lg') === 'md' ? '14px 24px' : '18px 32px') }};
               border-radius: {{ $btnRadius ?? '12px' }}; box-shadow: 0 6px 20px {{ $s['color'] ?? ($btnColor ?? '#7c3aed') }}40;
-              font-size: {{ ($s['size'] ?? 'lg') === 'sm' ? '14px' : (($s['size'] ?? 'lg') === 'md' ? '16px' : '18px') }};">
+              font-size: {{ ($s['size'] ?? 'lg') === 'sm' ? '14px' : (($s['size'] ?? 'lg') === 'md' ? '16px' : '18px') }};{{ $btnInline ? ' ' . $btnInline : '' }}">
         {{ $s['text'] ?? 'Click Here' }}
     </a>
 

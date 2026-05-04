@@ -810,7 +810,14 @@
                 $blockStyle = \App\Modules\User\Models\BiolinkBlock::getBlockStyle($s, $globalTheme);
                 $blockInline = \App\Modules\User\Models\BiolinkBlock::buildInlineStyle($blockStyle);
                 $hasCustomStyle = !empty($s['_style']) || (!empty($globalTheme) && ($globalTheme['apply_to_all'] ?? false));
-                $skipWrap = in_array($block->type, ['avatar', 'divider', 'spacer', 'social_icons']);
+                // Button-like blocks must apply the preset directly to the
+                // <a> element (the actual visible button), NOT to a wrapper
+                // div around it — otherwise "Neon Glow" haloes the empty
+                // padding around the button instead of the button itself.
+                $btnLikeBlocks = ['link', 'link_big', 'cta_button', 'button'];
+                $isBtnLike = in_array($block->type, $btnLikeBlocks);
+                $skipWrap = in_array($block->type, ['avatar', 'divider', 'spacer', 'social_icons']) || $isBtnLike;
+                $btnInline = ($isBtnLike && $hasCustomStyle) ? $blockInline : '';
             @endphp
 
             @php $gridSpan = intval($blockStyle['grid_span'] ?? 12) ?: 12; @endphp
@@ -933,7 +940,8 @@
 
             @elseif($block->type === 'link')
                 <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
-                   class="bio-btn block w-full px-6 py-3.5 mb-3 text-center font-medium transition-all duration-300 flex items-center justify-center gap-3">
+                   class="bio-btn block w-full px-6 py-3.5 mb-3 text-center font-medium transition-all duration-300 flex items-center justify-center gap-3"
+                   @if($btnInline) style="{{ $btnInline }}" @endif>
                     @if(!empty($s['thumbnail']))<img src="{{ $s['thumbnail'] }}" class="w-6 h-6 rounded object-cover" alt="">
                     @elseif(!empty($s['icon']))@php $_lnkIcon = $s['icon']; if(!preg_match('/^fa[sbrl] /', $_lnkIcon)) $_lnkIcon = 'fas ' . $_lnkIcon; @endphp<i class="{{ $_lnkIcon }}"></i>@endif
                     <span>{{ $s['text'] ?? 'Link' }}</span>
@@ -942,7 +950,7 @@
             @elseif($block->type === 'link_big')
                 <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
                    class="block w-full mb-3 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
-                   style="background: {{ $s['bg_color'] ?? $btnColor }};">
+                   style="background: {{ $s['bg_color'] ?? $btnColor }};{{ $btnInline ? ' ' . $btnInline : '' }}">
                     <div class="px-6 py-5 flex items-center gap-4">
                         @if(!empty($s['thumbnail']))<img src="{{ $s['thumbnail'] }}" class="w-12 h-12 rounded-xl object-cover" alt="">
                         @elseif(!empty($s['icon']))@php $_lnkBigIcon = $s['icon']; if(!preg_match('/^fa[sbrl] /', $_lnkBigIcon)) $_lnkBigIcon = 'fas ' . $_lnkBigIcon; @endphp<div class="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center"><i class="{{ $_lnkBigIcon }} text-xl"></i></div>@endif
@@ -1679,7 +1687,7 @@
                    style="background: {{ $s['color'] ?? $btnColor }}; color: {{ $s['text_color'] ?? $btnTextColor }};
                           padding: {{ ($s['size'] ?? 'lg') === 'sm' ? '10px 20px' : (($s['size'] ?? 'lg') === 'md' ? '14px 24px' : '18px 32px') }};
                           border-radius: {{ $btnRadius }}; box-shadow: 0 6px 20px {{ $s['color'] ?? $btnColor }}40;
-                          font-size: {{ ($s['size'] ?? 'lg') === 'sm' ? '14px' : (($s['size'] ?? 'lg') === 'md' ? '16px' : '18px') }};">
+                          font-size: {{ ($s['size'] ?? 'lg') === 'sm' ? '14px' : (($s['size'] ?? 'lg') === 'md' ? '16px' : '18px') }};{{ $btnInline ? ' ' . $btnInline : '' }}">
                     {{ $s['text'] ?? 'Click Here' }}
                 </a>
 
@@ -1880,13 +1888,15 @@
                                 $childStyle = \App\Modules\User\Models\BiolinkBlock::getBlockStyle($cs, $globalTheme);
                                 $childInline = \App\Modules\User\Models\BiolinkBlock::buildInlineStyle($childStyle);
                                 $childHasStyle = !empty($cs['_style']) || (!empty($globalTheme) && ($globalTheme['apply_to_all'] ?? false));
-                                $childSkipWrap = in_array($childBlock->type, ['avatar', 'divider', 'spacer', 'social_icons']);
+                                $childIsBtnLike = in_array($childBlock->type, ['link', 'link_big', 'cta_button', 'button']);
+                                $childSkipWrap = in_array($childBlock->type, ['avatar', 'divider', 'spacer', 'social_icons']) || $childIsBtnLike;
+                                $childBtnInline = ($childIsBtnLike && $childHasStyle) ? $childInline : '';
                                 $childSpanRaw = intval($childStyle['grid_span'] ?? 12) ?: 12;
                                 $childSpan = max(1, (int)round($childSpanRaw / 12 * $cols));
                             @endphp
                             <div style="grid-column: span {{ min($childSpan, $cols) }};">
                             @if($childHasStyle && !$childSkipWrap)<div class="block-styled" style="{{ $childInline }}">@endif
-                                @include('common.partials.biolink-block-render', ['block' => $childBlock, 's' => $cs, 'fontColor' => $fontColor ?? '#fff'])
+                                @include('common.partials.biolink-block-render', ['block' => $childBlock, 's' => $cs, 'fontColor' => $fontColor ?? '#fff', 'btnInline' => $childBtnInline])
                             @if($childHasStyle && !$childSkipWrap)</div>@endif
                             </div>
                         @endforeach
