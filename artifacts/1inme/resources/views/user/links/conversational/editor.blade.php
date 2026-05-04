@@ -88,6 +88,29 @@
     .cv-preview-frame { width: 100%; height: 600px; border: 1px solid var(--border-glass); border-radius: 12px; background: #0f172a; }
     .cv-preview-card { position: sticky; top: 80px; }
 
+    .cv-tabs { display: flex; gap: 4px; padding: 4px; background: var(--bg-glass-input); border: 1px solid var(--border-glass); border-radius: 10px; margin-bottom: 12px; }
+    .cv-tab { flex: 1; text-align: center; padding: 7px 10px; font-size: 12px; font-weight: 600; border-radius: 7px; cursor: pointer; color: var(--text-muted); border: 0; background: transparent; }
+    .cv-tab.is-active { background: linear-gradient(135deg, #8b5cf6, #6366f1); color: #fff; box-shadow: 0 4px 12px -6px rgba(139,92,246,0.6); }
+
+    .cv-sim-shell { display: flex; flex-direction: column; gap: 10px; height: 600px; }
+    .cv-sim-transcript { flex: 1; overflow-y: auto; padding: 10px; border: 1px solid var(--border-glass); border-radius: 12px; background: #0f172a; display: flex; flex-direction: column; gap: 8px; }
+    .cv-sim-bubble { max-width: 85%; padding: 8px 12px; border-radius: 14px; font-size: 13px; line-height: 1.4; word-wrap: break-word; white-space: pre-wrap; }
+    .cv-sim-bubble.bot  { align-self: flex-start; background: rgba(255,255,255,0.08); color: #e2e8f0; border-bottom-left-radius: 4px; }
+    .cv-sim-bubble.user { align-self: flex-end;   background: linear-gradient(135deg, #8b5cf6, #6366f1); color: #fff; border-bottom-right-radius: 4px; }
+    .cv-sim-meta { font-size: 10px; color: #64748b; margin-top: 2px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .cv-sim-bubble.bot .cv-sim-meta { color: #94a3b8; }
+    .cv-sim-bubble.user .cv-sim-meta { color: rgba(255,255,255,0.75); }
+    .cv-sim-bubble.system { align-self: center; background: rgba(239,68,68,0.12); color: #fca5a5; font-size: 11px; padding: 6px 10px; border-radius: 8px; }
+    .cv-sim-bubble.system.is-info { background: rgba(16,185,129,0.12); color: #6ee7b7; }
+    .cv-sim-controls { padding: 10px; border: 1px dashed rgba(139,92,246,0.35); border-radius: 12px; background: rgba(139,92,246,0.05); display: flex; flex-direction: column; gap: 8px; }
+    .cv-sim-controls .cv-input, .cv-sim-controls .cv-select, .cv-sim-controls .cv-textarea { background: var(--bg-card); }
+    .cv-sim-quick { display: flex; flex-wrap: wrap; gap: 6px; }
+    .cv-sim-chip { padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(139,92,246,0.4); background: rgba(139,92,246,0.08); color: #c4b5fd; font-size: 12px; cursor: pointer; }
+    .cv-sim-chip.is-picked { background: linear-gradient(135deg, #8b5cf6, #6366f1); color: #fff; border-color: transparent; }
+    .cv-sim-row { display: flex; gap: 8px; align-items: center; }
+    .cv-sim-state { font-size: 11px; color: var(--text-faint); padding: 8px 10px; background: var(--bg-glass-input); border-radius: 8px; border: 1px solid var(--border-glass); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; max-height: 100px; overflow-y: auto; }
+    .cv-sim-state strong { color: #a78bfa; }
+
     .cv-save-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 24px; }
     .cv-save-status { font-size: 12px; color: var(--text-faint); }
     .cv-save-status.is-error { color: #ef4444; }
@@ -174,17 +197,36 @@
 
         <div>
             <div class="cv-card cv-preview-card">
-                <div class="cv-card-title">
-                    <div>
-                        <h6>Live preview</h6>
-                        <div class="cv-card-subtitle">Save to refresh — draft flows are visible to you only.</div>
+                <div class="cv-tabs" role="tablist">
+                    <button class="cv-tab is-active" data-cv-tab="preview" type="button"><i class="fas fa-eye"></i> Live preview</button>
+                    <button class="cv-tab" data-cv-tab="sim" type="button"><i class="fas fa-vial"></i> Simulator</button>
+                </div>
+
+                <div data-cv-pane="preview">
+                    <div class="cv-card-subtitle mb-2">Save to refresh — draft flows are visible to you only.</div>
+                    <iframe class="cv-preview-frame" src="{{ $previewUrl }}" id="cv-preview"></iframe>
+                    <button class="cv-btn cv-btn-ghost mt-2" style="width:100%; justify-content:center;"
+                            onclick="document.getElementById('cv-preview').src=document.getElementById('cv-preview').src">
+                        <i class="fas fa-sync"></i> Reload preview
+                    </button>
+                </div>
+
+                <div data-cv-pane="sim" style="display:none;">
+                    <div class="cv-card-subtitle mb-2">
+                        Dry-run the unsaved flow with mock answers. Conditions, choice overrides, AI intents, and merge tags resolve live.
+                        <span style="display:block; margin-top:4px; color: var(--text-faint);">Approximations: AI intent is picked manually (no model call), file uploads are mocked, and AI credits aren't charged.</span>
+                    </div>
+                    <div class="cv-sim-shell">
+                        <div class="cv-sim-transcript" id="cv-sim-transcript"></div>
+                        <div class="cv-sim-controls" id="cv-sim-controls"></div>
+                        <div class="cv-sim-state" id="cv-sim-state"></div>
+                        <div class="cv-sim-row">
+                            <button class="cv-btn cv-btn-outline" id="cv-sim-restart" style="flex:1; justify-content:center;">
+                                <i class="fas fa-redo"></i> Restart simulation
+                            </button>
+                        </div>
                     </div>
                 </div>
-                <iframe class="cv-preview-frame" src="{{ $previewUrl }}" id="cv-preview"></iframe>
-                <button class="cv-btn cv-btn-ghost mt-2" style="width:100%; justify-content:center;"
-                        onclick="document.getElementById('cv-preview').src=document.getElementById('cv-preview').src">
-                    <i class="fas fa-sync"></i> Reload preview
-                </button>
             </div>
         </div>
     </div>
@@ -701,5 +743,534 @@ document.getElementById('cv-mode-toggle').addEventListener('change', async (e) =
 
 renderActions();
 renderSteps();
+
+// ───────────────────────── Simulator ─────────────────────────
+// Dry-runs the in-memory flow (unsaved edits included) so creators
+// can validate branching, choice overrides, AI intent routing, and
+// merge tags without clicking through the live chat.
+
+document.querySelectorAll('[data-cv-tab]').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const tab = btn.dataset.cvTab;
+        document.querySelectorAll('[data-cv-tab]').forEach(b => b.classList.toggle('is-active', b === btn));
+        document.querySelectorAll('[data-cv-pane]').forEach(p => {
+            p.style.display = p.dataset.cvPane === tab ? '' : 'none';
+        });
+        if (tab === 'sim') simRestart();
+    });
+});
+
+const sim = {
+    answers: {},
+    currentKey: null,
+    history: [],     // visited step keys
+    transcript: [],  // {role, text, meta}
+    done: false,
+};
+
+function simStepsByKey() {
+    const m = {};
+    steps.forEach(s => { if (s.key) m[s.key] = s; });
+    return m;
+}
+
+function simEntryStep() {
+    const entry = steps.find(s => s.is_entry);
+    return entry || steps[0] || null;
+}
+
+function simRenderTemplate(tpl) {
+    if (!tpl || tpl.indexOf('{{') === -1) return tpl || '';
+    return String(tpl).replace(/\{\{\s*([a-z0-9_]+)(?::([a-z0-9_]+))?\s*\}\}/gi, (_, ns, key) => {
+        const lookup = key || ns;
+        const a = sim.answers;
+        let v = '';
+        if (ns.toLowerCase() === 'step' || ns.toLowerCase() === 'answer') v = a[key] ?? '';
+        else v = a[lookup] ?? '';
+        if (Array.isArray(v)) v = v.join(', ');
+        return v == null ? '' : String(v);
+    });
+}
+
+function simEvalCondition(cond) {
+    if (!cond || !cond.field) return false;
+    const actual = sim.answers[cond.field];
+    const expected = cond.value;
+    const op = cond.op || 'eq';
+    const isArr = Array.isArray(actual);
+    const sa = actual == null ? '' : String(actual);
+    const se = expected == null ? '' : String(expected);
+    switch (op) {
+        case 'eq':  return isArr ? actual.map(String).includes(se) : sa === se;
+        case 'neq': return isArr ? !actual.map(String).includes(se) : sa !== se;
+        case 'contains':     return isArr ? actual.map(String).includes(se) : sa.toLowerCase().includes(se.toLowerCase());
+        case 'not_contains': return !(isArr ? actual.map(String).includes(se) : sa.toLowerCase().includes(se.toLowerCase()));
+        case 'in': {
+            const arr = Array.isArray(expected) ? expected.map(String) : se.split(',').map(s => s.trim());
+            return arr.includes(sa);
+        }
+        case 'gt': return !isNaN(parseFloat(sa)) && parseFloat(sa) > parseFloat(se);
+        case 'lt': return !isNaN(parseFloat(sa)) && parseFloat(sa) < parseFloat(se);
+        case 'exists': return actual !== null && actual !== undefined && actual !== '';
+        case 'empty':  return actual === null || actual === undefined || actual === '' || (isArr && actual.length === 0);
+    }
+    return false;
+}
+
+function simResolveStep(stepKey) {
+    const map = simStepsByKey();
+    const seen = {};
+    let s = map[stepKey];
+    while (s) {
+        const field = s.answer_field || s.key;
+        const known = Object.prototype.hasOwnProperty.call(sim.answers, field);
+        if (!s.skip_if_known || !known || s.kind === 'end') return s;
+        let nextKey = s.next_step_key || null;
+        if (s.kind === 'question') {
+            (s.choices || []).forEach(c => {
+                if (c.value === sim.answers[field] && c.next_step_key) nextKey = c.next_step_key;
+            });
+        }
+        const conds = (s.settings && s.settings.conditions) || [];
+        for (const c of conds) {
+            if (simEvalCondition(c) && c.goto) { nextKey = c.goto; break; }
+        }
+        if (!nextKey || seen[nextKey]) return s;
+        seen[nextKey] = true;
+        s = map[nextKey];
+    }
+    return null;
+}
+
+function simBubble(role, text, meta) {
+    sim.transcript.push({ role, text, meta: meta || '' });
+}
+
+function simRenderTranscript() {
+    const wrap = document.getElementById('cv-sim-transcript');
+    if (!wrap) return;
+    wrap.innerHTML = sim.transcript.map(b => {
+        const cls = 'cv-sim-bubble ' + b.role + (b.role === 'system' && b.meta === 'info' ? ' is-info' : '');
+        const meta = (b.role !== 'system' && b.meta) ? `<div class="cv-sim-meta">${escapeHtml(b.meta)}</div>` : '';
+        return `<div class="${cls}">${escapeHtml(b.text)}${meta}</div>`;
+    }).join('');
+    wrap.scrollTop = wrap.scrollHeight;
+}
+
+function simRenderState() {
+    const el = document.getElementById('cv-sim-state');
+    if (!el) return;
+    const path = sim.history.join(' → ') || '—';
+    const ans = Object.keys(sim.answers).length
+        ? Object.entries(sim.answers).map(([k, v]) => `${k}=${Array.isArray(v) ? v.join('|') : v}`).join(', ')
+        : '—';
+    el.innerHTML = `<strong>Path:</strong> ${escapeHtml(path)}<br><strong>Answers:</strong> ${escapeHtml(ans)}`;
+}
+
+function simEnter(stepKey, sourceMeta) {
+    const map = simStepsByKey();
+    const resolved = simResolveStep(stepKey);
+    if (!resolved) {
+        simBubble('system', 'Flow ended (no next step).', 'info');
+        sim.done = true;
+        simRenderTranscript();
+        simRenderState();
+        simRenderControls(null);
+        return;
+    }
+    sim.currentKey = resolved.key;
+    sim.history.push(resolved.key);
+    const text = simRenderTemplate(resolved.message_text || '(no message)');
+    let meta = `${resolved.kind} · ${resolved.key}`;
+    if (sourceMeta) meta = sourceMeta + ' → ' + meta;
+    simBubble('bot', text, meta);
+    simRenderTranscript();
+    simRenderState();
+
+    // Auto-advance kinds with no input.
+    if (['message', 'media', 'end'].includes(resolved.kind)) {
+        const nextKey = simResolveAfter(resolved, null);
+        if (resolved.kind === 'end' || !nextKey) {
+            sim.done = true;
+            simFinish(resolved);
+            return;
+        }
+        // small delay for readability when chaining auto-steps
+        setTimeout(() => simEnter(nextKey, 'auto'), 250);
+        simRenderControls(resolved); // briefly show "auto-advancing"
+        return;
+    }
+
+    simRenderControls(resolved);
+}
+
+function simResolveAfter(step, choiceValue) {
+    let nextKey = step.next_step_key || null;
+    if (step.kind === 'question' && choiceValue != null && !Array.isArray(choiceValue)) {
+        const c = (step.choices || []).find(x => x.value === choiceValue);
+        if (c) {
+            const cs = c.settings || {};
+            if (cs.condition && simEvalCondition(cs.condition) && cs.condition.goto) {
+                nextKey = cs.condition.goto;
+            } else {
+                if (c.next_step_key) nextKey = c.next_step_key;
+            }
+        }
+    }
+    // Step-level conditions evaluated last (first match wins, overrides above).
+    const conds = (step.settings && step.settings.conditions) || [];
+    for (const cond of conds) {
+        if (simEvalCondition(cond) && cond.goto) { nextKey = cond.goto; break; }
+    }
+    return nextKey;
+}
+
+function simFinish(step) {
+    let actionLabel = null;
+    const findAction = (clientId) => actions.find(a => a.client_id === clientId);
+    if (step.kind === 'question' && step.action_client_id) {
+        const a = findAction(step.action_client_id);
+        if (a) actionLabel = a.label || a.kind;
+    } else if (step.action_client_id) {
+        const a = findAction(step.action_client_id);
+        if (a) actionLabel = a.label || a.kind;
+    }
+    simBubble('system', actionLabel ? `Flow complete · action: ${actionLabel}` : 'Flow complete.', 'info');
+    simRenderTranscript();
+    simRenderControls(null);
+}
+
+function simAdvance(step, choiceValue, displayValue, choiceObj) {
+    // Record the user-visible answer bubble.
+    simBubble('user', displayValue);
+    // Persist the answer.
+    const field = step.answer_field || step.key;
+    sim.answers[field] = choiceValue;
+
+    // Compute the route + which rule fired (for the meta caption).
+    let nextKey = step.next_step_key || null;
+    let routeNote = nextKey ? `default → ${nextKey}` : 'no default';
+    if (step.kind === 'question' && choiceObj && !Array.isArray(choiceValue)) {
+        const cs = choiceObj.settings || {};
+        if (cs.condition && simEvalCondition(cs.condition) && cs.condition.goto) {
+            nextKey = cs.condition.goto;
+            routeNote = `choice condition → ${nextKey}`;
+        } else if (choiceObj.next_step_key) {
+            nextKey = choiceObj.next_step_key;
+            routeNote = `choice route → ${nextKey}`;
+        }
+    }
+    const conds = (step.settings && step.settings.conditions) || [];
+    for (let i = 0; i < conds.length; i++) {
+        if (simEvalCondition(conds[i]) && conds[i].goto) {
+            nextKey = conds[i].goto;
+            routeNote = `step condition #${i + 1} (${conds[i].field} ${conds[i].op} ${conds[i].value}) → ${nextKey}`;
+            break;
+        }
+    }
+
+    // Trailing action on the step or chosen choice.
+    let chosenAction = null;
+    if (step.kind === 'question' && choiceObj && choiceObj.action_client_id) {
+        chosenAction = actions.find(a => a.client_id === choiceObj.action_client_id);
+    }
+    if (!chosenAction && step.action_client_id) {
+        chosenAction = actions.find(a => a.client_id === step.action_client_id);
+    }
+
+    simRenderTranscript();
+    simRenderState();
+
+    if (!nextKey) {
+        simBubble('system', chosenAction
+            ? `Flow complete · action: ${chosenAction.label || chosenAction.kind} (${routeNote})`
+            : `Flow complete (${routeNote}).`, 'info');
+        sim.done = true;
+        simRenderTranscript();
+        simRenderControls(null);
+        return;
+    }
+
+    simEnter(nextKey, routeNote);
+}
+
+function simRenderControls(step) {
+    const wrap = document.getElementById('cv-sim-controls');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    if (!step || sim.done) {
+        wrap.innerHTML = `<div class="cv-empty" style="padding:0;">Simulation finished. Use “Restart” to try a different path.</div>`;
+        return;
+    }
+
+    if (step.kind === 'message' || step.kind === 'media' || step.kind === 'end') {
+        wrap.innerHTML = `<div class="cv-empty" style="padding:0;">Auto-advancing…</div>`;
+        return;
+    }
+
+    if (step.kind === 'question') {
+        const isMulti = !!(step.settings && step.settings.multi_select);
+        const choices = step.choices || [];
+        if (!choices.length) {
+            wrap.innerHTML = `<div class="cv-empty" style="padding:0;">No choices configured for this question.</div>`;
+            return;
+        }
+        if (!isMulti) {
+            const chips = document.createElement('div');
+            chips.className = 'cv-sim-quick';
+            choices.forEach(c => {
+                const b = document.createElement('button');
+                b.type = 'button';
+                b.className = 'cv-sim-chip';
+                b.textContent = simRenderTemplate(c.label || c.value || '?');
+                b.addEventListener('click', () => simAdvance(step, c.value, simRenderTemplate(c.label || c.value || ''), c));
+                chips.appendChild(b);
+            });
+            wrap.appendChild(chips);
+        } else {
+            const min = parseInt(step.settings.min_choices || 1, 10);
+            const max = parseInt(step.settings.max_choices || choices.length, 10);
+            const chips = document.createElement('div');
+            chips.className = 'cv-sim-quick';
+            const picked = new Set();
+            choices.forEach(c => {
+                const b = document.createElement('button');
+                b.type = 'button';
+                b.className = 'cv-sim-chip';
+                b.textContent = simRenderTemplate(c.label || c.value || '?');
+                b.addEventListener('click', () => {
+                    if (picked.has(c.value)) picked.delete(c.value);
+                    else picked.add(c.value);
+                    b.classList.toggle('is-picked', picked.has(c.value));
+                });
+                chips.appendChild(b);
+            });
+            const submit = document.createElement('button');
+            submit.className = 'cv-btn cv-btn-primary';
+            submit.style.alignSelf = 'flex-start';
+            submit.innerHTML = `<i class="fas fa-paper-plane"></i> Send (${min}–${max})`;
+            submit.addEventListener('click', () => {
+                if (picked.size < min || picked.size > max) {
+                    alert(`Pick between ${min} and ${max} options.`);
+                    return;
+                }
+                const arr = Array.from(picked);
+                const labels = arr.map(v => {
+                    const c = choices.find(x => x.value === v);
+                    return simRenderTemplate(c ? (c.label || c.value) : v);
+                });
+                simAdvance(step, arr, labels.join(', '), null);
+            });
+            wrap.appendChild(chips);
+            wrap.appendChild(submit);
+        }
+        return;
+    }
+
+    if (step.kind === 'input') {
+        const ks = step.settings || {};
+        const inp = document.createElement('input');
+        inp.className = 'cv-input';
+        inp.type = (ks.input_kind === 'number') ? 'number'
+                 : (ks.input_kind === 'email') ? 'email'
+                 : (ks.input_kind === 'url') ? 'url' : 'text';
+        inp.placeholder = ks.placeholder || 'Type a reply…';
+        const send = document.createElement('button');
+        send.className = 'cv-btn cv-btn-primary';
+        send.innerHTML = '<i class="fas fa-paper-plane"></i> Send';
+        const row = document.createElement('div');
+        row.className = 'cv-sim-row';
+        row.appendChild(inp);
+        row.appendChild(send);
+        wrap.appendChild(row);
+        const submit = () => {
+            const v = (inp.value || '').trim();
+            if (!v) return;
+            const err = simValidateInput(step, v);
+            if (err) { alert(err); return; }
+            simAdvance(step, v, v, null);
+        };
+        send.addEventListener('click', submit);
+        inp.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+        setTimeout(() => inp.focus(), 30);
+        return;
+    }
+
+    if (step.kind === 'rating') {
+        const r = (step.settings && step.settings.rating) || { scale: 'star', min: 1, max: 5 };
+        const min = parseInt(r.min ?? 1, 10);
+        const max = parseInt(r.max ?? 5, 10);
+        const chips = document.createElement('div');
+        chips.className = 'cv-sim-quick';
+        for (let i = min; i <= max; i++) {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'cv-sim-chip';
+            b.textContent = (r.scale === 'star') ? ('★'.repeat(i)) : String(i);
+            b.addEventListener('click', () => simAdvance(step, i, `Rated ${i}`, null));
+            chips.appendChild(b);
+        }
+        wrap.appendChild(chips);
+        return;
+    }
+
+    if (step.kind === 'datetime') {
+        const d = (step.settings && step.settings.datetime) || { mode: 'datetime' };
+        const inp = document.createElement('input');
+        inp.className = 'cv-input';
+        inp.type = d.mode === 'date' ? 'date' : (d.mode === 'time' ? 'time' : 'datetime-local');
+        if (d.min) inp.min = d.min;
+        if (d.max) inp.max = d.max;
+        const send = document.createElement('button');
+        send.className = 'cv-btn cv-btn-primary';
+        send.innerHTML = '<i class="fas fa-paper-plane"></i> Send';
+        const row = document.createElement('div');
+        row.className = 'cv-sim-row';
+        row.appendChild(inp); row.appendChild(send);
+        wrap.appendChild(row);
+        send.addEventListener('click', () => {
+            if (!inp.value) return;
+            const v = inp.value;
+            const t = Date.parse(v);
+            if (isNaN(t)) { alert('Pick a valid date / time'); return; }
+            if (d.min) { const mn = Date.parse(d.min); if (!isNaN(mn) && t < mn) { alert('Pick a later date / time'); return; } }
+            if (d.max) { const mx = Date.parse(d.max); if (!isNaN(mx) && t > mx) { alert('Pick an earlier date / time'); return; } }
+            simAdvance(step, v, v, null);
+        });
+        return;
+    }
+
+    if (step.kind === 'file_upload') {
+        const note = document.createElement('div');
+        note.className = 'cv-help';
+        note.textContent = 'Simulator skips actual upload — pretend a file was attached.';
+        const send = document.createElement('button');
+        send.className = 'cv-btn cv-btn-primary';
+        send.innerHTML = '<i class="fas fa-file-upload"></i> Pretend to upload';
+        send.addEventListener('click', () => {
+            const field = step.answer_field || step.key;
+            sim.answers[field + '_url'] = 'https://example.test/uploaded.pdf';
+            simAdvance(step, 'sample.pdf', '📎 sample.pdf', null);
+        });
+        wrap.appendChild(note);
+        wrap.appendChild(send);
+        return;
+    }
+
+    if (step.kind === 'ai_freetext') {
+        const ai = (step.settings && step.settings.ai) || { intents: [], fallback_step_key: '' };
+        const intents = ai.intents || [];
+        const note = document.createElement('div');
+        note.className = 'cv-help';
+        note.innerHTML = 'AI classification is simulated — type a reply <em>and</em> pick the intent the model would resolve to.';
+        wrap.appendChild(note);
+
+        const inp = document.createElement('textarea');
+        inp.className = 'cv-textarea';
+        inp.rows = 2;
+        inp.placeholder = 'Visitor reply…';
+        wrap.appendChild(inp);
+
+        const sel = document.createElement('select');
+        sel.className = 'cv-select';
+        sel.innerHTML = `<option value="__fallback__">↳ fallback (low confidence / no match)</option>`
+            + intents.map(it => `<option value="${escapeAttr(it.value || '')}">→ ${escapeHtml(it.label || it.value || '?')}${it.next_step_key ? ' (→ ' + escapeHtml(it.next_step_key) + ')' : ''}</option>`).join('');
+        wrap.appendChild(sel);
+
+        const send = document.createElement('button');
+        send.className = 'cv-btn cv-btn-primary';
+        send.style.alignSelf = 'flex-start';
+        send.innerHTML = '<i class="fas fa-paper-plane"></i> Classify & route';
+        wrap.appendChild(send);
+
+        send.addEventListener('click', () => {
+            const text = (inp.value || '').trim();
+            if (!text) return;
+            const field = step.answer_field || step.key;
+            sim.answers[field] = text;
+            const picked = sel.value;
+            let nextKey = step.next_step_key || null;
+            let routeNote;
+            if (picked === '__fallback__') {
+                sim.answers[field + '_intent'] = '__fallback__';
+                nextKey = ai.fallback_step_key || nextKey;
+                routeNote = `AI fallback → ${nextKey || '(none)'}`;
+            } else {
+                const matched = intents.find(i => i.value === picked);
+                sim.answers[field + '_intent'] = picked;
+                if (matched && matched.next_step_key) nextKey = matched.next_step_key;
+                routeNote = `AI intent "${picked}" → ${nextKey || '(none)'}`;
+            }
+            // Step-level conditions still apply, mirroring the controller.
+            const conds = (step.settings && step.settings.conditions) || [];
+            for (let i = 0; i < conds.length; i++) {
+                if (simEvalCondition(conds[i]) && conds[i].goto) {
+                    nextKey = conds[i].goto;
+                    routeNote = `step condition #${i + 1} → ${nextKey}`;
+                    break;
+                }
+            }
+            simBubble('user', text, picked === '__fallback__' ? 'AI: fallback' : ('AI intent: ' + picked));
+            simRenderTranscript();
+            simRenderState();
+            if (!nextKey) {
+                simBubble('system', `Flow complete (${routeNote}).`, 'info');
+                sim.done = true;
+                simRenderTranscript();
+                simRenderControls(null);
+                return;
+            }
+            simEnter(nextKey, routeNote);
+        });
+        return;
+    }
+
+    wrap.innerHTML = `<div class="cv-empty" style="padding:0;">Unsupported step kind: ${escapeHtml(step.kind)}</div>`;
+}
+
+function simValidateInput(step, value) {
+    const ks = step.settings || {};
+    const v = ks.validation || {};
+    const msg = v.error_message || null;
+    const kind = ks.input_kind || 'text';
+    if (kind === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return msg || 'Please enter a valid email';
+    if (kind === 'url')   { try { new URL(value); } catch { return msg || 'Please enter a valid URL'; } }
+    if (kind === 'phone' && !/^[\d\s+\-()]{7,}$/.test(value)) return msg || 'Please enter a valid phone number';
+    if (kind === 'number') {
+        if (isNaN(parseFloat(value))) return msg || 'Please enter a number';
+        if (v.min != null && parseFloat(value) < +v.min) return msg || `Must be at least ${v.min}`;
+        if (v.max != null && parseFloat(value) > +v.max) return msg || `Must be at most ${v.max}`;
+    }
+    if (v.min_length != null && value.length < +v.min_length) return msg || `Must be at least ${v.min_length} characters`;
+    if (v.max_length != null && value.length > +v.max_length) return msg || `Must be at most ${v.max_length} characters`;
+    if (v.regex) {
+        try { if (!(new RegExp(v.regex, 'u')).test(value)) return msg || "That doesn't look right"; } catch {}
+    }
+    return null;
+}
+
+function simRestart() {
+    sim.answers = {};
+    sim.currentKey = null;
+    sim.history = [];
+    sim.transcript = [];
+    sim.done = false;
+
+    const flowName = (document.getElementById('cv-name').value || '').trim();
+    const intro = simRenderTemplate(document.getElementById('cv-intro').value || '');
+    if (intro) simBubble('bot', intro, flowName ? `intro · ${flowName}` : 'intro');
+
+    const entry = simEntryStep();
+    if (!entry) {
+        simBubble('system', 'No steps configured yet — add a step to start simulating.');
+        simRenderTranscript();
+        simRenderState();
+        simRenderControls(null);
+        return;
+    }
+    simEnter(entry.key, 'entry');
+}
+
+document.getElementById('cv-sim-restart').addEventListener('click', simRestart);
 </script>
 @endsection
