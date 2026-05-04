@@ -103,6 +103,12 @@ function emptyPricingItem(): PricingItem {
   };
 }
 
+import {
+  ListBlockView,
+  PricingBlockView,
+  visibleListItems,
+  visiblePricingItems,
+} from "@/components/BlockListPreview";
 import { Button } from "@/components/Button";
 import {
   IconPickerButton,
@@ -689,6 +695,52 @@ export default function EditBlockScreen() {
 
         {isAnyList ? (
           <View style={{ gap: 12 }}>
+            {/* Live preview — reflects the current style + items + icons
+                so creators can confirm how the block will look on the
+                public page before saving. Mirrors the public renderer's
+                structural treatment for each variant. */}
+            <View style={{ gap: 6 }}>
+              <Text style={[styles.rowLabel, { color: colors.foreground }]}>
+                Preview
+              </Text>
+              <View
+                style={{
+                  padding: 12,
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderStyle: "dashed",
+                  borderColor: colors.border,
+                  backgroundColor: colors.muted,
+                }}
+              >
+                {isPricing ? (
+                  visiblePricingItems(pricingItems).length === 0 ? (
+                    <Text style={{ color: colors.mutedForeground, fontSize: 11, fontStyle: "italic" }}>
+                      Add a pricing row to see the preview.
+                    </Text>
+                  ) : (
+                    <PricingBlockView
+                      styleKey={listStyle}
+                      items={pricingItems}
+                      colors={colors}
+                    />
+                  )
+                ) : visibleListItems(listItems).length === 0 ? (
+                  <Text style={{ color: colors.mutedForeground, fontSize: 11, fontStyle: "italic" }}>
+                    Add an item to see the preview.
+                  </Text>
+                ) : (
+                  <ListBlockView
+                    kind={isListNumbered ? "numbered" : "list"}
+                    styleKey={listStyle}
+                    defaultIcon={defaultBulletIcon}
+                    items={listItems}
+                    colors={colors}
+                  />
+                )}
+              </View>
+            </View>
+
             {/* Style picker — radio cards mirroring the web editor's
                 style grid. We render labels (and a one-line description
                 for pricing) rather than icons because the mobile bundle

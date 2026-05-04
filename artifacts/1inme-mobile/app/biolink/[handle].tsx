@@ -16,6 +16,14 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import {
+  ListBlockView,
+  PricingBlockView,
+  normalizeListItems as normalizeListBlockItems,
+  normalizePricingItems as normalizePricingBlockItems,
+  visibleListItems,
+  visiblePricingItems,
+} from "@/components/BlockListPreview";
 import { BrandWordmark } from "@/components/Brand";
 import { EmbedModal } from "@/components/EmbedModal";
 import { useColors } from "@/hooks/useColors";
@@ -1071,23 +1079,39 @@ function BlockView({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock
   }
 
   if (t === "list" || t === "list_numbered") {
-    const items = Array.isArray(s.items) ? (s.items as unknown[]) : [];
-    const ordered = t === "list_numbered";
-    if (items.length === 0) return null;
+    // Render through the shared list view used by the editor preview, so
+    // visitors see exactly what the creator previewed: per-item icons
+    // (with fallback to the block's default bullet), checklist/timeline
+    // treatments, numbered pill/badge/outlined variants, etc.
+    const items = normalizeListBlockItems(s.items).slice(0, 30);
+    if (visibleListItems(items).length === 0) return null;
+    const styleKey = typeof s.style === "string" && s.style ? s.style : "clean";
+    const defaultIcon = typeof s.icon === "string" && s.icon ? s.icon : "fas fa-check";
     return (
       <View style={[styles.cardContainer, blockCardStyle(block, colors)]}>
-        {items.slice(0, 30).map((it, i) => {
-          const itemText = typeof it === "string" ? it : (typeof it === "object" && it ? (((it as Record<string, unknown>).text as string) ?? ((it as Record<string, unknown>).label as string) ?? "") : "");
-          if (!itemText) return null;
-          return (
-            <View key={i} style={styles.listRow}>
-              <Text style={[styles.body, { color: colors.mutedForeground, width: 22, textAlign: "left", fontSize: 13 }]}>
-                {ordered ? `${i + 1}.` : "•"}
-              </Text>
-              <Text style={[styles.body, { color: colors.foreground, flex: 1, textAlign: "left", fontSize: 14 }]}>{itemText}</Text>
-            </View>
-          );
-        })}
+        <ListBlockView
+          kind={t === "list_numbered" ? "numbered" : "list"}
+          styleKey={styleKey}
+          defaultIcon={defaultIcon}
+          items={items}
+          colors={colors}
+        />
+      </View>
+    );
+  }
+
+  if (t === "list_pricing") {
+    // Pricing rows used to fall through to the generic "Open on web"
+    // fallback. Render them inline through the shared view so visitors
+    // get the same presentation as the editor preview and the public
+    // web page (style variants: classic / menu / cards / comparison /
+    // featured), including picked icons and included/featured flags.
+    const items = normalizePricingBlockItems(s.items).slice(0, 30);
+    if (visiblePricingItems(items).length === 0) return null;
+    const styleKey = typeof s.style === "string" && s.style ? s.style : "classic";
+    return (
+      <View style={[styles.cardContainer, blockCardStyle(block, colors)]}>
+        <PricingBlockView styleKey={styleKey} items={items} colors={colors} />
       </View>
     );
   }
