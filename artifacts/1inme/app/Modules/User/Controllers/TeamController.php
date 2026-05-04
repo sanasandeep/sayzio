@@ -8,6 +8,7 @@ use App\Modules\User\Models\User;
 use App\Modules\User\Models\Workspace;
 use App\Modules\User\Models\WorkspaceInvite;
 use App\Modules\User\Models\WorkspaceMember;
+use App\Modules\User\Services\SensitiveActionLogger;
 use App\Modules\User\Services\WorkspaceActivityRecorder;
 use App\Modules\User\Services\WorkspaceContentReassigner;
 use App\Modules\User\Services\WorkspacePermissions;
@@ -234,6 +235,7 @@ class TeamController extends Controller
         ]);
 
         $email    = optional($member->user)->email;
+        $name     = optional($member->user)->name;
         $memberId = $member->id;
         $userId   = (int) $member->user_id;
         $role     = $member->role;
@@ -263,6 +265,17 @@ class TeamController extends Controller
             $email ?: ('user#' . $userId),
             route('user.team.index'),
             ['user_id' => $userId, 'role' => $role],
+        );
+
+        // Sensitive action — append to the workspace audit ledger and
+        // (subject to owner prefs) email the workspace owner.
+        app(SensitiveActionLogger::class)->record(
+            $ws,
+            SensitiveActionLogger::ACTION_MEMBER_REMOVED,
+            'workspace_member',
+            $userId,
+            $name ?: $email ?: ('User #'.$userId),
+            ['email' => $email, 'role' => $role],
         );
 
         try {

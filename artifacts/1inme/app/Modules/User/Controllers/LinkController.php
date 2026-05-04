@@ -1294,6 +1294,25 @@ class LinkController extends Controller
             return $s;
         };
 
+        // Sensitive action — record the export attempt before streaming.
+        // We log at intent-time (not on stream completion) so an aborted
+        // download still leaves a trail of who tried.
+        if (app()->bound('current_workspace')) {
+            app(\App\Modules\User\Services\SensitiveActionLogger::class)->record(
+                app('current_workspace'),
+                \App\Modules\User\Services\SensitiveActionLogger::ACTION_FOLLOWERS_EXPORTED,
+                'link',
+                $link->id,
+                $link->title ?: ($link->alias ?: ('Link #'.$link->id)),
+                [
+                    'follower_count' => $followerIds->count(),
+                    'range_start'    => $startDate->toDateString(),
+                    'range_end'      => $endDate->toDateString(),
+                    'filename'       => $filename,
+                ],
+            );
+        }
+
         return response()->streamDownload(function () use ($query, $followerIds, $safe) {
             $out = fopen('php://output', 'w');
             fputcsv($out, ['name', 'email', 'total clicks', 'block clicks', 'first seen', 'last seen']);
@@ -2207,14 +2226,29 @@ class LinkController extends Controller
     {
         abort_if($link->user_id !== workspace_owner_id(), 403);
 
-        $linkLabel = $link->title ?: $link->alias ?: $link->long_url;
-        $linkId = $link->id;
+        $linkId    = $link->id;
+        $linkLabel = $link->title ?: ($link->alias ?: $link->long_url ?: ('Link #'.$link->id));
+        $alias     = $link->alias;
+
         $link->delete();
 
         \App\Modules\User\Services\WorkspaceActivityRecorder::record(
             null, 'link.delete', 'link', $linkId, $linkLabel,
             route('user.links.index'),
         );
+
+        // Sensitive action — append to the workspace audit ledger and
+        // (subject to owner prefs) email the workspace owner.
+        if (app()->bound('current_workspace')) {
+            app(\App\Modules\User\Services\SensitiveActionLogger::class)->record(
+                app('current_workspace'),
+                \App\Modules\User\Services\SensitiveActionLogger::ACTION_LINK_DELETED,
+                'link',
+                $linkId,
+                $linkLabel,
+                ['alias' => $alias],
+            );
+        }
 
         return redirect()->route('user.links.index')
             ->with('success', 'Link deleted successfully.');

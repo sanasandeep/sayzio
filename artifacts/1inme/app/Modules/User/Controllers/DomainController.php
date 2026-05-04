@@ -4,6 +4,7 @@ namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\Domain;
+use App\Modules\User\Services\SensitiveActionLogger;
 use App\Modules\User\Services\WorkspaceActivityRecorder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -46,6 +47,7 @@ class DomainController extends Controller
         ]);
 
         WorkspaceActivityRecorder::record(null, 'domain.add', 'domain', $domain->id, $domain->domain, route('user.domains.index'));
+        $this->recordAudit(SensitiveActionLogger::ACTION_DOMAIN_ADDED, $domain);
 
         return redirect()->route('user.domains.index')
             ->with('success', "Domain {$domain->domain} added. Point a CNAME record to {$domain->cname_target}, then click Verify.");
@@ -73,6 +75,7 @@ class DomainController extends Controller
 
         $domain->update(['is_verified' => true, 'verified_at' => now()]);
         WorkspaceActivityRecorder::record(null, 'domain.verify', 'domain', $domain->id, $domain->domain, route('user.domains.index'));
+        $this->recordAudit(SensitiveActionLogger::ACTION_DOMAIN_VERIFIED, $domain);
         return back()->with('success', "Domain {$domain->domain} verified — short links can now use it.");
     }
 
@@ -81,8 +84,29 @@ class DomainController extends Controller
         abort_if($domain->user_id !== $request->user()->id, 403);
         $label = $domain->domain;
         $domainId = $domain->id;
+        $snapshot = $domain->replicate();
+        $snapshot->id = $domain->id;
         $domain->delete();
         WorkspaceActivityRecorder::record(null, 'domain.remove', 'domain', $domainId, $label, route('user.domains.index'));
+        $this->recordAudit(SensitiveActionLogger::ACTION_DOMAIN_REMOVED, $snapshot);
         return back()->with('success', 'Domain removed.');
+    }
+
+    /**
+     * Append a workspace-audit row for a custom-domain change. Custom
+     * domains are workspace-sensitive (they control where short links
+     * resolve) so they fall under the sensitive-action ledger.
+     */
+    protected function recordAudit(string $action, Domain $domain): void
+    {
+        if (!app()->bound('current_workspace')) return;
+        app(SensitiveActionLogger::class)->record(
+            app('current_workspace'),
+            $action,
+            'domain',
+            $domain->id,
+            $domain->domain,
+            ['type' => $domain->type, 'verified' => (bool) $domain->is_verified],
+        );
     }
 }

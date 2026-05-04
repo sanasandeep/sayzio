@@ -147,6 +147,21 @@ Route::prefix('user')->name('user.')->group(function () {
     Route::post('workspaces/invites/{token}/accept', [\App\Modules\User\Controllers\AcceptInviteController::class, 'accept'])
         ->name('workspaces.invite.accept');
 
+    // ---- Workspace audit "this wasn't authorised" landing (signed link
+    // from alert email; works without a session). The controller verifies
+    // the signature via the `signed` middleware. POST is rate-limited so
+    // the public surface can't be hammered.
+    Route::get('workspaces/audit/events/{event}/report',
+        [\App\Modules\User\Controllers\WorkspaceAuditController::class, 'reportShow'])
+        ->middleware('signed')
+        ->whereNumber('event')
+        ->name('workspaces.audit.report.show');
+    Route::post('workspaces/audit/events/{event}/report',
+        [\App\Modules\User\Controllers\WorkspaceAuditController::class, 'reportStore'])
+        ->middleware(['signed', 'throttle:6,60'])
+        ->whereNumber('event')
+        ->name('workspaces.audit.report.store');
+
     Route::middleware(['auth', 'workspace.scope'])->group(function () {
         Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 
@@ -167,6 +182,13 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::put ('workspaces/{workspace}',                  [\App\Modules\User\Controllers\WorkspaceController::class, 'update']) ->name('workspaces.update');
         Route::put ('workspaces/{workspace}/post-approval',    [\App\Modules\User\Controllers\WorkspaceController::class, 'updatePostApproval'])->name('workspaces.post-approval.update');
         Route::delete('workspaces/{workspace}',                [\App\Modules\User\Controllers\WorkspaceController::class, 'destroy'])->name('workspaces.destroy');
+
+        // ---- Sensitive-action audit log (owner / admin only). Append-only
+        // ledger of high-risk actions on this workspace plus the per-action
+        // alert preferences toggles.
+        Route::get ('workspaces/audit',             [\App\Modules\User\Controllers\WorkspaceAuditController::class, 'index'])->name('workspaces.audit.index');
+        Route::get ('workspaces/audit/preferences', [\App\Modules\User\Controllers\WorkspaceAuditController::class, 'preferences'])->name('workspaces.audit.preferences');
+        Route::put ('workspaces/audit/preferences', [\App\Modules\User\Controllers\WorkspaceAuditController::class, 'updatePreferences'])->name('workspaces.audit.preferences.update');
 
         // ---- Team (members + invites) ----
         Route::get   ('team',                                  [\App\Modules\User\Controllers\TeamController::class, 'index'])  ->name('team.index');
