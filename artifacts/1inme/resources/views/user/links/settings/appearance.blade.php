@@ -7,13 +7,10 @@
 @php
     $bs = $link->settings['biolink'] ?? [];
     $activeSettingsTab = 'appearance';
-    // Legacy aliases card (display:none) still references these — keep defaults
-    // so the view doesn't blow up if the controller doesn't pass them.
-    $maxExtras  = $maxExtras  ?? (auth()->user()?->getMaxAliasesPerLink() ?? 0);
-    $usedExtras = $usedExtras ?? ($link->aliases?->count() ?? 0);
-    $aliasHost  = $aliasHost  ?? (parse_url(config('app.url'), PHP_URL_HOST) ?: request()->getHost());
-    $extras     = $extras     ?? ($link->aliases ?? collect());
-    $canAddMore = $canAddMore ?? ($maxExtras === -1 || $usedExtras < $maxExtras);
+    // Aliases UI is fully owned by partials/aliases-card.blade.php (computes
+    // its own $extras/$usedExtras/$aliasHost/$canAddMore from $link). We only
+    // forward $maxExtras since some controller paths still pass it explicitly.
+    $maxExtras = $maxExtras ?? (auth()->user()?->getMaxAliasesPerLink() ?? 0);
     $bgType = $bs['background_type'] ?? 'color';
     $bgColor = $bs['background_color'] ?? '#0a0612';
     $fontColor = $bs['font_color'] ?? '#ffffff';
@@ -52,92 +49,16 @@
 
                 <div class="space-y-6">
 
-                    {{-- Legacy inline aliases card kept hidden as a structural placeholder; do not display. --}}
-                    <div style="display:none" x-data="{ editing: false, alias: '{{ $link->alias }}' }">
-                        <div class="flex items-center justify-between mb-4">
-                            <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(124,58,237,0.1);"><i class="fas fa-link text-violet-400 text-xs"></i></div>
-                                <div>
-                                    <h3 class="text-sm font-bold" style="color: var(--text-primary);">Short URL & Aliases</h3>
-                                    <p class="text-[11px] mt-0.5" style="color: var(--text-faint);">All aliases serve the same page — no redirect. Domain is fixed; only the slug is editable.</p>
-                                </div>
-                            </div>
-                            <span class="text-[10px] px-2 py-0.5 rounded-full" style="background: var(--bg-glass-input); color: var(--text-faint);">
-                                @if($maxExtras === -1)
-                                    {{ $usedExtras }} {{ $usedExtras === 1 ? 'extra' : 'extras' }} · Unlimited
-                                @else
-                                    {{ $usedExtras }} / {{ $maxExtras }} extras
-                                @endif
-                            </span>
-                        </div>
-
-                        {{-- PRIMARY ALIAS --}}
-                        <div class="mb-3">
-                            <label class="block text-[10px] font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-muted);">Primary alias</label>
-                            <div class="flex items-stretch rounded-xl overflow-hidden" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
-                                <span class="px-3 flex items-center text-sm flex-shrink-0" style="color: var(--text-faint); border-right: 1px solid var(--border-glass); background: var(--bg-glass);">{{ $aliasHost }}/</span>
-                                <template x-if="!editing">
-                                    <button type="button" class="flex-1 px-3 py-2.5 text-sm font-medium text-left flex items-center justify-between gap-2 group" style="color: var(--text-primary);" @click="editing = true; $nextTick(() => $refs.aliasInput.focus())">
-                                        <span x-text="alias"></span>
-                                        <span class="text-[10px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1" style="color: var(--text-faint);"><i class="fas fa-pen text-[9px]"></i> Edit</span>
-                                    </button>
-                                </template>
-                                <template x-if="editing">
-                                    <div class="flex-1 flex items-center">
-                                        <input x-ref="aliasInput" type="text" x-model="alias" minlength="3" maxlength="60" pattern="[a-zA-Z0-9_-]+" class="flex-1 px-3 py-2.5 text-sm font-medium bg-transparent outline-none" style="color: var(--text-primary);" @keydown.escape="editing = false">
-                                        <div class="flex items-center gap-1 pr-2">
-                                            <button type="button" @click="editing = false; alias = '{{ $link->alias }}'" class="text-[11px] px-2.5 py-1 rounded-md hover:bg-white/5" style="color: var(--text-faint);">Cancel</button>
-                                            <button type="button" class="text-[11px] px-2.5 py-1 rounded-md bg-violet-600 hover:bg-violet-700 text-white font-semibold"
-                                               @click="fetch('{{ route('user.links.update-alias', $link) }}', { method:'PUT', headers:{'Content-Type':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name=csrf-token]').content,'Accept':'application/json'}, body:JSON.stringify({alias:alias})}).then(r=>r.json()).then(d=>{if(d.success||!d.errors){editing=false;location.reload()}else{alert(d.errors?.alias?.[0]||'Error')}}).catch(()=>alert('Error'))">Save</button>
-                                        </div>
-                                    </div>
-                                </template>
-                            </div>
-                        </div>
-
-                        {{-- ADDITIONAL ALIASES --}}
-                        @if($maxExtras !== 0)
-                        <div>
-                            <label class="block text-[10px] font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-muted);">Additional aliases</label>
-
-                            @if($extras->isNotEmpty())
-                            <div class="space-y-1.5 mb-2">
-                                @foreach($extras as $a)
-                                <div class="flex items-stretch rounded-lg overflow-hidden group" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
-                                    <span class="px-3 flex items-center text-xs flex-shrink-0" style="color: var(--text-faint); border-right: 1px solid var(--border-glass); background: var(--bg-glass);">{{ $aliasHost }}/</span>
-                                    <a href="{{ url($a->alias) }}" target="_blank" class="flex-1 px-3 py-2 text-sm truncate" style="color: var(--text-primary);">{{ $a->alias }}</a>
-                                    <div class="flex items-center gap-0.5 pr-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
-                                        <form method="POST" action="{{ route('user.links.aliases.promote', [$link, $a]) }}" class="inline" onsubmit="return window.themedConfirmSubmit(this, {title: 'Make this the primary alias?', message: 'The current primary will become an alternative.', confirmText: 'Make primary', confirmIcon: 'fa-star', iconClass: 'fa-star'})">
-                                            @csrf
-                                            <button type="submit" class="px-2 py-1 rounded hover:bg-amber-500/10" style="color: var(--text-faint);" title="Promote to primary"><i class="fas fa-star text-[11px] hover:text-amber-400"></i></button>
-                                        </form>
-                                        <form method="POST" action="{{ route('user.links.aliases.destroy', [$link, $a]) }}" class="inline" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this alias?', message: 'Anyone visiting it will get a 404.', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
-                                            @csrf @method('DELETE')
-                                            <button type="submit" class="px-2 py-1 rounded hover:bg-red-500/10" style="color: var(--text-faint);" title="Delete"><i class="fas fa-trash text-[11px] hover:text-red-400"></i></button>
-                                        </form>
-                                    </div>
-                                </div>
-                                @endforeach
-                            </div>
-                            @endif
-
-                            @if($canAddMore)
-                            <form method="POST" action="{{ route('user.links.aliases.store', $link) }}" class="flex items-stretch rounded-lg overflow-hidden" style="background: var(--bg-glass-input); border: 1px dashed var(--border-glass);">
-                                @csrf
-                                <span class="px-3 flex items-center text-xs flex-shrink-0" style="color: var(--text-faint); border-right: 1px dashed var(--border-glass); background: var(--bg-glass);">{{ $aliasHost }}/</span>
-                                <input type="text" name="alias" required minlength="3" maxlength="60" pattern="[a-zA-Z0-9_-]+"
-                                       placeholder="my-campaign" class="flex-1 px-3 py-2 text-sm bg-transparent outline-none" style="color: var(--text-primary);">
-                                <button type="submit" class="px-3 text-xs font-semibold whitespace-nowrap hover:bg-violet-500/10" style="color: #a78bfa;"><i class="fas fa-plus text-[10px] mr-1"></i>Add alias</button>
-                            </form>
-                            @error('alias') <p class="text-red-400 text-[11px] mt-1">{{ $message }}</p> @enderror
-                            @else
-                            <p class="text-[11px] mt-2" style="color: var(--text-faint);"><i class="fas fa-info-circle mr-1"></i> Alias limit reached on your current plan.</p>
-                            @endif
-                        </div>
-                        @else
-                        <p class="text-[11px] mt-2" style="color: #fbbf24;"><i class="fas fa-lock mr-1"></i> Additional aliases are not included in your plan. <a href="{{ route('user.dashboard') }}" class="underline hover:no-underline">Upgrade</a> to unlock.</p>
-                        @endif
-                    </div>
+                    {{-- The legacy inline aliases block was deleted entirely.
+                         It was hidden (display:none) but contained nested
+                         <form> tags whose </form> closing tags would prematurely
+                         close THIS outer page-settings form per the HTML spec
+                         (browsers ignore nested <form> open tags but respect
+                         the close tags). That kicked the bg-template radios
+                         and other downstream inputs out of form scope, which
+                         broke the live draft preview auto-binder. The visible
+                         aliases card lives outside the form (line ~47) and is
+                         unaffected. --}}
 
                     <div class="card-premium p-6">
                         <div class="flex items-center gap-3 mb-4">

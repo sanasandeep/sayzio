@@ -544,15 +544,13 @@ function _reloadIframe(f) {
         refreshPreviewSignedUrl(true);
         return;
     }
-    var url = _currentPreviewSrc();
-    try {
-        if (f.contentWindow && f.contentWindow.location) {
-            f.contentWindow.location.replace(url);
-            f.dataset.previewStale = '';
-            return;
-        }
-    } catch (e) { /* cross-origin: fall through */ }
-    f.src = url;
+    // Always assign to .src (instead of contentWindow.location.replace) so
+    // the iframe element's `src` attribute reflects the live URL — observable
+    // by tests, debug tools, and any parent-window JS that inspects it. The
+    // iframe is same-origin (proxy-routed) so this triggers a normal
+    // navigation; we don't lean on history.replaceState semantics here since
+    // each draft push already cache-busts via the &_t=… param.
+    f.src = _currentPreviewSrc();
     f.dataset.previewStale = '';
 }
 
