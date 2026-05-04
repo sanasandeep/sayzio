@@ -20,6 +20,7 @@ use App\Modules\Admin\Controllers\BrandingController;
 use App\Modules\Admin\Controllers\DomainController as AdminDomainController;
 use App\Modules\Admin\Controllers\SocialOAuthSettingsController;
 use App\Modules\Admin\Controllers\SpamRuleStatsController;
+use App\Modules\Admin\Controllers\BiolinkReportController as AdminBiolinkReportController;
 use App\Modules\Admin\Controllers\BannedNameController;
 use App\Modules\Admin\Controllers\BgTemplateController;
 use App\Modules\Admin\Controllers\TaxController;
@@ -268,6 +269,15 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::put('{slug}', [\App\Modules\Admin\Controllers\SitePageController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
             Route::get('{slug}/revisions/{revision}', [\App\Modules\Admin\Controllers\SitePageController::class, 'showRevision'])->middleware(CheckPermission::class . ':settings.manage')->name('revisions.show');
             Route::post('{slug}/revisions/{revision}/restore', [\App\Modules\Admin\Controllers\SitePageController::class, 'restoreRevision'])->middleware(CheckPermission::class . ':settings.manage')->name('revisions.restore');
+        });
+
+        Route::prefix('biolink-reports')->name('biolink-reports.')->group(function () {
+            Route::get('/', [AdminBiolinkReportController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::post('{link}/dismiss',  [AdminBiolinkReportController::class, 'dismiss'])->middleware(CheckPermission::class . ':settings.manage')->name('dismiss');
+            Route::post('{link}/warn',     [AdminBiolinkReportController::class, 'warn'])->middleware(CheckPermission::class . ':settings.manage')->name('warn');
+            Route::post('{link}/hide',     [AdminBiolinkReportController::class, 'hide'])->middleware(CheckPermission::class . ':settings.manage')->name('hide');
+            Route::post('{link}/escalate', [AdminBiolinkReportController::class, 'escalate'])->middleware(CheckPermission::class . ':settings.manage')->name('escalate');
+            Route::post('{link}/restore',  [AdminBiolinkReportController::class, 'restore'])->middleware(CheckPermission::class . ':settings.manage')->name('restore');
         });
 
         Route::prefix('contact-inbox')->name('contact-inbox.')->group(function () {

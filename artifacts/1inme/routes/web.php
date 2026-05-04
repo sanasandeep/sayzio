@@ -279,6 +279,20 @@ Route::post('/cv/{publicId}/upload',       [\App\Modules\Common\Controllers\Conv
 Route::post('/{alias}/track/session', [\App\Modules\Common\Controllers\EngagementController::class, 'startSession'])->name('track.session.start')->where('alias', '[^/]+')->middleware('throttle:60,1');
 Route::post('/{alias}/track/heartbeat', [\App\Modules\Common\Controllers\EngagementController::class, 'heartbeat'])->name('track.heartbeat')->where('alias', '[^/]+')->middleware('throttle:120,1');
 Route::post('/{alias}/subscribe', [RedirectController::class, 'subscribe'])->name('redirect.subscribe')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|webhooks).*$')->middleware('throttle:10,1');
+
+// Visitor-filed report on a public biolink (spam/abuse moderation queue).
+// CAPTCHA + honeypot + per-IP RateLimiter live inside the controller.
+Route::post('/{alias}/report', [\App\Modules\Common\Controllers\BiolinkReportController::class, 'store'])
+    ->name('biolink.report')
+    ->where('alias', '^(?!user|admin|qr|storage|sanctum|api|webhooks|biolink).*$')
+    ->middleware('throttle:30,10');
+
+// Owner-side appeal endpoint for warned/hidden biolinks. Auth required —
+// only the link's owner may submit; controller enforces ownership too.
+Route::post('/biolink/{link}/appeal', [\App\Modules\Common\Controllers\BiolinkReportController::class, 'appeal'])
+    ->middleware('auth')
+    ->name('biolink.appeal')
+    ->where('link', '[0-9]+');
 Route::post('/{alias}', [RedirectController::class, 'handle'])->where('alias', '^(?!user|admin|qr|storage|sanctum|api|webhooks).*$');
 Route::get('/{alias}/b/{blockId}', [RedirectController::class, 'handleBlockClick'])->name('redirect.block')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|webhooks).*$');
 Route::get('/{alias}/download', [RedirectController::class, 'rawFileDownload'])->name('redirect.file.raw')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|webhooks).*$');

@@ -56,6 +56,18 @@ class RedirectController extends Controller
             return response()->view('common.link-expired', ['link' => $link], 410);
         }
 
+        // Moderation gate. A biolink hidden by an admin returns a takedown
+        // page to ALL non-owner visitors. The owner still sees the page so
+        // they can fix it / appeal — they get the appeal banner inline via
+        // the report partial in the biolink view.
+        if ($link->moderation_state === 'hidden') {
+            $viewerId = optional($request->user())->id
+                ?? \App\Modules\Common\Services\ViewerSession::id();
+            if ((int) $viewerId !== (int) $link->user_id) {
+                return response()->view('common.link-moderated', ['link' => $link], 451);
+            }
+        }
+
         $settings = $link->settings ?? [];
 
         if (!empty($settings['expire_on_first_click']) && (int) $link->total_clicks >= 1) {

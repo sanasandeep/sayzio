@@ -284,6 +284,14 @@
             <span class="sidebar-tooltip">Contact Inbox</span>
         </a>
 
+        <a href="{{ route('admin.biolink-reports.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.biolink-reports.*') ? 'active' : '' }}"
+           style="--nav-tint:#dc2626; --nav-tint-soft:rgba(220,38,38,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-flag"></i></div>
+            <span class="nav-label">Biolink Reports</span>
+            <span class="sidebar-tooltip">Biolink Reports</span>
+        </a>
+
         <a href="{{ route('admin.banned-names.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.banned-names.*') ? 'active' : '' }}"
            style="--nav-tint:#ef4444; --nav-tint-soft:rgba(239,68,68,0.12);">

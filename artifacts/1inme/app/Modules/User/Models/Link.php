@@ -32,6 +32,9 @@ protected $fillable = [
         'insurance_primary_serve_count', 'insurance_failover_serve_count',
         // AR Business Card
         'ar_enabled', 'ar_settings',
+        // Spam/abuse moderation (admin actioned)
+        'moderation_state', 'moderation_reason', 'moderation_note',
+        'moderation_at', 'moderation_appealed_at', 'moderation_appeal_message',
     ];
 
     protected function casts(): array

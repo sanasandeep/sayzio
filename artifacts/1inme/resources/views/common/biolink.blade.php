@@ -3212,5 +3212,6 @@
     })();
     </script>
     @include('common.blocks._carbon_badge', ['link' => $link])
+    @include('common.partials.biolink-report')
 </body>
 </html>
