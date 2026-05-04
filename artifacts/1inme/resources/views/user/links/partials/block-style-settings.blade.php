@@ -118,6 +118,30 @@
                     <i class="fas fa-circle-notch fa-spin text-[10px]"></i>
                     <span>Saving design…</span>
                 </span>
+                {{-- Inline error chip — shown when an apply / restore /
+                     reset / apply-to-all request fails. Sits in the same
+                     spot as the "Saving design…" pill so the feedback
+                     loop closes in the same place creators were just
+                     watching. The retry button re-runs the failed
+                     action; the chip auto-clears after ~6s or on the
+                     next successful action. Hidden while _busy so the
+                     spinner pill takes precedence during a retry. --}}
+                <span x-show="_error && !_busy" x-cloak
+                      class="mr-auto inline-flex items-center gap-1 text-[10px] font-bold py-1 px-2 rounded-md"
+                      style="background: rgba(239,68,68,0.14); border: 1px solid rgba(239,68,68,0.4); color: #fca5a5;">
+                    <i class="fas fa-triangle-exclamation text-[10px]"></i>
+                    <span x-text="_error"></span>
+                    <button type="button" x-show="_retry" @click="retryLastAction()"
+                            class="ml-1 underline decoration-dotted text-[10px] font-bold"
+                            style="color: #fecaca;"
+                            title="Retry the last action">Retry</button>
+                    <button type="button" @click="clearError()"
+                            class="ml-0.5 text-[10px]"
+                            style="color: #fca5a5;"
+                            title="Dismiss">
+                        <i class="fas fa-xmark"></i>
+                    </button>
+                </span>
                 <button type="button" @click="resetStyle(false)"
                         :disabled="_busy"
                         :style="_busy ? 'opacity:0.5;cursor:not-allowed;background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-muted);'"
@@ -637,6 +661,15 @@ window.blockDesignsGallery = function(opts) {
         // pinpoint exactly which control to overlay the spinner on.
         _busy: false,
         _busyKey: '',
+        // Inline-error state for the red "Couldn't save — try again" chip
+        // that closes the loop when an apply / restore / reset /
+        // apply-to-all request fails. _retry holds a closure that
+        // re-runs the failed action with its original args; _errorTimer
+        // is the auto-clear handle (~6s). showError / clearError /
+        // retryLastAction below own all transitions.
+        _error: '',
+        _retry: null,
+        _errorTimer: null,
         activeFilter: 'all',
         // Independent shape filter (Pill / Square / Outline / Text Link /
         // Image / Card). Orthogonal to activeFilter — a variant must
@@ -658,6 +691,32 @@ window.blockDesignsGallery = function(opts) {
 
         catalog() {
             return window.__blockVariants[this.blockType] || [];
+        },
+
+        // --- Inline error chip helpers --------------------------------
+        // showError surfaces the red chip with a friendly message and an
+        // optional retry closure. clearError tears it down (called both
+        // manually via the X button and automatically on the next
+        // successful action / after the 6s timer). retryLastAction is
+        // bound to the chip's Retry button — it grabs the current
+        // closure and clears the chip before invoking it so a second
+        // failure replaces the chip cleanly instead of stacking.
+        showError(msg, retryFn) {
+            var self = this;
+            this._error = msg || "Couldn't save — try again";
+            this._retry = retryFn || null;
+            if (this._errorTimer) clearTimeout(this._errorTimer);
+            this._errorTimer = setTimeout(function() { self.clearError(); }, 6000);
+        },
+        clearError() {
+            this._error = '';
+            this._retry = null;
+            if (this._errorTimer) { clearTimeout(this._errorTimer); this._errorTimer = null; }
+        },
+        retryLastAction() {
+            var fn = this._retry;
+            this.clearError();
+            if (typeof fn === 'function') fn();
         },
 
         // Lazy-load server-rendered live previews for every thumbnail in
@@ -779,6 +838,14 @@ window.blockDesignsGallery = function(opts) {
             if (!v) return;
             this._busy = true;
             this._busyKey = key;
+            // Snapshot the previously-applied selection BEFORE the
+            // optimistic swap so the failure branch can roll back to
+            // exactly what the creator had selected before the click.
+            // Without this, a rejected request would leave the gallery
+            // showing the new variant as "selected" even though the
+            // server kept the old one.
+            var prevVariant = this.currentVariant;
+            var prevHasCustom = this.hasCustomStyle;
             // Optimistic UI: swap selection immediately so the gallery
             // feels instant even on slow networks.
             this.currentVariant = key;
@@ -799,10 +866,16 @@ window.blockDesignsGallery = function(opts) {
             fd.append('variant', key);
             if (token) fd.append('_token', token);
             var self = this;
+            var rollback = function() {
+                self.currentVariant = prevVariant;
+                self.hasCustomStyle = prevHasCustom;
+            };
+            var retry = function() { self.applyVariant(key, btn); };
             fetch(url, { method: 'POST', headers: { 'Accept': 'application/json' }, body: fd })
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
                     if (data && data.success) {
+                        self.clearError();
                         if (typeof showToast === 'function') showToast('Design applied', 'success');
                         // Refresh the form once so any granular controls
                         // (Look/Layout/Text tabs) reflect the new style
@@ -816,11 +889,13 @@ window.blockDesignsGallery = function(opts) {
                             self.customSnapshot = data.block.settings._style_custom_snapshot;
                         }
                     } else {
-                        if (typeof showToast === 'function') showToast((data && data.error) || 'Failed to apply design', 'error');
+                        rollback();
+                        self.showError("Couldn't save — try again", retry);
                     }
                 })
                 .catch(function() {
-                    if (typeof showToast === 'function') showToast('Failed to apply design', 'error');
+                    rollback();
+                    self.showError("Couldn't save — try again", retry);
                 })
                 .finally(function() { self._busy = false; self._busyKey = ''; });
         },
@@ -835,6 +910,10 @@ window.blockDesignsGallery = function(opts) {
             if (!this.customSnapshot) return;
             this._busy = true;
             this._busyKey = '__custom';
+            // Snapshot prior selection so a rejected restore rolls the
+            // gallery back to whichever variant was actually applied.
+            var prevVariant = this.currentVariant;
+            var prevHasCustom = this.hasCustomStyle;
             this.currentVariant = '';
             this.hasCustomStyle = true;
             var url = '{{ route('user.links.blocks.restoreCustomStyle', [$link, $block]) }}';
@@ -842,19 +921,27 @@ window.blockDesignsGallery = function(opts) {
             var fd = new FormData();
             if (token) fd.append('_token', token);
             var self = this;
+            var rollback = function() {
+                self.currentVariant = prevVariant;
+                self.hasCustomStyle = prevHasCustom;
+            };
+            var retry = function() { self.restoreCustom(); };
             fetch(url, { method: 'POST', headers: { 'Accept': 'application/json' }, body: fd })
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
                     if (data && data.success) {
+                        self.clearError();
                         if (typeof showToast === 'function') showToast('Custom styling restored', 'success');
                         if (typeof refreshBlockEditor === 'function') refreshBlockEditor();
                         if (typeof refreshPreview === 'function') refreshPreview();
                     } else {
-                        if (typeof showToast === 'function') showToast((data && data.error) || 'Failed to restore', 'error');
+                        rollback();
+                        self.showError("Couldn't save — try again", retry);
                     }
                 })
                 .catch(function() {
-                    if (typeof showToast === 'function') showToast('Failed to restore', 'error');
+                    rollback();
+                    self.showError("Couldn't save — try again", retry);
                 })
                 .finally(function() { self._busy = false; self._busyKey = ''; });
         },
@@ -876,10 +963,21 @@ window.blockDesignsGallery = function(opts) {
             if (applyToAll) fd.append('apply_to_all', '1');
             if (token) fd.append('_token', token);
             var self = this;
-            fetch(url, { method: 'POST', headers: { 'Accept': 'application/json' }, body: fd })
-                .then(function(r) { return r.json(); })
-                .then(function(data) {
+            // Reset has no optimistic UI to roll back (state only flips
+            // on success), but we still surface the friendly chip + a
+            // retry that re-runs the same scope. The retry skips confirm
+            // because the user already confirmed when they clicked once.
+            var retry = function() {
+                self._busy = true;
+                self._busyKey = applyToAll ? '__reset' : '__reset_one';
+                fetch(url, { method: 'POST', headers: { 'Accept': 'application/json' }, body: fd })
+                    .then(handle).catch(fail)
+                    .finally(function() { self._busy = false; self._busyKey = ''; });
+            };
+            var handle = function(r) {
+                return r.json().then(function(data) {
                     if (data && data.success) {
+                        self.clearError();
                         self.currentVariant = '';
                         self.hasCustomStyle = false;
                         self.customSnapshot = null;
@@ -889,12 +987,13 @@ window.blockDesignsGallery = function(opts) {
                         if (typeof refreshBlockEditor === 'function') refreshBlockEditor();
                         if (typeof refreshPreview === 'function') refreshPreview();
                     } else {
-                        if (typeof showToast === 'function') showToast((data && data.error) || 'Failed to reset', 'error');
+                        self.showError("Couldn't save — try again", retry);
                     }
-                })
-                .catch(function() {
-                    if (typeof showToast === 'function') showToast('Failed to reset', 'error');
-                })
+                });
+            };
+            var fail = function() { self.showError("Couldn't save — try again", retry); };
+            fetch(url, { method: 'POST', headers: { 'Accept': 'application/json' }, body: fd })
+                .then(handle).catch(fail)
                 .finally(function() { self._busy = false; self._busyKey = ''; });
         },
 
@@ -910,19 +1009,31 @@ window.blockDesignsGallery = function(opts) {
             var fd = new FormData();
             fd.append('variant', this.currentVariant);
             if (token) fd.append('_token', token);
-            fetch(url, { method: 'POST', headers: { 'Accept': 'application/json' }, body: fd })
-                .then(function(r) { return r.json(); })
-                .then(function(data) {
+            // Apply-to-all has no optimistic state on this block (it
+            // fans out to siblings server-side), so the chip just needs
+            // a friendly message + a retry that re-runs the same fetch
+            // without re-prompting the confirm dialog.
+            var retry = function() {
+                self._busy = true;
+                self._busyKey = '__all';
+                fetch(url, { method: 'POST', headers: { 'Accept': 'application/json' }, body: fd })
+                    .then(handle).catch(fail)
+                    .finally(function() { self._busy = false; self._busyKey = ''; });
+            };
+            var handle = function(r) {
+                return r.json().then(function(data) {
                     if (data && data.success) {
+                        self.clearError();
                         if (typeof showToast === 'function') showToast('Applied to ' + data.updated + ' block(s)', 'success');
                         if (typeof refreshPreview === 'function') refreshPreview();
                     } else {
-                        if (typeof showToast === 'function') showToast((data && data.error) || 'Failed', 'error');
+                        self.showError("Couldn't save — try again", retry);
                     }
-                })
-                .catch(function() {
-                    if (typeof showToast === 'function') showToast('Failed to apply to all', 'error');
-                })
+                });
+            };
+            var fail = function() { self.showError("Couldn't save — try again", retry); };
+            fetch(url, { method: 'POST', headers: { 'Accept': 'application/json' }, body: fd })
+                .then(handle).catch(fail)
                 .finally(function() { self._busy = false; self._busyKey = ''; });
         },
     };
