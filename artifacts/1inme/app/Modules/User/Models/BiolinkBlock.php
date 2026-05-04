@@ -2,6 +2,7 @@
 
 namespace App\Modules\User\Models;
 
+use App\Modules\User\Support\BlockVariantCatalog;
 use Illuminate\Database\Eloquent\Model;
 
 class BiolinkBlock extends Model
@@ -19,6 +20,83 @@ class BiolinkBlock extends Model
             'start_date' => 'datetime',
             'end_date' => 'datetime',
         ];
+    }
+
+    /**
+     * Reentrancy guard so the `retrieved` hook doesn't recursively trigger
+     * itself when migrateStaleVariant() reloads or saves the model.
+     */
+    private static bool $migrating = false;
+
+    protected static function booted(): void
+    {
+        // Auto-migrate blocks whose `_style` was last built against an older
+        // BlockVariantCatalog::VERSION. This is a one-shot per block: once
+        // we rebuild and persist the new payload (with the current VERSION
+        // written back), subsequent loads skip the work entirely.
+        static::retrieved(function (BiolinkBlock $block): void {
+            if (self::$migrating) return;
+            self::$migrating = true;
+            try {
+                $block->migrateStaleVariant();
+            } finally {
+                self::$migrating = false;
+            }
+        });
+    }
+
+    /**
+     * Rebuild `_style` from the current catalog payload when the block's
+     * stored `_variant_version` is below BlockVariantCatalog::VERSION. The
+     * pre-existing `_style_custom_snapshot` is preserved (this isn't the
+     * first time a variant is being applied — that snapshot was captured
+     * by applyVariant the very first time the user picked a curated look,
+     * and we never want to overwrite their handcrafted baseline). If the
+     * stored variant key is no longer in the catalog we just bump the
+     * version so we don't keep re-checking on every read.
+     */
+    public function migrateStaleVariant(): void
+    {
+        $settings = $this->settings ?? [];
+        if (!is_array($settings)) return;
+
+        $style = $settings['_style'] ?? [];
+        if (!is_array($style)) return;
+
+        $variantKey = $style['_variant'] ?? '';
+        if ($variantKey === '') return;
+
+        $storedVersion = (int) ($style['_variant_version'] ?? 0);
+        if ($storedVersion >= BlockVariantCatalog::VERSION) return;
+
+        $variant = BlockVariantCatalog::find($this->type, $variantKey);
+        if ($variant === null) {
+            // Variant was renamed or removed since the block was saved.
+            // Leave `_style` alone (renderer falls back to it), but mark
+            // the block as up-to-date with the current catalog so we
+            // don't keep doing this lookup on every read.
+            $style['_variant_version'] = BlockVariantCatalog::VERSION;
+            $settings['_style'] = $style;
+            $this->settings = $settings;
+            $this->saveQuietly();
+            return;
+        }
+
+        // Full replace (not merge) so prior-version residue — keys present
+        // in the old payload but not in the new one — is wiped. Mirrors
+        // BiolinkBlockController::applyVariant().
+        $rebuilt = array_merge(
+            self::STYLE_DEFAULTS,
+            $variant['style'],
+            [
+                '_variant' => $variantKey,
+                '_variant_version' => BlockVariantCatalog::VERSION,
+            ]
+        );
+
+        $settings['_style'] = $rebuilt;
+        $this->settings = $settings;
+        $this->saveQuietly();
     }
 
     public function pollVotes()
