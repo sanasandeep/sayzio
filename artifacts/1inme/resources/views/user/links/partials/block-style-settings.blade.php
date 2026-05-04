@@ -48,12 +48,6 @@
                 <i class="fas fa-shapes mr-1"></i>Designs
                 <span class="ml-1 inline-block px-1 rounded-full text-[8px]" style="background: rgba(124,58,237,0.18); color: #a78bfa;">{{ count($variants) }}</span>
             </button>
-            <button type="button" @click="activeStyleTab = 'templates'"
-                    :class="activeStyleTab === 'templates' ? 'text-white shadow-sm' : ''"
-                    :style="activeStyleTab === 'templates' ? 'background: linear-gradient(135deg, #8b5cf6, #7c3aed);' : 'color: var(--text-faint);'"
-                    class="flex-1 text-[10px] font-bold py-1.5 rounded-md transition-all">
-                <i class="fas fa-magic mr-1"></i>Presets
-            </button>
             @if($showText)
             <button type="button" @click="activeStyleTab = 'typography'"
                     :class="activeStyleTab === 'typography' ? 'text-white shadow-sm' : ''"
@@ -277,61 +271,6 @@
                 <i class="fas fa-clone text-[9px]"></i>
                 Apply this design to all <span x-text="blockTypeLabel"></span> blocks
             </button>
-        </div>
-
-        {{-- PRESETS TAB --}}
-        <div x-show="activeStyleTab === 'templates'" class="space-y-2" x-data="{ selectedTemplate: '{{ $st['_template'] ?? '' }}' }">
-            <input type="hidden" name="style[_template]" :value="selectedTemplate">
-            <p class="text-[10px] mb-2" style="color: var(--text-dimmed);"><i class="fas fa-info-circle mr-1"></i>Click a preset to apply its style instantly</p>
-            <div class="grid grid-cols-2 gap-2">
-                @foreach($templates as $tKey => $tpl)
-                <button type="button" class="p-3 rounded-xl text-left transition-all hover:scale-[1.03] relative"
-                        :style="selectedTemplate === '{{ $tKey }}' ? 'background: rgba(124,58,237,0.12); border: 2px solid rgba(124,58,237,0.6); box-shadow: 0 0 12px rgba(124,58,237,0.15);' : 'background: var(--bg-glass-input); border: 1px solid var(--border-glass);'"
-                        @click="selectedTemplate = '{{ $tKey }}'; applyBlockTemplate('{{ $tKey }}', $el)">
-                    <div class="absolute top-1.5 right-1.5 w-5 h-5 rounded-full flex items-center justify-center transition-all"
-                         :style="selectedTemplate === '{{ $tKey }}' ? 'background: #8b5cf6; opacity: 1;' : 'opacity: 0;'">
-                        <i class="fas fa-check text-white text-[8px]"></i>
-                    </div>
-                    <div class="flex items-center gap-2 mb-2">
-                        <div class="w-6 h-6 rounded-md flex items-center justify-center" style="background: {{ $tpl['preview_bg'] }}; border: 1px solid {{ $tpl['preview_bg'] }}30;">
-                            <i class="fas {{ $tpl['icon'] }} text-[9px]" style="color: {{ $tpl['preview_text'] }};"></i>
-                        </div>
-                        <span class="text-[11px] font-semibold" style="color: var(--text-primary);">{{ $tpl['label'] }}</span>
-                    </div>
-                    {{-- WYSIWYG swatch: rendered with the preset's actual style values
-                         (bg, border, radius, shadow effect) so the user previews exactly
-                         what the block will look like, not a generic flat bar. --}}
-                    @php
-                        $ts = $tpl['style'] ?? [];
-                        $swBg = $ts['bg_color'] ?? 'transparent';
-                        $swBs = $ts['border_style'] ?? 'none';
-                        $swBw = $ts['border_width'] ?? '1';
-                        $swBc = $ts['border_color'] ?? '#ffffff20';
-                        $swBr = isset($ts['border_radius']) ? min((int)$ts['border_radius'], 22) : 8;
-                        $swShadow = 'none';
-                        switch ($ts['shadow_type'] ?? 'none') {
-                            case 'soft':       $swShadow = '0 2px 8px ' . ($ts['shadow_color'] ?? '#0000001f'); break;
-                            case 'hard':       $swShadow = '0 4px 0 ' . ($ts['shadow_color'] ?? '#00000040'); break;
-                            case 'neon':       $swShadow = '0 0 12px ' . ($ts['shadow_color'] ?? '#8b5cf660') . ', 0 0 24px ' . ($ts['shadow_color'] ?? '#8b5cf660'); break;
-                            case 'glow':       $swShadow = '0 0 16px ' . ($ts['shadow_color'] ?? '#8b5cf620'); break;
-                            case 'neumorphic': $swShadow = 'inset 2px 2px 4px #00000040, inset -2px -2px 4px #ffffff10'; break;
-                            case 'inset':      $swShadow = 'inset 0 2px 6px ' . ($ts['shadow_color'] ?? '#00000033'); break;
-                        }
-                        $swEffect = $ts['effect'] ?? 'none';
-                        $swExtra = '';
-                        if ($swEffect === 'gradient_border') {
-                            $swExtra = 'background: linear-gradient(' . ($ts['bg_color'] ?? '#111') . ',' . ($ts['bg_color'] ?? '#111') . ') padding-box, linear-gradient(135deg,#8b5cf6,#ec4899,#06b6d4) border-box; border-color: transparent;';
-                        } elseif ($swEffect === 'glass') {
-                            $swExtra = 'backdrop-filter: blur(' . ($ts['glass_blur'] ?? 12) . 'px);';
-                        }
-                    @endphp
-                    <div class="h-9 flex items-center justify-center"
-                         style="background: {{ $swBg }}; border: {{ $swBw }}px {{ $swBs }} {{ $swBc }}; border-radius: {{ $swBr }}px; box-shadow: {{ $swShadow }}; {{ $swExtra }}">
-                        <span class="text-[9px] font-bold" style="color: {{ $tpl['preview_text'] }}; opacity: 0.85;">Sample Block</span>
-                    </div>
-                </button>
-                @endforeach
-            </div>
         </div>
 
         @if($showText)
@@ -764,44 +703,6 @@ window.blockDesignsGallery = function(opts) {
     };
 };
 
-var blockTemplates = @json($templates);
-function applyBlockTemplate(key, btn) {
-    var tpl = blockTemplates[key];
-    if (!tpl) return;
-    var form = btn.closest('form');
-    if (!form) return;
-    var style = tpl.style;
-    for (var prop in style) {
-        var input = form.querySelector('[name="style[' + prop + ']"]');
-        if (input) {
-            input.value = style[prop];
-            input.dispatchEvent(new Event('input', { bubbles: true }));
-            input.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-    }
-    var tplInput = form.querySelector('[name="style[_template]"]');
-    if (tplInput) {
-        tplInput.value = key;
-        tplInput.dispatchEvent(new Event('input', { bubbles: true }));
-    }
-    btn.style.transform = 'scale(0.95)';
-    setTimeout(function() { btn.style.transform = ''; }, 150);
-    setTimeout(function() {
-        var fd = new FormData(form);
-        fetch(form.action, {
-            method: 'POST',
-            headers: { 'Accept': 'application/json' },
-            body: fd
-        }).then(function(r) { return r.json(); }).then(function(data) {
-            if (data.success) {
-                if (typeof showToast === 'function') showToast('Preset applied', 'success');
-                if (typeof refreshPreview === 'function') refreshPreview();
-            } else {
-                if (typeof showToast === 'function') showToast(data.error || 'Failed to apply', 'error');
-            }
-        }).catch(function() {
-            if (typeof showToast === 'function') showToast('Failed to apply preset', 'error');
-        });
-    }, 100);
-}
+{{-- Presets feature was removed by user request; the Designs / Text / Look / Layout
+     tabs cover all styling needs without the rigid preset grid. --}}
 </script>
