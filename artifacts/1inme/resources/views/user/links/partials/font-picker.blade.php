@@ -126,9 +126,10 @@
             <p x-show="cat === 'all'" class="text-[10px] font-bold uppercase tracking-wider" style="color: var(--text-muted);">Google Fonts</p>
             <template x-for="font in filteredGoogleFonts()" :key="font.family">
                 <div class="rounded-lg px-2 py-1.5 cursor-pointer hover:bg-white/5"
+                     x-init="queuePreviewFont(font.family)"
                      :style="selected === font.family ? 'background: rgba(124,58,237,0.18); border: 1px solid rgba(124,58,237,0.3);' : ''"
                      @click="select(font.family)">
-                    <span class="text-sm" :style="'font-family: ' + safeQuote(font.family) + ', sans-serif;'" x-text="font.family"></span>
+                    <span class="text-base" :style="'font-family: ' + safeQuote(font.family) + ', sans-serif;'" x-text="font.family"></span>
                 </div>
             </template>
             <p x-show="filteredGoogleFonts().length === 0 && cat !== 'mine'" class="text-xs text-center py-4" style="color: var(--text-faint);">
@@ -230,6 +231,33 @@ window.fontPickerComponent_{{ $pickerId }} = window.fontPickerComponent_{{ $pick
             link.rel = 'stylesheet';
             link.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(family).replace(/%20/g, '+') + ':wght@300;400;500;600;700&display=swap';
             document.head.appendChild(link);
+        },
+        // Batches preview-font requests so each dropdown item shows in its
+        // actual typeface without firing one <link> per item. Collected
+        // families are flushed in a single combined Google Fonts URL.
+        queuePreviewFont(family) {
+            window._loadedGoogleFonts = window._loadedGoogleFonts || new Set();
+            window._previewFontQueue = window._previewFontQueue || new Set();
+            if (window._loadedGoogleFonts.has(family) || window._previewFontQueue.has(family)) return;
+            window._previewFontQueue.add(family);
+            if (window._previewFontFlush) clearTimeout(window._previewFontFlush);
+            window._previewFontFlush = setTimeout(() => {
+                const families = Array.from(window._previewFontQueue);
+                window._previewFontQueue.clear();
+                if (!families.length) return;
+                // Google Fonts caps URL length, so chunk to ~40 families per
+                // stylesheet request.
+                for (let i = 0; i < families.length; i += 40) {
+                    const chunk = families.slice(i, i + 40);
+                    chunk.forEach((f) => window._loadedGoogleFonts.add(f));
+                    const link = document.createElement('link');
+                    link.rel = 'stylesheet';
+                    link.href = 'https://fonts.googleapis.com/css2?' +
+                        chunk.map((f) => 'family=' + encodeURIComponent(f).replace(/%20/g, '+')).join('&') +
+                        '&display=swap';
+                    document.head.appendChild(link);
+                }
+            }, 80);
         },
         injectFontFace(font) {
             if (window._customFontFaces.has(font.family)) return;
