@@ -161,5 +161,6 @@ class DatabaseSeeder extends Seeder
         // re-runs just refresh CSS/JS and sort_order.
         $this->call(BgTemplateSeeder::class);
         $this->call(BgPatternTemplatesSeeder::class);
+        $this->call(LightBgTemplatesSeeder::class);
     }
 }
