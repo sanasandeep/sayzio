@@ -154,5 +154,12 @@ class DatabaseSeeder extends Seeder
         // 100+ card-container templates surfaced in the biolink editor.
         // Idempotent (matches by slug) so re-running just refreshes copy.
         $this->call(CardTemplateSeeder::class);
+
+        // 200+ background templates (animated / gradient / mesh / pattern /
+        // svg / neon) surfaced in the Appearance > Background > Template
+        // picker. Both seeders are idempotent (updateOrCreate by slug) so
+        // re-runs just refresh CSS/JS and sort_order.
+        $this->call(BgTemplateSeeder::class);
+        $this->call(BgPatternTemplatesSeeder::class);
     }
 }
