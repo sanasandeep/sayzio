@@ -42,21 +42,6 @@ const PRICING_STYLES: StyleOption[] = [
   { key: "featured", label: "Featured", desc: "Highlight one plan" },
 ];
 
-// Per-item bullet icon options for list blocks. Mirrors the web editor's
-// quick-pick dropdown; the "" key means "use the block default icon".
-const BULLET_ICON_OPTIONS: { key: string; label: string }[] = [
-  { key: "", label: "Default" },
-  { key: "fa-check", label: "✓ Check" },
-  { key: "fa-circle", label: "• Dot" },
-  { key: "fa-star", label: "★ Star" },
-  { key: "fa-arrow-right", label: "→ Arrow" },
-  { key: "fa-heart", label: "♥ Heart" },
-  { key: "fa-bolt", label: "⚡ Bolt" },
-  { key: "fa-fire", label: "🔥 Fire" },
-  { key: "fa-gem", label: "💎 Gem" },
-  { key: "fa-times", label: "✗ Times" },
-];
-
 type ListItem = { text: string; icon: string };
 type PricingItem = {
   name: string;
@@ -119,6 +104,10 @@ function emptyPricingItem(): PricingItem {
 }
 
 import { Button } from "@/components/Button";
+import {
+  IconPickerButton,
+  IconPickerModal,
+} from "@/components/IconPickerModal";
 import { TextField } from "@/components/TextField";
 import { useColors } from "@/hooks/useColors";
 import {
@@ -237,6 +226,16 @@ export default function EditBlockScreen() {
   // Designs gallery state (mirrors the web editor's parity feature set).
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const [favorites, setFavorites] = useState<string[]>([]);
+  // Visual icon picker target. `kind` says which icon slot we're editing
+  // and (for items) `index` is the row. Closing the modal resets to null.
+  // Mirrors the web editor's `icon-picker.blade.php` modal — always
+  // reachable via "Browse icons" so creators don't need to know FA classes.
+  const [iconPickerTarget, setIconPickerTarget] = useState<
+    | { kind: "default" }
+    | { kind: "list"; index: number }
+    | { kind: "pricing"; index: number }
+    | null
+  >(null);
   const favoritesKey = block ? `biolink:variantFavorites:${block.type}` : "";
 
   useEffect(() => {
@@ -745,13 +744,19 @@ export default function EditBlockScreen() {
             </View>
 
             {isList ? (
-              <TextField
-                label="Default bullet icon"
-                hint="Used when an item below has no icon picked. e.g. fa-check"
-                value={defaultBulletIcon}
-                onChangeText={setDefaultBulletIcon}
-                autoCapitalize="none"
-              />
+              <View style={{ gap: 6 }}>
+                <Text style={[styles.rowLabel, { color: colors.foreground }]}>
+                  Default bullet icon
+                </Text>
+                <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+                  Used when an item below has no icon picked.
+                </Text>
+                <IconPickerButton
+                  value={defaultBulletIcon}
+                  onPress={() => setIconPickerTarget({ kind: "default" })}
+                  placeholder="Browse icons..."
+                />
+              </View>
             ) : null}
 
             <View style={{ gap: 8 }}>
@@ -797,58 +802,13 @@ export default function EditBlockScreen() {
                     </View>
 
                     {isList ? (
-                      <View style={{ gap: 6 }}>
-                        <ScrollView
-                          horizontal
-                          showsHorizontalScrollIndicator={false}
-                          contentContainerStyle={{ gap: 6 }}
-                        >
-                          {BULLET_ICON_OPTIONS.map((opt) => {
-                            const selected = it.icon === opt.key;
-                            return (
-                              <Pressable
-                                key={opt.key || "default"}
-                                onPress={() =>
-                                  setListItems((prev) =>
-                                    prev.map((p, i) =>
-                                      i === idx ? { ...p, icon: opt.key } : p,
-                                    ),
-                                  )
-                                }
-                                style={{
-                                  paddingHorizontal: 10,
-                                  paddingVertical: 5,
-                                  borderRadius: 999,
-                                  backgroundColor: selected ? colors.primary : colors.background,
-                                  borderWidth: 1,
-                                  borderColor: selected ? colors.primary : colors.border,
-                                }}
-                              >
-                                <Text
-                                  style={{
-                                    color: selected ? "#fff" : colors.foreground,
-                                    fontSize: 11,
-                                    fontWeight: "600",
-                                  }}
-                                >
-                                  {opt.label}
-                                </Text>
-                              </Pressable>
-                            );
-                          })}
-                        </ScrollView>
-                        <TextField
-                          value={it.icon}
-                          placeholder="Or custom Font Awesome class (fa-rocket)"
-                          autoCapitalize="none"
-                          onChangeText={(t) =>
-                            setListItems((prev) =>
-                              prev.map((p, i) => (i === idx ? { ...p, icon: t } : p)),
-                            )
-                          }
-                          style={{ minHeight: 40, fontSize: 13 }}
-                        />
-                      </View>
+                      <IconPickerButton
+                        value={it.icon}
+                        onPress={() =>
+                          setIconPickerTarget({ kind: "list", index: idx })
+                        }
+                        placeholder="Browse icons (uses default if empty)"
+                      />
                     ) : null}
                   </View>
                 ))}
@@ -936,17 +896,22 @@ export default function EditBlockScreen() {
                           mutedColor={colors.muted}
                         />
                       </View>
-                      <View style={{ flex: 1 }}>
-                        <TextField
-                          label="Icon"
-                          placeholder="fa-coffee"
+                      <View style={{ flex: 1, gap: 4 }}>
+                        <Text
+                          style={{
+                            color: colors.mutedForeground,
+                            fontSize: 11,
+                            fontFamily: "SpaceGrotesk_600SemiBold",
+                          }}
+                        >
+                          Icon
+                        </Text>
+                        <IconPickerButton
                           value={it.icon}
-                          autoCapitalize="none"
-                          onChangeText={(t) =>
-                            setPricingItems((prev) =>
-                              prev.map((p, i) => (i === idx ? { ...p, icon: t } : p)),
-                            )
+                          onPress={() =>
+                            setIconPickerTarget({ kind: "pricing", index: idx })
                           }
+                          placeholder="Browse icons..."
                         />
                       </View>
                     </View>
@@ -1088,6 +1053,47 @@ export default function EditBlockScreen() {
           loading={save.isPending}
         />
       </ScrollView>
+
+      <IconPickerModal
+        visible={iconPickerTarget !== null}
+        onClose={() => setIconPickerTarget(null)}
+        // For per-item slots we resolve the value from the right array;
+        // for "default" we read the block-level default bullet icon.
+        value={
+          iconPickerTarget?.kind === "list"
+            ? listItems[iconPickerTarget.index]?.icon ?? ""
+            : iconPickerTarget?.kind === "pricing"
+              ? pricingItems[iconPickerTarget.index]?.icon ?? ""
+              : iconPickerTarget?.kind === "default"
+                ? defaultBulletIcon
+                : ""
+        }
+        title={
+          iconPickerTarget?.kind === "default"
+            ? "Default bullet icon"
+            : "Pick an icon"
+        }
+        // Per-item list bullets fall back to the block default when
+        // cleared. The block-default and pricing rows have no fallback,
+        // so we don't expose the "Use default" affordance there.
+        allowClear={iconPickerTarget?.kind === "list"}
+        onChange={(next) => {
+          if (!iconPickerTarget) return;
+          if (iconPickerTarget.kind === "default") {
+            setDefaultBulletIcon(next || "fas fa-check");
+          } else if (iconPickerTarget.kind === "list") {
+            const i = iconPickerTarget.index;
+            setListItems((prev) =>
+              prev.map((p, idx) => (idx === i ? { ...p, icon: next } : p)),
+            );
+          } else {
+            const i = iconPickerTarget.index;
+            setPricingItems((prev) =>
+              prev.map((p, idx) => (idx === i ? { ...p, icon: next } : p)),
+            );
+          }
+        }}
+      />
     </View>
   );
 }
