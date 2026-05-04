@@ -341,21 +341,10 @@ $catColors = [
 ];
 @endphp
 <div x-data="biolinkEditor()" class="max-w-7xl mx-auto">
-    @include('user.links.partials.editor-header', ['link' => $link, 'activeMainTab' => 'blocks', 'hideEditorTabs' => true])
+    @include('user.links.partials.editor-header', ['link' => $link, 'activeMainTab' => 'blocks'])
 
     <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
         <div class="flex items-center gap-3 flex-wrap">
-            <div class="editor-tabs inline-flex items-center gap-1 p-1 rounded-full">
-                <a href="{{ route('user.links.blocks.editor', $link) }}" class="editor-tab no-underline is-active">
-                    <i class="fas fa-th-large text-[10px]"></i><span>Blocks</span>
-                </a>
-                <a href="{{ route('user.links.settings.appearance', $link) }}" class="editor-tab no-underline">
-                    <i class="fas fa-cog text-[10px]"></i><span>Settings</span>
-                </a>
-                <a href="{{ route('user.links.conversational.editor', $link) }}" class="editor-tab no-underline">
-                    <i class="fas fa-comments text-[10px]"></i><span>Conversational</span>
-                </a>
-            </div>
             <button @click="_insertAfterId = null; _cardGalleryParentId = null; showGallery = true" class="add-block-btn">
                 <span class="add-block-icon"><i class="fas fa-plus text-[11px]"></i></span>
                 <span>Add block</span>

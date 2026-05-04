@@ -40,6 +40,11 @@
         <i class="fas fa-cog text-[10px]"></i>
         <span>Settings</span>
     </a>
+    <a href="{{ route('user.links.conversational.editor', $link) }}"
+       class="editor-tab no-underline {{ $activeMainTab === 'conversational' ? 'is-active' : '' }}">
+        <i class="fas fa-comments text-[10px]"></i>
+        <span>Conversational</span>
+    </a>
 </div>
 @endif
 <style>
