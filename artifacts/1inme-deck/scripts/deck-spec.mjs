@@ -1070,6 +1070,7 @@ for (const cat of FEATURE_CATEGORIES) {
     subtitle: cat.subtitle,
     eyebrow: "Feature appendix",
     range: "4 slides",
+    notes: `Open the ${cat.name} deep-dive. Four slides — overview, capabilities, in-product mockup, use case. Skip ahead if the buyer has already seen the module; linger if it's the one they came for.`,
   });
   spec.push({
     layout: "bullets",
@@ -1077,6 +1078,7 @@ for (const cat of FEATURE_CATEGORIES) {
     title: `${cat.name} — overview.`,
     subtitle: cat.subtitle,
     bullets: cat.capabilities,
+    notes: `Walk the ${cat.name} capability list at a steady pace. Two sentences per item — what it does, who it helps. Invite questions before moving on; this is where buyers usually interrupt.`,
   });
   spec.push({
     layout: "cards",
@@ -1084,6 +1086,7 @@ for (const cat of FEATURE_CATEGORIES) {
     title: `${cat.name} — key capabilities.`,
     cols: 4,
     cards: cat.capabilities.map((c) => ({ tag: "Capability", title: c.title, body: c.body })),
+    notes: `Four capability cards for ${cat.name}. Read the title, give one concrete example from a real customer, move on. Don't dwell — the next slide shows it in product.`,
   });
   spec.push({
     layout: "mockup",
@@ -1094,6 +1097,7 @@ for (const cat of FEATURE_CATEGORIES) {
     mockTitle: cat.mock.title,
     mock: cat.mock.rows,
     mockFooter: cat.mock.footer,
+    notes: `Show ${cat.name} in product. Point at the rows in "${cat.mock.title}", narrate what the user is doing, and land the value with the footer caption. If you have a live demo, this is the slide to switch into the product.`,
   });
   spec.push({
     layout: "bullets",
@@ -1101,6 +1105,7 @@ for (const cat of FEATURE_CATEGORIES) {
     title: cat.useCase.title,
     subtitle: "A concrete walk-through using only this category's modules.",
     bullets: cat.useCase.bullets.map((b) => ({ title: b, body: "" })),
+    notes: `Walk the "${cat.useCase.title}" scenario end-to-end. Stay inside ${cat.name} — no cross-references to other modules yet. The point: this category alone delivers a complete outcome.`,
   });
 }
 
@@ -1116,18 +1121,20 @@ spec.push({
 
 for (const p of PERSONAS) {
   const ns = slugify(`${p.group} ${p.name}`);
+  const lower = p.name.toLowerCase();
   spec.push({
     layout: "divider",
     slug: `${ns}Divider`,
-    title: `How 1INME helps a ${p.name.toLowerCase()}.`,
+    title: `How 1INME helps a ${lower}.`,
     subtitle: `${p.group} · 4 slides + this divider.`,
     eyebrow: "Persona appendix",
     range: "4 slides",
+    notes: `Open the ${lower} mini-deck (${p.group}). Pains, stack, day in the life, outcomes — four slides. Use this when ${lower} are in the room or you're tailoring an outbound for that audience.`,
   });
   spec.push({
     layout: "bullets",
     slug: `${ns}IntroPains`,
-    title: `Meet the ${p.name.toLowerCase()}.`,
+    title: `Meet the ${lower}.`,
     subtitle: `${p.group}. Here are the top pains we hear over and over.`,
     bullets: p.pains.map((pain) => ({ title: pain, body: "" })),
     aside: {
@@ -1135,29 +1142,33 @@ for (const p of PERSONAS) {
       title: "Their stack hit a wall.",
       body: "More tools is no longer the answer. They want one home that respects their craft.",
     },
+    notes: `Read the three pains aloud and watch the audience nod — that's the buying signal. Land the "why now" aside last: more tools isn't the answer for ${lower} anymore.`,
   });
   spec.push({
     layout: "cards",
     slug: `${ns}Stack`,
-    title: `The 1INME stack for a ${p.name.toLowerCase()}.`,
+    title: `The 1INME stack for a ${lower}.`,
     subtitle: "The 4–5 modules that matter most for this persona.",
     cols: Math.min(p.modules.length, 5),
     cards: p.modules.map((m) => ({ tag: "Module", title: m, body: "" })),
+    notes: `These are the ${p.modules.length} modules that matter most for ${lower}. Skip everything else for this conversation — focus is the value here. Mention each module by the customer outcome, not the feature name.`,
   });
   spec.push({
     layout: "dayInLife",
     slug: `${ns}Day`,
-    title: `A day in the life — ${p.name.toLowerCase()}.`,
+    title: `A day in the life — ${lower}.`,
     subtitle: "Time, module, action — all happening inside 1INME.",
     steps: p.day,
+    notes: `Walk this day chronologically from ${p.day[0].time} to ${p.day[p.day.length - 1].time}. Hammer the point: every step happens inside 1INME — no app switching, no copy-paste, no lost context.`,
   });
   spec.push({
     layout: "metrics",
     slug: `${ns}Outcomes`,
-    title: `Outcomes a ${p.name.toLowerCase()} can expect.`,
+    title: `Outcomes a ${lower} can expect.`,
     subtitle: "Placeholders pulled from early-access cohorts. Replace with your real customer numbers.",
     metrics: p.outcomes,
-    note: `CTA · 1inme.com/${p.name.toLowerCase().replace(/\s+/g, "-")}`,
+    note: `CTA · 1inme.com/${lower.replace(/\s+/g, "-")}`,
+    notes: `Three outcomes ${lower} can expect — early-access cohort numbers, so flag them as illustrative until you have a real customer story. Close on the persona-specific CTA URL at the bottom.`,
   });
 }
 
@@ -1647,6 +1658,203 @@ function slugify(s) {
     .map((w) => w[0].toUpperCase() + w.slice(1).toLowerCase())
     .join("")
     .slice(0, 28);
+}
+
+// ---------- Speaker notes (live presentation talk-track) ----------
+// Keyed by slide slug. Notes for the dynamic feature/persona mini-decks
+// are attached inline above (inside their generation loops).
+const NOTES = {
+  // Cover + TOC
+  Cover:
+    "Open the deck. One identity, one platform — that's the whole pitch in a sentence. Tell the room which section you'll spend most of the time in, then jump straight there from the table of contents.",
+  TableOfContents:
+    "Six sections, appendix-separated by dividers. Tell the audience to interrupt and pick whichever section matters most — the dividers act as bookmarks, so you can jump without losing your place.",
+
+  // Top-level section dividers
+  SalesDivider:
+    "Shift into the sales pitch. Twenty slides from problem to next step — feel free to skip the proof slides if the buyer is already convinced. Set expectations: this section ends with a concrete CTA.",
+  ProductDivider:
+    "Shift into the product walkthrough. Twenty slides covering web, mobile, API, every module, and the platform layer. Tell the audience to flag the modules they want to go deep on.",
+  FeaturesDivider:
+    "Open the feature deep-dives. Nine module mini-decks, each four slides. Only present the ones the buyer asked about — the rest are appendix material.",
+  PersonasDivider:
+    "Open the persona decks. Twelve roles, each with pains, stack, day in the life, and outcomes. Pick the one closest to the room; the others are there for follow-up sends.",
+  InvestorDivider:
+    "Shift into the investor pitch. Twenty slides — vision, market, model, traction, ask. Anything tagged 'placeholder' must be replaced with live numbers before sending this section out.",
+  RoadmapDivider:
+    "Shift into the roadmap section. Twenty slides organised as Now / Next / Later, broken down by area and rolled up by quarter. Be honest about what's GA versus directional.",
+
+  // Sales section (20)
+  SalesProblem:
+    "Open with the numbers behind the pain. Read the nine-tools stat first, let it sit, then move through cost, usage, and lost hours. The point: this is real money and real time bleeding out today, not a future risk.",
+  SalesCost:
+    "Translate the numbers into business cost. Hours, data, brand, revenue — frame each as something the buyer's team will feel this quarter, not abstractly someday. Pause after 'lost revenue' and ask which one stings most.",
+  SalesPitch:
+    "Pivot to the 1INME answer. Identity, tools, AI, insight — four cards, one platform. Don't list features yet; sell the shape: one home instead of nine browser tabs.",
+  SalesDifferentiators:
+    "Pre-empt the 'why not just use a bundle?' objection. Native, beautiful, open, fair — these are the four things bundles structurally can't fake. Mention a competitor by name only if the buyer brings them up.",
+  SalesRoi:
+    "Make the ROI math obvious: about $1,400 saved annually, six hours back per week, conversion lift, single invoice. Anchor the buyer to a payback window measured in weeks, not quarters.",
+  SalesTimeSaved:
+    "Walk the time-savings table left to right. Bio maintenance, lead capture, cross-posting, reporting — call out the biggest win for the buyer's role first. Land the seven-hours-per-week footer total.",
+  SalesProofQuote:
+    "Read the quote slowly. Pause on 'shaved a workday off every week'. Mention this is a real early-access customer and offer to set up a reference call after this meeting.",
+  SalesProofLogos:
+    "If logos are still placeholders, acknowledge it and skip ahead. Otherwise, point to the closest analogue to the buyer in the room — same size, same vertical — and offer to introduce them.",
+  SalesProofMetrics:
+    "Frame these as 90-day expectations, not promises. Six tools removed and a 24% lift in lead-to-close are the lines that move buying committees — repeat them twice.",
+  SalesPricingSnapshot:
+    "Anchor on Studio first — most teams land here. Free is for evaluation, Pro is for power individuals, Business is for compliance and scale. Call out the 20% annual discount before someone asks.",
+  SalesObjections:
+    "Run the four objections proactively. The buyer is already thinking them; saying them out loud builds trust. Keep each answer to one sentence and move on.",
+  SalesCompetitors:
+    "Position relative to the specific tool the buyer mentioned in discovery. We're additive to most of these and replacing one or two — be honest about which is which.",
+  SalesSecurityTrust:
+    "This is the slide for IT and legal — slow down here if either is in the room. MFA, SSO, SCIM, audit, SOC 2 trajectory. Offer the evidence pack on request.",
+  SalesProductSnapshot:
+    "Show what the buyer's workspace looks like on day one — not in three months. Live bio page, trained companion, imported pipeline, working funnel. The point: time-to-value is hours.",
+  SalesUseCases:
+    "Three outcomes we underwrite. Pick the one that matches the buyer's stated goal from discovery and spend most of the slide there. Skim the other two unless asked.",
+  SalesImplementation:
+    "Walk the four-week plan. The point is predictability: by the end of week four the ROI snapshot is in their inbox, not promised vaguely for 'soon'.",
+  SalesSocialProofExpanded:
+    "Customer stories — replace placeholders with the closest real match before sending. Lead each card with the result, then the customer name. If you don't have a story, leave the card off.",
+  SalesGuarantee:
+    "These four risk-removers are designed to make 'yes' the safe answer. 30-day money-back is the headline; mention white-glove migration is included free on Studio and up.",
+  SalesNextSteps:
+    "Tell the buyer exactly what happens next. The four-step ladder gives them an easy first 'yes' — start with the 30-minute walkthrough and book it before you leave the call.",
+  SalesCta:
+    "Close. Pick a slot together on screen; don't leave with 'we'll send a calendar link' — that's where deals stall. Capture the email and book the next meeting live.",
+
+  // Product section (20)
+  ProductOverview:
+    "Set up the product walkthrough. Three surfaces, eleven modules, identity + vault + AI as the spine. Audience leaves this slide knowing the shape of the platform.",
+  ProductWebTour:
+    "Tour the web app: sidebar, drag-and-drop editor, AskCoach side panel, workspace switcher in the footer. Emphasise this is the full-power surface — everything works here first.",
+  ProductMobileTour:
+    "Now the mobile app. NFC tap-to-share, smart dialer with deal context, voice capture between meetings, push notifications for leads and bookings. Designed for field work.",
+  ProductApiSdk:
+    "Show developers we're serious. Every capability is a REST endpoint with a webhook; SDK in TypeScript. Token-scoped and audit-logged. The mock is a real /v1/links call.",
+  ProductUserJourney:
+    "Walk signup → build → convert → operate. Time-to-value sits between steps two and three; brand kit detection at signup is the moment most prospects say 'oh, this is different'.",
+  ProductCrossModule:
+    "Show what happens when modules know about each other. Bio → CRM, Smart Link → Pixel, Calendar → Vault, AI → everything. This is the slide that justifies the 'platform' word.",
+  ProductIdentitySpine:
+    "Identity is what holds it together. Handle, SSO, brand kit, permissions — every other module inherits from here. Public surface vs. private surface is the mental model to leave them with.",
+  ProductSecurityTrust:
+    "Re-state the security posture for a technical audience. MFA + passkeys, SSO + SCIM, encryption everywhere, full audit log. Same evidence pack as the sales conversation; offer it on request.",
+  ProductAdminWorkspace:
+    "Show the admin surface. Workspaces per brand or client, role-based access on every module, white label per workspace, plan and seat management in one place.",
+  ProductIntegrationsMap:
+    "Eight categories, top-of-mind tools per category. The point: 1INME doesn't pretend to be your CRM if you already have HubSpot — it sits beside it, two-way synced.",
+  ProductOnboardingFlow:
+    "Detect, import, wire, launch. Time-to-value measured in hours, not weeks. We bring the data so day one is real, not a blank workspace.",
+  ProductBioModule:
+    "Open the module deep-dives with bio — the doorway to everything. Drag-and-drop blocks, themes, custom domains, AB tests built in. This is the module most prospects already know.",
+  ProductLinksModule:
+    "Smart links: routing rules, pixels, QR for every link. The intelligent layer between the click and the destination. Show the rules editor if you have time.",
+  ProductAiModule:
+    "Companions, AskCoach, Voice, Card Scanner. Custom personalities, grounded in your Minds, hands-free on mobile. The differentiator vs. ChatGPT is grounding — say it explicitly.",
+  ProductProductivityModule:
+    "One contact, one source of truth. Bookings tied to deals, vault under role-based access, tasks rolling up to the workspace dashboard. The CRM you wish HubSpot was for a small team.",
+  ProductSocialModule:
+    "Native creator feed plus cross-posting. Members-only content, per-platform previews, best-time scheduling. Two surfaces in one — owned audience and rented audience.",
+  ProductMobileModule:
+    "Mobile-first tools: NFC card, dialer with deal context on screen, scanner straight to CRM, voice notes that sync. Built for people who close deals away from a desk.",
+  ProductAnalyticsModule:
+    "Funnels and audience views across every module. Workspace and brand splits. Exports and threshold alerts. The slide that proves we're a platform, not a bundle.",
+  ProductPlatformPromise:
+    "Open, composable, honest, yours. The four principles we won't break — even when it costs us. Read each one slowly; this is how prospects remember the brand.",
+  ProductCta:
+    "Close the product section. Offer a tailored demo on the modules they actually care about. Capture the next slot before leaving the call — same playbook as the sales close.",
+
+  // Investor section (20)
+  InvestorCover:
+    "Open the investor deck. State the thesis in one breath: identity-first everything platform for the creator economy. This is a Series A teaser — set expectations for figures up front.",
+  InvestorVision:
+    "Three sentences for the vision. Identity is the new homepage. AI is the new operating system. One bill, one brand, one home. Don't elaborate; the next slides do that.",
+  InvestorProblem:
+    "Land the problem in numbers. Nine tools, $214 a month, 2.4 hours lost daily, 37% of features used. Note explicitly that these are placeholder market figures until the live research is in.",
+  InvestorMarket:
+    "TAM / SAM / SOM. Be honest these are placeholders unless tagged otherwise — savvy investors will check. Replace with sourced figures (Statista, Gartner, internal) before sending.",
+  InvestorSolution:
+    "Three cards for the solution: surface, spine, modules. Resist the urge to go module-by-module here — the next sections do that. Land the 'one platform' shape and move on.",
+  InvestorDemoHighlights:
+    "Tease the demo. Three moments investors remember: AskCoach grounded in your data, Smart Link wiring in one click, the cross-module funnel reveal. Five minutes total.",
+  InvestorBusinessModel:
+    "Subscriptions, AI credit packs, white-label, affiliate. Four lines of revenue, tilted toward recurring SaaS. AI credits are the wedge into top-up revenue without surprise bills.",
+  InvestorPricing:
+    "Pricing tiers framed by investor narrative: acquisition (Free), highest LTV/CAC (Pro), modal price point (Studio), highest ARPA (Business). Studio is where most teams land.",
+  InvestorGtm:
+    "PLG + community + sales + affiliates. A distribution flywheel, not a single channel. Each one feeds the next: bio links go viral, creators refer creators, agencies bring teams.",
+  InvestorTraction:
+    "Replace placeholders with the latest numbers before sending. Mark the slide as confidential when you do. Lead with MoM growth — investors care about velocity more than absolutes early.",
+  InvestorCompetitive:
+    "Map ourselves against bio, links, CRM, AI. We're the only one with all four under a single identity layer. Avoid bashing competitors — frame us as the integration of their categories.",
+  InvestorMoat:
+    "Four moats: identity gravity, cross-module data, network effects, workspace lock-in. Each compounds the others — that's the slide-five-minutes-later answer for the partner meeting.",
+  InvestorTeam:
+    "Replace founder placeholders with bios and pictures before sending. Lead with prior outcomes, not titles. Investors back people first; product second.",
+  InvestorFinancials:
+    "Walk across rows: ARR, gross margin, NRR, burn multiple. Replace with the live model before sending. Investors will pull this into their own spreadsheet — make sure it ties out.",
+  InvestorAsk:
+    "Ask, equity, runway, post-money cap. Update with the live round structure before the meeting. Be ready to defend each number with a sentence.",
+  InvestorUseOfFunds:
+    "40% product, 30% GTM, 20% customer success, 10% G&A. This is a build-and-distribute round, not a fix-and-survive one. Be specific about the first three engineering hires.",
+  InvestorMilestones:
+    "Quarterly milestones for the round — what we'll prove with this money. Pricing in Q1, AI in Q2, workspaces in Q3, mobile + enterprise in Q4. Each is dated and falsifiable.",
+  InvestorExitVision:
+    "Three exit paths: strategic, growth, IPO. Don't oversell IPO — lead with credible strategic interest from adjacent platforms. Investors prefer optionality over a single bet.",
+  InvestorWhyNow:
+    "Four reasons this works in 2026 and didn't in 2022: AI credibility across workflows, tool fatigue at all-time highs, identity becoming the homepage, mobile parity finally possible.",
+  InvestorClose:
+    "Close the investor deck. Offer the live model, customer references, and a deeper product session. Confirm the next meeting on the call before hanging up.",
+
+  // Roadmap section (20)
+  RoadmapIntro:
+    "Frame how we plan: Now / Next / Later / Always. Set the expectation that quarters are the granularity, not weeks — that's a feature, not a bug.",
+  RoadmapHorizons:
+    "The full company roadmap on one slide. Now is shipping this quarter, Next is in active build, Later has direction set with details flexible. This is the slide most prospects screenshot.",
+  RoadmapAi:
+    "AI roadmap: Companions 2.0 now, AskCoach 3.0 next, an open Companion API later. Be honest about what's GA vs. directional — don't promise on-device inference yet.",
+  RoadmapBio:
+    "Bio + Smart Links roadmap. Editor v3 now, visual routing v3 next, programmable bios later. The marketplace for blocks is the long-tail bet here.",
+  RoadmapProductivity:
+    "Productivity & CRM roadmap. Pipeline 2.0 now, Vault sharing 2.0 next, Forms 2.0 later. This is where teams expand seats once they're on Studio.",
+  RoadmapSocial:
+    "Social & community roadmap: cross-post v2 today, paid memberships next, community moments (live drops, polls, collabs) later. The members tier is the monetisation hook.",
+  RoadmapMobile:
+    "Mobile roadmap: NFC v2 now, Smart Dialer 2.0 next, full mobile parity later. Apple Wallet pass is the headline announcement for this quarter.",
+  RoadmapPlatformApi:
+    "Platform & API roadmap. Webhook v2 with replay and signed payloads, GraphQL surface, in-product app store with partner-built modules. This is the developer-relations narrative.",
+  RoadmapEnterprise:
+    "Enterprise roadmap: SSO + SCIM now (Okta, Azure AD, Google), workspace federation next, custom contracts (data residency, BYO key) later. The slide for the IT buyer.",
+  RoadmapCompliance:
+    "Security & compliance roadmap. SOC 2 Type II audit is active, ISO 27001 next with end-of-year target, regional data zones (EU, UK, APAC) later.",
+  RoadmapInternationalization:
+    "i18n roadmap: localized UI in five languages today, local payments (SEPA, Pix, SPEI) next, region-specific content later. RTL is already supported.",
+  RoadmapMarketplace:
+    "Marketplace roadmap: free templates today, paid templates with creator payouts next, full apps marketplace with revenue share later. This is the long-term platform play.",
+  RoadmapAnalytics:
+    "Analytics roadmap: Funnels v2 with drag-and-drop steps, behavioural cohorts next, warehouse exports and BI partner connectors later.",
+  RoadmapBrand:
+    "Brand & design system roadmap: per-workspace brand kits today, visual theme studio next, programmatic Design API later. The white-label foundation.",
+  RoadmapIntegrations:
+    "Integrations roadmap: top 20 native today, top 50 next, the long tail covered via Zapier and Make. We won't build every connector ourselves — that's a feature.",
+  RoadmapQuarterlyTimeline:
+    "Read this matrix across the rows, not down the columns. Investors and IT buyers care about pace per area — six themes shipping every quarter is the headline.",
+  RoadmapPrinciples:
+    "Four principles for choosing what to ship: honest, open, realistic, bold. We commit to quarters, not weeks. Customers vote on the public roadmap — show them the URL.",
+  RoadmapInvestmentSplit:
+    "Where engineering hours go: 40% AI + integrations, 25% core modules, 20% platform + API, 15% performance and reliability. The split investors expect from a Series A platform.",
+  RoadmapCustomerInfluence:
+    "Four ways customers shape the roadmap: public requests, quarterly council, beta program, weekly office hours. The point: this isn't a closed roadmap — they have a seat at the table.",
+  RoadmapShape:
+    "Close the roadmap section. Invite them to vote on the public roadmap, join the customer council, or talk to product directly. One CTA — pick the one that fits the room.",
+};
+
+for (const s of spec) {
+  if (!s.notes && NOTES[s.slug]) s.notes = NOTES[s.slug];
 }
 
 export { spec };
