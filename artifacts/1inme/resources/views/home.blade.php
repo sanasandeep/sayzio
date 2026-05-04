@@ -2227,12 +2227,13 @@
            FAQ chevrons, gradient avatars, etc.). Restore white inside grad-bar. */
         html.light-mode .grad-bar,
         html.light-mode .grad-bar .text-white,
-        html.light-mode .grad-bar .text-white\/80,
-        html.light-mode .grad-bar .text-white\/70,
-        html.light-mode .grad-bar .text-white\/60        { color: #ffffff; }
-        html.light-mode .grad-bar .text-white\/80        { color: rgba(255,255,255,.85); }
-        html.light-mode .grad-bar .text-white\/70        { color: rgba(255,255,255,.78); }
-        html.light-mode .grad-bar .text-white\/60        { color: rgba(255,255,255,.70); }
+        html.light-mode .grad-bar i,
+        html.light-mode .grad-bar span,
+        html.light-mode .grad-bar a,
+        html.light-mode .grad-bar button         { color: #ffffff !important; }
+        html.light-mode .grad-bar .text-white\/80 { color: rgba(255,255,255,.85) !important; }
+        html.light-mode .grad-bar .text-white\/70 { color: rgba(255,255,255,.78) !important; }
+        html.light-mode .grad-bar .text-white\/60 { color: rgba(255,255,255,.70) !important; }
         html.live, /* sentinel — keeps the file parseable */
         html.light-mode .text-gray-200                    { color: #1f2937; }
         html.light-mode .text-gray-300                    { color: #334155; }
