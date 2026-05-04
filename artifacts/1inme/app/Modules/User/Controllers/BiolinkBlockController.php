@@ -910,6 +910,17 @@ class BiolinkBlockController extends Controller
             'auto_utm.defaults.utm_campaign' => 'nullable|string|max:160',
             'auto_utm.defaults.utm_term'     => 'nullable|string|max:160',
             'auto_utm.defaults.utm_content'  => 'nullable|string|max:160',
+
+            // Per-biolink privacy controls (task #1114). Defaults are
+            // privacy-respecting (visitor counts hidden, referrers not
+            // logged) so a brand-new biolink is GDPR-safe out of the box.
+            'privacy' => 'nullable|array',
+            'privacy.hide_public_visitor_counts' => 'boolean',
+            'privacy.disable_referrer_logging'   => 'boolean',
+            'privacy.consent_banner_enabled'     => 'boolean',
+            'privacy.consent_banner_text'        => 'nullable|string|max:500',
+            'privacy.consent_accept_label'       => 'nullable|string|max:40',
+            'privacy.consent_decline_label'      => 'nullable|string|max:40',
         ]);
 
         $user = auth()->user();
@@ -924,6 +935,8 @@ class BiolinkBlockController extends Controller
         $shareButtonInput = $validated['share_button'] ?? null;
         $menuBarInput = $validated['menu_bar'] ?? null;
         $autoTranslateInput = $validated['auto_translate'] ?? null;
+        $privacyInput = $validated['privacy'] ?? null;
+        unset($validated['privacy']);
         $slideshowFiles = $request->file('slideshow_images');
         $videoFile = $request->file('video_file');
         $fallbackImageFile = $request->file('bg_fallback_image');
@@ -1060,6 +1073,21 @@ class BiolinkBlockController extends Controller
                 }
             }
             unset($settings['biolink']['menu_bar']['items_raw']);
+        }
+
+        // Per-biolink privacy controls. We always replace the whole block
+        // when the form posted any privacy.* key so unchecked switches
+        // (HTML omits unchecked checkboxes) actually flip back to false.
+        if ($request->has('privacy') || $privacyInput !== null) {
+            $p = is_array($privacyInput) ? $privacyInput : [];
+            $settings['biolink']['privacy'] = [
+                'hide_public_visitor_counts' => !empty($p['hide_public_visitor_counts']),
+                'disable_referrer_logging'   => !empty($p['disable_referrer_logging']),
+                'consent_banner_enabled'     => !empty($p['consent_banner_enabled']),
+                'consent_banner_text'        => trim((string) ($p['consent_banner_text'] ?? '')) ?: null,
+                'consent_accept_label'       => trim((string) ($p['consent_accept_label'] ?? '')) ?: null,
+                'consent_decline_label'      => trim((string) ($p['consent_decline_label'] ?? '')) ?: null,
+            ];
         }
 
         if ($autoTranslateInput !== null) {

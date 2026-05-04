@@ -9,6 +9,13 @@
     $__ccGate = !empty($__ccCfg['enabled'])
         && !empty($__ccCfg['scope_biolink'])
         && !empty($__ccCfg['block_until_consent']);
+    // Per-biolink consent banner (task #1114) also gates non-essential
+    // pixels: when a creator turns it on for their page, we render every
+    // pixel as text/plain regardless of the workspace-wide setting and
+    // let the per-link banner script upgrade them on accept.
+    if (isset($link) && !empty(data_get($link->settings, 'biolink.privacy.consent_banner_enabled'))) {
+        $__ccGate = true;
+    }
     $__catFor = function($type) {
         return $type === 'google_analytics' ? 'analytics' : 'marketing';
     };

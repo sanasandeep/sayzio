@@ -2760,6 +2760,108 @@
 
     @include('common.partials.cookie-consent', ['surface' => 'biolink', 'isOwner' => $__ccIsOwner])
 
+    @php
+        // Per-biolink consent banner (task #1114). We only render this
+        // mini-banner when the page owner has opted in AND the visitor
+        // isn't the owner themselves. The workspace-wide cookie-consent
+        // banner takes priority when it's already going to render for
+        // this surface — they share the same script-gating contract
+        // (script[type="text/plain"][data-consent-category]) so we don't
+        // need to also show our own.
+        $__linkPrivacy = $link->settings['biolink']['privacy'] ?? [];
+        $__renderLinkConsent = !$__ccIsOwner
+            && !empty($__linkPrivacy['consent_banner_enabled'])
+            && !\App\Modules\Common\Support\CookieConsentConfig::shouldRender('biolink');
+        $__linkConsentText    = $__linkPrivacy['consent_banner_text']   ?? 'This page uses essential cookies to work. With your consent we also load analytics and marketing pixels.';
+        $__linkConsentAccept  = $__linkPrivacy['consent_accept_label']  ?? 'Accept';
+        $__linkConsentDecline = $__linkPrivacy['consent_decline_label'] ?? 'Decline';
+        $__linkConsentCookie  = '1inme_link_consent_' . (int) $link->id;
+    @endphp
+    @if($__renderLinkConsent)
+    <style>
+        .link-consent-host {
+            position: fixed; left: 12px; right: 12px; bottom: 12px;
+            z-index: 2147483600;
+            display: none;
+            background: rgba(17,24,39,0.96);
+            color: #f9fafb;
+            border-radius: 14px;
+            padding: 14px 16px;
+            box-shadow: 0 18px 50px rgba(0,0,0,0.45);
+            font-family: 'Space Grotesk', system-ui, sans-serif;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .link-consent-host.is-open { display: flex; }
+        .link-consent-host { gap: 14px; align-items: center; flex-wrap: wrap; }
+        .link-consent-text { flex: 1; min-width: 220px; font-size: 13px; line-height: 1.5; }
+        .link-consent-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .link-consent-btn {
+            border: 0; cursor: pointer; font-family: inherit;
+            font-weight: 600; font-size: 13px; padding: 8px 14px;
+            border-radius: 9999px;
+        }
+        .link-consent-accept { background: #7c3aed; color: #fff; }
+        .link-consent-decline { background: rgba(255,255,255,0.12); color: #f9fafb; }
+        @media (min-width: 720px) {
+            .link-consent-host { left: auto; right: 18px; bottom: 18px; max-width: 520px; }
+        }
+    </style>
+    <div id="link-consent" class="link-consent-host" role="dialog" aria-live="polite" aria-label="Privacy consent">
+        <div class="link-consent-text">{{ $__linkConsentText }}</div>
+        <div class="link-consent-actions">
+            <button type="button" class="link-consent-btn link-consent-decline" data-consent="reject">{{ $__linkConsentDecline }}</button>
+            <button type="button" class="link-consent-btn link-consent-accept" data-consent="accept">{{ $__linkConsentAccept }}</button>
+        </div>
+    </div>
+    <script>
+    (function(){
+        var COOKIE = @json($__linkConsentCookie);
+        var host = document.getElementById('link-consent');
+        if (!host) return;
+
+        function readCookie(name) {
+            var m = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/[-.]/g,'\\$&') + '=([^;]*)'));
+            return m ? decodeURIComponent(m[1]) : null;
+        }
+        function writeCookie(name, value, days) {
+            var exp = new Date(Date.now() + days*86400000).toUTCString();
+            document.cookie = name + '=' + encodeURIComponent(value) + '; expires=' + exp + '; path=/; SameSite=Lax';
+        }
+        function upgrade() {
+            // Promote any pixel scripts the page rendered as text/plain to
+            // text/javascript so they actually execute. Mirrors the
+            // contract used by the workspace-wide cookie-consent script.
+            document.querySelectorAll('script[type="text/plain"][data-consent-category]').forEach(function(s){
+                var fresh = document.createElement('script');
+                for (var i = 0; i < s.attributes.length; i++) {
+                    var a = s.attributes[i];
+                    if (a.name === 'type') continue;
+                    fresh.setAttribute(a.name, a.value);
+                }
+                if (s.src) fresh.src = s.src;
+                else fresh.text = s.textContent || '';
+                s.parentNode.replaceChild(fresh, s);
+            });
+        }
+        var existing = readCookie(COOKIE);
+        if (existing === 'accept') { upgrade(); return; }
+        if (existing === 'reject') { return; }
+        // No decision yet — show the banner.
+        host.classList.add('is-open');
+        host.querySelector('[data-consent="accept"]').addEventListener('click', function(){
+            writeCookie(COOKIE, 'accept', 180);
+            host.classList.remove('is-open');
+            upgrade();
+        });
+        host.querySelector('[data-consent="reject"]').addEventListener('click', function(){
+            writeCookie(COOKIE, 'reject', 180);
+            host.classList.remove('is-open');
+        });
+    })();
+    </script>
+    @endif
+
     <script>
     (function() {
         var params = new URLSearchParams(window.location.search);
@@ -2810,12 +2912,59 @@
     <script>{!! $bs['custom_js_body'] !!}</script>
     @endif
 
-    {{-- Engagement tracking: page session + per-block dwell time --}}
+    {{-- Engagement tracking: page session + per-block dwell time.
+         Per-biolink privacy (task #1114): when the page owner enabled the
+         consent banner, treat session + heartbeat + dwell tracking as
+         "non-essential analytics" and only run after the visitor has
+         accepted. The banner script writes the cookie checked here. --}}
     <script>
     (function(){
         var ALIAS = @json($link->alias);
         var startUrl = '/' + ALIAS + '/track/session';
         var hbUrl    = '/' + ALIAS + '/track/heartbeat';
+        var CONSENT_REQUIRED = {!! !empty(($link->settings['biolink']['privacy']['consent_banner_enabled'] ?? false)) ? 'true' : 'false' !!};
+        var CONSENT_COOKIE   = @json('1inme_link_consent_' . (int) $link->id);
+        function readCookie(name){
+            var m = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/[-.]/g,'\\$&') + '=([^;]*)'));
+            return m ? decodeURIComponent(m[1]) : null;
+        }
+        function consentGranted(){
+            if (!CONSENT_REQUIRED) return true;
+            var perLink = readCookie(CONSENT_COOKIE);
+            if (perLink === 'accept') return true;
+            if (perLink === 'reject') return false;
+            // Fall back to workspace consent: when admin enabled the
+            // workspace banner, our per-link mini-banner is suppressed
+            // and the workspace cookie (1inme_cookie_consent, JSON
+            // {v,t,c:{cat:bool}}) governs. Accept covers the analytics
+            // category.
+            var ws = readCookie('1inme_cookie_consent');
+            if (ws) {
+                try {
+                    var parsed = JSON.parse(ws);
+                    if (parsed && parsed.c && parsed.c.analytics) return true;
+                } catch (e) {}
+            }
+            return false;
+        }
+        if (!consentGranted()) {
+            // Re-check on the consent banner's accept click — its handler
+            // sets the cookie before re-running pixel upgrades, so we can
+            // observe the change with a short MutationObserver-free poll.
+            var attempts = 0;
+            var poll = setInterval(function(){
+                attempts += 1;
+                if (consentGranted()) {
+                    clearInterval(poll);
+                    bootstrap();
+                } else if (attempts > 600) { // ~5 minutes, then give up
+                    clearInterval(poll);
+                }
+            }, 500);
+            return;
+        }
+        bootstrap();
+        function bootstrap(){
         var sessionId = null;
         var sessionStart = Date.now();
         var lastActive = Date.now();
@@ -2948,6 +3097,7 @@
 
         if(document.readyState === 'complete' || document.readyState === 'interactive') startSession();
         else document.addEventListener('DOMContentLoaded', startSession);
+        } // end bootstrap()
     })();
     </script>
 

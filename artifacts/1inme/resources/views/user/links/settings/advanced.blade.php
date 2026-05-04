@@ -21,6 +21,17 @@
     $menuBarItems = $menuBar['items'] ?? [];
     $autoUtm = $bs['auto_utm'] ?? [];
     $autoUtmDefaults = is_array($autoUtm['defaults'] ?? null) ? $autoUtm['defaults'] : [];
+    // Per-biolink privacy controls (task #1114). Defaults are
+    // privacy-respecting: visitor counts hidden from the public, no
+    // referrer logging, consent banner off (workspace-wide banner is
+    // configured separately under Admin → Cookie consent).
+    $privacy = $bs['privacy'] ?? [];
+    $privacyHide   = array_key_exists('hide_public_visitor_counts', $privacy) ? !empty($privacy['hide_public_visitor_counts']) : true;
+    $privacyNoRef  = array_key_exists('disable_referrer_logging', $privacy)   ? !empty($privacy['disable_referrer_logging'])   : true;
+    $privacyBanner = !empty($privacy['consent_banner_enabled']);
+    $privacyText   = $privacy['consent_banner_text']   ?? 'This page uses essential cookies to work. With your consent we also load analytics and marketing pixels.';
+    $privacyAccept = $privacy['consent_accept_label']  ?? 'Accept';
+    $privacyDecline= $privacy['consent_decline_label'] ?? 'Decline';
 @endphp
 
 <div class="w-full max-w-7xl mx-auto">
@@ -765,6 +776,60 @@
                 @endif
             </div>
         </div>
+
+            <div class="card-premium p-6" x-data="{ banner: {{ $privacyBanner ? 'true' : 'false' }} }">
+                <div class="flex items-center gap-3 mb-1">
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(34,197,94,0.1);"><i class="fas fa-shield-halved text-emerald-400 text-xs"></i></div>
+                    <h3 class="text-sm font-bold" style="color: var(--text-primary);">Privacy</h3>
+                </div>
+                <p class="text-[11px] mb-4 ml-11" style="color: var(--text-dimmed);">Per-page controls for visitor data and consent. Sensible defaults are already on for new pages.</p>
+
+                <div class="space-y-4">
+                    <label class="flex items-start gap-3 cursor-pointer">
+                        <input type="hidden" name="privacy[hide_public_visitor_counts]" value="0">
+                        <input type="checkbox" name="privacy[hide_public_visitor_counts]" value="1" {{ $privacyHide ? 'checked' : '' }} class="mt-0.5">
+                        <span>
+                            <span class="block text-xs font-semibold" style="color: var(--text-primary);">Hide public visitor counts</span>
+                            <span class="block text-[11px] mt-0.5" style="color: var(--text-dimmed);">Don't show live visitor or click counters to the public. Your own analytics dashboard is unaffected.</span>
+                        </span>
+                    </label>
+
+                    <label class="flex items-start gap-3 cursor-pointer">
+                        <input type="hidden" name="privacy[disable_referrer_logging]" value="0">
+                        <input type="checkbox" name="privacy[disable_referrer_logging]" value="1" {{ $privacyNoRef ? 'checked' : '' }} class="mt-0.5">
+                        <span>
+                            <span class="block text-xs font-semibold" style="color: var(--text-primary);">Don't log referrer URLs</span>
+                            <span class="block text-[11px] mt-0.5" style="color: var(--text-dimmed);">Skip storing the page each visitor came from. Other analytics (country, device) still work.</span>
+                        </span>
+                    </label>
+
+                    <label class="flex items-start gap-3 cursor-pointer">
+                        <input type="hidden" name="privacy[consent_banner_enabled]" value="0">
+                        <input type="checkbox" name="privacy[consent_banner_enabled]" value="1" x-model="banner" class="mt-0.5">
+                        <span>
+                            <span class="block text-xs font-semibold" style="color: var(--text-primary);">Show a visitor consent banner</span>
+                            <span class="block text-[11px] mt-0.5" style="color: var(--text-dimmed);">Display a GDPR-style banner before loading non-essential cookies, analytics, and marketing pixels on this page.</span>
+                        </span>
+                    </label>
+
+                    <div x-show="banner" x-transition class="space-y-3 pl-7">
+                        <div>
+                            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Banner copy</label>
+                            <textarea name="privacy[consent_banner_text]" rows="2" maxlength="500" class="theme-input w-full text-xs" placeholder="This page uses cookies…">{{ $privacyText }}</textarea>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Accept button</label>
+                                <input type="text" name="privacy[consent_accept_label]" value="{{ $privacyAccept }}" maxlength="40" class="theme-input w-full text-xs">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Decline button</label>
+                                <input type="text" name="privacy[consent_decline_label]" value="{{ $privacyDecline }}" maxlength="40" class="theme-input w-full text-xs">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
                 @include('user.links.partials.settings-footer', ['link' => $link])
             </form>

@@ -16,6 +16,13 @@ class EngagementController extends Controller
     {
         $link = Link::resolveByAlias($alias, $request->getHost());
         if (!$link) abort(404);
+        // Per-biolink privacy (task #1114): when the page owner has
+        // turned the consent banner on, drop session/heartbeat creation
+        // unless the visitor has accepted. Defense in depth alongside
+        // the client-side gate in biolink.blade.php.
+        if (!$this->engagementConsentGranted($request, $link)) {
+            return response()->json(['ok' => false, 'reason' => 'consent_required'], 200);
+        }
         $sessionId = (string) Str::uuid();
 
         $ua = $request->userAgent();
@@ -37,7 +44,7 @@ class EngagementController extends Controller
             'browser' => $this->detectBrowser($ua),
             'os' => $this->detectOS($ua),
             'device_type' => $this->detectDeviceType($ua),
-            'referrer' => $request->header('referer'),
+            'referrer' => $this->shouldLogReferrer($link) ? $request->header('referer') : null,
             'language' => substr((string) $request->header('Accept-Language'), 0, 2) ?: null,
             'source' => $source,
             'started_at' => now(),
@@ -50,6 +57,11 @@ class EngagementController extends Controller
 
     public function heartbeat(Request $request, string $alias)
     {
+        $link = Link::resolveByAlias($alias, $request->getHost());
+        if (!$link) abort(404);
+        if (!$this->engagementConsentGranted($request, $link)) {
+            return response()->json(['ok' => false, 'reason' => 'consent_required'], 200);
+        }
         $data = $request->validate([
             'session_id' => 'required|string|size:36',
             'duration_seconds' => 'required|integer|min:0|max:86400',
@@ -60,9 +72,6 @@ class EngagementController extends Controller
             'block_views.*.view_duration_ms' => 'required|integer|min:0',
             'block_views.*.impression_count' => 'nullable|integer|min:0',
         ]);
-
-        $link = Link::resolveByAlias($alias, $request->getHost());
-        if (!$link) abort(404);
 
         $session = PageSession::where('session_id', $data['session_id'])
             ->where('link_id', $link->id)->first();
@@ -104,6 +113,47 @@ class EngagementController extends Controller
         }
 
         return response()->json(['ok' => true]);
+    }
+
+    /**
+     * Per-biolink consent gate (task #1114). Engagement events
+     * (sessions, heartbeats, dwell-time) are non-essential analytics:
+     * if the page owner has the consent banner enabled, we only persist
+     * them once the visitor's per-link consent cookie reads "accept".
+     * When the banner is off, behaviour is unchanged.
+     */
+    private function engagementConsentGranted(Request $request, Link $link): bool
+    {
+        // Engagement endpoints are only meaningfully reached from biolink
+        // pages, but be explicit: privacy semantics live under
+        // settings.biolink.privacy and only apply to biolink-type links.
+        if ($link->type !== 'biolink') return true;
+        $bannerOn = (bool) data_get($link->settings, 'biolink.privacy.consent_banner_enabled', false);
+        if (!$bannerOn) return true;
+        // Per-link banner cookie wins when present.
+        $perLink = $request->cookie('1inme_link_consent_' . (int) $link->id);
+        if ($perLink === 'accept') return true;
+        if ($perLink === 'reject') return false;
+        // Otherwise honor the workspace-wide consent cookie. The
+        // cookie-consent partial only renders when its admin-side
+        // shouldRender() returns true, so when it's actually showing the
+        // banner we suppress our per-link mini-banner and let workspace
+        // consent govern. The cookie format is JSON: {v,t,c:{cat:bool}}.
+        $raw = $request->cookie('1inme_cookie_consent');
+        if (is_string($raw) && $raw !== '') {
+            $decoded = json_decode($raw, true);
+            $cats = is_array($decoded['c'] ?? null) ? $decoded['c'] : [];
+            if (!empty($cats['analytics'])) return true;
+        }
+        return false;
+    }
+
+    private function shouldLogReferrer(Link $link): bool
+    {
+        if ($link->type !== 'biolink') return true;
+        $explicit = data_get($link->settings, 'biolink.privacy.disable_referrer_logging', null);
+        if ($explicit === null) return false;
+        return !((bool) $explicit);
     }
 
     private function detectBrowser(?string $ua): ?string

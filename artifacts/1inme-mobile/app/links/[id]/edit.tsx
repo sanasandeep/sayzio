@@ -78,6 +78,19 @@ export default function EditLinkScreen() {
   const [seoDesc, setSeoDesc] = useState("");
   const [visibility, setVisibility] = useState<Link["visibility"]>("public");
   const [active, setActive] = useState(true);
+  // Per-biolink privacy controls (task #1114). Defaults are
+  // privacy-respecting so a brand-new biolink is GDPR-safe; existing
+  // pages keep whatever the creator already saved.
+  const DEFAULT_BANNER_TEXT =
+    "This page uses essential cookies to work. With your consent we also load analytics and marketing pixels.";
+  const DEFAULT_ACCEPT_LABEL = "Accept";
+  const DEFAULT_DECLINE_LABEL = "Decline";
+  const [privacyHide, setPrivacyHide] = useState(true);
+  const [privacyNoRef, setPrivacyNoRef] = useState(true);
+  const [privacyBanner, setPrivacyBanner] = useState(false);
+  const [privacyText, setPrivacyText] = useState(DEFAULT_BANNER_TEXT);
+  const [privacyAccept, setPrivacyAccept] = useState(DEFAULT_ACCEPT_LABEL);
+  const [privacyDecline, setPrivacyDecline] = useState(DEFAULT_DECLINE_LABEL);
 
   useEffect(() => {
     const l = q.data;
@@ -89,11 +102,27 @@ export default function EditLinkScreen() {
     setSeoDesc(l.seo_description ?? "");
     setVisibility(l.visibility);
     setActive(l.is_active);
+    const privacy = readPrivacy(l.settings ?? null);
+    setPrivacyHide(privacy.hide_public_visitor_counts ?? true);
+    setPrivacyNoRef(privacy.disable_referrer_logging ?? true);
+    setPrivacyBanner(privacy.consent_banner_enabled ?? false);
+    setPrivacyText(privacy.consent_banner_text ?? DEFAULT_BANNER_TEXT);
+    setPrivacyAccept(privacy.consent_accept_label ?? DEFAULT_ACCEPT_LABEL);
+    setPrivacyDecline(privacy.consent_decline_label ?? DEFAULT_DECLINE_LABEL);
   }, [q.data]);
 
   const save = useMutation({
-    mutationFn: () =>
-      updateLink(id, {
+    mutationFn: () => {
+      // Deep-merge into the existing settings so we don't clobber
+      // appearance/blocks data the editor isn't aware of. The web
+      // updatePageSettings handler stores the same shape.
+      // Privacy controls only apply to biolink-type links. For
+      // short/vcard/other types we don't touch settings at all so the
+      // backend's deep-merge doesn't silently introduce a privacy block.
+      const isBiolink =
+        (q.data?.type ?? "").toString() === "biolink" ||
+        meta.kind === "biolink";
+      const payload: Parameters<typeof updateLink>[1] = {
         title: title || null,
         alias,
         long_url: longUrl || null,
@@ -101,7 +130,36 @@ export default function EditLinkScreen() {
         seo_description: seoDesc || null,
         visibility,
         is_active: active,
-      }),
+      };
+      if (isBiolink) {
+        const existing: SettingsRecord = (q.data?.settings ??
+          {}) as SettingsRecord;
+        const existingBiolink: SettingsRecord = isRecord(existing.biolink)
+          ? existing.biolink
+          : {};
+        const existingPrivacy: SettingsRecord = isRecord(existingBiolink.privacy)
+          ? existingBiolink.privacy
+          : {};
+        payload.settings = {
+          ...existing,
+          biolink: {
+            ...existingBiolink,
+            privacy: {
+              ...existingPrivacy,
+              hide_public_visitor_counts: privacyHide,
+              disable_referrer_logging: privacyNoRef,
+              consent_banner_enabled: privacyBanner,
+              consent_banner_text: privacyText.trim() || DEFAULT_BANNER_TEXT,
+              consent_accept_label:
+                privacyAccept.trim() || DEFAULT_ACCEPT_LABEL,
+              consent_decline_label:
+                privacyDecline.trim() || DEFAULT_DECLINE_LABEL,
+            },
+          },
+        };
+      }
+      return updateLink(id, payload);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["link", id] });
       qc.invalidateQueries({ queryKey: ["links"] });
@@ -385,6 +443,61 @@ export default function EditLinkScreen() {
           />
         </View>
 
+        {meta.kind === "biolink" ? (
+          <View style={styles.section}>
+            <Text
+              style={[styles.sectionLabel, { color: colors.mutedForeground }]}
+            >
+              Privacy
+            </Text>
+            <PrivacyRow
+              label="Hide public visitor counts"
+              hint="Don't show live visitor counters publicly. Your analytics still work."
+              value={privacyHide}
+              onValueChange={setPrivacyHide}
+            />
+            <PrivacyRow
+              label="Don't log referrer URLs"
+              hint="Skip storing the page each visitor came from."
+              value={privacyNoRef}
+              onValueChange={setPrivacyNoRef}
+            />
+            <PrivacyRow
+              label="Show visitor consent banner"
+              hint="Ask visitors before loading non-essential cookies and pixels."
+              value={privacyBanner}
+              onValueChange={setPrivacyBanner}
+            />
+            {privacyBanner ? (
+              <View style={{ gap: 10 }}>
+                <TextField
+                  label="Banner copy"
+                  value={privacyText}
+                  onChangeText={setPrivacyText}
+                  multiline
+                  maxLength={500}
+                  placeholder={DEFAULT_BANNER_TEXT}
+                  style={{ height: 88, textAlignVertical: "top", paddingTop: 12 }}
+                />
+                <TextField
+                  label="Accept button"
+                  value={privacyAccept}
+                  onChangeText={setPrivacyAccept}
+                  maxLength={40}
+                  placeholder={DEFAULT_ACCEPT_LABEL}
+                />
+                <TextField
+                  label="Decline button"
+                  value={privacyDecline}
+                  onChangeText={setPrivacyDecline}
+                  maxLength={40}
+                  placeholder={DEFAULT_DECLINE_LABEL}
+                />
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+
         <Button
           label="Save changes"
           onPress={() => save.mutate()}
@@ -408,6 +521,90 @@ export default function EditLinkScreen() {
           </Text>
         </Pressable>
       </ScrollView>
+    </View>
+  );
+}
+
+type SettingsRecord = Record<string, unknown>;
+
+type PrivacySettings = {
+  hide_public_visitor_counts?: boolean;
+  disable_referrer_logging?: boolean;
+  consent_banner_enabled?: boolean;
+  consent_banner_text?: string;
+  consent_accept_label?: string;
+  consent_decline_label?: string;
+};
+
+function isRecord(value: unknown): value is SettingsRecord {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function readPrivacy(settings: unknown): PrivacySettings {
+  if (!isRecord(settings)) return {};
+  const biolink = settings.biolink;
+  if (!isRecord(biolink)) return {};
+  const privacy = biolink.privacy;
+  if (!isRecord(privacy)) return {};
+  const out: PrivacySettings = {};
+  if (typeof privacy.hide_public_visitor_counts === "boolean")
+    out.hide_public_visitor_counts = privacy.hide_public_visitor_counts;
+  if (typeof privacy.disable_referrer_logging === "boolean")
+    out.disable_referrer_logging = privacy.disable_referrer_logging;
+  if (typeof privacy.consent_banner_enabled === "boolean")
+    out.consent_banner_enabled = privacy.consent_banner_enabled;
+  if (typeof privacy.consent_banner_text === "string")
+    out.consent_banner_text = privacy.consent_banner_text;
+  if (typeof privacy.consent_accept_label === "string")
+    out.consent_accept_label = privacy.consent_accept_label;
+  if (typeof privacy.consent_decline_label === "string")
+    out.consent_decline_label = privacy.consent_decline_label;
+  return out;
+}
+
+function PrivacyRow({
+  label,
+  hint,
+  value,
+  onValueChange,
+}: {
+  label: string;
+  hint: string;
+  value: boolean;
+  onValueChange: (v: boolean) => void;
+}) {
+  const colors = useColors();
+  return (
+    <View
+      style={[
+        styles.privacyRow,
+        {
+          backgroundColor: colors.card,
+          borderColor: colors.border,
+          borderRadius: colors.radius,
+        },
+      ]}
+    >
+      <View style={{ flex: 1, paddingRight: 12 }}>
+        <Text style={[styles.rowLabel, { color: colors.foreground }]}>
+          {label}
+        </Text>
+        <Text
+          style={{
+            fontFamily: "SpaceGrotesk_500Medium",
+            fontSize: 11,
+            marginTop: 4,
+            color: colors.mutedForeground,
+          }}
+        >
+          {hint}
+        </Text>
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        trackColor={{ true: colors.primary, false: colors.border }}
+      />
     </View>
   );
 }
@@ -505,6 +702,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   rowLabel: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 14 },
+  privacyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 14,
+    borderWidth: 1,
+  },
   deleteRow: {
     flexDirection: "row",
     alignItems: "center",

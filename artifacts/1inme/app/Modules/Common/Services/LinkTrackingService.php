@@ -50,6 +50,12 @@ class LinkTrackingService
         $geoService = app(GeoIpService::class);
         $geo = $geoService->detectGeo($request->ip());
 
+        // Per-biolink privacy: when the owner has flipped off referrer
+        // logging, we drop the Referer header before persistence. Storing
+        // null (rather than the actual URL) means the value never lands
+        // in analytics, exports, or webhook payloads downstream.
+        $logReferrer = $this->shouldLogReferrer($link);
+
         $click = LinkClick::create([
             'link_id' => $link->id,
             'alias' => $usedAlias ?: $link->alias,
@@ -58,7 +64,7 @@ class LinkTrackingService
             'browser' => $this->detectBrowser($userAgent),
             'os' => $this->detectOS($userAgent),
             'device_type' => $this->detectDeviceType($userAgent),
-            'referrer' => $request->header('referer'),
+            'referrer' => $logReferrer ? $request->header('referer') : null,
             'source' => $source,
             'user_agent' => $userAgent ? mb_substr($userAgent, 0, 512) : null,
             'channel' => ChannelClassifier::classify($userAgent),
@@ -100,6 +106,31 @@ class LinkTrackingService
         \App\Events\LinkClicked::dispatch($link, $click);
 
         return $click;
+    }
+
+    /**
+     * Per-biolink privacy: when the owner has flipped off referrer logging,
+     * we drop the Referer header before persisting any LinkClick row. The
+     * default (no privacy block, or the flag not set) preserves the
+     * historical behaviour of recording the header.
+     */
+    protected function shouldLogReferrer(Link $link): bool
+    {
+        // Privacy controls (task #1114) live under
+        // settings.biolink.privacy and only apply to biolink-type links.
+        // Short links and other types keep their historical behaviour of
+        // recording the Referer header.
+        if ($link->type !== 'biolink') {
+            return true;
+        }
+        $explicit = data_get($link->settings, 'biolink.privacy.disable_referrer_logging', null);
+        // Privacy-first default for biolinks: when the owner hasn't
+        // saved the Privacy panel yet, drop the Referer header so a
+        // brand-new biolink doesn't quietly log it before review.
+        if ($explicit === null) {
+            return false;
+        }
+        return !((bool) $explicit);
     }
 
     protected function detectBrowser(?string $ua): ?string
@@ -232,7 +263,7 @@ class LinkTrackingService
             'browser' => $this->detectBrowser($userAgent),
             'os' => $this->detectOS($userAgent),
             'device_type' => $this->detectDeviceType($userAgent),
-            'referrer' => $request->header('referer'),
+            'referrer' => $this->shouldLogReferrer($link) ? $request->header('referer') : null,
             'source' => $source,
             'user_agent' => $userAgent ? mb_substr($userAgent, 0, 512) : null,
             'channel' => ChannelClassifier::classify($userAgent),
