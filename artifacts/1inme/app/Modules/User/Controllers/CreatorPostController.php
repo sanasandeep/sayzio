@@ -8,7 +8,11 @@ use App\Modules\User\Models\CloudFileAttachment;
 use App\Modules\User\Models\CreatorPost;
 use App\Modules\User\Models\FeedEvent;
 use App\Modules\User\Models\Follow;
+use App\Modules\User\Models\PostApprovalComment;
+use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserNotification;
+use App\Modules\User\Models\Workspace;
+use App\Modules\User\Models\WorkspaceMember;
 use Illuminate\Http\Request;
 
 class CreatorPostController extends Controller
@@ -21,11 +25,20 @@ class CreatorPostController extends Controller
         CreatorPost::publishDuePosts($ownerId);
 
         $posts = CreatorPost::query()
-            ->with('cloudAttachments.cloudFile')
+            ->with(['cloudAttachments.cloudFile', 'approvalComments.user:id,name,avatar', 'approvalDecider:id,name'])
+            ->orderByRaw("CASE WHEN approval_status = 'pending_review' THEN 0 ELSE 1 END")
             ->orderByDesc('pinned_at')
             ->orderByDesc('created_at')
             ->paginate(20);
-        return view('user.posts.index', compact('posts'));
+
+        $workspace = app()->bound('current_workspace') ? app('current_workspace') : null;
+        $approvalEnabled = $workspace ? $workspace->postApprovalEnabled() : false;
+        $userIsApprover  = $workspace ? $workspace->userCanApprovePosts(auth()->user()) : false;
+        $approverRoles   = $workspace ? $workspace->postApproverRoles() : [];
+
+        return view('user.posts.index', compact(
+            'posts', 'workspace', 'approvalEnabled', 'userIsApprover', 'approverRoles'
+        ));
     }
 
     public function store(Request $request)
@@ -51,17 +64,47 @@ class CreatorPostController extends Controller
         // Attribute the post to the workspace owner (so existing per-creator
         // queries — feed events, follower notifications — keep working) while
         // workspace_id + created_by_user_id are auto-filled by the trait.
-        $ownerId = app()->bound('workspace_owner') ? app('workspace_owner')->id : auth()->id();
+        $ownerId   = app()->bound('workspace_owner') ? app('workspace_owner')->id : auth()->id();
+        $workspace = app()->bound('current_workspace') ? app('current_workspace') : null;
+        $actor     = auth()->user();
+
+        // Approval gate: when the workspace requires approval AND the actor
+        // isn't an approver themselves, the post enters the queue instead of
+        // going live. We also stash the intended schedule so the publish job
+        // can't pick it up before review, and so we can restore it later.
+        $needsApproval = $workspace
+            && $workspace->postApprovalEnabled()
+            && !$workspace->userCanApprovePosts($actor);
+
         $post = CreatorPost::create([
-            'user_id'      => $ownerId,
-            'title'        => $data['title'] ?? null,
-            'body'         => $data['body'],
-            'image'        => $imagePath,
-            'scheduled_at' => $scheduledAt,
-            'published_at' => $isFuture ? null : now(),
+            'user_id'               => $ownerId,
+            'title'                 => $data['title'] ?? null,
+            'body'                  => $data['body'],
+            'image'                 => $imagePath,
+            // Hold the schedule out of the live column until approval.
+            'scheduled_at'          => $needsApproval ? null : $scheduledAt,
+            'intended_scheduled_at' => $needsApproval ? $scheduledAt : null,
+            'published_at'          => ($needsApproval || $isFuture) ? null : now(),
+            'approval_status'       => $needsApproval ? CreatorPost::APPROVAL_PENDING : null,
+            'approval_requested_at' => $needsApproval ? now() : null,
         ]);
 
         $this->syncCloudAttachments($post, (array) $request->input('cloud_file_ids', []));
+
+        if ($needsApproval) {
+            // Drop the editor's note as the first comment in the thread, and
+            // notify everyone who can approve in this workspace.
+            PostApprovalComment::create([
+                'creator_post_id' => $post->id,
+                'user_id'         => $actor->id,
+                'action'          => 'submit',
+                'body'            => null,
+            ]);
+            $this->notifyApproversQueueEntered($workspace, $post, $actor);
+
+            return redirect()->route('user.posts.index')->with('success',
+                'Sent to your reviewers. You\'ll be notified once it\'s approved.');
+        }
 
         $me = app()->bound('workspace_owner') ? app('workspace_owner') : auth()->user();
 
@@ -96,6 +139,194 @@ class CreatorPostController extends Controller
         return redirect()->route('user.posts.index')->with('success', $msg);
     }
 
+    /**
+     * Approve a pending post. Publishes immediately if no schedule was set,
+     * otherwise restores the editor's intended schedule so the publish job
+     * picks it up at the right time.
+     */
+    public function approve(Request $request, CreatorPost $post)
+    {
+        $workspace = app('current_workspace');
+        if (! $this->guardApprover($workspace, $request, $post)) {
+            return back()->with('error', 'You\'re not allowed to approve posts in this workspace.');
+        }
+        $data = $request->validate(['note' => 'nullable|string|max:2000']);
+
+        $intended = $post->intended_scheduled_at;
+        $isFuture = $intended && $intended->isFuture();
+
+        $post->approval_status              = CreatorPost::APPROVAL_APPROVED;
+        $post->approval_decided_at          = now();
+        $post->approval_decided_by_user_id  = $request->user()->id;
+        $post->scheduled_at                 = $isFuture ? $intended : null;
+        $post->intended_scheduled_at        = null;
+        $post->published_at                 = $isFuture ? null : now();
+        $post->save();
+
+        PostApprovalComment::create([
+            'creator_post_id' => $post->id,
+            'user_id'         => $request->user()->id,
+            'action'          => 'approve',
+            'body'            => $data['note'] ?? null,
+        ]);
+
+        // Run the same publish-time side-effects an immediate Publish would
+        // have. For scheduled posts the existing publishDuePosts() job
+        // emits these when the schedule fires.
+        if (!$isFuture) {
+            $owner = $workspace->owner ?? User::find($workspace->owner_user_id);
+            if ($owner) {
+                FeedEvent::create([
+                    'user_id'      => $owner->id,
+                    'type'         => 'post',
+                    'subject_id'   => $post->id,
+                    'subject_type' => CreatorPost::class,
+                    'data'         => [
+                        'title'          => $post->title,
+                        'body_excerpt'   => mb_substr($post->body, 0, 160),
+                        'creator_name'   => $owner->name,
+                        'creator_avatar' => $owner->avatar,
+                    ],
+                    'occurred_at'  => now(),
+                ]);
+                static::notifyFollowersDebounced(
+                    $owner,
+                    'New post: ' . ($post->title ?: mb_substr($post->body, 0, 60)),
+                    $post
+                );
+            }
+        }
+
+        $this->notifyEditorOfDecision($post, 'approve', $request->user(), $data['note'] ?? null);
+
+        $msg = $isFuture
+            ? 'Approved. Will publish on ' . $intended->format('M j, Y g:i A') . '.'
+            : 'Approved and published.';
+        return back()->with('success', $msg);
+    }
+
+    /**
+     * Reviewer asks the editor to make changes. The post stays in the
+     * workspace as a draft (changes_requested) so the editor can edit and
+     * re-submit. A note is required so the editor knows what to change.
+     */
+    public function requestChanges(Request $request, CreatorPost $post)
+    {
+        $workspace = app('current_workspace');
+        if (! $this->guardApprover($workspace, $request, $post)) {
+            return back()->with('error', 'You\'re not allowed to review posts in this workspace.');
+        }
+        $data = $request->validate(['note' => 'required|string|max:2000']);
+
+        $post->approval_status              = CreatorPost::APPROVAL_CHANGES;
+        $post->approval_decided_at          = now();
+        $post->approval_decided_by_user_id  = $request->user()->id;
+        $post->save();
+
+        PostApprovalComment::create([
+            'creator_post_id' => $post->id,
+            'user_id'         => $request->user()->id,
+            'action'          => 'changes_requested',
+            'body'            => $data['note'],
+        ]);
+
+        $this->notifyEditorOfDecision($post, 'changes_requested', $request->user(), $data['note']);
+        return back()->with('success', 'Sent back to the editor with your note.');
+    }
+
+    /**
+     * Reject a pending post. The post stays in the workspace as a rejected
+     * draft (so the editor can see the reason) but never publishes.
+     */
+    public function reject(Request $request, CreatorPost $post)
+    {
+        $workspace = app('current_workspace');
+        if (! $this->guardApprover($workspace, $request, $post)) {
+            return back()->with('error', 'You\'re not allowed to reject posts in this workspace.');
+        }
+        $data = $request->validate(['note' => 'nullable|string|max:2000']);
+
+        $post->approval_status              = CreatorPost::APPROVAL_REJECTED;
+        $post->approval_decided_at          = now();
+        $post->approval_decided_by_user_id  = $request->user()->id;
+        // Drop any held schedule — a rejected post should not auto-publish
+        // even if the editor later edits it without removing the date.
+        $post->intended_scheduled_at        = null;
+        $post->scheduled_at                 = null;
+        $post->save();
+
+        PostApprovalComment::create([
+            'creator_post_id' => $post->id,
+            'user_id'         => $request->user()->id,
+            'action'          => 'reject',
+            'body'            => $data['note'] ?? null,
+        ]);
+
+        $this->notifyEditorOfDecision($post, 'reject', $request->user(), $data['note'] ?? null);
+        return back()->with('success', 'Rejected. The editor was notified.');
+    }
+
+    /**
+     * Re-submit a draft (rejected or changes_requested) for review. Only
+     * the original author can resubmit. Resets the decision metadata and
+     * notifies the approvers again.
+     */
+    public function resubmit(Request $request, CreatorPost $post)
+    {
+        $workspace = app('current_workspace');
+        $actor     = $request->user();
+
+        if (!$workspace || !$workspace->postApprovalEnabled()) {
+            return back()->with('error', 'Approval is no longer required in this workspace.');
+        }
+        if ((int) $post->created_by_user_id !== (int) $actor->id) {
+            return back()->with('error', 'Only the original author can resubmit this post.');
+        }
+        if (!in_array($post->approval_status, [CreatorPost::APPROVAL_CHANGES, CreatorPost::APPROVAL_REJECTED], true)) {
+            return back()->with('error', 'This post can\'t be resubmitted in its current state.');
+        }
+        $data = $request->validate(['note' => 'nullable|string|max:2000']);
+
+        $post->approval_status              = CreatorPost::APPROVAL_PENDING;
+        $post->approval_requested_at        = now();
+        $post->approval_decided_at          = null;
+        $post->approval_decided_by_user_id  = null;
+        $post->save();
+
+        PostApprovalComment::create([
+            'creator_post_id' => $post->id,
+            'user_id'         => $actor->id,
+            'action'          => 'submit',
+            'body'            => $data['note'] ?? null,
+        ]);
+
+        $this->notifyApproversQueueEntered($workspace, $post, $actor);
+        return back()->with('success', 'Re-sent for review.');
+    }
+
+    /** Add a plain reply to the threaded approval discussion. */
+    public function comment(Request $request, CreatorPost $post)
+    {
+        $workspace = app('current_workspace');
+        $actor     = $request->user();
+        // Author of the post and any approver can comment in the thread.
+        $isAuthor   = (int) $post->created_by_user_id === (int) $actor->id;
+        $isApprover = $workspace && $workspace->userCanApprovePosts($actor);
+        if (!$isAuthor && !$isApprover) {
+            return back()->with('error', 'You don\'t have access to this thread.');
+        }
+        $data = $request->validate(['body' => 'required|string|max:2000']);
+
+        PostApprovalComment::create([
+            'creator_post_id' => $post->id,
+            'user_id'         => $actor->id,
+            'action'          => null,
+            'body'            => $data['body'],
+        ]);
+
+        return back()->with('success', 'Comment added.');
+    }
+
     public function pin(CreatorPost $post)
     {
         // The route binding + workspace global scope guarantees this post belongs
@@ -125,8 +356,134 @@ class CreatorPostController extends Controller
     public function destroy(CreatorPost $post)
     {
         // Auth handled by route middleware + global workspace scope.
+        $post->approvalComments()->delete();
         $post->delete();
         return back()->with('success', 'Post deleted.');
+    }
+
+    /**
+     * Shared guard: the post must still be in a reviewable state and the
+     * actor must hold the approver role for the active workspace.
+     */
+    protected function guardApprover(?Workspace $workspace, Request $request, CreatorPost $post): bool
+    {
+        if (!$workspace) return false;
+        if (!$workspace->userCanApprovePosts($request->user())) return false;
+        // Only pending posts can transition. Re-approving an already
+        // approved/rejected post is a no-op rather than an error.
+        if ($post->approval_status !== CreatorPost::APPROVAL_PENDING) return false;
+        return true;
+    }
+
+    /** Notify every workspace member with an approver role + the owner. */
+    protected function notifyApproversQueueEntered(Workspace $workspace, CreatorPost $post, User $actor): void
+    {
+        $recipients = collect();
+
+        // Owner is always an approver.
+        if ($workspace->owner_user_id && (int) $workspace->owner_user_id !== (int) $actor->id) {
+            $owner = User::find($workspace->owner_user_id);
+            if ($owner) $recipients->push($owner);
+        }
+
+        $approverRoles = $workspace->postApproverRoles();
+        if (!empty($approverRoles)) {
+            $memberUserIds = WorkspaceMember::where('workspace_id', $workspace->id)
+                ->whereIn('role', $approverRoles)
+                ->where('user_id', '!=', $actor->id)
+                ->pluck('user_id');
+            if ($memberUserIds->isNotEmpty()) {
+                $recipients = $recipients->concat(User::whereIn('id', $memberUserIds)->get());
+            }
+        }
+
+        $recipients = $recipients->unique('id');
+        if ($recipients->isEmpty()) return;
+
+        $excerpt = mb_substr($post->title ?: $post->body, 0, 80);
+        $message = "{$actor->name} sent a post for review in {$workspace->name}: \"{$excerpt}\"";
+
+        foreach ($recipients as $recipient) {
+            UserNotification::create([
+                'user_id'    => $recipient->id,
+                'type'       => 'post_review_request',
+                'data'       => [
+                    'workspace_id'   => $workspace->id,
+                    'workspace_name' => $workspace->name,
+                    'post_id'        => $post->id,
+                    'editor_id'      => $actor->id,
+                    'editor_name'    => $actor->name,
+                    'message'        => $message,
+                    'url'            => route('user.posts.index'),
+                ],
+                'created_at' => now(),
+                'emailed_at' => null,
+            ]);
+
+            try {
+                \Mail::raw(
+                    $message . "\n\nReview it: " . route('user.posts.index'),
+                    function ($m) use ($recipient) {
+                        $m->to($recipient->email)
+                          ->subject('A post is waiting for your review');
+                    }
+                );
+                UserNotification::where('user_id', $recipient->id)
+                    ->where('type', 'post_review_request')
+                    ->whereNull('emailed_at')
+                    ->latest('id')->first()
+                    ?->update(['emailed_at' => now()]);
+            } catch (\Throwable $e) {}
+        }
+    }
+
+    /**
+     * Notify the editor (post author) of a reviewer's decision. Falls back
+     * to the workspace owner if the author has been removed.
+     */
+    protected function notifyEditorOfDecision(CreatorPost $post, string $action, User $reviewer, ?string $note): void
+    {
+        $editor = $post->created_by_user_id ? User::find($post->created_by_user_id) : null;
+        if (!$editor) return;
+        // Don't ping yourself if you reviewed your own post.
+        if ((int) $editor->id === (int) $reviewer->id) return;
+
+        $verbs = [
+            'approve'           => 'approved',
+            'changes_requested' => 'requested changes on',
+            'reject'            => 'rejected',
+        ];
+        $verb = $verbs[$action] ?? 'updated';
+        $excerpt = mb_substr($post->title ?: $post->body, 0, 80);
+        $message = "{$reviewer->name} {$verb} your post: \"{$excerpt}\"";
+        if ($note) $message .= " — {$note}";
+
+        $notif = UserNotification::create([
+            'user_id'    => $editor->id,
+            'type'       => 'post_review_decision',
+            'data'       => [
+                'post_id'       => $post->id,
+                'action'        => $action,
+                'reviewer_id'   => $reviewer->id,
+                'reviewer_name' => $reviewer->name,
+                'note'          => $note,
+                'message'       => $message,
+                'url'           => route('user.posts.index'),
+            ],
+            'created_at' => now(),
+            'emailed_at' => null,
+        ]);
+
+        try {
+            \Mail::raw(
+                $message . "\n\nOpen your posts: " . route('user.posts.index'),
+                function ($m) use ($editor) {
+                    $m->to($editor->email)->subject('Update on your post review');
+                }
+            );
+            $notif->emailed_at = now();
+            $notif->save();
+        } catch (\Throwable $e) {}
     }
 
     /**

@@ -117,6 +117,50 @@
         </div>
     @endif
 
+    {{-- Post approval workflow (owner-only) --}}
+    @if(!empty($isOwner) && !$workspace->is_personal)
+        <div class="mt-6 rounded-lg border" style="border-color: var(--border-strong); background: var(--bg-card);">
+            <div class="px-4 py-3 border-b font-semibold flex items-center gap-2" style="border-color: var(--border-strong);">
+                <i class="fas fa-shield-check"></i> Post approval workflow
+            </div>
+            <form method="POST" action="{{ route('user.workspaces.post-approval.update', $workspace) }}" class="p-4 space-y-4">
+                @csrf @method('PUT')
+                <p class="text-xs opacity-70">
+                    Hold posts in a review queue before they go live. Editors submit posts; reviewers approve, request changes, or reject.
+                    Personal workspaces aren't affected.
+                </p>
+
+                <label class="flex items-center gap-2 text-sm">
+                    <input type="hidden" name="enabled" value="0">
+                    <input type="checkbox" name="enabled" value="1" {{ !empty($approvalCfg['enabled']) ? 'checked' : '' }}>
+                    <span class="font-medium">Require approval for posts</span>
+                </label>
+
+                <div>
+                    <div class="text-xs font-medium mb-2">Roles that can approve</div>
+                    <div class="flex flex-wrap gap-3 text-sm">
+                        @foreach(['admin' => 'Admin','editor' => 'Editor','replier' => 'Replier','analyst' => 'Analyst','viewer' => 'Viewer'] as $slug => $label)
+                            <label class="flex items-center gap-1.5">
+                                <input type="checkbox" name="approver_roles[]" value="{{ $slug }}"
+                                       {{ in_array($slug, $approvalCfg['approver_roles'] ?? ['admin'], true) ? 'checked' : '' }}>
+                                <span>{{ $label }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+                    <p class="text-[11px] opacity-60 mt-2">
+                        Workspace owners can always approve. Members in any of the selected roles can also approve. Members in other roles must submit posts for review.
+                    </p>
+                </div>
+
+                <div class="flex justify-end">
+                    <button type="submit" class="px-4 py-2 text-sm rounded bg-primary-600 text-white font-semibold">
+                        <i class="fas fa-save mr-1"></i> Save approval settings
+                    </button>
+                </div>
+            </form>
+        </div>
+    @endif
+
     {{-- Invite / edit modal --}}
     <div x-show="modal.open" x-cloak
          class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">

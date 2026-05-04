@@ -10,13 +10,25 @@ class CreatorPost extends Model
 {
     
     use BelongsToWorkspace;
-protected $fillable = ['user_id', 'title', 'body', 'image', 'scheduled_at', 'published_at', 'pinned_at'];
+protected $fillable = [
+        'user_id', 'title', 'body', 'image', 'scheduled_at', 'published_at', 'pinned_at',
+        'approval_status', 'approval_requested_at', 'approval_decided_at',
+        'approval_decided_by_user_id', 'intended_scheduled_at',
+    ];
 
     protected $casts = [
-        'scheduled_at' => 'datetime',
-        'published_at' => 'datetime',
-        'pinned_at'    => 'datetime',
+        'scheduled_at'          => 'datetime',
+        'published_at'          => 'datetime',
+        'pinned_at'             => 'datetime',
+        'approval_requested_at' => 'datetime',
+        'approval_decided_at'   => 'datetime',
+        'intended_scheduled_at' => 'datetime',
     ];
+
+    public const APPROVAL_PENDING  = 'pending_review';
+    public const APPROVAL_CHANGES  = 'changes_requested';
+    public const APPROVAL_APPROVED = 'approved';
+    public const APPROVAL_REJECTED = 'rejected';
 
     public function user() { return $this->belongsTo(User::class); }
 
@@ -49,11 +61,40 @@ protected $fillable = ['user_id', 'title', 'body', 'image', 'scheduled_at', 'pub
         return $this->pinned_at !== null && $this->isPublished();
     }
 
+    public function isPendingReview(): bool
+    {
+        return $this->approval_status === self::APPROVAL_PENDING;
+    }
+
+    public function needsChanges(): bool
+    {
+        return $this->approval_status === self::APPROVAL_CHANGES;
+    }
+
+    public function wasRejected(): bool
+    {
+        return $this->approval_status === self::APPROVAL_REJECTED && !$this->isPublished();
+    }
+
     public function statusLabel(): string
     {
-        if ($this->isScheduled()) return 'Scheduled';
-        if ($this->isPinned()) return 'Pinned';
-        return 'Published';
+        if ($this->isPendingReview())  return 'Pending review';
+        if ($this->needsChanges())     return 'Changes requested';
+        if ($this->wasRejected())      return 'Rejected';
+        if ($this->isScheduled())      return 'Scheduled';
+        if ($this->isPinned())         return 'Pinned';
+        if ($this->isPublished())      return 'Published';
+        return 'Draft';
+    }
+
+    public function approvalComments()
+    {
+        return $this->hasMany(PostApprovalComment::class)->orderBy('created_at');
+    }
+
+    public function approvalDecider()
+    {
+        return $this->belongsTo(User::class, 'approval_decided_by_user_id');
     }
 
     public function scopePublished($q)

@@ -2,7 +2,19 @@
 @section('title', 'My Posts')
 @section('content')
 <div class="max-w-3xl mx-auto px-4 py-8">
-    <h1 class="text-2xl font-bold mb-6" style="color: var(--text-primary);">My Posts</h1>
+    <div class="flex items-start justify-between mb-6 gap-3">
+        <h1 class="text-2xl font-bold" style="color: var(--text-primary);">My Posts</h1>
+        @if(!empty($approvalEnabled))
+            <span class="text-xs px-2 py-1 rounded-full" style="background: rgba(124,58,237,0.12); color: var(--text-primary);">
+                <i class="fas fa-shield-check mr-1"></i>
+                @if(!empty($userIsApprover))
+                    Approval workflow on (you can approve)
+                @else
+                    Approval workflow on (posts go to review)
+                @endif
+            </span>
+        @endif
+    </div>
 
     @if(session('success'))
         <div class="mb-4 p-3 rounded-lg bg-emerald-50 text-emerald-700 text-sm">{{ session('success') }}</div>
@@ -48,11 +60,23 @@
                         style="border-color: var(--border-soft); color: var(--text-primary);">
                     <i class="fas fa-cloud mr-1"></i> Attach from Cloud Files
                 </button>
-                <button class="ml-auto px-5 py-2 rounded-lg bg-violet-600 text-white text-sm font-semibold">Publish / Schedule</button>
+                <button class="ml-auto px-5 py-2 rounded-lg bg-violet-600 text-white text-sm font-semibold">
+                    @if(!empty($approvalEnabled) && empty($userIsApprover))
+                        Submit for review
+                    @else
+                        Publish / Schedule
+                    @endif
+                </button>
             </div>
             @error('body')<p class="text-xs text-rose-600">{{ $message }}</p>@enderror
             @error('scheduled_at')<p class="text-xs text-rose-600">{{ $message }}</p>@enderror
-            <p class="text-[11px]" style="color: var(--text-faint);">Leave the schedule field empty to publish immediately. Pinned posts appear at the top of your followers' feeds and on your biolink.</p>
+            <p class="text-[11px]" style="color: var(--text-faint);">
+                @if(!empty($approvalEnabled) && empty($userIsApprover))
+                    A reviewer will need to approve before this goes live. They'll see your title, body, image and schedule.
+                @else
+                    Leave the schedule field empty to publish immediately. Pinned posts appear at the top of your followers' feeds and on your biolink.
+                @endif
+            </p>
         </form>
         @include('user.cloud-files._attach-modal', ['confirmLabel' => 'Add to post'])
     </div>
@@ -73,22 +97,39 @@
                 @php
                     $status = $post->statusLabel();
                     $badgeClasses = [
-                        'Pinned'    => 'bg-amber-100 text-amber-800',
-                        'Scheduled' => 'bg-sky-100 text-sky-800',
-                        'Published' => 'bg-emerald-100 text-emerald-800',
+                        'Pinned'            => 'bg-amber-100 text-amber-800',
+                        'Scheduled'         => 'bg-sky-100 text-sky-800',
+                        'Published'         => 'bg-emerald-100 text-emerald-800',
+                        'Pending review'    => 'bg-violet-100 text-violet-800',
+                        'Changes requested' => 'bg-orange-100 text-orange-800',
+                        'Rejected'          => 'bg-rose-100 text-rose-800',
+                        'Draft'             => 'bg-slate-100 text-slate-700',
                     ][$status] ?? 'bg-slate-100 text-slate-700';
+                    $isMine = (int) ($post->created_by_user_id ?? 0) === (int) auth()->id();
                 @endphp
-                <div class="rounded-2xl border p-4 {{ $post->isPinned() ? 'ring-2 ring-amber-300' : '' }}" style="background: var(--bg-card); border-color: var(--border-soft);">
+                <div class="rounded-2xl border p-4 {{ $post->isPinned() ? 'ring-2 ring-amber-300' : '' }} {{ $post->isPendingReview() ? 'ring-2 ring-violet-300' : '' }}" style="background: var(--bg-card); border-color: var(--border-soft);">
                     <div class="flex items-start justify-between gap-3">
                         <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-2 mb-1">
+                            <div class="flex items-center gap-2 mb-1 flex-wrap">
                                 <span class="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full {{ $badgeClasses }}">
                                     @if($status === 'Pinned')<i class="fas fa-thumbtack text-[9px]"></i>@endif
                                     @if($status === 'Scheduled')<i class="far fa-clock text-[9px]"></i>@endif
+                                    @if($status === 'Pending review')<i class="fas fa-hourglass-half text-[9px]"></i>@endif
+                                    @if($status === 'Changes requested')<i class="fas fa-pen text-[9px]"></i>@endif
+                                    @if($status === 'Rejected')<i class="fas fa-ban text-[9px]"></i>@endif
                                     {{ $status }}
                                 </span>
                                 @if($post->isScheduled())
                                     <span class="text-xs" style="color: var(--text-faint);">Goes live {{ $post->scheduled_at->format('M j, Y g:i A') }} ({{ $post->scheduled_at->diffForHumans() }})</span>
+                                @endif
+                                @if($post->isPendingReview() && $post->intended_scheduled_at)
+                                    <span class="text-xs" style="color: var(--text-faint);">Will publish {{ $post->intended_scheduled_at->format('M j, Y g:i A') }} once approved</span>
+                                @endif
+                                @if($post->approval_decided_at && $post->approvalDecider)
+                                    <span class="text-xs" style="color: var(--text-faint);">
+                                        {{ $status === 'Rejected' ? 'Rejected' : ($status === 'Changes requested' ? 'Reviewed' : 'Approved') }}
+                                        by {{ $post->approvalDecider->name }} {{ $post->approval_decided_at->diffForHumans() }}
+                                    </span>
                                 @endif
                             </div>
                             @if($post->title)<h3 class="font-bold" style="color: var(--text-primary);">{{ $post->title }}</h3>@endif
@@ -118,6 +159,87 @@
                                     Created {{ $post->created_at->diffForHumans() }}
                                 @endif
                             </p>
+
+                            {{-- Approval thread + actions --}}
+                            @if($post->approval_status)
+                                <div x-data="{ open: {{ $post->isPendingReview() ? 'true' : 'false' }} }" class="mt-4 border-t pt-3" style="border-color: var(--border-soft);">
+                                    <button type="button" @click="open = !open" class="text-xs font-semibold flex items-center gap-1" style="color: var(--text-primary);">
+                                        <i class="fas fa-comments"></i>
+                                        Review thread ({{ $post->approvalComments->count() }})
+                                        <i class="fas" :class="open ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                                    </button>
+                                    <div x-show="open" x-cloak class="mt-3 space-y-3">
+                                        @forelse($post->approvalComments as $cmt)
+                                            <div class="flex items-start gap-2 text-sm">
+                                                <div class="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-bold uppercase" style="background: rgba(124,58,237,0.15); color: var(--text-primary);">
+                                                    {{ strtoupper(mb_substr($cmt->user->name ?? '?', 0, 1)) }}
+                                                </div>
+                                                <div class="flex-1 min-w-0">
+                                                    <div class="flex items-center gap-2 flex-wrap">
+                                                        <strong class="text-xs" style="color: var(--text-primary);">{{ $cmt->user->name ?? 'Someone' }}</strong>
+                                                        @if($cmt->actionLabel())
+                                                            <span class="text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wide" style="background: rgba(124,58,237,0.10); color: var(--text-muted);">{{ $cmt->actionLabel() }}</span>
+                                                        @endif
+                                                        <span class="text-[11px]" style="color: var(--text-faint);">{{ $cmt->created_at->diffForHumans() }}</span>
+                                                    </div>
+                                                    @if($cmt->body)
+                                                        <p class="text-sm whitespace-pre-line mt-0.5" style="color: var(--text-muted);">{{ $cmt->body }}</p>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        @empty
+                                            <p class="text-xs italic" style="color: var(--text-faint);">No comments yet.</p>
+                                        @endforelse
+
+                                        {{-- Reviewer actions --}}
+                                        @if(!empty($userIsApprover) && $post->isPendingReview())
+                                            <div class="mt-3 border-t pt-3 space-y-2" style="border-color: var(--border-soft);">
+                                                <form action="{{ route('user.posts.approve', $post) }}" method="POST" class="flex flex-col gap-2">
+                                                    @csrf
+                                                    <textarea name="note" rows="2" placeholder="Optional note for the editor…" class="w-full px-2 py-1.5 rounded border text-xs" style="background: var(--bg-soft); border-color: var(--border-soft); color: var(--text-primary);"></textarea>
+                                                    <div class="flex flex-wrap items-center gap-2">
+                                                        <button class="px-3 py-1.5 rounded bg-emerald-600 text-white text-xs font-semibold">
+                                                            <i class="fas fa-check mr-1"></i> Approve
+                                                        </button>
+                                                        <button type="submit" formaction="{{ route('user.posts.request-changes', $post) }}" class="px-3 py-1.5 rounded bg-orange-600 text-white text-xs font-semibold">
+                                                            <i class="fas fa-pen mr-1"></i> Request changes
+                                                        </button>
+                                                        <button type="submit" formaction="{{ route('user.posts.reject', $post) }}" class="px-3 py-1.5 rounded bg-rose-600 text-white text-xs font-semibold"
+                                                                onclick="return confirm('Reject this post? It won\'t publish.');">
+                                                            <i class="fas fa-ban mr-1"></i> Reject
+                                                        </button>
+                                                        <span class="text-[11px]" style="color: var(--text-faint);">A note is required when requesting changes.</span>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        @endif
+
+                                        {{-- Resubmit (author of a rejected / changes_requested post) --}}
+                                        @if($isMine && ($post->needsChanges() || $post->wasRejected()))
+                                            <form action="{{ route('user.posts.resubmit', $post) }}" method="POST" class="mt-3 border-t pt-3 flex flex-col gap-2" style="border-color: var(--border-soft);">
+                                                @csrf
+                                                <textarea name="note" rows="2" placeholder="What did you change?" class="w-full px-2 py-1.5 rounded border text-xs" style="background: var(--bg-soft); border-color: var(--border-soft); color: var(--text-primary);"></textarea>
+                                                <div>
+                                                    <button class="px-3 py-1.5 rounded bg-violet-600 text-white text-xs font-semibold">
+                                                        <i class="fas fa-paper-plane mr-1"></i> Re-send for review
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        @endif
+
+                                        {{-- Plain reply (anyone in the thread can chime in) --}}
+                                        @if($isMine || !empty($userIsApprover))
+                                            <form action="{{ route('user.posts.comments.store', $post) }}" method="POST" class="mt-3 border-t pt-3 flex items-start gap-2" style="border-color: var(--border-soft);">
+                                                @csrf
+                                                <input type="text" name="body" placeholder="Reply…" required maxlength="2000"
+                                                       class="flex-1 px-2 py-1.5 rounded border text-xs"
+                                                       style="background: var(--bg-soft); border-color: var(--border-soft); color: var(--text-primary);"/>
+                                                <button class="px-3 py-1.5 rounded border text-xs font-semibold" style="border-color: var(--border-soft); color: var(--text-primary);">Send</button>
+                                            </form>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endif
                         </div>
                         <div class="flex flex-col items-end gap-2">
                             @canInWorkspace('posts.edit')

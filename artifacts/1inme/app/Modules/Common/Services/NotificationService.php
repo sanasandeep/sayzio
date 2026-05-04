@@ -70,6 +70,20 @@ class NotificationService
                 'default_email'  => true,
                 'default_push'   => true,
             ],
+            'post_review_request' => [
+                'label'          => 'Posts waiting for your review',
+                'description'    => 'When an editor sends a post to the review queue in a workspace where you can approve.',
+                'default_in_app' => true,
+                'default_email'  => true,
+                'default_push'   => true,
+            ],
+            'post_review_decision' => [
+                'label'          => 'Updates on posts you submitted',
+                'description'    => 'When a reviewer approves, requests changes on, or rejects a post you submitted.',
+                'default_in_app' => true,
+                'default_email'  => true,
+                'default_push'   => true,
+            ],
             'task_assigned' => [
                 'label'          => 'Task assignments',
                 'description'    => 'When a teammate assigns a task to you.',

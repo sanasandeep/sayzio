@@ -60,6 +60,36 @@ class WorkspaceController extends Controller
     }
 
     /**
+     * Owner-only: turn the post-approval workflow on/off and pick which
+     * member roles can approve. Personal workspaces don't expose this
+     * (no team), so we reject the request to keep the JSON shape clean.
+     */
+    public function updatePostApproval(Request $request, Workspace $workspace)
+    {
+        $user = $request->user();
+        abort_unless((int) $workspace->owner_user_id === $user->id, 403);
+
+        if ($workspace->is_personal) {
+            return back()->with('error', "Approval workflow only applies to team workspaces.");
+        }
+
+        $data = $request->validate([
+            'enabled'          => 'nullable|boolean',
+            'approver_roles'   => 'nullable|array',
+            'approver_roles.*' => 'string|in:admin,editor,replier,analyst,viewer',
+        ]);
+
+        $enabled       = (bool) ($data['enabled'] ?? false);
+        $approverRoles = $data['approver_roles'] ?? ['admin'];
+
+        $workspace->setPostApprovalConfig($enabled, $approverRoles);
+
+        return back()->with('success', $enabled
+            ? 'Approval workflow on. New posts will go to the review queue.'
+            : 'Approval workflow off. Posts publish immediately again.');
+    }
+
+    /**
      * Owner-only: delete a workspace they own. Owner cannot delete their
      * last workspace — they must always have at least one.
      */

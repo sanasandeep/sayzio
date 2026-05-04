@@ -53,6 +53,10 @@ class TeamController extends Controller
         $maxSeats = (int) $owner->getPlanFeature('max_seats_per_workspace', 1);
         $usedSeats = $ws->seatCount();
 
+        $approvalCfg = $ws->postApprovalConfig();
+        $isOwner = (int) $ws->owner_user_id === (int) $request->user()->id
+                   || (method_exists($request->user(), 'isSuperAdmin') && $request->user()->isSuperAdmin());
+
         return view('user.team.index', [
             'workspace'         => $ws,
             'members'           => $members,
@@ -62,6 +66,8 @@ class TeamController extends Controller
             'roleDescriptions'  => WorkspacePermissions::roleDescriptions(),
             'effectiveMatrix'   => WorkspacePermissions::effectiveRoleActions($ws),
             'canEditRoles'      => $this->isOwnerOrAdmin($request, $ws),
+            'approvalCfg'       => $approvalCfg,
+            'isOwner'           => $isOwner,
         ]);
     }
 

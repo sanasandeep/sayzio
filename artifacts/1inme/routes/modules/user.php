@@ -147,6 +147,7 @@ Route::prefix('user')->name('user.')->group(function () {
             ->name('workspaces.request-access');
         Route::post('workspaces/{workspace}/switch',           [\App\Modules\User\Controllers\WorkspaceController::class, 'switch']) ->name('workspaces.switch');
         Route::put ('workspaces/{workspace}',                  [\App\Modules\User\Controllers\WorkspaceController::class, 'update']) ->name('workspaces.update');
+        Route::put ('workspaces/{workspace}/post-approval',    [\App\Modules\User\Controllers\WorkspaceController::class, 'updatePostApproval'])->name('workspaces.post-approval.update');
         Route::delete('workspaces/{workspace}',                [\App\Modules\User\Controllers\WorkspaceController::class, 'destroy'])->name('workspaces.destroy');
 
         // ---- Team (members + invites) ----
@@ -194,6 +195,14 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('posts/{post}/pin', [\App\Modules\User\Controllers\CreatorPostController::class, 'pin'])->middleware('workspace.can:posts.edit')->name('posts.pin');
         Route::post('posts/{post}/unpin', [\App\Modules\User\Controllers\CreatorPostController::class, 'unpin'])->middleware('workspace.can:posts.edit')->name('posts.unpin');
         Route::delete('posts/{post}', [\App\Modules\User\Controllers\CreatorPostController::class, 'destroy'])->middleware('workspace.can:posts.delete')->name('posts.destroy');
+        // ---- Approval workflow (review queue actions) ----
+        // Approver-side gating is in the controller (it depends on the
+        // workspace's approver-roles setting, not a static role permission).
+        Route::post('posts/{post}/approve',         [\App\Modules\User\Controllers\CreatorPostController::class, 'approve'])->name('posts.approve');
+        Route::post('posts/{post}/request-changes', [\App\Modules\User\Controllers\CreatorPostController::class, 'requestChanges'])->name('posts.request-changes');
+        Route::post('posts/{post}/reject',          [\App\Modules\User\Controllers\CreatorPostController::class, 'reject'])->name('posts.reject');
+        Route::post('posts/{post}/resubmit',        [\App\Modules\User\Controllers\CreatorPostController::class, 'resubmit'])->middleware('workspace.can:posts.create')->name('posts.resubmit');
+        Route::post('posts/{post}/comments',        [\App\Modules\User\Controllers\CreatorPostController::class, 'comment'])->name('posts.comments.store');
         // Notifications are scoped to the signed-in user (not the workspace
         // owner) — every team member has their own notification feed.
         Route::get('notifications',  [\App\Modules\User\Controllers\NotificationController::class, 'index'])->name('notifications.index');
