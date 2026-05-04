@@ -4,6 +4,7 @@ namespace App\Modules\Api\Controllers;
 
 use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use App\Modules\Api\Resources\UserResource;
+use App\Modules\Common\Services\LoginAlertService;
 use App\Modules\User\Models\LinkedIdentifier;
 use App\Modules\User\Models\User;
 use App\Modules\Admin\Models\Plan;
@@ -111,11 +112,15 @@ class SocialAuthController extends Controller
         }
 
         $user->forceFill(['last_login_at' => now()])->save();
-        $token = $user->createToken($data['device'] ?? 'mobile-social')->plainTextToken;
+        $newToken = $user->createToken($data['device'] ?? 'mobile-social');
+        app(LoginAlertService::class)->record($user, $request, 'mobile_social_' . $data['provider'], [
+            'personal_access_token_id' => $newToken->accessToken->id ?? null,
+            'device_label'             => $data['device'] ?? null,
+        ]);
 
         return $this->ok([
             'user'    => UserResource::toArray($user, self: true),
-            'token'   => $token,
+            'token'   => $newToken->plainTextToken,
             'created' => $created,
         ]);
     }

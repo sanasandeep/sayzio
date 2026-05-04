@@ -54,10 +54,17 @@ const LOCK_WARNING_OPTIONS: { value: number; label: string }[] =
 type CustomUnit = "sec" | "min";
 
 const INFO_PAGES: {
-  href: "/info/about" | "/info/nfc" | "/info/privacy" | "/info/terms" | "/info/help";
+  href:
+    | "/info/about"
+    | "/info/nfc"
+    | "/info/privacy"
+    | "/info/terms"
+    | "/info/help"
+    | "/security-logins";
   label: string;
   icon: keyof typeof Feather.glyphMap;
 }[] = [
+  { href: "/security-logins", label: "Recent logins", icon: "shield" },
   { href: "/info/about", label: "About 1INME", icon: "info" },
   { href: "/info/nfc", label: "How NFC works", icon: "wifi" },
   { href: "/info/help", label: "Help & support", icon: "life-buoy" },

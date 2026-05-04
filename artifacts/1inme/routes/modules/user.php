@@ -113,6 +113,17 @@ Route::prefix('user')->name('user.')->group(function () {
     Route::get('social-accounts/broken-emails/unsubscribe/{user}', [\App\Modules\User\Controllers\SocialAccountController::class, 'unsubscribeBrokenEmails'])
         ->name('social-accounts.broken-emails.unsubscribe');
 
+    // Public, signed "This wasn't me" link sent in suspicious-login
+    // alert emails. Must live outside the auth middleware so the
+    // legitimate (or attacker-blocked) user can click it from any
+    // inbox without first signing in. The signed URL is the only
+    // authenticator; the controller invalidates the offending session
+    // and clears the password before responding.
+    Route::get('security/logins/revoke/{token}', [\App\Modules\User\Controllers\SecurityController::class, 'revoke'])
+        ->where('token', '[A-Za-z0-9]{32,}')
+        ->middleware('throttle:30,10')
+        ->name('security.logins.revoke');
+
     // Public, signed one-click unsubscribe target linked from the
     // weekly backlink-digest email. GET = footer click in a browser,
     // POST = inbox-provider one-click chip per RFC 8058 (CSRF exempted
@@ -138,6 +149,13 @@ Route::prefix('user')->name('user.')->group(function () {
 
     Route::middleware(['auth', 'workspace.scope'])->group(function () {
         Route::post('logout', [AuthController::class, 'logout'])->name('logout');
+
+        // Recent-logins history + the in-app revoke action mirroring
+        // the email's "This wasn't me" button.
+        Route::get('security/logins', [\App\Modules\User\Controllers\SecurityController::class, 'logins'])
+            ->name('security.logins');
+        Route::post('security/logins/{loginEvent}/revoke', [\App\Modules\User\Controllers\SecurityController::class, 'revokeFromList'])
+            ->name('security.logins.revoke-from-list');
         Route::get('dashboard', [DashboardController::class, 'index'])->middleware('onboarding.gate')->name('dashboard');
 
         // ---- Workspaces ----

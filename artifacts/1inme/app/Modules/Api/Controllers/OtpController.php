@@ -4,6 +4,7 @@ namespace App\Modules\Api\Controllers;
 
 use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use App\Modules\Api\Resources\UserResource;
+use App\Modules\Common\Services\LoginAlertService;
 use App\Modules\Common\Services\OtpService;
 use App\Modules\User\Models\LinkedIdentifier;
 use App\Modules\User\Models\User;
@@ -68,11 +69,15 @@ class OtpController extends Controller
         if (!$user) return $this->fail('No account found', 404, 'user_not_found');
 
         $user->forceFill(['last_login_at' => now()])->save();
-        $token = $user->createToken($data['device'] ?? 'mobile')->plainTextToken;
+        $newToken = $user->createToken($data['device'] ?? 'mobile');
+        app(LoginAlertService::class)->record($user, $request, 'mobile_otp', [
+            'personal_access_token_id' => $newToken->accessToken->id ?? null,
+            'device_label'             => $data['device'] ?? null,
+        ]);
 
         return $this->ok([
             'user'  => UserResource::toArray($user, self: true),
-            'token' => $token,
+            'token' => $newToken->plainTextToken,
         ]);
     }
 
@@ -147,11 +152,14 @@ class OtpController extends Controller
         }
 
         $user->forceFill(['last_login_at' => now()])->save();
-        $token = $user->createToken('demo-mobile')->plainTextToken;
+        $newToken = $user->createToken('demo-mobile');
+        app(LoginAlertService::class)->record($user, $request, 'mobile_demo', [
+            'personal_access_token_id' => $newToken->accessToken->id ?? null,
+        ]);
 
         return $this->ok([
             'user'  => UserResource::toArray($user, self: true),
-            'token' => $token,
+            'token' => $newToken->plainTextToken,
         ]);
     }
 

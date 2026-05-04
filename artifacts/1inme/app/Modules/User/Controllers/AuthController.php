@@ -224,6 +224,13 @@ class AuthController extends Controller
             session()->forget(['otp_identifier', 'otp_type']);
             $request->session()->regenerate();
 
+            app(\App\Modules\Common\Services\LoginAlertService::class)->record(
+                $user,
+                $request,
+                'web_otp_' . $type,
+                ['session_id' => $request->session()->getId()]
+            );
+
             // Ensure user has a default workspace; auto-attach any pending invite.
             $user->ensureDefaultWorkspace();
             \App\Modules\User\Controllers\AcceptInviteController::attachPendingInvite($user);
@@ -276,6 +283,13 @@ class AuthController extends Controller
         Auth::login($user);
         $user->update(['last_login_at' => now()]);
         $request->session()->regenerate();
+
+        app(\App\Modules\Common\Services\LoginAlertService::class)->record(
+            $user,
+            $request,
+            'web_demo',
+            ['session_id' => $request->session()->getId()]
+        );
 
         return redirect()->route('user.dashboard');
     }

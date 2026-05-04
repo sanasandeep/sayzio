@@ -4,6 +4,7 @@ namespace App\Modules\Api\Controllers;
 
 use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use App\Modules\Api\Resources\UserResource;
+use App\Modules\Common\Services\LoginAlertService;
 use App\Modules\User\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -34,11 +35,17 @@ class AuthController extends Controller
             'discoverable'    => true,
         ]);
 
-        $token = $user->createToken('api')->plainTextToken;
+        $newToken = $user->createToken('api');
+        // First-ever login is informational only — record it so the
+        // "Recent logins" page has a baseline, but no alert email goes
+        // out for the registration handshake itself.
+        app(LoginAlertService::class)->record($user, $request, 'api_register', [
+            'personal_access_token_id' => $newToken->accessToken->id ?? null,
+        ]);
 
         return $this->created([
             'user'  => UserResource::toArray($user, self: true),
-            'token' => $token,
+            'token' => $newToken->plainTextToken,
         ]);
     }
 
@@ -73,11 +80,15 @@ class AuthController extends Controller
         }
 
         $user->forceFill(['last_login_at' => now()])->save();
-        $token = $user->createToken($data['device'] ?? 'api')->plainTextToken;
+        $newToken = $user->createToken($data['device'] ?? 'api');
+        app(LoginAlertService::class)->record($user, $request, 'api_password', [
+            'personal_access_token_id' => $newToken->accessToken->id ?? null,
+            'device_label'             => $data['device'] ?? null,
+        ]);
 
         return $this->ok([
             'user'  => UserResource::toArray($user, self: true),
-            'token' => $token,
+            'token' => $newToken->plainTextToken,
         ]);
     }
 

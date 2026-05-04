@@ -261,6 +261,11 @@ Route::prefix('v1')->group(function () {
         Route::get ('/me/notification-preferences',    [NotificationController::class, 'preferences']);
         Route::put ('/me/notification-preferences',    [NotificationController::class, 'updatePreferences']);
 
+        // Recent-logins history + "This wasn't me" revoke (mobile parity
+        // for the suspicious-login email pipeline).
+        Route::get ('/security/logins',                [\App\Modules\Api\Controllers\SecurityController::class, 'logins']);
+        Route::post('/security/logins/{id}/revoke',    [\App\Modules\Api\Controllers\SecurityController::class, 'revoke'])->whereNumber('id');
+
         // Projects
         Route::get   ('/projects',        [ProjectController::class, 'index']);
         Route::post  ('/projects',        [ProjectController::class, 'store']);

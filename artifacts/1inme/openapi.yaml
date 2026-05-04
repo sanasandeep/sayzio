@@ -154,6 +154,23 @@ components:
         url:        { type: string, nullable: true }
         read_at:    { type: string, nullable: true, format: date-time }
         created_at: { type: string, format: date-time }
+    LoginEvent:
+      type: object
+      properties:
+        id:           { type: integer }
+        channel:      { type: string, description: "Where the sign-in came from (web_otp_email, mobile_otp, mobile_social_google, ...)" }
+        country_code: { type: string, nullable: true, minLength: 2, maxLength: 2 }
+        platform:     { type: string, nullable: true, description: "OS family parsed from user agent" }
+        browser:      { type: string, nullable: true }
+        device_label: { type: string, nullable: true }
+        is_new:       { type: boolean, description: "True when this sign-in triggered a suspicious-login email" }
+        new_reasons:
+          type: array
+          nullable: true
+          items: { type: string, enum: [country, os, browser] }
+        revoked_at:   { type: string, nullable: true, format: date-time }
+        created_at:   { type: string, format: date-time }
+        status:       { type: string, enum: [revoked, new, recognized] }
     Project:
       type: object
       properties:
@@ -830,6 +847,55 @@ paths:
     parameters:
       - { in: path, name: id, required: true, schema: { type: integer } }
     post: { summary: Mark a single notification as read, responses: { '200': { description: ok } } }
+
+  /security/logins:
+    get:
+      summary: List recent successful sign-ins for the current user
+      description: |
+        Returns the last 50 login events for the authenticated account,
+        most-recent first. Each row is the same record the
+        suspicious-login email pipeline diffs against — `status` is
+        `revoked` if the user clicked "This wasn't me", `new` if the
+        sign-in came from a previously-unseen device/browser/country
+        (and thus triggered an email), or `recognized` otherwise.
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      events:
+                        type: array
+                        items: { $ref: '#/components/schemas/LoginEvent' }
+  /security/logins/{id}/revoke:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: integer } }
+    post:
+      summary: "Revoke a sign-in (\"This wasn't me\")"
+      description: |
+        Mirrors the one-click email link from mobile. Revokes the token
+        that minted this sign-in, signs every other device out, and
+        clears the password so the user must complete a forced reset
+        before the account can be used again.
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      revoked: { type: boolean }
+                      message: { type: string }
+        '404': { description: Login not found }
 
   /projects:
     get:  { summary: List projects, responses: { '200': { description: ok } } }

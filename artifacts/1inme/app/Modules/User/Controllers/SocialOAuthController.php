@@ -149,7 +149,14 @@ class SocialOAuthController extends Controller
             // mobile app authenticates with the bearer token going forward.
             if ($isMobile) {
                 $user->forceFill(['last_login_at' => now()])->save();
-                $token = $user->createToken('mobile-social-' . $provider)->plainTextToken;
+                $newToken = $user->createToken('mobile-social-' . $provider);
+                app(\App\Modules\Common\Services\LoginAlertService::class)->record(
+                    $user,
+                    $request,
+                    'mobile_social_oauth_' . $provider,
+                    ['personal_access_token_id' => $newToken->accessToken->id ?? null]
+                );
+                $token = $newToken->plainTextToken;
                 $payload = json_encode([
                     'id'     => $user->id,
                     'name'   => $user->name,
@@ -167,6 +174,13 @@ class SocialOAuthController extends Controller
             Auth::login($user, true);
             $user->update(['last_login_at' => now()]);
             $request->session()->regenerate();
+
+            app(\App\Modules\Common\Services\LoginAlertService::class)->record(
+                $user,
+                $request,
+                'web_social_' . $provider,
+                ['session_id' => $request->session()->getId()]
+            );
 
             if ($redirect = \App\Modules\Admin\Services\HandleRenameEnforcer::maybeRedirect($user)) {
                 return $redirect;
