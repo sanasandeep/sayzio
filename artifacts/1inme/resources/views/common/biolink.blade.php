@@ -674,7 +674,11 @@
             grid-template-columns: repeat(12, 1fr);
             gap: {{ $blockGap }}px;
             align-items: start;
+            position: relative;
+            z-index: 1;
         }
+        /* Keep the fixed bg-template layer behind everything else. */
+        .bg-template.bg-layer { z-index: 0 !important; }
         @media (min-width: 768px) {
             .biolink-container { max-width: {{ $maxTablet }}px; }
         }
