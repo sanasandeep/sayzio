@@ -281,6 +281,17 @@ Route::prefix('user')->name('user.')->group(function () {
         // standalone QR studio are all account-level configuration. Members
         // need the workspace `settings` feature (Admin gets it; Editor and
         // Replier presets do not) to see or change anything here.
+        // Devices & sessions (task #1111). Account-level so it sits
+        // alongside the other settings views and inherits the same
+        // workspace permission gate.
+        Route::middleware('workspace.can:settings.view')->group(function () {
+            Route::get   ('settings/sessions',                 [\App\Modules\User\Controllers\SessionManagerController::class, 'index'])->name('settings.sessions.index');
+            Route::delete('settings/sessions/others',          [\App\Modules\User\Controllers\SessionManagerController::class, 'destroyOthers'])->name('settings.sessions.destroy-others');
+            Route::delete('settings/sessions/{id}',            [\App\Modules\User\Controllers\SessionManagerController::class, 'destroy'])
+                ->where('id', '[A-Za-z0-9:_\-]+')
+                ->name('settings.sessions.destroy');
+        });
+
         Route::prefix('profile')->name('profile.')->middleware('workspace.can:settings.view')->group(function () {
             Route::get('/', [ProfileController::class, 'edit'])->name('edit');
             Route::put('/', [ProfileController::class, 'update'])->name('update');

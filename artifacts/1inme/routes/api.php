@@ -140,9 +140,15 @@ Route::prefix('v1')->group(function () {
     Route::get('/onboarding/slides', [OnboardingSlideController::class, 'index']);
 
     // ── Authenticated ───────────────────────────────────────────────
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', \App\Modules\Api\Middleware\TouchSessionToken::class])->group(function () {
         Route::get('/auth/me',     [AuthController::class, 'me']);
         Route::post('/auth/logout',[AuthController::class, 'logout']);
+
+        // Devices & sessions (task #1111).
+        Route::get   ('/auth/sessions',                [\App\Modules\Api\Controllers\SessionsController::class, 'index']);
+        Route::delete('/auth/sessions/others',         [\App\Modules\Api\Controllers\SessionsController::class, 'destroyOthers']);
+        Route::delete('/auth/sessions/{id}',           [\App\Modules\Api\Controllers\SessionsController::class, 'destroy'])
+            ->where('id', '[A-Za-z0-9:_-]+');
 
         Route::get('/profile',   [ProfileController::class, 'show']);
         Route::patch('/profile', [ProfileController::class, 'update']);

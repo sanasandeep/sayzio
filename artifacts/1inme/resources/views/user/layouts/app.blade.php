@@ -872,6 +872,13 @@
                     <span class="nav-label">Profile</span>
                     <span class="sidebar-tooltip">Profile</span>
                 </a>
+                <a href="{{ route('user.settings.sessions.index') }}"
+                   class="sidebar-link {{ request()->routeIs('user.settings.sessions.*') ? 'active' : '' }}"
+                   style="--nav-tint:#a78bfa; --nav-tint-soft:rgba(167,139,250,0.12);">
+                    <div class="nav-icon-wrap"><i class="fas fa-shield-halved"></i></div>
+                    <span class="nav-label">Devices &amp; sessions</span>
+                    <span class="sidebar-tooltip">Devices &amp; sessions</span>
+                </a>
 
                 @if(\App\Services\AI\AiEngineSettings::isEnabled())
                 <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">AI</div>
@@ -1143,6 +1150,7 @@
                         <p class="pt-3 px-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Account</p>
                         <a href="{{ route('user.verification.index') }}" class="sidebar-link {{ request()->routeIs('user.verification.*') && !request()->routeIs('user.verification.admin*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-check-circle"></i></div> <span>Verification</span></a>
                         <a href="{{ route('user.profile.edit') }}" class="sidebar-link {{ request()->routeIs('user.profile.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-circle"></i></div> <span>Profile</span></a>
+                        <a href="{{ route('user.settings.sessions.index') }}" class="sidebar-link {{ request()->routeIs('user.settings.sessions.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-shield-halved"></i></div> <span>Devices &amp; sessions</span></a>
                         <a href="{{ route('user.identifiers.index') }}" class="sidebar-link {{ request()->routeIs('user.identifiers.*') || request()->routeIs('user.merge.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-link"></i></div> <span>Linked identifiers</span></a>
                         @endif
 

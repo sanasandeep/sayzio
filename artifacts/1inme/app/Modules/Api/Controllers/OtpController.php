@@ -69,7 +69,9 @@ class OtpController extends Controller
         if (!$user) return $this->fail('No account found', 404, 'user_not_found');
 
         $user->forceFill(['last_login_at' => now()])->save();
-        $newToken = $user->createToken($data['device'] ?? 'mobile');
+        $newToken = \App\Modules\Api\Support\SessionTokenIssuer::issue(
+            $user, $request, $data['device'] ?? null, 'mobile', 'mobile'
+        );
         app(LoginAlertService::class)->record($user, $request, 'mobile_otp', [
             'personal_access_token_id' => $newToken->accessToken->id ?? null,
             'device_label'             => $data['device'] ?? null,
@@ -152,7 +154,9 @@ class OtpController extends Controller
         }
 
         $user->forceFill(['last_login_at' => now()])->save();
-        $newToken = $user->createToken('demo-mobile');
+        $newToken = \App\Modules\Api\Support\SessionTokenIssuer::issue(
+            $user, $request, null, 'demo-mobile', 'mobile'
+        );
         app(LoginAlertService::class)->record($user, $request, 'mobile_demo', [
             'personal_access_token_id' => $newToken->accessToken->id ?? null,
         ]);

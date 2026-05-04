@@ -112,7 +112,9 @@ class SocialAuthController extends Controller
         }
 
         $user->forceFill(['last_login_at' => now()])->save();
-        $newToken = $user->createToken($data['device'] ?? 'mobile-social');
+        $newToken = \App\Modules\Api\Support\SessionTokenIssuer::issue(
+            $user, $request, $data['device'] ?? null, 'mobile-social', 'mobile'
+        );
         app(LoginAlertService::class)->record($user, $request, 'mobile_social_' . $data['provider'], [
             'personal_access_token_id' => $newToken->accessToken->id ?? null,
             'device_label'             => $data['device'] ?? null,

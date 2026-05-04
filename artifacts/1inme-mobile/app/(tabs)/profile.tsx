@@ -128,11 +128,19 @@ const TOOL_PAGES: {
 ];
 
 const SETTINGS_PAGES: {
-  href: "/profile-edit" | "/workspaces" | "/domains" | "/integrations" | "/vault" | "/verification";
+  href:
+    | "/profile-edit"
+    | "/account-sessions"
+    | "/workspaces"
+    | "/domains"
+    | "/integrations"
+    | "/vault"
+    | "/verification";
   label: string;
   icon: keyof typeof Feather.glyphMap;
 }[] = [
   { href: "/profile-edit", label: "Edit profile", icon: "edit-3" },
+  { href: "/account-sessions", label: "Devices & sessions", icon: "shield" },
   { href: "/workspaces", label: "Workspaces", icon: "briefcase" },
   { href: "/domains", label: "Custom domains", icon: "globe" },
   { href: "/integrations", label: "Integrations", icon: "link" },
@@ -466,7 +474,7 @@ export default function Profile() {
             {TOOL_PAGES.map((p, i) => (
               <Pressable
                 key={p.href}
-                onPress={() => router.push(p.href)}
+                onPress={() => router.push(p.href as never)}
                 style={({ pressed }) => [
                   styles.listItem,
                   {
@@ -507,7 +515,7 @@ export default function Profile() {
             {SETTINGS_PAGES.map((p, i) => (
               <Pressable
                 key={p.href}
-                onPress={() => router.push(p.href)}
+                onPress={() => router.push(p.href as never)}
                 style={({ pressed }) => [
                   styles.listItem,
                   {
@@ -1000,7 +1008,7 @@ export default function Profile() {
             {INFO_PAGES.map((p, i) => (
               <Pressable
                 key={p.href}
-                onPress={() => router.push(p.href)}
+                onPress={() => router.push(p.href as never)}
                 style={({ pressed }) => [
                   styles.listItem,
                   {

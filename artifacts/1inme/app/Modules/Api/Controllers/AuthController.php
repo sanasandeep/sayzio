@@ -4,6 +4,7 @@ namespace App\Modules\Api\Controllers;
 
 use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use App\Modules\Api\Resources\UserResource;
+use App\Modules\Api\Support\SessionTokenIssuer;
 use App\Modules\Common\Services\LoginAlertService;
 use App\Modules\User\Models\User;
 use Illuminate\Http\Request;
@@ -35,7 +36,7 @@ class AuthController extends Controller
             'discoverable'    => true,
         ]);
 
-        $newToken = $user->createToken('api');
+        $newToken = SessionTokenIssuer::issue($user, $request, null, 'api', 'mobile');
         // First-ever login is informational only — record it so the
         // "Recent logins" page has a baseline, but no alert email goes
         // out for the registration handshake itself.
@@ -80,7 +81,7 @@ class AuthController extends Controller
         }
 
         $user->forceFill(['last_login_at' => now()])->save();
-        $newToken = $user->createToken($data['device'] ?? 'api');
+        $newToken = SessionTokenIssuer::issue($user, $request, $data['device'] ?? null, 'api', 'mobile');
         app(LoginAlertService::class)->record($user, $request, 'api_password', [
             'personal_access_token_id' => $newToken->accessToken->id ?? null,
             'device_label'             => $data['device'] ?? null,

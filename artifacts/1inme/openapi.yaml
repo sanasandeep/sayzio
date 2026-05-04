@@ -239,6 +239,20 @@ components:
         is_personal:  { type: boolean }
         owner_user_id: { type: integer }
         created_at:   { type: string, format: date-time }
+    SessionInfo:
+      type: object
+      properties:
+        id:             { type: string, description: 'Composite id (e.g. `token:42` or `session:abc...`).' }
+        kind:           { type: string, enum: [token, web] }
+        client_kind:    { type: string, description: 'mobile | web | api etc.' }
+        device_label:   { type: string }
+        platform:       { type: string, nullable: true }
+        user_agent:     { type: string, nullable: true }
+        ip:             { type: string, nullable: true }
+        country:        { type: string, nullable: true, description: 'ISO 3166-1 alpha-2.' }
+        first_seen_at:  { type: string, nullable: true, format: date-time }
+        last_active_at: { type: string, nullable: true, format: date-time }
+        is_current:     { type: boolean }
     Plan:
       type: object
       properties:
@@ -470,6 +484,62 @@ paths:
       summary: Revoke the current bearer token
       responses:
         '204': { description: revoked }
+
+  /auth/sessions:
+    get:
+      summary: List active sessions and signed-in devices for the current user
+      description: |
+        Returns one entry per Sanctum bearer token (mobile / API clients)
+        plus, when the server uses the database session driver, one entry
+        per active web session. Each item carries a stable `id` (prefixed
+        `token:` or `session:`) that can be passed to `DELETE
+        /auth/sessions/{id}`. Exactly one entry has `is_current: true` —
+        the session that issued the request.
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/SessionInfo'
+
+  /auth/sessions/{id}:
+    delete:
+      summary: Revoke a single session by id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+          description: 'Composite id returned by GET /auth/sessions (e.g. `token:42`, `session:abc...`).'
+      responses:
+        '204': { description: revoked }
+        '404': { description: not found, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /auth/sessions/others:
+    delete:
+      summary: Revoke every session except the one making this request
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      revoked_tokens:   { type: integer }
+                      revoked_sessions: { type: integer }
 
   /profile:
     get:
