@@ -17,9 +17,18 @@ class UserFile extends Model
 protected $fillable = [
         'user_id', 'original_name', 'filename', 'mime_type',
         'size_bytes', 'type', 'disk', 'path',
+        'scan_status', 'scan_reason', 'scan_meta',
+        'scanned_at', 'quarantined_at', 'scan_admin_reviewed',
     ];
 
     protected $appends = ['url', 'url_path', 'size_human'];
+
+    protected $casts = [
+        'scan_meta'           => 'array',
+        'scanned_at'          => 'datetime',
+        'quarantined_at'      => 'datetime',
+        'scan_admin_reviewed' => 'boolean',
+    ];
 
     const ALLOWED_TYPES = [
         'image' => ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'],
@@ -196,7 +205,7 @@ protected $fillable = [
             $storedPath = $file->storeAs($folder, $filename, $disk);
         }
 
-        return self::create([
+        $userFile = self::create([
             'user_id'       => $user->id,
             'original_name' => $file->getClientOriginalName(),
             'filename'      => $filename,
@@ -205,7 +214,27 @@ protected $fillable = [
             'type'          => $fileType,
             'disk'          => $disk,
             'path'          => $storedPath,
+            'scan_status'   => 'pending',
         ]);
+
+        // Run virus + phishing heuristics inline so the file lands in
+        // either `clean` or `flagged` before the response returns.
+        // Skipped on demand via UPLOAD_SCANNER_DISABLED for tests / CI.
+        if (!($options['skip_scan'] ?? false) && !env('UPLOAD_SCANNER_DISABLED', false)) {
+            try {
+                app(\App\Modules\User\Services\Uploads\UploadScanner::class)->scan($userFile);
+            } catch (\Throwable $e) {
+                $userFile->forceFill([
+                    'scan_status' => 'flagged',
+                    'scan_reason' => 'scan_error',
+                    'scan_meta'   => ['error' => $e->getMessage()],
+                    'scanned_at'  => now(),
+                    'quarantined_at' => now(),
+                ])->save();
+            }
+        }
+
+        return $userFile;
     }
 
     /**
@@ -449,7 +478,7 @@ protected $fillable = [
 
         Storage::disk($disk)->put($path, $bytes);
 
-        return self::create([
+        $userFile = self::create([
             'user_id'       => $user->id,
             'original_name' => $originalName,
             'filename'      => $filename,
@@ -458,6 +487,53 @@ protected $fillable = [
             'type'          => $fileType,
             'disk'          => $disk,
             'path'          => $path,
+            'scan_status'   => 'pending',
         ]);
+
+        if (!($opts['skip_scan'] ?? false) && !env('UPLOAD_SCANNER_DISABLED', false)) {
+            try {
+                app(\App\Modules\User\Services\Uploads\UploadScanner::class)->scan($userFile);
+            } catch (\Throwable $e) {
+                $userFile->forceFill([
+                    'scan_status' => 'flagged',
+                    'scan_reason' => 'scan_error',
+                    'scan_meta'   => ['error' => $e->getMessage()],
+                    'scanned_at'  => now(),
+                    'quarantined_at' => now(),
+                ])->save();
+            }
+        }
+
+        return $userFile;
+    }
+
+    /**
+     * Helpers for the scan-status badges rendered in inbox + form views,
+     * and for the "is this safe to download right now" gate enforced by
+     * UserFileController::serve.
+     */
+    public function isPendingScan(): bool { return $this->scan_status === 'pending'; }
+    public function isScanClean(): bool   { return in_array($this->scan_status, ['clean', 'skipped'], true) || $this->scan_status === null; }
+    public function isFlagged(): bool     { return $this->scan_status === 'flagged'; }
+
+    public function isHighRiskExtension(): bool
+    {
+        $ext = strtolower((string) pathinfo($this->original_name, PATHINFO_EXTENSION));
+        return \App\Modules\User\Services\Uploads\UploadScanner::isHighRisk($ext);
+    }
+
+    public function scanReasonLabel(): string
+    {
+        return \App\Modules\User\Services\Uploads\UploadScanner::reasonLabel($this->scan_reason);
+    }
+
+    /** Map a /f/{id}/{filename} URL back to the underlying record, or null. */
+    public static function fromServeUrl(?string $url): ?self
+    {
+        if (!is_string($url) || $url === '') return null;
+        if (preg_match('#/f/(\d+)/#', $url, $m)) {
+            return self::find((int) $m[1]);
+        }
+        return null;
     }
 }

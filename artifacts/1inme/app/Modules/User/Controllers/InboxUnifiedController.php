@@ -146,7 +146,27 @@ class InboxUnifiedController
         $teammates  = $this->teammates($this->workspace());
         $conversions = $thread->conversions()->orderByDesc('id')->get();
 
-        return view('user.inbox.unified.show', compact('thread', 'suggestions', 'snippets', 'teammates', 'conversions', 'assignments'));
+        // Inbox attachments — currently only form_submission threads carry
+        // uploaded files. Each entry is [field_label, url, UserFile|null] so
+        // the view can render scan-status badges and gate downloads.
+        $attachments = [];
+        if ($thread->source_type === 'form_submission') {
+            $sub = FormSubmission::withoutGlobalScope('workspace')->find($thread->source_id);
+            if ($sub && is_array($sub->files)) {
+                foreach ($sub->files as $field => $url) {
+                    $userFile = \App\Modules\User\Models\UserFile::fromServeUrl($url);
+                    $attachments[] = [
+                        'label'    => $sub->data[$field] ?? $field,
+                        'url'      => $url,
+                        'userFile' => $userFile,
+                    ];
+                }
+            }
+        }
+
+        return view('user.inbox.unified.show', compact(
+            'thread', 'suggestions', 'snippets', 'teammates', 'conversions', 'assignments', 'attachments'
+        ));
     }
 
     public function reply(Request $request, InboxThread $thread)

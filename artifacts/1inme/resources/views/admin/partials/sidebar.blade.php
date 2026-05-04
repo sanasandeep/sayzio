@@ -146,6 +146,14 @@
             <span class="sidebar-tooltip">Spam Rules</span>
         </a>
 
+        <a href="{{ route('admin.file-scan-queue.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.file-scan-queue.*') ? 'active' : '' }}"
+           style="--nav-tint:#f97316; --nav-tint-soft:rgba(249,115,22,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-shield-virus"></i></div>
+            <span class="nav-label">File Scans</span>
+            <span class="sidebar-tooltip">File Scan Queue</span>
+        </a>
+
         <a href="{{ route('admin.ai-engine.edit') }}"
            class="sidebar-link {{ request()->routeIs('admin.ai-engine.*') ? 'active' : '' }}"
            style="--nav-tint:#a855f7; --nav-tint-soft:rgba(168,85,247,0.12);">

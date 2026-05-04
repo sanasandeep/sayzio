@@ -20,6 +20,7 @@ use App\Modules\Admin\Controllers\BrandingController;
 use App\Modules\Admin\Controllers\DomainController as AdminDomainController;
 use App\Modules\Admin\Controllers\SocialOAuthSettingsController;
 use App\Modules\Admin\Controllers\SpamRuleStatsController;
+use App\Modules\Admin\Controllers\FileScanQueueController;
 use App\Modules\Admin\Controllers\BiolinkReportController as AdminBiolinkReportController;
 use App\Modules\Admin\Controllers\BannedNameController;
 use App\Modules\Admin\Controllers\BgTemplateController;
@@ -157,6 +158,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::prefix('spam-rules')->name('spam-rules.')->group(function () {
             Route::get('/', [SpamRuleStatsController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+        });
+
+        Route::prefix('file-scan-queue')->name('file-scan-queue.')->middleware(CheckPermission::class . ':settings.manage')->group(function () {
+            Route::get('/',                       [FileScanQueueController::class, 'index'])->name('index');
+            Route::post('{file}/acknowledge',     [FileScanQueueController::class, 'acknowledge'])->whereNumber('file')->name('acknowledge');
+            Route::post('{file}/rescan',          [FileScanQueueController::class, 'rescan'])->whereNumber('file')->name('rescan');
         });
 
         Route::prefix('marketing-events')->name('marketing-events.')->group(function () {

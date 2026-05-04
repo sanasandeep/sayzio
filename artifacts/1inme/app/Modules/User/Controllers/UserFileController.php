@@ -137,6 +137,26 @@ class UserFileController extends Controller
             abort(403, 'Access denied.');
         }
 
+        // Scan gate — files coming through the inbox / form-submission
+        // pipeline must clear virus + phishing checks before we serve
+        // them. Owners can still pull a flagged file with explicit
+        // ?confirm=1 (the inbox UI surfaces a warning + form); everyone
+        // else gets a hard 403.
+        if ($file->isPendingScan()) {
+            return response()->view('user.files.scan-pending', [
+                'file' => $file,
+            ], 423);
+        }
+        if ($file->isFlagged()) {
+            $isOwner = $user && (int) $user->id === $ownerId;
+            if (!$isOwner || $request->query('confirm') !== '1') {
+                return response()->view('user.files.scan-flagged', [
+                    'file'    => $file,
+                    'isOwner' => $isOwner,
+                ], 451);
+            }
+        }
+
         $disk = $file->disk;
         if ($disk === 's3') {
             return redirect(Storage::disk('s3')->temporaryUrl($file->path, now()->addMinutes(30)));

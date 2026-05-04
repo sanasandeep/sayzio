@@ -90,11 +90,64 @@
             <h4 class="text-xs font-bold uppercase tracking-wider mt-6 mb-3" style="color: var(--text-faint);">Attachments</h4>
             <div class="space-y-2">
                 @foreach($submission->files as $field => $url)
-                    <a href="{{ $url }}" target="_blank" class="flex items-center gap-3 p-3 rounded-lg" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
-                        <i class="fas fa-paperclip text-violet-400"></i>
-                        <span class="text-sm flex-1" style="color: var(--text-primary);">{{ $submission->data[$field] ?? $field }}</span>
-                        <i class="fas fa-download text-xs" style="color: var(--text-faint);"></i>
-                    </a>
+                    @php
+                        $userFile = \App\Modules\User\Models\UserFile::fromServeUrl($url);
+                        $status   = $userFile?->scan_status ?? 'clean';
+                        $reason   = $userFile?->scanReasonLabel();
+                        $highRisk = $userFile?->isHighRiskExtension() ?? false;
+                        $href     = $url;
+                        if ($userFile && $userFile->isFlagged()) {
+                            $href = $userFile->url_path . '?confirm=1';
+                        }
+                        $disabled = $userFile && $userFile->isPendingScan();
+                    @endphp
+                    <div class="p-3 rounded-lg" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                        <div class="flex items-center gap-3">
+                            <i class="fas fa-paperclip text-violet-400"></i>
+                            <span class="text-sm flex-1 min-w-0 truncate" style="color: var(--text-primary);">{{ $submission->data[$field] ?? $field }}</span>
+
+                            @if($disabled)
+                                <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded inline-flex items-center gap-1"
+                                      style="background: rgba(56,189,248,0.15); color: #38bdf8;">
+                                    <i class="fas fa-shield-virus fa-spin"></i>Scanning…
+                                </span>
+                            @elseif($status === 'flagged')
+                                <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded inline-flex items-center gap-1"
+                                      style="background: rgba(239,68,68,0.15); color: #f87171;">
+                                    <i class="fas fa-shield-exclamation"></i>Quarantined
+                                </span>
+                            @else
+                                <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded inline-flex items-center gap-1"
+                                      style="background: rgba(16,185,129,0.12); color: #34d399;">
+                                    <i class="fas fa-shield-check"></i>Clean
+                                </span>
+                            @endif
+
+                            @if($disabled)
+                                <span class="px-2 py-1 rounded text-[11px]" style="background: rgba(0,0,0,0.2); color: var(--text-faint);">
+                                    <i class="fas fa-clock"></i>
+                                </span>
+                            @elseif($status === 'flagged')
+                                <a href="{{ $userFile->url_path }}"
+                                   onclick="return confirm({{ $highRisk ? "'This file type can run code on your computer. Continue with download warning?'" : "'This attachment was flagged. View the warning page?'" }});"
+                                   class="px-2 py-1 rounded text-[11px] font-semibold text-white"
+                                   style="background: linear-gradient(135deg,#ef4444,#b91c1c);">
+                                    Review &amp; download
+                                </a>
+                            @else
+                                <a href="{{ $href }}" target="_blank" class="px-2 py-1 rounded text-[11px] text-white"
+                                   style="background: linear-gradient(135deg,#8b5cf6,#6d28d9);">
+                                    <i class="fas fa-download mr-1"></i>Open
+                                </a>
+                            @endif
+                        </div>
+                        @if($status === 'flagged' && $reason)
+                            <div class="mt-2 text-[11px]" style="color: #fca5a5;">
+                                <i class="fas fa-circle-info mr-1"></i>{{ $reason }}
+                                @if($highRisk) · <strong class="uppercase tracking-wider">High-risk file type</strong>@endif
+                            </div>
+                        @endif
+                    </div>
                 @endforeach
             </div>
         @endif

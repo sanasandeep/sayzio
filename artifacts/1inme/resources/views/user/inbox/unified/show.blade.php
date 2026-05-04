@@ -66,6 +66,63 @@
                 @endforeach
             </div>
 
+            @if(!empty($attachments))
+                <div class="card-premium p-4">
+                    <div class="text-[10px] font-bold uppercase tracking-wider mb-3" style="color: var(--text-faint);">
+                        <i class="fas fa-paperclip mr-1"></i>Attachments ({{ count($attachments) }})
+                    </div>
+                    <div class="space-y-2">
+                        @foreach($attachments as $att)
+                            @php
+                                $uf       = $att['userFile'];
+                                $url      = $att['url'];
+                                $label    = $att['label'];
+                                $pending  = $uf && $uf->isPendingScan();
+                                $flagged  = $uf && $uf->isFlagged();
+                                $highRisk = $uf && $uf->isHighRiskExtension();
+                            @endphp
+                            <div class="p-2.5 rounded-lg" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                                <div class="flex items-center gap-2.5 flex-wrap">
+                                    <i class="fas fa-paperclip text-violet-400"></i>
+                                    <span class="text-sm flex-1 min-w-0 truncate" style="color: var(--text-primary);">{{ $label }}</span>
+
+                                    @if($pending)
+                                        <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded inline-flex items-center gap-1" style="background: rgba(56,189,248,0.15); color: #38bdf8;">
+                                            <i class="fas fa-shield-virus fa-spin"></i>Scanning…
+                                        </span>
+                                        <span class="px-2 py-1 rounded text-[11px]" style="background: rgba(0,0,0,0.2); color: var(--text-faint);" title="Download disabled until scan finishes">
+                                            <i class="fas fa-clock"></i>
+                                        </span>
+                                    @elseif($flagged)
+                                        <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded inline-flex items-center gap-1" style="background: rgba(239,68,68,0.15); color: #f87171;">
+                                            <i class="fas fa-shield-exclamation"></i>Quarantined
+                                        </span>
+                                        <a href="{{ $uf->url_path }}"
+                                           onclick="return confirm({{ $highRisk ? "'This file type can run code on your computer. Continue to the warning page?'" : "'This attachment was flagged. View the warning page?'" }});"
+                                           class="px-2 py-1 rounded text-[11px] font-semibold text-white" style="background: linear-gradient(135deg,#ef4444,#b91c1c);">
+                                            Review &amp; download
+                                        </a>
+                                    @else
+                                        <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded inline-flex items-center gap-1" style="background: rgba(16,185,129,0.12); color: #34d399;">
+                                            <i class="fas fa-shield-check"></i>Clean
+                                        </span>
+                                        <a href="{{ $url }}" target="_blank" class="px-2 py-1 rounded text-[11px] text-white" style="background: linear-gradient(135deg,#8b5cf6,#6d28d9);">
+                                            <i class="fas fa-download mr-1"></i>Open
+                                        </a>
+                                    @endif
+                                </div>
+                                @if($flagged)
+                                    <div class="mt-2 text-[11px]" style="color: #fca5a5;">
+                                        <i class="fas fa-circle-info mr-1"></i>{{ $uf->scanReasonLabel() }}
+                                        @if($highRisk) · <strong class="uppercase tracking-wider">High-risk file type</strong>@endif
+                                    </div>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
             {{-- Reply composer --}}
             @canInWorkspace('inbox.reply')
             <form method="POST" action="{{ route('user.inbox.unified.reply', $thread->id) }}" class="card-premium p-5 space-y-3">@csrf
